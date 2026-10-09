@@ -24,6 +24,8 @@ export interface SimulatorRuntimeState {
   deviceTouch: boolean | undefined;
   // CSS-px density from 'simulator/init' (see SimulatorInitMessage.dpi).
   dpi: number | undefined;
+  // Forced short-axis slot count (see SimulatorInitMessage.shortSideSlots).
+  shortSideSlots: number | undefined;
   // Parent's iframe fit scale; overlays drawn for the desktop operator divide
   // it out so they do not shrink with the preview.
   previewScale: number;
@@ -71,6 +73,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [surface, setSurface] = useState<PanelSurface>('y70');
   const [deviceTouch, setDeviceTouch] = useState<boolean | undefined>(undefined);
   const [dpi, setDpi] = useState<number | undefined>(undefined);
+  const [shortSideSlots, setShortSideSlots] = useState<number | undefined>(undefined);
   const [previewScale, setPreviewScale] = useState(1);
   const [displayBound, setDisplayBound] = useState<boolean | undefined>(undefined);
   const [layout, setLayoutLocal] = useState<PanelLayout>(SIMULATOR_FALLBACK_LAYOUT);
@@ -93,6 +96,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setSurface(data.surface);
           setDeviceTouch(data.deviceTouch);
           setDpi(data.dpi);
+          setShortSideSlots(data.shortSideSlots);
           setPreviewScale(prev => sanitizePreviewScale(data.previewScale) ?? prev);
           setDisplayBound(data.displayBound);
           setLayoutLocal(data.layout);
@@ -112,6 +116,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         }
         case 'simulator/set-grid': {
           setDpi(data.dpi);
+          setShortSideSlots(data.shortSideSlots);
           break;
         }
         case 'simulator/set-preview-scale': {
@@ -184,6 +189,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     surface,
     deviceTouch,
     dpi,
+    shortSideSlots,
     previewScale,
     displayBound,
     layoutState,

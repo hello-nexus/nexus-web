@@ -52,7 +52,9 @@ function nearestAllowedSize(
   if (allowed.includes(requested)) return requested;
   if (allowed.length === 0) return fallback;
   const target = SIZE_AREA[requested];
-  return allowed.slice().sort((a, b) => {
+  // A 4-wide widget shrinks to a square, never to the 2x4 strip of equal area.
+  const squares = requested === '4x2' || requested === '4x4' ? allowed.filter(s => s !== '2x4') : allowed;
+  return (squares.length > 0 ? squares : allowed).slice().sort((a, b) => {
     const da = Math.abs(SIZE_AREA[a] - target);
     const db = Math.abs(SIZE_AREA[b] - target);
     if (da !== db) return da - db;
@@ -69,6 +71,7 @@ function reconcileAppsAgainstRegistry(
   widgets: readonly PanelWidget[],
   surface: PanelSurface,
   deviceTouch?: boolean,
+  shortSideSlots?: number,
 ): PanelWidget[] {
   return widgets.flatMap((rawWidget): PanelWidget[] => {
     // A pre-v11 service (my.hellonexus.com against an older LAN box) still
@@ -107,9 +110,9 @@ function reconcileAppsAgainstRegistry(
       }
       return [];
     }
-    if (!appAvailableForSurface(def.meta, surface, { deviceTouch })) return [];
+    if (!appAvailableForSurface(def.meta, surface, { deviceTouch, shortSideSlots })) return [];
     const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface);
-    const allowed = sizesForSurface(def.meta, surface, deviceTouch);
+    const allowed = sizesForSurface(def.meta, surface, deviceTouch, shortSideSlots);
     const finalSize = nearestAllowedSize(surfaceSize, allowed, def.meta.defaultSize);
     if (finalSize === widget.size) return [widget];
     return [{ ...widget, size: finalSize }];
@@ -146,13 +149,14 @@ interface UsePanelLayoutResult {
 // render path runs against the real grid capacity - repairs it there. Keeping
 // normalize geometry-neutral gives the normalize/repaginate composition a
 // fixed point at any capacity (see panelEditorLayoutSync.test.ts).
-export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean): PanelLayout {
+export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean, shortSideSlots?: number): PanelLayout {
   const reconciledPages = layout.pages.map(page => ({
     ...page,
     widgets: reconcileAppsAgainstRegistry(
       page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
       surface,
       deviceTouch,
+      shortSideSlots,
     ),
   }));
 
@@ -201,6 +205,7 @@ export function usePanelLayout(
   deviceId: string,
   surface: PanelSurface,
   deviceTouch?: boolean,
+  shortSideSlots?: number,
 ): UsePanelLayoutResult {
   const { record, loaded, missing, refetch } = recordState;
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
@@ -221,12 +226,12 @@ export function usePanelLayout(
   useEffect(() => { writableRef.current = writable; });
 
   useEffect(() => {
-    setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
+    setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch, shortSideSlots));
     setHydrated(storedLayout !== null);
-  }, [storedLayout, surface, deviceTouch]);
+  }, [storedLayout, surface, deviceTouch, shortSideSlots]);
 
   const setLayout = useCallback((next: PanelLayout) => {
-    const normalized = normalizePanelLayout(next, surface, deviceTouch);
+    const normalized = normalizePanelLayout(next, surface, deviceTouch, shortSideSlots);
     setLayoutState(normalized);
     if (!writableRef.current) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
@@ -244,11 +249,11 @@ export function usePanelLayout(
           // stored copy so the refused edit stops re-patching.
           setSaveForbidden(true);
           setLayoutState(normalizePanelLayout(
-            storedRef.current ?? defaultLayoutForSurface(surface), surface, deviceTouch));
+            storedRef.current ?? defaultLayoutForSurface(surface), surface, deviceTouch, shortSideSlots));
         }
       });
     }, 250);
-  }, [deviceId, surface, deviceTouch, refetch]);
+  }, [deviceId, surface, deviceTouch, shortSideSlots, refetch]);
 
   useEffect(() => {
     if (!saveForbidden) return undefined;

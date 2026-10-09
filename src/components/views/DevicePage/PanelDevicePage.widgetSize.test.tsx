@@ -72,7 +72,9 @@ vi.mock('../../../panel/widgets/registry', () => ({
     Widget: () => <div data-testid="widget-preview" />,
     Settings: undefined,
   }),
-  sizesForSurface: (_meta: unknown, surface: string) => (surface === 'q60' ? ['2x4'] : ['2x2', '4x4']),
+  sizesForSurface: (_meta: unknown, surface: string, _touch?: boolean, slots?: number) => (
+    slots !== undefined ? ['2x2', '2x4'] : surface === 'q60' ? ['2x4'] : ['2x2', '4x4']
+  ),
   appAvailableForSurface: () => true,
 }));
 vi.mock('./PanelEmbedFrame', () => ({
@@ -177,5 +179,31 @@ describe('PanelDevicePage widget size', () => {
 
     expect(screen.getByTestId('embed').dataset.pageCount).toBe('1');
     expect(patches().every(p => (p.layout?.pages.length ?? 1) === 1)).toBe(true);
+  });
+
+  it('on the Lian Li 8.8, large snaps 4-wide widgets and names the ones the single 2x8 page cannot hold', async () => {
+    const screen88 = {
+      capabilities: { surface: 'monitor', family: 'lianli-screen88', cssWidth: 480, cssHeight: 1920, dpr: 1, dpi: 225, touch: false },
+      layout: layout([
+        widget('a', 'clock', 0, 0), widget('b', 'weather', 2, 0), widget('c', 'media', 0, 2),
+        widget('d', 'monitoring', 2, 2), widget('e', 'stocks', 0, 4, '4x4'),
+      ]),
+    };
+    await renderPage(screen88);
+
+    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+
+    expect(screen.getByText('devices.panels.widgetSize.confirmTitle')).toBeInTheDocument();
+    expect(screen.getByText('name.stocks')).toBeInTheDocument();
+    expect(screen.queryByText('name.weather')).not.toBeInTheDocument();
+
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.panels.widgetSize.confirm' })); });
+
+    await waitFor(() => expect(patches()).toHaveLength(1));
+    const written = patches()[0].layout?.pages.flatMap(p => p.widgets) ?? [];
+    expect(patches()[0].widgetSize).toBe('large');
+    expect(written.map(w => w.type)).toEqual(['clock', 'weather', 'media', 'monitoring']);
+    expect(written.every(w => w.size === '2x2' && w.col === 0)).toBe(true);
+    expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
   });
 });

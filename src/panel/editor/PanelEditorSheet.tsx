@@ -39,6 +39,7 @@ export function PanelEditorSheet({
   surface,
   deviceId,
   deviceTouch,
+  shortSideSlots,
   touchPanelChrome = false,
   editingWidget,
   immersiveOnLoadAvailable = false,
@@ -110,6 +111,8 @@ export function PanelEditorSheet({
   deviceId?: string;
   // Per-device touch capability (promoted monitors) for catalog/size gating.
   deviceTouch?: boolean;
+  // Forced short-axis slot count of the panel's grid, for size gating.
+  shortSideSlots?: number;
   // Touch-driven host display (usesTouchPanelChrome): the sheet scales with
   // the panel content like the Y70 instead of desktop-size chrome.
   touchPanelChrome?: boolean;
@@ -210,7 +213,7 @@ export function PanelEditorSheet({
   const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
-  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch) : [];
+  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch, shortSideSlots) : [];
   const slotLayoutOptions = editingWidget && isMonitoringWidget ? slotLayoutOptionsForSize(editingWidget.size) : [];
   const slotLayout = editingWidget && isMonitoringWidget
     ? resolvedSlotLayout(editingWidget.size, editingWidget.config)
@@ -345,6 +348,7 @@ export function PanelEditorSheet({
           <PanelWidgetCatalog
             surface={surface}
             deviceTouch={deviceTouch}
+            shortSideSlots={shortSideSlots}
             onAdd={onAdd}
             canAddSize={canAddSize}
             placedTypes={placedTypes}

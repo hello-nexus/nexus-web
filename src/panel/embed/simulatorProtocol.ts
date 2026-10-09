@@ -24,6 +24,8 @@ export interface SimulatorInitMessage {
   // Device physical density in CSS px (native dpi / device DPR) for grid
   // capacity math; the iframe canvas is CSS-pixel sized with DPR forced to 1.
   dpi?: number;
+  // Short-axis slot count Widget size forces on the grid (see panelShortSideSlots).
+  shortSideSlots?: number;
   // True when the record is display-bound (promoted OS monitor, displayId
   // set). The desktop see-through gate (supportsDesktopWallpaper) needs it,
   // or a 'monitor' preview never renders the wallpaper layer.
@@ -57,6 +59,7 @@ export interface SimulatorSetLayoutMessage {
 export interface SimulatorSetGridMessage {
   type: 'simulator/set-grid';
   dpi?: number;
+  shortSideSlots?: number;
 }
 
 // The parent transform-scales the whole iframe to fit its preview column, so

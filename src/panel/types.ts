@@ -144,12 +144,15 @@ export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 
 export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
 export const HYDROSHIFT2_CURVE_FAMILY = 'lianli-hydroshift2-curve';
+export const LIANLI_SCREEN88_FAMILY = 'lianli-screen88';
 
 interface PanelWidgetSizeOptions {
   default: PanelWidgetSizeMode;
   layoutSurface: Readonly<Record<PanelWidgetSizeMode, PanelSurface>>;
   // Physical px/inch of the glass, for a size laid out as a density-sized grid.
   dpi?: number;
+  // Short-axis slot count a size forces, replacing the density-derived one.
+  shortSideSlots?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
 }
 
 // The Q-series and the iCUE LINK 5" LCD share one portrait glass size: Large is the
@@ -164,7 +167,21 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'lcd-wide' && family === HYDROSHIFT2_CURVE_FAMILY) {
     return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, dpi: 379 };
   }
+  // Lian Li Universal Screen 8.8: Large halves the short-axis slots so each cell doubles.
+  if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
+    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
+  }
   return undefined;
+}
+
+// The short-axis slot count a panel's Widget size forces, if any.
+export function panelShortSideSlots(
+  surface: PanelSurface,
+  family: string | null | undefined,
+  widgetSize: string | null | undefined,
+): number | undefined {
+  const mode = resolvePanelWidgetSize(surface, family, widgetSize);
+  return mode ? panelWidgetSizeOptions(surface, family)?.shortSideSlots?.[mode] : undefined;
 }
 
 // Density for a panel's grid: the record's own, else the glass's when Widget size

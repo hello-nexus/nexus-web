@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-  isStreamedPanelSurface, panelLayoutDpi, panelLayoutSurface, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  isStreamedPanelSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
   surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
@@ -84,6 +84,15 @@ describe('Widget size', () => {
     expect(panelLayoutDpi('monitor', 'icue-link-lcd5', 'small', 294, surfaceDpi)).toBe(294);
     // Other wide cooler glass keeps its one tile.
     expect(panelWidgetSizeOptions('lcd-wide', undefined)).toBeUndefined();
+  });
+
+  it('halves the Lian Li 8.8 short-axis slots when large and changes nothing when small', () => {
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'large')).toBe(2);
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'small')).toBeUndefined();
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', null)).toBeUndefined();
+    expect(panelLayoutSurface('monitor', 'lianli-screen88', 'large')).toBe('monitor');
+    expect(panelShortSideSlots('monitor', 'icue-link-lcd5', 'large')).toBeUndefined();
+    expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });
 
   it('is not offered elsewhere, whatever a record carries', () => {

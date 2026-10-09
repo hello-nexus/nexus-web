@@ -24,7 +24,7 @@ import { appendWidget, swapSingleWidget } from '../../../panel/engine/panelLayou
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import {
-  isSingleWidgetSurface, panelLayoutDpi, panelLayoutSurface, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsTouch,
+  isSingleWidgetSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsTouch,
   type PanelLayout, type PanelPage, type PanelSurface, type PanelWidget, type PanelWidgetSize,
 } from '../../../panel/types';
 import { appAvailableForSurface, pickerSizeFor, sizesForSurface } from '../../../panel/widgets/registry';
@@ -92,10 +92,10 @@ export function dashboardColumnsForWidth(width: number): number {
   return desktopAutoArrangeColumns(width, panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT) * DESKTOP_GRID_REFERENCE_CELL);
 }
 
-export function placementSize(meta: AppMeta, surface: PanelSurface, deviceTouch?: boolean): PanelWidgetSize | null {
-  const sizes = sizesForSurface(meta, surface, deviceTouch);
+export function placementSize(meta: AppMeta, surface: PanelSurface, deviceTouch?: boolean, shortSideSlots?: number): PanelWidgetSize | null {
+  const sizes = sizesForSurface(meta, surface, deviceTouch, shortSideSlots);
   if (sizes.length === 0) return null;
-  return sizes.includes(meta.defaultSize) ? meta.defaultSize : pickerSizeFor(meta, surface, deviceTouch);
+  return sizes.includes(meta.defaultSize) ? meta.defaultSize : pickerSizeFor(meta, surface, deviceTouch, shortSideSlots);
 }
 
 function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boolean | undefined {
@@ -103,10 +103,14 @@ function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boo
 }
 
 // The surface the panel lays out as once its record is known, with the glass's own input.
-function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean } {
+function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean; shortSideSlots?: number } {
   const touch = deviceTouchOf(target, record);
   const surface = panelLayoutSurface(target.surface, record?.capabilities?.family, record?.widgetSize);
-  return { surface, deviceTouch: surface === target.surface ? touch : surfaceSupportsTouch(target.surface, touch) };
+  return {
+    surface,
+    deviceTouch: surface === target.surface ? touch : surfaceSupportsTouch(target.surface, touch),
+    shortSideSlots: panelShortSideSlots(target.surface, record?.capabilities?.family, record?.widgetSize),
+  };
 }
 
 function screenOf(target: PlacementTarget, record?: PanelDeviceRecord): { width: number; height: number; dpr: number } | undefined {
@@ -117,7 +121,7 @@ function screenOf(target: PlacementTarget, record?: PanelDeviceRecord): { width:
 
 // Mirrors PanelDevicePage's editor grid; the runtime re-fits any drift on render.
 function panelCapacity(target: PlacementTarget, record?: PanelDeviceRecord): PaginateCapacity {
-  const { surface } = layoutOf(target, record);
+  const { surface, shortSideSlots } = layoutOf(target, record);
   const single = singleWidgetSurfaceSize(surface);
   if (single) {
     const span = sizeToSpan(single);
@@ -133,6 +137,7 @@ function panelCapacity(target: PlacementTarget, record?: PanelDeviceRecord): Pag
         dpi: panelLayoutDpi(target.surface, record?.capabilities?.family, record?.widgetSize, record?.capabilities?.dpi, DEFAULT_SURFACE_DPI)
           ?? target.screenDpi ?? DEFAULT_SURFACE_DPI[target.surface],
         sizing: getPanelGridSizingSettings(),
+        shortSideSlots,
         paddingRatio: panelWidgetPaddingRatio(normalizePanelWidgetPadding(record?.widgetPadding)),
       },
     );
@@ -151,9 +156,9 @@ export function planPlacement(
   dashboardColumns: number,
 ): PlacementPlan | null {
   const { layout, record } = loaded;
-  const { surface, deviceTouch } = layoutOf(target, record);
-  if (!appAvailableForSurface(meta, surface, { deviceTouch })) return null;
-  const size = placementSize(meta, surface, deviceTouch);
+  const { surface, deviceTouch, shortSideSlots } = layoutOf(target, record);
+  if (!appAvailableForSurface(meta, surface, { deviceTouch, shortSideSlots })) return null;
+  const size = placementSize(meta, surface, deviceTouch, shortSideSlots);
   if (!size) return null;
   if (meta.singleInstance && layout.pages.some(p => p.widgets.some(w => w.type === type))) return null;
   const screen = screenOf(target, record);
@@ -208,6 +213,7 @@ export async function loadTarget(target: PlacementTarget): Promise<LoadedTarget 
     record?.layout ?? defaultLayoutForSurface(laidOut.surface),
     laidOut.surface,
     laidOut.deviceTouch,
+    laidOut.shortSideSlots,
   );
   return { layout, record };
 }

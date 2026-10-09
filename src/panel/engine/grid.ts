@@ -125,6 +125,7 @@ export function panelGridCapacityForCanvas(
     surface = 'y70',
     dpi,
     sizing,
+    shortSideSlots,
     columns,
     rows,
     gap = PANEL_GRID_GAP,
@@ -134,6 +135,8 @@ export function panelGridCapacityForCanvas(
     surface?: PanelSurface;
     dpi?: number;
     sizing?: PanelGridSizing;
+    // Overrides the density-derived short-axis slot count (portrait columns, landscape rows).
+    shortSideSlots?: number;
     columns?: number;
     rows?: number;
     gap?: number;
@@ -152,7 +155,7 @@ export function panelGridCapacityForCanvas(
   // isPhoneLandscape below.
   const y70Landscape = surface === 'y70' && width > height
     && columns === undefined && rows === undefined;
-  const shortAxisSlots = columnsForPhysicalSize(width, height, dpi, sizing);
+  const shortAxisSlots = shortSideSlots ?? columnsForPhysicalSize(width, height, dpi, sizing);
   // A single-widget surface's grid IS its one tile: deriving it from the tile's
   // span makes the widget fill the glass on any such surface. This reproduces the
   // Q-series 2x4 exactly and gives the round Kraken glass its 2x2.

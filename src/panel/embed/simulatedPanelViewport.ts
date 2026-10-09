@@ -73,12 +73,14 @@ export function simulatedPanelEditorCapacity(
   nativeHeight: number,
   nativeDpi?: number,
   paddingRatio?: number,
+  shortSideSlots?: number,
 ): PaginateCapacity {
   const viewport = simulatedPanelCssViewport(surface, nativeWidth, nativeHeight, nativeDpi);
   const capacity = panelGridCapacityForCanvas(viewport.cssWidth, viewport.cssHeight, {
     surface,
     dpi: viewport.cssDpi,
     sizing: getPanelGridSizingSettings(),
+    shortSideSlots,
     paddingRatio,
   });
   return { gridCols: capacity.columns, pageRows: capacity.rows };

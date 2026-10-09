@@ -76,6 +76,8 @@ interface PanelEmbedFrameProps {
   // runtime (which measures physical px against the native dpi). Absent for
   // surfaces whose density the runtime already estimates correctly.
   gridDpi?: number;
+  // Short-axis slot count Widget size forces on the grid, forwarded with the density.
+  shortSideSlots?: number;
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
@@ -220,6 +222,7 @@ export function PanelEmbedFrame({
   canvasDpi,
   canvasIsCssPixels,
   gridDpi,
+  shortSideSlots,
   brightness,
   screenOn,
   showPanel,
@@ -354,6 +357,7 @@ export function PanelEmbedFrame({
       deviceTouch,
       displayBound,
       dpi: effectiveGridDpi,
+      shortSideSlots,
       layout,
       theme,
       themeMode,
@@ -400,8 +404,8 @@ export function PanelEmbedFrame({
   // fetch races the iframe boot), so mirror it like the other props.
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi });
-  }, [childReady, effectiveGridDpi, post]);
+    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi, shortSideSlots });
+  }, [childReady, effectiveGridDpi, shortSideSlots, post]);
 
   // Touch capability can resolve after init the same way (record fetch),
   // so mirror it too - the preview's drag sensor gates on it.

@@ -102,7 +102,7 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, surfaceAllowsPages, surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -207,6 +207,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       // Touch and density belong to the glass, whichever surface it lays out as.
       touch: relaid ? surfaceSupportsTouch(glassSurface, caps?.touch) : caps?.touch,
       dpi: panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI),
+      shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize),
       displayBound: !!record?.displayId,
     };
   }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, record?.widgetSize, record?.displayId]);
@@ -295,6 +296,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       glassSurface={resolved.glassSurface}
       deviceTouch={resolved.touch}
       deviceDpi={resolved.dpi}
+      shortSideSlots={resolved.shortSideSlots}
       displayBound={resolved.displayBound}
     />
   );
@@ -325,8 +327,8 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
   );
 }
 
-function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; displayBound?: boolean }) {
-  const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch);
+function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; displayBound?: boolean }) {
+  const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch, shortSideSlots);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
@@ -334,7 +336,7 @@ function PanelKioskContent({ recordState, deviceId, surface, glassSurface, devic
     >
       <PanelDisplayBoundProvider value={!!displayBound}>
         <PanelGlassSurfaceProvider value={glassSurface}>
-          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
+          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} displayBound={displayBound} layoutState={layoutState} />
         </PanelGlassSurfaceProvider>
       </PanelDisplayBoundProvider>
     </ErrorBoundary>
@@ -348,6 +350,7 @@ export function PanelContent({
   deviceId,
   deviceTouch,
   deviceDpi,
+  shortSideSlots,
   displayBound = false,
   layoutState,
   embedded = false,
@@ -374,6 +377,8 @@ export function PanelContent({
   // Per-device physical density (capabilities.dpi, curated known displays).
   // Undefined falls back to the per-surface estimate in the grid math.
   deviceDpi?: number;
+  // Short-axis slot count Widget size forces on the grid.
+  shortSideSlots?: number;
   // True when the record is display-bound (promoted OS monitor, displayId
   // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
   // the desktop see-through gate.
@@ -590,7 +595,7 @@ export function PanelContent({
   // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
-  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio);
+  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots);
   const desktopEmbedded = embedded && surface === 'desktop';
   // Whole cells the dashboard shows; null until measured and off the desktop.
   const fitColumns = useDesktopFitColumns(rootRef, desktopEmbedded, runtimeGrid.gap);
@@ -909,7 +914,7 @@ export function PanelContent({
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
-          return appAvailableForSurface(def.meta, surface, { deviceTouch });
+          return appAvailableForSurface(def.meta, surface, { deviceTouch, shortSideSlots });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -920,7 +925,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, surface, glassSurface, deviceTouch, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, surface, glassSurface, deviceTouch, shortSideSlots, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2036,7 +2041,7 @@ export function PanelContent({
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
-            sizes={sizesForSurface(def.meta, surface, deviceTouch)}
+            sizes={sizesForSurface(def.meta, surface, deviceTouch, shortSideSlots)}
             hasConfig
             surface={surface}
             themeMode={resolvedThemeMode}
@@ -2123,6 +2128,7 @@ export function PanelContent({
           surface={surface}
           deviceId={deviceId}
           deviceTouch={deviceTouch}
+          shortSideSlots={shortSideSlots}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           immersiveOnLoadAvailable={editingImmersiveOnLoadAvailable}

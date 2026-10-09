@@ -64,7 +64,7 @@ type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 // bypass the curation so every installed widget is browseable for testing.
 export function catalogEntriesFor(
   surface: PanelSurface,
-  opts: { remote?: boolean; deviceTouch?: boolean } = {},
+  opts: { remote?: boolean; deviceTouch?: boolean; shortSideSlots?: number } = {},
 ): CatalogEntry[] {
   return getCatalogEntries().filter(([, def]) => {
     if (!appAvailableForSurface(def.meta, surface, opts)) return false;
@@ -128,6 +128,8 @@ export interface PanelWidgetCatalogProps {
   // Per-device touch capability (promoted monitors): touch-requiring widgets
   // are listed only when the device's display actually has a digitizer.
   deviceTouch?: boolean;
+  // Forced short-axis slot count of the target grid, which narrows the offered sizes.
+  shortSideSlots?: number;
 }
 
 export function PanelWidgetCatalog({
@@ -145,6 +147,7 @@ export function PanelWidgetCatalog({
   selectedWidgetType,
   playlist,
   deviceTouch,
+  shortSideSlots,
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -180,7 +183,7 @@ export function PanelWidgetCatalog({
 
   // Already-placed instances always render via lookupApp; listed apps
   // co-mingle in one grid - no separate section.
-  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch });
+  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch, shortSideSlots });
   const playlistOrder = playlist
     ? playlistDisplayOrder(playlist.order, catalogEntries.map(([type]) => type))
     : null;
@@ -263,10 +266,10 @@ export function PanelWidgetCatalog({
   // widget supports it on this surface, else the widget's own picker size
   // (sole-size widgets and single-widget surfaces keep their shape).
   const pickSize = (meta: CatalogEntry[1]['meta']): PanelWidgetSize => {
-    if (sizesForSurface(meta, surface, deviceTouch).includes(preferredSize)) {
+    if (sizesForSurface(meta, surface, deviceTouch, shortSideSlots).includes(preferredSize)) {
       return preferredSize;
     }
-    return pickerSizeFor(meta, surface, deviceTouch);
+    return pickerSizeFor(meta, surface, deviceTouch, shortSideSlots);
   };
 
   const packEntries = (items: CatalogEntry[]): PanelWidget[] => {

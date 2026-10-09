@@ -134,14 +134,15 @@ export function useRuntimePanelGrid(
   // Widget-padding ratio (panelWidgetPaddingRatio of the theme setting).
   // Defaults to 0 for callers that don't have a theme in scope.
   widgetPaddingRatio = 0,
+  shortSideSlots?: number,
 ): PanelGridCapacity {
   // Initialise from the surface without touching `rootRef` (no ref reads
   // during render). The effect below re-reads with the mounted root on first
   // paint.
-  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator, deviceDpi, widgetPaddingRatio));
+  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots));
 
   useEffect(() => {
-    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator, deviceDpi, widgetPaddingRatio));
+    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots));
     update();
     const observed = rootRef?.current ?? null;
     const observer = observed && typeof ResizeObserver !== 'undefined'
@@ -159,7 +160,7 @@ export function useRuntimePanelGrid(
       window.removeEventListener(PANEL_SIMULATION_CHANGED_EVENT, update);
       observer?.disconnect();
     };
-  }, [surface, rootRef, simulator, deviceDpi, widgetPaddingRatio]);
+  }, [surface, rootRef, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots]);
 
   return metrics;
 }
@@ -175,12 +176,14 @@ export function readRuntimePanelGrid(
   simulator = false,
   deviceDpi?: number,
   widgetPaddingRatio = 0,
+  shortSideSlots?: number,
 ): PanelGridCapacity {
   if (typeof window === 'undefined') {
     return panelGridCapacityForCanvas(682, 2560, {
       surface,
       dpi: deviceDpi ?? DEFAULT_SURFACE_DPI[surface],
       sizing: getPanelGridSizingSettings(),
+      shortSideSlots,
       paddingRatio: widgetPaddingRatio,
     });
   }
@@ -224,6 +227,7 @@ export function readRuntimePanelGrid(
     surface,
     dpi: deviceDpi ?? estimateRuntimePanelDpi(surface),
     sizing: getPanelGridSizingSettings(),
+    shortSideSlots,
     paddingRatio: widgetPaddingRatio,
   });
   // Column/row counts are decided in physical px (density), but every length

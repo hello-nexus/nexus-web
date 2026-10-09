@@ -316,3 +316,37 @@ export function flattenPages(pages: PanelPage[]): PanelWidget[] {
     }),
   );
 }
+
+/**
+ * Fits every widget onto one page of the given grid: a widget keeps its cell
+ * when it sits inside the grid clear of the others, else takes the first free
+ * rect, else is dropped. Returns the input when it already fits one page.
+ */
+export function fitLayoutToSinglePage(
+  layout: PanelLayout,
+  capacity: PaginateCapacity,
+): { layout: PanelLayout; dropped: PanelWidget[] } {
+  const cols = Math.max(1, Math.floor(capacity.gridCols));
+  const rows = Math.max(1, Math.floor(capacity.pageRows));
+  const all = layout.pages.flatMap(p => p.widgets);
+  if (layout.pages.length === 1 && pageFitsGrid(all, cols, rows)) return { layout, dropped: [] };
+  const placed: PanelWidget[] = [];
+  const dropped: PanelWidget[] = [];
+  for (const w of flattenPages(layout.pages)) {
+    const rect = widgetRect(w, cols);
+    const inside = rect.col >= 0 && rect.row >= 0
+      && rect.col + rect.colSpan <= cols && rect.row + rect.rowSpan <= rows;
+    if (inside && !placed.some(o => rectsOverlap(widgetRect(o, cols), rect))) {
+      placed.push(w);
+      continue;
+    }
+    const slot = firstFreeRect(placed, cols, rows, rect.colSpan, rect.rowSpan);
+    if (slot) placed.push({ ...w, col: slot.col, row: slot.row });
+    else dropped.push(w);
+  }
+  const first = layout.pages[0];
+  return {
+    layout: { ...layout, activePageId: first?.id, pages: [{ id: first?.id ?? '', widgets: placed }] },
+    dropped,
+  };
+}

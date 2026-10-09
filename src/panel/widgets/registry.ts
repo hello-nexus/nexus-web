@@ -12,6 +12,7 @@ import {
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
 import type { AppManifest } from './types';
+import { sizeToSpan } from '../engine/grid';
 import {
   PANEL_SURFACES,
   SINGLE_WIDGET_SIZES,
@@ -106,7 +107,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
-  opts?: { remote?: boolean; deviceTouch?: boolean },
+  opts?: { remote?: boolean; deviceTouch?: boolean; shortSideSlots?: number },
 ): boolean {
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
   if (meta.surfaces && !meta.surfaces.includes(surface)) return false;
@@ -127,6 +128,7 @@ export function appAvailableForSurface(
   if (single !== undefined) {
     return meta.sizes.includes(single);
   }
+  if (opts?.shortSideSlots !== undefined) return sizesForSlots(meta, opts.shortSideSlots).length > 0;
   return meta.sizes.some(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
@@ -259,7 +261,7 @@ function makeMarketplaceAppManifest(
 // offer only an app's grid sizes when it declares them.
 // The reconciler snaps existing widgets at a hidden size to the nearest
 // non-reserved size on load.
-export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize[] {
+export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean, shortSideSlots?: number): PanelWidgetSize[] {
   if (!surface) return [...meta.sizes];
   if (meta.touch && !surfaceSupportsTouch(surface, deviceTouch)) return [];
   if (meta.panelOnly && surface === 'desktop') return [];
@@ -267,7 +269,17 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
   if (single !== undefined) {
     return meta.sizes.includes(single) ? [single] : [];
   }
+  if (shortSideSlots !== undefined) return sizesForSlots(meta, shortSideSlots);
   return (meta.gridSizes ?? meta.sizes).filter(s => !SINGLE_WIDGET_SIZES.has(s));
+}
+
+// A grid with a reduced short axis offers only sizes that fit its width, and the
+// 2x4 strip that other multi-widget grids reserve for single-widget panels.
+function sizesForSlots(meta: AppManifest['meta'], shortSideSlots: number): PanelWidgetSize[] {
+  const base = meta.gridSizes ?? meta.sizes;
+  return meta.sizes.filter(s => s !== '2x2round'
+    && sizeToSpan(s).cols <= shortSideSlots
+    && (base.includes(s) || s === '2x4'));
 }
 
 // Fallback size for the add-widget picker (preview + insertion size), used
@@ -276,8 +288,8 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
 // back to a widget's sole supported size (4x4 / 2x2 / 1x1). Single-widget
 // surfaces (Q60, locked to 2x4) short-circuit: `sizesForSurface` already
 // collapsed to the one allowed size.
-export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize {
-  const sizes = sizesForSurface(meta, surface, deviceTouch);
+export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean, shortSideSlots?: number): PanelWidgetSize {
+  const sizes = sizesForSurface(meta, surface, deviceTouch, shortSideSlots);
   if (surface && singleWidgetSurfaceSize(surface) && sizes.length > 0) {
     return sizes[0];
   }
@@ -287,6 +299,7 @@ export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface,
   // this; prefer the larger as a defensive default.
   if (sizes.includes('4x4')) return '4x4';
   if (sizes.includes('2x2')) return '2x2';
+  if (shortSideSlots !== undefined && sizes.length > 0 && !sizes.includes(meta.defaultSize)) return sizes[0];
   return meta.defaultSize;
 }
 
