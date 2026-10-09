@@ -1,0 +1,32 @@
+.stackList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stackRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.stackRowActive {
+  background: var(--bg-card-hover);
+}
+
+.stackPick {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

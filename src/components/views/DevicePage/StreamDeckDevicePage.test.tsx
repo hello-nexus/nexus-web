@@ -74,11 +74,19 @@ vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   slotForPickerKind: (_kind: string, base: object = {}) => base,
 }));
 
+vi.mock('../../../panel/widgets/deck/DeckDialInspector', () => ({
+  DeckDialInspector: ({ selectedDial, part }: { selectedDial: number | null; part: string }) => (
+    <div data-testid={`deck-dial-inspector-${part}`}>{String(selectedDial)}</div>
+  ),
+  DeckDialDragPreview: () => null,
+}));
+
 vi.mock('./ElgatoImportModal', () => ({
   ElgatoImportModal: () => null,
 }));
 
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
+import { requestOpenDeckEditor, takePendingDeckEditorTarget } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 
 function makeUnifiedDevice(over: Partial<UnifiedDevice> = {}): UnifiedDevice {
@@ -123,6 +131,7 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
 function fakeTarget(): DeckTarget {
   return {
     kind: 'physical', cols: 3, rows: 2, keyCount: 6, config: { pages: [{ slots: [] }] },
+    dialCount: 0, updateDial: vi.fn(), swapDials: vi.fn(),
     updateSlot: vi.fn(), swapSlots: vi.fn(), addPage: vi.fn(), removePage: vi.fn(), removePageKeyCount: vi.fn(), setTitleDefault: vi.fn(),
     authoredPageCount: 1,
   };
@@ -137,6 +146,7 @@ const mockSetBrightness = vi.fn();
 const mockSetOrientation = vi.fn();
 const mockSetSleepAfterSeconds = vi.fn();
 const mockSetSleepWhenLocked = vi.fn();
+const mockSetInfoScreen = vi.fn();
 const mockRefresh = vi.fn();
 const mockControlDevice = vi.fn();
 const mockActivate = vi.fn();
@@ -179,6 +189,7 @@ function decksReturn(decks: StreamDeckSummary[], loaded = true) {
     decks, loaded, rename: mockRename, setBrightness: mockSetBrightness,
     setOrientation: mockSetOrientation, setSleepAfterSeconds: mockSetSleepAfterSeconds,
     setSleepWhenLocked: mockSetSleepWhenLocked,
+    setInfoScreen: mockSetInfoScreen,
     refresh: mockRefresh,
   };
 }
@@ -930,6 +941,123 @@ describe('StreamDeckDevicePage', () => {
       });
 
       expect(container.querySelector('img[src="data:image/jpeg;base64,stale"]')).toBeNull();
+    });
+  });
+
+  describe('Dials and screens', () => {
+    const PLUS = {
+      model: 'Plus', rows: 2, cols: 4, keyCount: 8, encoders: 4, dialPlacement: 'below' as const,
+      screen: { width: 800, height: 100, kind: 'touchStrip' as const }, touchKeys: 0, encoderRingLeds: 0,
+    };
+
+    function plusInstance() {
+      const target = { ...fakeTarget(), cols: 4, rows: 2, keyCount: 8, dialCount: 4 };
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ target }));
+      return target;
+    }
+
+    it('previews a Plus as keys, four strip segments and four knobs, and sizes the instance for the dials', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      const { container } = await renderPage();
+
+      expect(container.querySelectorAll('[data-deck-slot-index]')).toHaveLength(8);
+      expect(container.querySelectorAll('[data-deck-dial-index]')).toHaveLength(4);
+      expect(container.querySelectorAll('[data-deck-knob-index]')).toHaveLength(4);
+      expect(mockUseDeckInstance).toHaveBeenCalledWith('streamdeck:SN1', 'physical', { cols: 4, rows: 2, dials: 4 }, true);
+    });
+
+    it('shows no dial controls on a deck without dials', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      const { container } = await renderPage();
+
+      expect(container.querySelectorAll('[data-deck-dial-index]')).toHaveLength(0);
+      expect(container.querySelectorAll('[data-deck-knob-index]')).toHaveLength(0);
+      expect(screen.queryByTestId('deck-dial-inspector-picker')).toBeNull();
+    });
+
+    it('selecting a segment swaps the key editor for the dial editor, and a key swaps it back', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      const { container } = await renderPage();
+
+      expect(screen.getByTestId('deck-dial-inspector-picker')).toBeInTheDocument();
+      expect(screen.queryByTestId('deck-dial-inspector-editor')).toBeNull();
+
+      fireEvent.click(container.querySelector('[data-deck-dial-index="2"]')!);
+      expect(screen.getByTestId('deck-dial-inspector-editor').textContent).toBe('2');
+      expect(screen.queryByTestId('deck-key-inspector-editor')).toBeNull();
+      expect(container.querySelectorAll('[data-deck-slot-index][aria-pressed="true"]')).toHaveLength(0);
+
+      fireEvent.click(container.querySelectorAll('[data-deck-slot-index]')[1]);
+      expect(screen.queryByTestId('deck-dial-inspector-editor')).toBeNull();
+      expect(screen.getByTestId('deck-key-inspector-editor').textContent).toBe('1');
+      expect(container.querySelector('[data-deck-dial-index="2"]')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('selecting a knob selects the same dial as its segment', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      const { container } = await renderPage();
+
+      fireEvent.click(container.querySelector('[data-deck-knob-index="3"]')!);
+      expect(screen.getByTestId('deck-dial-inspector-editor').textContent).toBe('3');
+      expect(container.querySelector('[data-deck-dial-index="3"]')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('a hold-to-edit with a dial index opens on that dial', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      requestOpenDeckEditor({ serial: 'SN1', page: 0, folderPath: [], keyIndex: 0, dialIndex: 1 });
+      await renderPage();
+
+      expect(screen.getByTestId('deck-dial-inspector-editor').textContent).toBe('1');
+      expect(takePendingDeckEditorTarget('SN1')).toBeNull();
+    });
+
+    it('paints a segment from its live dial tile', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      const target = plusInstance();
+      target.config = { pages: [{ slots: [], dials: [{}, { label: 'Vol', action: { type: 'volume' } }] }] };
+      const { container } = await renderPage();
+
+      act(() => { capturedCallbacks.streamdeckTiles?.({ serial: 'SN1', page: 0, slotPath: 'dial:1', mime: 'image/jpeg', data: 'QUJD' }); });
+      expect(container.querySelector('[data-deck-dial-index="1"] img')).toHaveAttribute('src', 'data:image/jpeg;base64,QUJD');
+    });
+
+    it('previews a Studio as two knobs around the keys, with no strip', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({
+        model: 'Studio', rows: 2, cols: 16, keyCount: 32, encoders: 2, dialPlacement: 'sides', screen: null, keyWidth: 144, keyHeight: 112, encoderRingLeds: 24,
+      })]));
+      const { container } = await renderPage();
+
+      expect(container.querySelectorAll('[data-deck-knob-index]')).toHaveLength(2);
+      expect(container.querySelectorAll('[data-deck-dial-index]')).toHaveLength(0);
+    });
+
+    it('previews a Neo with its info screen and shows the info-screen mode on the Settings tab', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({
+        model: 'Neo', rows: 2, cols: 4, keyCount: 8, encoders: 0, dialPlacement: null, touchKeys: 2, screen: { width: 248, height: 58, kind: 'infoScreen' }, infoScreen: 'page',
+      })]));
+      const { container } = await renderPage();
+
+      act(() => { capturedCallbacks.streamdeckTiles?.({ serial: 'SN1', page: 0, slotPath: 'info', mime: 'image/jpeg', data: 'QUJD' }); });
+      expect(container.querySelector('img[src="data:image/jpeg;base64,QUJD"]')).not.toBeNull();
+
+      switchToSettingsTab();
+      expect(screen.getByText('devices.streamdeck.infoScreen.page')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.infoScreen' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.streamdeck.infoScreen.off' }));
+      expect(mockSetInfoScreen).toHaveBeenCalledWith('SN1', 'off');
+    });
+
+    it('offers no info-screen setting on a deck without one', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      await renderPage();
+      switchToSettingsTab();
+
+      expect(screen.queryByRole('button', { name: 'devices.streamdeck.infoScreen' })).toBeNull();
     });
   });
 });

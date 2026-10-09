@@ -71,7 +71,7 @@ function deckAuthoringLocked(surface?: PanelSurface, desktopEditor?: boolean): b
 // 'toggle'), not a nestable sub-action, so it's excluded from NESTED_KINDS the
 // same way those are - a sequence step or toggle branch fires once on press,
 // which doesn't fit a continuously-rendered sensor tile.
-const NESTED_KINDS: DeckPickerKind[] = [
+export const NESTED_KINDS: DeckPickerKind[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
   'text', 'power', 'lighting', 'cooling', 'y70', 'deckBrightness', 'deckSleep', 'playAudio',
 ];
@@ -82,7 +82,7 @@ const NESTED_KINDS: DeckPickerKind[] = [
 // sequence/toggle steps) unless the target is a physical deck.
 const PHYSICAL_ONLY_KINDS = new Set(['deckBrightness', 'deckSleep']);
 
-function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTarget['kind']): K[] {
+export function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTarget['kind']): K[] {
   return targetKind === 'physical' ? kinds : kinds.filter(k => !PHYSICAL_ONLY_KINDS.has(k));
 }
 
@@ -167,7 +167,7 @@ function categoryForKind(kind: DeckPickerKind): DeckActionCategory {
   return DECK_ACTION_CATEGORIES.find(c => c.kinds.includes(kind)) ?? DECK_ACTION_CATEGORIES[1];
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children }: { label: string; children: ReactNode }) {
   return <div className={styles.field}><SectionHeader>{label}</SectionHeader>{children}</div>;
 }
 
@@ -232,7 +232,7 @@ export function pickerKindIcon(kind: DeckPickerKind) {
   return DECK_ICONS[name] ?? Plus;
 }
 
-function useServiceOptions(path: string, map: (data: unknown) => { value: string; label: string }[]): { value: string; label: string }[] {
+export function useServiceOptions(path: string, map: (data: unknown) => { value: string; label: string }[]): { value: string; label: string }[] {
   const [opts, setOpts] = useState<{ value: string; label: string }[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -243,7 +243,7 @@ function useServiceOptions(path: string, map: (data: unknown) => { value: string
   return opts;
 }
 
-function SelectField({ label, value, options, onChange, disabled }: { label: string; value: string; options: { value: string; label: string; disabled?: boolean }[]; onChange: (v: string) => void; disabled?: boolean }) {
+export function SelectField({ label, value, options, onChange, disabled }: { label: string; value: string; options: { value: string; label: string; disabled?: boolean }[]; onChange: (v: string) => void; disabled?: boolean }) {
   return (
     <Field label={label}>
       <Select className={styles.selectWide} value={value} options={options} onChange={onChange} ariaLabel={label} disabled={disabled} />
@@ -251,7 +251,7 @@ function SelectField({ label, value, options, onChange, disabled }: { label: str
   );
 }
 
-function ActionEditor({ action, onChange, showType, allowed, surface, desktopEditor, pageCount }: {
+export function ActionEditor({ action, onChange, showType, allowed, surface, desktopEditor, pageCount }: {
   action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
@@ -604,25 +604,31 @@ function clearMonitoringFixedRange(action: MonitoringAction): MonitoringAction {
   return next;
 }
 
+/**
+ * Category + sensor option lists for a monitoring action. Hiding empty
+ * categories needs every extras-backed category's real sensor count up front,
+ * so this subscribes while mounted; FPS has no subscription (it would start
+ * ETW capture) and falls back to FPS_SENSOR_TEMPLATE, as the widget's
+ * settings pane does.
+ */
+export function useMonitoringPicker(category: DeckMonitoringCategory, sensor: string) {
+  const { t } = useTranslation();
+  const sensors = useSensors(true);
+  const extras = useSensorExtras(true);
+  const networkSensors = buildNicNetworkSensors(extras.nics);
+  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, category, sensors, networkSensors, extras)
+    .map(c => ({ value: c, label: t(CATEGORY_LABEL_KEYS[c]) }));
+  const sensorOptions = sensorsForDevice(sensors, networkSensors, extras, category);
+  const sensorValue = selectedSensorValue(sensorOptions, sensor);
+  const activeSensor = resolveMonitoringSensor(sensors, category, sensorValue, [], networkSensors, extras);
+  return { categoryOptions, sensorOptions, sensorValue, activeSensor };
+}
+
 function MonitoringFields({ action, onChange, surface, desktopEditor }: {
   action: MonitoringAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
 }) {
   const { t } = useTranslation();
-  const sensors = useSensors(true);
-  // Hiding empty categories (visibleDeviceKeys below) needs every
-  // extras-backed category's real sensor count up front, not just the
-  // selected one - so the inspector subscribes while open, matching
-  // MonitoringSettings' own always-on subscription. It is transient, mounted
-  // only while a key is being edited. FPS deliberately has no subscription
-  // (it would start ETW capture): the picker falls back to
-  // FPS_SENSOR_TEMPLATE, again as the widget's settings pane does.
-  const extras = useSensorExtras(true);
-  const networkSensors = buildNicNetworkSensors(extras.nics);
-  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, action.category, sensors, networkSensors, extras)
-    .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }));
-  const sensorOptions = sensorsForDevice(sensors, networkSensors, extras, action.category);
-  const sensorValue = selectedSensorValue(sensorOptions, action.sensor);
-  const activeSensor = resolveMonitoringSensor(sensors, action.category, sensorValue, [], networkSensors, extras);
+  const { categoryOptions, sensorOptions, sensorValue, activeSensor } = useMonitoringPicker(action.category, action.sensor);
 
   // action.sensor starts '' (defaultActionFor has no live sensor data to pick
   // from) and must self-heal off a stale id after a category swap too - seed
@@ -1197,7 +1203,7 @@ function TitleFields({
 }
 
 /** Shared color-swatch row: an "Auto" chip (unsets the field) plus DECK_SWATCHES. */
-function SwatchRow({ label, value, onChange, disabled = false, allowTransparent = false }: {
+export function SwatchRow({ label, value, onChange, disabled = false, allowTransparent = false }: {
   // Omit when the row is the sole control in an already-titled section (e.g.
   // the monitoring background swatch) so the label isn't repeated verbatim.
   label?: string; value: string | undefined; onChange: (color: string | undefined) => void; disabled?: boolean;

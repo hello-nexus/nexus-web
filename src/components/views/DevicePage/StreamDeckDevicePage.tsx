@@ -5,7 +5,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
-import { setStreamDeckNav } from '../../../api/streamdeck';
+import { setStreamDeckNav, type StreamDeckInfoScreen } from '../../../api/streamdeck';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
@@ -15,13 +15,16 @@ import { buildRecentAppsView, type RecentAppsViewKey } from '../../../panel/widg
 import { DeckInstanceEditor } from '../../../panel/widgets/deck/DeckInstanceEditor';
 import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
+import { DeckDevicePreview } from '../../../panel/widgets/deck/DeckDevicePreview';
+import { DeckDialInspector, DeckDialDragPreview } from '../../../panel/widgets/deck/DeckDialInspector';
+import { assignDialAction, parseDialDndId, parseDialPickId } from '../../../panel/widgets/deck/deckDials';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
 import { padSlots, pageHasContent, countBoundSlots, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
-import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
+import { resolveTargetDials, resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
 import { isLocalhostUnreachable } from '../../../api/service';
-import type { DeckSlot } from '../../../panel/widgets/deck/types';
+import type { DeckDialActionType, DeckSlot } from '../../../panel/widgets/deck/types';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Notice } from '../../common/Notice/Notice';
 import { ElgatoImportModal } from './ElgatoImportModal';
@@ -51,6 +54,7 @@ type StreamDeckTab = 'customize' | 'settings';
 
 const ORIENTATION_OPTIONS = [0, 90, 180, 270] as const;
 const SLEEP_AFTER_OPTIONS = [0, 60, 300, 600, 900, 1800] as const;
+const INFO_SCREEN_MODES: readonly StreamDeckInfoScreen[] = ['clock', 'page', 'off'];
 
 // Placeholder DeckSlot for one Recent Apps ring key, so DeckGrid's liveTiles
 // path renders the service's own key image once pushed (a slot with no
@@ -91,16 +95,20 @@ interface StreamDeckDevicePageProps {
 export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
-  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked } = useStreamDecks(true);
+  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked, setInfoScreen } = useStreamDecks(true);
   const serial = device.streamdeckSerial ?? null;
   const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState(0);
+  const [selectedSlot, setSelectedSlotState] = useState(0);
+  const [selectedDial, setSelectedDial] = useState<number | null>(null);
+  const [dialEntry, setDialEntry] = useState(0);
   const [pendingFlashSlot, setPendingFlashSlot] = useState<number | null>(null);
+  const [pendingFlashDial, setPendingFlashDial] = useState<number | null>(null);
   const previewStageRef = useRef<HTMLDivElement | null>(null);
   const [brightnessDraft, setBrightnessDraft] = useState<number | null>(null);
   const [tab, setTab] = useState<StreamDeckTab>('customize');
   const [activeDragKind, setActiveDragKind] = useState<DeckPickerKind | null>(null);
+  const [activeDragDial, setActiveDragDial] = useState<DeckDialActionType | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; count: number } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -108,9 +116,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const deck = decks.find(d => d.serial === serial) ?? null;
   useReportDeviceWaiting(!deck);
   const instanceId = serial ? `streamdeck:${serial}` : null;
-  const instanceGrid = useMemo(() => ({ cols: deck?.cols ?? 0, rows: deck?.rows ?? 0 }), [deck?.cols, deck?.rows]);
+  const instanceGrid = useMemo(() => ({ cols: deck?.cols ?? 0, rows: deck?.rows ?? 0, dials: deck?.encoders ?? 0 }), [deck?.cols, deck?.rows, deck?.encoders]);
   const instance = useDeckInstance(instanceId, 'physical', instanceGrid, tab === 'customize');
   const target = instance.target;
+
+  // Key and dial selection are mutually exclusive.
+  const setSelectedSlot = useCallback((i: number) => { setSelectedSlotState(i); setSelectedDial(null); }, []);
+  const selectDial = useCallback((i: number) => { setSelectedDial(i); setDialEntry(0); }, []);
 
   // Recent Apps has no authored preset content to render - every key comes
   // from the live ring, painted server-side and pushed over streamdeckTiles
@@ -158,9 +170,15 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     setTab('customize');
     setPage(editTarget.page);
     setFolderPath(editTarget.folderPath);
+    if (editTarget.dialIndex != null) {
+      setSelectedDial(editTarget.dialIndex);
+      setDialEntry(0);
+      setPendingFlashDial(editTarget.dialIndex);
+      return;
+    }
     setSelectedSlot(editTarget.keyIndex);
     setPendingFlashSlot(editTarget.keyIndex);
-  }, [serial]);
+  }, [serial, setSelectedSlot]);
   useEffect(() => {
     applyEditorTarget();
     return onDeckOpenEditor(applyEditorTarget);
@@ -197,6 +215,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       if (prev.get(key) === src) return prev;
       const next = new Map(prev);
       next.set(key, src);
+      if (f.slotPath === 'info') next.set('info', src);
       return next;
     });
   }, [serial]));
@@ -214,6 +233,17 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     );
   }, [pendingFlashSlot, target]);
 
+  useEffect(() => {
+    if (pendingFlashDial == null || !target) return;
+    const segment = previewStageRef.current?.querySelector<HTMLElement>(`[data-deck-dial-index="${pendingFlashDial}"]`);
+    if (!segment) return;
+    setPendingFlashDial(null);
+    segment.animate?.(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }],
+      { duration: 480, iterations: 2, easing: 'ease-in-out' },
+    );
+  }, [pendingFlashDial, target]);
+
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
 
@@ -225,7 +255,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     setPage(0);
     setFolderPath([]);
     setSelectedSlot(0);
-  }, [instance, clearLiveTiles]);
+  }, [instance, clearLiveTiles, setSelectedSlot]);
 
   // Deleting the active preset promotes the first remaining one server-side;
   // re-render from page 1 so the view shows the promoted preset rather than
@@ -239,7 +269,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       setSelectedSlot(0);
       clearLiveTiles();
     }
-  }, [instance, clearLiveTiles]);
+  }, [instance, clearLiveTiles, setSelectedSlot]);
 
   const handleUndoDeck = useCallback(() => { clearLiveTiles(); instance.undo(); }, [instance, clearLiveTiles]);
   const handleRedoDeck = useCallback(() => { clearLiveTiles(); instance.redo(); }, [instance, clearLiveTiles]);
@@ -266,7 +296,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     }
     setFolderPath(Array.isArray(f.folderPath) ? f.folderPath : []);
     setSelectedSlot(0);
-  }, [serial, recentAppsMode]));
+  }, [serial, recentAppsMode, setSelectedSlot]));
 
   // Mirror an editor-initiated nav onto the hardware (desktop -> device). Only
   // user actions call this; the `nav`-frame subscription above (device ->
@@ -274,7 +304,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const pushNav = useCallback((p: number, fp: readonly number[]) => {
     if (serial) void setStreamDeckNav(serial, p, fp);
   }, [serial]);
-  const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); pushNav(next, []); };
+  const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); setDialEntry(0); pushNav(next, []); };
   const onEnterFolder = (next: number[]) => { setFolderPath(next); setSelectedSlot(0); pushNav(page, next); };
 
   // Recent Apps has its own local page index (buildRecentAppsView's auto
@@ -320,8 +350,11 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     page,
     pageCount,
   );
+  const encoders = deck.encoders ?? 0;
+  const dialSel = selectedDial != null && selectedDial < encoders ? selectedDial : null;
+  const viewDials = target ? resolveTargetDials(target, page, folderPath) : [];
   const selSlot = clamp(selectedSlot, 0, Math.max(0, viewCount - 1));
-  const selectedBound = !!(viewSlots[selSlot]?.action || viewSlots[selSlot]?.folder);
+  const selectedBound = dialSel == null && !!(viewSlots[selSlot]?.action || viewSlots[selSlot]?.folder);
 
   // First click selects a key; clicking an already-selected folder key enters
   // it, and clicking an already-selected page-nav key (next/prev/goto)
@@ -330,7 +363,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // back is the grid's Back key.
   const onCellClick = (i: number) => {
     const slot = viewSlots[i];
-    if (i === selSlot) {
+    if (i === selSlot && dialSel == null) {
       if (slot?.folder) { onEnterFolder([...folderPath, i]); return; }
       if (slot?.action?.type === 'page') {
         const a = slot.action;
@@ -346,11 +379,27 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const onDragStart = (e: DragStartEvent) => {
     const id = String(e.active.id);
     setActiveDragKind(id.startsWith('pick:') ? (id.slice('pick:'.length) as DeckPickerKind) : null);
+    setActiveDragDial(parseDialPickId(id));
   };
+  const onDragCancel = () => { setActiveDragKind(null); setActiveDragDial(null); };
   const onDragEnd = (e: DragEndEvent) => {
-    setActiveDragKind(null);
+    onDragCancel();
     if (!target) return;
     const activeId = String(e.active.id);
+    const overDial = e.over ? parseDialDndId(String(e.over.id)) : null;
+    const pickedDial = parseDialPickId(activeId);
+    if (pickedDial) {
+      if (overDial == null || overDial >= encoders) return;
+      target.updateDial(page, folderPath, overDial, assignDialAction(viewDials[overDial] ?? {}, 0, pickedDial));
+      selectDial(overDial);
+      return;
+    }
+    const fromDial = parseDialDndId(activeId);
+    if (fromDial != null) {
+      if (overDial != null && overDial !== fromDial) target.swapDials(page, folderPath, fromDial, overDial);
+      return;
+    }
+    if (overDial != null) return;
     const to = e.over ? Number(e.over.id) : NaN;
     if (!Number.isFinite(to)) return;
     // An action dragged from the picker (`pick:<kind>`) assigns to that slot;
@@ -422,7 +471,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           // One DndContext and one split for every mode (inert in Recent Apps,
           // which has no draggables), so the right column never remounts on a
           // mode switch and the chip that committed it keeps focus.
-          <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveDragKind(null)}>
+          <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
             <div className={styles.customizeSplit}>
               {recentAppsMode ? (
                 <div className={styles.leftCol}>
@@ -462,20 +511,26 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                 <div className={styles.previewTop}>
                   <div className={styles.previewStage} ref={previewStageRef}>
                     {target && (
-                      <DeckGrid
-                        slots={viewSlots}
-                        cols={target.cols}
-                        rows={target.rows}
-                        square
-                        selectable
-                        dragEnabled
-                        selectedIndex={selSlot}
-                        onCell={onCellClick}
-                        backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
-                        onDeleteSlot={requestDelete}
-                        liveTiles={liveTiles}
-                        page={page}
-                        folderPath={folderPath}
+                      <DeckDevicePreview
+                        deck={deck}
+                        dials={viewDials}
+                        selectedDial={dialSel}
+                        onSelectDial={selectDial}
+                        grid={{
+                          slots: viewSlots,
+                          cols: target.cols,
+                          rows: target.rows,
+                          square: true,
+                          selectable: true,
+                          dragEnabled: true,
+                          selectedIndex: dialSel == null ? selSlot : -1,
+                          onCell: onCellClick,
+                          backCell: inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined,
+                          onDeleteSlot: requestDelete,
+                          liveTiles,
+                          page,
+                          folderPath,
+                        }}
                       />
                     )}
                   </div>
@@ -505,7 +560,22 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                 </div>
 
                 <div className={styles.editorPane}>
-                  {target ? (
+                  {target && dialSel != null ? (
+                    <DeckDialInspector
+                      target={target}
+                      page={page}
+                      folderPath={folderPath}
+                      selectedDial={dialSel}
+                      onSelectedDialChange={selectDial}
+                      entryIndex={dialEntry}
+                      onEntryIndexChange={setDialEntry}
+                      // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+                      surface="desktop"
+                      desktopEditor
+                      // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
+                      part="editor"
+                    />
+                  ) : target ? (
                     <DeckKeyInspector
                       target={target}
                       page={page}
@@ -553,10 +623,26 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     part="picker"
                   />
                 )}
+                {!recentAppsMode && target && encoders > 0 && (
+                  <DeckDialInspector
+                    target={target}
+                    page={page}
+                    folderPath={folderPath}
+                    selectedDial={dialSel}
+                    onSelectedDialChange={selectDial}
+                    entryIndex={dialEntry}
+                    onEntryIndexChange={setDialEntry}
+                    // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+                    surface="desktop"
+                    desktopEditor
+                    // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
+                    part="picker"
+                  />
+                )}
               </div>
             </div>
             <DragOverlay dropAnimation={null}>
-              {activeDragKind ? <DeckActionDragPreview kind={activeDragKind} /> : null}
+              {activeDragKind ? <DeckActionDragPreview kind={activeDragKind} /> : activeDragDial ? <DeckDialDragPreview type={activeDragDial} /> : null}
             </DragOverlay>
           </DndContext>
         ) : (
@@ -592,6 +678,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                 }))}
                 onChange={v => void setSleepAfterSeconds(deck.serial, Number(v))}
               />
+              {deck.screen?.kind === 'infoScreen' && (
+                <SettingSelect
+                  label={t('devices.streamdeck.infoScreen')}
+                  value={deck.infoScreen ?? 'clock'}
+                  options={INFO_SCREEN_MODES.map(mode => ({ value: mode, label: t(`devices.streamdeck.infoScreen.${mode}`) }))}
+                  onChange={v => void setInfoScreen(deck.serial, v as StreamDeckInfoScreen)}
+                />
+              )}
               <SettingToggle
                 label={t('devices.streamdeck.sleepWhenLocked')}
                 checked={deck.sleepWhenLocked ?? true}
