@@ -1216,7 +1216,6 @@
   "devices.streamdeck.infoScreen.off": "끔",
   "devices.streamdeck.infoScreen.page": "페이지 번호",
   "devices.streamdeck.model": "모델",
-  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck이 연결되지 않음",
   "devices.streamdeck.orientation": "화면 방향",
   "devices.streamdeck.orientationDegrees": "{n}°",

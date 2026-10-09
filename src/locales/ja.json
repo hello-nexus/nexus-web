@@ -1216,7 +1216,6 @@
   "devices.streamdeck.infoScreen.off": "オフ",
   "devices.streamdeck.infoScreen.page": "ページ番号",
   "devices.streamdeck.model": "モデル",
-  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck が接続されていません",
   "devices.streamdeck.orientation": "表示の向き",
   "devices.streamdeck.orientationDegrees": "{n}°",

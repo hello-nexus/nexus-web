@@ -24,7 +24,8 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
   return {
     serial: 'ABC123',
     model: 'Mini',
-    name: 'Stream Deck Mini',
+    displayName: 'Elgato Stream Deck Mini',
+    name: 'Elgato Stream Deck Mini',
     connected: true,
     verified: true,
     rows: 2,

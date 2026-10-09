@@ -308,8 +308,8 @@ export function StreamDeckSimRow() {
           options={models.map(m => ({
             value: String(m.productId),
             label: (m.encoders ?? 0) > 0
-              ? t('tools.streamdeckSim.modelOptionDials', { name: `Stream Deck ${m.name}`, count: m.keyCount, dials: m.encoders ?? 0 })
-              : t('tools.streamdeckSim.modelOption', { name: `Stream Deck ${m.name}`, count: m.keyCount }),
+              ? t('tools.streamdeckSim.modelOptionDials', { name: m.name, count: m.keyCount, dials: m.encoders ?? 0 })
+              : t('tools.streamdeckSim.modelOption', { name: m.name, count: m.keyCount }),
           }))}
           onChange={setProductId}
           disabled={connected || busy}

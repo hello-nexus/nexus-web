@@ -1216,7 +1216,6 @@
   "devices.streamdeck.infoScreen.off": "关闭",
   "devices.streamdeck.infoScreen.page": "页码",
   "devices.streamdeck.model": "型号",
-  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck 未连接",
   "devices.streamdeck.orientation": "显示方向",
   "devices.streamdeck.orientationDegrees": "{n}°",

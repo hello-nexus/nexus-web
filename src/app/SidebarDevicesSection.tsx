@@ -7,7 +7,7 @@ import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/Ne
 import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { ExperimentalEnableModal } from '../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { useToastSafe } from '../components/common/Toast/Toast';
-import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../hooks/useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, type UnifiedDevice } from '../hooks/useUnifiedDevices';
 import { useConflictGuardedEnable } from '../hooks/useConflictGuardedEnable';
 import { promoteDisplayToPanel, demoteDisplayPanel } from '../api/displays';
 import { clearSimulatedStreamDeck } from '../api/streamdeck';
@@ -98,7 +98,7 @@ export function SidebarDevicesSection({
     return unified
       .filter(d => d.navigable)
       .sort((a, b) =>
-        a.shortName.localeCompare(b.shortName, undefined, { sensitivity: 'base', numeric: true })
+        sidebarDeviceName(a).localeCompare(sidebarDeviceName(b), undefined, { sensitivity: 'base', numeric: true })
         || a.key.localeCompare(b.key));
   }, [unified]);
 
@@ -173,9 +173,10 @@ export function SidebarDevicesSection({
         sorted.map(device => {
           const isActive = device.key === activeDeviceKey;
           const isSimulated = isSimulatedDevice(device);
+          const name = sidebarDeviceName(device);
           const tooltip = isSimulated
-            ? `${device.shortName} (${t('devices.simulated')})`
-            : device.shortName;
+            ? `${name} (${t('devices.simulated')})`
+            : name;
           const row = (
             <button
               key={device.key}
@@ -200,7 +201,7 @@ export function SidebarDevicesSection({
               />
               {!compact && (
                 <>
-                  <span className={styles.label}>{device.shortName}</span>
+                  <span className={styles.label}>{name}</span>
                   {isSimulated && (
                     <HoverTooltip body={t('devices.simulated')} side="top">
                       <span className={styles.simulatedBadge} role="img" aria-label={t('devices.simulated')}>

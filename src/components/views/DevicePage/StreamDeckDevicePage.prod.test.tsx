@@ -24,7 +24,7 @@ vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
 
 function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
   return {
-    serial: 'SN1', model: 'Mini', name: 'My Mini Deck', connected: true, verified: true,
+    serial: 'SN1', model: 'Mini', displayName: 'Elgato Stream Deck Mini', name: 'My Mini Deck', connected: true, verified: true,
     rows: 2, cols: 3, keyCount: 6, keyPixels: 80, format: 'bmp', brightness: 60,
     ...over,
   };

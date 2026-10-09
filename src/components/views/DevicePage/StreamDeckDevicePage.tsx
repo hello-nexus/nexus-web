@@ -73,7 +73,7 @@ function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className={styles.page}>
       {/* eslint-disable-next-line i18next/no-literal-string -- brand name */}
-      <ViewHeader title="Stream Deck" />
+      <ViewHeader title="Elgato Stream Deck" />
       <div className={`${styles.pageBody} pageBody`}>{children}</div>
     </div>
   );
@@ -477,7 +477,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   return (
     <div className={styles.page}>
       <ViewHeader
-        title={t('devices.streamdeck.modelName', { model: deck.model })}
+        title={deck.displayName}
         tabs={TABS}
         activeTab={tab}
         onTabChange={k => handleTabChange(k as StreamDeckTab)}

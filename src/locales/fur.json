@@ -1216,7 +1216,6 @@
   "devices.streamdeck.infoScreen.off": "Distudât",
   "devices.streamdeck.infoScreen.page": "Numar di pagjine",
   "devices.streamdeck.model": "Model",
-  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck no conetût",
   "devices.streamdeck.orientation": "Orientament visuâl",
   "devices.streamdeck.orientationDegrees": "{n}°",

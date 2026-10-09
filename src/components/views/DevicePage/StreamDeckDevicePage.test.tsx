@@ -114,6 +114,7 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
   return {
     serial: 'SN1',
     model: 'Mini',
+    displayName: 'Elgato Stream Deck Mini',
     name: 'My Mini Deck',
     connected: true,
     verified: true,
@@ -445,12 +446,12 @@ describe('StreamDeckDevicePage', () => {
     });
 
     it('labels the tab strip with the model name from the deck DTO', async () => {
-      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Mini' })]));
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Mini', displayName: 'Elgato Stream Deck Mini' })]));
       await renderPage();
 
       // The model name is the page's top-bar title (set in Dashboard) + the tab
       // strip's aria-label; it is no longer rendered as body text in the page.
-      expect(screen.getByRole('tablist', { name: 'devices.streamdeck.modelName:{"model":"Mini"}' })).toBeInTheDocument();
+      expect(screen.getByRole('tablist', { name: 'Elgato Stream Deck Mini' })).toBeInTheDocument();
     });
 
     it('shows pagination as plain page-number chips, not "Page N" tabs', async () => {

@@ -22,6 +22,8 @@ export interface StreamDeckScreen {
 export interface StreamDeckSummary {
   serial: string;
   model: string;
+  /** Brand-prefixed product name; `model` stays the bare model for matching. */
+  displayName: string;
   name: string;
   connected: boolean;
   verified: boolean;
@@ -140,6 +142,7 @@ export async function getPendingDeckEdit(): Promise<PendingDeckEdit | null> {
 export interface StreamDeckDevModel {
   /** A number on the wire. */
   productId: number;
+  /** Brand-prefixed product name. */
   name: string;
   rows: number;
   cols: number;

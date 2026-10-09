@@ -1216,7 +1216,6 @@
   "devices.streamdeck.infoScreen.off": "Aus",
   "devices.streamdeck.infoScreen.page": "Seitenzahl",
   "devices.streamdeck.model": "Modell",
-  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck nicht verbunden",
   "devices.streamdeck.orientation": "Visuelle Ausrichtung",
   "devices.streamdeck.orientationDegrees": "{n}°",

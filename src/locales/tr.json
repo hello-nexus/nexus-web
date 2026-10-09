@@ -1216,7 +1216,6 @@
   "devices.streamdeck.infoScreen.off": "Kapalı",
   "devices.streamdeck.infoScreen.page": "Sayfa numarası",
   "devices.streamdeck.model": "Model",
-  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck bağlı değil",
   "devices.streamdeck.orientation": "Görsel Yön",
   "devices.streamdeck.orientationDegrees": "{n}°",
