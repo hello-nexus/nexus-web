@@ -24,8 +24,8 @@ import { appendWidget, swapSingleWidget } from '../../../panel/engine/panelLayou
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import {
-  isSingleWidgetSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsTouch,
-  type PanelLayout, type PanelPage, type PanelSurface, type PanelWidget, type PanelWidgetSize,
+  isSingleWidgetSurface, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsTouch,
+  type ForcedGrid, type PanelLayout, type PanelPage, type PanelSurface, type PanelWidget, type PanelWidgetSize,
 } from '../../../panel/types';
 import { appAvailableForSurface, pickerSizeFor, sizesForSurface } from '../../../panel/widgets/registry';
 import type { AppManifest } from '../../../panel/widgets/types';
@@ -92,10 +92,10 @@ export function dashboardColumnsForWidth(width: number): number {
   return desktopAutoArrangeColumns(width, panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT) * DESKTOP_GRID_REFERENCE_CELL);
 }
 
-export function placementSize(meta: AppMeta, surface: PanelSurface, deviceTouch?: boolean, shortSideSlots?: number): PanelWidgetSize | null {
-  const sizes = sizesForSurface(meta, surface, deviceTouch, shortSideSlots);
+export function placementSize(meta: AppMeta, surface: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid): PanelWidgetSize | null {
+  const sizes = sizesForSurface(meta, surface, deviceTouch, forcedGrid);
   if (sizes.length === 0) return null;
-  return sizes.includes(meta.defaultSize) ? meta.defaultSize : pickerSizeFor(meta, surface, deviceTouch, shortSideSlots);
+  return sizes.includes(meta.defaultSize) ? meta.defaultSize : pickerSizeFor(meta, surface, deviceTouch, forcedGrid);
 }
 
 function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boolean | undefined {
@@ -103,13 +103,16 @@ function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boo
 }
 
 // The surface the panel lays out as once its record is known, with the glass's own input.
-function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean; shortSideSlots?: number } {
+function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean; shortSideSlots?: number; forcedGrid?: ForcedGrid } {
   const touch = deviceTouchOf(target, record);
   const surface = panelLayoutSurface(target.surface, record?.capabilities?.family, record?.widgetSize);
+  const shortSideSlots = panelShortSideSlots(target.surface, record?.capabilities?.family, record?.widgetSize);
+  const screen = screenOf(target, record);
   return {
     surface,
     deviceTouch: surface === target.surface ? touch : surfaceSupportsTouch(target.surface, touch),
-    shortSideSlots: panelShortSideSlots(target.surface, record?.capabilities?.family, record?.widgetSize),
+    shortSideSlots,
+    forcedGrid: forcedGridOf(shortSideSlots, !!screen && screen.width > screen.height),
   };
 }
 
@@ -156,9 +159,9 @@ export function planPlacement(
   dashboardColumns: number,
 ): PlacementPlan | null {
   const { layout, record } = loaded;
-  const { surface, deviceTouch, shortSideSlots } = layoutOf(target, record);
-  if (!appAvailableForSurface(meta, surface, { deviceTouch, shortSideSlots })) return null;
-  const size = placementSize(meta, surface, deviceTouch, shortSideSlots);
+  const { surface, deviceTouch, forcedGrid } = layoutOf(target, record);
+  if (!appAvailableForSurface(meta, surface, { deviceTouch, forcedGrid })) return null;
+  const size = placementSize(meta, surface, deviceTouch, forcedGrid);
   if (!size) return null;
   if (meta.singleInstance && layout.pages.some(p => p.widgets.some(w => w.type === type))) return null;
   const screen = screenOf(target, record);
@@ -213,7 +216,7 @@ export async function loadTarget(target: PlacementTarget): Promise<LoadedTarget 
     record?.layout ?? defaultLayoutForSurface(laidOut.surface),
     laidOut.surface,
     laidOut.deviceTouch,
-    laidOut.shortSideSlots,
+    laidOut.forcedGrid,
   );
   return { layout, record };
 }

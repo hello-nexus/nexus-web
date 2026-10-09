@@ -27,7 +27,7 @@ import { pluralKey } from '../../lib/pluralKey';
 import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
-import { isSingleWidgetSurface } from '../types';
+import { isSingleWidgetSurface, type ForcedGrid } from '../types';
 import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
@@ -39,7 +39,7 @@ export function PanelEditorSheet({
   surface,
   deviceId,
   deviceTouch,
-  shortSideSlots,
+  forcedGrid,
   touchPanelChrome = false,
   editingWidget,
   immersiveOnLoadAvailable = false,
@@ -112,7 +112,7 @@ export function PanelEditorSheet({
   // Per-device touch capability (promoted monitors) for catalog/size gating.
   deviceTouch?: boolean;
   // Forced short-axis slot count of the panel's grid, for size gating.
-  shortSideSlots?: number;
+  forcedGrid?: ForcedGrid;
   // Touch-driven host display (usesTouchPanelChrome): the sheet scales with
   // the panel content like the Y70 instead of desktop-size chrome.
   touchPanelChrome?: boolean;
@@ -213,7 +213,7 @@ export function PanelEditorSheet({
   const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
-  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch, shortSideSlots) : [];
+  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch, forcedGrid) : [];
   const slotLayoutOptions = editingWidget && isMonitoringWidget ? slotLayoutOptionsForSize(editingWidget.size) : [];
   const slotLayout = editingWidget && isMonitoringWidget
     ? resolvedSlotLayout(editingWidget.size, editingWidget.config)
@@ -348,7 +348,7 @@ export function PanelEditorSheet({
           <PanelWidgetCatalog
             surface={surface}
             deviceTouch={deviceTouch}
-            shortSideSlots={shortSideSlots}
+            forcedGrid={forcedGrid}
             onAdd={onAdd}
             canAddSize={canAddSize}
             placedTypes={placedTypes}

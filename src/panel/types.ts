@@ -174,6 +174,16 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   return undefined;
 }
 
+// A grid whose short axis a Widget size forces; landscape means the short axis is its rows.
+export interface ForcedGrid {
+  slots: number;
+  landscape: boolean;
+}
+
+export function forcedGridOf(slots: number | undefined, landscape: boolean): ForcedGrid | undefined {
+  return slots === undefined ? undefined : { slots, landscape };
+}
+
 // The short-axis slot count a panel's Widget size forces, if any.
 export function panelShortSideSlots(
   surface: PanelSurface,

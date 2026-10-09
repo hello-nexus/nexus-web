@@ -126,6 +126,18 @@ export function useDesktopFitColumns(ref: RefObject<HTMLElement | null>, enabled
   return enabled ? columns : null;
 }
 
+// True while the window is wider than tall; a streamed panel's window is its canvas.
+export function useViewportLandscape(): boolean {
+  const [landscape, setLandscape] = useState(() => typeof window !== 'undefined' && window.innerWidth > window.innerHeight);
+  useEffect(() => {
+    const update = () => setLandscape(window.innerWidth > window.innerHeight);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return landscape;
+}
+
 export function useRuntimePanelGrid(
   surface: PanelSurface,
   rootRef?: RefObject<HTMLElement | null>,

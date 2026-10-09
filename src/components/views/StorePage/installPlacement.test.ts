@@ -160,6 +160,20 @@ describe('planPlacement', () => {
     expect(planPlacement(screen88, { layout: open, record: small }, TYPE, wide, 6)?.capacity.gridCols).toBe(4);
   });
 
+  it('places a landscape Lian Li 8.8 on large widgets at a size that fits the 8x2 grid', () => {
+    const record = {
+      id: 'rec-88l', displayName: '8.8', firstSeenAt: 0, lastSeenAt: 0, widgetSize: 'large',
+      capabilities: { surface: 'monitor', family: 'lianli-screen88', dpi: 225, cssWidth: 1920, cssHeight: 480, dpr: 1 },
+    } as PanelDeviceRecord;
+    const screen88: PlacementTarget = { key: 'panel-88', name: '8.8', iconSrc: null, surface: 'monitor' };
+    const tall = { ...meta, singleInstance: false, sizes: ['2x4' as const, '4x4' as const, '4x2' as const], defaultSize: '2x4' as const };
+
+    const plan = planPlacement(screen88, { layout: layoutOf('monitor', []), record }, TYPE, tall, 6);
+    expect(plan?.widget.size).toBe('4x2');
+    expect(plan?.capacity).toEqual({ gridCols: 8, pageRows: 2 });
+    expect(planPlacement(screen88, { layout: layoutOf('monitor', []), record }, TYPE, { ...tall, sizes: ['2x4' as const, '4x4' as const] }, 6)).toBeNull();
+  });
+
   it('shows the page a multi-widget panel lands it on', () => {
     const full = Array.from({ length: 8 }, (_, r) => ({ type: 'clock', size: '4x2' as const, col: 0, row: r * 2 }));
 

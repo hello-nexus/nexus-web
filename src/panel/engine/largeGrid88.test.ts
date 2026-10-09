@@ -7,6 +7,8 @@ import { appAvailableForSurface, lookupApp, pickerSizeFor, sizesForSurface } fro
 import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 
 const SLOTS = 2;
+const PORTRAIT = { slots: SLOTS, landscape: false };
+const LANDSCAPE = { slots: SLOTS, landscape: true };
 const DPI = 225;
 
 function meta(type: string) {
@@ -48,7 +50,7 @@ describe('short-axis slot override on the 8.8 canvas', () => {
 
 describe('sizes offered on a reduced-width grid', () => {
   it('offers only sizes that fit and allows the 2x4 strip', () => {
-    expect(sizesForSurface(meta('stocks'), 'monitor', false, SLOTS)).toEqual(['2x2', '2x4']);
+    expect(sizesForSurface(meta('stocks'), 'monitor', false, PORTRAIT)).toEqual(['2x2', '2x4']);
   });
 
   it('keeps the usual 4-wide sizes without the override', () => {
@@ -56,18 +58,48 @@ describe('sizes offered on a reduced-width grid', () => {
   });
 
   it('never offers the round tile or a size the widget lacks', () => {
-    expect(sizesForSurface(meta('clock'), 'monitor', false, SLOTS)).toEqual(['2x2', '2x4']);
+    expect(sizesForSurface(meta('clock'), 'monitor', false, PORTRAIT)).toEqual(['2x2', '2x4']);
     const twoByTwoOnly = { ...meta('clock'), sizes: ['2x2' as const, '4x2' as const] };
-    expect(sizesForSurface(twoByTwoOnly, 'monitor', false, SLOTS)).toEqual(['2x2']);
+    expect(sizesForSurface(twoByTwoOnly, 'monitor', false, PORTRAIT)).toEqual(['2x2']);
   });
 
   it('hides a widget with no size that fits', () => {
-    expect(appAvailableForSurface(meta('processes'), 'monitor', { shortSideSlots: SLOTS })).toBe(false);
+    expect(appAvailableForSurface(meta('processes'), 'monitor', { forcedGrid: PORTRAIT })).toBe(false);
     expect(appAvailableForSurface(meta('processes'), 'monitor', {})).toBe(true);
   });
 
   it('picks a size from the narrow list', () => {
-    expect(pickerSizeFor(meta('stocks'), 'monitor', false, SLOTS)).toBe('2x2');
+    expect(pickerSizeFor(meta('stocks'), 'monitor', false, PORTRAIT)).toBe('2x2');
+  });
+});
+
+describe('landscape forced grid filters on rows', () => {
+  it('offers 4x2 and never the 2x4 strip', () => {
+    expect(sizesForSurface(meta('stocks'), 'monitor', false, LANDSCAPE)).toEqual(['2x2', '4x2']);
+    expect(sizesForSurface(meta('clock'), 'monitor', false, LANDSCAPE)).toEqual(['2x2', '4x2']);
+    expect(pickerSizeFor(meta('stocks'), 'monitor', false, LANDSCAPE)).toBe('4x2');
+  });
+
+  it('snaps a 2x4 to 4x2 and a 4x4 to 4x2, never keeping a tall size', () => {
+    const result = normalizePanelLayout(layout([
+      widget('a', 'stocks', '2x4'),
+      widget('b', 'stocks', '4x4', 0, 4),
+    ]), 'monitor', false, LANDSCAPE);
+    expect(result.pages[0].widgets.map(w => w.size)).toEqual(['4x2', '4x2']);
+  });
+
+  it('keeps 4x2 and 2x2 as they are', () => {
+    const result = normalizePanelLayout(layout([
+      widget('a', 'stocks', '4x2'),
+      widget('b', 'stocks', '2x2', 4, 0),
+    ]), 'monitor', false, LANDSCAPE);
+    expect(result.pages[0].widgets.map(w => w.size)).toEqual(['4x2', '2x2']);
+  });
+
+  it('hides a widget whose only fitting size is the 2x4 strip', () => {
+    const tallOnly = { ...meta('clock'), sizes: ['2x4' as const, '4x4' as const] };
+    expect(appAvailableForSurface(tallOnly, 'monitor', { forcedGrid: LANDSCAPE })).toBe(false);
+    expect(appAvailableForSurface(tallOnly, 'monitor', { forcedGrid: PORTRAIT })).toBe(true);
   });
 });
 
@@ -77,12 +109,12 @@ describe('normalizePanelLayout on a reduced-width grid', () => {
       widget('a', 'stocks', '4x2'),
       widget('b', 'stocks', '4x4', 0, 2),
       widget('c', 'stocks', '2x4', 0, 6),
-    ]), 'monitor', false, SLOTS);
+    ]), 'monitor', false, PORTRAIT);
     expect(result.pages[0].widgets.map(w => w.size)).toEqual(['2x2', '2x2', '2x4']);
   });
 
   it('drops a widget that has no size on the narrow grid', () => {
-    const result = normalizePanelLayout(layout([widget('a', 'processes', '4x2')]), 'monitor', false, SLOTS);
+    const result = normalizePanelLayout(layout([widget('a', 'processes', '4x2')]), 'monitor', false, PORTRAIT);
     expect(result.pages[0].widgets).toEqual([]);
   });
 
@@ -109,6 +141,13 @@ describe('fitLayoutToSinglePage', () => {
     const result = fitLayoutToSinglePage(l, capacity);
     expect(result.dropped.map(w => w.id)).toEqual(['c']);
     expect(result.layout.pages[0].widgets.map(w => [w.id, w.row])).toEqual([['a', 0], ['b', 4]]);
+  });
+
+  it('drops a 2x4 on the landscape 8x2 grid', () => {
+    const l = layout([widget('a', 'stocks', '4x2'), widget('b', 'stocks', '2x4', 4, 0)]);
+    const result = fitLayoutToSinglePage(l, { gridCols: 8, pageRows: 2 });
+    expect(result.dropped.map(w => w.id)).toEqual(['b']);
+    expect(result.layout.pages[0].widgets.map(w => w.id)).toEqual(['a']);
   });
 
   it('pulls widgets from later pages onto the one page', () => {

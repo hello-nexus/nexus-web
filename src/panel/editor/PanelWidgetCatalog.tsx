@@ -7,7 +7,7 @@ import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useTranslation } from '../../lib/i18n';
-import { singleWidgetSurfaceSize, surfaceSupportsTextInput, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
+import { singleWidgetSurfaceSize, surfaceSupportsTextInput, type ForcedGrid, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
 import { sizeToSpan } from '../engine/grid';
 import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
 import { appendWidget } from '../engine/panelLayoutOps';
@@ -64,7 +64,7 @@ type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 // bypass the curation so every installed widget is browseable for testing.
 export function catalogEntriesFor(
   surface: PanelSurface,
-  opts: { remote?: boolean; deviceTouch?: boolean; shortSideSlots?: number } = {},
+  opts: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid } = {},
 ): CatalogEntry[] {
   return getCatalogEntries().filter(([, def]) => {
     if (!appAvailableForSurface(def.meta, surface, opts)) return false;
@@ -129,7 +129,7 @@ export interface PanelWidgetCatalogProps {
   // are listed only when the device's display actually has a digitizer.
   deviceTouch?: boolean;
   // Forced short-axis slot count of the target grid, which narrows the offered sizes.
-  shortSideSlots?: number;
+  forcedGrid?: ForcedGrid;
 }
 
 export function PanelWidgetCatalog({
@@ -147,7 +147,7 @@ export function PanelWidgetCatalog({
   selectedWidgetType,
   playlist,
   deviceTouch,
-  shortSideSlots,
+  forcedGrid,
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -183,7 +183,7 @@ export function PanelWidgetCatalog({
 
   // Already-placed instances always render via lookupApp; listed apps
   // co-mingle in one grid - no separate section.
-  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch, shortSideSlots });
+  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch, forcedGrid });
   const playlistOrder = playlist
     ? playlistDisplayOrder(playlist.order, catalogEntries.map(([type]) => type))
     : null;
@@ -266,10 +266,10 @@ export function PanelWidgetCatalog({
   // widget supports it on this surface, else the widget's own picker size
   // (sole-size widgets and single-widget surfaces keep their shape).
   const pickSize = (meta: CatalogEntry[1]['meta']): PanelWidgetSize => {
-    if (sizesForSurface(meta, surface, deviceTouch, shortSideSlots).includes(preferredSize)) {
+    if (sizesForSurface(meta, surface, deviceTouch, forcedGrid).includes(preferredSize)) {
       return preferredSize;
     }
-    return pickerSizeFor(meta, surface, deviceTouch, shortSideSlots);
+    return pickerSizeFor(meta, surface, deviceTouch, forcedGrid);
   };
 
   const packEntries = (items: CatalogEntry[]): PanelWidget[] => {

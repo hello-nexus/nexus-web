@@ -7,6 +7,7 @@ import {
   type PanelSurface,
   type PanelWidget,
   type PanelWidgetSize,
+  type ForcedGrid,
 } from '../types';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import { defaultLayoutForSurface } from './defaultLayout';
@@ -71,7 +72,7 @@ function reconcileAppsAgainstRegistry(
   widgets: readonly PanelWidget[],
   surface: PanelSurface,
   deviceTouch?: boolean,
-  shortSideSlots?: number,
+  forcedGrid?: ForcedGrid,
 ): PanelWidget[] {
   return widgets.flatMap((rawWidget): PanelWidget[] => {
     // A pre-v11 service (my.hellonexus.com against an older LAN box) still
@@ -110,9 +111,9 @@ function reconcileAppsAgainstRegistry(
       }
       return [];
     }
-    if (!appAvailableForSurface(def.meta, surface, { deviceTouch, shortSideSlots })) return [];
+    if (!appAvailableForSurface(def.meta, surface, { deviceTouch, forcedGrid })) return [];
     const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface);
-    const allowed = sizesForSurface(def.meta, surface, deviceTouch, shortSideSlots);
+    const allowed = sizesForSurface(def.meta, surface, deviceTouch, forcedGrid);
     const finalSize = nearestAllowedSize(surfaceSize, allowed, def.meta.defaultSize);
     if (finalSize === widget.size) return [widget];
     return [{ ...widget, size: finalSize }];
@@ -149,14 +150,14 @@ interface UsePanelLayoutResult {
 // render path runs against the real grid capacity - repairs it there. Keeping
 // normalize geometry-neutral gives the normalize/repaginate composition a
 // fixed point at any capacity (see panelEditorLayoutSync.test.ts).
-export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean, shortSideSlots?: number): PanelLayout {
+export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid): PanelLayout {
   const reconciledPages = layout.pages.map(page => ({
     ...page,
     widgets: reconcileAppsAgainstRegistry(
       page.widgets.filter(widget => !REMOVED_WIDGET_TYPES.has(widget.type)),
       surface,
       deviceTouch,
-      shortSideSlots,
+      forcedGrid,
     ),
   }));
 
@@ -205,7 +206,7 @@ export function usePanelLayout(
   deviceId: string,
   surface: PanelSurface,
   deviceTouch?: boolean,
-  shortSideSlots?: number,
+  forcedGrid?: ForcedGrid,
 ): UsePanelLayoutResult {
   const { record, loaded, missing, refetch } = recordState;
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
@@ -226,12 +227,12 @@ export function usePanelLayout(
   useEffect(() => { writableRef.current = writable; });
 
   useEffect(() => {
-    setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch, shortSideSlots));
+    setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid));
     setHydrated(storedLayout !== null);
-  }, [storedLayout, surface, deviceTouch, shortSideSlots]);
+  }, [storedLayout, surface, deviceTouch, forcedGrid]);
 
   const setLayout = useCallback((next: PanelLayout) => {
-    const normalized = normalizePanelLayout(next, surface, deviceTouch, shortSideSlots);
+    const normalized = normalizePanelLayout(next, surface, deviceTouch, forcedGrid);
     setLayoutState(normalized);
     if (!writableRef.current) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
@@ -249,11 +250,11 @@ export function usePanelLayout(
           // stored copy so the refused edit stops re-patching.
           setSaveForbidden(true);
           setLayoutState(normalizePanelLayout(
-            storedRef.current ?? defaultLayoutForSurface(surface), surface, deviceTouch, shortSideSlots));
+            storedRef.current ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid));
         }
       });
     }, 250);
-  }, [deviceId, surface, deviceTouch, shortSideSlots, refetch]);
+  }, [deviceId, surface, deviceTouch, forcedGrid, refetch]);
 
   useEffect(() => {
     if (!saveForbidden) return undefined;

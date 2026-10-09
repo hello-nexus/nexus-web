@@ -102,7 +102,7 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -132,6 +132,7 @@ import {
   PHONE_WIDGET_REFERENCE_CELL,
   useDesktopFitColumns,
   useRuntimePanelGrid,
+  useViewportLandscape,
   usePanelPageScrollLock,
 } from './engine/panelGrid';
 import {
@@ -328,7 +329,9 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
 }
 
 function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; displayBound?: boolean }) {
-  const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch, shortSideSlots);
+  const landscape = useViewportLandscape();
+  const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, landscape), [shortSideSlots, landscape]);
+  const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch, forcedGrid);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
@@ -596,6 +599,9 @@ export function PanelContent({
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots);
+  // The runtime grid already follows the canvas, so its shape gives the forced axis.
+  const runtimeLandscape = runtimeGrid.columns > runtimeGrid.rows;
+  const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, runtimeLandscape), [shortSideSlots, runtimeLandscape]);
   const desktopEmbedded = embedded && surface === 'desktop';
   // Whole cells the dashboard shows; null until measured and off the desktop.
   const fitColumns = useDesktopFitColumns(rootRef, desktopEmbedded, runtimeGrid.gap);
@@ -914,7 +920,7 @@ export function PanelContent({
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
-          return appAvailableForSurface(def.meta, surface, { deviceTouch, shortSideSlots });
+          return appAvailableForSurface(def.meta, surface, { deviceTouch, forcedGrid });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -925,7 +931,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, surface, glassSurface, deviceTouch, shortSideSlots, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, surface, glassSurface, deviceTouch, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2041,7 +2047,7 @@ export function PanelContent({
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
-            sizes={sizesForSurface(def.meta, surface, deviceTouch, shortSideSlots)}
+            sizes={sizesForSurface(def.meta, surface, deviceTouch, forcedGrid)}
             hasConfig
             surface={surface}
             themeMode={resolvedThemeMode}
@@ -2128,7 +2134,7 @@ export function PanelContent({
           surface={surface}
           deviceId={deviceId}
           deviceTouch={deviceTouch}
-          shortSideSlots={shortSideSlots}
+          forcedGrid={forcedGrid}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           immersiveOnLoadAvailable={editingImmersiveOnLoadAvailable}
