@@ -7,7 +7,7 @@ import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/Ne
 import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { ExperimentalEnableModal } from '../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { useToastSafe } from '../components/common/Toast/Toast';
-import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, type UnifiedDevice } from '../hooks/useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, sidebarSortName, type UnifiedDevice } from '../hooks/useUnifiedDevices';
 import { useConflictGuardedEnable } from '../hooks/useConflictGuardedEnable';
 import { promoteDisplayToPanel, demoteDisplayPanel } from '../api/displays';
 import { clearSimulatedStreamDeck } from '../api/streamdeck';
@@ -88,8 +88,8 @@ export function SidebarDevicesSection({
     return next ? () => void requestEnable(device, apply) : apply;
   }, [controlDevice, push, requestEnable, t]);
 
-  // Alphabetical by the row label, key breaking ties, so a disconnect never
-  // moves a row. Only navigable devices (those with their own
+  // Alphabetical by brand, then label (see sidebarSortName), key breaking ties,
+  // so a disconnect never moves a row. Only navigable devices (those with their own
   // settings page) get a sidebar row - e.g. the MiniHub is controlled from
   // Cooling/Lighting, so it has no page and shouldn't deep-link to an empty one.
   // (Paired phone remotes are already excluded upstream in useUnifiedDevices -
@@ -98,7 +98,7 @@ export function SidebarDevicesSection({
     return unified
       .filter(d => d.navigable)
       .sort((a, b) =>
-        sidebarDeviceName(a).localeCompare(sidebarDeviceName(b), undefined, { sensitivity: 'base', numeric: true })
+        sidebarSortName(a).localeCompare(sidebarSortName(b), undefined, { sensitivity: 'base', numeric: true })
         || a.key.localeCompare(b.key));
   }, [unified]);
 

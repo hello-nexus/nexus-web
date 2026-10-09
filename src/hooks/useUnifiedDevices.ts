@@ -111,14 +111,22 @@ const BRAND_LOGOS: Record<string, string> = {
   Tryx: '/assets/devices/tryx.svg',
 };
 
+function logoBrand(device: UnifiedDevice): string | undefined {
+  return Object.keys(BRAND_LOGOS).find(brand => BRAND_LOGOS[brand] === device.iconSrc);
+}
+
 /** Sidebar label: the product name without the brand its logo icon already shows. */
 export function sidebarDeviceName(device: UnifiedDevice): string {
-  for (const [brand, logo] of Object.entries(BRAND_LOGOS)) {
-    if (device.iconSrc === logo && device.shortName.startsWith(`${brand} `)) {
-      return device.shortName.slice(brand.length + 1);
-    }
-  }
-  return device.shortName;
+  const brand = logoBrand(device);
+  return brand && device.shortName.startsWith(`${brand} `)
+    ? device.shortName.slice(brand.length + 1)
+    : device.shortName;
+}
+
+/** Sidebar sort key: the brand its logo shows, then the label, so rows group by brand. */
+export function sidebarSortName(device: UnifiedDevice): string {
+  const brand = logoBrand(device);
+  return brand ? `${brand} ${sidebarDeviceName(device)}` : device.shortName;
 }
 
 const CURATED_ICONS: Record<string, string> = {
