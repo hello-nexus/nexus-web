@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "旋转",
   "devices.corsair.screenSection": "屏幕",
   "devices.experimental.badge": "实验性",
+  "devices.experimental.confirm": "我已了解，继续",
   "devices.experimental.tooltip.body": "对该设备的支持为实验性质，可能不稳定。请自行承担使用风险。",
   "devices.experimental.tooltip.title": "实验性支持",
   "devices.firmware.column.current": "已安装版本",

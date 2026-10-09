@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "Döndürme",
   "devices.corsair.screenSection": "Ekran",
   "devices.experimental.badge": "Deneysel",
+  "devices.experimental.confirm": "Anladım, devam et",
   "devices.experimental.tooltip.body": "Bu cihaz için destek deneyseldir ve kararsız olabilir. Kendi sorumluluğunuzda kullanın.",
   "devices.experimental.tooltip.title": "Deneysel destek",
   "devices.firmware.column.current": "Yüklü sürüm",

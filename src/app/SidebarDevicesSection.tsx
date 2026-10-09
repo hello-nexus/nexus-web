@@ -5,6 +5,7 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
+import { ExperimentalEnableModal } from '../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { useToastSafe } from '../components/common/Toast/Toast';
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../hooks/useUnifiedDevices';
 import { useConflictGuardedEnable } from '../hooks/useConflictGuardedEnable';
@@ -228,6 +229,11 @@ export function SidebarDevicesSection({
         />
       )}
 
+      <ExperimentalEnableModal
+        open={controlGuard.experimental !== null}
+        onConfirm={controlGuard.confirmExperimental}
+        onCancel={controlGuard.cancelExperimental}
+      />
       <NexusControlConflictModal
         pending={controlGuard.pending}
         onConfirm={controlGuard.confirm}

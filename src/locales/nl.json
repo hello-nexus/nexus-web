@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "Rotatie",
   "devices.corsair.screenSection": "Scherm",
   "devices.experimental.badge": "Experimenteel",
+  "devices.experimental.confirm": "Ik begrijp het, doorgaan",
   "devices.experimental.tooltip.body": "Ondersteuning voor dit apparaat is experimenteel en kan instabiel zijn. Gebruik het op eigen risico.",
   "devices.experimental.tooltip.title": "Experimentele ondersteuning",
   "devices.firmware.column.current": "Geïnstalleerde versie",

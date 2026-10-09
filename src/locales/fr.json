@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "Rotation",
   "devices.corsair.screenSection": "Écran",
   "devices.experimental.badge": "Expérimental",
+  "devices.experimental.confirm": "J'ai compris, continuer",
   "devices.experimental.tooltip.body": "La prise en charge de cet appareil est expérimentale et peut être instable. À utiliser à vos propres risques.",
   "devices.experimental.tooltip.title": "Prise en charge expérimentale",
   "devices.firmware.column.current": "Version installée",
