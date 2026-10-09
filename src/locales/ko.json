@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "곡선 이름 변경",
   "cooling.curves.resetBtn": "재설정",
   "cooling.curves.resetToDefaults": "기본값으로 재설정",
+  "cooling.fan.amdAutoTuning": "AMD Software의 GPU 자동 튜닝이 켜져 있어 드라이버가 팬 변경을 무시합니다. AMD Software에서 성능 튜닝을 열고 GPU 튜닝을 사용자 지정으로 설정하세요.",
   "cooling.fan.deselect": "선택 해제",
   "cooling.fan.disconnected": "연결 안됨",
   "cooling.fan.fixed": "고정 속도",

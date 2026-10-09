@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Eğriyi yeniden adlandır",
   "cooling.curves.resetBtn": "Sıfırla",
   "cooling.curves.resetToDefaults": "Varsayılanlara sıfırla",
+  "cooling.fan.amdAutoTuning": "AMD Software'in otomatik GPU ayarı açık, bu yüzden sürücü fan değişikliklerini yok sayıyor. AMD Software'de Performans Ayarı'nı açın ve GPU ayarını Özel olarak belirleyin.",
   "cooling.fan.deselect": "Seçimi kaldır",
   "cooling.fan.disconnected": "Baglanti yok",
   "cooling.fan.fixed": "Sabit hız",

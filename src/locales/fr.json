@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Renommer la courbe",
   "cooling.curves.resetBtn": "Réinitialiser",
   "cooling.curves.resetToDefaults": "Réinitialiser aux valeurs par défaut",
+  "cooling.fan.amdAutoTuning": "Le réglage automatique du GPU d'AMD Software est activé, le pilote ignore donc les changements de ventilateur. Dans AMD Software, ouvrez Réglage des performances et passez le réglage du GPU sur Personnalisé.",
   "cooling.fan.deselect": "Désélectionner",
   "cooling.fan.disconnected": "Deconnecte",
   "cooling.fan.fixed": "Vitesse fixe",

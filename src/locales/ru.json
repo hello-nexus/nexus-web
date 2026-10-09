@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Переименовать кривую",
   "cooling.curves.resetBtn": "Сброс",
   "cooling.curves.resetToDefaults": "Сбросить к значениям по умолчанию",
+  "cooling.fan.amdAutoTuning": "В AMD Software включена автоматическая настройка GPU, поэтому драйвер игнорирует изменения вентилятора. В AMD Software откройте «Настройка производительности» и выберите для настройки GPU вариант «Пользовательская».",
   "cooling.fan.deselect": "Снять выделение",
   "cooling.fan.disconnected": "Отключено",
   "cooling.fan.fixed": "Фиксированная скорость",

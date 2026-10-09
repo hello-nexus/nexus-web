@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Renomear curva",
   "cooling.curves.resetBtn": "Redefinir",
   "cooling.curves.resetToDefaults": "Redefinir para padrões",
+  "cooling.fan.amdAutoTuning": "O ajuste automático da GPU do AMD Software está ativo, pelo que o controlador ignora as alterações da ventoinha. No AMD Software, abra Ajuste de desempenho e defina o ajuste da GPU como Personalizado.",
   "cooling.fan.deselect": "Desselecionar",
   "cooling.fan.disconnected": "Desconectado",
   "cooling.fan.fixed": "Velocidade fixa",

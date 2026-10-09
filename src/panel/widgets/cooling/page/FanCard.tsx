@@ -127,6 +127,8 @@ export const FanCard = memo(function FanCard({
   const { t, language } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
+  // The driver refusing writes outranks a curve hazard: no curve reaches the fan at all.
+  const warning = channel.controlBlocked === 'amd-auto-tuning' ? t('cooling.fan.amdAutoTuning') : hazard;
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
   // The hub's "off" / hand-off mode: BIOS (motherboard) when supported;
@@ -505,7 +507,7 @@ export const FanCard = memo(function FanCard({
           {/* Rename lives on the context menu; a click on the name belongs to the card. */}
           <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} maxLength={DEVICE_NAME_MAX_LENGTH} />
         </span>
-        {hazard && <WarningIcon message={hazard} />}
+        {warning && <WarningIcon message={warning} />}
         {channel.rpmUnavailable ? (
           <HoverTooltip body={t('cooling.fan.rpmUnavailableHint')}>
             <span className={styles.fanRpmReadout}>

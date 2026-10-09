@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Curvenaam wijzigen",
   "cooling.curves.resetBtn": "Herstellen",
   "cooling.curves.resetToDefaults": "Terugzetten naar standaard",
+  "cooling.fan.amdAutoTuning": "De automatische GPU-tuning van AMD Software staat aan, dus het stuurprogramma negeert ventilatorwijzigingen. Open in AMD Software Prestatietuning en zet de GPU-tuning op Aangepast.",
   "cooling.fan.deselect": "Selectie opheffen",
   "cooling.fan.disconnected": "Verbinding verbroken",
   "cooling.fan.fixed": "Vaste snelheid",

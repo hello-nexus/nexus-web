@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Cambie non ae curve",
   "cooling.curves.resetBtn": "Ripristine",
   "cooling.curves.resetToDefaults": "Ripristine ai valôrs predefinîts",
+  "cooling.fan.amdAutoTuning": "La regolazion automatiche de GPU di AMD Software e je ative, duncje il driver nol ten cont dai cambiaments dal ventilatôr. In AMD Software, vierç Regolazion des prestazions e met la regolazion de GPU su Personalizade.",
   "cooling.fan.deselect": "Deselezione",
   "cooling.fan.disconnected": "Disconetût",
   "cooling.fan.fixed": "Velocitât fisse",

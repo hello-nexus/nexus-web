@@ -24,6 +24,8 @@ export interface FanChannel {
   controlled?: boolean; // false = Nexus drives no duty onto this channel and no preset reclaims it; undefined means controlled
   readOnly?: boolean; // telemetry-only channel: header readout, no duty bar / mode control
   rpmUnavailable?: boolean; // duty is controllable but RPM cannot be read (SLV3 wireless chain that does not enumerate its fans; MiniHub, whose tach bytes never track the fans)
+  /** Why the driver refuses Nexus's writes right now ('amd-auto-tuning'); absent while writes land. */
+  controlBlocked?: string | null;
   minRpm?: number | null;
   maxRpm?: number | null;
   minDuty?: number | null;

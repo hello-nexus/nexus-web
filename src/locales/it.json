@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Rinomina curva",
   "cooling.curves.resetBtn": "Reimposta",
   "cooling.curves.resetToDefaults": "Reimposta ai valori predefiniti",
+  "cooling.fan.amdAutoTuning": "L'ottimizzazione automatica della GPU di AMD Software è attiva, quindi il driver ignora le modifiche alla ventola. In AMD Software, apri Ottimizzazione prestazioni e imposta l'ottimizzazione della GPU su Personalizzata.",
   "cooling.fan.deselect": "Deseleziona",
   "cooling.fan.disconnected": "Disconnesso",
   "cooling.fan.fixed": "Velocità fissa",

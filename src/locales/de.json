@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Kurve umbenennen",
   "cooling.curves.resetBtn": "Zurücksetzen",
   "cooling.curves.resetToDefaults": "Auf Standardwerte zurücksetzen",
+  "cooling.fan.amdAutoTuning": "Die automatische GPU-Optimierung der AMD Software ist aktiv, daher ignoriert der Treiber Lüfteränderungen. Öffne in der AMD Software die Leistungsoptimierung und stelle die GPU-Optimierung auf „Benutzerdefiniert“.",
   "cooling.fan.deselect": "Auswahl aufheben",
   "cooling.fan.disconnected": "Getrennt",
   "cooling.fan.fixed": "Feste Drehzahl",

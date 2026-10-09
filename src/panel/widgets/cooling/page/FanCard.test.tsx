@@ -477,3 +477,27 @@ describe('FanCard RPM readout', () => {
     expect(screen.queryByText(/18[,.]?750/)).not.toBeInTheDocument();
   });
 });
+
+describe('FanCard driver-block warning', () => {
+  const renderWith = (ch: FanChannel, hazard?: string) => render(
+    <FanCard channel={ch} state={manualState} curves={[]} hazard={hazard}
+      onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+      onToggleLock={() => {}} onSetRole={() => {}} />,
+  );
+
+  it('flags a fan the AMD driver refuses while automatic GPU tuning is on', () => {
+    renderWith(makeChannel({ controlBlocked: 'amd-auto-tuning' }));
+    expect(screen.getByLabelText('cooling.fan.amdAutoTuning')).toBeInTheDocument();
+  });
+
+  it('shows the block over a curve hazard, since no curve reaches the fan', () => {
+    renderWith(makeChannel({ controlBlocked: 'amd-auto-tuning' }), 'stops while the CPU is hot');
+    expect(screen.getByLabelText('cooling.fan.amdAutoTuning')).toBeInTheDocument();
+    expect(screen.queryByLabelText('stops while the CPU is hot')).not.toBeInTheDocument();
+  });
+
+  it('shows no triangle once writes land again', () => {
+    renderWith(makeChannel({ controlBlocked: null }));
+    expect(screen.queryByLabelText('cooling.fan.amdAutoTuning')).not.toBeInTheDocument();
+  });
+});

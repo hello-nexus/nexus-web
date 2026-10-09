@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "Zmień nazwę krzywej",
   "cooling.curves.resetBtn": "Resetuj",
   "cooling.curves.resetToDefaults": "Przywróć ustawienia domyślne",
+  "cooling.fan.amdAutoTuning": "Automatyczne strojenie GPU w AMD Software jest włączone, więc sterownik ignoruje zmiany wentylatora. W AMD Software otwórz Strojenie wydajności i ustaw strojenie GPU na Niestandardowe.",
   "cooling.fan.deselect": "Odznacz",
   "cooling.fan.disconnected": "Rozlaczono",
   "cooling.fan.fixed": "Stała prędkość",

@@ -417,6 +417,7 @@
   "cooling.curves.renameTitle": "重命名曲线",
   "cooling.curves.resetBtn": "重置",
   "cooling.curves.resetToDefaults": "重置为默认值",
+  "cooling.fan.amdAutoTuning": "AMD Software 的 GPU 自动调整已开启，因此驱动程序会忽略风扇更改。请在 AMD Software 中打开“性能调整”，并将 GPU 调整设为“自定义”。",
   "cooling.fan.deselect": "取消选择",
   "cooling.fan.disconnected": "未连接",
   "cooling.fan.fixed": "固定转速",
