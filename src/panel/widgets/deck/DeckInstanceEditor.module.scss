@@ -2,6 +2,12 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  // headerRail in custom mode renders no child; an empty box would still take
+  // a gap in the host's column.
+  &:empty {
+    display: none;
+  }
 }
 
 .fitNote {

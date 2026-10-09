@@ -1238,6 +1238,7 @@
   "devices.streamdeck.presets.importOption": "Importuj preset...",
   "devices.streamdeck.presets.reset": "Zresetuj Deck",
   "devices.streamdeck.presets.resetConfirm": "Zresetować Deck do jednej pustej strony?",
+  "devices.streamdeck.preview": "Podgląd",
   "devices.streamdeck.serialNumber": "Numer seryjny",
   "devices.streamdeck.sleepAfter": "Uspienie po",
   "devices.streamdeck.sleepAfterMinutes": "{n} min",

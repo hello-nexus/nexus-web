@@ -1231,6 +1231,7 @@
   "devices.streamdeck.presets.importOption": "プリセットをインポート...",
   "devices.streamdeck.presets.reset": "Deck をリセット",
   "devices.streamdeck.presets.resetConfirm": "Deck を単一の空のページにリセットしますか？",
+  "devices.streamdeck.preview": "プレビュー",
   "devices.streamdeck.serialNumber": "シリアル番号",
   "devices.streamdeck.sleepAfter": "スリープ",
   "devices.streamdeck.sleepAfterMinutes": "{n}分",

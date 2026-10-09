@@ -1231,6 +1231,7 @@
   "devices.streamdeck.presets.importOption": "Import preset...",
   "devices.streamdeck.presets.reset": "Reset Deck",
   "devices.streamdeck.presets.resetConfirm": "Reset the Deck to a single empty page?",
+  "devices.streamdeck.preview": "Preview",
   "devices.streamdeck.serialNumber": "Serial Number",
   "devices.streamdeck.sleepAfter": "Sleep After",
   "devices.streamdeck.sleepAfterMinutes": "{n} min",

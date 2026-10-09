@@ -1231,6 +1231,7 @@
   "devices.streamdeck.presets.importOption": "프리셋 가져오기...",
   "devices.streamdeck.presets.reset": "Deck 초기화",
   "devices.streamdeck.presets.resetConfirm": "Deck을 빈 페이지 하나로 초기화할까요?",
+  "devices.streamdeck.preview": "미리보기",
   "devices.streamdeck.serialNumber": "일련번호",
   "devices.streamdeck.sleepAfter": "대기 시간",
   "devices.streamdeck.sleepAfterMinutes": "{n}분",

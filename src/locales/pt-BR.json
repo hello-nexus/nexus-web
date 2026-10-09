@@ -1231,6 +1231,7 @@
   "devices.streamdeck.presets.importOption": "Importar preset...",
   "devices.streamdeck.presets.reset": "Redefinir Deck",
   "devices.streamdeck.presets.resetConfirm": "Redefinir o Deck para uma única página vazia?",
+  "devices.streamdeck.preview": "Visualização",
   "devices.streamdeck.serialNumber": "Número de série",
   "devices.streamdeck.sleepAfter": "Suspender após",
   "devices.streamdeck.sleepAfterMinutes": "{n}m",

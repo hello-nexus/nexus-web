@@ -1231,6 +1231,7 @@
   "devices.streamdeck.presets.importOption": "Impuarte preset...",
   "devices.streamdeck.presets.reset": "Ripristine il Deck",
   "devices.streamdeck.presets.resetConfirm": "Ripristinâ il Deck a une sole pagjine vueide?",
+  "devices.streamdeck.preview": "Anteprime",
   "devices.streamdeck.serialNumber": "Numar seriâl",
   "devices.streamdeck.sleepAfter": "Sospension dopo",
   "devices.streamdeck.sleepAfterMinutes": "{n}m",

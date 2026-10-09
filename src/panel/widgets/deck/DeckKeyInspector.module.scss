@@ -13,6 +13,19 @@
   gap: 12px;
 }
 
+// The device page's split layout (part='picker'): the Action section fills its
+// column and only the box scrolls, so the title stays put.
+.pickerFill {
+  flex: 1;
+  min-height: 0;
+}
+
+.pickerFillBox {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .field {
   display: flex;
   flex-direction: column;

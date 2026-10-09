@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } fro
 import { LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
+import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
@@ -498,22 +499,25 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               {recentAppsMode ? (
                 <div className={styles.leftCol}>
                   <div className={styles.previewTop}>
-                    <div className={styles.previewStage}>
-                      <DeckGrid
-                        slots={(recentPages[recentPage] ?? []).map(recentKeyToPlaceholderSlot)}
-                        cols={deck.cols}
-                        rows={deck.rows}
-                        square
-                        selectable={false}
-                        onCell={i => {
-                          const key = recentPages[recentPage]?.[i];
-                          if (key?.kind === 'navNext') goToRecentPage(Math.min(recentPage + 1, recentMaxPage));
-                          else if (key?.kind === 'navPrev') goToRecentPage(Math.max(recentPage - 1, 0));
-                        }}
-                        liveTiles={liveTiles}
-                        page={recentPage}
-                        folderPath={[]}
-                      />
+                    <div className={styles.previewSection}>
+                      <SectionHeader className={styles.previewHeader}>{t('devices.streamdeck.preview')}</SectionHeader>
+                      <div className={styles.previewStage}>
+                        <DeckGrid
+                          slots={(recentPages[recentPage] ?? []).map(recentKeyToPlaceholderSlot)}
+                          cols={deck.cols}
+                          rows={deck.rows}
+                          square
+                          selectable={false}
+                          onCell={i => {
+                            const key = recentPages[recentPage]?.[i];
+                            if (key?.kind === 'navNext') goToRecentPage(Math.min(recentPage + 1, recentMaxPage));
+                            else if (key?.kind === 'navPrev') goToRecentPage(Math.max(recentPage - 1, 0));
+                          }}
+                          liveTiles={liveTiles}
+                          page={recentPage}
+                          folderPath={[]}
+                        />
+                      </div>
                     </div>
                     <div className={styles.pageRow}>
                       <div className={styles.pageRowSide} />
@@ -531,30 +535,33 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               ) : (
               <div className={styles.leftCol}>
                 <div className={styles.previewTop}>
-                  <div className={styles.previewStage} ref={previewStageRef}>
-                    {target && (
-                      <DeckDevicePreview
-                        deck={deck}
-                        dials={viewDials}
-                        selectedDial={dialSel}
-                        onSelectDial={selectDial}
-                        grid={{
-                          slots: viewSlots,
-                          cols: target.cols,
-                          rows: target.rows,
-                          square: true,
-                          selectable: true,
-                          dragEnabled: true,
-                          selectedIndex: dialSel == null ? selSlot : -1,
-                          onCell: onCellClick,
-                          backCell: inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined,
-                          onDeleteSlot: requestDelete,
-                          liveTiles,
-                          page,
-                          folderPath,
-                        }}
-                      />
-                    )}
+                  <div className={styles.previewSection}>
+                    <SectionHeader className={styles.previewHeader}>{t('devices.streamdeck.preview')}</SectionHeader>
+                    <div className={styles.previewStage} ref={previewStageRef}>
+                      {target && (
+                        <DeckDevicePreview
+                          deck={deck}
+                          dials={viewDials}
+                          selectedDial={dialSel}
+                          onSelectDial={selectDial}
+                          grid={{
+                            slots: viewSlots,
+                            cols: target.cols,
+                            rows: target.rows,
+                            square: true,
+                            selectable: true,
+                            dragEnabled: true,
+                            selectedIndex: dialSel == null ? selSlot : -1,
+                            onCell: onCellClick,
+                            backCell: inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined,
+                            onDeleteSlot: requestDelete,
+                            liveTiles,
+                            page,
+                            folderPath,
+                          }}
+                        />
+                      )}
+                    </div>
                   </div>
                   {target && (
                     <div className={styles.pageRow}>
@@ -631,7 +638,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                 {instanceEditor}
                 {!recentAppsMode && target && (
                   // Hidden, not unmounted, while a dial is selected, so its search and collapsed groups survive a dial/key switch.
-                  <div hidden={dialSel != null}>
+                  <div className={styles.pickerSlot} hidden={dialSel != null}>
                   <DeckKeyInspector
                     target={target}
                     page={page}

@@ -1423,9 +1423,13 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
 
   return (
     <DeckEditContext.Provider value={{ physical: target.kind === 'physical', freezeSeed: false }}>
-    <div className={styles.root}>
+    <div className={part === 'picker' ? `${styles.root} ${styles.pickerFill}` : styles.root}>
       {showPicker && (
-        <SettingsSection title={t('panel.settings.deck.actionType')}>
+        <SettingsSection
+          title={t('panel.settings.deck.actionType')}
+          className={part === 'picker' ? styles.pickerFill : undefined}
+          boxClassName={part === 'picker' ? styles.pickerFillBox : undefined}
+        >
           {pickerExpanded ? (
             <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} onClose={closePicker} surface={surface} desktopEditor={desktopEditor} />
           ) : (

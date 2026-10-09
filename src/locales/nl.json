@@ -1231,6 +1231,7 @@
   "devices.streamdeck.presets.importOption": "Preset importeren...",
   "devices.streamdeck.presets.reset": "Deck herstellen",
   "devices.streamdeck.presets.resetConfirm": "Het deck herstellen naar één lege pagina?",
+  "devices.streamdeck.preview": "Voorbeeld",
   "devices.streamdeck.serialNumber": "Serienummer",
   "devices.streamdeck.sleepAfter": "Slaapstand na",
   "devices.streamdeck.sleepAfterMinutes": "{n} min",
