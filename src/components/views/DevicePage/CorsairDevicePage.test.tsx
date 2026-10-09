@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CorsairDevicePage } from './CorsairDevicePage';
 
@@ -13,8 +13,12 @@ vi.mock('../../../lib/i18n', () => ({
 
 const mockGetCorsairState = vi.fn();
 
-vi.mock('../../../api/corsair', () => ({
+const mockRescan = vi.fn();
+
+vi.mock('../../../api/corsair', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/corsair')>()),
   getCorsairState: (...args: any[]) => mockGetCorsairState(...args),
+  rescanCorsairHub: (...args: any[]) => mockRescan(...args),
 }));
 
 const connectedState = {
@@ -29,6 +33,8 @@ const connectedState = {
 beforeEach(() => {
   vi.useFakeTimers();
   mockGetCorsairState.mockResolvedValue(connectedState);
+  mockRescan.mockReset();
+  mockRescan.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -103,5 +109,73 @@ describe('CorsairDevicePage', () => {
       render(<CorsairDevicePage />);
     });
     expect(screen.queryByRole('button', { name: 'devices.corsair.goToCooling' })).not.toBeInTheDocument();
+  });
+
+  it('without hubs renders one section with firmware and a re-detect button', async () => {
+    await act(async () => {
+      render(<CorsairDevicePage />);
+    });
+    expect(screen.getByText('devices.corsair.devicesSection')).toBeInTheDocument();
+    expect(screen.queryByText(/hubDevicesSection/)).not.toBeInTheDocument();
+    expect(screen.getByText('fw 3.2.571')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.corsair.rescan' })).toBeEnabled();
+  });
+
+  it('renders one section per hub with numbered titles and per-hub firmware', async () => {
+    const dev = connectedState.devices;
+    mockGetCorsairState.mockResolvedValue({
+      ...connectedState,
+      hubs: [
+        { id: 'corsair', number: 1, isConnected: true, firmware: '3.2.571', redetecting: false, devices: dev },
+        { id: 'corsair:0a1b2c3d', number: 2, isConnected: true, firmware: '3.3.0', redetecting: false, devices: [{ ...dev[0], name: 'Second hub fan' }] },
+      ],
+    });
+    await act(async () => {
+      render(<CorsairDevicePage />);
+    });
+    expect(screen.getByText('devices.corsair.hubDevicesSection:{"n":1}')).toBeInTheDocument();
+    expect(screen.getByText('devices.corsair.hubDevicesSection:{"n":2}')).toBeInTheDocument();
+    expect(screen.getByText('fw 3.3.0')).toBeInTheDocument();
+    expect(screen.getByText('Second hub fan')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'devices.corsair.rescan' })).toHaveLength(2);
+  });
+
+  it('posts a rescan for that hub id and disables the button while in flight', async () => {
+    const dev = connectedState.devices;
+    mockGetCorsairState.mockResolvedValue({
+      ...connectedState,
+      hubs: [
+        { id: 'corsair', number: 1, isConnected: true, firmware: '1', redetecting: false, devices: dev },
+        { id: 'corsair:0a1b2c3d', number: 2, isConnected: true, firmware: '2', redetecting: false, devices: dev },
+      ],
+    });
+    let release: (v: boolean) => void = () => {};
+    mockRescan.mockReturnValue(new Promise<boolean>(r => { release = r; }));
+    await act(async () => {
+      render(<CorsairDevicePage />);
+    });
+    const buttons = screen.getAllByRole('button', { name: 'devices.corsair.rescan' });
+    await act(async () => {
+      fireEvent.click(buttons[1]);
+    });
+    expect(mockRescan).toHaveBeenCalledWith('corsair:0a1b2c3d');
+    const busy = screen.getByRole('button', { name: 'devices.corsair.rescanning' });
+    expect(busy).toBeDisabled();
+    await act(async () => {
+      release(true);
+    });
+    expect(screen.queryByRole('button', { name: 'devices.corsair.rescanning' })).not.toBeInTheDocument();
+  });
+
+  it('disables the button while the service reports redetecting', async () => {
+    mockGetCorsairState.mockResolvedValue({
+      ...connectedState,
+      redetecting: true,
+      hubs: [{ id: 'corsair', number: 1, isConnected: true, firmware: '1', redetecting: true, devices: connectedState.devices }],
+    });
+    await act(async () => {
+      render(<CorsairDevicePage />);
+    });
+    expect(screen.getByRole('button', { name: 'devices.corsair.rescanning' })).toBeDisabled();
   });
 });

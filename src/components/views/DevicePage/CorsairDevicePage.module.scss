@@ -27,22 +27,29 @@
   gap: 0.75rem;
 }
 
-.row {
+.hubActions {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+// Fixed-width value columns after a flexible name column keep LEDs, RPM and
+// temperature aligned across rows even when a device lacks one of them.
+.row {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) 5.5rem 7rem 6rem;
   align-items: center;
   gap: 0.75rem;
   min-height: 2rem;
 }
 
 .rowLabel {
-  flex: 0 0 9.5rem;
+  min-width: 0;
   font-size: var(--type-small);
   color: var(--text-dim);
 }
 
 .rowValue {
-  // Fixed width keeps the widest RPM reading and its icon on one line.
-  flex: 0 0 6.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;

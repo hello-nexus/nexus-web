@@ -1,6 +1,6 @@
-import { Fan, Lightbulb, Thermometer, Unplug } from 'lucide-react';
+import { Fan, Lightbulb, RefreshCw, Thermometer, Unplug } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getCorsairState, type CorsairState } from '../../../api/corsair';
+import { corsairHubs, getCorsairState, rescanCorsairHub, type CorsairState } from '../../../api/corsair';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
@@ -25,6 +25,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
   const [state, setState] = useState<CorsairState | null>(null);
+  const [rescanning, setRescanning] = useState<ReadonlySet<string>>(new Set());
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
 
@@ -32,7 +33,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
     const s = await getCorsairState();
     if (!aliveRef.current) return;
     if (s === null) return;
-    if (!s.isConnected) {
+    if (!corsairHubs(s).some(h => h.isConnected)) {
       connectedRef.current = false;
       setConnection('disconnected');
       setState(null);
@@ -47,15 +48,31 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
     if (!connectedRef.current) { void refresh(); return; }
     const s = await getCorsairState();
     if (!aliveRef.current || s === null) return;
-    if (!s.isConnected) {
+    if (!corsairHubs(s).some(h => h.isConnected)) {
       connectedRef.current = false;
       setConnection('disconnected');
       setState(null);
       return;
     }
-    // Replace the whole device list so a port change (add/remove/move) is reflected.
-    setState(prev => prev ? { ...prev, devices: s.devices } : s);
+    // Replace the whole state so a port change (add/remove/move) or a finished re-scan is reflected.
+    setState(s);
   }, [refresh]);
+
+  const rescan = useCallback(async (hubId: string) => {
+    setRescanning(prev => new Set(prev).add(hubId));
+    try {
+      await rescanCorsairHub(hubId);
+      await refreshLive();
+    } finally {
+      if (aliveRef.current) {
+        setRescanning(prev => {
+          const next = new Set(prev);
+          next.delete(hubId);
+          return next;
+        });
+      }
+    }
+  }, [refreshLive]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -82,53 +99,71 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
     );
   }
 
-  const loaded = state !== null;
+  const hubs = state ? corsairHubs(state) : [];
+  const multiHub = hubs.length > 1;
 
   return (
     <div className={styles.page}>
-      <ViewHeader
-        // eslint-disable-next-line i18next/no-literal-string -- brand + model name
-        title="Corsair iCUE LINK Hub"
-        actions={
-          state?.firmware
-            // eslint-disable-next-line i18next/no-literal-string -- firmware label prefix
-            ? <span className={styles.savingBadge}>fw {state.firmware}</span>
-            : undefined
-        }
-      />
+      {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
+      <ViewHeader title="Corsair iCUE LINK Hub" />
       <div className={`${styles.pageBody} pageBody`}>
-        <SettingsSection
-          title={t('devices.corsair.devicesSection')}
-          boxClassName={styles.sectionBox}
-        >
-          {loaded
-            ? state.devices.map(device => (
+        {hubs.map(hub => {
+          const busy = hub.redetecting || rescanning.has(hub.id);
+          return (
+            <SettingsSection
+              key={hub.id}
+              title={multiHub
+                ? t('devices.corsair.hubDevicesSection', { n: hub.number })
+                : t('devices.corsair.devicesSection')}
+              boxClassName={styles.sectionBox}
+              action={
+                <div className={styles.hubActions}>
+                  {hub.firmware && (
+                    <span className={styles.savingBadge}>fw {hub.firmware}</span>
+                  )}
+                  <Button
+                    size="sm"
+                    tone="neutral"
+                    icon={<RefreshCw size={14} />}
+                    title={t('devices.corsair.rescanHint')}
+                    disabled={busy || !hub.isConnected}
+                    onClick={() => { void rescan(hub.id); }}
+                  >
+                    {busy ? t('devices.corsair.rescanning') : t('devices.corsair.rescan')}
+                  </Button>
+                </div>
+              }
+            >
+              {hub.devices.map(device => (
                 <div key={device.channel} className={styles.row}>
                   <span className={styles.channelBadge}>
                     {t('devices.corsair.channel', { n: device.channel })}
                   </span>
                   <span className={styles.rowLabel}>{device.name}</span>
-                  {device.ledCount > 0 && (
-                    <span className={styles.rowValue}>
-                      {t('devices.corsair.leds', { n: device.ledCount })}
-                    </span>
-                  )}
-                  {device.hasSpeed && (
-                    <span className={styles.rowValue}>
-                      <Fan size={12} aria-hidden />
-                      {device.rpm > 0 ? `${formatNumber(device.rpm, numberFormat)} RPM` : '-'}
-                    </span>
-                  )}
-                  {device.hasTemperature && (
-                    <span className={styles.rowValue}>
-                      <Thermometer size={12} aria-hidden />
-                      {device.tempC != null ? localizeNumbers(`${convertTemperature(device.tempC, monitoringTempUnit).toFixed(1)} ${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) : '-'}
-                    </span>
-                  )}
+                  <span className={styles.rowValue}>
+                    {device.ledCount > 0 && t('devices.corsair.leds', { n: device.ledCount })}
+                  </span>
+                  <span className={styles.rowValue}>
+                    {device.hasSpeed && (
+                      <>
+                        <Fan size={12} aria-hidden />
+                        {device.rpm > 0 ? `${formatNumber(device.rpm, numberFormat)} RPM` : '-'}
+                      </>
+                    )}
+                  </span>
+                  <span className={styles.rowValue}>
+                    {device.hasTemperature && (
+                      <>
+                        <Thermometer size={12} aria-hidden />
+                        {device.tempC != null ? localizeNumbers(`${convertTemperature(device.tempC, monitoringTempUnit).toFixed(1)} ${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) : '-'}
+                      </>
+                    )}
+                  </span>
                 </div>
-              ))
-            : null}
-        </SettingsSection>
+              ))}
+            </SettingsSection>
+          );
+        })}
 
         {onSectionNavigate && (
           <SettingsSection boxClassName={styles.sectionBox} title={null}>
