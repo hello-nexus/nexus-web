@@ -147,7 +147,7 @@ describe('DeckInstanceEditor - inline preset toolbar', () => {
     const deck = deckResult();
     render(<DeckInstanceEditor {...baseProps({ deck, page: 3, onPageChange, onSelectedSlotChange })} />);
     fireEvent.click(screen.getByText('activate'));
-    expect(deck.activate).toHaveBeenCalledWith('p2');
+    expect(deck.activate).toHaveBeenCalledWith('p2', undefined);
     expect(onPageChange).toHaveBeenCalledWith(0);
     expect(onSelectedSlotChange).toHaveBeenCalledWith(0);
   });

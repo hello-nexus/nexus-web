@@ -396,6 +396,19 @@ describe('useDeckInstance - mode and preset management', () => {
     expect(result.current.canUndo).toBe(false);
   });
 
+  it('activate with a mode sends it in the same single PUT as the preset id', async () => {
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    updateDeckInstanceMock.mockClear();
+    updateDeckInstanceMock.mockResolvedValue({ mode: 'custom', activePresetId: 'p2' });
+    getDeckPresetMock.mockResolvedValue({ id: 'p2', name: 'Gaming', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } });
+
+    await act(async () => { await result.current.activate('p2', 'custom'); });
+
+    expect(updateDeckInstanceMock).toHaveBeenCalledTimes(1);
+    expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { activePresetId: 'p2', mode: 'custom' });
+  });
+
   it('createPreset seeds it at the instance grid, adds it to the list, and activates it', async () => {
     const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 5, rows: 3 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));

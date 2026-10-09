@@ -82,7 +82,9 @@ vi.mock('../../../panel/widgets/deck/DeckDialInspector', () => ({
 }));
 
 vi.mock('./ElgatoImportModal', () => ({
-  ElgatoImportModal: () => null,
+  ElgatoImportModal: ({ open, onImported }: { open: boolean; onImported: (id: string) => void }) => (
+    open ? <button type="button" onClick={() => onImported('imported1')}>finish-import</button> : null
+  ),
 }));
 
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
@@ -566,6 +568,24 @@ describe('StreamDeckDevicePage', () => {
     });
   });
 
+  describe('Elgato import while in Recent Apps', () => {
+    it('activates the imported preset and leaves Recent Apps in one activate call', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      await renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+      fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.importOption' }));
+      await act(async () => {
+        fireEvent.click(screen.getByText('finish-import'));
+        await Promise.resolve();
+      });
+
+      expect(mockActivate).toHaveBeenCalledWith('imported1', 'custom');
+      expect(mockSetMode).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Recent Apps dropdown entry', () => {
     it('lists Recent Apps in the header rail and selecting it calls setMode', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
@@ -646,7 +666,7 @@ describe('StreamDeckDevicePage', () => {
         await Promise.resolve();
       });
 
-      expect(mockActivate).toHaveBeenCalledWith('p2');
+      expect(mockActivate).toHaveBeenCalledWith('p2', undefined);
     });
 
     it('deleting the active preset calls deletePreset', async () => {

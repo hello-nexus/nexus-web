@@ -7,6 +7,7 @@ import { DeckEditor } from './DeckEditor';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
 import { DeckPresetToolbar } from './DeckPresetToolbar';
 import type { UseDeckInstanceResult } from './useDeckInstance';
+import type { DeckInstanceMode } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
 import styles from './DeckInstanceEditor.module.scss';
 
@@ -64,8 +65,8 @@ export function DeckInstanceEditor({
   // Without a host override, a switched-to preset can have fewer pages/slots
   // than the one it replaced, so page/selectedSlot reset here too - otherwise
   // the grid can render blank on a stale out-of-range page.
-  const activatePreset = (id: string) => {
-    void deck.activate(id);
+  const activatePreset = (id: string, nextMode?: DeckInstanceMode) => {
+    void deck.activate(id, nextMode);
     onPageChange(0);
     onSelectedSlotChange?.(0);
   };

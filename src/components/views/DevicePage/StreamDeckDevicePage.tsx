@@ -5,6 +5,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
+import type { DeckInstanceMode } from '../../../api/deck';
 import { setStreamDeckNav, type StreamDeckInfoScreen } from '../../../api/streamdeck';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
@@ -13,7 +14,7 @@ import { useDeckInstance } from '../../../panel/widgets/deck/useDeckInstance';
 import { useRecentApps } from '../../../panel/widgets/deck/useRecentApps';
 import { buildRecentAppsView, type RecentAppsViewKey } from '../../../panel/widgets/deck/recentAppsView';
 import { DeckInstanceEditor } from '../../../panel/widgets/deck/DeckInstanceEditor';
-import { DeckPresetToolbar } from '../../../panel/widgets/deck/DeckPresetToolbar';
+import { DeckPresetToolbar, modeOnPick } from '../../../panel/widgets/deck/DeckPresetToolbar';
 import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckDevicePreview } from '../../../panel/widgets/deck/DeckDevicePreview';
@@ -257,8 +258,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
 
   // A preset's config is applied server-side (activation resets nav to page
   // 0); useDeckInstance.activate already refetches the new preset's config.
-  const onDeckPresetLoad = useCallback(async (id: string) => {
-    await instance.activate(id);
+  const onDeckPresetLoad = useCallback(async (id: string, mode?: DeckInstanceMode) => {
+    await instance.activate(id, mode);
     clearLiveTiles();
     setPage(0);
     setFolderPath([]);
@@ -459,7 +460,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       rail
       deck={instance}
       desktopActions
-      activatePreset={id => void onDeckPresetLoad(id)}
+      activatePreset={(id, mode) => void onDeckPresetLoad(id, mode)}
       onDelete={id => void onDeckPresetDelete(id)}
       onUndo={handleUndoDeck}
       onRedo={handleRedoDeck}
@@ -760,7 +761,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           deckCols={deck.cols}
           deckRows={deck.rows}
           existingPresetNames={instance.presets.map(p => p.name)}
-          onImported={id => void onDeckPresetLoad(id)}
+          onImported={id => void onDeckPresetLoad(id, modeOnPick(instance))}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DeckPresetToolbar } from './DeckPresetToolbar';
+import { DeckPresetToolbar, modeOnPick } from './DeckPresetToolbar';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckPresetFull, DeckTemplate, ImportDeckPresetResult, SetDeckPresetAppsResult } from '../../../api/deck';
 
@@ -158,13 +158,13 @@ describe('DeckPresetToolbar - Recent Apps entry', () => {
     }
   });
 
-  it('picking a preset while in Recent Apps switches the mode to custom and activates it', () => {
+  it('picking a preset while in Recent Apps activates it with mode custom in the same call', () => {
     const deck = deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } });
     const props = setup({ deck });
     open();
     fireEvent.click(screen.getByRole('option', { name: 'B' }));
-    expect(deck.setMode).toHaveBeenCalledWith('custom');
-    expect(props.activatePreset).toHaveBeenCalledWith('p2');
+    expect(deck.setMode).not.toHaveBeenCalled();
+    expect(props.activatePreset).toHaveBeenCalledWith('p2', 'custom');
   });
 
   it('picking a preset in custom mode does not touch the mode', () => {
@@ -173,7 +173,15 @@ describe('DeckPresetToolbar - Recent Apps entry', () => {
     open();
     fireEvent.click(screen.getByRole('option', { name: 'B' }));
     expect(deck.setMode).not.toHaveBeenCalled();
-    expect(props.activatePreset).toHaveBeenCalledWith('p2');
+    expect(props.activatePreset).toHaveBeenCalledWith('p2', undefined);
+  });
+});
+
+describe('modeOnPick', () => {
+  it('is custom only while in Recent Apps', () => {
+    expect(modeOnPick({ instance: { mode: 'recentApps', activePresetId: 'p1' } })).toBe('custom');
+    expect(modeOnPick({ instance: { mode: 'custom', activePresetId: 'p1' } })).toBeUndefined();
+    expect(modeOnPick({ instance: null })).toBeUndefined();
   });
 });
 
@@ -243,63 +251,34 @@ describe('DeckPresetToolbar - creating from a template', () => {
     fireEvent.click(screen.getByRole('option', { name }));
   }
 
-  it('creates the preset from the template, binds the installed app, then activates it', async () => {
+  it('creates the preset from the template in one POST and activates it; the service binds the app', async () => {
     mockTemplates.mockResolvedValue([DISCORD]);
     mockCreate.mockResolvedValue(created('new1', 'Discord'));
-    mockSetApps.mockResolvedValue({ kind: 'ok', preset: created('new1', 'Discord') });
     const props = setup();
     await pickTemplate('Discord');
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new1'));
+    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new1', undefined));
+    expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(mockCreate).toHaveBeenCalledWith({ name: 'Discord', cols: 5, rows: 3, templateId: 'discord' });
-    expect(mockSetApps).toHaveBeenCalledWith('new1', [{ id: 'app-discord', name: 'Discord', processName: 'discord.exe' }]);
-  });
-
-  it('skips the app binding when no matching app is installed', async () => {
-    mockTemplates.mockResolvedValue([SLACK]);
-    mockCreate.mockResolvedValue(created('new2', 'Slack'));
-    const props = setup();
-    await pickTemplate('Slack');
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new2'));
     expect(mockSetApps).not.toHaveBeenCalled();
   });
 
-  it('skips the app binding when another preset already owns the app', async () => {
-    mockTemplates.mockResolvedValue([DISCORD]);
-    mockCreate.mockResolvedValue(created('new3', 'Discord'));
-    const deck = deckResult({
-      presets: [{ id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, apps: [{ id: 'app-discord', name: 'Discord' }] }],
-    });
-    const props = setup({ deck });
-    await pickTemplate('Discord');
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new3'));
-    expect(mockSetApps).not.toHaveBeenCalled();
-  });
-
-  it('retries with a numbered name when the first create is refused', async () => {
-    mockTemplates.mockResolvedValue([SLACK]);
-    mockCreate.mockResolvedValueOnce(null).mockResolvedValueOnce(created('new4', 'Slack 2'));
-    const props = setup();
-    await pickTemplate('Slack');
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new4'));
-    expect(mockCreate).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Slack 2' }));
-  });
-
-  it('toasts and activates nothing when every create attempt fails', async () => {
+  it('toasts and activates nothing when the create fails', async () => {
     mockTemplates.mockResolvedValue([SLACK]);
     mockCreate.mockResolvedValue(null);
     const props = setup();
     await pickTemplate('Slack');
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ title: 'panel.settings.deck.appAware.addProfileFailed' }));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ title: 'panel.settings.deck.presets.createFailed' }));
     expect(props.activatePreset).not.toHaveBeenCalled();
   });
 
-  it('from Recent Apps, leaves that mode for custom', async () => {
+  it('from Recent Apps, activates with mode custom in the same call', async () => {
     mockTemplates.mockResolvedValue([SLACK]);
     mockCreate.mockResolvedValue(created('new5', 'Slack'));
     const deck = deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } });
-    setup({ deck });
+    const props = setup({ deck });
     await pickTemplate('Slack');
-    await waitFor(() => expect(deck.setMode).toHaveBeenCalledWith('custom'));
+    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new5', 'custom'));
+    expect(deck.setMode).not.toHaveBeenCalled();
   });
 });
 
@@ -312,7 +291,7 @@ describe('DeckPresetToolbar - import file flow', () => {
     mockImport.mockResolvedValue({ kind: 'ok', preset: IMPORTED });
     const props = setup();
     pickFile();
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('p-new'));
+    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('p-new', undefined));
     expect(mockImport).toHaveBeenCalledWith(FILE, false);
   });
 
@@ -335,7 +314,7 @@ describe('DeckPresetToolbar - import file flow', () => {
     expect(toast.action.label).toBe('panel.settings.deck.presets.importAnyway');
     toast.action.onClick();
     await waitFor(() => expect(mockImport).toHaveBeenLastCalledWith(FILE, true));
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('p-new'));
+    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('p-new', undefined));
   });
 
   it('a transport failure toasts the generic import-failed message', async () => {

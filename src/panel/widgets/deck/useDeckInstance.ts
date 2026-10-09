@@ -43,7 +43,8 @@ export interface UseDeckInstanceResult {
   error: boolean;
   retry: () => void;
   setMode: (mode: DeckInstanceMode) => void;
-  activate: (presetId: string) => Promise<void>;
+  /** `mode` rides in the same PUT as the preset id, so leaving Recent Apps for a preset is one write. */
+  activate: (presetId: string, mode?: DeckInstanceMode) => Promise<void>;
   /**
    * `activatePreset` defaults to this hook's own `activate`; a host whose
    * own `onLoad` also resets page/folder/selection (StreamDeckDevicePage)
@@ -297,11 +298,11 @@ function useOwnDeckInstance(
     });
   }, [instanceId]);
 
-  const activate = useCallback(async (presetId: string) => {
+  const activate = useCallback(async (presetId: string, mode?: DeckInstanceMode) => {
     if (!instanceId) return;
     closeBurst();
     undoRedo.reset();
-    const updated = await updateDeckInstance(instanceId, { activePresetId: presetId });
+    const updated = await updateDeckInstance(instanceId, mode ? { activePresetId: presetId, mode } : { activePresetId: presetId });
     if (instanceIdRef.current !== instanceId) return;
     if (updated) setInstance(normalizeInstance(updated));
     const full = await getDeckPreset(presetId);

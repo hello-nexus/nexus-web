@@ -6,20 +6,19 @@ import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetTo
 import { PresetAppsModal } from '../lighting/page/PresetAppsModal';
 import {
   createDeckPreset, exportDeckPreset, getDeckTemplates, importDeckPreset, setDeckPresetApps,
-  type DeckPresetFull, type DeckTemplate, type PresetApp,
+  type DeckInstanceMode, type DeckTemplate, type PresetApp,
 } from '../../../api/deck';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 
 export const DECK_PRESET_CAP = 50;
 
+/** Mode to send with a preset activation: picking a preset leaves Recent Apps. */
+export function modeOnPick(deck: Pick<UseDeckInstanceResult, 'instance'>): DeckInstanceMode | undefined {
+  return deck.instance?.mode === 'recentApps' ? 'custom' : undefined;
+}
+
 const RECENT_APPS_ID = 'recentApps';
 const IMPORT_RETRY_TOAST_MS = 15000;
-
-// A create refused for a duplicate name reads the same as any other refusal
-// (createDeckPreset collapses both to null), so a straight retry with a
-// numbered suffix resolves the common case (a preset already carries the
-// template's name) without the server distinguishing the reason.
-const MAX_NAME_RETRY_ATTEMPTS = 5;
 
 export interface DeckPresetToolbarProps {
   deck: UseDeckInstanceResult;
@@ -27,8 +26,8 @@ export interface DeckPresetToolbarProps {
   desktopActions: boolean;
   /** Renders as the page-header rail (ViewHeader's tabActions slot). */
   rail?: boolean;
-  /** Activates a preset through the host's own reset (StreamDeckDevicePage also clears its page/folder/selection/live tiles). */
-  activatePreset: (id: string) => void;
+  /** Activates a preset through the host's own reset (StreamDeckDevicePage also clears its page/folder/selection/live tiles). `mode` is set in the same write. */
+  activatePreset: (id: string, mode?: DeckInstanceMode) => void;
   onDelete: (id: string) => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -79,8 +78,7 @@ export function DeckPresetToolbar({
   }, [deck.presets, appsTarget?.id]);
 
   const pick = (id: string) => {
-    if (recentApps) deck.setMode('custom');
-    activatePreset(id);
+    activatePreset(id, modeOnPick(deck));
   };
 
   const suggestions = desktopActions
@@ -89,29 +87,17 @@ export function DeckPresetToolbar({
       .map(tpl => ({ id: tpl.id, label: tpl.name, icon: <Sparkles size={14} aria-hidden />, disabled: atCap }))
     : [];
 
+  // The service creates from a template with its own name de-dupe and
+  // pre-binds the installed app (with its own conflict check).
   const createFromTemplate = async (tplId: string) => {
     const tpl = templates.find(x => x.id === tplId);
     if (!tpl || busyRef.current) return;
     busyRef.current = true;
     try {
-      let created: DeckPresetFull | null = null;
-      for (let attempt = 0; attempt < MAX_NAME_RETRY_ATTEMPTS && !created; attempt++) {
-        const name = attempt === 0 ? tpl.name : `${tpl.name} ${attempt + 1}`;
-        created = await createDeckPreset({ name, cols: tpl.cols, rows: tpl.rows, templateId: tpl.id });
-      }
+      const created = await createDeckPreset({ name: tpl.name, cols: tpl.cols, rows: tpl.rows, templateId: tpl.id });
       if (!created) {
-        toast.push({ title: t('panel.settings.deck.appAware.addProfileFailed') });
+        toast.push({ title: t('panel.settings.deck.presets.createFailed') });
         return;
-      }
-      const appId = tpl.installedAppId;
-      const taken = !!appId && (appId in takenApps || (!!tpl.processName && tpl.processName in takenApps));
-      if (appId && !taken) {
-        const bound = await setDeckPresetApps(created.id, [{ id: appId, name: tpl.installedAppName ?? tpl.name, processName: tpl.processName }]);
-        if (bound.kind === 'conflict') {
-          toast.push({ title: t('lighting.layoutPresets.appsTaken', { app: bound.conflict.appName, preset: bound.conflict.presetName }) });
-        } else if (bound.kind === 'failed') {
-          toast.push({ title: t('panel.settings.deck.appAware.appsSaveFailed') });
-        }
       }
       pick(created.id);
     } finally {
@@ -152,7 +138,7 @@ export function DeckPresetToolbar({
     if (result.kind === 'conflict') {
       return { message: t('lighting.layoutPresets.appsTaken', { app: result.conflict.appName, preset: result.conflict.presetName }), failed: false };
     }
-    if (result.kind === 'failed') return { message: t('panel.settings.deck.appAware.appsSaveFailed'), failed: true };
+    if (result.kind === 'failed') return { message: t('panel.settings.deck.presets.appsSaveFailed'), failed: true };
     // The service broadcasts a `preset` deck-topic frame for this write, which
     // useDeckInstance already applies to `presets`.
     setAppsTarget(null);
