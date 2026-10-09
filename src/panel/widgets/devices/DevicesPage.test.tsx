@@ -85,6 +85,7 @@ function monitorRow(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
     nexusControlEnabled: true,
     supportsNexusControl: true,
     experimental: false,
+    requiresBeta: false,
     ...overrides,
   };
 }
@@ -104,6 +105,7 @@ function curatedRow(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
     nexusControlEnabled: true,
     supportsNexusControl: true,
     experimental: false,
+    requiresBeta: false,
     ...overrides,
   };
 }
@@ -123,6 +125,7 @@ function smbusRow(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
     nexusControlEnabled: true,
     supportsNexusControl: true,
     experimental: false,
+    requiresBeta: false,
     conflictAppId: 'icue',
     bus: 'smbus',
     ...overrides,
@@ -354,6 +357,17 @@ describe('DevicesPage device-card secondary line', () => {
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
 
     expect(screen.getByText('devices.simulated')).toBeTruthy();
+  });
+
+  it('locks the toggle off and marks a device that requires a beta build', () => {
+    mockUnified = [lianLiRow({ conflictAppId: undefined, requiresBeta: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByText('devices.requiresBeta.short')).toBeTruthy();
+    const toggle = screen.getByRole('switch', { name: 'devices.nexusControl' });
+    expect(toggle).toBeDisabled();
+    fireEvent.click(toggle);
+    expect(controlDeviceMock).not.toHaveBeenCalled();
   });
 
   it('shows the bus-control-off subtitle for an off shared-bus device', () => {

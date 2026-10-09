@@ -71,7 +71,7 @@ export function SidebarDevicesSection({
   // goes through the handler control API. Undefined when neither applies, so
   // the menu omits the item rather than offering a dead click.
   const nexusControlToggleFor = useCallback((device: UnifiedDevice): (() => void) | undefined => {
-    if (!device.supportsNexusControl) return undefined;
+    if (!device.supportsNexusControl || device.requiresBeta) return undefined;
     const next = !device.nexusControlEnabled;
     const displayId = device.kind === 'panel' ? device.panelDevice?.displayId : undefined;
     if (displayId) {
