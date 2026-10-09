@@ -130,6 +130,7 @@ const WIDGET_PANEL_IDS = new Set(Object.keys(WIDGET_PANEL_PROFILES));
 // is presentation only.
 const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: string; defaultNames: readonly string[] }>> = {
   'xeneon-edge': { name: 'Xeneon Edge', icon: '/assets/devices/corsair.svg', defaultNames: ['crx ed00'] },
+  'icue-link-lcd5': { name: 'iCUE LINK 5" LCD', icon: '/assets/devices/corsair.svg', defaultNames: ['xmd 00ea', "icue link 5''"] },
 };
 
 // A plain monitor (no product family) promoted to a panel and then turned off:

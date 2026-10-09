@@ -66,6 +66,14 @@ describe('buildPanelDevices promoted-monitor branding', () => {
   it('carries the record touch capability onto the device entry', () => {
     expect(firstDevice(xeneonRecord('CRX ED00')).capabilities.touch).toBe(true);
   });
+
+  it('brands the iCUE LINK 5" LCD from its PnP identity', () => {
+    const record = xeneonRecord('XMD 00EA');
+    record.capabilities = { ...record.capabilities, family: 'icue-link-lcd5', touch: false };
+    const device = firstDevice(record);
+    expect(device.name).toBe('iCUE LINK 5" LCD');
+    expect(device.iconSrc).toBe('/assets/devices/corsair.svg');
+  });
 });
 
 describe('buildPanelDevices Nexus Link off state', () => {
