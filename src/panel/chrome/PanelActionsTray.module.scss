@@ -143,6 +143,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  // Some panel fonts draw descenders below their line box; widen the clip box
+  // without moving the layout so the ellipsis clip does not shave them.
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+  margin-top: -0.25em;
+  margin-bottom: -0.25em;
 }
 
 // Lock by the host name on paired-phone surfaces: the link to the PC is

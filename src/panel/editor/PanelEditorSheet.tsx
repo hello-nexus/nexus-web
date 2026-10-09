@@ -16,6 +16,7 @@ import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
 import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import type { TextColorMode } from '../theme/textColor';
+import type { PanelFontId } from '../theme/panelFont';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
@@ -83,6 +84,7 @@ export function PanelEditorSheet({
   onThemeTextColorModeCommit,
   onThemeTextColorPreview,
   onThemeTextColorCommit,
+  onThemeFontCommit,
   onThemeWidgetPaddingPreview,
   onThemeWidgetPaddingCommit,
   showMediaTab = false,
@@ -167,6 +169,7 @@ export function PanelEditorSheet({
   onThemeTextColorModeCommit: (mode: TextColorMode) => void;
   onThemeTextColorPreview: (hex: string) => void;
   onThemeTextColorCommit: (hex: string) => void;
+  onThemeFontCommit: (font: PanelFontId | null) => void;
   onThemeWidgetPaddingPreview: (percent: number) => void;
   onThemeWidgetPaddingCommit: (percent: number) => void;
   showMediaTab?: boolean;
@@ -477,6 +480,7 @@ export function PanelEditorSheet({
               onTextColorModeCommit={onThemeTextColorModeCommit}
               onTextColorPreview={onThemeTextColorPreview}
               onTextColorCommit={onThemeTextColorCommit}
+              onFontCommit={onThemeFontCommit}
               hideWidgetChromeControls={isSingleWidgetSurface(surface)}
             />
           </div>

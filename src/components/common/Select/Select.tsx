@@ -45,6 +45,9 @@ export interface SelectOption {
   // Glyph rendered before the label in both the trigger and the menu row (e.g.
   // a language flag). Decorative; the label carries the accessible text.
   icon?: ReactNode;
+  // CSS font-family the menu row draws its label in, enlarged, so a font
+  // picker previews each face; the trigger keeps the control's own font.
+  fontFamily?: string;
   // Renders a thin rule instead of a selectable row, grouping the options above
   // and below it. Non-navigable and removed from the a11y tree; value/label are
   // ignored.
@@ -520,7 +523,9 @@ export function Select({
                     i === activeIndex && styles.active,
                     opt.value === value && styles.selected,
                     opt.disabled && styles.optionDisabled,
+                    opt.fontFamily && styles.fontOption,
                   )}
+                  style={opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined}
                   onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
                   onClick={() => { if (!opt.disabled) commit(opt.value); }}
                 >

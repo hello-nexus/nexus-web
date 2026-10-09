@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPanelTheme } from './panelTheme';
+import { buildPanelTheme, buildPanelThemeVars } from './panelTheme';
 import type { PanelDeviceRecord } from '../../api/panel';
 import type { Preferences } from '../../api/profiles';
 
@@ -23,6 +23,20 @@ describe('buildPanelTheme', () => {
     expect(buildPanelTheme(null, null).textColorMode).toBe('adaptive');
     expect(buildPanelTheme(null, y70()).textColorMode).toBe('adaptive');
     expect(buildPanelTheme(null, y70({ textColorMode: 'custom', textColor: '#ff8800' })).textColor).toBe('#ff8800');
+  });
+
+  it('reads a stored font and follows the app font for a missing or unknown id', () => {
+    expect(buildPanelTheme(null, y70()).font).toBeNull();
+    expect(buildPanelTheme(null, y70({ font: 'tektur' })).font).toBe('tektur');
+    expect(buildPanelTheme(null, y70({ font: "x'; } body { color: red" })).font).toBeNull();
+  });
+
+  it('sets the panel and sans font vars only for a non-default font', () => {
+    const vars = (font: string) => buildPanelThemeVars(buildPanelTheme(null, y70({ font })), 'dark') as Record<string, string>;
+    expect(vars('lexend')['--panel-font']).toBeUndefined();
+    expect(vars('lexend')['--font-sans']).toBeUndefined();
+    expect(vars('jura')['--panel-font']).toContain("'Jura', 'Lexend'");
+    expect(vars('jura')['--font-sans']).toBe(vars('jura')['--panel-font']);
   });
 
   it('defaults a wallpaper-capable panel with no stored choice to the wallpaper', () => {

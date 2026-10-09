@@ -32,6 +32,7 @@ import {
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { normalizeTextColorMode, type TextColorMode } from './textColor';
+import { normalizePanelFont, panelFontVars, type PanelFontId } from './panelFont';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
@@ -132,7 +133,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
     '--panel-accent-shadow': accentVars['--accent-glow-shadow'],
     '--panel-accent-text': accentVars['--accent-text'],
   };
-  return vars as CSSProperties;
+  return { ...vars, ...panelFontVars(theme.font) } as CSSProperties;
 }
 
 // Per-surface theme overrides applied at render time (persisted theme is
@@ -232,6 +233,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
     textColorMode: normalizeTextColorMode(r?.textColorMode),
     textColor: r?.textColor ?? '',
+    font: normalizePanelFont(r?.font),
     gaugeGradient: normalizeGaugeGradient(r?.gaugeGradient),
   };
 }
@@ -508,6 +510,11 @@ export function usePanelTheme(
     persistPatch({ textColor: hex });
   }, [persistPatch]);
 
+  const commitFont = useCallback((font: PanelFontId | null) => {
+    setTheme(prev => ({ ...prev, font }));
+    persistPatch({ font: font ?? '' });
+  }, [persistPatch]);
+
   const previewGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
     setTheme(prev => ({ ...prev, gaugeGradient: normalizeGaugeGradient(stops) }));
   }, []);
@@ -566,6 +573,7 @@ export function usePanelTheme(
     commitTextColorMode,
     previewTextColor: (hex: string) => setTheme(prev => ({ ...prev, textColor: hex })),
     commitTextColor,
+    commitFont,
     previewGaugeGradient,
     commitGaugeGradient,
     prefs,

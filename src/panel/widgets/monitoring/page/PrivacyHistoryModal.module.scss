@@ -93,6 +93,7 @@
 
 .duration {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--type-mini);
   min-width: 44px;
   text-align: right;

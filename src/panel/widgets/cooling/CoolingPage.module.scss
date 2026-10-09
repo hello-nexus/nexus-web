@@ -419,7 +419,7 @@
   padding: 0.3rem 0; font-size: var(--type-small);
 }
 .calFanId { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.calRange { color: var(--text-dim); font-family: var(--font-mono); font-size: var(--type-mini); }
+.calRange { color: var(--text-dim); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--type-mini); }
 .calBadge, .calBadgeSmall {
   padding: 0.1rem 0.45rem; border-radius: var(--radius-sm); font-size: 0.65rem;
   font-weight: var(--weight-strong); text-transform: uppercase; letter-spacing: 0.04em;
@@ -1066,6 +1066,7 @@
 .curveAxisLabel {
   font-size: var(--type-mini);
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   // Faded so the live readouts read as the primary labels.
   opacity: 0.4;
@@ -1080,6 +1081,7 @@
   color: var(--accent-glow);
   font-size: var(--type-mini);
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-weight: var(--weight-strong);
   line-height: 1;
   padding: 0.12rem 0.3rem;
@@ -1113,6 +1115,7 @@
 .tempBadgeText {
   fill: var(--accent-glow);
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 9px;
   font-weight: var(--weight-strong);
   letter-spacing: 0.02em;

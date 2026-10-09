@@ -64,5 +64,6 @@
 // lands well under the readable floor; inline values track the hint's size.
 .hint code {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: inherit;
 }

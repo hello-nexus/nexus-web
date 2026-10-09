@@ -1475,6 +1475,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onTextColorModeCommit={panelTheme.commitTextColorMode}
                             onTextColorPreview={panelTheme.previewTextColor}
                             onTextColorCommit={panelTheme.commitTextColor}
+                            onFontCommit={panelTheme.commitFont}
                             showMediaTab={surface !== 'desktop'}
                             backgroundHeldBy={backgroundHeldBy}
                             deviceAspect={devAspect}

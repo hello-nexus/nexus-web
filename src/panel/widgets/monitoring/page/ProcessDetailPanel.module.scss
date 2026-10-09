@@ -75,6 +75,7 @@
 
 .mono {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 // Value slot for a path/hash InfoRow: the text + copy button together

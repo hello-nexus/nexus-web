@@ -64,6 +64,7 @@
 
 .notchText {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 10px;
   font-weight: var(--weight-strong);
   letter-spacing: 0.02em;
@@ -85,6 +86,7 @@
   align-items: baseline;
   gap: 6px;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   pointer-events: none;
   z-index: 1;

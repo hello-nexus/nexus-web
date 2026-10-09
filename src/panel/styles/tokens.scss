@@ -7,6 +7,13 @@
 // global.scss. The Tools > Debug font picker fetches alternatives on
 // demand if the user picks one.
 
+// Widgets draw in one font: mono call sites resolve to the panel font (the
+// theme's font override included) and align digits via tabular-nums. The
+// [data-theme] form outranks variables.scss's [data-theme="dark"] token block,
+// which also lands on the panel root and would restore JetBrains Mono.
+.panel-root,
+.panel-root[data-theme] { --font-mono: var(--panel-font); }
+
 // --panel-scale: real cell ÷ 90px design base, as a unitless number
 // (tan(atan2(a,b)) == a/b - CSS can't divide two lengths). The single ratio
 // shared by grid content (.cellScaler) and floating chrome; cell == 90px

@@ -1772,7 +1772,7 @@ function PreviewPanelThemeSettings() {
     backgroundMediaOrder: [],
     backgroundFrost: 0,
     immersiveBackdrop: true,
-    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '',
+    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '', font: null,
     gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -1816,6 +1816,7 @@ function PreviewPanelThemeSettings() {
         onTextColorModeCommit={v => set({ textColorMode: v })}
         onTextColorPreview={v => set({ textColor: v })}
         onTextColorCommit={v => set({ textColor: v })}
+        onFontCommit={v => set({ font: v })}
       />
     </div>
   );
@@ -3270,7 +3271,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelThemeSettings', category: 'panel-kit',
     filePath: 'src/panel/editor/PanelThemeSettings.tsx',
-    description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown stacked in the Y70 touch editor sheet and split by `sections` across the device page\'s Theme and Background tabs. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
+    description: 'Per-panel theme editor (Widgets / Theme / Text / Accent / Background) shown stacked in the Y70 touch editor sheet and split by `sections` across the device page\'s Theme and Background tabs. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
     Preview: PreviewPanelThemeSettings,
     notes: 'Preview is in solid background mode; switching to Animations hits the live thumbnail service, so the grid is empty in Storybook.',
   },
