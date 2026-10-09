@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { StreamDeckSummary } from '../../../api/streamdeck';
@@ -64,9 +65,10 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
-  DeckKeyInspector: ({ selectedSlot, part, onDeleteSlot }: { selectedSlot?: number; part?: string; onDeleteSlot?: () => void }) => (
+  DeckKeyInspector: ({ selectedSlot, part, onDeleteSlot, pickerHeaderAction }: { selectedSlot?: number; part?: string; onDeleteSlot?: () => void; pickerHeaderAction?: ReactNode }) => (
     <>
       <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
+      {pickerHeaderAction}
       {onDeleteSlot && <button type="button" onClick={onDeleteSlot}>editor-delete</button>}
     </>
   ),
@@ -75,8 +77,11 @@ vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
 }));
 
 vi.mock('../../../panel/widgets/deck/DeckDialInspector', () => ({
-  DeckDialInspector: ({ selectedDial, part }: { selectedDial: number | null; part: string }) => (
-    <div data-testid={`deck-dial-inspector-${part}`}>{String(selectedDial)}</div>
+  DeckDialInspector: ({ selectedDial, part, pickerHeaderAction }: { selectedDial: number | null; part: string; pickerHeaderAction?: ReactNode }) => (
+    <>
+      <div data-testid={`deck-dial-inspector-${part}`}>{String(selectedDial)}</div>
+      {pickerHeaderAction}
+    </>
   ),
   DeckDialDragPreview: () => null,
 }));
@@ -1003,6 +1008,49 @@ describe('StreamDeckDevicePage', () => {
       expect(container.querySelectorAll('[data-deck-dial-index]')).toHaveLength(0);
       expect(container.querySelectorAll('[data-deck-knob-index]')).toHaveLength(0);
       expect(screen.queryByTestId('deck-dial-inspector-picker')).toBeNull();
+    });
+
+    it('splits the action list into Keys and Dials, the switch following the selection', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      const { container } = await renderPage();
+      // The hidden key picker's copy is excluded from role queries.
+      const keysTab = () => screen.getByRole('radio', { name: 'panel.settings.deck.pickerTabs.keys' });
+      const dialsTab = () => screen.getByRole('radio', { name: 'panel.settings.deck.pickerTabs.dials' });
+
+      expect(keysTab()).toHaveAttribute('aria-checked', 'true');
+
+      fireEvent.click(dialsTab());
+      expect(screen.getByTestId('deck-dial-inspector-editor').textContent).toBe('0');
+      expect(screen.getByTestId('deck-dial-inspector-picker')).toBeInTheDocument();
+
+      fireEvent.click(container.querySelector('[data-deck-dial-index="2"]')!);
+      expect(screen.getByTestId('deck-dial-inspector-editor').textContent).toBe('2');
+
+      expect(dialsTab()).toHaveAttribute('aria-checked', 'true');
+      fireEvent.click(keysTab());
+      expect(screen.queryByTestId('deck-dial-inspector-editor')).toBeNull();
+      expect(screen.getByTestId('deck-key-inspector-editor')).toBeInTheDocument();
+      expect(keysTab()).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('keeps keyboard focus on the switch when it swaps the picker', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      await renderPage();
+      const dials = screen.getByRole('radio', { name: 'panel.settings.deck.pickerTabs.dials' });
+      dials.focus();
+      fireEvent.click(dials);
+      expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'panel.settings.deck.pickerTabs.dials' }));
+      expect(document.activeElement).not.toBe(dials);
+      fireEvent.click(screen.getByRole('radio', { name: 'panel.settings.deck.pickerTabs.keys' }));
+      expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'panel.settings.deck.pickerTabs.keys' }));
+    });
+
+    it('offers no Keys/Dials switch on a deck without dials', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      await renderPage();
+      expect(screen.queryByRole('radio', { name: 'panel.settings.deck.pickerTabs.dials' })).toBeNull();
     });
 
     it('selecting a segment swaps the key editor for the dial editor, and a key swaps it back', async () => {

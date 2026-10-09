@@ -121,6 +121,14 @@
   gap: 1.5rem;
 }
 
+// The chips are taller than a section title. Top-aligned in the line box and
+// overhanging it, they leave the Action header row as tall as Preview's, so
+// the two boxes line up.
+.pickerTabs {
+  vertical-align: top;
+  margin-block: -2px;
+}
+
 // Fills the picker column so the inspector's Action box scrolls, not the column.
 .pickerSlot {
   flex: 1;

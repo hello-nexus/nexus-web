@@ -1315,6 +1315,8 @@ export interface DeckKeyInspectorProps {
    * folder with bound content - matching the grid's own onDeleteSlot).
    */
   onDeleteSlot?: () => void;
+  /** Trailing control on the action list's header row (part='picker'). */
+  pickerHeaderAction?: ReactNode;
 }
 
 /**
@@ -1323,7 +1325,7 @@ export interface DeckKeyInspectorProps {
  * grid and this inspector in separate panes while the touch widget keeps
  * composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot, pickerHeaderAction }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
@@ -1427,6 +1429,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
       {showPicker && (
         <SettingsSection
           title={t('panel.settings.deck.actionType')}
+          action={part === 'picker' ? pickerHeaderAction : undefined}
           className={part === 'picker' ? styles.pickerFill : undefined}
           boxClassName={part === 'picker' ? styles.pickerFillBox : undefined}
         >

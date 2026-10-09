@@ -279,10 +279,12 @@ export interface DeckDialInspectorProps {
   desktopEditor?: boolean;
   /** 'picker' is the dial action list; 'editor' is the selected dial's fields. */
   part: 'picker' | 'editor';
+  /** Trailing control on the action list's header row (part='picker'). */
+  pickerHeaderAction?: ReactNode;
 }
 
 /** Dial counterpart of DeckKeyInspector: the dial action list and the selected dial's action, look and stack editor. */
-export function DeckDialInspector({ target, page, folderPath, selectedDial, entryIndex, onEntryIndexChange, surface, desktopEditor, part }: DeckDialInspectorProps) {
+export function DeckDialInspector({ target, page, folderPath, selectedDial, entryIndex, onEntryIndexChange, surface, desktopEditor, part, pickerHeaderAction }: DeckDialInspectorProps) {
   const { t } = useTranslation();
   const dials = resolveTargetDials(target, page, folderPath);
   const index = Math.min(selectedDial, Math.max(0, dials.length - 1));
@@ -303,7 +305,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
 
   if (part === 'picker') {
     return (
-      <SettingsSection title={t('panel.settings.deck.dial.actionType')} className={keyStyles.pickerFill} boxClassName={keyStyles.pickerFillBox}>
+      <SettingsSection title={t('panel.settings.deck.actionType')} action={pickerHeaderAction} className={keyStyles.pickerFill} boxClassName={keyStyles.pickerFillBox}>
         <div className={keyStyles.categoryList}>
           {DIAL_PICKER_CATEGORIES.map(cat => (
             <CollapsibleSection key={cat.key} title={t(cat.labelKey)} open={openKeys.has(cat.key)} onToggle={() => toggleOpen(cat.key)} compact>

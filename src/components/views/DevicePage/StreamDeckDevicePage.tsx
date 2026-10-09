@@ -37,10 +37,14 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { EditableText } from '../../common/Editable/EditableText';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { Button } from '../../common/Button/Button';
 import styles from './StreamDeckDevicePage.module.scss';
 import { useReportDeviceWaiting } from './deviceDetecting';
+
+const PICKER_KEYS = 'keys';
+const PICKER_DIALS = 'dials';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
@@ -255,6 +259,16 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     );
   }, [pendingFlashDial, target]);
 
+  // The key and dial pickers each render their own Keys/Dials switch, so a
+  // switch that swaps the picker hands focus to the copy that replaced it.
+  const pickerTabsFocusRef = useRef(false);
+  useEffect(() => {
+    if (!pickerTabsFocusRef.current) return;
+    pickerTabsFocusRef.current = false;
+    const checked = [...document.querySelectorAll<HTMLElement>(`.${styles.pickerTabs} [aria-checked="true"]`)];
+    checked.find(el => !el.closest('[hidden]'))?.focus();
+  }, [selectedDial]);
+
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
 
@@ -439,6 +453,25 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   };
 
   const fitNote = deckFitNote(instance.preset, instanceGrid, 'physical', t);
+
+  // Decks with dials split the action list into Keys and Dials. The switch
+  // mirrors the selection; picking a list with nothing of its kind selected
+  // selects one (the first dial, or the last-selected key).
+  const pickerTabs = encoders > 0 ? (
+    <ChipGroup
+      className={styles.pickerTabs}
+      ariaLabel={t('panel.settings.deck.pickerTabs.aria')}
+      options={[
+        { key: PICKER_KEYS, label: t('panel.settings.deck.pickerTabs.keys') },
+        { key: PICKER_DIALS, label: t('panel.settings.deck.pickerTabs.dials') },
+      ]}
+      activeKey={dialSel != null ? PICKER_DIALS : PICKER_KEYS}
+      onChange={next => {
+        pickerTabsFocusRef.current = !!document.activeElement?.closest(`.${styles.pickerTabs}`);
+        if (next === PICKER_DIALS) { if (dialSel == null) selectDial(0); } else setSelectedDial(null);
+      }}
+    />
+  ) : undefined;
 
   const instanceEditor = (
     <DeckInstanceEditor
@@ -654,6 +687,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     desktopEditor
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="picker"
+                    pickerHeaderAction={pickerTabs}
                   />
                   </div>
                 )}
@@ -670,6 +704,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     desktopEditor
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="picker"
+                    pickerHeaderAction={pickerTabs}
                   />
                 )}
               </div>
