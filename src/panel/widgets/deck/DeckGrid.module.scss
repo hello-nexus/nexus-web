@@ -25,11 +25,18 @@
 // room. `--deck-cols` is set by DeckGrid from its `cols` prop. Falls back to
 // the viewport when no container ancestor exists (e.g. Storybook).
 .square {
-  --deck-cell: clamp(20px, calc((100cqi - 16px - (var(--deck-cols, 5) - 1) * 11px) / var(--deck-cols, 5)), 78px);
+  --deck-gap: 11px;
+  --deck-cell: clamp(var(--deck-min, 20px), calc((100cqi - var(--deck-reserved, 0px) - 16px - (var(--deck-cols, 5) - 1) * var(--deck-gap)) / var(--deck-cols, 5)), 78px);
+  gap: var(--deck-gap);
   width: max-content;
   height: max-content;
   max-width: 100%;
   margin: auto;
+}
+
+.dense {
+  --deck-gap: 4px;
+  --deck-min: 10px;
 }
 
 .cell {

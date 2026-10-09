@@ -1,0 +1,90 @@
+// Model-shaped arrangement of the keys grid with the dial controls of a
+// Plus, Plus XL, Galleon, Studio or Neo around it.
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.keysOnly {
+  display: contents;
+}
+
+// Aligns with the keys grid's own inner padding.
+.inset {
+  padding: 0 8px;
+}
+
+.strip {
+  display: grid;
+  gap: 8px;
+}
+
+.knobRow {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.aboveRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.screenSegments {
+  display: grid;
+  gap: 8px;
+}
+
+.sidesRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.infoRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.touchKey {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, #94a3b8 40%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, #94a3b8 12%, var(--surface));
+  color: var(--text-dim);
+}
+
+.infoScreen {
+  position: relative;
+  aspect-ratio: var(--info-aspect);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #0f1115;
+  color: #ffffff;
+}
+
+.infoImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

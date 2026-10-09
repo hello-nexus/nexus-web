@@ -124,10 +124,12 @@ import { WidgetOfflineState } from '../panel/widgets/common/WidgetOfflineState';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
-import type { DeckIcon, DeckConfig } from '../panel/widgets/deck/types';
+import type { DeckIcon, DeckConfig, DeckDial } from '../panel/widgets/deck/types';
+import { DndContext } from '@dnd-kit/core';
 import type { DeckPresetFull } from '../api/deck';
 import { DeckEditor } from '../panel/widgets/deck/DeckEditor';
 import { DeckPageStrip } from '../panel/widgets/deck/DeckPageStrip';
+import { DeckDevicePreview } from '../panel/widgets/deck/DeckDevicePreview';
 import { makePresetDeckTarget } from '../panel/widgets/deck/deckTarget';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
@@ -2090,6 +2092,29 @@ function PreviewDeckEditorPhysical() {
   );
 }
 
+function PreviewDeckDevicePreview() {
+  const [selected, setSelected] = useState<number | null>(null);
+  const dials: DeckDial[] = [
+    { action: { type: 'volume' } },
+    { label: 'Screen', action: { type: 'displayBrightness', displayId: 'display' } },
+    { stack: [{ action: { type: 'page' } }, { action: { type: 'lightingBrightness' } }] },
+    {},
+  ];
+  return (
+    <DndContext>
+      <div style={{ width: '100%', maxWidth: 520, containerType: 'inline-size' }}>
+        <DeckDevicePreview
+          deck={{ encoders: 4, dialPlacement: 'below', screen: { width: 800, height: 100, kind: 'touchStrip' } }}
+          dials={dials}
+          selectedDial={selected}
+          onSelectDial={setSelected}
+          grid={{ slots: [], cols: 4, rows: 2, square: true, selectable: false, onCell: () => {} }}
+        />
+      </div>
+    </DndContext>
+  );
+}
+
 function PreviewDeckPageStrip() {
   const [pageCount, setPageCount] = useState(3);
   const [page, setPage] = useState(0);
@@ -3421,6 +3446,13 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Shared grid + inspector for one Deck target. The touch widget renders its own grid elsewhere (the live tile) so DeckEditor only adds the inspector there; a physical Stream Deck has no other tile, so DeckEditor renders the live key grid (drag-reorder, reserved Back key inside a folder) too. This story drives it against a real physical target (makePresetDeckTarget) shaped like a Mini (2x3).',
     Preview: PreviewDeckEditorPhysical,
     notes: 'Pick a key, set an action, then use "Folder" + "Edit folder" to see the reserved Back key.',
+  },
+  {
+    name: 'DeckDevicePreview', category: 'panel-kit',
+    filePath: 'src/panel/widgets/deck/DeckDevicePreview.tsx',
+    description: 'Model-shaped preview of a physical Stream Deck on its device page: the keys grid plus, by model, touch strip segments and knobs below (Plus, Plus XL), a dial screen with a knob each side above the keys (Galleon), knobs flanking non-square keys (Studio), or an info screen with touch keys (Neo). A segment shows the service\'s own render once a frame arrives and a CSS stand-in before. Selecting a segment or knob reports the dial index; segments drag to reorder and segments and knobs accept dropped dial actions.',
+    Preview: PreviewDeckDevicePreview,
+    notes: 'Stub of a Plus: four dials, the third a two-entry stack, the fourth empty. Needs a DndContext ancestor.',
   },
   {
     name: 'DeckPageStrip', category: 'panel-kit',

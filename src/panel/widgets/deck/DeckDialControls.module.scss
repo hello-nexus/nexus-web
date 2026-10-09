@@ -1,0 +1,168 @@
+// Stand-ins for the touch strip segments and knobs; the segment shows the
+// service's own render once a frame arrives, so its CSS mirrors that layout.
+.segment {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto;
+  column-gap: 8px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  container-type: size;
+  aspect-ratio: var(--dial-aspect);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: #0f1115;
+  color: #ffffff;
+  font: inherit;
+  padding: 6cqh 6cqw;
+  box-sizing: border-box;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--dial-drop-shadow, 0 0 0 0 transparent), var(--dial-ring-shadow, 0 0 0 0 transparent);
+  transition: box-shadow var(--ease-fast), border-color var(--ease-fast);
+
+  &:focus-visible {
+    outline: 2px solid var(--panel-accent, var(--accent));
+    outline-offset: 2px;
+  }
+}
+
+.segmentEmpty {
+  border-style: dashed;
+  border-color: color-mix(in srgb, #94a3b8 30%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, #94a3b8 45%, transparent);
+}
+
+.selected {
+  --dial-ring-shadow: 0 0 0 4px var(--panel-accent, var(--accent));
+}
+
+.dropOver {
+  --dial-drop-shadow: inset 0 0 0 2px var(--panel-accent, var(--accent));
+}
+
+.segmentImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.segmentPlus {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg { width: 28cqh; height: 28cqh; }
+}
+
+.segmentTitle {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 15cqh;
+  line-height: 1.2;
+}
+
+.segmentIcon {
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dial-accent);
+
+  svg { width: 32cqh; height: 32cqh; }
+}
+
+.emoji {
+  font-size: 30cqh;
+  line-height: 1;
+}
+
+.segmentBar {
+  grid-column: 2;
+  grid-row: 3;
+  height: 12cqh;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 16%, transparent);
+  overflow: hidden;
+}
+
+.segmentBarFill {
+  display: block;
+  width: 50%;
+  height: 100%;
+  background: var(--dial-accent);
+}
+
+.stackDots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4cqh;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.stackDot,
+.stackDotActive {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, #ffffff 35%, transparent);
+}
+
+.stackDotActive {
+  background: #ffffff;
+}
+
+.knob {
+  --knob-size: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--knob-size);
+  height: var(--knob-size);
+  padding: 0;
+  border: 2px solid color-mix(in srgb, #94a3b8 45%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, #94a3b8 14%, var(--surface));
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: var(--dial-drop-shadow, 0 0 0 0 transparent), var(--dial-ring-shadow, 0 0 0 0 transparent);
+  transition: box-shadow var(--ease-fast), border-color var(--ease-fast);
+
+  &:focus-visible {
+    outline: 2px solid var(--panel-accent, var(--accent));
+    outline-offset: 2px;
+  }
+}
+
+.knobRing {
+  border-color: var(--dial-accent);
+}
+
+.knobCap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: color-mix(in srgb, #94a3b8 24%, transparent);
+  font-size: var(--type-mini);
+}

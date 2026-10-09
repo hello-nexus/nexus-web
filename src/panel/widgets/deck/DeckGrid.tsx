@@ -256,16 +256,23 @@ export interface DeckGridProps {
   liveTiles?: ReadonlyMap<string, string>;
   page?: number;
   folderPath?: readonly number[];
+  /** Key height over width for a non-square model (Studio); square mode only. */
+  keyAspect?: number;
+  /** Width in px a sibling (side dials) takes from the preview stage; square mode only. */
+  reservedWidth?: number;
+  /** Tighter key gap for decks with many columns; square mode only. */
+  dense?: boolean;
 }
 
 /** Pure icon grid for one folder level. The back affordance is overlaid by DeckWidget. */
-export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square, onDeleteSlot, liveTiles, page, folderPath }: DeckGridProps) {
+export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square, onDeleteSlot, liveTiles, page, folderPath, keyAspect = 1, reservedWidth = 0, dense = false }: DeckGridProps) {
   const { t } = useTranslation();
   const [ctxMenu, setCtxMenu] = useState<{ index: number; x: number; y: number } | null>(null);
   const Cell = dragEnabled ? DraggableCell : StaticCell;
   const gridRef = useRef<HTMLDivElement>(null);
   const fillCell = useSquareCell(gridRef, cols, rows, !square);
-  const trackSize = square ? 'var(--deck-cell)' : fillCell ? `${fillCell}px` : '1fr';
+  const colSize = square ? 'var(--deck-cell)' : fillCell ? `${fillCell}px` : '1fr';
+  const rowSize = square && keyAspect !== 1 ? `calc(var(--deck-cell) * ${keyAspect})` : colSize;
   const liveSrcFor = (index: number): string | undefined =>
     liveTiles && page != null && folderPath ? liveTiles.get(`${page}:${slotPathAt(folderPath, index)}`) : undefined;
 
@@ -288,8 +295,13 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
   return (
     <div
       ref={gridRef}
-      className={square ? `${styles.grid} ${styles.square}` : styles.grid}
-      style={{ gridTemplateColumns: `repeat(${cols}, ${trackSize})`, gridTemplateRows: `repeat(${rows}, ${trackSize})`, '--deck-cols': cols } as CSSProperties}
+      className={square ? `${styles.grid} ${styles.square} ${dense ? styles.dense : ''}` : styles.grid}
+      style={{
+        gridTemplateColumns: `repeat(${cols}, ${colSize})`,
+        gridTemplateRows: `repeat(${rows}, ${rowSize})`,
+        '--deck-cols': cols,
+        ...(reservedWidth > 0 ? { '--deck-reserved': `${reservedWidth}px` } : {}),
+      } as CSSProperties}
     >
       {backCell && (
         <button
