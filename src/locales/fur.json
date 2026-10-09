@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "Dopre la gnove gridele",
   "devices.panels.widgetSize.confirmMessage": "Chescj widgets no stan inte gnove gridele e a vignaran gjavâts:",
   "devices.panels.widgetSize.confirmTitle": "Cambiâ la gridele?",
-  "devices.panels.widgetSize.label": "Gridele",
+  "devices.panels.widgetSize.label": "Dimension dai widgets",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Piçule",
   "devices.q60.coolingFirmwareSection": "Firmware di rafredament",

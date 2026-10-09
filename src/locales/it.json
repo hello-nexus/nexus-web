@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "Usa la nuova griglia",
   "devices.panels.widgetSize.confirmMessage": "Questi widget non entrano nella nuova griglia e verranno rimossi:",
   "devices.panels.widgetSize.confirmTitle": "Cambiare la griglia?",
-  "devices.panels.widgetSize.label": "Griglia",
+  "devices.panels.widgetSize.label": "Dimensione dei widget",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Piccola",
   "devices.q60.coolingFirmwareSection": "Firmware di raffreddamento",

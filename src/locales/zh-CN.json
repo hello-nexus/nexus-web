@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "使用新网格",
   "devices.panels.widgetSize.confirmMessage": "以下小组件放不进新网格，将被移除：",
   "devices.panels.widgetSize.confirmTitle": "要更改网格吗?",
-  "devices.panels.widgetSize.label": "网格",
+  "devices.panels.widgetSize.label": "小组件尺寸",
   "devices.panels.widgetSize.large": "大",
   "devices.panels.widgetSize.small": "小",
   "devices.q60.coolingFirmwareSection": "散热固件",

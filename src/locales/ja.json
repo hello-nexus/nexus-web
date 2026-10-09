@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "新しいグリッドを使用",
   "devices.panels.widgetSize.confirmMessage": "次のウィジェットは新しいグリッドに収まらないため削除されます:",
   "devices.panels.widgetSize.confirmTitle": "グリッドを変更しますか?",
-  "devices.panels.widgetSize.label": "グリッド",
+  "devices.panels.widgetSize.label": "ウィジェットのサイズ",
   "devices.panels.widgetSize.large": "大",
   "devices.panels.widgetSize.small": "小",
   "devices.q60.coolingFirmwareSection": "冷却ファームウェア",
