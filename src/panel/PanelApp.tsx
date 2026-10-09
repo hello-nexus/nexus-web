@@ -759,13 +759,12 @@ export function PanelContent({
     && !effectiveTheme.immersiveBackdrop;
 
   // ---------- Pagination derived from layout ----------
-  // Touch surfaces hoist the focused widget above the editor's scrim, else
-  // the edited widget reads dimmed under it. q60 is display-only so editing
-  // never engages. See .cellEditorDocked rules.
-  const editorDockSupported = surfaceSupportsTouch(surface, deviceTouch);
   // Widgets still get the device's own touch, so a display-only panel's widgets stay
   // non-interactive while its preview is edited by mouse.
   const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator);
+  // An editable canvas hoists the focused widget above the editor's scrim, else
+  // the edited widget reads dimmed under it. See .cellEditorDocked rules.
+  const editorDockSupported = dragEditable;
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(
     () => ({ gridCols: gridColumns, pageRows }),

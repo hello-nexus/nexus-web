@@ -301,8 +301,8 @@ export function PanelTouchCell({
     ...editorDockMotion?.style,
   } as CSSProperties;
 
-  // A surface with no touch input neither drags nor docks a widget, so its
-  // cell renders in place and skips the hosts' portal setup.
+  // A cell that can't be drag-edited (by default: no touch input) renders in place
+  // and skips the hosts' portal setup.
   const movable = movableProp ?? (!surface || surfaceSupportsTouch(surface, deviceTouch));
   const hosted = (content: ReactNode) => (movable
     ? <><span ref={placeContent} hidden />{createPortal(content, contentHost)}</>
