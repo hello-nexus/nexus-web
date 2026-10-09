@@ -251,15 +251,9 @@
   flex-direction: column;
 }
 
-// Widget size switch above the preview.
-.previewPane[data-widget-size] {
-  flex-direction: column;
-}
-
-.widgetSizeBar {
+// Widget size switch in the header, beside the presets rail.
+.widgetSizeSwitch {
   flex-shrink: 0;
-  width: 100%;
-  margin: 0 0 12px;
 }
 
 .troubleshootLink {
