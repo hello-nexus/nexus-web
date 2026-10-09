@@ -63,13 +63,15 @@
   justify-content: center;
 }
 
-// Cap matches the Q-series CSS viewport height (1280 native / 1.5 DPR ≈
+// Cap stays under the Q-series CSS viewport height (1280 native / 1.5 DPR ≈
 // 853 CSS px) so the preview never up-scales past native (at most 1:1
-// against the panel runtime's design pixels). `align-self: center` centers
-// the capped pane in the taller splitLayout row.
+// against the panel runtime's design pixels). The iCUE LINK 5" LCD is the
+// same glass, so it previews at the same size. `align-self: center`
+// centers the capped pane in the taller splitLayout row.
 .previewPane[data-surface='q60'],
-.previewPane[data-surface='q80'] {
-  max-height: 560px;
+.previewPane[data-surface='q80'],
+.previewPane[data-family='icue-link-lcd5'] {
+  max-height: 620px;
   align-self: center;
 }
 
@@ -282,6 +284,17 @@
   gap: 8px;
   flex-shrink: 0;
   margin: 4px 0 8px;
+}
+
+// Widget size and Single / Playlist share one row, each half of it.
+.widgetModeRow {
+  display: flex;
+  gap: 8px;
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 
 // --- Theme Panel ---

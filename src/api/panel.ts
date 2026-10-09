@@ -1,7 +1,7 @@
 import { getToken, handleUnauthorized } from './auth';
 import { authFetchWithStatus, deleteService, fetchService, isForceLanMode, isLocalhostUnreachable, isTunnelActive, isRemoteOrigin, loopbackFetchInit, postService, putService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
-import type { PanelLayout, PanelSurface } from '../panel/types';
+import type { PanelLayout, PanelSurface, PanelWidgetSizeMode } from '../panel/types';
 import type { PresetApp, PresetAppConflict, SetPresetAppsResult } from './lighting';
 
 // Init for the direct localhost fetches below. The phone-session cookie only
@@ -130,6 +130,9 @@ export interface PanelDeviceRecord {
   // Panels whose capabilities carry supportsRenderScale: render at native resolution
   // instead of a lower one. Absent/null = lower (high performance).
   highResolution?: boolean | null;
+  // Panels offering the Widget size switch (panelWidgetSizeOptions). Absent/null = the
+  // panel's default size.
+  widgetSize?: PanelWidgetSizeMode | null;
   // Cooler LCDs whose panel takes a brightness command: backlight percent
   // 0-100. Absent/null = the panel's default; the hardware reset writes null.
   lcdBrightness?: number | null;
@@ -210,6 +213,7 @@ export interface PanelDevicePatch {
   portrait?: boolean;
   // Panels whose capabilities carry supportsRenderScale only; ignored for other panels.
   highResolution?: boolean;
+  widgetSize?: PanelWidgetSizeMode;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 

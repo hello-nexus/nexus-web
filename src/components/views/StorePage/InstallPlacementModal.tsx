@@ -114,7 +114,7 @@ function PlacementPreview({ plan, screenshot, iconSrc }: {
   const span = sizeToSpan(plan.widget.size);
   const lensSize = fit((span.cols * box.width / cols) / (span.rows * box.height / rows), LENS_BOX);
   const round = ROUND_SURFACES.has(plan.target.surface);
-  const single = isSingleWidgetSurface(plan.target.surface);
+  const single = isSingleWidgetSurface(plan.surface);
 
   return (
     <>

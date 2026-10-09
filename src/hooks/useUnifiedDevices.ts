@@ -55,9 +55,9 @@ export interface UnifiedDevice {
   // panel/app-device kind and plugin devices.
   supportsNexusControl: boolean;
   // True for a Nexus Control device driving non-HYTE/iBUYPOWER hardware
-  // (experimental support); drives the "Experimental" badge. Always false for
-  // panel devices (no promoted-monitor handler is experimental) and whenever
-  // supportsNexusControl is false.
+  // (experimental support); drives the "Experimental" badge. A promoted-monitor
+  // panel takes it from its display family; false whenever supportsNexusControl
+  // is false.
   experimental: boolean;
   // True for an experimental device on a stable build: Nexus Control stays off and its switch is locked.
   requiresBeta: boolean;
@@ -355,7 +355,7 @@ function buildUnifiedList(
       supportsNexusControl: isSimulated
         ? false
         : isPromotedMonitor ? true : (backing?.supportsNexusControl ?? false),
-      experimental: backing?.experimental ?? false,
+      experimental: backing?.experimental ?? p.experimental ?? false,
       requiresBeta: backing?.requiresBeta ?? false,
       warning: p.warning ?? undefined,
       conflictAppId: backing?.conflictAppId,
