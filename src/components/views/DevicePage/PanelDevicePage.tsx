@@ -493,8 +493,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
     || (surface === 'kraken' && !isSimulated)
-    // Cooler glass fed pushed frames: the tab hosts its mount orientation.
-    || (surfaceSupportsMountOrientation(surface) && !isSimulated)
+    // Cooler glass fed pushed frames, or any panel that mounts either way up:
+    // the tab hosts its mount orientation.
+    || ((surfaceSupportsMountOrientation(surface) || recordSupportsPortrait) && !isSimulated)
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
@@ -758,6 +759,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // must track every broadcast rather than only the initial load.
       setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
+      setRecordPortrait(record.portrait ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
