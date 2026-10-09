@@ -64,6 +64,7 @@ function recordWith(surface: PanelSurface, size: PanelWidgetSize, config: Record
     firstSeenAt: 0,
     lastSeenAt: 0,
     layout,
+    backgroundMode: 'shader',
     capabilities: { surface, touch: false, dpi: 100, cssWidth: 640, cssHeight: 640, dpr: 1 },
   };
 }
