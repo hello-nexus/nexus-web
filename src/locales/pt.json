@@ -3631,6 +3631,8 @@
   "panel.settings.deck.system.mediaPrev": "Faixa anterior",
   "panel.settings.deck.system.muteToggle": "Ativar/desativar mudo",
   "panel.settings.deck.system.openSettings": "Abrir Definições",
+  "panel.settings.deck.system.screenRecord": "Gravação de ecrã",
+  "panel.settings.deck.system.screenshot": "Captura de ecrã",
   "panel.settings.deck.system.volumeDown": "Diminuir volume",
   "panel.settings.deck.system.volumeSet": "Definir volume",
   "panel.settings.deck.system.volumeUp": "Aumentar volume",

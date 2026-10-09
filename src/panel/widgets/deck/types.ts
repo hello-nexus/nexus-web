@@ -18,7 +18,7 @@ export type DeckSystemOp =
   | 'volumeUp' | 'volumeDown' | 'volumeSet' | 'muteToggle'
   | 'mediaPlayPause' | 'mediaNext' | 'mediaPrev'
   | 'brightnessUp' | 'brightnessDown' | 'brightnessSet'
-  | 'openSettings';
+  | 'openSettings' | 'screenshot' | 'screenRecord';
 
 export interface DeckSystemAction {
   op: DeckSystemOp;
@@ -182,6 +182,7 @@ export interface DeckSlot {
 
 export interface DeckFolder {
   slots: DeckSlot[];
+  dials?: DeckDial[]; // absent = the page's dials stay
 }
 
 // One page's grid. Folders (DeckFolder) still nest within a page via
@@ -189,6 +190,31 @@ export interface DeckFolder {
 // page-navigation keys move between.
 export interface DeckPage {
   slots: DeckSlot[];
+  dials?: DeckDial[];
+}
+
+// ── Dials (Stream Deck Plus, Plus XL, Studio, Galleon) ──
+// `step` is percent points per tick (service default 2; 5x while held).
+export type DeckDialAction =
+  | { type: 'volume'; deviceId?: string; step?: number }
+  | { type: 'micVolume'; deviceId?: string; step?: number }
+  | { type: 'appVolume'; appId: string; appName?: string; step?: number }
+  | { type: 'displayBrightness'; displayId: string; step?: number }
+  | { type: 'deckBrightness'; step?: number }
+  | { type: 'lightingBrightness'; step?: number }
+  | { type: 'y70Brightness'; step?: number }
+  | { type: 'page' }
+  | { type: 'monitoring'; category: DeckMonitoringCategory; sensor: string; press?: DeckMonitoringPress; labelText?: string }
+  | { type: 'custom'; turnRight?: DeckAction; turnLeft?: DeckAction; push?: DeckAction; touch?: DeckAction };
+
+export type DeckDialActionType = DeckDialAction['type'];
+
+export interface DeckDial {
+  label?: string;          // segment title; unset = the action's default title
+  icon?: DeckIcon;         // unset = the action's default icon
+  color?: string;          // accent hex; unset = theme accent
+  action?: DeckDialAction; // unset = empty dial
+  stack?: DeckDial[];      // 2+ entries = dial stack; entries never nest a stack
 }
 
 export interface DeckConfig {

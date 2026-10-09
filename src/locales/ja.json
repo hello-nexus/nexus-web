@@ -3631,6 +3631,8 @@
   "panel.settings.deck.system.mediaPrev": "前のトラック",
   "panel.settings.deck.system.muteToggle": "ミュートの切り替え",
   "panel.settings.deck.system.openSettings": "設定を開く",
+  "panel.settings.deck.system.screenRecord": "画面収録",
+  "panel.settings.deck.system.screenshot": "スクリーンショット",
   "panel.settings.deck.system.volumeDown": "音量を下げる",
   "panel.settings.deck.system.volumeSet": "音量を設定",
   "panel.settings.deck.system.volumeUp": "音量を上げる",

@@ -179,6 +179,10 @@ async function runSystem(a: DeckSystemAction): Promise<void> {
     case 'openSettings':
       await postService('/system/open-settings', {});
       return;
+    case 'screenshot':
+    case 'screenRecord':
+      // Host-side OS capture UI; only a physical deck's service handler runs it.
+      return;
     case 'mediaPlayPause':
     case 'mediaNext':
     case 'mediaPrev': {

@@ -1,5 +1,5 @@
 import type { PanelWidgetSize } from '../../types';
-import type { DeckAction, DeckConfig, DeckMonitoringStyle, DeckPage, DeckSlot } from './types';
+import type { DeckAction, DeckConfig, DeckDial, DeckMonitoringStyle, DeckPage, DeckSlot } from './types';
 
 export interface InnerGrid { cols: number; rows: number; count: number; }
 
@@ -61,14 +61,18 @@ function normalizeLegacyMonitoringStyle(action: DeckAction): DeckAction {
 
 function stripLegacySlot(slot: DeckSlot): DeckSlot {
   if (slot.action) return { ...slot, action: normalizeLegacyMonitoringStyle(stripLegacyTextPaste(slot.action)) };
-  if (slot.folder) return { ...slot, folder: { slots: slot.folder.slots.map(stripLegacySlot) } };
+  if (slot.folder) return { ...slot, folder: { ...slot.folder, slots: slot.folder.slots.map(stripLegacySlot) } };
   return slot;
 }
 
 function normalizePage(raw: unknown): DeckPage {
   if (!raw || typeof raw !== 'object') return { slots: [] };
   const slots = (raw as { slots?: unknown }).slots;
-  return { slots: Array.isArray(slots) ? (slots as DeckSlot[]).map(stripLegacySlot) : [] };
+  const dials = (raw as { dials?: unknown }).dials;
+  return {
+    slots: Array.isArray(slots) ? (slots as DeckSlot[]).map(stripLegacySlot) : [],
+    ...(Array.isArray(dials) ? { dials: dials as DeckDial[] } : {}),
+  };
 }
 
 /**
@@ -152,6 +156,93 @@ export function resolveViewSlots(
   return slots;
 }
 
+/** Pad/truncate a dial list to exactly `count` dials (empty dial = {}). */
+export function padDials(dials: readonly DeckDial[], count: number): DeckDial[] {
+  const out = dials.slice(0, count);
+  while (out.length < count) out.push({});
+  return out;
+}
+
+interface DialContainer { slots: DeckSlot[]; dials?: DeckDial[]; }
+
+/**
+ * The dials shown for a page + folder path, padded to `count`. A folder
+ * without its own dials keeps showing the nearest enclosing level's.
+ */
+export function resolveViewDials(
+  deck: DeckConfig,
+  page: number,
+  folderPath: readonly number[],
+  count: number,
+): DeckDial[] {
+  let container: DialContainer = pageAt(deck, page);
+  let dials = container.dials;
+  for (const idx of folderPath) {
+    const folder: DialContainer | undefined = container.slots[idx]?.folder;
+    if (!folder) break;
+    container = folder;
+    dials = folder.dials ?? dials;
+  }
+  return padDials(dials ?? [], count);
+}
+
+// A folder without its own dials inherits the enclosing level's, so the first
+// write inside it materializes that inherited set as the folder's own.
+function mapDialsLevel<T extends DialContainer>(
+  container: T,
+  folderPath: readonly number[],
+  depth: number,
+  inherited: readonly DeckDial[] | undefined,
+  count: number,
+  fn: (dials: DeckDial[]) => DeckDial[],
+): T {
+  const own = container.dials ?? inherited;
+  if (depth === folderPath.length) return { ...container, dials: fn(padDials(own ?? [], count)) };
+  const idx = folderPath[depth];
+  return {
+    ...container,
+    slots: container.slots.map((s, i) => (i !== idx || !s.folder
+      ? s
+      : { ...s, folder: mapDialsLevel(s.folder, folderPath, depth + 1, own, count, fn) })),
+  };
+}
+
+/** Immutably replace the dial at (page, folderPath, dialIndex). */
+export function updateDialAt(
+  deck: DeckConfig,
+  page: number,
+  folderPath: readonly number[],
+  dialIndex: number,
+  next: DeckDial,
+  count: number,
+): DeckConfig {
+  const p = clampPageIndex(deck, page);
+  const pages = deck.pages.slice();
+  pages[p] = mapDialsLevel(pageAt(deck, p), folderPath, 0, undefined, Math.max(count, dialIndex + 1),
+    dials => dials.map((d, i) => (i === dialIndex ? next : d)));
+  return { ...deck, pages };
+}
+
+/** Immutably swap two dials at the given page + folder level (drag-reorder). */
+export function swapDialsAt(
+  deck: DeckConfig,
+  page: number,
+  folderPath: readonly number[],
+  from: number,
+  to: number,
+  count: number,
+): DeckConfig {
+  if (from === to) return deck;
+  const p = clampPageIndex(deck, page);
+  const pages = deck.pages.slice();
+  pages[p] = mapDialsLevel(pageAt(deck, p), folderPath, 0, undefined, Math.max(count, from + 1, to + 1), dials => {
+    const out = dials.slice();
+    [out[from], out[to]] = [out[to], out[from]];
+    return out;
+  });
+  return { ...deck, pages };
+}
+
 /** Immutably replace the slot at (page, folderPath, slotIndex). */
 export function updateSlotAt(
   deck: DeckConfig,
@@ -164,6 +255,7 @@ export function updateSlotAt(
   const p = clampPageIndex(deck, page);
   const pages = deck.pages.slice();
   pages[p] = {
+    ...pageAt(deck, p),
     slots: mapLevel(growSlots(pageAt(deck, p).slots, countAt(count, 0)), folderPath, 0, count, slots =>
       slots.map((s, i) => (i === slotIndex ? next : s))),
   };
@@ -183,6 +275,7 @@ export function swapSlots(
   const p = clampPageIndex(deck, page);
   const pages = deck.pages.slice();
   pages[p] = {
+    ...pageAt(deck, p),
     slots: mapLevel(growSlots(pageAt(deck, p).slots, countAt(count, 0)), folderPath, 0, count, slots => {
       const out = slots.slice();
       [out[from], out[to]] = [out[to], out[from]];
@@ -204,7 +297,7 @@ function mapLevel(
   return slots.map((s, i) => {
     if (i !== idx) return s;
     const child = growSlots(s.folder?.slots ?? [], countAt(count, depth + 1));
-    return { ...s, folder: { slots: mapLevel(child, folderPath, depth + 1, count, fn) } };
+    return { ...s, folder: { ...s.folder, slots: mapLevel(child, folderPath, depth + 1, count, fn) } };
   });
 }
 
@@ -285,7 +378,7 @@ function fitSlot(slot: DeckSlot, kind: FitGridTarget['kind'], keyCount: number, 
   if (!slot.folder) return slot;
   const capacity = fitFolderCapacity(kind, keyCount, depth);
   const slots = padSlots(slot.folder.slots, capacity).map(s => fitSlot(s, kind, keyCount, depth + 1));
-  return { ...slot, folder: { slots } };
+  return { ...slot, folder: { ...slot.folder, slots } };
 }
 
 function trimmedLength(slots: readonly DeckSlot[]): number {
@@ -381,7 +474,8 @@ export interface FitToGridResult {
  */
 export function fitToGridWithOrigins(preset: FitGridPreset, target: FitGridTarget): FitToGridResult {
   const keyCount = target.cols * target.rows;
-  const perAuthoredPage = preset.deck.pages.map((p, authoredPage) => fitPageWithOrigins(p.slots, authoredPage, target.kind, keyCount));
+  const perAuthoredPage = preset.deck.pages.map((p, authoredPage) => fitPageWithOrigins(p.slots, authoredPage, target.kind, keyCount)
+    .map(r => (p.dials ? { ...r, page: { ...r.page, dials: p.dials } } : r)));
   const flat = perAuthoredPage.flat();
   if (flat.length === 0) {
     return {

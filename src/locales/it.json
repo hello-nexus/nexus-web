@@ -3631,6 +3631,8 @@
   "panel.settings.deck.system.mediaPrev": "Traccia precedente",
   "panel.settings.deck.system.muteToggle": "Attiva/disattiva muto",
   "panel.settings.deck.system.openSettings": "Apri impostazioni",
+  "panel.settings.deck.system.screenRecord": "Registra schermo",
+  "panel.settings.deck.system.screenshot": "Schermata",
   "panel.settings.deck.system.volumeDown": "Abbassa volume",
   "panel.settings.deck.system.volumeSet": "Imposta volume",
   "panel.settings.deck.system.volumeUp": "Alza volume",

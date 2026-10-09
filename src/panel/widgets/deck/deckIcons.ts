@@ -74,7 +74,7 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'openFolder':
     case 'openUrl': return 'open';
     case 'system':
-      if (action.action.op === 'openSettings') return 'open';
+      if (action.action.op === 'openSettings' || action.action.op === 'screenshot' || action.action.op === 'screenRecord') return 'open';
       if (action.action.op.startsWith('volume') || action.action.op === 'muteToggle') return 'volume';
       if (action.action.op.startsWith('media')) return 'media';
       return 'brightness';
@@ -164,6 +164,8 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
         case 'brightnessDown': return 'SunDim';
         case 'brightnessSet': return 'Sun';
         case 'openSettings': return 'Settings';
+        case 'screenshot': return 'Camera';
+        case 'screenRecord': return 'Disc';
         default: return 'Sliders';
       }
     case 'hotkey': return 'Keyboard';

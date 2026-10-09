@@ -3631,6 +3631,8 @@
   "panel.settings.deck.system.mediaPrev": "Piste précédente",
   "panel.settings.deck.system.muteToggle": "Activer/désactiver le son",
   "panel.settings.deck.system.openSettings": "Ouvrir les paramètres",
+  "panel.settings.deck.system.screenRecord": "Enregistrement d'écran",
+  "panel.settings.deck.system.screenshot": "Capture d'écran",
   "panel.settings.deck.system.volumeDown": "Diminuer le volume",
   "panel.settings.deck.system.volumeSet": "Définir le volume",
   "panel.settings.deck.system.volumeUp": "Augmenter le volume",

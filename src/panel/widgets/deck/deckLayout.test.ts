@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
   addPage, removePage, pageHasContent, countBoundSlots, countConfiguredSlots,
+  resolveViewDials, updateDialAt, swapDialsAt, padDials,
 } from './deckLayout';
 import type { DeckConfig } from './types';
 
@@ -305,5 +306,54 @@ describe('countConfiguredSlots', () => {
     const slots = [{ folder: { slots: [{}, {}] } }];
     expect(countConfiguredSlots(slots)).toBe(0);
     expect(pageHasContent({ slots })).toBe(false);
+  });
+});
+
+describe('dials', () => {
+  const deck: DeckConfig = {
+    pages: [{
+      slots: [{ folder: { slots: [{ label: 'f0' }] } }, { folder: { slots: [], dials: [{ label: 'own' }] } }],
+      dials: [{ label: 'a' }, { label: 'b' }],
+    }],
+  };
+
+  it('normalizeDeckConfig keeps page and folder dials', () => {
+    expect(normalizeDeckConfig(deck)).toEqual(deck);
+  });
+
+  it('padDials pads with empty dials and truncates', () => {
+    expect(padDials([{ label: 'a' }], 3)).toEqual([{ label: 'a' }, {}, {}]);
+    expect(padDials([{ label: 'a' }, { label: 'b' }], 1)).toEqual([{ label: 'a' }]);
+  });
+
+  it('a folder without dials shows the page dials; one with dials shows its own', () => {
+    expect(resolveViewDials(deck, 0, [], 2)).toEqual([{ label: 'a' }, { label: 'b' }]);
+    expect(resolveViewDials(deck, 0, [0], 2)).toEqual([{ label: 'a' }, { label: 'b' }]);
+    expect(resolveViewDials(deck, 0, [1], 2)).toEqual([{ label: 'own' }, {}]);
+  });
+
+  it('updateDialAt on a page keeps slots and the other dials', () => {
+    const next = updateDialAt(deck, 0, [], 1, { label: 'B' }, 2);
+    expect(next.pages[0].dials).toEqual([{ label: 'a' }, { label: 'B' }]);
+    expect(next.pages[0].slots).toBe(deck.pages[0].slots);
+  });
+
+  it('updateDialAt in a folder without dials materializes a copy of the enclosing set', () => {
+    const next = updateDialAt(deck, 0, [0], 0, { label: 'X' }, 2);
+    expect(next.pages[0].slots[0].folder?.dials).toEqual([{ label: 'X' }, { label: 'b' }]);
+    expect(next.pages[0].dials).toEqual([{ label: 'a' }, { label: 'b' }]);
+  });
+
+  it('swapDialsAt swaps within the level', () => {
+    expect(swapDialsAt(deck, 0, [], 0, 1, 2).pages[0].dials).toEqual([{ label: 'b' }, { label: 'a' }]);
+    expect(swapDialsAt(deck, 0, [], 1, 1, 2)).toBe(deck);
+  });
+
+  it('slot writes and swaps keep the page dials and the folder dials', () => {
+    const afterUpdate = updateSlotAt(deck, 0, [1], 0, { label: 'z' }, 4);
+    expect(afterUpdate.pages[0].dials).toEqual(deck.pages[0].dials);
+    expect(afterUpdate.pages[0].slots[1].folder?.dials).toEqual([{ label: 'own' }]);
+    const afterSwap = swapSlots(deck, 0, [], 0, 1, 4);
+    expect(afterSwap.pages[0].dials).toEqual(deck.pages[0].dials);
   });
 });

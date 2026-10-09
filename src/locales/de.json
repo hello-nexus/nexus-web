@@ -3631,6 +3631,8 @@
   "panel.settings.deck.system.mediaPrev": "Vorheriger Titel",
   "panel.settings.deck.system.muteToggle": "Stummschaltung umschalten",
   "panel.settings.deck.system.openSettings": "Einstellungen öffnen",
+  "panel.settings.deck.system.screenRecord": "Bildschirmaufnahme",
+  "panel.settings.deck.system.screenshot": "Screenshot",
   "panel.settings.deck.system.volumeDown": "Lautstärke verringern",
   "panel.settings.deck.system.volumeSet": "Lautstärke festlegen",
   "panel.settings.deck.system.volumeUp": "Lautstärke erhöhen",

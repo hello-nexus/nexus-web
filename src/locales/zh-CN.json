@@ -3631,6 +3631,8 @@
   "panel.settings.deck.system.mediaPrev": "上一曲",
   "panel.settings.deck.system.muteToggle": "切换静音",
   "panel.settings.deck.system.openSettings": "打开设置",
+  "panel.settings.deck.system.screenRecord": "录屏",
+  "panel.settings.deck.system.screenshot": "截图",
   "panel.settings.deck.system.volumeDown": "音量减小",
   "panel.settings.deck.system.volumeSet": "设置音量",
   "panel.settings.deck.system.volumeUp": "音量增大",
