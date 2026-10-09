@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { Button } from '../../../components/common/Button/Button';
@@ -5,7 +6,8 @@ import { Notice } from '../../../components/common/Notice/Notice';
 import { fitPageCount } from './deckLayout';
 import { DeckEditor } from './DeckEditor';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
-import { DeckPresetToolbar } from './DeckPresetToolbar';
+import { DeckPresetToolbar, modeOnPick } from './DeckPresetToolbar';
+import { ElgatoImportModal } from '../../../components/views/DevicePage/ElgatoImportModal';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckInstanceMode } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
@@ -46,6 +48,7 @@ export function DeckInstanceEditor({
 }: DeckInstanceEditorProps) {
   const { t } = useTranslation();
   const mode = deck.instance?.mode ?? 'custom';
+  const [importOpen, setImportOpen] = useState(false);
 
   // Presence-only: the payload is ignored. Mounted for as long as this editor
   // is on screen (unmounts on a tab switch or the widget sheet closing), so
@@ -104,6 +107,18 @@ export function DeckInstanceEditor({
           onUndo={deck.undo}
           onRedo={deck.redo}
           onReset={deck.reset}
+          onImport={desktopActions ? () => setImportOpen(true) : undefined}
+        />
+      )}
+      {bodyMode === 'full' && desktopActions && (
+        <ElgatoImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          deckCols={instanceGrid.cols}
+          deckRows={instanceGrid.rows}
+          existingPresetNames={deck.presets.map(p => p.name)}
+          addedTemplateIds={deck.presets.flatMap(p => (p.templateId ? [p.templateId] : []))}
+          onImported={id => activatePreset(id, modeOnPick(deck))}
         />
       )}
 

@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { History, Sparkles } from 'lucide-react';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { History } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useToastSafe } from '../../../components/common/Toast/Toast';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { PresetAppsModal } from '../lighting/page/PresetAppsModal';
 import {
-  createDeckPreset, exportDeckPreset, getDeckTemplates, importDeckPreset, setDeckPresetApps,
-  type DeckInstanceMode, type DeckTemplate, type PresetApp,
+  exportDeckPreset, importDeckPreset, setDeckPresetApps,
+  type DeckInstanceMode, type PresetApp,
 } from '../../../api/deck';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 
@@ -22,7 +22,7 @@ const IMPORT_RETRY_TOAST_MS = 15000;
 
 export interface DeckPresetToolbarProps {
   deck: UseDeckInstanceResult;
-  /** GET /deck/templates, PUT /deck/presets/{id}/apps, DELETE and the file routes are LocalhostOnly; false hides the controls that drive them. */
+  /** PUT /deck/presets/{id}/apps, DELETE and the file routes are LocalhostOnly; false hides the controls that drive them. */
   desktopActions: boolean;
   /** Renders as the page-header rail (ViewHeader's tabActions slot). */
   rail?: boolean;
@@ -32,14 +32,13 @@ export interface DeckPresetToolbarProps {
   onUndo: () => void;
   onRedo: () => void;
   onReset: () => void;
-  /** Import into a host-wide preset (Elgato import); omitted hides the option. */
+  /** Opens the host's import modal (starter presets, Elgato profiles); omitted hides the option. */
   onImport?: () => void;
 }
 
 /**
- * The deck preset dropdown: a built-in Recent Apps entry, the host-wide
- * presets, and the bundled app templates not yet turned into a preset. App
- * binding is per preset (the "Apps..." option); the service switches to a
+ * The deck preset dropdown: a built-in Recent Apps entry and the host-wide
+ * presets. App binding is per preset (the "Apps..." option); the service switches to a
  * bound preset whenever its app is in focus, in every mode but Recent Apps.
  */
 export function DeckPresetToolbar({
@@ -48,22 +47,12 @@ export function DeckPresetToolbar({
   const { t } = useTranslation();
   const toast = useToastSafe();
   const recentApps = deck.instance?.mode === 'recentApps';
-  const [templates, setTemplates] = useState<DeckTemplate[]>([]);
   // Snapshot taken on open: an app focus can switch the active preset while the modal is up.
   const [appsTarget, setAppsTarget] = useState<{ id: string; name: string; apps: PresetApp[] } | null>(null);
-  const busyRef = useRef(false);
   const importFileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!desktopActions) return;
-    let cancelled = false;
-    void getDeckTemplates().then(list => { if (!cancelled) setTemplates(list); });
-    return () => { cancelled = true; };
-  }, [desktopActions]);
 
   const activeId = deck.instance?.activePresetId ?? null;
   const activeSummary = deck.presets.find(p => p.id === activeId) ?? null;
-  const atCap = deck.presets.length >= DECK_PRESET_CAP;
 
   const takenApps = useMemo(() => {
     const out: Record<string, string> = {};
@@ -79,30 +68,6 @@ export function DeckPresetToolbar({
 
   const pick = (id: string) => {
     activatePreset(id, modeOnPick(deck));
-  };
-
-  const suggestions = desktopActions
-    ? templates
-      .filter(tpl => !deck.presets.some(p => p.templateId === tpl.id))
-      .map(tpl => ({ id: tpl.id, label: tpl.name, icon: <Sparkles size={14} aria-hidden />, disabled: atCap }))
-    : [];
-
-  // The service creates from a template with its own name de-dupe and
-  // pre-binds the installed app (with its own conflict check).
-  const createFromTemplate = async (tplId: string) => {
-    const tpl = templates.find(x => x.id === tplId);
-    if (!tpl || busyRef.current) return;
-    busyRef.current = true;
-    try {
-      const created = await createDeckPreset({ name: tpl.name, cols: tpl.cols, rows: tpl.rows, templateId: tpl.id });
-      if (!created) {
-        toast.push({ title: t('panel.settings.deck.presets.createFailed') });
-        return;
-      }
-      pick(created.id);
-    } finally {
-      busyRef.current = false;
-    }
   };
 
   const runImport = async (file: File, allowPrivileged: boolean) => {
@@ -157,8 +122,6 @@ export function DeckPresetToolbar({
         builtins={[{ id: RECENT_APPS_ID, label: t('panel.settings.deck.mode.recentApps'), icon: <History size={14} aria-hidden /> }]}
         activeBuiltinId={recentApps ? RECENT_APPS_ID : null}
         onSelectBuiltin={() => deck.setMode('recentApps')}
-        suggestions={suggestions}
-        onSelectSuggestion={id => void createFromTemplate(id)}
         onLoad={pick}
         onCreate={name => deck.createPreset(name, pick)}
         onRename={deck.renamePreset}

@@ -6,11 +6,23 @@ import type { DeckTarget } from './deckTarget';
 import type { DeckConfig } from './types';
 
 vi.mock('./DeckPresetToolbar', () => ({
-  DeckPresetToolbar: (props: { desktopActions: boolean; activatePreset: (id: string) => void; onDelete: (id: string) => void; rail?: boolean }) => (
+  DeckPresetToolbar: (props: { desktopActions: boolean; activatePreset: (id: string) => void; onDelete: (id: string) => void; onImport?: () => void; rail?: boolean }) => (
     <div data-testid="preset-toolbar" data-desktop={String(props.desktopActions)}>
       <button type="button" onClick={() => props.activatePreset('p2')}>activate</button>
       <button type="button" onClick={() => props.onDelete('p1')}>delete</button>
+      {props.onImport && <button type="button" onClick={props.onImport}>import</button>}
     </div>
+  ),
+  modeOnPick: (deck: { instance: { mode: string } | null }) => (deck.instance?.mode === 'recentApps' ? 'custom' : undefined),
+}));
+
+vi.mock('../../../components/views/DevicePage/ElgatoImportModal', () => ({
+  ElgatoImportModal: (props: { open: boolean; deckCols: number; deckRows: number; addedTemplateIds: string[]; onImported: (id: string) => void }) => (
+    props.open ? (
+      <div data-testid="import-modal" data-grid={`${props.deckCols}x${props.deckRows}`} data-added={props.addedTemplateIds.join(',')}>
+        <button type="button" onClick={() => props.onImported('new1')}>imported</button>
+      </div>
+    ) : null
   ),
 }));
 
@@ -120,6 +132,24 @@ describe('DeckInstanceEditor - sections', () => {
 });
 
 describe('DeckInstanceEditor - inline preset toolbar', () => {
+  it('offers Import preset on desktop, opening the modal at the instance grid; an import activates the new preset', () => {
+    const deck = deckResult({ presets: [{ id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, templateId: 'discord' }] });
+    const onPageChange = vi.fn();
+    render(<DeckInstanceEditor {...baseProps({ deck, onPageChange })} />);
+    fireEvent.click(screen.getByText('import'));
+    const modal = screen.getByTestId('import-modal');
+    expect(modal).toHaveAttribute('data-grid', '2x2');
+    expect(modal).toHaveAttribute('data-added', 'discord');
+    fireEvent.click(screen.getByText('imported'));
+    expect(deck.activate).toHaveBeenCalledWith('new1', undefined);
+    expect(onPageChange).toHaveBeenCalledWith(0);
+  });
+
+  it('offers no Import preset on a paired panel surface', () => {
+    render(<DeckInstanceEditor {...baseProps({ surface: 'phone' })} />);
+    expect(screen.queryByText('import')).toBeNull();
+  });
+
   it('renders the toolbar inline by default and omits it for bodyMode="headerRail"', () => {
     const { rerender } = render(<DeckInstanceEditor {...baseProps()} />);
     expect(screen.getByTestId('preset-toolbar')).toBeInTheDocument();

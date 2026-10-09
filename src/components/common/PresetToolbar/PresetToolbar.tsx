@@ -13,7 +13,7 @@ export const PRESET_CAP = 10;
 
 const isMac = isApplePlatform();
 
-/** A non-preset dropdown entry: a built-in mode or a not-yet-created template. */
+/** A non-preset dropdown entry: a built-in mode. */
 export interface PresetToolbarEntry {
   id: string;
   label: string;
@@ -22,7 +22,6 @@ export interface PresetToolbarEntry {
 }
 
 const BUILTIN_PREFIX = '__builtin__:';
-const SUGGESTION_PREFIX = '__suggest__:';
 
 export interface PresetToolbarPreset {
   id: string;
@@ -97,10 +96,6 @@ interface PresetToolbarProps {
   builtins?: PresetToolbarEntry[];
   activeBuiltinId?: string | null;
   onSelectBuiltin?: (id: string) => void;
-  /** Entries listed after the presets that create a preset when picked (e.g.
-   *  pre-built templates). The caller drops one once its preset exists. */
-  suggestions?: PresetToolbarEntry[];
-  onSelectSuggestion?: (id: string) => void;
 }
 
 export function PresetToolbar({
@@ -113,7 +108,6 @@ export function PresetToolbar({
   allowCreateRename = true,
   allowDelete = true,
   builtins = [], activeBuiltinId = null, onSelectBuiltin,
-  suggestions = [], onSelectSuggestion,
   rail,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
@@ -147,7 +141,6 @@ export function PresetToolbar({
   const groups = [
     builtins.map(entryOption(BUILTIN_PREFIX)),
     presetOptions,
-    suggestions.map(entryOption(SUGGESTION_PREFIX)),
   ].filter(g => g.length > 0);
   const actionOptions = [
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
@@ -163,13 +156,12 @@ export function PresetToolbar({
       ...(onManageApps ? [{ value: '__apps__', label: t(key('apps')), className: styles.actionOption, icon: <AppWindow size={14} /> }] : []),
       ...(onExport ? [{ value: '__export__', label: t(key('export')), className: styles.actionOption, icon: <Download size={14} /> }] : []),
       ...(allowDelete ? [{ value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> }] : []),
-    ] : (builtins.length > 0 || suggestions.length > 0) && actionOptions.length > 0 ? [divider('create')] : []),
+    ] : builtins.length > 0 && actionOptions.length > 0 ? [divider('create')] : []),
     ...actionOptions,
   ];
 
   const handleSelectChange = (value: string) => {
     if (value.startsWith(BUILTIN_PREFIX)) { onSelectBuiltin?.(value.slice(BUILTIN_PREFIX.length)); return; }
-    if (value.startsWith(SUGGESTION_PREFIX)) { onSelectSuggestion?.(value.slice(SUGGESTION_PREFIX.length)); return; }
     if (presets.some(p => p.id === value)) { onLoad(value); return; }
     if (value === '__import__') { onImport?.(); return; }
     if (value === '__create__') {

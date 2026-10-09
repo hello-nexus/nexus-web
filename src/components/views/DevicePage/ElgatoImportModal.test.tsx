@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ElgatoImportModal } from './ElgatoImportModal';
 import { fetchElgatoProfiles, importElgatoProfile } from '../../../api/streamdeck';
-import { createDeckPreset } from '../../../api/deck';
+import { createDeckPreset, getDeckTemplates, type DeckPresetFull, type DeckTemplate } from '../../../api/deck';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -18,6 +18,7 @@ vi.mock('../../../api/streamdeck', () => ({
 
 vi.mock('../../../api/deck', () => ({
   createDeckPreset: vi.fn(),
+  getDeckTemplates: vi.fn(async () => []),
 }));
 
 const PROFILE_A = { id: 'p1', name: 'Default Profile', model: '20GAA9901', modelLabel: 'Stream Deck MK.2', pageCount: 2, keyCount: 15 };
@@ -32,6 +33,7 @@ function renderModal(overrides: Partial<Parameters<typeof ElgatoImportModal>[0]>
       deckCols={5}
       deckRows={3}
       existingPresetNames={[]}
+      addedTemplateIds={[]}
       onImported={onImported}
       {...overrides}
     />,
@@ -163,5 +165,52 @@ describe('ElgatoImportModal import flow', () => {
     renderModal();
     await screen.findByText('Default Profile');
     expect(screen.getByText('devices.streamdeck.import.import').closest('button')).toBeDisabled();
+  });
+});
+
+describe('ElgatoImportModal starter presets', () => {
+  const DISCORD: DeckTemplate = { id: 'discord', name: 'Discord', description: '', cols: 5, rows: 3, match: { processNames: [], displayNames: [] } };
+  const SLACK: DeckTemplate = { id: 'slack', name: 'Slack', description: '', cols: 5, rows: 3, match: { processNames: [], displayNames: [] } };
+  const created = (id: string, name: string): DeckPresetFull => ({ id, name, cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [] }] } });
+
+  beforeEach(() => {
+    vi.mocked(fetchElgatoProfiles).mockResolvedValue({ status: 'notFound', profiles: [] });
+    vi.mocked(getDeckTemplates).mockResolvedValue([DISCORD, SLACK]);
+  });
+
+  it('lists every starter above the Elgato section, tagging ones already added', async () => {
+    renderModal({ addedTemplateIds: ['discord'] });
+    expect(await screen.findByText('Slack')).toBeInTheDocument();
+    expect(screen.getByText('devices.streamdeck.import.startersHeader')).toBeInTheDocument();
+    expect(screen.getByText('devices.streamdeck.import.elgatoHeader')).toBeInTheDocument();
+    expect(screen.getAllByText('devices.streamdeck.import.added')).toHaveLength(1);
+    expect(screen.getByText('Discord').closest('button')).not.toBeDisabled();
+  });
+
+  it('creates the preset from the starter in one press, activates it, and closes', async () => {
+    vi.mocked(createDeckPreset).mockResolvedValue(created('new1', 'Discord'));
+    const { onImported, onClose } = renderModal({ addedTemplateIds: ['discord'] });
+    fireEvent.click(await screen.findByText('Discord'));
+    await waitFor(() => expect(onImported).toHaveBeenCalledWith('new1'));
+    expect(createDeckPreset).toHaveBeenCalledWith({ name: 'Discord', cols: 5, rows: 3, templateId: 'discord' });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows an inline error and stays open when the create fails', async () => {
+    vi.mocked(createDeckPreset).mockResolvedValue(null);
+    const { onImported, onClose } = renderModal();
+    fireEvent.click(await screen.findByText('Slack'));
+    expect(await screen.findByText('panel.settings.deck.presets.createFailed')).toBeInTheDocument();
+    expect(onImported).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('disables the starters at the deck preset cap, not the lighting one', async () => {
+    const names = (n: number) => Array.from({ length: n }, (_, i) => `P${i}`);
+    const { unmount } = renderModal({ existingPresetNames: names(10) });
+    expect((await screen.findByText('Slack')).closest('button')).not.toBeDisabled();
+    unmount();
+    renderModal({ existingPresetNames: names(50) });
+    expect((await screen.findByText('Slack')).closest('button')).toBeDisabled();
   });
 });

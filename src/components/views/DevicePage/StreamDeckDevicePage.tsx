@@ -761,6 +761,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           deckCols={deck.cols}
           deckRows={deck.rows}
           existingPresetNames={instance.presets.map(p => p.name)}
+          addedTemplateIds={instance.presets.flatMap(p => (p.templateId ? [p.templateId] : []))}
           onImported={id => void onDeckPresetLoad(id, modeOnPick(instance))}
         />
       )}

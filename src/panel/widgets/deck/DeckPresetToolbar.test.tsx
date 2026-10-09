@@ -2,12 +2,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeckPresetToolbar, modeOnPick } from './DeckPresetToolbar';
 import type { UseDeckInstanceResult } from './useDeckInstance';
-import type { DeckPresetFull, DeckTemplate, ImportDeckPresetResult, SetDeckPresetAppsResult } from '../../../api/deck';
+import type { ImportDeckPresetResult, SetDeckPresetAppsResult } from '../../../api/deck';
 
 const mockExport = vi.fn<(id: string) => Promise<boolean>>();
 const mockImport = vi.fn<(file: File, allowPrivileged: boolean) => Promise<ImportDeckPresetResult>>();
-const mockTemplates = vi.fn<() => Promise<DeckTemplate[]>>();
-const mockCreate = vi.fn<(body: Record<string, unknown>) => Promise<DeckPresetFull | null>>();
 const mockSetApps = vi.fn<(id: string, apps: unknown[]) => Promise<SetDeckPresetAppsResult>>();
 vi.mock('../../../api/deck', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../api/deck')>();
@@ -15,8 +13,6 @@ vi.mock('../../../api/deck', async importOriginal => {
     ...actual,
     exportDeckPreset: (id: string) => mockExport(id),
     importDeckPreset: (file: File, allow: boolean) => mockImport(file, allow),
-    getDeckTemplates: () => mockTemplates(),
-    createDeckPreset: (body: Record<string, unknown>) => mockCreate(body),
     setDeckPresetApps: (id: string, apps: unknown[]) => mockSetApps(id, apps),
   };
 });
@@ -86,39 +82,20 @@ function setup(over: Partial<Parameters<typeof DeckPresetToolbar>[0]> = {}) {
 const open = () => fireEvent.click(screen.getByRole('button', { name: PLACEHOLDER }));
 const optionNames = () => screen.getAllByRole('option').map(o => o.textContent);
 
-const DISCORD: DeckTemplate = {
-  id: 'discord', name: 'Discord', description: '', cols: 5, rows: 3, match: { processNames: [], displayNames: [] },
-  installedAppId: 'app-discord', installedAppName: 'Discord', processName: 'discord.exe',
-};
-const SLACK: DeckTemplate = { id: 'slack', name: 'Slack', description: '', cols: 5, rows: 3, match: { processNames: [], displayNames: [] } };
-
 beforeEach(() => {
   vi.clearAllMocks();
-  mockTemplates.mockResolvedValue([]);
 });
 
 describe('DeckPresetToolbar - dropdown contents', () => {
-  it('lists Recent Apps first, then presets, then templates, then the preset actions', async () => {
-    mockTemplates.mockResolvedValue([DISCORD]);
+  it('lists Recent Apps first, then presets, then the preset actions', () => {
     setup();
-    await waitFor(() => expect(mockTemplates).toHaveBeenCalled());
-    await screen.findByRole('button', { name: PLACEHOLDER });
-    await waitFor(() => { open(); expect(screen.queryByRole('option', { name: 'Discord' })).not.toBeNull(); });
-    expect(optionNames().slice(0, 4)).toEqual(['panel.settings.deck.mode.recentApps', 'A', 'B', 'Discord']);
+    open();
+    expect(optionNames().slice(0, 3)).toEqual(['panel.settings.deck.mode.recentApps', 'A', 'B']);
     expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.apps' })).toBeInTheDocument();
   });
 
-  it('omits a template once a preset made from it exists', async () => {
-    mockTemplates.mockResolvedValue([DISCORD, SLACK]);
-    setup({ deck: deckResult({ presets: [{ id: 'p1', name: 'Discord', cols: 5, rows: 3, pageCount: 1, templateId: 'discord' }] }) });
-    await waitFor(() => expect(mockTemplates).toHaveBeenCalled());
-    await waitFor(() => { open(); expect(screen.queryByRole('option', { name: 'Slack' })).not.toBeNull(); });
-    expect(optionNames().filter(n => n === 'Discord')).toHaveLength(1);
-  });
-
-  it('does not fetch or list templates on a non-desktop surface, and hides Apps and Export', () => {
+  it('hides Apps and Export on a non-desktop surface', () => {
     setup({ desktopActions: false });
-    expect(mockTemplates).not.toHaveBeenCalled();
     open();
     expect(screen.queryByRole('option', { name: 'panel.settings.deck.presets.apps' })).toBeNull();
     expect(screen.queryByRole('option', { name: 'panel.settings.deck.presets.export' })).toBeNull();
@@ -239,46 +216,6 @@ describe('DeckPresetToolbar - Apps... (per-preset app binding)', () => {
     fireEvent.click(screen.getByText('save-apps'));
     await waitFor(() => expect(mockSetApps).toHaveBeenCalledWith('p1', [{ id: 'a1', name: 'App' }]));
     await waitFor(() => expect(screen.queryByTestId('apps-modal')).toBeNull());
-  });
-});
-
-describe('DeckPresetToolbar - creating from a template', () => {
-  const created = (id: string, name: string): DeckPresetFull => ({ id, name, cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [] }] } });
-
-  async function pickTemplate(name: string) {
-    await waitFor(() => expect(mockTemplates).toHaveBeenCalled());
-    await waitFor(() => { open(); expect(screen.queryByRole('option', { name })).not.toBeNull(); });
-    fireEvent.click(screen.getByRole('option', { name }));
-  }
-
-  it('creates the preset from the template in one POST and activates it; the service binds the app', async () => {
-    mockTemplates.mockResolvedValue([DISCORD]);
-    mockCreate.mockResolvedValue(created('new1', 'Discord'));
-    const props = setup();
-    await pickTemplate('Discord');
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new1', undefined));
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    expect(mockCreate).toHaveBeenCalledWith({ name: 'Discord', cols: 5, rows: 3, templateId: 'discord' });
-    expect(mockSetApps).not.toHaveBeenCalled();
-  });
-
-  it('toasts and activates nothing when the create fails', async () => {
-    mockTemplates.mockResolvedValue([SLACK]);
-    mockCreate.mockResolvedValue(null);
-    const props = setup();
-    await pickTemplate('Slack');
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ title: 'panel.settings.deck.presets.createFailed' }));
-    expect(props.activatePreset).not.toHaveBeenCalled();
-  });
-
-  it('from Recent Apps, activates with mode custom in the same call', async () => {
-    mockTemplates.mockResolvedValue([SLACK]);
-    mockCreate.mockResolvedValue(created('new5', 'Slack'));
-    const deck = deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } });
-    const props = setup({ deck });
-    await pickTemplate('Slack');
-    await waitFor(() => expect(props.activatePreset).toHaveBeenCalledWith('new5', 'custom'));
-    expect(deck.setMode).not.toHaveBeenCalled();
   });
 });
 
