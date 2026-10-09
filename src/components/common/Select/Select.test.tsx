@@ -34,6 +34,17 @@ describe('Select', () => {
     expect(screen.getByRole('option', { name: 'Italiano' })).toBeInTheDocument();
   });
 
+  it('draws a fontFamily option in its face in the menu row only', () => {
+    const fontOptions = [
+      { value: 'lexend', label: 'Lexend', fontFamily: 'Lexend' },
+      { value: 'geist', label: 'Geist', fontFamily: "'Geist', sans-serif" },
+    ];
+    render(<Select value="geist" onChange={vi.fn()} options={fontOptions} ariaLabel="Font" />);
+    expect(screen.getByText('Geist', { selector: 'button span' })).not.toHaveAttribute('style');
+    open('Font');
+    expect(screen.getByRole('option', { name: 'Lexend' })).toHaveStyle({ fontFamily: 'Lexend' });
+  });
+
   it('falls back to the label on the trigger when the selected option has no icon', () => {
     render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" triggerIconOnly />);
     const trigger = screen.getByRole('button', { name: 'fruit' });

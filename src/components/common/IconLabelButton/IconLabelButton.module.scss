@@ -122,6 +122,12 @@
   font-weight: var(--weight-display);
   line-height: 1.05;
   letter-spacing: 0;
+  // overflow clips ink outside the tight line box (descenders, stacked
+  // diacritics); the padding widens the clip box, the margin keeps the layout.
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+  margin-top: -0.25em;
+  margin-bottom: -0.25em;
 }
 
 .description {

@@ -203,6 +203,11 @@
   background: var(--bg-card-hover);
 }
 
+// Font-preview rows (SelectOption.fontFamily) draw larger so each face reads.
+.option.fontOption {
+  font-size: var(--type-heading);
+}
+
 .option.selected {
   color: var(--accent);
   // Dim accent fill, the app-wide selected-row treatment (--accent-soft). Ordered

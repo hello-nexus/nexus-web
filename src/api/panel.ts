@@ -102,6 +102,8 @@ export interface PanelDeviceRecord {
   widgetPadding?: number;
   textColorMode?: string;
   textColor?: string;
+  // Panel font id (panel/theme/panelFont.ts); unknown ids fall back to the default.
+  font?: string;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   firstSeenAt: number;
@@ -186,6 +188,8 @@ export interface PanelDevicePatch {
   widgetPadding?: number;
   textColorMode?: string;
   textColor?: string;
+  // Panel font id (panel/theme/panelFont.ts); unknown ids fall back to the default.
+  font?: string;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Display-bound records only; ignored for other panels.

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
-import { SettingRow, SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
+import { DEFAULT_PANEL_FONT, PANEL_FONTS, type PanelFontId } from '../theme/panelFont';
 import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
@@ -92,6 +93,8 @@ export interface PanelThemeSettingsState {
   textColorMode: TextColorMode;
   // Hex for 'custom'; empty falls back to DEFAULT_CUSTOM_TEXT_COLOR.
   textColor: string;
+  // Null is the app font.
+  font: PanelFontId | null;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
@@ -128,6 +131,7 @@ export interface PanelThemeSettingsProps {
   onTextColorModeCommit: (mode: TextColorMode) => void;
   onTextColorPreview: (hex: string) => void;
   onTextColorCommit: (hex: string) => void;
+  onFontCommit: (font: PanelFontId | null) => void;
   /** Show the media background tab. All display-backed surfaces support it; the
    * embedded desktop deck never renders theme backgrounds (PanelApp gates on
    * !embedded || simulator), so desktop hides it. Tunneled panels also hide it:
@@ -189,6 +193,7 @@ export function PanelThemeSettings({
   onTextColorModeCommit,
   onTextColorPreview,
   onTextColorCommit,
+  onFontCommit,
   showMediaTab = false,
   deviceAspect = 9 / 16,
   deviceW,
@@ -229,6 +234,11 @@ export function PanelThemeSettings({
     { key: 'theme', label: label('panel.settings.textColor.theme', 'Theme') },
     { key: 'custom', label: label('panel.settings.textColor.custom', 'Custom') },
   ];
+  const fontOptions = PANEL_FONTS.map(f => ({
+    value: f.id,
+    label: f.family,
+    fontFamily: `'${f.family}', var(--panel-font)`,
+  }));
   const textColorDescription = theme.textColorMode === 'custom'
     ? label('panel.settings.textColor.custom.desc', 'One color for all widget text, accent text included')
     : theme.textColorMode === 'theme'
@@ -378,6 +388,11 @@ export function PanelThemeSettings({
             />
           )}
         </div>
+      </SettingsSection>
+      )}
+
+      {showTheme && (
+      <SettingsSection title={label('panel.settings.text', 'Text')} boxClassName={styles.themeBox}>
         <div className={styles.toggleReveal}>
           <SettingRow
             label={label('panel.settings.textColor', 'Text color')}
@@ -402,6 +417,12 @@ export function PanelThemeSettings({
             />
           )}
         </div>
+        <SettingSelect
+          label={label('panel.settings.font', 'Font')}
+          value={theme.font ?? DEFAULT_PANEL_FONT}
+          options={fontOptions}
+          onChange={value => onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFontId)}
+        />
       </SettingsSection>
       )}
 

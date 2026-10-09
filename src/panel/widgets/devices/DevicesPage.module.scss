@@ -206,6 +206,7 @@
   th {
     @include text-label;
     font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
     color: var(--text-dim);
     background: var(--bg);
   }
@@ -230,6 +231,7 @@
 
 .mono {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   color: var(--text-dim);
 }
 

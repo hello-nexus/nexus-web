@@ -87,7 +87,7 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
       <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start', height: '100%' }}>
         {latest && (
           <div style={{ fontSize: 'var(--type-small)', color: 'var(--text-dim)' }}>
-            {t('benchmark.result.composite')}: <strong style={{ color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{Math.round(latest.composite)}</strong>
+            {t('benchmark.result.composite')}: <strong style={{ color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>{Math.round(latest.composite)}</strong>
           </div>
         )}
         <Button tone="accent" icon={<Play size={16} />} onClick={() => start()}>

@@ -80,6 +80,7 @@
 
 .compositeLabel {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--type-small);
   text-transform: uppercase;
   color: var(--text-dim);
@@ -114,6 +115,7 @@
   align-items: center;
   gap: 0.35rem;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--type-small);
   color: var(--text-dim);
 }
@@ -133,6 +135,7 @@
 
 .subRawPrimary {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--type-heading);
   font-weight: var(--weight-heading);
   color: var(--text);
@@ -341,6 +344,7 @@
 .scoringVersion {
   right: 1rem;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .subGrid {
