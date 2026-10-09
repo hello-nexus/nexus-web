@@ -406,4 +406,13 @@ describe('makePresetDeckTarget - dials', () => {
     target.updateSlot(0, [], 0, { label: 'b' });
     expect((save.mock.calls[0][0] as DeckConfig).pages[0].dials).toEqual(dialDeck.pages[0].dials);
   });
+
+  it('a widget target saving a slot edit or a page add keeps the preset\'s dials', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(preset(dialDeck), IDENTITY_GRID, 'widget', save);
+    target.updateSlot(0, [], 0, { label: 'w' });
+    expect((save.mock.calls[0][0] as DeckConfig).pages[0].dials).toEqual(dialDeck.pages[0].dials);
+    target.addPage();
+    expect((save.mock.calls[1][0] as DeckConfig).pages[0].dials).toEqual(dialDeck.pages[0].dials);
+  });
 });

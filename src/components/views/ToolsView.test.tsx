@@ -19,6 +19,7 @@ vi.mock('../../hooks/useStreamDecks', () => ({
 const mockGetDevModels = vi.fn();
 const mockSimulate = vi.fn();
 const mockClearSimulated = vi.fn();
+const mockSimInput = vi.fn();
 vi.mock('../../api/streamdeck', async () => {
   const actual = await vi.importActual<typeof import('../../api/streamdeck')>('../../api/streamdeck');
   return {
@@ -26,6 +27,7 @@ vi.mock('../../api/streamdeck', async () => {
     getStreamDeckDevModels: (...a: unknown[]) => mockGetDevModels(...a),
     simulateStreamDeck: (...a: unknown[]) => mockSimulate(...a),
     clearSimulatedStreamDeck: (...a: unknown[]) => mockClearSimulated(...a),
+    simulateStreamDeckInput: (...a: unknown[]) => mockSimInput(...a),
   };
 });
 
@@ -54,6 +56,7 @@ beforeEach(() => {
   ]);
   mockSimulate.mockResolvedValue(true);
   mockClearSimulated.mockResolvedValue(true);
+  mockSimInput.mockResolvedValue(true);
   mockUseStreamDecks.mockReturnValue(decksReturn([]));
 });
 
@@ -110,5 +113,67 @@ describe('StreamDeckSimRow', () => {
 
     expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Disconnect' })).toBeNull();
+  });
+
+  describe('dial and touch input', () => {
+    const PLUS = { serial: 'sim-0084', model: 'Plus', encoders: 4, screen: { width: 800, height: 100, kind: 'touchStrip' as const } };
+
+    it('labels a model that has dials with its dial count', async () => {
+      mockGetDevModels.mockResolvedValue([{ productId: 132, name: 'Plus', rows: 2, cols: 4, keyCount: 8, encoders: 4, screen: { width: 800, height: 100, kind: 'touchStrip' }, touchKeys: 0 }]);
+      await renderCard();
+      fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.model' }));
+      expect(screen.getByRole('option', {
+        name: 'tools.streamdeckSim.modelOptionDials:{"name":"Stream Deck Plus","count":8,"dials":4}',
+      })).toBeInTheDocument();
+    });
+
+    it('offers no input controls for a deck without dials or a strip', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      await renderCard();
+      expect(screen.queryByRole('group', { name: 'tools.streamdeckSim.input.title' })).toBeNull();
+    });
+
+    it('turns the selected dial both ways by the chosen ticks, and presses and releases it', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      await renderCard();
+
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.dial' }));
+      fireEvent.click(screen.getByRole('option', { name: '3' }));
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.ticks' }));
+      fireEvent.click(screen.getByRole('option', { name: '5' }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.turnLeft' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'rotate', index: 2, ticks: -5 });
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.turnRight' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'rotate', index: 2, ticks: 5 });
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.press' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'dialDown', index: 2 });
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.release' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'dialUp', index: 2 });
+    });
+
+    it('taps and long-touches the middle of the chosen segment, and swipes both ways across the strip', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      await renderCard();
+
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.segment' }));
+      fireEvent.click(screen.getByRole('option', { name: '2' }));
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.tap' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'tap', x: 300, y: 50 });
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.longTouch' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'longTouch', x: 300, y: 50 });
+
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.swipeLeft' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'swipe', x: 640, y: 50, x2: 160, y2: 50 });
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.swipeRight' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'swipe', x: 160, y: 50, x2: 640, y2: 50 });
+    });
+
+    it('a dial-only screen deck (no touch) has dial controls but no touch controls', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ serial: 'sim-2b18', encoders: 2, screen: { width: 720, height: 384, kind: 'dialScreen' } })]));
+      await renderCard();
+      expect(screen.getByRole('button', { name: 'tools.streamdeckSim.input.turnLeft' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'tools.streamdeckSim.input.tap' })).toBeNull();
+    });
   });
 });

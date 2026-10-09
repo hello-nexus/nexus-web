@@ -40,8 +40,11 @@ import { useStreamDecks } from '../../hooks/useStreamDecks';
 import {
   getStreamDeckDevModels,
   simulateStreamDeck,
+  simulateStreamDeckInput,
   clearSimulatedStreamDeck,
   type StreamDeckDevModel,
+  type StreamDeckSimInput,
+  type StreamDeckSummary,
 } from '../../api/streamdeck';
 import { clearSimulatedNollie, getNollieBoards, getNollieDevModels, simulateNollie, NOLLIE_SIMULATED_SERIAL_PREFIX, type NollieDevModel } from '../../api/nollie';
 import { getDevPanelVariant, setDevPanelVariant } from '../../api/displays';
@@ -182,6 +185,58 @@ function PawnIoCard() {
   );
 }
 
+const SIM_TICK_OPTIONS = ['1', '2', '5', '10'];
+
+/** Dev-tools-only: injects dial and touch-strip input into the simulated deck through the service's hardware input path. */
+function StreamDeckSimInputControls({ deck }: { deck: StreamDeckSummary }) {
+  const { t } = useTranslation();
+  const encoders = deck.encoders ?? 0;
+  const strip = deck.screen?.kind === 'touchStrip' ? deck.screen : null;
+  const [dial, setDial] = useState('0');
+  const [segment, setSegment] = useState('0');
+  const [ticks, setTicks] = useState('1');
+  const indexOptions = Array.from({ length: encoders }, (_, i) => ({ value: String(i), label: String(i + 1) }));
+
+  const send = (input: Omit<StreamDeckSimInput, 'serial'>) => { void simulateStreamDeckInput({ serial: deck.serial, ...input }); };
+  const touch = (kind: 'tap' | 'longTouch') => {
+    if (!strip) return;
+    const segWidth = strip.width / Math.max(1, encoders);
+    send({ kind, x: Math.round((Number(segment) + 0.5) * segWidth), y: Math.round(strip.height / 2) });
+  };
+  const swipe = (leftward: boolean) => {
+    if (!strip) return;
+    const near = Math.round(strip.width * 0.8);
+    const far = Math.round(strip.width * 0.2);
+    const y = Math.round(strip.height / 2);
+    send({ kind: 'swipe', x: leftward ? near : far, y, x2: leftward ? far : near, y2: y });
+  };
+
+  if (encoders === 0 && !strip) return null;
+  return (
+    <div className={styles.streamdeckSimInput} role="group" aria-label={t('tools.streamdeckSim.input.title')}>
+      {encoders > 0 && (
+        <>
+          <Select value={dial} options={indexOptions} onChange={setDial} ariaLabel={t('tools.streamdeckSim.input.dial')} />
+          <Select value={ticks} options={SIM_TICK_OPTIONS.map(v => ({ value: v, label: v }))} onChange={setTicks} ariaLabel={t('tools.streamdeckSim.input.ticks')} />
+          <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'rotate', index: Number(dial), ticks: -Number(ticks) })}>{t('tools.streamdeckSim.input.turnLeft')}</Button>
+          <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'rotate', index: Number(dial), ticks: Number(ticks) })}>{t('tools.streamdeckSim.input.turnRight')}</Button>
+          <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'dialDown', index: Number(dial) })}>{t('tools.streamdeckSim.input.press')}</Button>
+          <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'dialUp', index: Number(dial) })}>{t('tools.streamdeckSim.input.release')}</Button>
+        </>
+      )}
+      {strip && (
+        <>
+          <Select value={segment} options={indexOptions} onChange={setSegment} ariaLabel={t('tools.streamdeckSim.input.segment')} />
+          <Button type="button" size="sm" tone="neutral" onClick={() => touch('tap')}>{t('tools.streamdeckSim.input.tap')}</Button>
+          <Button type="button" size="sm" tone="neutral" onClick={() => touch('longTouch')}>{t('tools.streamdeckSim.input.longTouch')}</Button>
+          <Button type="button" size="sm" tone="neutral" onClick={() => swipe(true)}>{t('tools.streamdeckSim.input.swipeLeft')}</Button>
+          <Button type="button" size="sm" tone="neutral" onClick={() => swipe(false)}>{t('tools.streamdeckSim.input.swipeRight')}</Button>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * Dev-tools-only: a row in the Simulators block that spins up a simulated
  * Stream Deck via the service's /streamdeck/dev/* routes so a bench box with no
@@ -238,7 +293,9 @@ export function StreamDeckSimRow() {
           value={productId}
           options={models.map(m => ({
             value: String(m.productId),
-            label: t('tools.streamdeckSim.modelOption', { name: `Stream Deck ${m.name}`, count: m.keyCount }),
+            label: (m.encoders ?? 0) > 0
+              ? t('tools.streamdeckSim.modelOptionDials', { name: `Stream Deck ${m.name}`, count: m.keyCount, dials: m.encoders ?? 0 })
+              : t('tools.streamdeckSim.modelOption', { name: `Stream Deck ${m.name}`, count: m.keyCount }),
           }))}
           onChange={setProductId}
           disabled={connected || busy}
@@ -249,6 +306,7 @@ export function StreamDeckSimRow() {
           {connected ? 'Disconnect' : 'Connect'}
         </Button>
       </div>
+      {simulatedDeck && <StreamDeckSimInputControls deck={simulatedDeck} />}
     </div>
   );
 }
