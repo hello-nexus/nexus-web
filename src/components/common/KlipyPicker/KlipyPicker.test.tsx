@@ -26,6 +26,16 @@ class StubIntersectionObserver {
 }
 vi.stubGlobal('IntersectionObserver', StubIntersectionObserver);
 
+// The picker observes its sentinel from an effect that runs once the first
+// page has settled, which can land after that page's items are on screen.
+async function scrollToSentinel() {
+  await waitFor(() => expect(observers.length).toBeGreaterThan(0));
+  await act(async () => {
+    observers[observers.length - 1].cb(
+      [{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+  });
+}
+
 describe('KlipyPicker', () => {
   beforeEach(() => {
     observers.length = 0;
@@ -92,10 +102,7 @@ describe('KlipyPicker', () => {
     render(<KlipyPicker open busySlug={null} onPick={vi.fn()} onClose={vi.fn()} />);
     await screen.findByLabelText('One');
 
-    await act(async () => {
-      observers[observers.length - 1].cb(
-        [{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
-    });
+    await scrollToSentinel();
 
     expect(searchKlipy).toHaveBeenLastCalledWith('', 2);
     expect(await screen.findByLabelText('Two')).toBeInTheDocument();
@@ -108,10 +115,7 @@ describe('KlipyPicker', () => {
     render(<KlipyPicker open busySlug={null} onPick={vi.fn()} onClose={vi.fn()} />);
     await screen.findByLabelText('Dupe');
 
-    await act(async () => {
-      observers[observers.length - 1].cb(
-        [{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
-    });
+    await scrollToSentinel();
 
     await screen.findByLabelText('Fresh');
     expect(screen.getAllByLabelText('Dupe')).toHaveLength(1);
