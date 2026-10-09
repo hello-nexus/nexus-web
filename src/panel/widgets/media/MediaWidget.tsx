@@ -73,6 +73,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
     !preview && !!active?.session.playback.playing && !active.session.playback.stopped,
   );
   const artSignature = mediaArtSignature(active?.session);
+  const artVersion = active?.session.song.artVersion ?? 0;
   const showVolume = volumeAllowed && volume.supported;
   const showSource = widget.config?.showSource === true;
   const artResolved = preview || (artAsset.key === activeKey && artAsset.signature === artSignature);
@@ -85,25 +86,26 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
     if (preview) return;
     if (!activeKey) return;
     let cancelled = false;
-    let blobUrl: string | null = null;
 
     fetchServiceBlob(`/api/media/${encodeURIComponent(activeKey)}/album-art`).then(blob => {
       if (cancelled || !blob) {
         if (!cancelled) setArtAsset({ key: activeKey, signature: artSignature, url: '' });
         return;
       }
-      const url = URL.createObjectURL(blob);
-      blobUrl = url;
-      setArtAsset({ key: activeKey, signature: artSignature, url });
+      setArtAsset({ key: activeKey, signature: artSignature, url: URL.createObjectURL(blob) });
     }).catch(() => {
       if (!cancelled) setArtAsset({ key: activeKey, signature: artSignature, url: '' });
     });
 
-    return () => {
-      cancelled = true;
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-    };
-  }, [preview, activeKey, artSignature]);
+    return () => { cancelled = true; };
+  }, [preview, activeKey, artSignature, artVersion]);
+
+  // Revoked when the next result replaces it, so an artVersion refetch keeps
+  // the same track's art on screen instead of dropping to the placeholder.
+  useEffect(() => {
+    const url = artAsset.url;
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [artAsset.url]);
 
   const control = (action: string) => {
     if (!active) return;
@@ -150,6 +152,13 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
     : 0;
   const repeatMode = (s.playback.repeatMode || 'None');
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
+  const progressBar = s.playback.durationMs > 0 && (
+    <div className={styles.progressTrack}>
+      <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+    </div>
+  );
+  // Stacked touch tiles seat the bar on the transport row, at the controls' width.
+  const barOnTransport = showControls && (tall || square);
 
   return (
     <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${square ? styles.square : ''} ${showControls ? '' : styles.statusOnly} ${liveBackground ? styles.live : ''} ${liveBackground && liveShowing ? styles.liveOn : ''}`}>
@@ -222,56 +231,55 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
                 <div className={styles.title}>{s.song.title || '-'}</div>
                 <div className={styles.artist}>{s.song.artist}</div>
                 {s.song.album && <div className={styles.album}>{s.song.album}</div>}
-                {s.playback.durationMs > 0 && (
-                  <div className={styles.progressTrack}>
-                    <div className={styles.progressFill} style={{ width: `${progress}%` }} />
-                  </div>
-                )}
+                {!barOnTransport && progressBar}
               </div>
             </div>
             {showControls && (
-              <div className={styles.controls}>
-                <IconLabelButton
-                  variant="bare"
-                  className={styles.btn}
-                  icon={<Shuffle strokeWidth={1.8} />}
-                  active={!!s.playback.shuffled}
-                  ariaLabel={t('panel.media.shuffle')}
-                  disabled={!s.controls.isShuffleEnabled}
-                  onPress={() => control('shuffle')}
-                />
-                <IconLabelButton
-                  variant="bare"
-                  className={styles.btn}
-                  icon={<SkipBack strokeWidth={1.8} fill="currentColor" />}
-                  ariaLabel={t('panel.media.previous')}
-                  disabled={!s.controls.isPrevEnabled}
-                  onPress={() => control('previous')}
-                />
-                <IconLabelButton
-                  variant="bare"
-                  className={styles.primary}
-                  icon={playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
-                  ariaLabel={playing ? t('panel.media.pause') : t('panel.media.play')}
-                  onPress={() => control(playing ? 'pause' : 'play')}
-                />
-                <IconLabelButton
-                  variant="bare"
-                  className={styles.btn}
-                  icon={<SkipForward strokeWidth={1.8} fill="currentColor" />}
-                  ariaLabel={t('panel.media.next')}
-                  disabled={!s.controls.isNextEnabled}
-                  onPress={() => control('next')}
-                />
-                <IconLabelButton
-                  variant="bare"
-                  className={styles.btn}
-                  icon={repeatMode === 'Track' ? <Repeat1 strokeWidth={1.8} /> : <Repeat strokeWidth={1.8} />}
-                  active={repeatActive}
-                  ariaLabel={t('panel.media.repeat')}
-                  disabled={!s.controls.isRepeatModeEnabled}
-                  onPress={() => control('repeatmode')}
-                />
+              <div className={styles.transport}>
+                {barOnTransport && progressBar}
+                <div className={styles.controls}>
+                  <IconLabelButton
+                    variant="bare"
+                    className={styles.btn}
+                    icon={<Shuffle strokeWidth={1.8} />}
+                    active={!!s.playback.shuffled}
+                    ariaLabel={t('panel.media.shuffle')}
+                    disabled={!s.controls.isShuffleEnabled}
+                    onPress={() => control('shuffle')}
+                  />
+                  <IconLabelButton
+                    variant="bare"
+                    className={styles.btn}
+                    icon={<SkipBack strokeWidth={1.8} fill="currentColor" />}
+                    ariaLabel={t('panel.media.previous')}
+                    disabled={!s.controls.isPrevEnabled}
+                    onPress={() => control('previous')}
+                  />
+                  <IconLabelButton
+                    variant="bare"
+                    className={styles.primary}
+                    icon={playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
+                    ariaLabel={playing ? t('panel.media.pause') : t('panel.media.play')}
+                    onPress={() => control(playing ? 'pause' : 'play')}
+                  />
+                  <IconLabelButton
+                    variant="bare"
+                    className={styles.btn}
+                    icon={<SkipForward strokeWidth={1.8} fill="currentColor" />}
+                    ariaLabel={t('panel.media.next')}
+                    disabled={!s.controls.isNextEnabled}
+                    onPress={() => control('next')}
+                  />
+                  <IconLabelButton
+                    variant="bare"
+                    className={styles.btn}
+                    icon={repeatMode === 'Track' ? <Repeat1 strokeWidth={1.8} /> : <Repeat strokeWidth={1.8} />}
+                    active={repeatActive}
+                    ariaLabel={t('panel.media.repeat')}
+                    disabled={!s.controls.isRepeatModeEnabled}
+                    onPress={() => control('repeatmode')}
+                  />
+                </div>
               </div>
             )}
           </div>
