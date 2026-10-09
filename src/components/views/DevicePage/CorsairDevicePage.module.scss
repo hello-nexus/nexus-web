@@ -37,7 +37,7 @@
 // temperature aligned across rows even when a device lacks one of them.
 .row {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr) 5.5rem 7rem 6rem;
+  grid-template-columns: 5rem minmax(0, 1fr) 5.5rem 7rem 6rem;
   align-items: center;
   gap: 0.75rem;
   min-height: 2rem;
@@ -62,6 +62,7 @@
 
 .channelBadge {
   flex: 0 0 auto;
+  justify-self: start;
   font-size: var(--type-mini);
   font-family: var(--font-mono);
   color: var(--text-dim);

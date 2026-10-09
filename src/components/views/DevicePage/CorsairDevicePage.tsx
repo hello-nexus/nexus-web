@@ -28,11 +28,15 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
   const [rescanning, setRescanning] = useState<ReadonlySet<string>>(new Set());
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
+  // A response older than the last one applied is dropped so a slow poll cannot undo a newer state.
+  const seqRef = useRef({ issued: 0, applied: 0 });
 
   const refresh = useCallback(async () => {
+    const seq = ++seqRef.current.issued;
     const s = await getCorsairState();
     if (!aliveRef.current) return;
-    if (s === null) return;
+    if (s === null || seq < seqRef.current.applied) return;
+    seqRef.current.applied = seq;
     if (!corsairHubs(s).some(h => h.isConnected)) {
       connectedRef.current = false;
       setConnection('disconnected');
@@ -46,8 +50,10 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
 
   const refreshLive = useCallback(async () => {
     if (!connectedRef.current) { void refresh(); return; }
+    const seq = ++seqRef.current.issued;
     const s = await getCorsairState();
-    if (!aliveRef.current || s === null) return;
+    if (!aliveRef.current || s === null || seq < seqRef.current.applied) return;
+    seqRef.current.applied = seq;
     if (!corsairHubs(s).some(h => h.isConnected)) {
       connectedRef.current = false;
       setConnection('disconnected');
