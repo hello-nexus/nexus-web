@@ -195,6 +195,8 @@ function StreamDeckSimInputControls({ deck }: { deck: StreamDeckSummary }) {
   const [dial, setDial] = useState('0');
   const [segment, setSegment] = useState('0');
   const [ticks, setTicks] = useState('1');
+  const [touchKey, setTouchKey] = useState('0');
+  const touchKeys = deck.touchKeys ?? 0;
   const indexOptions = Array.from({ length: encoders }, (_, i) => ({ value: String(i), label: String(i + 1) }));
 
   const send = (input: Omit<StreamDeckSimInput, 'serial'>) => { void simulateStreamDeckInput({ serial: deck.serial, ...input }); };
@@ -211,7 +213,7 @@ function StreamDeckSimInputControls({ deck }: { deck: StreamDeckSummary }) {
     send({ kind: 'swipe', x: leftward ? near : far, y, x2: leftward ? far : near, y2: y });
   };
 
-  if (encoders === 0 && !strip) return null;
+  if (encoders === 0 && !strip && touchKeys === 0) return null;
   return (
     <div className={styles.streamdeckSimInput} role="group" aria-label={t('tools.streamdeckSim.input.title')}>
       {encoders > 0 && (
@@ -222,6 +224,18 @@ function StreamDeckSimInputControls({ deck }: { deck: StreamDeckSummary }) {
           <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'rotate', index: Number(dial), ticks: Number(ticks) })}>{t('tools.streamdeckSim.input.turnRight')}</Button>
           <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'dialDown', index: Number(dial) })}>{t('tools.streamdeckSim.input.press')}</Button>
           <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'dialUp', index: Number(dial) })}>{t('tools.streamdeckSim.input.release')}</Button>
+        </>
+      )}
+      {touchKeys > 0 && (
+        <>
+          <Select
+            value={touchKey}
+            options={[{ value: '0', label: t('tools.streamdeckSim.input.touchKeyLeft') }, { value: '1', label: t('tools.streamdeckSim.input.touchKeyRight') }]}
+            onChange={setTouchKey}
+            ariaLabel={t('tools.streamdeckSim.input.touchKey')}
+          />
+          <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'touchKey', index: Number(touchKey), pressed: true })}>{t('tools.streamdeckSim.input.touchKeyPress')}</Button>
+          <Button type="button" size="sm" tone="neutral" onClick={() => send({ kind: 'touchKey', index: Number(touchKey), pressed: false })}>{t('tools.streamdeckSim.input.touchKeyRelease')}</Button>
         </>
       )}
       {strip && (

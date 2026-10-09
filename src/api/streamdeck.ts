@@ -164,7 +164,7 @@ export async function simulateStreamDeck(productId: number): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>('/streamdeck/dev/simulate', { productId }));
 }
 
-export type StreamDeckSimInputKind = 'rotate' | 'dialDown' | 'dialUp' | 'tap' | 'longTouch' | 'swipe';
+export type StreamDeckSimInputKind = 'rotate' | 'dialDown' | 'dialUp' | 'tap' | 'longTouch' | 'swipe' | 'touchKey';
 
 export interface StreamDeckSimInput {
   serial: string;
@@ -176,6 +176,8 @@ export interface StreamDeckSimInput {
   /** Touch point (tap/longTouch) or swipe start, in strip pixels. */
   x?: number;
   y?: number;
+  /** touchKey: true presses, false releases; index 0 is the left key and 1 the right. */
+  pressed?: boolean;
   /** Swipe end. */
   x2?: number;
   y2?: number;

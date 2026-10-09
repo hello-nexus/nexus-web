@@ -169,6 +169,19 @@ describe('StreamDeckSimRow', () => {
       expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-0084', kind: 'swipe', x: 160, y: 50, x2: 640, y2: 50 });
     });
 
+    it('presses and releases the chosen Neo touch key', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ serial: 'sim-009a', model: 'Neo', touchKeys: 2, encoders: 0, screen: { width: 248, height: 58, kind: 'infoScreen' } })]));
+      await renderCard();
+      expect(screen.queryByRole('button', { name: 'tools.streamdeckSim.input.turnLeft' })).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.touchKeyPress' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-009a', kind: 'touchKey', index: 0, pressed: true });
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.touchKey' }));
+      fireEvent.click(screen.getByRole('option', { name: 'tools.streamdeckSim.input.touchKeyRight' }));
+      fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.input.touchKeyRelease' }));
+      expect(mockSimInput).toHaveBeenLastCalledWith({ serial: 'sim-009a', kind: 'touchKey', index: 1, pressed: false });
+    });
+
     it('a dial-only screen deck (no touch) has dial controls but no touch controls', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ serial: 'sim-2b18', encoders: 2, screen: { width: 720, height: 384, kind: 'dialScreen' } })]));
       await renderCard();
