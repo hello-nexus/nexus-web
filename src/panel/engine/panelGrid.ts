@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState, type RefObject } from 'react';
 import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT, panelGridCapacityForCanvas, panelWidgetPaddingRatio, type PanelGridCapacity } from './grid';
 import type { PanelSurface } from '../types';
 import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../../lib/panelSimulation';
+import { streamFrameCap } from '../../lib/framePacer';
 
 // Reference cell size (pre-scale) used for the phone surface and as a
 // canonical desktop cell baseline. The runtime grid is scaled around this.
@@ -207,8 +208,9 @@ export function readRuntimePanelGrid(
   // The simulator iframe is sized at the device's native pixels (e.g.
   // 682x2560 for Y70). The host DPR would inflate the physical-size calc and
   // trip the 4-to-8 column jump on Retina hosts, so treat cssWidth/cssHeight
-  // as device pixels directly.
-  const dpr = simulator
+  // as device pixels directly. A streamed panel's CSS px are its native px too;
+  // its devicePixelRatio is the render scale.
+  const dpr = simulator || streamFrameCap(window.location.search) !== null
     ? 1
     : Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
       ? window.devicePixelRatio

@@ -47,6 +47,8 @@ export interface PanelDeviceCapabilitiesDto {
   supportsSecondaryMonitor?: boolean;
   // The glass mounts either way up; the record's portrait picks the render shape.
   supportsPortrait?: boolean;
+  // The stream can render below native and scale up; the record's highResolution applies.
+  supportsRenderScale?: boolean;
 }
 
 export interface PanelGaugeGradientStopDto {
@@ -123,6 +125,9 @@ export interface PanelDeviceRecord {
   // Panels whose capabilities carry supportsPortrait: mounted on the short side,
   // so the panel renders tall. Absent/null = landscape.
   portrait?: boolean | null;
+  // Panels whose capabilities carry supportsRenderScale: render at native resolution
+  // instead of half. Absent/null = half (high performance).
+  highResolution?: boolean | null;
   // Cooler LCDs whose panel takes a brightness command: backlight percent
   // 0-100. Absent/null = the panel's default; the hardware reset writes null.
   lcdBrightness?: number | null;
@@ -199,6 +204,8 @@ export interface PanelDevicePatch {
   secondaryMonitor?: boolean;
   // Panels whose capabilities carry supportsPortrait only; ignored for other panels.
   portrait?: boolean;
+  // Panels whose capabilities carry supportsRenderScale only; ignored for other panels.
+  highResolution?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 
