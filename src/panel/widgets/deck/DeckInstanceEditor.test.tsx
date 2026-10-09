@@ -227,6 +227,14 @@ describe('DeckInstanceEditor - fit note', () => {
     render(<DeckInstanceEditor {...baseProps({ deck, instanceGrid: { cols: 3, rows: 3 } })} />);
     expect(screen.getByText('panel.settings.deck.instance.fitNoteSmaller')).toBeInTheDocument();
   });
+
+  it('leaves the note to the host in bodyMode="headerRail"', () => {
+    const deck = deckResult({
+      preset: { id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, deck: { pages: [{ slots: [{ label: 'a' }] }] } },
+    });
+    render(<DeckInstanceEditor {...baseProps({ deck, instanceGrid: { cols: 3, rows: 3 }, bodyMode: 'headerRail' })} />);
+    expect(screen.queryByText(/fitNote/)).toBeNull();
+  });
 });
 
 describe('DeckInstanceEditor - body', () => {

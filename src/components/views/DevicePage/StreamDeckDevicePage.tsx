@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } fro
 import { LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
-import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
@@ -14,7 +13,7 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useDeckInstance } from '../../../panel/widgets/deck/useDeckInstance';
 import { useRecentApps } from '../../../panel/widgets/deck/useRecentApps';
 import { buildRecentAppsView, type RecentAppsViewKey } from '../../../panel/widgets/deck/recentAppsView';
-import { DeckInstanceEditor } from '../../../panel/widgets/deck/DeckInstanceEditor';
+import { DeckInstanceEditor, deckFitNote } from '../../../panel/widgets/deck/DeckInstanceEditor';
 import { DeckPresetToolbar, modeOnPick } from '../../../panel/widgets/deck/DeckPresetToolbar';
 import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
@@ -437,6 +436,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     else clearSlot(i);
   };
 
+  const fitNote = deckFitNote(instance.preset, instanceGrid, 'physical', t);
+
   const instanceEditor = (
     <DeckInstanceEditor
       deck={instance}
@@ -499,8 +500,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               {recentAppsMode ? (
                 <div className={styles.leftCol}>
                   <div className={styles.previewTop}>
-                    <div className={styles.previewSection}>
-                      <SectionHeader className={styles.previewHeader}>{t('devices.streamdeck.preview')}</SectionHeader>
+                    <SettingsSection title={t('devices.streamdeck.preview')} className={styles.previewSection}>
                       <div className={styles.previewStage}>
                         <DeckGrid
                           slots={(recentPages[recentPage] ?? []).map(recentKeyToPlaceholderSlot)}
@@ -518,7 +518,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                           folderPath={[]}
                         />
                       </div>
-                    </div>
+                    </SettingsSection>
                     <div className={styles.pageRow}>
                       <div className={styles.pageRowSide} />
                       <DeckPageStrip
@@ -535,8 +535,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               ) : (
               <div className={styles.leftCol}>
                 <div className={styles.previewTop}>
-                  <div className={styles.previewSection}>
-                    <SectionHeader className={styles.previewHeader}>{t('devices.streamdeck.preview')}</SectionHeader>
+                  <SettingsSection title={t('devices.streamdeck.preview')} className={styles.previewSection}>
                     <div className={styles.previewStage} ref={previewStageRef}>
                       {target && (
                         <DeckDevicePreview
@@ -561,8 +560,9 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                           }}
                         />
                       )}
+                      {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
                     </div>
-                  </div>
+                  </SettingsSection>
                   {target && (
                     <div className={styles.pageRow}>
                       <div className={styles.pageRowSide} />

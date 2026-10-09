@@ -36,6 +36,29 @@ export interface DeckInstanceEditorProps {
   bodyMode?: 'full' | 'headerRail';
 }
 
+/** The note shown when the active preset was authored for a different key count, or null. */
+export function deckFitNote(
+  preset: UseDeckInstanceResult['preset'],
+  instanceGrid: { cols: number; rows: number },
+  kind: 'physical' | 'widget',
+  t: ReturnType<typeof useTranslation>['t'],
+): string | null {
+  if (!preset) return null;
+  // Key COUNT, not cols/rows shape: a 4x2 preset on a 2x4 instance fits as an
+  // identity (same 8 keys, just a different visual arrangement) - nothing
+  // overflows or shrinks, so no note is warranted despite the shape differing.
+  const presetKeyCount = preset.cols * preset.rows;
+  const instanceKeyCount = instanceGrid.cols * instanceGrid.rows;
+  if (presetKeyCount > instanceKeyCount) {
+    const pages = fitPageCount({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { ...instanceGrid, kind });
+    return pages > 1
+      ? t('panel.settings.deck.instance.fitNoteLargerPaged', { pages })
+      : t('panel.settings.deck.instance.fitNoteLarger');
+  }
+  if (presetKeyCount < instanceKeyCount) return t('panel.settings.deck.instance.fitNoteSmaller');
+  return null;
+}
+
 /**
  * Host-wide preset toolbar + (optionally) the shared grid/inspector body,
  * bound to one useDeckInstance() result. Hosted by both
@@ -74,23 +97,8 @@ export function DeckInstanceEditor({
     onSelectedSlotChange?.(0);
   };
 
-  const preset = deck.preset;
-  // Key COUNT, not cols/rows shape: a 4x2 preset on a 2x4 instance fits as an
-  // identity (same 8 keys, just a different visual arrangement) - nothing
-  // overflows or shrinks, so no note is warranted despite the shape differing.
-  let fitNote: string | null = null;
-  if (preset) {
-    const presetKeyCount = preset.cols * preset.rows;
-    const instanceKeyCount = instanceGrid.cols * instanceGrid.rows;
-    if (presetKeyCount > instanceKeyCount) {
-      const pages = fitPageCount({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { ...instanceGrid, kind });
-      fitNote = pages > 1
-        ? t('panel.settings.deck.instance.fitNoteLargerPaged', { pages })
-        : t('panel.settings.deck.instance.fitNoteLarger');
-    } else if (presetKeyCount < instanceKeyCount) {
-      fitNote = t('panel.settings.deck.instance.fitNoteSmaller');
-    }
-  }
+  // headerRail hosts show the note next to their own preview instead.
+  const fitNote = bodyMode === 'full' ? deckFitNote(deck.preset, instanceGrid, kind, t) : null;
 
   return (
     <div className={styles.root}>

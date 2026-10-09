@@ -230,6 +230,17 @@ function switchToSettingsTab() {
 }
 
 describe('StreamDeckDevicePage', () => {
+  it('shows the fit note once, inside the Preview section', async () => {
+    mockUseDeckInstance.mockReturnValue(deckInstanceReturn({
+      preset: { id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } },
+    }));
+    mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+    await renderPage();
+    const note = screen.getByText('panel.settings.deck.instance.fitNoteSmaller');
+    expect(screen.getAllByText('panel.settings.deck.instance.fitNoteSmaller')).toHaveLength(1);
+    expect(note.closest('section')).toHaveTextContent('devices.streamdeck.preview');
+  });
+
   it('shows the not-connected empty state when loaded with zero decks', async () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([]));
     await renderPage();
