@@ -111,3 +111,39 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.libraryBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.libraryHeaderRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 0.6rem;
+}
+
+.mediaOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}

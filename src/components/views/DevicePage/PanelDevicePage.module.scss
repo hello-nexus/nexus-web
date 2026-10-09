@@ -553,3 +553,16 @@
     margin: 0;
   }
 }
+
+// Covers the panel embed at the glass aspect while the cooler plays a clip.
+.curveVideoPreview {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 2288 / 1080;
+  object-fit: contain;
+  border-radius: var(--radius);
+}

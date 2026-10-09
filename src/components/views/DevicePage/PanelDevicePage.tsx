@@ -99,6 +99,10 @@ import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { KrakenCoolerSettings } from './KrakenCoolerSettings';
 import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { HydroShift2RingSettings } from './HydroShift2RingSettings';
+import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
+import { HydroShift2CurveSettings } from './HydroShift2CurveSettings';
+import { useHydroShift2CurveScreen } from './useHydroShift2CurveScreen';
+import { hydroShift2CurveMediaPreviewUrl } from '../../../api/hydroshift2Curve';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
@@ -412,6 +416,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
+  const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;
+  const curveScreen = useHydroShift2CurveScreen(isHydroShift2CurvePanel);
   // Cooler LCDs whose firmware takes a backlight command. The service decides
   // which those are and stamps the capability on the record, so a new dimmable
   // model needs no edit here. The setting lives on the record, so it rides the
@@ -1730,6 +1736,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <HydroShift2RingSettings onSectionNavigate={onSectionNavigate} />
                     </div>
                   )}
+                  {activeTab === 'settings' && isHydroShift2CurvePanel && (
+                    <div className={styles.settingsContent}>
+                      <HydroShift2CurveHeadSettings />
+                      <HydroShift2CurveSettings screen={curveScreen} />
+                    </div>
+                  )}
                   {activeTab === 'settings' && surface === 'kraken' && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} screenStreamed />
@@ -1888,6 +1900,18 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 displayBound={!!device?.displayId}
                 onPlaylistShown={handlePlaylistShown}
               />
+              {isHydroShift2CurvePanel && curveScreen.playingClip && (
+                <video
+                  key={curveScreen.playingClip}
+                  className={styles.curveVideoPreview}
+                  src={hydroShift2CurveMediaPreviewUrl(curveScreen.playingClip)}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  aria-hidden="true"
+                />
+              )}
               </>
               )}
             </div>
