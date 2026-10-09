@@ -1976,6 +1976,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           <div
             className={styles.previewPane}
             data-surface={glassSurface}
+            data-family={recordFamily}
             data-playlist-nav={showPlaylistArrows || undefined}
             data-troubleshoot={showPreviewTroubleshoot || undefined}
           >
