@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { buildPanelDevices, isTurnedOffPlainMonitor } from './usePanelDevices';
+import { buildPanelDevices, isTurnedOffPlainMonitor, titanIiLcdNames } from './usePanelDevices';
 import type { PanelDeviceRecord } from '../api/panel';
 
 const LABELS = {
@@ -48,13 +48,13 @@ function firstDevice(record: PanelDeviceRecord) {
 describe('buildPanelDevices promoted-monitor branding', () => {
   it('replaces the Windows PnP-identity default name with the family name', () => {
     const device = firstDevice(xeneonRecord('CRX ED00'));
-    expect(device.name).toBe('Xeneon Edge');
+    expect(device.name).toBe('Corsair Xeneon Edge');
     expect(device.iconSrc).toBe('/assets/devices/corsair.svg');
   });
 
   it('replaces the EDID product-name default with the family name', () => {
-    expect(firstDevice(xeneonRecord('CORSAIR XENEON EDGE')).name).toBe('Xeneon Edge');
-    expect(firstDevice(xeneonRecord('XENEON EDGE')).name).toBe('Xeneon Edge');
+    expect(firstDevice(xeneonRecord('CORSAIR XENEON EDGE')).name).toBe('Corsair Xeneon Edge');
+    expect(firstDevice(xeneonRecord('XENEON EDGE')).name).toBe('Corsair Xeneon Edge');
   });
 
   it('keeps a user rename but still shows the family icon', () => {
@@ -67,12 +67,20 @@ describe('buildPanelDevices promoted-monitor branding', () => {
     expect(firstDevice(xeneonRecord('CRX ED00')).capabilities.touch).toBe(true);
   });
 
-  it('brands the iCUE LINK 5" LCD from its PnP identity', () => {
+  it('brands the iCUE LINK 5" LCD from its PnP identity, as a TITAN II LCD when that pump is on the hub', () => {
     const record = xeneonRecord('XMD 00EA');
     record.capabilities = { ...record.capabilities, family: 'icue-link-lcd5', touch: false };
     const device = firstDevice(record);
-    expect(device.name).toBe('iCUE LINK 5" LCD');
+    expect(device.name).toBe('Corsair iCUE LINK 5" LCD');
     expect(device.iconSrc).toBe('/assets/devices/corsair.svg');
+    expect(device.experimental).toBe(true);
+    expect(firstDevice(xeneonRecord('CRX ED00')).experimental).toBeUndefined();
+
+    const pump = { channel: 14, name: 'iCUE LINK TITAN II', deviceClass: 'Aio' as const, ledCount: 20, hasSpeed: true, hasTemperature: true, rpm: 2200, tempC: 28, serial: 'S' };
+    const familyNames = titanIiLcdNames({ isConnected: true, firmware: '4.1.656', devices: [pump] });
+    const onTitan = buildPanelDevices({ curatedDevices: [], phoneSessions: [], records: [record], status: null, simulatedPanels: [], familyNames, labels: LABELS })[0];
+    expect(onTitan.name).toBe('Corsair TITAN II LCD');
+    expect(titanIiLcdNames({ isConnected: true, firmware: '4.1.656', devices: [{ ...pump, name: 'iCUE LINK QX RGB' }] })).toEqual({});
   });
 });
 

@@ -59,6 +59,8 @@ export interface PanelDevice {
   // Display-bound panel (promoted monitor): whether Nexus Control is on.
   // Absent for every other panel kind - there is no such toggle there.
   linkEnabled?: boolean;
+  // Display-bound panel whose family's support is experimental (badge only).
+  experimental?: boolean;
 }
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';
