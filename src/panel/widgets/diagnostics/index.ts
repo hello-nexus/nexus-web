@@ -13,7 +13,7 @@ export const diagnosticsApp: AppManifest = {
     sizes: ['2x2', '4x2'],
     defaultSize: '2x2',
     supportsImmersive: { portrait: false, landscape: false },
-    touch: false,
+    touch: true,
     hasConfig: false,
   },
   Widget: DiagnosticsWidget,
