@@ -432,10 +432,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       touch: laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
         panelShortSideSlots(glassSurface, record?.capabilities?.family, record?.widgetSize),
-        isLandscapeCanvas({ width: record?.capabilities?.cssWidth, height: record?.capabilities?.cssHeight }),
+        // Same canvas the editor grid reads: the record's own, else the device entry's.
+        isLandscapeCanvas(record?.capabilities?.cssWidth && record.capabilities.cssHeight
+          ? { width: record.capabilities.cssWidth, height: record.capabilities.cssHeight }
+          : device?.previewSize),
       ),
     };
-  }, [glassSurface]);
+  }, [glassSurface, device?.previewSize]);
   // Promoted monitors with a DDC/CI-capable display get a brightness-only
   // settings tab wired to the generic /displays brightness endpoint.
   const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);

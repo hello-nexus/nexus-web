@@ -167,7 +167,7 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'lcd-wide' && family === HYDROSHIFT2_CURVE_FAMILY) {
     return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, dpi: 379 };
   }
-  // Lian Li Universal Screen 8.8: Large halves the short-axis slots so each cell doubles.
+  // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }

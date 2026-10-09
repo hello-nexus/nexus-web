@@ -53,7 +53,7 @@ function nearestAllowedSize(
   if (allowed.includes(requested)) return requested;
   if (allowed.length === 0) return fallback;
   const target = SIZE_AREA[requested];
-  // A 4-wide widget shrinks to a square, never to the 2x4 strip of equal area.
+  // A 4-wide widget (4x2 or 4x4) becomes a square tile, never the tall 2x4 strip.
   const squares = requested === '4x2' || requested === '4x4' ? allowed.filter(s => s !== '2x4') : allowed;
   return (squares.length > 0 ? squares : allowed).slice().sort((a, b) => {
     const da = Math.abs(SIZE_AREA[a] - target);

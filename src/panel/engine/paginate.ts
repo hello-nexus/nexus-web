@@ -326,6 +326,7 @@ export function fitLayoutToSinglePage(
   layout: PanelLayout,
   capacity: PaginateCapacity,
 ): { layout: PanelLayout; dropped: PanelWidget[] } {
+  if (layout.pages.length === 0) return { layout, dropped: [] };
   const cols = Math.max(1, Math.floor(capacity.gridCols));
   const rows = Math.max(1, Math.floor(capacity.pageRows));
   const all = layout.pages.flatMap(p => p.widgets);
