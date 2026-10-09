@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "{mapped} von {total} Bedienelementen übertragen",
   "devices.streamdeck.import.notFoundBody": "Nexus konnte auf diesem PC keine Elgato Stream Deck-Installation finden.",
   "devices.streamdeck.import.notFoundTitle": "Elgato Stream Deck-Software nicht gefunden",
-  "devices.streamdeck.import.profileSummary": "{pages} Seiten, {keys} Tasten",
+  "devices.streamdeck.import.profileSummary": "{pages} Seiten, {keys} Bedienelemente",
   "devices.streamdeck.import.reason.audioPath": "Importiert, aber die Audiodatei muss noch festgelegt werden",
   "devices.streamdeck.import.reason.encoder": "Drehregler-Aktionen werden nicht unterstützt",
   "devices.streamdeck.import.reason.hotkey": "Dieses Tastenkürzel konnte nicht übersetzt werden",

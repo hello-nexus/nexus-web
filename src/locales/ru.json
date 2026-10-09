@@ -1191,7 +1191,7 @@
   "devices.streamdeck.import.mappedSummary": "Сопоставлено {mapped} из {total} элементов управления",
   "devices.streamdeck.import.notFoundBody": "Nexus не нашёл установленную Elgato Stream Deck на этом ПК.",
   "devices.streamdeck.import.notFoundTitle": "Программа Elgato Stream Deck не найдена",
-  "devices.streamdeck.import.profileSummary": "{pages} стр., {keys} клавиш",
+  "devices.streamdeck.import.profileSummary": "{pages} стр., {keys} элементов управления",
   "devices.streamdeck.import.reason.audioPath": "Импортировано, но аудиофайл ещё нужно указать",
   "devices.streamdeck.import.reason.encoder": "Действия поворотного регулятора не поддерживаются",
   "devices.streamdeck.import.reason.hotkey": "Не удалось перевести это сочетание клавиш",

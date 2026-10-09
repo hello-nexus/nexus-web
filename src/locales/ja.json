@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "{total} 個のコントロール中 {mapped} 個を割り当てました",
   "devices.streamdeck.import.notFoundBody": "このPCに Elgato Stream Deck のインストールが見つかりませんでした。",
   "devices.streamdeck.import.notFoundTitle": "Elgato Stream Deck ソフトウェアが見つかりません",
-  "devices.streamdeck.import.profileSummary": "{pages} ページ、{keys} キー",
+  "devices.streamdeck.import.profileSummary": "{pages} ページ、{keys} コントロール",
   "devices.streamdeck.import.reason.audioPath": "インポートされましたが、音声ファイルの設定がまだ必要です",
   "devices.streamdeck.import.reason.encoder": "ダイヤル操作には対応していません",
   "devices.streamdeck.import.reason.hotkey": "このホットキーは変換できませんでした",

@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "Mapâts {mapped} di {total} controi",
   "devices.streamdeck.import.notFoundBody": "Nexus nol à cjatât nissune instalazion di Elgato Stream Deck su chest PC.",
   "devices.streamdeck.import.notFoundTitle": "Software Elgato Stream Deck no cjatât",
-  "devices.streamdeck.import.profileSummary": "{pages} pagjinis, {keys} tascj",
+  "devices.streamdeck.import.profileSummary": "{pages} pagjinis, {keys} controi",
   "devices.streamdeck.import.reason.audioPath": "Impuartât, ma al mancje ancjemò impostâ il file audio",
   "devices.streamdeck.import.reason.encoder": "Lis azions di rotele no son supuartadis",
   "devices.streamdeck.import.reason.hotkey": "Nol è stât pussibil tradusi cheste scurte di tastiere",

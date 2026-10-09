@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "Mappati {mapped} di {total} controlli",
   "devices.streamdeck.import.notFoundBody": "Nexus non ha trovato un'installazione di Elgato Stream Deck su questo PC.",
   "devices.streamdeck.import.notFoundTitle": "Software Elgato Stream Deck non trovato",
-  "devices.streamdeck.import.profileSummary": "{pages} pagine, {keys} tasti",
+  "devices.streamdeck.import.profileSummary": "{pages} pagine, {keys} controlli",
   "devices.streamdeck.import.reason.audioPath": "Importato, ma il file audio va ancora impostato",
   "devices.streamdeck.import.reason.encoder": "Le azioni della manopola non sono supportate",
   "devices.streamdeck.import.reason.hotkey": "Non è stato possibile tradurre questa scorciatoia da tastiera",

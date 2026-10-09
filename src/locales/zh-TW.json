@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "已對應 {total} 個控制項中的 {mapped} 個",
   "devices.streamdeck.import.notFoundBody": "Nexus 在此電腦上找不到 Elgato Stream Deck 的安裝。",
   "devices.streamdeck.import.notFoundTitle": "找不到 Elgato Stream Deck 軟體",
-  "devices.streamdeck.import.profileSummary": "{pages} 頁，{keys} 個按鍵",
+  "devices.streamdeck.import.profileSummary": "{pages} 頁，{keys} 個控制項",
   "devices.streamdeck.import.reason.audioPath": "已匯入，但仍需設定音訊檔案",
   "devices.streamdeck.import.reason.encoder": "不支援旋鈕操作",
   "devices.streamdeck.import.reason.hotkey": "無法轉換此快速鍵",

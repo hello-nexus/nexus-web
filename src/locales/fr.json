@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "{mapped} commandes importées sur {total}",
   "devices.streamdeck.import.notFoundBody": "Nexus n'a trouvé aucune installation d'Elgato Stream Deck sur ce PC.",
   "devices.streamdeck.import.notFoundTitle": "Logiciel Elgato Stream Deck introuvable",
-  "devices.streamdeck.import.profileSummary": "{pages} pages, {keys} touches",
+  "devices.streamdeck.import.profileSummary": "{pages} pages, {keys} commandes",
   "devices.streamdeck.import.reason.audioPath": "Importé, mais le fichier audio doit encore être défini",
   "devices.streamdeck.import.reason.encoder": "Les actions de molette ne sont pas prises en charge",
   "devices.streamdeck.import.reason.hotkey": "Ce raccourci clavier n'a pas pu être traduit",

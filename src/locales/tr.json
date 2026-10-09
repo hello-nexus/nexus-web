@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "{total} denetimden {mapped} tanesi eşlendi",
   "devices.streamdeck.import.notFoundBody": "Nexus bu bilgisayarda bir Elgato Stream Deck kurulumu bulamadı.",
   "devices.streamdeck.import.notFoundTitle": "Elgato Stream Deck yazılımı bulunamadı",
-  "devices.streamdeck.import.profileSummary": "{pages} sayfa, {keys} tuş",
+  "devices.streamdeck.import.profileSummary": "{pages} sayfa, {keys} denetim",
   "devices.streamdeck.import.reason.audioPath": "İçe aktarıldı, ancak ses dosyasının ayarlanması gerekiyor",
   "devices.streamdeck.import.reason.encoder": "Döner düğme eylemleri desteklenmiyor",
   "devices.streamdeck.import.reason.hotkey": "Bu kısayol tuşu çevrilemedi",

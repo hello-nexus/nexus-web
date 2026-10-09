@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "{mapped} van {total} bedieningselementen toegewezen",
   "devices.streamdeck.import.notFoundBody": "Nexus kon geen Elgato Stream Deck-installatie op deze pc vinden.",
   "devices.streamdeck.import.notFoundTitle": "Elgato Stream Deck-software niet gevonden",
-  "devices.streamdeck.import.profileSummary": "{pages} pagina's, {keys} toetsen",
+  "devices.streamdeck.import.profileSummary": "{pages} pagina's, {keys} bedieningselementen",
   "devices.streamdeck.import.reason.audioPath": "Geïmporteerd, maar het audiobestand moet nog worden ingesteld",
   "devices.streamdeck.import.reason.encoder": "Draaiknopacties worden niet ondersteund",
   "devices.streamdeck.import.reason.hotkey": "Deze sneltoets kon niet worden vertaald",

@@ -1191,7 +1191,7 @@
   "devices.streamdeck.import.mappedSummary": "Zmapowano {mapped} z {total} elementów sterujących",
   "devices.streamdeck.import.notFoundBody": "Nexus nie znalazł instalacji Elgato Stream Deck na tym komputerze.",
   "devices.streamdeck.import.notFoundTitle": "Nie znaleziono oprogramowania Elgato Stream Deck",
-  "devices.streamdeck.import.profileSummary": "{pages} stron, {keys} klawiszy",
+  "devices.streamdeck.import.profileSummary": "{pages} stron, {keys} elementów sterujących",
   "devices.streamdeck.import.reason.audioPath": "Zaimportowano, ale trzeba jeszcze ustawić plik audio",
   "devices.streamdeck.import.reason.encoder": "Akcje pokrętła nie są obsługiwane",
   "devices.streamdeck.import.reason.hotkey": "Nie udało się przetłumaczyć tego skrótu klawiszowego",

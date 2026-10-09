@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "{mapped} de {total} controlos mapeados",
   "devices.streamdeck.import.notFoundBody": "O Nexus não encontrou nenhuma instalação do Elgato Stream Deck neste PC.",
   "devices.streamdeck.import.notFoundTitle": "Software Elgato Stream Deck não encontrado",
-  "devices.streamdeck.import.profileSummary": "{pages} páginas, {keys} teclas",
+  "devices.streamdeck.import.profileSummary": "{pages} páginas, {keys} controlos",
   "devices.streamdeck.import.reason.audioPath": "Importado, mas o ficheiro de áudio ainda precisa de ser definido",
   "devices.streamdeck.import.reason.encoder": "As ações do botão giratório não são suportadas",
   "devices.streamdeck.import.reason.hotkey": "Não foi possível traduzir este atalho de teclado",

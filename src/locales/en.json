@@ -1184,7 +1184,7 @@
   "devices.streamdeck.import.mappedSummary": "Mapped {mapped} of {total} controls",
   "devices.streamdeck.import.notFoundBody": "Nexus couldn't find an Elgato Stream Deck installation on this PC.",
   "devices.streamdeck.import.notFoundTitle": "Elgato Stream Deck software not found",
-  "devices.streamdeck.import.profileSummary": "{pages} pages, {keys} keys",
+  "devices.streamdeck.import.profileSummary": "{pages} pages, {keys} controls",
   "devices.streamdeck.import.reason.audioPath": "Imported, but the audio file needs to be set",
   "devices.streamdeck.import.reason.encoder": "Dial actions aren't supported",
   "devices.streamdeck.import.reason.hotkey": "This hotkey couldn't be translated",
