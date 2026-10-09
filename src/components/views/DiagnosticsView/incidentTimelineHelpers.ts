@@ -41,6 +41,7 @@ const SOURCE_TO_GROUP: Record<DiagnosticsIncidentSource, IncidentGroup | null> =
   whea: 'hardware',
   tdr: 'gpu',
   gpuDriver: 'gpu',
+  driverRestart: 'gpu',
   disk: 'disk',
   dirtyShutdown: 'shutdown',
   appCrash: 'app',

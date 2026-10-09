@@ -21,6 +21,8 @@ export interface DeviceListItem {
   // True for a Nexus Control device driving non-HYTE/iBUYPOWER hardware, whose
   // support is experimental. Always false when supportsNexusControl is false.
   experimental?: boolean;
+  // True for an experimental device on a stable build: Nexus Control stays off and cannot be turned on.
+  requiresBeta?: boolean;
   // Device-level issue code (e.g. "usb-disconnected") the service wants
   // surfaced to the user; null/undefined means no issue. Code-driven so any
   // handler can flag a problem without new UI per device family.

@@ -35,7 +35,7 @@ export interface DiagnosticsHealth {
 
 export type DiagnosticsIncidentSource =
   | 'whea' | 'bugcheck' | 'dirtyShutdown' | 'disk' | 'tdr'
-  | 'gpuDriver' | 'appCrash' | 'liveKernel' | 'memDiag'
+  | 'gpuDriver' | 'appCrash' | 'driverRestart' | 'liveKernel' | 'memDiag'
   | 'kernel' | 'oomKill' | 'segfault' | 'unitFailed';
 
 export type DiagnosticsIncidentSeverity = 'info' | 'warning' | 'critical';

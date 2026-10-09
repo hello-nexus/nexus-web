@@ -65,6 +65,14 @@ describe('incidentEvents', () => {
     expect(events.map(e => e.laneId)).toEqual(['gpu', 'gpu']);
   });
 
+  it('puts a Nexus restart from an NVIDIA driver update on the "gpu" lane, not "app"', () => {
+    const [event] = incidentEvents([
+      incident({ id: 'r', timeUtc: '2026-07-06T00:00:00Z', source: 'driverRestart', severity: 'info' }),
+    ]);
+    expect(event.laneId).toBe('gpu');
+    expect(event.weight).toBe(0);
+  });
+
   it('merges bugcheck and live-kernel into one "crash" lane', () => {
     const events = incidentEvents([
       incident({ id: 'b', timeUtc: '2026-07-06T00:00:00Z', source: 'bugcheck' }),
