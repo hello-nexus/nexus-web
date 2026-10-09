@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getStreamDecks, updateStreamDeck, type StreamDeckSummary } from '../api/streamdeck';
+import { getStreamDecks, updateStreamDeck, type StreamDeckInfoScreen, type StreamDeckSummary } from '../api/streamdeck';
 import { isLocalhostUnreachable } from '../api/service';
 import { useTopicCallback } from './useMultiplexSocket';
 
@@ -70,5 +70,12 @@ export function useStreamDecks(enabled: boolean) {
     return ok;
   }, [refresh]);
 
-  return { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked, refresh };
+  const setInfoScreen = useCallback(async (serial: string, infoScreen: StreamDeckInfoScreen) => {
+    setDecks(prev => prev.map(d => (d.serial === serial ? { ...d, infoScreen } : d)));
+    const ok = await updateStreamDeck(serial, { infoScreen });
+    if (!ok) await refresh();
+    return ok;
+  }, [refresh]);
+
+  return { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked, setInfoScreen, refresh };
 }

@@ -8,6 +8,16 @@ import { fetchService, postService, deleteService } from './service';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 
 export type StreamDeckFormat = 'bmp' | 'jpeg';
+export type StreamDeckTransform = 'none' | 'flipBoth' | 'mirrorXRot90' | 'rot90Ccw';
+export type StreamDeckDialPlacement = 'below' | 'above' | 'sides';
+export type StreamDeckScreenKind = 'touchStrip' | 'infoScreen' | 'dialScreen';
+export type StreamDeckInfoScreen = 'clock' | 'page' | 'off';
+
+export interface StreamDeckScreen {
+  width: number;
+  height: number;
+  kind: StreamDeckScreenKind;
+}
 
 export interface StreamDeckSummary {
   serial: string;
@@ -30,9 +40,26 @@ export interface StreamDeckSummary {
   /** Blank while the desktop session is locked (service default on). Always sent by the DTO; optional here for the same reason. */
   sleepWhenLocked?: boolean;
   firmwareVersion?: string;
-  warning?: string;
+  warning?: string | null;
   /** ConflictAppCatalog id to pass to POST /conflicts/kill when warning is set. */
-  conflictAppId?: string;
+  conflictAppId?: string | null;
+  /** Key image transform the hardware applies. Always sent by the DTO; optional here so older test fixtures need not set it. */
+  transform?: StreamDeckTransform;
+  /** Dial count: 0, 2, 4 or 6. Always sent by the DTO; optional here for the same reason. */
+  encoders?: number;
+  /** Where the dials sit relative to the keys; null when the model has none. Always sent; optional here for the same reason. */
+  dialPlacement?: StreamDeckDialPlacement | null;
+  /** The strip/screen beyond the keys, split into `encoders` equal segments for touchStrip and dialScreen; null when none. Always sent; optional here for the same reason. */
+  screen?: StreamDeckScreen | null;
+  /** Neo touch keys after the main keys. Always sent; optional here for the same reason. */
+  touchKeys?: number;
+  /** LEDs per dial ring (Studio 24, Galleon 4, else 0). Always sent; optional here for the same reason. */
+  encoderRingLeds?: number;
+  /** Key pixel size; keyPixels stays min(w, h). Always sent; optional here for the same reason. */
+  keyWidth?: number;
+  keyHeight?: number;
+  /** Neo info screen mode, default 'clock'. */
+  infoScreen?: StreamDeckInfoScreen | null;
   /**
    * The physical deck's live page/folder, same semantics as the 'nav'
    * multiplex frame (see StreamDeckDevicePage's topic subscription). Seeds
@@ -68,7 +95,7 @@ export async function getStreamDecks(): Promise<StreamDeckSummary[]> {
 
 export async function updateStreamDeck(
   serial: string,
-  patch: { name?: string; brightness?: number; orientation?: number; sleepAfterSeconds?: number; sleepWhenLocked?: boolean },
+  patch: { name?: string; brightness?: number; orientation?: number; sleepAfterSeconds?: number; sleepWhenLocked?: boolean; infoScreen?: StreamDeckInfoScreen },
 ): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}`, patch));
 }
@@ -89,6 +116,8 @@ export interface PendingDeckEdit {
   page: number;
   folderPath: number[];
   keyIndex: number;
+  /** Set when the hold was on an empty dial segment: the editor selects that dial instead of a key. */
+  dialIndex?: number;
   /** One-shot id (epoch ms); the client dedupes the live frame against this boot fetch on it. */
   token: number;
 }
@@ -108,11 +137,15 @@ export async function getPendingDeckEdit(): Promise<PendingDeckEdit | null> {
 }
 
 export interface StreamDeckDevModel {
-  productId: string;
+  /** A number on the wire. */
+  productId: number;
   name: string;
   rows: number;
   cols: number;
   keyCount: number;
+  encoders?: number;
+  screen?: StreamDeckScreen | null;
+  touchKeys?: number;
 }
 
 interface StreamDeckDevModelsResponse {
@@ -126,8 +159,30 @@ export async function getStreamDeckDevModels(): Promise<StreamDeckDevModel[]> {
 }
 
 /** Dev-tools-only: spin up a simulated deck of the given model; it then appears in getStreamDecks(). */
-export async function simulateStreamDeck(productId: string): Promise<boolean> {
+export async function simulateStreamDeck(productId: number): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>('/streamdeck/dev/simulate', { productId }));
+}
+
+export type StreamDeckSimInputKind = 'rotate' | 'dialDown' | 'dialUp' | 'tap' | 'longTouch' | 'swipe';
+
+export interface StreamDeckSimInput {
+  serial: string;
+  kind: StreamDeckSimInputKind;
+  /** Dial index for rotate/dialDown/dialUp. */
+  index?: number;
+  /** Signed ticks for rotate (+ = clockwise). */
+  ticks?: number;
+  /** Touch point (tap/longTouch) or swipe start, in strip pixels. */
+  x?: number;
+  y?: number;
+  /** Swipe end. */
+  x2?: number;
+  y2?: number;
+}
+
+/** Dev-tools-only: inject a dial/touch input into the simulated deck through the same path hardware input takes. */
+export async function simulateStreamDeckInput(input: StreamDeckSimInput): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>('/streamdeck/dev/sim-input', input));
 }
 
 /** Dev-tools-only: remove the simulated deck. */

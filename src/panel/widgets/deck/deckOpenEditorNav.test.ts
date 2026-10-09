@@ -10,6 +10,11 @@ describe('deckOpenEditorNav', () => {
     expect(takePendingDeckEditorTarget('A')).toBeNull(); // consumed once
   });
 
+  it('carries a dial target through', () => {
+    requestOpenDeckEditor({ serial: 'D', page: 0, folderPath: [], keyIndex: 0, dialIndex: 2 });
+    expect(takePendingDeckEditorTarget('D')?.dialIndex).toBe(2);
+  });
+
   it('announces via the window event, and stops after unsubscribe', () => {
     let fired = 0;
     const off = onDeckOpenEditor(() => { fired++; });

@@ -12,6 +12,8 @@ export interface DeckEditorTarget {
   page: number;
   folderPath: number[];
   keyIndex: number;
+  /** Set: select this dial instead of keyIndex. */
+  dialIndex?: number;
 }
 
 const NAV_EVENT = 'nexus-deck-open-editor';

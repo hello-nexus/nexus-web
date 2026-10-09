@@ -201,7 +201,7 @@ export function StreamDeckSimRow() {
     void getStreamDeckDevModels().then(list => {
       if (cancelled) return;
       setModels(list);
-      setProductId(prev => prev || list[0]?.productId || '');
+      setProductId(prev => prev || (list[0] ? String(list[0].productId) : ''));
     });
     return () => { cancelled = true; };
   }, []);
@@ -219,7 +219,10 @@ export function StreamDeckSimRow() {
     setBusy(true);
     try {
       if (connected) await clearSimulatedStreamDeck();
-      else if (productId) await simulateStreamDeck(productId);
+      else {
+        const model = models.find(m => String(m.productId) === productId);
+        if (model) await simulateStreamDeck(model.productId);
+      }
     } finally { setBusy(false); }
     refresh();
   };
@@ -234,7 +237,7 @@ export function StreamDeckSimRow() {
         <Select
           value={productId}
           options={models.map(m => ({
-            value: m.productId,
+            value: String(m.productId),
             label: t('tools.streamdeckSim.modelOption', { name: `Stream Deck ${m.name}`, count: m.keyCount }),
           }))}
           onChange={setProductId}

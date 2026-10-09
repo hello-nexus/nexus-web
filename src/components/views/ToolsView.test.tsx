@@ -48,9 +48,9 @@ function decksReturn(decks: StreamDeckSummary[]) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetDevModels.mockResolvedValue([
-    { productId: 'mini', name: 'Mini', rows: 2, cols: 3, keyCount: 6 },
-    { productId: 'mk2', name: 'MK.2', rows: 3, cols: 5, keyCount: 15 },
-    { productId: 'xl', name: 'XL', rows: 4, cols: 8, keyCount: 32 },
+    { productId: 99, name: 'Mini', rows: 2, cols: 3, keyCount: 6 },
+    { productId: 128, name: 'MK.2', rows: 3, cols: 5, keyCount: 15 },
+    { productId: 108, name: 'XL', rows: 4, cols: 8, keyCount: 32 },
   ]);
   mockSimulate.mockResolvedValue(true);
   mockClearSimulated.mockResolvedValue(true);
@@ -88,7 +88,7 @@ describe('StreamDeckSimRow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
     await act(async () => { await Promise.resolve(); });
 
-    expect(mockSimulate).toHaveBeenCalledWith('xl');
+    expect(mockSimulate).toHaveBeenCalledWith(108);
     expect(mockRefresh).toHaveBeenCalled();
   });
 

@@ -192,13 +192,14 @@ function DeckEditAutoOpener({ online, onOpen }: {
   }, [onOpen]);
 
   useTopicCallback('streamdeck', online && !isLocalhostUnreachable(), useCallback((data: unknown) => {
-    const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[]; keyIndex?: number; token?: number };
+    const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[]; keyIndex?: number; dialIndex?: number; token?: number };
     if (f.kind !== 'editRequest' || !f.serial || typeof f.token !== 'number') return;
     fire({
       serial: f.serial,
       page: typeof f.page === 'number' ? f.page : 0,
       folderPath: Array.isArray(f.folderPath) ? f.folderPath : [],
       keyIndex: typeof f.keyIndex === 'number' ? f.keyIndex : 0,
+      ...(typeof f.dialIndex === 'number' ? { dialIndex: f.dialIndex } : {}),
       token: f.token,
     });
   }, [fire]));
@@ -558,7 +559,7 @@ export function Dashboard() {
   // about-to-mount) device page, which selects the held key.
   const handleOpenDeckEditor = useCallback((edit: PendingDeckEdit) => {
     navigate('system', 'device', `streamdeck:${edit.serial}`);
-    requestOpenDeckEditor({ serial: edit.serial, page: edit.page, folderPath: edit.folderPath, keyIndex: edit.keyIndex });
+    requestOpenDeckEditor({ serial: edit.serial, page: edit.page, folderPath: edit.folderPath, keyIndex: edit.keyIndex, dialIndex: edit.dialIndex });
   }, [navigate]);
 
   // The profile dropdown's "Manage profiles" lands on the standalone Profiles

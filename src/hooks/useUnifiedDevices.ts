@@ -232,8 +232,8 @@ export function useUnifiedDevices(enabled: boolean) {
         nexusControlEnabled: deckControlEnabled,
         supportsNexusControl: deckSupportsControl,
         experimental: false,
-        warning: deck.warning,
-        conflictAppId: deck.conflictAppId,
+        warning: deck.warning ?? undefined,
+        conflictAppId: deck.conflictAppId ?? undefined,
         bus: 'usb',
       });
     }
