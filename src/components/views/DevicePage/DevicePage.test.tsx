@@ -102,16 +102,12 @@ describe('NexusControlOff', () => {
     expect(onEnable).not.toHaveBeenCalled();
   });
 
-  it('locks the switch off and offers the beta channel for a device that requires a beta build', async () => {
-    const onEnable = vi.fn();
-    render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental requiresBeta onEnable={onEnable} />);
+  it('offers the beta channel in place of the switch for a device that requires a beta build', async () => {
+    render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental requiresBeta onEnable={vi.fn()} />);
 
     expect(screen.getByText('devices.requiresBeta.notice')).toBeInTheDocument();
     expect(screen.queryByText('devices.nexusControlOff.enableHint')).not.toBeInTheDocument();
-    const toggle = screen.getByRole('switch', { name: 'devices.nexusControl' });
-    expect(toggle).toBeDisabled();
-    fireEvent.click(toggle);
-    expect(onEnable).not.toHaveBeenCalled();
+    expect(screen.queryByRole('switch', { name: 'devices.nexusControl' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.requiresBeta.switch' }));
     await waitFor(() => expect(mockCheckForUpdate).toHaveBeenCalledTimes(1));

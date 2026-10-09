@@ -318,18 +318,17 @@ function BetaRequiredNotice() {
     }
   };
   return (
-    <Notice
-      tone="info"
-      role="status"
-      actions={onBeta ? undefined : (
-        <Button type="button" tone="accent" size="sm" disabled={switching} onClick={() => void switchToBeta()}>
+    <>
+      <Notice tone="info" role="status" className={styles.controlOffNotice}>
+        <span>{t('devices.requiresBeta.notice')}</span>
+        <NoticeSecondary>{t(onBeta ? 'devices.requiresBeta.onBeta' : 'devices.requiresBeta.hint')}</NoticeSecondary>
+      </Notice>
+      {!onBeta && (
+        <Button type="button" tone="accent" className={styles.controlOffAction} disabled={switching} onClick={() => void switchToBeta()}>
           {t('devices.requiresBeta.switch')}
         </Button>
       )}
-    >
-      <span>{t('devices.requiresBeta.notice')}</span>
-      <NoticeSecondary>{t(onBeta ? 'devices.requiresBeta.onBeta' : 'devices.requiresBeta.hint')}</NoticeSecondary>
-    </Notice>
+    </>
   );
 }
 
@@ -347,10 +346,7 @@ export function NexusControlOff({ deviceName, conflictAppId, experimental, requi
         <h2 className={styles.controlOffTitle}>{deviceName}</h2>
         <div className={styles.controlOffBody}>
           {requiresBeta ? (
-            <>
-              <BetaRequiredNotice />
-              <NexusControlCard checked={false} disabled onChange={() => {}} />
-            </>
+            <BetaRequiredNotice />
           ) : activeConflict ? (
             <>
               <p className={styles.controlOffHint}>{t('devices.nexusControlOff.conflictHint', { app: activeConflict.displayName })}</p>
