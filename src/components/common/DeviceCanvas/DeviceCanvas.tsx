@@ -9,7 +9,7 @@ import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
 import { subscribeLedFrame } from '../../../lib/ledFrameStore';
-import { ledDotColor, type FrameGeometry } from '../../../lib/ledDotColor';
+import { colorAtCanvasPoint, DOT_CANVAS_H, DOT_CANVAS_W, framePointToCanvas, type FrameGeometry } from '../../../lib/ledDotColor';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
@@ -77,8 +77,8 @@ interface DeviceCanvasProps {
   stackActionsFor?: (ids: string[]) => StackActions;
 }
 
-const CW = 1000;
-const CH = 600;
+const CW = DOT_CANVAS_W;
+const CH = DOT_CANVAS_H;
 const PAD = 0;
 
 /** The default card's shape, which the minimize preset also lands on. Roughly
@@ -311,8 +311,9 @@ export const CanvasBackground = memo(function CanvasBackground() {
 
 // A dot wears the colour of the output pixel under it, painted straight to the
 // element from ledFrameStore so a frame never re-renders the canvas. A held
-// colour, an off device and a missing frame keep the resting dot.
-const LedDot = memo(function LedDot({ frame, u, v, left, top, off, held }: {
+// colour wins and is drawn by the style prop; an off device and a missing frame
+// leave the resting dot.
+export const LedDot = memo(function LedDot({ frame, u, v, left, top, off, held }: {
   frame: FrameGeometry;
   u: number;
   v: number;
@@ -322,23 +323,32 @@ const LedDot = memo(function LedDot({ frame, u, v, left, top, off, held }: {
   held?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const frameRef = useRef(frame);
-  frameRef.current = frame;
+  // Read by the cleanup, which runs after React has committed the next state.
+  const heldRef = useRef(held);
+  heldRef.current = held;
   const live = !off && !held;
+  const { canvasX, canvasY, canvasW, canvasH, canvasRotation } = frame;
   useEffect(() => {
     const el = ref.current;
     if (!el || !live) return undefined;
+    // The point only moves with the frame, so the turn is worked out once here.
+    const point = framePointToCanvas({ canvasX, canvasY, canvasW, canvasH, canvasRotation }, u, v);
+    let last: string | null | undefined;
     const unsubscribe = subscribeLedFrame(f => {
-      const color = ledDotColor(f.pixels, f.w, f.h, frameRef.current, u, v);
+      const color = colorAtCanvasPoint(f.pixels, f.w, f.h, point);
+      if (color === last) return;
+      last = color;
       el.style.background = color ?? '';
-      el.classList.toggle(styles.ledDotLive, color !== null);
+      el.classList.toggle(styles.ledDotLocked, color !== null);
     });
     return () => {
       unsubscribe();
+      // A held colour has just been committed by the style prop; leave it.
+      if (heldRef.current) return;
       el.style.background = '';
-      el.classList.remove(styles.ledDotLive);
+      el.classList.remove(styles.ledDotLocked);
     };
-  }, [live, u, v]);
+  }, [live, u, v, canvasX, canvasY, canvasW, canvasH, canvasRotation]);
   return (
     <div
       ref={ref}
@@ -963,7 +973,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
                       v={fy}
                       left={`${fx * 100}%`}
                       top={`${fy * 100}%`}
-                      off={dev.ledsOn === false}
+                      off={devices.find(d => d.id === id)?.ledsOn === false}
                       held={color}
                     />
                   );

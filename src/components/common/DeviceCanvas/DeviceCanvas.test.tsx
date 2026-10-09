@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { DeviceCanvas, canvasLabelName } from './DeviceCanvas';
+import { DeviceCanvas, LedDot, canvasLabelName } from './DeviceCanvas';
+import { publishLedFrame } from '../../../lib/ledFrameStore';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
 
@@ -675,5 +676,48 @@ describe('DeviceCanvas stacks', () => {
     fireEvent.contextMenu(screen.getByText('Loose'));
     fireEvent.click(screen.getByText('lighting.devices.stackCount.one'));
     expect(stack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('DeviceCanvas live LED dots', () => {
+  const frame = { canvasX: 0, canvasY: 0, canvasW: 1000, canvasH: 600, canvasRotation: 0 };
+  const red = new Uint8Array([255, 0, 0]);
+  const dotEl = (c: HTMLElement) => c.querySelector<HTMLElement>(`.${styles.ledDot}`)!;
+
+  it('paints the output colour, keeps a held colour across a live to held change, and repaints after', () => {
+    publishLedFrame(red, 1, 1);
+    const props = { frame, u: 0.5, v: 0.5, left: '50%', top: '50%', off: false };
+    const { container, rerender } = render(<LedDot {...props} />);
+    expect(dotEl(container).style.background).toBe('rgb(255, 20, 20)');
+    rerender(<LedDot {...props} held="rgb(1, 2, 3)" />);
+    expect(dotEl(container).style.background).toBe('rgb(1, 2, 3)');
+    expect(dotEl(container).className).toContain(styles.ledDotLocked);
+    rerender(<LedDot {...props} />);
+    expect(dotEl(container).style.background).toBe('rgb(255, 20, 20)');
+  });
+
+  it('keeps the resting dot for an off device', () => {
+    publishLedFrame(red, 1, 1);
+    const { container } = render(<LedDot frame={frame} u={0.5} v={0.5} left="50%" top="50%" off />);
+    expect(dotEl(container).style.background).toBe('');
+  });
+
+  it('reads the stack member whose LEDs are drawn, not the frame owner, for off', () => {
+    publishLedFrame(red, 1, 1);
+    const owner = { ...dragDevice('dev-a', 'Left'), ...frame };
+    const member = { ...dragDevice('dev-b', 'Right'), ledsOn: false };
+    const led = { index: 0, u: 0.5, v: 0.5, name: 'L', zoneType: 'linear', isCustom: false, disabled: false };
+    const { container } = render(
+      <DeviceCanvas
+        devices={[owner, member] as LightingDevice[]}
+        selectedIds={new Set(['dev-a'])} primaryDeviceId="dev-a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+        stacks={[{ id: 's', name: '', members: ['dev-a', 'dev-b'] }]}
+        selectedDeviceLeds={{ 'dev-a': [{ ...led, index: 0 }], 'dev-b': [{ ...led, index: 1 }] }}
+      />
+    );
+    const dots = [...container.querySelectorAll<HTMLElement>(`.${styles.ledDot}`)];
+    expect(dots).toHaveLength(2);
+    expect(dots.filter(d => d.style.background !== '')).toHaveLength(1);
   });
 });

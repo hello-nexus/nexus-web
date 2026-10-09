@@ -34,10 +34,27 @@ export function framePointToCanvas(frame: FrameGeometry, fx: number, fy: number)
 }
 
 /**
- * The colour of the output-frame pixel under a point of a device frame, as a
- * CSS colour, or null when there is no frame to read. The floor of the pixel
+ * The colour of the output-frame pixel under a canvas point (0..1 fractions), as
+ * a CSS colour, or null when there is no frame to read. The floor of the pixel
  * position matches the engine's own sampling and the 3D scene's dots.
  */
+export function colorAtCanvasPoint(
+  pixels: Uint8Array | null,
+  w: number,
+  h: number,
+  point: { x: number; y: number },
+): string | null {
+  if (!pixels || w === 0 || h === 0) return null;
+  const px = Math.min(w - 1, Math.max(0, Math.floor(point.x * w)));
+  const py = Math.min(h - 1, Math.max(0, Math.floor(point.y * h)));
+  const s = (py * w + px) * 3;
+  const r = Math.max(pixels[s], MIN_CHANNEL);
+  const g = Math.max(pixels[s + 1], MIN_CHANNEL);
+  const b = Math.max(pixels[s + 2], MIN_CHANNEL);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** The colour under a point of a device frame (0..1 before the frame's turn). */
 export function ledDotColor(
   pixels: Uint8Array | null,
   w: number,
@@ -47,12 +64,5 @@ export function ledDotColor(
   fy: number,
 ): string | null {
   if (!pixels || w === 0 || h === 0) return null;
-  const p = framePointToCanvas(frame, fx, fy);
-  const px = Math.min(w - 1, Math.max(0, Math.floor(p.x * w)));
-  const py = Math.min(h - 1, Math.max(0, Math.floor(p.y * h)));
-  const s = (py * w + px) * 3;
-  const r = Math.max(pixels[s], MIN_CHANNEL);
-  const g = Math.max(pixels[s + 1], MIN_CHANNEL);
-  const b = Math.max(pixels[s + 2], MIN_CHANNEL);
-  return `rgb(${r}, ${g}, ${b})`;
+  return colorAtCanvasPoint(pixels, w, h, framePointToCanvas(frame, fx, fy));
 }
