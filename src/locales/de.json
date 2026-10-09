@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Systemabsturz",
   "diagnostics.incidents.source.dirtyShutdown": "Unerwartetes Herunterfahren",
   "diagnostics.incidents.source.disk": "Laufwerk",
+  "diagnostics.incidents.source.driverRestart": "Neustart durch Treiber-Update",
   "diagnostics.incidents.source.gpuDriver": "GPU-Treiber",
   "diagnostics.incidents.source.kernel": "Kernel-Fehler",
   "diagnostics.incidents.source.liveKernel": "Kernel-Fehler",

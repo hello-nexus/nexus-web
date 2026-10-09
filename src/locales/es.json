@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Fallo del sistema",
   "diagnostics.incidents.source.dirtyShutdown": "Apagado inesperado",
   "diagnostics.incidents.source.disk": "Disco",
+  "diagnostics.incidents.source.driverRestart": "Reinicio por actualización del controlador",
   "diagnostics.incidents.source.gpuDriver": "Controlador de GPU",
   "diagnostics.incidents.source.kernel": "Error del núcleo",
   "diagnostics.incidents.source.liveKernel": "Error del núcleo",

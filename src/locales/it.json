@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Arresto anomalo di sistema",
   "diagnostics.incidents.source.dirtyShutdown": "Spegnimento imprevisto",
   "diagnostics.incidents.source.disk": "Disco",
+  "diagnostics.incidents.source.driverRestart": "Riavvio per aggiornamento driver",
   "diagnostics.incidents.source.gpuDriver": "Driver GPU",
   "diagnostics.incidents.source.kernel": "Errore del kernel",
   "diagnostics.incidents.source.liveKernel": "Errore del kernel",

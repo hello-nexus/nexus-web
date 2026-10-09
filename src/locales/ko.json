@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "시스템 충돌",
   "diagnostics.incidents.source.dirtyShutdown": "예기치 않은 종료",
   "diagnostics.incidents.source.disk": "디스크",
+  "diagnostics.incidents.source.driverRestart": "드라이버 업데이트로 인한 다시 시작",
   "diagnostics.incidents.source.gpuDriver": "GPU 드라이버",
   "diagnostics.incidents.source.kernel": "커널 오류",
   "diagnostics.incidents.source.liveKernel": "커널 오류",

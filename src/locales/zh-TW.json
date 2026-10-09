@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "系統當機",
   "diagnostics.incidents.source.dirtyShutdown": "非預期關機",
   "diagnostics.incidents.source.disk": "磁碟",
+  "diagnostics.incidents.source.driverRestart": "驅動程式更新導致重新啟動",
   "diagnostics.incidents.source.gpuDriver": "GPU 驅動程式",
   "diagnostics.incidents.source.kernel": "核心錯誤",
   "diagnostics.incidents.source.liveKernel": "核心錯誤",

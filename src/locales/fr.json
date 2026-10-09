@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Plantage système",
   "diagnostics.incidents.source.dirtyShutdown": "Arrêt inattendu",
   "diagnostics.incidents.source.disk": "Disque",
+  "diagnostics.incidents.source.driverRestart": "Redémarrage après mise à jour du pilote",
   "diagnostics.incidents.source.gpuDriver": "Pilote GPU",
   "diagnostics.incidents.source.kernel": "Erreur noyau",
   "diagnostics.incidents.source.liveKernel": "Erreur noyau",

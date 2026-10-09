@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Sistem çökmesi",
   "diagnostics.incidents.source.dirtyShutdown": "Beklenmedik kapanma",
   "diagnostics.incidents.source.disk": "Disk",
+  "diagnostics.incidents.source.driverRestart": "Sürücü güncellemesi nedeniyle yeniden başlatma",
   "diagnostics.incidents.source.gpuDriver": "GPU sürücüsü",
   "diagnostics.incidents.source.kernel": "Çekirdek hatası",
   "diagnostics.incidents.source.liveKernel": "Çekirdek hatası",

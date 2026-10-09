@@ -1413,6 +1413,7 @@
   "diagnostics.incidents.source.bugcheck": "Awaria systemu",
   "diagnostics.incidents.source.dirtyShutdown": "Nieoczekiwane wyłączenie",
   "diagnostics.incidents.source.disk": "Dysk",
+  "diagnostics.incidents.source.driverRestart": "Ponowne uruchomienie po aktualizacji sterownika",
   "diagnostics.incidents.source.gpuDriver": "Sterownik GPU",
   "diagnostics.incidents.source.kernel": "Błąd jądra",
   "diagnostics.incidents.source.liveKernel": "Błąd jądra",

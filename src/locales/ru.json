@@ -1413,6 +1413,7 @@
   "diagnostics.incidents.source.bugcheck": "Сбой системы",
   "diagnostics.incidents.source.dirtyShutdown": "Неожиданное выключение",
   "diagnostics.incidents.source.disk": "Диск",
+  "diagnostics.incidents.source.driverRestart": "Перезапуск из-за обновления драйвера",
   "diagnostics.incidents.source.gpuDriver": "Драйвер GPU",
   "diagnostics.incidents.source.kernel": "Ошибка ядра",
   "diagnostics.incidents.source.liveKernel": "Ошибка ядра",

@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "システムクラッシュ",
   "diagnostics.incidents.source.dirtyShutdown": "予期しないシャットダウン",
   "diagnostics.incidents.source.disk": "ディスク",
+  "diagnostics.incidents.source.driverRestart": "ドライバー更新による再起動",
   "diagnostics.incidents.source.gpuDriver": "GPUドライバー",
   "diagnostics.incidents.source.kernel": "カーネルエラー",
   "diagnostics.incidents.source.liveKernel": "カーネルエラー",

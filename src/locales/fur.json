@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Colàs dal sisteme",
   "diagnostics.incidents.source.dirtyShutdown": "Distacament inspietât",
   "diagnostics.incidents.source.disk": "Disc",
+  "diagnostics.incidents.source.driverRestart": "Tornâ a inviâ pal inzornament dal driver",
   "diagnostics.incidents.source.gpuDriver": "Driver GPU",
   "diagnostics.incidents.source.kernel": "Erôr dal kernel",
   "diagnostics.incidents.source.liveKernel": "Erôr dal kernel",

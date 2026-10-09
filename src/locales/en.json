@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "System crash",
   "diagnostics.incidents.source.dirtyShutdown": "Unexpected shutdown",
   "diagnostics.incidents.source.disk": "Disk",
+  "diagnostics.incidents.source.driverRestart": "Driver update restart",
   "diagnostics.incidents.source.gpuDriver": "GPU driver",
   "diagnostics.incidents.source.kernel": "Kernel error",
   "diagnostics.incidents.source.liveKernel": "Kernel error",

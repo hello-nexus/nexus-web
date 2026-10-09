@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Systeemcrash",
   "diagnostics.incidents.source.dirtyShutdown": "Onverwachte afsluiting",
   "diagnostics.incidents.source.disk": "Schijf",
+  "diagnostics.incidents.source.driverRestart": "Herstart door stuurprogramma-update",
   "diagnostics.incidents.source.gpuDriver": "GPU-stuurprogramma",
   "diagnostics.incidents.source.kernel": "Kernelfout",
   "diagnostics.incidents.source.liveKernel": "Kernelfout",

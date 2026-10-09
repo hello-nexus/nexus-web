@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "系统崩溃",
   "diagnostics.incidents.source.dirtyShutdown": "意外关机",
   "diagnostics.incidents.source.disk": "磁盘",
+  "diagnostics.incidents.source.driverRestart": "驱动程序更新导致重启",
   "diagnostics.incidents.source.gpuDriver": "GPU 驱动程序",
   "diagnostics.incidents.source.kernel": "内核错误",
   "diagnostics.incidents.source.liveKernel": "内核错误",

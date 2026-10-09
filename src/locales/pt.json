@@ -1406,6 +1406,7 @@
   "diagnostics.incidents.source.bugcheck": "Falha do sistema",
   "diagnostics.incidents.source.dirtyShutdown": "Encerramento inesperado",
   "diagnostics.incidents.source.disk": "Disco",
+  "diagnostics.incidents.source.driverRestart": "Reinício por atualização do controlador",
   "diagnostics.incidents.source.gpuDriver": "Controlador da GPU",
   "diagnostics.incidents.source.kernel": "Erro do kernel",
   "diagnostics.incidents.source.liveKernel": "Erro do kernel",
