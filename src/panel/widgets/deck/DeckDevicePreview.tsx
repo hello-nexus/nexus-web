@@ -45,7 +45,7 @@ export function DeckDevicePreview({ deck, grid, dials, selectedDial, onSelectDia
   const knob = (i: number) => (
     <DeckDialKnob key={i} dial={dials[i] ?? {}} index={i} selected={selectedDial === i} onSelect={onSelectDial} ringLeds={ringLeds} />
   );
-  const columns = (n: number): CSSProperties => ({ gridTemplateColumns: `repeat(${n}, 1fr)` });
+  const columns = (n: number): CSSProperties => ({ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` });
   const segmentAspect = deck.screen && encoders > 0 ? deck.screen.width / encoders / deck.screen.height : 2;
   const indices = Array.from({ length: encoders }, (_, i) => i);
 

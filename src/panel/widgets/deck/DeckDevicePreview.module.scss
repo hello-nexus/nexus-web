@@ -30,7 +30,9 @@
   align-items: center;
 }
 
+// The screen spans the keys' width; the flanking knobs (52px + gap) hang outside it.
 .aboveRow {
+  margin: 0 -64px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;

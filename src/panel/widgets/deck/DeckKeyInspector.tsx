@@ -993,7 +993,7 @@ export function DeckActionDragPreview({ kind }: { kind: DeckPickerKind }) {
  * never hidden inside a collapsed group.
  */
 function ActionCategoryPicker({ categories, activeKind, onPick, onClose, surface, desktopEditor }: {
-  categories: DeckActionCategory[]; activeKind: DeckPickerKind | null; onPick: (k: DeckPickerKind) => void;
+  categories: DeckActionCategory[]; activeKind: DeckPickerKind; onPick: (k: DeckPickerKind) => void;
   /** Set when the list was reopened over a bound key: renders the close
    *  button beside the search bar that folds it back without a pick. */
   onClose?: () => void;
@@ -1002,10 +1002,10 @@ function ActionCategoryPicker({ categories, activeKind, onPick, onClose, surface
   const { t } = useTranslation();
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(categories.map(c => c.key)));
   const [query, setQuery] = useState('');
-  const activeCategoryKey = activeKind ? categoryForKind(activeKind).key : null;
+  const activeCategoryKey = categoryForKind(activeKind).key;
   const locked = deckAuthoringLocked(surface, desktopEditor);
   useEffect(() => {
-    if (activeCategoryKey) setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));
+    setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));
   }, [activeCategoryKey]);
   const toggleOpen = (key: string) => setOpenKeys(prev => {
     const next = new Set(prev);
@@ -1305,8 +1305,6 @@ export interface DeckKeyInspectorProps {
    * folder with bound content - matching the grid's own onDeleteSlot).
    */
   onDeleteSlot?: () => void;
-  /** The picker is visible but its selection is elsewhere (a dial is selected): picks do nothing and nothing is highlighted. */
-  pickerInert?: boolean;
 }
 
 /**
@@ -1315,7 +1313,7 @@ export interface DeckKeyInspectorProps {
  * grid and this inspector in separate panes while the touch widget keeps
  * composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot, pickerInert = false }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
@@ -1360,7 +1358,6 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   // otherwise reseed the action and drop what the key already had configured.
   // (An unbound slot reads as 'launchApp' too, so the guard needs hasBinding.)
   const onKindChange = (k: DeckPickerKind) => {
-    if (pickerInert) return;
     if (!hasBinding || k !== kind) writeSlot(slotForPickerKind(k, slot, target.config.defaultTitleStyle));
     setPickerOpen(false);
   };
@@ -1419,7 +1416,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
       {showPicker && (
         <SettingsSection title={t('panel.settings.deck.actionType')}>
           {pickerExpanded ? (
-            <ActionCategoryPicker categories={categories} activeKind={pickerInert ? null : kind} onPick={onKindChange} onClose={closePicker} surface={surface} desktopEditor={desktopEditor} />
+            <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} onClose={closePicker} surface={surface} desktopEditor={desktopEditor} />
           ) : (
             <SettingsRow icon={<KindIcon size={14} aria-hidden />} label={t(`panel.settings.deck.action.${kind}`)}>
               <Button type="button" size="sm" tone="neutral" onClick={() => setPickerOpen(true)}>

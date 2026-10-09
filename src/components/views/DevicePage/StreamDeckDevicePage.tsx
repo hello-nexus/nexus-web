@@ -617,7 +617,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
 
               <div className={styles.pickerPane}>
                 {instanceEditor}
-                {!recentAppsMode && target && (
+                {!recentAppsMode && target && dialSel == null && (
                   <DeckKeyInspector
                     target={target}
                     page={page}
@@ -630,10 +630,9 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     desktopEditor
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="picker"
-                    pickerInert={dialSel != null}
                   />
                 )}
-                {!recentAppsMode && target && encoders > 0 && (
+                {!recentAppsMode && target && dialSel != null && (
                   <DeckDialInspector
                     target={target}
                     page={page}

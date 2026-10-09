@@ -79,15 +79,17 @@ export function DeckDialSegment({ dial, index, selected, onSelect, liveSrc, aspe
       {liveSrc && !empty ? (
         <img src={liveSrc} draggable={false} alt="" className={styles.segmentImage} />
       ) : empty ? (
-        <span className={styles.segmentPlus}><Plus aria-hidden /></span>
+        <span className={styles.segmentFace}><span className={styles.segmentContent}><span className={styles.segmentPlus}><Plus aria-hidden /></span></span></span>
       ) : (
-        <>
-          <span className={styles.segmentTitle}>{title}</span>
-          <span className={styles.segmentIcon}><DialGlyph entry={entry} /></span>
-          {dialShowsBar(entry.action) && (
-            <span className={styles.segmentBar}><span className={styles.segmentBarFill} /></span>
-          )}
-        </>
+        <span className={styles.segmentFace}>
+          <span className={styles.segmentContent}>
+            <span className={styles.segmentTitle}>{title}</span>
+            <span className={styles.segmentIcon}><DialGlyph entry={entry} /></span>
+            {dialShowsBar(entry.action) && (
+              <span className={styles.segmentBar}><span className={styles.segmentBarFill} /></span>
+            )}
+          </span>
+        </span>
       )}
       {stackSize > 0 && (
         <span className={styles.stackDots} aria-hidden>

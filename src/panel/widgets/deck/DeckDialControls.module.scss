@@ -2,21 +2,17 @@
 // service's own render once a frame arrives, so its CSS mirrors that layout.
 .segment {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto 1fr auto;
-  column-gap: 8px;
-  align-items: center;
+  display: block;
+  width: 100%;
   min-width: 0;
   overflow: hidden;
-  container-type: size;
   aspect-ratio: var(--dial-aspect);
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: #0f1115;
   color: #ffffff;
   font: inherit;
-  padding: 6cqh 6cqw;
+  padding: 0;
   box-sizing: border-box;
   cursor: pointer;
   touch-action: manipulation;
@@ -28,6 +24,24 @@
     outline: 2px solid var(--panel-accent, var(--accent));
     outline-offset: 2px;
   }
+}
+
+// A button is not a size-query container in Chromium, and an element's own cq units resolve against its
+// ancestors, so the face is the container and .segmentContent (its child) carries the cq-sized layout.
+.segmentFace {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+}
+
+.segmentContent {
+  position: absolute;
+  inset: 6cqh 6cqw;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto;
+  column-gap: 8px;
+  align-items: center;
 }
 
 .segmentEmpty {
@@ -70,7 +84,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  font-size: 15cqh;
+  font-size: max(8px, 15cqh);
   line-height: 1.2;
 }
 
@@ -109,7 +123,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 4cqh;
+  bottom: 3px;
   display: flex;
   justify-content: center;
   gap: 4px;

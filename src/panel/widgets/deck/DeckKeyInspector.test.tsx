@@ -150,8 +150,8 @@ describe('defaultActionFor - new Stream Deck action kinds', () => {
  * (the same factory StreamDeckDevicePage uses) over a useState-backed config
  * so picker interactions round-trip exactly like production.
  */
-function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot, pickerInert }: {
-  initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean; part?: 'all' | 'picker' | 'editor'; onDeleteSlot?: () => void; pickerInert?: boolean;
+function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot }: {
+  initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean; part?: 'all' | 'picker' | 'editor'; onDeleteSlot?: () => void;
 }) {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
   const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), { cols: initialSlots.length, rows: 1 }, 'physical', setConfig);
@@ -167,7 +167,6 @@ function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot, pic
       desktopEditor={desktopEditor}
       part={part}
       onDeleteSlot={onDeleteSlot}
-      pickerInert={pickerInert}
     />
   );
 }
@@ -1248,7 +1247,7 @@ describe('DeckKeyInspector - privileged action authoring lock (phone companion)'
   });
 });
 
-describe('capture ops and the inert picker', () => {
+describe('capture ops', () => {
   const capture = { type: 'system' as const, action: { op: 'volumeUp' as const } };
 
   it('a physical target offers screenshot and screen recording', async () => {
@@ -1263,13 +1262,5 @@ describe('capture ops and the inert picker', () => {
     fireEvent.click(await screen.findByLabelText('panel.settings.deck.systemOp'));
     await screen.findByRole('option', { name: 'panel.settings.deck.system.openSettings' });
     expect(screen.queryByRole('option', { name: 'panel.settings.deck.system.screenshot' })).toBeNull();
-  });
-
-  it('an inert picker ignores picks and highlights nothing', () => {
-    const slots: DeckSlot[] = [{ action: { type: 'power', action: 'lock' } }];
-    render(<Harness initialSlots={slots} part="picker" pickerInert />);
-    fireEvent.click(screen.getByRole('option', { name: /panel.settings.deck.action.openUrl/ }));
-    expect(screen.getAllByRole('option').every(o => o.getAttribute('aria-selected') === 'false')).toBe(true);
-    expect(screen.getByRole('option', { name: /panel.settings.deck.action.power/ })).toHaveAttribute('aria-selected', 'false');
   });
 });

@@ -64,9 +64,9 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
-  DeckKeyInspector: ({ selectedSlot, part, onDeleteSlot, pickerInert }: { selectedSlot?: number; part?: string; onDeleteSlot?: () => void; pickerInert?: boolean }) => (
+  DeckKeyInspector: ({ selectedSlot, part, onDeleteSlot }: { selectedSlot?: number; part?: string; onDeleteSlot?: () => void }) => (
     <>
-      <div data-testid={`deck-key-inspector-${part ?? 'all'}`} data-inert={pickerInert ? 'true' : undefined}>{selectedSlot}</div>
+      <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
       {onDeleteSlot && <button type="button" onClick={onDeleteSlot}>editor-delete</button>}
     </>
   ),
@@ -981,7 +981,6 @@ describe('StreamDeckDevicePage', () => {
       plusInstance();
       const { container } = await renderPage();
 
-      expect(screen.getByTestId('deck-dial-inspector-picker')).toBeInTheDocument();
       expect(screen.queryByTestId('deck-dial-inspector-editor')).toBeNull();
 
       fireEvent.click(container.querySelector('[data-deck-dial-index="2"]')!);
@@ -995,13 +994,15 @@ describe('StreamDeckDevicePage', () => {
       expect(container.querySelector('[data-deck-dial-index="2"]')).toHaveAttribute('aria-pressed', 'false');
     });
 
-    it('the key picker goes inert while a dial is selected', async () => {
+    it('shows only the picker of the selected kind', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
       plusInstance();
       const { container } = await renderPage();
-      expect(screen.getByTestId('deck-key-inspector-picker')).not.toHaveAttribute('data-inert');
+      expect(screen.getByTestId('deck-key-inspector-picker')).toBeInTheDocument();
+      expect(screen.queryByTestId('deck-dial-inspector-picker')).toBeNull();
       fireEvent.click(container.querySelector('[data-deck-dial-index="0"]')!);
-      expect(screen.getByTestId('deck-key-inspector-picker')).toHaveAttribute('data-inert', 'true');
+      expect(screen.queryByTestId('deck-key-inspector-picker')).toBeNull();
+      expect(screen.getByTestId('deck-dial-inspector-picker')).toBeInTheDocument();
     });
 
     it('a nav frame that moves nothing keeps the selected dial, one that moves clears it', async () => {
