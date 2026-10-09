@@ -193,6 +193,11 @@
   box-shadow: var(--shadow-sm);
 }
 
+// Wearing the live output colour: shadowed to read over the same colour behind it.
+.ledDotLive {
+  box-shadow: var(--shadow-sm);
+}
+
 .resizeHandle {
   position: absolute;
   // The box is the grab area; ::before is the dot, so the corner stays easy to

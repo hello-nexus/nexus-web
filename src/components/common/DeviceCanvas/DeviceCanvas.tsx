@@ -9,6 +9,7 @@ import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
 import { subscribeLedFrame } from '../../../lib/ledFrameStore';
+import { ledDotColor, type FrameGeometry } from '../../../lib/ledDotColor';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
@@ -306,6 +307,45 @@ export const CanvasBackground = memo(function CanvasBackground() {
   }), []);
 
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
+});
+
+// A dot wears the colour of the output pixel under it, painted straight to the
+// element from ledFrameStore so a frame never re-renders the canvas. A held
+// colour, an off device and a missing frame keep the resting dot.
+const LedDot = memo(function LedDot({ frame, u, v, left, top, off, held }: {
+  frame: FrameGeometry;
+  u: number;
+  v: number;
+  left: string;
+  top: string;
+  off: boolean;
+  held?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
+  const live = !off && !held;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !live) return undefined;
+    const unsubscribe = subscribeLedFrame(f => {
+      const color = ledDotColor(f.pixels, f.w, f.h, frameRef.current, u, v);
+      el.style.background = color ?? '';
+      el.classList.toggle(styles.ledDotLive, color !== null);
+    });
+    return () => {
+      unsubscribe();
+      el.style.background = '';
+      el.classList.remove(styles.ledDotLive);
+    };
+  }, [live, u, v]);
+  return (
+    <div
+      ref={ref}
+      className={held ? `${styles.ledDot} ${styles.ledDotLocked}` : styles.ledDot}
+      style={{ left, top, ...(held ? { background: held } : {}) }}
+    />
+  );
 });
 
 const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onOpenKeyReactions, keyReactiveIds, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, stacks, stackActionsFor }: {
@@ -913,11 +953,18 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
                 const locked = ledColorsById.get(id);
                 return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => {
                   const color = locked?.get(led.index);
+                  const fx = part.x + led.u * part.w;
+                  const fy = part.y + led.v * part.h;
                   return (
-                    <div
+                    <LedDot
                       key={`${id}:${led.index}`}
-                      className={color ? `${styles.ledDot} ${styles.ledDotLocked}` : styles.ledDot}
-                      style={{ left: `${(part.x + led.u * part.w) * 100}%`, top: `${(part.y + led.v * part.h) * 100}%`, ...(color ? { background: color } : {}) }}
+                      frame={dev}
+                      u={fx}
+                      v={fy}
+                      left={`${fx * 100}%`}
+                      top={`${fy * 100}%`}
+                      off={dev.ledsOn === false}
+                      held={color}
                     />
                   );
                 });
