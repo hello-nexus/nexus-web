@@ -28,6 +28,7 @@ import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { ConflictRunningBadge } from '../../../components/common/ConflictRunningBadge/ConflictRunningBadge';
 import { NexusControlConflictModal } from '../../../components/common/NexusControlConflictModal/NexusControlConflictModal';
+import { ExperimentalEnableModal } from '../../../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
 import { useSearchSignal } from '../../../search/signals';
 import { promoteDisplayToPanel, demoteDisplayPanel } from '../../../api/displays';
@@ -229,6 +230,12 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         devices={allUsb.devices}
         loading={allUsb.loading}
         onRefresh={allUsb.refresh}
+      />
+
+      <ExperimentalEnableModal
+        open={controlGuard.experimental !== null}
+        onConfirm={controlGuard.confirmExperimental}
+        onCancel={controlGuard.cancelExperimental}
       />
 
       <NexusControlConflictModal

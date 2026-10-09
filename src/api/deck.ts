@@ -11,7 +11,7 @@ import { saveBlobToFile } from '../lib/saveFile';
 import { sanitizeFileName } from '../panel/widgets/lighting/page/mappingUtils';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 
-export type DeckInstanceMode = 'custom' | 'recentApps' | 'appAware';
+export type DeckInstanceMode = 'custom' | 'recentApps';
 
 /** Same shape as lighting's PresetApp (api/lighting.ts) - an app bound to auto-activate this preset. */
 export interface PresetApp {
@@ -159,7 +159,7 @@ export async function updateDeckInstance(id: string, patch: UpdateDeckInstanceBo
   return res?.instance ?? null;
 }
 
-// --- App Aware: preset app bindings ---
+// --- Preset app bindings ---
 
 /** 409 body when an app in the request already triggers another preset - same shape as lighting's PresetAppConflict. */
 export interface DeckPresetAppConflict {

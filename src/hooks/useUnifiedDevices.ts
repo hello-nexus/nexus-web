@@ -10,7 +10,7 @@ import {
   getConnectedSimulatedPanels,
   PANEL_SIMULATION_CHANGED_EVENT,
 } from '../lib/panelSimulation';
-import { isRemotePanel, type PanelDevice } from '../panel/device/panelDevices';
+import { HYTE_LOGO, isRemotePanel, type PanelDevice } from '../panel/device/panelDevices';
 import { useTryxSimulated } from '../lib/tryxSimulation';
 import { useTranslation } from '../lib/i18n';
 import {
@@ -99,21 +99,48 @@ const CATEGORY_ICONS: Record<string, string> = {
   memory: '/assets/devices/memory.svg',
 };
 
+// Brand marks keyed by the brand prefix of a device name; the sidebar drops
+// that prefix from a row whose icon is the brand's mark.
+const BRAND_LOGOS: Record<string, string> = {
+  HYTE: HYTE_LOGO,
+  'Lian Li': '/assets/devices/lianli.svg',
+  Elgato: '/assets/devices/elgato.svg',
+  Corsair: '/assets/devices/corsair.svg',
+  iBUYPOWER: '/assets/devices/ibuypower.svg',
+  NZXT: '/assets/devices/nzxt.svg',
+  Tryx: '/assets/devices/tryx.svg',
+};
+
+function logoBrand(device: UnifiedDevice): string | undefined {
+  return Object.keys(BRAND_LOGOS).find(brand => BRAND_LOGOS[brand] === device.iconSrc);
+}
+
+/** Sidebar label: the product name without the brand its logo icon already shows. */
+export function sidebarDeviceName(device: UnifiedDevice): string {
+  const brand = logoBrand(device);
+  return brand && device.shortName.startsWith(`${brand} `)
+    ? device.shortName.slice(brand.length + 1)
+    : device.shortName;
+}
+
+/** Sidebar sort key: the brand its logo shows, then the label, so rows group by brand. */
+export function sidebarSortName(device: UnifiedDevice): string {
+  const brand = logoBrand(device);
+  return brand ? `${brand} ${sidebarDeviceName(device)}` : device.shortName;
+}
+
 const CURATED_ICONS: Record<string, string> = {
-  cnvs: '/assets/devices/cnvs.svg',
+  cnvs: HYTE_LOGO,
   corsair: '/assets/devices/corsair.svg',
   lianli: '/assets/devices/lianli.svg',
-  // Q60 and Q80 share the QSeriesHandler (id 'qseries') on the service side.
-  // Use the Q60 art as the family icon since the silhouettes are nearly
-  // identical at thumbnail size.
-  qseries: '/assets/devices/q60.svg',
-  y70: '/assets/devices/y70.svg',
-  keeb: '/assets/devices/keeb.svg',
-  np50: '/assets/devices/np50.svg',
+  qseries: HYTE_LOGO,
+  y70: HYTE_LOGO,
+  keeb: HYTE_LOGO,
+  np50: HYTE_LOGO,
   'fan-hub': '/assets/devices/ibuypower.svg',
   // No AW5 art yet; the brand mark reads better here than the generic glyph.
   aw5: '/assets/devices/ibuypower.svg',
-  smarthub: '/assets/devices/smarthub.svg',
+  smarthub: HYTE_LOGO,
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
   'lianli-wireless': '/assets/devices/lianli.svg',
@@ -121,7 +148,6 @@ const CURATED_ICONS: Record<string, string> = {
   nollie: '/assets/devices/nollie.svg',
   tryx: '/assets/devices/tryx.svg',
   'nzxt-kraken': '/assets/devices/nzxt.svg',
-  streamdeck: '/assets/devices/elgato.svg',
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
@@ -191,9 +217,8 @@ export function useUnifiedDevices(enabled: boolean) {
     // are handler-level (one on/off gate for every deck), so every entry
     // mirrors the same handler row; warning/conflictAppId come straight off
     // each deck since the service already computes them per deck. shortName
-    // is the generic family label (matches every other curated/panel device's
-    // sidebar row); name is the deck's own persisted name so the Devices-page
-    // card still tells two same-model decks apart.
+    // is the product name; name is the deck's own persisted name so the
+    // Devices-page card still tells two same-model decks apart.
     const streamdeckHandler = devices.find(d => d.id === 'streamdeck');
     const deckSupportsControl = streamdeckHandler?.supportsNexusControl ?? false;
     const deckControlEnabled = streamdeckHandler?.nexusControlEnabled ?? true;
@@ -220,11 +245,12 @@ export function useUnifiedDevices(enabled: boolean) {
       if (!deck.connected && !deckPresentWhileReleased) continue;
       list.push({
         key: `streamdeck:${deck.serial}`,
-        shortName: t('devices.streamdeck.modelName', { model: deck.model }),
+        shortName: deck.displayName,
         name: deck.name,
         subtitle: streamdeckHandler?.category ?? 'controller',
         category: streamdeckHandler?.category ?? 'controller',
-        iconSrc: CURATED_ICONS.streamdeck ?? FALLBACK_ICON,
+        // The Galleon is a Corsair keyboard with a Stream Deck built in.
+        iconSrc: deck.displayName.startsWith('Corsair ') ? BRAND_LOGOS.Corsair : BRAND_LOGOS.Elgato,
         connected: deck.connected || deckPresentWhileReleased,
         kind: 'curated',
         curatedId: 'streamdeck',

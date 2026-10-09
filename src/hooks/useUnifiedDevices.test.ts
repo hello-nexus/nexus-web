@@ -29,7 +29,7 @@ vi.mock('../lib/i18n', () => ({
   }),
 }));
 
-import { useUnifiedDevices, isSimulatedDevice } from './useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, type UnifiedDevice } from './useUnifiedDevices';
 
 function makeHandlerRow(over: Partial<DeviceListItem> = {}): DeviceListItem {
   return {
@@ -48,6 +48,7 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
   return {
     serial: 'SN1',
     model: 'Mini',
+    displayName: 'Elgato Stream Deck Mini',
     name: 'My Mini Deck',
     connected: true,
     verified: true,
@@ -88,7 +89,7 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     expect(result.current.unified.some(d => d.key === 'curated-streamdeck')).toBe(false);
   });
 
-  it('uses the generic model label for shortName and keys the entry by serial', () => {
+  it('uses the brand-prefixed product name for shortName and keys the entry by serial', () => {
     mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
     mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1', model: 'Mini' })] });
 
@@ -96,7 +97,7 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     const entry = result.current.unified.find(d => d.curatedId === 'streamdeck');
 
     expect(entry?.key).toBe('streamdeck:SN1');
-    expect(entry?.shortName).toBe('devices.streamdeck.modelName:{"model":"Mini"}');
+    expect(entry?.shortName).toBe('Elgato Stream Deck Mini');
     expect(entry?.navigable).toBe(true);
   });
 
@@ -112,9 +113,8 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     const { result } = renderHook(() => useUnifiedDevices(true));
     const entries = result.current.unified.filter(d => d.curatedId === 'streamdeck');
 
-    // Both share the same generic shortName (matches every other curated
-    // device's sidebar row), but `name` carries each deck's own identity.
-    expect(entries.every(d => d.shortName === 'devices.streamdeck.modelName:{"model":"Mini"}')).toBe(true);
+    // Both share the product name, but `name` carries each deck's own identity.
+    expect(entries.every(d => d.shortName === 'Elgato Stream Deck Mini')).toBe(true);
     expect(entries.map(d => d.name).sort()).toEqual(['Editing Deck', 'Streaming Deck']);
   });
 
@@ -475,5 +475,48 @@ describe('useUnifiedDevices - curated-backed panel entries unaffected by the pro
     expect(entry?.curatedId).toBe('y70');
     expect(entry?.supportsNexusControl).toBe(false);
     expect(entry?.nexusControlEnabled).toBe(true);
+  });
+});
+
+describe('sidebarDeviceName', () => {
+  it('drops the brand a Stream Deck row already shows as the Elgato logo', () => {
+    mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ displayName: 'Elgato Stream Deck +' })] });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.curatedId === 'streamdeck')!;
+
+    expect(entry.shortName).toBe('Elgato Stream Deck +');
+    expect(sidebarDeviceName(entry)).toBe('Stream Deck +');
+  });
+
+  it('gives the Corsair Galleon the Corsair logo, not the Elgato one', () => {
+    mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ model: 'Galleon K100 SD', displayName: 'Corsair Galleon K100 SD' })] });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.curatedId === 'streamdeck')!;
+
+    expect(entry.iconSrc).toBe('/assets/devices/corsair.svg');
+    expect(sidebarDeviceName(entry)).toBe('Galleon K100 SD');
+  });
+
+  it('gives a HYTE device the HYTE logo, keeping the full name off the sidebar', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ id: 'np50', name: 'HYTE NP50', category: 'cooler', connected: true })],
+      controlDevice: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.curatedId === 'np50')!;
+
+    expect(entry.iconSrc).toBe('/assets/devices/hyte.svg');
+    expect(entry.name).toBe('HYTE NP50');
+    expect(sidebarDeviceName(entry)).toBe('NP50');
+  });
+
+  it('keeps the brand when the icon is not that brand\'s logo', () => {
+    const entry = { shortName: 'Corsair iCUE LINK LCD', iconSrc: '/assets/devices/monitor.svg' } as UnifiedDevice;
+    expect(sidebarDeviceName(entry)).toBe('Corsair iCUE LINK LCD');
   });
 });

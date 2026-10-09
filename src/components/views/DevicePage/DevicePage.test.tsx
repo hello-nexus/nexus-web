@@ -65,6 +65,18 @@ describe('NexusControlOff', () => {
     expect(onEnable).toHaveBeenCalledTimes(1);
   });
 
+  it('asks before turning on Nexus Control for an experimental device', () => {
+    const onEnable = vi.fn();
+    render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental onEnable={onEnable} />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    expect(onEnable).not.toHaveBeenCalled();
+    expect(screen.getByText('devices.experimental.tooltip.body')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.experimental.confirm' }));
+    expect(onEnable).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the ConflictAppCard (name + PID + End Task) and a disabled Nexus Control switch when the conflicting app is running', () => {
     h.conflicts = [{ id: 'icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 42 }];
     const onEnable = vi.fn();

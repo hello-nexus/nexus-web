@@ -108,10 +108,10 @@ describe('getDeckInstance', () => {
 
 describe('updateDeckInstance', () => {
   it('PUTs the mode/activePresetId patch and returns the updated instance', async () => {
-    vi.mocked(putService).mockResolvedValue({ instance: { mode: 'appAware', activePresetId: 'p2' } });
-    const result = await updateDeckInstance('streamdeck:SN1', { mode: 'appAware' });
-    expect(putService).toHaveBeenCalledWith('/deck/instances/streamdeck%3ASN1', { mode: 'appAware' });
-    expect(result).toEqual({ mode: 'appAware', activePresetId: 'p2' });
+    vi.mocked(putService).mockResolvedValue({ instance: { mode: 'recentApps', activePresetId: 'p2' } });
+    const result = await updateDeckInstance('streamdeck:SN1', { mode: 'recentApps' });
+    expect(putService).toHaveBeenCalledWith('/deck/instances/streamdeck%3ASN1', { mode: 'recentApps' });
+    expect(result).toEqual({ mode: 'recentApps', activePresetId: 'p2' });
   });
 });
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import, AppWindow, Download, Upload } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { isApplePlatform } from '../../../lib/platform';
@@ -12,6 +12,16 @@ import styles from './PresetToolbar.module.scss';
 export const PRESET_CAP = 10;
 
 const isMac = isApplePlatform();
+
+/** A non-preset dropdown entry: a built-in mode. */
+export interface PresetToolbarEntry {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+}
+
+const BUILTIN_PREFIX = '__builtin__:';
 
 export interface PresetToolbarPreset {
   id: string;
@@ -80,6 +90,12 @@ interface PresetToolbarProps {
    *  Defaults to true (every existing caller's delete route accepts a
    *  panel). */
   allowDelete?: boolean;
+  /** Built-in entries listed before the presets (e.g. a mode that is not a preset).
+   *  While one is active (`activeBuiltinId`), the per-preset actions (rename,
+   *  apps, export, delete) and the history controls are not offered. */
+  builtins?: PresetToolbarEntry[];
+  activeBuiltinId?: string | null;
+  onSelectBuiltin?: (id: string) => void;
 }
 
 export function PresetToolbar({
@@ -91,6 +107,7 @@ export function PresetToolbar({
   resetLabelKey, resetConfirmKey,
   allowCreateRename = true,
   allowDelete = true,
+  builtins = [], activeBuiltinId = null, onSelectBuiltin,
   rail,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
@@ -108,25 +125,43 @@ export function PresetToolbar({
   const activePreset = presets.find(p => p.id === activeId) ?? null;
   const atCap = presetCount >= cap;
 
-  const selectOptions = [
-    ...presets.map(p => ({
-      value: p.id,
-      label: p.name,
-      ...(p.hasApps ? { icon: <AppWindow size={14} aria-hidden /> } : {}),
-    })),
-    ...(activeId ? [
-      { value: '__sep__', label: '', divider: true },
-      ...(allowCreateRename ? [{ value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> }] : []),
-      ...(onManageApps ? [{ value: '__apps__', label: t(key('apps')), className: styles.actionOption, icon: <AppWindow size={14} /> }] : []),
-      ...(onExport ? [{ value: '__export__', label: t(key('export')), className: styles.actionOption, icon: <Download size={14} /> }] : []),
-      ...(allowDelete ? [{ value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> }] : []),
-    ] : []),
+  const presetActionsOn = !!activeId && !activeBuiltinId;
+  const divider = (id: string) => ({ value: `__sep__${id}`, label: '', divider: true });
+  const entryOption = (prefix: string) => (e: PresetToolbarEntry) => ({
+    value: `${prefix}${e.id}`,
+    label: e.label,
+    ...(e.icon ? { icon: e.icon } : {}),
+    ...(e.disabled ? { disabled: true } : {}),
+  });
+  const presetOptions = presets.map(p => ({
+    value: p.id,
+    label: p.name,
+    ...(p.hasApps ? { icon: <AppWindow size={14} aria-hidden /> } : {}),
+  }));
+  const groups = [
+    builtins.map(entryOption(BUILTIN_PREFIX)),
+    presetOptions,
+  ].filter(g => g.length > 0);
+  const actionOptions = [
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
     ...(onImport ? [{ value: '__import__', label: t(importKey), className: styles.createOption, disabled: atCap || !!importDisabled, icon: <Import size={14} /> }] : []),
     ...(onImportFile ? [{ value: '__importFile__', label: t(key('importFileOption')), className: styles.createOption, disabled: atCap, icon: <Upload size={14} /> }] : []),
   ];
 
+  const selectOptions = [
+    ...groups.flatMap((g, i) => (i === 0 ? g : [divider(`g${i}`), ...g])),
+    ...(presetActionsOn ? [
+      divider('actions'),
+      ...(allowCreateRename ? [{ value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> }] : []),
+      ...(onManageApps ? [{ value: '__apps__', label: t(key('apps')), className: styles.actionOption, icon: <AppWindow size={14} /> }] : []),
+      ...(onExport ? [{ value: '__export__', label: t(key('export')), className: styles.actionOption, icon: <Download size={14} /> }] : []),
+      ...(allowDelete ? [{ value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> }] : []),
+    ] : builtins.length > 0 && actionOptions.length > 0 ? [divider('create')] : []),
+    ...actionOptions,
+  ];
+
   const handleSelectChange = (value: string) => {
+    if (value.startsWith(BUILTIN_PREFIX)) { onSelectBuiltin?.(value.slice(BUILTIN_PREFIX.length)); return; }
     if (presets.some(p => p.id === value)) { onLoad(value); return; }
     if (value === '__import__') { onImport?.(); return; }
     if (value === '__create__') {
@@ -178,14 +213,14 @@ export function PresetToolbar({
   return (
     <div className={rail ? `${styles.toolbar} ${styles.toolbarRail}` : styles.toolbar}>
       <Select
-        value={activeId ?? ''}
+        value={activeBuiltinId ? `${BUILTIN_PREFIX}${activeBuiltinId}` : (activeId ?? '')}
         onChange={handleSelectChange}
         options={selectOptions}
         ariaLabel={t(key('placeholder'))}
         placeholder={t(key('placeholder'))}
         className={styles.presetSelect}
       />
-      {showHistory && (
+      {showHistory && !activeBuiltinId && (
         <>
           {onReset && (
             <>

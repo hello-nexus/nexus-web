@@ -146,6 +146,7 @@ export function PanelTouchCell({
   onEditViewChange,
   onUpdate,
   editorPreview = false,
+  movable: movableProp,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -177,6 +178,8 @@ export function PanelTouchCell({
   onEditViewChange?: (view: DeckEditView) => void;
   onUpdate?: (config: Record<string, PanelConfigValue>) => void;
   editorPreview?: boolean;
+  // Overrides the touch rule: the device-page preview drags on any multi-widget panel.
+  movable?: boolean;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -298,9 +301,9 @@ export function PanelTouchCell({
     ...editorDockMotion?.style,
   } as CSSProperties;
 
-  // A surface with no touch input neither drags nor docks a widget, so its
-  // cell renders in place and skips the hosts' portal setup.
-  const movable = !surface || surfaceSupportsTouch(surface, deviceTouch);
+  // A cell that can't be drag-edited (by default: no touch input) renders in place
+  // and skips the hosts' portal setup.
+  const movable = movableProp ?? (!surface || surfaceSupportsTouch(surface, deviceTouch));
   const hosted = (content: ReactNode) => (movable
     ? <><span ref={placeContent} hidden />{createPortal(content, contentHost)}</>
     : content);

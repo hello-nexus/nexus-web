@@ -22,6 +22,8 @@ export interface StreamDeckScreen {
 export interface StreamDeckSummary {
   serial: string;
   model: string;
+  /** Brand-prefixed product name; `model` stays the bare model for matching. */
+  displayName: string;
   name: string;
   connected: boolean;
   verified: boolean;
@@ -140,6 +142,7 @@ export async function getPendingDeckEdit(): Promise<PendingDeckEdit | null> {
 export interface StreamDeckDevModel {
   /** A number on the wire. */
   productId: number;
+  /** Brand-prefixed product name. */
   name: string;
   rows: number;
   cols: number;
@@ -221,7 +224,10 @@ export type ElgatoUnmappedReason =
 
 export interface ElgatoUnmappedKey {
   page: number;
+  /** Key position; empty for a dial entry. */
   position: string;
+  /** 1-based dial number; set only for a dial entry. */
+  dial?: number;
   name: string;
   reason: ElgatoUnmappedReason;
   detail?: string;

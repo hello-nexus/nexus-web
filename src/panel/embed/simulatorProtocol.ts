@@ -18,9 +18,8 @@ export interface SimulatorInitMessage {
   type: 'simulator/init';
   surface: PanelSurface;
   // Per-device touch capability (promoted monitors). Undefined falls back to
-  // the surface default in surfaceSupportsTouch; the editor's drag sensor and
-  // dock gate on it, so a touch monitor must forward true or its preview can't
-  // be dragged.
+  // the surface default in surfaceSupportsTouch; widget interactivity and the
+  // immersive menu item follow it, while preview editing does not.
   deviceTouch?: boolean;
   // Device physical density in CSS px (native dpi / device DPR) for grid
   // capacity math; the iframe canvas is CSS-pixel sized with DPR forced to 1.

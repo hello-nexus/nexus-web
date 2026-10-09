@@ -6,6 +6,7 @@ import { Button } from '../Button/Button';
 import { ChipGroup } from '../ChipGroup/ChipGroup';
 import { EndTaskButton } from '../EndTaskButton/EndTaskButton';
 import { ExperimentalBadge } from '../ExperimentalBadge/ExperimentalBadge';
+import { ExperimentalEnableModal } from '../ExperimentalEnableModal/ExperimentalEnableModal';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ConflictAppCard.module.scss';
 
@@ -99,10 +100,10 @@ export function ConflictAppCard({
   const showSwitch = showDevices && onSetOwner !== undefined && terminated !== true;
   const selection = optimisticOwner ?? currentOwner;
 
-  const handleOwner = useCallback(async (key: string) => {
-    if (!onSetOwner || applying !== null) return;
-    const owner: ConflictOwnerChoice = key === NEXUS_OWNER ? NEXUS_OWNER : APP_OWNER;
-    if (owner === selection) return;
+  const [confirmingExperimental, setConfirmingExperimental] = useState(false);
+
+  const applyOwner = useCallback(async (owner: ConflictOwnerChoice) => {
+    if (!onSetOwner) return;
     setApplying(owner);
     setOptimisticOwner(owner);
     try {
@@ -111,7 +112,18 @@ export function ConflictAppCard({
     } finally {
       if (mountedRef.current) setApplying(null);
     }
-  }, [applying, onSetOwner, selection]);
+  }, [onSetOwner]);
+
+  const handleOwner = useCallback((key: string) => {
+    if (!onSetOwner || applying !== null) return;
+    const owner: ConflictOwnerChoice = key === NEXUS_OWNER ? NEXUS_OWNER : APP_OWNER;
+    if (owner === selection) return;
+    if (owner === NEXUS_OWNER && (devices ?? []).some(d => d.experimental && d.owner === APP_OWNER)) {
+      setConfirmingExperimental(true);
+      return;
+    }
+    void applyOwner(owner);
+  }, [applying, applyOwner, devices, onSetOwner, selection]);
 
   const handleDisableAutostart = useCallback(async () => {
     if (!onDisableAutostart || disablingAutostart) return;
@@ -220,7 +232,7 @@ export function ConflictAppCard({
               fullWidth
               ariaLabel={t('conflicts.devices.switchLabel')}
               activeKey={selection}
-              onChange={key => { void handleOwner(key); }}
+              onChange={handleOwner}
               options={[
                 { key: NEXUS_OWNER, label: t('conflicts.devices.nexusControls'), disabled: applying !== null },
                 { key: APP_OWNER, label: t('conflicts.devices.appControls', { app: conflict.displayName }), disabled: applying !== null },
@@ -229,6 +241,11 @@ export function ConflictAppCard({
           )}
         </div>
       )}
+      <ExperimentalEnableModal
+        open={confirmingExperimental}
+        onConfirm={() => { setConfirmingExperimental(false); void applyOwner(NEXUS_OWNER); }}
+        onCancel={() => setConfirmingExperimental(false)}
+      />
     </div>
   );
 }

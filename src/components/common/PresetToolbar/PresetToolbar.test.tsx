@@ -352,3 +352,39 @@ describe('PresetToolbar (onImportFile)', () => {
     expect(screen.getByRole('option', { name: 'lighting.layoutPresets.importFileOption' })).toBeDisabled();
   });
 });
+
+describe('PresetToolbar built-in entries', () => {
+  const builtins = [{ id: 'recent', label: 'Recent Apps' }];
+  // The mocked Select renders dividers as empty-label options.
+  const names = () => screen.getAllByRole('option').map(o => o.textContent).filter(Boolean);
+
+  it('orders built-ins, presets, preset actions, then create', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', presetCount: 1, builtins, onManageApps: vi.fn() })} />);
+    const list = names();
+    expect(list.slice(0, 2)).toEqual(['Recent Apps', 'My Preset']);
+    expect(list.indexOf('lighting.layoutPresets.rename')).toBeGreaterThan(1);
+    expect(list.indexOf('lighting.layoutPresets.newOption')).toBeGreaterThan(list.indexOf('lighting.layoutPresets.rename'));
+  });
+
+  it('routes a built-in pick to its own callback, not onLoad', () => {
+    const onSelectBuiltin = vi.fn();
+    const onLoad = vi.fn();
+    render(<PresetToolbar {...defaultProps({ builtins, onSelectBuiltin, onLoad })} />);
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__builtin__:recent' } });
+    expect(onSelectBuiltin).toHaveBeenCalledWith('recent');
+    expect(onLoad).not.toHaveBeenCalled();
+  });
+
+  it('while a built-in is active, hides rename/apps/export/delete and the history controls', () => {
+    render(<PresetToolbar {...defaultProps({
+      presets: [PRESET_A], activeId: 'a', presetCount: 1, builtins, activeBuiltinId: 'recent', onManageApps: vi.fn(), onExport: vi.fn(), onReset: vi.fn(),
+    })} />);
+    expect(screen.getByTestId('preset-select')).toHaveValue('__builtin__:recent');
+    for (const k of ['rename', 'apps', 'export', 'delete']) {
+      expect(screen.queryByRole('option', { name: `lighting.layoutPresets.${k}` })).toBeNull();
+    }
+    expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.newOption' })).toBeInTheDocument();
+  });
+});
+

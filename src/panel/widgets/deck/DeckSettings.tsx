@@ -5,7 +5,7 @@ import type { WidgetSettingsProps } from '../types';
 import styles from './DeckSettings.module.scss';
 
 /**
- * Deck widget settings sheet: the shared instance editor (mode chip + preset
+ * Deck widget settings sheet: the shared instance editor (preset
  * toolbar + DeckEditor) bound to this widget's own instance
  * (`widget:<widget.id>`), which points at a host-wide preset - the same
  * system a physical Stream Deck's device page edits.

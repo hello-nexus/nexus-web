@@ -7,8 +7,12 @@ export interface PendingControlEnable {
   enable: () => void;
 }
 
+export interface PendingExperimentalEnable {
+  proceed: () => void;
+}
+
 /**
- * Holds a Nexus Control "on" behind NexusControlConflictModal while the device's competing app runs.
+ * Holds a Nexus Control "on" behind ExperimentalEnableModal for experimental hardware, then behind NexusControlConflictModal while the device's competing app runs.
  * Checks GET /conflicts at click time, which rescans once the watcher's last scan is past its poll interval.
  * A failed read enables without asking: the service that could not answer is the one the enable goes to.
  */
@@ -17,8 +21,10 @@ export function useConflictGuardedEnable() {
   const pendingRef = useRef<PendingControlEnable | null>(null);
   // Drops requests while a click-time read is in flight or a prompt is open, so a second click neither repeats the enable nor replaces the prompt.
   const checkingRef = useRef(false);
+  const [experimental, setExperimental] = useState<PendingExperimentalEnable | null>(null);
+  const experimentalRef = useRef<PendingExperimentalEnable | null>(null);
 
-  const requestEnable = useCallback(async (device: { name: string; conflictAppId?: string }, enable: () => void) => {
+  const guardConflict = useCallback(async (device: { name: string; conflictAppId?: string }, enable: () => void) => {
     if (!device.conflictAppId) {
       enable();
       return;
@@ -40,6 +46,27 @@ export function useConflictGuardedEnable() {
     setPending(next);
   }, []);
 
+  const requestEnable = useCallback(async (device: { name: string; conflictAppId?: string; experimental?: boolean }, enable: () => void) => {
+    if (experimentalRef.current) return;
+    if (!device.experimental) return guardConflict(device, enable);
+    if (checkingRef.current || pendingRef.current) return;
+    const next = { proceed: () => void guardConflict(device, enable) };
+    experimentalRef.current = next;
+    setExperimental(next);
+  }, [guardConflict]);
+
+  const cancelExperimental = useCallback(() => {
+    experimentalRef.current = null;
+    setExperimental(null);
+  }, []);
+
+  const confirmExperimental = useCallback(() => {
+    const current = experimentalRef.current;
+    if (!current) return;
+    cancelExperimental();
+    current.proceed();
+  }, [cancelExperimental]);
+
   const cancel = useCallback(() => {
     pendingRef.current = null;
     setPending(null);
@@ -53,5 +80,5 @@ export function useConflictGuardedEnable() {
     current.enable();
   }, [cancel]);
 
-  return { pending, requestEnable, confirm, cancel };
+  return { pending, requestEnable, confirm, cancel, experimental, confirmExperimental, cancelExperimental };
 }

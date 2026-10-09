@@ -5,8 +5,9 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
+import { ExperimentalEnableModal } from '../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { useToastSafe } from '../components/common/Toast/Toast';
-import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../hooks/useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, sidebarSortName, type UnifiedDevice } from '../hooks/useUnifiedDevices';
 import { useConflictGuardedEnable } from '../hooks/useConflictGuardedEnable';
 import { promoteDisplayToPanel, demoteDisplayPanel } from '../api/displays';
 import { clearSimulatedStreamDeck } from '../api/streamdeck';
@@ -87,8 +88,8 @@ export function SidebarDevicesSection({
     return next ? () => void requestEnable(device, apply) : apply;
   }, [controlDevice, push, requestEnable, t]);
 
-  // Alphabetical by the row label, key breaking ties, so a disconnect never
-  // moves a row. Only navigable devices (those with their own
+  // Alphabetical by brand, then label (see sidebarSortName), key breaking ties,
+  // so a disconnect never moves a row. Only navigable devices (those with their own
   // settings page) get a sidebar row - e.g. the MiniHub is controlled from
   // Cooling/Lighting, so it has no page and shouldn't deep-link to an empty one.
   // (Paired phone remotes are already excluded upstream in useUnifiedDevices -
@@ -97,7 +98,7 @@ export function SidebarDevicesSection({
     return unified
       .filter(d => d.navigable)
       .sort((a, b) =>
-        a.shortName.localeCompare(b.shortName, undefined, { sensitivity: 'base', numeric: true })
+        sidebarSortName(a).localeCompare(sidebarSortName(b), undefined, { sensitivity: 'base', numeric: true })
         || a.key.localeCompare(b.key));
   }, [unified]);
 
@@ -172,9 +173,10 @@ export function SidebarDevicesSection({
         sorted.map(device => {
           const isActive = device.key === activeDeviceKey;
           const isSimulated = isSimulatedDevice(device);
+          const name = sidebarDeviceName(device);
           const tooltip = isSimulated
-            ? `${device.shortName} (${t('devices.simulated')})`
-            : device.shortName;
+            ? `${name} (${t('devices.simulated')})`
+            : name;
           const row = (
             <button
               key={device.key}
@@ -199,7 +201,7 @@ export function SidebarDevicesSection({
               />
               {!compact && (
                 <>
-                  <span className={styles.label}>{device.shortName}</span>
+                  <span className={styles.label}>{name}</span>
                   {isSimulated && (
                     <HoverTooltip body={t('devices.simulated')} side="top">
                       <span className={styles.simulatedBadge} role="img" aria-label={t('devices.simulated')}>
@@ -228,6 +230,11 @@ export function SidebarDevicesSection({
         />
       )}
 
+      <ExperimentalEnableModal
+        open={controlGuard.experimental !== null}
+        onConfirm={controlGuard.confirmExperimental}
+        onCancel={controlGuard.cancelExperimental}
+      />
       <NexusControlConflictModal
         pending={controlGuard.pending}
         onConfirm={controlGuard.confirm}

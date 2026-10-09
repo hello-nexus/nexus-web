@@ -122,6 +122,38 @@ describe('ConflictAppCard', () => {
     expect(onSetOwner).toHaveBeenCalledWith('app');
   });
 
+  it('asks before handing experimental devices to Nexus', async () => {
+    const onSetOwner = vi.fn(async () => true);
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app', experimental: true }];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted />);
+
+    fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
+    expect(onSetOwner).not.toHaveBeenCalled();
+    expect(screen.getByText('devices.experimental.tooltip.body')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+    expect(onSetOwner).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.experimental.confirm' }));
+    });
+    expect(onSetOwner).toHaveBeenCalledWith('nexus');
+  });
+
+  it('does not ask for an experimental device whose Nexus Control is already on', async () => {
+    const onSetOwner = vi.fn(async () => true);
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'mixed', experimental: true }];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
+    });
+
+    expect(screen.queryByText('devices.experimental.tooltip.body')).not.toBeInTheDocument();
+    expect(onSetOwner).toHaveBeenCalledWith('nexus');
+  });
+
   it('hands the devices to Nexus without ending the app', async () => {
     const onSetOwner = vi.fn(async () => true);
     const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];

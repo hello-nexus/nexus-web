@@ -675,8 +675,8 @@ export function Dashboard() {
     // landing keeps the generic "Devices" label.
     if (activeView === 'device') {
       const dev = unifiedDevices.unified.find(d => d.key === subtab);
-      // Stream Deck's top-bar title mirrors the sidebar's model label
-      // ("Stream Deck Mini") instead of the per-deck custom name.
+      // Stream Deck's top-bar title is the product name, not the per-deck
+      // custom name.
       if (dev?.curatedId === 'streamdeck') return dev.shortName;
       return dev?.name ?? t('sidebar.section.devices');
     }

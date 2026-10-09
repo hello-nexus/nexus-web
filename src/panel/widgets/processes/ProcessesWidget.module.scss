@@ -66,6 +66,9 @@
   color: var(--text-dim);
 }
 
+// The no-touch header is a span with the button's layout, so it must not look pressable.
+span.headerButton { cursor: inherit; }
+
 .headerCell:first-child .headerButton {
   justify-content: flex-start;
   padding-left: var(--proc-name-indent);

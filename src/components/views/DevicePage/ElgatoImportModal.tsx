@@ -5,12 +5,14 @@ import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { Button } from '../../common/Button/Button';
-import { PRESET_CAP } from '../../common/PresetToolbar/PresetToolbar';
+import { Badge } from '../../common/Badge/Badge';
+import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
+import { DECK_PRESET_CAP } from '../../../panel/widgets/deck/DeckPresetToolbar';
 import {
   fetchElgatoProfiles, importElgatoProfile,
   type ElgatoProfileSummary, type ElgatoImportReport,
 } from '../../../api/streamdeck';
-import { createDeckPreset } from '../../../api/deck';
+import { createDeckPreset, getDeckTemplates, type DeckTemplate } from '../../../api/deck';
 import { dedupePresetName, unmappedReasonKey } from './elgatoImportUtils';
 import styles from './ElgatoImportModal.module.scss';
 
@@ -24,6 +26,8 @@ interface ElgatoImportModalProps {
   deckRows: number;
   /** Existing preset names (host-wide), for dedupe + cap gating. */
   existingPresetNames: string[];
+  /** Templates a preset was already made from; tagged Added but still addable. */
+  addedTemplateIds: string[];
   /** Called with the new preset's id once it has been created, so the caller
    *  can refresh its preset list AND activate the imported preset on this
    *  instance (before the user hits Done). */
@@ -31,12 +35,13 @@ interface ElgatoImportModalProps {
 }
 
 /**
- * Import flow for the local Elgato Stream Deck install: fetch profiles ->
- * pick one -> translate + create a host-wide Nexus preset from it -> show the
+ * Import preset: the bundled starter presets (one press creates and closes),
+ * then the local Elgato Stream Deck install: fetch profiles -> pick one ->
+ * translate + create a host-wide Nexus preset from it -> show the
  * mapped/unmapped report. The caller activates the created preset so the
  * editor and the physical deck show the imported layout immediately.
  */
-export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingPresetNames, onImported }: ElgatoImportModalProps) {
+export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingPresetNames, addedTemplateIds, onImported }: ElgatoImportModalProps) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<Status>('loading');
   const [profiles, setProfiles] = useState<ElgatoProfileSummary[]>([]);
@@ -44,6 +49,9 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [result, setResult] = useState<{ presetName: string; report: ElgatoImportReport } | null>(null);
+  const [templates, setTemplates] = useState<DeckTemplate[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [starterError, setStarterError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +61,8 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
     setSelectedId(null);
     setResult(null);
     setImportError(null);
+    setStarterError(null);
+    void getDeckTemplates().then(list => { if (!cancelled) setTemplates(list); });
     void fetchElgatoProfiles().then(res => {
       if (cancelled) return;
       if (!res) { setStatus('error'); return; }
@@ -62,10 +72,26 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
     return () => { cancelled = true; };
   }, [open]);
 
-  const atCap = existingPresetNames.length >= PRESET_CAP;
+  const atCap = existingPresetNames.length >= DECK_PRESET_CAP;
+
+  // The service de-dupes the name and binds the installed app unless another
+  // preset already holds it, so a starter can be added more than once.
+  const addStarter = async (tpl: DeckTemplate) => {
+    if (adding || importing || atCap) return;
+    setAdding(true);
+    setStarterError(null);
+    const created = await createDeckPreset({ name: tpl.name, cols: tpl.cols, rows: tpl.rows, templateId: tpl.id });
+    setAdding(false);
+    if (!created) {
+      setStarterError(t('panel.settings.deck.presets.createFailed'));
+      return;
+    }
+    onImported(created.id);
+    onClose();
+  };
 
   const handleImport = async () => {
-    if (!selectedId || atCap) return;
+    if (!selectedId || atCap || adding) return;
     setImporting(true);
     setImportError(null);
     const importRes = await importElgatoProfile(selectedId);
@@ -90,6 +116,33 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
   return (
     <DeviceModal open={open} onClose={onClose} title={t('devices.streamdeck.import.title')} medium>
       <div className={styles.body}>
+        {!result && atCap && <span className={styles.capNote}>{t('lighting.layoutPresets.capReached', { max: DECK_PRESET_CAP })}</span>}
+
+        {!result && templates.length > 0 && (
+          <>
+            <SectionHeader>{t('devices.streamdeck.import.startersHeader')}</SectionHeader>
+            <div className={styles.list}>
+              {templates.map(tpl => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  className={styles.row}
+                  disabled={adding || importing || atCap}
+                  onClick={() => void addStarter(tpl)}
+                >
+                  <span className={styles.rowTitle}>
+                    <span className={styles.rowName}>{tpl.name}</span>
+                    {addedTemplateIds.includes(tpl.id) && <Badge label={t('devices.streamdeck.import.added')} />}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {starterError && <p className={styles.error}>{starterError}</p>}
+          </>
+        )}
+
+        {!result && <SectionHeader>{t('devices.streamdeck.import.elgatoHeader')}</SectionHeader>}
+
         {status === 'loading' && (
           <div className={styles.loadingRow}>
             <Spinner size={24} />
@@ -149,8 +202,7 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
 
             {profiles.length > 0 && (
               <div className={styles.footer}>
-                {atCap && <span className={styles.capNote}>{t('lighting.layoutPresets.capReached', { max: PRESET_CAP })}</span>}
-                <Button type="button" tone="accent" loading={importing} disabled={!selectedId || atCap} onClick={handleImport}>
+                <Button type="button" tone="accent" loading={importing} disabled={!selectedId || atCap || adding} onClick={handleImport}>
                   {t('devices.streamdeck.import.import')}
                 </Button>
               </div>
@@ -172,9 +224,11 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
                 <p className={styles.unmappedHeader}>{t('devices.streamdeck.import.unmappedHeader')}</p>
                 <ul className={styles.unmappedList}>
                   {result.report.unmapped.map(item => (
-                    <li key={`${item.page}-${item.position}`} className={styles.unmappedItem}>
+                    <li key={item.dial != null ? `${item.page}-dial-${item.dial}` : `${item.page}-${item.position}`} className={styles.unmappedItem}>
                       <span className={styles.unmappedPosition}>
-                        {t('devices.streamdeck.import.unmappedPosition', { page: item.page, position: item.position })}
+                        {item.dial != null
+                          ? t('devices.streamdeck.import.unmappedPositionDial', { page: item.page, dial: item.dial })
+                          : t('devices.streamdeck.import.unmappedPosition', { page: item.page, position: item.position })}
                       </span>
                       <span className={styles.unmappedName}>{item.name}</span>
                       <span className={styles.unmappedReason}>{t(unmappedReasonKey(item.reason))}</span>

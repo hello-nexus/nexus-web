@@ -82,7 +82,9 @@ vi.mock('../../../panel/widgets/deck/DeckDialInspector', () => ({
 }));
 
 vi.mock('./ElgatoImportModal', () => ({
-  ElgatoImportModal: () => null,
+  ElgatoImportModal: ({ open, onImported }: { open: boolean; onImported: (id: string) => void }) => (
+    open ? <button type="button" onClick={() => onImported('imported1')}>finish-import</button> : null
+  ),
 }));
 
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
@@ -112,6 +114,7 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
   return {
     serial: 'SN1',
     model: 'Mini',
+    displayName: 'Elgato Stream Deck Mini',
     name: 'My Mini Deck',
     connected: true,
     verified: true,
@@ -227,6 +230,17 @@ function switchToSettingsTab() {
 }
 
 describe('StreamDeckDevicePage', () => {
+  it('shows the fit note once, inside the Preview section', async () => {
+    mockUseDeckInstance.mockReturnValue(deckInstanceReturn({
+      preset: { id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } },
+    }));
+    mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+    await renderPage();
+    const note = screen.getByText('panel.settings.deck.instance.fitNoteSmaller');
+    expect(screen.getAllByText('panel.settings.deck.instance.fitNoteSmaller')).toHaveLength(1);
+    expect(note.closest('section')).toHaveTextContent('devices.streamdeck.preview');
+  });
+
   it('shows the not-connected empty state when loaded with zero decks', async () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([]));
     await renderPage();
@@ -443,12 +457,12 @@ describe('StreamDeckDevicePage', () => {
     });
 
     it('labels the tab strip with the model name from the deck DTO', async () => {
-      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Mini' })]));
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Mini', displayName: 'Elgato Stream Deck Mini' })]));
       await renderPage();
 
       // The model name is the page's top-bar title (set in Dashboard) + the tab
       // strip's aria-label; it is no longer rendered as body text in the page.
-      expect(screen.getByRole('tablist', { name: 'devices.streamdeck.modelName:{"model":"Mini"}' })).toBeInTheDocument();
+      expect(screen.getByRole('tablist', { name: 'Elgato Stream Deck Mini' })).toBeInTheDocument();
     });
 
     it('shows pagination as plain page-number chips, not "Page N" tabs', async () => {
@@ -473,18 +487,16 @@ describe('StreamDeckDevicePage', () => {
       expect(!!(grid.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
       // Right column: the action picker follows the whole left column in DOM order.
       expect(!!(editor.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
-      // The mode chip heads the right column: after the left column, before the picker.
-      const modeChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.custom' });
-      expect(!!(editor.compareDocumentPosition(modeChip) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
-      expect(!!(modeChip.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      // The mode chip row is gone: Recent Apps is a dropdown entry now.
+      expect(screen.queryByRole('radio', { name: 'panel.settings.deck.mode.custom' })).toBeNull();
     });
 
-    it('keeps the focused mode chip mounted across a Custom to Recent Apps switch', async () => {
+    it('keeps the focused preset dropdown mounted across a Custom to Recent Apps switch', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'custom', activePresetId: 'p1' } }));
       const { rerender } = await renderPage();
 
-      const recentChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' });
+      const recentChip = screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' });
       recentChip.focus();
       expect(document.activeElement).toBe(recentChip);
 
@@ -492,8 +504,8 @@ describe('StreamDeckDevicePage', () => {
       await act(async () => {
         rerender(<StreamDeckDevicePage device={makeUnifiedDevice()} controlDevice={mockControlDevice} />);
       });
-      // Same node, still focused: the right column sits outside the mode branch.
-      expect(screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' })).toBe(recentChip);
+      // Same node, still focused: the header rail sits outside the mode branch.
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBe(recentChip);
       expect(document.activeElement).toBe(recentChip);
       expect(screen.queryByTestId('deck-key-inspector-picker')).toBeNull();
     });
@@ -568,16 +580,33 @@ describe('StreamDeckDevicePage', () => {
     });
   });
 
-  describe('Mode chip', () => {
-    it('reflects the instance\'s current mode and switching it calls setMode', async () => {
+  describe('Elgato import while in Recent Apps', () => {
+    it('activates the imported preset and leaves Recent Apps in one activate call', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      await renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+      fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.importOption' }));
+      await act(async () => {
+        fireEvent.click(screen.getByText('finish-import'));
+        await Promise.resolve();
+      });
+
+      expect(mockActivate).toHaveBeenCalledWith('imported1', 'custom');
+      expect(mockSetMode).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Recent Apps dropdown entry', () => {
+    it('lists Recent Apps in the header rail and selecting it calls setMode', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'custom', activePresetId: 'p1' } }));
       await renderPage();
 
-      const customChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.custom' });
-      expect(customChip).toHaveAttribute('aria-checked', 'true');
-
-      fireEvent.click(screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' }));
+      expect(screen.queryByRole('radiogroup', { name: 'panel.settings.deck.mode.label' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+      fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.mode.recentApps' }));
       expect(mockSetMode).toHaveBeenCalledWith('recentApps');
     });
   });
@@ -594,13 +623,13 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeInTheDocument();
     });
 
-    it('is not shown on the Settings tab', async () => {
+    it('stays in the header rail on the Settings tab, like Lighting', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ presets: [{ id: 'p1', name: 'A' }] }));
       await renderPage();
       switchToSettingsTab();
 
-      expect(screen.queryByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeInTheDocument();
     });
 
     it('shows Reset/Undo/Redo controls, disabled per canUndo/canRedo', async () => {
@@ -649,7 +678,7 @@ describe('StreamDeckDevicePage', () => {
         await Promise.resolve();
       });
 
-      expect(mockActivate).toHaveBeenCalledWith('p2');
+      expect(mockActivate).toHaveBeenCalledWith('p2', undefined);
     });
 
     it('deleting the active preset calls deletePreset', async () => {
@@ -897,7 +926,7 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeNull();
     });
 
-    it('shows the Recent Apps editor section instead of the fixed/appAware placeholder', async () => {
+    it('shows the Recent Apps editor section instead of the custom placeholder', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
       await renderPage();
@@ -922,7 +951,7 @@ describe('StreamDeckDevicePage', () => {
   });
 
   describe('live tiles clear on a mode switch', () => {
-    it('a switch from Fixed to App Aware drops a stale live-tile frame instead of showing through the new mode', async () => {
+    it('a switch from Custom to Recent Apps drops a stale live-tile frame instead of showing through the new mode', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       // A truly empty slot never shows a liveSrc frame (DeckGrid's own
       // stale-clear rule for a self-cleared key) - slot 0 needs real content.
@@ -935,7 +964,7 @@ describe('StreamDeckDevicePage', () => {
       });
       expect(container.querySelector('img[src="data:image/jpeg;base64,stale"]')).toBeInTheDocument();
 
-      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'appAware', activePresetId: 'p1' }, target }));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' }, target }));
       await act(async () => {
         rerender(<StreamDeckDevicePage device={makeUnifiedDevice()} controlDevice={mockControlDevice} />);
       });

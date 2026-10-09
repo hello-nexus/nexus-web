@@ -36,7 +36,7 @@ import { normalizePanelFont, panelFontVars, type PanelFontId } from './panelFont
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
-import { isSingleWidgetSurface, type PanelSurface } from '../types';
+import { isSingleWidgetSurface, surfaceDefaultsToAnimatedBackground, type PanelSurface } from '../types';
 import { supportsDesktopWallpaper } from '../device/wiredPanel';
 
 export type PanelThemeState = PanelThemeSettingsState;
@@ -139,7 +139,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
 // Per-surface theme overrides applied at render time (persisted theme is
 // never mutated). Single-widget surfaces (q-series) force labels off so the
 // tile fills the canvas, and force widget blur off + opacity 0 so the tile
-// floats clean over the shader with no card chrome. The embedded desktop
+// floats clean over the background with no card chrome. The embedded desktop
 // dashboard has no per-device theme record (INERT_PANEL_RECORD), so its
 // widgetPadding never resolves past the initial default; this forces it to the
 // slider's maximum (100%) as a surface-level default instead.
@@ -176,10 +176,8 @@ export function usePanelLanguageSync(enabled: boolean, prefs: Preferences | null
 export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRecord | null): PanelThemeState {
   const t = prefs?.theme;
   const r = record;
-  // Single-widget immersive surfaces (q60) fill the screen with one tile, so a
-  // solid background or an opaque widget would hide the lighting: they default
-  // to the shader background behind a transparent widget.
-  const single = isSingleWidgetSurface(r?.capabilities?.surface as PanelSurface);
+  const surface = r?.capabilities?.surface as PanelSurface;
+  const single = isSingleWidgetSurface(surface);
   // Back-compat: seed the active shader's preset from the legacy scalar when
   // the per-shader map does not carry it.
   const effect = normalizePanelBackgroundEffect(r?.backgroundEffect);
@@ -187,7 +185,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
   if (templates[effect] === undefined) {
     templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);
   }
-  const bgMode: PanelBackgroundMode = r?.backgroundMode == null && single
+  const bgMode: PanelBackgroundMode = r?.backgroundMode == null && surfaceDefaultsToAnimatedBackground(surface)
     ? 'shader'
     : normalizePanelBackgroundMode(r?.backgroundMode);
   const backdrop = resolvePanelBackdrop(

@@ -215,6 +215,7 @@ interface XeneonEdgeSettingsValues {
 // Backlight a dimmable cooler LCD runs at until the user moves the slider.
 // Matches LianLiAioHandshake.DefaultBrightness in nexus-service.
 const DEFAULT_LCD_BRIGHTNESS = 100;
+const RENDER_MODES = ['performance', 'resolution'] as const;
 
 // Bench-measured factory defaults (nexus-service XeneonEdgeDefaults); used
 // only as a fallback if a settings read comes back with an unset field.
@@ -433,6 +434,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordSupportsSecondaryMonitor, setRecordSupportsSecondaryMonitor] = useState(false);
   const isSecondaryMonitorCapablePanel = recordSupportsSecondaryMonitor && !isSimulated;
   const [recordSecondaryMonitor, setRecordSecondaryMonitor] = useState(false);
+  const [recordSupportsRenderScale, setRecordSupportsRenderScale] = useState(false);
+  const isRenderScalablePanel = recordSupportsRenderScale && !isSimulated;
+  const [recordHighResolution, setRecordHighResolution] = useState(false);
   const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
     useState<PanelDeviceRecord['secondaryMonitorState']>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
@@ -499,7 +503,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
-    || isSecondaryMonitorCapablePanel;
+    || isSecondaryMonitorCapablePanel
+    || isRenderScalablePanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -586,6 +591,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSupportsSecondaryMonitor(match?.capabilities?.supportsSecondaryMonitor ?? false);
       setRecordSecondaryMonitor(match?.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
+      setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
+      setRecordHighResolution(match?.highResolution ?? false);
       setRecordFamily(match?.capabilities?.family);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       const touchFromRecord = match?.capabilities?.touch ?? device?.capabilities.touch;
@@ -760,6 +767,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordPortrait(record.portrait ?? false);
+      setRecordHighResolution(record.highResolution ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
@@ -1679,6 +1687,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       onXeneonCommit={() => {}}
                       hardwareResetBusy={resettingHardware}
                     />
+                  )}
+                  {activeTab === 'settings' && isRenderScalablePanel && (
+                    <div className={styles.settingsContent}>
+                      <SettingsSection title={t('devices.lcd.rendering')} boxClassName={styles.deviceSettingsBox}>
+                        <SettingSelect
+                          label={t('devices.lcd.renderMode')}
+                          description={t('devices.lcd.renderModeHint')}
+                          value={RENDER_MODES[recordHighResolution ? 1 : 0]}
+                          options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
+                          onChange={(value) => {
+                            const next = value === RENDER_MODES[1];
+                            setRecordHighResolution(next);
+                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
+                          }}
+                        />
+                      </SettingsSection>
+                    </div>
                   )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
                       (its own section below), so the software flip would double-apply. */}

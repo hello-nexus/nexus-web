@@ -292,7 +292,7 @@ describe('DeckWidget', () => {
       });
     }
 
-    it('renders the live ring instead of the custom/appAware grid', () => {
+    it('renders the live ring instead of the custom grid', () => {
       mockRecentAppsInstance();
       mockUseRecentApps.mockReturnValue({
         apps: [{ processKey: 'discord', name: 'Discord', lastFocusedUtcMs: 1 }],

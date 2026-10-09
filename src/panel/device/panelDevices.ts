@@ -63,19 +63,16 @@ export interface PanelDevice {
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';
 export const PANEL_MONITOR_ICON = '/assets/devices/monitor.svg';
+export const HYTE_LOGO = '/assets/devices/hyte.svg';
 
-// Per-panel-family icon for PanelDevice.iconSrc, so the sidebar DEVICES
-// section shows each panel's own silhouette. Falls back to PANEL_DEVICE_ICON
-// for unknown source ids.
+// Per-panel-family icon for PanelDevice.iconSrc: the brand's mark. Falls back
+// to PANEL_DEVICE_ICON for unknown source ids.
 export const PANEL_FAMILY_ICONS: Readonly<Record<string, string>> = {
-  y70:      '/assets/devices/y70.svg',
-  // Y70 Touch 4K shares the Y70 silhouette (same case + screen aperture).
-  'y70-4k': '/assets/devices/y70.svg',
-  q60:      '/assets/devices/q60.svg',
-  q80:      '/assets/devices/q80.svg',
-  // Q-series enumerates Q60 + Q80 under one id; the Q60 silhouette is the
-  // family default.
-  qseries:  '/assets/devices/q60.svg',
+  y70:      HYTE_LOGO,
+  'y70-4k': HYTE_LOGO,
+  q60:      HYTE_LOGO,
+  q80:      HYTE_LOGO,
+  qseries:  HYTE_LOGO,
   // Corsair Xeneon Edge (simulated preset id; real units are promoted
   // monitors branded via capabilities.family in usePanelDevices).
   'xeneon-edge': '/assets/devices/corsair.svg',

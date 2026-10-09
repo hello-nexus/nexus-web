@@ -1,23 +1,17 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
-import { ChipGroup, type ChipOption } from '../../../components/common/ChipGroup/ChipGroup';
-import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { Button } from '../../../components/common/Button/Button';
 import { Notice } from '../../../components/common/Notice/Notice';
-import { SettingRow } from '../../../components/common/SettingRow/SettingRow';
 import { fitPageCount } from './deckLayout';
 import { DeckEditor } from './DeckEditor';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
-import { DeckAppAwareSection } from './DeckAppAwareSection';
+import { DeckPresetToolbar, modeOnPick } from './DeckPresetToolbar';
+import { ElgatoImportModal } from '../../../components/views/DevicePage/ElgatoImportModal';
 import type { UseDeckInstanceResult } from './useDeckInstance';
-import { exportDeckPreset, importDeckPreset, type DeckInstanceMode } from '../../../api/deck';
+import type { DeckInstanceMode } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
 import styles from './DeckInstanceEditor.module.scss';
-
-export const DECK_PRESET_CAP = 50;
-
-const MODE_KEYS: DeckInstanceMode[] = ['custom', 'recentApps', 'appAware'];
 
 export interface DeckInstanceEditorProps {
   deck: UseDeckInstanceResult;
@@ -31,48 +25,59 @@ export interface DeckInstanceEditorProps {
   onSelectedSlotChange?: (slot: number) => void;
   surface?: PanelSurface;
   desktopEditor?: boolean;
-  /** Import into a host-wide preset (StreamDeckDevicePage's Elgato import); omitted hides the toolbar option. */
-  onImport?: () => void;
-  /** Override the toolbar's actions beyond `deck`'s own (StreamDeckDevicePage wraps them to also reset its page/folder nav and clear its live-tile preview cache). Default to `deck.activate`/`deletePreset`/`undo`/`redo`/`reset`. */
-  onLoad?: (id: string) => void;
-  onDelete?: (id: string) => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  onReset?: () => void;
   /**
-   * 'toolbarOnly' renders just the mode chip + section + preset toolbar, so a
-   * host with its own bespoke grid (StreamDeckDevicePage, which also shows
-   * live hardware-rendered tiles) supplies that grid itself against the same
-   * `deck.target`. 'full' (default) additionally renders the shared
-   * DeckEditor body, used by the widget settings sheet, which has none.
+   * 'headerRail' omits the preset toolbar and the grid body: the host mounts
+   * DeckPresetToolbar in its own page header (StreamDeckDevicePage) and
+   * supplies its bespoke grid (which also shows live hardware-rendered tiles)
+   * against the same `deck.target`. 'full' (default) renders the toolbar
+   * inline plus the shared DeckEditor body, used by the widget settings sheet,
+   * which has neither.
    */
-  bodyMode?: 'full' | 'toolbarOnly';
+  bodyMode?: 'full' | 'headerRail';
+}
+
+/** The note shown when the active preset was authored for a different key count, or null. */
+export function deckFitNote(
+  preset: UseDeckInstanceResult['preset'],
+  instanceGrid: { cols: number; rows: number },
+  kind: 'physical' | 'widget',
+  t: ReturnType<typeof useTranslation>['t'],
+): string | null {
+  if (!preset) return null;
+  // Key COUNT, not cols/rows shape: a 4x2 preset on a 2x4 instance fits as an
+  // identity (same 8 keys, just a different visual arrangement) - nothing
+  // overflows or shrinks, so no note is warranted despite the shape differing.
+  const presetKeyCount = preset.cols * preset.rows;
+  const instanceKeyCount = instanceGrid.cols * instanceGrid.rows;
+  if (presetKeyCount > instanceKeyCount) {
+    const pages = fitPageCount({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { ...instanceGrid, kind });
+    return pages > 1
+      ? t('panel.settings.deck.instance.fitNoteLargerPaged', { pages })
+      : t('panel.settings.deck.instance.fitNoteLarger');
+  }
+  if (presetKeyCount < instanceKeyCount) return t('panel.settings.deck.instance.fitNoteSmaller');
+  return null;
 }
 
 /**
- * Mode chip + host-wide preset toolbar + (optionally) the shared grid/
- * inspector body, bound to one useDeckInstance() result. Hosted by both
+ * Host-wide preset toolbar + (optionally) the shared grid/inspector body,
+ * bound to one useDeckInstance() result. Hosted by both
  * StreamDeckDevicePage (Customize tab) and DeckSettings (the Deck widget's
  * edit sheet) so a preset edited from either surface repaints the other.
  */
 export function DeckInstanceEditor({
   deck, instanceGrid, kind, page, onPageChange, folderPath, onFolderPathChange,
-  selectedSlot, onSelectedSlotChange, surface, desktopEditor, onImport,
-  onLoad, onDelete, onUndo, onRedo, onReset, bodyMode = 'full',
+  selectedSlot, onSelectedSlotChange, surface, desktopEditor, bodyMode = 'full',
 }: DeckInstanceEditorProps) {
   const { t } = useTranslation();
   const mode = deck.instance?.mode ?? 'custom';
+  const [importOpen, setImportOpen] = useState(false);
 
   // Presence-only: the payload is ignored. Mounted for as long as this editor
   // is on screen (unmounts on a tab switch or the widget sheet closing), so
-  // the service's App Aware switcher can pause while any editor for this
+  // the service's app-based preset switcher can pause while any editor for this
   // instance is open and settle once the last one closes.
   useTopicCallback('deck-edit', true, () => {});
-
-  const modeOptions: ChipOption[] = MODE_KEYS.map(key => ({
-    key,
-    label: t(`panel.settings.deck.mode.${key}`),
-  }));
 
   // Several preset routes (DELETE /deck/presets/{id}, PUT .../apps, GET
   // /deck/templates, PUT/DELETE /deck/recent-apps/*) are LocalhostOnly - a
@@ -83,137 +88,50 @@ export function DeckInstanceEditor({
   // despite a non-desktop `surface`.
   const desktopActions = !surface || surface === 'desktop' || !!desktopEditor;
 
-  // Shared with the import-success path below so a physical deck's page/
-  // folder/live-tile state resets the same way a normal preset switch does
-  // (StreamDeckDevicePage overrides onLoad for exactly that reset). Without
-  // an override (the widget sheet), a switched-to preset can have fewer
-  // pages/slots than the one it replaced, so page/selectedSlot reset here too
-  // - otherwise the grid can render blank on a stale out-of-range page.
-  const activatePreset = onLoad ?? ((id: string) => {
-    void deck.activate(id);
+  // Without a host override, a switched-to preset can have fewer pages/slots
+  // than the one it replaced, so page/selectedSlot reset here too - otherwise
+  // the grid can render blank on a stale out-of-range page.
+  const activatePreset = (id: string, nextMode?: DeckInstanceMode) => {
+    void deck.activate(id, nextMode);
     onPageChange(0);
     onSelectedSlotChange?.(0);
-  });
-
-  const importFileInputRef = useRef<HTMLInputElement>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [privilegedRetryFile, setPrivilegedRetryFile] = useState<File | null>(null);
-
-  const runImport = async (file: File, allowPrivileged: boolean) => {
-    const result = await importDeckPreset(file, allowPrivileged);
-    if (result.kind === 'ok') {
-      setImportError(null);
-      setPrivilegedRetryFile(null);
-      activatePreset(result.preset.id);
-      return;
-    }
-    if (result.kind === 'conflict') {
-      setImportError(result.msg || t('panel.settings.deck.presets.duplicateName'));
-      setPrivilegedRetryFile(null);
-      return;
-    }
-    if (result.kind === 'privileged') {
-      setImportError(result.msg || t('panel.settings.deck.presets.importPrivileged'));
-      setPrivilegedRetryFile(file);
-      return;
-    }
-    setImportError(t('panel.settings.deck.presets.importFailed'));
-    setPrivilegedRetryFile(null);
   };
 
-  const onImportFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (file) void runImport(file, false);
-  };
-
-  const preset = deck.preset;
-  // Key COUNT, not cols/rows shape: a 4x2 preset on a 2x4 instance fits as an
-  // identity (same 8 keys, just a different visual arrangement) - nothing
-  // overflows or shrinks, so no note is warranted despite the shape differing.
-  let fitNote: string | null = null;
-  if (preset) {
-    const presetKeyCount = preset.cols * preset.rows;
-    const instanceKeyCount = instanceGrid.cols * instanceGrid.rows;
-    if (presetKeyCount > instanceKeyCount) {
-      const pages = fitPageCount({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { ...instanceGrid, kind });
-      fitNote = pages > 1
-        ? t('panel.settings.deck.instance.fitNoteLargerPaged', { pages })
-        : t('panel.settings.deck.instance.fitNoteLarger');
-    } else if (presetKeyCount < instanceKeyCount) {
-      fitNote = t('panel.settings.deck.instance.fitNoteSmaller');
-    }
-  }
+  // headerRail hosts show the note next to their own preview instead.
+  const fitNote = bodyMode === 'full' ? deckFitNote(deck.preset, instanceGrid, kind, t) : null;
 
   return (
     <div className={styles.root}>
-      <SettingRow label={t('panel.settings.deck.mode.label')} wrapControl>
-        <ChipGroup
-          fullWidth
-          ariaLabel={t('panel.settings.deck.mode.label')}
-          options={modeOptions}
-          activeKey={mode}
-          onChange={key => deck.setMode(key as DeckInstanceMode)}
+      {bodyMode === 'full' && (
+        <DeckPresetToolbar
+          deck={deck}
+          desktopActions={desktopActions}
+          activatePreset={activatePreset}
+          onDelete={id => {
+            void deck.deletePreset(id);
+            onPageChange(0);
+            onSelectedSlotChange?.(0);
+          }}
+          onUndo={deck.undo}
+          onRedo={deck.redo}
+          onReset={deck.reset}
+          onImport={desktopActions ? () => setImportOpen(true) : undefined}
         />
-      </SettingRow>
+      )}
+      {bodyMode === 'full' && desktopActions && (
+        <ElgatoImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          deckCols={instanceGrid.cols}
+          deckRows={instanceGrid.rows}
+          existingPresetNames={deck.presets.map(p => p.name)}
+          addedTemplateIds={deck.presets.flatMap(p => (p.templateId ? [p.templateId] : []))}
+          onImported={id => activatePreset(id, modeOnPick(deck))}
+        />
+      )}
 
       {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} desktopActions={desktopActions} />}
-      {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} desktopActions={desktopActions} activatePreset={activatePreset} />}
-
-      {mode !== 'recentApps' && (
-        <>
-          <PresetToolbar
-            cap={DECK_PRESET_CAP}
-            allowDelete={desktopActions}
-            presets={deck.presets.map(p => ({ id: p.id, name: p.name, hasApps: !!p.apps?.length }))}
-            activeId={deck.instance?.activePresetId ?? null}
-            presetCount={deck.presets.length}
-            onLoad={activatePreset}
-            onCreate={name => deck.createPreset(name, activatePreset)}
-            onRename={deck.renamePreset}
-            onDelete={onDelete ?? (id => {
-              void deck.deletePreset(id);
-              onPageChange(0);
-              onSelectedSlotChange?.(0);
-            })}
-            onImport={onImport}
-            onExport={desktopActions ? id => void exportDeckPreset(id) : undefined}
-            onImportFile={desktopActions ? () => importFileInputRef.current?.click() : undefined}
-            canUndo={deck.canUndo}
-            canRedo={deck.canRedo}
-            onUndo={onUndo ?? deck.undo}
-            onRedo={onRedo ?? deck.redo}
-            onReset={onReset ?? deck.reset}
-            translationPrefix="panel.settings.deck.presets"
-          />
-
-          {desktopActions && (
-            <input
-              ref={importFileInputRef}
-              type="file"
-              accept=".nexus-deck"
-              style={{ display: 'none' }}
-              onChange={onImportFileSelected}
-            />
-          )}
-
-          {importError && (
-            <Notice
-              tone="critical"
-              role="alert"
-              actions={privilegedRetryFile && (
-                <Button type="button" size="sm" tone="neutral" onClick={() => void runImport(privilegedRetryFile, true)}>
-                  {t('panel.settings.deck.presets.importAnyway')}
-                </Button>
-              )}
-            >
-              {importError}
-            </Notice>
-          )}
-
-          {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
-        </>
-      )}
+      {mode !== 'recentApps' && fitNote && <p className={styles.fitNote}>{fitNote}</p>}
 
       {bodyMode === 'full' && mode !== 'recentApps' && (
         deck.target ? (

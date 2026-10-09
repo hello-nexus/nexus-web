@@ -22,10 +22,13 @@ function normalizePresetDeck(full: DeckPresetFull): DeckPresetFull {
   return { ...full, deck: normalizeDeckConfig(full.deck) };
 }
 
-// An older paired service build still reports the deck-mode chip as
-// 'fixed'; treat it as 'custom' wherever an instance arrives from the wire.
+// Retired modes persisted on an older instance: 'fixed' (an older paired
+// service build) and 'appAware' (every non-Recent-Apps instance now follows
+// its presets' app bindings) both mean 'custom' wherever an instance arrives
+// from the wire.
 function normalizeInstance(instance: DeckInstance): DeckInstance {
-  return (instance.mode as string) === 'fixed' ? { ...instance, mode: 'custom' } : instance;
+  const mode = instance.mode as string;
+  return mode === 'fixed' || mode === 'appAware' ? { ...instance, mode: 'custom' } : instance;
 }
 
 export interface UseDeckInstanceResult {
@@ -40,7 +43,8 @@ export interface UseDeckInstanceResult {
   error: boolean;
   retry: () => void;
   setMode: (mode: DeckInstanceMode) => void;
-  activate: (presetId: string) => Promise<void>;
+  /** `mode` rides in the same PUT as the preset id, so leaving Recent Apps for a preset is one write. */
+  activate: (presetId: string, mode?: DeckInstanceMode) => Promise<void>;
   /**
    * `activatePreset` defaults to this hook's own `activate`; a host whose
    * own `onLoad` also resets page/folder/selection (StreamDeckDevicePage)
@@ -294,11 +298,11 @@ function useOwnDeckInstance(
     });
   }, [instanceId]);
 
-  const activate = useCallback(async (presetId: string) => {
+  const activate = useCallback(async (presetId: string, mode?: DeckInstanceMode) => {
     if (!instanceId) return;
     closeBurst();
     undoRedo.reset();
-    const updated = await updateDeckInstance(instanceId, { activePresetId: presetId });
+    const updated = await updateDeckInstance(instanceId, mode ? { activePresetId: presetId, mode } : { activePresetId: presetId });
     if (instanceIdRef.current !== instanceId) return;
     if (updated) setInstance(normalizeInstance(updated));
     const full = await getDeckPreset(presetId);

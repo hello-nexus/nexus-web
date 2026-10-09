@@ -17,8 +17,10 @@ export {
 
 // Header-above-box settings group, shared with the dashboard Settings pages.
 // `action` renders a trailing control on the title row (e.g. a delete button).
-export function SettingsSection({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
-  return <SettingsSectionBase title={title} action={action}>{children}</SettingsSectionBase>;
+export function SettingsSection({ title, action, className, boxClassName, children }: {
+  title: string; action?: ReactNode; className?: string; boxClassName?: string; children: ReactNode;
+}) {
+  return <SettingsSectionBase title={title} action={action} className={className} boxClassName={boxClassName}>{children}</SettingsSectionBase>;
 }
 
 export function SettingsInput(props: InputHTMLAttributes<HTMLInputElement>) {

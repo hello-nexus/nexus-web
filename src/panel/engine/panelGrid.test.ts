@@ -60,3 +60,27 @@ describe('desktopAutoArrangeColumns', () => {
     expect(desktopAutoArrangeColumns(40 * DESKTOP_GRID_REFERENCE_CELL, 0)).toBe(16);
   });
 });
+
+describe('readRuntimePanelGrid in a streamed panel render', () => {
+  const at = (dpr: number, search: string) => {
+    const saved = { dpr: window.devicePixelRatio, w: window.innerWidth, h: window.innerHeight, url: window.location.href };
+    Object.defineProperty(window, 'devicePixelRatio', { value: dpr, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 2288, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 1080, configurable: true });
+    window.history.replaceState(null, '', `/panel/p1${search}`);
+    try {
+      const { columns, rows, cellSize } = readRuntimePanelGrid('monitor', null, false, 210);
+      return { columns, rows, cellSize };
+    } finally {
+      Object.defineProperty(window, 'devicePixelRatio', { value: saved.dpr, configurable: true });
+      Object.defineProperty(window, 'innerWidth', { value: saved.w, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: saved.h, configurable: true });
+      window.history.replaceState(null, '', saved.url);
+    }
+  };
+
+  it('keeps the native grid when the stream renders at a lower resolution', () => {
+    expect(at(0.5, '?streamFps=30')).toEqual(at(1, '?streamFps=30'));
+    expect(at(0.5, '')).not.toEqual(at(1, ''));
+  });
+});

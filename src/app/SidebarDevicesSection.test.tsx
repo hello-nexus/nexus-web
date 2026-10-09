@@ -120,6 +120,22 @@ function renderSidebar() {
   );
 }
 
+describe('SidebarDevicesSection ordering', () => {
+  it('sorts rows by the brand their logo shows, then by label', () => {
+    const curated = { kind: 'curated' as const, panelDevice: undefined, supportsNexusControl: false, nexusControlEnabled: true };
+    mockUnified = [
+      monitorDevice({ ...curated, key: 'curated-keeb', shortName: 'HYTE Keeb TKL', name: 'HYTE Keeb TKL', iconSrc: '/assets/devices/hyte.svg' }),
+      monitorDevice({ ...curated, key: 'streamdeck:SN1', shortName: 'Elgato Stream Deck +', name: 'Elgato Stream Deck +', iconSrc: '/assets/devices/elgato.svg' }),
+      // No brand in the name, but the Corsair logo groups it under Corsair.
+      monitorDevice(),
+    ];
+    renderSidebar();
+
+    expect(screen.getAllByText(/^(Keeb TKL|Stream Deck \+|Xeneon Edge)$/).map(el => el.textContent))
+      .toEqual(['Xeneon Edge', 'Stream Deck +', 'Keeb TKL']);
+  });
+});
+
 describe('SidebarDevicesSection Nexus Link off indicator', () => {
   it('shows the off glyph for a promoted monitor whose Nexus Link is off', () => {
     mockUnified = [monitorDevice()];

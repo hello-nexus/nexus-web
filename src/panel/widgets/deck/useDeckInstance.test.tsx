@@ -118,6 +118,14 @@ describe('useDeckInstance - initial load', () => {
     expect(result.current.instance?.mode).toBe('custom');
   });
 
+  it('reads a persisted "appAware" mode as "custom"', async () => {
+    getDeckInstanceMock.mockResolvedValue({ mode: 'appAware', activePresetId: 'p1' } as unknown as DeckInstance);
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.instance?.mode).toBe('custom');
+  });
+
   it('normalizes a zero-page preset from the server to one empty page so it stays editable', async () => {
     const ZERO_PAGE_PRESET: DeckPresetFull = { id: 'p1', name: 'Streaming', cols: 3, rows: 2, pageCount: 0, deck: { pages: [] } };
     getDeckPresetMock.mockResolvedValue(ZERO_PAGE_PRESET);
@@ -354,9 +362,9 @@ describe('useDeckInstance - mode and preset management', () => {
     const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
-    act(() => result.current.setMode('appAware'));
-    expect(result.current.instance?.mode).toBe('appAware');
-    expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { mode: 'appAware' });
+    act(() => result.current.setMode('recentApps'));
+    expect(result.current.instance?.mode).toBe('recentApps');
+    expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { mode: 'recentApps' });
   });
 
   it('setMode reverts the optimistic mode when the PUT is refused (resolves null)', async () => {
@@ -364,8 +372,8 @@ describe('useDeckInstance - mode and preset management', () => {
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     updateDeckInstanceMock.mockResolvedValue(null);
-    act(() => { result.current.setMode('appAware'); });
-    expect(result.current.instance?.mode).toBe('appAware');
+    act(() => { result.current.setMode('recentApps'); });
+    expect(result.current.instance?.mode).toBe('recentApps');
 
     await waitFor(() => expect(result.current.instance?.mode).toBe('custom'));
   });
@@ -386,6 +394,19 @@ describe('useDeckInstance - mode and preset management', () => {
     expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { activePresetId: 'p2' });
     expect(result.current.preset).toEqual(PRESET_2);
     expect(result.current.canUndo).toBe(false);
+  });
+
+  it('activate with a mode sends it in the same single PUT as the preset id', async () => {
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    updateDeckInstanceMock.mockClear();
+    updateDeckInstanceMock.mockResolvedValue({ mode: 'custom', activePresetId: 'p2' });
+    getDeckPresetMock.mockResolvedValue({ id: 'p2', name: 'Gaming', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } });
+
+    await act(async () => { await result.current.activate('p2', 'custom'); });
+
+    expect(updateDeckInstanceMock).toHaveBeenCalledTimes(1);
+    expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { activePresetId: 'p2', mode: 'custom' });
   });
 
   it('createPreset seeds it at the instance grid, adds it to the list, and activates it', async () => {

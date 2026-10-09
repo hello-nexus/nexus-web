@@ -8,6 +8,7 @@ import { usePreferredGpuId, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { ProcessIcon } from '../monitoring/page/ProcessIcon';
 import { compareItems } from '../monitoring/page/processRanking';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import { surfaceSupportsTouch } from '../../types';
 import type { WidgetProps } from '../types';
 import { PROCESSES_PREVIEW } from './processesPreviewData';
 import {
@@ -51,8 +52,10 @@ const COLUMN_LABEL_KEYS: Record<ProcessColumn, string> = {
  * The tile shows only the rows that fit whole and never scrolls; the immersive
  * view is the scrollable one, and mounts every row.
  */
-export function ProcessesWidget({ widget, immersive, onUpdate }: WidgetProps & { immersive?: boolean }) {
+export function ProcessesWidget({ widget, immersive, onUpdate, surface, deviceTouch }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
+  // Display-only glass shows the sort but offers no header to press.
+  const canSort = surface ? surfaceSupportsTouch(surface, deviceTouch) : true;
   const { numberFormat } = useUnitPrefs();
   const preferredGpu = usePreferredGpuId();
   const preview = usePanelPreview();
@@ -150,6 +153,15 @@ export function ProcessesWidget({ widget, immersive, onUpdate }: WidgetProps & {
     );
   }
 
+  const headerContent = (c: typeof visibleColumns[number]) => (
+    <>
+      <span className={styles.headerLabel}>{t(COLUMN_LABEL_KEYS[c])}</span>
+      {c === column && (direction === 'asc'
+        ? <ChevronUp className={styles.sortIcon} aria-hidden />
+        : <ChevronDown className={styles.sortIcon} aria-hidden />)}
+    </>
+  );
+
   return (
     <div
       className={styles.processes}
@@ -169,12 +181,9 @@ export function ProcessesWidget({ widget, immersive, onUpdate }: WidgetProps & {
             role="columnheader"
             aria-sort={c === column ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
-            <button type="button" className={styles.headerButton} onClick={() => pressColumn(c)}>
-              <span className={styles.headerLabel}>{t(COLUMN_LABEL_KEYS[c])}</span>
-              {c === column && (direction === 'asc'
-                ? <ChevronUp className={styles.sortIcon} aria-hidden />
-                : <ChevronDown className={styles.sortIcon} aria-hidden />)}
-            </button>
+            {canSort
+              ? <button type="button" className={styles.headerButton} onClick={() => pressColumn(c)}>{headerContent(c)}</button>
+              : <span className={styles.headerButton}>{headerContent(c)}</span>}
           </div>
         ))}
       </div>

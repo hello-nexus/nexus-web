@@ -107,6 +107,21 @@ describe('ProcessesWidget', () => {
     expect(renderedNames()).toEqual(['alpha', 'chrome', 'zebra']);
   });
 
+  it('offers no header to press on display-only glass, but still shows the sort', async () => {
+    render(<ProcessesWidget widget={widget()} surface="monitor" deviceTouch={false} />);
+    await act(async () => {});
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(screen.getByText(KEY.name)).toBeTruthy();
+    expect(renderedNames()).toEqual(['chrome', 'alpha', 'zebra']);
+  });
+
+  it('keeps the sort headers pressable on a touch monitor', async () => {
+    render(<ProcessesWidget widget={widget()} surface="monitor" deviceTouch />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: KEY.name }));
+    expect(renderedNames()).toEqual(['alpha', 'chrome', 'zebra']);
+  });
+
   it('sorts by RAM when the RAM header is pressed', async () => {
     await renderWidget();
     fireEvent.click(screen.getByRole('button', { name: KEY.ram }));

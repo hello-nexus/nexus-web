@@ -106,6 +106,7 @@ import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopO
 import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
 import { ConflictRunningBadge } from '../components/common/ConflictRunningBadge/ConflictRunningBadge';
 import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
+import { ExperimentalEnableModal } from '../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HeartBurst, useHeartBurstTrigger } from '../components/common/HeartBurst/HeartBurst';
@@ -2195,6 +2196,18 @@ function PreviewNexusControlConflictModal() {
   );
 }
 
+function PreviewExperimentalEnableModal() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Turn on Nexus Control
+      </button>
+      <ExperimentalEnableModal open={open} onConfirm={() => setOpen(false)} onCancel={() => setOpen(false)} />
+    </>
+  );
+}
+
 // Inline SVG sample image (160x90) for the cropper preview.
 // Provides a visible still without loading a remote asset.
 const SAMPLE_CROP_SRC = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMzMzM2NTMiLz48dGV4dCB4PSI4MCIgeT0iNTAiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbXBsZTwvdGV4dD48L3N2Zz4=';
@@ -2798,6 +2811,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Slideout/Slideout.tsx',
     description: 'Edge-anchored slide-in panel built on Overlay\'s sheet variant, matching the panel editor\'s desktop add-widget drawer look (translucent scrim, backdrop-base surface, border on the docked edge, slide-in animation). `side` docks it right (default) or left; width and inner padding are set through the --slideout-* custom properties. Title + optional icon + optional headerRight + close button. Esc and a backdrop click both dismiss.', Preview: PreviewSlideout,
     notes: 'Use for a dashboard detail/inspector drawer outside the panel editor (e.g. the monitoring process-detail slideout) - PanelEditorSheet stays the widget-grid editor\'s own component.',
+  },
+  {
+    name: 'ExperimentalEnableModal', category: 'modals',
+    filePath: 'src/components/common/ExperimentalEnableModal/ExperimentalEnableModal.tsx',
+    description: 'ConfirmModal held in front of every Nexus Control "on" for experimental hardware (the guard in useConflictGuardedEnable, the device page switch, and the conflict card\'s Nexus choice). Title and body reuse the Experimental badge tooltip; the confirm reads "I understand, continue".',
+    Preview: PreviewExperimentalEnableModal,
   },
   {
     name: 'NexusControlConflictModal', category: 'modals',

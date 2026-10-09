@@ -173,11 +173,28 @@ describe('DevicesPage running-conflict badge', () => {
 });
 
 describe('DevicesPage Nexus Control on with a running competing app', () => {
+  // The fixture is experimental hardware, so every "on" passes the experimental prompt first.
+  async function turnOn() {
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'devices.experimental.confirm' }));
+  }
+
+  it('asks before turning on an experimental device, and cancel leaves it off', async () => {
+    mockUnified = [lianLiRow({ conflictAppId: undefined })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    expect(await screen.findByText('devices.experimental.tooltip.body')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+
+    expect(controlDeviceMock).not.toHaveBeenCalled();
+  });
+
   it('turns control on directly when the click-time read finds the app gone', async () => {
     fetchConflictsMock.mockResolvedValue([]);
     mockUnified = [lianLiRow()];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
-    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await turnOn();
     await waitFor(() => expect(controlDeviceMock).toHaveBeenCalledWith('lianli', true));
     expect(screen.queryByText(/devices\.conflictEnable\.title/)).toBeNull();
   });
@@ -189,7 +206,7 @@ describe('DevicesPage Nexus Control on with a running competing app', () => {
     mockUnified = [lianLiRow()];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
 
-    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await turnOn();
     await screen.findByText(/devices\.conflictEnable\.title/);
     expect(controlDeviceMock).not.toHaveBeenCalled();
 
@@ -206,7 +223,7 @@ describe('DevicesPage Nexus Control on with a running competing app', () => {
     mockUnified = [lianLiRow()];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
 
-    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await turnOn();
     await screen.findByText(/devices\.conflictEnable\.title/);
     fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
 
@@ -222,7 +239,7 @@ describe('DevicesPage Nexus Control on with a running competing app', () => {
     mockUnified = [lianLiRow()];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
 
-    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await turnOn();
     await screen.findByText(/devices\.conflictEnable\.title/);
     fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.endTask' }));
 
@@ -236,9 +253,8 @@ describe('DevicesPage Nexus Control on with a running competing app', () => {
     fetchConflictsMock.mockReturnValue(new Promise<DetectedConflict[]>(r => { resolve = r; }));
     mockUnified = [lianLiRow()];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
-    const toggle = screen.getByRole('switch', { name: 'devices.nexusControl' });
-    fireEvent.click(toggle);
-    fireEvent.click(toggle);
+    await turnOn();
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
     resolve([]);
     await waitFor(() => expect(controlDeviceMock).toHaveBeenCalledWith('lianli', true));
     expect(fetchConflictsMock).toHaveBeenCalledTimes(1);

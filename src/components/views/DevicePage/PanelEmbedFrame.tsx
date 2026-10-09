@@ -44,9 +44,8 @@ interface PanelEmbedFrameProps {
   onPlaylistShown?: (type: string | null) => void;
   /** Panel device record id. Forwarded to the simulator iframe so it can render media backgrounds. */
   deviceId?: string;
-  // Per-device touch capability, forwarded in 'simulator/init'. The preview's
-  // drag sensor gates on it (surfaceSupportsTouch); a touch monitor must pass
-  // true or the editor can't drag-rearrange its widgets.
+  // Per-device touch capability, forwarded in 'simulator/init'. Widgets render
+  // their touch controls and the menu offers immersive only when it is true.
   deviceTouch?: boolean;
   // Display-bound record (displayId set), forwarded in 'simulator/init'. The
   // desktop see-through gate needs it or a 'monitor' preview renders the theme

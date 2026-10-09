@@ -35,7 +35,7 @@ import { StreamDeckSimRow } from './ToolsView';
 
 function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
   return {
-    serial: 'sim-0080', model: 'MK.2', name: 'MK.2', connected: true, verified: false,
+    serial: 'sim-0080', model: 'MK.2', displayName: 'Elgato Stream Deck MK.2', name: 'Elgato Stream Deck MK.2', connected: true, verified: false,
     rows: 3, cols: 5, keyCount: 15, keyPixels: 72, format: 'jpeg', brightness: 60,
     ...over,
   };
@@ -50,9 +50,9 @@ function decksReturn(decks: StreamDeckSummary[]) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetDevModels.mockResolvedValue([
-    { productId: 99, name: 'Mini', rows: 2, cols: 3, keyCount: 6 },
-    { productId: 128, name: 'MK.2', rows: 3, cols: 5, keyCount: 15 },
-    { productId: 108, name: 'XL', rows: 4, cols: 8, keyCount: 32 },
+    { productId: 99, name: 'Elgato Stream Deck Mini', rows: 2, cols: 3, keyCount: 6 },
+    { productId: 128, name: 'Elgato Stream Deck MK.2', rows: 3, cols: 5, keyCount: 15 },
+    { productId: 108, name: 'Elgato Stream Deck XL', rows: 4, cols: 8, keyCount: 32 },
   ]);
   mockSimulate.mockResolvedValue(true);
   mockClearSimulated.mockResolvedValue(true);
@@ -72,13 +72,13 @@ describe('StreamDeckSimRow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.model' }));
 
     expect(screen.getByRole('option', {
-      name: 'tools.streamdeckSim.modelOption:{"name":"Stream Deck Mini","count":6}',
+      name: 'tools.streamdeckSim.modelOption:{"name":"Elgato Stream Deck Mini","count":6}',
     })).toBeInTheDocument();
     expect(screen.getByRole('option', {
-      name: 'tools.streamdeckSim.modelOption:{"name":"Stream Deck MK.2","count":15}',
+      name: 'tools.streamdeckSim.modelOption:{"name":"Elgato Stream Deck MK.2","count":15}',
     })).toBeInTheDocument();
     expect(screen.getByRole('option', {
-      name: 'tools.streamdeckSim.modelOption:{"name":"Stream Deck XL","count":32}',
+      name: 'tools.streamdeckSim.modelOption:{"name":"Elgato Stream Deck XL","count":32}',
     })).toBeInTheDocument();
   });
 
@@ -86,7 +86,7 @@ describe('StreamDeckSimRow', () => {
     await renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.model' }));
     fireEvent.click(screen.getByRole('option', {
-      name: 'tools.streamdeckSim.modelOption:{"name":"Stream Deck XL","count":32}',
+      name: 'tools.streamdeckSim.modelOption:{"name":"Elgato Stream Deck XL","count":32}',
     }));
     fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
     await act(async () => { await Promise.resolve(); });
@@ -119,11 +119,11 @@ describe('StreamDeckSimRow', () => {
     const PLUS = { serial: 'sim-0084', model: 'Plus', encoders: 4, screen: { width: 800, height: 100, kind: 'touchStrip' as const } };
 
     it('labels a model that has dials with its dial count', async () => {
-      mockGetDevModels.mockResolvedValue([{ productId: 132, name: 'Plus', rows: 2, cols: 4, keyCount: 8, encoders: 4, screen: { width: 800, height: 100, kind: 'touchStrip' }, touchKeys: 0 }]);
+      mockGetDevModels.mockResolvedValue([{ productId: 132, name: 'Elgato Stream Deck Plus', rows: 2, cols: 4, keyCount: 8, encoders: 4, screen: { width: 800, height: 100, kind: 'touchStrip' }, touchKeys: 0 }]);
       await renderCard();
       fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.model' }));
       expect(screen.getByRole('option', {
-        name: 'tools.streamdeckSim.modelOptionDials:{"name":"Stream Deck Plus","count":8,"dials":4}',
+        name: 'tools.streamdeckSim.modelOptionDials:{"name":"Elgato Stream Deck Plus","count":8,"dials":4}',
       })).toBeInTheDocument();
     });
 

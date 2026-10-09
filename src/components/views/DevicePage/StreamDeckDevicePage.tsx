@@ -5,6 +5,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
+import type { DeckInstanceMode } from '../../../api/deck';
 import { setStreamDeckNav, type StreamDeckInfoScreen } from '../../../api/streamdeck';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
@@ -12,7 +13,8 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useDeckInstance } from '../../../panel/widgets/deck/useDeckInstance';
 import { useRecentApps } from '../../../panel/widgets/deck/useRecentApps';
 import { buildRecentAppsView, type RecentAppsViewKey } from '../../../panel/widgets/deck/recentAppsView';
-import { DeckInstanceEditor } from '../../../panel/widgets/deck/DeckInstanceEditor';
+import { DeckInstanceEditor, deckFitNote } from '../../../panel/widgets/deck/DeckInstanceEditor';
+import { DeckPresetToolbar, modeOnPick } from '../../../panel/widgets/deck/DeckPresetToolbar';
 import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckDevicePreview } from '../../../panel/widgets/deck/DeckDevicePreview';
@@ -71,7 +73,7 @@ function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className={styles.page}>
       {/* eslint-disable-next-line i18next/no-literal-string -- brand name */}
-      <ViewHeader title="Stream Deck" />
+      <ViewHeader title="Elgato Stream Deck" />
       <div className={`${styles.pageBody} pageBody`}>{children}</div>
     </div>
   );
@@ -86,7 +88,8 @@ interface StreamDeckDevicePageProps {
  * Routed device page for one physical Stream Deck, in the standard device-page
  * split: the Customize tab has the top-aligned deck preview with page-number
  * pagination and the shared key inspector on the left and, on the right, the
- * mode chip + mode section + preset toolbar above the action picker; the
+ * mode section above the action picker (the preset dropdown sits in the page
+ * header rail, across both tabs); the
  * Settings tab has device prefs on the left and a read-only preview of the
  * same grid on the right. Each connected/persisted deck gets its own sidebar
  * entry (see useUnifiedDevices), so `device` always identifies exactly one
@@ -202,7 +205,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // since the grid it feeds isn't mounted on Settings.
   const [liveTiles, setLiveTiles] = useState<Map<string, string>>(new Map());
   const clearLiveTiles = useCallback(() => setLiveTiles(new Map()), []);
-  // A mode switch (Custom/Recent Apps/App Aware) repaints every key with
+  // A mode switch (Custom/Recent Apps) repaints every key with
   // different content at the same page:slotPath keys - clear so a stale
   // frame from the previous mode can never show through the new one. The
   // ref skips the initial undefined -> first-loaded-mode transition, which
@@ -255,8 +258,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
 
   // A preset's config is applied server-side (activation resets nav to page
   // 0); useDeckInstance.activate already refetches the new preset's config.
-  const onDeckPresetLoad = useCallback(async (id: string) => {
-    await instance.activate(id);
+  const onDeckPresetLoad = useCallback(async (id: string, mode?: DeckInstanceMode) => {
+    await instance.activate(id, mode);
     clearLiveTiles();
     setPage(0);
     setFolderPath([]);
@@ -433,6 +436,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     else clearSlot(i);
   };
 
+  const fitNote = deckFitNote(instance.preset, instanceGrid, 'physical', t);
+
   const instanceEditor = (
     <DeckInstanceEditor
       deck={instance}
@@ -447,14 +452,22 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
       surface="desktop"
       desktopEditor
-      onImport={() => setImportOpen(true)}
-      onLoad={id => void onDeckPresetLoad(id)}
+      // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
+      bodyMode="headerRail"
+    />
+  );
+
+  const presetRail = (
+    <DeckPresetToolbar
+      rail
+      deck={instance}
+      desktopActions
+      activatePreset={(id, mode) => void onDeckPresetLoad(id, mode)}
       onDelete={id => void onDeckPresetDelete(id)}
       onUndo={handleUndoDeck}
       onRedo={handleRedoDeck}
       onReset={handleDeckReset}
-      // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
-      bodyMode="toolbarOnly"
+      onImport={() => setImportOpen(true)}
     />
   );
 
@@ -466,10 +479,11 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   return (
     <div className={styles.page}>
       <ViewHeader
-        title={t('devices.streamdeck.modelName', { model: deck.model })}
+        title={deck.displayName}
         tabs={TABS}
         activeTab={tab}
         onTabChange={k => handleTabChange(k as StreamDeckTab)}
+        tabActions={presetRail}
       />
       <div className={`${styles.pageBody} pageBody`}>
         {deck.warning && (
@@ -480,29 +494,31 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {tab === 'customize' ? (
           // One DndContext and one split for every mode (inert in Recent Apps,
           // which has no draggables), so the right column never remounts on a
-          // mode switch and the chip that committed it keeps focus.
+          // mode switch and the control that committed it keeps focus.
           <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
             <div className={styles.customizeSplit}>
               {recentAppsMode ? (
                 <div className={styles.leftCol}>
                   <div className={styles.previewTop}>
-                    <div className={styles.previewStage}>
-                      <DeckGrid
-                        slots={(recentPages[recentPage] ?? []).map(recentKeyToPlaceholderSlot)}
-                        cols={deck.cols}
-                        rows={deck.rows}
-                        square
-                        selectable={false}
-                        onCell={i => {
-                          const key = recentPages[recentPage]?.[i];
-                          if (key?.kind === 'navNext') goToRecentPage(Math.min(recentPage + 1, recentMaxPage));
-                          else if (key?.kind === 'navPrev') goToRecentPage(Math.max(recentPage - 1, 0));
-                        }}
-                        liveTiles={liveTiles}
-                        page={recentPage}
-                        folderPath={[]}
-                      />
-                    </div>
+                    <SettingsSection title={t('devices.streamdeck.preview')} className={styles.previewSection}>
+                      <div className={styles.previewStage}>
+                        <DeckGrid
+                          slots={(recentPages[recentPage] ?? []).map(recentKeyToPlaceholderSlot)}
+                          cols={deck.cols}
+                          rows={deck.rows}
+                          square
+                          selectable={false}
+                          onCell={i => {
+                            const key = recentPages[recentPage]?.[i];
+                            if (key?.kind === 'navNext') goToRecentPage(Math.min(recentPage + 1, recentMaxPage));
+                            else if (key?.kind === 'navPrev') goToRecentPage(Math.max(recentPage - 1, 0));
+                          }}
+                          liveTiles={liveTiles}
+                          page={recentPage}
+                          folderPath={[]}
+                        />
+                      </div>
+                    </SettingsSection>
                     <div className={styles.pageRow}>
                       <div className={styles.pageRowSide} />
                       <DeckPageStrip
@@ -519,31 +535,34 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               ) : (
               <div className={styles.leftCol}>
                 <div className={styles.previewTop}>
-                  <div className={styles.previewStage} ref={previewStageRef}>
-                    {target && (
-                      <DeckDevicePreview
-                        deck={deck}
-                        dials={viewDials}
-                        selectedDial={dialSel}
-                        onSelectDial={selectDial}
-                        grid={{
-                          slots: viewSlots,
-                          cols: target.cols,
-                          rows: target.rows,
-                          square: true,
-                          selectable: true,
-                          dragEnabled: true,
-                          selectedIndex: dialSel == null ? selSlot : -1,
-                          onCell: onCellClick,
-                          backCell: inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined,
-                          onDeleteSlot: requestDelete,
-                          liveTiles,
-                          page,
-                          folderPath,
-                        }}
-                      />
-                    )}
-                  </div>
+                  <SettingsSection title={t('devices.streamdeck.preview')} className={styles.previewSection}>
+                    <div className={styles.previewStage} ref={previewStageRef}>
+                      {target && (
+                        <DeckDevicePreview
+                          deck={deck}
+                          dials={viewDials}
+                          selectedDial={dialSel}
+                          onSelectDial={selectDial}
+                          grid={{
+                            slots: viewSlots,
+                            cols: target.cols,
+                            rows: target.rows,
+                            square: true,
+                            selectable: true,
+                            dragEnabled: true,
+                            selectedIndex: dialSel == null ? selSlot : -1,
+                            onCell: onCellClick,
+                            backCell: inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined,
+                            onDeleteSlot: requestDelete,
+                            liveTiles,
+                            page,
+                            folderPath,
+                          }}
+                        />
+                      )}
+                      {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
+                    </div>
+                  </SettingsSection>
                   {target && (
                     <div className={styles.pageRow}>
                       <div className={styles.pageRowSide} />
@@ -619,7 +638,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                 {instanceEditor}
                 {!recentAppsMode && target && (
                   // Hidden, not unmounted, while a dial is selected, so its search and collapsed groups survive a dial/key switch.
-                  <div hidden={dialSel != null}>
+                  <div className={styles.pickerSlot} hidden={dialSel != null}>
                   <DeckKeyInspector
                     target={target}
                     page={page}
@@ -749,7 +768,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           deckCols={deck.cols}
           deckRows={deck.rows}
           existingPresetNames={instance.presets.map(p => p.name)}
-          onImported={id => void onDeckPresetLoad(id)}
+          addedTemplateIds={instance.presets.flatMap(p => (p.templateId ? [p.templateId] : []))}
+          onImported={id => void onDeckPresetLoad(id, modeOnPick(instance))}
         />
       )}
     </div>
