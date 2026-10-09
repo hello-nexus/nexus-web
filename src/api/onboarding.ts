@@ -24,6 +24,22 @@ export async function completeFeaturesOnboarding() {
   return postService<OnboardingStatusResponse>('/onboarding/features-complete', {});
 }
 
+export type ConflictStepAction = 'resolveAll' | 'skip' | 'skipOnboarding';
+
+/** How the user left the onboarding conflict step, as catalog ids. */
+export interface ConflictStepReport {
+  action: ConflictStepAction;
+  listed: string[];
+  whitelisted: string[];
+  /** Rows already gone when the user chose: ended here, closed elsewhere, or exited. */
+  alreadyEnded: string[];
+}
+
+/** Log-only: writes the choice to the service log for support bundles. */
+export async function reportConflictStep(report: ConflictStepReport) {
+  return postService<OnboardingStatusResponse>('/onboarding/conflicts-step', report);
+}
+
 export interface PanelSwipeOnboardingResponse {
   completed: boolean;
   // Absent from a service that predates the immersive hint.

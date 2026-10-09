@@ -26,6 +26,11 @@ vi.mock('../../../api/migration', () => ({
   uninstallNexus2: (...args: any[]) => mockUninstall(...args),
 }));
 
+const mockReportStep = vi.fn();
+vi.mock('../../../api/onboarding', () => ({
+  reportConflictStep: (...args: any[]) => mockReportStep(...args),
+}));
+
 let mockExclusions: string[] = [];
 vi.mock('../../../hooks/useUiSettings', () => ({
   useConflictAutoKillExclusions: () => mockExclusions,
@@ -42,6 +47,8 @@ beforeEach(() => {
   mockFetchAutostart.mockResolvedValue([]);
   mockUninstall.mockReset();
   mockUninstall.mockResolvedValue({ error: false, msg: 'Ok' });
+  mockReportStep.mockReset();
+  mockReportStep.mockResolvedValue(null);
   mockExclusions = [];
 });
 
@@ -77,6 +84,9 @@ describe('ConflictOnboardingScreen', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(mockKill).not.toHaveBeenCalled();
     expect(mockUninstall).not.toHaveBeenCalled();
+    expect(mockReportStep).toHaveBeenCalledWith({
+      action: 'skip', listed: ['icue', 'nzxt-cam'], whitelisted: [], alreadyEnded: [],
+    });
   });
 
   it('resolve all ends every app, turns off every boot entry, uninstalls Nexus 2, then completes', async () => {
@@ -161,6 +171,9 @@ describe('ConflictOnboardingScreen', () => {
     expect(mockKill).not.toHaveBeenCalledWith('icue');
     expect(mockDisableAutostart).not.toHaveBeenCalledWith('icue');
     expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(mockReportStep).toHaveBeenCalledWith({
+      action: 'resolveAll', listed: ['icue', 'nzxt-cam'], whitelisted: ['icue'], alreadyEnded: [],
+    });
   });
 
   it('renders Back and Skip only when their handlers are given', () => {
@@ -172,5 +185,17 @@ describe('ConflictOnboardingScreen', () => {
     render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={() => {}} onBack={onBack} onSkipOnboarding={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'nav.back' }));
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it('reports skip onboarding before handing off', () => {
+    const onSkipOnboarding = vi.fn();
+    render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={() => {}} onSkipOnboarding={onSkipOnboarding} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.skip' }));
+
+    expect(onSkipOnboarding).toHaveBeenCalledTimes(1);
+    expect(mockReportStep).toHaveBeenCalledWith({
+      action: 'skipOnboarding', listed: ['icue'], whitelisted: [], alreadyEnded: [],
+    });
   });
 });
