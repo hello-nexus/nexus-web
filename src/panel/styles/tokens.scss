@@ -94,8 +94,6 @@
   // a percentage string by buildPanelThemeVars in PanelApp.tsx; the value
   // here is the pre-runtime fallback.
   --panel-card-bg-opacity: 100%;
-  // The same alpha as a 0-1 number, for the Chromium 83 fill below.
-  --panel-card-bg-alpha: 1;
   // Widgets are flat at rest - no resting border. The editor selection ring
   // (--panel-accent) is the only widget border. Light theme mirrors below.
   --panel-card-border: transparent;
@@ -295,7 +293,8 @@
 
 // The Q-series WebView is Chromium 83, which has no color-mix(), so the fill
 // above computes to transparent there. These are --panel-card-fill-opaque
-// flattened per theme.
+// flattened per theme. Only live panels set --panel-card-bg-alpha (the 0-1
+// widget opacity); embedded hosts keep the transparent card.
 @supports not (color: color-mix(in srgb, red, blue)) {
   .panel-root {
     --panel-card-fill-rgb: 17, 17, 17;

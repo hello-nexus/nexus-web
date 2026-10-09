@@ -78,7 +78,7 @@ describe('WidgetContextMenu on a scaled panel', () => {
     const el = [...container.ownerDocument.querySelectorAll<HTMLElement>('[style]')].find(n => n.style.getPropertyValue('--menu-origin-x'))!;
     const left = parseFloat(el.style.left);
     const origin = parseFloat(el.style.getPropertyValue('--menu-origin-x'));
-    // Painted left edge = layout left + origin * (1 - scale), scale 3.
+    // Painted left edge = layout left + origin * (1 - scale).
     const paintedLeft = left + origin * (1 - 3);
     expect(paintedLeft).toBeCloseTo(720 - 600 - 8);
     expect(origin).toBeLessThanOrEqual(200);
