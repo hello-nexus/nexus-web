@@ -9,6 +9,7 @@ import type { DeckEditView } from '../widgets/types';
 import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
 import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
+import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
 import { surfaceSupportsTouch, type PanelLayout, type PanelSurface, type PanelWidget, type PanelConfigValue } from '../types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
@@ -483,6 +484,7 @@ export function PanelCatalogCell({
   label,
   selected = false,
   disabled = false,
+  disabledHint,
   onClick,
   showLabel = true,
   addedStage = null,
@@ -497,6 +499,8 @@ export function PanelCatalogCell({
   selected?: boolean;
   /** No room on the target grid: dimmed, unactivatable, out of the tab order. */
   disabled?: boolean;
+  /** Why a disabled card cannot be added, shown on hover or tap. */
+  disabledHint?: string;
   onClick?: () => void;
   /** Presentational mounts (marketing phone mock) drop the name strip. */
   showLabel?: boolean;
@@ -535,7 +539,7 @@ export function PanelCatalogCell({
       activate();
     }
   };
-  return (
+  const card = (
     <div
       ref={drag?.ref}
       {...drag?.listeners}
@@ -604,6 +608,7 @@ export function PanelCatalogCell({
       )}
     </div>
   );
+  return disabled && disabledHint ? <HoverTooltip body={disabledHint}>{card}</HoverTooltip> : card;
 }
 
 // Renders inside @dnd-kit's DragOverlay (portaled to body). Carries the panel

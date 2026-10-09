@@ -2,8 +2,8 @@ import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSPrope
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { Notice } from '../../components/common/Notice/Notice';
+import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useTranslation } from '../../lib/i18n';
@@ -339,6 +339,7 @@ export function PanelWidgetCatalog({
           selected={playlist ? playlist.enabled.includes(w.type) : selectedWidgetType === w.type}
           // Playlist toggles are not placements, so grid room and single-instance limits do not apply.
           disabled={!playlist && !addable}
+          disabledHint={!playlist && !addable && !alreadyPlaced && !gridFull ? t('panel.add.someTooLarge') : undefined}
           drag={drag}
           onClick={() => {
             if (playlist) {
@@ -361,19 +362,11 @@ export function PanelWidgetCatalog({
         : cell();
     });
 
-  // Cards are dimmed at the size they would actually insert at (pickSize), so
-  // the notice counts the same sizes the grid renders.
-  const unaddableCount = canAddSize
-    ? visible.filter(([, def]) => !fits(pickSize(def.meta))).length
-    : 0;
   // Fullness is a property of the grid, not of what is on screen: search and
   // the size chips both narrow `visible` to sets that can all miss while the
   // grid still has a hole. Probe the smallest size instead - nothing fitting
   // 1x1 is the only state the user cannot resolve from inside the catalog.
   const gridFull = canAddSize ? !fits('1x1') : false;
-  const noticeKey = unaddableCount === 0
-    ? null
-    : gridFull ? 'panel.add.full' : 'panel.add.someTooLarge';
 
   // The widget browser always renders cards opaque; the device's widget-opacity
   // setting applies only on-device and in the device preview, not while browsing.
@@ -417,13 +410,12 @@ export function PanelWidgetCatalog({
         </div>
       )}
       {/* Mounted empty and filled on change: a live region inserted with its
-          text already in place is not reliably announced, and the transition
-          that matters (a size chip making the notice appear) is exactly that
-          case. */}
+          text already in place is not reliably announced. A card that only
+          needs a smaller size says so on hover instead. */}
       <div className={styles.noticeRegion} role="status">
-        {noticeKey && (
+        {gridFull && (
           <div className={styles.notice}>
-            <Notice tone={gridFull ? 'warning' : 'info'}>{t(noticeKey)}</Notice>
+            <Notice tone="info">{t('panel.add.full')}</Notice>
           </div>
         )}
       </div>

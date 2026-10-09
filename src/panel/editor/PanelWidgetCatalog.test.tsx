@@ -85,6 +85,7 @@ vi.mock('../dnd/PanelDragCells', () => ({
     widget,
     label,
     disabled,
+    disabledHint,
     onClick,
     addedStage,
     onEditAdded,
@@ -93,6 +94,7 @@ vi.mock('../dnd/PanelDragCells', () => ({
     widget: { size: string };
     label: string;
     disabled?: boolean;
+    disabledHint?: string;
     onClick: () => void;
     addedStage?: 'added' | 'edit' | null;
     onEditAdded?: () => void;
@@ -101,6 +103,7 @@ vi.mock('../dnd/PanelDragCells', () => ({
     <button
       type="button"
       data-size={widget.size}
+      data-hint={disabledHint}
       disabled={disabled}
       // Mirrors the real cell: while the overlay is up the card edits (or does
       // nothing) instead of adding again, and leaving it clears the overlay.
@@ -204,22 +207,23 @@ describe('PanelWidgetCatalog', () => {
   describe('when the target grid is out of room', () => {
     // Default desktop browse sizes from the mock registry: clock 2x2,
     // media 2x2, lighting 4x4 (no 2x2 variant, so it keeps its own shape).
-    it('dims only the widgets whose size does not fit, and says a smaller one might', () => {
+    it('dims only the widgets whose size does not fit, and says why on hover', () => {
       const onAdd = vi.fn();
       render(
         <PanelWidgetCatalog surface="desktop" onAdd={onAdd} canAddSize={size => size !== '4x4'} />,
       );
 
       expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'panel.widget.clock' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'panel.widget.clock' })).not.toHaveAttribute('data-hint');
       expect(screen.getByRole('button', { name: 'panel.widget.media' })).toBeEnabled();
-      expect(screen.getByRole('status')).toHaveTextContent('panel.add.someTooLarge');
+      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toHaveAttribute('data-hint', 'panel.add.someTooLarge');
 
       fireEvent.click(screen.getByRole('button', { name: 'panel.widget.lighting' }));
       expect(onAdd).not.toHaveBeenCalled();
     });
 
-    it('reports the dashboard as full when no size fits at all', () => {
+    it('reports a full grid in a notice when no size fits at all', () => {
       render(<PanelWidgetCatalog surface="desktop" onAdd={vi.fn()} canAddSize={() => false} />);
 
       expect(screen.getByRole('status')).toHaveTextContent('panel.add.full');
@@ -240,10 +244,9 @@ describe('PanelWidgetCatalog', () => {
       expect(screen.getByRole('button', { name: 'panel.widget.media' })).toBeDisabled();
     });
 
-    it('dims nothing and shows no notice on surfaces that spill to a new page', () => {
+    it('dims nothing on surfaces that spill to a new page', () => {
       render(<PanelWidgetCatalog surface="y70" onAdd={vi.fn()} />);
 
-      expect(screen.getByRole('status')).toBeEmptyDOMElement();
       expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeEnabled();
     });
 
@@ -255,7 +258,7 @@ describe('PanelWidgetCatalog', () => {
       });
 
       expect(screen.getByText('panel.add.noMatches')).toBeInTheDocument();
-      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      expect(screen.getByRole('status')).toHaveTextContent('panel.add.full');
     });
 
     // Fullness is a property of the grid, not of the filtered view: a search
@@ -274,7 +277,7 @@ describe('PanelWidgetCatalog', () => {
       });
 
       expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeDisabled();
-      expect(screen.getByRole('status')).toHaveTextContent('panel.add.someTooLarge');
+      expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toHaveAttribute('data-hint', 'panel.add.someTooLarge');
     });
   });
 

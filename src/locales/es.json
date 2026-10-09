@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "Preferir {size}",
   "panel.add.searchPlaceholder": "Buscar widgets...",
   "panel.add.sizePreference": "Tamaño de widget preferido",
-  "panel.add.someTooLarge": "Los widgets atenuados necesitan más espacio del que queda en tu panel. Prueba con un tamaño más pequeño.",
+  "panel.add.someTooLarge": "No hay espacio para este tamaño. Prueba un tamaño más pequeño.",
   "panel.connectedTo": "Conectado a",
   "panel.editor.addWidgetTitle": "Añadir un widget",
   "panel.editor.hostName.hint": "Se muestra a los teléfonos emparejados y en la bandeja del panel.",

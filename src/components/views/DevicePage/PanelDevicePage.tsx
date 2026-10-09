@@ -1353,28 +1353,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         // the button could do nothing but report an error.
         tabActions={showFwGate || showDisconnected || recordSecondaryMonitor ? undefined : (
           <>
-            {widgetSizeOptions && widgetSizeMode && (
-              <ChipGroup
-                className={styles.widgetSizeSwitch}
-                ariaLabel={t('devices.panels.widgetSize.label')}
-                activeKey={widgetSizeMode}
-                onChange={requestWidgetSize}
-                options={[
-                  {
-                    key: WIDGET_SIZE_LARGE,
-                    label: <><Square size={14} aria-hidden />{t('devices.panels.widgetSize.large')}</>,
-                    tooltip: t('devices.panels.widgetSize.label'),
-                    disabled: !editingDeviceId,
-                  },
-                  {
-                    key: WIDGET_SIZE_SMALL,
-                    label: <><LayoutGrid size={14} aria-hidden />{t('devices.panels.widgetSize.small')}</>,
-                    tooltip: t('devices.panels.widgetSize.label'),
-                    disabled: !editingDeviceId,
-                  },
-                ]}
-              />
-            )}
             {editingDeviceId && <PanelPresetToolbar key={editingDeviceId} deviceId={editingDeviceId} />}
             <Button
               size="sm"
@@ -1474,8 +1452,32 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         aria-disabled={recordSecondaryMonitor || undefined}
                         inert={recordSecondaryMonitor || undefined}
                       >
-                        {widgetPlaylist && (
+                        {((widgetSizeOptions && widgetSizeMode) || widgetPlaylist) && (
                           <div className={styles.playlistPanel}>
+                            <div className={styles.widgetModeRow}>
+                            {widgetSizeOptions && widgetSizeMode && (
+                              <ChipGroup
+                                fullWidth
+                                ariaLabel={t('devices.panels.widgetSize.label')}
+                                activeKey={widgetSizeMode}
+                                onChange={requestWidgetSize}
+                                options={[
+                                  {
+                                    key: WIDGET_SIZE_LARGE,
+                                    label: <><Square size={14} aria-hidden />{t('devices.panels.widgetSize.large')}</>,
+                                    tooltip: t('devices.panels.widgetSize.label'),
+                                    disabled: !editingDeviceId,
+                                  },
+                                  {
+                                    key: WIDGET_SIZE_SMALL,
+                                    label: <><LayoutGrid size={14} aria-hidden />{t('devices.panels.widgetSize.small')}</>,
+                                    tooltip: t('devices.panels.widgetSize.label'),
+                                    disabled: !editingDeviceId,
+                                  },
+                                ]}
+                              />
+                            )}
+                            {widgetPlaylist && (
                             <ChipGroup
                               fullWidth
                               ariaLabel={t('panel.playlist.mode')}
@@ -1490,7 +1492,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
                               ))}
                             />
-                            {playlistMode && (
+                            )}
+                            </div>
+                            {widgetPlaylist && playlistMode && (
                               <WidgetPlaylistEditor
                                 playlist={widgetPlaylist}
                                 onChange={patch => updateLayout(updateWidgetPlaylist(layout, patch))}

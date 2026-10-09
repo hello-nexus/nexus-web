@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "首选{size}",
   "panel.add.searchPlaceholder": "搜索小部件...",
   "panel.add.sizePreference": "首选小部件大小",
-  "panel.add.someTooLarge": "变暗的微件所需空间超过仪表板的剩余空间。请尝试更小的尺寸。",
+  "panel.add.someTooLarge": "空间不足以放下此尺寸。请尝试更小的尺寸。",
   "panel.connectedTo": "已连接到",
   "panel.editor.addWidgetTitle": "添加小组件",
   "panel.editor.hostName.hint": "显示给已配对的手机及面板托盘。",

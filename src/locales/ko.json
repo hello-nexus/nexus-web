@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "{size} 선호",
   "panel.add.searchPlaceholder": "위젯 검색...",
   "panel.add.sizePreference": "선호하는 위젯 크기",
-  "panel.add.someTooLarge": "흐리게 표시된 위젯은 대시보드에 남은 공간보다 더 많은 자리가 필요합니다. 더 작은 크기를 사용해 보세요.",
+  "panel.add.someTooLarge": "이 크기를 놓을 공간이 부족합니다. 더 작은 크기를 사용해 보세요.",
   "panel.connectedTo": "연결 대상",
   "panel.editor.addWidgetTitle": "위젯 추가",
   "panel.editor.hostName.hint": "페어링된 휴대폰과 패널 트레이에 표시됩니다.",

@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "{size} bevorzugen",
   "panel.add.searchPlaceholder": "Widgets suchen...",
   "panel.add.sizePreference": "Bevorzugte Widget-Größe",
-  "panel.add.someTooLarge": "Ausgegraute Widgets brauchen mehr Platz, als auf deinem Dashboard frei ist. Probiere eine kleinere Größe.",
+  "panel.add.someTooLarge": "Nicht genug Platz für diese Größe. Probiere eine kleinere Größe.",
   "panel.connectedTo": "Verbunden mit",
   "panel.editor.addWidgetTitle": "Widget hinzufügen",
   "panel.editor.hostName.hint": "Wird gekoppelten Telefonen und im Panel-Infobereich angezeigt.",

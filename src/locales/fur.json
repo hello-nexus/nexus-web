@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "Preferî {size}",
   "panel.add.searchPlaceholder": "Cîr widget...",
   "panel.add.sizePreference": "Dimension preferide dal widget",
-  "panel.add.someTooLarge": "I widget smavîts a àn bisugne di plui puest di chel che al reste tal to cruscot. Prove une dimension plui piçule.",
+  "panel.add.someTooLarge": "No je vonde puest par cheste dimension. Prove une dimension plui piçule.",
   "panel.connectedTo": "Conetût a",
   "panel.editor.addWidgetTitle": "Zonte un widget",
   "panel.editor.hostName.hint": "Mostrât ai telefonos associâts e te bare dal panel.",

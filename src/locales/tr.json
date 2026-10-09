@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "{size} tercih et",
   "panel.add.searchPlaceholder": "Widget ara...",
   "panel.add.sizePreference": "Tercih edilen widget boyutu",
-  "panel.add.someTooLarge": "Soluk görünen widget'lar panonuzda kalandan daha fazla yer istiyor. Daha küçük bir boyut deneyin.",
+  "panel.add.someTooLarge": "Bu boyut için yeterli yer yok. Daha küçük bir boyut deneyin.",
   "panel.connectedTo": "Baglanilan",
   "panel.editor.addWidgetTitle": "Bir widget ekle",
   "panel.editor.hostName.hint": "Eşleştirilmiş telefonlara ve panel tepsisinde gösterilir.",

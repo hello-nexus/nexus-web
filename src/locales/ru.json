@@ -3370,7 +3370,7 @@
   "panel.add.preferSize": "Предпочитать {size}",
   "panel.add.searchPlaceholder": "Поиск виджетов...",
   "panel.add.sizePreference": "Предпочтительный размер виджета",
-  "panel.add.someTooLarge": "Затемнённым виджетам нужно больше места, чем осталось на панели. Попробуйте размер поменьше.",
+  "panel.add.someTooLarge": "Для этого размера не хватает места. Попробуйте размер поменьше.",
   "panel.connectedTo": "Подключено к",
   "panel.editor.addWidgetTitle": "Добавить виджет",
   "panel.editor.hostName.hint": "Показывается сопряжённым телефонам и в трее панели.",

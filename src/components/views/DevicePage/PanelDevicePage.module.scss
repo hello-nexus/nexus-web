@@ -251,11 +251,6 @@
   flex-direction: column;
 }
 
-// Widget size switch in the header, beside the presets rail.
-.widgetSizeSwitch {
-  flex-shrink: 0;
-}
-
 .troubleshootLink {
   display: inline-flex;
   align-items: center;
@@ -287,6 +282,17 @@
   gap: 8px;
   flex-shrink: 0;
   margin: 4px 0 8px;
+}
+
+// Widget size and Single / Playlist share one row, each half of it.
+.widgetModeRow {
+  display: flex;
+  gap: 8px;
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 
 // --- Theme Panel ---

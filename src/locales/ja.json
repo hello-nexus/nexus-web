@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "{size}を優先",
   "panel.add.searchPlaceholder": "ウィジェットを検索...",
   "panel.add.sizePreference": "優先ウィジェットサイズ",
-  "panel.add.someTooLarge": "淡色表示のウィジェットは、ダッシュボードの残りより広い場所が必要です。小さいサイズをお試しください。",
+  "panel.add.someTooLarge": "このサイズを置く空きがありません。小さいサイズを試してください。",
   "panel.connectedTo": "接続先",
   "panel.editor.addWidgetTitle": "ウィジェットを追加",
   "panel.editor.hostName.hint": "ペアリングしたスマートフォンやパネルトレイに表示されます。",

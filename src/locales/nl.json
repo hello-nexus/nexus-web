@@ -3329,7 +3329,7 @@
   "panel.add.preferSize": "Voorkeur {size}",
   "panel.add.searchPlaceholder": "Widgets zoeken...",
   "panel.add.sizePreference": "Gewenste widgetgrootte",
-  "panel.add.someTooLarge": "Gedimde widgets hebben meer ruimte nodig dan er op je dashboard over is. Probeer een kleiner formaat.",
+  "panel.add.someTooLarge": "Niet genoeg ruimte voor deze grootte. Probeer een kleinere grootte.",
   "panel.connectedTo": "Verbonden met",
   "panel.editor.addWidgetTitle": "Een widget toevoegen",
   "panel.editor.hostName.hint": "Wordt getoond aan gekoppelde telefoons en in het paneelvak.",
