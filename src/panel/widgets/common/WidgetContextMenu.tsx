@@ -116,20 +116,26 @@ export function WidgetContextMenu({
     const rect = el.getBoundingClientRect();
     el.style.removeProperty('transform');
     const safeInsets = readSafeAreaInsets();
-    let nx = x;
-    let ny = y;
-    if (nx + rect.width > window.innerWidth - safeInsets.right) nx = window.innerWidth - rect.width - safeInsets.right;
-    if (ny + rect.height > window.innerHeight - safeInsets.bottom) ny = window.innerHeight - rect.height - safeInsets.bottom;
-    if (nx < safeInsets.left) nx = safeInsets.left;
-    if (ny < safeInsets.top) ny = safeInsets.top;
+    // The painted (scaled) menu is what must stay on screen.
+    let px = x;
+    let py = y;
+    if (px + rect.width > window.innerWidth - safeInsets.right) px = window.innerWidth - rect.width - safeInsets.right;
+    if (py + rect.height > window.innerHeight - safeInsets.bottom) py = window.innerHeight - rect.height - safeInsets.bottom;
+    if (px < safeInsets.left) px = safeInsets.left;
+    if (py < safeInsets.top) py = safeInsets.top;
+    // transform-origin is in unscaled px and scaling about it moves the painted
+    // edge, so the layout box is offset to keep the painted box at (px, py).
+    const sx = el.offsetWidth > 0 ? rect.width / el.offsetWidth : 1;
+    const sy = el.offsetHeight > 0 ? rect.height / el.offsetHeight : 1;
+    const ox = clamp((x - px) / sx, 16, el.offsetWidth - 16);
+    const oy = clamp((y - py) / sy, 16, el.offsetHeight - 16);
+    const nx = px + ox * (sx - 1);
+    const ny = py + oy * (sy - 1);
     // Measure-then-position: useLayoutEffect reads the rendered menu rect
     // and commits clamped coordinates before paint, so no off-screen flash.
-     
+
     setPos({ x: nx, y: ny });
-    setOrigin({
-      x: clamp(x - nx, 16, rect.width - 16),
-      y: clamp(y - ny, 16, rect.height - 16),
-    });
+    setOrigin({ x: ox, y: oy });
     // offsetWidth/offsetHeight return the layout box without CSS transforms;
     // the desktop overlay never scales the menu, so that is its resting size.
     onBoundsChangeRef.current?.({ x: nx, y: ny, w: el.offsetWidth, h: el.offsetHeight });

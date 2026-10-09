@@ -286,14 +286,6 @@
   margin: 4px 0 8px;
 }
 
-// Left-aligned Grid and Mode groups, spaced wider than each caption from its chips.
-.widgetModeRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-sm) var(--space-xl);
-}
-
 // --- Theme Panel ---
 
 .themePanel {

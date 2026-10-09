@@ -132,13 +132,11 @@ import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog, catalogEntriesFor } from '../../../panel/editor/PanelWidgetCatalog';
 import { WidgetPlaylistEditor } from '../../../panel/editor/WidgetPlaylistEditor';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
+import { Card } from '../../common/Card/Card';
 import '../../../panel/styles/tokens.scss';
 import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
 import styles from './PanelDevicePage.module.scss';
 
-// ChipGroup keys for a single-widget panel's Single / Playlist switch.
-const WIDGET_MODE_SINGLE = 'single';
-const WIDGET_MODE_PLAYLIST = 'playlist';
 function isLandscapeCanvas(canvas?: { width?: number | null; height?: number | null }): boolean {
   return !!canvas?.width && !!canvas.height && canvas.width > canvas.height;
 }
@@ -1495,11 +1493,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         inert={recordSecondaryMonitor || undefined}
                       >
                         {((widgetSizeOptions && widgetSizeMode) || widgetPlaylist) && (
-                          <div className={styles.playlistPanel}>
-                            <div className={styles.widgetModeRow}>
-                              {widgetSizeOptions && widgetSizeMode && (
+                          <Card compact className={styles.playlistPanel}>
+                            {widgetSizeOptions && widgetSizeMode && (
+                              <SettingRow label={t('devices.panels.widgetSize.label')}>
                                 <ChipGroup
-                                  label={t('devices.panels.widgetSize.label')}
+                                  ariaLabel={t('devices.panels.widgetSize.label')}
                                   activeKey={widgetSizeMode}
                                   onChange={requestWidgetSize}
                                   options={[
@@ -1507,30 +1505,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                     { key: WIDGET_SIZE_SMALL, label: t('devices.panels.widgetSize.small'), disabled: !editingDeviceId },
                                   ]}
                                 />
-                              )}
-                              {widgetPlaylist && (
-                                <ChipGroup
-                                  label={t('panel.playlist.mode')}
-                                  options={[
-                                    { key: WIDGET_MODE_SINGLE, label: t('panel.playlist.single') },
-                                    { key: WIDGET_MODE_PLAYLIST, label: t('panel.playlist.playlist') },
-                                  ]}
-                                  activeKey={playlistMode ? WIDGET_MODE_PLAYLIST : WIDGET_MODE_SINGLE}
-                                  onChange={key => updateLayout(setWidgetPlaylistEnabled(
-                                    layout,
-                                    key === WIDGET_MODE_PLAYLIST,
-                                    catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
-                                  ))}
-                                />
-                              )}
-                            </div>
+                              </SettingRow>
+                            )}
+                            {widgetPlaylist && (
+                              <SettingToggle
+                                label={t('panel.playlist.playlist')}
+                                checked={playlistMode}
+                                onChange={on => updateLayout(setWidgetPlaylistEnabled(
+                                  layout,
+                                  on,
+                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
+                                ))}
+                              />
+                            )}
                             {widgetPlaylist && playlistMode && (
                               <WidgetPlaylistEditor
                                 playlist={widgetPlaylist}
                                 onChange={patch => updateLayout(updateWidgetPlaylist(layout, patch))}
                               />
                             )}
-                          </div>
+                          </Card>
                         )}
                         <PanelWidgetCatalog
                           surface={surface}

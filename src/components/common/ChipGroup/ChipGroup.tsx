@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export interface ChipOption {
@@ -29,8 +29,6 @@ type ChipGroupMultiProps = {
 export type ChipGroupProps = {
   options: readonly ChipOption[];
   ariaLabel?: string;
-  /** Visible caption before the chips; it also names the group. */
-  label?: string;
   className?: string;
   /** Stretch the row to 100% width with each chip sharing it equally, for
    *  settings rows that read as a segmented control. Mirrors Tabs' fullWidth. */
@@ -49,9 +47,8 @@ export type ChipGroupProps = {
  * toggle independently, so they stay `aria-pressed` toggle buttons in a group.
  */
 export function ChipGroup(props: ChipGroupProps) {
-  const { options, ariaLabel, label, className, fullWidth, wrap } = props;
+  const { options, ariaLabel, className, fullWidth, wrap } = props;
   const groupRef = useRef<HTMLDivElement>(null);
-  const labelId = useId();
 
   // Radio semantics put the whole group on one tab stop and arrows move inside
   // it. Movement does NOT select: callers commit real work on change - a keeb
@@ -87,13 +84,12 @@ export function ChipGroup(props: ChipGroupProps) {
       ?? options.find(o => !o.disabled))?.key
     : undefined;
 
-  const group = (
+  return (
     <div
       ref={groupRef}
-      className={classNames('chip-group', fullWidth && 'chip-group-full', wrap && 'chip-group-wrap', !label && className)}
+      className={classNames('chip-group', fullWidth && 'chip-group-full', wrap && 'chip-group-wrap', className)}
       role={singleSelect ? 'radiogroup' : 'group'}
-      aria-label={label ? undefined : ariaLabel}
-      aria-labelledby={label ? labelId : undefined}
+      aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
     >
       {options.map(opt => {
@@ -126,13 +122,6 @@ export function ChipGroup(props: ChipGroupProps) {
           ? <HoverTooltip key={opt.key} body={opt.tooltip}>{chip}</HoverTooltip>
           : chip;
       })}
-    </div>
-  );
-  if (!label) return group;
-  return (
-    <div className={classNames('chip-group-labelled', className)}>
-      <span id={labelId} className="chip-group-label">{label}</span>
-      {group}
     </div>
   );
 }

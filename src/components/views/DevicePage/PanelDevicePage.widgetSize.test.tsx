@@ -153,8 +153,8 @@ describe('PanelDevicePage widget size', () => {
     expect(patches()[0].widgetSize).toBe('large');
     expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['clock']);
     await waitFor(() => expect(screen.getByTestId('embed').dataset.surface).toBe('q60'));
-    // The one-widget size carries the Q-series Single / Playlist rotation.
-    expect(screen.getByRole('radiogroup', { name: 'panel.playlist.mode' })).toBeInTheDocument();
+    // The one-widget size carries the Q-series playlist switch.
+    expect(screen.getByRole('switch', { name: 'panel.playlist.playlist' })).toBeInTheDocument();
   });
 
   it('switches straight to small when everything fits', async () => {
@@ -167,7 +167,7 @@ describe('PanelDevicePage widget size', () => {
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0].widgetSize).toBe('small');
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
-    expect(screen.queryByRole('radiogroup', { name: 'panel.playlist.mode' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'panel.playlist.playlist' })).not.toBeInTheDocument();
   });
 
   it('keeps a non-touch panel on one page when its grid is full', async () => {
