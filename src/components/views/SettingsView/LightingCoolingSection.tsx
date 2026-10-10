@@ -12,6 +12,7 @@ import {
   setRenderGpu, setSleepBlackout,
 } from '../../../api/lighting';
 import { useBrightnessSchedule } from '../../../hooks/useBrightnessSchedule';
+import { useIdleDim } from '../../../hooks/useIdleDim';
 import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
 import { useSensors, type HardwareSensor } from '../../../hooks/useSensors';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -60,6 +61,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
   // Master-brightness schedule: every platform, since it lives in the frame
   // writers rather than in any OS hook.
   const brightnessSchedule = useBrightnessSchedule(serviceOnline);
+  const idleDim = useIdleDim(serviceOnline);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   // Only the Windows loopback can target one output; macOS captures the whole
   // system mix.
@@ -151,9 +153,11 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     </Button>
   ) : undefined;
 
+  // The row opens both the schedule and idle dimming, so it reads On if either is.
+  const idleDimOn = !!idleDim.state?.enabled && !!idleDim.state.supported;
   const scheduleState = brightnessSchedule.schedule === null
     ? undefined
-    : brightnessSchedule.schedule.enabled
+    : brightnessSchedule.schedule.enabled || idleDimOn
       ? { label: t('lighting.schedule.row.on'), tone: 'accent' as const }
       : { label: t('lighting.schedule.row.off'), tone: 'neutral' as const };
 
