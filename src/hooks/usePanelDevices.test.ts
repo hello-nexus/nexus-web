@@ -63,6 +63,12 @@ describe('buildPanelDevices promoted-monitor branding', () => {
     expect(device.iconSrc).toBe('/assets/devices/corsair.svg');
   });
 
+  it('gives a plain promoted monitor the promoted-monitor icon', () => {
+    const record = xeneonRecord('DEL A0B8');
+    record.capabilities = { surface: 'monitor', cssWidth: 1920, cssHeight: 1200 };
+    expect(firstDevice(record).iconSrc).toBe('/assets/devices/monitor-panel.svg');
+  });
+
   it('carries the record touch capability onto the device entry', () => {
     expect(firstDevice(xeneonRecord('CRX ED00')).capabilities.touch).toBe(true);
   });
