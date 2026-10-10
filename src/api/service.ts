@@ -749,6 +749,18 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   }
 }
 
+/** Like fetchServiceBlob, but also returns the HTTP status (0 = transport
+ *  failure) so a caller can tell a definitive miss from a transient one. */
+export async function fetchServiceBlobWithStatus(path: string): Promise<{ blob: Blob | null; status: number }> {
+  const { response, status } = await authFetchWithStatus(path);
+  if (!response || !response.ok) return { blob: null, status };
+  try {
+    return { blob: await response.blob(), status };
+  } catch {
+    return { blob: null, status: 0 };
+  }
+}
+
 /** Like fetchServiceBlob, but also exposes the response headers - callers
  *  that need a server-supplied detail (e.g. Content-Disposition on a file
  *  download) use this instead. */
