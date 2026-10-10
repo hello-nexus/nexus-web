@@ -2,14 +2,18 @@ import { useMemo } from 'react';
 import { Clock, RotateCcw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
-import { SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { Slider } from '../../common/Slider/Slider';
 import { CurveGraph, type CurveGraphAxis } from '../../../panel/widgets/cooling/page/CurveEditor';
 import type { CurvePoint } from '../../../api/cooling';
 import type { BrightnessSchedulePoint } from '../../../api/lighting';
 import type { BrightnessScheduleState } from '../../../hooks/useBrightnessSchedule';
+import { useIdleDim } from '../../../hooks/useIdleDim';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { SCHEDULE_EASING } from '../../../lib/brightnessSchedule';
+import { IDLE_DIM_TIMEOUTS, snapIdleTimeout } from '../../../lib/idleDim';
+import { slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import { hour12OptionFor, localizeNumbers } from '../../../lib/units';
 import styles from './BrightnessScheduleModal.module.scss';
 
@@ -30,7 +34,9 @@ interface BrightnessScheduleModalProps {
  * drag on the next push.
  */
 export function BrightnessScheduleModal({ open, onClose, state }: BrightnessScheduleModalProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  // The modal mounts only while open, so this fetches on open.
+  const idleDim = useIdleDim(true);
   const { timeFormat, numberFormat } = useUnitPrefs();
   const { schedule, defaults, current, minute, save } = state;
 
@@ -70,6 +76,18 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
     const sorted = [...schedule.points].sort((a, b) => a.hour - b.hour);
     return sorted.every((p, i) => p.hour === defaults[i].hour && p.brightness === defaults[i].brightness);
   }, [schedule, defaults]);
+
+  const idle = idleDim.state;
+  const idleSettings = idle && { enabled: idle.enabled, timeoutSeconds: idle.timeoutSeconds, level: idle.level };
+  const osOff = idle?.osScreenOffSeconds ?? null;
+  const screenOffLabel = osOff === null ? t('lighting.idleDim.timeout.screenOff')
+    : osOff === 0 ? t('lighting.idleDim.timeout.screenOffNever')
+      : t('lighting.idleDim.timeout.screenOffAfter', { duration: slideshowIntervalLabel(t, language, osOff) });
+  const timeoutOptions = idle ? [
+    ...(idle.screenOffSupported ? [{ value: '0', label: screenOffLabel }] : []),
+    ...IDLE_DIM_TIMEOUTS.map(s => ({ value: String(s), label: slideshowIntervalLabel(t, language, s) })),
+  ] : [];
+  const neverDims = !!idle && idle.timeoutSeconds === 0 && osOff === 0;
 
   return (
     <DeviceModal
@@ -121,6 +139,45 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
             {t('lighting.schedule.reset')}
           </Button>
         </div>
+
+        {idle?.supported && idleSettings && (
+          <div className={styles.idle}>
+            <SettingToggle
+              label={t('lighting.idleDim.enable.label')}
+              description={t('lighting.idleDim.enable.description')}
+              checked={idle.enabled}
+              onChange={enabled => { void idleDim.save({ ...idleSettings, enabled }); }}
+              stackOnNarrow
+            />
+            {idle.enabled && (
+              <>
+                <SettingSelect
+                  label={t('lighting.idleDim.timeout.label')}
+                  description={neverDims ? t('lighting.idleDim.timeout.neverNote') : undefined}
+                  descriptionBelow
+                  value={String(idle.timeoutSeconds === 0 ? 0 : snapIdleTimeout(idle.timeoutSeconds))}
+                  options={timeoutOptions}
+                  onChange={v => { void idleDim.save({ ...idleSettings, timeoutSeconds: Number(v) }); }}
+                />
+                <Slider
+                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                  orientation="stacked"
+                  editable
+                  trackFill
+                  label={t('lighting.idleDim.level.label')}
+                  ariaLabel={t('lighting.idleDim.level.label')}
+                  value={idle.level}
+                  min={0}
+                  max={100}
+                  step={1}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
+                  onChange={v => idleDim.preview({ ...idleSettings, level: v })}
+                  onCommit={v => { void idleDim.save({ ...idleSettings, level: v }); }}
+                />
+              </>
+            )}
+          </div>
+        )}
       </div>
     </DeviceModal>
   );

@@ -10,6 +10,8 @@ const api = vi.hoisted(() => ({
   setGlobalBrightness: vi.fn().mockResolvedValue(null),
   fetchBrightnessSchedule: vi.fn(),
   setBrightnessSchedule: vi.fn().mockResolvedValue(null),
+  fetchIdleDim: vi.fn().mockResolvedValue(null),
+  setIdleDim: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('../../../../api/lighting', () => api);
 vi.mock('../../../../hooks/useMultiplexSocket', () => ({ useTopicCallback: () => {} }));

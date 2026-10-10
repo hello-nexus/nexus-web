@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { fetchService, fetchServiceBlob } from '../../../api/service';
+import { fetchService, fetchServiceBlob, fetchServiceBlobWithStatus } from '../../../api/service';
 import { processIconPath } from '../../../api/processIcon';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { withMediaFetchSlot as withIconSlot } from '../../../lib/mediaFetchSlot';
@@ -240,8 +240,20 @@ function AppRow({ app, selected, unavailable, onSelect }: {
 // files, so it stays here and accepts the loss of fast-refresh for AppPicker's
 // component edits.
  
+// A 2xx or 404 settles the icon. A 503 (the Windows helper that extracts
+// icons is not connected yet, e.g. a kiosk panel at boot) or a transport
+// failure retries with capped backoff while mounted, and the deck topic's
+// "icons" frame (helper connected) refetches a missing icon at once.
+const ICON_RETRY_BASE_MS = 2000;
+const ICON_RETRY_MAX_MS = 30_000;
+
 export function useAppIcon(appId: string | undefined): string | null {
   const [iconUrl, setIconUrl] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useTopicCallback('deck', !!appId && !iconUrl, useCallback((data: unknown) => {
+    if ((data as { kind?: string } | null)?.kind === 'icons') setReloadToken(t => t + 1);
+  }, []));
 
   useEffect(() => {
     // Synchronise local icon state to the incoming appId prop. The reset
@@ -252,20 +264,33 @@ export function useAppIcon(appId: string | undefined): string | null {
     setIconUrl(null);
     let revoke = '';
     let cancelled = false;
-    void withIconSlot(async () => {
-      if (cancelled) return;
-      const blob = await fetchServiceBlob(`/shortcuts/icon?targetId=${encodeURIComponent(appId)}`);
-      if (!cancelled && blob && blob.size > 0) {
-        const url = URL.createObjectURL(blob);
-        revoke = url;
-        setIconUrl(url);
-      }
-    });
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryDelay = ICON_RETRY_BASE_MS;
+    const attempt = async () => {
+      const retry = await withIconSlot(async () => {
+        if (cancelled) return false;
+        const { blob, status } = await fetchServiceBlobWithStatus(`/shortcuts/icon?targetId=${encodeURIComponent(appId)}`);
+        if (cancelled) return false;
+        if (blob && blob.size > 0) {
+          const url = URL.createObjectURL(blob);
+          revoke = url;
+          setIconUrl(url);
+          return false;
+        }
+        // An empty 2xx body is the extractor's own "no icon" verdict; every 4xx is final.
+        return blob === null && (status === 0 || status >= 500);
+      });
+      if (cancelled || !retry) return;
+      retryTimer = setTimeout(() => { void attempt(); }, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, ICON_RETRY_MAX_MS);
+    };
+    void attempt();
     return () => {
       cancelled = true;
+      clearTimeout(retryTimer);
       if (revoke) URL.revokeObjectURL(revoke);
     };
-  }, [appId]);
+  }, [appId, reloadToken]);
 
   return iconUrl;
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LightingCoolingSection } from './LightingCoolingSection';
 import type { TempUnit } from '../../../lib/units';
@@ -50,6 +50,8 @@ const lightingApi = vi.hoisted(() => ({
     defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
   }),
   setBrightnessSchedule: vi.fn().mockResolvedValue(null),
+  fetchIdleDim: vi.fn().mockResolvedValue(null),
+  setIdleDim: vi.fn().mockResolvedValue(null),
   fetchAudioOutput: vi.fn().mockResolvedValue({ deviceId: '', deviceName: '' }),
   setAudioOutput: vi.fn().mockResolvedValue({ error: false }),
 }));
@@ -64,6 +66,8 @@ vi.mock('../../../api/lighting', () => ({
   setLockBlackout: lightingApi.setLockBlackout,
   fetchBrightnessSchedule: lightingApi.fetchBrightnessSchedule,
   setBrightnessSchedule: lightingApi.setBrightnessSchedule,
+  fetchIdleDim: lightingApi.fetchIdleDim,
+  setIdleDim: lightingApi.setIdleDim,
   fetchAudioOutput: lightingApi.fetchAudioOutput,
   setAudioOutput: lightingApi.setAudioOutput,
 }));
@@ -118,6 +122,27 @@ describe('LightingCoolingSection brightness schedule', () => {
       defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
     });
     lightingApi.setBrightnessSchedule.mockReset().mockResolvedValue(null);
+    lightingApi.fetchIdleDim.mockReset().mockResolvedValue(null);
+  });
+
+  const idleDimState = (enabled: boolean, supported: boolean) => ({
+    enabled, timeoutSeconds: 0, level: 10, supported, screenOffSupported: true, osScreenOffSeconds: 3600,
+  });
+
+  it('reads On when idle dimming is on and the schedule is off', async () => {
+    lightingApi.fetchIdleDim.mockResolvedValue(idleDimState(true, true));
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    expect(await screen.findByText('lighting.schedule.row.on')).toBeInTheDocument();
+  });
+
+  it('ignores idle dimming the platform cannot run', async () => {
+    lightingApi.fetchIdleDim.mockResolvedValue(idleDimState(true, false));
+    render(<LightingCoolingSection serviceOnline platform="linux" />);
+
+    await waitFor(() => expect(lightingApi.fetchIdleDim).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByText('lighting.schedule.row.off')).toBeInTheDocument();
   });
 
   it('names the schedule state on the row and opens the editor', async () => {
