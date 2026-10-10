@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
+  fitLayoutToPages,
   flattenPages,
   layoutRowExtent,
   overflowLayout,
@@ -389,5 +390,69 @@ describe('layoutRowExtent', () => {
     const layout = layoutOf([widget('4x4', 0, 0, 'a'), widget('2x2', 4, 6, 'b')]);
     expect(layoutRowExtent(layout)).toBe(8);
     expect(layoutRowExtent(layoutOf([]))).toBe(0);
+  });
+});
+
+describe('fitLayoutToPages', () => {
+  // The 6x4 grid a 16:9 monitor gets at the Large widget size.
+  const capacity = { gridCols: 6, pageRows: 4 };
+
+  it('returns the input when every page fits', () => {
+    const l: PanelLayout = { pages: [{ id: 'p1', widgets: [widget('4x4', 0, 0), widget('2x2', 4, 0)] }] };
+    expect(fitLayoutToPages(l, capacity, 10)).toEqual({ layout: l, dropped: [] });
+  });
+
+  it('moves what a page cannot hold to a new page right after it', () => {
+    const l: PanelLayout = {
+      activePageId: 'p1',
+      pages: [
+        { id: 'p1', label: 'Home', widgets: [widget('4x4', 0, 0, 'a'), widget('2x2', 4, 0, 'b'), widget('4x2', 0, 4, 'c'), widget('2x2', 4, 4, 'd')] },
+        { id: 'p2', widgets: [widget('2x2', 0, 0, 'e')] },
+      ],
+    };
+    const { layout: fitted, dropped } = fitLayoutToPages(l, capacity, 10);
+    expect(dropped).toEqual([]);
+    expect(fitted.activePageId).toBe('p1');
+    expect(fitted.pages.map(p => p.id)).toEqual(['p1', fitted.pages[1].id, 'p2']);
+    expect(fitted.pages[0].label).toBe('Home');
+    expect(fitted.pages.map(p => p.widgets.map(w => w.id))).toEqual([['a', 'b', 'd'], ['c'], ['e']]);
+    for (const page of fitted.pages) assertNoClip(page.widgets, capacity.gridCols, capacity.pageRows);
+  });
+
+  it('drops the overflow once the page cap is reached, keeping room for later pages', () => {
+    const l: PanelLayout = {
+      pages: [
+        { id: 'p1', widgets: [widget('4x4', 0, 0, 'a'), widget('4x4', 0, 4, 'b')] },
+        { id: 'p2', widgets: [widget('2x2', 0, 0, 'c')] },
+      ],
+    };
+    const { layout: fitted, dropped } = fitLayoutToPages(l, capacity, 2);
+    expect(dropped.map(w => w.id)).toEqual(['b']);
+    expect(fitted.pages.map(p => p.widgets.map(w => w.id))).toEqual([['a'], ['c']]);
+  });
+
+  it('lets widgets inside the grid keep their cells before an off-grid one moves', () => {
+    const l: PanelLayout = { pages: [{ id: 'p1', widgets: [widget('2x2', 6, 0, 'out'), widget('2x2', 0, 0, 'home')] }] };
+    const { layout: fitted } = fitLayoutToPages(l, capacity, 10);
+    expect(fitted.pages[0].widgets.find(w => w.id === 'home')).toMatchObject({ col: 0, row: 0 });
+    assertNoClip(fitted.pages[0].widgets, capacity.gridCols, capacity.pageRows);
+  });
+
+  it('keeps the immersive-on-load widget on the first page', () => {
+    const l: PanelLayout = {
+      immersiveOnLoadWidgetId: 'm',
+      pages: [{ id: 'p1', widgets: [widget('2x2', 0, 0, 'home'), widget('4x4', 2, 0, 'x'), widget('4x4', 0, 4, 'm')] }],
+    };
+    const { layout: fitted, dropped } = fitLayoutToPages(l, capacity, 10);
+    expect(dropped).toEqual([]);
+    expect(fitted.pages[0].widgets.map(w => w.id)).toContain('m');
+    for (const page of fitted.pages) assertNoClip(page.widgets, capacity.gridCols, capacity.pageRows);
+  });
+
+  it('keeps a stored page whose widgets no page can hold', () => {
+    const l: PanelLayout = { activePageId: 'p1', pages: [{ id: 'p1', widgets: [widget('2x4', 0, 0, 'a')] }] };
+    const { layout: fitted, dropped } = fitLayoutToPages(l, { gridCols: 8, pageRows: 2 }, 10);
+    expect(dropped.map(w => w.id)).toEqual(['a']);
+    expect(fitted.pages).toEqual([{ id: 'p1', widgets: [] }]);
   });
 });

@@ -37,7 +37,7 @@ import { normalizePanelWidgetPadding } from '../../../panel/background/panelBack
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
-import { fitLayoutToSinglePage, repaginatePanelLayout, type PaginateCapacity } from '../../../panel/engine/paginate';
+import { fitLayoutToPages, fitLayoutToSinglePage, repaginatePanelLayout, type PaginateCapacity } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import {
@@ -907,6 +907,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         const match = matchPanelRecord(list?.devices, device?.panelRecordId, glassSurface);
         if (!match) return;
         setEditingDeviceId(match.id);
+        // A capability, not a user edit: a family-less page offers the plain-monitor Widget size.
+        setRecordFamily(match.capabilities?.family);
         const since = rebootRequestedAtRef.current;
         if (since !== null && (match.lastSeenAt ?? 0) > since) {
           rebootRequestedAtRef.current = null;
@@ -1090,9 +1092,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)));
     const kept = new Set(normalized.pages.flatMap(p => p.widgets.map(w => w.id)));
     const removed = layout.pages.flatMap(p => p.widgets).filter(w => !kept.has(w.id));
-    // A forced grid width can leave widgets without room on a panel that keeps one page.
+    // A forced grid can leave widgets without room: they move to new pages where the
+    // panel can swipe, else they go.
     const canvas = liveCanvas ?? device?.previewSize;
-    if (targetSlots === undefined || !canvas || surfaceAllowsPages(target, targetTouch)) return { layout: normalized, removed };
+    if (targetSlots === undefined || !canvas) return { layout: normalized, removed };
     const capacity = monitorGridCapacity(
       canvas,
       canvasDpr,
@@ -1100,7 +1103,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
       targetSlots,
     );
-    const fit = fitLayoutToSinglePage(normalized, capacity);
+    const fit = surfaceAllowsPages(target, targetTouch)
+      ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
+      : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
   }, [canvasDpr, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);

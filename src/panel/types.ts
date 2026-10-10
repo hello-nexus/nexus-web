@@ -171,6 +171,11 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }
+  // A plain OS monitor's desk-distance density estimate gives most screens the dense
+  // short axis; Large forces the coarse one.
+  if (surface === 'monitor' && !family) {
+    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 4 } };
+  }
   return undefined;
 }
 

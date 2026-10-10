@@ -1,5 +1,6 @@
 import type { PanelLayout, PanelPage, PanelWidget } from '../types';
 import { sizeToSpan, strideScanSteps } from './grid';
+import { createUuid } from '../../lib/uuid';
 
 export interface PaginateCapacity {
   gridCols: number;
@@ -317,10 +318,31 @@ export function flattenPages(pages: PanelPage[]): PanelWidget[] {
   );
 }
 
+function insideGrid(rect: WidgetRect, cols: number, rows: number): boolean {
+  return rect.col >= 0 && rect.row >= 0 && rect.col + rect.colSpan <= cols && rect.row + rect.rowSpan <= rows;
+}
+
+// Places each widget on one page in order: it keeps its cell when that sits inside
+// the grid clear of those already placed, else takes the first free rect.
+function fillPage(widgets: readonly PanelWidget[], cols: number, rows: number): { placed: PanelWidget[]; overflow: PanelWidget[] } {
+  const placed: PanelWidget[] = [];
+  const overflow: PanelWidget[] = [];
+  for (const w of widgets) {
+    const rect = widgetRect(w, cols);
+    if (insideGrid(rect, cols, rows) && !placed.some(o => rectsOverlap(widgetRect(o, cols), rect))) {
+      placed.push(w);
+      continue;
+    }
+    const slot = firstFreeRect(placed, cols, rows, rect.colSpan, rect.rowSpan);
+    if (slot) placed.push({ ...w, col: slot.col, row: slot.row });
+    else overflow.push(w);
+  }
+  return { placed, overflow };
+}
+
 /**
- * Fits every widget onto one page of the given grid: a widget keeps its cell
- * when it sits inside the grid clear of the others, else takes the first free
- * rect, else is dropped. Returns the input when it already fits one page.
+ * Fits every widget onto one page of the given grid (fillPage); what does not
+ * fit is dropped. Returns the input when it already fits one page.
  */
 export function fitLayoutToSinglePage(
   layout: PanelLayout,
@@ -331,23 +353,50 @@ export function fitLayoutToSinglePage(
   const rows = Math.max(1, Math.floor(capacity.pageRows));
   const all = layout.pages.flatMap(p => p.widgets);
   if (layout.pages.length === 1 && pageFitsGrid(all, cols, rows)) return { layout, dropped: [] };
-  const placed: PanelWidget[] = [];
-  const dropped: PanelWidget[] = [];
-  for (const w of flattenPages(layout.pages)) {
-    const rect = widgetRect(w, cols);
-    const inside = rect.col >= 0 && rect.row >= 0
-      && rect.col + rect.colSpan <= cols && rect.row + rect.rowSpan <= rows;
-    if (inside && !placed.some(o => rectsOverlap(widgetRect(o, cols), rect))) {
-      placed.push(w);
-      continue;
-    }
-    const slot = firstFreeRect(placed, cols, rows, rect.colSpan, rect.rowSpan);
-    if (slot) placed.push({ ...w, col: slot.col, row: slot.row });
-    else dropped.push(w);
-  }
+  const { placed, overflow } = fillPage(flattenPages(layout.pages), cols, rows);
   const first = layout.pages[0];
   return {
     layout: { ...layout, activePageId: first?.id, pages: [{ id: first?.id ?? '', widgets: placed }] },
-    dropped,
+    dropped: overflow,
   };
+}
+
+/**
+ * Fits each page to the given grid (fillPage); what a page cannot hold opens a
+ * new page right after it, and past maxPages is dropped. Returns the input when
+ * every page already fits.
+ */
+export function fitLayoutToPages(
+  layout: PanelLayout,
+  capacity: PaginateCapacity,
+  maxPages: number,
+): { layout: PanelLayout; dropped: PanelWidget[] } {
+  const cols = Math.max(1, Math.floor(capacity.gridCols));
+  const rows = Math.max(1, Math.floor(capacity.pageRows));
+  if (layout.pages.every(p => pageFitsGrid(p.widgets, cols, rows))) return { layout, dropped: [] };
+  const pages: PanelPage[] = [];
+  const dropped: PanelWidget[] = [];
+  layout.pages.forEach((page, index) => {
+    let id = page.id;
+    // Immersive-on-load is honoured on the first page only, so its widget places first
+    // there; widgets already inside the grid then keep their cells before the rest move.
+    const mark = index === 0 ? layout.immersiveOnLoadWidgetId : undefined;
+    const rank = (w: PanelWidget) => (w.id === mark ? 0 : insideGrid(widgetRect(w, cols), cols, rows) ? 1 : 2);
+    let pending: readonly PanelWidget[] = flattenPages([page]).sort((a, b) => rank(a) - rank(b));
+    for (;;) {
+      const { placed, overflow } = fillPage(pending, cols, rows);
+      // A stored page stays even when emptied: activePageId may name it.
+      if (id === page.id) pages.push({ ...page, widgets: placed });
+      else if (placed.length > 0) pages.push({ id, widgets: placed });
+      if (overflow.length === 0) return;
+      // Nothing placed means no empty page holds them; later stored pages keep their room.
+      if (placed.length === 0 || pages.length + (layout.pages.length - index - 1) >= maxPages) {
+        dropped.push(...overflow);
+        return;
+      }
+      id = createUuid();
+      pending = overflow;
+    }
+  });
+  return { layout: { ...layout, pages }, dropped };
 }

@@ -95,11 +95,20 @@ describe('Widget size', () => {
     expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });
 
+  it('starts a plain monitor small on its density grid, and large forces a 4-slot short axis', () => {
+    expect(resolvePanelWidgetSize('monitor', undefined, null)).toBe('small');
+    expect(resolvePanelWidgetSize('monitor', null, 'large')).toBe('large');
+    expect(panelShortSideSlots('monitor', undefined, null)).toBeUndefined();
+    expect(panelShortSideSlots('monitor', undefined, 'large')).toBe(4);
+    expect(panelLayoutSurface('monitor', undefined, 'large')).toBe('monitor');
+    expect(panelLayoutDpi('monitor', undefined, 'large', null, { monitor: 110 } as Record<PanelSurface, number>)).toBeUndefined();
+  });
+
   it('is not offered elsewhere, whatever a record carries', () => {
     expect(panelWidgetSizeOptions('monitor', 'xeneon-edge')).toBeUndefined();
     expect(panelWidgetSizeOptions('y70', undefined)).toBeUndefined();
     expect(panelLayoutSurface('y70', undefined, 'small')).toBe('y70');
-    expect(resolvePanelWidgetSize('monitor', undefined, 'large')).toBeUndefined();
+    expect(resolvePanelWidgetSize('phone', undefined, 'large')).toBeUndefined();
   });
 });
 
