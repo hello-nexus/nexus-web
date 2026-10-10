@@ -1271,3 +1271,20 @@ export const removeManualDevice = (kind: 'qmk' | 'e131', key: string, key2: stri
 
 export const importOpenRgbConfig = (path?: string) =>
   postService<ImportOpenRgbConfigResult>('/devices/openrgb/manual-devices/import', { path: path ?? '' });
+
+// Dim the lighting after the PC sits idle. `timeoutSeconds` 0 follows the OS
+// display-off event; any other value is an idle time. `level` is the percent
+// the lighting dims to. `supported` false hides the feature (no idle source);
+// `screenOffSupported` false means the display-off option is unavailable.
+// `osScreenOffSeconds` is the OS screen-off timeout (0 = never, null = unknown).
+export interface IdleDimSettings { enabled: boolean; timeoutSeconds: number; level: number }
+export interface IdleDimState extends IdleDimSettings {
+  supported: boolean;
+  screenOffSupported: boolean;
+  osScreenOffSeconds: number | null;
+}
+
+export const fetchIdleDim = () => fetchService<IdleDimState>('/lighting/idle-dim');
+
+export const setIdleDim = (settings: IdleDimSettings) =>
+  postService('/lighting/idle-dim', settings);

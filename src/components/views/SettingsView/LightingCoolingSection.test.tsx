@@ -50,6 +50,8 @@ const lightingApi = vi.hoisted(() => ({
     defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
   }),
   setBrightnessSchedule: vi.fn().mockResolvedValue(null),
+  fetchIdleDim: vi.fn().mockResolvedValue(null),
+  setIdleDim: vi.fn().mockResolvedValue(null),
   fetchAudioOutput: vi.fn().mockResolvedValue({ deviceId: '', deviceName: '' }),
   setAudioOutput: vi.fn().mockResolvedValue({ error: false }),
 }));
@@ -64,6 +66,8 @@ vi.mock('../../../api/lighting', () => ({
   setLockBlackout: lightingApi.setLockBlackout,
   fetchBrightnessSchedule: lightingApi.fetchBrightnessSchedule,
   setBrightnessSchedule: lightingApi.setBrightnessSchedule,
+  fetchIdleDim: lightingApi.fetchIdleDim,
+  setIdleDim: lightingApi.setIdleDim,
   fetchAudioOutput: lightingApi.fetchAudioOutput,
   setAudioOutput: lightingApi.setAudioOutput,
 }));
