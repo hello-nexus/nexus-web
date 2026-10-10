@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "In chest moment: {level}",
   "lighting.schedule.reset": "Torne ai valôrs predefinîts",
   "lighting.schedule.row.action": "Modifiche il program",
-  "lighting.schedule.row.description": "Al sbasse la iluminazion seont l'ore dal dì. La luminositât principâl e va daûr de curve, passant di un pont a chel altri minût par minût.",
+  "lighting.schedule.row.description": "Al sbasse la iluminazion seont l'ore dal dì o intant che il to PC al è inatîf.",
   "lighting.schedule.row.label": "Program de luminositât",
   "lighting.schedule.row.off": "Disativât",
   "lighting.schedule.row.on": "Ativât",

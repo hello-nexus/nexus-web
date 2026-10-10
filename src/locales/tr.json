@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "Şu anda: {level}",
   "lighting.schedule.reset": "Varsayılana sıfırla",
   "lighting.schedule.row.action": "Zamanlamayı düzenle",
-  "lighting.schedule.row.description": "Günün saatine göre aydınlatmayı kısar. Ana parlaklık eğriyi izler ve noktalar arasında dakika dakika yumuşak geçiş yapar.",
+  "lighting.schedule.row.description": "Aydınlatmayı günün saatine göre veya PC boşta kaldığı sürece kısar.",
   "lighting.schedule.row.label": "Parlaklık zamanlaması",
   "lighting.schedule.row.off": "Kapalı",
   "lighting.schedule.row.on": "Açık",

@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "Ahora mismo: {level}",
   "lighting.schedule.reset": "Restablecer valores predeterminados",
   "lighting.schedule.row.action": "Editar programación",
-  "lighting.schedule.row.description": "Atenúa la iluminación según la hora del día. El brillo maestro sigue la curva, pasando de un punto a otro minuto a minuto.",
+  "lighting.schedule.row.description": "Atenúa la iluminación según la hora del día o mientras tu PC está inactivo.",
   "lighting.schedule.row.label": "Programación de brillo",
   "lighting.schedule.row.off": "Desactivada",
   "lighting.schedule.row.on": "Activada",

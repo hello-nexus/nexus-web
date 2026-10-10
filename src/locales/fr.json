@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "En ce moment : {level}",
   "lighting.schedule.reset": "Rétablir la valeur par défaut",
   "lighting.schedule.row.action": "Modifier le programme",
-  "lighting.schedule.row.description": "Atténue l'éclairage selon l'heure de la journée. La luminosité générale suit la courbe, en glissant d'un point à l'autre minute par minute.",
+  "lighting.schedule.row.description": "Atténue l'éclairage selon l'heure de la journée ou lorsque votre PC est inactif.",
   "lighting.schedule.row.label": "Programme de luminosité",
   "lighting.schedule.row.off": "Désactivé",
   "lighting.schedule.row.on": "Activé",

@@ -3014,7 +3014,7 @@
   "lighting.schedule.now.on": "Teraz: {level}",
   "lighting.schedule.reset": "Przywróć domyślne",
   "lighting.schedule.row.action": "Edytuj harmonogram",
-  "lighting.schedule.row.description": "Przyciemnia oświetlenie zależnie od pory dnia. Jasność główna podąża za krzywą, przechodząc między punktami minuta po minucie.",
+  "lighting.schedule.row.description": "Przyciemnia oświetlenie zależnie od pory dnia lub gdy komputer jest bezczynny.",
   "lighting.schedule.row.label": "Harmonogram jasności",
   "lighting.schedule.row.off": "Wyłączony",
   "lighting.schedule.row.on": "Włączony",

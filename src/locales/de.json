@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "Gerade jetzt: {level}",
   "lighting.schedule.reset": "Auf Standard zurücksetzen",
   "lighting.schedule.row.action": "Zeitplan bearbeiten",
-  "lighting.schedule.row.description": "Dimmt die Beleuchtung nach Tageszeit. Die Gesamthelligkeit folgt der Kurve und gleitet Minute für Minute zwischen den Punkten.",
+  "lighting.schedule.row.description": "Dimmt die Beleuchtung nach Tageszeit oder solange dein PC inaktiv ist.",
   "lighting.schedule.row.label": "Helligkeitszeitplan",
   "lighting.schedule.row.off": "Aus",
   "lighting.schedule.row.on": "Ein",

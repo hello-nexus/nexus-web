@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "Nu: {level}",
   "lighting.schedule.reset": "Standaard herstellen",
   "lighting.schedule.row.action": "Schema bewerken",
-  "lighting.schedule.row.description": "Dim de verlichting op basis van het tijdstip. De hoofdhelderheid volgt de curve en verloopt minuut voor minuut tussen de punten.",
+  "lighting.schedule.row.description": "Dim de verlichting op basis van het tijdstip of zolang je pc inactief is.",
   "lighting.schedule.row.label": "Helderheidsschema",
   "lighting.schedule.row.off": "Uit",
   "lighting.schedule.row.on": "Aan",

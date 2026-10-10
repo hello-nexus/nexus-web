@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "当前：{level}",
   "lighting.schedule.reset": "恢复默认",
   "lighting.schedule.row.action": "编辑计划",
-  "lighting.schedule.row.description": "按一天中的时间调暗灯光。主亮度跟随曲线，在各点之间逐分钟平滑过渡。",
+  "lighting.schedule.row.description": "按一天中的时间或在 PC 空闲时调暗灯光。",
   "lighting.schedule.row.label": "亮度计划",
   "lighting.schedule.row.off": "关",
   "lighting.schedule.row.on": "开",

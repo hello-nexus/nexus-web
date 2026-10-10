@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "지금: {level}",
   "lighting.schedule.reset": "기본값으로 재설정",
   "lighting.schedule.row.action": "스케줄 편집",
-  "lighting.schedule.row.description": "시간대에 따라 조명을 어둡게 합니다. 마스터 밝기가 곡선을 따라 지점 사이를 1분 단위로 부드럽게 변합니다.",
+  "lighting.schedule.row.description": "시간대에 따라 또는 PC가 유휴 상태인 동안 조명을 어둡게 합니다.",
   "lighting.schedule.row.label": "밝기 스케줄",
   "lighting.schedule.row.off": "꺼짐",
   "lighting.schedule.row.on": "켜짐",

@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "現在: {level}",
   "lighting.schedule.reset": "デフォルトに戻す",
   "lighting.schedule.row.action": "スケジュールを編集",
-  "lighting.schedule.row.description": "時刻に応じてライティングを暗くします。マスター明るさは曲線に従い、ポイント間を1分ごとに滑らかに変化します。",
+  "lighting.schedule.row.description": "時刻に応じて、または PC がアイドル状態の間、ライティングを暗くします。",
   "lighting.schedule.row.label": "明るさスケジュール",
   "lighting.schedule.row.off": "オフ",
   "lighting.schedule.row.on": "オン",

@@ -3014,7 +3014,7 @@
   "lighting.schedule.now.on": "Сейчас: {level}",
   "lighting.schedule.reset": "Сбросить по умолчанию",
   "lighting.schedule.row.action": "Изменить расписание",
-  "lighting.schedule.row.description": "Приглушает подсветку в зависимости от времени суток. Общая яркость следует кривой, плавно переходя между точками каждую минуту.",
+  "lighting.schedule.row.description": "Приглушает подсветку в зависимости от времени суток или пока ПК простаивает.",
   "lighting.schedule.row.label": "Расписание яркости",
   "lighting.schedule.row.off": "Выкл.",
   "lighting.schedule.row.on": "Вкл.",

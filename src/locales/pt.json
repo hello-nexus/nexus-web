@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "Agora: {level}",
   "lighting.schedule.reset": "Repor predefinição",
   "lighting.schedule.row.action": "Editar horário",
-  "lighting.schedule.row.description": "Reduz a iluminação consoante a hora do dia. O brilho geral segue a curva, passando de um ponto a outro minuto a minuto.",
+  "lighting.schedule.row.description": "Reduz a iluminação consoante a hora do dia ou enquanto o PC estiver inativo.",
   "lighting.schedule.row.label": "Horário de brilho",
   "lighting.schedule.row.off": "Desativado",
   "lighting.schedule.row.on": "Ativado",

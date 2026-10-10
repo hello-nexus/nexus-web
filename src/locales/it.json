@@ -2979,7 +2979,7 @@
   "lighting.schedule.now.on": "In questo momento: {level}",
   "lighting.schedule.reset": "Ripristina predefinita",
   "lighting.schedule.row.action": "Modifica programmazione",
-  "lighting.schedule.row.description": "Attenua l'illuminazione in base all'ora del giorno. La luminosità generale segue la curva, passando da un punto all'altro minuto per minuto.",
+  "lighting.schedule.row.description": "Attenua l'illuminazione in base all'ora del giorno o mentre il tuo PC è inattivo.",
   "lighting.schedule.row.label": "Programmazione luminosità",
   "lighting.schedule.row.off": "Disattiva",
   "lighting.schedule.row.on": "Attiva",
