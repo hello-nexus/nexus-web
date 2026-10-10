@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrightnessScheduleModal } from './BrightnessScheduleModal';
 
@@ -7,7 +7,10 @@ const api = vi.hoisted(() => ({
   setIdleDim: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('../../../api/lighting', () => api);
-vi.mock('../../../hooks/useMultiplexSocket', () => ({ useTopicCallback: () => {} }));
+const topic = vi.hoisted(() => ({ fire: () => {} }));
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (_topic: string, _enabled: boolean, cb: () => void) => { topic.fire = cb; },
+}));
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUnitPrefs: () => ({ timeFormat: '24h', numberFormat: 'dot' }),
 }));
@@ -47,6 +50,8 @@ describe('BrightnessScheduleModal idle dimming', () => {
 
   it('hides the whole section when the platform does not support it', async () => {
     await open(idle({ supported: false }));
+    // Let the resolved fetch land in state before asserting absence.
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     expect(screen.queryByRole('switch', { name: 'lighting.idleDim.enable.label' })).not.toBeInTheDocument();
   });
 
@@ -114,6 +119,62 @@ describe('BrightnessScheduleModal idle dimming', () => {
       await open(idle({ enabled: false, screenOffSupported: false, osScreenOffSeconds: null }));
       fireEvent.click(await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' }));
       expect(api.setIdleDim).toHaveBeenCalledWith({ enabled: true, timeoutSeconds: 600, level: 10 });
+    });
+  });
+  it('snaps an off-list stored timeout to the nearest option', async () => {
+    await open(idle({ timeoutSeconds: 240 }));
+    await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' });
+    expect(timeoutTrigger()).toHaveTextContent('slideshow.minutes.other:3');
+  });
+
+  it('re-fetches when a save fails, since no topic push follows', async () => {
+    await open(idle({ enabled: false }));
+    api.setIdleDim.mockResolvedValue(null);
+    api.fetchIdleDim.mockClear();
+    fireEvent.click(await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' }));
+    await waitFor(() => expect(api.fetchIdleDim).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'lighting.idleDim.enable.label' })).toHaveAttribute('aria-checked', 'false'));
+  });
+
+  it('survives a rejected save', async () => {
+    await open(idle({ enabled: false }));
+    api.setIdleDim.mockRejectedValue(new Error('bad body'));
+    api.fetchIdleDim.mockClear();
+    fireEvent.click(await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' }));
+    await waitFor(() => expect(api.fetchIdleDim).toHaveBeenCalledTimes(1));
+  });
+
+  it('keeps the dragged level when a topic push lands mid-drag', async () => {
+    await open(idle({ level: 10 }));
+    await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' });
+    const slider = screen.getByRole('slider', { name: 'lighting.idleDim.level.label' });
+    fireEvent.change(slider, { target: { value: '40' } });
+    api.fetchIdleDim.mockClear();
+    await act(async () => { topic.fire(); await Promise.resolve(); });
+    expect(api.fetchIdleDim).not.toHaveBeenCalled();
+    expect(slider).toHaveValue('40');
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(api.setIdleDim).toHaveBeenCalledWith({ enabled: true, timeoutSeconds: 0, level: 40 }));
+  });
+
+  describe('without the display-off event', () => {
+    const linux = { screenOffSupported: false, osScreenOffSeconds: null };
+
+    it('never sends 0 when a timeout is picked', async () => {
+      await open(idle(linux));
+      await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' });
+      fireEvent.click(timeoutTrigger());
+      fireEvent.click(screen.getByRole('option', { name: 'slideshow.minutes.other:5' }));
+      expect(api.setIdleDim).toHaveBeenCalledWith({ enabled: true, timeoutSeconds: 300, level: 10 });
+    });
+
+    it('never sends 0 when the level commits', async () => {
+      await open(idle(linux));
+      await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' });
+      const slider = screen.getByRole('slider', { name: 'lighting.idleDim.level.label' });
+      fireEvent.change(slider, { target: { value: '40' } });
+      fireEvent.pointerUp(slider);
+      await waitFor(() => expect(api.setIdleDim).toHaveBeenCalledWith({ enabled: true, timeoutSeconds: 600, level: 40 }));
     });
   });
 });

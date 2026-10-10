@@ -2675,7 +2675,7 @@
   "lighting.idleDim.timeout.label": "Przyciemnij po",
   "lighting.idleDim.timeout.neverNote": "Komputer nigdy nie wyłącza ekranu, więc ta opcja nigdy nie przyciemni świateł. Wybierz zamiast tego czas.",
   "lighting.idleDim.timeout.screenOff": "Gdy ekran się wyłączy",
-  "lighting.idleDim.timeout.screenOffAfter": "Gdy ekran się wyłączy (po {duration})",
+  "lighting.idleDim.timeout.screenOffAfter": "Gdy ekran się wyłączy (po upływie: {duration})",
   "lighting.idleDim.timeout.screenOffNever": "Gdy ekran się wyłączy (nigdy)",
   "lighting.keyReactions.background.dark": "Ciemne",
   "lighting.keyReactions.background.darkHint": "Klawiatura pozostaje ciemna, poza reakcjami.",

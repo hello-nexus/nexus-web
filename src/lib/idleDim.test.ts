@@ -25,6 +25,11 @@ describe('normalizeIdleDim', () => {
     expect(normalizeIdleDim({ ...base, screenOffSupported: false }).timeoutSeconds).toBe(600);
   });
 
+  it('snaps an off-list timeout to the nearest offered one', () => {
+    expect(normalizeIdleDim({ ...base, timeoutSeconds: 240 }).timeoutSeconds).toBe(180);
+    expect(normalizeIdleDim({ ...base, timeoutSeconds: 86400 }).timeoutSeconds).toBe(18000);
+  });
+
   it('treats a missing screenOffSupported as supported', () => {
     const legacy: Partial<IdleDimState> = { ...base };
     delete legacy.screenOffSupported;

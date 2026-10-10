@@ -2638,7 +2638,7 @@
   "lighting.gpuInitializingNotice": "正在为灯效准备显卡，完成前设备将保持熄灭。",
   "lighting.gpuPickGpu": "选择 GPU",
   "lighting.gpuUnavailableNotice": "此PC没有可用的GPU，效果在此处预览，但不会点亮您的设备。",
-  "lighting.idleDim.enable.description": "PC 空闲时调暗灯光。无论日程是否开启都有效。",
+  "lighting.idleDim.enable.description": "PC 空闲时调暗灯光。无论计划是否开启都有效。",
   "lighting.idleDim.enable.label": "空闲时调暗灯光",
   "lighting.idleDim.level.label": "调暗至",
   "lighting.idleDim.timeout.label": "空闲多久后调暗",
