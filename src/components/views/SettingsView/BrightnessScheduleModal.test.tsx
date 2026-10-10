@@ -121,10 +121,32 @@ describe('BrightnessScheduleModal idle dimming', () => {
       expect(api.setIdleDim).toHaveBeenCalledWith({ enabled: true, timeoutSeconds: 600, level: 10 });
     });
   });
-  it('snaps an off-list stored timeout to the nearest option', async () => {
-    await open(idle({ timeoutSeconds: 240 }));
-    await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' });
+  it('shows an off-list stored timeout snapped but saves the stored value', async () => {
+    await open(idle({ enabled: false, timeoutSeconds: 240 }));
+    fireEvent.click(await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' }));
+    expect(api.setIdleDim).toHaveBeenCalledWith({ enabled: true, timeoutSeconds: 240, level: 10 });
     expect(timeoutTrigger()).toHaveTextContent('slideshow.minutes.other:3');
+  });
+
+  it('does not re-fetch after a successful save', async () => {
+    await open(idle({ enabled: false }));
+    api.setIdleDim.mockResolvedValue({ error: false, msg: '' });
+    api.fetchIdleDim.mockClear();
+    fireEvent.click(await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' }));
+    await waitFor(() => expect(api.setIdleDim).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(api.fetchIdleDim).not.toHaveBeenCalled();
+  });
+
+  it('drops a GET that was in flight when a save happened', async () => {
+    await open(idle({ enabled: false }));
+    api.setIdleDim.mockResolvedValue({ error: false, msg: '' });
+    let resolveLate: (v: unknown) => void = () => {};
+    api.fetchIdleDim.mockReset().mockReturnValueOnce(new Promise(r => { resolveLate = r; }));
+    await act(async () => { topic.fire(); });
+    fireEvent.click(await screen.findByRole('switch', { name: 'lighting.idleDim.enable.label' }));
+    await act(async () => { resolveLate(idle({ enabled: false })); await Promise.resolve(); });
+    expect(screen.getByRole('switch', { name: 'lighting.idleDim.enable.label' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('re-fetches when a save fails, since no topic push follows', async () => {

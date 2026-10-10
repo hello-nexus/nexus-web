@@ -16,23 +16,20 @@ export function effectiveIdleTimeout(timeoutSeconds: number, screenOffSupported:
   return timeoutSeconds === 0 && !screenOffSupported ? IDLE_DIM_FALLBACK_TIMEOUT : timeoutSeconds;
 }
 
-/** Nearest offered idle time, so an off-list stored value still shows a selection. */
-function snapToTimeout(seconds: number): number {
+/** Nearest offered idle time, for display only: the stored value is what gets saved. */
+export function snapIdleTimeout(seconds: number): number {
   return IDLE_DIM_TIMEOUTS.reduce((best, option) => (
     Math.abs(option - seconds) < Math.abs(best - seconds) ? option : best
   ));
 }
 
-/** The service state with its timeout mapped onto an offered option. */
+/** The service state, with the display-off timeout mapped where that event is unavailable. */
 export function normalizeIdleDim(data: IdleDimState): IdleDimState {
   const screenOffSupported = data.screenOffSupported !== false;
   return {
     ...data,
     screenOffSupported,
-    timeoutSeconds: (() => {
-      const effective = effectiveIdleTimeout(data.timeoutSeconds, screenOffSupported);
-      return effective === 0 ? 0 : snapToTimeout(effective);
-    })(),
+    timeoutSeconds: effectiveIdleTimeout(data.timeoutSeconds, screenOffSupported),
     osScreenOffSeconds: data.osScreenOffSeconds ?? null,
   };
 }

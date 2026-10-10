@@ -12,7 +12,7 @@ import { useIdleDim } from '../../../hooks/useIdleDim';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { SCHEDULE_EASING } from '../../../lib/brightnessSchedule';
-import { IDLE_DIM_TIMEOUTS } from '../../../lib/idleDim';
+import { IDLE_DIM_TIMEOUTS, snapIdleTimeout } from '../../../lib/idleDim';
 import { slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import { hour12OptionFor, localizeNumbers } from '../../../lib/units';
 import styles from './BrightnessScheduleModal.module.scss';
@@ -155,7 +155,7 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
                   label={t('lighting.idleDim.timeout.label')}
                   description={neverDims ? t('lighting.idleDim.timeout.neverNote') : undefined}
                   descriptionBelow
-                  value={String(idle.timeoutSeconds)}
+                  value={String(idle.timeoutSeconds === 0 ? 0 : snapIdleTimeout(idle.timeoutSeconds))}
                   options={timeoutOptions}
                   onChange={v => { void idleDim.save({ ...idleSettings, timeoutSeconds: Number(v) }); }}
                 />

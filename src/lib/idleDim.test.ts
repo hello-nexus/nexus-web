@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { IdleDimState } from '../api/lighting';
-import { effectiveIdleTimeout, normalizeIdleDim } from './idleDim';
+import { effectiveIdleTimeout, normalizeIdleDim, snapIdleTimeout } from './idleDim';
 
 const base: IdleDimState = {
   enabled: true, timeoutSeconds: 0, level: 10, supported: true, screenOffSupported: true, osScreenOffSeconds: null,
@@ -25,14 +25,20 @@ describe('normalizeIdleDim', () => {
     expect(normalizeIdleDim({ ...base, screenOffSupported: false }).timeoutSeconds).toBe(600);
   });
 
-  it('snaps an off-list timeout to the nearest offered one', () => {
-    expect(normalizeIdleDim({ ...base, timeoutSeconds: 240 }).timeoutSeconds).toBe(180);
-    expect(normalizeIdleDim({ ...base, timeoutSeconds: 86400 }).timeoutSeconds).toBe(18000);
+  it('keeps an off-list stored timeout', () => {
+    expect(normalizeIdleDim({ ...base, timeoutSeconds: 240 }).timeoutSeconds).toBe(240);
   });
 
   it('treats a missing screenOffSupported as supported', () => {
     const legacy: Partial<IdleDimState> = { ...base };
     delete legacy.screenOffSupported;
     expect(normalizeIdleDim(legacy as IdleDimState)).toMatchObject({ screenOffSupported: true, timeoutSeconds: 0 });
+  });
+});
+
+describe('snapIdleTimeout', () => {
+  it('snaps an off-list timeout to the nearest offered one', () => {
+    expect(snapIdleTimeout(240)).toBe(180);
+    expect(snapIdleTimeout(86400)).toBe(18000);
   });
 });
