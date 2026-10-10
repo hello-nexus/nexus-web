@@ -14,6 +14,7 @@ import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { surfaceSupportsTouch } from '../../types';
 import type { WidgetProps } from '../types';
 import { mediaArtSignature } from './mediaArt';
+import { mediaPreferredApp, pickActiveSession } from './mediaActiveSession';
 import { formatTrackTime, useLivePositionMs } from './mediaTime';
 import { mediaShowsVolume, mediaVolumeTarget } from './mediaVolumeTarget';
 import { MediaVisualizer } from './MediaVisualizer';
@@ -26,14 +27,6 @@ interface MediaArtAsset {
   key: string;
   signature: string;
   url: string;
-}
-
-function pickActive(sessions: Record<string, MediaSession>): { key: string; session: MediaSession } | null {
-  const entries = Object.entries(sessions);
-  if (entries.length === 0) return null;
-  const playing = entries.find(([, s]) => s.playback.playing && !s.playback.stopped);
-  const [key, session] = playing ?? entries[0];
-  return { key, session };
 }
 
 function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
@@ -64,7 +57,7 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   const { sessions } = useMedia(true);
   const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
   const [hdArtAsset, setHdArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
-  const active = pickActive(sessions);
+  const active = pickActiveSession(sessions, mediaPreferredApp(widget));
   const activeKey = active?.key ?? '';
   const artSig = mediaArtSignature(active?.session);
   const artVersion = active?.session.song.artVersion ?? 0;

@@ -5,7 +5,7 @@ import {
   Shuffle, Repeat, Repeat1,
   Volume, Volume1, Volume2, VolumeX,
 } from 'lucide-react';
-import { useMedia, controlMedia, type MediaSession } from '../../../hooks/useMedia';
+import { useMedia, controlMedia } from '../../../hooks/useMedia';
 import { useSystemVolume } from '../../../hooks/useSystemVolume';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
@@ -15,6 +15,7 @@ import { surfaceSupportsTouch, widgetLayoutSize } from '../../types';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { mediaArtSignature } from './mediaArt';
+import { mediaPreferredApp, pickActiveSession } from './mediaActiveSession';
 import { useLivePositionMs } from './mediaTime';
 import { mediaShowsVolume, mediaVolumeTarget } from './mediaVolumeTarget';
 import { MediaLiveBackground } from './MediaLiveBackground';
@@ -26,14 +27,6 @@ interface MediaArtAsset {
   key: string;
   signature: string;
   url: string;
-}
-
-function pickActive(sessions: Record<string, MediaSession>): { key: string; session: MediaSession } | null {
-  const entries = Object.entries(sessions);
-  if (entries.length === 0) return null;
-  const playing = entries.find(([, s]) => s.playback.playing && !s.playback.stopped);
-  const [key, session] = playing ?? entries[0];
-  return { key, session };
 }
 
 function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
@@ -54,7 +47,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const tall = size === '2x4';
   // 4x4 stacks art over centered metadata + controls like 2x4, with the volume rail beside it.
   const square = size === '4x4';
-  const active = preview ? MEDIA_PREVIEW.active : pickActive(sessions);
+  const active = preview ? MEDIA_PREVIEW.active : pickActiveSession(sessions, mediaPreferredApp(widget));
   const activeKey = active?.key ?? '';
   // Tall (2x4) is a portrait card (art over centered metadata +
   // controls) with no room for the persistent volume mixer rail.

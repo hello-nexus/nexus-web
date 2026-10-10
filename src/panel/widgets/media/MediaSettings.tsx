@@ -1,9 +1,11 @@
 import type { WidgetSettingsProps } from '../types';
 import { useTranslation } from '../../../lib/i18n';
 import { useAudioDevices } from '../../../hooks/useAudioDevices';
+import { useMedia } from '../../../hooks/useMedia';
 import { SettingsSection, SettingsSelect, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
 import { MEDIA_VISUALIZER_EFFECTS, normalizeVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
 import { MEDIA_VOLUME_MODES, mediaShowsVolume, normalizeVolumeMode } from './mediaVolumeTarget';
+import { mediaAppName, mediaPreferredApp } from './mediaActiveSession';
 import styles from './MediaSettings.module.scss';
 
 export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
@@ -15,6 +17,20 @@ export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const deviceId = typeof widget.config?.volumeDeviceId === 'string' ? widget.config.volumeDeviceId : '';
   const deviceName = typeof widget.config?.volumeDeviceName === 'string' ? widget.config.volumeDeviceName : '';
   const { outputs } = useAudioDevices(showVolume && volumeMode === 'output');
+  const { sessions } = useMedia(true);
+  const preferredApp = mediaPreferredApp(widget);
+
+  const openApps = [...new Set(Object.values(sessions).map(mediaAppName))]
+    .filter(name => name.length > 0)
+    .sort((a, b) => a.localeCompare(b));
+  const appOptions = [
+    { value: '', label: t('panel.media.app.auto') },
+    ...openApps.map(name => ({ value: name, label: name })),
+  ];
+  // A preferred app that is closed stays selected.
+  if (preferredApp && !openApps.includes(preferredApp)) {
+    appOptions.push({ value: preferredApp, label: preferredApp });
+  }
 
   const deviceOptions = [
     { value: '', label: t('panel.media.volumeTarget.systemDefault') },
@@ -27,6 +43,15 @@ export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
 
   return (
     <div className={styles.container}>
+      <SettingsSection title={t('panel.media.app.label')}>
+        <SettingsSelect
+          label={t('panel.media.app.preferred')}
+          value={preferredApp}
+          options={appOptions}
+          onChange={value => onUpdate({ preferredApp: value })}
+        />
+        <SettingsHint>{t(preferredApp ? 'panel.media.app.hint.preferred' : 'panel.media.app.hint.auto')}</SettingsHint>
+      </SettingsSection>
       <SettingsSection title={t('panel.media.visualizer.label')}>
         <SettingsToggle
           label={t('panel.media.liveBackground.toggle')}
