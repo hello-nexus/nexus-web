@@ -146,13 +146,15 @@ export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
 export const HYDROSHIFT2_CURVE_FAMILY = 'lianli-hydroshift2-curve';
 export const LIANLI_SCREEN88_FAMILY = 'lianli-screen88';
 
-interface PanelWidgetSizeOptions {
+export interface PanelWidgetSizeOptions {
   default: PanelWidgetSizeMode;
   layoutSurface: Readonly<Record<PanelWidgetSizeMode, PanelSurface>>;
   // Physical px/inch of the glass, for a size laid out as a density-sized grid.
   dpi?: number;
   // Short-axis slot count a size forces, replacing the density-derived one.
   shortSideSlots?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
+  // Share of the density-derived short-axis slot count a size keeps.
+  densitySlotShare?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
 }
 
 // The Q-series and the iCUE LINK 5" LCD share one portrait glass size: Large is the
@@ -171,10 +173,9 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }
-  // A plain OS monitor's desk-distance density estimate gives most screens the dense
-  // short axis; Large forces the coarse one.
+  // A plain OS monitor: Large halves its density grid's short axis, so cells double.
   if (surface === 'monitor' && !family) {
-    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 4 } };
+    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, densitySlotShare: { large: 0.5 } };
   }
   return undefined;
 }
@@ -189,14 +190,30 @@ export function forcedGridOf(slots: number | undefined, landscape: boolean): For
   return slots === undefined ? undefined : { slots, landscape };
 }
 
-// The short-axis slot count a panel's Widget size forces, if any.
+// The short-axis slot count a Widget size forces, if any. `densitySlots` is the
+// glass's density-derived count (columnsForPhysicalSize), which a share scales.
+export function widgetSizeShortSideSlots(
+  options: PanelWidgetSizeOptions | undefined,
+  mode: PanelWidgetSizeMode | undefined,
+  densitySlots: number | undefined,
+): number | undefined {
+  if (!options || !mode) return undefined;
+  const share = options.densitySlotShare?.[mode];
+  if (share === undefined) return options.shortSideSlots?.[mode];
+  return densitySlots === undefined ? undefined : Math.max(2, Math.round(densitySlots * share));
+}
+
 export function panelShortSideSlots(
   surface: PanelSurface,
   family: string | null | undefined,
   widgetSize: string | null | undefined,
+  densitySlots?: number,
 ): number | undefined {
-  const mode = resolvePanelWidgetSize(surface, family, widgetSize);
-  return mode ? panelWidgetSizeOptions(surface, family)?.shortSideSlots?.[mode] : undefined;
+  return widgetSizeShortSideSlots(
+    panelWidgetSizeOptions(surface, family),
+    resolvePanelWidgetSize(surface, family, widgetSize),
+    densitySlots,
+  );
 }
 
 // Density for a panel's grid: the record's own, else the glass's when Widget size

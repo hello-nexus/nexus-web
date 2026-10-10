@@ -95,11 +95,14 @@ describe('Widget size', () => {
     expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });
 
-  it('starts a plain monitor small on its density grid, and large forces a 4-slot short axis', () => {
+  it('starts a plain monitor small on its density grid, and large halves its short axis', () => {
     expect(resolvePanelWidgetSize('monitor', undefined, null)).toBe('small');
     expect(resolvePanelWidgetSize('monitor', null, 'large')).toBe('large');
-    expect(panelShortSideSlots('monitor', undefined, null)).toBeUndefined();
-    expect(panelShortSideSlots('monitor', undefined, 'large')).toBe(4);
+    expect(panelShortSideSlots('monitor', undefined, null, 12)).toBeUndefined();
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 8)).toBe(4);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 4)).toBe(2);
+    expect(panelShortSideSlots('monitor', undefined, 'large')).toBeUndefined();
     expect(panelLayoutSurface('monitor', undefined, 'large')).toBe('monitor');
     expect(panelLayoutDpi('monitor', undefined, 'large', null, { monitor: 110 } as Record<PanelSurface, number>)).toBeUndefined();
   });

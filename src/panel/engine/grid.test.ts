@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
+  columnsForPhysicalSize,
   panelGridCapacityForCanvas,
   panelPhysicalSize,
   panelWidgetPaddingRatio,
@@ -167,6 +168,15 @@ describe('sizeToSpan', () => {
       columns: 28,
       rows: 8,
     });
+  });
+
+  it('keeps adding short-axis slots in fours on a desktop monitor, about one per inch', () => {
+    const dell24 = columnsForPhysicalSize(1920, 1200, 94.1, undefined);
+    const uhd32 = columnsForPhysicalSize(3840, 2160, 137.7, undefined);
+    const laptop156 = columnsForPhysicalSize(1920, 1080, 141.2, undefined);
+    expect([dell24, uhd32, laptop156]).toEqual([12, 16, 8]);
+    expect(columnsForPhysicalSize(682, 2560, 337, undefined)).toBe(PANEL_GRID_COLS);
+    expect(panelGridCapacityForCanvas(1920, 1200, { surface: 'monitor', dpi: 94.1 })).toMatchObject({ rows: 12 });
   });
 });
 

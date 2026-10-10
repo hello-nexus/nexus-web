@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState, type RefObject } from 'react';
-import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT, panelGridCapacityForCanvas, panelWidgetPaddingRatio, type PanelGridCapacity } from './grid';
+import { columnsForPhysicalSize, PANEL_WIDGET_PADDING_DEFAULT_PERCENT, panelGridCapacityForCanvas, panelWidgetPaddingRatio, type PanelGridCapacity } from './grid';
 import type { PanelSurface } from '../types';
 import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../../lib/panelSimulation';
 import { streamFrameCap } from '../../lib/framePacer';
@@ -222,14 +222,10 @@ export function readRuntimePanelGrid(
 
   // The simulator iframe is sized at the device's native pixels (e.g.
   // 682x2560 for Y70). The host DPR would inflate the physical-size calc and
-  // trip the 4-to-8 column jump on Retina hosts, so treat cssWidth/cssHeight
+  // trip the column jump on Retina hosts, so treat cssWidth/cssHeight
   // as device pixels directly. A streamed panel's CSS px are its native px too;
   // its devicePixelRatio is the render scale.
-  const dpr = simulator || streamFrameCap(window.location.search) !== null
-    ? 1
-    : Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
-      ? window.devicePixelRatio
-      : 1;
+  const dpr = runtimeDpr(simulator);
   const rect = root?.getBoundingClientRect();
   const cssWidth = Math.max(1, Math.round(rect?.width ?? window.innerWidth));
   const cssHeight = Math.max(1, Math.round(rect?.height ?? window.innerHeight));
@@ -257,6 +253,27 @@ export function readRuntimePanelGrid(
     padding: capacity.padding / dpr,
     contentGap: capacity.contentGap / dpr,
   };
+}
+
+function runtimeDpr(simulator: boolean): number {
+  if (simulator || streamFrameCap(window.location.search) !== null) return 1;
+  return Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
+}
+
+// The density grid's short-axis slot count for a glass of these CSS px, as the
+// runtime grid derives it.
+export function densityShortSideSlots(cssWidth: number, cssHeight: number, dpr: number, dpi: number): number {
+  return columnsForPhysicalSize(
+    Math.max(1, Math.round(cssWidth * dpr)),
+    Math.max(1, Math.round(cssHeight * dpr)),
+    dpi,
+    getPanelGridSizingSettings(),
+  );
+}
+
+// The same count for this kiosk window.
+export function runtimeDensityShortSideSlots(surface: PanelSurface, deviceDpi?: number): number {
+  return densityShortSideSlots(window.innerWidth, window.innerHeight, runtimeDpr(false), deviceDpi ?? estimateRuntimePanelDpi(surface));
 }
 
 export function estimateRuntimePanelDpi(surface: PanelSurface): number {

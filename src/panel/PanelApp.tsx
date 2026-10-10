@@ -130,6 +130,9 @@ import {
   DESKTOP_ACTION_TRAY_HEIGHT,
   MAX_PANEL_PAGES,
   PHONE_WIDGET_REFERENCE_CELL,
+  densityShortSideSlots,
+  estimateRuntimePanelDpi,
+  runtimeDensityShortSideSlots,
   useDesktopFitColumns,
   useRuntimePanelGrid,
   useViewportLandscape,
@@ -202,16 +205,22 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
     const glassSurface = (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface;
     const surface = panelLayoutSurface(glassSurface, caps?.family, record?.widgetSize);
     const relaid = surface !== glassSurface;
+    const dpi = panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);
+    // A kiosk fills its monitor, so the record's size is the canvas the runtime grid
+    // measures; it follows a resolution change.
+    const densitySlots = caps?.cssWidth && caps.cssHeight
+      ? densityShortSideSlots(caps.cssWidth, caps.cssHeight, caps.dpr || 1, dpi ?? estimateRuntimePanelDpi(surface))
+      : runtimeDensityShortSideSlots(surface, dpi);
     return {
       surface,
       glassSurface,
       // Touch and density belong to the glass, whichever surface it lays out as.
       touch: relaid ? surfaceSupportsTouch(glassSurface, caps?.touch) : caps?.touch,
-      dpi: panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI),
-      shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize),
+      dpi,
+      shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize, densitySlots),
       displayBound: !!record?.displayId,
     };
-  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, record?.widgetSize, record?.displayId]);
+  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, record?.widgetSize, record?.displayId]);
   const recordCapsRef = useRef<PanelDeviceCapabilitiesDto | null>(null);
   const hasCaps = !!caps;
   useEffect(() => { recordCapsRef.current = caps ?? null; }, [caps]);

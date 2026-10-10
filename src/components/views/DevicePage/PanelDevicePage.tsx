@@ -26,7 +26,7 @@ import {
   widgetPlaylistOf,
 } from '../../../panel/engine/widgetPlaylist';
 import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
-import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
+import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
   panelWidgetPaddingRatio,
@@ -45,7 +45,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceSupportsTouch, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -422,25 +422,35 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // (scaled by the record dpr), except the Q-series, whose WebView reports physical px;
   // a simulated preset's previewSize is native px with no previewDpr (dpr 1).
   const canvasDpr = glassSurface === 'q60' ? 1 : ((liveCanvas ? liveDpr : device?.previewDpr) || 1);
-  const shortSideSlots = panelShortSideSlots(glassSurface, recordFamily, recordWidgetSize);
+  // Same canvas, ratio and density the editor's monitor grid uses (monitorGridCapacity).
+  const editorCanvas = liveCanvas ?? device?.previewSize;
+  const densitySlots = editorCanvas
+    ? densityShortSideSlots(editorCanvas.width, editorCanvas.height, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor)
+    : undefined;
+  const shortSideSlots = panelShortSideSlots(glassSurface, recordFamily, recordWidgetSize, densitySlots);
   const gridLandscape = isLandscapeCanvas(liveCanvas ?? device?.previewSize);
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, gridLandscape), [shortSideSlots, gridLandscape]);
   // The layout surface and input a fetched record implies, for normalizing its
   // layout before the record's widget size reaches state.
   const layoutSurfaceOf = useCallback((record: PanelDeviceRecord | null | undefined, touch: boolean | undefined) => {
-    const laidOut = panelLayoutSurface(glassSurface, record?.capabilities?.family, record?.widgetSize);
+    const caps = record?.capabilities;
+    const laidOut = panelLayoutSurface(glassSurface, caps?.family, record?.widgetSize);
+    // Same canvas the editor grid reads: the record's own, else the device entry's.
+    const canvas = caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight } : device?.previewSize;
+    const dpi = panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI)
+      ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
+    const canvasDensitySlots = canvas
+      ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (caps?.cssWidth ? caps.dpr : device?.previewDpr) || 1, dpi)
+      : undefined;
     return {
       surface: laidOut,
       touch: laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
-        panelShortSideSlots(glassSurface, record?.capabilities?.family, record?.widgetSize),
-        // Same canvas the editor grid reads: the record's own, else the device entry's.
-        isLandscapeCanvas(record?.capabilities?.cssWidth && record.capabilities.cssHeight
-          ? { width: record.capabilities.cssWidth, height: record.capabilities.cssHeight }
-          : device?.previewSize),
+        panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize, canvasDensitySlots),
+        isLandscapeCanvas(canvas),
       ),
     };
-  }, [glassSurface, device?.previewSize]);
+  }, [glassSurface, device?.previewSize, device?.previewDpi, device?.previewDpr]);
   // Promoted monitors with a DDC/CI-capable display get a brightness-only
   // settings tab wired to the generic /displays brightness endpoint.
   const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);
@@ -1088,7 +1098,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     if (!widgetSizeOptions) return { layout, removed: [] as PanelWidget[] };
     const target = widgetSizeOptions.layoutSurface[mode];
     const targetTouch = target === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
-    const targetSlots = widgetSizeOptions.shortSideSlots?.[mode];
+    const targetSlots = widgetSizeShortSideSlots(widgetSizeOptions, mode, densitySlots);
     const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)));
     const kept = new Set(normalized.pages.flatMap(p => p.widgets.map(w => w.id)));
     const removed = layout.pages.flatMap(p => p.widgets).filter(w => !kept.has(w.id));
@@ -1107,7 +1117,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [canvasDpr, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
+  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);

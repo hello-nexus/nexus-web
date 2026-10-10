@@ -22,6 +22,8 @@ export const PANEL_Y70_LONG_AXIS_CELLS = 16;
 export const PANEL_GRID_GAP = 8;
 export const PANEL_GRID_PREVIEW_PADDING = 8;
 export const DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES = 4;
+// Past the jump, the short axis keeps about one slot per this many inches.
+export const PANEL_GRID_CELL_INCHES = 1;
 
 // The Theme "Widget padding" control is a 0-100% slider. Gap and page padding
 // are both solved as a fraction of the resolved cell size (resolvePanelSpacing),
@@ -284,7 +286,10 @@ export function columnsForPhysicalSize(
     ? Math.max(1, configuredJumpAtInches)
     : DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES;
   const physical = panelPhysicalSize(width, height, dpi);
-  return physical.shortSideInches >= jumpAtInches ? PANEL_LARGE_GRID_COLS : PANEL_GRID_COLS;
+  if (physical.shortSideInches < jumpAtInches) return PANEL_GRID_COLS;
+  // Steps of four keep a Widget size half of the count even.
+  const step = PANEL_GRID_COLS * PANEL_GRID_CELL_INCHES;
+  return Math.max(PANEL_LARGE_GRID_COLS, PANEL_GRID_COLS * Math.round(physical.shortSideInches / step));
 }
 
 function toEvenRound(value: number): number {

@@ -18,7 +18,7 @@ import {
 } from '../../../panel/engine/grid';
 import { layoutRowExtent, type PaginateCapacity } from '../../../panel/engine/paginate';
 import {
-  DEFAULT_SURFACE_DPI, DESKTOP_GRID_REFERENCE_CELL, DESKTOP_GRID_ROWS, desktopAutoArrangeColumns,
+  DEFAULT_SURFACE_DPI, densityShortSideSlots, DESKTOP_GRID_REFERENCE_CELL, DESKTOP_GRID_ROWS, desktopAutoArrangeColumns,
 } from '../../../panel/engine/panelGrid';
 import { appendWidget, swapSingleWidget } from '../../../panel/engine/panelLayoutOps';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
@@ -106,8 +106,11 @@ function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boo
 function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean; shortSideSlots?: number; forcedGrid?: ForcedGrid } {
   const touch = deviceTouchOf(target, record);
   const surface = panelLayoutSurface(target.surface, record?.capabilities?.family, record?.widgetSize);
-  const shortSideSlots = panelShortSideSlots(target.surface, record?.capabilities?.family, record?.widgetSize);
   const screen = screenOf(target, record);
+  const shortSideSlots = panelShortSideSlots(
+    target.surface, record?.capabilities?.family, record?.widgetSize,
+    screen ? densityShortSideSlots(screen.width, screen.height, screen.dpr, dpiOf(target, record)) : undefined,
+  );
   return {
     surface,
     deviceTouch: surface === target.surface ? touch : surfaceSupportsTouch(target.surface, touch),
@@ -121,6 +124,11 @@ function screenOf(target: PlacementTarget, record?: PanelDeviceRecord): { width:
   // The Q-series WebView reports physical px as its css size.
   if (caps?.cssWidth && caps.cssHeight) return { width: caps.cssWidth, height: caps.cssHeight, dpr: target.surface === 'q60' ? 1 : caps.dpr || 1 };
   return target.screen ? { ...target.screen, dpr: target.screenDpr || 1 } : undefined;
+}
+
+function dpiOf(target: PlacementTarget, record?: PanelDeviceRecord): number {
+  return panelLayoutDpi(target.surface, record?.capabilities?.family, record?.widgetSize, record?.capabilities?.dpi, DEFAULT_SURFACE_DPI)
+    ?? target.screenDpi ?? DEFAULT_SURFACE_DPI[target.surface];
 }
 
 // Mirrors PanelDevicePage's editor grid; the runtime re-fits any drift on render.
@@ -138,8 +146,7 @@ function panelCapacity(target: PlacementTarget, record?: PanelDeviceRecord): Pag
       Math.max(1, Math.round(screen.height * screen.dpr)),
       {
         surface,
-        dpi: panelLayoutDpi(target.surface, record?.capabilities?.family, record?.widgetSize, record?.capabilities?.dpi, DEFAULT_SURFACE_DPI)
-          ?? target.screenDpi ?? DEFAULT_SURFACE_DPI[target.surface],
+        dpi: dpiOf(target, record),
         sizing: getPanelGridSizingSettings(),
         shortSideSlots,
         paddingRatio: panelWidgetPaddingRatio(normalizePanelWidgetPadding(record?.widgetPadding)),
