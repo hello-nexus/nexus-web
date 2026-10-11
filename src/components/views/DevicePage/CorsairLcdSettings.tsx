@@ -1,8 +1,10 @@
-import { Upload } from 'lucide-react';
+import { Sparkles, Upload } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { Notice } from '../../common/Notice/Notice';
+import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
+import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import {
   getCorsairLcdMedia,
@@ -14,6 +16,8 @@ import {
   type CorsairLcdPatch,
   type CorsairLcdState,
 } from '../../../api/corsair-lcd';
+import { stageKlipy, type KlipyGif } from '../../../api/klipy';
+import { cancelMediaStage, mediaStagePreviewUrl, mediaStageRawUrl, stagePreviewFor } from '../../../api/mediaLibrary';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -42,6 +46,18 @@ const DEVICE_SCREEN_ERRORS: Partial<Record<number, string>> = {
   502: 'devices.corsair.deviceScreenErrRefused',
 };
 
+// Pulls a staged Klipy file back so it uploads through the same multipart path as a local pick.
+async function fetchStagedFile(rawUrl: string, name: string): Promise<File | null> {
+  try {
+    const res = await fetch(rawUrl);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new File([blob], name, { type: blob.type });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Hardware options for the iCUE LINK cooler's LCD module. Hosted by the LCD panel page's
  * settings tab: the glass is the panel, the screen module around it is this tab.
@@ -53,6 +69,13 @@ export function CorsairLcdSettings() {
   const [media, setMedia] = useState<CorsairLcdMediaItem[]>([]);
   const [savingScreen, setSavingScreen] = useState(false);
   const [screenError, setScreenError] = useState<string | null>(null);
+  // A local pick carries its File; a Klipy pick is staged in the service and fetched from rawUrl on confirm.
+  const [cropState, setCropState] = useState<{
+    src: string; kind: 'video' | 'image'; fallbackSrc?: string; name: string; file?: File; stageId?: string; rawUrl?: string;
+  } | null>(null);
+  const [klipyOpen, setKlipyOpen] = useState(false);
+  const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
+  const [klipyError, setKlipyError] = useState<string | null>(null);
   const aliveRef = useRef(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
   // Set while the brightness thumb is being dragged, so the poll below keeps the local
@@ -107,20 +130,76 @@ export function CorsairLcdSettings() {
     setSavingScreen(false);
   }, [refresh, failureText, t]);
 
-  const onPickFile = useCallback(async (file: File | undefined) => {
+  const handleFileChange = useCallback((file: File | undefined) => {
     if (!file) return;
+    setScreenError(null);
+    setCropState({
+      src: URL.createObjectURL(file),
+      kind: file.type.startsWith('video/') ? 'video' : 'image',
+      name: file.name,
+      file,
+    });
+  }, []);
+
+  const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
+    if (!cropState) return;
+    const { file, src, name, stageId, rawUrl } = cropState;
+    // The cropper stays mounted and busy until the upload and apply finish.
     setSavingScreen(true);
     setScreenError(null);
-    const uploaded = await uploadCorsairLcdMedia(file);
+    let uploadedId: string | null = null;
+    try {
+      const upload = file ?? (rawUrl ? await fetchStagedFile(rawUrl, name) : null);
+      const uploaded = upload ? await uploadCorsairLcdMedia(upload, crop) : null;
+      if (aliveRef.current) {
+        if (uploaded) {
+          uploadedId = uploaded.id;
+          await refreshMedia();
+        } else {
+          setScreenError(t('devices.corsair.deviceScreenUploadFailed'));
+        }
+      }
+    } finally {
+      if (file) URL.revokeObjectURL(src);
+      if (stageId) cancelMediaStage(stageId).catch(() => {});
+      if (aliveRef.current) setCropState(null);
+    }
+    if (uploadedId !== null) await applyDeviceScreen(uploadedId);
+    else if (aliveRef.current) setSavingScreen(false);
+  }, [cropState, applyDeviceScreen, refreshMedia, t]);
+
+  const handleCropCancel = useCallback(() => {
+    if (cropState?.file) URL.revokeObjectURL(cropState.src);
+    if (cropState?.stageId) cancelMediaStage(cropState.stageId).catch(() => {});
+    setCropState(null);
+  }, [cropState]);
+
+  // A pick is staged like the other Klipy surfaces and lands in the same cropper as a file.
+  const handleKlipyPick = useCallback(async (gif: KlipyGif) => {
+    setKlipyBusy(gif.slug);
+    setKlipyError(null);
+    const staged = await stageKlipy(gif.slug);
     if (!aliveRef.current) return;
-    if (!uploaded) {
-      setScreenError(t('devices.corsair.deviceScreenUploadFailed'));
-      setSavingScreen(false);
+    setKlipyBusy(null);
+    if (!staged) {
+      setKlipyError(t('lighting.controls.importNetworkError'));
       return;
     }
-    await refreshMedia();
-    await applyDeviceScreen(uploaded.id);
-  }, [applyDeviceScreen, refreshMedia, t]);
+    // A refusal here is Klipy's (no file, no such clip, over the cap), not the service's.
+    if (staged.error || !staged.stageId) {
+      setKlipyError(t('lighting.controls.klipyPickFailed'));
+      return;
+    }
+    setKlipyOpen(false);
+    setScreenError(null);
+    const rawUrl = mediaStageRawUrl(staged.stageId);
+    setCropState({
+      ...stagePreviewFor(staged.mediaKind, rawUrl, mediaStagePreviewUrl(staged.stageId)),
+      name: `${gif.slug}.${staged.mediaKind === 'gif' ? 'gif' : 'mp4'}`,
+      stageId: staged.stageId,
+      rawUrl,
+    });
+  }, [t]);
 
   // The state route answers 200 with hasDevice:false when the screen module is not
   // attached; without this the controls look live and every write is silently dropped.
@@ -189,10 +268,10 @@ export function CorsairLcdSettings() {
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           hidden
           onChange={e => {
-            void onPickFile(e.target.files?.[0]);
+            handleFileChange(e.target.files?.[0]);
             e.target.value = '';
           }}
         />
@@ -206,8 +285,39 @@ export function CorsairLcdSettings() {
         >
           {t('devices.corsair.deviceScreenUpload')}
         </Button>
+        <Button
+          size="sm"
+          tone="neutral"
+          icon={<Sparkles size={16} aria-hidden />}
+          loading={savingScreen}
+          disabled={!loaded || savingScreen}
+          onClick={() => setKlipyOpen(true)}
+        >
+          {t('lighting.controls.klipyBrowse')}
+        </Button>
         {screenError !== null && <Notice tone="critical" role="alert">{screenError}</Notice>}
       </SettingsSection>
+
+      <KlipyPicker
+        open={klipyOpen}
+        busySlug={klipyBusy}
+        importError={klipyOpen ? klipyError : null}
+        thumbAspect={1}
+        onPick={gif => { void handleKlipyPick(gif); }}
+        onClose={() => { setKlipyOpen(false); setKlipyError(null); }}
+      />
+
+      {cropState && (
+        <MediaCropper
+          src={cropState.src}
+          kind={cropState.kind}
+          fallbackSrc={cropState.fallbackSrc}
+          aspect={1}
+          busy={savingScreen}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     </>
   );
 }

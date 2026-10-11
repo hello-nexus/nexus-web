@@ -1,3 +1,4 @@
+import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
 import { authFetchWithStatus, fetchService, postServiceFormResult, putService } from './service';
 
 /** Live state of the iCUE LINK cooler's LCD module. */
@@ -35,9 +36,10 @@ export function getCorsairLcdMedia(): Promise<{ items: CorsairLcdMediaItem[] } |
 }
 
 /** The new library item, or null when the upload was refused or the service was unreachable. */
-export async function uploadCorsairLcdMedia(file: File): Promise<CorsairLcdMediaItem | null> {
+export async function uploadCorsairLcdMedia(file: File, crop?: NormalizedCrop): Promise<CorsairLcdMediaItem | null> {
   const form = new FormData();
   form.append('file', file);
+  if (crop) form.append('crop', serializeCrop(crop));
   const r = await postServiceFormResult<{ error: boolean; msg: string; item?: CorsairLcdMediaItem }>(
     '/devices/corsair/lcd/media/upload',
     form,
