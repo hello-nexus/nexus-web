@@ -36,6 +36,9 @@ const LCD_ROTATIONS = [
   { value: 3, degrees: 270 },
 ];
 
+// Exactly what the LCD library imports; anything wider is cropped first and then refused.
+const LCD_UPLOAD_ACCEPT = '.jpg,.jpeg,.png,.bmp,.webp,.gif,.mp4,.webm,.mov';
+
 // Statuses the device-screen route answers with, each to its translated message. The
 // not-connected status also covers Nexus Control being off for the screen.
 const DEVICE_SCREEN_ERRORS: Partial<Record<number, string>> = {
@@ -144,7 +147,7 @@ export function CorsairLcdSettings() {
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
     if (!cropState) return;
     const { file, src, name, stageId, rawUrl } = cropState;
-    // The cropper stays mounted and busy until the upload and apply finish.
+    // The cropper closes once the upload ends; the apply after it shows on the select.
     setSavingScreen(true);
     setScreenError(null);
     let uploadedId: string | null = null;
@@ -268,7 +271,7 @@ export function CorsairLcdSettings() {
         <input
           ref={fileRef}
           type="file"
-          accept="image/*,video/*"
+          accept={LCD_UPLOAD_ACCEPT}
           hidden
           onChange={e => {
             handleFileChange(e.target.files?.[0]);
