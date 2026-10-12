@@ -21,7 +21,7 @@ export interface FirmwareStatusItem {
   // an older service that does not send it; absent reads as "checked".
   availableUnknown?: boolean;
   availableVersions: string[];  // connected variant's bundled versions
-  devImages: FlashableImage[];  // all images the device can flash (incl. sibling variants) - dev picker
+  devImages: FlashableImage[];  // every bundled image of the connected variant - dev picker
   // Optional: an older service omits both; absent reads as a normal row.
   needsRecovery?: boolean;
   recoveryState?: RecoveryState;

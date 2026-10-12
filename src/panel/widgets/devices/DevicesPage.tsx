@@ -367,8 +367,8 @@ const FW_ICONS: Record<string, string> = {
 };
 const FW_FALLBACK_ICON = '/assets/devices/device.svg';
 
-// Gates the dev-only firmware version picker (re-flash / downgrade /
-// cross-branch). __DEV_TOOLS__ is a build define (DEV_TOOLS=1) and
+// Gates the dev-only firmware version picker (re-flash / downgrade).
+// __DEV_TOOLS__ is a build define (DEV_TOOLS=1) and
 // import.meta.env.DEV covers the dev server - both are statically false in a
 // release build, so esbuild dead-code-eliminates the brick-capable picker.
 const DEV_TOOLS = import.meta.env.DEV || __DEV_TOOLS__;
@@ -376,8 +376,8 @@ const DEV_TOOLS = import.meta.env.DEV || __DEV_TOOLS__;
 // Centralized firmware-update surface. Lists each connected supported device
 // with the version it's running; the available/bundled version is surfaced in
 // the Status column. The Install action flashes the latest bundled image via
-// the dfu-util flasher; downgrade / cross-branch re-flashing lives behind
-// DEV_TOOLS (see above) and is absent from release builds.
+// the dfu-util flasher; downgrade / re-flashing lives behind DEV_TOOLS
+// (see above) and is absent from release builds.
 function FirmwarePanel({ items, onRetryCheck }: FirmwarePanelProps) {
   const { t } = useTranslation();
   const { status, startFlash, refresh: refreshFlash } = useFlashStatus(true);
@@ -439,21 +439,16 @@ function FirmwareRow({ item, status, anyFlashing, onFlash, onRecover, onRetryChe
   const { t } = useTranslation();
   const icon = FW_ICONS[item.deviceType] ?? FW_FALLBACK_ICON;
 
-  // Dev cross-branch picker: index into all images this device can flash.
+  // Dev re-flash / downgrade picker: index into this variant's images.
   const images = item.devImages.length > 0
     ? item.devImages
     : item.availableVersions.map(v => ({ firmwareType: item.firmwareType, version: v }));
   const [sel, setSel] = useState(0);
   const chosen = images[sel] ?? images[0];
 
-  // A flash matches this row if it targets the connected variant or any sibling
-  // image this device can flash (dev cross-branch picker).
   const matches = item.needsRecovery
     ? flashMatchesRecovery(item, status)
-    : status != null && (
-      status.deviceType === item.firmwareType ||
-      item.devImages.some(img => img.firmwareType === status.deviceType)
-    );
+    : status != null && status.deviceType === item.firmwareType;
   const flashing = !!status?.active && matches;
   const lastError = (!status?.active && matches && status?.phase === 'failed')
     ? (status?.error || t('devices.firmware.flash.failed'))
@@ -539,7 +534,7 @@ function FirmwareRow({ item, status, anyFlashing, onFlash, onRecover, onRetryChe
                   disabled={anyFlashing}
                   options={images.map((img, i) => ({
                     value: String(i),
-                    label: `${img.version}${img.firmwareType !== item.firmwareType ? ` (${img.firmwareType})` : ''}`,
+                    label: img.version,
                   }))}
                 />
                 <Button
