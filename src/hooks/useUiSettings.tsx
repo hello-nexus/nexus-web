@@ -118,6 +118,8 @@ export interface UiSettingsValue {
   // pages keep separate answers.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Effect Studio's Show on all devices button; default off.
+  studioShowOnAllDevices: boolean;
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -248,6 +250,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     coolingDashboardMode: src.general.coolingDashboardMode,
     showUncontrolledLightingDevices: src.general.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: src.general.showUncontrolledCoolingDevices,
+    studioShowOnAllDevices: src.general.studioShowOnAllDevices,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
@@ -316,6 +319,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       coolingDashboardMode: src.coolingDashboardMode,
       showUncontrolledLightingDevices: src.showUncontrolledLightingDevices,
       showUncontrolledCoolingDevices: src.showUncontrolledCoolingDevices,
+      studioShowOnAllDevices: src.studioShowOnAllDevices,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
@@ -361,7 +365,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; studioShowOnAllDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
@@ -375,6 +379,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
   if (patch.showUncontrolledLightingDevices !== undefined) ui.showUncontrolledLightingDevices = patch.showUncontrolledLightingDevices;
   if (patch.showUncontrolledCoolingDevices !== undefined) ui.showUncontrolledCoolingDevices = patch.showUncontrolledCoolingDevices;
+  if (patch.studioShowOnAllDevices !== undefined) ui.studioShowOnAllDevices = patch.studioShowOnAllDevices;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -481,6 +486,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: server.ui?.showUncontrolledCoolingDevices
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledCoolingDevices,
+    studioShowOnAllDevices: server.ui?.studioShowOnAllDevices ?? base.studioShowOnAllDevices,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,
@@ -767,6 +773,17 @@ export function useUiSettingsUpdateSafe(): (patch: Patch) => void {
 }
 
 const NO_OP_UPDATE = () => {};
+
+/**
+ * The Effect Studio's Show on all devices preference and its setter. Off and a
+ * no-op outside a UiSettingsProvider, so the Studio mounts bare in tests.
+ */
+export function useStudioLivePref(): [boolean, (on: boolean) => void] {
+  const ctx = useContext(UiSettingsContext);
+  const update = ctx ? ctx.update : NO_OP_UPDATE;
+  const setPref = useCallback((on: boolean) => update({ studioShowOnAllDevices: on }), [update]);
+  return [ctx ? ctx.settings.studioShowOnAllDevices : false, setPref];
+}
 
 /**
  * Read-only accessor for the preferred CPU/GPU temperature sensor ids.

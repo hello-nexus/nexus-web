@@ -16,6 +16,7 @@ import { ConfirmModal } from '../../../../components/common/ConfirmModal/Confirm
 import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { forgetShaderSource, primeShaderSource, startStudioLive, stopStudioLive } from '../../../../api/lighting';
 import { customEffectId, customEffectKey, customEffectsLoaded } from '../../../../api/customEffects';
+import { useStudioLivePref } from '../../../../hooks/useUiSettings';
 import { useAudioState } from '../../../../hooks/useAudioState';
 import { useTranslation } from '../../../../lib/i18n';
 import { isApplePlatform } from '../../../../lib/platform';
@@ -122,8 +123,11 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
   const [future, setFuture] = useState<StudioRecipe[]>([]);
   const [variations, setVariations] = useState<StudioRecipe[] | null>(null);
   const [effectQuery, setEffectQuery] = useState('');
-  // Off on every open; the session ends on toggle-off and on close (unmount).
-  const [live, setLive] = useState(false);
+  // Starts from the last value the user pressed (default off); the session ends on toggle-off and on close (unmount).
+  const [livePref, saveLivePref] = useStudioLivePref();
+  // Read once at open. A stored on waits for the effects list when the default pick is still pending, so the placeholder recipe never reaches the devices.
+  const liveOnAdopt = useRef(livePref && adoptOnLoad.current);
+  const [live, setLive] = useState(livePref && !adoptOnLoad.current);
   const [liveFailed, setLiveFailed] = useState(false);
   const [liveOff, setLiveOff] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -181,6 +185,10 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
 
   const apply = (next: StudioRecipe, commit: boolean) => {
     adoptOnLoad.current = false;
+    if (liveOnAdopt.current) {
+      liveOnAdopt.current = false;
+      setLive(true);
+    }
     setRecipe(next);
     recipeRef.current = next;
     if (!commit || next === committedRef.current) return;
@@ -378,6 +386,10 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
   useEffect(() => {
     if (!adoptOnLoad.current || !customEffectsLoaded()) return;
     adoptOnLoad.current = false;
+    if (liveOnAdopt.current) {
+      liveOnAdopt.current = false;
+      setLive(true);
+    }
     const pick = lastCreatedEffect(saved, username);
     if (!pick || currentId !== null) return;
     const next = structuredClone(pick.recipe);
@@ -442,22 +454,6 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
       ) : (
         <Button size="sm" icon={<Dna size={14} />} onClick={() => openVariations(recipe)}>{t('lighting.studio.variations')}</Button>
       )}
-      {/* The LED map editor's mode buttons: a pressed state rather than a switch. */}
-      <button
-        type="button"
-        className={`${mapStyles.modeBtn} ${live ? mapStyles.modeBtnActive : ''}`}
-        aria-pressed={live}
-        disabled={varying}
-        onClick={() => {
-          if (!live) {
-            setLiveFailed(false);
-            setLiveOff(false);
-          }
-          setLive(!live);
-        }}
-      >
-        {t('lighting.studio.live')}
-      </button>
       <div className={styles.toolbarEnd}>
         <div className={styles.historyBtns}>
           <Button size="sm" tone="ghost" icon={<Undo2 size={14} />} aria-label={t('lighting.studio.undo')} disabled={varying || !past.length} onClick={undo} />
@@ -569,7 +565,30 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
             </SettingsSection>
           ) : (
             <>
-              <SettingsSection title={t('lighting.studio.preview')} className={styles.fill} boxClassName={styles.bareBox}
+              <SettingsSection
+                title={(
+                  // The LED map editor's Preview group: label, then a pressed-state mode button.
+                  <span className={mapStyles.modeBtns}>
+                    <span>{t('lighting.studio.preview')}</span>
+                    <button
+                      type="button"
+                      className={`${mapStyles.modeBtn} ${live ? mapStyles.modeBtnActive : ''}`}
+                      aria-pressed={live}
+                      onClick={() => {
+                        liveOnAdopt.current = false;
+                        if (!live) {
+                          setLiveFailed(false);
+                          setLiveOff(false);
+                        }
+                        setLive(!live);
+                        saveLivePref(!live);
+                      }}
+                    >
+                      {t('lighting.studio.live')}
+                    </button>
+                  </span>
+                )}
+                className={styles.fill} boxClassName={styles.bareBox}
                 action={(
                   <span className={styles.previewActions}>
                     {usesAudio && (

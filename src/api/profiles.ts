@@ -192,6 +192,7 @@ export interface UiPrefs {
   showUncontrolledDevices?: boolean;
   showUncontrolledLightingDevices?: boolean;
   showUncontrolledCoolingDevices?: boolean;
+  studioShowOnAllDevices?: boolean;
 }
 
 export interface UpdatePrefs {

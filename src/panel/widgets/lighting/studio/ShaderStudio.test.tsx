@@ -17,6 +17,13 @@ vi.mock('../../../../api/lighting', () => ({
   stopStudioLive: (...a: unknown[]) => stopLive(...a),
 }));
 
+let livePref = false;
+const saveLivePref = vi.fn();
+vi.mock('../../../../hooks/useUiSettings', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../hooks/useUiSettings')>()),
+  useStudioLivePref: () => [livePref, saveLivePref],
+}));
+
 vi.mock('../../../../hooks/useAudioState', () => ({ useAudioState: () => ({ current: null }) }));
 vi.mock('./StudioPreview', () => ({ StudioPreview: () => null }));
 let deleteNeighbor: string | null = null;
@@ -137,6 +144,8 @@ describe('ShaderStudio variations', () => {
 
 describe('ShaderStudio live on devices', () => {
   beforeEach(() => {
+    livePref = false;
+    saveLivePref.mockReset();
     startLive.mockReset().mockResolvedValue({ active: true, leaseMs: 15000, sessionId: 's0' });
     stopLive.mockReset().mockResolvedValue({});
   });
@@ -157,6 +166,61 @@ describe('ShaderStudio live on devices', () => {
     await waitFor(() => expect(startLive).toHaveBeenCalledTimes(2));
     unmount();
     await waitFor(() => expect(stopLive).toHaveBeenCalledTimes(2));
+  });
+
+  it('sits in the Preview header and keeps its state while the variations view replaces Preview', async () => {
+    render(<ShaderStudio open effectId={null} onClose={() => {}} />);
+    const toggle = screen.getByRole('button', { name: 'lighting.studio.live' });
+    expect(toggle.closest('section')).toHaveTextContent('lighting.studio.preview');
+    fireEvent.click(toggle);
+    await waitFor(() => expect(startLive).toHaveBeenCalledTimes(1));
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.variations' }));
+    expect(screen.queryByRole('button', { name: 'lighting.studio.live' })).not.toBeInTheDocument();
+    expect(stopLive).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.done' }));
+    expect(screen.getByRole('button', { name: 'lighting.studio.live' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('saves each press as the stored preference', async () => {
+    render(<ShaderStudio open effectId={null} onClose={() => {}} />);
+    const toggle = screen.getByRole('button', { name: 'lighting.studio.live' });
+    fireEvent.click(toggle);
+    expect(saveLivePref).toHaveBeenLastCalledWith(true);
+    await waitFor(() => expect(startLive).toHaveBeenCalledTimes(1));
+    fireEvent.click(toggle);
+    expect(saveLivePref).toHaveBeenLastCalledWith(false);
+    await waitFor(() => expect(stopLive).toHaveBeenCalled());
+  });
+
+  it('restores an on preference by showing on all devices from open', async () => {
+    livePref = true;
+    render(<ShaderStudio open effectId={null} onClose={() => {}} />);
+    expect(screen.getByRole('button', { name: 'lighting.studio.live' })).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(startLive).toHaveBeenCalledTimes(1));
+    expect(saveLivePref).not.toHaveBeenCalled();
+  });
+
+  it('holds a restored on until the effects list has loaded, so the placeholder recipe never goes live', async () => {
+    livePref = true;
+    entriesLoaded = false;
+    onTestFinished(() => { entriesLoaded = true; });
+    render(<ShaderStudio open effectId={null} onClose={() => {}} />);
+    expect(screen.getByRole('button', { name: 'lighting.studio.live' })).toHaveAttribute('aria-pressed', 'false');
+    await act(async () => {});
+    expect(startLive).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.surprise' }));
+    await waitFor(() => expect(startLive).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: 'lighting.studio.live' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('keeps the stored preference when the service refuses the session', async () => {
+    livePref = true;
+    startLive.mockResolvedValue({ active: false });
+    render(<ShaderStudio open effectId={null} onClose={() => {}} />);
+    expect(await screen.findByText('lighting.studio.liveFailed')).toBeInTheDocument();
+    expect(saveLivePref).not.toHaveBeenCalled();
   });
 
   it('renews and stops the session under the id the service gave it', async () => {
