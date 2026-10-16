@@ -48,7 +48,7 @@ function useLiveLevels(audioRef: React.RefObject<AudioSnapshot | null> | undefin
 const LIVE_SENSOR_MS = 250;
 
 /** The live 0..1 reading of each sensor-driven param of `mods`, by param key; null while none is sampled. */
-function useLiveSensorLevels(signalRef: React.RefObject<SensorSignal | null> | undefined, mods: StudioBlock['mods']): Record<string, number> | null {
+function useLiveSensorLevels(signalRef: React.RefObject<SensorSignal | null> | null | undefined, mods: StudioBlock['mods']): Record<string, number> | null {
   const [levels, setLevels] = useState<Record<string, number> | null>(null);
   const bound = Object.entries(mods ?? {}).filter(([, m]) => isSensorSource(m.source));
   const key = JSON.stringify(bound.map(([k, m]) => [k, m.sensor]));
