@@ -100,6 +100,7 @@ export function PanelEditorSheet({
   onResize,
   onUpdate,
   onRemove,
+  dockStyle,
   selectedMonitoringSlot,
   onSelectedMonitoringSlotChange,
   editView,
@@ -192,6 +193,8 @@ export function PanelEditorSheet({
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onRemove: (widgetId: string) => void;
+  // Style of the docked widget; its clearance vars keep the sheet off the widget.
+  dockStyle?: CSSProperties;
   selectedMonitoringSlot: number;
   onSelectedMonitoringSlotChange: (slot: number) => void;
   editView: DeckEditView;
@@ -219,8 +222,11 @@ export function PanelEditorSheet({
     ? resolvedSlotLayout(editingWidget.size, editingWidget.config)
     : undefined;
   const editingSpan = editingWidget ? sizeToSpan(editingWidget.size) : null;
+  const dockVars = dockStyle as Record<string, string> | undefined;
   const editorStyle = {
     ...panelThemeStyle,
+    '--panel-editor-dock-clear-right': dockVars?.['--panel-editor-dock-clear-right'],
+    '--panel-editor-dock-clear-bottom': dockVars?.['--panel-editor-dock-clear-bottom'],
     '--panel-columns': gridColumns,
     '--panel-rows': gridRows,
     '--panel-editor-dock-cols': editingSpan?.cols ?? 4,
@@ -301,6 +307,7 @@ export function PanelEditorSheet({
       data-state={closing ? 'closing' : 'open'}
       data-surface={surface}
       data-touch-chrome={touchPanelChrome ? 'true' : undefined}
+      data-docked={dockVars ? 'true' : undefined}
       data-theme={resolvedThemeMode}
       role="dialog"
       aria-modal="true"

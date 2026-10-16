@@ -18,6 +18,9 @@ export interface EditorDockMotion {
   sourceRect?: EditorDockSourceRect;
 }
 
+// Breathing room between the docked widget and the editor sheet.
+const DOCK_SHEET_GAP = 12;
+
 export function buildEditorDockMotionStyle(
   root: HTMLElement | null,
   widget: PanelWidget,
@@ -85,6 +88,8 @@ export function buildEditorDockMotionStyle(
     '--panel-editor-dock-top': `${Math.round(top)}px`,
     '--panel-editor-dock-width': `${Math.round(width)}px`,
     '--panel-editor-dock-height': `${Math.round(height)}px`,
+    '--panel-editor-dock-clear-right': `${Math.round(left + width + DOCK_SHEET_GAP)}px`,
+    '--panel-editor-dock-clear-bottom': `${Math.round(top + height + DOCK_SHEET_GAP)}px`,
     '--panel-editor-dock-start-x': `${Math.round(startX)}px`,
     '--panel-editor-dock-start-y': `${Math.round(startY)}px`,
     '--panel-editor-dock-start-scale-x': startScaleX.toFixed(4),

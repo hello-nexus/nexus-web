@@ -284,8 +284,8 @@ interface ImmersiveAnimateController {
 }
 
 /**
- * The lighting devices plus the selection the lighting page keeps, so a static
- * pick made here targets exactly what that page shows selected.
+ * The lighting devices plus this view's own remembered selection, which is
+ * never the desktop lighting page's.
  */
 function useImmersiveDevices(enabled: boolean) {
   useState(clearLegacyLightingKeys);

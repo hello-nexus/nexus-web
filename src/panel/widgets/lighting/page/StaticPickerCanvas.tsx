@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import {
   PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES,
-  pickerHexAt, pickerPointFor, sameSwatch, segmentCellFor, segmentHexAt,
+  canTakePick, pickerHexAt, pickerPointFor, sameSwatch, segmentCellFor, segmentHexAt,
 } from './staticPickerField';
 import styles from '../LightingPage.module.scss';
 
@@ -79,8 +79,10 @@ export function StaticPickerCanvas({
   const [notice, setNotice] = useState<{ title: string; body: string; seq: number } | null>(null);
   const noticeSeq = useRef(0);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // The pointer that owns the current pick; a second contact never steers it.
+  // The pointer that owns the current pick; a second contact steers only by taking over from a quiet one.
   const activePointer = useRef<number | null>(null);
+  // When the owner last touched down or dragged, so a late contact can tell a live stroke from a rest.
+  const lastActiveAt = useRef(0);
   const lastHex = useRef<string | null>(null);
   // Held only while the input is focused, so a half-typed hex is not clobbered
   // by the value the last valid keystroke already committed.
@@ -175,12 +177,18 @@ export function StaticPickerCanvas({
   };
 
   const handleDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // A primary down takes over, so a missed release can never lock the field.
-    if (activePointer.current !== null && e.pointerId !== activePointer.current && !e.isPrimary) return;
+    // A new contact takes over from one that has gone quiet (a palm resting
+    // before the fingertip lands, or a missed release), never from a fresh
+    // tap or a drag in progress.
+    if (
+      activePointer.current !== null && e.pointerId !== activePointer.current
+      && !canTakePick(performance.now() - lastActiveAt.current)
+    ) return;
     if (blocked()) return;
     const picked = hexAtEvent(e.clientX, e.clientY);
     if (!picked) return;
     activePointer.current = e.pointerId;
+    lastActiveAt.current = performance.now();
     lastHex.current = picked;
     e.currentTarget.setPointerCapture(e.pointerId);
     onPreview(picked);
@@ -191,6 +199,7 @@ export function StaticPickerCanvas({
     const picked = hexAtEvent(e.clientX, e.clientY);
     if (!picked || picked === lastHex.current) return;
     lastHex.current = picked;
+    lastActiveAt.current = performance.now();
     onPreview(picked);
   };
 

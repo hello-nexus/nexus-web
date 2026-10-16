@@ -21,6 +21,19 @@ export function pickerHexAt(x: number, y: number): string {
   return hsvToHex(clamp01(x) * 360, s * 100, v * 100);
 }
 
+/** A contact this recently down or dragging still owns the pick. */
+export const PICKER_ACTIVE_MS = 250;
+
+/**
+ * Whether a contact landing while another owns the pick may take it over.
+ * A palm often rests on the field before the fingertip arrives, so a contact
+ * that has gone quiet gives way. A fresh tap or a drag in progress keeps the
+ * pick, so a palm grazing the field behind a fingertip cannot steal it.
+ */
+export function canTakePick(msSinceOwnerActive: number): boolean {
+  return msSinceOwnerActive >= PICKER_ACTIVE_MS;
+}
+
 export interface PickerPoint {
   x: number;
   y: number;

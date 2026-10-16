@@ -18,9 +18,9 @@ import styles from './StaticDeviceSelect.module.scss';
  *
  * Cards are the lighting page's own ZoneCards in `selectOnly` mode, grouped by
  * the page's own blocks and MotherboardGroup headers, and the selection Set is
- * the page's - so a selection made here is the one the desktop page shows and
- * vice versa. Group headers collapse only; power and Nexus Control belong to
- * the page, not to a picker.
+ * the caller's, kept separate from the desktop page's own selection. Group
+ * headers collapse only; power and Nexus Control belong to the page, not to a
+ * picker.
  */
 export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPickFor, pins, pinSource, pinDisabledReason, pinTargetName, onSetPin }: {
   devices: LightingDevice[];
