@@ -17,7 +17,7 @@ import { forgetShaderSource, primeShaderSource } from '../../../api/lighting';
 import { customEffectDef, customEffectKey } from '../../../api/customEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useAudioState } from '../../../hooks/useAudioState';
-import { useSensorSignal } from '../../../hooks/useSensorSignal';
+import { SensorSignalProvider } from '../../../hooks/SensorSignalProvider';
 import type { EffectState } from '../../../types/lighting';
 import { baselineTemplates, slotMatchesDefault } from '../../../types/lightingTemplates';
 import { EffectControls } from '../../../panel/widgets/lighting/page/EffectControls';
@@ -259,11 +259,11 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
   const stateRef = useRef<EffectState | null>(state);
   useLayoutEffect(() => { stateRef.current = state; }, [state]);
   const audioRef = useAudioState(listing.audio);
-  const sensorRef = useSensorSignal(recipeUsesSensors(recipe));
   return (
+    <SensorSignalProvider enabled={recipeUsesSensors(recipe)}>
     <div className={styles.playground}>
       <div className={styles.main}>
-        <StudioPreview effectKey={compiled.key} stateRef={stateRef} audioRef={audioRef} sensorRef={sensorRef} className={styles.detailPreview} />
+        <StudioPreview effectKey={compiled.key} stateRef={stateRef} audioRef={audioRef} className={styles.detailPreview} />
         {children}
       </div>
       <Card compact className={styles.controls}>
@@ -281,6 +281,7 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
         />
       </Card>
     </div>
+    </SensorSignalProvider>
   );
 }
 

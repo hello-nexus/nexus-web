@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { AudioLines, GripVertical, Pin, X } from 'lucide-react';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import { Card } from '../../../../components/common/Card/Card';
@@ -9,6 +9,7 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { ColorPickerWithPresets } from '../../../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import type { SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { useTranslation } from '../../../../lib/i18n';
+import { SensorSignalContext } from '../../../../hooks/SensorSignalContext';
 import { DEFAULT_SENSOR_BINDING, type SensorSignal } from '../../../../lib/sensorBinding';
 import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
 import { blocksForStage, type StudioBlockDef, type StudioParam } from './studioBlocks';
@@ -43,7 +44,7 @@ function useLiveLevels(audioRef: React.RefObject<AudioSnapshot | null> | undefin
   return key ? levels : null;
 }
 
-// How often a sensor-driven slider's live marker follows the hardware; the readings themselves arrive about once a second.
+// How often a sensor-driven slider's live marker follows the hardware.
 const LIVE_SENSOR_MS = 250;
 
 /** The live 0..1 reading of each sensor-driven param of `mods`, by param key; null while none is sampled. */
@@ -100,16 +101,15 @@ interface StudioBlockCardProps {
   onTogglePin: (key: string) => void;
   /** Live audio, so a modulated knob shows where the music has it now. */
   audioRef?: React.RefObject<AudioSnapshot | null>;
-  /** Live sensor readings, so a sensor-driven knob shows where the hardware has it now. */
-  sensorRef?: React.RefObject<SensorSignal | null>;
 }
 
 export function StudioBlockCard({
-  block, def, firstPattern, removable, canSwitchTo, drag, onChange, onCommit, onTypeChange, onRemove, isPinned, onTogglePin, audioRef, sensorRef,
+  block, def, firstPattern, removable, canSwitchTo, drag, onChange, onCommit, onTypeChange, onRemove, isPinned, onTogglePin, audioRef,
 }: StudioBlockCardProps) {
   const { t } = useTranslation();
   const audio = useLiveLevels(audioRef, [...new Set(Object.values(block.mods ?? {}).map(m => m.source).filter(isMusicSource))]);
-  const sensorLevels = useLiveSensorLevels(sensorRef, block.mods);
+  // Live readings come from the provider above, so a sensor-driven knob shows where the hardware has it now.
+  const sensorLevels = useLiveSensorLevels(useContext(SensorSignalContext), block.mods);
   const typeOptions = blocksForStage(def.stage).map(d => ({
     value: d.type,
     label: t(`lighting.studio.block.${d.type}`),

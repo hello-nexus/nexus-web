@@ -123,10 +123,11 @@ describe('studioLibrary', () => {
         return r;
       };
       expect(lib.parseMarketRecipe(withMod({ source: 'sensor', amount: 1, sensor }))).not.toBeNull();
+      expect(lib.parseMarketRecipe(withMod({ source: 'sensor', amount: 1, sensor: { ...sensor, sensor: "/Volumes/Bob's [x] & y/t\u00e9" } }))).not.toBeNull();
       for (const bad of [
         { source: 'sensor', amount: 1 },
         { source: 'sensor', amount: 1, sensor: { ...sensor, min: 95, max: 30 } },
-        { source: 'sensor', amount: 1, sensor: { ...sensor, sensor: 'a"b' } },
+        { source: 'sensor', amount: 1, sensor: { ...sensor, sensor: '' } },
         { source: 'sensor', amount: 1, sensor, rate: 1 },
         { source: 'sensor', amount: 1, sensor, gate: 0.2 },
         { source: 'bass', amount: 1, sensor },

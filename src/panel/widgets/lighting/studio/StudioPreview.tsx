@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
-import type { SensorSignal } from '../../../../lib/sensorBinding';
 import type { EffectState } from '../../../../types/lighting';
 import { InlineError } from '../../../../components/common/InlineError/InlineError';
 import styles from './ShaderStudio.module.scss';
@@ -11,15 +10,13 @@ interface StudioPreviewProps {
   effectKey: string;
   stateRef: React.RefObject<EffectState | null>;
   audioRef?: React.RefObject<AudioSnapshot | null>;
-  /** Live sensor readings; without one a sensor-fed shader swings on its own. */
-  sensorRef?: React.RefObject<SensorSignal | null>;
   className?: string;
   maxFps?: number;
 }
 
-export function StudioPreview({ effectKey, stateRef, audioRef, sensorRef, className, maxFps }: StudioPreviewProps) {
+export function StudioPreview({ effectKey, stateRef, audioRef, className, maxFps }: StudioPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { error } = useShaderRenderer(canvasRef, effectKey, stateRef, audioRef, { maxFps, sensorRef, sensorSweep: true });
+  const { error } = useShaderRenderer(canvasRef, effectKey, stateRef, audioRef, { maxFps, sensorSweep: true });
   // Chromium caps live WebGL contexts per page and evicts the oldest (possibly the
   // lighting page's own canvas), so release this one on unmount instead of waiting
   // for GC. StrictMode and Fast Refresh re-run setup synchronously on the same

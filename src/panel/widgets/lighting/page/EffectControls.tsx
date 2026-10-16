@@ -3,7 +3,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { EFFECTS, categoryOf, type EffectDef, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderParams } from '../../../../hooks/useShaderParams';
 import { clampToSpec } from '../../../../lib/shaderParams';
-import { cleanBinding, effectiveBinding, sensorBindingsEqual, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
+import { cleanBinding, effectiveBinding, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
 import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
@@ -54,10 +54,11 @@ export const EffectControls = memo(function EffectControls({
   const def = customDef ?? EFFECTS.find(e => e.key === effect);
   const { specs, sensors, loaded } = useShaderParams(effect);
   if (!def) return null;
-  // Applies at once, like every slider: an override equal to the shader's default is dropped rather than stored.
+  // Applies at once, like every slider. Any pick is stored, even one equal to the shader's default, so it
+  // outlives a later change of that default; only the reset clears it.
   const setSensor = (su: SensorUniform, binding: SensorBinding | null) => {
     const next = { ...state.sensors };
-    if (binding && !sensorBindingsEqual(binding, su.binding)) next[su.name] = cleanBinding(binding);
+    if (binding) next[su.name] = cleanBinding(binding);
     else delete next[su.name];
     onChange({ sensors: Object.keys(next).length > 0 ? next : undefined }, true);
   };

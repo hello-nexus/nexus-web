@@ -12,14 +12,20 @@ describe('isSensorBinding', () => {
     expect(isSensorBinding({ category: 'cpu', sensor: '/intelcpu/0/temperature/0', min: 30, max: 95 })).toBe(true);
   });
 
-  it('rejects a missing field, an empty or inverted range, and unsafe text', () => {
+  it('accepts any non-empty id the service does, such as a macOS mount path', () => {
+    for (const sensor of ["/Volumes/Bob's [Backup] & Co/temp\u00e9", 'a"b', 'line\nbreak', '/x'.repeat(100)]) {
+      expect(isSensorBinding({ ...cpu, sensor }), sensor).toBe(true);
+    }
+    expect(isSensorBinding({ ...cpu, sensor: '' })).toBe(false);
+    expect(isSensorBinding({ ...cpu, sensor: 'x'.repeat(513) })).toBe(false);
+  });
+
+  it('rejects a missing field, an empty or inverted range, and a malformed category', () => {
     expect(isSensorBinding(null)).toBe(false);
     expect(isSensorBinding({ ...cpu, sensor: undefined })).toBe(false);
     expect(isSensorBinding({ ...cpu, min: 50, max: 50 })).toBe(false);
     expect(isSensorBinding({ ...cpu, min: 90, max: 10 })).toBe(false);
     expect(isSensorBinding({ ...cpu, max: Number.POSITIVE_INFINITY })).toBe(false);
-    expect(isSensorBinding({ ...cpu, sensor: 'a"b' })).toBe(false);
-    expect(isSensorBinding({ ...cpu, sensor: 'line\nbreak' })).toBe(false);
     expect(isSensorBinding({ ...cpu, category: 'not a category' })).toBe(false);
   });
 });
@@ -36,6 +42,14 @@ describe('sensor annotation', () => {
     const json = sensorAnnotationJson({ category: 'quick', sensor: 'Température', min: 0, max: 1 });
     expect(/^[\x20-\x7e]*$/.test(json)).toBe(true);
     expect(JSON.parse(json).sensor).toBe('Température');
+  });
+
+  it('round-trips an id with quotes, brackets, newlines and non-ASCII text on one ASCII line', () => {
+    const sensor = "/Volumes/Bob's \"[Backup]\" & Co\n/Tem\u00e9ratur \u{1F600}";
+    const json = sensorAnnotationJson({ category: 'storage', sensor, min: 0, max: 1 });
+    expect(/^[\x20-\x7e]*$/.test(json)).toBe(true);
+    const frag = `uniform float u_a_level_s; // sensor ${json}`;
+    expect(parseSensorUniforms(frag)).toEqual([{ name: 'u_a_level_s', binding: { category: 'storage', sensor, min: 0, max: 1 } }]);
   });
 
   it('ignores a malformed or invalid annotation and any uniform without one', () => {

@@ -25,8 +25,9 @@ export type SensorSignal = (binding: SensorBinding) => number | null;
 export const DEFAULT_SENSOR_BINDING: SensorBinding = { category: 'quick', sensor: 'summary/cpu-usage', min: 0, max: 100 };
 
 const CATEGORY_RE = /^[a-zA-Z0-9]{1,24}$/;
-// Sensor ids reach a GLSL comment and the service, so the alphabet stays small and quote-free.
-const SENSOR_RE = /^[\w\-./:()%#+ ]{1,96}$/;
+// The service only requires a non-empty id (macOS storage ids embed mount paths). The annotation escapes
+// whatever the id holds through JSON, so only the length is capped, here and nowhere else.
+const SENSOR_ID_MAX = 512;
 const LIMIT = 1e9;
 
 const isObj = (o: unknown): o is Record<string, unknown> => !!o && typeof o === 'object' && !Array.isArray(o);
@@ -35,7 +36,7 @@ export function isSensorBinding(x: unknown): x is SensorBinding {
   if (!isObj(x)) return false;
   const { category, sensor, min, max } = x;
   return typeof category === 'string' && CATEGORY_RE.test(category)
-    && typeof sensor === 'string' && SENSOR_RE.test(sensor)
+    && typeof sensor === 'string' && sensor.length > 0 && sensor.length <= SENSOR_ID_MAX
     && typeof min === 'number' && typeof max === 'number'
     && Number.isFinite(min) && Number.isFinite(max)
     && Math.abs(min) <= LIMIT && Math.abs(max) <= LIMIT && min < max;

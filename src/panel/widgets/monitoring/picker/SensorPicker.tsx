@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Select } from '../../../../components/common/Select/Select';
 import { useSensors } from '../../../../hooks/useSensors';
 import { useSensorExtras } from '../../../../hooks/useSensorExtras';
@@ -19,7 +19,7 @@ export interface SensorSelection {
 export function useSensorLookup() {
   const sensors = useSensors(true);
   const extras = useSensorExtras(true);
-  const networkSensors = buildNicNetworkSensors(extras.nics);
+  const networkSensors = useMemo(() => buildNicNetworkSensors(extras.nics), [extras.nics]);
   const resolve = useCallback(
     (category: string, sensor: string): HardwareSensor | undefined =>
       resolveMonitoringSensor(sensors, category as DeckMonitoringCategory, sensor, [], networkSensors, extras),
@@ -35,7 +35,9 @@ export function useSensorLookup() {
  * receives the resolved sensor (undefined while it has no reading) so a caller
  * can derive a default range.
  */
-export function SensorPicker({ category, sensor, onChange, disabled, className }: {
+export function SensorPicker({ lookup, category, sensor, onChange, disabled, className }: {
+  /** The caller's own useSensorLookup, so a row subscribes to the sensors once. */
+  lookup: ReturnType<typeof useSensorLookup>;
   category: string;
   sensor: string;
   onChange: (selection: SensorSelection, resolved: HardwareSensor | undefined) => void;
@@ -43,7 +45,7 @@ export function SensorPicker({ category, sensor, onChange, disabled, className }
   className?: string;
 }) {
   const { t } = useTranslation();
-  const { sensors, extras, networkSensors, resolve } = useSensorLookup();
+  const { sensors, extras, networkSensors, resolve } = lookup;
   const device = category as DeckMonitoringCategory;
   // FPS has no reading the lighting service can resolve, so it is not offered.
   const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)

@@ -70,10 +70,10 @@ describe('EffectControls sensor uniforms', () => {
     expect(onChange).toHaveBeenCalledWith({ sensors: undefined }, true);
   });
 
-  it('drops a pick that equals the shader default instead of storing it', () => {
+  it('stores a pick that equals the shader default, so it outlives a change of that default', () => {
     const mine = { category: 'cpu', sensor: 'cpu/load/0', min: 0, max: 50 };
     const onChange = setup(baseState({ u_fill_level_s: mine }));
     fireEvent.click(screen.getByRole('button', { name: 'pick-default' }));
-    expect(onChange).toHaveBeenCalledWith({ sensors: undefined }, true);
+    expect(onChange).toHaveBeenCalledWith({ sensors: { u_fill_level_s: shaderDefault } }, true);
   });
 });

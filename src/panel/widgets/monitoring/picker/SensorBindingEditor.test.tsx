@@ -77,10 +77,10 @@ describe('SensorBindingEditor', () => {
     expect(min).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('offers a way back only when the caller says the binding was changed', () => {
+  it('keeps the way back in place, disabled until the caller says the binding was changed', () => {
     const onReset = vi.fn();
     const { rerender } = render(<SensorBindingEditor binding={binding} onChange={() => {}} />);
-    expect(screen.queryByRole('button', { name: 'lighting.sensor.reset' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'lighting.sensor.reset' })).toBeDisabled();
     rerender(<SensorBindingEditor binding={binding} onChange={() => {}} onReset={onReset} />);
     fireEvent.click(screen.getByRole('button', { name: 'lighting.sensor.reset' }));
     expect(onReset).toHaveBeenCalledTimes(1);

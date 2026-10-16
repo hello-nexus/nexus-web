@@ -35,11 +35,20 @@ interface Entry {
 }
 
 // Where the previews read live sensor values while an editor provides them; without one a sensor swings on its own.
+const sensorFeeds = new Set<React.RefObject<SensorSignal | null>>();
 let sensorFeed: React.RefObject<SensorSignal | null> | null = null;
 
-/** Lets the open editor feed its sensor readings to every preview; null stops. */
-export function setPreviewSensorFeed(feed: React.RefObject<SensorSignal | null> | null): void {
+/** The feed the previews read now; null while none is registered. */
+export const activePreviewSensorFeed = () => sensorFeed;
+
+/** Offers a source of sensor readings to every preview; the newest one still registered is read. Returns the unregister. */
+export function registerPreviewSensorFeed(feed: React.RefObject<SensorSignal | null>): () => void {
+  sensorFeeds.add(feed);
   sensorFeed = feed;
+  return () => {
+    sensorFeeds.delete(feed);
+    if (sensorFeed === feed) sensorFeed = [...sensorFeeds].at(-1) ?? null;
+  };
 }
 
 // A sensor-fed still holds a filled-in level rather than the empty start of the sweep.

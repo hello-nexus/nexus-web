@@ -4,6 +4,7 @@ import { StudioBlockCard } from './StudioBlockCard';
 import { studioBlock } from './studioBlocks';
 import { makeBlock, type StudioBlock, type StudioMod } from './studioCompiler';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
+import { SensorSignalContext } from '../../../../hooks/SensorSignalContext';
 import { DEFAULT_SENSOR_BINDING } from '../../../../lib/sensorBinding';
 
 vi.mock('../../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -131,11 +132,13 @@ describe('StudioBlockCard sensor modulation', () => {
       const { block } = ringsWithBass();
       block.mods = { speed: { source: 'sensor', amount: 0.5, sensor: DEFAULT_SENSOR_BINDING } };
       const { container } = render(
+        <SensorSignalContext.Provider value={sensorRef}>
         <StudioBlockCard
           block={block} def={studioBlock('rings')!} firstPattern removable={false} canSwitchTo={() => true}
           onChange={noop} onCommit={noop} onTypeChange={noop} onRemove={noop}
-          isPinned={() => false} onTogglePin={noop} sensorRef={sensorRef}
-        />,
+          isPinned={() => false} onTogglePin={noop}
+        />
+      </SensorSignalContext.Provider>,
       );
       const lefts = () => overlays(container).filter(el => !el.style.width).map(el => el.style.left);
       expect(lefts()).not.toContain('25%');

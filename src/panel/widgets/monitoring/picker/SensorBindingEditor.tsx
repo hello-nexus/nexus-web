@@ -31,12 +31,13 @@ function parseNumber(raw: string): number | null {
 export function SensorBindingEditor({ binding, onChange, onReset, ariaLabel }: {
   binding: SensorBinding;
   onChange: (binding: SensorBinding) => void;
-  /** Present when the binding differs from its default, to bring it back. */
+  /** Present when the user has overridden the default; the reset stays in place, disabled, without it. */
   onReset?: () => void;
   ariaLabel?: string;
 }) {
   const { t } = useTranslation();
-  const { resolve } = useSensorLookup();
+  const lookup = useSensorLookup();
+  const { resolve } = lookup;
   const unit = resolve(binding.category, binding.sensor)?.units ?? '';
   const [draft, setDraft] = useState({ min: String(binding.min), max: String(binding.max) });
   useEffect(() => {
@@ -57,6 +58,7 @@ export function SensorBindingEditor({ binding, onChange, onReset, ariaLabel }: {
   return (
     <div className={styles.editor} role="group" aria-label={ariaLabel}>
       <SensorPicker
+        lookup={lookup}
         category={binding.category}
         sensor={binding.sensor}
         onChange={(selection, resolved) => {
@@ -81,11 +83,9 @@ export function SensorBindingEditor({ binding, onChange, onReset, ariaLabel }: {
             onInput={v => setDraft(d => ({ ...d, max: v }))} onBlur={commit} onSubmit={commit}
           />
         </label>
-        {onReset && (
-          <HoverTooltip body={t('lighting.sensor.reset')} side="top">
-            <Button size="sm" tone="ghost" icon={<RotateCcw size={14} />} aria-label={t('lighting.sensor.reset')} onClick={onReset} />
-          </HoverTooltip>
-        )}
+        <HoverTooltip body={t('lighting.sensor.reset')} side="top">
+          <Button size="sm" tone="ghost" icon={<RotateCcw size={14} />} aria-label={t('lighting.sensor.reset')} onClick={onReset} disabled={!onReset} />
+        </HoverTooltip>
       </div>
     </div>
   );
