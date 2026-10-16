@@ -6,6 +6,13 @@ import { EffectControls } from './EffectControls';
 
 vi.mock('../../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
+const gpu: SensorBinding = { category: 'quick', sensor: 'summary/gpu-usage', min: 0, max: 100 };
+let shipped: Record<string, unknown> | null = null;
+vi.mock('../../../../api/lighting', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../../api/lighting')>()),
+  cachedAnimateDefaults: () => shipped,
+}));
+
 const shaderDefault: SensorBinding = { category: 'quick', sensor: 'summary/cpu-usage', min: 0, max: 100 };
 const spec = (name: string, min: number, max: number, step = 1) => ({ name, min, max, step, defaultValue: min, declared: true });
 
@@ -75,5 +82,37 @@ describe('EffectControls sensor uniforms', () => {
     const onChange = setup(baseState({ u_fill_level_s: mine }));
     fireEvent.click(screen.getByRole('button', { name: 'pick-default' }));
     expect(onChange).toHaveBeenCalledWith({ sensors: { u_fill_level_s: shaderDefault } }, true);
+  });
+});
+
+describe('EffectControls sensor row reset against the preset default', () => {
+  const preset2 = () => {
+    shipped = { sensorbar: { selected: 1, slots: [{}, { sensors: { u_fill_level_s: gpu } }, {}, {}] } };
+  };
+  const render2 = (state: EffectState) => {
+    const onChange = vi.fn();
+    render(
+      <EffectControls
+        effect="sensorbar" state={state} bundle={{ selected: 1, slots: [state, state] }} onTemplateSelect={() => {}}
+        canReset={false} onChange={onChange} onCommit={() => {}} onReset={() => {}}
+      />,
+    );
+    return onChange;
+  };
+
+  it('returns a changed row to the preset default, not the shader default', () => {
+    preset2();
+    const mem = { category: 'quick', sensor: 'summary/memory-usage', min: 0, max: 100 };
+    const onChange = render2(baseState({ u_fill_level_s: mem }));
+    fireEvent.click(screen.getByRole('button', { name: 'reset' }));
+    expect(onChange).toHaveBeenCalledWith({ sensors: { u_fill_level_s: gpu } }, true);
+    shipped = null;
+  });
+
+  it('offers no reset on an untouched preset', () => {
+    preset2();
+    render2(baseState({ u_fill_level_s: gpu }));
+    expect(screen.queryByRole('button', { name: 'reset' })).toBeNull();
+    shipped = null;
   });
 });

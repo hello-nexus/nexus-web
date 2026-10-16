@@ -3,7 +3,8 @@ import { useTranslation } from '../../../../lib/i18n';
 import { EFFECTS, categoryOf, type EffectDef, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderParams } from '../../../../hooks/useShaderParams';
 import { clampToSpec } from '../../../../lib/shaderParams';
-import { cleanBinding, effectiveBinding, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
+import { cachedAnimateDefaults } from '../../../../api/lighting';
+import { cleanBinding, effectiveBinding, sensorBindingsEqual, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
 import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
@@ -56,6 +57,13 @@ export const EffectControls = memo(function EffectControls({
   if (!def) return null;
   // Applies at once, like every slider. Any pick is stored, even one equal to the shader's default, so it
   // outlives a later change of that default; only the reset clears it.
+  // A uniform's default is what the current preset ships with, else the shader's own annotation.
+  const presetDefaults = cachedAnimateDefaults()?.[effect]?.slots[bundle.selected]?.sensors;
+  const defaultFor = (su: SensorUniform) => presetDefaults?.[su.name] ?? su.binding;
+  const resetSensor = (su: SensorUniform) => {
+    const shipped = presetDefaults?.[su.name];
+    setSensor(su, shipped ? cleanBinding(shipped) : null);
+  };
   const setSensor = (su: SensorUniform, binding: SensorBinding | null) => {
     const next = { ...state.sensors };
     if (binding) next[su.name] = cleanBinding(binding);
@@ -180,7 +188,7 @@ export const EffectControls = memo(function EffectControls({
                 ariaLabel={label}
                 onChange={binding => setSensor(su, binding)}
                 showReset
-                onReset={state.sensors?.[su.name] ? () => setSensor(su, null) : undefined}
+                onReset={sensorBindingsEqual(effectiveBinding(su, state.sensors), defaultFor(su)) ? undefined : () => resetSensor(su)}
               />
             </div>
           );
