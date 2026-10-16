@@ -27,24 +27,23 @@ export function streamFrameCap(search: string): number | null {
 
 /**
  * Draw gate for a page on a panel slower than the clock rAF follows (a kiosk
- * on its own panel while the host's main display refreshes faster): paces by
- * time at the panel's refresh, taking the tick nearest each slot so no rendered
- * frame is a surplus the panel never shows.
+ * on its own panel while the host's main display refreshes faster): passes every
+ * n-th tick, n being the largest divisor that keeps draws at or above the
+ * panel's refresh.
  */
 export function createDisplayDivider(displayHz: number | null | undefined): (ts: number) => boolean {
   if (!displayHz || displayHz <= 0) return () => true;
-  const periodMs = 1000 / displayHz;
   let lastTs = Number.NaN;
   let avgTickMs = 0;
-  let nextMs = Number.NEGATIVE_INFINITY;
+  let sinceDraw = 0;
   return (ts) => {
     const dt = ts - lastTs;
     lastTs = ts;
     // A stall (hidden page, long task) says nothing about the tick rate.
     if (dt > 0 && dt < 50) avgTickMs = avgTickMs === 0 ? dt : avgTickMs * 0.95 + dt * 0.05;
-    // Half a tick of lead takes the nearest tick to the slot instead of the first one after it.
-    if (ts < nextMs - avgTickMs / 2) return false;
-    nextMs = ts - nextMs > periodMs ? ts + periodMs : nextMs + periodMs;
+    const divisor = avgTickMs > 0 ? Math.max(1, Math.floor(1000 / avgTickMs / displayHz + 0.02)) : 1;
+    if (++sinceDraw < divisor) return false;
+    sinceDraw = 0;
     return true;
   };
 }
