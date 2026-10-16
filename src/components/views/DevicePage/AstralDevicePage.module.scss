@@ -1,0 +1,227 @@
+// ROG Astral device page: Level Sense (two views of the card) and the Power detector.
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+}
+
+.status {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.accent {
+  color: var(--accent);
+}
+
+.bad {
+  color: var(--bad);
+}
+
+.centredHint {
+  margin: 0;
+  text-align: center;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+// Two panels side by side, one above the other when narrow; each wide enough for its
+// explanation on one line.
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(25rem, 1fr));
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+  color: var(--text-dim);
+}
+
+// The drawing's box keeps the stage's shape through padding-top, set inline.
+.stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.layer {
+  position: absolute;
+  transform: translate(-50%, -50%);
+
+  > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+}
+
+// The reading changes about once a second; the card glides to it.
+.turning {
+  transition: transform 0.8s ease-out;
+}
+
+.levelLine,
+.uprightLine {
+  position: absolute;
+  pointer-events: none;
+  border: 0 dashed rgba(156, 163, 175, 0.45);
+}
+
+.levelLine {
+  left: 0;
+  right: 0;
+  border-top-width: 1px;
+}
+
+.uprightLine {
+  top: 0;
+  bottom: 0;
+  border-left-width: 1px;
+}
+
+.reading {
+  font-size: var(--type-display);
+  font-weight: var(--weight-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+
+  &.bad {
+    color: var(--bad);
+  }
+}
+
+.words {
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text-dim);
+
+  &.bad {
+    color: var(--bad);
+  }
+}
+
+.hint,
+.legend,
+.note {
+  margin: 0;
+  max-width: 28rem;
+  text-align: center;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+// What a panel shows and what + and - mean: one line each.
+.panel .hint,
+.legend {
+  white-space: nowrap;
+}
+
+.legend {
+  font-weight: var(--weight-strong);
+}
+
+.note {
+  text-align: left;
+  max-width: none;
+  font-size: var(--type-mini);
+}
+
+// Power detector: the connector beside the settings, one above the other when narrow.
+.powerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.powerColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+
+  > svg {
+    width: 100%;
+    max-width: 35rem;
+    height: auto;
+  }
+}
+
+.total {
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.countdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border: var(--border-width, 1px) solid var(--bad);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.countdownTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  font-variant-numeric: tabular-nums;
+  color: var(--bad);
+}
+
+.countdownText {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text);
+  white-space: pre-line;
+}
+
+.countdownActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
