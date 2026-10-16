@@ -179,6 +179,7 @@ export const EffectControls = memo(function EffectControls({
                 binding={effectiveBinding(su, state.sensors)}
                 ariaLabel={label}
                 onChange={binding => setSensor(su, binding)}
+                showReset
                 onReset={state.sensors?.[su.name] ? () => setSensor(su, null) : undefined}
               />
             </div>

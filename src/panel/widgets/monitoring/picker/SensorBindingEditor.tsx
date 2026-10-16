@@ -28,11 +28,13 @@ function parseNumber(raw: string): number | null {
  * sensor's own units. Picking another sensor restarts the range from that
  * sensor's default; an invalid range (min not below max) is held back.
  */
-export function SensorBindingEditor({ binding, onChange, onReset, ariaLabel }: {
+export function SensorBindingEditor({ binding, onChange, onReset, showReset, ariaLabel }: {
   binding: SensorBinding;
   onChange: (binding: SensorBinding) => void;
-  /** Present when the user has overridden the default; the reset stays in place, disabled, without it. */
+  /** Present when the user has overridden the default. */
   onReset?: () => void;
+  /** Where a default exists to return to: the reset then always shows, disabled without an override. */
+  showReset?: boolean;
   ariaLabel?: string;
 }) {
   const { t } = useTranslation();
@@ -83,9 +85,14 @@ export function SensorBindingEditor({ binding, onChange, onReset, ariaLabel }: {
             onInput={v => setDraft(d => ({ ...d, max: v }))} onBlur={commit} onSubmit={commit}
           />
         </label>
-        <HoverTooltip body={t('lighting.sensor.reset')} side="top">
-          <Button size="sm" tone="ghost" icon={<RotateCcw size={14} />} aria-label={t('lighting.sensor.reset')} onClick={onReset} disabled={!onReset} />
-        </HoverTooltip>
+        {showReset && (
+          <HoverTooltip body={t('lighting.sensor.reset')} side="top">
+            {/* A disabled button takes no mouse events, so the tooltip listens on the wrapper. */}
+            <span className={styles.resetSlot}>
+              <Button size="sm" tone="ghost" icon={<RotateCcw size={14} />} aria-label={t('lighting.sensor.reset')} onClick={onReset} disabled={!onReset} />
+            </span>
+          </HoverTooltip>
+        )}
       </div>
     </div>
   );
