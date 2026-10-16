@@ -5056,6 +5056,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Tüm profiller {primary} profilinin {category} değerine (hazır ayarlar dahil) sıfırlanacak. Her profilin kendi {category} değeri kaybolacak.",
   "settings.profiles.sharing.shareConfirmTitle": "{category} profiller arasında paylaşılsın mı?",
   "settings.profiles.sharing.shared": "Paylaşılan",
+  "settings.ramTemperatures.description": "Her bellek modülündeki sıcaklık sensörünü okur. Nexus'u yükledikten sonra bilgisayarınız yeniden başlamıyorsa bunu kapatın.",
+  "settings.ramTemperatures.label": "RAM sıcaklıklarını oku",
   "settings.rememberLastPage.description": "Nexus'u panodan değil, en son açık olan sayfadan yeniden açar. Nexus yeniden başlatıldığında sayfa sıfırlanır.",
   "settings.rememberLastPage.label": "Son sayfayı hatırla",
   "settings.restartOnboarding": "Kurulumu yeniden başlat",

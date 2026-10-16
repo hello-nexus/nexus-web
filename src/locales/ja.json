@@ -5056,6 +5056,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "すべてのプロファイルが {primary} の {category}（プリセットを含む）にリセットされます。各プロファイル個別の {category} は失われます。",
   "settings.profiles.sharing.shareConfirmTitle": "{category} をプロファイル間で共有しますか？",
   "settings.profiles.sharing.shared": "共有",
+  "settings.ramTemperatures.description": "各メモリモジュールの温度センサーを読み取ります。Nexusのインストール後にPCが再起動しない場合はオフにしてください。",
+  "settings.ramTemperatures.label": "RAM温度を読み取る",
   "settings.rememberLastPage.description": "ダッシュボードではなく、最後に開いていたページでNexusを再度開きます。Nexusを再起動するとリセットされます。",
   "settings.rememberLastPage.label": "最後のページを記憶",
   "settings.restartOnboarding": "初期設定をやり直す",

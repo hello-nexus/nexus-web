@@ -59,6 +59,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       smartPollSeconds: ui.smartPollSeconds,
       smartPollDefaultSeconds: ui.smartPollDefaultSeconds,
       smartPollPerDrive: ui.smartPollPerDrive,
+      readRamTemperatures: ui.readRamTemperatures,
       accentSource: ui.accentSource,
       startOnLogin: ui.startOnLogin,
       showConflictAlerts: ui.showConflictAlerts,

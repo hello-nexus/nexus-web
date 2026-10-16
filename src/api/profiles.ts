@@ -55,6 +55,8 @@ export interface MonitoringSettings {
   smartPollDefaultSeconds?: number;
   /** False: the default governs every drive. True: each drive uses its own entry. */
   smartPollPerDrive?: boolean;
+  /** False stops reading the temperature sensor on each memory stick. Missing means true. */
+  readRamTemperatures?: boolean;
 }
 
 export interface PanelSettings {

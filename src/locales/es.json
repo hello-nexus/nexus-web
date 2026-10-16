@@ -5056,6 +5056,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Todos los perfiles se restablecerán a {category} de {primary}, incluidos los preajustes. Se perderá la {category} individual de cada perfil.",
   "settings.profiles.sharing.shareConfirmTitle": "¿Compartir {category} entre perfiles?",
   "settings.profiles.sharing.shared": "Compartida",
+  "settings.ramTemperatures.description": "Lee el sensor de temperatura de cada módulo de memoria. Desactívalo si tu PC no se reinicia tras instalar Nexus.",
+  "settings.ramTemperatures.label": "Leer las temperaturas de la RAM",
   "settings.rememberLastPage.description": "Vuelve a abrir Nexus en la última página que tenías abierta, en lugar de empezar en el panel. La página se restablece cuando Nexus se reinicia.",
   "settings.rememberLastPage.label": "Recordar la última página",
   "settings.restartOnboarding": "Reiniciar la configuración",

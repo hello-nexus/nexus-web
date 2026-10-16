@@ -145,6 +145,7 @@ export interface GeneralSettings {
   smartPollSeconds: Record<string, number>;
   smartPollDefaultSeconds: number;
   smartPollPerDrive: boolean;
+  readRamTemperatures: boolean;
   monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
@@ -235,6 +236,7 @@ export function getDefaultSettings(): NexusSettings {
       smartPollSeconds: {},
       smartPollDefaultSeconds: DEFAULT_SMART_POLL_SECONDS,
       smartPollPerDrive: false,
+      readRamTemperatures: true,
       monitoringEventKindsHidden: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,

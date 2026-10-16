@@ -5056,6 +5056,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Alle Profile werden auf {primary}s {category} zurückgesetzt, einschließlich Presets. Das individuelle {category} jedes Profils geht verloren.",
   "settings.profiles.sharing.shareConfirmTitle": "{category} profilübergreifend teilen?",
   "settings.profiles.sharing.shared": "Geteilt",
+  "settings.ramTemperatures.description": "Liest den Temperatursensor jedes Speichermoduls aus. Deaktivieren Sie dies, wenn Ihr PC nach der Installation von Nexus nicht neu startet.",
+  "settings.ramTemperatures.label": "RAM-Temperaturen auslesen",
   "settings.rememberLastPage.description": "Nexus wieder auf der zuletzt geöffneten Seite starten statt auf dem Dashboard. Die Seite wird zurückgesetzt, wenn Nexus neu startet.",
   "settings.rememberLastPage.label": "Letzte Seite merken",
   "settings.restartOnboarding": "Einrichtung neu starten",

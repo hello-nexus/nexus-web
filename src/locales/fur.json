@@ -5056,6 +5056,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Ducj i profîi a vegnaran ripristinâts a {category} di {primary}, includûts i presets. Il {category} individuâl di ogni profîl al sarà pierdût.",
   "settings.profiles.sharing.shareConfirmTitle": "Condividi {category} tra i profîi?",
   "settings.profiles.sharing.shared": "Condividude",
+  "settings.ramTemperatures.description": "Al lei il sensôr di temperadure di ogni modul di memorie. Disativilu se il to PC nol torne a inviâsi dopo vê instalât Nexus.",
+  "settings.ramTemperatures.label": "Lei lis temperaduris de RAM",
   "settings.rememberLastPage.description": "Torne a vierzi Nexus su la ultime pagjine vierte, invezit che sul cruscot. La pagjine e ven ristabilide cuant che Nexus al torne a partî.",
   "settings.rememberLastPage.label": "Visâ la ultime pagjine",
   "settings.restartOnboarding": "Torne a scomencâ la configurazion",

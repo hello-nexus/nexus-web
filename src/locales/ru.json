@@ -5104,6 +5104,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Все профили будут сброшены к {category} из {primary}, включая пресеты. Индивидуальная {category} каждого профиля будет потеряна.",
   "settings.profiles.sharing.shareConfirmTitle": "Сделать {category} общей для всех профилей?",
   "settings.profiles.sharing.shared": "Общая",
+  "settings.ramTemperatures.description": "Считывает датчик температуры каждого модуля памяти. Отключите, если ваш ПК не перезагружается после установки Nexus.",
+  "settings.ramTemperatures.label": "Считывать температуры ОЗУ",
   "settings.rememberLastPage.description": "Открывать Nexus на последней открытой странице вместо панели управления. Страница сбрасывается при перезапуске Nexus.",
   "settings.rememberLastPage.label": "Запоминать последнюю страницу",
   "settings.restartOnboarding": "Пройти настройку заново",
