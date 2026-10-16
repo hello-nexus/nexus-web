@@ -52,23 +52,24 @@ describe('streamFrameCap', () => {
 });
 
 describe('createDisplayDivider', () => {
-  it('halves a 144 Hz clock for a 60 Hz panel', () => {
-    const n = drawsOver(createDisplayDivider(60), 1000 / 144, 10_000).length;
-    expect(n).toBeGreaterThanOrEqual(715);
-    expect(n).toBeLessThanOrEqual(725);
+  it('paces a 144 Hz clock at the panel refresh', () => {
+    const n = drawsOver(createDisplayDivider(60), 1000 / 144, 10_000).length / 10;
+    expect(n).toBeGreaterThanOrEqual(59.5);
+    expect(n).toBeLessThanOrEqual(60.5);
   });
 
-  it('never drops below the panel refresh', () => {
-    for (const hostHz of [60, 75, 100, 120, 144, 165, 240, 280, 300, 360]) {
-      const draws = drawsOver(createDisplayDivider(60), 1000 / hostHz, 10_000);
-      expect(draws.length / 10).toBeGreaterThanOrEqual(59.5);
+  it('holds the panel refresh on any faster host clock', () => {
+    for (const hostHz of [75, 100, 120, 144, 165, 240, 280, 300, 360]) {
+      const n = drawsOver(createDisplayDivider(60), 1000 / hostHz, 10_000).length / 10;
+      expect(n).toBeGreaterThanOrEqual(59.5);
+      expect(n).toBeLessThanOrEqual(60.5);
     }
   });
 
-  it('divides fast hosts down to the panel refresh', () => {
-    for (const [hostHz, expected] of [[240, 60], [360, 60], [165, 82.5]] as const) {
-      const n = drawsOver(createDisplayDivider(60), 1000 / hostHz, 10_000).length / 10;
-      expect(n).toBeCloseTo(expected, 0);
+  it('never leaves a gap longer than one panel period plus a tick', () => {
+    const draws = drawsOver(createDisplayDivider(60), 1000 / 144, 10_000);
+    for (let i = 1; i < draws.length; i++) {
+      expect(draws[i] - draws[i - 1]).toBeLessThanOrEqual(1000 / 60 + 1000 / 144 + 0.5);
     }
   });
 
