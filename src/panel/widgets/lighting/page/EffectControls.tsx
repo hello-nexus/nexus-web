@@ -3,6 +3,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { EFFECTS, categoryOf, type EffectDef, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderParams } from '../../../../hooks/useShaderParams';
 import { clampToSpec } from '../../../../lib/shaderParams';
+import { isCustomEffectKey } from '../../../../api/customEffects';
 import { cachedAnimateDefaults } from '../../../../api/lighting';
 import { cleanBinding, effectiveBinding, sensorBindingsEqual, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
 import { Slider } from '../../../../components/common/Slider/Slider';
@@ -58,7 +59,9 @@ export const EffectControls = memo(function EffectControls({
   // A uniform's default is what the current preset ships with, else the shader's own annotation.
   const presetDefaults = cachedAnimateDefaults()?.[effect]?.slots[bundle.selected]?.sensors;
   // The row's reset is live while the slot's stored pick differs from the preset's entry, present against absent included.
-  const canResetSensor = (su: SensorUniform) => !sensorBindingsEqual(state.sensors?.[su.name], presetDefaults?.[su.name]);
+  // Without the shipped defaults a built-in has nothing to return to, as with the slot-level reset.
+  const defaultsUnknown = !cachedAnimateDefaults() && !isCustomEffectKey(effect);
+  const canResetSensor = (su: SensorUniform) => !defaultsUnknown && !sensorBindingsEqual(state.sensors?.[su.name], presetDefaults?.[su.name]);
   const resetSensor = (su: SensorUniform) => {
     const shipped = presetDefaults?.[su.name];
     setSensor(su, shipped ?? null);

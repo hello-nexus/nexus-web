@@ -44,7 +44,8 @@ function setup(state: EffectState) {
   const onChange = vi.fn();
   render(
     <EffectControls
-      effect="sensorbar" state={state} bundle={{ selected: 0, slots: [state] }} onTemplateSelect={() => {}}
+      effect="custom:fx1" customDef={{ key: 'custom:fx1', labelKey: '', params: [], sensors: [{ name: 'u_fill_level_s', label: 'Fill', labelKey: 'lighting.sensor.level' }] }}
+      state={state} bundle={{ selected: 0, slots: [state] }} onTemplateSelect={() => {}}
       canReset={false} onChange={onChange} onCommit={() => {}} onReset={() => {}} noPresets
     />,
   );
@@ -114,6 +115,26 @@ describe('EffectControls sensor row reset against the preset default', () => {
     preset2();
     render2(baseState({ u_fill_level_s: gpu }));
     expect(screen.getByRole('button', { name: 'reset' })).toBeDisabled();
+  });
+
+  it('offers no row reset for a built-in effect while the shipped defaults are unavailable', () => {
+    const mem = { category: 'quick', sensor: 'summary/memory-usage', min: 0, max: 100 };
+    render(
+      <EffectControls
+        effect="sensorbar" state={baseState({ u_fill_level_s: mem })} bundle={{ selected: 1, slots: [baseState(), baseState()] }}
+        onTemplateSelect={() => {}} canReset={false} onChange={vi.fn()} onCommit={() => {}} onReset={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'reset' })).toBeDisabled();
+  });
+
+  it('stores the shipped entry when the preset ships one and the slot stores none', () => {
+    preset2();
+    const onChange = render2(baseState());
+    const reset = screen.getByRole('button', { name: 'reset' });
+    expect(reset).toBeEnabled();
+    fireEvent.click(reset);
+    expect(onChange).toHaveBeenCalledWith({ sensors: { u_fill_level_s: gpu } }, true);
   });
 
   it('lets an explicit pick of the frag default be cleared where the effect ships no defaults', () => {
