@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Compass, Eraser, FolderOpen, GitBranch, History, Languages, Megaphone, PackageOpen, PanelBottom, Power, PowerOff, RefreshCw, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
+import { Compass, Eraser, FolderOpen, GitBranch, History, Languages, Megaphone, PackageOpen, PanelBottom, Power, PowerOff, RefreshCw, SlidersHorizontal, SquareMenu, Timer, TriangleAlert, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
+import { fetchFastStartup, setFastStartup, type FastStartupInfo } from '../../../api/fastStartup';
 import { postService } from '../../../api/service';
 import { downloadSupportBundle } from '../../../api/diagnostics';
 import { saveLastRoute } from '../../../api/session';
@@ -104,6 +105,35 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     setAutoStartLoading(false);
   };
 
+  const { push } = useToastSafe();
+
+  // Null hides the row: not Windows, route missing on an older service, or request failed.
+  const [fastStartup, setFastStartupInfo] = useState<FastStartupInfo | null>(null);
+  const [fastStartupBusy, setFastStartupBusy] = useState(false);
+  useEffect(() => {
+    if (!serviceOnline || platform !== 'windows') return;
+    let cancelled = false;
+    fetchFastStartup().then(data => {
+      if (data && !cancelled && data.supported) setFastStartupInfo(data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [serviceOnline, platform]);
+
+  const toggleFastStartup = async () => {
+    if (!fastStartup || fastStartupBusy) return;
+    const previous = fastStartup;
+    setFastStartupInfo({ ...previous, enabled: !previous.enabled });
+    setFastStartupBusy(true);
+    const resp = await setFastStartup(!previous.enabled).catch(() => null);
+    if (resp && !resp.error) {
+      setFastStartupInfo(resp);
+    } else {
+      setFastStartupInfo(previous);
+      push({ title: resp?.msg || t('settings.fastStartup.saveFailed') });
+    }
+    setFastStartupBusy(false);
+  };
+
   const shutDown = async () => {
     setStopping(true);
     await postService('/service/stop', {});
@@ -130,7 +160,6 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     await postService('/diagnostics/open-logs', {});
   };
 
-  const { push } = useToastSafe();
   const [exportingSupport, setExportingSupport] = useState(false);
   const exportSupportBundle = async () => {
     setExportingSupport(true);
@@ -198,6 +227,24 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
                 updateGeneral({ startupDelaySeconds: v });
                 setStartupDelayPreview(null);
               }}
+            />
+          )}
+          {platform === 'windows' && fastStartup && (
+            <SettingToggle
+              label={t('settings.fastStartup.label')}
+              anchorId="set-fast-startup"
+              icon={<Zap />}
+              iconLeading="subtle"
+              description={(
+                <>
+                  {t('settings.fastStartup.description')}
+                  {fastStartup.policyManaged && <><br />{t('settings.fastStartup.policyManaged')}</>}
+                  {!fastStartup.policyManaged && !fastStartup.hibernateAvailable && <><br />{t('settings.fastStartup.hibernateUnavailable')}</>}
+                </>
+              )}
+              checked={fastStartup.hibernateAvailable && fastStartup.enabled}
+              onChange={toggleFastStartup}
+              disabled={!serviceOnline || fastStartup.policyManaged || !fastStartup.hibernateAvailable}
             />
           )}
           {platform === 'windows' && (
