@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "Verschiebt die gesamte Ausgabe wärmer (Bernstein) oder kühler (Blau).",
   "lighting.colorTuning.title": "Farbabstimmung",
   "lighting.colorTuning.warm": "Warm",
+  "lighting.controlAllDevices": "Alle Geräte steuern",
   "lighting.controls.audiotunnel": "Audiotunnel",
   "lighting.controls.aurora": "Aurora",
   "lighting.controls.ball": "Hüpfen",

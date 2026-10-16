@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "전체 출력을 따뜻한 쪽(앰버) 또는 차가운 쪽(파랑)으로 옮깁니다.",
   "lighting.colorTuning.title": "색상 보정",
   "lighting.colorTuning.warm": "따뜻하게",
+  "lighting.controlAllDevices": "모든 기기 제어",
   "lighting.controls.audiotunnel": "오디오 터널",
   "lighting.controls.aurora": "오로라",
   "lighting.controls.ball": "바운스",

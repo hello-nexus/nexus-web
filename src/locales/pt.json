@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "Desloca toda a saída para tons mais quentes (âmbar) ou mais frios (azul).",
   "lighting.colorTuning.title": "Ajuste de cor",
   "lighting.colorTuning.warm": "Quente",
+  "lighting.controlAllDevices": "Controlar todos os dispositivos",
   "lighting.controls.audiotunnel": "Túnel de áudio",
   "lighting.controls.aurora": "Aurora",
   "lighting.controls.ball": "Ressalto",

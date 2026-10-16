@@ -476,7 +476,7 @@ describe('LightingOnboardingScreen mode choice', () => {
     expect(await screen.findByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
   });
 
-  it('Simple drives every device, putting back any the user had switched off', async () => {
+  it('Simple leaves a device the user switched off uncontrolled', async () => {
     seed([{ ...strip, controlled: false }]);
     const onComplete = renderScreen();
     // Continue reads the device list, which lands after the mode radios.
@@ -485,7 +485,7 @@ describe('LightingOnboardingScreen mode choice', () => {
     fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(setLightingDeviceControlled).toHaveBeenCalledWith('openrgb-0', true);
+    expect(setLightingDeviceControlled).not.toHaveBeenCalled();
   });
 
   it('offers only Simple and Advanced', async () => {

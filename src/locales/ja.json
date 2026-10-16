@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "出力全体を暖色（アンバー）または寒色（ブルー）に寄せます。",
   "lighting.colorTuning.title": "カラー調整",
   "lighting.colorTuning.warm": "暖色",
+  "lighting.controlAllDevices": "すべてのデバイスを制御",
   "lighting.controls.audiotunnel": "オーディオトンネル",
   "lighting.controls.aurora": "オーロラ",
   "lighting.controls.ball": "バウンス",

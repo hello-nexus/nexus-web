@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "Tüm çıkışı daha sıcak (kehribar) ya da daha soğuk (mavi) tarafa kaydırır.",
   "lighting.colorTuning.title": "Renk ayarı",
   "lighting.colorTuning.warm": "Sıcak",
+  "lighting.controlAllDevices": "Tüm cihazları kontrol et",
   "lighting.controls.audiotunnel": "Ses Tüneli",
   "lighting.controls.aurora": "Aurora",
   "lighting.controls.ball": "Sekme",

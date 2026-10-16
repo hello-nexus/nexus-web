@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "将整体输出偏向暖色（琥珀）或冷色（蓝色）。",
   "lighting.colorTuning.title": "颜色微调",
   "lighting.colorTuning.warm": "暖",
+  "lighting.controlAllDevices": "控制所有设备",
   "lighting.controls.audiotunnel": "音频隧道",
   "lighting.controls.aurora": "极光",
   "lighting.controls.ball": "弹跳",

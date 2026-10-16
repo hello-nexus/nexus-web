@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "Décale toute la sortie vers le chaud (ambre) ou le froid (bleu).",
   "lighting.colorTuning.title": "Réglage des couleurs",
   "lighting.colorTuning.warm": "Chaud",
+  "lighting.controlAllDevices": "Piloter tous les appareils",
   "lighting.controls.audiotunnel": "Tunnel audio",
   "lighting.controls.aurora": "Aurore",
   "lighting.controls.ball": "Rebond",

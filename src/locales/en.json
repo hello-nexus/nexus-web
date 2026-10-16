@@ -2342,6 +2342,7 @@
   "lighting.colorTuning.temperatureInfo": "Shifts the whole output warmer (amber) or cooler (blue).",
   "lighting.colorTuning.title": "Color tuning",
   "lighting.colorTuning.warm": "Warm",
+  "lighting.controlAllDevices": "Control all devices",
   "lighting.controls.audiotunnel": "Audio Tunnel",
   "lighting.controls.aurora": "Aurora",
   "lighting.controls.ball": "Bounce",

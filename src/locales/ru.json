@@ -2357,6 +2357,7 @@
   "lighting.colorTuning.temperatureInfo": "Смещает весь вывод в тёплую (янтарную) или холодную (синюю) сторону.",
   "lighting.colorTuning.title": "Настройка цвета",
   "lighting.colorTuning.warm": "Тёплая",
+  "lighting.controlAllDevices": "Управлять всеми устройствами",
   "lighting.controls.audiotunnel": "Аудиотуннель",
   "lighting.controls.aurora": "Северное сияние",
   "lighting.controls.ball": "Отскок",
