@@ -82,9 +82,13 @@ export function peekShaderSource(name: string): ShaderSource | undefined {
 export async function fetchShaderSource(name: string): Promise<ShaderSource | null> {
   const cached = shaderCache.get(name);
   if (cached) return cached;
-  const res = await fetchService<{ frag: string }>(`/lighting/shaders/${encodeURIComponent(name)}`);
+  const res = await fetchService<{ frag: string; sensors?: { uniform: string; binding: SensorBinding }[] }>(`/lighting/shaders/${encodeURIComponent(name)}`);
   if (!res) return null;
-  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag), sensors: parseSensorUniforms(res.frag) };
+  // The service's own reading of the annotations wins; a service that predates the field leaves the frag to parse.
+  const sensors = Array.isArray(res.sensors)
+    ? res.sensors.map(s => ({ name: s.uniform, binding: s.binding }))
+    : parseSensorUniforms(res.frag);
+  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag), sensors };
   shaderCache.set(name, src);
   return src;
 }

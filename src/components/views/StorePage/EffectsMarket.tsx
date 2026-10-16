@@ -23,7 +23,7 @@ import { baselineTemplates, slotMatchesDefault } from '../../../types/lightingTe
 import { EffectControls } from '../../../panel/widgets/lighting/page/EffectControls';
 import { StudioPreview } from '../../../panel/widgets/lighting/studio/StudioPreview';
 import { attachRecipePreview } from '../../../panel/widgets/lighting/studio/recipePreview';
-import { usePreviewSensorFeed } from '../../../panel/widgets/lighting/studio/usePreviewSensorFeed';
+import { PreviewSensorFeed } from '../../../panel/widgets/lighting/studio/PreviewSensorFeed';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatNumber } from '../../../lib/units';
@@ -48,9 +48,13 @@ function recipeOf(listing: EffectListing): StudioRecipe | null {
 
 function RecipeCanvas({ recipe, className }: { recipe: StudioRecipe; className: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  usePreviewSensorFeed(recipeUsesSensors(recipe));
   useEffect(() => (ref.current ? attachRecipePreview(ref.current, recipe) : undefined), [recipe]);
-  return <canvas ref={ref} className={className} aria-hidden={true} />;
+  return (
+    <>
+      {recipeUsesSensors(recipe) && <PreviewSensorFeed />}
+      <canvas ref={ref} className={className} aria-hidden={true} />
+    </>
+  );
 }
 
 function useDownloadsLabel() {

@@ -6,7 +6,7 @@ import { clampToSpec } from '../../../../lib/shaderParams';
 import { cleanBinding, effectiveBinding, sensorBindingsEqual, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
-import { SensorBindingEditor } from '../../../../components/common/SensorPicker/SensorBindingEditor';
+import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';

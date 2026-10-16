@@ -21,7 +21,7 @@ vi.mock('../../../../hooks/useShaderParams', () => ({
 }));
 
 // The picker reads live sensor topics; here it only reports what the controls hand it and what they do with the answer.
-vi.mock('../../../../components/common/SensorPicker/SensorBindingEditor', () => ({
+vi.mock('../../monitoring/picker/SensorBindingEditor', () => ({
   SensorBindingEditor: ({ binding, onChange, onReset }: { binding: SensorBinding; onChange: (b: SensorBinding) => void; onReset?: () => void }) => (
     <div data-testid="editor" data-sensor={binding.sensor} data-max={binding.max}>
       <button type="button" onClick={() => onChange({ category: 'cpu', sensor: 'cpu/load/0', min: 0, max: 100 })}>pick</button>

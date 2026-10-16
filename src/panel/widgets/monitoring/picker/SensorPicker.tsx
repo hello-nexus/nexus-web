@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
-import { Select } from '../Select/Select';
-import { useSensors } from '../../../hooks/useSensors';
-import { useSensorExtras } from '../../../hooks/useSensorExtras';
-import { useTranslation } from '../../../lib/i18n';
-import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from '../../../panel/widgets/deck/deckMonitoring';
-import type { DeckMonitoringCategory } from '../../../panel/widgets/deck/types';
-import { buildNicNetworkSensors } from '../../../panel/widgets/monitoring/networkSensors';
-import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys } from '../../../panel/widgets/monitoring/sensorPicker';
-import type { HardwareSensor } from '../../../hooks/useSensors';
+import { Select } from '../../../../components/common/Select/Select';
+import { useSensors } from '../../../../hooks/useSensors';
+import { useSensorExtras } from '../../../../hooks/useSensorExtras';
+import { useTranslation } from '../../../../lib/i18n';
+import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from '../../deck/deckMonitoring';
+import type { DeckMonitoringCategory } from '../../deck/types';
+import { buildNicNetworkSensors } from '../networkSensors';
+import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys } from '../sensorPicker';
+import type { HardwareSensor } from '../../../../hooks/useSensors';
 import styles from './SensorPicker.module.scss';
 
 export interface SensorSelection {
@@ -45,7 +45,9 @@ export function SensorPicker({ category, sensor, onChange, disabled, className }
   const { t } = useTranslation();
   const { sensors, extras, networkSensors, resolve } = useSensorLookup();
   const device = category as DeckMonitoringCategory;
+  // FPS has no reading the lighting service can resolve, so it is not offered.
   const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)
+    .filter(c => c !== 'fps')
     .map(c => ({ value: c, label: t(CATEGORY_LABEL_KEYS[c]) }));
   const sensorOptions = sensorsForDevice(sensors, networkSensors, extras, device);
   const listed = sensorOptions.some(o => o.value === sensor || o.sensorName === sensor);

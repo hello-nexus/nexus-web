@@ -10,7 +10,7 @@ import { ColorPickerWithPresets } from '../../../../components/common/ColorPicke
 import type { SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { useTranslation } from '../../../../lib/i18n';
 import { DEFAULT_SENSOR_BINDING, type SensorSignal } from '../../../../lib/sensorBinding';
-import { SensorBindingEditor } from '../../../../components/common/SensorPicker/SensorBindingEditor';
+import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
 import { blocksForStage, type StudioBlockDef, type StudioParam } from './studioBlocks';
 import {
   MOD_GATE, MOD_RATE, STUDIO_MOD_SOURCES, blockParams, isMusicSource, isSensorSource,

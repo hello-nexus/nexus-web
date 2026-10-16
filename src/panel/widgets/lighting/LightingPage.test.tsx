@@ -196,6 +196,7 @@ describe('LightingPage profile switching', () => {
         1.2,
         expect.objectContaining({ u_zoom: 2 }),
         false,
+        undefined,
       );
     });
     vi.mocked(lightingApi.startAnimate).mockClear();
@@ -218,6 +219,7 @@ describe('LightingPage profile switching', () => {
         1.2,
         expect.objectContaining({ u_zoom: 2 }),
         false,
+        undefined,
       );
     });
 

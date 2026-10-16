@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
-import { Button } from '../Button/Button';
-import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
-import { TextInput } from '../TextInput/TextInput';
-import { useTranslation } from '../../../lib/i18n';
-import type { HardwareSensor } from '../../../hooks/useSensors';
-import type { SensorBinding } from '../../../lib/sensorBinding';
-import { defaultFixedMax } from '../../../panel/widgets/monitoring/perfDomain';
-import type { DeviceKey } from '../../../panel/widgets/monitoring/perfSlots';
+import { Button } from '../../../../components/common/Button/Button';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { TextInput } from '../../../../components/common/TextInput/TextInput';
+import { useTranslation } from '../../../../lib/i18n';
+import type { HardwareSensor } from '../../../../hooks/useSensors';
+import type { SensorBinding } from '../../../../lib/sensorBinding';
+import { defaultFixedMax } from '../perfDomain';
+import type { DeviceKey } from '../perfSlots';
 import { SensorPicker, useSensorLookup } from './SensorPicker';
 import styles from './SensorPicker.module.scss';
 

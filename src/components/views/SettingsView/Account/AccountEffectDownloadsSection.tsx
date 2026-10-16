@@ -8,7 +8,7 @@ import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { formatDate } from '../../../../lib/units';
 import { downloadEffect, listEffectDownloads, type EffectDownload } from '../../../../api/effectMarket';
 import { attachRecipePreview } from '../../../../panel/widgets/lighting/studio/recipePreview';
-import { usePreviewSensorFeed } from '../../../../panel/widgets/lighting/studio/usePreviewSensorFeed';
+import { PreviewSensorFeed } from '../../../../panel/widgets/lighting/studio/PreviewSensorFeed';
 import { copyName, getSavedEffects, newEffectId, parseMarketRecipe, saveEffect } from '../../../../panel/widgets/lighting/studio/studioLibrary';
 import { recipeUsesSensors, type StudioRecipe } from '../../../../panel/widgets/lighting/studio/studioCompiler';
 import styles from './AccountPurchases.module.scss';
@@ -25,9 +25,13 @@ function recipeOf(item: EffectDownload): StudioRecipe | null {
 
 function Preview({ recipe }: { recipe: StudioRecipe | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  usePreviewSensorFeed(!!recipe && recipeUsesSensors(recipe));
   useEffect(() => (ref.current && recipe ? attachRecipePreview(ref.current, recipe) : undefined), [recipe]);
-  return <canvas ref={ref} className={styles.effectThumb} aria-hidden={true} />;
+  return (
+    <>
+      {recipe && recipeUsesSensors(recipe) && <PreviewSensorFeed />}
+      <canvas ref={ref} className={styles.effectThumb} aria-hidden={true} />
+    </>
+  );
 }
 
 /** Lighting effects the account copied from the Marketplace, removed ones included; any still listed can be copied again. */

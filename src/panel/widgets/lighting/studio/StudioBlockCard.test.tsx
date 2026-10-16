@@ -8,7 +8,7 @@ import { DEFAULT_SENSOR_BINDING } from '../../../../lib/sensorBinding';
 
 vi.mock('../../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 // The picker reads live sensor topics; the card only needs to place it.
-vi.mock('../../../../components/common/SensorPicker/SensorBindingEditor', () => ({
+vi.mock('../../monitoring/picker/SensorBindingEditor', () => ({
   SensorBindingEditor: ({ binding, onChange }: { binding: { sensor: string; max: number }; onChange: (b: unknown) => void }) => (
     <button type="button" data-testid="sensor-editor" onClick={() => onChange({ ...binding, max: 80 })}>{binding.sensor}</button>
   ),

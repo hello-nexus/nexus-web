@@ -2,10 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SensorBindingEditor } from './SensorBindingEditor';
 
-vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('../../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 // The native <select> stands in for the themed one: these tests exercise the picker's wiring, not the menu.
-vi.mock('../Select/Select', () => ({
+vi.mock('../../../../components/common/Select/Select', () => ({
   Select: ({ value, onChange, options, ariaLabel }: {
     value: string; onChange: (v: string) => void; options?: { value: string; label: string }[]; ariaLabel?: string;
   }) => (
@@ -20,8 +20,8 @@ const sensor = (id: string, name: string, type: string, value: number, units: st
   id, name, type, value, units, formatted: `${value}${units}`, theoreticalMaximum, parent: { id: 'p', name: 'p' },
 });
 
-vi.mock('../../../hooks/useSensors', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../../hooks/useSensors')>();
+vi.mock('../../../../hooks/useSensors', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../../hooks/useSensors')>();
   return {
     ...actual,
     useSensors: () => ({
@@ -36,7 +36,7 @@ vi.mock('../../../hooks/useSensors', async importOriginal => {
     }),
   };
 });
-vi.mock('../../../hooks/useSensorExtras', () => ({
+vi.mock('../../../../hooks/useSensorExtras', () => ({
   useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
 }));
 
