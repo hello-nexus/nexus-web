@@ -17,16 +17,18 @@ import { forgetShaderSource, primeShaderSource } from '../../../api/lighting';
 import { customEffectDef, customEffectKey } from '../../../api/customEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useAudioState } from '../../../hooks/useAudioState';
+import { useSensorSignal } from '../../../hooks/useSensorSignal';
 import type { EffectState } from '../../../types/lighting';
 import { baselineTemplates, slotMatchesDefault } from '../../../types/lightingTemplates';
 import { EffectControls } from '../../../panel/widgets/lighting/page/EffectControls';
 import { StudioPreview } from '../../../panel/widgets/lighting/studio/StudioPreview';
 import { attachRecipePreview } from '../../../panel/widgets/lighting/studio/recipePreview';
+import { usePreviewSensorFeed } from '../../../panel/widgets/lighting/studio/usePreviewSensorFeed';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatNumber } from '../../../lib/units';
 import { copyName, isDownloaded, isMarketCopy, newEffectId, parseMarketRecipe, saveEffect, unlinkEffect, useSavedEffects } from '../../../panel/widgets/lighting/studio/studioLibrary';
-import { compileStudio, type StudioRecipe } from '../../../panel/widgets/lighting/studio/studioCompiler';
+import { compileStudio, recipeUsesSensors, type StudioRecipe } from '../../../panel/widgets/lighting/studio/studioCompiler';
 import storeStyles from './StorePage.module.scss';
 import styles from './EffectsMarket.module.scss';
 
@@ -46,6 +48,7 @@ function recipeOf(listing: EffectListing): StudioRecipe | null {
 
 function RecipeCanvas({ recipe, className }: { recipe: StudioRecipe; className: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  usePreviewSensorFeed(recipeUsesSensors(recipe));
   useEffect(() => (ref.current ? attachRecipePreview(ref.current, recipe) : undefined), [recipe]);
   return <canvas ref={ref} className={className} aria-hidden={true} />;
 }
@@ -252,10 +255,11 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
   const stateRef = useRef<EffectState | null>(state);
   useLayoutEffect(() => { stateRef.current = state; }, [state]);
   const audioRef = useAudioState(listing.audio);
+  const sensorRef = useSensorSignal(recipeUsesSensors(recipe));
   return (
     <div className={styles.playground}>
       <div className={styles.main}>
-        <StudioPreview effectKey={compiled.key} stateRef={stateRef} audioRef={audioRef} className={styles.detailPreview} />
+        <StudioPreview effectKey={compiled.key} stateRef={stateRef} audioRef={audioRef} sensorRef={sensorRef} className={styles.detailPreview} />
         {children}
       </div>
       <Card compact className={styles.controls}>

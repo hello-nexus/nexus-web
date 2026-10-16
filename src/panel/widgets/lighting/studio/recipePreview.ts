@@ -1,3 +1,4 @@
+import { sensorSweep, type SensorSignal, type SensorUniform } from '../../../../lib/sensorBinding';
 import { compileStudio, type StudioRecipe } from './studioCompiler';
 import { syntheticAudio } from './syntheticAudio';
 
@@ -27,10 +28,22 @@ interface Entry {
   canvas: HTMLCanvasElement;
   frag: string;
   params: Record<string, number>;
+  sensors: SensorUniform[];
   visible: boolean;
   failed: boolean;
   drawn: boolean;
 }
+
+// Where the previews read live sensor values while an editor provides them; without one a sensor swings on its own.
+let sensorFeed: React.RefObject<SensorSignal | null> | null = null;
+
+/** Lets the open editor feed its sensor readings to every preview; null stops. */
+export function setPreviewSensorFeed(feed: React.RefObject<SensorSignal | null> | null): void {
+  sensorFeed = feed;
+}
+
+// A sensor-fed still holds a filled-in level rather than the empty start of the sweep.
+const STILL_SENSOR_LEVEL = 0.65;
 
 const entries = new Set<Entry>();
 const byCanvas = new WeakMap<Element, Entry>();
@@ -147,7 +160,11 @@ function draw(ts: number) {
       else if (name === 'u_time') g.uniform1f(loc, t);
       // An array uniform is listed by its first element's name.
       else if (name === 'u_spectrum[0]') g.uniform1fv(loc, audio.spectrum);
-      else g.uniform1f(loc, e.params[name] ?? NEUTRAL[name] ?? audio.scalars[name] ?? 0);
+      else {
+        const sensor = e.sensors.find(s => s.name === name);
+        g.uniform1f(loc, e.params[name] ?? NEUTRAL[name] ?? audio.scalars[name]
+          ?? (sensor ? (sensorFeed?.current?.(sensor.binding) ?? sensorSweep(t)) : 0));
+      }
     }
     g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
     // GL rows start at the bottom of the drawing buffer; the copy reads the top-left-origin image.
@@ -178,7 +195,7 @@ export function renderRecipeStill(recipe: StudioRecipe): string | null {
   if (!g || !glCanvas) return null;
   // Unbaked, so a knob edit reuses the linked program: the shader multiplies
   // (adds, for hue) these uniforms with its neutral base constants.
-  const { frag, params } = compileStudio(recipe);
+  const { frag, params, sensors } = compileStudio(recipe);
   const base: Record<string, number> = {
     u_speed: recipe.speed / 50, u_hue: recipe.hue, u_saturation: recipe.saturation, u_contrast: recipe.contrast,
   };
@@ -191,7 +208,7 @@ export function renderRecipeStill(recipe: StudioRecipe): string | null {
   for (const [name, loc] of program.locs) {
     if (name === 'u_resolution') g.uniform2f(loc, STILL_W, STILL_H);
     else if (name === 'u_time') g.uniform1f(loc, STILL_TIME_S);
-    else g.uniform1f(loc, params[name] ?? base[name] ?? NEUTRAL[name] ?? 0);
+    else g.uniform1f(loc, params[name] ?? base[name] ?? NEUTRAL[name] ?? (sensors.some(s => s.name === name) ? STILL_SENSOR_LEVEL : 0));
   }
   g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
   const out = document.createElement('canvas');
@@ -205,9 +222,9 @@ export function renderRecipeStill(recipe: StudioRecipe): string | null {
 
 /** Animates `recipe` into `canvas` until the returned detach runs. */
 export function attachRecipePreview(canvas: HTMLCanvasElement, recipe: StudioRecipe): () => void {
-  const { frag, params } = compileStudio(recipe, { bake: true });
+  const { frag, params, sensors } = compileStudio(recipe, { bake: true });
   const obs = watch();
-  const entry: Entry = { canvas, frag, params, visible: !obs, failed: false, drawn: false };
+  const entry: Entry = { canvas, frag, params, sensors, visible: !obs, failed: false, drawn: false };
   entries.add(entry);
   byCanvas.set(canvas, entry);
   obs?.observe(canvas);
