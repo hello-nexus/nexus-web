@@ -19,7 +19,6 @@ export function selectBuildWidgetView({ isMac, loaded, caseId, previewUrl }: Bui
 /** The notice under the silhouette; only the large tile has room for it. */
 export function buildNoticeKey(view: BuildWidgetView, size: string): string | null {
   if (size !== '4x4') return null;
-  if (view === 'no-case') return 'panel.widget.build.setCase';
-  if (view === 'no-preview') return 'panel.widget.build.openBuild';
+  if (view === 'no-case' || view === 'no-preview') return 'panel.widget.build.cta';
   return null;
 }

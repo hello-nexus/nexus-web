@@ -25,10 +25,11 @@
 }
 
 .silhouette {
-  flex: 1;
-  min-height: 0;
+  // Fixed so the 4x4 tile draws it at the 2x2 size.
+  flex: none;
+  width: 156px;
   max-width: 100%;
-  width: 100%;
+  height: auto;
 }
 
 .image {
@@ -54,51 +55,38 @@
 }
 
 .notice {
-  @include text-caption;
   flex-shrink: 0;
-  // Always reserved on the large tile so the notice appearing never moves the silhouette.
-  min-height: calc(#{$caption-line-height} * 2em);
-  margin-top: 8px;
+  margin-top: 6px;
   max-width: 100%;
   text-align: center;
+  @include text-button;
+  // Reserved on the large tile so the text appearing never moves the silhouette.
+  min-height: 1.25em;
   color: var(--text-dim);
 }
 
-.body {
-  fill: var(--panel-element-bg);
+.shell,
+.edge,
+.part {
   stroke: var(--text-dim);
-  stroke-width: 2;
-}
-
-.glass {
-  fill: var(--panel-accent-soft);
-  stroke: var(--text-dim);
-  stroke-width: 1.5;
+  stroke-width: 1.5px;
   stroke-linejoin: round;
-}
-
-.fan,
-.divider,
-.slits,
-.plus {
-  fill: none;
-  stroke: var(--text-dim);
-  stroke-width: 1.5;
   stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 
-.fan {
-  opacity: 0.6;
+.shell,
+.part,
+.edge {
+  fill: none;
 }
 
-.slits {
-  opacity: 0.6;
-}
-
-.plus {
-  stroke-width: 3;
-}
-
-.foot {
+.shell {
   fill: var(--text-dim);
+  fill-opacity: 0.06;
+}
+
+.part {
+  fill: var(--text-dim);
+  fill-opacity: 0.1;
 }

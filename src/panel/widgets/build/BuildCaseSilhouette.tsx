@@ -1,18 +1,17 @@
 import styles from './BuildWidget.module.scss';
 
-/** Generic dual-chamber case outline; `plus` draws a plus sign on the glass. */
-export function BuildCaseSilhouette({ plus = false }: { plus?: boolean }) {
+// Static 3/4 projection of a dual-chamber case: shell, glass-corner chamfer, base, board and a three-fan GPU.
+export function BuildCaseSilhouette() {
   return (
-    <svg className={styles.silhouette} viewBox="0 0 100 120" aria-hidden="true" focusable="false">
-      <rect className={styles.body} x="8" y="6" width="84" height="104" rx="6" />
-      <path className={styles.glass} d="M14 12 H64 L72 20 V98 H14 Z" />
-      <circle className={styles.fan} cx="43" cy="42" r="13" />
-      <circle className={styles.fan} cx="43" cy="76" r="13" />
-      <line className={styles.divider} x1="75" y1="12" x2="75" y2="98" />
-      <path className={styles.slits} d="M80 24 H86 M80 32 H86 M80 40 H86 M80 48 H86" />
-      <rect className={styles.foot} x="16" y="110" width="12" height="5" rx="1.5" />
-      <rect className={styles.foot} x="72" y="110" width="12" height="5" rx="1.5" />
-      {plus && <path className={styles.plus} d="M43 54 V64 M38 59 H48" />}
+    <svg className={styles.silhouette} viewBox="105 160 800 760" aria-hidden="true" focusable="false">
+      <path className={styles.shell} d="M125 195 L362 178 L884 194 L855 770 L728 885 L585 900 L155 800 Z" />
+      <path className={styles.edge} d="M125 195 L760 207 L884 194 M760 207 V835 L728 885 M585 900 L595 808 L760 835" />
+      <path className={styles.part} d="M305 318 L563 335 V600 L310 535 Z" />
+      <path className={styles.part} d="M187 575 L595 613 V808 L190 725 Z" />
+      <path className={styles.edge} d="M187 575 L245 556 L637 615 V780 L595 808 M595 613 L637 615" />
+      <ellipse className={styles.edge} cx="250" cy="658" rx="50" ry="55" />
+      <ellipse className={styles.edge} cx="380" cy="685" rx="53" ry="57" />
+      <ellipse className={styles.edge} cx="518" cy="708" rx="57" ry="60" />
     </svg>
   );
 }

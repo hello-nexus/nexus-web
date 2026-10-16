@@ -23,8 +23,8 @@ describe('selectBuildWidgetView', () => {
 
 describe('buildNoticeKey', () => {
   it('only the 4x4 tile carries a notice, and only in the silhouette states', () => {
-    expect(buildNoticeKey('no-case', '4x4')).toBe('panel.widget.build.setCase');
-    expect(buildNoticeKey('no-preview', '4x4')).toBe('panel.widget.build.openBuild');
+    expect(buildNoticeKey('no-case', '4x4')).toBe('panel.widget.build.cta');
+    expect(buildNoticeKey('no-preview', '4x4')).toBe('panel.widget.build.cta');
     expect(buildNoticeKey('no-case', '2x2')).toBeNull();
     expect(buildNoticeKey('no-preview', '2x2')).toBeNull();
     expect(buildNoticeKey('preview', '4x4')).toBeNull();

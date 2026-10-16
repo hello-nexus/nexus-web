@@ -57,15 +57,15 @@ describe('BuildWidget', () => {
     expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
   });
 
-  it('4x4 without a case tells the user to set the case in Build', async () => {
+  it('4x4 without a case shows the Build invitation', async () => {
     await renderWidget('4x4');
-    expect(screen.getByText('panel.widget.build.setCase')).toBeTruthy();
+    expect(screen.getByText('panel.widget.build.cta')).toBeTruthy();
   });
 
-  it('a case with no preview: 4x4 says to open Build, 2x2 stays silent', async () => {
+  it('a case with no preview: 4x4 shows the same invitation, 2x2 stays silent', async () => {
     h.caseId.mockResolvedValue('hyte-y70');
     const big = await renderWidget('4x4');
-    expect(screen.getByText('panel.widget.build.openBuild')).toBeTruthy();
+    expect(screen.getByText('panel.widget.build.cta')).toBeTruthy();
     big.unmount();
     const small = await renderWidget('2x2');
     expect(small.container.querySelector('[data-view="no-preview"]')).not.toBeNull();
@@ -91,7 +91,7 @@ describe('BuildWidget', () => {
   it('names the tile and carries the notice in its accessible text', async () => {
     const { container } = await renderWidget('4x4');
     expect(container.textContent).toContain('panel.widget.build');
-    expect(container.textContent).toContain('panel.widget.build.setCase');
+    expect(container.textContent).toContain('panel.widget.build.cta');
   });
 
   it('has no interactive element of its own: the dashboard cell click-through opens Build', async () => {
