@@ -55,15 +55,15 @@ export const EffectControls = memo(function EffectControls({
   const def = customDef ?? EFFECTS.find(e => e.key === effect);
   const { specs, sensors, loaded } = useShaderParams(effect);
   if (!def) return null;
-  // Applies at once, like every slider. Any pick is stored, even one equal to the shader's default, so it
-  // outlives a later change of that default; only the reset clears it.
   // A uniform's default is what the current preset ships with, else the shader's own annotation.
   const presetDefaults = cachedAnimateDefaults()?.[effect]?.slots[bundle.selected]?.sensors;
-  const defaultFor = (su: SensorUniform) => presetDefaults?.[su.name] ?? su.binding;
+  // The row's reset is live while the slot's stored pick differs from the preset's entry, present against absent included.
+  const canResetSensor = (su: SensorUniform) => !sensorBindingsEqual(state.sensors?.[su.name], presetDefaults?.[su.name]);
   const resetSensor = (su: SensorUniform) => {
     const shipped = presetDefaults?.[su.name];
-    setSensor(su, shipped ? cleanBinding(shipped) : null);
+    setSensor(su, shipped ?? null);
   };
+  // Applies at once, like every slider. Any pick is stored, even one equal to the shader's default.
   const setSensor = (su: SensorUniform, binding: SensorBinding | null) => {
     const next = { ...state.sensors };
     if (binding) next[su.name] = cleanBinding(binding);
@@ -188,7 +188,7 @@ export const EffectControls = memo(function EffectControls({
                 ariaLabel={label}
                 onChange={binding => setSensor(su, binding)}
                 showReset
-                onReset={sensorBindingsEqual(effectiveBinding(su, state.sensors), defaultFor(su)) ? undefined : () => resetSensor(su)}
+                onReset={canResetSensor(su) ? () => resetSensor(su) : undefined}
               />
             </div>
           );

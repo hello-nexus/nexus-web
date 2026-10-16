@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BASE_DEFAULTS, type EffectState } from '../../../../types/lighting';
 import type { SensorBinding } from '../../../../lib/sensorBinding';
 import { EffectControls } from './EffectControls';
@@ -86,8 +86,10 @@ describe('EffectControls sensor uniforms', () => {
 });
 
 describe('EffectControls sensor row reset against the preset default', () => {
+  afterEach(() => { shipped = null; });
+
   const preset2 = () => {
-    shipped = { sensorbar: { selected: 1, slots: [{}, { sensors: { u_fill_level_s: gpu } }, {}, {}] } };
+    shipped = { sensorbar: { selected: 0, slots: [{}, { sensors: { u_fill_level_s: gpu } }, {}, {}] } };
   };
   const render2 = (state: EffectState) => {
     const onChange = vi.fn();
@@ -106,13 +108,19 @@ describe('EffectControls sensor row reset against the preset default', () => {
     const onChange = render2(baseState({ u_fill_level_s: mem }));
     fireEvent.click(screen.getByRole('button', { name: 'reset' }));
     expect(onChange).toHaveBeenCalledWith({ sensors: { u_fill_level_s: gpu } }, true);
-    shipped = null;
   });
 
   it('keeps the reset in place, disabled, on an untouched preset', () => {
     preset2();
     render2(baseState({ u_fill_level_s: gpu }));
     expect(screen.getByRole('button', { name: 'reset' })).toBeDisabled();
-    shipped = null;
+  });
+
+  it('lets an explicit pick of the frag default be cleared where the effect ships no defaults', () => {
+    const onChange = setup(baseState({ u_fill_level_s: shaderDefault }));
+    const reset = screen.getByRole('button', { name: 'reset' });
+    expect(reset).toBeEnabled();
+    fireEvent.click(reset);
+    expect(onChange).toHaveBeenCalledWith({ sensors: undefined }, true);
   });
 });
