@@ -19,6 +19,8 @@ const MAX_DISTINCT = 20;
 const MAX_PER_POST = 10;
 const GATE_WINDOW_MS = 1000;
 const GATE_MAX = 10;
+const MAX_CAUSE_DEPTH = 3;
+const CAUSE_STACK_CAP = 300;
 const CAPS = { fingerprint: 64, type: 128, message: 1000, stack: 2000, context: 500 };
 
 const records = new Map<string, { entry: ClientError; unsent: number }>();
@@ -62,25 +64,52 @@ export function fingerprintOf(type: string, message: string): string {
   return hash(`${type}|${normalizeMessage(message)}`);
 }
 
-function describe(error: unknown): { type: string; message: string; stack: string } {
+function errorName(error: Error): string {
+  const name: unknown = error.name;
+  return typeof name === 'string' && name !== '' ? name : 'Error';
+}
+
+// React wraps the real recovered error in cause; only Error causes are followed.
+function describeCauses(error: Error): { message: string; stack: string } {
+  let message = '';
+  let stack = '';
+  const seen = new Set<unknown>([error]);
+  let current: unknown = error.cause;
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
+    if (!(current instanceof Error) || seen.has(current)) break;
+    seen.add(current);
+    message += ` cause: ${errorName(current)}: ${String(current.message)}`;
+    const causeStack = cap(String(current.stack ?? ''), CAUSE_STACK_CAP);
+    if (causeStack !== '') stack += `\ncause: ${causeStack}`;
+    current = current.cause;
+  }
+  return { message, stack };
+}
+
+function describe(error: unknown): { type: string; message: string; own: string; stack: string } {
   if (error instanceof Error) {
-    const name: unknown = error.name;
+    const causes = describeCauses(error);
+    const own = String(error.message);
     return {
-      type: typeof name === 'string' && name !== '' ? name : 'Error',
-      message: String(error.message),
-      stack: String(error.stack ?? ''),
+      type: errorName(error),
+      message: cap(own, Math.max(0, CAPS.message - causes.message.length)) + causes.message,
+      own,
+      stack: cap(String(error.stack ?? ''), Math.max(0, CAPS.stack - causes.stack.length)) + causes.stack,
     };
   }
-  if (typeof error === 'string') return { type: 'string', message: error, stack: '' };
+  if (typeof error === 'string') return { type: 'string', message: error, own: error, stack: '' };
   if (typeof error === 'function') {
-    return { type: 'function', message: `function ${String(error.name)}`, stack: '' };
+    const message = `function ${String(error.name)}`;
+    return { type: 'function', message, own: message, stack: '' };
   }
   if (typeof error === 'object' && error !== null) {
     const ctor: unknown = Object.getPrototypeOf(error)?.constructor?.name;
     const type = typeof ctor === 'string' && ctor !== '' ? ctor : 'object';
-    return { type, message: `${type}{${Object.keys(error).slice(0, 10).join(',')}}`, stack: '' };
+    const message = `${type}{${Object.keys(error).slice(0, 10).join(',')}}`;
+    return { type, message, own: message, stack: '' };
   }
-  return { type: error === null ? 'null' : typeof error, message: String(error), stack: '' };
+  const message = String(error);
+  return { type: error === null ? 'null' : typeof error, message, own: message, stack: '' };
 }
 
 function isNoise(message: string, stack: string): boolean {
@@ -151,8 +180,8 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
     const d = describe(error);
     const stack = stripUrlSecrets(d.stack);
     if (isNoise(d.message, stack)) return;
-    const message = stripUrlSecrets(d.message);
-    const fingerprint = cap(fingerprintOf(d.type, d.message), CAPS.fingerprint);
+    const message = cap(stripUrlSecrets(d.message), CAPS.message);
+    const fingerprint = cap(fingerprintOf(d.type, message), CAPS.fingerprint);
     const existing = records.get(fingerprint);
     if (existing) {
       existing.unsent += 1;
@@ -179,7 +208,7 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
       kind,
       fingerprint,
       type: cap(d.type, CAPS.type),
-      message: cap(message, CAPS.message),
+      message,
       stack: cap(stack, CAPS.stack),
       context: cap(stripUrlSecrets(currentContext(context)), CAPS.context),
       count: 1,
@@ -197,7 +226,7 @@ function staleChunkMessageOf(error: unknown): boolean {
   // describe() reads error getters, which may raise error events themselves.
   reporting = true;
   try {
-    return isStaleChunkMessage(describe(error).message);
+    return isStaleChunkMessage(describe(error).own);
   } catch {
     return false;
   } finally {
