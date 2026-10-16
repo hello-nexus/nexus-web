@@ -1,6 +1,7 @@
 import { useTranslation } from '../../../lib/i18n';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
 import { isMacAppShell } from '../../../app/windowActions';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
 import { BuildCaseSilhouette } from './BuildCaseSilhouette';
@@ -32,10 +33,12 @@ export function BuildWidgetView({ view, size, previewUrl }: BuildWidgetViewProps
 
 export function BuildWidget({ widget }: WidgetProps) {
   const preview = usePanelPreview();
-  const isMac = useHostIsMac(!preview);
+  // Dev-tools builds treat macOS as a PC so the snapshot flow can be exercised there.
+  const hostIsMac = useHostIsMac(!preview && !DEV_TOOLS);
+  const isMac = DEV_TOOLS ? false : hostIsMac;
   const live = useBuildPreview(!preview && isMac === false);
   let view: BuildWidgetView;
-  if (preview) view = isMacAppShell() ? 'mac' : 'no-case';
+  if (preview) view = !DEV_TOOLS && isMacAppShell() ? 'mac' : 'no-case';
   else view = selectBuildWidgetView({ isMac, loaded: live.loaded, caseId: live.caseId, previewUrl: live.previewUrl });
   return <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} />;
 }

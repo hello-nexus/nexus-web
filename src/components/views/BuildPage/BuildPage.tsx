@@ -11,6 +11,7 @@ import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { isMacAppShell } from '../../../app/windowActions';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
 import { relayPreviewSave } from './buildPreview';
@@ -113,7 +114,7 @@ interface BuildPageProps {
  * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
 export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: BuildPageProps) {
-  const canSavePreview = !isRemoteOrigin && platform !== 'macos' && !isMacAppShell();
+  const canSavePreview = !isRemoteOrigin && (DEV_TOOLS || (platform !== 'macos' && !isMacAppShell()));
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);

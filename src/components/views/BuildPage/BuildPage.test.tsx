@@ -9,7 +9,8 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key, language: 'en' }),
 }));
 
-const previewApi = vi.hoisted(() => ({ relayPreviewSave: vi.fn() }));
+const previewApi = vi.hoisted(() => ({ relayPreviewSave: vi.fn(), devTools: false }));
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return previewApi.devTools; } }));
 vi.mock('./buildPreview', () => ({ relayPreviewSave: (...args: unknown[]) => previewApi.relayPreviewSave(...args) }));
 
 const h = vi.hoisted(() => ({
@@ -475,7 +476,10 @@ describe('BuildPage', () => {
 });
 
 describe('BuildPage preview relay', () => {
-  beforeEach(() => previewApi.relayPreviewSave.mockReset());
+  beforeEach(() => {
+    previewApi.relayPreviewSave.mockReset();
+    previewApi.devTools = false;
+  });
 
   function readyFrame() {
     render(<BuildPage path="/builder" />);
@@ -504,6 +508,28 @@ describe('BuildPage preview relay', () => {
     const iframe = getIframe();
     const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
     act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('a dev-tools build offers and relays previews on macOS too', () => {
+    previewApi.devTools = true;
+    render(<BuildPage path="/builder" platform="macos" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canSavePreview: true }), BUILD_ORIGIN);
+    const png = new ArrayBuffer(4);
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png }));
+    expect(previewApi.relayPreviewSave).toHaveBeenCalledWith('case-abc', png);
+  });
+
+  it('a dev-tools build still omits canSavePreview on a remote origin', () => {
+    previewApi.devTools = true;
+    h.isRemoteOrigin = true;
+    const { iframe, postSpy } = readyFrame();
     const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
     expect(hello).not.toHaveProperty('canSavePreview');
     act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));

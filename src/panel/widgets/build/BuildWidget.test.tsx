@@ -10,11 +10,13 @@ vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) 
 
 const h = vi.hoisted(() => ({
   macShell: false,
+  devTools: false,
   ping: vi.fn(),
   caseId: vi.fn(),
   preview: vi.fn(),
 }));
 
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
 vi.mock('../../../app/windowActions', () => ({ isMacAppShell: () => h.macShell }));
 vi.mock('../../../api/service', () => ({ pingService: () => h.ping() }));
 vi.mock('../../../api/systemPreview', () => ({
@@ -40,6 +42,7 @@ describe('BuildWidget', () => {
     vi.useFakeTimers();
     urlCounter = 0;
     h.macShell = false;
+    h.devTools = false;
     h.ping.mockReset().mockResolvedValue({ platform: 'windows' });
     h.caseId.mockReset().mockResolvedValue(null);
     h.preview.mockReset().mockResolvedValue({ kind: 'none' });
@@ -116,6 +119,24 @@ describe('BuildWidget', () => {
     expect(container.querySelector('[data-view="mac"]')).not.toBeNull();
     expect(h.caseId).not.toHaveBeenCalled();
     expect(h.preview).not.toHaveBeenCalled();
+  });
+
+  it('a dev-tools build treats macOS as a PC: no Apple logo, the case flow runs, no ping', async () => {
+    h.devTools = true;
+    h.macShell = true;
+    h.caseId.mockResolvedValue('hyte-y70');
+    const { container } = await renderWidget('4x4');
+    expect(container.querySelector('[data-view="no-preview"]')).not.toBeNull();
+    expect(h.preview).toHaveBeenCalled();
+    expect(h.ping).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-view="mac"]')).toBeNull();
+  });
+
+  it('a dev-tools build shows the case icon in the catalog preview inside the macOS shell', () => {
+    h.devTools = true;
+    h.macShell = true;
+    const { container } = render(<PanelPreviewProvider value={true}><BuildWidget widget={widget('4x4')} /></PanelPreviewProvider>);
+    expect(container.querySelector('[data-view="no-case"]')).not.toBeNull();
   });
 
   it('the catalog preview is inert, and shows the Apple logo inside the macOS shell', () => {

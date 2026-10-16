@@ -25,11 +25,10 @@
 }
 
 .silhouette {
-  // Fixed so the 4x4 tile draws it at the 2x2 size.
+  // Same size as the other widgets' empty-state icon, on every tile size.
   flex: none;
-  width: 156px;
-  max-width: 100%;
-  height: auto;
+  width: 22px;
+  height: 22px;
 }
 
 .image {
@@ -63,30 +62,4 @@
   // Reserved on the large tile so the text appearing never moves the silhouette.
   min-height: 1.25em;
   color: var(--text-dim);
-}
-
-.shell,
-.edge,
-.part {
-  stroke: var(--text-dim);
-  stroke-width: 1.5px;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.shell,
-.part,
-.edge {
-  fill: none;
-}
-
-.shell {
-  fill: var(--text-dim);
-  fill-opacity: 0.06;
-}
-
-.part {
-  fill: var(--text-dim);
-  fill-opacity: 0.1;
 }
