@@ -11,7 +11,6 @@ export async function fetchFastStartup() {
   return fetchService<FastStartupInfo>('/service/fast-startup');
 }
 
-// A refusal (policy-managed, hibernation off) returns an error envelope or null, not the DTO.
 export async function setFastStartup(enabled: boolean) {
-  return postService<FastStartupInfo & { error?: boolean; msg?: string }>('/service/fast-startup', { enabled });
+  return postService<FastStartupInfo>('/service/fast-startup', { enabled });
 }

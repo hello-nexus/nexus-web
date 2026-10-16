@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GeneralTab } from './GeneralTab';
 import { fetchFastStartup, setFastStartup, type FastStartupInfo } from '../../../api/fastStartup';
+import { ToastProvider } from '../../common/Toast/Toast';
 import type { NexusSettings } from '../../../lib/settings';
 
 vi.mock('../../../lib/i18n', () => ({
@@ -32,7 +33,7 @@ function info(patch: Partial<FastStartupInfo> = {}): FastStartupInfo {
 }
 
 function renderTab(platform = 'windows') {
-  return render(<GeneralTab settings={settings} updateGeneral={vi.fn()} serviceOnline platform={platform} />);
+  return render(<ToastProvider><GeneralTab settings={settings} updateGeneral={vi.fn()} serviceOnline platform={platform} /></ToastProvider>);
 }
 
 describe('GeneralTab Fast Startup', () => {
@@ -95,5 +96,6 @@ describe('GeneralTab Fast Startup', () => {
     fireEvent.click(toggle);
     await waitFor(() => expect(setFastStartup).toHaveBeenCalledWith(false));
     await waitFor(() => expect(screen.getByRole('switch', { name: 'settings.fastStartup.label' })).toBeChecked());
+    expect(await screen.findByText('settings.fastStartup.saveFailed')).toBeInTheDocument();
   });
 });

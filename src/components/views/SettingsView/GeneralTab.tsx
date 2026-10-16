@@ -125,11 +125,11 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     setFastStartupInfo({ ...previous, enabled: !previous.enabled });
     setFastStartupBusy(true);
     const resp = await setFastStartup(!previous.enabled).catch(() => null);
-    if (resp && !resp.error) {
+    if (resp) {
       setFastStartupInfo(resp);
     } else {
       setFastStartupInfo(previous);
-      push({ title: resp?.msg || t('settings.fastStartup.saveFailed') });
+      push({ title: t('settings.fastStartup.saveFailed') });
     }
     setFastStartupBusy(false);
   };
