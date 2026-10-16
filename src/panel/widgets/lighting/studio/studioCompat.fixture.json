@@ -308,6 +308,174 @@
     },
     "sha256": "ef12cb9c58b412e60bc311b0824e6c2ee72092ca4a87f04c77a1d2c4e37df26b"
   },
+  "bare:fillbar": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillbar",
+          "params": {}
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 3,
+            "spread": 1,
+            "offset": 0,
+            "cycle": 0,
+            "shade": 0.6
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "998eda74541abf9a5103df2abea3a4bdff21155391eda919016ce89976e46fb4"
+  },
+  "bare:fillcenter": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillcenter",
+          "params": {}
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 3,
+            "spread": 1,
+            "offset": 0,
+            "cycle": 0,
+            "shade": 0.6
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "4cb9f99e0d6435f003a24317b703e3ef8b56543450d2506c5c8a02301643f12e"
+  },
+  "bare:fillclock": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillclock",
+          "params": {}
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 3,
+            "spread": 1,
+            "offset": 0,
+            "cycle": 0,
+            "shade": 0.6
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "3b648a49e5ae77f8d256d0462610a608cb8bf071163cf0569c49bc60489bb234"
+  },
+  "bare:fillgauge": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillgauge",
+          "params": {}
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 3,
+            "spread": 1,
+            "offset": 0,
+            "cycle": 0,
+            "shade": 0.6
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "5b7f129bb4e202ec8ab8365aecd60ca5d562982de6a11ede0a9b4a36a9110037"
+  },
+  "bare:fillliquid": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillliquid",
+          "params": {}
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 3,
+            "spread": 1,
+            "offset": 0,
+            "cycle": 0,
+            "shade": 0.6
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "8030dccfd422bcf50941f98e26aa09d9d12bb473e9ad0b279b654c74c5b5e5a7"
+  },
+  "bare:fillsegments": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillsegments",
+          "params": {}
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 3,
+            "spread": 1,
+            "offset": 0,
+            "cycle": 0,
+            "shade": 0.6
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "39527673990ed56e951b95ccb69cbaad2b18354a208374cdf4f625a23d27a7a6"
+  },
   "bare:flame": {
     "recipe": {
       "v": 1,
@@ -712,6 +880,33 @@
       "contrast": 0.8
     },
     "sha256": "7d01538edf430ee005e40162ec552828ed814f6619d4d44c3ec9095ff04249a2"
+  },
+  "bare:ramp": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2,
+            "speed": 1,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {}
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "f242e7a63f9ab943f4301d47887f4d8fbb9e1ad4df9d417d5b09b43cba5a8175"
   },
   "bare:rings": {
     "recipe": {
@@ -1702,6 +1897,282 @@
       "contrast": 0.8
     },
     "sha256": "a7da9827d939ade0645ac37e721aa34339658b214e183f0b9c9ec521e667ee23"
+  },
+  "blend:fillbar": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "fillbar",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "softness": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k2",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "b437fcf56c5c3017da8d356fac5b8405a63cafe0d714afd00fc8d3dcc4ad8b5d"
+  },
+  "blend:fillcenter": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "fillcenter",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "softness": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k2",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "c48a07216481e5b5a38ecf280f90301cc7b54925683138db5a04171c788c2943"
+  },
+  "blend:fillclock": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "fillclock",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "softness": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k2",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "7ade2eb3e58a88854bf9e8dc5771bad906b8d285c980a5fdc937a2e448c21370"
+  },
+  "blend:fillgauge": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "fillgauge",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "span": 190,
+            "radius": 0.5700000000000001,
+            "width": 0.51,
+            "track": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k2",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "7532dbcf7398e71c6d57f6619fe0b004e2e0605d80bab84216fef7a1ea29c02a"
+  },
+  "blend:fillliquid": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "fillliquid",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "wave": 0.37,
+            "speed": 1.11,
+            "softness": 0.12,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k2",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "3dc435e62e9dd7703bd85cb301ac21e3ea03ee94511e4751e624a7b70fc96b86"
+  },
+  "blend:fillsegments": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "fillsegments",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "count": 17,
+            "size": 0.5,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k2",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "f17ab70bac7c82f51503839871338258e8ca175be66295b6663e844f4983a7e8"
   },
   "blend:flame": {
     "recipe": {
@@ -2741,6 +3212,222 @@
     },
     "sha256": "81d913f3595b0f989bb978a0850e7e336739fa94ce076812ebfa26711bdb5bb4"
   },
+  "block:fillbar": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillbar",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "softness": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "4b284d4807232b8f454c28a0bcc04f1507ef9973f1bd2fb4ea88323fe3ef84fb"
+  },
+  "block:fillcenter": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillcenter",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "softness": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "525eb73c731aab79ad086d26a3dd433f30b221c99cd773c619fc74e126b80c80"
+  },
+  "block:fillclock": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillclock",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "softness": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "7a7e33f2ab6c9a534b4a4ec9e358df07ec57219dfda6628ebf63a7ef2c4605a1"
+  },
+  "block:fillgauge": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillgauge",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "span": 190,
+            "radius": 0.5700000000000001,
+            "width": 0.51,
+            "track": 0.19,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "e1c6a93404856854cb2f177c5314e6ef61672201c3464e2e7fc3a09400423cb6"
+  },
+  "block:fillliquid": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillliquid",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "wave": 0.37,
+            "speed": 1.11,
+            "softness": 0.12,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "91243162b0ebf42c18bb00c79a11462d9e4229ca2a71546db76803dd0ccc279c"
+  },
+  "block:fillsegments": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillsegments",
+          "params": {
+            "level": 0.37,
+            "angle": 133,
+            "flip": 1,
+            "count": 17,
+            "size": 0.5,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 8,
+            "spread": 1.11,
+            "offset": 0.37,
+            "cycle": -0.52,
+            "shade": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "521de4aff2cbc909312040c40245ead61dedadbcb03183b0cf5e55cc0f658919"
+  },
   "block:flame": {
     "recipe": {
       "v": 1,
@@ -3191,6 +3878,58 @@
       "contrast": 0.8
     },
     "sha256": "00a95c58a1ed30c7055b2964bd64d18b22f5caadbe01abb6f6b5683441f3c952"
+  },
+  "block:ramp": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.35000000000000003,
+            "shade": 0.37
+          },
+          "colors": {
+            "c1": [
+              0.2,
+              0.6,
+              0.9
+            ],
+            "c2": [
+              0.2,
+              0.6,
+              0.9
+            ],
+            "c3": [
+              0.2,
+              0.6,
+              0.9
+            ],
+            "c4": [
+              0.2,
+              0.6,
+              0.9
+            ]
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "f4f033bf248c389de144f01d281d44cadb8abfd78ac4f7c790f2ffdd90ff5aea"
   },
   "block:rings": {
     "recipe": {
@@ -4294,6 +5033,51 @@
       "contrast": 0.8
     },
     "sha256": "cba333a5e1c98d350cec043fffec3f8bce8bee4633ee9f3c737c2a7e368e9602"
+  },
+  "mod:sensor": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "rings",
+          "params": {
+            "count": 8,
+            "speed": 1,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "count": {
+              "source": "sensor",
+              "amount": 0.4,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/cpu-usage",
+                "min": 0,
+                "max": 100
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "palette",
+          "params": {
+            "palette": 3,
+            "spread": 1,
+            "offset": 0,
+            "cycle": 0,
+            "shade": 0.6
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "4c86c11ca4af735da9106b289cb604421255e7cc1bde17c4987df5f82175af38"
   },
   "mod:sine": {
     "recipe": {
@@ -5674,6 +6458,614 @@
       ]
     },
     "sha256": "e022bbb5523de69043d969a5f76e65e5e7fde6d9aa492ecceef31f36359e14fd"
+  },
+  "starter:sensorBar": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillbar",
+          "params": {
+            "level": 0,
+            "angle": 0,
+            "flip": 0,
+            "softness": 0.06,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "level": {
+              "source": "sensor",
+              "amount": 1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/cpu-usage",
+                "min": 0,
+                "max": 100
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.55,
+            "shade": 1
+          },
+          "colors": {
+            "c1": [
+              0.1,
+              1,
+              0.4
+            ],
+            "c2": [
+              0.6,
+              1,
+              0.2
+            ],
+            "c3": [
+              1,
+              0.85,
+              0.1
+            ],
+            "c4": [
+              1,
+              0.15,
+              0.1
+            ]
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "knobs": [
+        {
+          "uid": "k0",
+          "key": "angle"
+        },
+        {
+          "uid": "k0",
+          "key": "flip"
+        }
+      ]
+    },
+    "sha256": "af13dc2d383c616ba66b0c7d3e660171137a42896c06d7c0a5664a59744fa169"
+  },
+  "starter:sensorCenter": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillcenter",
+          "params": {
+            "level": 0,
+            "angle": 0,
+            "flip": 0,
+            "softness": 0.06,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "level": {
+              "source": "sensor",
+              "amount": 1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/gpu-temp",
+                "min": 30,
+                "max": 90
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.55,
+            "shade": 1
+          },
+          "colors": {
+            "c1": [
+              0.15,
+              0.35,
+              1
+            ],
+            "c2": [
+              0.1,
+              0.95,
+              0.55
+            ],
+            "c3": [
+              1,
+              0.85,
+              0.1
+            ],
+            "c4": [
+              1,
+              0.15,
+              0.1
+            ]
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "knobs": [
+        {
+          "uid": "k0",
+          "key": "angle"
+        },
+        {
+          "uid": "k0",
+          "key": "flip"
+        }
+      ]
+    },
+    "sha256": "cb41d20df827716021fa18a93fc97e6ba345159d5d9f5ff3f666c784b2cdea82"
+  },
+  "starter:sensorClock": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillclock",
+          "params": {
+            "level": 0,
+            "angle": 0,
+            "flip": 0,
+            "softness": 0.04,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "level": {
+              "source": "sensor",
+              "amount": 1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/cpu-temp",
+                "min": 30,
+                "max": 95
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.55,
+            "shade": 1
+          },
+          "colors": {
+            "c1": [
+              0.15,
+              0.35,
+              1
+            ],
+            "c2": [
+              0.1,
+              0.95,
+              0.55
+            ],
+            "c3": [
+              1,
+              0.85,
+              0.1
+            ],
+            "c4": [
+              1,
+              0.15,
+              0.1
+            ]
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "knobs": [
+        {
+          "uid": "k0",
+          "key": "angle"
+        },
+        {
+          "uid": "k0",
+          "key": "flip"
+        }
+      ]
+    },
+    "sha256": "b0cf1c92e8461fb0ac1799c7a11c1c5d4553a1496d2c6a7fdb591de1e8d1612e"
+  },
+  "starter:sensorGauge": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillgauge",
+          "params": {
+            "level": 0,
+            "angle": 0,
+            "flip": 0,
+            "span": 240,
+            "radius": 0.65,
+            "width": 0.4,
+            "track": 0.1,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "level": {
+              "source": "sensor",
+              "amount": 1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/gpu-usage",
+                "min": 0,
+                "max": 100
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.55,
+            "shade": 1
+          },
+          "colors": {
+            "c1": [
+              0.1,
+              1,
+              0.4
+            ],
+            "c2": [
+              0.6,
+              1,
+              0.2
+            ],
+            "c3": [
+              1,
+              0.85,
+              0.1
+            ],
+            "c4": [
+              1,
+              0.15,
+              0.1
+            ]
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "knobs": [
+        {
+          "uid": "k0",
+          "key": "angle"
+        },
+        {
+          "uid": "k0",
+          "key": "flip"
+        },
+        {
+          "uid": "k0",
+          "key": "span"
+        }
+      ]
+    },
+    "sha256": "ef758b305726c5ac166b1b547d8e804014ab9b33e3e9672f2ad9f487c1b6221f"
+  },
+  "starter:sensorHeat": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "gradient",
+          "params": {
+            "angle": 90,
+            "spread": 1,
+            "speed": 0,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.95,
+            "shade": 0
+          },
+          "colors": {
+            "c1": [
+              0.15,
+              0.35,
+              1
+            ],
+            "c2": [
+              0.1,
+              0.95,
+              0.55
+            ],
+            "c3": [
+              1,
+              0.85,
+              0.1
+            ],
+            "c4": [
+              1,
+              0.15,
+              0.1
+            ]
+          },
+          "mods": {
+            "low": {
+              "source": "sensor",
+              "amount": -1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/cpu-temp",
+                "min": 30,
+                "max": 90
+              }
+            }
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "knobs": [
+        {
+          "uid": "k0",
+          "key": "angle"
+        }
+      ]
+    },
+    "sha256": "e5dd71726f71f4803bb9309d7b563a03019a4ddda831b33ffd80479d72fbe967"
+  },
+  "starter:sensorLiquid": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillliquid",
+          "params": {
+            "level": 0,
+            "angle": 0,
+            "flip": 0,
+            "wave": 0.6,
+            "speed": 1,
+            "softness": 0.05,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "level": {
+              "source": "sensor",
+              "amount": 1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/memory-usage",
+                "min": 0,
+                "max": 100
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.5,
+            "shade": 1
+          },
+          "colors": {
+            "c1": [
+              0,
+              0.3,
+              0.8
+            ],
+            "c2": [
+              0.05,
+              0.6,
+              1
+            ],
+            "c3": [
+              0.2,
+              1,
+              0.9
+            ],
+            "c4": [
+              0.8,
+              1,
+              0.95
+            ]
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "knobs": [
+        {
+          "uid": "k0",
+          "key": "angle"
+        },
+        {
+          "uid": "k0",
+          "key": "flip"
+        },
+        {
+          "uid": "k0",
+          "key": "wave"
+        }
+      ]
+    },
+    "sha256": "12a915a53df7ac42a013dea8ca8ede370ee9280d834a48c6dd56691a9d66341a"
+  },
+  "starter:sensorSegments": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "fillsegments",
+          "params": {
+            "level": 0,
+            "angle": 0,
+            "flip": 0,
+            "count": 10,
+            "size": 0.8,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "level": {
+              "source": "sensor",
+              "amount": 1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/memory-usage",
+                "min": 0,
+                "max": 100
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0.5,
+            "shade": 1
+          },
+          "colors": {
+            "c1": [
+              0.1,
+              0.8,
+              1
+            ],
+            "c2": [
+              0.4,
+              0.5,
+              1
+            ],
+            "c3": [
+              0.7,
+              0.3,
+              1
+            ],
+            "c4": [
+              1,
+              0.3,
+              0.8
+            ]
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1,
+      "knobs": [
+        {
+          "uid": "k0",
+          "key": "angle"
+        },
+        {
+          "uid": "k0",
+          "key": "flip"
+        },
+        {
+          "uid": "k0",
+          "key": "count"
+        }
+      ]
+    },
+    "sha256": "9b83601565aafeaee91bcafe5985e3d5a5fd4ce45b9df7c6f5b056e610547567"
+  },
+  "starter:sensorShift": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "solid",
+          "params": {
+            "level": 0,
+            "blend": 0,
+            "mix": 1
+          },
+          "mods": {
+            "level": {
+              "source": "sensor",
+              "amount": 1,
+              "sensor": {
+                "category": "quick",
+                "sensor": "summary/cpu-temp",
+                "min": 30,
+                "max": 90
+              }
+            }
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "ramp",
+          "params": {
+            "low": 0,
+            "shade": 0
+          },
+          "colors": {
+            "c1": [
+              0.15,
+              0.35,
+              1
+            ],
+            "c2": [
+              0.1,
+              0.95,
+              0.55
+            ],
+            "c3": [
+              1,
+              0.85,
+              0.1
+            ],
+            "c4": [
+              1,
+              0.15,
+              0.1
+            ]
+          }
+        }
+      ],
+      "speed": 50,
+      "hue": 0,
+      "saturation": 1,
+      "contrast": 1
+    },
+    "sha256": "7bc87ee70b2ce1ae689783ff64649cb109e8a64794287201b7ac41d35fc49601"
   },
   "starter:spectrumBars": {
     "recipe": {

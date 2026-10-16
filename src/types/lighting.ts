@@ -190,7 +190,8 @@ const SENSOR_FLIP_OPTIONS = [
   { value: 1, labelKey: 'lighting.studio.flip.flipped' },
 ];
 const SENSOR_LEVEL_SENSORS: EffectSensorDef[] = [{ name: 'u_fill_level_s', label: 'Fill level', labelKey: 'lighting.sensor.level' }];
-const SENSOR_COLOR_SENSORS: EffectSensorDef[] = [{ name: 'u_col_spread_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
+const SENSOR_SHIFT_SENSORS: EffectSensorDef[] = [{ name: 'u_hot_level_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
+const SENSOR_HEAT_SENSORS: EffectSensorDef[] = [{ name: 'u_col_low_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
 
 export const EFFECTS: EffectDef[] = [
   // Simple solid-colour fills lead the list. A flat swatch with a slight
@@ -792,8 +793,8 @@ export const EFFECTS: EffectDef[] = [
     { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', options: SENSOR_FLIP_OPTIONS },
     { name: 'u_fill_span', label: 'Arc', labelKey: 'lighting.controls.param.span' },
   ]},
-  { key: 'sensorshift', labelKey: 'lighting.controls.sensorshift', hideSpeed: true, sensors: SENSOR_COLOR_SENSORS, params: [] },
-  { key: 'sensorheat', labelKey: 'lighting.controls.sensorheat', hideSpeed: true, sensors: SENSOR_COLOR_SENSORS, params: [
+  { key: 'sensorshift', labelKey: 'lighting.controls.sensorshift', hideSpeed: true, sensors: SENSOR_SHIFT_SENSORS, params: [] },
+  { key: 'sensorheat', labelKey: 'lighting.controls.sensorheat', hideSpeed: true, sensors: SENSOR_HEAT_SENSORS, params: [
     { name: 'u_grad_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
   ]},
 ];
