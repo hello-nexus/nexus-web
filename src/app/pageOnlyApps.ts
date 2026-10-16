@@ -19,6 +19,7 @@ export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
   // directly, so nothing under panel/widgets/frames registers a tile.
   frames: { i18nKey: 'panel.widget.frames', icon: Film },
   store: { i18nKey: 'apps.tabs.store', icon: Store },
+  // Its dashboard tile (APP_REGISTRY.build) has no Page, so this entry still owns the sidebar row.
   build: { i18nKey: 'panel.widget.build', icon: Hammer },
 };
 

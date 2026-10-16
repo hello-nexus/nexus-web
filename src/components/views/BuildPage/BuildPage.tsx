@@ -12,6 +12,7 @@ import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
+import { relayPreviewSave } from './buildPreview';
 import { relaySceneExport } from './buildScene';
 import styles from './BuildPage.module.scss';
 
@@ -241,6 +242,10 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
             ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}),
           }));
           break;
+        case 'nexus-build:set-preview':
+          if (isRemoteOrigin || typeof data.caseId !== 'string' || !isValidCaseId(data.caseId)) break;
+          void relayPreviewSave(data.caseId, data.png);
+          break;
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();
           break;
@@ -302,6 +307,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
+      // The preview lands in this machine's service, so only the desktop app offers it.
+      ...(!isRemoteOrigin ? { canSavePreview: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
     };

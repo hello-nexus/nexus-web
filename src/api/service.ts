@@ -612,6 +612,28 @@ export async function putService<T>(path: string, body: unknown): Promise<T | nu
   return r ? (await r.json()) as T : null;
 }
 
+/** PUT a raw binary body; true on a 2xx. Direct path only: a tunneled session has no binary upload channel. */
+export async function putServiceBinary(path: string, body: ArrayBuffer, contentType: string): Promise<boolean> {
+  if (isTunnelActive() || blockedLocalhostFetch()) return false;
+  try {
+    const token = await getToken();
+    const headers: Record<string, string> = { 'Content-Type': contentType };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const init: RequestInit = { ...loopbackFetchInit, method: 'PUT', headers, body };
+    let response = await fetch(resolveHttp(path), init);
+    if (response.status === 401) {
+      const newToken = await handleUnauthorized();
+      if (newToken) {
+        headers['Authorization'] = `Bearer ${newToken}`;
+        response = await fetch(resolveHttp(path), init);
+      }
+    }
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function deleteService<T>(path: string): Promise<T | null> {
   const r = await authFetch(path, { method: 'DELETE' });
   return r ? (await r.json()) as T : null;

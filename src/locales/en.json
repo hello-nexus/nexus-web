@@ -4204,6 +4204,8 @@
   "panel.widget.blocks.scoreLabel": "Score",
   "panel.widget.blocks.timeLabel": "Time",
   "panel.widget.build": "Build",
+  "panel.widget.build.openBuild": "Open Build to see your PC here.",
+  "panel.widget.build.setCase": "Choose your PC case in Build to see your PC here.",
   "panel.widget.calculator": "Calculator",
   "panel.widget.calendar": "Calendar",
   "panel.widget.calendar.settings.display": "Display",

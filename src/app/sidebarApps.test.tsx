@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, listSidebarAppKeys, sanitizePinnedTail, sanitizeRecents } from './sidebarApps';
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
+import { PAGE_ONLY_APPS } from './pageOnlyApps';
 import { Boxes, Film } from 'lucide-react';
 import { appIconComponent, appIconMaskComponent } from '../components/icons/AppIconImage';
 import {
@@ -140,7 +141,8 @@ describe('listSidebarAppKeys', () => {
   it('lists page-only apps and built-ins with a Page, and no page-less widget', () => {
     const keys = listSidebarAppKeys();
     expect(keys).toContain('frames');
-    const pageless = Object.entries(APP_REGISTRY).filter(([, def]) => def.Page == null).map(([key]) => key);
+    expect(keys.filter(k => k === 'build')).toHaveLength(1);
+    const pageless = Object.entries(APP_REGISTRY).filter(([key, def]) => def.Page == null && !PAGE_ONLY_APPS[key]).map(([key]) => key);
     expect(pageless.length).toBeGreaterThan(0);
     for (const key of pageless) expect(keys).not.toContain(key);
     for (const key of keys) expect(isPinnableAppKey(key)).toBe(true);

@@ -1,0 +1,100 @@
+@use '../../../styles/text' as *;
+
+.widget {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+}
+
+.silhouette {
+  flex: 1;
+  min-height: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.image {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  background: transparent;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-dim);
+
+  svg {
+    width: 45%;
+    height: 45%;
+  }
+}
+
+.notice {
+  @include text-caption;
+  flex-shrink: 0;
+  margin-top: 8px;
+  max-width: 100%;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.body {
+  fill: var(--panel-element-bg);
+  stroke: var(--text-dim);
+  stroke-width: 2;
+}
+
+.glass {
+  fill: var(--panel-accent-soft);
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.fan,
+.divider,
+.slits,
+.plus {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.fan {
+  opacity: 0.6;
+}
+
+.slits {
+  opacity: 0.6;
+}
+
+.plus {
+  stroke-width: 3;
+}
+
+.foot {
+  fill: var(--text-dim);
+}

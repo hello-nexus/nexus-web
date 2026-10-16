@@ -57,6 +57,7 @@ import { blocksApp } from './blocks';
 import { whiteboardApp } from './whiteboard';
 import { processesApp } from './processes';
 import { blankApp } from './blank';
+import { buildApp } from './build';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -94,6 +95,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   whiteboard: whiteboardApp,
   processes:  processesApp,
   blank:      blankApp,
+  build:      buildApp,
 };
 
 // Whether an app can appear on a given surface. The decision is
