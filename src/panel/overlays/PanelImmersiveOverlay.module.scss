@@ -1,4 +1,6 @@
 .overlay {
+  // The close notch's height; immersive content that keeps clear of it reads this.
+  --immersive-notch-height: 44px;
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -68,7 +70,7 @@
   left: 50%;
   transform: translateX(-50%);
   width: calc(120px * var(--panel-scale, 1));
-  height: 44px;
+  height: var(--immersive-notch-height);
   display: flex;
   align-items: flex-start;
   justify-content: center;

@@ -21,7 +21,7 @@ const ROOT = join(__dirname);
 const RUNTIME_DIRS = [
   '.', 'chrome', 'overlays',
   'widgets/calendar', 'widgets/clock', 'widgets/gallery', 'widgets/media', 'widgets/monitoring',
-  'widgets/screentime', 'widgets/stocks', 'widgets/twitch', 'widgets/weather',
+  'widgets/screentime', 'widgets/stocks', 'widgets/twitch', 'widgets/weather', 'widgets/web-view',
 ];
 const RUNTIME_FILES = [
   'widgets/common/PanelWidgetChrome.module.scss',

@@ -225,6 +225,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
   return (
     <div
       className={`panel-root ${styles.wrap}`}
+      data-webview-cover
       data-theme={resolvedThemeMode}
       style={themeStyle}
     >

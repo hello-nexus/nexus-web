@@ -10,6 +10,7 @@ export function PanelSwipeHint({ direction = 'up' }: { direction?: 'up' | 'down'
     <div
       className={styles.hint}
       data-direction={direction}
+      data-webview-cover
       role="img"
       aria-label={t(direction === 'down' ? 'panel.immersive.swipeHint' : 'panel.swipeHint.label')}
       style={{
