@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "Ürün yazılımı güncellemesi sırasında sıfırlanamaz.",
   "settings.factoryReset.label": "Varsayılanlara sıfırla",
   "settings.factoryReset.wipeList": "Tüm ayarlar ve profiller\nYüklü uygulamalar\nWidget düzenleri (bu cihaz ve tüm eşleştirilmiş cihazlar)\nEşleştirilmiş cihazlar ve uzak oturumlar\nEkran süresi geçmişi\nİçe aktarılan medya",
-  "settings.fastStartup.description": "Hızlı Başlangıç, tam bir önyükleme yapmak yerine sistem durumunun bir bölümünü kaydederek Kapat işleminden sonra Windows'un daha hızlı açılmasını sağlar. Bu, USB aygıtlarının oturumlar arasında tamamen sıfırlanmadığı anlamına da gelir. Aygıtlara her açılışta temiz bir sıfırlama yaptırmak için kapatın; bir aygıt yanıt vermeyi bırakırsa veya güç verildikten sonra algılanmazsa bu işe yarayabilir. Yeniden başlatma her iki durumda da tam önyükleme yapar. Değişiklik bir sonraki Kapat işleminden itibaren geçerli olur.",
+  "settings.fastStartup.description": "Kapat işleminden sonra Windows'u daha hızlı başlatır, ancak USB aygıtları tamamen sıfırlanmaz. Bir aygıt yanıt vermeyi bırakırsa veya açılıştan sonra algılanmazsa kapatın.",
   "settings.fastStartup.hibernateUnavailable": "Windows'ta hazırda bekletme kapalı olduğu için Hızlı Başlangıç kullanılamıyor.",
   "settings.fastStartup.label": "Hızlı Başlangıç",
   "settings.fastStartup.policyManaged": "Bu ayar kuruluşunuz tarafından yönetiliyor (Grup İlkesi).",

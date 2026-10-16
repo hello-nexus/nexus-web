@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "Kan niet herstellen terwijl er een firmware-update bezig is.",
   "settings.factoryReset.label": "Terugzetten naar standaard",
   "settings.factoryReset.wipeList": "Alle instellingen en profielen\nGeïnstalleerde apps\nWidget-indelingen (dit apparaat en elk gekoppeld apparaat)\nGekoppelde apparaten en sessies op afstand\nSchermtijdgeschiedenis\nGeïmporteerde media",
-  "settings.fastStartup.description": "Snel opstarten laat Windows na Afsluiten sneller starten door een deel van de systeemstatus op te slaan in plaats van volledig op te starten. Dat betekent ook dat usb-apparaten tussen sessies niet volledig worden gereset. Schakel het uit om apparaten bij elke start een schone reset te geven. Dat kan helpen als een apparaat niet meer reageert of na het inschakelen niet wordt gedetecteerd. Opnieuw opstarten voert altijd een volledige start uit. De wijziging geldt vanaf de volgende keer Afsluiten.",
+  "settings.fastStartup.description": "Windows start sneller na Afsluiten, maar usb-apparaten worden niet volledig gereset. Schakel het uit als een apparaat niet meer reageert of na het opstarten niet wordt gedetecteerd.",
   "settings.fastStartup.hibernateUnavailable": "Snel opstarten is niet beschikbaar omdat sluimerstand is uitgeschakeld in Windows.",
   "settings.fastStartup.label": "Snel opstarten",
   "settings.fastStartup.policyManaged": "Deze instelling wordt beheerd door je organisatie (groepsbeleid).",

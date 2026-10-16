@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "Can't reset while a firmware update is in progress.",
   "settings.factoryReset.label": "Reset to defaults",
   "settings.factoryReset.wipeList": "All settings and profiles\nInstalled apps\nWidget layouts (this device and every paired device)\nPaired devices and remote sessions\nScreen-time history\nImported media",
-  "settings.fastStartup.description": "Fast Startup makes Windows start faster after Shut down by saving part of the system state instead of doing a full boot. This also means USB devices are not fully reset between sessions. Turn it off to give devices a clean reset at every startup, which can help if a device stops responding or is not detected after powering on. Restart always does a full boot either way. Changes apply from the next Shut down.",
+  "settings.fastStartup.description": "Starts Windows faster after Shut down, but USB devices are not fully reset. Turn off if a device stops responding or is not detected after startup.",
   "settings.fastStartup.hibernateUnavailable": "Fast Startup is unavailable because hibernation is turned off in Windows.",
   "settings.fastStartup.label": "Fast Startup",
   "settings.fastStartup.policyManaged": "This setting is managed by your organization (Group Policy).",

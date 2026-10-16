@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "Während eines Firmware-Updates kann nicht zurückgesetzt werden.",
   "settings.factoryReset.label": "Auf Standardwerte zurücksetzen",
   "settings.factoryReset.wipeList": "Alle Einstellungen und Profile\nInstallierte Apps\nWidget-Layouts (dieses Gerät und alle gekoppelten Geräte)\nGekoppelte Geräte und Remote-Sitzungen\nBildschirmzeit-Verlauf\nImportierte Medien",
-  "settings.fastStartup.description": "Der Schnellstart lässt Windows nach dem Herunterfahren schneller starten, indem ein Teil des Systemzustands gespeichert wird, statt vollständig zu booten. Dadurch werden USB-Geräte zwischen zwei Sitzungen nicht vollständig zurückgesetzt. Ist er deaktiviert, werden Geräte bei jedem Start sauber zurückgesetzt, was helfen kann, wenn ein Gerät nicht mehr reagiert oder nach dem Einschalten nicht erkannt wird. Ein Neustart führt in jedem Fall einen vollständigen Bootvorgang aus. Änderungen gelten ab dem nächsten Herunterfahren.",
+  "settings.fastStartup.description": "Startet Windows nach dem Herunterfahren schneller, aber USB-Geräte werden nicht vollständig zurückgesetzt. Deaktivieren, wenn ein Gerät nicht mehr reagiert oder nach dem Start nicht erkannt wird.",
   "settings.fastStartup.hibernateUnavailable": "Der Schnellstart ist nicht verfügbar, weil der Ruhezustand in Windows deaktiviert ist.",
   "settings.fastStartup.label": "Schnellstart",
   "settings.fastStartup.policyManaged": "Diese Einstellung wird von Ihrer Organisation verwaltet (Gruppenrichtlinie).",

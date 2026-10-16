@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "韌體更新期間無法重設。",
   "settings.factoryReset.label": "重設為預設值",
   "settings.factoryReset.wipeList": "所有設定和設定檔\n已安裝的應用程式\n小工具版面配置（本裝置和所有已配對裝置）\n已配對的裝置和遠端工作階段\n螢幕使用時間記錄\n已匯入的媒體",
-  "settings.fastStartup.description": "快速啟動會儲存部分系統狀態，而不是執行完整開機，讓 Windows 在關機後啟動得更快。這也表示 USB 裝置在兩次工作階段之間不會被完全重設。關閉後，裝置在每次啟動時都會徹底重設，當裝置停止回應或開機後未被偵測到時，這可能會有幫助。無論是否開啟，重新啟動一律執行完整開機。變更會從下次關機時生效。",
+  "settings.fastStartup.description": "關機後 Windows 啟動更快，但 USB 裝置不會被完全重設。如果裝置停止回應或啟動後未被偵測到，請關閉。",
   "settings.fastStartup.hibernateUnavailable": "由於 Windows 中已關閉休眠，快速啟動無法使用。",
   "settings.fastStartup.label": "快速啟動",
   "settings.fastStartup.policyManaged": "此設定由你的組織管理（群組原則）。",

@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "Impossible de réinitialiser pendant une mise à jour du firmware.",
   "settings.factoryReset.label": "Réinitialiser aux valeurs par défaut",
   "settings.factoryReset.wipeList": "Tous les paramètres et profils\nApplications installées\nDispositions de widgets (cet appareil et tous les appareils associés)\nAppareils associés et sessions distantes\nHistorique du temps d'écran\nMédias importés",
-  "settings.fastStartup.description": "Le démarrage rapide permet à Windows de démarrer plus vite après un arrêt, en enregistrant une partie de l'état du système au lieu d'effectuer un démarrage complet. Les appareils USB ne sont donc pas entièrement réinitialisés entre deux sessions. Désactivez-le pour réinitialiser proprement les appareils à chaque démarrage, ce qui peut aider si un appareil ne répond plus ou n'est pas détecté après la mise sous tension. Un redémarrage effectue toujours un démarrage complet. La modification s'applique à partir du prochain arrêt.",
+  "settings.fastStartup.description": "Démarre Windows plus vite après un arrêt, mais les appareils USB ne sont pas entièrement réinitialisés. Désactivez-le si un appareil ne répond plus ou n'est pas détecté après le démarrage.",
   "settings.fastStartup.hibernateUnavailable": "Le démarrage rapide n'est pas disponible, car l'hibernation est désactivée dans Windows.",
   "settings.fastStartup.label": "Démarrage rapide",
   "settings.fastStartup.policyManaged": "Ce paramètre est géré par votre organisation (stratégie de groupe).",

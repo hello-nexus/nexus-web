@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "Não é possível repor durante uma atualização de firmware.",
   "settings.factoryReset.label": "Repor predefinições",
   "settings.factoryReset.wipeList": "Todas as definições e perfis\nAplicações instaladas\nEsquemas de widgets (este dispositivo e todos os dispositivos emparelhados)\nDispositivos emparelhados e sessões remotas\nHistórico de tempo de ecrã\nMultimédia importada",
-  "settings.fastStartup.description": "O arranque rápido faz o Windows arrancar mais depressa após Encerrar, guardando parte do estado do sistema em vez de fazer um arranque completo. Isto também significa que os dispositivos USB não são totalmente reiniciados entre sessões. Desative-o para que os dispositivos sejam reiniciados por completo em cada arranque, o que pode ajudar se um dispositivo deixar de responder ou não for detetado após ligar. Reiniciar faz sempre um arranque completo. A alteração aplica-se a partir do próximo encerramento.",
+  "settings.fastStartup.description": "Inicia o Windows mais depressa após Encerrar, mas os dispositivos USB não são totalmente reiniciados. Desative se um dispositivo deixar de responder ou não for detetado após o arranque.",
   "settings.fastStartup.hibernateUnavailable": "O arranque rápido não está disponível porque a hibernação está desativada no Windows.",
   "settings.fastStartup.label": "Arranque rápido",
   "settings.fastStartup.policyManaged": "Esta definição é gerida pela sua organização (Política de Grupo).",

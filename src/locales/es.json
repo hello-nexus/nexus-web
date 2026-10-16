@@ -4951,7 +4951,7 @@
   "settings.factoryReset.flashBlocked": "No se puede restablecer durante una actualización de firmware.",
   "settings.factoryReset.label": "Restablecer valores predeterminados",
   "settings.factoryReset.wipeList": "Todos los ajustes y perfiles\nApps instaladas\nDiseños de widgets (este dispositivo y todos los dispositivos vinculados)\nDispositivos vinculados y sesiones remotas\nHistorial de tiempo de pantalla\nMedios importados",
-  "settings.fastStartup.description": "El inicio rápido hace que Windows arranque más deprisa tras Apagar, al guardar parte del estado del sistema en lugar de hacer un arranque completo. Esto también significa que los dispositivos USB no se reinician por completo entre sesiones. Desactívalo para que los dispositivos se reinicien limpiamente en cada arranque, lo que puede ayudar si un dispositivo deja de responder o no se detecta al encender. Reiniciar siempre hace un arranque completo. El cambio se aplica desde el próximo apagado.",
+  "settings.fastStartup.description": "Inicia Windows más rápido tras Apagar, pero los dispositivos USB no se reinician por completo. Desactívalo si un dispositivo deja de responder o no se detecta tras el arranque.",
   "settings.fastStartup.hibernateUnavailable": "El inicio rápido no está disponible porque la hibernación está desactivada en Windows.",
   "settings.fastStartup.label": "Inicio rápido",
   "settings.fastStartup.policyManaged": "Tu organización administra este ajuste (directiva de grupo).",
