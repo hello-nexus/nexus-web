@@ -1,4 +1,5 @@
 import type { LightingMode } from '../hooks/useLightingSync';
+import type { SensorBinding } from '../lib/sensorBinding';
 
 export type { LightingMode };
 
@@ -14,6 +15,11 @@ export interface EffectState {
   saturation: number;    // 0 = grayscale, 1 = unchanged, 2 = oversaturated
   contrast: number;      // 0 = flat, 1 = unchanged, 2 = hard contrast
   params: Record<string, number>;
+  /**
+   * The user's sensor picks, keyed by sensor uniform name. A missing key means
+   * the shader's own default binding; only uniforms the user changed are here.
+   */
+  sensors?: Record<string, SensorBinding>;
 }
 
 /**
@@ -72,6 +78,13 @@ export interface EffectColorSlot {
   range?: boolean;
 }
 
+/** Names a sensor uniform for the effect controls; the uniform itself comes from the shader's annotation. */
+export interface EffectSensorDef {
+  name: string;
+  label: string;
+  labelKey?: string;
+}
+
 export interface EffectDef {
   key: string;
   labelKey: string;
@@ -80,6 +93,8 @@ export interface EffectDef {
   /** Computed via {@link categoryOf} - the EFFECT_CATEGORY map below is the source of truth. */
   category?: EffectCategory;
   params: EffectParamDef[];
+  /** Labels for the effect's sensor uniforms; an unlisted one shows under the generic sensor label. */
+  sensors?: EffectSensorDef[];
   showIntensity?: boolean;
   audio?: boolean;
   /** When true, the Speed slider is hidden for this effect. */

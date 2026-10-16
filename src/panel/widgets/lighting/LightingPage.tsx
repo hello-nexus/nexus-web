@@ -929,7 +929,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (EFFECTS.some(e => e.key === sync) || isCustomEffectKey(sync)) {
         const state = stateFor(sync);
         await startAnimate(sync, state.speed, state.intensity, state.hue,
-          state.colorize, state.saturation, state.contrast, state.params, false);
+          state.colorize, state.saturation, state.contrast, state.params, false, state.sensors);
       } else if (sync === 'screen') {
         await startScreenMirror(screenPP.saturation, screenPP.contrast, undefined, screenPP.hue, screenPP.colorize);
       } else if (sync === 'media' || sync === 'gif') {
@@ -983,7 +983,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       done();
       startAnimate(
         effect, state.speed, state.intensity, state.hue, state.colorize,
-        state.saturation, state.contrast, state.params, persist,
+        state.saturation, state.contrast, state.params, persist, state.sensors,
       ).catch(() => {});
     });
   }, [setGlobalColor, throttleAnimate]);
@@ -2012,7 +2012,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           setActiveEffect(key);
           setRawSync(key);
           const state = stateFor(key);
-          await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+          await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
           publishControlSync({ domain: 'lighting', mode: m, rawSync: key, effect: key });
           break;
         }
