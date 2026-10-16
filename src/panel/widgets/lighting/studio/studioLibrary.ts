@@ -4,9 +4,10 @@ import {
   customEffectKey, deleteCustomEffect, getCustomEffects, putCustomEffect, refreshCustomEffects, useCustomEffects,
   type CustomEffectEntry,
 } from '../../../../api/customEffects';
+import { isSensorBinding } from '../../../../lib/sensorBinding';
 import { STUDIO_COST_BUDGET, STUDIO_STAGES, STUDIO_STAGE_LIMIT, studioBlock } from './studioBlocks';
 import {
-  MOD_GATE, MOD_RATE, STUDIO_MOD_SOURCES, blockParams, compileStudio, isMusicSource, recipeCost, stageCount,
+  MOD_GATE, MOD_RATE, STUDIO_MOD_SOURCES, blockParams, compileStudio, isMusicSource, isSensorSource, recipeCost, stageCount,
   type StudioBlock, type StudioMod, type StudioRecipe,
 } from './studioCompiler';
 
@@ -26,9 +27,12 @@ export interface SavedEffect {
 const isNum = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const isObj = (o: unknown): o is Record<string, unknown> => !!o && typeof o === 'object' && !Array.isArray(o);
 
-// The same rules the Marketplace API applies: a rate only on a wave, a gate only on music.
+// The same rules the Marketplace API applies: a rate only on a wave, a gate only on music,
+// a sensor binding only on (and required by) the sensor source.
 function isMod(m: StudioMod): boolean {
   if (!isObj(m) || !STUDIO_MOD_SOURCES.includes(m.source) || !isNum(m.amount)) return false;
+  if (isSensorSource(m.source)) return m.rate === undefined && m.gate === undefined && isSensorBinding(m.sensor);
+  if (m.sensor !== undefined) return false;
   const music = isMusicSource(m.source);
   if (m.rate !== undefined && (music || !isNum(m.rate) || m.rate < MOD_RATE.min || m.rate > MOD_RATE.max)) return false;
   return m.gate === undefined || (music && isNum(m.gate) && m.gate >= MOD_GATE.min && m.gate <= MOD_GATE.max);

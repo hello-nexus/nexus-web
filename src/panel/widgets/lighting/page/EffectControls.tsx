@@ -3,8 +3,10 @@ import { useTranslation } from '../../../../lib/i18n';
 import { EFFECTS, categoryOf, type EffectDef, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderParams } from '../../../../hooks/useShaderParams';
 import { clampToSpec } from '../../../../lib/shaderParams';
+import { cleanBinding, effectiveBinding, sensorBindingsEqual, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
+import { SensorBindingEditor } from '../../../../components/common/SensorPicker/SensorBindingEditor';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -50,8 +52,20 @@ export const EffectControls = memo(function EffectControls({
 }) {
   const { t } = useTranslation();
   const def = customDef ?? EFFECTS.find(e => e.key === effect);
-  const { specs, loaded } = useShaderParams(effect);
+  const { specs, sensors, loaded } = useShaderParams(effect);
   if (!def) return null;
+  // Applies at once, like every slider: an override equal to the shader's default is dropped rather than stored.
+  const setSensor = (su: SensorUniform, binding: SensorBinding | null) => {
+    const next = { ...state.sensors };
+    if (binding && !sensorBindingsEqual(binding, su.binding)) next[su.name] = cleanBinding(binding);
+    else delete next[su.name];
+    onChange({ sensors: Object.keys(next).length > 0 ? next : undefined }, true);
+  };
+  const sensorLabel = (su: SensorUniform) => {
+    const named = def.sensors?.find(s => s.name === su.name);
+    if (named) return named.labelKey ? t(named.labelKey) : named.label;
+    return t('lighting.sensor.title');
+  };
   const selected = bundle.selected;
   // Simple fills are a fixed base colour: no colour wheel, no speed, no
   // contrast, and no preset slots - one look plus its sliders. Saturation is
@@ -153,6 +167,20 @@ export const EffectControls = memo(function EffectControls({
             <Slider orientation="stacked" editable trackFill key={p.name} label={label} value={displayValue} min={min} max={max} zeroMarker={p.zeroMarker}
               onChange={(v, commit) => onChange({ params: { ...state.params, [p.name]: v / scale } }, commit)}
               onCommit={onCommit} />
+          );
+        })}
+        {loaded && sensors.map(su => {
+          const label = sensorLabel(su);
+          return (
+            <div key={su.name} className={styles.paramEnumRow}>
+              <span className={styles.paramEnumLabel}>{label}</span>
+              <SensorBindingEditor
+                binding={effectiveBinding(su, state.sensors)}
+                ariaLabel={label}
+                onChange={binding => setSensor(su, binding)}
+                onReset={state.sensors?.[su.name] ? () => setSensor(su, null) : undefined}
+              />
+            </div>
           );
         })}
       </div>

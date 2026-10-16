@@ -17,6 +17,7 @@ import { SortableList, type SortableRowArgs } from '../../../../components/commo
 import { forgetShaderSource, primeShaderSource, startStudioLive, stopStudioLive } from '../../../../api/lighting';
 import { customEffectId, customEffectKey, customEffectsLoaded } from '../../../../api/customEffects';
 import { useAudioState } from '../../../../hooks/useAudioState';
+import { useSensorSignal } from '../../../../hooks/useSensorSignal';
 import { useTranslation } from '../../../../lib/i18n';
 import { isApplePlatform } from '../../../../lib/platform';
 import type { EffectState } from '../../../../types/lighting';
@@ -25,7 +26,7 @@ import {
   type StudioStage,
 } from './studioBlocks';
 import {
-  compileStudio, makeBlock, recipeCost, recipeUsesAudio, stageCount, staleParamsBetween,
+  compileStudio, makeBlock, recipeCost, recipeUsesAudio, recipeUsesSensors, stageCount, staleParamsBetween,
   type CompiledStudio, type StudioBlock, type StudioRecipe,
 } from './studioCompiler';
 import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';
@@ -164,6 +165,7 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
   const simulateLabelId = useId();
   const liveAudioRef = useAudioState(open && usesAudio && !simulateMusic);
   const audioRef = useStudioAudio(liveAudioRef, usesAudio && simulateMusic);
+  const sensorRef = useSensorSignal(open && recipeUsesSensors(recipe));
 
   // Evicts on the explicit close, not an unmount cleanup: StrictMode re-runs cleanups
   // while the previews still need their keys.
@@ -495,6 +497,7 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
         <StudioBlockCard
           key={b.uid}
           audioRef={audioRef}
+          sensorRef={sensorRef}
           block={b}
           def={def}
           firstPattern={stage === 'pattern' && blocks[0] === b}
@@ -581,7 +584,7 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
                     <Badge label={`${t(`lighting.studio.cost.${costLevel}`)} ${cost}/${STUDIO_COST_BUDGET}`} compact />
                   </span>
                 )}>
-                <StudioPreview effectKey={compiled.key} stateRef={stateRef} audioRef={audioRef} />
+                <StudioPreview effectKey={compiled.key} stateRef={stateRef} audioRef={audioRef} sensorRef={sensorRef} />
                 {liveFailed && <InlineError className={styles.liveError}>{t('lighting.studio.liveFailed')}</InlineError>}
                 {live && liveOff && <Notice tone="info" role="status" className={styles.liveError}>{t('lighting.studio.liveOff')}</Notice>}
               </SettingsSection>

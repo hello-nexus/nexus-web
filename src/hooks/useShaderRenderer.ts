@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { fetchShaderSource, onShaderSourceInvalidated } from '../api/lighting';
 import { createDisplayDivider, createFramePacer, panelDisplayHz, streamFrameCap } from '../lib/framePacer';
 import { BASE_UNIFORM_NAMES, clampToSpec, resolveParamUniforms, type ShaderParamSpec } from '../lib/shaderParams';
 import { effectiveBinding, sensorSweep, smoothSensor, type SensorSignal, type SensorUniform } from '../lib/sensorBinding';
 import type { EffectState } from '../types/lighting';
 import type { AudioSnapshot } from './useAudioState';
+import { SensorSignalContext } from './SensorSignalContext';
 
 // rAF timestamp of each canvas's latest draw. Paced frames skip the draw and read back cleared.
 const drawnFrameTs = new WeakMap<HTMLCanvasElement, number>();
@@ -63,6 +64,8 @@ export function useShaderRenderer(
   // engine freezes at instead of blanking or drifting.
   paused = false,
 ): { ready: boolean; loading: boolean; error: string | null } {
+  const contextSensors = useContext(SensorSignalContext);
+  const sensorSignal = options?.sensorRef ?? contextSensors;
   const glRef = useRef<WebGL2RenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const vaoRef = useRef<WebGLVertexArrayObject | null>(null);
@@ -347,7 +350,7 @@ export function useShaderRenderer(
         for (const su of sensorUniforms) {
           const loc = u[su.name];
           if (!loc) continue;
-          const live = options?.sensorRef?.current?.(effectiveBinding(su, st.sensors)) ?? null;
+          const live = sensorSignal?.current?.(effectiveBinding(su, st.sensors)) ?? null;
           const target = live ?? (options?.sensorSweep ? sensorSweep(t) : 0);
           const level = sensorLevels.has(su.name) ? smoothSensor(sensorLevels.get(su.name)!, target, dt) : target;
           sensorLevels.set(su.name, level);
@@ -378,7 +381,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, sourceRev, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, options?.paletteRef, options?.audioTime, options?.sensorRef, options?.sensorSweep, audioRef]);
+  }, [effect, sourceRev, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, options?.paletteRef, options?.audioTime, sensorSignal, options?.sensorSweep, audioRef]);
 
   return { ready, loading, error };
 }

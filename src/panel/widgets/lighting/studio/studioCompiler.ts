@@ -1,18 +1,26 @@
 import { STUDIO_UID_RE } from '../../../../api/customEffects';
 import {
+  DEFAULT_SENSOR_BINDING, cleanBinding, sensorAnnotationJson,
+  type SensorBinding, type SensorUniform,
+} from '../../../../lib/sensorBinding';
+import {
   PATTERN_BLEND_PARAMS, STUDIO_STAGES, studioBlock,
   type StudioBlockDef, type StudioHelper, type StudioParam, type StudioStage,
 } from './studioBlocks';
 
 export type StudioMusicSource = 'bass' | 'mid' | 'high' | 'level' | 'beat';
 export type StudioWaveSource = 'sine' | 'triangle' | 'square' | 'random';
-export type StudioModSource = StudioMusicSource | StudioWaveSource;
+export type StudioSensorSource = 'sensor';
+export type StudioModSource = StudioMusicSource | StudioWaveSource | StudioSensorSource;
 
 export const STUDIO_MUSIC_SOURCES: readonly StudioMusicSource[] = ['bass', 'mid', 'high', 'level', 'beat'];
 export const STUDIO_WAVE_SOURCES: readonly StudioWaveSource[] = ['sine', 'triangle', 'square', 'random'];
-export const STUDIO_MOD_SOURCES: readonly StudioModSource[] = [...STUDIO_MUSIC_SOURCES, ...STUDIO_WAVE_SOURCES];
+export const STUDIO_SENSOR_SOURCE: StudioSensorSource = 'sensor';
+export const STUDIO_MOD_SOURCES: readonly StudioModSource[] = [...STUDIO_MUSIC_SOURCES, ...STUDIO_WAVE_SOURCES, STUDIO_SENSOR_SOURCE];
 
 export const isMusicSource = (s: StudioModSource): s is StudioMusicSource => (STUDIO_MUSIC_SOURCES as readonly string[]).includes(s);
+export const isWaveSource = (s: StudioModSource): s is StudioWaveSource => (STUDIO_WAVE_SOURCES as readonly string[]).includes(s);
+export const isSensorSource = (s: StudioModSource): s is StudioSensorSource => s === STUDIO_SENSOR_SOURCE;
 
 /** A wave's cycles per second of effect time; the API enforces the same range. */
 export const MOD_RATE = { min: 0.05, max: 4, step: 0.05, def: 0.5 } as const;
@@ -31,6 +39,8 @@ export interface StudioMod {
   rate?: number;
   /** Music sources only: the level below which the mod stays at rest. */
   gate?: number;
+  /** The sensor source only: the author's default sensor and the range of it that sweeps the param. */
+  sensor?: SensorBinding;
 }
 
 export interface StudioBlock {
@@ -66,6 +76,8 @@ export interface CompiledStudio {
   frag: string;
   /** Uniform values for EffectState.params. */
   params: Record<string, number>;
+  /** The sensor-fed uniforms the frag declares, with their default bindings. */
+  sensors: SensorUniform[];
 }
 
 let uidCounter = 0;
@@ -232,6 +244,11 @@ export function recipeUsesAudio(recipe: StudioRecipe): boolean {
   return recipe.blocks.some(b => !!studioBlock(b.type)?.audio?.length || Object.values(b.mods ?? {}).some(m => isMusicSource(m.source)));
 }
 
+/** Whether `recipe` has a param driven by a sensor. */
+export function recipeUsesSensors(recipe: StudioRecipe): boolean {
+  return recipe.blocks.some(b => Object.values(b.mods ?? {}).some(m => isSensorSource(m.source)));
+}
+
 function fnv1a(text: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
@@ -265,6 +282,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
   defs.forEach(d => d.audio?.forEach(a => audioInputs.add(a)));
   const params: Record<string, number> = {};
   const extraHelpers = new Set<StudioHelper>();
+  const sensors: SensorUniform[] = [];
   const body: string[] = [];
   let patternIndex = 0;
 
@@ -296,6 +314,13 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
             params[gateName] = gate;
             signal = `clamp((${signal} - ${gateName}) / (1.0 - ${gateName}), 0.0, 1.0)`;
           }
+        } else if (isSensorSource(mod.source)) {
+          // Not a slider: the service feeds this uniform the smoothed 0..1 reading of the annotated sensor.
+          const sensorName = `${name}_s`;
+          const binding = cleanBinding(mod.sensor ?? DEFAULT_SENSOR_BINDING);
+          uniforms.push(`uniform float ${sensorName}; // sensor ${sensorAnnotationJson(binding)}`);
+          sensors.push({ name: sensorName, binding });
+          signal = sensorName;
         } else {
           const rateName = `${name}_r`;
           const rate = Math.min(MOD_RATE.max, Math.max(MOD_RATE.min, mod.rate ?? MOD_RATE.def));
@@ -365,7 +390,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
     '}',
   ].join('\n');
 
-  return { key: `studio-${fnv1a(frag)}`, frag, params };
+  return { key: `studio-${fnv1a(frag)}`, frag, params, sensors };
 }
 
 function insertColorDefault(body: string[], defs: StudioBlockDef[], hasColor: boolean): string[] {

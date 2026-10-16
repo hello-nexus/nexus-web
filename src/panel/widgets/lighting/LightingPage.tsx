@@ -20,6 +20,8 @@ import { matchesAllWords } from '../../../search/match';
 import { takeLightingEffect } from '../../../lib/lightingIntent';
 import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
+import { useShaderParams } from '../../../hooks/useShaderParams';
+import { SensorSignalProvider } from '../../../hooks/SensorSignalProvider';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
@@ -1196,6 +1198,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // A selection reaching outside the open tab shows no effect: the running one may belong to another mode.
   const previewEffect = scoped.kind === 'mixed' ? '' : pinTarget && !isPaletteKey(dockEffect) ? dockEffect : activeEffect;
   const previewShaderState = pinTarget && !isPaletteKey(dockEffect) ? dockState : previewState;
+  // Sensors are subscribed only while the shown shader has a sensor uniform.
+  const previewUsesSensors = useShaderParams(previewEffect || null).sensors.length > 0;
   // The slot strip highlights what the dock edits, so a scoped bundle carries
   // the pin's slot rather than the effect's shared pointer.
   const dockBundle: EffectTemplateBundle | null = dockEffect
@@ -2634,6 +2638,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }
 
   return (
+    <SensorSignalProvider enabled={previewUsesSensors}>
     <div className={styles.lighting}>
       {/* Three columns: the device rail, the mode tabs + their content, and the
           always-mounted effect dock. Both side columns span the tab row so they
@@ -3146,6 +3151,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         />
       )}
     </div>
+    </SensorSignalProvider>
   );
 }
 
