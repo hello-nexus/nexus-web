@@ -172,6 +172,27 @@ describe('LianLiWirelessLightingTab', () => {
     expect(mockSetStrimer).toHaveBeenCalledWith('998D1DE566E1', { merge: true });
   });
 
+  it('offers the LED zone only for an effect with a scope and sends the pick', async () => {
+    const tlRainbow = { ...effects[0], hasScope: true };
+    await renderTab({ ...catalog, chains: [fanChain] });
+    expect(screen.queryByLabelText('devices.lianli-tl.lightingScope')).not.toBeInTheDocument();
+
+    await renderTab({ ...catalog, chains: [{ ...fanChain, modes: [tlRainbow, effects[1]], scope: 'all' }] });
+    const scope = screen.getByRole('button', { name: 'devices.lianli-tl.lightingScope' });
+    expect(scope).toHaveTextContent('devices.lianli-tl.scopes.all');
+    fireEvent.click(scope);
+    const options = await screen.findAllByRole('option');
+    expect(options.map(o => o.textContent)).toEqual([
+      'devices.lianli-tl.scopes.all',
+      'devices.lianli-tl.scopes.top',
+      'devices.lianli-tl.scopes.bottom',
+    ]);
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('option', { name: 'devices.lianli-tl.scopes.top' }));
+    });
+    expect(mockSetStrimer).toHaveBeenCalledWith('998D1DE566E1', { scope: 'top', effectMode: undefined });
+  });
+
   it('picking a mode sends it for that cable', async () => {
     await renderTab();
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));

@@ -81,7 +81,12 @@ export interface LianLiWirelessLightingEffect {
   colorsMax: number;
   /** Has a variant that runs across every fan of the chain. Absent on an older service. */
   mergeable?: boolean;
+  /** Can be kept to the top or the bottom half of each fan (TL fans). Absent on an older service. */
+  hasScope?: boolean;
 }
+
+/** The part of each TL fan an effect lights, as on the wired TL controller. */
+export type LianLiWirelessScope = 'all' | 'top' | 'bottom';
 
 export interface LianLiWirelessLane {
   mode: string;
@@ -116,6 +121,8 @@ export interface LianLiWirelessChainLighting {
   colors: string[];
   /** A mergeable effect runs across every fan of the chain. Absent on an older service. */
   merge?: boolean;
+  /** The part of each fan an effect with hasScope lights. Absent on an older service. */
+  scope?: LianLiWirelessScope;
   laneSettings: LianLiWirelessLane[];
   /** Saved choice to play the motherboard ARGB header; null when never chosen, absent on an older service. */
   motherboardArgb?: boolean | null;
@@ -131,7 +138,7 @@ export interface LianLiWirelessLighting {
 }
 
 export type LianLiWirelessChainPatch = Partial<Pick<LianLiWirelessChainLighting,
-  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings' | 'motherboardArgb'>>;
+  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'scope' | 'laneSettings' | 'motherboardArgb'>>;
 
 export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | null> {
   return fetchService<LianLiWirelessLighting>('/devices/lianli-wireless/lighting');
