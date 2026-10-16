@@ -55,8 +55,6 @@ export interface MonitoringSettings {
   smartPollDefaultSeconds?: number;
   /** False: the default governs every drive. True: each drive uses its own entry. */
   smartPollPerDrive?: boolean;
-  /** False stops reading the temperature sensor on each memory stick. Missing means true. */
-  readRamTemperatures?: boolean;
 }
 
 export interface PanelSettings {
@@ -246,6 +244,9 @@ export interface Preferences {
   // boot-time start, clamped server-side to 0..60. Optional - an older service
   // omits it, and the client then keeps its last known value.
   startupDelaySeconds?: number;
+  // Machine-level (not per-profile): false stops reading the temperature
+  // sensor on each memory stick. Applies live. Missing means true.
+  readRamTemperatures?: boolean;
 }
 
 export interface PreferencesPatch {
@@ -260,6 +261,7 @@ export interface PreferencesPatch {
   diagnostics?: DiagnosticsPrefsPatch;
   features?: FeaturesPrefs;
   startupDelaySeconds?: number;
+  readRamTemperatures?: boolean;
 }
 
 interface GetProfilesResponse {

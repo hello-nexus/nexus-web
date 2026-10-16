@@ -145,7 +145,6 @@ export interface GeneralSettings {
   smartPollSeconds: Record<string, number>;
   smartPollDefaultSeconds: number;
   smartPollPerDrive: boolean;
-  readRamTemperatures: boolean;
   monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
@@ -194,6 +193,8 @@ export interface GeneralSettings {
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
+  // Machine-level; server-mirrored under the preferences top-level readRamTemperatures field.
+  readRamTemperatures: boolean;
   // Global feature switches (default on). Server-mirrored under the
   // preferences `features` block; the localStorage boot mirror is what lets a
   // reload of an already-disabled page render the FeatureDisabled shell on
@@ -236,7 +237,6 @@ export function getDefaultSettings(): NexusSettings {
       smartPollSeconds: {},
       smartPollDefaultSeconds: DEFAULT_SMART_POLL_SECONDS,
       smartPollPerDrive: false,
-      readRamTemperatures: true,
       monitoringEventKindsHidden: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
@@ -254,6 +254,7 @@ export function getDefaultSettings(): NexusSettings {
       numberFormat: DEFAULT_NUMBER_FORMAT,
       dateFormat: DEFAULT_DATE_FORMAT,
       startupDelaySeconds: 0,
+      readRamTemperatures: true,
       featureLightingEnabled: true,
       featureCoolingEnabled: true,
       featureMonitoringEnabled: true,

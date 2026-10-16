@@ -7,7 +7,8 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const update = vi.fn();
-const uiSettings: { readRamTemperatures?: boolean } = {};
+// The provider always supplies a value (default true) before the row renders.
+const uiSettings = { readRamTemperatures: true };
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({ settings: uiSettings, update }),
 }));
@@ -15,10 +16,10 @@ vi.mock('../../../hooks/useUiSettings', () => ({
 describe('RamTemperatureSection', () => {
   beforeEach(() => {
     update.mockClear();
-    delete uiSettings.readRamTemperatures;
+    uiSettings.readRamTemperatures = true;
   });
 
-  it('is on when the field is absent', () => {
+  it('is on by default', () => {
     render(<RamTemperatureSection serviceOnline />);
     expect(screen.getByRole('switch', { name: /settings.ramTemperatures.label/ })).toBeChecked();
   });

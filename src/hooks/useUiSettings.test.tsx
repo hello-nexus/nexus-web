@@ -613,3 +613,39 @@ describe('endConflictsOnLaunch', () => {
     await waitFor(() => expect(h.savePreferences).toHaveBeenCalledWith({ ui: { endConflictsOnLaunch: false } }));
   });
 });
+
+describe('UiSettingsProvider - readRamTemperatures', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const mount = async () => {
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+  };
+  const base = { theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' }, ui: {} };
+
+  it('is on when the server omits the field', async () => {
+    h.fetchPreferences.mockResolvedValue(base);
+    await mount();
+    expect(captured.ctx!.settings.readRamTemperatures).toBe(true);
+  });
+
+  it('hydrates false from the root preferences field', async () => {
+    h.fetchPreferences.mockResolvedValue({ ...base, readRamTemperatures: false });
+    await mount();
+    expect(captured.ctx!.settings.readRamTemperatures).toBe(false);
+  });
+
+  it('posts the change as a root field, not under monitoring', async () => {
+    h.fetchPreferences.mockResolvedValue(base);
+    h.savePreferences.mockResolvedValue(undefined);
+    await mount();
+    await act(async () => { captured.ctx!.update({ readRamTemperatures: false }); });
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ readRamTemperatures: false });
+  });
+});

@@ -17,7 +17,7 @@ export function RamTemperatureSection({ serviceOnline }: { serviceOnline: boolea
         icon={<MemoryStick />}
         iconLeading="subtle"
         anchorId="set-read-ram-temperatures"
-        checked={settings.readRamTemperatures ?? true}
+        checked={settings.readRamTemperatures}
         onChange={v => update({ readRamTemperatures: v })}
         disabled={!serviceOnline}
       />

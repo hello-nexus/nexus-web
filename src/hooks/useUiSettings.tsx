@@ -76,7 +76,6 @@ export interface UiSettingsValue {
   smartPollSeconds: Record<string, number>;
   smartPollDefaultSeconds: number;
   smartPollPerDrive: boolean;
-  readRamTemperatures: boolean;
   monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
@@ -129,6 +128,8 @@ export interface UiSettingsValue {
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
+  // Machine-level, server-mirrored under the preferences top-level readRamTemperatures field.
+  readRamTemperatures: boolean;
   // Global feature switches (default on), server-mirrored under the
   // preferences `features` block. See {@link useFeatureFlags} for the
   // read-only accessor gated surfaces should use instead of this hook.
@@ -234,7 +235,6 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     smartPollSeconds: src.general.smartPollSeconds,
     smartPollDefaultSeconds: src.general.smartPollDefaultSeconds,
     smartPollPerDrive: src.general.smartPollPerDrive,
-    readRamTemperatures: src.general.readRamTemperatures,
     monitoringEventKindsHidden: src.general.monitoringEventKindsHidden,
     showMacStatusBarIcon: src.general.showMacStatusBarIcon,
     showWindowsTrayIcon: src.general.showWindowsTrayIcon,
@@ -257,6 +257,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     numberFormat: src.general.numberFormat,
     dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
+    readRamTemperatures: src.general.readRamTemperatures,
     featureLightingEnabled: src.general.featureLightingEnabled,
     featureCoolingEnabled: src.general.featureCoolingEnabled,
     featureMonitoringEnabled: src.general.featureMonitoringEnabled,
@@ -308,7 +309,6 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       smartPollSeconds: src.smartPollSeconds,
       smartPollDefaultSeconds: src.smartPollDefaultSeconds,
       smartPollPerDrive: src.smartPollPerDrive,
-      readRamTemperatures: src.readRamTemperatures,
       monitoringEventKindsHidden: src.monitoringEventKindsHidden,
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
@@ -326,6 +326,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       numberFormat: src.numberFormat,
       dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
+      readRamTemperatures: src.readRamTemperatures,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
       featureMonitoringEnabled: src.featureMonitoringEnabled,
@@ -347,14 +348,13 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.accentSource !== undefined) theme.accentSource = patch.accentSource;
   if (Object.keys(theme).length > 0) out.theme = theme;
   // monitoring block
-  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[]; eventsEnabled: boolean; fpsOverlayEnabled: boolean; eventKindsHidden: string[]; smartPollSeconds: Record<string, number>; smartPollDefaultSeconds: number; smartPollPerDrive: boolean; readRamTemperatures: boolean }> = {};
+  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[]; eventsEnabled: boolean; fpsOverlayEnabled: boolean; eventKindsHidden: string[]; smartPollSeconds: Record<string, number>; smartPollDefaultSeconds: number; smartPollPerDrive: boolean }> = {};
   if (patch.monitoringDetailedCollapsed !== undefined) monitoring.detailedCollapsed = patch.monitoringDetailedCollapsed;
   if (patch.monitoringEventsEnabled !== undefined) monitoring.eventsEnabled = patch.monitoringEventsEnabled;
   if (patch.monitoringFpsOverlayEnabled !== undefined) monitoring.fpsOverlayEnabled = patch.monitoringFpsOverlayEnabled;
   if (patch.smartPollSeconds !== undefined) monitoring.smartPollSeconds = patch.smartPollSeconds;
   if (patch.smartPollDefaultSeconds !== undefined) monitoring.smartPollDefaultSeconds = patch.smartPollDefaultSeconds;
   if (patch.smartPollPerDrive !== undefined) monitoring.smartPollPerDrive = patch.smartPollPerDrive;
-  if (patch.readRamTemperatures !== undefined) monitoring.readRamTemperatures = patch.readRamTemperatures;
   if (patch.monitoringEventKindsHidden !== undefined) monitoring.eventKindsHidden = patch.monitoringEventKindsHidden;
   if (patch.showMacStatusBarIcon !== undefined) monitoring.showMacStatusBarIcon = patch.showMacStatusBarIcon;
   if (patch.showWindowsTrayIcon !== undefined) monitoring.showWindowsTrayIcon = patch.showWindowsTrayIcon;
@@ -397,6 +397,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (Object.keys(units).length > 0) out.units = units;
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
+  if (patch.readRamTemperatures !== undefined) out.readRamTemperatures = patch.readRamTemperatures;
   // features block
   const features: FeaturesPrefs = {};
   if (patch.featureLightingEnabled !== undefined) features.lighting = patch.featureLightingEnabled;
@@ -493,7 +494,6 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     smartPollSeconds: server.monitoring?.smartPollSeconds ?? base.smartPollSeconds,
     smartPollDefaultSeconds: server.monitoring?.smartPollDefaultSeconds ?? base.smartPollDefaultSeconds,
     smartPollPerDrive: server.monitoring?.smartPollPerDrive ?? base.smartPollPerDrive,
-    readRamTemperatures: server.monitoring?.readRamTemperatures ?? base.readRamTemperatures,
     monitoringEventKindsHidden: server.monitoring?.eventKindsHidden ?? base.monitoringEventKindsHidden,
     showMacStatusBarIcon: server.monitoring?.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
     showWindowsTrayIcon: server.monitoring?.showWindowsTrayIcon ?? base.showWindowsTrayIcon,
@@ -523,6 +523,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     dateFormat: server.units?.dateFormat === undefined ? base.dateFormat
       : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
+    readRamTemperatures: server.readRamTemperatures ?? base.readRamTemperatures,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
     featureCoolingEnabled: server.features?.cooling ?? base.featureCoolingEnabled,
     featureMonitoringEnabled: server.features?.monitoring ?? base.featureMonitoringEnabled,
@@ -620,7 +621,8 @@ export function UiSettingsProvider({
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
-      || serverPatch.startupDelaySeconds !== undefined;
+      || serverPatch.startupDelaySeconds !== undefined
+      || serverPatch.readRamTemperatures !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Merge into (not replace) the still-pending patch so fields from separate
