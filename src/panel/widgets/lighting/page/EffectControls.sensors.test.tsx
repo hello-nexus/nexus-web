@@ -29,11 +29,11 @@ vi.mock('../../../../hooks/useShaderParams', () => ({
 
 // The picker reads live sensor topics; here it only reports what the controls hand it and what they do with the answer.
 vi.mock('../../monitoring/picker/SensorBindingEditor', () => ({
-  SensorBindingEditor: ({ binding, onChange, onReset }: { binding: SensorBinding; onChange: (b: SensorBinding) => void; onReset?: () => void }) => (
+  SensorBindingEditor: ({ binding, onChange, onReset, showReset }: { binding: SensorBinding; onChange: (b: SensorBinding) => void; onReset?: () => void; showReset?: boolean }) => (
     <div data-testid="editor" data-sensor={binding.sensor} data-max={binding.max}>
       <button type="button" onClick={() => onChange({ category: 'cpu', sensor: 'cpu/load/0', min: 0, max: 100 })}>pick</button>
       <button type="button" onClick={() => onChange({ ...shaderDefault })}>pick-default</button>
-      {onReset && <button type="button" onClick={onReset}>reset</button>}
+      {showReset && <button type="button" onClick={onReset} disabled={!onReset}>reset</button>}
     </div>
   ),
 }));
@@ -56,7 +56,7 @@ describe('EffectControls sensor uniforms', () => {
     setup(baseState());
     expect(screen.getByText('lighting.sensor.level')).toBeInTheDocument();
     expect(screen.getByTestId('editor')).toHaveAttribute('data-sensor', 'summary/cpu-usage');
-    expect(screen.queryByRole('button', { name: 'reset' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'reset' })).toBeDisabled();
   });
 
   it('saves a pick into the effect state at once, leaving other uniforms alone', () => {
@@ -109,10 +109,10 @@ describe('EffectControls sensor row reset against the preset default', () => {
     shipped = null;
   });
 
-  it('offers no reset on an untouched preset', () => {
+  it('keeps the reset in place, disabled, on an untouched preset', () => {
     preset2();
     render2(baseState({ u_fill_level_s: gpu }));
-    expect(screen.queryByRole('button', { name: 'reset' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'reset' })).toBeDisabled();
     shipped = null;
   });
 });
