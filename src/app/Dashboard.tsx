@@ -1006,7 +1006,7 @@ export function Dashboard() {
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenCooling={() => navigate('system', 'cooling')} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} onOpenInLighting={key => { requestLightingEffect(key); navigate('system', 'lighting'); }} />;
-      case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} />;
+      case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} platform={status.ping?.platform ?? ''} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;

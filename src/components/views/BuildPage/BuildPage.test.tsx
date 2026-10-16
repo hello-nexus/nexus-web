@@ -499,6 +499,17 @@ describe('BuildPage preview relay', () => {
     expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
   });
 
+  it('omits canSavePreview on macOS and ignores set-preview there', () => {
+    render(<BuildPage path="/builder" platform="macos" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
   it('relays a valid set-preview', () => {
     const { iframe } = readyFrame();
     const png = new ArrayBuffer(4);

@@ -4,10 +4,12 @@ import { snapStride } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
 import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
+import { APP_REGISTRY } from '../widgets/registry';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
 // off the App registry (manifest.Page) like the sidebar pin list. Adding a
-// Page to an app makes its widget click-through automatically.
+// Page to an app makes its widget click-through automatically; a page-only app
+// with a registered tile (Build) is the other way in.
 export type DashboardWidgetSection = string;
 
 export interface DashboardSectionNavigatePayload {
@@ -28,10 +30,10 @@ export type DashboardSectionNavigate =
   (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
 
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
-  // Click-through needs a TILE to click through from, so this is narrower than
-  // sidebar-pinnable: isPinnableAppKey also admits page-only apps (Store, Frames), which
-  // have no widget. A stale layout naming one must not be treated as clickable.
-  return !isPageOnlyAppKey(type) && isPinnableAppKey(type);
+  // Click-through needs a tile to click through from: a page-only key (Store, Frames) is
+  // clickable only when APP_REGISTRY holds a tile for it (Build), so a stale layout
+  // naming a tile-less one is not.
+  return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }

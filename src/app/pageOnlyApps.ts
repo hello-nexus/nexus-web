@@ -1,7 +1,8 @@
-// Sidebar apps that are a page and nothing else - no dashboard widget, so they
-// can't live in APP_REGISTRY (AppManifest requires a Widget, and its `listed`
-// flag is shared with the Add-a-Widget picker). They pin, reorder, and search
-// exactly like a widget-backed app; they simply have no tile.
+// Sidebar apps whose page is not an APP_REGISTRY Page (AppManifest hangs a Page
+// off a Widget, and its `listed` flag is shared with the Add-a-Widget picker).
+// They pin, reorder, and search like a widget-backed app. Frames and store have
+// no tile; build's tile is an APP_REGISTRY entry with no Page, so this entry owns
+// its sidebar row.
 //
 // Only the store is pinned by default (see sidebarAppKeys); the rest are
 // reachable from the sidebar's Show more list and global search until pinned.
@@ -19,7 +20,6 @@ export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
   // directly, so nothing under panel/widgets/frames registers a tile.
   frames: { i18nKey: 'panel.widget.frames', icon: Film },
   store: { i18nKey: 'apps.tabs.store', icon: Store },
-  // Its dashboard tile (APP_REGISTRY.build) has no Page, so this entry still owns the sidebar row.
   build: { i18nKey: 'panel.widget.build', icon: Hammer },
 };
 
