@@ -6,6 +6,7 @@ import {
   PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES,
   canTakePick, pickerHexAt, pickerPointFor, sameSwatch, segmentCellFor, segmentHexAt,
 } from './staticPickerField';
+import { effectiveZoom, pointerFraction, rectZoomShortfall } from '../../../../lib/zoomedPointer';
 import styles from '../LightingPage.module.scss';
 
 export interface PickerDevice {
@@ -158,13 +159,20 @@ export function StaticPickerCanvas({
     return out;
   }, [devices, patternEffect, segmented, size.h, size.w]);
 
-  const hexAtEvent = useCallback((clientX: number, clientY: number) => {
+  // Fixed for a gesture: zoom and layout do not change while a finger is down.
+  const shortfall = useRef(1);
+
+  const hexAtEvent = useCallback((clientX: number, clientY: number, measure = false) => {
     const el = fieldRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
     if (!r.width || !r.height) return null;
-    const fx = (clientX - r.left) / r.width;
-    const fy = (clientY - r.top) / r.height;
+    if (measure) shortfall.current = rectZoomShortfall(r.width, el.offsetWidth, effectiveZoom(el));
+    // The field sits under the immersive body's zoom, where older engines
+    // report the rect in unzoomed px while the pointer stays in viewport px.
+    const { x: fx, y: fy } = pointerFraction(
+      clientX, clientY, r, shortfall.current,
+    );
     return segmented ? segmentHexAt(fx, fy) : pickerHexAt(fx, fy);
   }, [segmented]);
 
@@ -185,7 +193,7 @@ export function StaticPickerCanvas({
       && !canTakePick(performance.now() - lastActiveAt.current)
     ) return;
     if (blocked()) return;
-    const picked = hexAtEvent(e.clientX, e.clientY);
+    const picked = hexAtEvent(e.clientX, e.clientY, true);
     if (!picked) return;
     activePointer.current = e.pointerId;
     lastActiveAt.current = performance.now();

@@ -2,7 +2,7 @@ import { fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StaticPickerCanvas } from './StaticPickerCanvas';
 import {
-  PICKER_ACTIVE_MS, PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES,
+  PICKER_ACTIVE_MS, PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES, pickerHexAt,
 } from './staticPickerField';
 
 vi.mock('../../../../lib/i18n', () => ({
@@ -34,6 +34,28 @@ const cellPoint = (col: number, row: number) => ({
   clientY: ((row + 0.5) / PICKER_SEGMENT_ROWS) * H,
 });
 const swatch = (col: number, row: number) => SEGMENT_SWATCHES[row * PICKER_SEGMENT_COLS + col];
+
+describe('StaticPickerCanvas under a legacy zoom engine', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // Older WebView2 reports the rect in unzoomed px while the pointer stays in
+  // viewport px; the panel's immersive body zooms the field by --panel-scale.
+  it('picks the color under the fingertip when the rect is unzoomed', () => {
+    const zoom = 1.83;
+    const { field, onPreview } = setup(false);
+    vi.spyOn(window, 'getComputedStyle').mockImplementation(
+      el => ({ zoom: el === field ? String(zoom) : '1' }) as CSSStyleDeclaration,
+    );
+    Object.defineProperty(field, 'offsetWidth', { configurable: true, value: W });
+    field.getBoundingClientRect = () => ({
+      left: 100, top: 200, right: 100 + W, bottom: 200 + H, width: W, height: H, x: 100, y: 200, toJSON: () => ({}),
+    });
+    fireEvent.pointerDown(field, {
+      pointerId: 1, clientX: (100 + 0.5 * W) * zoom, clientY: (200 + 0.5 * H) * zoom,
+    });
+    expect(onPreview).toHaveBeenLastCalledWith(pickerHexAt(0.5, 0.5));
+  });
+});
 
 describe('StaticPickerCanvas touch', () => {
   let now: ReturnType<typeof vi.spyOn>;
