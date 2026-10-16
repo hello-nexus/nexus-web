@@ -330,6 +330,45 @@ describe('Slider mixed', () => {
     render(<Slider value={40} min={0} max={100} ariaLabel="Level" trackFill onChange={() => {}} />);
     const range = screen.getByRole('slider', { name: 'Level' });
     expect(range).not.toHaveAttribute('data-mixed');
-    expect(range.style.getPropertyValue('--slider-fill-end')).toBe('40%');
+    expect(range.style.getPropertyValue('--slider-fill-end')).toBe('calc(7px + (100% - 14px) * 0.4)');
+  });
+});
+
+// The thumb's centre stops half a thumb (14px) short of each end of the track, so a value sits
+// that far along the thumb's path. The fill, the zero tick, the band and the marker follow it.
+describe('Slider positions on the thumb path', () => {
+  const path = (fraction: number) => `calc(7px + (100% - 14px) * ${fraction})`;
+
+  it('fills a level slider from the track start to under the thumb', () => {
+    render(<Slider value={40} min={0} max={100} ariaLabel="Level" trackFill onChange={() => {}} />);
+    const range = screen.getByRole('slider', { name: 'Level' });
+    expect(range.style.getPropertyValue('--slider-fill-start')).toBe('0%');
+    expect(range.style.getPropertyValue('--slider-fill-end')).toBe(path(0.4));
+  });
+
+  it('starts a centre-out fill where the thumb sits at 0 when 0 is not the middle', () => {
+    render(<Slider value={-5} min={-25} max={75} ariaLabel="Gain" onChange={() => {}} />);
+    const range = screen.getByRole('slider', { name: 'Gain' });
+    expect(range.style.getPropertyValue('--slider-fill-start')).toBe(path(0.2));
+    expect(range.style.getPropertyValue('--slider-fill-end')).toBe(path(0.25));
+  });
+
+  it('puts the dimmed part of a capped fill on the same path', () => {
+    render(<Slider value={80} min={0} max={100} ariaLabel="Level" trackFill fillCap={60} onChange={() => {}} />);
+    const range = screen.getByRole('slider', { name: 'Level' });
+    expect(range.style.getPropertyValue('--slider-fill-cap')).toBe(path(0.6));
+  });
+
+  it('places the zero tick, band and marker together in a box beside the range', () => {
+    const { container } = render(
+      <Slider value={10} min={-25} max={75} ariaLabel="Gain" zeroMarker band={[0, 50]} marker={50} onChange={() => {}} />,
+    );
+    const range = screen.getByRole('slider', { name: 'Gain' });
+    const placed = [...container.querySelectorAll<HTMLElement>('span[style*="left"]')];
+    expect(placed.map(el => el.style.left)).toEqual(['25%', '25%', '75%']);
+    const box = placed[0].parentElement;
+    expect(placed.every(el => el.parentElement === box)).toBe(true);
+    expect(box).not.toBe(range.parentElement);
+    expect(box?.parentElement).toBe(range.parentElement);
   });
 });

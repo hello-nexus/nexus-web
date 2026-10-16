@@ -97,6 +97,18 @@
   font-style: italic;
 }
 
+/* The thumb's path: its centre stops half a thumb (14px wide, global.scss) short of
+   each end of the track. The zero tick, band and marker are placed in it, so each
+   sits where the thumb does at its value. No `inset`: the Q60 panel is Chromium 83. */
+.scale {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  right: 7px;
+  pointer-events: none;
+}
+
 .zeroTick {
   position: absolute;
   top: 50%;
