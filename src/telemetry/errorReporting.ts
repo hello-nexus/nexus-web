@@ -69,7 +69,7 @@ function errorName(error: Error): string {
   return typeof name === 'string' && name !== '' ? name : 'Error';
 }
 
-// React wraps the real recovered error in cause. Only Error causes are followed: other values stay shape-only.
+// React wraps the real recovered error in cause; only Error causes are followed.
 function describeCauses(error: Error): { message: string; stack: string } {
   let message = '';
   let stack = '';
@@ -86,27 +86,30 @@ function describeCauses(error: Error): { message: string; stack: string } {
   return { message, stack };
 }
 
-function describe(error: unknown): { type: string; message: string; stack: string } {
+function describe(error: unknown): { type: string; message: string; own: string; stack: string } {
   if (error instanceof Error) {
     const causes = describeCauses(error);
-    // Leave room under the stack cap so a cause stack is not truncated away.
-    const own = String(error.stack ?? '');
+    const own = String(error.message);
     return {
       type: errorName(error),
-      message: String(error.message) + causes.message,
-      stack: causes.stack === '' ? own : own.slice(0, CAPS.stack / 2) + causes.stack,
+      message: cap(own, Math.max(0, CAPS.message - causes.message.length)) + causes.message,
+      own,
+      stack: cap(String(error.stack ?? ''), Math.max(0, CAPS.stack - causes.stack.length)) + causes.stack,
     };
   }
-  if (typeof error === 'string') return { type: 'string', message: error, stack: '' };
+  if (typeof error === 'string') return { type: 'string', message: error, own: error, stack: '' };
   if (typeof error === 'function') {
-    return { type: 'function', message: `function ${String(error.name)}`, stack: '' };
+    const message = `function ${String(error.name)}`;
+    return { type: 'function', message, own: message, stack: '' };
   }
   if (typeof error === 'object' && error !== null) {
     const ctor: unknown = Object.getPrototypeOf(error)?.constructor?.name;
     const type = typeof ctor === 'string' && ctor !== '' ? ctor : 'object';
-    return { type, message: `${type}{${Object.keys(error).slice(0, 10).join(',')}}`, stack: '' };
+    const message = `${type}{${Object.keys(error).slice(0, 10).join(',')}}`;
+    return { type, message, own: message, stack: '' };
   }
-  return { type: error === null ? 'null' : typeof error, message: String(error), stack: '' };
+  const message = String(error);
+  return { type: error === null ? 'null' : typeof error, message, own: message, stack: '' };
 }
 
 function isNoise(message: string, stack: string): boolean {
@@ -177,8 +180,8 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
     const d = describe(error);
     const stack = stripUrlSecrets(d.stack);
     if (isNoise(d.message, stack)) return;
-    const message = stripUrlSecrets(d.message);
-    const fingerprint = cap(fingerprintOf(d.type, d.message), CAPS.fingerprint);
+    const message = cap(stripUrlSecrets(d.message), CAPS.message);
+    const fingerprint = cap(fingerprintOf(d.type, message), CAPS.fingerprint);
     const existing = records.get(fingerprint);
     if (existing) {
       existing.unsent += 1;
@@ -205,7 +208,7 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
       kind,
       fingerprint,
       type: cap(d.type, CAPS.type),
-      message: cap(message, CAPS.message),
+      message,
       stack: cap(stack, CAPS.stack),
       context: cap(stripUrlSecrets(currentContext(context)), CAPS.context),
       count: 1,
@@ -223,7 +226,7 @@ function staleChunkMessageOf(error: unknown): boolean {
   // describe() reads error getters, which may raise error events themselves.
   reporting = true;
   try {
-    return isStaleChunkMessage(describe(error).message);
+    return isStaleChunkMessage(describe(error).own);
   } catch {
     return false;
   } finally {

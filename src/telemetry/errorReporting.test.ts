@@ -216,6 +216,14 @@ describe('reportError', () => {
     expect(r.stack as string).toContain('cause: cause-frame');
   });
 
+  it('keeps cause text in message when the outer message is huge', async () => {
+    reportError(new Error('m'.repeat(5000), { cause: new Error('root') }), 'render');
+    await vi.advanceTimersByTimeAsync(5000);
+    const r = sent()[0].errors[0];
+    expect((r.message as string).length).toBe(1000);
+    expect(r.message as string).toMatch(/ cause: Error: root$/);
+  });
+
   it('describes non-Error values by shape only', async () => {
     reportError({ status: 500, body: 'secret-token' }, 'unhandled-rejection');
     reportError(function leaky() { return 'secret-source'; }, 'unhandled-rejection');
@@ -300,6 +308,14 @@ describe('stale chunk errors', () => {
   });
 
   const stale = () => new TypeError('Failed to fetch dynamically imported module: http://localhost:9400/assets/DevicesPage-Bc.js');
+
+  it('ignores a stale chunk message that is only in the cause chain', async () => {
+    recoverNow.mockClear();
+    reportError(new Error('wrapper', { cause: stale() }), 'unhandled-rejection');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(recoverNow).not.toHaveBeenCalled();
+    expect(sent()).toHaveLength(1);
+  });
 
   it('are swallowed when the reload guard allowed a reload', async () => {
     recoverNow.mockResolvedValueOnce(true);
