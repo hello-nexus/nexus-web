@@ -19,6 +19,8 @@ const MAX_DISTINCT = 20;
 const MAX_PER_POST = 10;
 const GATE_WINDOW_MS = 1000;
 const GATE_MAX = 10;
+const MAX_CAUSE_DEPTH = 3;
+const CAUSE_STACK_CAP = 300;
 const CAPS = { fingerprint: 64, type: 128, message: 1000, stack: 2000, context: 500 };
 
 const records = new Map<string, { entry: ClientError; unsent: number }>();
@@ -62,13 +64,37 @@ export function fingerprintOf(type: string, message: string): string {
   return hash(`${type}|${normalizeMessage(message)}`);
 }
 
+function errorName(error: Error): string {
+  const name: unknown = error.name;
+  return typeof name === 'string' && name !== '' ? name : 'Error';
+}
+
+// React wraps the real recovered error in cause. Only Error causes are followed: other values stay shape-only.
+function describeCauses(error: Error): { message: string; stack: string } {
+  let message = '';
+  let stack = '';
+  const seen = new Set<unknown>([error]);
+  let current: unknown = error.cause;
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
+    if (!(current instanceof Error) || seen.has(current)) break;
+    seen.add(current);
+    message += ` cause: ${errorName(current)}: ${String(current.message)}`;
+    const causeStack = cap(String(current.stack ?? ''), CAUSE_STACK_CAP);
+    if (causeStack !== '') stack += `\ncause: ${causeStack}`;
+    current = current.cause;
+  }
+  return { message, stack };
+}
+
 function describe(error: unknown): { type: string; message: string; stack: string } {
   if (error instanceof Error) {
-    const name: unknown = error.name;
+    const causes = describeCauses(error);
+    // Leave room under the stack cap so a cause stack is not truncated away.
+    const own = String(error.stack ?? '');
     return {
-      type: typeof name === 'string' && name !== '' ? name : 'Error',
-      message: String(error.message),
-      stack: String(error.stack ?? ''),
+      type: errorName(error),
+      message: String(error.message) + causes.message,
+      stack: causes.stack === '' ? own : own.slice(0, CAPS.stack / 2) + causes.stack,
     };
   }
   if (typeof error === 'string') return { type: 'string', message: error, stack: '' };

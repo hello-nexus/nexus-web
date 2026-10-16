@@ -175,6 +175,47 @@ describe('reportError', () => {
     expect(postService).not.toHaveBeenCalled();
   });
 
+  it('appends the Error cause chain to message and stack', async () => {
+    const inner = new TypeError('inner boom');
+    inner.stack = 'TypeError: inner boom\n    at inner.js:1:1';
+    const mid = new Error('mid', { cause: inner });
+    const outer = new Error('outer', { cause: mid });
+    reportError(outer, 'render');
+    await vi.advanceTimersByTimeAsync(5000);
+    const r = sent()[0].errors[0];
+    expect(r.message).toBe('outer cause: Error: mid cause: TypeError: inner boom');
+    expect(r.stack as string).toContain('cause: TypeError: inner boom\n    at inner.js:1:1');
+  });
+
+  it('survives cause cycles, non-Error causes and deep chains', async () => {
+    const a = new Error('a');
+    const b = new Error('b', { cause: a });
+    a.cause = b;
+    let deep: Error = new Error('e0');
+    for (let i = 1; i <= 6; i++) deep = new Error(`e${i}`, { cause: deep });
+    reportError(a, 'render');
+    reportError(new Error('x', { cause: { secret: 'token' } }), 'render');
+    reportError(deep, 'render');
+    await vi.advanceTimersByTimeAsync(5000);
+    const messages = sent()[0].errors.map((e) => e.message);
+    expect(messages).toEqual([
+      'a cause: Error: b',
+      'x',
+      'e6 cause: Error: e5 cause: Error: e4 cause: Error: e3',
+    ]);
+  });
+
+  it('keeps the cause stack under the stack cap', async () => {
+    const e = new Error('o', { cause: new Error('c') });
+    e.stack = 's'.repeat(5000);
+    (e.cause as Error).stack = 'cause-frame';
+    reportError(e, 'render');
+    await vi.advanceTimersByTimeAsync(5000);
+    const r = sent()[0].errors[0];
+    expect((r.stack as string).length).toBeLessThanOrEqual(2000);
+    expect(r.stack as string).toContain('cause: cause-frame');
+  });
+
   it('describes non-Error values by shape only', async () => {
     reportError({ status: 500, body: 'secret-token' }, 'unhandled-rejection');
     reportError(function leaky() { return 'secret-source'; }, 'unhandled-rejection');
