@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
+import type { SensorUniform } from '../lib/sensorBinding';
 import { fetchShaderSource, onShaderSourceInvalidated, peekShaderSource, type ShaderParamSpec, type ShaderSource } from '../api/lighting';
 
 export interface ShaderParamSpecs {
   /** Parsed hint_range specs for the effect's composed shader, keyed by uniform name. */
   specs: Record<string, ShaderParamSpec>;
+  /** The shader's sensor-fed uniforms with the author's default bindings. */
+  sensors: SensorUniform[];
   /** False only while the source is still being fetched for the first time. */
   loaded: boolean;
 }
 
-const EMPTY: ShaderParamSpecs = { specs: {}, loaded: false };
+const EMPTY: ShaderParamSpecs = { specs: {}, sensors: [], loaded: false };
 
 function fromSource(src: ShaderSource | null | undefined): ShaderParamSpecs {
   if (!src) return EMPTY;
   const specs: Record<string, ShaderParamSpec> = {};
   for (const p of src.params) specs[p.name] = p;
-  return { specs, loaded: true };
+  return { specs, sensors: src.sensors, loaded: true };
 }
 
 /**

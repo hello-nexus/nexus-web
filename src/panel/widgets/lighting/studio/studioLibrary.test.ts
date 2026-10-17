@@ -113,6 +113,27 @@ describe('studioLibrary', () => {
         { source: 'saw', amount: 0.5 },
       ]) expect(lib.parseMarketRecipe(withMod(bad))).toBeNull();
     });
+
+    it('accepts the sensor source with a valid binding and nothing else on it', async () => {
+      const lib = await fresh();
+      const sensor = { category: 'quick', sensor: 'summary/cpu-temp', min: 30, max: 95 };
+      const withMod = (mod: Record<string, unknown>) => {
+        const r = recipe();
+        r.blocks[0].mods = { speed: mod as never };
+        return r;
+      };
+      expect(lib.parseMarketRecipe(withMod({ source: 'sensor', amount: 1, sensor }))).not.toBeNull();
+      expect(lib.parseMarketRecipe(withMod({ source: 'sensor', amount: 1, sensor: { ...sensor, sensor: "/Volumes/Bob's [x] & y/t\u00e9" } }))).not.toBeNull();
+      for (const bad of [
+        { source: 'sensor', amount: 1 },
+        { source: 'sensor', amount: 1, sensor: { ...sensor, min: 95, max: 30 } },
+        { source: 'sensor', amount: 1, sensor: { ...sensor, sensor: '' } },
+        { source: 'sensor', amount: 1, sensor, rate: 1 },
+        { source: 'sensor', amount: 1, sensor, gate: 0.2 },
+        { source: 'bass', amount: 1, sensor },
+        { source: 'sine', amount: 1, rate: 1, sensor },
+      ]) expect(lib.parseMarketRecipe(withMod(bad)), JSON.stringify(bad)).toBeNull();
+    });
   });
 
   it('sends the Marketplace link with the save only when given', async () => {

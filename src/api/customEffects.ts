@@ -96,7 +96,7 @@ export function useCustomEffects(enabled = true): CustomEffectEntry[] {
 }
 
 interface RecipeShape {
-  blocks?: { uid?: unknown; type?: unknown }[];
+  blocks?: { uid?: unknown; type?: unknown; mods?: Record<string, { source?: unknown }> }[];
   knobs?: { uid?: unknown; key?: unknown }[];
 }
 
@@ -124,5 +124,14 @@ export function customEffectDef(entry: CustomEffectEntry, t: (key: string) => st
       name: `u_${k.uid}_${k.key}`,
       label: `${t(`lighting.studio.block.${String(types.get(k.uid))}`)} - ${t(`lighting.studio.param.${k.key}`)}`,
     }));
-  return { key: customEffectKey(entry.id), labelKey: '', params, audio: entry.audio };
+  // The shader's `_s` uniform for each sensor-driven param, named like its knob.
+  const sensors = (shape.blocks ?? []).flatMap(b => (typeof b.uid === 'string' && STUDIO_UID_RE.test(b.uid)
+    ? Object.entries(b.mods ?? {})
+      .filter(([key, mod]) => KEY_RE.test(key) && mod?.source === 'sensor')
+      .map(([key]) => ({
+        name: `u_${b.uid as string}_${key}_s`,
+        label: `${t(`lighting.studio.block.${String(b.type)}`)} - ${t(`lighting.studio.param.${key}`)}`,
+      }))
+    : []));
+  return { key: customEffectKey(entry.id), labelKey: '', params, sensors, audio: entry.audio };
 }

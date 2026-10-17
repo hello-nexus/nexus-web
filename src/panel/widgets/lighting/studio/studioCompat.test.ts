@@ -17,6 +17,8 @@ import { STUDIO_STARTERS } from './studioRecipes';
 // STUDIO_COMPAT_WRITE=1 adds cases for new blocks, starters and mod sources;
 // it never rewrites an existing case.
 
+const SENSOR = { category: 'quick', sensor: 'summary/cpu-usage', min: 0, max: 100 };
+
 const FIXTURE = resolve(__dirname, 'studioCompat.fixture.json');
 
 interface CompatCase {
@@ -90,7 +92,7 @@ function expectedCases(): Record<string, () => StudioRecipe> {
     cases[`mod:${source}`] = () => {
       const r = frozen(['rings', 'palette'], false);
       const key = studioBlock('rings')!.params.find(p => !p.options)!.key;
-      r.blocks[0].mods = { [key]: { source, amount: 0.4 } };
+      r.blocks[0].mods = { [key]: { source, amount: 0.4, ...(source === 'sensor' ? { sensor: SENSOR } : {}) } };
       return r;
     };
   }

@@ -4,8 +4,16 @@ import { StudioBlockCard } from './StudioBlockCard';
 import { studioBlock } from './studioBlocks';
 import { makeBlock, type StudioBlock, type StudioMod } from './studioCompiler';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
+import { SensorSignalContext } from '../../../../hooks/SensorSignalContext';
+import { DEFAULT_SENSOR_BINDING } from '../../../../lib/sensorBinding';
 
 vi.mock('../../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+// The picker reads live sensor topics; the card only needs to place it.
+vi.mock('../../monitoring/picker/SensorBindingEditor', () => ({
+  SensorBindingEditor: ({ binding, onChange }: { binding: { sensor: string; max: number }; onChange: (b: unknown) => void }) => (
+    <button type="button" data-testid="sensor-editor" onClick={() => onChange({ ...binding, max: 80 })}>{binding.sensor}</button>
+  ),
+}));
 
 // The rings speed knob with a bass mod at half strength.
 function ringsWithBass() {
@@ -85,5 +93,60 @@ describe('StudioBlockCard mod shaping', () => {
     await act(async () => { vi.advanceTimersByTime(100); });
     expect(ticks()).toBe(before);
     vi.useRealTimers();
+  });
+});
+
+describe('StudioBlockCard sensor modulation', () => {
+  it('starts the default sensor and drops a gate when music becomes a sensor', () => {
+    const onChange = vi.fn();
+    render_(undefined, { source: 'bass', amount: 0.5, gate: 0.4 }, onChange);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.mod.source' }));
+    fireEvent.click(screen.getByRole('option', { name: 'lighting.studio.mod.sensor' }));
+    const next = onChange.mock.calls.at(-1)![0] as StudioBlock;
+    expect(next.mods?.speed).toEqual({ source: 'sensor', amount: 0.5, sensor: DEFAULT_SENSOR_BINDING });
+  });
+
+  it('drops the sensor binding when it becomes a wave', () => {
+    const onChange = vi.fn();
+    render_(undefined, { source: 'sensor', amount: 0.5, sensor: DEFAULT_SENSOR_BINDING }, onChange);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.mod.source' }));
+    fireEvent.click(screen.getByRole('option', { name: 'lighting.studio.mod.sine' }));
+    expect((onChange.mock.calls.at(-1)![0] as StudioBlock).mods?.speed).toEqual({ source: 'sine', amount: 0.5, rate: 0.5 });
+  });
+
+  it('shows the picker, not a threshold or rate, and saves an edited range', () => {
+    const onChange = vi.fn();
+    render_(undefined, { source: 'sensor', amount: 0.5, sensor: DEFAULT_SENSOR_BINDING }, onChange);
+    expect(screen.queryByText('lighting.studio.mod.gate')).toBeNull();
+    expect(screen.queryByText('lighting.studio.mod.rate')).toBeNull();
+    fireEvent.click(screen.getByTestId('sensor-editor'));
+    const next = onChange.mock.calls.at(-1)![0] as StudioBlock;
+    expect(next.mods?.speed.sensor).toEqual({ ...DEFAULT_SENSOR_BINDING, max: 80 });
+    expect(onChange.mock.calls.at(-1)![1]).toBe(true);
+  });
+
+  it('marks where the sensor has the knob now', async () => {
+    vi.useFakeTimers();
+    try {
+      const sensorRef = { current: () => 0.5 };
+      const { block } = ringsWithBass();
+      block.mods = { speed: { source: 'sensor', amount: 0.5, sensor: DEFAULT_SENSOR_BINDING } };
+      const { container } = render(
+        <SensorSignalContext.Provider value={sensorRef}>
+        <StudioBlockCard
+          block={block} def={studioBlock('rings')!} firstPattern removable={false} canSwitchTo={() => true}
+          onChange={noop} onCommit={noop} onTypeChange={noop} onRemove={noop}
+          isPinned={() => false} onTogglePin={noop}
+        />
+      </SensorSignalContext.Provider>,
+      );
+      const lefts = () => overlays(container).filter(el => !el.style.width).map(el => el.style.left);
+      expect(lefts()).not.toContain('25%');
+      await act(async () => { vi.advanceTimersByTime(300); });
+      // Half the reading moves the knob half of the band, which is half the span.
+      expect(lefts()).toContain('25%');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

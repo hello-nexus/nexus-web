@@ -1,0 +1,41 @@
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.category,
+.sensor {
+  width: 100%;
+  min-width: 0;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rangeRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.rangeField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rangeLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.resetSlot {
+  display: inline-flex;
+}

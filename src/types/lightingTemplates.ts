@@ -1,3 +1,4 @@
+import { sensorOverridesEqual } from '../lib/sensorBinding';
 import {
   BASE_DEFAULTS,
   TEMPLATE_COUNT,
@@ -106,6 +107,7 @@ export function slotMatchesDefault(
   if (Math.abs(slot.colorize - def.colorize) > eps) return false;
   if (Math.abs(slot.saturation - def.saturation) > eps) return false;
   if (Math.abs(slot.contrast - def.contrast) > eps) return false;
+  if (!sensorOverridesEqual(slot.sensors, def.sensors)) return false;
   const keysA = Object.keys(slot.params);
   const keysB = Object.keys(def.params);
   if (keysA.length !== keysB.length) return false;

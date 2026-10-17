@@ -56,9 +56,10 @@ export const defaultPanelWidgetPadding = (): number => PANEL_WIDGET_PADDING_DEFA
 
 // Categories the background picker leaves out. Flat fills, 2-tone patterns and
 // spectrum ramps are LED looks - behind widgets they read as a solid or a
-// hard-edged graphic, which is what the Solid background mode is for.
+// hard-edged graphic, which is what the Solid background mode is for. Sensor
+// effects need a hardware reading the background renderer does not feed.
 const PANEL_BACKGROUND_HIDDEN_CATEGORIES: ReadonlySet<EffectCategory> =
-  new Set<EffectCategory>(['simple', 'twotone', 'spectrum']);
+  new Set<EffectCategory>(['simple', 'twotone', 'spectrum', 'sensor']);
 
 /** Browse pool for the background Animations tab: gradients plus every
  *  animated category. Audio-reactive effects are gated on the flag rather than
