@@ -66,6 +66,11 @@ vi.mock('../hooks/useFirmwareUpdates', () => ({
 let devTools = true;
 vi.mock('../lib/devTools', () => ({ get DEV_TOOLS() { return devTools; } }));
 
+let showUncontrolledSidebar = true;
+vi.mock('../hooks/useUiSettings', () => ({
+  useUiSettings: () => ({ settings: { showUncontrolledSidebarDevices: showUncontrolledSidebar } }),
+}));
+
 import { SidebarDevicesSection } from './SidebarDevicesSection';
 
 function monitorPanelDevice(overrides: Partial<PanelDevice> = {}): PanelDevice {
@@ -123,6 +128,37 @@ function renderSidebar() {
     />,
   );
 }
+
+describe('SidebarDevicesSection control-off filter', () => {
+  const controlOn = () => monitorDevice({
+    key: 'curated-on', shortName: 'Keeb TKL', name: 'Keeb TKL', kind: 'curated',
+    panelDevice: undefined, supportsNexusControl: true, nexusControlEnabled: true,
+  });
+
+  afterEach(() => { showUncontrolledSidebar = true; });
+
+  it('lists a control-off device when the setting is on', () => {
+    mockUnified = [monitorDevice(), controlOn()];
+    renderSidebar();
+    expect(screen.getByText('Xeneon Edge')).toBeTruthy();
+    expect(screen.getByText('Keeb TKL')).toBeTruthy();
+  });
+
+  it('omits a control-off device and keeps a control-on one when the setting is off', () => {
+    showUncontrolledSidebar = false;
+    mockUnified = [monitorDevice(), controlOn()];
+    renderSidebar();
+    expect(screen.queryByText('Xeneon Edge')).toBeNull();
+    expect(screen.getByText('Keeb TKL')).toBeTruthy();
+  });
+
+  it('keeps a device that never supports Nexus Control when the setting is off', () => {
+    showUncontrolledSidebar = false;
+    mockUnified = [monitorDevice({ supportsNexusControl: false, nexusControlEnabled: false })];
+    renderSidebar();
+    expect(screen.getByText('Xeneon Edge')).toBeTruthy();
+  });
+});
 
 describe('SidebarDevicesSection ordering', () => {
   it('sorts rows by the brand their logo shows, then by label', () => {

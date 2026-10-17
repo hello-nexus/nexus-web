@@ -1269,6 +1269,8 @@
   "devices.saving": "儲存中…",
   "devices.section.smbus": "SMBus 裝置",
   "devices.section.usb": "USB 裝置",
+  "devices.sidebar.showUncontrolled.description": "關閉後將隱藏 Nexus Control 已關閉的裝置。仍可從此頁面存取。",
+  "devices.sidebar.showUncontrolled.label": "在側邊欄中顯示無 Nexus Control 的裝置",
   "devices.simulated": "模擬",
   "devices.smartHub.fanSection": "獨立風扇行為",
   "devices.smartHub.fanSectionDescription1": "保存在 hub 的快閃記憶體中。在最後一次主機風扇寫入後 5 秒，hub 會將此工作週期套用到全部四個 PWM 連接埠 - 當電腦關機、睡眠，或服務停止時。",

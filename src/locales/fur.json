@@ -1269,6 +1269,8 @@
   "devices.saving": "Daûr a salvâ…",
   "devices.section.smbus": "Dispositîfs SMBus",
   "devices.section.usb": "Dispositîfs USB",
+  "devices.sidebar.showUncontrolled.description": "Disativilu par platâ i dispositîfs cun Nexus Control distudât. A restin rivabii di cheste pagjine.",
+  "devices.sidebar.showUncontrolled.label": "Mostre te sbare laterâl i dispositîfs cence Nexus Control",
   "devices.simulated": "Simulât",
   "devices.smartHub.fanSection": "Compuartament autonom dal ventilatôr",
   "devices.smartHub.fanSectionDescription1": "Salvât te memorie flash dal hub. 5 seconts dopo l'ultime scriture dal ventilatôr dal host, il hub al apliche cheste velocitât a ducj i cuatri puarts PWM - il PC al è distudât, indurmidît, o il servizi al è fermât.",

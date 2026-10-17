@@ -17,6 +17,7 @@ import { DEV_TOOLS } from '../lib/devTools';
 import { setSimulatedPanelConnected } from '../lib/panelSimulation';
 import { setTryxSimulated } from '../lib/tryxSimulation';
 import { useTranslation } from '../lib/i18n';
+import { useUiSettings } from '../hooks/useUiSettings';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { ICON_SIZE } from './sidebarNav';
 import styles from './SidebarDevicesSection.module.scss';
@@ -60,6 +61,8 @@ export function SidebarDevicesSection({
   headerActive,
 }: SidebarDevicesSectionProps) {
   const { t } = useTranslation();
+  const { settings: uiSettings } = useUiSettings();
+  const showUncontrolled = uiSettings.showUncontrolledSidebarDevices;
   const { push } = useToastSafe();
   const { unified, controlDevice } = useUnifiedDevices(serviceOnline);
   const firmwareUpdates = useFirmwareUpdates(serviceOnline);
@@ -100,10 +103,11 @@ export function SidebarDevicesSection({
   const sorted = useMemo(() => {
     return unified
       .filter(d => d.navigable)
+      .filter(d => showUncontrolled || !(d.supportsNexusControl && !d.nexusControlEnabled))
       .sort((a, b) =>
         sidebarSortName(a).localeCompare(sidebarSortName(b), undefined, { sensitivity: 'base', numeric: true })
         || a.key.localeCompare(b.key));
-  }, [unified]);
+  }, [unified, showUncontrolled]);
 
   const label = t('sidebar.section.devices');
   // Header reuses the device-row .item chrome (font, alignment, hover/active) at

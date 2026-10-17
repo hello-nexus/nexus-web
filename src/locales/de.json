@@ -1269,6 +1269,8 @@
   "devices.saving": "Wird gespeichert…",
   "devices.section.smbus": "SMBus-Geräte",
   "devices.section.usb": "USB-Geräte",
+  "devices.sidebar.showUncontrolled.description": "Deaktivieren Sie diese Option, um Geräte mit ausgeschaltetem Nexus Control auszublenden. Sie bleiben über diese Seite erreichbar.",
+  "devices.sidebar.showUncontrolled.label": "Geräte ohne Nexus Control in der Seitenleiste anzeigen",
   "devices.simulated": "Simuliert",
   "devices.smartHub.fanSection": "Eigenständiges Lüfterverhalten",
   "devices.smartHub.fanSectionDescription1": "Im Flash des Hubs gespeichert. 5 Sekunden nach dem letzten Host-Lüfterbefehl wendet der Hub diese Leistung auf alle vier PWM-Ports an - der PC ist aus, im Ruhezustand oder der Dienst gestoppt.",

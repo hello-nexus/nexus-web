@@ -1276,6 +1276,8 @@
   "devices.saving": "Zapisywanie…",
   "devices.section.smbus": "Urządzenia SMBus",
   "devices.section.usb": "Urządzenia USB",
+  "devices.sidebar.showUncontrolled.description": "Wyłącz, aby ukryć urządzenia z wyłączonym Nexus Control. Nadal będą dostępne z tej strony.",
+  "devices.sidebar.showUncontrolled.label": "Pokazuj urządzenia bez Nexus Control na pasku bocznym",
   "devices.simulated": "Symulowany",
   "devices.smartHub.fanSection": "Samodzielne działanie wentylatora",
   "devices.smartHub.fanSectionDescription1": "Zapisane w pamięci flash huba. 5 sekund po ostatnim zapisie wentylatora z hosta hub stosuje ten poziom do wszystkich czterech portów PWM - PC jest wyłączony, uśpiony lub usługa została zatrzymana.",

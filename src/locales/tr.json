@@ -1269,6 +1269,8 @@
   "devices.saving": "Kaydediliyor…",
   "devices.section.smbus": "SMBus Cihazları",
   "devices.section.usb": "USB Cihazları",
+  "devices.sidebar.showUncontrolled.description": "Nexus Control kapalı olan cihazları gizlemek için kapatın. Bu sayfadan erişilebilir kalırlar.",
+  "devices.sidebar.showUncontrolled.label": "Nexus Control olmayan cihazları kenar çubuğunda göster",
   "devices.simulated": "Simüle",
   "devices.smartHub.fanSection": "Bağımsız fan davranışı",
   "devices.smartHub.fanSectionDescription1": "Hub'ın flash belleğine kalıcı olarak yazılır. Son ana bilgisayar fan yazımından 5 saniye sonra hub bu görevi dört PWM bağlantı noktasının tümüne uygular - bilgisayar kapalı, uykuda veya servis durmuştur.",

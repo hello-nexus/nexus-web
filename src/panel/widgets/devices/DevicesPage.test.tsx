@@ -15,6 +15,10 @@ const demoteDisplayPanelMock = vi.fn();
 const toastPushMock = vi.fn();
 const controlDeviceMock = vi.fn();
 
+const updateUiSettingsMock = vi.fn();
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useUiSettings: () => ({ settings: { showUncontrolledSidebarDevices: true }, update: updateUiSettingsMock }),
+}));
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
@@ -268,6 +272,19 @@ describe('DevicesPage Nexus Control on with a running competing app', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
     expect(controlDeviceMock).toHaveBeenCalledWith('lianli', false);
     expect(fetchConflictsMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('DevicesPage sidebar visibility toggle', () => {
+  it('renders the setting on by default and persists the flip through the UI settings', () => {
+    mockUnified = [monitorRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    const toggle = screen.getByRole('switch', { name: 'devices.sidebar.showUncontrolled.label' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(toggle);
+    expect(updateUiSettingsMock).toHaveBeenCalledWith({ showUncontrolledSidebarDevices: false });
   });
 });
 

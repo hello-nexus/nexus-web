@@ -1269,6 +1269,8 @@
   "devices.saving": "Enregistrement...",
   "devices.section.smbus": "Appareils SMBus",
   "devices.section.usb": "Appareils USB",
+  "devices.sidebar.showUncontrolled.description": "Désactivez cette option pour masquer les appareils dont Nexus Control est désactivé. Ils restent accessibles depuis cette page.",
+  "devices.sidebar.showUncontrolled.label": "Afficher les appareils sans Nexus Control dans la barre latérale",
   "devices.simulated": "Simulé",
   "devices.smartHub.fanSection": "Comportement autonome des ventilateurs",
   "devices.smartHub.fanSectionDescription1": "Conservé dans la mémoire flash du hub. 5 secondes après la dernière commande de ventilateur de l'hôte, le hub applique ce duty aux quatre ports PWM - le PC est éteint, en veille ou le service est arrêté.",

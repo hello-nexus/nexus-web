@@ -1269,6 +1269,8 @@
   "devices.saving": "Opslaan…",
   "devices.section.smbus": "SMBus-apparaten",
   "devices.section.usb": "USB-apparaten",
+  "devices.sidebar.showUncontrolled.description": "Schakel uit om apparaten met uitgeschakeld Nexus Control te verbergen. Ze blijven bereikbaar via deze pagina.",
+  "devices.sidebar.showUncontrolled.label": "Apparaten zonder Nexus Control in de zijbalk tonen",
   "devices.simulated": "Gesimuleerd",
   "devices.smartHub.fanSection": "Standalone-ventilatorgedrag",
   "devices.smartHub.fanSectionDescription1": "Opgeslagen in het flashgeheugen van de hub. 5 seconden na de laatste ventilatorschrijfactie van de host past de hub deze belasting toe op alle vier de PWM-poorten - de pc is uit, in slaapstand, of de service is gestopt.",

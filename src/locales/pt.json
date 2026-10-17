@@ -1269,6 +1269,8 @@
   "devices.saving": "A guardar…",
   "devices.section.smbus": "Dispositivos SMBus",
   "devices.section.usb": "Dispositivos USB",
+  "devices.sidebar.showUncontrolled.description": "Desative para ocultar os dispositivos com o Nexus Control desligado. Continuam acessíveis a partir desta página.",
+  "devices.sidebar.showUncontrolled.label": "Mostrar dispositivos sem Nexus Control na barra lateral",
   "devices.simulated": "Simulado",
   "devices.smartHub.fanSection": "Comportamento autónomo da ventoinha",
   "devices.smartHub.fanSectionDescription1": "Guardado na flash do hub. 5 segundos após a última escrita de ventoinha pelo anfitrião, o hub aplica este duty a todas as quatro portas PWM - o PC está desligado, em suspensão ou o serviço parou.",

@@ -1269,6 +1269,8 @@
   "devices.saving": "Salvataggio…",
   "devices.section.smbus": "Dispositivi SMBus",
   "devices.section.usb": "Dispositivi USB",
+  "devices.sidebar.showUncontrolled.description": "Disattiva per nascondere i dispositivi con Nexus Control spento. Restano raggiungibili da questa pagina.",
+  "devices.sidebar.showUncontrolled.label": "Mostra nella barra laterale i dispositivi senza Nexus Control",
   "devices.simulated": "Simulato",
   "devices.smartHub.fanSection": "Comportamento ventola autonomo",
   "devices.smartHub.fanSectionDescription1": "Memorizzato nella flash dell'hub. 5 secondi dopo l'ultima scrittura ventola dall'host, l'hub applica questo duty a tutte e quattro le porte PWM - il PC è spento, in sospensione o il servizio è fermo.",

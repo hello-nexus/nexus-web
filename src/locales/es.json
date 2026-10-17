@@ -1269,6 +1269,8 @@
   "devices.saving": "Guardando…",
   "devices.section.smbus": "Dispositivos SMBus",
   "devices.section.usb": "Dispositivos USB",
+  "devices.sidebar.showUncontrolled.description": "Desactívalo para ocultar los dispositivos con Nexus Control apagado. Siguen accesibles desde esta página.",
+  "devices.sidebar.showUncontrolled.label": "Mostrar en la barra lateral los dispositivos sin Nexus Control",
   "devices.simulated": "Simulado",
   "devices.smartHub.fanSection": "Comportamiento autónomo del ventilador",
   "devices.smartHub.fanSectionDescription1": "Guardado en la memoria flash del hub. 5 segundos después de la última escritura de ventilador desde el host, el hub aplica este duty a los cuatro puertos PWM - el PC está apagado, en reposo o el servicio se detuvo.",

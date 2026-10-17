@@ -1269,6 +1269,8 @@
   "devices.saving": "保存中...",
   "devices.section.smbus": "SMBusデバイス",
   "devices.section.usb": "USBデバイス",
+  "devices.sidebar.showUncontrolled.description": "オフにすると、Nexus Control がオフのデバイスが非表示になります。このページからは引き続きアクセスできます。",
+  "devices.sidebar.showUncontrolled.label": "Nexus Control なしのデバイスをサイドバーに表示",
   "devices.simulated": "シミュレート",
   "devices.smartHub.fanSection": "スタンドアロンファンの動作",
   "devices.smartHub.fanSectionDescription1": "ハブのフラッシュに保存されます。ホストからの最後のファン書き込みの5秒後に、ハブはこのデューティを4つの PWM ポートすべてに適用します - PC がオフ、スリープ、またはサービスが停止しているときです。",

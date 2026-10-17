@@ -21,6 +21,8 @@ import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
+import { SettingToggle } from '../../../components/common/SettingRow/SettingRow';
+import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
@@ -58,6 +60,7 @@ const TAB_KEYS: readonly string[] = ['available', 'displays', 'firmware', 'specs
 export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, tab: routedTab, onTabChange }: DevicesViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
+  const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const [localTab, setLocalTab] = useState<TabKey>('available');
   const tab: TabKey = routedTab && TAB_KEYS.includes(routedTab) ? (routedTab as TabKey) : localTab;
   const setTab = (next: TabKey) => {
@@ -198,6 +201,15 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
 
               <div className={styles.missingNotice}>
                 <Notice tone="info" role="status">{t('devices.available.missingNotice')}</Notice>
+              </div>
+
+              <div className={styles.sidebarSetting}>
+                <SettingToggle
+                  label={t('devices.sidebar.showUncontrolled.label')}
+                  description={t('devices.sidebar.showUncontrolled.description')}
+                  checked={uiSettings.showUncontrolledSidebarDevices}
+                  onChange={next => updateUiSettings({ showUncontrolledSidebarDevices: next })}
+                />
               </div>
             </>
           )
