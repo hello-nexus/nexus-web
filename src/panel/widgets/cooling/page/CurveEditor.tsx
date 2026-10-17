@@ -155,10 +155,13 @@ const TEMP_MIN = 20, TEMP_MAX = 100;
 // the SVG, so they can never clip into the chart bars/lines.
 const PAD = { left: 8, right: 8, top: 8, bottom: 8 };
 const GRAPH_H = 140;
-// Distance from the live dot within which a y-axis label would sit under its readout.
-const LIVE_BADGE_CLEARANCE = 14;
-// Same along x, where the readout is a wider time or temperature.
+// Clearance from the live dot within which an axis label would sit under its
+// readout, used until the readout is measured (it is rem-sized and its text
+// varies): half the readout plus room for the label itself.
+const LIVE_Y_BADGE_CLEARANCE = 14;
 const LIVE_X_BADGE_CLEARANCE = 44;
+const LIVE_X_LABEL_ROOM = 12;
+const LIVE_Y_LABEL_ROOM = 8;
 // Hero graph on the desktop cooling page.
 const PINNED_GRAPH_H = 190;
 // °C step for read-only curve sampling (Fixed / Linear / Mix lines).
@@ -431,6 +434,18 @@ export function CurveGraph({
   const dotSpeed = hasDot ? speedAtTemp(currentTemp!) : 0;
   const dotX = hasDot ? tempToX(currentTemp!) : 0;
   const dotY = hasDot ? speedToY(dotSpeed) : 0;
+  const liveXText = hasDot ? formatLiveX(currentTemp!) : '';
+  const liveXRef = useRef<HTMLSpanElement>(null);
+  const liveYRef = useRef<HTMLSpanElement>(null);
+  const [liveXClear, setLiveXClear] = useState(LIVE_X_BADGE_CLEARANCE);
+  const [liveYClear, setLiveYClear] = useState(LIVE_Y_BADGE_CLEARANCE);
+  // offsetWidth ignores the centering transform, which is all that is needed here.
+  useLayoutEffect(() => {
+    const w = liveXRef.current?.offsetWidth;
+    const h = liveYRef.current?.offsetHeight;
+    if (w) setLiveXClear(w / 2 + LIVE_X_LABEL_ROOM);
+    if (h) setLiveYClear(h / 2 + LIVE_Y_LABEL_ROOM);
+  }, [hasDot, liveXText, dotSpeed]);
   const dotLeftPct = hasDot ? ((currentTemp! - tempMin) / (tempMax - tempMin)) * 100 : 0;
 
   return (
@@ -506,14 +521,14 @@ export function CurveGraph({
                 <span key={v} className={styles.curveAxisLabel}
                   style={{
                     left: `${((v - tempMin) / (tempMax - tempMin)) * 100}%`,
-                    visibility: hasDot && Math.abs(tempToX(v) - dotX) < LIVE_X_BADGE_CLEARANCE ? 'hidden' : undefined,
+                    visibility: hasDot && Math.abs(tempToX(v) - dotX) < liveXClear ? 'hidden' : undefined,
                   }}>
                   {formatX(v)}
                 </span>
               ))}
               {hasDot && (
-                <span className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
-                  {formatLiveX(currentTemp!)}
+                <span ref={liveXRef} className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
+                  {liveXText}
                 </span>
               )}
             </div>
@@ -524,12 +539,12 @@ export function CurveGraph({
         <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
           {[...H_LINES].reverse().map(s => (
             <span key={s} className={styles.curveAxisLabel}
-              style={hasDot && Math.abs(speedToY(s) - dotY) < LIVE_BADGE_CLEARANCE ? { visibility: 'hidden' } : undefined}>
+              style={hasDot && Math.abs(speedToY(s) - dotY) < liveYClear ? { visibility: 'hidden' } : undefined}>
               {s}%
             </span>
           ))}
           {hasDot && (
-            <span className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
+            <span ref={liveYRef} className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
               {localizeNumbers(`${dotSpeed.toFixed(0)}%`, numberFormat)}
             </span>
           )}

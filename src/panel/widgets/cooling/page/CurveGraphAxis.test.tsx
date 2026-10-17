@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CurveGraph } from './CurveEditor';
 
 // The brightness schedule reuses the cooling curve graph on a 0..24 hour axis.
@@ -118,5 +118,31 @@ describe('CurveGraph axis', () => {
     expect(label('12h').style.visibility).toBe('hidden');
     expect(label('0h').style.visibility).toBe('');
     expect(label('24h').style.visibility).toBe('');
+  });
+
+  it('sizes the x clearance from the measured readout, so a narrow one hides less', () => {
+    const widths = new Map<string, number>([['curveAxisLiveX', 20]]);
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) {
+      const cls = Array.from(this.classList).find(c => /curveAxisLiveX/.test(c));
+      return cls ? widths.get('curveAxisLiveX')! : 0;
+    });
+    try {
+      const { container } = render(
+        <CurveGraph
+          points={[{ temp: 0, speed: 10 }, { temp: 24, speed: 10 }]}
+          tempMin={0}
+          tempMax={24}
+          currentTemp={7.5}
+          axis={{ xStep: 6, formatX: h => `${h}h`, formatLiveX: () => 'now' }}
+        />,
+      );
+      const label = (text: string) => Array.from(container.querySelectorAll('span')).find(s => s.textContent === text)!;
+      // 6h sits 24 px from the dot: the 44 px fallback would hide it, a 20 px
+      // readout clears at 22 px.
+      expect(label('6h').style.visibility).toBe('');
+      expect(label('12h').style.visibility).toBe('');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
