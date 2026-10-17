@@ -1,4 +1,5 @@
 import { STUDIO_UID_RE } from '../../../../api/customEffects';
+import { recipeUsesWheel } from '../../../../lib/studioWheel';
 import {
   DEFAULT_SENSOR_BINDING, cleanBinding, sensorAnnotationJson,
   type SensorBinding, type SensorUniform,
@@ -255,11 +256,6 @@ export function recipeUsesAudio(recipe: StudioRecipe): boolean {
   return recipe.blocks.some(b => !!studioBlock(b.type)?.audio?.length || Object.values(b.mods ?? {}).some(m => isMusicSource(m.source)));
 }
 
-/** Whether `recipe` colors a field through the Lighting page's color wheel (hue and range) rather than colors of its own. */
-export function recipeUsesWheel(recipe: StudioRecipe): boolean {
-  return recipe.blocks.some(b => b.type === 'wheelcolor');
-}
-
 /** Whether `recipe` has a param driven by a sensor. */
 export function recipeUsesSensors(recipe: StudioRecipe): boolean {
   return recipe.blocks.some(b => Object.values(b.mods ?? {}).some(m => isSensorSource(m.source)));
@@ -381,7 +377,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
 
   const needsBlend = patternIndex > 1;
   const hasColor = defs.some(d => d.stage === 'color');
-  const wheel = defs.some(d => d.type === 'wheelcolor');
+  const wheel = recipeUsesWheel(recipe);
   const base = bake
     ? [recipe.speed / 50, wheel ? 0 : recipe.hue, recipe.saturation, recipe.contrast]
     : [1, 0, 1, 1];
@@ -402,6 +398,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
     '  float t = mod(u_time, 3600.0) * u_speed * S_SPEED;',
     '  float hue = u_hue + S_HUE;',
     '  float v = 0.0;',
+    ...(defs.some(d => d.fieldPos) ? ['  float fieldPos = -1.0;'] : []),
     '  vec3 col = vec3(0.0);',
     ...insertColorDefault(body, defs, hasColor),
     '  fragColor = vec4(finalize(col, hue), 1.0);',

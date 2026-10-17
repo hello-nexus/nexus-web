@@ -334,7 +334,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "998eda74541abf9a5103df2abea3a4bdff21155391eda919016ce89976e46fb4"
+    "sha256": "f3fdf06439a25680a2181b02cba32d273fba55effcfc589ac2c72e3117929d4b"
   },
   "bare:fillcenter": {
     "recipe": {
@@ -362,7 +362,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "4cb9f99e0d6435f003a24317b703e3ef8b56543450d2506c5c8a02301643f12e"
+    "sha256": "f9d73c82a6bb9e65a0ce2972725b317cd3a657b3906af68870ce8b11c6dc2a61"
   },
   "bare:fillclock": {
     "recipe": {
@@ -390,7 +390,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "3b648a49e5ae77f8d256d0462610a608cb8bf071163cf0569c49bc60489bb234"
+    "sha256": "9f21369d4a8a63662a49c255c159f5c7a54c78b308094d9b076fe62ff7627c28"
   },
   "bare:fillgauge": {
     "recipe": {
@@ -418,7 +418,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "5b7f129bb4e202ec8ab8365aecd60ca5d562982de6a11ede0a9b4a36a9110037"
+    "sha256": "648f46e1b3a482dbafa5e7edd88f80419c18d342d4b07e62d84c9cacb1cf78e1"
   },
   "bare:fillliquid": {
     "recipe": {
@@ -446,7 +446,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "8030dccfd422bcf50941f98e26aa09d9d12bb473e9ad0b279b654c74c5b5e5a7"
+    "sha256": "0c578c701e2dd3df59670e6429f3d9d99505485d65a5ca3dad999c09a6618311"
   },
   "bare:fillsegments": {
     "recipe": {
@@ -474,7 +474,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "39527673990ed56e951b95ccb69cbaad2b18354a208374cdf4f625a23d27a7a6"
+    "sha256": "b255d25a9734132d3ac0bb13f31ff3c9ff1a964eac75b8e863b6f96ad6162346"
   },
   "bare:flame": {
     "recipe": {
@@ -1566,7 +1566,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "3448b5b74831c54dddbeb0ac7311d83702ba86d9318e613344e2fafa123f65d6"
+    "sha256": "1888b31ba65f3c711649cd552e9ea701f233791a6438da36cd776d15389c1127"
   },
   "bare:wipe": {
     "recipe": {
@@ -1941,7 +1941,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "b437fcf56c5c3017da8d356fac5b8405a63cafe0d714afd00fc8d3dcc4ad8b5d"
+    "sha256": "8511282cefd8f503f3efa3727f74f151314485e3c40b3cb7ab687a028ec618a3"
   },
   "blend:fillcenter": {
     "recipe": {
@@ -1986,7 +1986,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "c48a07216481e5b5a38ecf280f90301cc7b54925683138db5a04171c788c2943"
+    "sha256": "d3994029300286fbb4ca45277c34f9133a41dc6be6fcb8251aa533f720292dcd"
   },
   "blend:fillclock": {
     "recipe": {
@@ -2031,7 +2031,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "7ade2eb3e58a88854bf9e8dc5771bad906b8d285c980a5fdc937a2e448c21370"
+    "sha256": "8a9a02e0888a4e141be0b8f312d24d3398ee4e591e5f6819dbc7a703f483fbc5"
   },
   "blend:fillgauge": {
     "recipe": {
@@ -2079,7 +2079,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "7532dbcf7398e71c6d57f6619fe0b004e2e0605d80bab84216fef7a1ea29c02a"
+    "sha256": "ae0696130209d59b07f6739e24577ac082156dd4e0551ac6fabee8557e1f70f6"
   },
   "blend:fillliquid": {
     "recipe": {
@@ -2126,7 +2126,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "3dc435e62e9dd7703bd85cb301ac21e3ea03ee94511e4751e624a7b70fc96b86"
+    "sha256": "8363631ff7eb3e25ce69c2004c3d503b4800b3818304c41c1225972828513378"
   },
   "blend:fillsegments": {
     "recipe": {
@@ -2172,7 +2172,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "f17ab70bac7c82f51503839871338258e8ca175be66295b6663e844f4983a7e8"
+    "sha256": "df7a80a480e38ca59a7e8372ef0fe9be840f6e1922b7d762a44660005fe7c34a"
   },
   "blend:flame": {
     "recipe": {
@@ -3245,7 +3245,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "4b284d4807232b8f454c28a0bcc04f1507ef9973f1bd2fb4ea88323fe3ef84fb"
+    "sha256": "a8b1ed29ec21f3ae52e8424445ffe21b7a9a9d71d60ec7e68998ffc45142f476"
   },
   "block:fillcenter": {
     "recipe": {
@@ -3280,7 +3280,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "525eb73c731aab79ad086d26a3dd433f30b221c99cd773c619fc74e126b80c80"
+    "sha256": "9bd9ea4947ced2edc8c4bed12de865e0591bf3c6d9a66ef19a1b851ffa9c815d"
   },
   "block:fillclock": {
     "recipe": {
@@ -3315,7 +3315,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "7a7e33f2ab6c9a534b4a4ec9e358df07ec57219dfda6628ebf63a7ef2c4605a1"
+    "sha256": "4a3d859294d8ba7a71670bd34d7a02389378b55aa69c39d9c81a810e274bba13"
   },
   "block:fillgauge": {
     "recipe": {
@@ -3353,7 +3353,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "e1c6a93404856854cb2f177c5314e6ef61672201c3464e2e7fc3a09400423cb6"
+    "sha256": "f329adb7849c0915deb835ca0f2cfe66ace80a4e75385ad133e27ff1cf871879"
   },
   "block:fillliquid": {
     "recipe": {
@@ -3390,7 +3390,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "91243162b0ebf42c18bb00c79a11462d9e4229ca2a71546db76803dd0ccc279c"
+    "sha256": "e2ed9d65c371f6d18aef8b79e24d99be50d5d7d5039f62e792a1918c1d392c73"
   },
   "block:fillsegments": {
     "recipe": {
@@ -3426,7 +3426,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "521de4aff2cbc909312040c40245ead61dedadbcb03183b0cf5e55cc0f658919"
+    "sha256": "24575434391b32b97dfb4503483ebfad46aeffd3101717477eb5d2ce34ffb17a"
   },
   "block:flame": {
     "recipe": {
@@ -4659,7 +4659,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "2e3e5ced7d1b993e0820512be4c3997528eedbf236d9428c4afd98182d663569"
+    "sha256": "104f634dd3ea4b34758f658c6c77e5867aa65f439b86d07277df57c26e181d39"
   },
   "block:wipe": {
     "recipe": {
@@ -6490,7 +6490,7 @@
       ],
       "colorize": 0.67
     },
-    "sha256": "b55a7b25b228b2c7b972d089f21b6b3581238a8faf910182428812c4337eacd9"
+    "sha256": "358da353c944b362f2e939e28956780d5e050a361665c98282db67cd2885a34a"
   },
   "starter:sensorCenter": {
     "recipe": {
@@ -6545,7 +6545,7 @@
       ],
       "colorize": 0.38
     },
-    "sha256": "815cf1eff2cd87ab263c23c3146f194760fdd1ea1811fa42777610f8bafd30be"
+    "sha256": "ae8076969148a7989df41a53d2c5de94d87d4700ee07d4641dbf0d233b0d5028"
   },
   "starter:sensorClock": {
     "recipe": {
@@ -6600,7 +6600,7 @@
       ],
       "colorize": 0.38
     },
-    "sha256": "121d5bbe15c76b1863de8a370ef29784b8f819202e32f625bf680e1dc893e67c"
+    "sha256": "eb66eaacb6148bbf6f0af0a7c5ac6f0e2f3b41cc937b9493d929cfecf154de65"
   },
   "starter:sensorHeat": {
     "recipe": {
@@ -6650,7 +6650,7 @@
       ],
       "colorize": 0.78
     },
-    "sha256": "2c48d755ea846ab0ce0f22c3a7b9fcec9a25d6834618cac14b44d055aa116dae"
+    "sha256": "c5610ddd5c10da8ac6ddc5a714cf782a43a4af78753d84262ddb2b516e165f32"
   },
   "starter:sensorLiquid": {
     "recipe": {
@@ -6711,7 +6711,7 @@
       ],
       "colorize": 0.84
     },
-    "sha256": "02d6ae886662d95e460d402e1421113edad7dded9ff4a8844b7af0426aa52397"
+    "sha256": "314dd15d9e243556ab5cf55d57184262a752a788c0aa9b6b28c6d2bc089384e6"
   },
   "starter:sensorSegments": {
     "recipe": {
@@ -6771,7 +6771,7 @@
       ],
       "colorize": 0.84
     },
-    "sha256": "6d825332e40f9d11a110815a2c65a89ab0f61bc0d82caf84f5d121377ad2842f"
+    "sha256": "5cf514dc7916327a0b79529e0927748fe0ac36c7a32c74ef8b1dee351ab1872c"
   },
   "starter:sensorShift": {
     "recipe": {
@@ -6813,7 +6813,7 @@
       "contrast": 1,
       "colorize": 0.38
     },
-    "sha256": "2ee63dbe75eac0f798cbec892521e8e44b5dd98ec319b1b95799e267d26a3d5d"
+    "sha256": "12b66f086053469d6061056c7c4c18e6cae8fa1f67b19ab9f7072432417fa98e"
   },
   "starter:spectrumBars": {
     "recipe": {

@@ -17,6 +17,7 @@ import { forgetShaderSource, primeShaderSource } from '../../../api/lighting';
 import { customEffectDef, customEffectKey } from '../../../api/customEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useAudioState } from '../../../hooks/useAudioState';
+import { recipeUsesWheel } from '../../../lib/studioWheel';
 import { SensorSignalProvider } from '../../../hooks/SensorSignalProvider';
 import type { EffectState } from '../../../types/lighting';
 import { baselineTemplates, slotMatchesDefault } from '../../../types/lightingTemplates';
@@ -257,7 +258,7 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
   // A wheel-colored listing opens its ring on the range it was authored with.
   const neutral = useMemo(() => {
     const base = baselineTemplates(compiled.key);
-    return recipe.blocks.some(b => b.type === 'wheelcolor')
+    return recipeUsesWheel(recipe)
       ? { ...base, slots: base.slots.map(s => ({ ...s, hue: recipe.hue, colorize: recipe.colorize ?? 0 })) }
       : base;
   }, [compiled.key, recipe]);

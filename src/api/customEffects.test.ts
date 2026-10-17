@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { customEffectDef, customEffectId, customEffectKey, isCustomEffectKey, type CustomEffectEntry } from './customEffects';
+import { customEffectWheel, customEffectDef, customEffectId, customEffectKey, isCustomEffectKey, type CustomEffectEntry } from './customEffects';
 
 const t = (key: string) => key.split('.').pop()!;
 
@@ -96,5 +96,14 @@ describe('deleteCustomEffect', () => {
     await expect(refreshCustomEffects()).resolves.toBeUndefined();
     expect(customEffectsLoaded()).toBe(false);
     vi.doUnmock('./service');
+  });
+});
+
+describe('customEffectWheel', () => {
+  it('reads the authored range of a wheel-colored recipe only', () => {
+    expect(customEffectWheel(entry({ hue: 0.31, colorize: 0.38, blocks: [{ uid: 'a', type: 'wheelcolor' }] }))).toEqual({ hue: 0.31, colorize: 0.38 });
+    expect(customEffectWheel(entry({ hue: 2, blocks: [{ uid: 'a', type: 'wheelcolor' }] }))).toEqual({ hue: 1, colorize: 0 });
+    expect(customEffectWheel(entry({ hue: 0.31, blocks: [{ uid: 'a', type: 'rings' }] }))).toBeNull();
+    expect(customEffectWheel(entry('{nope'))).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 // Custom (Shader Studio) effects stored by the service and run as `custom:<id>` effect keys.
 
+import { recipeUsesWheel } from '../lib/studioWheel';
 import { useEffect, useSyncExternalStore } from 'react';
 import { authFetchWithStatus, deleteService, fetchService } from './service';
 import type { EffectDef } from '../types/lighting';
@@ -99,7 +100,7 @@ export function useCustomEffects(enabled = true): CustomEffectEntry[] {
 export function customEffectWheel(entry: CustomEffectEntry): { hue: number; colorize: number } | null {
   try {
     const r = JSON.parse(entry.recipe) as RecipeShape & { hue?: unknown; colorize?: unknown };
-    if (!(r.blocks ?? []).some(b => b.type === 'wheelcolor')) return null;
+    if (!recipeUsesWheel(r)) return null;
     const unit = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0);
     return { hue: unit(r.hue), colorize: unit(r.colorize) };
   } catch {

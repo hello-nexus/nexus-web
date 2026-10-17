@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { recipeUsesWheel } from '../../../../lib/studioWheel';
 import { DEFAULT_SENSOR_BINDING, parseSensorUniforms } from '../../../../lib/sensorBinding';
 import { parseShaderParams } from '../../../../lib/shaderParams';
 import { STUDIO_BLOCKS, STUDIO_COST_BUDGET, STUDIO_STAGES, STUDIO_STAGE_LIMIT, studioBlock } from './studioBlocks';
-import { compileStudio, makeBlock, orderedBlocks, recipeCost, recipeUsesAudio, recipeUsesSensors, recipeUsesWheel, stageCount, staleParamsBetween, studioUniform, type StudioRecipe } from './studioCompiler';
+import { compileStudio, makeBlock, orderedBlocks, recipeCost, recipeUsesAudio, recipeUsesSensors, stageCount, staleParamsBetween, studioUniform, type StudioRecipe } from './studioCompiler';
 import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';
 import { SENSOR_PREMADES } from './studioSensorPremades';
 
@@ -278,6 +279,16 @@ describe('wheel-colored recipes', () => {
     expect(compileStudio(wheelRecipe(0)).frag).not.toContain('u_colorize, 0.0, 1.0)');
     expect(compileStudio(recipeOf('plasma', 'palette')).frag).toContain('u_colorize, 0.0, 1.0)');
     expect(recipeUsesWheel(wheelRecipe(0))).toBe(true);
+  });
+});
+
+describe('fill position', () => {
+  it('declares the field position only for recipes that use a fill, so other shaders compile as before', () => {
+    expect(compileStudio(recipeOf('plasma', 'palette')).frag).not.toContain('fieldPos');
+    const fill = compileStudio(recipeOf('fillclock', 'wheelcolor')).frag;
+    expect(fill).toContain('float fieldPos = -1.0;');
+    // The color follows the position, not the faded brightness, so a soft edge cannot wrap back to the first color.
+    expect(fill).toContain('fieldPos >= 0.0 ? clamp(fieldPos, 0.0, 1.0)');
   });
 });
 

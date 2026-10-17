@@ -20,6 +20,7 @@ import { customEffectId, customEffectKey, customEffectsLoaded } from '../../../.
 import { useAudioState } from '../../../../hooks/useAudioState';
 import { SensorSignalProvider } from '../../../../hooks/SensorSignalProvider';
 import { useTranslation } from '../../../../lib/i18n';
+import { recipeUsesWheel } from '../../../../lib/studioWheel';
 import { isApplePlatform } from '../../../../lib/platform';
 import type { EffectState } from '../../../../types/lighting';
 import {
@@ -27,7 +28,7 @@ import {
   type StudioStage,
 } from './studioBlocks';
 import {
-  compileStudio, makeBlock, recipeCost, recipeUsesAudio, recipeUsesSensors, recipeUsesWheel, stageCount, staleParamsBetween,
+  compileStudio, makeBlock, recipeCost, recipeUsesAudio, recipeUsesSensors, stageCount, staleParamsBetween,
   type CompiledStudio, type StudioBlock, type StudioRecipe,
 } from './studioCompiler';
 import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';

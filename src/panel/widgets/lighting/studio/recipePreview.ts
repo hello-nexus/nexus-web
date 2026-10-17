@@ -1,5 +1,6 @@
 import { sensorSweep, type SensorSignal, type SensorUniform } from '../../../../lib/sensorBinding';
-import { compileStudio, recipeUsesWheel, type StudioRecipe } from './studioCompiler';
+import { recipeUsesWheel } from '../../../../lib/studioWheel';
+import { compileStudio, type StudioRecipe } from './studioCompiler';
 import { syntheticAudio } from './syntheticAudio';
 
 // Many previews share ONE WebGL2 context: Chromium caps live contexts per page
