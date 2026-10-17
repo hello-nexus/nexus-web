@@ -600,10 +600,10 @@ function PreviewTabs() {
   const [paused, setPaused] = useState(false);
   return <Tabs
     tabs={[
-      { key: 'day', label: 'Day' },
-      { key: 'week', label: 'Week' },
+      { key: 'day', label: 'Day', tooltip: 'Hourly view' },
+      { key: 'week', label: 'Week', tooltip: 'Daily view' },
       {
-        key: 'month', label: 'Month',
+        key: 'month', label: 'Month', tooltip: 'Weekly view',
         // Trailing control demo: only shown on the active tab, mirroring the
         // Lighting page's per-tab pause toggle. Tabs renders this as a
         // sibling of the tab's own button (not nested inside it), so its
@@ -1479,6 +1479,9 @@ function PreviewSelect() {
         { value: 'custom', label: 'Custom...', icon: '⚙️' },
       ]}
       ariaLabel="Profile"
+      // leadingAction: a real button drawn inside the box, left of the value, as a
+      // sibling of the trigger. Pressing it never opens the list.
+      leadingAction={<button type="button" aria-label="Unpin" onClick={() => setV('balanced')} style={{ display: 'inline-flex', padding: 0, border: 'none', background: 'none', color: 'inherit', cursor: 'pointer' }}><Pin size={12} aria-hidden="true" /></button>}
     />
   );
 }
@@ -2684,7 +2687,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Select', category: 'inputs',
     filePath: 'src/components/common/Select/Select.tsx',
-    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). On a keyboard/pointer desktop (not touch), a list of 8+ entries grows an auto-focused in-menu search field that substring-filters the options while the arrow keys still walk the filtered results. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
+    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). On a keyboard/pointer desktop (not touch), a list of 8+ entries grows an auto-focused in-menu search field that substring-filters the options while the arrow keys still walk the filtered results. An optional `leadingAction` ReactNode is drawn inside the box left of the value as a sibling of the trigger (so it can be a real button that does not open the list); the cooling fan card uses it for its pin. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
     notes: 'One size and one box across the app - a surface that needs its own palette (deck inspector, monitoring settings, cooling fan / curve rows) sets --select-bg / --select-border / --select-border-hover / --select-text on the wrapper rather than framing the trigger a second time. triggerIconOnly collapses the trigger to just the selected option icon (no label or chevron; the label moves to the trigger title) for compact icon controls like a header language flag - the open menu keeps the full icon + label rows. Long lists (8+) get an in-menu search on keyboard/pointer devices; the preview here is below that threshold.',
   },
   {
@@ -2970,7 +2973,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeviceCanvas', category: 'cards',
     filePath: 'src/components/common/DeviceCanvas/DeviceCanvas.tsx',
-    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu. Device names render in a layer above every frame, de-collided vertically so they never overlap; clicking a name selects (and drags) that device whatever the frame stacking.',
+    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu (a menu row may carry a `description`, a dim second line under its label). Device names render in a layer above every frame, de-collided vertically so they never overlap; clicking a name selects (and drags) that device whatever the frame stacking.',
     notes: 'No live preview - needs live device geometry, LED maps, and shader state.',
   },
   {
@@ -3290,7 +3293,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Tabs', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Segmented tab group, flat at rest - the active tab carries the --bg pill (the immersive editors override it through --tab-active-bg). Supports optional leading icons through TabDef.icon, per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
+    description: 'Segmented tab group, flat at rest - the active tab carries the --bg pill (the immersive editors override it through --tab-active-bg). Supports optional leading icons through TabDef.icon, an optional hover tooltip through TabDef.tooltip (also on a tab with a trailing control), per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
   },
   {
