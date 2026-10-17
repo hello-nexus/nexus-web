@@ -128,6 +128,8 @@ export interface UiSettingsValue {
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
+  // Machine-level, server-mirrored under the preferences top-level readRamTemperatures field.
+  readRamTemperatures: boolean;
   // Global feature switches (default on), server-mirrored under the
   // preferences `features` block. See {@link useFeatureFlags} for the
   // read-only accessor gated surfaces should use instead of this hook.
@@ -255,6 +257,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     numberFormat: src.general.numberFormat,
     dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
+    readRamTemperatures: src.general.readRamTemperatures,
     featureLightingEnabled: src.general.featureLightingEnabled,
     featureCoolingEnabled: src.general.featureCoolingEnabled,
     featureMonitoringEnabled: src.general.featureMonitoringEnabled,
@@ -323,6 +326,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       numberFormat: src.numberFormat,
       dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
+      readRamTemperatures: src.readRamTemperatures,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
       featureMonitoringEnabled: src.featureMonitoringEnabled,
@@ -393,6 +397,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (Object.keys(units).length > 0) out.units = units;
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
+  if (patch.readRamTemperatures !== undefined) out.readRamTemperatures = patch.readRamTemperatures;
   // features block
   const features: FeaturesPrefs = {};
   if (patch.featureLightingEnabled !== undefined) features.lighting = patch.featureLightingEnabled;
@@ -518,6 +523,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     dateFormat: server.units?.dateFormat === undefined ? base.dateFormat
       : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
+    readRamTemperatures: server.readRamTemperatures ?? base.readRamTemperatures,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
     featureCoolingEnabled: server.features?.cooling ?? base.featureCoolingEnabled,
     featureMonitoringEnabled: server.features?.monitoring ?? base.featureMonitoringEnabled,
@@ -615,7 +621,8 @@ export function UiSettingsProvider({
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
-      || serverPatch.startupDelaySeconds !== undefined;
+      || serverPatch.startupDelaySeconds !== undefined
+      || serverPatch.readRamTemperatures !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Merge into (not replace) the still-pending patch so fields from separate

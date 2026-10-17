@@ -311,6 +311,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       next.contrast,
       next.params,
       true,
+      next.sensors,
     );
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
   }, [publishLighting, templates]);

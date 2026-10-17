@@ -5,6 +5,7 @@ import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
 import { SmartPollSection } from './SmartPollSection';
+import { RamTemperatureSection } from './RamTemperatureSection';
 import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
 import type { TempUnit } from '../../../lib/units';
@@ -67,6 +68,8 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
       </SettingsSection>
 
       <MonitoringEventsSettings />
+
+      <RamTemperatureSection serviceOnline={serviceOnline} />
 
       <SmartPollSection serviceOnline={serviceOnline} />
     </div>

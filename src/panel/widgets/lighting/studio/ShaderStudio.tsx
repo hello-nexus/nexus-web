@@ -4,6 +4,7 @@ import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceMod
 import { Button } from '../../../../components/common/Button/Button';
 import { Card } from '../../../../components/common/Card/Card';
 import { Select } from '../../../../components/common/Select/Select';
+import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
@@ -17,7 +18,9 @@ import { SortableList, type SortableRowArgs } from '../../../../components/commo
 import { forgetShaderSource, primeShaderSource, startStudioLive, stopStudioLive } from '../../../../api/lighting';
 import { customEffectId, customEffectKey, customEffectsLoaded } from '../../../../api/customEffects';
 import { useAudioState } from '../../../../hooks/useAudioState';
+import { SensorSignalProvider } from '../../../../hooks/SensorSignalProvider';
 import { useTranslation } from '../../../../lib/i18n';
+import { recipeUsesWheel } from '../../../../lib/studioWheel';
 import { isApplePlatform } from '../../../../lib/platform';
 import type { EffectState } from '../../../../types/lighting';
 import {
@@ -25,13 +28,14 @@ import {
   type StudioStage,
 } from './studioBlocks';
 import {
-  compileStudio, makeBlock, recipeCost, recipeUsesAudio, stageCount, staleParamsBetween,
+  compileStudio, makeBlock, recipeCost, recipeUsesAudio, recipeUsesSensors, stageCount, staleParamsBetween,
   type CompiledStudio, type StudioBlock, type StudioRecipe,
 } from './studioCompiler';
 import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';
 import { EFFECT_NAME_MAX, getSavedEffects, isDownloaded, lastCreatedEffect, newEffectId, saveEffect, useSavedEffects, type MarketLink, type SavedEffect } from './studioLibrary';
 import { marketEffectUrl } from '../../../../lib/marketLinks';
 import { copyText } from '../../../../lib/clipboard';
+import { StarterPicker } from './StarterPicker';
 import { StudioBlockCard } from './StudioBlockCard';
 import { StudioPreview } from './StudioPreview';
 import { useStudioAudio } from './syntheticAudio';
@@ -65,7 +69,7 @@ function primed(recipe: StudioRecipe): CompiledStudio {
 
 function stateFor(recipe: StudioRecipe, compiled: CompiledStudio): EffectState {
   return {
-    speed: recipe.speed, intensity: 1, hue: recipe.hue, colorize: 0,
+    speed: recipe.speed, intensity: 1, hue: recipe.hue, colorize: recipeUsesWheel(recipe) ? recipe.colorize ?? 0 : 0,
     saturation: recipe.saturation, contrast: recipe.contrast, params: compiled.params,
   };
 }
@@ -422,17 +426,12 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
   const varying = !!variations;
   const toolbar = (
     <div className={styles.toolbar}>
-      <Select
+      <StarterPicker
         disabled={varying}
-        ariaLabel={t('lighting.studio.starters')}
-        placeholder={t('lighting.studio.starters')}
-        value=""
-        options={STUDIO_STARTERS.map(s => ({ value: s.id, label: t(`lighting.studio.starter.${s.id}`) }))}
-        onChange={id => {
+        onPick={id => {
           const starter = STUDIO_STARTERS.find(s => s.id === id);
           if (starter) apply(starter.build(), true);
         }}
-        height={32}
       />
       <Button size="sm" icon={<Dices size={14} />} disabled={varying} onClick={() => apply(randomRecipe(), true)}>
         {t('lighting.studio.surprise')}
@@ -547,6 +546,7 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
   };
 
   return (
+    <SensorSignalProvider enabled={open && recipeUsesSensors(recipe)}>
     <DeviceModal
       open={open}
       onClose={close}
@@ -613,12 +613,23 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
           <SettingsSection title={t('lighting.studio.stage.global')} boxClassName={styles.stageBox}>
           <Card compact className={styles.blockCard}>
             <div className={styles.blockParams}>
+              {recipeUsesWheel(recipe) && (
+                <div className={pageStyles.paletteRingWrap}>
+                  <PaletteRing
+                    hue={recipe.hue} colorize={recipe.colorize ?? 0}
+                    onChange={(hue, colorize, commit) => apply({ ...recipe, hue, colorize }, commit)} onCommit={commitCurrent}
+                    saturation={recipe.saturation} contrast={recipe.contrast}
+                  />
+                </div>
+              )}
               <Slider orientation={STACKED} editable trackFill zeroMarker label={t('lighting.controls.speed')}
                 value={recipe.speed} min={-100} max={100}
                 onChange={(v, commit) => apply({ ...recipe, speed: v }, !!commit)} onCommit={commitCurrent} />
-              <Slider orientation={STACKED} editable trackFill label={t('lighting.studio.param.hue')}
-                value={Math.round(recipe.hue * 100)} min={0} max={100}
-                onChange={(v, commit) => apply({ ...recipe, hue: v / 100 }, !!commit)} onCommit={commitCurrent} />
+              {!recipeUsesWheel(recipe) && (
+                <Slider orientation={STACKED} editable trackFill label={t('lighting.studio.param.hue')}
+                  value={Math.round(recipe.hue * 100)} min={0} max={100}
+                  onChange={(v, commit) => apply({ ...recipe, hue: v / 100 }, !!commit)} onCommit={commitCurrent} />
+              )}
               <Slider orientation={STACKED} editable trackFill label={t('lighting.controls.saturation')}
                 value={Math.round(recipe.saturation * 100)} min={0} max={200}
                 onChange={(v, commit) => apply({ ...recipe, saturation: v / 100 }, !!commit)} onCommit={commitCurrent} />
@@ -673,5 +684,6 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
         </Suspense>
       )}
     </DeviceModal>
+    </SensorSignalProvider>
   );
 }

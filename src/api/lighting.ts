@@ -5,6 +5,7 @@ import { lianLiHubQuery } from './lianli';
 import { type DeviceGroup } from '../lib/deviceGroups';
 import { type DeviceStack } from '../lib/stackSlots';
 import { parseShaderParams, type ShaderParamSpec } from '../lib/shaderParams';
+import { parseSensorUniforms, type SensorBinding, type SensorUniform } from '../lib/sensorBinding';
 import type { EffectState } from '../types/lighting';
 
 export async function lightingOutputUrl(): Promise<string> {
@@ -39,8 +40,9 @@ export const effectThumbnailPath = (key: string, slot: number, version: string, 
 export type { ShaderParamSpec };
 
 /** `params` is parsed client-side from the frag's `hint_range` annotations
- *  (see parseShaderParams) - the service never sends a separate params field. */
-export interface ShaderSource { frag: string; params: ShaderParamSpec[]; }
+ *  (see parseShaderParams) - the service never sends a separate params field.
+ *  `sensors` is the same for the `// sensor {json}` annotations (parseSensorUniforms). */
+export interface ShaderSource { frag: string; params: ShaderParamSpec[]; sensors: SensorUniform[]; }
 
 const shaderCache = new Map<string, ShaderSource>();
 
@@ -51,7 +53,7 @@ const shaderCache = new Map<string, ShaderSource>();
  * network for that effect.
  */
 export function primeShaderSource(name: string, frag: string): void {
-  shaderCache.set(name, { frag, params: parseShaderParams(frag) });
+  shaderCache.set(name, { frag, params: parseShaderParams(frag), sensors: parseSensorUniforms(frag) });
 }
 
 /** Drops a primed entry; a later fetch for the name goes to the service. */
@@ -80,9 +82,13 @@ export function peekShaderSource(name: string): ShaderSource | undefined {
 export async function fetchShaderSource(name: string): Promise<ShaderSource | null> {
   const cached = shaderCache.get(name);
   if (cached) return cached;
-  const res = await fetchService<{ frag: string }>(`/lighting/shaders/${encodeURIComponent(name)}`);
+  const res = await fetchService<{ frag: string; sensors?: { uniform: string; binding: SensorBinding }[] }>(`/lighting/shaders/${encodeURIComponent(name)}`);
   if (!res) return null;
-  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag) };
+  // The service's own reading of the annotations wins; a service that predates the field leaves the frag to parse.
+  const sensors = Array.isArray(res.sensors)
+    ? res.sensors.map(s => ({ name: s.uniform, binding: s.binding }))
+    : parseSensorUniforms(res.frag);
+  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag), sensors };
   shaderCache.set(name, src);
   return src;
 }
@@ -134,6 +140,8 @@ export interface AnimateEffectState {
   saturation: number;
   contrast: number;
   params: Record<string, number>;
+  /** The user's sensor picks per sensor uniform; absent means the shader's defaults. */
+  sensors?: Record<string, SensorBinding>;
 }
 
 export interface AnimateEffectTemplateBundle {
@@ -214,12 +222,15 @@ export const startAnimate = (
   // False during live slider drag to skip the settings-disk write; default
   // true for mode switches / restart replay.
   persist = true,
+  // Sent only when the user changed a sensor pick, so a service that predates the field sees an unchanged body.
+  sensors?: Record<string, SensorBinding>,
 ) =>
   postService('/lighting/animate/headless-start', {
     effect, speed, noise: 0, filter: 'none', intensity, scheme: [], hue, sat: 0,
     colorize, saturation, contrast,
     params: params ? Object.entries(params).map(([name, value]) => ({ name, value })) : [],
     persist,
+    ...(sensors && Object.keys(sensors).length > 0 ? { sensors } : {}),
   });
 
 export interface StudioLiveResponse {
@@ -246,6 +257,7 @@ export const startStudioLive = (frag: string, s: EffectState, sessionId?: string
   postService<StudioLiveResponse>('/lighting/studio-live', {
     frag, speed: s.speed, intensity: s.intensity, hue: s.hue, colorize: s.colorize,
     saturation: s.saturation, contrast: s.contrast, params: s.params,
+    ...(s.sensors && Object.keys(s.sensors).length > 0 ? { sensors: s.sensors } : {}),
     ...(sessionId ? { sessionId } : {}),
   });
 

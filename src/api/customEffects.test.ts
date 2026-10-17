@@ -31,6 +31,17 @@ describe('customEffectDef', () => {
     ]);
   });
 
+  it('names each sensor-driven param after the shader uniform that carries it', () => {
+    const def = customEffectDef(entry({
+      blocks: [
+        { uid: 'bar1', type: 'fillbar', mods: { level: { source: 'sensor' }, softness: { source: 'sine' } } },
+        { uid: 'BAD UID', type: 'fillbar', mods: { level: { source: 'sensor' } } },
+      ],
+    }), t);
+    expect(def.sensors).toEqual([{ name: 'u_bar1_level_s', label: 'fillbar - level' }]);
+    expect(customEffectDef(entry({ blocks: [{ uid: 'a1', type: 'rings' }] }), t).sensors).toEqual([]);
+  });
+
   it('drops knobs for removed blocks or unsafe names, and survives an unreadable recipe', () => {
     const def = customEffectDef(entry({
       blocks: [{ uid: 'babc1', type: 'rings' }],

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { recipeUsesWheel } from '../../../../lib/studioWheel';
+import { DEFAULT_SENSOR_BINDING, parseSensorUniforms } from '../../../../lib/sensorBinding';
 import { parseShaderParams } from '../../../../lib/shaderParams';
 import { STUDIO_BLOCKS, STUDIO_COST_BUDGET, STUDIO_STAGES, STUDIO_STAGE_LIMIT, studioBlock } from './studioBlocks';
-import { compileStudio, makeBlock, orderedBlocks, recipeCost, recipeUsesAudio, stageCount, staleParamsBetween, studioUniform, type StudioRecipe } from './studioCompiler';
+import { compileStudio, makeBlock, orderedBlocks, recipeCost, recipeUsesAudio, recipeUsesSensors, stageCount, staleParamsBetween, studioUniform, type StudioRecipe } from './studioCompiler';
 import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';
+import { SENSOR_PREMADES } from './studioSensorPremades';
 
 const recipeOf = (...types: string[]): StudioRecipe => ({
   v: 1, blocks: types.map(makeBlock), speed: 50, hue: 0, saturation: 1, contrast: 1,
@@ -202,5 +205,130 @@ describe('audio inputs', () => {
     const frag = compileStudio(r).frag;
     expect(frag).toContain('uniform float u_audioBass;');
     expect(frag).not.toContain('u_audioBeat');
+  });
+});
+
+describe('sensor modulation', () => {
+  const binding = { category: 'quick', sensor: 'summary/cpu-usage', min: 0, max: 100 };
+  const sensorRecipe = () => {
+    const r = recipeOf('fillbar', 'palette');
+    r.blocks[0].uid = 'bar';
+    r.blocks[1].uid = 'pal';
+    r.blocks[0].params.level = 0;
+    r.blocks[0].mods = { level: { source: 'sensor', amount: 1, sensor: binding } };
+    return r;
+  };
+
+  it('declares no sensor uniform unless a mod reads one', () => {
+    const plain = compileStudio(recipeOf('plasma', 'palette'));
+    expect(plain.frag).not.toContain('// sensor');
+    expect(plain.sensors).toEqual([]);
+  });
+
+  it('declares one annotated uniform per sensor-driven param and sweeps the param by it', () => {
+    const { frag, sensors, params } = compileStudio(sensorRecipe(), { bake: true });
+    expect(frag).toContain('uniform float u_bar_level_s; // sensor {"category":"quick","sensor":"summary/cpu-usage","min":0,"max":100}');
+    expect(sensors).toEqual([{ name: 'u_bar_level_s', binding }]);
+    expect(frag).toContain('clamp(u_bar_level + u_bar_level_m * 1.0 * u_bar_level_s, 0.0, 1.0)');
+    expect(parseSensorUniforms(frag)).toEqual(sensors);
+    // The service feeds it; it is neither a slider nor a saved param.
+    expect(params).not.toHaveProperty('u_bar_level_s');
+    expect(parseShaderParams(frag).map(p => p.name)).not.toContain('u_bar_level_s');
+    expect(parseShaderParams(frag).map(p => p.name)).toContain('u_bar_level_m');
+  });
+
+  it('falls back to the default sensor when a mod carries none', () => {
+    const r = sensorRecipe();
+    delete r.blocks[0].mods!.level.sensor;
+    expect(compileStudio(r).sensors[0].binding).toEqual(DEFAULT_SENSOR_BINDING);
+  });
+
+  it('changes the shader key with the annotation, and only then', () => {
+    const a = compileStudio(sensorRecipe());
+    const edited = sensorRecipe();
+    edited.blocks[0].mods!.level.sensor = { ...binding, max: 80 };
+    expect(compileStudio(edited).key).not.toBe(a.key);
+    expect(compileStudio(sensorRecipe()).key).toBe(a.key);
+  });
+
+  it('uses sensors only when a mod names the sensor source', () => {
+    expect(recipeUsesSensors(sensorRecipe())).toBe(true);
+    expect(recipeUsesSensors(recipeOf('plasma', 'palette'))).toBe(false);
+  });
+});
+
+describe('wheel-colored recipes', () => {
+  const wheelRecipe = (hue: number, colorize?: number): StudioRecipe => ({
+    ...recipeOf('fillbar', 'wheelcolor'), hue, colorize,
+  });
+
+  it('never bakes the wheel state, so the Lighting page ring is the whole gradient', () => {
+    const baked = compileStudio(wheelRecipe(0.4, 0.6), { bake: true }).frag;
+    expect(baked).toContain('const float S_HUE = 0.0;');
+    expect(baked).toContain('const float S_COLORIZE = 0.0;');
+    expect(compileStudio(wheelRecipe(0.1), { bake: true }).frag.replace(/u_[a-z0-9]+_/g, 'u_x_'))
+      .toBe(baked.replace(/u_[a-z0-9]+_/g, 'u_x_'));
+  });
+
+  it('still bakes the hue of a recipe that colors itself', () => {
+    const plain = { ...recipeOf('plasma', 'palette'), hue: 0.4 };
+    expect(compileStudio(plain, { bake: true }).frag).toContain('const float S_HUE = 0.4;');
+  });
+
+  it('leaves the tint out of the finish only for wheel recipes', () => {
+    expect(compileStudio(wheelRecipe(0)).frag).not.toContain('u_colorize, 0.0, 1.0)');
+    expect(compileStudio(recipeOf('plasma', 'palette')).frag).toContain('u_colorize, 0.0, 1.0)');
+    expect(recipeUsesWheel(wheelRecipe(0))).toBe(true);
+  });
+});
+
+describe('fill position', () => {
+  it('declares the field position only for recipes with a fill or a wheel color, so other shaders compile as before', () => {
+    expect(compileStudio(recipeOf('plasma', 'palette')).frag).not.toContain('fieldPos');
+    const fill = compileStudio(recipeOf('fillclock', 'wheelcolor')).frag;
+    expect(fill).toContain('float fieldPos = -1.0;');
+    // The color follows the position, not the faded brightness, so a soft edge cannot wrap back to the first color.
+    expect(fill).toContain('fieldPos >= 0.0 ? clamp(fieldPos, 0.0, 1.0)');
+  });
+});
+
+describe('reverse colors', () => {
+  it('flips the field before the wheel lookup, off by default', () => {
+    const frag = compileStudio({ ...recipeOf('fillbar', 'wheelcolor') }, { bake: true }).frag;
+    const spec = parseShaderParams(frag).find(s => s.name.endsWith('_reverse'))!;
+    expect(spec).toMatchObject({ min: 0, max: 1, step: 1, defaultValue: 0 });
+    expect(frag).toContain('> 0.5) k = 1.0 - k;');
+  });
+});
+
+describe('fill position reach', () => {
+  const colorOf = (...types: string[]) => compileStudio(recipeOf(...types)).frag;
+
+  it('colors from the last pattern when it is a fill, the earlier fill staying out of reach', () => {
+    const frag = colorOf('fillbar', 'fillclock', 'wheelcolor');
+    expect(frag.match(/^\s+fieldPos = /gm)).toHaveLength(1);
+    expect(frag).toContain('float localPos = -1.0;');
+  });
+
+  it('colors from the field when another pattern follows the fill', () => {
+    const frag = colorOf('fillbar', 'sparkle', 'wheelcolor');
+    expect(frag).not.toMatch(/^\s+fieldPos = /m);
+    expect(frag).toContain('float localPos = -1.0;');
+  });
+
+  it('leaves a lone fill untouched', () => {
+    expect(colorOf('fillbar', 'wheelcolor')).not.toContain('localPos');
+  });
+});
+
+describe('fill blocks', () => {
+  it.each(['fillbar', 'fillclock', 'fillsegments', 'fillliquid', 'fillcenter', 'fillgauge'])('%s fills to a level and can turn and flip', type => {
+    const keys = studioBlock(type)!.params.map(p => p.key);
+    expect(keys).toEqual(expect.arrayContaining(['level', 'angle', 'flip']));
+    expectValid(recipeOf(type, 'wheelcolor'));
+  });
+
+  it('bakes every sensor starter to a shader a sensor uniform feeds', () => {
+    for (const p of SENSOR_PREMADES) expect(compileStudio(p.build(), { bake: true }).sensors.length).toBeGreaterThan(0);
   });
 });

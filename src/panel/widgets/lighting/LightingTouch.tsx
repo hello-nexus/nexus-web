@@ -436,7 +436,7 @@ function useImmersiveAnimateState(): {
       setGlobalColor('', startStatic(key, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true));
       return;
     }
-    void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
+    void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true, s.sensors);
   }, [active, applyPins, mode, pinnedKey, selection, selectionIds, setGlobalColor]);
 
   const versionForSlot = useCallback((key: string, slot: number) => {

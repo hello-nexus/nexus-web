@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import {  } from 'lucide-react';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
+import { useShaderParams } from '../../../hooks/useShaderParams';
+import { useSensorSignal } from '../../../hooks/useSensorSignal';
 import { useTranslation } from '../../../lib/i18n';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../../../components/common/CanvasNoticeBar';
@@ -23,7 +25,9 @@ export function LightingShaderPreview({ effect, state, gpuAvailable, gpuState, p
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-  const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef, undefined, undefined, paused);
+  const { sensors } = useShaderParams(effect);
+  const sensorRef = useSensorSignal(sensors.length > 0);
+  const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef, undefined, { sensorRef }, paused);
   const notice = gpuNotice(gpuState, gpuAvailable);
 
   return (
