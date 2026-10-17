@@ -1568,6 +1568,33 @@
     },
     "sha256": "2b57fa7ccc74c3a5a74e353b20dd385de2765ab939123fba49ace1bbdaf1b9a9"
   },
+  "bare:wheelramp": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2,
+            "speed": 1,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "wheelramp",
+          "params": {}
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "c3325ff3b5ded62154afa1e37006954b1c21c3685f3b99dabb408be214589fe8"
+  },
   "bare:wipe": {
     "recipe": {
       "v": 1,
@@ -4683,6 +4710,48 @@
     },
     "sha256": "cef7adc76a89fa482de48893c5b2336d60bc1847a5592be9cbe4baa235a5b7f3"
   },
+  "block:wheelramp": {
+    "recipe": {
+      "v": 1,
+      "blocks": [
+        {
+          "uid": "k0",
+          "type": "plasma",
+          "params": {
+            "scale": 2.41,
+            "speed": 1.11,
+            "blend": 0,
+            "mix": 1
+          }
+        },
+        {
+          "uid": "k1",
+          "type": "wheelramp",
+          "params": {
+            "low": 0.35000000000000003,
+            "shade": 0.37,
+            "aHue": 0.37,
+            "aSat": 0.37,
+            "aVal": 0.37,
+            "bHue": 0.37,
+            "bSat": 0.37,
+            "bVal": 0.37,
+            "cHue": 0.37,
+            "cSat": 0.37,
+            "cVal": 0.37,
+            "dHue": 0.37,
+            "dSat": 0.37,
+            "dVal": 0.37
+          }
+        }
+      ],
+      "speed": 73,
+      "hue": 0.21,
+      "saturation": 1.3,
+      "contrast": 0.8
+    },
+    "sha256": "de8a4ed902cc7da07363d08d0edafa3c1fb8748cf41ef3a93b2aa7587579564c"
+  },
   "block:wipe": {
     "recipe": {
       "v": 1,
@@ -6489,32 +6558,22 @@
         },
         {
           "uid": "k1",
-          "type": "ramp",
+          "type": "wheelramp",
           "params": {
             "low": 0.55,
-            "shade": 1
-          },
-          "colors": {
-            "c1": [
-              0.1,
-              1,
-              0.4
-            ],
-            "c2": [
-              0.6,
-              1,
-              0.2
-            ],
-            "c3": [
-              1,
-              0.85,
-              0.1
-            ],
-            "c4": [
-              1,
-              0.15,
-              0.1
-            ]
+            "shade": 1,
+            "aHue": 0.39,
+            "aSat": 0.9,
+            "aVal": 1,
+            "bHue": 0.25,
+            "bSat": 0.8,
+            "bVal": 1,
+            "cHue": 0.14,
+            "cSat": 0.9,
+            "cVal": 1,
+            "dHue": 0.01,
+            "dSat": 0.9,
+            "dVal": 1
           }
         }
       ],
@@ -6533,7 +6592,7 @@
         }
       ]
     },
-    "sha256": "af13dc2d383c616ba66b0c7d3e660171137a42896c06d7c0a5664a59744fa169"
+    "sha256": "3b0d4738c097bf7b5538ac0999fb43eafc09148e4b01b596ce3ac00b7e9fe607"
   },
   "starter:sensorCenter": {
     "recipe": {
@@ -6565,32 +6624,22 @@
         },
         {
           "uid": "k1",
-          "type": "ramp",
+          "type": "wheelramp",
           "params": {
             "low": 0.55,
-            "shade": 1
-          },
-          "colors": {
-            "c1": [
-              0.15,
-              0.35,
-              1
-            ],
-            "c2": [
-              0.1,
-              0.95,
-              0.55
-            ],
-            "c3": [
-              1,
-              0.85,
-              0.1
-            ],
-            "c4": [
-              1,
-              0.15,
-              0.1
-            ]
+            "shade": 1,
+            "aHue": 0.63,
+            "aSat": 0.85,
+            "aVal": 1,
+            "bHue": 0.42,
+            "bSat": 0.89,
+            "bVal": 0.95,
+            "cHue": 0.14,
+            "cSat": 0.9,
+            "cVal": 1,
+            "dHue": 0.01,
+            "dSat": 0.9,
+            "dVal": 1
           }
         }
       ],
@@ -6609,7 +6658,7 @@
         }
       ]
     },
-    "sha256": "cb41d20df827716021fa18a93fc97e6ba345159d5d9f5ff3f666c784b2cdea82"
+    "sha256": "d30883b4356cc39297202ecb71db47f38fb6f61af43b21ea1864381adec3635d"
   },
   "starter:sensorClock": {
     "recipe": {
@@ -6641,32 +6690,22 @@
         },
         {
           "uid": "k1",
-          "type": "ramp",
+          "type": "wheelramp",
           "params": {
             "low": 0.55,
-            "shade": 1
-          },
-          "colors": {
-            "c1": [
-              0.15,
-              0.35,
-              1
-            ],
-            "c2": [
-              0.1,
-              0.95,
-              0.55
-            ],
-            "c3": [
-              1,
-              0.85,
-              0.1
-            ],
-            "c4": [
-              1,
-              0.15,
-              0.1
-            ]
+            "shade": 1,
+            "aHue": 0.63,
+            "aSat": 0.85,
+            "aVal": 1,
+            "bHue": 0.42,
+            "bSat": 0.89,
+            "bVal": 0.95,
+            "cHue": 0.14,
+            "cSat": 0.9,
+            "cVal": 1,
+            "dHue": 0.01,
+            "dSat": 0.9,
+            "dVal": 1
           }
         }
       ],
@@ -6685,90 +6724,7 @@
         }
       ]
     },
-    "sha256": "b0cf1c92e8461fb0ac1799c7a11c1c5d4553a1496d2c6a7fdb591de1e8d1612e"
-  },
-  "starter:sensorGauge": {
-    "recipe": {
-      "v": 1,
-      "blocks": [
-        {
-          "uid": "k0",
-          "type": "fillgauge",
-          "params": {
-            "level": 0,
-            "angle": 0,
-            "flip": 0,
-            "span": 240,
-            "radius": 0.65,
-            "width": 0.4,
-            "track": 0.1,
-            "blend": 0,
-            "mix": 1
-          },
-          "mods": {
-            "level": {
-              "source": "sensor",
-              "amount": 1,
-              "sensor": {
-                "category": "quick",
-                "sensor": "summary/gpu-usage",
-                "min": 0,
-                "max": 100
-              }
-            }
-          }
-        },
-        {
-          "uid": "k1",
-          "type": "ramp",
-          "params": {
-            "low": 0.55,
-            "shade": 1
-          },
-          "colors": {
-            "c1": [
-              0.1,
-              1,
-              0.4
-            ],
-            "c2": [
-              0.6,
-              1,
-              0.2
-            ],
-            "c3": [
-              1,
-              0.85,
-              0.1
-            ],
-            "c4": [
-              1,
-              0.15,
-              0.1
-            ]
-          }
-        }
-      ],
-      "speed": 50,
-      "hue": 0,
-      "saturation": 1,
-      "contrast": 1,
-      "knobs": [
-        {
-          "uid": "k0",
-          "key": "angle"
-        },
-        {
-          "uid": "k0",
-          "key": "flip"
-        },
-        {
-          "uid": "k0",
-          "key": "span"
-        }
-      ]
-    },
-    "sha256": "ef758b305726c5ac166b1b547d8e804014ab9b33e3e9672f2ad9f487c1b6221f"
+    "sha256": "b23b366bf086611a1cf43e596516eff5b833c0992e2cbbc6809893e288702be8"
   },
   "starter:sensorHeat": {
     "recipe": {
@@ -6787,32 +6743,22 @@
         },
         {
           "uid": "k1",
-          "type": "ramp",
+          "type": "wheelramp",
           "params": {
             "low": 0.95,
-            "shade": 0
-          },
-          "colors": {
-            "c1": [
-              0.15,
-              0.35,
-              1
-            ],
-            "c2": [
-              0.1,
-              0.95,
-              0.55
-            ],
-            "c3": [
-              1,
-              0.85,
-              0.1
-            ],
-            "c4": [
-              1,
-              0.15,
-              0.1
-            ]
+            "shade": 0,
+            "aHue": 0.63,
+            "aSat": 0.85,
+            "aVal": 1,
+            "bHue": 0.42,
+            "bSat": 0.89,
+            "bVal": 0.95,
+            "cHue": 0.14,
+            "cSat": 0.9,
+            "cVal": 1,
+            "dHue": 0.01,
+            "dSat": 0.9,
+            "dVal": 1
           },
           "mods": {
             "low": {
@@ -6839,7 +6785,7 @@
         }
       ]
     },
-    "sha256": "e5dd71726f71f4803bb9309d7b563a03019a4ddda831b33ffd80479d72fbe967"
+    "sha256": "2b74ff41a47fca24d9c1d4db9fdd1680d911e461b978c59ab8f8327d90829f20"
   },
   "starter:sensorLiquid": {
     "recipe": {
@@ -6873,32 +6819,22 @@
         },
         {
           "uid": "k1",
-          "type": "ramp",
+          "type": "wheelramp",
           "params": {
             "low": 0.5,
-            "shade": 1
-          },
-          "colors": {
-            "c1": [
-              0,
-              0.3,
-              0.8
-            ],
-            "c2": [
-              0.05,
-              0.6,
-              1
-            ],
-            "c3": [
-              0.2,
-              1,
-              0.9
-            ],
-            "c4": [
-              0.8,
-              1,
-              0.95
-            ]
+            "shade": 1,
+            "aHue": 0.6,
+            "aSat": 1,
+            "aVal": 0.8,
+            "bHue": 0.57,
+            "bSat": 0.95,
+            "bVal": 1,
+            "cHue": 0.48,
+            "cSat": 0.8,
+            "cVal": 1,
+            "dHue": 0.46,
+            "dSat": 0.2,
+            "dVal": 1
           }
         }
       ],
@@ -6921,7 +6857,7 @@
         }
       ]
     },
-    "sha256": "12a915a53df7ac42a013dea8ca8ede370ee9280d834a48c6dd56691a9d66341a"
+    "sha256": "2f6f3b7bfcdbf67fcf3b249d172a046d6e995122ff8cbb33d859f439c2376f1b"
   },
   "starter:sensorSegments": {
     "recipe": {
@@ -6954,32 +6890,22 @@
         },
         {
           "uid": "k1",
-          "type": "ramp",
+          "type": "wheelramp",
           "params": {
             "low": 0.5,
-            "shade": 1
-          },
-          "colors": {
-            "c1": [
-              0.1,
-              0.8,
-              1
-            ],
-            "c2": [
-              0.4,
-              0.5,
-              1
-            ],
-            "c3": [
-              0.7,
-              0.3,
-              1
-            ],
-            "c4": [
-              1,
-              0.3,
-              0.8
-            ]
+            "shade": 1,
+            "aHue": 0.54,
+            "aSat": 0.9,
+            "aVal": 1,
+            "bHue": 0.64,
+            "bSat": 0.6,
+            "bVal": 1,
+            "cHue": 0.76,
+            "cSat": 0.7,
+            "cVal": 1,
+            "dHue": 0.88,
+            "dSat": 0.7,
+            "dVal": 1
           }
         }
       ],
@@ -7002,7 +6928,7 @@
         }
       ]
     },
-    "sha256": "9b83601565aafeaee91bcafe5985e3d5a5fd4ce45b9df7c6f5b056e610547567"
+    "sha256": "cf65501c95620968fda5281636f6bac229c47c86f7288f691a1e314b1b52c6a0"
   },
   "starter:sensorShift": {
     "recipe": {
@@ -7031,32 +6957,22 @@
         },
         {
           "uid": "k1",
-          "type": "ramp",
+          "type": "wheelramp",
           "params": {
             "low": 0,
-            "shade": 0
-          },
-          "colors": {
-            "c1": [
-              0.15,
-              0.35,
-              1
-            ],
-            "c2": [
-              0.1,
-              0.95,
-              0.55
-            ],
-            "c3": [
-              1,
-              0.85,
-              0.1
-            ],
-            "c4": [
-              1,
-              0.15,
-              0.1
-            ]
+            "shade": 0,
+            "aHue": 0.63,
+            "aSat": 0.85,
+            "aVal": 1,
+            "bHue": 0.42,
+            "bSat": 0.89,
+            "bVal": 0.95,
+            "cHue": 0.14,
+            "cSat": 0.9,
+            "cVal": 1,
+            "dHue": 0.01,
+            "dSat": 0.9,
+            "dVal": 1
           }
         }
       ],
@@ -7065,7 +6981,7 @@
       "saturation": 1,
       "contrast": 1
     },
-    "sha256": "7bc87ee70b2ce1ae689783ff64649cb109e8a64794287201b7ac41d35fc49601"
+    "sha256": "32dfc35f6b6669067a1a167b2efe25ddab43ae6efd10dbaa8c28107f72e3b2f4"
   },
   "starter:spectrumBars": {
     "recipe": {

@@ -63,7 +63,27 @@ describe('sensor premades', () => {
     const { frag, sensors } = bake(key);
     const declared = new Set(parseShaderParams(frag).map(p => p.name));
     for (const p of def!.params) expect(declared.has(p.name), p.name).toBe(true);
+    // The color wheel's slots reach the shader's hue, saturation and brightness uniforms.
+    expect(def!.colors?.length, 'four wheel colors').toBe(4);
+    for (const slot of def!.colors ?? []) {
+      for (const suffix of ['Hue', 'Sat', 'Val']) expect(declared.has(`${slot.uniformPrefix}${suffix}`), `${slot.uniformPrefix}${suffix}`).toBe(true);
+    }
     expect((def!.sensors ?? []).map(s => s.name).sort()).toEqual(sensors.map(s => s.name).sort());
+  });
+
+  it('keeps the gauge a Studio block only, not a premade', () => {
+    expect(SENSOR_PREMADES.some(p => p.key === 'sensorgauge')).toBe(false);
+    expect(EFFECTS.some(e => e.key === 'sensorgauge')).toBe(false);
+  });
+
+  it('opens each premade on the colors it had before the wheel, as wheel defaults', () => {
+    const { frag } = bake('sensorbar');
+    const specs = new Map(parseShaderParams(frag).map(s => [s.name, s.defaultValue]));
+    // Green first, red last.
+    expect(specs.get('u_col_aHue')).toBeCloseTo(0.39, 2);
+    expect(specs.get('u_col_dHue')).toBeCloseTo(0.01, 2);
+    expect(specs.get('u_col_aSat')).toBeCloseTo(0.9, 2);
+    expect(specs.get('u_col_dVal')).toBe(1);
   });
 
   it('offers every premade as a Studio starter and a Sensor effect key prefixed sensor', () => {
@@ -80,7 +100,7 @@ describe('sensor premades', () => {
       const names = EFFECTS.find(e => e.key === p.key)!.params.map(q => q.name);
       expect(names.some(n => n.endsWith('_angle')), p.key).toBe(true);
     }
-    for (const key of ['sensorbar', 'sensorclock', 'sensorsegments', 'sensorliquid', 'sensorcenter', 'sensorgauge']) {
+    for (const key of ['sensorbar', 'sensorclock', 'sensorsegments', 'sensorliquid', 'sensorcenter']) {
       expect(EFFECTS.find(e => e.key === key)!.params.some(q => q.name.endsWith('_flip')), key).toBe(true);
     }
   });

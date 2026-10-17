@@ -40,8 +40,33 @@ function sensorLevel(b: StudioBlock, key: string, binding: SensorBinding, amount
   return b;
 }
 
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+const places = (n: number) => Number(n.toFixed(2));
+
+/** Hue, saturation and brightness of an RGB color, each 0 to 1: the wheel's own terms. */
+function toHsv([r, g, b]: Rgb): [number, number, number] {
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d > 0) {
+    if (max === r) h = ((g - b) / d + 6) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+  }
+  return [places(h / 6), places(max === 0 ? 0 : d / max), places(max)];
+}
+
+/** The ramp whose four colors the Lighting page's color wheel picks, starting at the given stops. */
 function ramp(stops: Stops, low: number, params: Record<string, number> = {}): StudioBlock {
-  return block('col', 'ramp', { low, ...params }, { c1: stops[0], c2: stops[1], c3: stops[2], c4: stops[3] });
+  const colorParams: Record<string, number> = {};
+  stops.forEach((rgb, i) => {
+    const [h, s, v] = toHsv(rgb);
+    const id = 'abcd'[i];
+    colorParams[`${id}Hue`] = h;
+    colorParams[`${id}Sat`] = clamp01(s);
+    colorParams[`${id}Val`] = clamp01(v);
+  });
+  return block('col', 'wheelramp', { low, ...colorParams, ...params });
 }
 
 /** A fill meter: `type` filling to a sensor-driven level, its brightness running from `low` at the base to 1. */
@@ -78,11 +103,6 @@ export const SENSOR_PREMADES: readonly SensorPremade[] = [
     key: 'sensorcenter',
     starterId: 'sensorCenter',
     build: () => fill('fillcenter', 0.55, HEAT, quick('summary/gpu-temp', 30, 90), {}, ['angle', 'flip']),
-  },
-  {
-    key: 'sensorgauge',
-    starterId: 'sensorGauge',
-    build: () => fill('fillgauge', 0.55, LOAD, quick('summary/gpu-usage', 0, 100), {}, ['angle', 'flip', 'span']),
   },
   {
     // The whole display wears one color that walks from blue through yellow to red as the CPU heats up.

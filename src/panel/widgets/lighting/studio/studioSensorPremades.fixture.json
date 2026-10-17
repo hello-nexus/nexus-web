@@ -1,10 +1,9 @@
 {
-  "sensorbar": "e5c99da0414ccd2a29da027d42fa34f696ffa94bc6533aad97f111fb6a18a22a",
-  "sensorclock": "5b3686d4612d60e6fd9194caa12e7a6663d1ebb71ee843e5197db736618dfaba",
-  "sensorsegments": "3b24a8309140b4b4488a325a1fc7193f6349138f188fffb5b220a60a617167bf",
-  "sensorliquid": "61ebe7840f9b69a6a9f042878807eaff8cdb2fd4d6b7762236e98069efaed775",
-  "sensorcenter": "b54d7c44f1ddda2cc5021eebd2535902225907f61940316afd49caa5f78fe0ec",
-  "sensorgauge": "e50224a194ed33fb4ea2b88772d27567c136aa0539b646c020274f67845d9c83",
-  "sensorshift": "22f359e984fad1b2f0b19d5ef1554f6f78f7a324d4b3f27e6da01c0244ef7edb",
-  "sensorheat": "045637551dec77bb47a8f74794a6a96946afe52c20a8aab140c5e3e55656c26e"
+  "sensorbar": "ccab94c65455c71c008a195ae1987e270c4ae027e1398407d9a6e5eee6d2fba7",
+  "sensorclock": "8b7a06fce742afeaac0da0c4966ac0dcb6cca325d3914e72b2fcb77fc337e045",
+  "sensorsegments": "5951a978951df426b9f979e0a7e14f64feb32b13b3f4e2bcf44917c48d2d0187",
+  "sensorliquid": "9eb16d2bd6b05cfaffbd6da84f68865f958c1e02f43d9cdade320f65dc94bbc9",
+  "sensorcenter": "cf4b682c67c8f741ba599f435863c454cfdf604bc805513aecae54b8eab7ef84",
+  "sensorshift": "d6206bb50ed938c6db2bc14fa0d5ec218f0e02d39a9928e4c4390e57bcd8e36b",
+  "sensorheat": "46f9829114a7a633c09a31ffc20e0cf345aabc766b18760be2822dd7fd8cc063"
 }

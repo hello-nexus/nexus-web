@@ -660,6 +660,29 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
       'col = g * mix(1.0, v, $shade);',
     ].join('\n'),
   },
+  {
+    // The ramp block with its four colors picked on the Lighting page's color wheel: each is a hue,
+    // saturation and brightness float trio. The field runs from the first color at `low` to the last at 1.
+    type: 'wheelramp', stage: 'color', cost: 1,
+    params: [
+      { key: 'low', min: 0, max: 0.95, step: 0.01, def: 0 },
+      { key: 'shade', min: 0, max: 1, step: 0.01, def: 1 },
+      ...(['a', 'b', 'c', 'd'] as const).flatMap((id, i) => [
+        { key: `${id}Hue`, min: 0, max: 1, step: 0.01, def: [0.37, 0.25, 0.12, 0][i] },
+        { key: `${id}Sat`, min: 0, max: 1, step: 0.01, def: 0.9 },
+        { key: `${id}Val`, min: 0, max: 1, step: 0.01, def: 1 },
+      ]),
+    ],
+    code: [
+      'vec3 c1 = hsv2rgb(vec3($aHue, $aSat, $aVal)); vec3 c2 = hsv2rgb(vec3($bHue, $bSat, $bVal));',
+      'vec3 c3 = hsv2rgb(vec3($cHue, $cSat, $cVal)); vec3 c4 = hsv2rgb(vec3($dHue, $dSat, $dVal));',
+      'float k = clamp((v - $low) / (1.0 - $low), 0.0, 1.0);',
+      'vec3 g = mix(c1, c2, smoothstep(0.0, 0.3333, k));',
+      'g = mix(g, c3, smoothstep(0.3333, 0.6667, k));',
+      'g = mix(g, c4, smoothstep(0.6667, 1.0, k));',
+      'col = g * mix(1.0, v, $shade);',
+    ].join('\n'),
+  },
   // ---- finish ----
   {
     type: 'glow', stage: 'finish', cost: 1,

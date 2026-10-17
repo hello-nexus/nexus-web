@@ -15,12 +15,14 @@ const STACKED = 'stacked' as const;
 /** A slot is three float params, so colours ride the same dictionary the
  *  numeric params already use; defaults come from the shader spec, falling
  *  back to a saturated red before the spec has loaded. */
+const uni = (slot: EffectColorSlot, suffix: string) => `${slot.uniformPrefix ?? `u_${slot.id}`}${suffix}`;
+
 function read(slot: EffectColorSlot, params: Record<string, number>, specs: Record<string, ShaderParamSpec>) {
   return {
-    h: params[`u_${slot.id}Hue`] ?? specs[`u_${slot.id}Hue`]?.defaultValue ?? 0,
-    s: params[`u_${slot.id}Sat`] ?? specs[`u_${slot.id}Sat`]?.defaultValue ?? 1,
-    v: params[`u_${slot.id}Val`] ?? specs[`u_${slot.id}Val`]?.defaultValue ?? 1,
-    span: slot.range ? params[`u_${slot.id}Span`] ?? specs[`u_${slot.id}Span`]?.defaultValue ?? 0 : 0,
+    h: params[uni(slot, 'Hue')] ?? specs[uni(slot, 'Hue')]?.defaultValue ?? 0,
+    s: params[uni(slot, 'Sat')] ?? specs[uni(slot, 'Sat')]?.defaultValue ?? 1,
+    v: params[uni(slot, 'Val')] ?? specs[uni(slot, 'Val')]?.defaultValue ?? 1,
+    span: slot.range ? params[uni(slot, 'Span')] ?? specs[uni(slot, 'Span')]?.defaultValue ?? 0 : 0,
   };
 }
 
@@ -62,10 +64,10 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit, chil
     onChange({
       params: {
         ...state.params,
-        [`u_${active.id}Hue`]: next.h ?? h,
-        [`u_${active.id}Sat`]: next.s ?? s,
-        [`u_${active.id}Val`]: next.v ?? v,
-        ...(active.range ? { [`u_${active.id}Span`]: next.span ?? span } : {}),
+        [uni(active, 'Hue')]: next.h ?? h,
+        [uni(active, 'Sat')]: next.s ?? s,
+        [uni(active, 'Val')]: next.v ?? v,
+        ...(active.range ? { [uni(active, 'Span')]: next.span ?? span } : {}),
       },
     }, commit);
   };
