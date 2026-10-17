@@ -365,8 +365,8 @@ export const FanCard = memo(function FanCard({
 
     if (isControlled) {
       items.push(isPinned
-        ? { key: 'pin', icon: <PinOff size={14} />, label: label('cooling.pin.unpin', 'cooling.pin.unpinCount'), description: t('cooling.pin.menuDesc'), onSelect: () => setPinned(false) }
-        : { key: 'pin', icon: <Pin size={14} />, label: label('cooling.pin.pin', 'cooling.pin.pinCount'), description: t('cooling.pin.menuDesc'), onSelect: () => setPinned(true) });
+        ? { key: 'pin', icon: <PinOff size={14} />, label: label('cooling.pin.unpin', 'cooling.pin.unpinCount'), description: t('cooling.pin.unpinDesc'), onSelect: () => setPinned(false) }
+        : { key: 'pin', icon: <Pin size={14} />, label: label('cooling.pin.pin', 'cooling.pin.pinCount'), description: t('cooling.pin.pinDesc'), onSelect: () => setPinned(true) });
       // An offset belongs to one fan, so a selection has nothing to clear -
       // the same rule the lighting menu applies to the LED map row.
       if (!bulk && offset !== 0 && onClearOffset) {

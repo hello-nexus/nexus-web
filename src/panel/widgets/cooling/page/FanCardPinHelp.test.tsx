@@ -57,6 +57,6 @@ describe('FanCard pin menu rows', () => {
   it('carry a description line under Pin and Unpin', () => {
     renderCard(channel({ controlled: true }));
     fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
-    expect(screen.getByText('cooling.pin.unpin').closest('button')).toHaveTextContent('cooling.pin.menuDesc');
+    expect(screen.getByText('cooling.pin.unpin').closest('button')).toHaveTextContent('cooling.pin.unpinDesc');
   });
 });
