@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
-import { pinTooltipKey, presetReach, modeReach } from './pinHelp';
+import { pinTooltipKey, presetReach } from './pinHelp';
 
 const fan = (id: string, over: Partial<FanChannel> = {}): FanChannel => ({
   id, name: id, dutyPercent: 30, rpm: 800, mode: 'Auto', classification: 'Controllable', ...over,
@@ -24,26 +24,6 @@ describe('pinTooltipKey', () => {
   it('falls back to the plain pin copy', () => {
     expect(pinTooltipKey({ kind: 'Fan' })).toBe('cooling.pin.tip');
     expect(pinTooltipKey({})).toBe('cooling.pin.tip');
-  });
-});
-
-describe('modeReach', () => {
-  it('reaches every fan and names none when nothing is pinned', () => {
-    expect(modeReach([fan('a'), fan('b')])).toEqual({ applied: 2, pinnedNames: [] });
-  });
-
-  it('counts the unpinned fans and names the pinned ones a mode skips', () => {
-    const chans = [fan('a'), fan('b', { pinned: true, name: 'GPU Fan 1' }), fan('c', { pinned: true, name: 'Pump' })];
-    expect(modeReach(chans)).toEqual({ applied: 1, pinnedNames: ['GPU Fan 1', 'Pump'] });
-  });
-
-  it('does not name a pinned fan a mode could not reach anyway', () => {
-    const chans = [
-      fan('a'),
-      fan('b', { pinned: true, controlled: false }),
-      fan('c', { pinned: true, readOnly: true }),
-    ];
-    expect(modeReach(chans)).toEqual({ applied: 1, pinnedNames: [] });
   });
 });
 

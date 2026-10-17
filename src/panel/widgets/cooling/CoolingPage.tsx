@@ -83,7 +83,7 @@ import { CurveSelector } from './page/CurveSelector';
 import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID, blockIdOf } from './page/deviceGroupName';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
-import { presetReach, modeReach } from './page/pinHelp';
+import { presetReach } from './page/pinHelp';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
@@ -1370,20 +1370,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const hoverHeaderShown = serviceOnline && !simpleDashboard;
   const presetPreview = hoverHeaderShown && !!hoveredTab && isCoolingModeKey(hoveredTab) && hoveredTab !== activeMode;
   const presetTargets = useMemo(() => (presetPreview ? presetReach(channels) : new Set<string>()), [channels, presetPreview]);
-  // Mirrors the lighting scope chip: how many fans a mode press changes, and
-  // on hover which pinned fans it leaves alone.
-  const reach = useMemo(() => modeReach(channels), [channels]);
-  const reachChip = (
-    <span className={styles.reachChip}>
-      {reach.pinnedNames.length > 0 ? (
-        <HoverTooltip title={t('cooling.pin.pinnedFans')} body={reach.pinnedNames.join(', ')} side="bottom">
-          <span><Badge label={t(pluralKey('cooling.pane.appliesFans', language, reach.applied), { count: reach.applied })} compact uppercase color="var(--text-dim)" /></span>
-        </HoverTooltip>
-      ) : (
-        <Badge label={t(pluralKey('cooling.pane.appliesFans', language, reach.applied), { count: reach.applied })} compact uppercase color="var(--text-dim)" />
-      )}
-    </span>
-  );
   // A tab press either opens the mode menu or switches mode; a mode switch
   // also drops the menu, which the tab row keeps "inside" its anchor.
   const handleTabChange = (key: string) => {
@@ -1521,7 +1507,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               activeTab={activeTabKey}
               onTabChange={handleTabChange}
               onTabHover={setHoveredTab}
-              tabsAdjacent={reachChip}
               tabActions={(
                 <PresetToolbar
                   rail
