@@ -24,6 +24,7 @@ vi.mock('../../../hooks/useConflictApps', () => ({
 
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({ settings: { updateChannel: h.updateChannel } }),
+  useSidebarHiddenDevices: () => ({ hidden: [], setHidden: vi.fn() }),
 }));
 
 const mockSavePreferences = vi.fn();

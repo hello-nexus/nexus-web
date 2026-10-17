@@ -70,15 +70,11 @@ export function ConnectedProfileSlot({ connectEpoch, children }: {
 // ── Top-bar status slots (conflict + update alerts) ─────────────────────────
 
 /**
- * Conflict warning slot for the top bar. Owns the modal `open` state and the
- * `showConflictAlerts` pref (the in-modal "Don't show again" checkbox
- * toggles it), keeping the badge presentational.
+ * Conflict warning slot for the top bar. Owns the modal `open` state and reads
+ * the `showConflictAlerts` pref, keeping the badge presentational.
  */
-export function ConflictStatusSlot({ serviceOnline, onManageApps }: {
-  serviceOnline: boolean;
-  onManageApps: () => void;
-}) {
-  const { settings, update } = useUiSettings();
+export function ConflictStatusSlot({ serviceOnline }: { serviceOnline: boolean }) {
+  const { settings } = useUiSettings();
   const [open, setOpen] = useState(false);
   const suppressed = !settings.showConflictAlerts;
   // Keep the subscription alive while the modal is open even after the user
@@ -94,8 +90,6 @@ export function ConflictStatusSlot({ serviceOnline, onManageApps }: {
       suppressed={suppressed}
       open={open}
       onOpenChange={setOpen}
-      onSuppressedChange={value => update({ showConflictAlerts: !value })}
-      onManageApps={onManageApps}
     />
   );
 }

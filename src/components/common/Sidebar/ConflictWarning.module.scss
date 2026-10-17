@@ -7,8 +7,6 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  min-width: 360px;
-  max-width: 560px;
 }
 
 .intro {
@@ -16,42 +14,5 @@
   color: var(--text-dim);
   line-height: 1.45;
   font-size: var(--type-body);
-}
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.actionRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.dismissRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding-top: 0.4rem;
-  margin-top: 0.25rem;
-  border-top: 1px solid var(--separator);
-  cursor: pointer;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-
-  input[type="checkbox"] {
-    accent-color: var(--accent);
-    cursor: pointer;
-    margin: 0;
-  }
-}
-
-.warnIcon {
-  display: flex;
-  color: var(--warn);
+  text-align: center;
 }

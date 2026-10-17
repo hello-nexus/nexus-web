@@ -1091,7 +1091,6 @@ export function Dashboard() {
               onNavigateTools={handleNavigateTools}
               onOpenUpdate={() => handleUpdateOpen()}
               onInstall={handleInstall}
-              onManageConflictApps={handleManageConflictApps}
               onManageProfiles={handleManageProfiles}
               onNavigateAccount={handleNavigateAccount}
               isWindowsApp={isWindowsAppShell()}

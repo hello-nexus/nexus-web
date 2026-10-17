@@ -12,11 +12,13 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockKill = vi.fn();
+const mockWhitelist = vi.fn();
 const mockDisableAutostart = vi.fn();
 const mockFetchAutostart = vi.fn();
 vi.mock('../../../api/conflicts', () => ({
   HYTE_NEXUS2_CONFLICT_ID: 'hyte-nexus-2',
   killConflict: (...args: any[]) => mockKill(...args),
+  setConflictWhitelisted: (...args: any[]) => mockWhitelist(...args),
   fetchConflictAutostart: (...args: any[]) => mockFetchAutostart(...args),
   disableConflictAutostart: (...args: any[]) => mockDisableAutostart(...args),
 }));
@@ -39,6 +41,8 @@ vi.mock('../../../hooks/useUiSettings', () => ({
 beforeEach(() => {
   mockKill.mockReset();
   mockKill.mockResolvedValue({ error: false, msg: 'Ok', killed: true });
+  mockWhitelist.mockReset();
+  mockWhitelist.mockResolvedValue({ error: false, msg: 'Ok' });
   mockDisableAutostart.mockReset();
   mockDisableAutostart.mockResolvedValue({ error: false, msg: 'Ok', disabled: 1 });
   // The boot-entry read has its own tests; here it only has to resolve so the
@@ -72,91 +76,89 @@ describe('ConflictOnboardingScreen', () => {
   });
 
 
-  it('ends nothing on mount or on skip', async () => {
+  it('ends nothing on mount, and Keep all running allows every app without ending any', async () => {
     const onComplete = vi.fn();
     render(<ConflictOnboardingScreen open ready conflicts={[icue, cam]} onComplete={onComplete} nexus2Installed />);
     expect(mockKill).not.toHaveBeenCalled();
+    expect(mockWhitelist).not.toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.onboarding.skip' }));
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.outcome.keepAll' }));
     });
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(mockKill).not.toHaveBeenCalled();
     expect(mockUninstall).not.toHaveBeenCalled();
+    expect(mockWhitelist.mock.calls.map(c => c[0]).sort()).toEqual(['icue', 'nzxt-cam']);
     expect(mockReportStep).toHaveBeenCalledWith({
       action: 'skip', listed: ['icue', 'nzxt-cam'], whitelisted: [], alreadyEnded: [],
     });
   });
 
-  it('resolve all ends every app, turns off every boot entry, uninstalls Nexus 2, then completes', async () => {
+  it('the primary button ends every app, removes ticked boot entries, uninstalls Nexus 2, then completes', async () => {
     mockFetchAutostart.mockResolvedValue([{ id: 'icue', entries: [{ kind: 'service', entryName: 'CorsairService' }] }]);
     const onComplete = vi.fn();
     render(<ConflictOnboardingScreen open ready conflicts={[icue, cam]} onComplete={onComplete} nexus2Installed />);
     await act(async () => { await Promise.resolve(); });
-    expect(screen.getByText('conflicts.onboarding.uninstallNexus2')).toBeInTheDocument();
+    expect(screen.getByText('HYTE Nexus 2')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.outcome.willUninstall')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.outcome.terminateContinue:2' }));
     });
 
     expect(mockKill.mock.calls.map(c => c[0]).sort()).toEqual(['icue', 'nzxt-cam']);
     expect(mockDisableAutostart).toHaveBeenCalledWith('icue');
     expect(mockUninstall).toHaveBeenCalledTimes(1);
+    expect(mockWhitelist).not.toHaveBeenCalled();
     expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(mockReportStep).toHaveBeenCalledWith({
+      action: 'resolveAll', listed: ['icue', 'nzxt-cam'], whitelisted: [], alreadyEnded: [],
+    });
   });
 
-  it('resolve all keeps Nexus 2 installed when its uninstall switch is turned off', async () => {
+  it('keeps Nexus 2 installed when its card is unselected, and never allow-lists it', async () => {
     const onComplete = vi.fn();
     render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={onComplete} nexus2Installed />);
-    const uninstallSwitch = screen.getByRole('switch', { name: 'conflicts.onboarding.uninstallNexus2' });
-    expect(uninstallSwitch).toHaveAttribute('aria-checked', 'true');
 
-    fireEvent.click(uninstallSwitch);
+    fireEvent.click(screen.getByText('conflicts.outcome.willUninstall'));
+    expect(screen.getByText('conflicts.outcome.staysInstalled')).toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.outcome.terminateContinueOne' }));
     });
 
-    expect(uninstallSwitch).toHaveAttribute('aria-checked', 'false');
     expect(mockUninstall).not.toHaveBeenCalled();
+    expect(mockWhitelist).not.toHaveBeenCalledWith('hyte-nexus-2', expect.anything());
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('resolve all ends Nexus 2 even when it is whitelisted', async () => {
+  it('ends a running Nexus 2 even when it is on the allowed list', async () => {
     mockExclusions = ['hyte-nexus-2'];
     const nexus2 = { id: 'hyte-nexus-2', displayName: 'HYTE Nexus 2', category: 'lighting', processName: 'HYTE Nexus', pid: 3268 };
     render(<ConflictOnboardingScreen open ready conflicts={[nexus2]} onComplete={() => {}} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.outcome.terminateContinueOne' }));
     });
 
     expect(mockKill).toHaveBeenCalledWith('hyte-nexus-2');
+    expect(mockWhitelist).not.toHaveBeenCalled();
   });
 
-  it('resolve all leaves Nexus 2 alone unless it is installed', async () => {
-    const onComplete = vi.fn();
-    render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={onComplete} />);
-    expect(screen.queryByText('conflicts.onboarding.uninstallNexus2')).not.toBeInTheDocument();
+  it('offers no uninstall card unless Nexus 2 is installed', () => {
+    render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={() => {}} />);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
-    });
-
-    expect(mockUninstall).not.toHaveBeenCalled();
-    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('conflicts.outcome.willUninstall')).not.toBeInTheDocument();
   });
 
-  it('shows the all-clear state with the uninstall card for an installed, idle Nexus 2', () => {
-    render(<ConflictOnboardingScreen open ready conflicts={[]} onComplete={() => {}} nexus2Installed />);
+  it('shows the all-clear state without footer buttons when nothing is detected and Nexus 2 is absent', () => {
+    render(<ConflictOnboardingScreen open ready conflicts={[]} onComplete={() => {}} />);
 
     expect(screen.getByText('conflicts.modal.empty')).toBeInTheDocument();
-    expect(screen.getByText('conflicts.onboarding.uninstallNexus2')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'conflicts.onboarding.skip' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'conflicts.outcome.keepAll' })).not.toBeInTheDocument();
   });
 
-  it('resolve all skips a whitelisted app: no kill, no autostart disable', async () => {
+  it('an allowed app keeps running by default: not ended, boot entries untouched', async () => {
     mockExclusions = ['icue'];
     mockFetchAutostart.mockResolvedValue([{ id: 'icue', entries: [{ kind: 'service', entryName: 'CorsairService' }] }]);
     const onComplete = vi.fn();
@@ -164,16 +166,24 @@ describe('ConflictOnboardingScreen', () => {
     await act(async () => { await Promise.resolve(); });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.outcome.terminateContinueOne' }));
     });
 
     expect(mockKill).toHaveBeenCalledWith('nzxt-cam');
     expect(mockKill).not.toHaveBeenCalledWith('icue');
-    expect(mockDisableAutostart).not.toHaveBeenCalledWith('icue');
+    expect(mockDisableAutostart).not.toHaveBeenCalled();
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(mockReportStep).toHaveBeenCalledWith({
       action: 'resolveAll', listed: ['icue', 'nzxt-cam'], whitelisted: ['icue'], alreadyEnded: [],
     });
+  });
+
+  it('Enter does not trigger the primary action', () => {
+    render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={() => {}} />);
+
+    fireEvent.keyDown(document.body, { key: 'Enter' });
+
+    expect(mockKill).not.toHaveBeenCalled();
   });
 
   it('renders Back and Skip only when their handlers are given', () => {

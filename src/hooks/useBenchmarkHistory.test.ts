@@ -47,6 +47,17 @@ describe('useBenchmarkHistory', () => {
     expect(reloaded.current.history.map(run => run.submissionId)).toEqual(['sub-2', null]);
   });
 
+  it('persists a dismissed publish prompt on its run across reloads', () => {
+    const { result: hook } = renderHook(() => useBenchmarkHistory());
+    let id = '';
+    act(() => { id = hook.current.addRun(result, null); });
+    act(() => { hook.current.dismissRunPublish(id); });
+    expect(hook.current.latest?.publishDismissed).toBe(true);
+
+    const { result: reloaded } = renderHook(() => useBenchmarkHistory());
+    expect(reloaded.current.latest?.publishDismissed).toBe(true);
+  });
+
   it('fills in a deferred upload on the matching run without adding a new entry', () => {
     const { result: hook } = renderHook(() => useBenchmarkHistory());
     let id = '';

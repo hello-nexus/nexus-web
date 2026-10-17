@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConflictWarningBadge } from './ConflictWarning';
 import type { DetectedConflict } from '../../../api/conflicts';
@@ -45,7 +45,7 @@ describe('ConflictWarningModal', () => {
     mockOverlaps = () => true;
   });
 
-  it('renders one ConflictAppCard per detected conflict', () => {
+  it('renders one outcome card per detected conflict', () => {
     render(
       <ConflictWarningBadge
         conflicts={conflicts}
@@ -53,8 +53,6 @@ describe('ConflictWarningModal', () => {
         suppressed={false}
         open
         onOpenChange={vi.fn()}
-        onSuppressedChange={vi.fn()}
-        onManageApps={vi.fn()}
       />,
     );
 
@@ -62,7 +60,7 @@ describe('ConflictWarningModal', () => {
     expect(screen.getByText('conflicts.modal.pid:42')).toBeInTheDocument();
     expect(screen.getByText('L-Connect')).toBeInTheDocument();
     expect(screen.getByText('conflicts.modal.pid:7')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'conflicts.modal.endTask' })).toHaveLength(2);
+    expect(screen.getAllByText('conflicts.outcome.willTerminate')).toHaveLength(2);
   });
 
   it('renders the empty state when there are no conflicts', () => {
@@ -73,33 +71,11 @@ describe('ConflictWarningModal', () => {
         suppressed={false}
         open
         onOpenChange={vi.fn()}
-        onSuppressedChange={vi.fn()}
-        onManageApps={vi.fn()}
       />,
     );
 
     expect(screen.getByText('conflicts.modal.empty')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'conflicts.modal.endTask' })).not.toBeInTheDocument();
-  });
-
-  it('Manage apps closes the modal and opens the settings manager', () => {
-    const onOpenChange = vi.fn();
-    const onManageApps = vi.fn();
-    render(
-      <ConflictWarningBadge
-        conflicts={conflicts}
-        ready
-        suppressed={false}
-        open
-        onOpenChange={onOpenChange}
-        onSuppressedChange={vi.fn()}
-        onManageApps={onManageApps}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.manageApps' }));
-    expect(onOpenChange).toHaveBeenCalledWith(false);
-    expect(onManageApps).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('conflicts.outcome.willTerminate')).not.toBeInTheDocument();
   });
 
   it('hides the badge once every detected app is whitelisted, but keeps listing it in an open modal', () => {
@@ -111,8 +87,6 @@ describe('ConflictWarningModal', () => {
         suppressed={false}
         open
         onOpenChange={vi.fn()}
-        onSuppressedChange={vi.fn()}
-        onManageApps={vi.fn()}
       />,
     );
 
@@ -130,8 +104,6 @@ describe('ConflictWarningModal', () => {
         suppressed={false}
         open={false}
         onOpenChange={vi.fn()}
-        onSuppressedChange={vi.fn()}
-        onManageApps={vi.fn()}
       />,
     );
 
@@ -147,8 +119,6 @@ describe('ConflictWarningModal', () => {
         suppressed={false}
         open
         onOpenChange={vi.fn()}
-        onSuppressedChange={vi.fn()}
-        onManageApps={vi.fn()}
       />,
     );
 
@@ -166,8 +136,6 @@ describe('ConflictWarningModal', () => {
         suppressed={false}
         open={false}
         onOpenChange={vi.fn()}
-        onSuppressedChange={vi.fn()}
-        onManageApps={vi.fn()}
       />,
     );
 
@@ -184,8 +152,6 @@ describe('ConflictWarningModal', () => {
         suppressed={false}
         open={false}
         onOpenChange={vi.fn()}
-        onSuppressedChange={vi.fn()}
-        onManageApps={vi.fn()}
       />,
     );
 

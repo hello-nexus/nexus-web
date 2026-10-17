@@ -138,6 +138,53 @@ describe('Select', () => {
     expect(onChange).toHaveBeenCalledWith('b');
   });
 
+  it('renders a header as a non-option heading that nav and clicks skip', () => {
+    const onChange = vi.fn();
+    const grouped = [
+      { value: '', label: 'Fruit', header: true },
+      { value: 'a', label: 'Apple' },
+      { value: '', label: 'Veg', header: true },
+      { value: 'b', label: 'Beet' },
+    ];
+    render(<Select value="a" onChange={onChange} options={grouped} ariaLabel="fruit" />);
+    const listbox = open();
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    expect(within(listbox).getByText('Veg')).toBeInTheDocument();
+    fireEvent.click(within(listbox).getByText('Veg'));
+    expect(onChange).not.toHaveBeenCalled();
+    // ArrowDown from Apple skips the Veg header and lands on Beet.
+    fireEvent.keyDown(listbox, { key: 'ArrowDown' });
+    fireEvent.keyDown(listbox, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('b');
+  });
+
+  it('never selects a header whose value equals the current value', () => {
+    const grouped = [
+      { value: '', label: 'Heading', header: true },
+      { value: '', label: 'None' },
+      { value: 'a', label: 'Apple' },
+    ];
+    render(<Select value="" onChange={vi.fn()} options={grouped} ariaLabel="fruit" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('None');
+    expect(screen.getByRole('button', { name: 'fruit' })).not.toHaveTextContent('Heading');
+    const listbox = open();
+    expect(within(listbox).getByRole('option', { selected: true })).toHaveTextContent('None');
+  });
+
+  it('typeahead does not land on a header', () => {
+    const onChange = vi.fn();
+    const grouped = [
+      { value: '', label: 'Veg', header: true },
+      { value: 'a', label: 'Apple' },
+      { value: 'b', label: 'Vine' },
+    ];
+    render(<Select value="a" onChange={onChange} options={grouped} ariaLabel="fruit" />);
+    const listbox = open();
+    fireEvent.keyDown(listbox, { key: 'v' });
+    fireEvent.keyDown(listbox, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('b');
+  });
+
   it('does not open when disabled', () => {
     render(<Select value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" disabled />);
     fireEvent.click(screen.getByRole('button', { name: 'fruit' }));
@@ -231,5 +278,31 @@ describe('Select in-menu search', () => {
     const labels = screen.getAllByRole('option').map(o => o.textContent);
     expect(labels).not.toContain('');
     expect(labels).toEqual(['Apple', 'Apricot', 'Banana', 'Grape', 'Mango', 'Orange', 'Peach', 'Pear']);
+  });
+
+  it('keeps a header only when an option in its group matches', () => {
+    const grouped = [
+      { value: '', label: 'Output', header: true },
+      ...FRUITS.slice(0, 4).map(f => ({ ...f })),
+      { value: '', label: 'Input', header: true },
+      ...FRUITS.slice(4),
+    ];
+    render(<Select value="f0" onChange={vi.fn()} options={grouped} ariaLabel="fruit" />);
+    open();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'apple' } });
+    expect(screen.getByText('Output')).toBeInTheDocument();
+    expect(screen.queryByText('Input')).toBeNull();
+  });
+
+  it('does not count headers toward the search threshold', () => {
+    const grouped = [
+      { value: '', label: 'H1', header: true },
+      ...FRUITS.slice(0, 5),
+      { value: '', label: 'H2', header: true },
+      ...FRUITS.slice(5, 7),
+    ];
+    render(<Select value="f0" onChange={vi.fn()} options={grouped} ariaLabel="fruit" />);
+    open();
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 });

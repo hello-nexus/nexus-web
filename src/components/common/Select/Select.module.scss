@@ -199,6 +199,16 @@
   to   { opacity: 1; }
 }
 
+// Section heading (SelectOption.header): a dim, non-interactive label.
+.header {
+  padding: 0.45rem 0.6rem 0.2rem;
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+  font-weight: 600;
+  pointer-events: none;
+  cursor: default;
+}
+
 .option {
   padding: 0.45rem 0.6rem;
   border-radius: var(--radius-sm);
