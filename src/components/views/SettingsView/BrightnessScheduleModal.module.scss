@@ -35,6 +35,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+// Location, sun times and notes under the sunset shift toggle.
+.sun {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
 // Idle dimming: independent of the schedule, so it sits under its own rule.
 .idle {
   display: flex;

@@ -21,11 +21,30 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
+interface Place { lat: number; lon: number; label: string; cc: string }
+const OSLO: Place = { lat: 59.913, lon: 10.752, label: 'Oslo, NO', cc: 'NO' };
+
+vi.mock('../../../panel/widgets/weather/useWeatherPrefs', () => ({
+  useWeatherPrefs: () => ({ prefs: { unit: 'auto', locations: [{ lat: 59.913, lon: 10.752, label: 'Oslo, NO', cc: 'NO' }] } }),
+}));
+vi.mock('../../../panel/widgets/weather/WeatherLocationSearch', () => ({
+  WeatherLocationSearch: ({ onSelect }: { onSelect: (r: unknown) => void }) => (
+    <button type="button" onClick={() => onSelect({ name: 'Rome', admin1: '', country: 'Italy', countryCode: 'IT', latitude: 41.9, longitude: 12.5 })}>
+      search-pick
+    </button>
+  ),
+}));
+
 const scheduleState = {
   schedule: { enabled: false, points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }] },
   defaults: [],
   current: null,
   minute: 0,
+  sunShift: true,
+  location: null as Place | null,
+  sun: { status: 'no-location', date: '2026-03-05', sunriseMin: null, sunsetMin: null, sunPoints: [], resolvedLocation: null } as Record<string, unknown> | null,
+  sunPoints: null as { hour: number; brightness: number }[] | null,
+  saveSun: vi.fn().mockResolvedValue(undefined),
   save: vi.fn(),
 };
 
@@ -39,6 +58,16 @@ const open = async (state: Record<string, unknown>) => {
   render(<BrightnessScheduleModal open onClose={() => {}} state={scheduleState} />);
   await waitFor(() => expect(api.fetchIdleDim).toHaveBeenCalled());
 };
+
+const SUN_OK = {
+  status: 'ok', date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, resolvedLocation: OSLO,
+  sunPoints: [{ min: 420, brightness: 30 }, { min: 540, brightness: 100 }],
+};
+const withState = (over: Record<string, unknown>) => {
+  api.fetchIdleDim.mockResolvedValue(idle({ supported: false }));
+  render(<BrightnessScheduleModal open onClose={() => {}} state={{ ...scheduleState, ...over }} />);
+};
+const graphHandles = () => document.querySelectorAll('circle[class*="curvePoint"]');
 
 const timeoutTrigger = () => screen.getByRole('button', { name: 'lighting.idleDim.timeout.label' });
 
@@ -198,5 +227,91 @@ describe('BrightnessScheduleModal idle dimming', () => {
       fireEvent.pointerUp(slider);
       await waitFor(() => expect(api.setIdleDim).toHaveBeenCalledWith({ enabled: true, timeoutSeconds: 600, level: 40 }));
     });
+  });
+});
+
+describe('BrightnessScheduleModal sunset shift', () => {
+  beforeEach(() => {
+    scheduleState.saveSun.mockClear();
+    scheduleState.save.mockClear();
+  });
+
+  it('shows the toggle on and saves the flip immediately', async () => {
+    withState({ sunShift: true });
+    const toggle = screen.getByRole('switch', { name: 'lighting.schedule.sun.label' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(scheduleState.saveSun).toHaveBeenCalledWith({ sunShift: false });
+  });
+
+  it('turns the shift on from off', () => {
+    withState({ sunShift: false });
+    fireEvent.click(screen.getByRole('switch', { name: 'lighting.schedule.sun.label' }));
+    expect(scheduleState.saveSun).toHaveBeenCalledWith({ sunShift: true });
+  });
+
+  it('hides the location row while off', () => {
+    withState({ sunShift: false });
+    expect(screen.queryByText('lighting.schedule.sun.location')).not.toBeInTheDocument();
+    expect(screen.queryByText('search-pick')).not.toBeInTheDocument();
+  });
+
+  it('saves a picked place, Auto as null, and a searched result', () => {
+    withState({ sunShift: true, location: OSLO, sun: SUN_OK });
+    const trigger = screen.getByRole('button', { name: 'lighting.schedule.sun.location' });
+    expect(trigger).toHaveTextContent('Oslo, NO');
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('option', { name: /lighting\.schedule\.sun\.locationAutoNamed/ }));
+    expect(scheduleState.saveSun).toHaveBeenLastCalledWith({ location: null });
+
+    fireEvent.click(screen.getByText('search-pick'));
+    expect(scheduleState.saveSun).toHaveBeenLastCalledWith({
+      location: { lat: 41.9, lon: 12.5, label: 'Rome, IT', cc: 'IT' },
+    });
+  });
+
+  it('selects a saved place from the list', () => {
+    withState({ sunShift: true, location: null, sun: SUN_OK });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.sun.location' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Oslo, NO' }));
+    expect(scheduleState.saveSun).toHaveBeenLastCalledWith({ location: OSLO });
+  });
+
+  it('shows read-only sun curve, markers, times and disabled reset when it applies', () => {
+    withState({
+      sunShift: true, sun: SUN_OK, sunPoints: [{ hour: 7, brightness: 30 }, { hour: 9, brightness: 100 }],
+      defaults: [{ hour: 0, brightness: 10 }, { hour: 12, brightness: 100 }],
+    });
+    expect(screen.getByText('lighting.schedule.sun.editNote')).toBeInTheDocument();
+    expect(screen.getByText(/lighting\.schedule\.sun\.times:/)).toBeInTheDocument();
+    expect(screen.getAllByText(/7:00/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('button', { name: 'lighting.schedule.reset' })).toBeDisabled();
+    expect(graphHandles().length).toBeGreaterThan(0);
+    expect(graphHandles()[0]).not.toHaveStyle({ cursor: 'grab' });
+  });
+
+  it.each([
+    ['polar-day', 'lighting.schedule.sun.polarDay'],
+    ['polar-night', 'lighting.schedule.sun.polarNight'],
+    ['no-location', 'lighting.schedule.sun.noLocation'],
+  ])('keeps the user curve editable and explains %s', (status, key) => {
+    withState({
+      sunShift: true, sunPoints: null, defaults: [{ hour: 0, brightness: 10 }, { hour: 12, brightness: 100 }],
+      sun: { ...SUN_OK, status, sunriseMin: null, sunsetMin: null, sunPoints: [] },
+    });
+    expect(screen.getByText(key)).toBeInTheDocument();
+    expect(screen.queryByText('lighting.schedule.sun.editNote')).not.toBeInTheDocument();
+    expect(screen.queryByText(/lighting\.schedule\.sun\.times:/)).not.toBeInTheDocument();
+    expect(graphHandles()[0]).toHaveStyle({ cursor: 'grab' });
+    expect(screen.getByRole('button', { name: 'lighting.schedule.reset' })).toBeEnabled();
+  });
+
+  it('shows the editable custom curve with a reset when off', () => {
+    withState({ sunShift: false, sun: SUN_OK, sunPoints: null, defaults: [{ hour: 0, brightness: 10 }, { hour: 12, brightness: 100 }] });
+    expect(screen.queryByText(/lighting\.schedule\.sun\.times:/)).not.toBeInTheDocument();
+    expect(graphHandles()[0]).toHaveStyle({ cursor: 'grab' });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.reset' }));
+    expect(scheduleState.save).toHaveBeenCalledWith({ enabled: false, points: [{ hour: 0, brightness: 10 }, { hour: 12, brightness: 100 }] });
+    expect(scheduleState.saveSun).not.toHaveBeenCalled();
   });
 });

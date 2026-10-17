@@ -26,6 +26,9 @@ const schedule = (enabled: boolean, level: number) => ({
   // A flat curve, so the level is the same whatever the wall clock says.
   points: [{ hour: 0, brightness: level }, { hour: 12, brightness: level }],
   defaults: [],
+  sunShift: true,
+  location: null,
+  sun: { status: 'no-location', date: '2026-03-05', sunriseMin: null, sunsetMin: null, sunPoints: [], resolvedLocation: null },
 });
 
 describe('GlobalBrightnessSlider schedule marker', () => {
@@ -58,6 +61,21 @@ describe('GlobalBrightnessSlider schedule marker', () => {
 
     fireEvent.pointerEnter(marker);
     await waitFor(() => expect(screen.getByText('lighting.schedule.marker.capping:{"level":40}')).toBeInTheDocument());
+  });
+
+  it('caps by the sun curve instead of the user points while the shift applies', async () => {
+    api.fetchBrightnessSchedule.mockResolvedValue({
+      ...schedule(true, 90),
+      sun: {
+        status: 'ok', date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, resolvedLocation: null,
+        sunPoints: [{ min: 0, brightness: 25 }, { min: 720, brightness: 25 }],
+      },
+    });
+    render(<GlobalBrightnessSlider serviceOnline />);
+    const marker = await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
+    await waitFor(() => expect(marker).toHaveAttribute('data-active'));
+    fireEvent.pointerEnter(marker);
+    await waitFor(() => expect(screen.getByText('lighting.schedule.marker.capping:{"level":25}')).toBeInTheDocument());
   });
 
   it('keeps the label click and the accessible name on the range, not the clock', async () => {

@@ -179,6 +179,13 @@ export interface CurveGraphAxis {
   wrap?: boolean;
 }
 
+/** A labelled vertical line at an x value, e.g. sunrise on the brightness schedule. */
+export interface CurveGraphMarker {
+  x: number;
+  label: string;
+  icon?: ReactNode;
+}
+
 // Samples across the chart width for a drawn curve; one every few pixels at
 // the widest chart, invisible as a polyline.
 const SHAPE_SAMPLES = 192;
@@ -217,7 +224,7 @@ function sampleCurveShape(
 // piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear',
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers,
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -233,6 +240,8 @@ export function CurveGraph({
   limitPercent?: number;
   axis?: CurveGraphAxis;
   easing?: CurveEasing;
+  /** Vertical lines with a label (and optional icon) at x values in the axis span. */
+  markers?: CurveGraphMarker[];
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -435,6 +444,9 @@ export function CurveGraph({
                 x2={width - PAD.right} y2={speedToY(Math.max(0, Math.min(100, limitPercent)))}
                 className={styles.curveLimitLine} />
             )}
+            {markers?.map((m, i) => (
+              <line key={`m${i}`} x1={tempToX(m.x)} y1={PAD.top} x2={tempToX(m.x)} y2={height - PAD.bottom} className={styles.curveMarkerLine} />
+            ))}
             {hasDot && (
               <g className={styles.curveTempIndicator}>
                 {/* Guide lines meet at the dot: one up from the bottom temp
@@ -455,6 +467,19 @@ export function CurveGraph({
                 onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined} />
             ))}
           </svg>
+          {markers && markers.length > 0 && (
+            <div className={styles.curveMarkers} aria-hidden="true">
+              {markers.map((m, i) => {
+                const f = (m.x - tempMin) / (tempMax - tempMin);
+                return (
+                  <span key={i} className={styles.curveMarker} data-edge={f < 0.15 ? 'start' : f > 0.85 ? 'end' : undefined}
+                    style={{ left: `calc(${PAD.left}px + (100% - ${PAD.left + PAD.right}px) * ${f})` }}>
+                    {m.icon}{m.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           {readoutPt && (
             <ChartHoverTooltip ref={tooltipRef}>
               <ChartTooltipRow color="var(--accent)" name={xName}>

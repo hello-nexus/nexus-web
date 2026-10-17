@@ -1,12 +1,15 @@
-import { useMemo } from 'react';
-import { Clock, RotateCcw } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
+import { Clock, RotateCcw, Sunrise, Sunset } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Slider } from '../../common/Slider/Slider';
-import { CurveGraph, type CurveGraphAxis } from '../../../panel/widgets/cooling/page/CurveEditor';
+import { CurveGraph, type CurveGraphAxis, type CurveGraphMarker } from '../../../panel/widgets/cooling/page/CurveEditor';
 import type { CurvePoint } from '../../../api/cooling';
 import type { BrightnessSchedulePoint } from '../../../api/lighting';
+import { geocodeResultToLocation, sameWeatherLocation, weatherLocationKey } from '../../../api/weather';
+import { WeatherLocationSearch } from '../../../panel/widgets/weather/WeatherLocationSearch';
+import { useWeatherPrefs } from '../../../panel/widgets/weather/useWeatherPrefs';
 import type { BrightnessScheduleState } from '../../../hooks/useBrightnessSchedule';
 import { useIdleDim } from '../../../hooks/useIdleDim';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -30,7 +33,9 @@ interface BrightnessScheduleModalProps {
 /**
  * Editor for the master-brightness schedule: the cooling curve graph on a
  * 0..24 hour axis, plus the on/off switch and a reset to the service's
- * out-of-box curve. Every edit saves straight through, so the LEDs follow the
+ * out-of-box curve. With the sunset shift on, the service plays a curve
+ * generated from today's sunrise and sunset, so the graph shows that one
+ * read-only. Every edit saves straight through, so the LEDs follow the
  * drag on the next push.
  */
 export function BrightnessScheduleModal({ open, onClose, state }: BrightnessScheduleModalProps) {
@@ -38,7 +43,8 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
   // The modal mounts only while open, so this fetches on open.
   const idleDim = useIdleDim(true);
   const { timeFormat, numberFormat } = useUnitPrefs();
-  const { schedule, defaults, current, minute, save } = state;
+  const { schedule, defaults, current, minute, save, sunShift, location, sun, sunPoints, saveSun } = state;
+  const { prefs } = useWeatherPrefs();
 
   const hour12 = hour12OptionFor(timeFormat);
   const axis = useMemo<CurveGraphAxis>(() => ({
@@ -52,10 +58,41 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
       .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12 }),
   }), [t, hour12]);
 
+  // The generated curve replaces the user's points while it applies.
+  const sunApplies = sunPoints !== null;
   const points = useMemo<CurvePoint[]>(
-    () => (schedule?.points ?? []).map(p => ({ temp: p.hour, speed: p.brightness })),
-    [schedule],
+    () => (sunPoints ?? schedule?.points ?? []).map(p => ({ temp: p.hour, speed: p.brightness })),
+    [schedule, sunPoints],
   );
+
+  const clock = useCallback((min: number) => new Date(2000, 0, 1, Math.floor(min / 60) % 24, Math.floor(min % 60))
+    .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12 }), [hour12]);
+  const markers = useMemo<CurveGraphMarker[] | undefined>(() => {
+    if (!sunApplies || sun?.sunriseMin == null || sun.sunsetMin == null) return undefined;
+    return [
+      { x: sun.sunriseMin / 60, label: clock(sun.sunriseMin), icon: <Sunrise size={12} /> },
+      { x: sun.sunsetMin / 60, label: clock(sun.sunsetMin), icon: <Sunset size={12} /> },
+    ];
+  }, [sunApplies, sun, clock]);
+
+  const sunNote = sun?.status === 'polar-day' ? t('lighting.schedule.sun.polarDay')
+    : sun?.status === 'polar-night' ? t('lighting.schedule.sun.polarNight')
+      : sun?.status === 'no-location' ? t('lighting.schedule.sun.noLocation')
+        : null;
+
+  // The picker lists the saved places plus the chosen one when it predates
+  // the list, so a place picked from a search still shows its name.
+  const choices = location && !prefs.locations.some(l => sameWeatherLocation(l, location))
+    ? [location, ...prefs.locations]
+    : prefs.locations;
+  const autoLabel = sun?.resolvedLocation
+    ? t('lighting.schedule.sun.locationAutoNamed', { place: sun.resolvedLocation.label })
+    : t('lighting.schedule.sun.locationAuto');
+  const pickLocation = (key: string) => {
+    if (key === '') { void saveSun({ location: null }); return; }
+    const picked = choices.find(l => weatherLocationKey(l) === key);
+    if (picked) void saveSun({ location: picked });
+  };
 
   const commit = (next: CurvePoint[]) => {
     if (!schedule) return;
@@ -99,6 +136,38 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
     >
       <div className={styles.modal}>
         <SettingToggle
+          label={t('lighting.schedule.sun.label')}
+          description={t('lighting.schedule.sun.description')}
+          checked={sunShift}
+          disabled={!schedule}
+          onChange={on => { void saveSun({ sunShift: on }); }}
+          stackOnNarrow
+        />
+        {sunShift && (
+          <div className={styles.sun}>
+            <SettingSelect
+              label={t('lighting.schedule.sun.location')}
+              value={location ? weatherLocationKey(location) : ''}
+              options={[
+                { value: '', label: autoLabel },
+                ...choices.map(l => ({ value: weatherLocationKey(l), label: l.label })),
+              ]}
+              onChange={pickLocation}
+            />
+            <WeatherLocationSearch
+              hasKeyboard
+              onSelect={result => { void saveSun({ location: geocodeResultToLocation(result) }); }}
+            />
+            {sunApplies && sun?.sunriseMin != null && sun.sunsetMin != null && (
+              <p className={styles.hint}>
+                {t('lighting.schedule.sun.times', { sunrise: clock(sun.sunriseMin), sunset: clock(sun.sunsetMin) })}
+              </p>
+            )}
+            {sunNote && <p className={styles.hint}>{sunNote}</p>}
+          </div>
+        )}
+
+        <SettingToggle
           label={t('lighting.schedule.enable.label')}
           description={t('lighting.schedule.enable.description')}
           checked={schedule?.enabled ?? false}
@@ -107,7 +176,9 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
           stackOnNarrow
         />
 
-        <p className={styles.hint}>{t('lighting.schedule.graph.hint')}</p>
+        <p className={styles.hint}>
+          {sunApplies ? t('lighting.schedule.sun.editNote') : t('lighting.schedule.graph.hint')}
+        </p>
 
         <div className={styles.graph}>
           <CurveGraph
@@ -117,7 +188,8 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
             axis={axis}
             easing={SCHEDULE_EASING}
             currentTemp={minute / 60}
-            editable={!!schedule}
+            editable={!!schedule && !sunApplies}
+            markers={markers}
             onChange={commit}
           />
         </div>
@@ -133,7 +205,7 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
             tone="ghost"
             size="sm"
             icon={<RotateCcw size={13} />}
-            disabled={!schedule || defaults.length === 0 || isDefault}
+            disabled={!schedule || sunApplies || defaults.length === 0 || isDefault}
             onClick={() => { if (schedule) void save({ enabled: schedule.enabled, points: defaults }); }}
           >
             {t('lighting.schedule.reset')}

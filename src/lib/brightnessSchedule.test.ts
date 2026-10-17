@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { minuteOfDay, scheduledBrightness } from './brightnessSchedule';
+import { localDateKey, minuteOfDay, scheduledBrightness, sunCurve } from './brightnessSchedule';
 
 // Vectors shared with nexus-service's MasterBrightnessTests: both sides
 // evaluate the same rule, so the slider's readout and the LEDs never
@@ -42,5 +42,40 @@ describe('scheduledBrightness', () => {
 
   it('drops seconds from the clock', () => {
     expect(minuteOfDay(new Date(2026, 0, 1, 14, 37, 59))).toBe(14 * 60 + 37);
+  });
+
+  it('formats the local date like the service', () => {
+    expect(localDateKey(new Date(2026, 2, 5, 23, 59))).toBe('2026-03-05');
+  });
+});
+
+describe('sunCurve', () => {
+  // Sunrise 07:00, sunset 19:00: the service's R-60, R, R+120, S-120, S, S+60 shape.
+  const sunPoints = [
+    { min: 360, brightness: 10 }, { min: 420, brightness: 30 }, { min: 540, brightness: 100 },
+    { min: 1020, brightness: 100 }, { min: 1140, brightness: 30 }, { min: 1200, brightness: 10 },
+  ];
+  const sun = (over: Record<string, unknown> = {}) => ({
+    status: 'ok' as const, date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, sunPoints, resolvedLocation: null, ...over,
+  });
+  const at = (minute: number) => scheduledBrightness(sunCurve(true, sun())!, minute);
+
+  it('turns minutes into fractional hours', () => {
+    expect(sunCurve(true, sun())![1]).toEqual({ hour: 7, brightness: 30 });
+  });
+
+  it('plays the user curve when off or the sun is unusable', () => {
+    expect(sunCurve(false, sun())).toBeNull();
+    expect(sunCurve(true, null)).toBeNull();
+    expect(sunCurve(true, sun({ status: 'polar-day' }))).toBeNull();
+    expect(sunCurve(true, sun({ status: 'no-location', sunPoints: [] }))).toBeNull();
+    expect(sunCurve(true, sun({ sunPoints: [] }))).toBeNull();
+  });
+
+  it.each([
+    [360, 10], [390, 20], [420, 30], [480, 65], [540, 100], [780, 100], [1080, 65], [1140, 30], [1200, 10],
+    [1320, 10], [0, 10], [180, 10],
+  ])('interpolates the generated points (minute %i)', (minute, percent) => {
+    expect(at(minute)).toBeCloseTo(percent, 4);
   });
 });

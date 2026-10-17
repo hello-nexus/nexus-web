@@ -1147,6 +1147,26 @@
 .gridLine { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
 // Dashed ceiling line (e.g. the turbo-off duty cap on the Q-series curves).
 .curveLimitLine { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: 0.85; }
+.curveMarkerLine { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.7; }
+// Labels ride the top of the chart; pointer events pass through to the handles.
+.curveMarkers { position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; }
+.curveMarker {
+  position: absolute;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  transform: translateX(-50%);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: var(--bg);
+  border-radius: var(--radius);
+  &[data-edge='start'] { transform: none; }
+  &[data-edge='end'] { transform: translateX(-100%); }
+}
 .curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; }
 
 // Live temperature indicator overlaid on the graph: vertical line from the

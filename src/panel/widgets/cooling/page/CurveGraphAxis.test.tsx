@@ -65,4 +65,22 @@ describe('CurveGraph axis', () => {
     for (let i = 0; i < nums.length; i += 2) { if (Math.abs(nums[i] - midX) < best) { best = Math.abs(nums[i] - midX); bestY = nums[i + 1]; } }
     expect(bestY).toBeCloseTo(Number(mid.getAttribute('cy')), 0);
   });
+
+  it('draws a labelled vertical line per marker and none without', () => {
+    const base = { points: [{ temp: 2, speed: 20 }, { temp: 22, speed: 60 }], tempMin: 0, tempMax: 24 };
+    const { container, rerender } = render(<CurveGraph {...base} />);
+    const lines = () => container.querySelectorAll('svg line').length;
+    const without = lines();
+    rerender(<CurveGraph {...base} markers={[{ x: 6, label: '6:00 AM' }, { x: 18, label: '6:00 PM' }]} />);
+    expect(lines()).toBe(without + 2);
+    const labels = Array.from(container.querySelectorAll('span')).map(s => s.textContent);
+    expect(labels).toEqual(expect.arrayContaining(['6:00 AM', '6:00 PM']));
+  });
+
+  it('does not make points draggable unless editable', () => {
+    const { container } = render(<CurveGraph points={[{ temp: 2, speed: 20 }, { temp: 22, speed: 60 }]} tempMin={0} tempMax={24} />);
+    const circle = container.querySelector('circle[class*="curvePoint"]') as SVGCircleElement;
+    expect(circle).not.toBeNull();
+    expect(circle.style.cursor).toBe('');
+  });
 });

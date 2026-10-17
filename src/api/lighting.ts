@@ -749,11 +749,38 @@ export const setGlobalBrightness = (value: number) =>
 export interface BrightnessSchedulePoint { hour: number; brightness: number }
 export interface BrightnessSchedule { enabled: boolean; points: BrightnessSchedulePoint[] }
 
-export const fetchBrightnessSchedule = () =>
-  fetchService<BrightnessSchedule & { defaults: BrightnessSchedulePoint[] }>('/lighting/brightness-schedule');
+// Sunset shift: the morning and evening ramps follow today's sunrise and
+// sunset at a place. A null location is Auto (the service's IP lookup).
+export interface BrightnessScheduleLocation { lat: number; lon: number; label: string; cc: string }
+export type SunStatus = 'ok' | 'polar-day' | 'polar-night' | 'no-location';
+export interface BrightnessScheduleSun {
+  status: SunStatus;
+  /** Local date the times are for, YYYY-MM-DD. */
+  date: string;
+  /** PC-local minutes since midnight; null unless status is 'ok'. */
+  sunriseMin: number | null;
+  sunsetMin: number | null;
+  /** Today's generated curve, sorted; empty unless status is 'ok'. */
+  sunPoints: { min: number; brightness: number }[];
+  resolvedLocation: BrightnessScheduleLocation | null;
+}
+export interface BrightnessScheduleResponse extends BrightnessSchedule {
+  defaults: BrightnessSchedulePoint[];
+  sunShift: boolean;
+  location: BrightnessScheduleLocation | null;
+  sun: BrightnessScheduleSun;
+}
+// A field left out keeps its stored value; location null selects Auto.
+export interface BrightnessScheduleUpdate extends BrightnessSchedule {
+  sunShift?: boolean;
+  location?: BrightnessScheduleLocation | null;
+}
 
-export const setBrightnessSchedule = (schedule: BrightnessSchedule) =>
-  postService('/lighting/brightness-schedule', schedule);
+export const fetchBrightnessSchedule = () =>
+  fetchService<BrightnessScheduleResponse>('/lighting/brightness-schedule');
+
+export const setBrightnessSchedule = (schedule: BrightnessScheduleUpdate) =>
+  postService<BrightnessScheduleResponse>('/lighting/brightness-schedule', schedule);
 
 // Resize a motherboard ARGB zone's LED count. Persisted + applied live via
 // OpenRGB's RESIZEZONE opcode. Only valid for split zone ids ("openrgb-N-Z").
