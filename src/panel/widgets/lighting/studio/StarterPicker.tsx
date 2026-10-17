@@ -15,16 +15,18 @@ import styles from './ShaderStudio.module.scss';
 // Layout enum, not display text; hoisted so the JSX carries no literal.
 const POPUP = 'dialog' as const;
 
-// Stills come from the one shared WebGL context, a few frames apart so opening the picker never stalls.
-const stillCache = new Map<string, string | null>();
+// Stills come from the one shared WebGL context, spaced out so opening the picker never stalls.
+const stillCache = new Map<string, string>();
 
 // Each still compiles and links a shader, so they are spaced out rather than rendered back to back.
 const STILL_GAP_MS = 90;
 
-function useStarterStills(open: boolean): ReadonlyMap<string, string | null> {
-  const [, bump] = useState(0);
+/** The cached stills, and the ids this open has already tried (a failed one then shows a plain tile, not a loading one). */
+function useStarterStills(open: boolean): { stills: ReadonlyMap<string, string>; tried: ReadonlySet<string> } {
+  const [tried, setTried] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => {
     if (!open) return;
+    setTried(new Set());
     // A still that failed to render is not remembered, so the next open tries it again.
     const pending = STUDIO_STARTERS.filter(s => !stillCache.get(s.id));
     let timer = 0;
@@ -32,16 +34,14 @@ function useStarterStills(open: boolean): ReadonlyMap<string, string | null> {
       const starter = pending.shift();
       if (!starter) return;
       const url = renderRecipeStill(starter.build());
-      if (url) {
-        stillCache.set(starter.id, url);
-        bump(n => n + 1);
-      }
+      if (url) stillCache.set(starter.id, url);
+      setTried(prev => new Set(prev).add(starter.id));
       timer = window.setTimeout(next, STILL_GAP_MS);
     };
     timer = window.setTimeout(next, 0);
     return () => window.clearTimeout(timer);
   }, [open]);
-  return stillCache;
+  return { stills: stillCache, tried };
 }
 
 /** The Studio's starters as a grid of small previews under the Lighting page's category headers, with a search on top. */
@@ -51,7 +51,7 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
-  const stills = useStarterStills(open);
+  const { stills, tried } = useStarterStills(open);
   const bodyRef = useRef<HTMLDivElement>(null);
   // The popover mounts its content after the click, so the search takes focus on the next frame.
   useEffect(() => {
@@ -90,12 +90,11 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
         {t('lighting.studio.starters')}
       </Button>
       <Popover portal open={open} onClose={close} anchorRef={anchorRef} placement="bottom-start" className={styles.starterPopover} ariaLabel={t('lighting.studio.starters')}>
-        <div ref={bodyRef} onKeyDown={onEscape}>
+        <div ref={bodyRef} className={styles.starterBody} onKeyDown={onEscape}>
           <SearchInput
-          value={query} onChange={setQuery}
-          placeholder={t('lighting.effects.search')} ariaLabel={t('lighting.effects.search')}
+            value={query} onChange={setQuery}
+            placeholder={t('lighting.effects.search')} ariaLabel={t('lighting.effects.search')}
           />
-        </div>
         <div className={styles.starterScroll}>
           {groups.map(g => (
             <CollapsibleSection
@@ -106,7 +105,7 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
                 {g.ids.map(id => (
                   <EffectCard
                     key={id} overlay label={t(`lighting.studio.starter.${id}`)} thumbUrl={stills.get(id) ?? null}
-                    thumbStatic={false} active={false}
+                    thumbStatic={tried.has(id) && !stills.has(id)} active={false}
                     onClick={() => { close(); onPick(id); }}
                   />
                 ))}
@@ -114,6 +113,7 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
             </CollapsibleSection>
           ))}
           {searching && groups.length === 0 && <p className={pageStyles.browserHint}>{t('lighting.effects.noMatches')}</p>}
+        </div>
         </div>
       </Popover>
     </div>

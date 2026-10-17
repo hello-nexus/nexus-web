@@ -56,6 +56,23 @@ describe('StarterPicker', () => {
     }
   });
 
+  it.each([
+    ['a tile', () => screen.getByRole('button', { name: 'lighting.studio.starter.vuMeter' })],
+    ['a section header', () => screen.getByText('lighting.category.audio')],
+  ])('closes on Escape pressed on %s without reaching the Studio behind it', (_name, target) => {
+    const behind = vi.fn();
+    document.addEventListener('keydown', behind);
+    try {
+      render(<StarterPicker onPick={() => {}} />);
+      open();
+      fireEvent.keyDown(target(), { key: 'Escape' });
+      expect(screen.queryByRole('textbox', { name: 'lighting.effects.search' })).toBeNull();
+      expect(behind).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', behind);
+    }
+  });
+
   it('cannot be opened while disabled', () => {
     render(<StarterPicker disabled onPick={() => {}} />);
     expect(screen.getByRole('button', { name: 'lighting.studio.starters' })).toBeDisabled();
