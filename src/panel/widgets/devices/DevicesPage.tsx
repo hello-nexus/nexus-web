@@ -292,10 +292,13 @@ function DeviceCard({
   // second line, in that order of precedence.
   const busControlOff = device.bus != null && device.bus !== 'usb'
     && device.supportsNexusControl && !device.nexusControlEnabled;
+  const memoryControlOn = device.curatedId === 'smbus-dram'
+    && device.supportsNexusControl && device.nexusControlEnabled;
   const meta = isSimulatedDevice(device)
     ? t('devices.simulated')
     : device.requiresBeta ? t('devices.requiresBeta.short')
-      : busControlOff ? t('devices.busControlOff') : '';
+      : busControlOff ? t('devices.busControlOff')
+        : memoryControlOn ? t('devices.smbusDram.controlOn') : '';
   const body = (
     <>
       <span className={styles.rowIconTile}>

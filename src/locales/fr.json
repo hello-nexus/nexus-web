@@ -1278,6 +1278,7 @@
   "devices.smartHub.notConnected": "HYTE SmartHub non connecté",
   "devices.smartHub.standaloneFanPercent": "% ventilateur autonome",
   "devices.smartHub.standaloneFanPercentAria": "Pourcentage de ventilateur autonome",
+  "devices.smbusDram.controlOn": "Nexus lit les températures de la mémoire et contrôle l'éclairage de la RAM via SMBus.",
   "devices.smbusDram.name": "Mémoire",
   "devices.specs.copied": "Copié !",
   "devices.specs.copy": "Copier",

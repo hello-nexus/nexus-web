@@ -1278,6 +1278,7 @@
   "devices.smartHub.notConnected": "HYTE SmartHub bağlı değil",
   "devices.smartHub.standaloneFanPercent": "Bağımsız fan %",
   "devices.smartHub.standaloneFanPercentAria": "Bağımsız fan yüzdesi",
+  "devices.smbusDram.controlOn": "Nexus, SMBus üzerinden bellek sıcaklıklarını okur ve RAM aydınlatmasını kontrol eder.",
   "devices.smbusDram.name": "Bellek",
   "devices.specs.copied": "Kopyalandı!",
   "devices.specs.copy": "Kopyala",

@@ -393,10 +393,26 @@ describe('DevicesPage device-card secondary line', () => {
     expect(screen.getByText('devices.busControlOff')).toBeTruthy();
   });
 
-  it('renders nothing under the name for an on shared-bus device', () => {
+  it('shows the control-on description for an on Memory card', () => {
     mockUnified = [smbusRow({ nexusControlEnabled: true })];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
 
+    expect(screen.getByText('devices.smbusDram.controlOn')).toBeTruthy();
+    expect(screen.queryByText('devices.busControlOff')).toBeNull();
+  });
+
+  it('hides the control-on description when Memory control is off', () => {
+    mockUnified = [smbusRow({ nexusControlEnabled: false })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('devices.smbusDram.controlOn')).toBeNull();
+  });
+
+  it('renders no control-on description for an on shared-bus device other than Memory', () => {
+    mockUnified = [smbusRow({ nexusControlEnabled: true, curatedId: 'other-bus' })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('devices.smbusDram.controlOn')).toBeNull();
     expect(screen.queryByText('devices.busControlOff')).toBeNull();
   });
 
