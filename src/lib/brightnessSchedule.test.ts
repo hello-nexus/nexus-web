@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import vectors from './sunsetShiftVectors.json';
 import { localDateKey, minuteOfDay, scheduledBrightness, sunCurve } from './brightnessSchedule';
 
 // Vectors shared with nexus-service's MasterBrightnessTests: both sides
@@ -77,5 +78,17 @@ describe('sunCurve', () => {
     [1320, 10], [0, 10], [180, 10],
   ])('interpolates the generated points (minute %i)', (minute, percent) => {
     expect(at(minute)).toBeCloseTo(percent, 4);
+  });
+});
+
+// Shared with nexus-service: the generated points and the level the service
+// reads from them at sample minutes.
+describe('sun curve vectors shared with the service', () => {
+  it.each(vectors.map((v, i) => [i, v] as const))('case %i agrees at every sample', (_i, v) => {
+    const curve = sunCurve(true, {
+      status: 'ok', date: '2026-03-05', sunriseMin: v.sunriseMin, sunsetMin: v.sunsetMin,
+      sunPoints: v.expected, resolvedLocation: null,
+    })!;
+    for (const s of v.evalAt) expect(scheduledBrightness(curve, s.minute)).toBeCloseTo(s.expectedBrightness, 3);
   });
 });

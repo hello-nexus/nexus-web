@@ -1,0 +1,506 @@
+[
+ {
+  "sunriseMin": 420,
+  "sunsetMin": 1140,
+  "expected": [
+   {
+    "min": 360,
+    "brightness": 10
+   },
+   {
+    "min": 420,
+    "brightness": 30
+   },
+   {
+    "min": 540,
+    "brightness": 100
+   },
+   {
+    "min": 1020,
+    "brightness": 100
+   },
+   {
+    "min": 1140,
+    "brightness": 30
+   },
+   {
+    "min": 1200,
+    "brightness": 10
+   }
+  ],
+  "evalAt": [
+   {
+    "minute": 0,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 30,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 360,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 420,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 540,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 720,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 780,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1020,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1080,
+    "expectedBrightness": 65.0
+   },
+   {
+    "minute": 1140,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 1200,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1380,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1439,
+    "expectedBrightness": 10.0
+   }
+  ]
+ },
+ {
+  "sunriseMin": 300,
+  "sunsetMin": 1290,
+  "expected": [
+   {
+    "min": 240,
+    "brightness": 10
+   },
+   {
+    "min": 300,
+    "brightness": 30
+   },
+   {
+    "min": 420,
+    "brightness": 100
+   },
+   {
+    "min": 1170,
+    "brightness": 100
+   },
+   {
+    "min": 1290,
+    "brightness": 30
+   },
+   {
+    "min": 1350,
+    "brightness": 10
+   }
+  ],
+  "evalAt": [
+   {
+    "minute": 0,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 30,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 240,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 300,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 360,
+    "expectedBrightness": 65.0
+   },
+   {
+    "minute": 420,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 720,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 795,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1080,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1170,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1290,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 1350,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1380,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1439,
+    "expectedBrightness": 10.0
+   }
+  ]
+ },
+ {
+  "sunriseMin": 660,
+  "sunsetMin": 840,
+  "expected": [
+   {
+    "min": 600,
+    "brightness": 10
+   },
+   {
+    "min": 660,
+    "brightness": 30
+   },
+   {
+    "min": 750.0,
+    "brightness": 100
+   },
+   {
+    "min": 750.0,
+    "brightness": 100
+   },
+   {
+    "min": 840,
+    "brightness": 30
+   },
+   {
+    "min": 900,
+    "brightness": 10
+   }
+  ],
+  "evalAt": [
+   {
+    "minute": 0,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 30,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 360,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 600,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 660,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 720,
+    "expectedBrightness": 76.6667
+   },
+   {
+    "minute": 750,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 840,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 900,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1080,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1380,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1439,
+    "expectedBrightness": 10.0
+   }
+  ]
+ },
+ {
+  "sunriseMin": 90,
+  "sunsetMin": 1410,
+  "expected": [
+   {
+    "min": 30,
+    "brightness": 10
+   },
+   {
+    "min": 30,
+    "brightness": 10
+   },
+   {
+    "min": 90,
+    "brightness": 30
+   },
+   {
+    "min": 210,
+    "brightness": 100
+   },
+   {
+    "min": 1290,
+    "brightness": 100
+   },
+   {
+    "min": 1410,
+    "brightness": 30
+   }
+  ],
+  "evalAt": [
+   {
+    "minute": 0,
+    "expectedBrightness": 20.0
+   },
+   {
+    "minute": 30,
+    "expectedBrightness": 10
+   },
+   {
+    "minute": 90,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 210,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 360,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 720,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 750,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1080,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1290,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1380,
+    "expectedBrightness": 47.5
+   },
+   {
+    "minute": 1410,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 1439,
+    "expectedBrightness": 20.3333
+   }
+  ]
+ },
+ {
+  "sunriseMin": 60,
+  "sunsetMin": 1430,
+  "expected": [
+   {
+    "min": 25.0,
+    "brightness": 10
+   },
+   {
+    "min": 25.0,
+    "brightness": 10
+   },
+   {
+    "min": 60,
+    "brightness": 30
+   },
+   {
+    "min": 180,
+    "brightness": 100
+   },
+   {
+    "min": 1310,
+    "brightness": 100
+   },
+   {
+    "min": 1430,
+    "brightness": 30
+   }
+  ],
+  "evalAt": [
+   {
+    "minute": 0,
+    "expectedBrightness": 24.2857
+   },
+   {
+    "minute": 25,
+    "expectedBrightness": 10
+   },
+   {
+    "minute": 30,
+    "expectedBrightness": 12.8571
+   },
+   {
+    "minute": 60,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 180,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 360,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 720,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 745,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1080,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1310,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1380,
+    "expectedBrightness": 59.1667
+   },
+   {
+    "minute": 1430,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 1439,
+    "expectedBrightness": 24.8571
+   }
+  ]
+ },
+ {
+  "sunriseMin": 325,
+  "sunsetMin": 1231,
+  "expected": [
+   {
+    "min": 265,
+    "brightness": 10
+   },
+   {
+    "min": 325,
+    "brightness": 30
+   },
+   {
+    "min": 445,
+    "brightness": 100
+   },
+   {
+    "min": 1111,
+    "brightness": 100
+   },
+   {
+    "min": 1231,
+    "brightness": 30
+   },
+   {
+    "min": 1291,
+    "brightness": 10
+   }
+  ],
+  "evalAt": [
+   {
+    "minute": 0,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 30,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 265,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 325,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 360,
+    "expectedBrightness": 50.4167
+   },
+   {
+    "minute": 445,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 720,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 778,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1080,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1111,
+    "expectedBrightness": 100.0
+   },
+   {
+    "minute": 1231,
+    "expectedBrightness": 30.0
+   },
+   {
+    "minute": 1291,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1380,
+    "expectedBrightness": 10.0
+   },
+   {
+    "minute": 1439,
+    "expectedBrightness": 10.0
+   }
+  ]
+ }
+]
