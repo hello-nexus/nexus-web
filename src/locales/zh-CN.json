@@ -1278,7 +1278,7 @@
   "devices.smartHub.notConnected": "HYTE SmartHub 未连接",
   "devices.smartHub.standaloneFanPercent": "独立风扇 %",
   "devices.smartHub.standaloneFanPercentAria": "独立风扇百分比",
-  "devices.smbusDram.controlOn": "Nexus 通过 SMBus 读取内存温度并控制 RAM 灯光。",
+  "devices.smbusDram.controlOn": "Nexus 可通过 SMBus 读取内存温度并控制 RAM 灯光。",
   "devices.smbusDram.name": "内存",
   "devices.specs.copied": "已复制！",
   "devices.specs.copy": "复制",

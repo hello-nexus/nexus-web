@@ -1278,7 +1278,7 @@
   "devices.smartHub.notConnected": "HYTE SmartHub nicht verbunden",
   "devices.smartHub.standaloneFanPercent": "Eigenständige Lüfter-%",
   "devices.smartHub.standaloneFanPercentAria": "Eigenständiger Lüfterprozentsatz",
-  "devices.smbusDram.controlOn": "Nexus liest die Temperaturen des Arbeitsspeichers aus und steuert die RAM-Beleuchtung über SMBus.",
+  "devices.smbusDram.controlOn": "Nexus kann die Temperaturen des Arbeitsspeichers auslesen und die RAM-Beleuchtung über SMBus steuern.",
   "devices.smbusDram.name": "Arbeitsspeicher",
   "devices.specs.copied": "Kopiert!",
   "devices.specs.copy": "Kopieren",

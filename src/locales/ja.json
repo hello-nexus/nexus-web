@@ -1278,7 +1278,7 @@
   "devices.smartHub.notConnected": "HYTE SmartHub が接続されていません",
   "devices.smartHub.standaloneFanPercent": "スタンドアロンファン %",
   "devices.smartHub.standaloneFanPercentAria": "スタンドアロンファンパーセント",
-  "devices.smbusDram.controlOn": "Nexus は SMBus 経由でメモリの温度を読み取り、RAM のライティングを制御します。",
+  "devices.smbusDram.controlOn": "Nexus は SMBus 経由でメモリの温度を読み取り、RAM のライティングを制御できます。",
   "devices.smbusDram.name": "メモリ",
   "devices.specs.copied": "コピーしました！",
   "devices.specs.copy": "コピー",

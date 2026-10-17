@@ -408,6 +408,13 @@ describe('DevicesPage device-card secondary line', () => {
     expect(screen.queryByText('devices.smbusDram.controlOn')).toBeNull();
   });
 
+  it('hides the control-on description when Memory does not support Nexus control', () => {
+    mockUnified = [smbusRow({ supportsNexusControl: false })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('devices.smbusDram.controlOn')).toBeNull();
+  });
+
   it('renders no control-on description for an on shared-bus device other than Memory', () => {
     mockUnified = [smbusRow({ nexusControlEnabled: true, curatedId: 'other-bus' })];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
