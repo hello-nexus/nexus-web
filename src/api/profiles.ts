@@ -194,7 +194,7 @@ export interface UiPrefs {
   showUncontrolledDevices?: boolean;
   showUncontrolledLightingDevices?: boolean;
   showUncontrolledCoolingDevices?: boolean;
-  showUncontrolledSidebarDevices?: boolean;
+  hiddenSidebarDevices?: string[];
 }
 
 export interface UpdatePrefs {

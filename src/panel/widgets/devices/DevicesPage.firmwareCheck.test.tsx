@@ -8,9 +8,6 @@ import type { FirmwareStatusItem } from '../../../hooks/useFirmwareStatus';
 
 const refreshMock = vi.fn();
 
-vi.mock('../../../hooks/useUiSettings', () => ({
-  useUiSettings: () => ({ settings: { showUncontrolledSidebarDevices: true }, update: vi.fn() }),
-}));
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),

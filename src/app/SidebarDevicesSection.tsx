@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import classNames from 'classnames';
-import { Ghost, Link2, Link2Off, Trash2, Usb } from 'lucide-react';
+import { Ghost, EyeOff, Link2, Link2Off, Trash2, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { DeviceUpdateIcon } from '../components/common/DeviceUpdateIcon/DeviceUpdateIcon';
@@ -17,7 +17,8 @@ import { DEV_TOOLS } from '../lib/devTools';
 import { setSimulatedPanelConnected } from '../lib/panelSimulation';
 import { setTryxSimulated } from '../lib/tryxSimulation';
 import { useTranslation } from '../lib/i18n';
-import { useUiSettings } from '../hooks/useUiSettings';
+import { canHideFromSidebar, isListedInSidebar } from '../lib/sidebarVisibility';
+import { useSidebarHiddenDevices } from '../hooks/useUiSettings';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { ICON_SIZE } from './sidebarNav';
 import styles from './SidebarDevicesSection.module.scss';
@@ -34,8 +35,8 @@ import styles from './SidebarDevicesSection.module.scss';
  * always renders so the section structure is visible without devices.
  *
  * Right-clicking a row opens the shared SidebarContextMenu with the row's
- * Nexus Control toggle, plus (dev tools only) a remover for a simulated
- * device.
+ * Nexus Control toggle, Hide from sidebar (control-off rows only), plus
+ * (dev tools only) a remover for a simulated device.
  */
 interface SidebarDevicesSectionProps {
   serviceOnline: boolean;
@@ -61,9 +62,8 @@ export function SidebarDevicesSection({
   headerActive,
 }: SidebarDevicesSectionProps) {
   const { t } = useTranslation();
-  const { settings: uiSettings } = useUiSettings();
-  const showUncontrolled = uiSettings.showUncontrolledSidebarDevices;
   const { push } = useToastSafe();
+  const { hidden: hiddenDevices, setHidden } = useSidebarHiddenDevices();
   const { unified, controlDevice } = useUnifiedDevices(serviceOnline);
   const firmwareUpdates = useFirmwareUpdates(serviceOnline);
   const controlGuard = useConflictGuardedEnable();
@@ -102,12 +102,11 @@ export function SidebarDevicesSection({
   // they're remote controls, not devices.)
   const sorted = useMemo(() => {
     return unified
-      .filter(d => d.navigable)
-      .filter(d => showUncontrolled || !(d.supportsNexusControl && !d.nexusControlEnabled))
+      .filter(d => d.navigable && isListedInSidebar(d, hiddenDevices))
       .sort((a, b) =>
         sidebarSortName(a).localeCompare(sidebarSortName(b), undefined, { sensitivity: 'base', numeric: true })
         || a.key.localeCompare(b.key));
-  }, [unified, showUncontrolled]);
+  }, [unified, hiddenDevices]);
 
   const label = t('sidebar.section.devices');
   // Header reuses the device-row .item chrome (font, alignment, hover/active) at
@@ -145,6 +144,12 @@ export function SidebarDevicesSection({
       label: t(ctxDevice.nexusControlEnabled ? 'lighting.devices.menuControlOff' : 'lighting.devices.menuControlOn'),
       icon: ctxDevice.nexusControlEnabled ? <Link2Off size={14} /> : <Link2 size={14} />,
       onSelect: toggleNexusControl,
+    }] : []),
+    ...(canHideFromSidebar(ctxDevice) ? [{
+      key: 'hide-from-sidebar',
+      label: t('sidebar.device.hide'),
+      icon: <EyeOff size={14} />,
+      onSelect: () => setHidden(ctxDevice.key, true),
     }] : []),
     ...(removeSimulated ? [{
       key: 'remove-simulated',

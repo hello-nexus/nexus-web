@@ -66,9 +66,12 @@ vi.mock('../hooks/useFirmwareUpdates', () => ({
 let devTools = true;
 vi.mock('../lib/devTools', () => ({ get DEV_TOOLS() { return devTools; } }));
 
-let showUncontrolledSidebar = true;
-vi.mock('../hooks/useUiSettings', () => ({
-  useUiSettings: () => ({ settings: { showUncontrolledSidebarDevices: showUncontrolledSidebar } }),
+// Hidden set and setter are driven per test; every other path sees an empty set.
+let mockHidden: readonly string[] = [];
+const setHidden = vi.fn();
+vi.mock('../hooks/useUiSettings', async importOriginal => ({
+  ...(await importOriginal<typeof import('../hooks/useUiSettings')>()),
+  useSidebarHiddenDevices: () => ({ hidden: mockHidden, setHidden }),
 }));
 
 import { SidebarDevicesSection } from './SidebarDevicesSection';
@@ -129,34 +132,58 @@ function renderSidebar() {
   );
 }
 
-describe('SidebarDevicesSection control-off filter', () => {
+describe('SidebarDevicesSection hidden devices', () => {
   const controlOn = () => monitorDevice({
-    key: 'curated-on', shortName: 'Keeb TKL', name: 'Keeb TKL', kind: 'curated',
+    key: 'curated-on', shortName: 'Keeb TKL', name: 'Keeb TKL', kind: 'curated', curatedId: 'keeb',
     panelDevice: undefined, supportsNexusControl: true, nexusControlEnabled: true,
   });
 
-  afterEach(() => { showUncontrolledSidebar = true; });
+  beforeEach(() => { vi.clearAllMocks(); });
+  afterEach(() => { mockHidden = []; });
 
-  it('lists a control-off device when the setting is on', () => {
-    mockUnified = [monitorDevice(), controlOn()];
-    renderSidebar();
-    expect(screen.getByText('Xeneon Edge')).toBeTruthy();
-    expect(screen.getByText('Keeb TKL')).toBeTruthy();
-  });
-
-  it('omits a control-off device and keeps a control-on one when the setting is off', () => {
-    showUncontrolledSidebar = false;
+  it('omits a hidden device whose Nexus Control is off', () => {
+    mockHidden = ['panel-display:rec1'];
     mockUnified = [monitorDevice(), controlOn()];
     renderSidebar();
     expect(screen.queryByText('Xeneon Edge')).toBeNull();
     expect(screen.getByText('Keeb TKL')).toBeTruthy();
   });
 
-  it('keeps a device that never supports Nexus Control when the setting is off', () => {
-    showUncontrolledSidebar = false;
-    mockUnified = [monitorDevice({ supportsNexusControl: false, nexusControlEnabled: false })];
+  it('lists a hidden device once its Nexus Control is on', () => {
+    mockHidden = ['curated-on'];
+    mockUnified = [controlOn()];
+    renderSidebar();
+    expect(screen.getByText('Keeb TKL')).toBeTruthy();
+  });
+
+  it('lists a control-off device that is not hidden', () => {
+    mockHidden = ['curated-on'];
+    mockUnified = [monitorDevice()];
     renderSidebar();
     expect(screen.getByText('Xeneon Edge')).toBeTruthy();
+  });
+
+  it('offers Hide from sidebar on a control-off row and writes its key', () => {
+    mockUnified = [monitorDevice()];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'sidebar.device.hide' }));
+    expect(setHidden).toHaveBeenCalledWith('panel-display:rec1', true);
+  });
+
+  it('does not offer Hide on a row whose Nexus Control is on', () => {
+    mockUnified = [controlOn()];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Keeb TKL/ }));
+    expect(screen.queryByRole('menuitem', { name: 'sidebar.device.hide' })).toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'lighting.devices.menuControlOff' })).toBeTruthy();
+  });
+
+  it('does not offer Hide on a device that never supports Nexus Control', () => {
+    mockUnified = [monitorDevice({ supportsNexusControl: false, nexusControlEnabled: true })];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.queryByRole('menuitem', { name: 'sidebar.device.hide' })).toBeNull();
   });
 });
 

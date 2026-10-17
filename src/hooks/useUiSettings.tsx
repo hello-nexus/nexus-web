@@ -27,6 +27,7 @@ import {
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { sanitizeAppOrder, sanitizePinnedTail } from '../app/sidebarApps';
+import { withSidebarHidden } from '../lib/sidebarVisibility';
 
 /**
  * Unified user-settings hook.
@@ -118,7 +119,9 @@ export interface UiSettingsValue {
   // pages keep separate answers.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
-  showUncontrolledSidebarDevices: boolean;
+  // Sidebar DEVICES row keys the user hid; a row is omitted only while its
+  // Nexus Control is also off. Server-mirrored under ui.hiddenSidebarDevices.
+  hiddenSidebarDevices: string[];
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -253,7 +256,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     coolingDashboardMode: src.general.coolingDashboardMode,
     showUncontrolledLightingDevices: src.general.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: src.general.showUncontrolledCoolingDevices,
-    showUncontrolledSidebarDevices: src.general.showUncontrolledSidebarDevices,
+    hiddenSidebarDevices: src.general.hiddenSidebarDevices,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
@@ -323,7 +326,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       coolingDashboardMode: src.coolingDashboardMode,
       showUncontrolledLightingDevices: src.showUncontrolledLightingDevices,
       showUncontrolledCoolingDevices: src.showUncontrolledCoolingDevices,
-      showUncontrolledSidebarDevices: src.showUncontrolledSidebarDevices,
+      hiddenSidebarDevices: src.hiddenSidebarDevices,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
@@ -370,7 +373,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; showUncontrolledSidebarDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; hiddenSidebarDevices: string[] }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
@@ -384,7 +387,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
   if (patch.showUncontrolledLightingDevices !== undefined) ui.showUncontrolledLightingDevices = patch.showUncontrolledLightingDevices;
   if (patch.showUncontrolledCoolingDevices !== undefined) ui.showUncontrolledCoolingDevices = patch.showUncontrolledCoolingDevices;
-  if (patch.showUncontrolledSidebarDevices !== undefined) ui.showUncontrolledSidebarDevices = patch.showUncontrolledSidebarDevices;
+  if (patch.hiddenSidebarDevices !== undefined) ui.hiddenSidebarDevices = patch.hiddenSidebarDevices;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -492,7 +495,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: server.ui?.showUncontrolledCoolingDevices
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledCoolingDevices,
-    showUncontrolledSidebarDevices: server.ui?.showUncontrolledSidebarDevices ?? base.showUncontrolledSidebarDevices,
+    hiddenSidebarDevices: server.ui?.hiddenSidebarDevices ?? base.hiddenSidebarDevices,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,
@@ -935,6 +938,24 @@ export function useFeatureFlags(): FeatureFlags {
     monitoring: ctx.settings.featureMonitoringEnabled,
     diagnostics: ctx.settings.featureDiagnosticsEnabled,
   };
+}
+
+const NO_HIDDEN_DEVICES: readonly string[] = [];
+
+/**
+ * The sidebar's hidden-device keys plus a setter that adds or removes one.
+ * Empty and inert outside a UiSettingsProvider, same pattern as
+ * {@link useFeatureFlags}.
+ */
+export function useSidebarHiddenDevices(): { hidden: readonly string[]; setHidden: (key: string, hide: boolean) => void } {
+  const ctx = useContext(UiSettingsContext);
+  const hidden = ctx ? ctx.settings.hiddenSidebarDevices : NO_HIDDEN_DEVICES;
+  const update = ctx?.update;
+  const setHidden = useCallback((key: string, hide: boolean) => {
+    const next = withSidebarHidden(hidden, key, hide);
+    if (next !== hidden) update?.({ hiddenSidebarDevices: [...next] });
+  }, [hidden, update]);
+  return { hidden, setHidden };
 }
 
 const NO_CONFLICT_EXCLUSIONS: string[] = [];
