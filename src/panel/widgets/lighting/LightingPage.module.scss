@@ -1983,3 +1983,9 @@
   object-fit: cover;
   pointer-events: none;
 }
+
+// Layout-neutral wrapper: the button stays a direct flex item of the header
+// rail, and the wrapper only gives the width measure a stable handle.
+.controlAll {
+  display: contents;
+}

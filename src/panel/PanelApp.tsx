@@ -2250,6 +2250,7 @@ export function PanelContent({
           onResize={resizeWidget}
           onUpdate={updateWidgetConfig}
           onRemove={removeWidget}
+          dockStyle={editorDockSupported && sheetMode === 'settings' ? editorDockMotion?.style : undefined}
           selectedMonitoringSlot={selectedMonitoringSlot}
           onSelectedMonitoringSlotChange={setSelectedMonitoringSlot}
           editView={deckEditView}

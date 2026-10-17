@@ -239,15 +239,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     setSubmitting(true);
     setError(false);
     try {
-      // Simple drives every device, so anything switched off here goes back on
-      // rather than sitting dark on a page with no control to explain it.
-      if (mode === 'simple') {
-        const off = (devicesRef.current ?? []).filter(d => d.controlled === false);
-        if (off.length > 0) {
-          intentRef.current.clear();
-          await Promise.allSettled(off.map(d => setLightingDeviceControlled(d.id, true)));
-        }
-      }
       // A device detected after the color was picked follows the global color.
       await pickChainRef.current;
       updateUiSettings({ lightingDashboardMode: mode });

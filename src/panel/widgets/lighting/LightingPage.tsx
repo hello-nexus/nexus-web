@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Music, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Music, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
@@ -2066,10 +2066,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Simple mode has no per-device toggle, so a device left un-driven or dark on
   // the advanced page would sit black here with nothing on the page saying why.
   // Claimed when the user asks for something, not on arrival: switching the
-  // view is not a decision about which devices Nexus drives.
-  const claimAllDevices = useCallback((): string[] => {
+  // view is not a decision about which devices Nexus drives. A pick passes
+  // takeControl false: a device the user turned Nexus control off for stays
+  // that way until Control all.
+  const claimAllDevices = useCallback((takeControl = true): string[] => {
     for (const d of devices.filter(d => d.devicePageReason === undefined)) {
-      if (d.controlled === false) handleSetControlled(d.id, true);
+      if (d.controlled === false) {
+        if (!takeControl) continue;
+        handleSetControlled(d.id, true);
+      }
       if (!d.ledsOn) handleSetPower(d.id, true);
     }
     return orderedDevices.filter(zoneCardSelectionHoldable).map(d => d.id);
@@ -2080,6 +2085,79 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const ids = Object.keys(pins);
     if (ids.length > 0) void applyPins(ids, null);
   }, [applyPins, pins]);
+
+  // Over visibleDevices, which the show-uncontrolled filter does not touch, so
+  // hidden uncontrolled cards count; zero-LED and device-page cards do not.
+  const anyUncontrolled = useMemo(
+    () => visibleDevices.some(d => d.controlled === false && zoneCardSelectionHoldable(d)),
+    [visibleDevices],
+  );
+  // The Advanced rail also holds the Presets toolbar, which a labeled button
+  // would push off-screen, so the label drops when the row cannot fit both.
+  // Every input is independent of the toggle (sibling widths, the toolbar's
+  // natural width, the label's width measured while shown), so it cannot flap.
+  const controlAllRef = useRef<HTMLSpanElement>(null);
+  const controlAllFullWidth = useRef<{ label: string; width: number } | null>(null);
+  const [controlAllCompact, setControlAllCompact] = useState(false);
+  // Bumped when web fonts finish loading, which invalidates every measured width.
+  const [fontEpoch, setFontEpoch] = useState(0);
+  useEffect(() => {
+    let live = true;
+    void document.fonts?.ready.then(() => {
+      if (!live) return;
+      controlAllFullWidth.current = null;
+      setControlAllCompact(false);
+      setFontEpoch(e => e + 1);
+    });
+    return () => { live = false; };
+  }, []);
+  const controlAllLabel = t('lighting.controlAllDevices');
+  const controlAllIconOnly = !simpleDashboard && controlAllCompact;
+  useLayoutEffect(() => {
+    const wrap = controlAllRef.current;
+    const rail = wrap?.parentElement;
+    const row = rail?.parentElement;
+    const toolbar = wrap?.nextElementSibling;
+    const button = wrap?.firstElementChild as HTMLElement | null | undefined;
+    if (!wrap || !button || !rail || !row || !toolbar || simpleDashboard) return;
+    if (!controlAllCompact) {
+      controlAllFullWidth.current = { label: controlAllLabel, width: button.offsetWidth };
+    } else if (controlAllFullWidth.current?.label !== controlAllLabel) {
+      setControlAllCompact(false);
+      return;
+    }
+    const measure = () => {
+      const full = controlAllFullWidth.current;
+      const toolbarWidth = parseFloat(getComputedStyle(toolbar).getPropertyValue('--preset-rail-width'));
+      if (!full || Number.isNaN(toolbarWidth)) return;
+      const siblings = [...row.children].filter(c => c !== rail) as HTMLElement[];
+      const rowGap = parseFloat(getComputedStyle(row).columnGap) || 0;
+      const railGap = parseFloat(getComputedStyle(rail).columnGap) || 0;
+      const used = siblings.reduce((sum, c) => sum + c.offsetWidth + rowGap, 0);
+      setControlAllCompact(row.clientWidth - used < toolbarWidth + railGap + full.width);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    for (const c of row.children) if (c !== rail) observer.observe(c);
+    if (!controlAllCompact) observer.observe(button);
+    return () => observer.disconnect();
+  }, [anyUncontrolled, simpleDashboard, controlAllLabel, controlAllCompact, fontEpoch]);
+  const controlAllDevicesButton = anyUncontrolled ? (
+    <span ref={controlAllRef} className={styles.controlAll}>
+      <Button
+        size="sm"
+        pill
+        icon={controlAllIconOnly ? <ListChecks /> : undefined}
+        aria-label={controlAllIconOnly ? controlAllLabel : undefined}
+        title={controlAllIconOnly ? controlAllLabel : undefined}
+        onClick={() => { claimAllDevices(); if (simpleDashboard) unpinAll(); }}
+      >
+        {controlAllIconOnly ? undefined : controlAllLabel}
+      </Button>
+    </span>
+  ) : undefined;
 
   // Counted over the devices the claim can actually reach. A zone with no LEDs
   // cannot be lit, and a device-page card is set on its own page, so including
@@ -2108,7 +2186,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // catalogue key there marks that cell selected and draws its shader on the
   // canvas while the hardware runs this one.
   const handleSimpleAnimationSelect = useCallback(async (key: string) => {
-    claimAllDevices();
+    claimAllDevices(false);
     unpinAll();
     setActiveEffect('');
     // This IS the direction now, so the conform read below must not run for
@@ -2191,13 +2269,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     offDescription: t('lighting.modeMenu.offDesc'),
     simpleDescription: t('lighting.modeMenu.simpleDesc'),
     advancedDescription: t('lighting.modeMenu.advancedDesc'),
-    // Simple mode never shows the device list, so Off claims what it can reach
-    // first - the same claim the palette runs, so the page's counts agree.
     onOff: () => {
-      // Already off: asking again would re-run the claim and re-issue the stop.
+      // Already off: asking again would re-issue the stop.
       if (synced && mode === 'none') return;
       pulseCards(pressReach(visibleDevices, pins, selectedDeviceIds, true));
-      if (simpleDashboard) claimAllDevices();
       void handleModeChange('none');
     },
     onModeChange: setDashboardMode,
@@ -2578,6 +2653,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               tabs={simpleTabs}
               activeTab={activeTabKey}
               onTabChange={handleTabChange}
+              actions={controlAllDevicesButton}
               /* Off states what it did; every other mode carries both counts,
                  so a device the advanced page left un-driven is visible here
                  without a device list. Same line either way. The action runs
@@ -2592,7 +2668,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                       controlled: controlledCount,
                       total: claimableDevices.length,
                     })}
-                  action={!simpleOff && controlledCount < claimableDevices.length ? (
+                  action={!simpleOff && !anyUncontrolled && controlledCount < claimableDevices.length ? (
                     <Button size="sm" pill onClick={() => { claimAllDevices(); unpinAll(); }}>
                       {t('lighting.simple.controlAll')}
                     </Button>
@@ -2606,7 +2682,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <SectionHeader className={styles.simpleSectionHeader}>{t('lighting.mode.static')}</SectionHeader>
             <StaticPalette
               selectedId={simplePaletteId}
-              onSelect={color => { claimAllDevices(); unpinAll(); void handleSimplePaletteSelect(color); }}
+              onSelect={color => { claimAllDevices(false); unpinAll(); void handleSimplePaletteSelect(color); }}
             />
           </div>
           <div className={styles.simpleSection}>
@@ -2649,6 +2725,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               onTabChange={handleTabChange}
               onTabHover={setHoveredTab}
               tabActions={(
+                <>
+                {/* Left of the toolbar: the rail is right-aligned, so the
+                    toolbar keeps its position when the button comes and goes. */}
+                {controlAllDevicesButton}
                 <PresetToolbar
                   rail
                   presets={presetOptions}
@@ -2670,6 +2750,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   onUndo={handleUndoLayout}
                   onRedo={handleRedoLayout}
                 />
+                </>
               )}
             />
             {modeMenuNode}
