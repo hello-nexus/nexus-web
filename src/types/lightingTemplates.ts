@@ -35,14 +35,6 @@ export function baselineTemplates(effectKey: string): EffectTemplateBundle {
   return { selected: 0, slots };
 }
 
-/** A custom effect's default bundle: the neutral state in every slot, with a wheel-colored recipe's authored hue and range. */
-export function wheelSeededBundle(effectKey: string, wheel: { hue: number; colorize: number } | null): EffectTemplateBundle {
-  return {
-    selected: 0,
-    slots: Array.from({ length: TEMPLATE_COUNT }, () => ({ ...defaultStateFor(effectKey), params: {}, ...wheel })),
-  };
-}
-
 /** The canonical default bundle for an effect, or the baseline fallback when
  *  the fetched defaults are missing (not yet loaded / old service). Always
  *  returns a full TEMPLATE_COUNT row - a short or sparse defaults bundle is

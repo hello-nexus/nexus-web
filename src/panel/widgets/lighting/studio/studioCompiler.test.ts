@@ -283,12 +283,32 @@ describe('wheel-colored recipes', () => {
 });
 
 describe('fill position', () => {
-  it('declares the field position only for recipes that use a fill, so other shaders compile as before', () => {
+  it('declares the field position only for recipes with a fill or a wheel color, so other shaders compile as before', () => {
     expect(compileStudio(recipeOf('plasma', 'palette')).frag).not.toContain('fieldPos');
     const fill = compileStudio(recipeOf('fillclock', 'wheelcolor')).frag;
     expect(fill).toContain('float fieldPos = -1.0;');
     // The color follows the position, not the faded brightness, so a soft edge cannot wrap back to the first color.
     expect(fill).toContain('fieldPos >= 0.0 ? clamp(fieldPos, 0.0, 1.0)');
+  });
+});
+
+describe('fill position reach', () => {
+  const colorOf = (...types: string[]) => compileStudio(recipeOf(...types)).frag;
+
+  it('colors from the last pattern when it is a fill, the earlier fill staying out of reach', () => {
+    const frag = colorOf('fillbar', 'fillclock', 'wheelcolor');
+    expect(frag.match(/^\s+fieldPos = /gm)).toHaveLength(1);
+    expect(frag).toContain('float localPos = -1.0;');
+  });
+
+  it('colors from the field when another pattern follows the fill', () => {
+    const frag = colorOf('fillbar', 'sparkle', 'wheelcolor');
+    expect(frag).not.toMatch(/^\s+fieldPos = /m);
+    expect(frag).toContain('float localPos = -1.0;');
+  });
+
+  it('leaves a lone fill untouched', () => {
+    expect(colorOf('fillbar', 'wheelcolor')).not.toContain('localPos');
   });
 });
 

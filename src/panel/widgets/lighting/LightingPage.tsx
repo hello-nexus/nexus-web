@@ -74,18 +74,18 @@ import {
 } from './pins';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
-  customEffectDef, customEffectId, customEffectWheel, customEffectKey, customEffectsLoaded, isCustomEffectKey, refreshCustomEffects, useCustomEffects,
+  customEffectDef, customEffectId, customEffectKey, customEffectsLoaded, isCustomEffectKey, refreshCustomEffects, useCustomEffects,
 } from '../../../api/customEffects';
 import {
   EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, STATIC_PATTERN_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
-  defaultStateFor, isStaticEffect,
+  TEMPLATE_COUNT, defaultStateFor, isStaticEffect,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
 import {
   PALETTE, isPaletteKey, paletteColorForKey, paletteFamilyKey,
   type PaletteColor,
 } from '../../../types/lightingPalette';
-import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature, wheelSeededBundle } from '../../../types/lightingTemplates';
+import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
 import { StaticPalette } from './page/StaticPalette';
 import { SimpleAnimationRow } from './page/SimpleAnimationRow';
@@ -1070,8 +1070,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     void applyPins(ids, staticLookPin(key, slot, state ?? stateOf(key, slot)));
   }, [applyPins, stateOf]);
 
-  // The custom-effects list, for a pick made before the render that loads it.
-  const customEntriesRef = useRef<ReturnType<typeof useCustomEffects>>([]);
   const handleEffectSelect = useCallback((key: string) => {
     // With devices selected a pick pins them to it, replacing whatever they
     // wore; the running effect is untouched. Unselected pinned devices are
@@ -1098,16 +1096,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (modeRef.current === 'static') setGlobalColor('');
     if (activeEffect !== key) {
       setActiveEffect(key);
-      // A custom effect picked before it has stored presets starts on its authored look, and that look is saved
-      // with the start so the service, pins and reloads agree with the ring.
-      const entry = customEntriesRef.current.find(e => e.id === customEffectId(key));
-      if (isCustomEffectKey(key) && !effectTemplatesRef.current[key] && entry) {
-        const seeded = wheelSeededBundle(key, customEffectWheel(entry));
-        const next = { ...effectTemplatesRef.current, [key]: seeded };
-        void writeTemplates(next, key, true).then(() => setCommittedTemplates(next));
-      } else {
-        applyAnimate(key, stateFor(key), true);
-      }
+      applyAnimate(key, stateFor(key), true);
     }
     const selectMode = modeRef.current === 'static' ? 'static' : 'animate';
     // Remember the pick per mode: rawSync stays 'static' across selections, so
@@ -1120,7 +1109,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       rawSync: selectMode === 'static' ? 'static' : key,
       effect: key,
     });
-  }, [activeEffect, applyAnimate, applyPins, viewMode, pinStaticLook, selectedDeviceIds, setGlobalColor, slotOf, stateFor, detachedTab, flashScope, writeTemplates]);
+  }, [activeEffect, applyAnimate, applyPins, viewMode, pinStaticLook, selectedDeviceIds, setGlobalColor, slotOf, stateFor, detachedTab, flashScope]);
 
   // Paces the pin writes a color drag produces; the local copy is recorded
   // per move, the write follows when the previous one lands.
@@ -1219,9 +1208,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // A palette pin is a color: the dock shows which one, and there is nothing
   // to edit or reset.
   const dockPalette = paletteColorForKey(dockEffect);
+  // A custom effect's default is the neutral state, which renders its saved recipe.
+  const resetDefaults = isCustomEffectKey(dockEffect)
+    ? { [dockEffect]: defaultTemplatesFor(dockEffect, null) }
+    : animateDefaults;
+  const dockCanReset = !!(dockEffect && dockState && !dockPalette
+    && !slotMatchesDefault(dockEffect, dockSlot, dockState, resetDefaults));
+
   // Custom (Shader Studio) effects: their name, knobs and audio flag come from the service list.
   const customEffects = useCustomEffects(isCustomEffectKey(activeEffect) || isCustomEffectKey(dockEffect));
-  customEntriesRef.current = customEffects;
   const customEntryFor = (key: string | null) =>
     (isCustomEffectKey(key) ? customEffects.find(e => e.id === customEffectId(key)) : undefined);
   const activeCustom = customEntryFor(activeEffect);
@@ -1229,25 +1224,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const savedMatch = viewMode === 'animate' && effectQuery.trim() !== ''
     && customEffects.some(e => matchesAllWords(effectQuery, [e.name]));
   const dockCustom = customEntryFor(dockEffect);
-  // A custom effect's default is the neutral state, which renders its saved recipe; a wheel-colored one
-  // opens its ring on the range the recipe was authored with.
-  const dockWheel = dockCustom ? customEffectWheel(dockCustom) : null;
-  const resetDefaults = isCustomEffectKey(dockEffect)
-    ? { [dockEffect]: wheelSeededBundle(dockEffect, dockWheel) }
-    : animateDefaults;
-  const dockCanReset = !!(dockEffect && dockState && !dockPalette
-    && !slotMatchesDefault(dockEffect, dockSlot, dockState, resetDefaults));
   const dockCustomDef = useMemo(() => (dockCustom ? customEffectDef(dockCustom, t) : undefined), [dockCustom, t]);
   // A custom effect has no service-authored presets; seed default slots so the dock can edit it.
   useEffect(() => {
     if (!isCustomEffectKey(activeEffect) || effectTemplates[activeEffect]) return;
-    // Wait for the list so a wheel-colored effect opens on its range; once it has loaded, an entry that is
-    // not in it (deleted, or never fetched) still gets the neutral look so the dock can edit.
-    if (!activeCustom && !customEffectsLoaded()) return;
-    const seeded = wheelSeededBundle(activeEffect, activeCustom ? customEffectWheel(activeCustom) : null);
+    const seeded: EffectTemplateBundle = {
+      selected: 0,
+      slots: Array.from({ length: TEMPLATE_COUNT }, () => defaultStateFor(activeEffect)),
+    };
     setEffectTemplates(prev => (prev[activeEffect] ? prev : { ...prev, [activeEffect]: seeded }));
     setCommittedTemplates(prev => (prev[activeEffect] ? prev : { ...prev, [activeEffect]: seeded }));
-  }, [activeEffect, activeCustom, customEffects, effectTemplates]);
+  }, [activeEffect, effectTemplates]);
 
   const handleTemplateSelect = useCallback((idx: number) => {
     // A static pin repoints only the selected devices at this preset. The
@@ -1353,7 +1340,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handleStateReset = useCallback(() => {
     if (!dockEffect) return;
-    const defaults = isCustomEffectKey(dockEffect) ? wheelSeededBundle(dockEffect, dockCustom ? customEffectWheel(dockCustom) : null) : defaultTemplatesFor(dockEffect, animateDefaults);
+    const defaults = defaultTemplatesFor(dockEffect, animateDefaults);
     const bundle = effectTemplates[dockEffect];
     if (!bundle) return;
     const idx = Math.min(Math.max(dockSlot, 0), bundle.slots.length - 1);
@@ -1366,7 +1353,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         setCommittedTemplates(nextTemplates);
         if (staticPinEdit) pinStaticLook(dockEffect, idx, focusIds, nextBundle.slots[idx]);
       });
-  }, [animateDefaults, dockEffect, dockSlot, effectTemplates, pinStaticLook, pinnedElsewhere, dockCustom, focusIds, staticPinEdit, writeTemplates]);
+  }, [animateDefaults, dockEffect, dockSlot, effectTemplates, pinStaticLook, pinnedElsewhere, focusIds, staticPinEdit, writeTemplates]);
 
   // After a studio save, slot values for params the save changed or unpinned are
   // dropped so the LEDs show the saved look; untouched knob tweaks stay.

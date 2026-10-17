@@ -39,7 +39,8 @@ export interface StudioBlockDef {
   audio?: readonly StudioAudioInput[];
   /**
    * Takes part in `fieldPos`, a 0 to 1 position along a design's gradient kept apart from the field's
-   * brightness, so a soft edge dims a pixel without moving its color: a fill writes it, a wheel ramp reads it.
+   * brightness, so a soft edge dims a pixel without moving its color: a fill writes it, a wheel color reads it.
+   * Only the last pattern block's position counts, so a fill followed by another pattern colors from the field.
    */
   fieldPos?: 'writes' | 'reads';
   /**
@@ -652,7 +653,8 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   {
     // Colors a field with the Lighting page's color wheel instead of colors of its own: the wheel's hue is the
     // middle of the range, its width the span (a single color when collapsed), and the field runs from the
-    // range's high hue at `low` down to its low hue at 1, cool to hot on the usual wheel.
+    // range's high hue at `low` down to its low hue at 1, cool to hot on the usual wheel. `low` only matters for
+    // a field that is not a fill meter, which colors from its own position instead.
     type: 'wheelcolor', stage: 'color', cost: 1, fieldPos: 'reads',
     params: [
       { key: 'low', min: 0, max: 0.95, step: 0.01, def: 0 },

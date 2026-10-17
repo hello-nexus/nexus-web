@@ -297,6 +297,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
   const sensors: SensorUniform[] = [];
   const body: string[] = [];
   let patternIndex = 0;
+  const lastPattern = defs.reduce((last, d, i) => (d.stage === 'pattern' ? i : last), -1);
 
   blocks.forEach((block, i) => {
     const def = defs[i];
@@ -364,6 +365,8 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
     }
     const keys = Object.keys(exprs).sort((a, b) => b.length - a.length);
     let code = def.code;
+    // Only the last pattern block's position colors the field: an earlier fill keeps its own, out of reach.
+    if (def.fieldPos === 'writes' && i !== lastPattern) code = `float localPos = -1.0; ${code.replace(/\bfieldPos\b/g, 'localPos')}`;
     for (const k of keys) code = code.split(`$${k}`).join(`(${exprs[k]})`);
 
     if (def.stage === 'pattern') {

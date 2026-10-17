@@ -59,7 +59,7 @@ function wheel(low: number, params: Record<string, number> = {}): StudioBlock {
   return block('col', 'wheelcolor', { low, ...params });
 }
 
-/** A fill meter: `type` filling to a sensor-driven level, its brightness running from `low` at the base to 1. */
+/** A fill meter: `type` filling to a sensor-driven level. The wheel's `low` is the start of a non-fill field, so a fill ignores it. */
 function fill(type: string, low: number, binding: SensorBinding, params: Record<string, number>, knobs: string[]): StudioRecipe {
   const pattern = sensorLevel(block('fill', type, { level: 0, ...params }), 'level', binding);
   return {
