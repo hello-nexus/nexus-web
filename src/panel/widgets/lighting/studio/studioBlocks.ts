@@ -653,8 +653,8 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   {
     // Colors a field with the Lighting page's color wheel instead of colors of its own: the wheel's hue is the
     // middle of the range, its width the span (a single color when collapsed), and the field runs from the
-    // range's high hue at `low` down to its low hue at 1, cool to hot on the usual wheel. `low` only matters for
-    // a field that is not a fill meter, which colors from its own position instead.
+    // range's high hue at `low` down to its low hue at 1, cool to hot on the usual wheel. `low` is read only when
+    // the last pattern block is not a fill meter; a fill colors from its own position instead (see `fieldPos`).
     type: 'wheelcolor', stage: 'color', cost: 1, fieldPos: 'reads',
     params: [
       { key: 'low', min: 0, max: 0.95, step: 0.01, def: 0 },

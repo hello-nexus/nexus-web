@@ -17,7 +17,6 @@ import { forgetShaderSource, primeShaderSource } from '../../../api/lighting';
 import { customEffectDef, customEffectKey } from '../../../api/customEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useAudioState } from '../../../hooks/useAudioState';
-import { recipeUsesWheel } from '../../../lib/studioWheel';
 import { SensorSignalProvider } from '../../../hooks/SensorSignalProvider';
 import type { EffectState } from '../../../types/lighting';
 import { baselineTemplates, slotMatchesDefault } from '../../../types/lightingTemplates';
@@ -255,13 +254,7 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
   const def = useMemo(() => customEffectDef(
     { id: listing.id, name: listing.name, recipe: JSON.stringify(recipe), updatedAt: 0, audio: listing.audio }, t,
   ), [listing.id, listing.name, listing.audio, recipe, t]);
-  // A wheel-colored listing opens its ring on the range it was authored with.
-  const neutral = useMemo(() => {
-    const base = baselineTemplates(compiled.key);
-    return recipeUsesWheel(recipe)
-      ? { ...base, slots: base.slots.map(s => ({ ...s, hue: recipe.hue, colorize: recipe.colorize ?? 0 })) }
-      : base;
-  }, [compiled.key, recipe]);
+  const neutral = useMemo(() => baselineTemplates(compiled.key), [compiled.key]);
   const [state, setState] = useState<EffectState>(neutral.slots[0]);
   const stateRef = useRef<EffectState | null>(state);
   useLayoutEffect(() => { stateRef.current = state; }, [state]);
