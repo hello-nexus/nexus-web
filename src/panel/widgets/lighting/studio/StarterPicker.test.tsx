@@ -73,6 +73,21 @@ describe('StarterPicker', () => {
     }
   });
 
+  it('keeps Escape in the picker when focus sits on the popover itself, as after a click on its padding', () => {
+    const behind = vi.fn();
+    document.addEventListener('keydown', behind);
+    try {
+      render(<StarterPicker onPick={() => {}} />);
+      open();
+      const body = document.querySelector<HTMLElement>('[tabindex="-1"]')!;
+      fireEvent.keyDown(body, { key: 'Escape' });
+      expect(screen.queryByRole('textbox', { name: 'lighting.effects.search' })).toBeNull();
+      expect(behind).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', behind);
+    }
+  });
+
   it('cannot be opened while disabled', () => {
     render(<StarterPicker disabled onPick={() => {}} />);
     expect(screen.getByRole('button', { name: 'lighting.studio.starters' })).toBeDisabled();

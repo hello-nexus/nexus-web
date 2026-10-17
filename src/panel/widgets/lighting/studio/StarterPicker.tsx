@@ -26,7 +26,6 @@ function useStarterStills(open: boolean): { stills: ReadonlyMap<string, string>;
   const [tried, setTried] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => {
     if (!open) return;
-    setTried(new Set());
     // A still that failed to render is not remembered, so the next open tries it again.
     const pending = STUDIO_STARTERS.filter(s => !stillCache.get(s.id));
     let timer = 0;
@@ -39,7 +38,10 @@ function useStarterStills(open: boolean): { stills: ReadonlyMap<string, string>;
       timer = window.setTimeout(next, STILL_GAP_MS);
     };
     timer = window.setTimeout(next, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      setTried(new Set());
+    };
   }, [open]);
   return { stills: stillCache, tried };
 }
@@ -90,30 +92,30 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
         {t('lighting.studio.starters')}
       </Button>
       <Popover portal open={open} onClose={close} anchorRef={anchorRef} placement="bottom-start" className={styles.starterPopover} ariaLabel={t('lighting.studio.starters')}>
-        <div ref={bodyRef} className={styles.starterBody} onKeyDown={onEscape}>
+        <div ref={bodyRef} tabIndex={-1} className={styles.starterBody} onKeyDown={onEscape}>
           <SearchInput
             value={query} onChange={setQuery}
             placeholder={t('lighting.effects.search')} ariaLabel={t('lighting.effects.search')}
           />
-        <div className={styles.starterScroll}>
-          {groups.map(g => (
-            <CollapsibleSection
-              key={g.key} compact title={t(`lighting.category.${g.key}`)}
-              open={searching || !collapsed.has(g.key)} onToggle={() => toggle(g.key)}
-            >
-              <div className={pageStyles.animateGridSection}>
-                {g.ids.map(id => (
-                  <EffectCard
-                    key={id} overlay label={t(`lighting.studio.starter.${id}`)} thumbUrl={stills.get(id) ?? null}
-                    thumbStatic={tried.has(id) && !stills.has(id)} active={false}
-                    onClick={() => { close(); onPick(id); }}
-                  />
-                ))}
-              </div>
-            </CollapsibleSection>
-          ))}
-          {searching && groups.length === 0 && <p className={pageStyles.browserHint}>{t('lighting.effects.noMatches')}</p>}
-        </div>
+          <div className={styles.starterScroll}>
+            {groups.map(g => (
+              <CollapsibleSection
+                key={g.key} compact title={t(`lighting.category.${g.key}`)}
+                open={searching || !collapsed.has(g.key)} onToggle={() => toggle(g.key)}
+              >
+                <div className={pageStyles.animateGridSection}>
+                  {g.ids.map(id => (
+                    <EffectCard
+                      key={id} overlay label={t(`lighting.studio.starter.${id}`)} thumbUrl={stills.get(id) ?? null}
+                      thumbStatic={tried.has(id) && !stills.has(id)} active={false}
+                      onClick={() => { close(); onPick(id); }}
+                    />
+                  ))}
+                </div>
+              </CollapsibleSection>
+            ))}
+            {searching && groups.length === 0 && <p className={pageStyles.browserHint}>{t('lighting.effects.noMatches')}</p>}
+          </div>
         </div>
       </Popover>
     </div>
