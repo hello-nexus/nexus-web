@@ -455,6 +455,11 @@
   > :first-child { flex: 1 1 auto; min-width: 0; }
 }
 
+.fanPinGlyph {
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+
 // The pin button: inside the mode dropdown's box, or beside the state badge on
 // the rows that have no dropdown.
 .fanPinBtn {

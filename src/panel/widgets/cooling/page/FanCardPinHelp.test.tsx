@@ -53,6 +53,25 @@ describe('FanCard pin tooltip', () => {
   });
 });
 
+describe('FanCard pin on cards without controls', () => {
+  it('is not a button on a read-only channel', () => {
+    renderCard(channel({ readOnly: true, controlled: false }));
+    expect(screen.queryByRole('button', { name: 'cooling.pin.unpin' })).toBeNull();
+    expect(document.querySelector('[class*="fanPinGlyph"]')).toBeTruthy();
+  });
+
+  it('is not a button on a disconnected channel', () => {
+    renderCard(channel({ classification: 'Unresponsive', rpm: 0 }));
+    expect(screen.queryByRole('button', { name: 'cooling.pin.unpin' })).toBeNull();
+    expect(document.querySelector('[class*="fanPinGlyph"]')).toBeTruthy();
+  });
+
+  it('stays a button on a controllable channel Nexus does not control', () => {
+    renderCard(channel({ controlled: false }));
+    expect(pinBtn()).toBeInTheDocument();
+  });
+});
+
 describe('FanCard pin click to unpin', () => {
   it('unpins from the standalone pin', () => {
     const onTogglePin = vi.fn();

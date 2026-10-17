@@ -321,7 +321,10 @@ export const FanCard = memo(function FanCard({
   // The pin unpins, like the lighting card's: it writes the same override the
   // menu's Unpin does. The press unmounts the button, so a keyboard press first
   // hands focus to the role picker, which is always present.
-  const pinButton = pinned ? (
+  // A hardware-disconnected or telemetry-only channel exposes no controls, so
+  // its pin is an inert glyph with no tooltip.
+  const pinInteractive = !isReadOnly && !isHwDisconnected;
+  const pinButton = pinned && pinInteractive ? (
     <HoverTooltip body={pinTip} side="top">
       <button
         type="button"
@@ -339,6 +342,7 @@ export const FanCard = memo(function FanCard({
       </button>
     </HoverTooltip>
   ) : null;
+  const pinInert = pinned && !pinInteractive ? <Pin size={12} className={styles.fanPinGlyph} aria-hidden="true" /> : null;
 
   const handleModeChange = (v: string) => {
     if (v === '__create__') { onCreateCurve(); return; }
@@ -560,7 +564,7 @@ export const FanCard = memo(function FanCard({
           <div className={styles.fanStateBadge}>
             <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
           </div>
-          {pinButton}
+          {pinButton ?? pinInert}
         </div>
       ) : isReadOnly ? null : isFixed ? (
         // Fixed speed: the RPM readout stays in the header and the duty bar
@@ -572,7 +576,7 @@ export const FanCard = memo(function FanCard({
               <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
             </div>
           </HoverTooltip>
-          {pinButton}
+          {pinButton ?? pinInert}
         </div>
       ) : (
         <>
