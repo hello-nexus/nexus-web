@@ -57,7 +57,7 @@ export function ownerPatch(owner: OwnerChoice): CardChoice {
 
 export interface AppPlan {
   id: string;
-  /** Hand the devices to this owner (also writes the allowed list through the existing device switch). */
+  /** Hand the devices to this owner; the device switch call also writes the allowed list. */
   setOwner?: OwnerChoice;
   /** Final allowed-list state to write after the ownership step. */
   whitelist?: boolean;
@@ -85,7 +85,8 @@ export function planApp(input: PlanInput): AppPlan {
     disableAutostart: state.end && state.unstart && autostartCount > 0,
   };
   if (neverWhitelist) return plan;
-  const owner = choice?.owner;
+  // A terminated app hands every device back to Nexus whatever the switch says, so none stays dark.
+  const owner = state.end && devices.length > 0 ? 'nexus' : choice?.owner;
   const ownerStep = owner !== undefined && devices.length > 0 && owner !== agreedOwner(devices);
   if (ownerStep) plan.setOwner = owner;
   const listedAfterOwner = ownerStep ? owner === 'app' : whitelisted;

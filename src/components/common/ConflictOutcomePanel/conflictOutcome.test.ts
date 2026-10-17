@@ -96,6 +96,13 @@ describe('planApp', () => {
     expect(plan({ owner: 'nexus', end: true }, { devices: [dev('app')] })).toMatchObject({ setOwner: 'nexus', kill: true });
   });
 
+  it('hands every device to Nexus when a terminating app has mixed or app-owned devices, untouched or not', () => {
+    expect(plan(undefined, { devices: [dev('app'), dev('nexus')] })).toMatchObject({ setOwner: 'nexus', kill: true });
+    expect(plan(undefined, { devices: [dev('mixed')] })).toMatchObject({ setOwner: 'nexus', kill: true });
+    expect(plan({ end: true, owner: 'app', ownerPinned: true }, { devices: [dev('app')] })).toMatchObject({ setOwner: 'nexus', kill: true });
+    expect(plan({ end: true }, { devices: [dev('app')], whitelisted: true })).toMatchObject({ setOwner: 'nexus' });
+  });
+
   it('writes the allowed list after an ownership step that already set it, only when they disagree', () => {
     // Owner app whitelists through the switch and the card keeps running: no extra write.
     expect(plan({ owner: 'app', end: false }, { devices: [dev('nexus')] }).whitelist).toBeUndefined();

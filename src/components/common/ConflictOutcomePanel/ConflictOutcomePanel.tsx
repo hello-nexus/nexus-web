@@ -84,12 +84,16 @@ export function ConflictOutcomePanel({
     [entries, nexus2Installed],
   );
 
-  const states = useMemo(() => new Map(appEntries.map(e => [
-    e.conflict.id,
-    cardState(choices[e.conflict.id], devicesByApp.get(e.conflict.id) ?? [], whitelisted.has(e.conflict.id)),
-  ])), [appEntries, choices, devicesByApp, whitelisted]);
+  // The service always ends Nexus 2, so outside its uninstall card its row is not a choice.
+  const isFixed = (id: string) => id === HYTE_NEXUS2_CONFLICT_ID;
 
-  const terminateCount = appEntries.filter(e => states.get(e.conflict.id)?.end).length;
+  const states = useMemo(() => new Map(appEntries.map(e => {
+    const id = e.conflict.id;
+    const state = cardState(choices[id], devicesByApp.get(id) ?? [], whitelisted.has(id));
+    return [id, id === HYTE_NEXUS2_CONFLICT_ID ? { ...state, end: true } : state];
+  })), [appEntries, choices, devicesByApp, whitelisted]);
+
+  const terminateCount = appEntries.filter(e => states.get(e.conflict.id)?.end && !e.terminated).length;
 
   // Handing experimental hardware to Nexus asks for confirmation first.
   const requestPatch = useCallback((id: string, patch: CardChoice) => {
@@ -186,8 +190,8 @@ export function ConflictOutcomePanel({
                   <Card
                     compact
                     selected={state.end}
-                    pressed={state.end}
-                    onClick={busy ? undefined : () => requestPatch(id, toggleCardPatch(state, devices.length > 0))}
+                    pressed={isFixed(id) ? undefined : state.end}
+                    onClick={busy || isFixed(id) ? undefined : () => requestPatch(id, toggleCardPatch(state, devices.length > 0))}
                   >
                     <div className={styles.cardRow}>
                       <div className={styles.info}>

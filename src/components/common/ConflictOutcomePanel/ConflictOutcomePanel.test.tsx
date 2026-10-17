@@ -182,4 +182,34 @@ describe('ConflictOutcomePanel', () => {
 
     expect(screen.getByRole('button', { name: 'conflicts.outcome.save' })).toBeInTheDocument();
   });
+
+  it('counts only rows a kill will be sent for', async () => {
+    const { rerender } = renderPanel(['icue'], [razer, deck, icue]);
+    expect(screen.getByRole('button', { name: 'conflicts.outcome.terminate:2' })).toBeInTheDocument();
+
+    rerender(
+      <ConflictOutcomePanel conflicts={[razer, icue]} ready active whitelisted={new Set(['icue'])} variant="modal" heading={<p>heading</p>} onDone={onDone} />,
+    );
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByRole('button', { name: 'conflicts.outcome.terminateOne' })).toBeInTheDocument();
+    await press('conflicts.outcome.terminateOne');
+    expect(mockKill.mock.calls.map(c => c[0])).toEqual(['razer']);
+  });
+
+  it('a Nexus 2 row outside the uninstall card is fixed to terminate and not a toggle', async () => {
+    const nexus2 = { id: 'hyte-nexus-2', displayName: 'HYTE Nexus 2', category: 'lighting', processName: 'HYTE Nexus', pid: 3268 };
+    renderPanel([], [nexus2]);
+
+    const row = screen.getByText('HYTE Nexus 2').closest('li') as HTMLElement;
+    expect(row.querySelector('[role="button"]')).toBeNull();
+    expect(row.querySelector('[aria-pressed]')).toBeNull();
+    expect(screen.getByText('conflicts.outcome.willTerminate')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('conflicts.outcome.willTerminate'));
+    expect(screen.getByText('conflicts.outcome.willTerminate')).toBeInTheDocument();
+
+    await press('conflicts.outcome.terminateOne');
+    expect(mockKill).toHaveBeenCalledWith('hyte-nexus-2');
+    expect(mockWhitelist).not.toHaveBeenCalled();
+  });
 });
