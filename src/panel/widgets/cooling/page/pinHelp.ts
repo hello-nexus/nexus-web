@@ -2,7 +2,7 @@ import { isFanDisconnected, type FanChannel } from '../../../../api/cooling';
 import { pluralKey } from '../../../../lib/pluralKey';
 import type { Language } from '../../../../lib/settings';
 
-/** The fans a preset retargets (skipping pinned ones), or with `includePinned` the ones Off hands back. */
+/** The fans a mode retargets (skipping pinned ones), or with `includePinned` the ones Off hands back. */
 export const presetReach = (channels: readonly FanChannel[], includePinned = false): Set<string> => new Set(channels
   .filter(ch => (includePinned || !ch.pinned) && ch.controlled !== false && !ch.readOnly
     && ch.classification !== 'Fixed' && !isFanDisconnected(ch))
@@ -21,15 +21,16 @@ export function pinTooltipKey(ch: Pick<FanChannel, 'isGpu' | 'kind' | 'isAio'>):
 }
 
 /**
- * Hover copy for a preset tab: the translation key and its params. Counts the
- * pinned fans a preset would actually skip, so a pinned fan Nexus does not
- * control is not claimed. Off is not a preset tab (it lives in the mode menu
- * and releases every fan, pinned or not), so it never gets this copy.
+ * Hover copy for a mode tab: the translation key and its params, or null when
+ * nothing is pinned. Counts the pinned fans a mode would actually skip, so a
+ * pinned fan Nexus does not control is not claimed. Off is not a mode tab (it
+ * lives in the mode menu and releases every fan, pinned or not), so it never
+ * gets this copy.
  */
-export function presetTabTip(channels: readonly FanChannel[], language: Language): { key: string; params?: { count: number } } {
+export function modeTabTip(channels: readonly FanChannel[], language: Language): { key: string; params: { count: number } } | null {
   const all = presetReach(channels, true);
   const unpinned = presetReach(channels);
   const count = all.size - unpinned.size;
-  if (count === 0) return { key: 'cooling.pin.presetTip' };
+  if (count === 0) return null;
   return { key: pluralKey('cooling.pin.presetTipPinned', language, count), params: { count } };
 }

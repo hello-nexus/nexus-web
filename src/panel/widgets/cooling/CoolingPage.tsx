@@ -83,7 +83,7 @@ import { CurveSelector } from './page/CurveSelector';
 import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID, blockIdOf } from './page/deviceGroupName';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
-import { presetReach, presetTabTip } from './page/pinHelp';
+import { presetReach, modeTabTip } from './page/pinHelp';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
@@ -1351,10 +1351,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Off is not among these tabs (it is in the mode menu, where it releases every
   // fan), so the pinned-fans copy below never reaches it. The active tab has
   // nothing to change, so it carries no tooltip.
-  const presetTip = presetTabTip(channels, language);
+  const modeTip = modeTabTip(channels, language);
   const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({
     key: p.key,
-    tooltip: serviceOnline && p.key !== activeMode ? t(presetTip.key, presetTip.params) : undefined,
+    tooltip: serviceOnline && modeTip && p.key !== activeMode ? t(modeTip.key, modeTip.params) : undefined,
     // Plain mode names, matching the simple-mode tiles. They used to read
     // "All <mode>", which stopped being true once pumps and GPU fans started
     // defaulting out of a preset apply (FanProfiles.IsPinnedByDefault).
