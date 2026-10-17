@@ -282,3 +282,23 @@
     margin-left: var(--space-sm);
   }
 }
+
+.starterAnchor {
+  position: relative;
+}
+
+.starterPopover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(70vh, 520px);
+  padding: var(--space-sm);
+}
+
+// The grid scrolls inside the popover, so the search stays on top.
+.starterScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}

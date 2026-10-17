@@ -35,6 +35,7 @@ import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';
 import { EFFECT_NAME_MAX, getSavedEffects, isDownloaded, lastCreatedEffect, newEffectId, saveEffect, useSavedEffects, type MarketLink, type SavedEffect } from './studioLibrary';
 import { marketEffectUrl } from '../../../../lib/marketLinks';
 import { copyText } from '../../../../lib/clipboard';
+import { StarterPicker } from './StarterPicker';
 import { StudioBlockCard } from './StudioBlockCard';
 import { StudioPreview } from './StudioPreview';
 import { useStudioAudio } from './syntheticAudio';
@@ -425,17 +426,12 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
   const varying = !!variations;
   const toolbar = (
     <div className={styles.toolbar}>
-      <Select
+      <StarterPicker
         disabled={varying}
-        ariaLabel={t('lighting.studio.starters')}
-        placeholder={t('lighting.studio.starters')}
-        value=""
-        options={STUDIO_STARTERS.map(s => ({ value: s.id, label: t(`lighting.studio.starter.${s.id}`) }))}
-        onChange={id => {
+        onPick={id => {
           const starter = STUDIO_STARTERS.find(s => s.id === id);
           if (starter) apply(starter.build(), true);
         }}
-        height={32}
       />
       <Button size="sm" icon={<Dices size={14} />} disabled={varying} onClick={() => apply(randomRecipe(), true)}>
         {t('lighting.studio.surprise')}
@@ -617,16 +613,19 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
           <SettingsSection title={t('lighting.studio.stage.global')} boxClassName={styles.stageBox}>
           <Card compact className={styles.blockCard}>
             <div className={styles.blockParams}>
+              {recipeUsesWheel(recipe) && (
+                <div className={pageStyles.paletteRingWrap}>
+                  <PaletteRing
+                    hue={recipe.hue} colorize={recipe.colorize ?? 0}
+                    onChange={(hue, colorize, commit) => apply({ ...recipe, hue, colorize }, commit)} onCommit={commitCurrent}
+                    saturation={recipe.saturation} contrast={recipe.contrast}
+                  />
+                </div>
+              )}
               <Slider orientation={STACKED} editable trackFill zeroMarker label={t('lighting.controls.speed')}
                 value={recipe.speed} min={-100} max={100}
                 onChange={(v, commit) => apply({ ...recipe, speed: v }, !!commit)} onCommit={commitCurrent} />
-              {recipeUsesWheel(recipe) ? (
-                <PaletteRing
-                  hue={recipe.hue} colorize={recipe.colorize ?? 0}
-                  onChange={(hue, colorize, commit) => apply({ ...recipe, hue, colorize }, commit)} onCommit={commitCurrent}
-                  saturation={recipe.saturation} contrast={recipe.contrast}
-                />
-              ) : (
+              {!recipeUsesWheel(recipe) && (
                 <Slider orientation={STACKED} editable trackFill label={t('lighting.studio.param.hue')}
                   value={Math.round(recipe.hue * 100)} min={0} max={100}
                   onChange={(v, commit) => apply({ ...recipe, hue: v / 100 }, !!commit)} onCommit={commitCurrent} />

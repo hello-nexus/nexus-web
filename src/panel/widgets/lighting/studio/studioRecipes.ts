@@ -218,6 +218,19 @@ export const STUDIO_STARTERS: readonly StudioStarter[] = [
   ...SENSOR_PREMADES.map(p => ({ id: p.starterId, build: () => starterRecipe(p) })),
 ];
 
+/** The starters by the Lighting page's categories, in the order its browser lists them. */
+export const STARTER_GROUPS: readonly { key: 'pattern' | 'organic' | 'cosmic' | 'geometric' | 'audio' | 'sensor'; ids: readonly string[] }[] = [
+  {
+    key: 'pattern',
+    ids: ['colorCycle', 'breathing', 'horizontalWipe', 'verticalWipe', 'radialFill', 'clockWipe', 'rainbowWheel', 'larsonScanner', 'theaterChase', 'pulseRings', 'retroBands'],
+  },
+  { key: 'organic', ids: ['campfire', 'lavaLamp', 'oceanCaustics', 'aurora'] },
+  { key: 'cosmic', ids: ['starWarp', 'cometOrbit', 'radar'] },
+  { key: 'geometric', ids: ['fanSpinner', 'neonKaleido', 'hypnoTunnel', 'discoGrid'] },
+  { key: 'audio', ids: ['spectrumBars', 'vuMeter', 'beatRings'] },
+  { key: 'sensor', ids: SENSOR_PREMADES.map(p => p.starterId) },
+];
+
 const decimals = (step: number) => (String(step).split('.')[1] ?? '').length;
 
 function snap(p: StudioParam, value: number): number {
