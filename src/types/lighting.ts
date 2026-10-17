@@ -793,8 +793,9 @@ export const EFFECTS: EffectDef[] = [
     { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
     { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
   ]},
-  { key: 'sensorshift', labelKey: 'lighting.controls.sensorshift', hideSpeed: true, sensors: SENSOR_SHIFT_SENSORS, params: [ { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
-  ] },
+  { key: 'sensorshift', labelKey: 'lighting.controls.sensorshift', hideSpeed: true, sensors: SENSOR_SHIFT_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+  ]},
   { key: 'sensorheat', labelKey: 'lighting.controls.sensorheat', hideSpeed: true, sensors: SENSOR_HEAT_SENSORS, params: [
     { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
     { name: 'u_grad_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },

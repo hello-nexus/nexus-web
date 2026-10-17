@@ -42,6 +42,20 @@ describe('StarterPicker', () => {
     expect(screen.queryByRole('textbox', { name: 'lighting.effects.search' })).toBeNull();
   });
 
+  it('closes on Escape without the Escape reaching the Studio behind it', () => {
+    const behind = vi.fn();
+    document.addEventListener('keydown', behind);
+    try {
+      render(<StarterPicker onPick={() => {}} />);
+      open();
+      fireEvent.keyDown(screen.getByRole('textbox', { name: 'lighting.effects.search' }), { key: 'Escape' });
+      expect(screen.queryByRole('textbox', { name: 'lighting.effects.search' })).toBeNull();
+      expect(behind).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', behind);
+    }
+  });
+
   it('cannot be opened while disabled', () => {
     render(<StarterPicker disabled onPick={() => {}} />);
     expect(screen.getByRole('button', { name: 'lighting.studio.starters' })).toBeDisabled();

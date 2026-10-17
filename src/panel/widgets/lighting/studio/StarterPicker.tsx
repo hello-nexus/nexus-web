@@ -18,20 +18,28 @@ const POPUP = 'dialog' as const;
 // Stills come from the one shared WebGL context, a few frames apart so opening the picker never stalls.
 const stillCache = new Map<string, string | null>();
 
+// Each still compiles and links a shader, so they are spaced out rather than rendered back to back.
+const STILL_GAP_MS = 90;
+
 function useStarterStills(open: boolean): ReadonlyMap<string, string | null> {
   const [, bump] = useState(0);
   useEffect(() => {
     if (!open) return;
-    let frame = 0;
+    // A still that failed to render is not remembered, so the next open tries it again.
+    const pending = STUDIO_STARTERS.filter(s => !stillCache.get(s.id));
+    let timer = 0;
     const next = () => {
-      const starter = STUDIO_STARTERS.find(s => !stillCache.has(s.id));
+      const starter = pending.shift();
       if (!starter) return;
-      stillCache.set(starter.id, renderRecipeStill(starter.build()));
-      bump(n => n + 1);
-      frame = requestAnimationFrame(next);
+      const url = renderRecipeStill(starter.build());
+      if (url) {
+        stillCache.set(starter.id, url);
+        bump(n => n + 1);
+      }
+      timer = window.setTimeout(next, STILL_GAP_MS);
     };
-    frame = requestAnimationFrame(next);
-    return () => cancelAnimationFrame(frame);
+    timer = window.setTimeout(next, 0);
+    return () => window.clearTimeout(timer);
   }, [open]);
   return stillCache;
 }
@@ -61,6 +69,12 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
     .filter(g => g.ids.length > 0), [query, t]);
 
   const close = () => { setOpen(false); setQuery(''); };
+  // Escape closes only the picker: the Studio's own Escape (which would close it) listens on the document.
+  const onEscape = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    e.stopPropagation();
+    close();
+  };
   const toggle = (key: string) => setCollapsed(prev => {
     const next = new Set(prev);
     if (next.has(key)) next.delete(key); else next.add(key);
@@ -76,7 +90,7 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
         {t('lighting.studio.starters')}
       </Button>
       <Popover portal open={open} onClose={close} anchorRef={anchorRef} placement="bottom-start" className={styles.starterPopover} ariaLabel={t('lighting.studio.starters')}>
-        <div ref={bodyRef}>
+        <div ref={bodyRef} onKeyDown={onEscape}>
           <SearchInput
           value={query} onChange={setQuery}
           placeholder={t('lighting.effects.search')} ariaLabel={t('lighting.effects.search')}
@@ -88,11 +102,11 @@ export function StarterPicker({ disabled, onPick }: { disabled?: boolean; onPick
               key={g.key} compact title={t(`lighting.category.${g.key}`)}
               open={searching || !collapsed.has(g.key)} onToggle={() => toggle(g.key)}
             >
-              <div data-pick className={pageStyles.animateGridSection}>
+              <div className={pageStyles.animateGridSection}>
                 {g.ids.map(id => (
                   <EffectCard
                     key={id} overlay label={t(`lighting.studio.starter.${id}`)} thumbUrl={stills.get(id) ?? null}
-                    thumbStatic={stills.has(id)} active={false}
+                    thumbStatic={false} active={false}
                     onClick={() => { close(); onPick(id); }}
                   />
                 ))}
