@@ -595,11 +595,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [canvasFocusIds, deviceStacks, editorTarget, activeProfileId]);
 
   const [musicReactive, setMusicReactiveState] = useState(false);
-  const audioRef = useAudioState(musicReactive && mode === 'animate');
-  // Windows only: the macOS capture takes the whole system mix, so there is no
-  // output to name or switch.
-  const showAudioOutput = musicReactive && isWindows && mode === 'animate';
-  const audioOutput = useLightingAudioOutput(showAudioOutput);
 
   // Optimistic local mirror of useLightingSync().paused, reconciled whenever
   // the server value changes (multiplex refetch, mode switch resetting it).
@@ -2479,6 +2474,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // The canvas previews the shared effect canvas, which Static does not sample
   // and Off has nothing to show on.
   const showCanvas = viewMode !== 'static' && viewMode !== 'none';
+  // The music button shows for the visible effect, not the service's running
+  // mode, so audio capture and the source picker follow the same condition.
+  const showMusicButton = shaderMode && !!dockEffect && !!dockState && !mixedSelection
+    && !!(EFFECTS.find(e => e.key === dockEffect)?.audio || dockCustom?.audio);
+  const audioRef = useAudioState(musicReactive && showMusicButton);
+  // Windows only: the macOS capture takes the whole system mix, so there is no
+  // source to name or switch.
+  const showAudioOutput = musicReactive && isWindows && showMusicButton;
+  const audioOutput = useLightingAudioOutput(showAudioOutput);
   // The device list is the canvas filter: the canvas draws exactly what the
   // list has selected. Which of those frames is focused is the canvas's own
   // state (`canvasFocusIds`), so a canvas click never removes a frame.
@@ -2965,7 +2969,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             {viewMode === 'gif' && <MediaCanvasNotice />}
             {shaderMode && dockEffect && dockState && !mixedSelection && (
               <>
-                {(EFFECTS.find(e => e.key === dockEffect)?.audio || dockCustom?.audio) && (
+                {showMusicButton && (
                   <div className={styles.musicReactive}>
                     <HoverTooltip body={t('lighting.musicReactive')} side="left">
                       <button
