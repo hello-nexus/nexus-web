@@ -155,6 +155,8 @@ const TEMP_MIN = 20, TEMP_MAX = 100;
 // the SVG, so they can never clip into the chart bars/lines.
 const PAD = { left: 8, right: 8, top: 8, bottom: 8 };
 const GRAPH_H = 140;
+// Distance from the live dot within which a y-axis label would sit under its readout.
+const LIVE_BADGE_CLEARANCE = 14;
 // Hero graph on the desktop cooling page.
 const PINNED_GRAPH_H = 190;
 // °C step for read-only curve sampling (Fixed / Linear / Mix lines).
@@ -224,7 +226,7 @@ function sampleCurveShape(
 // piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers, readOnly = false,
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -242,6 +244,8 @@ export function CurveGraph({
   easing?: CurveEasing;
   /** Vertical lines with a label (and optional icon) at x values in the axis span. */
   markers?: CurveGraphMarker[];
+  /** Points are drawn as small inert dots instead of handles. */
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -457,7 +461,8 @@ export function CurveGraph({
               </g>
             )}
             {showPoints && sorted.map((p, i) => (
-              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={editable ? 7 : 6} className={styles.curvePoint}
+              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={readOnly ? 3 : editable ? 7 : 6}
+                className={readOnly ? styles.curvePointStatic : styles.curvePoint}
                 style={editable ? { cursor: 'grab' } : undefined}
                 onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
                 onPointerMove={editable ? onHandleMove : undefined}
@@ -513,7 +518,11 @@ export function CurveGraph({
             right-edge guide line points straight at the live value. */}
         <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
           {[...H_LINES].reverse().map(s => (
-            <span key={s} className={styles.curveAxisLabel}>{s}%</span>
+            // The live readout sits over its own row; a label under it is hidden.
+            <span key={s} className={styles.curveAxisLabel}
+              style={hasDot && Math.abs(speedToY(s) - dotY) < LIVE_BADGE_CLEARANCE ? { visibility: 'hidden' } : undefined}>
+              {s}%
+            </span>
           ))}
           {hasDot && (
             <span className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>

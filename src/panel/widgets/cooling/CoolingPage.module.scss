@@ -1168,6 +1168,7 @@
   &[data-edge='end'] { transform: translateX(-100%); }
 }
 .curvePoint { fill: var(--accent); stroke: #fff; stroke-width: 2; }
+.curvePointStatic { fill: var(--accent); pointer-events: none; }
 
 // Live temperature indicator overlaid on the graph: vertical line from the
 // x-axis up through the curve so the user can see where the current reading

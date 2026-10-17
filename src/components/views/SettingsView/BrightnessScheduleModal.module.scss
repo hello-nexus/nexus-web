@@ -16,6 +16,14 @@
   font-weight: var(--weight-body);
 }
 
+// The two hint lines overlap in one grid cell; the hidden one still sizes it.
+.hints {
+  display: grid;
+
+  > .hint { grid-area: 1 / 1; }
+  > .hint[data-hidden] { visibility: hidden; }
+}
+
 // The graph owns its axis gutters; the frame just keeps it off the modal edge.
 .graph {
   padding: var(--space-xs) 0;

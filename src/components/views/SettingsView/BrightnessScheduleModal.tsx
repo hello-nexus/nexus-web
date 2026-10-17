@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Clock, RotateCcw, Sunrise, Sunset } from 'lucide-react';
+import { Clock, Moon, RotateCcw, Sun } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -70,11 +70,13 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
   const markers = useMemo<CurveGraphMarker[] | undefined>(() => {
     if (!sunApplies || sun?.sunriseMin == null || sun.sunsetMin == null) return undefined;
     return [
-      { x: sun.sunriseMin / 60, label: clock(sun.sunriseMin), icon: <Sunrise size={12} /> },
-      { x: sun.sunsetMin / 60, label: clock(sun.sunsetMin), icon: <Sunset size={12} /> },
+      { x: sun.sunriseMin / 60, label: clock(sun.sunriseMin), icon: <Sun size={12} /> },
+      { x: sun.sunsetMin / 60, label: clock(sun.sunsetMin), icon: <Moon size={12} /> },
     ];
   }, [sunApplies, sun, clock]);
 
+  // One line under the picker whatever the toggle says, so flipping it never
+  // changes the modal's height: the times when known, else why there are none.
   const sunNote = sun?.status === 'polar-day' ? t('lighting.schedule.sun.polarDay')
     : sun?.status === 'polar-night' ? t('lighting.schedule.sun.polarNight')
       : sun?.status === 'no-location' ? t('lighting.schedule.sun.noLocation')
@@ -85,8 +87,8 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
   const choices = location && !prefs.locations.some(l => sameWeatherLocation(l, location))
     ? [location, ...prefs.locations]
     : prefs.locations;
-  const autoLabel = sun?.resolvedLocation
-    ? t('lighting.schedule.sun.locationAutoNamed', { place: sun.resolvedLocation.label })
+  const autoLabel = sun?.autoLocation
+    ? t('lighting.schedule.sun.locationAutoNamed', { place: sun.autoLocation.label })
     : t('lighting.schedule.sun.locationAuto');
   const pickLocation = (key: string) => {
     if (key === '') { void saveSun({ location: null }); return; }
@@ -143,29 +145,28 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
           onChange={on => { void saveSun({ sunShift: on }); }}
           stackOnNarrow
         />
-        {sunShift && (
-          <div className={styles.sun}>
-            <SettingSelect
-              label={t('lighting.schedule.sun.location')}
-              value={location ? weatherLocationKey(location) : ''}
-              options={[
-                { value: '', label: autoLabel },
-                ...choices.map(l => ({ value: weatherLocationKey(l), label: l.label })),
-              ]}
-              onChange={pickLocation}
-            />
-            <WeatherLocationSearch
-              hasKeyboard
-              onSelect={result => { void saveSun({ location: geocodeResultToLocation(result) }); }}
-            />
-            {sunApplies && sun?.sunriseMin != null && sun.sunsetMin != null && (
-              <p className={styles.hint}>
-                {t('lighting.schedule.sun.times', { sunrise: clock(sun.sunriseMin), sunset: clock(sun.sunsetMin) })}
-              </p>
-            )}
-            {sunNote && <p className={styles.hint}>{sunNote}</p>}
-          </div>
-        )}
+        <div className={styles.sun}>
+          <SettingSelect
+            label={t('lighting.schedule.sun.location')}
+            value={location ? weatherLocationKey(location) : ''}
+            options={[
+              { value: '', label: autoLabel },
+              ...choices.map(l => ({ value: weatherLocationKey(l), label: l.label })),
+            ]}
+            disabled={!sunShift}
+            onChange={pickLocation}
+          />
+          <WeatherLocationSearch
+            hasKeyboard
+            disabled={!sunShift}
+            onSelect={result => { void saveSun({ location: geocodeResultToLocation(result) }); }}
+          />
+          {sun?.status === 'ok' && sun.sunriseMin != null && sun.sunsetMin != null ? (
+            <p className={styles.hint}>
+              {t('lighting.schedule.sun.times', { sunrise: clock(sun.sunriseMin), sunset: clock(sun.sunsetMin) })}
+            </p>
+          ) : sunNote && <p className={styles.hint}>{sunNote}</p>}
+        </div>
 
         <SettingToggle
           label={t('lighting.schedule.enable.label')}
@@ -176,9 +177,15 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
           stackOnNarrow
         />
 
-        <p className={styles.hint}>
-          {sunApplies ? t('lighting.schedule.sun.editNote') : t('lighting.schedule.graph.hint')}
-        </p>
+        {/* Both lines share one cell so the taller sets the height in either state. */}
+        <div className={styles.hints}>
+          <p className={styles.hint} aria-hidden={sunApplies ? true : undefined} data-hidden={sunApplies ? '' : undefined}>
+            {t('lighting.schedule.graph.hint')}
+          </p>
+          <p className={styles.hint} aria-hidden={sunApplies ? undefined : true} data-hidden={sunApplies ? undefined : ''}>
+            {t('lighting.schedule.sun.editNote')}
+          </p>
+        </div>
 
         <div className={styles.graph}>
           <CurveGraph
@@ -190,6 +197,7 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
             currentTemp={minute / 60}
             editable={!!schedule && !sunApplies}
             markers={markers}
+            readOnly={sunApplies}
             onChange={commit}
           />
         </div>

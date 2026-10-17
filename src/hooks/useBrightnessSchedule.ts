@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchBrightnessSchedule, setBrightnessSchedule,
   type BrightnessSchedule, type BrightnessScheduleLocation, type BrightnessSchedulePoint,
-  type BrightnessScheduleSun,
+  type BrightnessScheduleResponse, type BrightnessScheduleSun,
 } from '../api/lighting';
 import { localDateKey, minuteOfDay, scheduledBrightness, sunCurve } from '../lib/brightnessSchedule';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -47,17 +47,28 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
   const [sun, setSun] = useState<BrightnessScheduleSun | null>(null);
   const [minute, setMinute] = useState(() => minuteOfDay());
 
-  const refresh = useCallback(() => {
-    fetchBrightnessSchedule().then(data => {
-      if (!data) return;
-      // A hand-edited settings.json can hold an explicit null here.
-      setSchedule({ enabled: data.enabled, points: data.points ?? [] });
-      setDefaults(data.defaults ?? []);
-      setSunShift(data.sunShift !== false);
-      setLocation(data.location ?? null);
-      setSun(data.sun ?? null);
-    }).catch(() => { /* best-effort */ });
+  // A GET that began before a local write, or that lands while one is still
+  // in flight, may carry the old state; it is dropped, and the write's own
+  // answer (or a refetch after it) supplies the truth.
+  const writeSeqRef = useRef(0);
+  const pendingWritesRef = useRef(0);
+
+  const apply = useCallback((data: BrightnessScheduleResponse) => {
+    // A hand-edited settings.json can hold an explicit null here.
+    setSchedule({ enabled: data.enabled, points: data.points ?? [] });
+    setDefaults(data.defaults ?? []);
+    setSunShift(data.sunShift !== false);
+    setLocation(data.location ?? null);
+    setSun(data.sun ?? null);
   }, []);
+
+  const refresh = useCallback(() => {
+    const seq = writeSeqRef.current;
+    fetchBrightnessSchedule().then(data => {
+      if (!data || pendingWritesRef.current > 0 || seq !== writeSeqRef.current) return;
+      apply(data);
+    }).catch(() => { /* best-effort */ });
+  }, [apply]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -83,28 +94,47 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
     return () => window.clearTimeout(timer);
   }, [enabled]);
 
-  // The generated curve is for one date; a new day needs a fresh one.
-  // Keyed on the minute only, so a service that disagrees about the date costs
-  // one fetch a minute rather than a loop.
-  const sunDateRef = useRef<string | null>(null);
-  sunDateRef.current = sun?.date ?? null;
+  // The generated curve is for one date, so a new day needs a fresh one; an
+  // Auto location the service could not place yet is retried too. Keyed on the
+  // minute only, so a service that keeps disagreeing costs one fetch a minute
+  // rather than a loop.
+  const staleRef = useRef(false);
+  staleRef.current = (sun !== null && sun.date !== localDateKey())
+    || (sunShift && location === null && sun?.status === 'no-location');
   useEffect(() => {
-    if (enabled && sunDateRef.current !== null && sunDateRef.current !== localDateKey()) refresh();
+    if (enabled && staleRef.current) refresh();
   }, [enabled, minute, refresh]);
 
-  const save = useCallback(async (next: BrightnessSchedule) => {
-    setSchedule(next);
-    await setBrightnessSchedule(next);
-  }, []);
+  // Optimistic write: the answer carries the full state and is adopted; a bare
+  // envelope (an older service, or a refusal) is followed by a refetch.
+  const write = useCallback(async (optimistic: () => void, body: Parameters<typeof setBrightnessSchedule>[0]) => {
+    optimistic();
+    writeSeqRef.current += 1;
+    pendingWritesRef.current += 1;
+    let answer: Awaited<ReturnType<typeof setBrightnessSchedule>> = null;
+    try {
+      answer = await setBrightnessSchedule(body);
+    } catch {
+      // The refetch below restores whatever the service holds.
+    } finally {
+      pendingWritesRef.current -= 1;
+    }
+    if (pendingWritesRef.current > 0) return;
+    if (answer && 'sun' in answer) apply(answer);
+    else refresh();
+  }, [apply, refresh]);
+
+  const save = useCallback((next: BrightnessSchedule) => write(() => setSchedule(next), next), [write]);
 
   // The service takes the schedule with every write, so a sun change sends the
   // current one along; the sun fields it leaves out stay as stored.
   const saveSun = useCallback(async (patch: { sunShift?: boolean; location?: BrightnessScheduleLocation | null }) => {
     if (!schedule) return;
-    if (patch.sunShift !== undefined) setSunShift(patch.sunShift);
-    if (patch.location !== undefined) setLocation(patch.location);
-    await setBrightnessSchedule({ enabled: schedule.enabled, points: schedule.points, ...patch });
-  }, [schedule]);
+    await write(() => {
+      if (patch.sunShift !== undefined) setSunShift(patch.sunShift);
+      if (patch.location !== undefined) setLocation(patch.location);
+    }, { enabled: schedule.enabled, points: schedule.points, ...patch });
+  }, [schedule, write]);
 
   const sunPoints = useMemo(() => sunCurve(sunShift, sun), [sunShift, sun]);
   const current = schedule?.enabled ? Math.round(scheduledBrightness(sunPoints ?? schedule.points, minute)) : null;

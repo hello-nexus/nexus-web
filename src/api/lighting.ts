@@ -762,7 +762,10 @@ export interface BrightnessScheduleSun {
   sunsetMin: number | null;
   /** Today's generated curve, sorted; empty unless status is 'ok'. */
   sunPoints: { min: number; brightness: number }[];
+  /** The place the sun times are for (the chosen one, or the IP lookup for Auto). */
   resolvedLocation: BrightnessScheduleLocation | null;
+  /** The IP-resolved place, whatever the choice is; what "Auto" would use. */
+  autoLocation: BrightnessScheduleLocation | null;
 }
 export interface BrightnessScheduleResponse extends BrightnessSchedule {
   defaults: BrightnessSchedulePoint[];
@@ -780,7 +783,7 @@ export const fetchBrightnessSchedule = () =>
   fetchService<BrightnessScheduleResponse>('/lighting/brightness-schedule');
 
 export const setBrightnessSchedule = (schedule: BrightnessScheduleUpdate) =>
-  postService<BrightnessScheduleResponse>('/lighting/brightness-schedule', schedule);
+  postService<BrightnessScheduleResponse | ApiEnvelope>('/lighting/brightness-schedule', schedule);
 
 // Resize a motherboard ARGB zone's LED count. Persisted + applied live via
 // OpenRGB's RESIZEZONE opcode. Only valid for split zone ids ("openrgb-N-Z").

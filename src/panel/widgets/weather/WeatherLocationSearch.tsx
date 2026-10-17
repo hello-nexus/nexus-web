@@ -20,9 +20,11 @@ export interface WeatherLocationSearchProps {
   // DesktopOnlyBadge instead when there's no location chosen yet.
   hasKeyboard: boolean;
   onSelect: (result: WeatherGeocodeResult) => void;
+  // Keeps the field in place but inert, for a picker that is switched off.
+  disabled?: boolean;
 }
 
-export function WeatherLocationSearch({ hasKeyboard, onSelect }: WeatherLocationSearchProps) {
+export function WeatherLocationSearch({ hasKeyboard, onSelect, disabled }: WeatherLocationSearchProps) {
   const { t, language } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<WeatherGeocodeResult[]>([]);
@@ -71,6 +73,7 @@ export function WeatherLocationSearch({ hasKeyboard, onSelect }: WeatherLocation
       <SearchInput
         value={query}
         onChange={setQuery}
+        disabled={disabled}
         placeholder={t('panel.widget.weather.settings.searchLocation')}
         ariaLabel={t('panel.widget.weather.settings.searchLocation')}
       />

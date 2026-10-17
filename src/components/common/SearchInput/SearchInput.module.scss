@@ -34,6 +34,8 @@
 
   &::placeholder { color: var(--text-dim); }
 
+  &:disabled { opacity: 0.5; cursor: default; }
+
   &:hover:not(:focus):not(:focus-visible) {
     border-color: var(--control-border-strong);
   }

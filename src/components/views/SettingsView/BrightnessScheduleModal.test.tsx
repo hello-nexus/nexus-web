@@ -23,6 +23,7 @@ vi.mock('../../../lib/i18n', () => ({
 
 interface Place { lat: number; lon: number; label: string; cc: string }
 const OSLO: Place = { lat: 59.913, lon: 10.752, label: 'Oslo, NO', cc: 'NO' };
+const SINGAPORE: Place = { lat: 1.29, lon: 103.85, label: 'Singapore, SG', cc: 'SG' };
 
 vi.mock('../../../panel/widgets/weather/useWeatherPrefs', () => ({
   useWeatherPrefs: () => ({ prefs: { unit: 'auto', locations: [{ lat: 59.913, lon: 10.752, label: 'Oslo, NO', cc: 'NO' }] } }),
@@ -42,7 +43,7 @@ const scheduleState = {
   minute: 0,
   sunShift: true,
   location: null as Place | null,
-  sun: { status: 'no-location', date: '2026-03-05', sunriseMin: null, sunsetMin: null, sunPoints: [], resolvedLocation: null } as Record<string, unknown> | null,
+  sun: { status: 'no-location', date: '2026-03-05', sunriseMin: null, sunsetMin: null, sunPoints: [], resolvedLocation: null, autoLocation: null } as Record<string, unknown> | null,
   sunPoints: null as { hour: number; brightness: number }[] | null,
   saveSun: vi.fn().mockResolvedValue(undefined),
   save: vi.fn(),
@@ -60,7 +61,7 @@ const open = async (state: Record<string, unknown>) => {
 };
 
 const SUN_OK = {
-  status: 'ok', date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, resolvedLocation: OSLO,
+  status: 'ok', date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, resolvedLocation: OSLO, autoLocation: SINGAPORE,
   sunPoints: [{ min: 420, brightness: 30 }, { min: 540, brightness: 100 }],
 };
 const withState = (over: Record<string, unknown>) => {
@@ -250,10 +251,31 @@ describe('BrightnessScheduleModal sunset shift', () => {
     expect(scheduleState.saveSun).toHaveBeenCalledWith({ sunShift: true });
   });
 
-  it('hides the location row while off', () => {
+  it('keeps the location row in place but disabled while off, so the modal does not resize', () => {
+    withState({ sunShift: false, sun: SUN_OK });
+    expect(screen.getByRole('button', { name: 'lighting.schedule.sun.location' })).toBeDisabled();
+    expect(screen.getByText('search-pick')).toBeInTheDocument();
+    expect(screen.getByText(/lighting\.schedule\.sun\.times:/)).toBeInTheDocument();
+  });
+
+  it('keeps both graph hint lines mounted so either state sizes the same block', () => {
     withState({ sunShift: false });
-    expect(screen.queryByText('lighting.schedule.sun.location')).not.toBeInTheDocument();
-    expect(screen.queryByText('search-pick')).not.toBeInTheDocument();
+    expect(screen.getByText('lighting.schedule.graph.hint')).not.toHaveAttribute('data-hidden');
+    expect(screen.getByText('lighting.schedule.sun.editNote')).toHaveAttribute('data-hidden');
+  });
+
+  it('names the IP-resolved place under Auto, not the chosen one', () => {
+    withState({ sunShift: true, location: OSLO, sun: SUN_OK });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.sun.location' }));
+    const auto = screen.getByRole('option', { name: /locationAutoNamed/ });
+    expect(auto).toHaveTextContent('Singapore, SG');
+    expect(auto).not.toHaveTextContent('Oslo');
+  });
+
+  it('says plain Auto when the service could not place the PC', () => {
+    withState({ sunShift: true, location: null, sun: { ...SUN_OK, autoLocation: null } });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.sun.location' }));
+    expect(screen.getByRole('option', { name: 'lighting.schedule.sun.locationAuto' })).toBeInTheDocument();
   });
 
   it('saves a picked place, Auto as null, and a searched result', () => {
@@ -300,15 +322,13 @@ describe('BrightnessScheduleModal sunset shift', () => {
       sun: { ...SUN_OK, status, sunriseMin: null, sunsetMin: null, sunPoints: [] },
     });
     expect(screen.getByText(key)).toBeInTheDocument();
-    expect(screen.queryByText('lighting.schedule.sun.editNote')).not.toBeInTheDocument();
-    expect(screen.queryByText(/lighting\.schedule\.sun\.times:/)).not.toBeInTheDocument();
+    expect(screen.getByText('lighting.schedule.sun.editNote')).toHaveAttribute('data-hidden');
     expect(graphHandles()[0]).toHaveStyle({ cursor: 'grab' });
     expect(screen.getByRole('button', { name: 'lighting.schedule.reset' })).toBeEnabled();
   });
 
   it('shows the editable custom curve with a reset when off', () => {
     withState({ sunShift: false, sun: SUN_OK, sunPoints: null, defaults: [{ hour: 0, brightness: 10 }, { hour: 12, brightness: 100 }] });
-    expect(screen.queryByText(/lighting\.schedule\.sun\.times:/)).not.toBeInTheDocument();
     expect(graphHandles()[0]).toHaveStyle({ cursor: 'grab' });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.reset' }));
     expect(scheduleState.save).toHaveBeenCalledWith({ enabled: false, points: [{ hour: 0, brightness: 10 }, { hour: 12, brightness: 100 }] });

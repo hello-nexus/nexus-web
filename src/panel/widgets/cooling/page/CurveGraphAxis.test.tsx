@@ -83,4 +83,24 @@ describe('CurveGraph axis', () => {
     expect(circle).not.toBeNull();
     expect(circle.style.cursor).toBe('');
   });
+
+  it('draws read-only points as small inert dots, and keeps handles by default', () => {
+    const base = { points: [{ temp: 2, speed: 20 }, { temp: 22, speed: 60 }], tempMin: 0, tempMax: 24 };
+    const { container, rerender } = render(<CurveGraph {...base} editable />);
+    const dot = () => container.querySelector('svg circle') as SVGCircleElement;
+    expect(dot().getAttribute('r')).toBe('7');
+    rerender(<CurveGraph {...base} readOnly />);
+    expect(dot().getAttribute('r')).toBe('3');
+    expect(dot().getAttribute('class')).toMatch(/curvePointStatic/);
+  });
+
+  it('hides the y label that the live readout would sit on', () => {
+    const { container } = render(
+      <CurveGraph points={[{ temp: 0, speed: 10 }, { temp: 24, speed: 10 }]} tempMin={0} tempMax={24} currentTemp={12} />,
+    );
+    const label = (text: string) => Array.from(container.querySelectorAll('span')).find(s => s.textContent === text)!;
+    expect(label('0%').style.visibility).toBe('hidden');
+    expect(label('50%').style.visibility).toBe('');
+    expect(label('100%').style.visibility).toBe('');
+  });
 });

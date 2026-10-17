@@ -51,13 +51,13 @@ describe('scheduledBrightness', () => {
 });
 
 describe('sunCurve', () => {
-  // Sunrise 07:00, sunset 19:00: the service's R-60, R, R+120, S-120, S, S+60 shape.
+  // The service's generated shape around sunrise and sunset.
   const sunPoints = [
     { min: 360, brightness: 10 }, { min: 420, brightness: 30 }, { min: 540, brightness: 100 },
     { min: 1020, brightness: 100 }, { min: 1140, brightness: 30 }, { min: 1200, brightness: 10 },
   ];
   const sun = (over: Record<string, unknown> = {}) => ({
-    status: 'ok' as const, date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, sunPoints, resolvedLocation: null, ...over,
+    status: 'ok' as const, date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, sunPoints, resolvedLocation: null, autoLocation: null, ...over,
   });
   const at = (minute: number) => scheduledBrightness(sunCurve(true, sun())!, minute);
 
@@ -87,7 +87,7 @@ describe('sun curve vectors shared with the service', () => {
   it.each(vectors.map((v, i) => [i, v] as const))('case %i agrees at every sample', (_i, v) => {
     const curve = sunCurve(true, {
       status: 'ok', date: '2026-03-05', sunriseMin: v.sunriseMin, sunsetMin: v.sunsetMin,
-      sunPoints: v.expected, resolvedLocation: null,
+      sunPoints: v.expected, resolvedLocation: null, autoLocation: null,
     })!;
     for (const s of v.evalAt) expect(scheduledBrightness(curve, s.minute)).toBeCloseTo(s.expectedBrightness, 3);
   });
