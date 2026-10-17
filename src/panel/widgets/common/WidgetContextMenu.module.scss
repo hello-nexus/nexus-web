@@ -129,6 +129,27 @@
   }
 }
 
+.itemTwoLine {
+  align-items: flex-start;
+
+  > svg {
+    margin-top: 2px;
+  }
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.itemSub {
+  font-size: var(--type-mini);
+  font-weight: var(--weight-body);
+  color: var(--text-dim);
+  opacity: 0.85;
+}
+
 .itemDanger {
   color: var(--panel-bad);
 

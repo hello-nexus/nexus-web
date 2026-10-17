@@ -34,6 +34,8 @@ export interface FanChannel {
   role?: FanRole;
   /** Enumerated from a GPU hardware node. Motherboard-header fans are the deviceId-less channels where this is false. */
   isGpu?: boolean;
+  /** Channel of an all-in-one liquid cooler, read from the hardware. AIO channels are pinned by default. */
+  isAio?: boolean;
   /** Duty points added to whatever drives this fan, in [-100,100]. 0 when it has none. */
   offset?: number;
   seriesId?: string; // sanitized id; "fan:" + seriesId is the monitoring series id

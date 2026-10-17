@@ -17,6 +17,7 @@ import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/Menu
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
+import { pinTooltipKey } from './pinHelp';
 import styles from '../CoolingPage.module.scss';
 
 /**
@@ -318,8 +319,11 @@ export const FanCard = memo(function FanCard({
   // Select renders the selected option's icon in its trigger, so hanging the
   // pin on the current mode is what puts it inside the dropdown ("[pin]
   // Silent"). The fan icon no longer carries it.
+  const pinTip = t(pinTooltipKey(channel));
   const modeOptions: SelectOption[] = pinned
-    ? baseModeOptions.map(o => o.value === modeValue ? { ...o, icon: <Pin size={14} /> } : o)
+    ? baseModeOptions.map(o => o.value === modeValue ? { ...o, icon: (
+      <HoverTooltip body={pinTip} side="top"><span className={styles.fanPinTip}><Pin size={14} /></span></HoverTooltip>
+    ) } : o)
     : baseModeOptions;
 
   const handleModeChange = (v: string) => {
@@ -361,8 +365,8 @@ export const FanCard = memo(function FanCard({
 
     if (isControlled) {
       items.push(isPinned
-        ? { key: 'pin', icon: <PinOff size={14} />, label: label('cooling.pin.unpin', 'cooling.pin.unpinCount'), onSelect: () => setPinned(false) }
-        : { key: 'pin', icon: <Pin size={14} />, label: label('cooling.pin.pin', 'cooling.pin.pinCount'), onSelect: () => setPinned(true) });
+        ? { key: 'pin', icon: <PinOff size={14} />, label: label('cooling.pin.unpin', 'cooling.pin.unpinCount'), description: t('cooling.pin.menuDesc'), onSelect: () => setPinned(false) }
+        : { key: 'pin', icon: <Pin size={14} />, label: label('cooling.pin.pin', 'cooling.pin.pinCount'), description: t('cooling.pin.menuDesc'), onSelect: () => setPinned(true) });
       // An offset belongs to one fan, so a selection has nothing to clear -
       // the same rule the lighting menu applies to the LED map row.
       if (!bulk && offset !== 0 && onClearOffset) {
@@ -416,7 +420,13 @@ export const FanCard = memo(function FanCard({
   // no dropdown (disconnected, fixed, read-only, Nexus Control off) would show
   // no pin at all - and the menu still offers Pin/Unpin there. Carry it
   // beside the state badge in those rows instead.
-  const pinGlyph = pinned ? <Pin size={12} className={styles.fanPinGlyph} aria-hidden="true" /> : null;
+  const pinGlyph = pinned ? (
+    <HoverTooltip body={pinTip} side="top">
+      <span className={`${styles.fanPinTip} ${styles.fanPinGlyph}`} role="img" aria-label={pinTip}>
+        <Pin size={12} aria-hidden="true" />
+      </span>
+    </HoverTooltip>
+  ) : null;
 
   return (
     <div

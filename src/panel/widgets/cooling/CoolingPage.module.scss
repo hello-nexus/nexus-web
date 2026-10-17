@@ -456,6 +456,11 @@
 }
 
 // Stands in for the dropdown's pin icon on the rows that have no dropdown.
+.fanPinTip {
+  display: inline-flex;
+  align-items: center;
+}
+
 .fanPinGlyph {
   color: var(--text-dim);
   flex: 0 0 auto;

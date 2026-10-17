@@ -8,6 +8,8 @@ export interface DeviceMenuItem {
   key: string;
   icon: ReactNode;
   label: string;
+  /** Secondary line under the label, in the smaller dim type. */
+  description?: string;
   /** Omitted on a row that only opens a `submenu`. */
   onSelect?: () => void;
   /** Rule under this row, splitting it off from the rows below. */
@@ -116,7 +118,7 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
     <Fragment key={item.key}>
       <button
         type="button"
-        className={item.highlighted ? `${styles.item} ${styles.itemAccent}` : styles.item}
+        className={[styles.item, item.highlighted && styles.itemAccent, item.description && styles.itemTwoLine].filter(Boolean).join(' ')}
         aria-haspopup={item.submenu ? 'menu' : undefined}
         aria-expanded={item.submenu ? sub?.key === item.key : undefined}
         // Only a submenu row reacts to hover. Closing on a sibling would shut
@@ -131,7 +133,12 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
         }}
       >
         {item.icon}
-        <span>{item.label}</span>
+        {item.description ? (
+          <span className={styles.itemText}>
+            <span>{item.label}</span>
+            <span className={styles.itemSub}>{item.description}</span>
+          </span>
+        ) : <span>{item.label}</span>}
         {item.checked && <Check size={13} className={styles.itemCheck} aria-hidden />}
         {item.submenu && <ChevronRight size={13} className={styles.itemChevron} aria-hidden />}
       </button>

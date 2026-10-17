@@ -83,6 +83,7 @@ import { CurveSelector } from './page/CurveSelector';
 import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID, blockIdOf } from './page/deviceGroupName';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
+import { presetReach, presetTabTip } from './page/pinHelp';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
@@ -133,12 +134,6 @@ const coolingHistoryStore = {
 // `pointer-events: none` stops the mouse; a keyboard user still reaches the
 // controls, so this is what actually keeps the edit from landing.
 const noopCurveEdit = () => {};
-
-/** The fans a preset retargets (skipping pinned ones), or with `includePinned` the ones Off hands back. */
-const presetReach = (channels: readonly FanChannel[], includePinned = false): Set<string> => new Set(channels
-  .filter(ch => (includePinned || !ch.pinned) && ch.controlled !== false && !ch.readOnly
-    && ch.classification !== 'Fixed' && !isFanDisconnected(ch))
-  .map(ch => ch.id));
 
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
   const { t, language } = useTranslation();
@@ -1353,8 +1348,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     chip: true,
     expanded: modeMenuOpen,
   };
+  // Off is not among these tabs (it is in the mode menu, where it releases every
+  // fan), so the pinned-fans copy below never reaches it. The active tab has
+  // nothing to change, so it carries no tooltip.
+  const presetTip = presetTabTip(channels, language);
   const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({
     key: p.key,
+    tooltip: serviceOnline && p.key !== activeMode ? t(presetTip.key, presetTip.params) : undefined,
     // Plain mode names, matching the simple-mode tiles. They used to read
     // "All <mode>", which stopped being true once pumps and GPU fans started
     // defaulting out of a preset apply (FanProfiles.IsPinnedByDefault).

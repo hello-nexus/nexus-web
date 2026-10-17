@@ -767,7 +767,7 @@ describe('DevicePanel pins', () => {
   it('offers Pin on a following card and Unpin on a pinned one', () => {
     const { onSetPin } = renderPinPanel();
     menuOf('Strip two');
-    fireEvent.click(row(/^lighting\.devices\.pin$/)!);
+    fireEvent.click(row(/^lighting\.devices\.pin(lighting\.pin\.menuDesc)?$/)!);
     expect(onSetPin).toHaveBeenLastCalledWith(['d2'], true);
   });
 

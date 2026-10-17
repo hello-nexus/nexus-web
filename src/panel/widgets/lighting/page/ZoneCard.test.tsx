@@ -871,25 +871,33 @@ describe('ZoneCard pin', () => {
     renderPin({ disabledReason: 'lighting.pin.disabledMedia' });
     expect(button('lighting.pin.disabledMedia')).toBeNull();
     openMenu();
-    expect(menuRow(/^lighting\.devices\.pin$/)).toBeNull();
+    expect(menuRow(/^lighting\.devices\.pin(lighting\.pin\.menuDesc)?$/)).toBeNull();
   });
 
   it('offers Pin in the menu on a following card and Unpin on a pinned one', () => {
     const setPinned = vi.fn();
     renderPin({ setPinned });
     openMenu();
-    fireEvent.click(menuRow(/^lighting\.devices\.pin$/)!);
+    fireEvent.click(menuRow(/^lighting\.devices\.pin(lighting\.pin\.menuDesc)?$/)!);
     expect(setPinned).toHaveBeenCalledWith(true);
-    expect(menuRow(/^lighting\.devices\.unpin$/)).toBeNull();
+    expect(menuRow(/^lighting\.devices\.unpin(lighting\.pin\.menuDesc)?$/)).toBeNull();
   });
 
   it('offers Unpin, and no Pin, on a pinned card', () => {
     const setPinned = vi.fn();
     renderPin({ pinned: true, targetName: 'x', setPinned });
     openMenu();
-    expect(menuRow(/^lighting\.devices\.pin$/)).toBeNull();
-    fireEvent.click(menuRow(/^lighting\.devices\.unpin$/)!);
+    expect(menuRow(/^lighting\.devices\.pin(lighting\.pin\.menuDesc)?$/)).toBeNull();
+    fireEvent.click(menuRow(/^lighting\.devices\.unpin(lighting\.pin\.menuDesc)?$/)!);
     expect(setPinned).toHaveBeenCalledWith(false);
+  });
+
+  it('describes what a pin does under the menu row and on the pin icon', () => {
+    renderPin({ pinned: true, targetName: 'Aurora' });
+    fireEvent.focus(button('lighting.pin.pinnedTo:{"name":"Aurora"}')!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('lighting.pin.tooltipBody');
+    openMenu();
+    expect(menuRow(/^lighting\.devices\.unpinlighting\.pin\.menuDesc$/)).not.toBeNull();
   });
 
   it('counts the members each row reaches in a selection', () => {

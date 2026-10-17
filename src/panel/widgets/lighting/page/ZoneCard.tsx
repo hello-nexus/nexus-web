@@ -566,13 +566,13 @@ export function ZoneCard({
       const setPinned = (pinned: boolean) => bulk ? bulk.setPinned?.(pinned) : pin.setPinned(pinned);
       if (pinCount > 0) {
         toggles.push({
-          key: 'pin', icon: <Pin size={14} />, onSelect: () => setPinned(true),
+          key: 'pin', icon: <Pin size={14} />, description: t('lighting.pin.menuDesc'), onSelect: () => setPinned(true),
           label: bulkMenuLabel(t, language, bulk && { count: pinCount }, 'lighting.devices.pin', 'lighting.devices.pinCount'),
         });
       }
       if (unpinCount > 0) {
         toggles.push({
-          key: 'unpin', icon: <PinOff size={14} />, onSelect: () => setPinned(false),
+          key: 'unpin', icon: <PinOff size={14} />, description: t('lighting.pin.menuDesc'), onSelect: () => setPinned(false),
           label: bulkMenuLabel(t, language, bulk && { count: unpinCount }, 'lighting.devices.unpin', 'lighting.devices.unpinCount'),
         });
       }
@@ -735,7 +735,7 @@ export function ZoneCard({
             shows PinOff and a press unpins. Pinning a following card is the
             menu's Pin, or a pick with it selected. */}
         {pin?.pinned && !toggleMode && !unavailable && !firmwareControlled && (
-          <HoverTooltip title={t('lighting.pin.pinnedTo', { name: pin.targetName ?? '' })} body={t('lighting.pin.clickToUnpin')} side="top">
+          <HoverTooltip title={t('lighting.pin.pinnedTo', { name: pin.targetName ?? '' })} body={t('lighting.pin.tooltipBody')} side="top">
             <button
               type="button"
               className={`${styles.deviceSettingsBtn} ${styles.deviceBadgeBtn} ${styles.devicePinBtn}`}

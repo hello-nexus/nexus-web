@@ -76,8 +76,8 @@ export function FanGroupHeader({
         ? { key: 'controlled', icon: <Link2Off size={14} />, label: t('cooling.fan.menuControlOff'), onSelect: onToggleControlled }
         : { key: 'controlled', icon: <Link2 size={14} />, label: t('cooling.fan.menuControlOn'), onSelect: onToggleControlled },
       groupPinned
-        ? { key: 'pin', icon: <PinOff size={14} />, label: t('cooling.pin.unpin'), onSelect: onTogglePin }
-        : { key: 'pin', icon: <Pin size={14} />, label: t('cooling.pin.pin'), onSelect: onTogglePin },
+        ? { key: 'pin', icon: <PinOff size={14} />, label: t('cooling.pin.unpin'), description: t('cooling.pin.menuDesc'), onSelect: onTogglePin }
+        : { key: 'pin', icon: <Pin size={14} />, label: t('cooling.pin.pin'), description: t('cooling.pin.menuDesc'), onSelect: onTogglePin },
     ];
     if (onSelectAll) {
       items.unshift({
