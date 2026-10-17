@@ -43,11 +43,12 @@ export function cardState(choice: CardChoice | undefined, devices: readonly Conf
   };
 }
 
-/** A card click flips the outcome and, until the switch is pinned, drags the switch with it. */
+/** A card click flips the outcome; terminating always claims the devices, keeping drags the switch to the app until it is pinned. */
 export function toggleCardPatch(state: CardState, hasDevices: boolean): CardChoice {
   const end = !state.end;
-  if (!hasDevices || state.ownerPinned) return { end };
-  return { end, owner: end ? 'nexus' : 'app' };
+  if (!hasDevices) return { end };
+  if (end) return { end, owner: 'nexus' };
+  return state.ownerPinned ? { end } : { end, owner: 'app' };
 }
 
 /** A manual switch click sets the owner, mirrors it onto the card, and pins the switch. */
@@ -97,4 +98,9 @@ export function planApp(input: PlanInput): AppPlan {
 /** Keep all running: every listed app not already allowed, never Nexus 2. */
 export function keepAllIds(ids: readonly string[], whitelisted: ReadonlySet<string>, neverWhitelistId: string): string[] {
   return ids.filter(id => id !== neverWhitelistId && !whitelisted.has(id));
+}
+
+/** The plan hands hardware flagged experimental to Nexus that Nexus does not drive yet. */
+export function handsOverExperimental(plan: AppPlan, devices: readonly ConflictDevice[]): boolean {
+  return plan.setOwner === 'nexus' && devices.some(d => d.experimental === true && d.owner !== 'nexus');
 }

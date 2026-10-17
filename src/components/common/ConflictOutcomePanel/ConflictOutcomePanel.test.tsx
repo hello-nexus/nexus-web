@@ -212,4 +212,72 @@ describe('ConflictOutcomePanel', () => {
     expect(mockKill).toHaveBeenCalledWith('hyte-nexus-2');
     expect(mockWhitelist).not.toHaveBeenCalled();
   });
+
+  describe('experimental hardware', () => {
+    beforeEach(() => {
+      mockDevices = new Map([['icue', [{ key: 'd2', name: 'Hub', owner: 'app', experimental: true }]]]);
+    });
+    const confirmKey = 'devices.experimental.confirm';
+
+    it('asks once before the primary button hands it to Nexus, and cancel applies nothing', async () => {
+      renderPanel([], [razer, icue]);
+      fireEvent.click(cardOf('iCUE'));
+      await press('conflicts.outcome.terminate:2');
+
+      expect(screen.getByRole('button', { name: confirmKey })).toBeInTheDocument();
+      expect(mockKill).not.toHaveBeenCalled();
+      expect(mockSetOwner).not.toHaveBeenCalled();
+      expect(onDone).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+      expect(screen.queryByRole('button', { name: confirmKey })).not.toBeInTheDocument();
+      expect(mockKill).not.toHaveBeenCalled();
+      expect(cardOf('iCUE')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('confirming applies the whole plan', async () => {
+      renderPanel([], [razer, icue]);
+      fireEvent.click(cardOf('iCUE'));
+      await press('conflicts.outcome.terminate:2');
+      await press(confirmKey);
+
+      expect(mockSetOwner).toHaveBeenCalledWith('icue', 'nexus');
+      expect(mockKill.mock.calls.map(c => c[0]).sort()).toEqual(['icue', 'razer']);
+      expect(onDone).toHaveBeenCalledWith('apply');
+    });
+
+    it('a switch click asks at once, and the primary button then does not ask again', async () => {
+      renderPanel([], [icue]);
+      expect(cardOf('iCUE')).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
+      expect(screen.getByRole('button', { name: confirmKey })).toBeInTheDocument();
+      expect(cardOf('iCUE')).toHaveAttribute('aria-pressed', 'false');
+      await press(confirmKey);
+      expect(cardOf('iCUE')).toHaveAttribute('aria-pressed', 'true');
+
+      await press('conflicts.outcome.terminateOne');
+      expect(screen.queryByRole('button', { name: confirmKey })).not.toBeInTheDocument();
+      expect(mockKill).toHaveBeenCalledWith('icue');
+    });
+
+    it('a card click does not ask until the primary button', () => {
+      renderPanel([], [icue]);
+      fireEvent.click(cardOf('iCUE'));
+
+      expect(cardOf('iCUE')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('button', { name: confirmKey })).not.toBeInTheDocument();
+    });
+  });
+
+  it('terminating a card whose switch is pinned to the app moves the switch to Nexus', () => {
+    renderPanel();
+    fireEvent.click(screen.getAllByRole('radio', { name: 'conflicts.devices.appControls:Stream Deck' })[0]);
+    expect(cardOf('Stream Deck')).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(cardOf('Stream Deck'));
+
+    expect(cardOf('Stream Deck')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('radio', { name: 'conflicts.devices.nexusControls' })[0]).toHaveAttribute('aria-checked', 'true');
+  });
 });

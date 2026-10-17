@@ -20,6 +20,7 @@ import {
 import { uninstallNexus2 } from '../../../api/migration';
 import {
   cardState,
+  handsOverExperimental,
   keepAllIds,
   ownerPatch,
   planApp,
@@ -71,10 +72,13 @@ export function ConflictOutcomePanel({
   const [nexus2Uninstall, setNexus2Uninstall] = useState(true);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
-  const [confirming, setConfirming] = useState<{ id: string; patch: CardChoice } | null>(null);
+  // Either a switch click awaiting confirmation, or the whole plan awaiting it.
+  const [confirming, setConfirming] = useState<{ id: string; patch: CardChoice } | 'plan' | null>(null);
+  const [confirmedIds, setConfirmedIds] = useState<ReadonlySet<string>>(() => new Set());
 
   const patchChoice = useCallback((id: string, patch: CardChoice) => {
     setChoices(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+    if (patch.owner === 'app') setConfirmedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
   }, []);
 
   // With Nexus 2 installed its card handles the running app too; otherwise it is an ordinary row.
@@ -95,12 +99,11 @@ export function ConflictOutcomePanel({
 
   const terminateCount = appEntries.filter(e => states.get(e.conflict.id)?.end && !e.terminated).length;
 
-  // Handing experimental hardware to Nexus asks for confirmation first.
-  const requestPatch = useCallback((id: string, patch: CardChoice) => {
+  // A switch click on experimental hardware asks at once; card clicks defer to the primary button.
+  const requestOwner = useCallback((id: string, patch: CardChoice) => {
     const devices = devicesByApp.get(id) ?? [];
-    const current = states.get(id)?.owner;
-    const needsConfirm = patch.owner === 'nexus' && current !== 'nexus'
-      && devices.some(d => d.experimental && d.owner === 'app');
+    const needsConfirm = patch.owner === 'nexus' && states.get(id)?.owner !== 'nexus'
+      && devices.some(d => d.experimental && d.owner !== 'nexus');
     if (needsConfirm) setConfirming({ id, patch });
     else patchChoice(id, patch);
   }, [devicesByApp, states, patchChoice]);
@@ -111,8 +114,27 @@ export function ConflictOutcomePanel({
     onBusyChange?.(value);
   }, [onBusyChange]);
 
-  const run = useCallback(async (action: ConflictOutcomeAction) => {
+  const plans = useMemo(() => appEntries.map(entry => {
+    const id = entry.conflict.id;
+    return planApp({
+      id,
+      choice: choices[id],
+      state: states.get(id)!,
+      devices: devicesByApp.get(id) ?? [],
+      whitelisted: whitelisted.has(id),
+      autostartCount: autostartByApp.get(id)?.length ?? 0,
+      terminated: entry.terminated,
+      neverWhitelist: id === HYTE_NEXUS2_CONFLICT_ID,
+    });
+  }), [appEntries, choices, states, devicesByApp, whitelisted, autostartByApp]);
+
+  const run = useCallback(async (action: ConflictOutcomeAction, confirmed = false) => {
     if (busyRef.current) return;
+    if (action === 'apply' && !confirmed
+      && plans.some(p => !confirmedIds.has(p.id) && handsOverExperimental(p, devicesByApp.get(p.id) ?? []))) {
+      setConfirming('plan');
+      return;
+    }
     setBusyState(true);
     onAction?.(action, {
       listed: entries.map(e => e.conflict.id),
@@ -123,19 +145,8 @@ export function ConflictOutcomePanel({
         const ids = keepAllIds(entries.map(e => e.conflict.id), whitelisted, HYTE_NEXUS2_CONFLICT_ID);
         await Promise.all(ids.map(id => setConflictWhitelisted(id, true).catch(() => null)));
       } else {
-        await Promise.all(appEntries.map(async entry => {
-          const id = entry.conflict.id;
-          const devices = devicesByApp.get(id) ?? [];
-          const plan = planApp({
-            id,
-            choice: choices[id],
-            state: states.get(id)!,
-            devices,
-            whitelisted: whitelisted.has(id),
-            autostartCount: autostartByApp.get(id)?.length ?? 0,
-            terminated: entry.terminated,
-            neverWhitelist: id === HYTE_NEXUS2_CONFLICT_ID,
-          });
+        await Promise.all(plans.map(async plan => {
+          const id = plan.id;
           if (plan.setOwner) await setOwner(id, plan.setOwner).catch(() => false);
           if (plan.whitelist !== undefined) await setConflictWhitelisted(id, plan.whitelist).catch(() => null);
           if (plan.kill) {
@@ -154,8 +165,8 @@ export function ConflictOutcomePanel({
     }
     onDone(action);
   }, [
-    setBusyState, onAction, onDone, entries, appEntries, whitelisted, devicesByApp, choices, states,
-    autostartByApp, setOwner, markTerminated, disableAutostart, nexus2Installed, nexus2Uninstall, nexus2Entry,
+    setBusyState, onAction, onDone, entries, whitelisted, plans, confirmedIds, devicesByApp,
+    setOwner, markTerminated, disableAutostart, nexus2Installed, nexus2Uninstall, nexus2Entry,
   ]);
 
   const primaryLabel = terminateCount === 0
@@ -191,7 +202,7 @@ export function ConflictOutcomePanel({
                     compact
                     selected={state.end}
                     pressed={isFixed(id) ? undefined : state.end}
-                    onClick={busy || isFixed(id) ? undefined : () => requestPatch(id, toggleCardPatch(state, devices.length > 0))}
+                    onClick={busy || isFixed(id) ? undefined : () => patchChoice(id, toggleCardPatch(state, devices.length > 0))}
                   >
                     <div className={styles.cardRow}>
                       <div className={styles.info}>
@@ -210,7 +221,7 @@ export function ConflictOutcomePanel({
                               fullWidth
                               ariaLabel={t('conflicts.devices.switchLabel')}
                               activeKey={state.owner ?? 'nexus'}
-                              onChange={key => requestPatch(id, ownerPatch(key as OwnerChoice))}
+                              onChange={key => requestOwner(id, ownerPatch(key as OwnerChoice))}
                               options={[
                                 { key: 'nexus', label: t('conflicts.devices.nexusControls'), disabled: busy },
                                 { key: 'app', label: t('conflicts.devices.appControls', { app: entry.conflict.displayName }), disabled: busy },
@@ -292,8 +303,13 @@ export function ConflictOutcomePanel({
       <ExperimentalEnableModal
         open={confirming !== null}
         onConfirm={() => {
-          if (confirming) patchChoice(confirming.id, confirming.patch);
+          const pending = confirming;
           setConfirming(null);
+          if (pending === 'plan') void run('apply', true);
+          else if (pending) {
+            patchChoice(pending.id, pending.patch);
+            setConfirmedIds(prev => new Set(prev).add(pending.id));
+          }
         }}
         onCancel={() => setConfirming(null)}
       />

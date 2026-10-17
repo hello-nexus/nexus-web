@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ConflictDevice } from '../../../hooks/useConflictDevices';
-import { agreedOwner, cardState, keepAllIds, ownerPatch, planApp, toggleCardPatch } from './conflictOutcome';
+import { agreedOwner, cardState, handsOverExperimental, keepAllIds, ownerPatch, planApp, toggleCardPatch } from './conflictOutcome';
 
 const dev = (owner: ConflictDevice['owner']): ConflictDevice => ({ key: `k-${owner}`, name: 'Device', owner });
 
@@ -50,6 +50,8 @@ describe('card and switch coupling', () => {
     const pinned = cardState({ ...ownerPatch('nexus') }, [dev('app')], false);
     expect(pinned.ownerPinned).toBe(true);
     expect(toggleCardPatch(pinned, true)).toEqual({ end: false });
+    const pinnedKeeping = cardState({ owner: 'app', end: false, ownerPinned: true }, [dev('app')], false);
+    expect(toggleCardPatch(pinnedKeeping, true)).toEqual({ end: true, owner: 'nexus' });
   });
 
   it('an app without devices only flips the outcome', () => {
@@ -119,5 +121,16 @@ describe('planApp', () => {
 describe('keepAllIds', () => {
   it('skips apps already allowed and Nexus 2', () => {
     expect(keepAllIds(['a', 'b', 'hyte-nexus-2'], new Set(['a']), 'hyte-nexus-2')).toEqual(['b']);
+  });
+});
+
+describe('handsOverExperimental', () => {
+  const exp = (owner: ConflictDevice['owner']): ConflictDevice => ({ key: 'e', name: 'Hub', owner, experimental: true });
+  it('flags a handover of experimental hardware Nexus does not drive yet', () => {
+    expect(handsOverExperimental({ id: 'a', kill: true, disableAutostart: false, setOwner: 'nexus' }, [exp('app')])).toBe(true);
+    expect(handsOverExperimental({ id: 'a', kill: true, disableAutostart: false, setOwner: 'nexus' }, [exp('mixed')])).toBe(true);
+    expect(handsOverExperimental({ id: 'a', kill: true, disableAutostart: false, setOwner: 'nexus' }, [exp('nexus')])).toBe(false);
+    expect(handsOverExperimental({ id: 'a', kill: true, disableAutostart: false, setOwner: 'nexus' }, [dev('app')])).toBe(false);
+    expect(handsOverExperimental({ id: 'a', kill: false, disableAutostart: false, setOwner: 'app' }, [exp('nexus')])).toBe(false);
   });
 });
