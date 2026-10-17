@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "Sneller dan {pct}% van {total} runs",
   "benchmark.result.pts": "{n} ptn",
   "benchmark.result.publishCta": "Publiceren",
-  "benchmark.result.publishDismiss": "Niet nu",
+  "benchmark.result.publishDismiss": "Niet publiceren",
   "benchmark.result.publishPrompt": "Dit resultaat delen in het openbare klassement?",
   "benchmark.result.rank": "Positie #{rank} van {total}",
   "benchmark.result.spread": "±{pct}%",

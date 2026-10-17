@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "Быстрее {pct}% из {total} результатов",
   "benchmark.result.pts": "{n} очков",
   "benchmark.result.publishCta": "Опубликовать",
-  "benchmark.result.publishDismiss": "Не сейчас",
+  "benchmark.result.publishDismiss": "Не публиковать",
   "benchmark.result.publishPrompt": "Поделиться этим результатом в публичной таблице лидеров?",
   "benchmark.result.rank": "Место #{rank} из {total}",
   "benchmark.result.spread": "±{pct}%",

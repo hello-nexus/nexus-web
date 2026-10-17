@@ -107,7 +107,7 @@ vi.mock('../../../api/cloud', () => ({
 
 // Consent ON was the old auto-upload trigger; a reintroduced consent-gated upload must fail the tests below.
 vi.mock('../../../api/telemetry', () => ({
-  fetchTelemetryConsent: async () => ({ enabled: true }),
+  fetchTelemetryConsent: vi.fn(async () => ({ enabled: true })),
 }));
 
 import { BenchmarkPage } from './BenchmarkPage';
@@ -142,7 +142,7 @@ describe('BenchmarkPage opt-in publishing', () => {
 
     const publish = await screen.findByText('benchmark.result.publishCta');
     expect(h.addRun).toHaveBeenCalledTimes(1);
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    await act(async () => {});
     expect(mockSubmitCloudBenchmark).not.toHaveBeenCalled();
 
     await act(async () => { publish.closest('button')!.click(); });
@@ -155,12 +155,14 @@ describe('BenchmarkPage opt-in publishing', () => {
 
   it('uploads nothing when the prompt is dismissed', async () => {
     h.result = mkResult();
-    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+    const { rerender } = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
     const dismiss = await screen.findByText('benchmark.result.publishDismiss');
     await act(async () => { dismiss.closest('button')!.click(); });
 
     expect(h.dismissRunPublish).toHaveBeenCalledTimes(1);
+    rerender(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+    expect(screen.queryByText('benchmark.result.publishCta')).not.toBeInTheDocument();
     expect(mockSubmitCloudBenchmark).not.toHaveBeenCalled();
   });
 

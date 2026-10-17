@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "Szybszy niz {pct}% z {total} wynikow",
   "benchmark.result.pts": "{n} pkt",
   "benchmark.result.publishCta": "Opublikuj",
-  "benchmark.result.publishDismiss": "Nie teraz",
+  "benchmark.result.publishDismiss": "Nie publikuj",
   "benchmark.result.publishPrompt": "Udostępnić ten wynik w publicznym rankingu?",
   "benchmark.result.rank": "Miejsce #{rank} z {total}",
   "benchmark.result.spread": "±{pct}%",

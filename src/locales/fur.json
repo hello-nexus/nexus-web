@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "Plui svelt dal {pct}% di {total} esecuzions",
   "benchmark.result.pts": "{n} ponts",
   "benchmark.result.publishCta": "Publiche",
-  "benchmark.result.publishDismiss": "Cumò no",
+  "benchmark.result.publishDismiss": "No sta publicâ",
   "benchmark.result.publishPrompt": "Vuelistu condividi chest risultât te classifiche publiche?",
   "benchmark.result.rank": "Posizion #{rank} di {total}",
   "benchmark.result.spread": "±{pct}%",

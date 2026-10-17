@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "比 {total} 次執行中的 {pct}% 更快",
   "benchmark.result.pts": "{n} pts",
   "benchmark.result.publishCta": "發布",
-  "benchmark.result.publishDismiss": "暫不",
+  "benchmark.result.publishDismiss": "不發布",
   "benchmark.result.publishPrompt": "要在公開排行榜上分享此結果嗎？",
   "benchmark.result.rank": "第#{rank}名，共{total}筆",
   "benchmark.result.spread": "±{pct}%",

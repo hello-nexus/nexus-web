@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "{total} sonucun %{pct}'inden hizli",
   "benchmark.result.pts": "{n} puan",
   "benchmark.result.publishCta": "Yayınla",
-  "benchmark.result.publishDismiss": "Şimdi değil",
+  "benchmark.result.publishDismiss": "Yayınlama",
   "benchmark.result.publishPrompt": "Bu sonucu herkese açık lider tablosunda paylaşmak ister misiniz?",
   "benchmark.result.rank": "{total} içinde #{rank}. sıra",
   "benchmark.result.spread": "±%{pct}",

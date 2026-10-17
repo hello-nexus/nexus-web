@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "{total}件中{pct}%より高速",
   "benchmark.result.pts": "{n}pts",
   "benchmark.result.publishCta": "公開する",
-  "benchmark.result.publishDismiss": "今はしない",
+  "benchmark.result.publishDismiss": "公開しない",
   "benchmark.result.publishPrompt": "この結果を公開リーダーボードで共有しますか？",
   "benchmark.result.rank": "{total}件中#{rank}位",
   "benchmark.result.spread": "±{pct}%",

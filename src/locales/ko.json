@@ -244,7 +244,7 @@
   "benchmark.result.percentile": "{total}건 중 {pct}%보다 빠름",
   "benchmark.result.pts": "{n}pts",
   "benchmark.result.publishCta": "게시",
-  "benchmark.result.publishDismiss": "나중에",
+  "benchmark.result.publishDismiss": "게시하지 않음",
   "benchmark.result.publishPrompt": "이 결과를 공개 리더보드에 공유하시겠습니까?",
   "benchmark.result.rank": "{total}개 중 #{rank}위",
   "benchmark.result.spread": "±{pct}%",
