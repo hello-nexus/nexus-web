@@ -644,8 +644,10 @@ describe('UiSettingsProvider - readRamTemperatures', () => {
     h.fetchPreferences.mockResolvedValue(base);
     h.savePreferences.mockResolvedValue(undefined);
     await mount();
+    vi.useFakeTimers();
     await act(async () => { captured.ctx!.update({ readRamTemperatures: false }); });
-    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(h.savePreferences).toHaveBeenCalledTimes(1);
     expect(h.savePreferences).toHaveBeenCalledWith({ readRamTemperatures: false });
   });
 });

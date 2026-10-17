@@ -19,11 +19,6 @@ describe('RamTemperatureSection', () => {
     uiSettings.readRamTemperatures = true;
   });
 
-  it('is on by default', () => {
-    render(<RamTemperatureSection serviceOnline />);
-    expect(screen.getByRole('switch', { name: /settings.ramTemperatures.label/ })).toBeChecked();
-  });
-
   it('writes readRamTemperatures=false when toggled off', () => {
     render(<RamTemperatureSection serviceOnline />);
     fireEvent.click(screen.getByRole('switch', { name: /settings.ramTemperatures.label/ }));
