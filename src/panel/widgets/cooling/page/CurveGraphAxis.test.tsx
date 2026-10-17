@@ -103,4 +103,20 @@ describe('CurveGraph axis', () => {
     expect(label('50%').style.visibility).toBe('');
     expect(label('100%').style.visibility).toBe('');
   });
+
+  it('hides the x label the live readout would sit on', () => {
+    const { container } = render(
+      <CurveGraph
+        points={[{ temp: 0, speed: 10 }, { temp: 24, speed: 10 }]}
+        tempMin={0}
+        tempMax={24}
+        currentTemp={12.2}
+        axis={{ xStep: 6, formatX: h => `${h}h`, formatLiveX: () => 'now' }}
+      />,
+    );
+    const label = (text: string) => Array.from(container.querySelectorAll('span')).find(s => s.textContent === text)!;
+    expect(label('12h').style.visibility).toBe('hidden');
+    expect(label('0h').style.visibility).toBe('');
+    expect(label('24h').style.visibility).toBe('');
+  });
 });

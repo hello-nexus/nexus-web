@@ -31,7 +31,8 @@ export function WeatherLocationSearch({ hasKeyboard, onSelect, disabled }: Weath
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
-    if (!hasKeyboard) {
+    if (!hasKeyboard || disabled) {
+      setQuery('');
       setResults([]);
       setSearching(false);
       return;
@@ -58,11 +59,12 @@ export function WeatherLocationSearch({ hasKeyboard, onSelect, disabled }: Weath
         });
     }, SEARCH_DEBOUNCE_MS);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [query, hasKeyboard, language]);
+  }, [query, hasKeyboard, disabled, language]);
 
   if (!hasKeyboard) return null;
 
   function handleSelect(result: WeatherGeocodeResult) {
+    if (disabled) return;
     onSelect(result);
     setQuery('');
     setResults([]);
@@ -77,11 +79,11 @@ export function WeatherLocationSearch({ hasKeyboard, onSelect, disabled }: Weath
         placeholder={t('panel.widget.weather.settings.searchLocation')}
         ariaLabel={t('panel.widget.weather.settings.searchLocation')}
       />
-      {searching && <div className={styles.hint}>{t('common.loading')}</div>}
-      {!searching && query.trim().length >= MIN_QUERY_LENGTH && results.length === 0 && (
+      {!disabled && searching && <div className={styles.hint}>{t('common.loading')}</div>}
+      {!disabled && !searching && query.trim().length >= MIN_QUERY_LENGTH && results.length === 0 && (
         <div className={styles.hint}>{t('panel.widget.weather.settings.noLocationResults')}</div>
       )}
-      {results.length > 0 && (
+      {!disabled && results.length > 0 && (
         <div className={styles.results} data-panel-scrollable="true">
           {results.map((result, index) => (
             <button

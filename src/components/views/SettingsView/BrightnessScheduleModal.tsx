@@ -177,7 +177,6 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
           stackOnNarrow
         />
 
-        {/* Both lines share one cell so the taller sets the height in either state. */}
         <div className={styles.hints}>
           <p className={styles.hint} aria-hidden={sunApplies ? true : undefined} data-hidden={sunApplies ? '' : undefined}>
             {t('lighting.schedule.graph.hint')}

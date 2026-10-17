@@ -86,6 +86,39 @@ describe('useBrightnessSchedule sun writes', () => {
     expect(result.current.current).toBe(25);
   });
 
+  it('keeps the newest of two overlapping writes when the newer answers first', async () => {
+    const { result } = renderHook(() => useBrightnessSchedule(true));
+    await waitFor(() => expect(result.current.schedule).not.toBeNull());
+    const answers: ((v: unknown) => void)[] = [];
+    api.setBrightnessSchedule.mockImplementation(() => new Promise(r => { answers.push(r); }));
+    const SINGAPORE = { lat: 1.3, lon: 103.8, label: 'Singapore, SG', cc: 'SG' };
+    let w1: Promise<void> = Promise.resolve();
+    let w2: Promise<void> = Promise.resolve();
+    act(() => { w1 = result.current.saveSun({ location: OSLO }); });
+    act(() => { w2 = result.current.saveSun({ location: SINGAPORE }); });
+    api.fetchBrightnessSchedule.mockResolvedValue(state({ location: SINGAPORE }));
+    await act(async () => { answers[1](state({ location: SINGAPORE })); await w2; });
+    await act(async () => { answers[0](state({ location: OSLO })); await w1; });
+    await waitFor(() => expect(result.current.location).toEqual(SINGAPORE));
+  });
+
+  it('stops waiting for a write that never answers', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { result } = renderHook(() => useBrightnessSchedule(true));
+      await waitFor(() => expect(result.current.schedule).not.toBeNull());
+      api.setBrightnessSchedule.mockReturnValue(new Promise(() => {}));
+      act(() => { void result.current.saveSun({ location: OSLO }); });
+      api.fetchBrightnessSchedule.mockClear().mockResolvedValue(state({ location: OSLO }));
+      await act(async () => { vi.advanceTimersByTime(10_000); await Promise.resolve(); await Promise.resolve(); });
+      await waitFor(() => expect(api.fetchBrightnessSchedule).toHaveBeenCalled());
+      await act(async () => { topic.fire(); await Promise.resolve(); });
+      expect(result.current.location).toEqual(OSLO);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   describe('on the minute tick', () => {
     beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: true }); });
     afterEach(() => { vi.useRealTimers(); });
@@ -108,6 +141,13 @@ describe('useBrightnessSchedule sun writes', () => {
       const { result } = renderHook(() => useBrightnessSchedule(true));
       await tickOneMinute(result);
       expect(api.fetchBrightnessSchedule).toHaveBeenCalled();
+    });
+
+    it('does not retry the location while the schedule is off', async () => {
+      api.fetchBrightnessSchedule.mockResolvedValue(state({ enabled: false, sun: { ...state().sun, status: 'no-location' } }));
+      const { result } = renderHook(() => useBrightnessSchedule(true));
+      await tickOneMinute(result);
+      expect(api.fetchBrightnessSchedule).not.toHaveBeenCalled();
     });
 
     it('stays quiet when the date is today and the location is known', async () => {

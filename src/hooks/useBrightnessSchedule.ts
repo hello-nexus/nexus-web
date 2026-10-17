@@ -7,6 +7,9 @@ import {
 import { localDateKey, minuteOfDay, scheduledBrightness, sunCurve } from '../lib/brightnessSchedule';
 import { useTopicCallback } from './useMultiplexSocket';
 
+// Longest a write may stay unanswered before refetches stop waiting for it.
+const WRITE_TIMEOUT_MS = 10_000;
+
 export interface BrightnessScheduleState {
   /** Null until the first fetch resolves. */
   schedule: BrightnessSchedule | null;
@@ -49,7 +52,8 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
 
   // A GET that began before a local write, or that lands while one is still
   // in flight, may carry the old state; it is dropped, and the write's own
-  // answer (or a refetch after it) supplies the truth.
+  // answer (or a refetch after it) supplies the truth. A write that never
+  // answers is given up on after WRITE_TIMEOUT_MS so it cannot block refetches.
   const writeSeqRef = useRef(0);
   const pendingWritesRef = useRef(0);
 
@@ -100,7 +104,7 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
   // rather than a loop.
   const staleRef = useRef(false);
   staleRef.current = (sun !== null && sun.date !== localDateKey())
-    || (sunShift && location === null && sun?.status === 'no-location');
+    || (schedule?.enabled === true && sunShift && location === null && sun?.status === 'no-location');
   useEffect(() => {
     if (enabled && staleRef.current) refresh();
   }, [enabled, minute, refresh]);
@@ -109,18 +113,22 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
   // envelope (an older service, or a refusal) is followed by a refetch.
   const write = useCallback(async (optimistic: () => void, body: Parameters<typeof setBrightnessSchedule>[0]) => {
     optimistic();
-    writeSeqRef.current += 1;
+    const mine = ++writeSeqRef.current;
     pendingWritesRef.current += 1;
     let answer: Awaited<ReturnType<typeof setBrightnessSchedule>> = null;
+    let timer = 0;
     try {
-      answer = await setBrightnessSchedule(body);
+      const giveUp = new Promise<null>(resolve => { timer = window.setTimeout(() => resolve(null), WRITE_TIMEOUT_MS); });
+      answer = await Promise.race([setBrightnessSchedule(body), giveUp]);
     } catch {
       // The refetch below restores whatever the service holds.
     } finally {
+      window.clearTimeout(timer);
       pendingWritesRef.current -= 1;
     }
-    if (pendingWritesRef.current > 0) return;
-    if (answer && 'sun' in answer) apply(answer);
+    // Only the newest write's answer is current; an older one is replaced by
+    // a fresh read.
+    if (mine === writeSeqRef.current && answer && 'sun' in answer) apply(answer);
     else refresh();
   }, [apply, refresh]);
 

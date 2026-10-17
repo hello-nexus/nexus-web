@@ -157,6 +157,8 @@ const PAD = { left: 8, right: 8, top: 8, bottom: 8 };
 const GRAPH_H = 140;
 // Distance from the live dot within which a y-axis label would sit under its readout.
 const LIVE_BADGE_CLEARANCE = 14;
+// Same along x, where the readout is a wider time or temperature.
+const LIVE_X_BADGE_CLEARANCE = 44;
 // Hero graph on the desktop cooling page.
 const PINNED_GRAPH_H = 190;
 // °C step for read-only curve sampling (Fixed / Linear / Mix lines).
@@ -502,7 +504,10 @@ export function CurveGraph({
             <div className={styles.curveXAxisInner}>
               {vLines.map(v => (
                 <span key={v} className={styles.curveAxisLabel}
-                  style={{ left: `${((v - tempMin) / (tempMax - tempMin)) * 100}%` }}>
+                  style={{
+                    left: `${((v - tempMin) / (tempMax - tempMin)) * 100}%`,
+                    visibility: hasDot && Math.abs(tempToX(v) - dotX) < LIVE_X_BADGE_CLEARANCE ? 'hidden' : undefined,
+                  }}>
                   {formatX(v)}
                 </span>
               ))}
@@ -518,7 +523,6 @@ export function CurveGraph({
             right-edge guide line points straight at the live value. */}
         <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
           {[...H_LINES].reverse().map(s => (
-            // The live readout sits over its own row; a label under it is hidden.
             <span key={s} className={styles.curveAxisLabel}
               style={hasDot && Math.abs(speedToY(s) - dotY) < LIVE_BADGE_CLEARANCE ? { visibility: 'hidden' } : undefined}>
               {s}%
