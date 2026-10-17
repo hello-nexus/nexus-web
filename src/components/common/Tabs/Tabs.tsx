@@ -22,7 +22,7 @@ export interface TabDef {
    *  tab that drops a popup announces itself as one (the lighting / cooling
    *  mode tab). Omit for a plain tab. */
   readonly expanded?: boolean;
-  /** Hover tooltip body for the tab's button. Omit for no tooltip. Ignored on a tab with `trailing`. */
+  /** Hover tooltip body for the tab's button. Omit for no tooltip. */
   readonly tooltip?: string;
   /** Optional trailing control, right-aligned after the label (e.g. a per-tab
    *  pause toggle). Rendered as a DOM sibling of the tab's own `<button>`,
@@ -101,7 +101,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
         // focus target instead of a descendant of the tab's own button.
         return (
           <span key={tab.key} role="presentation" className={classNames(styles.tabGroup, { [styles.active]: isActive })}>
-            <button
+            {withTooltip(tab, <button
               type="button"
               role="tab"
               aria-selected={isActive}
@@ -117,7 +117,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
                 {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}
                 <span className={styles.tabLabel}>{tab.label}</span>
               </span>
-            </button>
+            </button>)}
             <span className={styles.tabTrailing}>
               {tab.trailing}
             </span>

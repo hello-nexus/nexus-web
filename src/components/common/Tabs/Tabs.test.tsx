@@ -101,4 +101,16 @@ describe('Tabs', () => {
     fireEvent.focus(screen.getByRole('tab', { name: 'One' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('About one');
   });
+
+  it('shows the tooltip on a tab that also has a trailing control', () => {
+    render(
+      <Tabs
+        tabs={[{ key: 'one', label: 'One', tooltip: 'About one', trailing: <span>x</span> }]}
+        activeKey="one"
+        onChange={() => {}}
+      />,
+    );
+    fireEvent.focus(screen.getByRole('tab', { name: 'One' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('About one');
+  });
 });

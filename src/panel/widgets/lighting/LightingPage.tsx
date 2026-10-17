@@ -2298,6 +2298,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       return {
         key: m.key,
         label: t(m.labelKey),
+        tooltip: serviceOnline ? t(`${m.labelKey}.desc`) : undefined,
         icon: <Icon size={14} />,
         trailing: showPauseToggle ? (
           <HoverTooltip body={t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">

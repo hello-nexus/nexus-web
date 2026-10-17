@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
-import { pinTooltipKey, presetReach, modeTabTip } from './pinHelp';
+import { pinTooltipKey, presetReach, modeReach } from './pinHelp';
 
 const fan = (id: string, over: Partial<FanChannel> = {}): FanChannel => ({
   id, name: id, dutyPercent: 30, rpm: 800, mode: 'Auto', classification: 'Controllable', ...over,
@@ -27,31 +27,23 @@ describe('pinTooltipKey', () => {
   });
 });
 
-describe('modeTabTip', () => {
-  it('has no tooltip when nothing is pinned', () => {
-    expect(modeTabTip([fan('a'), fan('b')], 'en')).toBeNull();
+describe('modeReach', () => {
+  it('reaches every fan and names none when nothing is pinned', () => {
+    expect(modeReach([fan('a'), fan('b')])).toEqual({ applied: 2, pinnedNames: [] });
   });
 
-  it('counts the pinned fans a mode skips, with the plural form', () => {
-    const one = modeTabTip([fan('a'), fan('b', { pinned: true })], 'en');
-    expect(one).toEqual({ key: 'cooling.pin.presetTipPinned.one', params: { count: 1 } });
-    const many = modeTabTip([fan('a'), fan('b', { pinned: true }), fan('c', { pinned: true })], 'en');
-    expect(many).toEqual({ key: 'cooling.pin.presetTipPinned.other', params: { count: 2 } });
+  it('counts the unpinned fans and names the pinned ones a mode skips', () => {
+    const chans = [fan('a'), fan('b', { pinned: true, name: 'GPU Fan 1' }), fan('c', { pinned: true, name: 'Pump' })];
+    expect(modeReach(chans)).toEqual({ applied: 1, pinnedNames: ['GPU Fan 1', 'Pump'] });
   });
 
-  it('uses the few form where the language has one', () => {
-    const chans = [fan('a'), ...['b', 'c', 'd'].map(id => fan(id, { pinned: true }))];
-    expect(modeTabTip(chans, 'ru')?.key).toBe('cooling.pin.presetTipPinned.few');
-    expect(modeTabTip(chans, 'en')?.key).toBe('cooling.pin.presetTipPinned.other');
-  });
-
-  it('does not count a pinned fan a mode could not reach anyway', () => {
+  it('does not name a pinned fan a mode could not reach anyway', () => {
     const chans = [
       fan('a'),
       fan('b', { pinned: true, controlled: false }),
       fan('c', { pinned: true, readOnly: true }),
     ];
-    expect(modeTabTip(chans, 'en')).toBeNull();
+    expect(modeReach(chans)).toEqual({ applied: 1, pinnedNames: [] });
   });
 });
 

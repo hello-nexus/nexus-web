@@ -83,7 +83,7 @@ import { CurveSelector } from './page/CurveSelector';
 import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID, blockIdOf } from './page/deviceGroupName';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
-import { presetReach, modeTabTip } from './page/pinHelp';
+import { presetReach, modeReach } from './page/pinHelp';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
@@ -1349,12 +1349,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     expanded: modeMenuOpen,
   };
   // Off is not among these tabs (it is in the mode menu, where it releases every
-  // fan), so the pinned-fans copy below never reaches it. The active tab has
-  // nothing to change, so it carries no tooltip.
-  const modeTip = modeTabTip(channels, language);
+  // fan). Each tab's hover describes its mode; which fans it reaches is the chip's.
   const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({
     key: p.key,
-    tooltip: serviceOnline && modeTip && p.key !== activeMode ? t(modeTip.key, modeTip.params) : undefined,
+    tooltip: serviceOnline ? t(`${p.i18nKey}.desc`) : undefined,
     // Plain mode names, matching the simple-mode tiles. They used to read
     // "All <mode>", which stopped being true once pumps and GPU fans started
     // defaulting out of a preset apply (FanProfiles.IsPinnedByDefault).
@@ -1372,6 +1370,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const hoverHeaderShown = serviceOnline && !simpleDashboard;
   const presetPreview = hoverHeaderShown && !!hoveredTab && isCoolingModeKey(hoveredTab) && hoveredTab !== activeMode;
   const presetTargets = useMemo(() => (presetPreview ? presetReach(channels) : new Set<string>()), [channels, presetPreview]);
+  // Mirrors the lighting scope chip: how many fans a mode press changes, and
+  // on hover which pinned fans it leaves alone.
+  const reach = useMemo(() => modeReach(channels), [channels]);
+  const reachChip = (
+    <span className={styles.reachChip}>
+      {reach.pinnedNames.length > 0 ? (
+        <HoverTooltip title={t('cooling.pin.pinnedFans')} body={reach.pinnedNames.join(', ')} side="bottom">
+          <span><Badge label={t(pluralKey('cooling.pane.appliesFans', language, reach.applied), { count: reach.applied })} compact uppercase color="var(--text-dim)" /></span>
+        </HoverTooltip>
+      ) : (
+        <Badge label={t(pluralKey('cooling.pane.appliesFans', language, reach.applied), { count: reach.applied })} compact uppercase color="var(--text-dim)" />
+      )}
+    </span>
+  );
   // A tab press either opens the mode menu or switches mode; a mode switch
   // also drops the menu, which the tab row keeps "inside" its anchor.
   const handleTabChange = (key: string) => {
@@ -1509,6 +1521,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               activeTab={activeTabKey}
               onTabChange={handleTabChange}
               onTabHover={setHoveredTab}
+              tabsAdjacent={reachChip}
               tabActions={(
                 <PresetToolbar
                   rail
