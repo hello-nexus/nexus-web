@@ -45,7 +45,7 @@ describe('ConflictWarningModal', () => {
     mockOverlaps = () => true;
   });
 
-  it('renders one ConflictAppCard per detected conflict', () => {
+  it('renders one outcome card per detected conflict', () => {
     render(
       <ConflictWarningBadge
         conflicts={conflicts}
@@ -62,7 +62,7 @@ describe('ConflictWarningModal', () => {
     expect(screen.getByText('conflicts.modal.pid:42')).toBeInTheDocument();
     expect(screen.getByText('L-Connect')).toBeInTheDocument();
     expect(screen.getByText('conflicts.modal.pid:7')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'conflicts.modal.endTask' })).toHaveLength(2);
+    expect(screen.getAllByText('conflicts.outcome.willTerminate')).toHaveLength(2);
   });
 
   it('renders the empty state when there are no conflicts', () => {
@@ -79,7 +79,7 @@ describe('ConflictWarningModal', () => {
     );
 
     expect(screen.getByText('conflicts.modal.empty')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'conflicts.modal.endTask' })).not.toBeInTheDocument();
+    expect(screen.queryByText('conflicts.outcome.willTerminate')).not.toBeInTheDocument();
   });
 
   it('Manage apps closes the modal and opens the settings manager', () => {

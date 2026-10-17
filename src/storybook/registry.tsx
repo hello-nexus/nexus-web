@@ -2722,7 +2722,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EndTaskButton', category: 'inputs',
     filePath: 'src/components/common/EndTaskButton/EndTaskButton.tsx',
-    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row and it unmounts; resets on failure, and when the app comes back under a new pid - an Automatic service the SCM restarts keeps the row and its React key, so without that the spinner would never clear. `busy` spins it while another control runs the same kill; `onKilled` + `terminated` hand the ended state to a surface that keeps the row listed, where it renders a green Terminated marker. Used by ConflictAppCard, so by ConflictWarningModal, ConflictOnboardingScreen and the device-page NexusControlOff gate.',
+    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row and it unmounts; resets on failure, and when the app comes back under a new pid - an Automatic service the SCM restarts keeps the row and its React key, so without that the spinner would never clear. `busy` spins it while another control runs the same kill; `onKilled` + `terminated` hand the ended state to a surface that keeps the row listed, where it renders a green Terminated marker. Used by ConflictAppCard, so by the device-page NexusControlOff gate and its guarded-enable prompt.',
     Preview: PreviewEndTaskButton,
   },
   {
@@ -2976,7 +2976,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictAppCard', category: 'cards',
     filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
-    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now and an ExperimentalBadge after the name of any device whose support is experimental, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. With `autostart` (from useConflictAutostart) a "Disable auto start" button sits under End task, over a line naming each Windows startup entry or service it will turn off - only for the apps the service holds a hand-verified recipe for, and only while one is still armed; ending the task does not stop the next boot, so a terminated row keeps it. A partial or failed disable leaves the button up under a warning. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
+    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now and an ExperimentalBadge after the name of any device whose support is experimental, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. With `autostart` (from useConflictAutostart) a "Disable auto start" button sits under End task, over a line naming each Windows startup entry or service it will turn off - only for the apps the service holds a hand-verified recipe for, and only while one is still armed; ending the task does not stop the next boot, so a terminated row keeps it. A partial or failed disable leaves the button up under a warning. Used by the device-page NexusControlOff gate and NexusControlConflictModal; the conflict warning and onboarding screens use ConflictOutcomePanel.',
     Preview: PreviewConflictAppCard,
   },
 
@@ -3135,8 +3135,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictOnboardingScreen', category: 'modals',
     filePath: 'src/components/common/ConflictOnboardingScreen/ConflictOnboardingScreen.tsx',
-    description: 'The last onboarding gate: apps already driving the lighting, fans or peripherals Nexus is taking over. A full screen like the gates before it, not the sidebar badge\'s ConflictWarningModal. Lists one ConflictAppCard per detected app, each with End task. Continuing ends nothing; the action is per-app and explicit.',
-    notes: 'No live preview - the cards post real /conflicts/kill requests, so a click here would end a running app.',
+    description: 'The last onboarding gate: apps already driving the lighting, fans or peripherals Nexus is taking over. A full screen like the gates before it, not the sidebar badge\'s ConflictWarningModal. Hosts ConflictOutcomePanel: nothing is applied until a footer button is pressed.',
+    notes: 'No live preview - the footer buttons post real /conflicts/kill requests, so a click here would end a running app.',
+  },
+  {
+    name: 'ConflictOutcomePanel', category: 'cards',
+    filePath: 'src/components/common/ConflictOutcomePanel/ConflictOutcomePanel.tsx',
+    description: 'Shared body of ConflictOnboardingScreen and ConflictWarningModal: one selectable Card per detected app whose click toggles Will terminate against Keeps running, with the device owner switch coupled to the card (until the switch is clicked by hand), a Remove from startup checkbox, and a Keep all running / terminate footer. The onboarding variant adds a HYTE Nexus 2 uninstall card. Nothing is applied until a footer button is pressed.',
+    notes: 'No live preview - it reads the conflict hooks and the footer posts real /conflicts requests.',
   },
   {
     name: 'FanControlImportSection', category: 'modals',
