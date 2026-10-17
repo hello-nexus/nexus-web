@@ -1,5 +1,5 @@
 import { sensorSweep, type SensorSignal, type SensorUniform } from '../../../../lib/sensorBinding';
-import { compileStudio, type StudioRecipe } from './studioCompiler';
+import { compileStudio, recipeUsesWheel, type StudioRecipe } from './studioCompiler';
 import { syntheticAudio } from './syntheticAudio';
 
 // Many previews share ONE WebGL2 context: Chromium caps live contexts per page
@@ -29,6 +29,8 @@ interface Entry {
   frag: string;
   params: Record<string, number>;
   sensors: SensorUniform[];
+  /** The wheel state of a wheel-colored recipe, which the baked shader leaves to the effect state. */
+  wheel: Record<string, number>;
   visible: boolean;
   failed: boolean;
   drawn: boolean;
@@ -171,7 +173,7 @@ function draw(ts: number) {
       else if (name === 'u_spectrum[0]') g.uniform1fv(loc, audio.spectrum);
       else {
         const sensor = e.sensors.find(s => s.name === name);
-        g.uniform1f(loc, e.params[name] ?? NEUTRAL[name] ?? audio.scalars[name]
+        g.uniform1f(loc, e.params[name] ?? e.wheel[name] ?? NEUTRAL[name] ?? audio.scalars[name]
           ?? (sensor ? (sensorFeed?.current?.(sensor.binding) ?? sensorSweep(t)) : 0));
       }
     }
@@ -207,6 +209,7 @@ export function renderRecipeStill(recipe: StudioRecipe): string | null {
   const { frag, params, sensors } = compileStudio(recipe);
   const base: Record<string, number> = {
     u_speed: recipe.speed / 50, u_hue: recipe.hue, u_saturation: recipe.saturation, u_contrast: recipe.contrast,
+    ...(recipeUsesWheel(recipe) ? { u_colorize: recipe.colorize ?? 0 } : {}),
   };
   const program = compile(g, frag);
   if (!program) return null;
@@ -233,7 +236,8 @@ export function renderRecipeStill(recipe: StudioRecipe): string | null {
 export function attachRecipePreview(canvas: HTMLCanvasElement, recipe: StudioRecipe): () => void {
   const { frag, params, sensors } = compileStudio(recipe, { bake: true });
   const obs = watch();
-  const entry: Entry = { canvas, frag, params, sensors, visible: !obs, failed: false, drawn: false };
+  const wheel: Record<string, number> = recipeUsesWheel(recipe) ? { u_hue: recipe.hue, u_colorize: recipe.colorize ?? 0 } : {};
+  const entry: Entry = { canvas, frag, params, sensors, wheel, visible: !obs, failed: false, drawn: false };
   entries.add(entry);
   byCanvas.set(canvas, entry);
   obs?.observe(canvas);

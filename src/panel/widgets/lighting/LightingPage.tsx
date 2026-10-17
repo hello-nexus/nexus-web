@@ -74,7 +74,7 @@ import {
 } from './pins';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
-  customEffectDef, customEffectId, customEffectKey, customEffectsLoaded, isCustomEffectKey, refreshCustomEffects, useCustomEffects,
+  customEffectDef, customEffectId, customEffectWheel, customEffectKey, customEffectsLoaded, isCustomEffectKey, refreshCustomEffects, useCustomEffects,
 } from '../../../api/customEffects';
 import {
   EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, STATIC_PATTERN_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
@@ -1208,13 +1208,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // A palette pin is a color: the dock shows which one, and there is nothing
   // to edit or reset.
   const dockPalette = paletteColorForKey(dockEffect);
-  // A custom effect's default is the neutral state, which renders its saved recipe.
-  const resetDefaults = isCustomEffectKey(dockEffect)
-    ? { [dockEffect]: defaultTemplatesFor(dockEffect, null) }
-    : animateDefaults;
-  const dockCanReset = !!(dockEffect && dockState && !dockPalette
-    && !slotMatchesDefault(dockEffect, dockSlot, dockState, resetDefaults));
-
   // Custom (Shader Studio) effects: their name, knobs and audio flag come from the service list.
   const customEffects = useCustomEffects(isCustomEffectKey(activeEffect) || isCustomEffectKey(dockEffect));
   const customEntryFor = (key: string | null) =>
@@ -1224,17 +1217,30 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const savedMatch = viewMode === 'animate' && effectQuery.trim() !== ''
     && customEffects.some(e => matchesAllWords(effectQuery, [e.name]));
   const dockCustom = customEntryFor(dockEffect);
+  // A custom effect's default is the neutral state, which renders its saved recipe; a wheel-colored one
+  // opens its ring on the range the recipe was authored with.
+  const dockWheel = dockCustom ? customEffectWheel(dockCustom) : null;
+  const resetDefaults = isCustomEffectKey(dockEffect)
+    ? {
+      [dockEffect]: dockWheel
+        ? { selected: 0, slots: Array.from({ length: TEMPLATE_COUNT }, () => ({ ...defaultStateFor(dockEffect), ...dockWheel })) }
+        : defaultTemplatesFor(dockEffect, null),
+    }
+    : animateDefaults;
+  const dockCanReset = !!(dockEffect && dockState && !dockPalette
+    && !slotMatchesDefault(dockEffect, dockSlot, dockState, resetDefaults));
   const dockCustomDef = useMemo(() => (dockCustom ? customEffectDef(dockCustom, t) : undefined), [dockCustom, t]);
   // A custom effect has no service-authored presets; seed default slots so the dock can edit it.
   useEffect(() => {
-    if (!isCustomEffectKey(activeEffect) || effectTemplates[activeEffect]) return;
+    if (!isCustomEffectKey(activeEffect) || effectTemplates[activeEffect] || !activeCustom) return;
+    const wheel = customEffectWheel(activeCustom);
     const seeded: EffectTemplateBundle = {
       selected: 0,
-      slots: Array.from({ length: TEMPLATE_COUNT }, () => defaultStateFor(activeEffect)),
+      slots: Array.from({ length: TEMPLATE_COUNT }, () => ({ ...defaultStateFor(activeEffect), ...wheel })),
     };
     setEffectTemplates(prev => (prev[activeEffect] ? prev : { ...prev, [activeEffect]: seeded }));
     setCommittedTemplates(prev => (prev[activeEffect] ? prev : { ...prev, [activeEffect]: seeded }));
-  }, [activeEffect, effectTemplates]);
+  }, [activeEffect, activeCustom, effectTemplates]);
 
   const handleTemplateSelect = useCallback((idx: number) => {
     // A static pin repoints only the selected devices at this preset. The

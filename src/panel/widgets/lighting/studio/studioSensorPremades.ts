@@ -18,39 +18,27 @@ export interface SensorPremade {
   starterId: string;
   /** The baked effect: the wheel state arrives from the preset, so its own base is neutral. */
   build: () => StudioRecipe;
-  /** The four default presets, as the effect-state fields the service stores for each slot. */
-  presets: readonly SensorPreset[];
+  /** The wheel a Studio starter opens on; the service owns the built-in effect's own presets. */
+  wheel: WheelLook;
 }
 
-export interface SensorPreset {
-  name: string;
+export interface WheelLook {
   /** Wheel hue (the middle of the range), 0 to 1. */
   hue: number;
   /** Wheel colorize: 1 less the range's share of the wheel, so 1 is a single color. */
   colorize: number;
-  saturation: number;
-  contrast: number;
-  speed: number;
-  intensity: number;
-  params: Record<string, number>;
 }
 
 /** A range given by its start (field 0) and end (field 1) hue, in turns of the wheel, start above end. */
-function range(name: string, from: number, to: number, params: Record<string, number> = {}): SensorPreset {
-  const span = from - to;
+function range(from: number, to: number): WheelLook {
   const mid = (from + to) / 2;
-  return {
-    name, hue: Number((((mid % 1) + 1) % 1).toFixed(3)), colorize: Number((1 - span).toFixed(3)),
-    saturation: 1, contrast: 1, speed: 50, intensity: 1, params,
-  };
+  return { hue: Number((((mid % 1) + 1) % 1).toFixed(3)), colorize: Number((1 - (from - to)).toFixed(3)) };
 }
 
-const COOL_HOT = range('Cool to hot', 0.62, 0);
-const OCEAN = range('Ocean', 0.62, 0.46);
-const SUNSET = range('Sunset', 0.14, -0.08);
-const AURORA = range('Aurora', 0.78, 0.38);
-const GREEN_RED = range('Green to red', 0.33, 0);
-const CANDY = range('Candy', 1.02, 0.78);
+const COOL_HOT = range(0.62, 0);
+const OCEAN = range(0.62, 0.46);
+const SUNSET = range(0.14, -0.08);
+const GREEN_RED = range(0.33, 0);
 
 const quick = (sensor: string, min: number, max: number): SensorBinding => ({ category: 'quick', sensor, min, max });
 
@@ -80,44 +68,36 @@ function fill(type: string, low: number, binding: SensorBinding, params: Record<
   };
 }
 
-const withParams = (p: SensorPreset, params: Record<string, number>): SensorPreset => ({ ...p, params });
-
 export const SENSOR_PREMADES: readonly SensorPremade[] = [
   {
     key: 'sensorbar',
     starterId: 'sensorBar',
     build: () => fill('fillbar', 0.55, quick('summary/cpu-usage', 0, 100), {}, ['angle', 'flip']),
-    presets: [GREEN_RED, COOL_HOT, SUNSET, AURORA],
+    wheel: GREEN_RED,
   },
   {
     key: 'sensorclock',
     starterId: 'sensorClock',
     build: () => fill('fillclock', 0.55, quick('summary/cpu-temp', 30, 95), {}, ['angle', 'flip']),
-    presets: [COOL_HOT, SUNSET, OCEAN, AURORA],
+    wheel: COOL_HOT,
   },
   {
     key: 'sensorsegments',
     starterId: 'sensorSegments',
     build: () => fill('fillsegments', 0.5, quick('summary/memory-usage', 0, 100), { count: 10 }, ['angle', 'flip', 'count']),
-    presets: [
-      withParams(OCEAN, { u_fill_count: 10 }), withParams(AURORA, { u_fill_count: 8 }),
-      withParams(CANDY, { u_fill_count: 14 }), withParams(SUNSET, { u_fill_count: 12 }),
-    ],
+    wheel: OCEAN,
   },
   {
     key: 'sensorliquid',
     starterId: 'sensorLiquid',
     build: () => fill('fillliquid', 0.5, quick('summary/memory-usage', 0, 100), {}, ['angle', 'flip', 'wave']),
-    presets: [
-      withParams(OCEAN, { u_fill_wave: 0.6 }), withParams(AURORA, { u_fill_wave: 0.9 }),
-      withParams(CANDY, { u_fill_wave: 0.3 }), withParams(SUNSET, { u_fill_wave: 0.6 }),
-    ],
+    wheel: OCEAN,
   },
   {
     key: 'sensorcenter',
     starterId: 'sensorCenter',
     build: () => fill('fillcenter', 0.55, quick('summary/gpu-temp', 30, 90), {}, ['angle', 'flip']),
-    presets: [COOL_HOT, SUNSET, AURORA, OCEAN],
+    wheel: COOL_HOT,
   },
   {
     // The whole display wears one color that walks the wheel's range across the sensor's range.
@@ -127,7 +107,7 @@ export const SENSOR_PREMADES: readonly SensorPremade[] = [
       const level = sensorLevel(block('hot', 'solid', { level: 0 }), 'level', quick('summary/cpu-temp', 30, 90));
       return { v: 1, blocks: [level, wheel(0, { shade: 0 })], speed: 50, hue: 0, saturation: 1, contrast: 1 };
     },
-    presets: [COOL_HOT, GREEN_RED, SUNSET, AURORA],
+    wheel: COOL_HOT,
   },
   {
     // The same walk laid across the display: the far edge colors first and the rest follows as the sensor rises.
@@ -142,12 +122,11 @@ export const SENSOR_PREMADES: readonly SensorPremade[] = [
         knobs: [{ uid: 'grad', key: 'angle' }],
       };
     },
-    presets: [SUNSET, COOL_HOT, AURORA, OCEAN],
+    wheel: SUNSET,
   },
 ];
 
-/** The Studio starter: the same blocks, opening on the first preset's wheel instead of a neutral one. */
+/** The Studio starter: the same blocks, opening on the premade's own wheel instead of a neutral one. */
 export function starterRecipe(p: SensorPremade): StudioRecipe {
-  const first = p.presets[0];
-  return { ...p.build(), hue: first.hue, colorize: first.colorize };
+  return { ...p.build(), hue: p.wheel.hue, colorize: p.wheel.colorize };
 }

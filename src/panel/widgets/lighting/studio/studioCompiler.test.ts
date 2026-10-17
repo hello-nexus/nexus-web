@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_SENSOR_BINDING, parseSensorUniforms } from '../../../../lib/sensorBinding';
 import { parseShaderParams } from '../../../../lib/shaderParams';
 import { STUDIO_BLOCKS, STUDIO_COST_BUDGET, STUDIO_STAGES, STUDIO_STAGE_LIMIT, studioBlock } from './studioBlocks';
-import { compileStudio, makeBlock, orderedBlocks, recipeCost, recipeUsesAudio, recipeUsesSensors, stageCount, staleParamsBetween, studioUniform, type StudioRecipe } from './studioCompiler';
+import { compileStudio, makeBlock, orderedBlocks, recipeCost, recipeUsesAudio, recipeUsesSensors, recipeUsesWheel, stageCount, staleParamsBetween, studioUniform, type StudioRecipe } from './studioCompiler';
 import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';
 import { SENSOR_PREMADES } from './studioSensorPremades';
 
@@ -253,6 +253,31 @@ describe('sensor modulation', () => {
   it('uses sensors only when a mod names the sensor source', () => {
     expect(recipeUsesSensors(sensorRecipe())).toBe(true);
     expect(recipeUsesSensors(recipeOf('plasma', 'palette'))).toBe(false);
+  });
+});
+
+describe('wheel-colored recipes', () => {
+  const wheelRecipe = (hue: number, colorize?: number): StudioRecipe => ({
+    ...recipeOf('fillbar', 'wheelcolor'), hue, colorize,
+  });
+
+  it('never bakes the wheel state, so the Lighting page ring is the whole gradient', () => {
+    const baked = compileStudio(wheelRecipe(0.4, 0.6), { bake: true }).frag;
+    expect(baked).toContain('const float S_HUE = 0.0;');
+    expect(baked).toContain('const float S_COLORIZE = 0.0;');
+    expect(compileStudio(wheelRecipe(0.1), { bake: true }).frag.replace(/u_[a-z0-9]+_/g, 'u_x_'))
+      .toBe(baked.replace(/u_[a-z0-9]+_/g, 'u_x_'));
+  });
+
+  it('still bakes the hue of a recipe that colors itself', () => {
+    const plain = { ...recipeOf('plasma', 'palette'), hue: 0.4 };
+    expect(compileStudio(plain, { bake: true }).frag).toContain('const float S_HUE = 0.4;');
+  });
+
+  it('leaves the tint out of the finish only for wheel recipes', () => {
+    expect(compileStudio(wheelRecipe(0)).frag).not.toContain('u_colorize, 0.0, 1.0)');
+    expect(compileStudio(recipeOf('plasma', 'palette')).frag).toContain('u_colorize, 0.0, 1.0)');
+    expect(recipeUsesWheel(wheelRecipe(0))).toBe(true);
   });
 });
 

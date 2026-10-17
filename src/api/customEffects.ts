@@ -95,6 +95,18 @@ export function useCustomEffects(enabled = true): CustomEffectEntry[] {
   return list;
 }
 
+/** The wheel a wheel-colored custom effect opens on (its recipe's hue and range), or null for any other effect. */
+export function customEffectWheel(entry: CustomEffectEntry): { hue: number; colorize: number } | null {
+  try {
+    const r = JSON.parse(entry.recipe) as RecipeShape & { hue?: unknown; colorize?: unknown };
+    if (!(r.blocks ?? []).some(b => b.type === 'wheelcolor')) return null;
+    const unit = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0);
+    return { hue: unit(r.hue), colorize: unit(r.colorize) };
+  } catch {
+    return null;
+  }
+}
+
 interface RecipeShape {
   blocks?: { uid?: unknown; type?: unknown; mods?: Record<string, { source?: unknown }> }[];
   knobs?: { uid?: unknown; key?: unknown }[];

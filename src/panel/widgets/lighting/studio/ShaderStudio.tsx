@@ -4,6 +4,7 @@ import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceMod
 import { Button } from '../../../../components/common/Button/Button';
 import { Card } from '../../../../components/common/Card/Card';
 import { Select } from '../../../../components/common/Select/Select';
+import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
@@ -26,7 +27,7 @@ import {
   type StudioStage,
 } from './studioBlocks';
 import {
-  compileStudio, makeBlock, recipeCost, recipeUsesAudio, recipeUsesSensors, stageCount, staleParamsBetween,
+  compileStudio, makeBlock, recipeCost, recipeUsesAudio, recipeUsesSensors, recipeUsesWheel, stageCount, staleParamsBetween,
   type CompiledStudio, type StudioBlock, type StudioRecipe,
 } from './studioCompiler';
 import { STUDIO_STARTERS, mutateRecipe, randomRecipe } from './studioRecipes';
@@ -66,7 +67,7 @@ function primed(recipe: StudioRecipe): CompiledStudio {
 
 function stateFor(recipe: StudioRecipe, compiled: CompiledStudio): EffectState {
   return {
-    speed: recipe.speed, intensity: 1, hue: recipe.hue, colorize: 0,
+    speed: recipe.speed, intensity: 1, hue: recipe.hue, colorize: recipeUsesWheel(recipe) ? recipe.colorize ?? 0 : 0,
     saturation: recipe.saturation, contrast: recipe.contrast, params: compiled.params,
   };
 }
@@ -618,9 +619,17 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
               <Slider orientation={STACKED} editable trackFill zeroMarker label={t('lighting.controls.speed')}
                 value={recipe.speed} min={-100} max={100}
                 onChange={(v, commit) => apply({ ...recipe, speed: v }, !!commit)} onCommit={commitCurrent} />
-              <Slider orientation={STACKED} editable trackFill label={t('lighting.studio.param.hue')}
-                value={Math.round(recipe.hue * 100)} min={0} max={100}
-                onChange={(v, commit) => apply({ ...recipe, hue: v / 100 }, !!commit)} onCommit={commitCurrent} />
+              {recipeUsesWheel(recipe) ? (
+                <PaletteRing
+                  hue={recipe.hue} colorize={recipe.colorize ?? 0}
+                  onChange={(hue, colorize, commit) => apply({ ...recipe, hue, colorize }, commit)} onCommit={commitCurrent}
+                  saturation={recipe.saturation} contrast={recipe.contrast}
+                />
+              ) : (
+                <Slider orientation={STACKED} editable trackFill label={t('lighting.studio.param.hue')}
+                  value={Math.round(recipe.hue * 100)} min={0} max={100}
+                  onChange={(v, commit) => apply({ ...recipe, hue: v / 100 }, !!commit)} onCommit={commitCurrent} />
+              )}
               <Slider orientation={STACKED} editable trackFill label={t('lighting.controls.saturation')}
                 value={Math.round(recipe.saturation * 100)} min={0} max={200}
                 onChange={(v, commit) => apply({ ...recipe, saturation: v / 100 }, !!commit)} onCommit={commitCurrent} />

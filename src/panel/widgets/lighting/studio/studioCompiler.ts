@@ -68,7 +68,7 @@ export interface StudioRecipe {
   hue: number;
   saturation: number;
   contrast: number;
-  /** Only a recipe with a wheel-colored field reads it: the share of the wheel's range already closed, 0 to 1. */
+  /** A wheel-colored recipe's range: 1 less the wheel arc's share of the circle, 0 to 1. Never baked; the wheel state is the effect's own. */
   colorize?: number;
 }
 
@@ -255,6 +255,11 @@ export function recipeUsesAudio(recipe: StudioRecipe): boolean {
   return recipe.blocks.some(b => !!studioBlock(b.type)?.audio?.length || Object.values(b.mods ?? {}).some(m => isMusicSource(m.source)));
 }
 
+/** Whether `recipe` colors a field through the Lighting page's color wheel (hue and range) rather than colors of its own. */
+export function recipeUsesWheel(recipe: StudioRecipe): boolean {
+  return recipe.blocks.some(b => b.type === 'wheelcolor');
+}
+
 /** Whether `recipe` has a param driven by a sensor. */
 export function recipeUsesSensors(recipe: StudioRecipe): boolean {
   return recipe.blocks.some(b => Object.values(b.mods ?? {}).some(m => isSensorSource(m.source)));
@@ -378,7 +383,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
   const hasColor = defs.some(d => d.stage === 'color');
   const wheel = defs.some(d => d.type === 'wheelcolor');
   const base = bake
-    ? [recipe.speed / 50, recipe.hue, recipe.saturation, recipe.contrast]
+    ? [recipe.speed / 50, wheel ? 0 : recipe.hue, recipe.saturation, recipe.contrast]
     : [1, 0, 1, 1];
   const frag = [
     HEADER,
@@ -386,7 +391,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
     `const float S_HUE = ${fmt(base[1])};`,
     `const float S_SAT = ${fmt(base[2])};`,
     `const float S_CON = ${fmt(base[3])};`,
-    ...(wheel ? [`const float S_COLORIZE = ${fmt(bake ? recipe.colorize ?? 0 : 0)};`] : []),
+    ...(wheel ? ['const float S_COLORIZE = 0.0;'] : []),
     ...[...audioInputs].sort().map(u => (u === 'u_spectrum' ? 'uniform float u_spectrum[16];' : `uniform float ${u};`)),
     ...uniforms,
     ...collectHelpers(defs, needsBlend, extraHelpers),

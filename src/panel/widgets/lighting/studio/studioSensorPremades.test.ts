@@ -83,26 +83,17 @@ describe('sensor premades', () => {
     }
   });
 
-  it('ships four distinct, in-range presets per premade whose params exist in the shader', () => {
+  it('opens a starter on the premade wheel and bakes none of it', () => {
     for (const p of SENSOR_PREMADES) {
-      expect(p.presets, p.key).toHaveLength(4);
-      expect(new Set(p.presets.map(x => `${x.hue}/${x.colorize}`)).size, p.key).toBeGreaterThan(2);
-      const declared = new Set(parseShaderParams(bake(p.key).frag).map(s => s.name));
-      for (const x of p.presets) {
-        expect(x.hue).toBeGreaterThanOrEqual(0);
-        expect(x.hue).toBeLessThan(1);
-        expect(x.colorize).toBeGreaterThanOrEqual(0);
-        expect(x.colorize).toBeLessThanOrEqual(1);
-        for (const name of Object.keys(x.params)) expect(declared.has(name), `${p.key} ${name}`).toBe(true);
-      }
+      const starter = starterRecipe(p);
+      expect(starter).toMatchObject({ hue: p.wheel.hue, colorize: p.wheel.colorize });
+      expect(p.wheel.hue).toBeGreaterThanOrEqual(0);
+      expect(p.wheel.hue).toBeLessThan(1);
+      expect(p.wheel.colorize).toBeGreaterThanOrEqual(0);
+      expect(p.wheel.colorize).toBeLessThan(1);
+      // The wheel state is the effect's own: the saved shader is the same whatever the starter's range.
+      expect(compileStudio(starter, { bake: true }).frag).toBe(bake(p.key).frag);
     }
-  });
-
-  it('opens a starter on its first preset and the baked effect on a neutral wheel', () => {
-    const p = SENSOR_PREMADES[0];
-    expect(starterRecipe(p)).toMatchObject({ hue: p.presets[0].hue, colorize: p.presets[0].colorize });
-    expect(p.build()).toMatchObject({ hue: 0 });
-    expect(p.build().colorize).toBeUndefined();
   });
 
   it('offers every premade as a Studio starter and a Sensor effect key prefixed sensor', () => {

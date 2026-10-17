@@ -254,7 +254,13 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
   const def = useMemo(() => customEffectDef(
     { id: listing.id, name: listing.name, recipe: JSON.stringify(recipe), updatedAt: 0, audio: listing.audio }, t,
   ), [listing.id, listing.name, listing.audio, recipe, t]);
-  const neutral = useMemo(() => baselineTemplates(compiled.key), [compiled.key]);
+  // A wheel-colored listing opens its ring on the range it was authored with.
+  const neutral = useMemo(() => {
+    const base = baselineTemplates(compiled.key);
+    return recipe.blocks.some(b => b.type === 'wheelcolor')
+      ? { ...base, slots: base.slots.map(s => ({ ...s, hue: recipe.hue, colorize: recipe.colorize ?? 0 })) }
+      : base;
+  }, [compiled.key, recipe]);
   const [state, setState] = useState<EffectState>(neutral.slots[0]);
   const stateRef = useRef<EffectState | null>(state);
   useLayoutEffect(() => { stateRef.current = state; }, [state]);
