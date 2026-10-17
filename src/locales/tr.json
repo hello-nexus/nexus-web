@@ -2972,7 +2972,7 @@
   "lighting.mappings.undoneTitle": "Düzen geri alındı",
   "lighting.mappings.verified": "Doğrulanmış",
   "lighting.mode.animate": "Animasyon",
-  "lighting.mode.animate.desc": "Animasyonlu efektler",
+  "lighting.mode.animate.desc": "Shader efektleri veya kendi efektlerinizi Efekt Stüdyosu'nda oluşturun",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "Medya",
   "lighting.mode.gif.desc": "Görseller, GIF'ler ve videolar",

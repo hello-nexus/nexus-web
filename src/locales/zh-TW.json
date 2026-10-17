@@ -2972,7 +2972,7 @@
   "lighting.mappings.undoneTitle": "配置已還原",
   "lighting.mappings.verified": "已驗證",
   "lighting.mode.animate": "動畫",
-  "lighting.mode.animate.desc": "動態效果",
+  "lighting.mode.animate.desc": "著色器特效，或在效果工作室中自製",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "媒體",
   "lighting.mode.gif.desc": "圖片、GIF 和影片",

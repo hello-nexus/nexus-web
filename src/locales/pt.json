@@ -2972,7 +2972,7 @@
   "lighting.mappings.undoneTitle": "Esquema revertido",
   "lighting.mappings.verified": "Verificado",
   "lighting.mode.animate": "Animacao",
-  "lighting.mode.animate.desc": "Efeitos animados",
+  "lighting.mode.animate.desc": "Efeitos shader, ou crie os seus no Estúdio de efeitos",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "Midia",
   "lighting.mode.gif.desc": "Imagens, GIFs e vídeos",

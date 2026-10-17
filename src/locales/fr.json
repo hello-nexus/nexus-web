@@ -2972,7 +2972,7 @@
   "lighting.mappings.undoneTitle": "Disposition annulée",
   "lighting.mappings.verified": "Vérifiée",
   "lighting.mode.animate": "Animation",
-  "lighting.mode.animate.desc": "Effets animés",
+  "lighting.mode.animate.desc": "Effets shader, ou créez les vôtres dans le Studio d'effets",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "Média",
   "lighting.mode.gif.desc": "Images, GIF et vidéos",

@@ -2972,7 +2972,7 @@
   "lighting.mappings.undoneTitle": "レイアウトを元に戻しました",
   "lighting.mappings.verified": "認証済み",
   "lighting.mode.animate": "アニメーション",
-  "lighting.mode.animate.desc": "アニメーション効果",
+  "lighting.mode.animate.desc": "シェーダーエフェクト。エフェクトスタジオで自作も可能",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "メディア",
   "lighting.mode.gif.desc": "画像、GIF、動画",

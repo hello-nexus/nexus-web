@@ -2972,7 +2972,7 @@
   "lighting.mappings.undoneTitle": "레이아웃 되돌림",
   "lighting.mappings.verified": "인증됨",
   "lighting.mode.animate": "애니메이션",
-  "lighting.mode.animate.desc": "애니메이션 효과",
+  "lighting.mode.animate.desc": "셰이더 효과, 또는 효과 스튜디오에서 직접 제작",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "미디어",
   "lighting.mode.gif.desc": "이미지, GIF, 동영상",

@@ -2972,7 +2972,7 @@
   "lighting.mappings.undoneTitle": "Layout zurückgesetzt",
   "lighting.mappings.verified": "Verifiziert",
   "lighting.mode.animate": "Animation",
-  "lighting.mode.animate.desc": "Animierte Effekte",
+  "lighting.mode.animate.desc": "Shader-Effekte oder eigene im Effekt-Studio erstellen",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "Medien",
   "lighting.mode.gif.desc": "Bilder, GIFs und Videos",

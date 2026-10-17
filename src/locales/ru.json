@@ -3005,7 +3005,7 @@
   "lighting.mappings.undoneTitle": "Раскладка возвращена",
   "lighting.mappings.verified": "Проверено",
   "lighting.mode.animate": "Анимация",
-  "lighting.mode.animate.desc": "Анимированные эффекты",
+  "lighting.mode.animate.desc": "Шейдерные эффекты или свои в Студии эффектов",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "Медиа",
   "lighting.mode.gif.desc": "Изображения, GIF и видео",

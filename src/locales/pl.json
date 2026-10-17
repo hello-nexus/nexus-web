@@ -3005,7 +3005,7 @@
   "lighting.mappings.undoneTitle": "Układ przywrócony",
   "lighting.mappings.verified": "Zweryfikowany",
   "lighting.mode.animate": "Animacja",
-  "lighting.mode.animate.desc": "Animowane efekty",
+  "lighting.mode.animate.desc": "Efekty shaderowe lub własne w Studio efektów",
   "lighting.mode.gamesync": "Game Sync",
   "lighting.mode.gif": "Multimedia",
   "lighting.mode.gif.desc": "Obrazy, GIF-y i filmy",
