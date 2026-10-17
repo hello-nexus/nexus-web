@@ -8,7 +8,7 @@ import { EFFECTS, categoryOf } from '../../../../types/lighting';
 import { STUDIO_COST_BUDGET } from './studioBlocks';
 import { compileStudio, recipeCost } from './studioCompiler';
 import { isRecipe, parseMarketRecipe } from './studioLibrary';
-import { SENSOR_PREMADES } from './studioSensorPremades';
+import { SENSOR_PREMADES, starterRecipe } from './studioSensorPremades';
 import { STUDIO_STARTERS } from './studioRecipes';
 
 // The service ships each premade's baked shader under its key, so a premade's GLSL must
@@ -63,11 +63,9 @@ describe('sensor premades', () => {
     const { frag, sensors } = bake(key);
     const declared = new Set(parseShaderParams(frag).map(p => p.name));
     for (const p of def!.params) expect(declared.has(p.name), p.name).toBe(true);
-    // The color wheel's slots reach the shader's hue, saturation and brightness uniforms.
-    expect(def!.colors?.length, 'four wheel colors').toBe(4);
-    for (const slot of def!.colors ?? []) {
-      for (const suffix of ['Hue', 'Sat', 'Val']) expect(declared.has(`${slot.uniformPrefix}${suffix}`), `${slot.uniformPrefix}${suffix}`).toBe(true);
-    }
+    // The color wheel is the global one: no slots of its own, no color uniforms.
+    expect(def!.colors).toBeUndefined();
+    expect(frag).not.toMatch(/u_col_[a-d]Hue/);
     expect((def!.sensors ?? []).map(s => s.name).sort()).toEqual(sensors.map(s => s.name).sort());
   });
 
@@ -76,14 +74,35 @@ describe('sensor premades', () => {
     expect(EFFECTS.some(e => e.key === 'sensorgauge')).toBe(false);
   });
 
-  it('opens each premade on the colors it had before the wheel, as wheel defaults', () => {
-    const { frag } = bake('sensorbar');
-    const specs = new Map(parseShaderParams(frag).map(s => [s.name, s.defaultValue]));
-    // Green first, red last.
-    expect(specs.get('u_col_aHue')).toBeCloseTo(0.39, 2);
-    expect(specs.get('u_col_dHue')).toBeCloseTo(0.01, 2);
-    expect(specs.get('u_col_aSat')).toBeCloseTo(0.9, 2);
-    expect(specs.get('u_col_dVal')).toBe(1);
+  it('colors each premade through the wheel: hue and range, no tint', () => {
+    for (const p of SENSOR_PREMADES) {
+      const { frag } = bake(p.key);
+      expect(frag, p.key).toContain('hsv2rgb(vec3(hue + (0.5 - k) * span, 1.0, 1.0))');
+      expect(frag, p.key).toContain('const float S_COLORIZE = 0.0;');
+      expect(frag, p.key).not.toContain('u_colorize, 0.0, 1.0));\n  float bl');
+    }
+  });
+
+  it('ships four distinct, in-range presets per premade whose params exist in the shader', () => {
+    for (const p of SENSOR_PREMADES) {
+      expect(p.presets, p.key).toHaveLength(4);
+      expect(new Set(p.presets.map(x => `${x.hue}/${x.colorize}`)).size, p.key).toBeGreaterThan(2);
+      const declared = new Set(parseShaderParams(bake(p.key).frag).map(s => s.name));
+      for (const x of p.presets) {
+        expect(x.hue).toBeGreaterThanOrEqual(0);
+        expect(x.hue).toBeLessThan(1);
+        expect(x.colorize).toBeGreaterThanOrEqual(0);
+        expect(x.colorize).toBeLessThanOrEqual(1);
+        for (const name of Object.keys(x.params)) expect(declared.has(name), `${p.key} ${name}`).toBe(true);
+      }
+    }
+  });
+
+  it('opens a starter on its first preset and the baked effect on a neutral wheel', () => {
+    const p = SENSOR_PREMADES[0];
+    expect(starterRecipe(p)).toMatchObject({ hue: p.presets[0].hue, colorize: p.presets[0].colorize });
+    expect(p.build()).toMatchObject({ hue: 0 });
+    expect(p.build().colorize).toBeUndefined();
   });
 
   it('offers every premade as a Studio starter and a Sensor effect key prefixed sensor', () => {

@@ -1541,7 +1541,7 @@
     },
     "sha256": "2b57fa7ccc74c3a5a74e353b20dd385de2765ab939123fba49ace1bbdaf1b9a9"
   },
-  "bare:wheelramp": {
+  "bare:wheelcolor": {
     "recipe": {
       "v": 1,
       "blocks": [
@@ -1557,7 +1557,7 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {}
         }
       ],
@@ -1566,7 +1566,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "c3325ff3b5ded62154afa1e37006954b1c21c3685f3b99dabb408be214589fe8"
+    "sha256": "e72a6c232175feb78c3673ce424d3b9051676d0d0e4594c57e9e891bd62b74e3"
   },
   "bare:wipe": {
     "recipe": {
@@ -4631,7 +4631,7 @@
     },
     "sha256": "cef7adc76a89fa482de48893c5b2336d60bc1847a5592be9cbe4baa235a5b7f3"
   },
-  "block:wheelramp": {
+  "block:wheelcolor": {
     "recipe": {
       "v": 1,
       "blocks": [
@@ -4647,22 +4647,10 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0.35000000000000003,
-            "shade": 0.37,
-            "aHue": 0.37,
-            "aSat": 0.37,
-            "aVal": 0.37,
-            "bHue": 0.37,
-            "bSat": 0.37,
-            "bVal": 0.37,
-            "cHue": 0.37,
-            "cSat": 0.37,
-            "cVal": 0.37,
-            "dHue": 0.37,
-            "dSat": 0.37,
-            "dVal": 0.37
+            "shade": 0.37
           }
         }
       ],
@@ -4671,7 +4659,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "de8a4ed902cc7da07363d08d0edafa3c1fb8748cf41ef3a93b2aa7587579564c"
+    "sha256": "4bbee20f3d40e07df5ff6e80c1578fe84eacf4a246ad3d54759afd6830a68a7b"
   },
   "block:wipe": {
     "recipe": {
@@ -6479,27 +6467,15 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0.55,
-            "shade": 1,
-            "aHue": 0.39,
-            "aSat": 0.9,
-            "aVal": 1,
-            "bHue": 0.25,
-            "bSat": 0.8,
-            "bVal": 1,
-            "cHue": 0.14,
-            "cSat": 0.9,
-            "cVal": 1,
-            "dHue": 0.01,
-            "dSat": 0.9,
-            "dVal": 1
+            "shade": 1
           }
         }
       ],
       "speed": 50,
-      "hue": 0,
+      "hue": 0.165,
       "saturation": 1,
       "contrast": 1,
       "knobs": [
@@ -6511,9 +6487,10 @@
           "uid": "k0",
           "key": "flip"
         }
-      ]
+      ],
+      "colorize": 0.67
     },
-    "sha256": "3b0d4738c097bf7b5538ac0999fb43eafc09148e4b01b596ce3ac00b7e9fe607"
+    "sha256": "02888c0ffc063e932446a91c2f0cfdf06db8d6bbb4be095c85ab4c6fa1345c5d"
   },
   "starter:sensorCenter": {
     "recipe": {
@@ -6545,27 +6522,15 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0.55,
-            "shade": 1,
-            "aHue": 0.63,
-            "aSat": 0.85,
-            "aVal": 1,
-            "bHue": 0.42,
-            "bSat": 0.89,
-            "bVal": 0.95,
-            "cHue": 0.14,
-            "cSat": 0.9,
-            "cVal": 1,
-            "dHue": 0.01,
-            "dSat": 0.9,
-            "dVal": 1
+            "shade": 1
           }
         }
       ],
       "speed": 50,
-      "hue": 0,
+      "hue": 0.31,
       "saturation": 1,
       "contrast": 1,
       "knobs": [
@@ -6577,9 +6542,10 @@
           "uid": "k0",
           "key": "flip"
         }
-      ]
+      ],
+      "colorize": 0.38
     },
-    "sha256": "d30883b4356cc39297202ecb71db47f38fb6f61af43b21ea1864381adec3635d"
+    "sha256": "a2ef586509a283975fb1bd4e420363cf59842875a13b55b80c106007bab1834c"
   },
   "starter:sensorClock": {
     "recipe": {
@@ -6611,27 +6577,15 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0.55,
-            "shade": 1,
-            "aHue": 0.63,
-            "aSat": 0.85,
-            "aVal": 1,
-            "bHue": 0.42,
-            "bSat": 0.89,
-            "bVal": 0.95,
-            "cHue": 0.14,
-            "cSat": 0.9,
-            "cVal": 1,
-            "dHue": 0.01,
-            "dSat": 0.9,
-            "dVal": 1
+            "shade": 1
           }
         }
       ],
       "speed": 50,
-      "hue": 0,
+      "hue": 0.31,
       "saturation": 1,
       "contrast": 1,
       "knobs": [
@@ -6643,9 +6597,10 @@
           "uid": "k0",
           "key": "flip"
         }
-      ]
+      ],
+      "colorize": 0.38
     },
-    "sha256": "b23b366bf086611a1cf43e596516eff5b833c0992e2cbbc6809893e288702be8"
+    "sha256": "e73269344e4cdb7aa05055f65bcd23ec820c1ab1b6fd328d0c56dd2794fc82c2"
   },
   "starter:sensorHeat": {
     "recipe": {
@@ -6664,22 +6619,10 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0.95,
-            "shade": 0,
-            "aHue": 0.63,
-            "aSat": 0.85,
-            "aVal": 1,
-            "bHue": 0.42,
-            "bSat": 0.89,
-            "bVal": 0.95,
-            "cHue": 0.14,
-            "cSat": 0.9,
-            "cVal": 1,
-            "dHue": 0.01,
-            "dSat": 0.9,
-            "dVal": 1
+            "shade": 0
           },
           "mods": {
             "low": {
@@ -6696,7 +6639,7 @@
         }
       ],
       "speed": 50,
-      "hue": 0,
+      "hue": 0.03,
       "saturation": 1,
       "contrast": 1,
       "knobs": [
@@ -6704,9 +6647,10 @@
           "uid": "k0",
           "key": "angle"
         }
-      ]
+      ],
+      "colorize": 0.78
     },
-    "sha256": "2b74ff41a47fca24d9c1d4db9fdd1680d911e461b978c59ab8f8327d90829f20"
+    "sha256": "1dc8b0588525857591e04ff5803b9dfd0a2a63456e696fab8d00f8851199b6fd"
   },
   "starter:sensorLiquid": {
     "recipe": {
@@ -6740,27 +6684,15 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0.5,
-            "shade": 1,
-            "aHue": 0.6,
-            "aSat": 1,
-            "aVal": 0.8,
-            "bHue": 0.57,
-            "bSat": 0.95,
-            "bVal": 1,
-            "cHue": 0.48,
-            "cSat": 0.8,
-            "cVal": 1,
-            "dHue": 0.46,
-            "dSat": 0.2,
-            "dVal": 1
+            "shade": 1
           }
         }
       ],
       "speed": 50,
-      "hue": 0,
+      "hue": 0.54,
       "saturation": 1,
       "contrast": 1,
       "knobs": [
@@ -6776,9 +6708,10 @@
           "uid": "k0",
           "key": "wave"
         }
-      ]
+      ],
+      "colorize": 0.84
     },
-    "sha256": "2f6f3b7bfcdbf67fcf3b249d172a046d6e995122ff8cbb33d859f439c2376f1b"
+    "sha256": "8f66abe1686d11fd6c472cb0620e6f011220c52ccdedb5152fcc7311d185c6a5"
   },
   "starter:sensorSegments": {
     "recipe": {
@@ -6811,27 +6744,15 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0.5,
-            "shade": 1,
-            "aHue": 0.54,
-            "aSat": 0.9,
-            "aVal": 1,
-            "bHue": 0.64,
-            "bSat": 0.6,
-            "bVal": 1,
-            "cHue": 0.76,
-            "cSat": 0.7,
-            "cVal": 1,
-            "dHue": 0.88,
-            "dSat": 0.7,
-            "dVal": 1
+            "shade": 1
           }
         }
       ],
       "speed": 50,
-      "hue": 0,
+      "hue": 0.54,
       "saturation": 1,
       "contrast": 1,
       "knobs": [
@@ -6847,9 +6768,10 @@
           "uid": "k0",
           "key": "count"
         }
-      ]
+      ],
+      "colorize": 0.84
     },
-    "sha256": "cf65501c95620968fda5281636f6bac229c47c86f7288f691a1e314b1b52c6a0"
+    "sha256": "d18604d25ad967955b6e5b71256af90c69095437db36c8cd3980cc71b223bf42"
   },
   "starter:sensorShift": {
     "recipe": {
@@ -6878,31 +6800,20 @@
         },
         {
           "uid": "k1",
-          "type": "wheelramp",
+          "type": "wheelcolor",
           "params": {
             "low": 0,
-            "shade": 0,
-            "aHue": 0.63,
-            "aSat": 0.85,
-            "aVal": 1,
-            "bHue": 0.42,
-            "bSat": 0.89,
-            "bVal": 0.95,
-            "cHue": 0.14,
-            "cSat": 0.9,
-            "cVal": 1,
-            "dHue": 0.01,
-            "dSat": 0.9,
-            "dVal": 1
+            "shade": 0
           }
         }
       ],
       "speed": 50,
-      "hue": 0,
+      "hue": 0.31,
       "saturation": 1,
-      "contrast": 1
+      "contrast": 1,
+      "colorize": 0.38
     },
-    "sha256": "32dfc35f6b6669067a1a167b2efe25ddab43ae6efd10dbaa8c28107f72e3b2f4"
+    "sha256": "38daeeab00bd9e41e7b35e144f46a3fa91116e0a25ca274e06903b07f190eb1c"
   },
   "starter:spectrumBars": {
     "recipe": {

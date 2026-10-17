@@ -639,26 +639,18 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     code: 'col = grad3(v * $spread + hue + t * $cycle * 0.1, $c1, $c2, $c3) * mix(1.0, v, $shade);',
   },
   {
-    // A four-color ramp with its colors picked on the Lighting page's color wheel: each is a hue,
-    // saturation and brightness float trio. The field runs from the first color at `low` to the last at 1.
-    type: 'wheelramp', stage: 'color', cost: 1,
+    // Colors a field with the Lighting page's color wheel instead of colors of its own: the wheel's hue is the
+    // middle of the range, its width the span (a single color when collapsed), and the field runs from the
+    // range's high hue at `low` down to its low hue at 1, cool to hot on the usual wheel.
+    type: 'wheelcolor', stage: 'color', cost: 1,
     params: [
       { key: 'low', min: 0, max: 0.95, step: 0.01, def: 0 },
       { key: 'shade', min: 0, max: 1, step: 0.01, def: 1 },
-      ...(['a', 'b', 'c', 'd'] as const).flatMap((id, i) => [
-        { key: `${id}Hue`, min: 0, max: 1, step: 0.01, def: [0.37, 0.25, 0.12, 0][i] },
-        { key: `${id}Sat`, min: 0, max: 1, step: 0.01, def: 0.9 },
-        { key: `${id}Val`, min: 0, max: 1, step: 0.01, def: 1 },
-      ]),
     ],
     code: [
-      'vec3 c1 = hsv2rgb(vec3($aHue, $aSat, $aVal)); vec3 c2 = hsv2rgb(vec3($bHue, $bSat, $bVal));',
-      'vec3 c3 = hsv2rgb(vec3($cHue, $cSat, $cVal)); vec3 c4 = hsv2rgb(vec3($dHue, $dSat, $dVal));',
       'float k = clamp((v - $low) / (1.0 - $low), 0.0, 1.0);',
-      'vec3 g = mix(c1, c2, smoothstep(0.0, 0.3333, k));',
-      'g = mix(g, c3, smoothstep(0.3333, 0.6667, k));',
-      'g = mix(g, c4, smoothstep(0.6667, 1.0, k));',
-      'col = g * mix(1.0, v, $shade);',
+      'float span = 1.0 - clamp(u_colorize + S_COLORIZE, 0.0, 1.0);',
+      'col = hsv2rgb(vec3(hue + (0.5 - k) * span, 1.0, 1.0)) * mix(1.0, v, $shade);',
     ].join('\n'),
   },
   // ---- finish ----

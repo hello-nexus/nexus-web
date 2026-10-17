@@ -260,7 +260,7 @@ describe('fill blocks', () => {
   it.each(['fillbar', 'fillclock', 'fillsegments', 'fillliquid', 'fillcenter', 'fillgauge'])('%s fills to a level and can turn and flip', type => {
     const keys = studioBlock(type)!.params.map(p => p.key);
     expect(keys).toEqual(expect.arrayContaining(['level', 'angle', 'flip']));
-    expectValid(recipeOf(type, 'wheelramp'));
+    expectValid(recipeOf(type, 'wheelcolor'));
   });
 
   it('bakes every sensor starter to a shader a sensor uniform feeds', () => {

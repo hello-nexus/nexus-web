@@ -3,7 +3,7 @@ import {
   type StudioParam, type StudioStage,
 } from './studioBlocks';
 import { makeBlock, recipeCost, stageCount, type StudioBlock, type StudioRecipe } from './studioCompiler';
-import { SENSOR_PREMADES } from './studioSensorPremades';
+import { SENSOR_PREMADES, starterRecipe } from './studioSensorPremades';
 
 type BlockSpec = [type: string, params?: Record<string, number>, colors?: Record<string, [number, number, number]>];
 
@@ -215,7 +215,7 @@ export const STUDIO_STARTERS: readonly StudioStarter[] = [
       ['grain', { amount: 0.05 }],
     ], [[2, 'steps'], [1, 'speed']]),
   },
-  ...SENSOR_PREMADES.map(p => ({ id: p.starterId, build: p.build })),
+  ...SENSOR_PREMADES.map(p => ({ id: p.starterId, build: () => starterRecipe(p) })),
 ];
 
 const decimals = (step: number) => (String(step).split('.')[1] ?? '').length;

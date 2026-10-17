@@ -50,6 +50,7 @@ export function isRecipe(x: unknown): x is StudioRecipe {
   const r = x as unknown as StudioRecipe;
   if (r.v !== 1 || !Array.isArray(r.blocks) || !r.blocks.every(isBlock)) return false;
   if (![r.speed, r.hue, r.saturation, r.contrast].every(isNum)) return false;
+  if (r.colorize !== undefined && !isNum(r.colorize)) return false;
   if (r.knobs !== undefined && !(Array.isArray(r.knobs) && r.knobs.every(k => isObj(k) && typeof k.uid === 'string' && typeof k.key === 'string'))) return false;
   return stageCount(r, 'pattern') >= 1 && stageCount(r, 'color') === 1;
 }
@@ -77,6 +78,7 @@ export function parseMarketRecipe(x: unknown): StudioRecipe | null {
     hue: clamp(x.hue, 0, 1),
     saturation: clamp(x.saturation, 0, 2),
     contrast: clamp(x.contrast, 0, 2),
+    ...(x.colorize === undefined ? {} : { colorize: clamp(x.colorize, 0, 1) }),
     knobs: x.knobs?.filter(k => keys.get(k.uid)?.has(k.key)),
   };
 }

@@ -68,6 +68,8 @@ export interface StudioRecipe {
   hue: number;
   saturation: number;
   contrast: number;
+  /** Only a recipe with a wheel-colored field reads it: the share of the wheel's range already closed, 0 to 1. */
+  colorize?: number;
 }
 
 export interface CompiledStudio {
@@ -193,6 +195,15 @@ uniform float u_colorize;   // hint_range(0.0, 1.0, 0.01) = 0.0
 uniform float u_saturation; // hint_range(0.0, 4.0, 0.01) = 1.0
 uniform float u_contrast;   // hint_range(0.0, 4.0, 0.01) = 1.0
 const float PI = 3.14159265;`;
+
+// A wheel-colored recipe takes its colors from the wheel's hue and range, so the colorize tint (which would
+// wash them toward one hue) is left out of the finish.
+const WHEEL_FINALIZE = `vec3 finalize(vec3 col, float hue) {
+  float bl = dot(max(col, 0.0), vec3(0.2126, 0.7152, 0.0722));
+  vec3 blended = mix(vec3(bl), col, clamp(u_saturation * S_SAT, 0.0, 4.0));
+  blended = (blended - 0.5) * clamp(u_contrast * S_CON, 0.0, 4.0) + 0.5;
+  return max(blended, 0.0);
+}`;
 
 const FOOTER_HELPERS = `vec2 uvCentered() {
   vec2 u = gl_FragCoord.xy / u_resolution;
@@ -365,6 +376,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
 
   const needsBlend = patternIndex > 1;
   const hasColor = defs.some(d => d.stage === 'color');
+  const wheel = defs.some(d => d.type === 'wheelcolor');
   const base = bake
     ? [recipe.speed / 50, recipe.hue, recipe.saturation, recipe.contrast]
     : [1, 0, 1, 1];
@@ -374,10 +386,11 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
     `const float S_HUE = ${fmt(base[1])};`,
     `const float S_SAT = ${fmt(base[2])};`,
     `const float S_CON = ${fmt(base[3])};`,
+    ...(wheel ? [`const float S_COLORIZE = ${fmt(bake ? recipe.colorize ?? 0 : 0)};`] : []),
     ...[...audioInputs].sort().map(u => (u === 'u_spectrum' ? 'uniform float u_spectrum[16];' : `uniform float ${u};`)),
     ...uniforms,
     ...collectHelpers(defs, needsBlend, extraHelpers),
-    FOOTER_HELPERS,
+    wheel ? FOOTER_HELPERS.replace(/vec3 finalize[\s\S]*$/, WHEEL_FINALIZE) : FOOTER_HELPERS,
     'void main() {',
     '  vec2 p0 = uvCentered();',
     '  vec2 p = p0;',
