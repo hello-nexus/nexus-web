@@ -12,7 +12,7 @@ type Stops = readonly [Rgb, Rgb, Rgb, Rgb];
 
 // Load: green through lime and amber to red.
 const LOAD: Stops = [[0.1, 1, 0.4], [0.6, 1, 0.2], [1, 0.85, 0.1], [1, 0.15, 0.1]];
-// Heat: blue through teal and yellow to red.
+// Heat: blue through teal and yellow to red (the default wheel colors).
 const HEAT: Stops = [[0.15, 0.35, 1], [0.1, 0.95, 0.55], [1, 0.85, 0.1], [1, 0.15, 0.1]];
 const MEMORY: Stops = [[0.1, 0.8, 1], [0.4, 0.5, 1], [0.7, 0.3, 1], [1, 0.3, 0.8]];
 const WATER: Stops = [[0, 0.3, 0.8], [0.05, 0.6, 1], [0.2, 1, 0.9], [0.8, 1, 0.95]];
@@ -105,7 +105,7 @@ export const SENSOR_PREMADES: readonly SensorPremade[] = [
     build: () => fill('fillcenter', 0.55, HEAT, quick('summary/gpu-temp', 30, 90), {}, ['angle', 'flip']),
   },
   {
-    // The whole display wears one color that walks from blue through yellow to red as the CPU heats up.
+    // The whole display wears one color that walks the wheel's four colors, first to last, across the sensor's range.
     key: 'sensorshift',
     starterId: 'sensorShift',
     build: () => {

@@ -12,11 +12,11 @@ import styles from '../LightingPage.module.scss';
 // Layout enum, not display text; hoisted so the JSX carries no literal.
 const STACKED = 'stacked' as const;
 
+const uni = (slot: EffectColorSlot, suffix: string) => `${slot.uniformPrefix ?? `u_${slot.id}`}${suffix}`;
+
 /** A slot is three float params, so colours ride the same dictionary the
  *  numeric params already use; defaults come from the shader spec, falling
  *  back to a saturated red before the spec has loaded. */
-const uni = (slot: EffectColorSlot, suffix: string) => `${slot.uniformPrefix ?? `u_${slot.id}`}${suffix}`;
-
 function read(slot: EffectColorSlot, params: Record<string, number>, specs: Record<string, ShaderParamSpec>) {
   return {
     h: params[uni(slot, 'Hue')] ?? specs[uni(slot, 'Hue')]?.defaultValue ?? 0,

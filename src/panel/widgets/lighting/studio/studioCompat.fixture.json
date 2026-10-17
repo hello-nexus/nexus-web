@@ -881,33 +881,6 @@
     },
     "sha256": "7d01538edf430ee005e40162ec552828ed814f6619d4d44c3ec9095ff04249a2"
   },
-  "bare:ramp": {
-    "recipe": {
-      "v": 1,
-      "blocks": [
-        {
-          "uid": "k0",
-          "type": "plasma",
-          "params": {
-            "scale": 2,
-            "speed": 1,
-            "blend": 0,
-            "mix": 1
-          }
-        },
-        {
-          "uid": "k1",
-          "type": "ramp",
-          "params": {}
-        }
-      ],
-      "speed": 73,
-      "hue": 0.21,
-      "saturation": 1.3,
-      "contrast": 0.8
-    },
-    "sha256": "f242e7a63f9ab943f4301d47887f4d8fbb9e1ad4df9d417d5b09b43cba5a8175"
-  },
   "bare:rings": {
     "recipe": {
       "v": 1,
@@ -3905,58 +3878,6 @@
       "contrast": 0.8
     },
     "sha256": "00a95c58a1ed30c7055b2964bd64d18b22f5caadbe01abb6f6b5683441f3c952"
-  },
-  "block:ramp": {
-    "recipe": {
-      "v": 1,
-      "blocks": [
-        {
-          "uid": "k0",
-          "type": "plasma",
-          "params": {
-            "scale": 2.41,
-            "speed": 1.11,
-            "blend": 0,
-            "mix": 1
-          }
-        },
-        {
-          "uid": "k1",
-          "type": "ramp",
-          "params": {
-            "low": 0.35000000000000003,
-            "shade": 0.37
-          },
-          "colors": {
-            "c1": [
-              0.2,
-              0.6,
-              0.9
-            ],
-            "c2": [
-              0.2,
-              0.6,
-              0.9
-            ],
-            "c3": [
-              0.2,
-              0.6,
-              0.9
-            ],
-            "c4": [
-              0.2,
-              0.6,
-              0.9
-            ]
-          }
-        }
-      ],
-      "speed": 73,
-      "hue": 0.21,
-      "saturation": 1.3,
-      "contrast": 0.8
-    },
-    "sha256": "f4f033bf248c389de144f01d281d44cadb8abfd78ac4f7c790f2ffdd90ff5aea"
   },
   "block:rings": {
     "recipe": {

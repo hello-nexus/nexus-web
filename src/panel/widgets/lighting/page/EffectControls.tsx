@@ -84,9 +84,9 @@ export const EffectControls = memo(function EffectControls({
   // the HSV-S post-process multiplier; simple.frag narrows u_saturation's own
   // range with a hint_range override line, so satSpec needs no isSimple branch.
   const isSimple = categoryOf(effect) === 'simple';
-  // Effects with colour slots write fragColor from their own colour params, so
-  // the tint post-process (palette ring, saturation, contrast, the global hex)
-  // has no effect on them - showing those controls would be a dead UI.
+  // Effects with colour slots take their colours from those slots, so the tint controls (palette ring,
+  // saturation, contrast, the global hex) are hidden for them. A Studio-baked effect still runs the
+  // tint post-process, but with these controls hidden its values stay neutral.
   const ownsColors = !!def.colors?.length;
   const isSimpleWhite = effect === 'simplewhite';
   const speedSpec = specs['u_speed'];

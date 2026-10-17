@@ -639,29 +639,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     code: 'col = grad3(v * $spread + hue + t * $cycle * 0.1, $c1, $c2, $c3) * mix(1.0, v, $shade);',
   },
   {
-    // Four evenly spaced stops walked from `low` (the dimmest field value shown) up to 1, with no wrap, so
-    // the soft edge of a fill meter fades to its first stop instead of cycling through other hues.
-    type: 'ramp', stage: 'color', cost: 1,
-    params: [
-      { key: 'low', min: 0, max: 0.95, step: 0.01, def: 0.5 },
-      { key: 'shade', min: 0, max: 1, step: 0.01, def: 1 },
-    ],
-    colors: [
-      { key: 'c1', def: [0.1, 1, 0.4] },
-      { key: 'c2', def: [0.6, 1, 0.2] },
-      { key: 'c3', def: [1, 0.85, 0.1] },
-      { key: 'c4', def: [1, 0.15, 0.1] },
-    ],
-    code: [
-      'float k = clamp((v - $low) / (1.0 - $low), 0.0, 1.0);',
-      'vec3 g = mix($c1, $c2, smoothstep(0.0, 0.3333, k));',
-      'g = mix(g, $c3, smoothstep(0.3333, 0.6667, k));',
-      'g = mix(g, $c4, smoothstep(0.6667, 1.0, k));',
-      'col = g * mix(1.0, v, $shade);',
-    ].join('\n'),
-  },
-  {
-    // The ramp block with its four colors picked on the Lighting page's color wheel: each is a hue,
+    // A four-color ramp with its colors picked on the Lighting page's color wheel: each is a hue,
     // saturation and brightness float trio. The field runs from the first color at `low` to the last at 1.
     type: 'wheelramp', stage: 'color', cost: 1,
     params: [
