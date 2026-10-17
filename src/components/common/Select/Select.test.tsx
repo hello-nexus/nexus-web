@@ -158,6 +158,19 @@ describe('Select', () => {
     expect(onChange).toHaveBeenCalledWith('b');
   });
 
+  it('never selects a header whose value equals the current value', () => {
+    const grouped = [
+      { value: '', label: 'Heading', header: true },
+      { value: '', label: 'None' },
+      { value: 'a', label: 'Apple' },
+    ];
+    render(<Select value="" onChange={vi.fn()} options={grouped} ariaLabel="fruit" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('None');
+    expect(screen.getByRole('button', { name: 'fruit' })).not.toHaveTextContent('Heading');
+    const listbox = open();
+    expect(within(listbox).getByRole('option', { selected: true })).toHaveTextContent('None');
+  });
+
   it('typeahead does not land on a header', () => {
     const onChange = vi.fn();
     const grouped = [
@@ -279,5 +292,17 @@ describe('Select in-menu search', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'apple' } });
     expect(screen.getByText('Output')).toBeInTheDocument();
     expect(screen.queryByText('Input')).toBeNull();
+  });
+
+  it('does not count headers toward the search threshold', () => {
+    const grouped = [
+      { value: '', label: 'H1', header: true },
+      ...FRUITS.slice(0, 5),
+      { value: '', label: 'H2', header: true },
+      ...FRUITS.slice(5, 7),
+    ];
+    render(<Select value="f0" onChange={vi.fn()} options={grouped} ariaLabel="fruit" />);
+    open();
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 });

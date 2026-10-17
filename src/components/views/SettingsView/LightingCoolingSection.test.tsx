@@ -76,12 +76,15 @@ vi.mock('../../../api/lighting', () => ({
   setAudioOutput: lightingApi.setAudioOutput,
 }));
 
+// Mutable so a test can swap the input list the mocked hook returns.
+const mockInputs = vi.hoisted(() => ({ list: null as null | { id: string; name: string; isDefault: boolean; direction: string }[] }));
+
 vi.mock('../../../hooks/useAudioDevices', () => {
   const speakers = { id: 'out-speakers', name: 'Speakers', isDefault: true, direction: 'output' };
   const headset = { id: 'out-headset', name: 'Arctis Nova Pro', isDefault: false, direction: 'output' };
   const mic = { id: 'in-mic', name: 'Yeti Nano', isDefault: true, direction: 'input' };
   const line = { id: 'in-line', name: 'Line In', isDefault: false, direction: 'input' };
-  return { useAudioDevices: () => ({ outputs: [speakers, headset], inputs: [mic, line], activeOutput: speakers, activeInput: mic }) };
+  return { useAudioDevices: () => ({ outputs: [speakers, headset], inputs: mockInputs.list ?? [mic, line], activeOutput: speakers, activeInput: mic }) };
 });
 
 // No socket in tests: topic subscribers are collected so a test can play a push.
@@ -437,6 +440,7 @@ describe('LightingCoolingSection audio-reactive output', () => {
     lightingApi.fetchAudioOutput.mockReset().mockResolvedValue({ deviceId: '', deviceName: '', direction: 'output' });
     lightingApi.setAudioOutput.mockReset().mockResolvedValue({ error: false });
     topicListeners.clear();
+    mockInputs.list = null;
   });
 
   it('persists the picked output with its name', async () => {
@@ -494,6 +498,25 @@ describe('LightingCoolingSection audio-reactive output', () => {
     const options = within(screen.getByRole('listbox')).getAllByRole('option');
     expect(options[options.length - 1]).toHaveTextContent('lighting.audioOutput.disconnected');
     expect(options).toHaveLength(7);
+  });
+
+  it('flags an unplugged input pick even when no inputs are listed', async () => {
+    mockInputs.list = [];
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'in-gone', deviceName: 'Old Mic', direction: 'input' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.disconnected'));
+  });
+
+  it('round-trips a device id containing a colon', async () => {
+    mockInputs.list = [{ id: '{0.0.1}:mic:1', name: 'Colon Mic', isDefault: false, direction: 'input' }];
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Colon Mic'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: '{0.0.1}:mic:1', deviceName: 'Colon Mic', direction: 'input' });
   });
 
   it('treats a response without a direction as an output', async () => {

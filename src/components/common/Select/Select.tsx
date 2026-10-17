@@ -182,7 +182,7 @@ export function Select({
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
-  const selectedIndex = resolved.findIndex(o => o.value === value);
+  const selectedIndex = resolved.findIndex(o => !o.header && !o.divider && o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
   const showPlaceholder = selectedIndex < 0 && placeholder != null;

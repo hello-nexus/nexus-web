@@ -75,12 +75,13 @@ export function useLightingAudioOutput(enabled: boolean): LightingAudioOutput {
       ...list.map(d => ({ value: encode(direction, d.id), label: d.name })),
     ];
     // Capture falls back to the default while the pick is unplugged, so it must
-    // not read as live. An empty list is still loading, not everything unplugged.
+    // not read as live. An empty input list is a normal state, so loading is
+    // judged by the output list, which is never empty once the fetch has landed.
     if (pickDirection === direction && pick.deviceId && !list.some(d => d.id === pick.deviceId)) {
       const name = pick.deviceName || pick.deviceId;
       out.push({
         value: encode(direction, pick.deviceId),
-        label: list.length > 0 ? t('lighting.audioOutput.disconnected', { name }) : name,
+        label: outputs.length > 0 ? t('lighting.audioOutput.disconnected', { name }) : name,
       });
     }
     return out;
