@@ -320,11 +320,23 @@ export const FanCard = memo(function FanCard({
   // pin on the current mode is what puts it inside the dropdown ("[pin]
   // Silent"). The fan icon no longer carries it.
   const pinTip = t(pinTooltipKey(channel));
-  const modeOptions: SelectOption[] = pinned
-    ? baseModeOptions.map(o => o.value === modeValue ? { ...o, icon: (
-      <HoverTooltip body={pinTip} side="top"><span className={styles.fanPinTip}><Pin size={14} /></span></HoverTooltip>
-    ) } : o)
-    : baseModeOptions;
+  // The pin is a real button that unpins, like the lighting card's: pressing it
+  // writes the same override the menu's Unpin does.
+  const pinButton = pinned ? (
+    <HoverTooltip body={pinTip} side="top">
+      <button
+        type="button"
+        className={styles.fanPinBtn}
+        aria-label={pinTip}
+        data-no-dnd
+        onClick={e => { e.stopPropagation(); onTogglePin(channel.id, false); }}
+      >
+        <Pin size={12} className={styles.fanPinOn} aria-hidden="true" />
+        <PinOff size={12} className={styles.fanPinOff} aria-hidden="true" />
+      </button>
+    </HoverTooltip>
+  ) : null;
+  const modeOptions: SelectOption[] = baseModeOptions;
 
   const handleModeChange = (v: string) => {
     if (v === '__create__') { onCreateCurve(); return; }
@@ -420,13 +432,7 @@ export const FanCard = memo(function FanCard({
   // no dropdown (disconnected, fixed, read-only, Nexus Control off) would show
   // no pin at all - and the menu still offers Pin/Unpin there. Carry it
   // beside the state badge in those rows instead.
-  const pinGlyph = pinned ? (
-    <HoverTooltip body={pinTip} side="top">
-      <span className={`${styles.fanPinTip} ${styles.fanPinGlyph}`} role="img" aria-label={pinTip}>
-        <Pin size={12} aria-hidden="true" />
-      </span>
-    </HoverTooltip>
-  ) : null;
+  const pinGlyph = pinButton;
 
   return (
     <div
@@ -620,6 +626,7 @@ export const FanCard = memo(function FanCard({
               onChange={handleModeChange}
               ariaLabel={t('cooling.card.mode')}
               options={modeOptions}
+              leadingAction={pinButton}
             />
             </span>
           </div>

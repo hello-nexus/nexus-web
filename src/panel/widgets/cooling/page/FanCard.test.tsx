@@ -395,7 +395,7 @@ describe('FanCard with Nexus Control off', () => {
         onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
         onTogglePin={() => {}} onSetRole={() => {}} onToggleControlled={() => {}} />,
     );
-    expect(container.querySelector('[class*="fanPinGlyph"]')).toBeTruthy();
+    expect(container.querySelector('[class*="fanPinBtn"]')).toBeTruthy();
   });
 
   it('offers only the turn-on row, so the state is always reversible', () => {

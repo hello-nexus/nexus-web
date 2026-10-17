@@ -81,6 +81,10 @@ export interface SelectProps {
    *  menu is unchanged (icon + label rows). The selected label moves to the
    *  trigger's title since the text is no longer visible. */
   triggerIconOnly?: boolean;
+  /** A control drawn inside the box, left of the value, as a sibling of the
+   *  trigger so it can be a real button (never nested in the trigger's own
+   *  button). Pressing it does not open the menu. */
+  leadingAction?: ReactNode;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -164,7 +168,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, accentValue, placeholder, height,
-  triggerIconOnly,
+  triggerIconOnly, leadingAction,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
@@ -422,7 +426,7 @@ export function Select({
   };
 
   return (
-    <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, className)}>
+    <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, leadingAction != null && styles.hasLeading, className)}>
       <button
         ref={triggerRef}
         type="button"
@@ -442,6 +446,7 @@ export function Select({
           {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
         </span>
       </button>
+      {leadingAction != null && <span className={styles.leadingAction}>{leadingAction}</span>}
       {!triggerIconOnly && (
         <ChevronDown
           className={styles.chevron}

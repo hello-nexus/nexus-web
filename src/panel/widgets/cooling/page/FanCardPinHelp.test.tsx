@@ -9,18 +9,18 @@ const channel = (over: Partial<FanChannel> = {}): FanChannel => ({
 });
 
 // The i18n mock returns keys, so the copy is asserted by key. controlled:false drops the mode dropdown, so the standalone pin glyph renders.
-function renderCard(ch: FanChannel) {
+function renderCard(ch: FanChannel, onTogglePin = vi.fn()) {
   render(
     <FanCard
       channel={ch} state={undefined} curves={[]}
       onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={vi.fn()}
-      onTogglePin={() => {}} onSetRole={() => {}}
+      onTogglePin={onTogglePin} onSetRole={() => {}}
     />,
   );
 }
 
 const hoverPin = (name: string) => {
-  fireEvent.focus(screen.getByRole('img', { name }));
+  fireEvent.focus(screen.getByRole('button', { name }));
   return screen.getByRole('tooltip');
 };
 
@@ -47,9 +47,30 @@ describe('FanCard pin tooltip', () => {
 
   it('shows the tooltip on the pin inside the mode dropdown', () => {
     renderCard(channel({ isGpu: true }));
-    const pinIcon = document.querySelector('[class*="fanPinTip"]') as HTMLElement;
-    fireEvent.focus(pinIcon);
+    fireEvent.focus(screen.getByRole('button', { name: 'cooling.pin.tipGpu' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('cooling.pin.tipGpu');
+  });
+});
+
+describe('FanCard pin click to unpin', () => {
+  it('unpins from the standalone pin', () => {
+    const onTogglePin = vi.fn();
+    renderCard(channel({ controlled: false }), onTogglePin);
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.pin.tip' }));
+    expect(onTogglePin).toHaveBeenCalledWith('fan1', false);
+  });
+
+  it('unpins a default-pinned fan from the pin in the mode dropdown without opening it', () => {
+    const onTogglePin = vi.fn();
+    renderCard(channel({ isGpu: true }), onTogglePin);
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.pin.tipGpu' }));
+    expect(onTogglePin).toHaveBeenCalledWith('fan1', false);
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('has no pin button on an unpinned fan', () => {
+    renderCard(channel({ pinned: false, controlled: false }));
+    expect(screen.queryByRole('button', { name: /cooling\.pin\.tip/ })).toBeNull();
   });
 });
 

@@ -456,15 +456,35 @@
 }
 
 // Stands in for the dropdown's pin icon on the rows that have no dropdown.
-.fanPinTip {
+.fanPinBtn {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--text);
+  }
 }
 
-.fanPinGlyph {
-  color: var(--text-dim);
-  flex: 0 0 auto;
+// Hover (and keyboard focus) swaps the pin for the crossed pin: a press unpins.
+.fanPinOff,
+.fanPinBtn:hover .fanPinOn,
+.fanPinBtn:focus-visible .fanPinOn {
+  display: none;
 }
+
+.fanPinBtn:hover .fanPinOff,
+.fanPinBtn:focus-visible .fanPinOff {
+  display: inline;
+}
+
 
 // The role picker is an inline <Popover>, so it paints inside this card's
 // box in the list's stacking order - the next card down, being later in the

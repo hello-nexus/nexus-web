@@ -97,6 +97,20 @@
   border-color: var(--select-border-hover, var(--control-border-strong));
 }
 
+/* Leading control (leadingAction): a sibling drawn over the trigger's left
+   gutter, which the trigger widens to make room. */
+.leadingAction {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+}
+.hasLeading .trigger {
+  padding-left: 2rem;
+}
+
 /* Icon-only trigger (triggerIconOnly): the glyph is the whole control, so the
    chevron gutter and the icon-to-label gap go. */
 .iconOnly .trigger {
