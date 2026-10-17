@@ -16,6 +16,8 @@ export interface StudioParam {
   options?: readonly string[];
   /** A count the shader reads as an integer; audio modulation rounds it. */
   whole?: boolean;
+  /** An on/off param (0 or 1) the block card shows as a switch rather than a two-option select. */
+  toggle?: boolean;
 }
 
 export interface StudioColor {
@@ -474,7 +476,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
-      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
       { key: 'softness', min: 0.01, max: 0.5, step: 0.01, def: 0.06 },
     ],
     code: [
@@ -493,7 +495,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
-      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
       { key: 'softness', min: 0.01, max: 0.5, step: 0.01, def: 0.04 },
     ],
     code: [
@@ -511,7 +513,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
-      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
       { key: 'count', min: 3, max: 40, step: 1, def: 10, whole: true },
       { key: 'size', min: 0.2, max: 1, step: 0.01, def: 0.8 },
     ],
@@ -531,7 +533,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
-      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
       { key: 'wave', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'speed', min: 0, max: 3, step: 0.01, def: 1 },
       { key: 'softness', min: 0.01, max: 0.3, step: 0.01, def: 0.05 },
@@ -555,7 +557,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
-      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
       { key: 'softness', min: 0.01, max: 0.5, step: 0.01, def: 0.06 },
     ],
     code: [
@@ -574,7 +576,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
-      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
       { key: 'span', min: 90, max: 360, step: 1, def: 240 },
       { key: 'radius', min: 0.2, max: 1.2, step: 0.01, def: 0.65 },
       { key: 'width', min: 0.1, max: 1.2, step: 0.01, def: 0.4 },
@@ -659,10 +661,12 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
     params: [
       { key: 'low', min: 0, max: 0.95, step: 0.01, def: 0 },
       { key: 'shade', min: 0, max: 1, step: 0.01, def: 1 },
+      { key: 'reverse', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
     ],
     code: [
       // A fill's own position keeps its color through the soft edge; any other field is read as brightness from `low`.
       'float k = fieldPos >= 0.0 ? clamp(fieldPos, 0.0, 1.0) : clamp((v - $low) / (1.0 - $low), 0.0, 1.0);',
+      'if ($reverse > 0.5) k = 1.0 - k;',
       'float span = 1.0 - clamp(u_colorize + S_COLORIZE, 0.0, 1.0);',
       'col = hsv2rgb(vec3(hue + (0.5 - k) * span, 1.0, 1.0)) * mix(1.0, v, $shade);',
     ].join('\n'),

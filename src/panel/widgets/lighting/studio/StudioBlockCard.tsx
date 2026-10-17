@@ -12,6 +12,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { SensorSignalContext } from '../../../../hooks/SensorSignalContext';
 import { DEFAULT_SENSOR_BINDING, type SensorSignal } from '../../../../lib/sensorBinding';
 import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
+import { ParamToggle } from '../page/ParamToggle';
 import { blocksForStage, type StudioBlockDef, type StudioParam } from './studioBlocks';
 import {
   MOD_GATE, MOD_RATE, STUDIO_MOD_SOURCES, blockParams, isMusicSource, isSensorSource,
@@ -149,6 +150,7 @@ export function StudioBlockCard({
   const renderParam = (p: StudioParam) => {
     const label = t(`lighting.studio.param.${p.key}`);
     const value = block.params[p.key] ?? p.def;
+    if (p.toggle) return <ParamToggle key={p.key} label={label} value={value} onChange={v => setParam(p.key, v, true)} />;
     if (p.options) {
       return (
         <div key={p.key} className={styles.enumRow}>

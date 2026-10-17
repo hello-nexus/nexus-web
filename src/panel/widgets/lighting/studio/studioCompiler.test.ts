@@ -292,6 +292,15 @@ describe('fill position', () => {
   });
 });
 
+describe('reverse colors', () => {
+  it('flips the field before the wheel lookup, off by default', () => {
+    const frag = compileStudio({ ...recipeOf('fillbar', 'wheelcolor') }, { bake: true }).frag;
+    const spec = parseShaderParams(frag).find(s => s.name.endsWith('_reverse'))!;
+    expect(spec).toMatchObject({ min: 0, max: 1, step: 1, defaultValue: 0 });
+    expect(frag).toContain('> 0.5) k = 1.0 - k;');
+  });
+});
+
 describe('fill position reach', () => {
   const colorOf = (...types: string[]) => compileStudio(recipeOf(...types)).frag;
 

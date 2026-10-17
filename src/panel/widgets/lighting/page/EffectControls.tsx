@@ -9,6 +9,7 @@ import { cleanBinding, effectiveBinding, sensorBindingsEqual, type SensorBinding
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
 import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
+import { ParamToggle } from './ParamToggle';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -133,6 +134,14 @@ export const EffectControls = memo(function EffectControls({
             />
           </div>
         )}
+        {!isSimple && !ownsColors && loaded && def.params.filter(p => p.toggle && p.underWheel && specs[p.name]).map(p => (
+          <ParamToggle
+            key={p.name}
+            label={p.labelKey ? t(p.labelKey) : p.label}
+            value={state.params[p.name] ?? specs[p.name].defaultValue}
+            onChange={v => onChange({ params: { ...state.params, [p.name]: v } }, true)}
+          />
+        ))}
         {!ownsColors && speedSlider}
         {loaded && !isSimpleWhite && !ownsColors && satSpec && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')}
@@ -156,6 +165,15 @@ export const EffectControls = memo(function EffectControls({
           const spec = specs[p.name];
           if (!spec) return null;
           const label = p.labelKey ? t(p.labelKey) : p.label;
+          if (p.toggle) {
+            if (p.underWheel && !isSimple && !ownsColors) return null;
+            return (
+              <ParamToggle
+                key={p.name} label={label} value={state.params[p.name] ?? spec.defaultValue}
+                onChange={v => onChange({ params: { ...state.params, [p.name]: v } }, true)}
+              />
+            );
+          }
           if (p.options) {
             const currentVal = Math.round(clampToSpec(state.params[p.name] ?? spec.defaultValue, spec));
             return (

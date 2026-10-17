@@ -20,7 +20,7 @@ vi.mock('../../../../hooks/useShaderParams', () => ({
   useShaderParams: () => ({
     loaded: true,
     specs: Object.fromEntries([
-      spec('u_fill_angle', 0, 360), spec('u_fill_flip', 0, 1),
+      spec('u_fill_angle', 0, 360), spec('u_fill_flip', 0, 1), spec('u_col_reverse', 0, 1),
       spec('u_speed', -2, 2, 0.02), spec('u_saturation', 0, 4, 0.01), spec('u_contrast', 0, 4, 0.01),
     ].map(s => [s.name, s])),
     sensors: [{ name: 'u_fill_level_s', binding: shaderDefault }],
@@ -143,5 +143,28 @@ describe('EffectControls sensor row reset against the preset default', () => {
     expect(reset).toBeEnabled();
     fireEvent.click(reset);
     expect(onChange).toHaveBeenCalledWith({ sensors: undefined }, true);
+  });
+});
+
+describe('EffectControls on/off params', () => {
+  it('shows flip and reverse colors as switches, reverse right under the wheel', () => {
+    const onChange = vi.fn();
+    const state = baseState();
+    render(
+      <EffectControls
+        effect="sensorbar" state={state} bundle={{ selected: 0, slots: [state] }} onTemplateSelect={() => {}}
+        canReset={false} onChange={onChange} onCommit={() => {}} onReset={() => {}} noPresets
+      />,
+    );
+    const switches = screen.getAllByRole('switch');
+    expect(switches.map(s => s.getAttribute('aria-checked'))).toEqual(['false', 'false']);
+    expect(screen.queryByRole('button', { name: 'lighting.controls.param.flip' })).toBeNull();
+    // Reverse colors comes first in the list, ahead of the Speed and rotation controls.
+    expect(screen.getAllByText(/lighting\.controls\.param\.(reverseColors|flip)/).map(e => e.textContent))
+      .toEqual(['lighting.controls.param.reverseColors', 'lighting.controls.param.flip']);
+    fireEvent.click(switches[0]);
+    expect(onChange).toHaveBeenLastCalledWith({ params: { u_col_reverse: 1 } }, true);
+    fireEvent.click(switches[1]);
+    expect(onChange).toHaveBeenLastCalledWith({ params: { u_fill_flip: 1 } }, true);
   });
 });

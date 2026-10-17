@@ -1566,7 +1566,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "1888b31ba65f3c711649cd552e9ea701f233791a6438da36cd776d15389c1127"
+    "sha256": "87405c333ff6f50a2b89487182e9be32644f90f201d06e7c1cd79bb8d5896099"
   },
   "bare:wipe": {
     "recipe": {
@@ -4650,7 +4650,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0.35000000000000003,
-            "shade": 0.37
+            "shade": 0.37,
+            "reverse": 1
           }
         }
       ],
@@ -4659,7 +4660,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "104f634dd3ea4b34758f658c6c77e5867aa65f439b86d07277df57c26e181d39"
+    "sha256": "6046689d72781c95b17692e2584999ad440e59c9dac81e1a70ce16bec9df8ef5"
   },
   "block:wipe": {
     "recipe": {
@@ -6470,7 +6471,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0.55,
-            "shade": 1
+            "shade": 1,
+            "reverse": 0
           }
         }
       ],
@@ -6490,7 +6492,7 @@
       ],
       "colorize": 0.67
     },
-    "sha256": "358da353c944b362f2e939e28956780d5e050a361665c98282db67cd2885a34a"
+    "sha256": "f7a70076080e6c470ea3e522f732eee978e8341f84dbaf0939dc3f45b18c2da9"
   },
   "starter:sensorCenter": {
     "recipe": {
@@ -6525,7 +6527,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0.55,
-            "shade": 1
+            "shade": 1,
+            "reverse": 0
           }
         }
       ],
@@ -6545,7 +6548,7 @@
       ],
       "colorize": 0.38
     },
-    "sha256": "ae8076969148a7989df41a53d2c5de94d87d4700ee07d4641dbf0d233b0d5028"
+    "sha256": "a6c8369312ca0a27d7a58885d7ca89f947bfad8057af7cbee46ff1805fcad5d2"
   },
   "starter:sensorClock": {
     "recipe": {
@@ -6580,7 +6583,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0.55,
-            "shade": 1
+            "shade": 1,
+            "reverse": 0
           }
         }
       ],
@@ -6600,7 +6604,7 @@
       ],
       "colorize": 0.38
     },
-    "sha256": "eb66eaacb6148bbf6f0af0a7c5ac6f0e2f3b41cc937b9493d929cfecf154de65"
+    "sha256": "bc5c592cca15687d455014b4c24a452cb75ecc790e9fb57e272ba618f1c6de7c"
   },
   "starter:sensorHeat": {
     "recipe": {
@@ -6622,7 +6626,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0.95,
-            "shade": 0
+            "shade": 0,
+            "reverse": 0
           },
           "mods": {
             "low": {
@@ -6650,7 +6655,7 @@
       ],
       "colorize": 0.78
     },
-    "sha256": "c5610ddd5c10da8ac6ddc5a714cf782a43a4af78753d84262ddb2b516e165f32"
+    "sha256": "1398fe55fd47599a803163e1dbac5cd732d02ab2c79bb52365082368aba46e1c"
   },
   "starter:sensorLiquid": {
     "recipe": {
@@ -6687,7 +6692,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0.5,
-            "shade": 1
+            "shade": 1,
+            "reverse": 0
           }
         }
       ],
@@ -6711,7 +6717,7 @@
       ],
       "colorize": 0.84
     },
-    "sha256": "314dd15d9e243556ab5cf55d57184262a752a788c0aa9b6b28c6d2bc089384e6"
+    "sha256": "107e61bb3ea4561e88bfe5c5a90e1c0d15181cc8f7e881f4c06393a91e97e643"
   },
   "starter:sensorSegments": {
     "recipe": {
@@ -6747,7 +6753,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0.5,
-            "shade": 1
+            "shade": 1,
+            "reverse": 0
           }
         }
       ],
@@ -6771,7 +6778,7 @@
       ],
       "colorize": 0.84
     },
-    "sha256": "5cf514dc7916327a0b79529e0927748fe0ac36c7a32c74ef8b1dee351ab1872c"
+    "sha256": "006c07392dc6eed7bef794d1a44a54a0766529ec7307b34017f204870c20edfb"
   },
   "starter:sensorShift": {
     "recipe": {
@@ -6803,7 +6810,8 @@
           "type": "wheelcolor",
           "params": {
             "low": 0,
-            "shade": 0
+            "shade": 0,
+            "reverse": 0
           }
         }
       ],
@@ -6813,7 +6821,7 @@
       "contrast": 1,
       "colorize": 0.38
     },
-    "sha256": "12b66f086053469d6061056c7c4c18e6cae8fa1f67b19ab9f7072432417fa98e"
+    "sha256": "6f9f77dd6ea626cad3c41ffdd5e23f4536af3a058cdbb20cb3ba78d94c6439fb"
   },
   "starter:spectrumBars": {
     "recipe": {
