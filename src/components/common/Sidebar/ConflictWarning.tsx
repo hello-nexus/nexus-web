@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
-import { AlertTriangle, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
-import { Button } from '../Button/Button';
 import { ConflictOutcomePanel } from '../ConflictOutcomePanel/ConflictOutcomePanel';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
@@ -18,15 +17,6 @@ interface ConflictWarningProps {
   suppressed: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /**
-   * Persist the "don't show conflict warnings" preference. Driven by the
-   * in-modal checkbox, which mirrors `suppressed` and toggles both ways.
-   * The parent owns the preference (it lives in NexusSettings.Ui), so the
-   * badge stays purely presentational.
-   */
-  onSuppressedChange: (suppressed: boolean) => void;
-  /** Open Settings' Manage conflicting applications modal. */
-  onManageApps: () => void;
 }
 
 /**
@@ -38,7 +28,7 @@ interface ConflictWarningProps {
  * listed as terminated, and the "all clear" state shows only for a modal
  * opened with nothing detected.
  */
-export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange, onSuppressedChange, onManageApps }: ConflictWarningProps) {
+export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange }: ConflictWarningProps) {
   const { t } = useTranslation();
   const exclusions = useConflictAutoKillExclusions();
   // Nexus 2 is never whitelisted: the service ends it whatever the list says.
@@ -71,11 +61,8 @@ export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpe
         open={open}
         conflicts={conflicts}
         ready={ready}
-        suppressed={suppressed}
         whitelisted={whitelisted}
         onClose={() => onOpenChange(false)}
-        onSuppressedChange={onSuppressedChange}
-        onManageApps={() => { onOpenChange(false); onManageApps(); }}
       />
     </>
   );
@@ -85,15 +72,12 @@ interface ConflictWarningModalProps {
   open: boolean;
   conflicts: readonly DetectedConflict[];
   ready: boolean;
-  suppressed: boolean;
   whitelisted: ReadonlySet<string>;
   onClose: () => void;
-  onSuppressedChange: (suppressed: boolean) => void;
-  onManageApps: () => void;
 }
 
 export function ConflictWarningModal({
-  open, conflicts, ready, suppressed, whitelisted, onClose, onSuppressedChange, onManageApps,
+  open, conflicts, ready, whitelisted, onClose,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
 
@@ -119,21 +103,6 @@ export function ConflictWarningModal({
           heading={<p className={styles.intro}>{t('conflicts.modal.intro')}</p>}
           onDone={onClose}
         />
-
-        <div className={styles.actionRow}>
-          <Button tone="neutral" size="sm" icon={<SlidersHorizontal />} onClick={onManageApps}>
-            {t('conflicts.modal.manageApps')}
-          </Button>
-        </div>
-
-        <label className={styles.dismissRow}>
-          <input
-            type="checkbox"
-            checked={suppressed}
-            onChange={() => onSuppressedChange(!suppressed)}
-          />
-          <span>{t('conflicts.modal.dontShowAgain')}</span>
-        </label>
       </div>
     </DeviceModal>
   );
