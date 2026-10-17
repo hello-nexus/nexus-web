@@ -21,7 +21,6 @@ import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { getDeviceId, setLastSubmissionId } from '../../../api/nexusApi';
 import { deleteCloudBenchmark, submitCloudBenchmark } from '../../../api/cloud';
-import { fetchTelemetryConsent } from '../../../api/telemetry';
 import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
@@ -97,12 +96,11 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     [history],
   );
   const { specs } = useSystemSpecs(serviceOnline);
-  // null only while the first read is in flight; a failed read counts as off,
-  // so a run is always saved and never auto-uploads without confirmed consent.
-  const [telemetryEnabled, setTelemetryEnabled] = useState<boolean | null>(null);
   // What the Results tab shows on top: Latest after a run, else the session's pick, else Best.
   const [resultsView, setResultsView] = useState<ResultsView>(() => readResultsPick() ?? 'best');
   const [uploadingRunId, setUploadingRunId] = useState<string | null>(null);
+  // Runs whose publish prompt was dismissed this visit; nothing is uploaded for them.
+  const [dismissedRunIds, setDismissedRunIds] = useState<ReadonlySet<string>>(() => new Set());
   // useBenchmark can hand over the same run more than once (WS frame + poller).
   const decidedRunIdRef = useRef<string | null>(null);
   // Run whose closing reveal has played; until then a completed run keeps the modal open.
@@ -110,15 +108,6 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   const revealing = status === 'complete' && !!progress && progress.runId !== revealedRunId;
   const progressRunId = progress?.runId ?? null;
   const handleRevealed = useCallback(() => setRevealedRunId(progressRunId), [progressRunId]);
-
-  useEffect(() => {
-    if (!serviceOnline) return;
-    let cancelled = false;
-    fetchTelemetryConsent()
-      .then(res => { if (!cancelled) setTelemetryEnabled(res?.enabled === true); })
-      .catch(() => { if (!cancelled) setTelemetryEnabled(false); });
-    return () => { cancelled = true; };
-  }, [serviceOnline]);
 
   // The board is hosted; local runs and results are not, so only it drops out.
   const tabs = [
@@ -155,20 +144,20 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
 
   useEffect(() => {
     if (!result || result.state !== 'complete') return;
-    if (telemetryEnabled === null || decidedRunIdRef.current === result.runId) return;
+    if (decidedRunIdRef.current === result.runId) return;
     decidedRunIdRef.current = result.runId;
-    // Saved before any upload, so the run survives a failed or abandoned submit.
-    const id = addRun(result, null);
+    // Saved locally only; publishing is the user's explicit choice on the results view.
+    addRun(result, null);
     setResultsView('latest');
     onTabChange('results');
-    if (telemetryEnabled) void upload(id, result);
-  }, [result, telemetryEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Offered only while "Help improve Nexus" is off; failed reads count as off.
+  const canPublish = (run: BenchmarkRun | null): run is BenchmarkRun =>
+    !!run && !run.submission && uploadingRunId !== run.id && !dismissedRunIds.has(run.id);
   const uploadHandlerFor = (run: BenchmarkRun | null) =>
-    run && telemetryEnabled === false && !run.submission && uploadingRunId !== run.id
-      ? () => { void upload(run.id, run.result); }
-      : undefined;
+    canPublish(run) ? () => { void upload(run.id, run.result); } : undefined;
+  const dismissHandlerFor = (run: BenchmarkRun | null) =>
+    canPublish(run) ? () => setDismissedRunIds(prev => new Set(prev).add(run.id)) : undefined;
 
   const handleRerun = useCallback(async () => {
     decidedRunIdRef.current = null;
@@ -314,6 +303,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
             submission={shown.submission ?? null}
             submitting={uploadingRunId === shown.id}
             onUpload={uploadHandlerFor(shown)}
+            onDismissUpload={dismissHandlerFor(shown)}
             standingAction={submissionId
               ? (
                 <RemoveFromLeaderboard
