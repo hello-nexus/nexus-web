@@ -16,8 +16,10 @@ interface Props {
   result: BenchmarkResult;
   submission: { percentile: number; rank: number; total: number } | null;
   submitting: boolean;
-  /** Set only while "Help improve Nexus" is off and this result is not uploaded yet. */
+  /** Set while this result is unpublished; nothing is uploaded until it is called. */
   onUpload?: () => void;
+  /** Hides the publish prompt without uploading. */
+  onDismissUpload?: () => void;
   /** Controls docked top-right in the score header. */
   actions?: ReactNode;
   /** Shown under the leaderboard standing, e.g. removing the entry. */
@@ -70,7 +72,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
   );
 }
 
-export function BenchmarkResults({ result, submission, submitting, onUpload, actions, standingAction }: Props) {
+export function BenchmarkResults({ result, submission, submitting, onUpload, onDismissUpload, actions, standingAction }: Props) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const hw = result.hardware;
@@ -123,10 +125,17 @@ export function BenchmarkResults({ result, submission, submitting, onUpload, act
             {showStandingAction && standingAction}
             {showUpload && (
               <>
-                <span className={styles.percentilePending}>{t('benchmark.result.uploadPrompt', { setting: t('settings.telemetry.label') })}</span>
-                <Button tone="ghost" icon={<Trophy size={14} />} onClick={onUpload}>
-                  {t('benchmark.result.uploadCta')}
-                </Button>
+                <span className={styles.percentilePending}>{t('benchmark.result.publishPrompt')}</span>
+                <div className={styles.publishActions}>
+                  <Button tone="neutral" icon={<Trophy size={14} />} onClick={onUpload}>
+                    {t('benchmark.result.publishCta')}
+                  </Button>
+                  {onDismissUpload && (
+                    <Button tone="neutral" onClick={onDismissUpload}>
+                      {t('benchmark.result.publishDismiss')}
+                    </Button>
+                  )}
+                </div>
               </>
             )}
           </div>

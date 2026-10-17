@@ -288,14 +288,17 @@ function DeviceCard({
 }) {
   const { t } = useTranslation();
   // Connection state is the dimmed card and category is the icon, so a
-  // simulated, beta-locked or off shared-bus device is what's left for a
-  // second line, in that order of precedence.
+  // simulated, beta-locked, off shared-bus or on Memory device is what's
+  // left for a second line, in that order of precedence.
   const busControlOff = device.bus != null && device.bus !== 'usb'
     && device.supportsNexusControl && !device.nexusControlEnabled;
+  const memoryControlOn = device.curatedId === 'smbus-dram'
+    && device.supportsNexusControl && device.nexusControlEnabled;
   const meta = isSimulatedDevice(device)
     ? t('devices.simulated')
     : device.requiresBeta ? t('devices.requiresBeta.short')
-      : busControlOff ? t('devices.busControlOff') : '';
+      : busControlOff ? t('devices.busControlOff')
+        : memoryControlOn ? t('devices.smbusDram.controlOn') : '';
   const body = (
     <>
       <span className={styles.rowIconTile}>

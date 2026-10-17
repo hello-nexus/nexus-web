@@ -55,7 +55,7 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   };
 
   return (
-    <DeviceModal open={open} onClose={onClose} title={t('focus.title')} medium>
+    <DeviceModal open={open} onClose={onClose} title={t('focus.title')} large>
       {modes.map((mode, index) => (
         <CollapsibleSection
           key={mode.id}
