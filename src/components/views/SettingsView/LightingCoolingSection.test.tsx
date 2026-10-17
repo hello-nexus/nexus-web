@@ -76,10 +76,15 @@ vi.mock('../../../api/lighting', () => ({
   setAudioOutput: lightingApi.setAudioOutput,
 }));
 
+// Mutable so a test can swap the input list the mocked hook returns.
+const mockInputs = vi.hoisted(() => ({ list: null as null | { id: string; name: string; isDefault: boolean; direction: string }[] }));
+
 vi.mock('../../../hooks/useAudioDevices', () => {
   const speakers = { id: 'out-speakers', name: 'Speakers', isDefault: true, direction: 'output' };
   const headset = { id: 'out-headset', name: 'Arctis Nova Pro', isDefault: false, direction: 'output' };
-  return { useAudioDevices: () => ({ outputs: [speakers, headset], activeOutput: speakers }) };
+  const mic = { id: 'in-mic', name: 'Yeti Nano', isDefault: true, direction: 'input' };
+  const line = { id: 'in-line', name: 'Line In', isDefault: false, direction: 'input' };
+  return { useAudioDevices: () => ({ outputs: [speakers, headset], inputs: mockInputs.list ?? [mic, line], activeOutput: speakers, activeInput: mic }) };
 });
 
 // No socket in tests: topic subscribers are collected so a test can play a push.
@@ -432,9 +437,10 @@ describe('LightingCoolingSection audio-reactive output', () => {
   const trigger = () => screen.getByRole('button', { name: 'lighting.audioOutput.label' });
 
   beforeEach(() => {
-    lightingApi.fetchAudioOutput.mockReset().mockResolvedValue({ deviceId: '', deviceName: '' });
+    lightingApi.fetchAudioOutput.mockReset().mockResolvedValue({ deviceId: '', deviceName: '', direction: 'output' });
     lightingApi.setAudioOutput.mockReset().mockResolvedValue({ error: false });
     topicListeners.clear();
+    mockInputs.list = null;
   });
 
   it('persists the picked output with its name', async () => {
@@ -444,8 +450,83 @@ describe('LightingCoolingSection audio-reactive output', () => {
     fireEvent.click(trigger());
     fireEvent.click(within(screen.getByRole('listbox')).getByText('Arctis Nova Pro'));
 
-    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro' });
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro', direction: 'output' });
     expect(trigger()).toHaveTextContent('Arctis Nova Pro');
+  });
+
+  it('lists inputs under an Input header after the outputs', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    const listbox = screen.getByRole('listbox');
+    expect(listbox.textContent).toMatch(/panel\.widget\.mixer\.output.*Arctis Nova Pro.*panel\.widget\.mixer\.input.*Yeti Nano.*Line In/);
+    expect(within(listbox).getAllByRole('option').map(o => o.textContent)).toEqual([
+      'lighting.audioOutput.systemDefaultNamed', 'Speakers', 'Arctis Nova Pro',
+      'lighting.audioOutput.defaultInputNamed', 'Yeti Nano', 'Line In',
+    ]);
+  });
+
+  it('persists a picked input with its name and direction', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Line In'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: 'in-line', deviceName: 'Line In', direction: 'input' });
+    expect(trigger()).toHaveTextContent('Line In');
+  });
+
+  it('posts an empty id with the input direction for the default microphone', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('lighting.audioOutput.defaultInputNamed'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: '', deviceName: '', direction: 'input' });
+    expect(trigger()).toHaveTextContent('lighting.audioOutput.defaultInputNamed');
+  });
+
+  it('shows an unplugged input pick in the Input group', async () => {
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'in-gone', deviceName: 'Old Mic', direction: 'input' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.disconnected'));
+    fireEvent.click(trigger());
+    const options = within(screen.getByRole('listbox')).getAllByRole('option');
+    expect(options[options.length - 1]).toHaveTextContent('lighting.audioOutput.disconnected');
+    expect(options).toHaveLength(7);
+  });
+
+  it('flags an unplugged input pick even when no inputs are listed', async () => {
+    mockInputs.list = [];
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'in-gone', deviceName: 'Old Mic', direction: 'input' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.disconnected'));
+  });
+
+  it('round-trips a device id containing a colon', async () => {
+    mockInputs.list = [{ id: '{0.0.1}:mic:1', name: 'Colon Mic', isDefault: false, direction: 'input' }];
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Colon Mic'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: '{0.0.1}:mic:1', deviceName: 'Colon Mic', direction: 'input' });
+  });
+
+  it('treats a response without a direction as an output', async () => {
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('Arctis Nova Pro'));
+    fireEvent.click(trigger());
+    const selected = within(screen.getByRole('listbox')).getAllByRole('option').filter(o => o.getAttribute('aria-selected') === 'true');
+    expect(selected.map(o => o.textContent)).toEqual(['Arctis Nova Pro']);
   });
 
   it('reverts the pick when the service does not take the write', async () => {

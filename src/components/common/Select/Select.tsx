@@ -25,8 +25,8 @@ import styles from './Select.module.scss';
  * same everywhere.
  *
  * Accepts a flat `options` array or `<option>` children (value + text, with a
- * per-option `className`/`disabled` carried through). optgroups are unsupported,
- * unused in this codebase.
+ * per-option `className`/`disabled` carried through). optgroups are unsupported;
+ * group a flat list with `header` rows instead.
  *
  * A long dropdown grows an in-menu search field: on a device that has a fine
  * pointer and hover (mouse/keyboard desktop; not touch phones or the touch
@@ -55,6 +55,10 @@ export interface SelectOption {
   // and below it. Non-navigable and removed from the a11y tree; value/label are
   // ignored.
   divider?: boolean;
+  // Renders `label` as a section heading for the options that follow, up to the
+  // next header. Not selectable or focusable and skipped by keyboard nav; while
+  // searching it shows only if one of its options matches. value is ignored.
+  header?: boolean;
 }
 
 export interface SelectProps {
@@ -129,17 +133,27 @@ function optionsFromChildren(children: ReactNode): SelectOption[] {
 }
 
 // Case-insensitive substring filter. An empty query keeps the list intact
-// (dividers included); a non-empty query drops dividers, which only group the
-// full list and read as noise once it is narrowed.
+// (dividers and headers included); a non-empty query drops dividers, which only
+// group the full list and read as noise once it is narrowed, and keeps a header
+// only ahead of a matching option of its group.
 function filterOptions(opts: readonly SelectOption[], raw: string): readonly SelectOption[] {
   const needle = raw.trim().toLowerCase();
   if (!needle) return opts;
-  return opts.filter(o => !o.divider && o.label.toLowerCase().includes(needle));
+  const out: SelectOption[] = [];
+  let pending: SelectOption | null = null;
+  for (const o of opts) {
+    if (o.divider) continue;
+    if (o.header) { pending = o; continue; }
+    if (!o.label.toLowerCase().includes(needle)) continue;
+    if (pending) { out.push(pending); pending = null; }
+    out.push(o);
+  }
+  return out;
 }
 
-// Dividers and disabled options are never focusable or selectable.
+// Dividers, headers and disabled options are never focusable or selectable.
 function selectable(o: SelectOption): boolean {
-  return !o.disabled && !o.divider;
+  return !o.disabled && !o.divider && !o.header;
 }
 function firstEnabled(opts: readonly SelectOption[]): number {
   return opts.findIndex(selectable);
@@ -168,7 +182,7 @@ export function Select({
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
-  const selectedIndex = resolved.findIndex(o => o.value === value);
+  const selectedIndex = resolved.findIndex(o => !o.header && !o.divider && o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
   const showPlaceholder = selectedIndex < 0 && placeholder != null;
@@ -178,7 +192,7 @@ export function Select({
   // per mount; it does not change mid-session.
   const [pointerSearch] = useState(supportsPointerSearch);
   const searchEnabled =
-    pointerSearch && resolved.filter(o => !o.divider).length >= SEARCH_MIN_OPTIONS;
+    pointerSearch && resolved.filter(o => !o.divider && !o.header).length >= SEARCH_MIN_OPTIONS;
 
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -513,7 +527,9 @@ export function Select({
               // Not an option row - kept out of the listbox a11y semantics.
               <li className={styles.noResults} role="presentation">{t('select.noResults')}</li>
             ) : (
-              visible.map((opt, i) => opt.divider ? (
+              visible.map((opt, i) => opt.header ? (
+                <li key={`${opt.label}-${i}`} role="presentation" className={styles.header}>{opt.label}</li>
+              ) : opt.divider ? (
                 // Structural rule, removed from the a11y tree so it isn't
                 // announced as an empty option.
                 <li key={`${opt.value}-${i}`} className={styles.divider} aria-hidden="true" />

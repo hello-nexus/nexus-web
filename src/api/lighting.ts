@@ -401,9 +401,11 @@ export const fetchMusicReactive = () =>
 export const setMusicReactive = (enabled: boolean) =>
   postService('/lighting/music-reactive', { enabled });
 
-/** Output the Windows capture listens to; an empty id follows the system default. */
+/** Device the Windows capture listens to; an empty id follows the system default of its direction. */
 export interface AudioOutputPick {
   deviceId: string;
+  /** Absent or empty from an older service means output. */
+  direction?: 'output' | 'input';
   /** Captured with the pick, shown while the device is unplugged. */
   deviceName: string;
 }
