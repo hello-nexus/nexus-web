@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Select } from './Select';
 
@@ -32,6 +32,14 @@ describe('Select', () => {
     expect(trigger).toHaveAttribute('title', 'Italiano');
     open('Language');
     expect(screen.getByRole('option', { name: 'Italiano' })).toBeInTheDocument();
+  });
+
+  it('renders an option description in the menu row only', () => {
+    const opts = [{ value: 'a', label: 'Apple' }, { value: 'b', label: 'Banana', description: 'Ripe' }];
+    render(<Select value="b" onChange={vi.fn()} options={opts} ariaLabel="fruit" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).not.toHaveTextContent('Ripe');
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Banana');
+    expect(within(open()).getByText('Ripe')).toBeInTheDocument();
   });
 
   it('draws a fontFamily option in its face in the menu row only', () => {

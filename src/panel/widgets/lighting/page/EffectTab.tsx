@@ -11,7 +11,7 @@ export type { PostProcessState };
  * Right-pane Effect tab content. Routes to the right controls per mode:
  * animate and static reuse EffectControls (static drops the speed slider and
  * adds a hex colour entry for patterns); media + screen render
- * PostProcessControls; off and game sync show the empty-state hint.
+ * PostProcessControls; off shows the empty-state hint.
  */
 export function EffectTab({
   mode,

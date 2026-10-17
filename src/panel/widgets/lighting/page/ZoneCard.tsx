@@ -76,12 +76,15 @@ export interface BulkSelection {
   /** Takes the selection apart; present when it is exactly one stack. */
   unstack?: () => void;
   /** Members a Pin row can pin: following the global mode. Zero where
-   *  nothing can be pinned (Game Sync, Off). */
+   *  nothing can be pinned (Off). */
   pinCount?: number;
   /** Members currently pinned, which an Unpin row releases. */
   unpinCount?: number;
   setPinned?: (pinned: boolean) => void;
 }
+
+/** Hint id of the one-time coachmark on the first pin; the id is also the `data-coachmark` value. */
+export const LIGHTING_PIN_HINT_ID = 'lighting-pin';
 
 /**
  * The card's pin. A card either follows the global mode or is pinned to a
@@ -95,9 +98,11 @@ export interface DevicePin {
   targetName?: string;
   /** What the card is pinned to; the button wears that mode's tab icon. */
   kind?: PinKind;
-  /** Why this card cannot be pinned right now (Game Sync, Off). */
+  /** Why this card cannot be pinned right now (Off). */
   disabledReason?: string;
   setPinned: (pinned: boolean) => void;
+  /** Marks this card's pin button as the target of the first-pin coachmark. */
+  hint?: boolean;
 }
 
 /** Where a card sits under a {@link ZoneCardStack} header: every member seams
@@ -737,6 +742,7 @@ export function ZoneCard({
               aria-label={t('lighting.pin.pinnedTo', { name: pin.targetName ?? '' })}
               aria-describedby={unpinHintId}
               data-no-dnd
+              data-coachmark={pin.hint ? LIGHTING_PIN_HINT_ID : undefined}
               onClick={e => {
                 e.stopPropagation();
                 pin.setPinned(false);

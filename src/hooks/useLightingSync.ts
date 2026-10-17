@@ -5,7 +5,7 @@ import { isStaticEffect } from '../types/lighting';
 import { subscribeControlSync } from '../lib/controlSync';
 import { useTopicCallback } from './useMultiplexSocket';
 
-export type LightingMode = 'animate' | 'static' | 'screen' | 'gif' | 'gamesync' | 'none';
+export type LightingMode = 'animate' | 'static' | 'screen' | 'gif' | 'none';
 
 /**
  * Fetches the current lighting sync state on mount and returns it.
@@ -21,6 +21,7 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
   const [mode, setMode] = useState<LightingMode>('none');
   const [rawSync, setRawSync] = useState('none');
   const [paused, setPaused] = useState(false);
+  const [gameSyncRemovedNotice, setGameSyncRemovedNotice] = useState(false);
   // False until the first real sync state arrives. Callers gate the active
   // tab indicator on this so the mode tabs stay unhighlighted during load
   // instead of flashing 'none' before /lighting/current returns.
@@ -44,7 +45,10 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
       if (data?.sync) {
         applySync(data.sync);
       }
-      if (data) setPaused(!!data.paused);
+      if (data) {
+        setPaused(!!data.paused);
+        setGameSyncRemovedNotice(data.gameSyncRemovedNotice === true);
+      }
     });
 
     refresh();
@@ -73,11 +77,14 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
         setRawSync(data.sync);
         setSynced(true);
       }
-      if (data) setPaused(!!data.paused);
+      if (data) {
+        setPaused(!!data.paused);
+        setGameSyncRemovedNotice(data.gameSyncRemovedNotice === true);
+      }
     });
   });
 
-  return { mode, setMode, rawSync, setRawSync, synced, paused };
+  return { mode, setMode, rawSync, setRawSync, synced, paused, gameSyncRemovedNotice };
 }
 
 export function normalizeSync(sync: string): LightingMode {
@@ -89,6 +96,5 @@ export function normalizeSync(sync: string): LightingMode {
   if (sync === 'static' || isStaticEffect(sync)) return 'static';
   if (sync === 'screen' || sync.includes('mirror')) return 'screen';
   if (sync === 'gif' || sync.includes('gif') || sync.includes('media')) return 'gif';
-  if (sync === 'gamesync') return 'gamesync';
   return 'animate';
 }

@@ -78,12 +78,14 @@ export interface OnboardingHint {
  * State of one one-time onboarding hint, kept on the service (GET /onboarding
  * dismissedHints, POST /onboarding/hints/dismiss). The standard way to gate a
  * Coachmark: render it only while `dismissed === false`, and call `dismiss`
- * when the user acts on the hint or closes it.
+ * when the user acts on the hint or closes it. While `enabled` is false it
+ * asks the service nothing and `dismissed` stays null.
  */
-export function useOnboardingHint(hintId: string): OnboardingHint {
+export function useOnboardingHint(hintId: string, enabled = true): OnboardingHint {
   const [dismissed, setDismissed] = useState<boolean | null>(() => (closedThisSession.has(hintId) ? true : null));
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     void fetchOnboardingStatus().catch(() => null).then(r => {
       if (!r) return;
@@ -100,7 +102,7 @@ export function useOnboardingHint(hintId: string): OnboardingHint {
       setDismissed(unsupported || closedThisSession.has(hintId) || confirmed(hintId, r) || readPending().includes(hintId) || readRefused().includes(hintId));
     });
     return () => { cancelled = true; };
-  }, [hintId]);
+  }, [hintId, enabled]);
 
   const dismiss = useCallback(() => {
     closedThisSession.add(hintId);

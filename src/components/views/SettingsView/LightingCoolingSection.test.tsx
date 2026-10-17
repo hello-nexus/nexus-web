@@ -5,7 +5,7 @@ import type { TempUnit } from '../../../lib/units';
 
 // Mutable so a test can flip the unit and re-render, mimicking the C/F chip on
 // the same settings page writing through useUiSettings.
-const prefs = vi.hoisted(() => ({ monitoringTempUnit: 'c' as TempUnit, lighting: true, cooling: true, gpus: [] as { id: string; name: string; integrated: boolean }[] }));
+const prefs = vi.hoisted(() => ({ monitoringTempUnit: 'c' as TempUnit, lighting: true, cooling: true, cpuModel: 'AMD Ryzen 7 9800X3D', gpus: [] as { id: string; name: string; integrated: boolean }[] }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
@@ -35,10 +35,13 @@ vi.mock('../../../hooks/useSensors', () => ({
     cpu: [tempSensor('cpu/temp/pkg', 'CPU Package', 45), tempSensor('cpu/temp/core0', 'CPU Core 0', 50)],
     gpu: [tempSensor('gpu/0/temp', 'GPU Core', 60)],
     gpuComponents: prefs.gpus,
+    cpuModel: prefs.cpuModel,
   }),
 }));
 
 const lightingApi = vi.hoisted(() => ({
+  fetchRenderGpu: vi.fn().mockResolvedValue(null),
+  setRenderGpu: vi.fn().mockResolvedValue({ error: false }),
   // Resolved by default: the sensor-picker tests below mount the same component
   // and would otherwise trip over an undefined return inside its effect.
   fetchSleepBlackout: vi.fn().mockResolvedValue({ enabled: true }),
@@ -58,8 +61,8 @@ const lightingApi = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../api/lighting', () => ({
-  fetchRenderGpu: vi.fn().mockResolvedValue(null),
-  setRenderGpu: vi.fn().mockResolvedValue(null),
+  fetchRenderGpu: lightingApi.fetchRenderGpu,
+  setRenderGpu: lightingApi.setRenderGpu,
   restartService: vi.fn().mockResolvedValue(null),
   fetchSleepBlackout: lightingApi.fetchSleepBlackout,
   setSleepBlackout: lightingApi.setSleepBlackout,
@@ -94,7 +97,7 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 describe('LightingCoolingSection section split', () => {
-  afterEach(() => { prefs.lighting = true; prefs.cooling = true; prefs.gpus = []; });
+  afterEach(() => { prefs.lighting = true; prefs.cooling = true; prefs.gpus = []; prefs.cpuModel = 'AMD Ryzen 7 9800X3D'; });
 
   it('groups sleep blackout under Lighting and the sensor pickers under Cooling', () => {
     render(<LightingCoolingSection serviceOnline platform="windows" />);
@@ -133,7 +136,7 @@ describe('LightingCoolingSection section split', () => {
     expect(screen.queryByRole('switch', { name: 'lighting.schedule.enable.label' })).toBeNull();
   });
 
-  it('closes the render GPU restart confirm when Lighting turns off while it is open', async () => {
+  it('closes the rendering device restart confirm when Lighting turns off while it is open', async () => {
     prefs.gpus = [{ id: 'a', name: 'Integrated GPU', integrated: true }, { id: 'b', name: 'Discrete GPU', integrated: false }];
     const view = render(<LightingCoolingSection serviceOnline platform="windows" />);
     fireEvent.click(screen.getByRole('button', { name: 'lighting.renderGpu.label' }));
@@ -144,6 +147,44 @@ describe('LightingCoolingSection section split', () => {
     view.rerender(<LightingCoolingSection serviceOnline platform="windows" />);
 
     expect(screen.queryByText('lighting.renderGpu.confirmTitle')).toBeNull();
+  });
+
+  it('offers CPU rendering with a caveat line only when the service reports it available', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Only GPU', integrated: false }];
+    lightingApi.fetchRenderGpu.mockResolvedValueOnce({ value: 'auto', softwareRenderingAvailable: true });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'lighting.renderGpu.label' }));
+    const list = screen.getByRole('listbox');
+    expect(within(list).getByText('lighting.renderGpu.softwareNamed')).toBeInTheDocument();
+    expect(within(list).getByText('lighting.renderGpu.softwareDescription')).toBeInTheDocument();
+  });
+
+  it('reverts the pick and skips the restart confirm when the service refuses', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Integrated GPU', integrated: true }, { id: 'b', name: 'Discrete GPU', integrated: false }];
+    lightingApi.setRenderGpu.mockResolvedValueOnce(null);
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.renderGpu.label' }));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Discrete GPU'));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByText('lighting.renderGpu.confirmTitle')).toBeNull();
+    expect(screen.getByRole('button', { name: 'lighting.renderGpu.label' })).not.toHaveTextContent('Discrete GPU');
+  });
+
+  it('falls back to the generic label while the CPU name is a placeholder', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Only GPU', integrated: false }];
+    prefs.cpuModel = 'Unknown';
+    lightingApi.fetchRenderGpu.mockResolvedValueOnce({ value: 'auto', softwareRenderingAvailable: true });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'lighting.renderGpu.label' }));
+    expect(within(screen.getByRole('listbox')).getByText('lighting.renderGpu.softwareFallback')).toBeInTheDocument();
+  });
+
+  it('hides the picker with one GPU and no software option', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Only GPU', integrated: false }];
+    lightingApi.fetchRenderGpu.mockResolvedValueOnce({ value: 'auto' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole('button', { name: 'lighting.renderGpu.label' })).toBeNull();
   });
 
   it('keeps the Lighting section for the schedule row before the platform resolves', () => {

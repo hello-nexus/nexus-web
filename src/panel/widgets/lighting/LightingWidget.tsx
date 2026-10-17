@@ -13,7 +13,6 @@ import {
   fetchStaticSettings,
   startAnimate,
   startStatic,
-  startGameSync,
   startScreenMirror,
   stopLighting,
 } from '../../../api/lighting';
@@ -24,7 +23,7 @@ import {
   playCurrentOrFirstMedia,
   type MediaItem,
 } from '../../../api/mediaLibrary';
-import { fetchServiceBlob, pingService } from '../../../api/service';
+import { fetchServiceBlob } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
 import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
@@ -55,7 +54,7 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewRainbowUri } from '../common/previewAssets';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
-import type { GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
+import { type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
@@ -99,22 +98,6 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const [reactive, setReactive] = useState(false);
   const mediaThumbsRef = useRef<Record<string, string>>({});
   const compact = widget.size === '2x2';
-
-  // Game Sync only exists on Windows services; the mode button stays hidden
-  // until the ping resolves (empty platform), matching LightingPage.
-  const [platform, setPlatform] = useState('');
-  useEffect(() => {
-    if (preview || !flags.lighting) return;
-    let cancelled = false;
-    pingService().then(p => {
-      if (!cancelled && p?.platform) setPlatform(p.platform);
-    });
-    return () => { cancelled = true; };
-  }, [preview, flags.lighting]);
-  const modeButtons = useMemo(
-    () => MODES.filter(m => m.key !== 'gamesync' || platform === 'windows'),
-    [platform],
-  );
 
   // Immersive only: tapping the live shader preview expands it to a full-bleed
   // shader view; tapping that closes it. Auto-closes whenever the mode leaves
@@ -394,12 +377,6 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     publishLighting('none', 'none');
   }, [publishLighting]);
 
-  const onGameSyncButton = useCallback(async () => {
-    setMode('gamesync');
-    await startGameSync();
-    publishLighting('gamesync', 'gamesync');
-  }, [publishLighting]);
-
   // Mode-button dispatch (widget row + immersive grid) - covers every mode.
   const handleMode = useCallback((k: LightingMode) => {
     if (k === 'none') onOffButton();
@@ -407,20 +384,19 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     else if (k === 'static') onStaticButton();
     else if (k === 'gif') onMediaButton();
     else if (k === 'screen') onMirrorButton();
-    else if (k === 'gamesync') onGameSyncButton();
-  }, [onOffButton, onAnimateButton, onStaticButton, onMediaButton, onMirrorButton, onGameSyncButton]);
+  }, [onOffButton, onAnimateButton, onStaticButton, onMediaButton, onMirrorButton]);
 
   // The arrows step through the mode list, the way the cooling widget's step
   // through its presets. What plays inside a mode - the effect, the media item,
   // the mirror filter - is chosen on the lighting page, not here.
   const cycleMode = useCallback((delta: number) => {
-    const keys = modeButtons.map(m => m.key);
+    const keys = MODES.map(m => m.key);
     const idx = keys.indexOf(mode);
     const nextIdx = idx < 0
       ? (delta > 0 ? 0 : keys.length - 1)
       : (idx + delta + keys.length) % keys.length;
     handleMode(keys[nextIdx]);
-  }, [handleMode, mode, modeButtons]);
+  }, [handleMode, mode]);
 
   const view = useMemo<SingleView>(() => {
     const prev = () => cycleMode(-1);
@@ -466,15 +442,6 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         onNext: next,
       };
     }
-    if (mode === 'gamesync') {
-      return {
-        kind: 'icon',
-        icon: LIGHTING_MODE_ICONS.gamesync,
-        label: t('lighting.mode.gamesync'),
-        onPrev: prev,
-        onNext: next,
-      };
-    }
     if (mode === 'gif') {
       const item = mediaItems.find(m => m.id === activeMediaId) ?? mediaItems[0];
       if (!item) {
@@ -493,7 +460,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
 
   // The flash stands in for a thumbnail that has not painted yet, so the tile
-  // only flashes where a thumbnail renders. Off, Static, Mirror, Game Sync and
+  // only flashes where a thumbnail renders. Off, Static, Mirror and
   // an empty media library show an icon, so they stay still here.
   const thumbFlash = view.kind === 'thumb' ? flash : null;
 
@@ -532,7 +499,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-immersive="true">
         <div className={styles.immersiveModeGrid}>
-          {modeButtons.map(m => {
+          {MODES.map(m => {
             const Icon = LIGHTING_MODE_ICONS[m.key];
             return (
               <IconLabelButton
@@ -617,7 +584,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       {/* The mode buttons below pick the mode, so no arrows here. */}
       <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed />
       <div className={styles.modeGrid}>
-        {modeButtons.map(m => {
+        {MODES.map(m => {
           const Icon = LIGHTING_MODE_ICONS[m.key];
           return (
             <IconLabelButton

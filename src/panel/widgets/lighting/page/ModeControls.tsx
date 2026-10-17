@@ -53,7 +53,6 @@ export const ModeControls = memo(function ModeControls({ mode, screenPP, onScree
     case 'screen': return <ScreenControls screenPP={screenPP} onScreenPPChange={onScreenPPChange} keepMode={keepMode} onSelectionPick={onSelectionPick} onBlockedPick={onBlockedPick} />;
     case 'gif': return <MediaControls keepMode={keepMode} onSelectionPick={onSelectionPick} onBlockedPick={onBlockedPick} />;
     case 'none': return <OffControls />;
-    case 'gamesync': return null;
   }
 });
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
-  SlidersHorizontal, UserRound, FlaskConical, Gamepad2, FolderOpen, Info, MessageCircle, RefreshCw,
+  SlidersHorizontal, UserRound, FlaskConical, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
   ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
 } from 'lucide-react';
@@ -14,9 +14,9 @@ import { hostSupportsGlass } from '../app/windowActions';
 import { applyProfile } from '../api/cooling';
 import { setPanelRemoteControlEnabled, setPanelRelay, setPanelPairBroadcast } from '../api/panel';
 import {
-  startAnimate, stopLighting, startScreenMirror, startGameSync,
+  startAnimate, stopLighting, startScreenMirror,
   setMusicReactive, setGlobalBrightness, setLightingDevicePower, identifyLightingDevice,
-  rescanLightingDevices, reselectScreen, triggerGameSyncScan,
+  rescanLightingDevices, reselectScreen,
 } from '../api/lighting';
 import { setBrandEnabled, setSmartLightEnabled } from '../api/smartLights';
 import { setTrackingEnabled } from '../hooks/useScreenTimeBrowse';
@@ -165,6 +165,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'systemd', 'login', 'autostart', 'auto start', 'launch', 'start with windows'], platforms: ['windows', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.startupDelay.label',  anchor: 'set-startup-delay', keywords: ['startup', 'delay', 'boot', 'autostart', 'auto start', 'launch delay', 'wait'], platforms: ['windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.fastStartup.label', anchor: 'set-fast-startup', keywords: ['fast startup', 'hybrid', 'shutdown', 'hibernate', 'boot', 'usb', 'reset'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.rememberLastPage.label', anchor: 'set-remember-page', keywords: ['remember', 'last page', 'restore', 'reopen', 'resume', 'startup', 'tray'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        anchor: 'set-alerts',     keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.conflictApps.manage.label', anchor: 'set-conflict-apps', keywords: ['conflict', 'conflicting', 'apps', 'applications', 'shut down', 'shutdown', 'close', 'startup'] },
@@ -253,7 +254,6 @@ const MODE_POLICY: Record<LightingMode, { icon: ReactNode; keywords: string[]; a
   gif:      { icon: <Film size={18} />,      keywords: ['media', 'gif', 'video', 'image'] },
   static:   { icon: <Palette size={18} />,   keywords: ['static', 'solid', 'color', 'colour', 'fill', 'still', 'frozen'] },
   animate:  { icon: <Sparkles size={18} />,  keywords: ['animation', 'animate', 'effects'] },
-  gamesync: { icon: <Gamepad2 size={18} />,  keywords: ['game', 'sync', 'chroma', 'razer', 'rgb'],   apply: () => { void startGameSync().catch(() => {}); } },
 };
 
 // Cooling presets that need the page rather than a blind apply (custom = your
@@ -735,17 +735,6 @@ const smartLightsSource: SearchSource = (ctx) => {
   return out;
 };
 
-// Game Sync's installed-games rescan; the mode itself is in lightingModes.
-const gameSyncScan: SearchSource = (ctx) => {
-  if (!ctx.online || ctx.platform !== 'windows') return [];
-  return [act('gamesync:scan', {
-    title: `${ctx.t('lighting.mode.gamesync')} · ${ctx.t('lighting.gameSync.games.rescan')}`,
-    icon: <Gamepad2 size={18} />,
-    keywords: ['game', 'sync', 'scan', 'rescan', 'games', 'detect', 'steam'],
-    run: () => { void triggerGameSyncScan().catch(() => {}); },
-  })];
-};
-
 // OBS + Discord live controls, present only while the integration reports a
 // state to flip (OBS connected; Discord in a voice channel).
 const integrations: SearchSource = (ctx) => {
@@ -907,7 +896,7 @@ export const SOURCES: SearchSource[] = [
   navigation, navDisplays, navSubtabs, settingsTabs, settingsItems, standalonePages,
   pageOnlyApps, installedApps, widgetApps, devices, profilesSource, profilesExtra,
   cooling, lightingModes, lightingEffects, lightingExtras, lightingDeviceActions,
-  smartLightsSource, gameSyncScan, appearance, updatePrefs,
+  smartLightsSource, appearance, updatePrefs,
   actions, quickOpens, remoteAccess, settingsToggles, privacyToggles,
   integrations, systemMedia, accountExtra, diagnostics,
 ];

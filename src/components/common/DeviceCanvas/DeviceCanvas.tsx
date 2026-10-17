@@ -101,11 +101,11 @@ const GRID_PAD = 12;
  *  on that line. */
 const COLUMN_STAGGER_Y = 24;
 
-/** The slot a layout reset would give this device: a square-ish grid scaled to
- *  the device count, spread over the whole canvas, neighbouring columns offset
- *  vertically. Mirrors the service's CanvasGridLayout.Slot
- *  (nexus-service/src/Lighting/CanvasGridLayout.cs), which owns the same layout
- *  for fresh installs and for the reset endpoint. Change them together. */
+/** A device's grid slot: a square-ish grid scaled to the device count, spread
+ *  over the whole canvas, neighbouring columns offset vertically. Mirrors the
+ *  service's CanvasGridLayout.Slot (nexus-service/src/Lighting/CanvasGridLayout.cs),
+ *  the default for unplaced devices on an install without MaximizedCanvasDefaults;
+ *  a flagged install defaults them to the whole canvas. Change them together. */
 function defaultSlot(index: number, totalCount: number): { x: number; y: number; w: number; h: number } {
   if (totalCount <= 0 || index < 0) return { x: GRID_PAD, y: GRID_PAD, w: MIN_BOX_W, h: MIN_BOX_H };
   const n = Math.max(1, totalCount);
@@ -144,7 +144,7 @@ function defaultSlot(index: number, totalCount: number): { x: number; y: number;
  *  on the canvas, so no two on-canvas frames can land on each other. Indexes into
  *  the frames the canvas holds, not the service's full device list, so a canvas
  *  with parked or powered-off frames hidden packs the rest gaplessly instead of
- *  reserving slots nothing occupies; it matches the reset layout exactly when
+ *  reserving slots nothing occupies; it matches the service's grid exactly when
  *  none are hidden. A hidden frame keeps its own rect, so switching one back on
  *  can reveal it under a slot taken meanwhile. */
 function minimizeInto(targets: LightingDevice[], all: LightingDevice[]): void {
@@ -726,6 +726,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
 
   // Mutates dev's rect to the full canvas or to its default grid slot; no save/
   // render side effects so group maximize can set every target one direction.
+  // An unturned full-canvas rect equals the service's CanvasGridLayout.Full.
   const setMaximized = useCallback((dev: LightingDevice, maximize: boolean) => {
     if (maximize) {
       dev.canvasX = PAD;

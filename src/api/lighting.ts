@@ -11,6 +11,11 @@ export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
 }
 
+/** Live capture of the selected mirror monitor, in the lighting output frame layout. */
+export async function screenPreviewUrl(): Promise<string> {
+  return resolveAuthWs('/lighting/screen/preview');
+}
+
 // --- Effect thumbnails ---
 
 // Presets are universal, so a thumbnail is identified by (effect, slot). The
@@ -103,6 +108,8 @@ export const fetchLightingStatus = () =>
 export interface CurrentSyncResponse {
   sync: string;
   paused: boolean;
+  /** True on installs upgraded from a version that shipped Game Sync. */
+  gameSyncRemovedNotice?: boolean;
 }
 
 export const fetchCurrentSync = () =>
@@ -327,17 +334,22 @@ export const setMediaEffect = (v: PostProcessSettings, persist = true) =>
     persist,
   });
 
-// --- Render GPU (which card runs the lighting shaders) ---
+// --- Rendering device (which GPU, or the CPU, runs the lighting shaders) ---
 // Machine-specific (the GPU model name), so it lives in the service config, not
 // the cloud-synced UI prefs. Restart-to-apply: setRenderGpu persists + writes
 // the OS preference; restartService applies it.
-export interface RenderGpuState { value: string; }
+export interface RenderGpuState {
+  value: string;
+  /** CPU rendering can be chosen on this PC; absent on older services. */
+  softwareRenderingAvailable?: boolean;
+}
 
 export const fetchRenderGpu = () =>
   fetchService<RenderGpuState>('/lighting/render-gpu');
 
+/** Null when the service refused (e.g. software rendering unavailable). */
 export const setRenderGpu = (value: string) =>
-  postService('/lighting/render-gpu', { value });
+  postService<{ error?: boolean }>('/lighting/render-gpu', { value });
 
 export const restartService = () =>
   postService('/service/restart', {});
@@ -1177,114 +1189,6 @@ export interface ChainPreviewResponse {
  */
 export const previewDeviceChain = (deviceId: string, entries: ChainEntryBody[]) =>
   postService<ChainPreviewResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/mappings/chain/preview`, { entries });
-
-// --- Game Sync ---
-
-export interface GameSyncDevice {
-  name: string;
-  archetype: string;
-  ledCount: number;
-}
-
-export interface GameSyncStateResponse {
-  active: boolean;
-  /** Every Nexus shim DLL is in place in System32/SysWOW64. */
-  providerInstalled: boolean;
-  /**
-   * A real vendor DLL (Razer Synapse's Chroma SDK, most often) already holds
-   * one of the shim slots. Nexus never overwrites it, so games on that
-   * interface light the vendor's software instead of Nexus.
-   */
-  synapseConflict: boolean;
-  devices: GameSyncDevice[];
-  lastFrameAt?: number | null;
-  activeApp?: string | null;
-}
-
-export const startGameSync = () =>
-  postService('/lighting/game-sync/start', {});
-
-export const fetchGameSyncState = () =>
-  fetchService<GameSyncStateResponse>('/lighting/game-sync/state');
-
-export interface GameSyncGame {
-  name: string;
-  store: string;
-  emitsChroma: boolean;
-  /** Steam appid; empty string for non-Steam games. */
-  appId: string;
-  /** True when the game emits GSI frames (e.g. CS2 appid 730). */
-  emitsGsi: boolean;
-  scannedFiles: number;
-  skippedFiles: number;
-}
-
-export type SteamArtworkKind = 'header' | 'capsule_231x87';
-
-/**
- * Cloudflare Steam CDN artwork URL. Returns null for non-numeric or empty appIds
- * (non-Steam games have appId="" and must fall through to the icon placeholder).
- */
-export function steamArtworkUrl(appId: string, kind: SteamArtworkKind): string | null {
-  if (!appId || !/^\d+$/.test(appId)) return null;
-  const file = kind === 'header' ? 'header.jpg' : 'capsule_231x87.jpg';
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/${file}`;
-}
-
-export interface GameSyncGamesResponse {
-  scanning: boolean;
-  scannedAt: number | null;
-  games: GameSyncGame[];
-}
-
-export const fetchGameSyncGames = (refresh = false) =>
-  fetchService<GameSyncGamesResponse>(`/lighting/game-sync/games${refresh ? '?refresh=true' : ''}`);
-
-export const triggerGameSyncScan = () =>
-  postService('/lighting/game-sync/games/scan', {});
-
-/**
- * GSI title -> Steam appId aliases. GSI reports a display name that may differ
- * from the Steam library entry (e.g. CS2 GSI sends "Counter-Strike 2" but the
- * Steam library entry is "Counter-Strike Global Offensive", appId 730).
- */
-const GSI_APPID_ALIASES: Record<string, string> = {
-  'counter-strike 2': '730',
-  'cs2': '730',
-};
-
-/**
- * Resolves an activeApp name to a detected game, tolerating known GSI title
- * mismatches. Match order: (1) exact case-insensitive, (2) substring, (3)
- * GSI alias table mapped to appId.
- */
-export function resolveActiveGame(activeApp: string, games: GameSyncGame[]): GameSyncGame | null {
-  if (!activeApp) return null;
-  const needle = activeApp.toLowerCase().trim();
-
-  // 1. Exact match.
-  const exact = games.find(g => g.name.toLowerCase().trim() === needle);
-  if (exact) return exact;
-
-  // 2. Substring match (either name contains the other).
-  const sub = games.find(g => {
-    const hay = g.name.toLowerCase().trim();
-    return hay.includes(needle) || needle.includes(hay);
-  });
-  if (sub) return sub;
-
-  // 3. Known alias -> appId, then match by appId.
-  const aliasAppId = GSI_APPID_ALIASES[needle];
-  if (aliasAppId) {
-    const byId = games.find(g => g.appId === aliasAppId);
-    if (byId) return byId;
-    // appId known but game not in library yet: synthesize a stub so artwork
-    // can still render when the game isn't in the detected list.
-    return { name: activeApp, store: 'Steam', emitsChroma: false, emitsGsi: true, appId: aliasAppId, scannedFiles: 0, skippedFiles: 0 };
-  }
-
-  return null;
-}
 
 // --- Manually registered OpenRGB devices ---
 // Two device classes the bundled daemon cannot detect on its own: QMK-OpenRGB

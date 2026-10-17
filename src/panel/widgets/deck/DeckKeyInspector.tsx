@@ -470,9 +470,9 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
 // that have no preset list at all.
 const EMPTY_OPTIONS: { value: string; label: string }[] = [];
 
-// The three live lighting modes a key can start. Static and Game Sync are
-// deliberately absent: neither is a one-press mode (Static needs a per-device
-// colour assignment, Game Sync needs a running detected game).
+// The three live lighting modes a key can start. Static is
+// deliberately absent: it is not a one-press mode (it needs a per-device
+// colour assignment).
 const NEXUS_LIGHTING_MODES: DeckLightingMode[] = ['animate', 'gif', 'screen'];
 
 // Same keys FanProfiles.GetBuiltInProfiles() canonicalizes to; "off" (BIOS

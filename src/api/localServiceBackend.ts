@@ -4,7 +4,7 @@
 // byte what useCloudAccounts already did before the AuthBackend seam existed.
 
 import {
-  changeCloudPassword, changeCloudUsername, cloudLogin, cloudLogout, cloudRegister,
+  changeCloudPassword, changeCloudUsername, cloudLogin, cloudLogout, cloudRegister, cloudResendVerification,
   deleteCloudAccount, deleteCloudDevice, fetchCloudAccounts, fetchCloudDevices, fetchCloudRecoveryStatus,
   setCloudAccountPrivate, startCloudRecovery, submitCloudRecoveryCode, upsertCloudDevice, uploadCloudAvatar,
 } from './cloud';
@@ -22,6 +22,12 @@ export const localServiceBackend: AuthBackend = {
   login: (identifier, password) => cloudLogin(identifier, password),
 
   register: (email, password, username) => cloudRegister(email, password, username),
+
+  resendVerification: async (email) => {
+    const res = await cloudResendVerification(email);
+    if (res.status >= 200 && res.status < 300) return 'ok';
+    return res.status === 429 ? 'rate_limited' : 'failed';
+  },
 
   logout: async () => {
     const data = await fetchCloudAccounts();

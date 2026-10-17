@@ -120,6 +120,18 @@ describe('directApiBackend', () => {
     });
   });
 
+  describe('login email_unverified', () => {
+    it('surfaces the account email from the error body', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(403, { code: 'email_unverified', email: 'alpha@example.com' }));
+      const backend = await freshBackend();
+
+      const result = await backend.login('alpha', 'hunter22');
+
+      expect(result.status).toBe(403);
+      expect(result.body).toEqual({ error: true, msg: 'email_unverified', email: 'alpha@example.com' });
+    });
+  });
+
   describe('register', () => {
     it('reports 409 username_taken from the code field', async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse(409, { code: 'username_taken', message: 'username already in use' }));
@@ -129,6 +141,29 @@ describe('directApiBackend', () => {
 
       expect(result.status).toBe(409);
       expect(result.body).toEqual({ error: true, msg: 'username_taken' });
+    });
+  });
+
+  describe('resendVerification', () => {
+    it('posts the email to /auth/verify/resend and reports success', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(201, { ok: true }));
+      const backend = await freshBackend();
+
+      expect(await backend.resendVerification('a@b.com')).toBe('ok');
+
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe(`${BASE}/auth/verify/resend`);
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body)).toEqual({ email: 'a@b.com' });
+    });
+
+    it('distinguishes a throttled response from other failures', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(429, { message: 'ThrottlerException' }));
+      const backend = await freshBackend();
+      expect(await backend.resendVerification('a@b.com')).toBe('rate_limited');
+
+      fetchMock.mockRejectedValueOnce(new TypeError('offline'));
+      expect(await backend.resendVerification('a@b.com')).toBe('failed');
     });
   });
 

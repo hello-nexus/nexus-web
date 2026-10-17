@@ -48,6 +48,9 @@ export interface SelectOption {
   // CSS font-family the menu row draws its label in, enlarged, so a font
   // picker previews each face; the trigger keeps the control's own font.
   fontFamily?: string;
+  // Dim second line under the label in the menu row only (e.g. a caveat about
+  // the choice); the trigger shows the label alone.
+  description?: string;
   // Renders a thin rule instead of a selectable row, grouping the options above
   // and below it. Non-navigable and removed from the a11y tree; value/label are
   // ignored.
@@ -239,11 +242,15 @@ export function Select({
     if (width == null) {
       const optionEls = Array.from(list.children) as HTMLElement[];
       for (const o of optionEls) o.style.overflow = 'visible';
+      // Descriptions wrap to the menu width the labels set; they never size it.
+      const descEls = Array.from(list.querySelectorAll<HTMLElement>('[data-option-description]'));
+      for (const d of descEls) d.style.display = 'none';
       menu.style.width = 'max-content';
       menu.style.minWidth = `${baseWidth}px`;
       menu.style.maxWidth = `${maxWidth}px`;
       const measured = menu.offsetWidth;
       for (const o of optionEls) o.style.overflow = '';
+      for (const d of descEls) d.style.display = '';
       width = Math.min(maxWidth, measured + MENU_WIDTH_PAD);
       menu.style.width = `${width}px`;
       menu.style.minWidth = '';
@@ -517,6 +524,7 @@ export function Select({
                   role="option"
                   aria-selected={opt.value === value}
                   aria-disabled={opt.disabled || undefined}
+                  aria-describedby={opt.description ? `${optionId(i)}-desc` : undefined}
                   className={classNames(
                     styles.option,
                     opt.className,
@@ -530,7 +538,12 @@ export function Select({
                   onClick={() => { if (!opt.disabled) commit(opt.value); }}
                 >
                   {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
-                  {opt.label}
+                  {opt.description ? (
+                    <span className={styles.optionText}>
+                      <span>{opt.label}</span>
+                      <span id={`${optionId(i)}-desc`} data-option-description="true" className={styles.optionDescription}>{opt.description}</span>
+                    </span>
+                  ) : opt.label}
                 </li>
               ))
             )}

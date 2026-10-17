@@ -152,7 +152,6 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'animate', labelKey: 'lighting.mode.animate' },
   { key: 'gif', labelKey: 'lighting.mode.gif' },
   { key: 'screen', labelKey: 'lighting.mode.screen' },
-  { key: 'gamesync', labelKey: 'lighting.mode.gamesync' },
 ];
 
 // Simple fills expose a bipolar hue nudge and a colour-temperature (warmth)

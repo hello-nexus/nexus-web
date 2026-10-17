@@ -131,17 +131,17 @@ describe('LightingPage simple mode', () => {
   it('offers a one-click claim while a device is left un-driven, and drops it once none are', async () => {
     syncState.mode = 'static';
     renderPage();
-    const claim = await screen.findByRole('button', { name: 'lighting.simple.controlAll' });
+    const claim = await screen.findByRole('button', { name: 'lighting.controlAllDevices' });
     fireEvent.click(claim);
     await waitFor(() => {
       expect(vi.mocked(lightingApi.setLightingDeviceControlled)).toHaveBeenCalledWith('dev-2', true);
     });
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'lighting.simple.controlAll' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'lighting.controlAllDevices' })).toBeNull();
     });
   });
 
-  it('takes over a device the advanced page had left un-driven, when asked to light one', async () => {
+  it('leaves a device the advanced page had left un-driven alone, when asked to light one', async () => {
     const { container } = renderPage();
     await waitFor(() => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
@@ -154,10 +154,9 @@ describe('LightingPage simple mode', () => {
     fireEvent.click(swatch);
 
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.setLightingDeviceControlled)).toHaveBeenCalledWith('dev-2', true);
+      expect(vi.mocked(lightingApi.startStatic)).toHaveBeenCalled();
     });
-    // The already-driven device is left alone.
-    expect(vi.mocked(lightingApi.setLightingDeviceControlled).mock.calls.some(c => c[0] === 'dev-1')).toBe(false);
+    expect(vi.mocked(lightingApi.setLightingDeviceControlled)).not.toHaveBeenCalled();
   });
 
   it('runs a picked color as the exact global color, entering static first', async () => {
@@ -226,7 +225,7 @@ describe('LightingPage simple mode', () => {
       .toBe(SIMPLE_ANIMATION_KEYS.length);
   });
 
-  it('starts a picked animation on every device, claiming the un-driven one', async () => {
+  it('starts a picked animation without retaking the un-driven device', async () => {
     const { container } = renderPage();
     await waitFor(() => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
@@ -235,7 +234,7 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => {
       expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sweepbars', 50, 1, 0, 0, 1, 1, {});
     });
-    expect(vi.mocked(lightingApi.setLightingDeviceControlled)).toHaveBeenCalledWith('dev-2', true);
+    expect(vi.mocked(lightingApi.setLightingDeviceControlled)).not.toHaveBeenCalled();
     // A sweep is one shared canvas: nothing is pinned for it.
     expect(vi.mocked(lightingApi.setPins)).not.toHaveBeenCalled();
   });

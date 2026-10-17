@@ -203,7 +203,7 @@ describe('buildEntries', () => {
     const win = idsOf(true);
     const mac = idsOf(true, { platform: 'macos' });
     // Windows-only: tray toggle + row, lock/sleep, event viewer.
-    for (const id of ['toggle:tray', 'system:lock', 'system:sleep', 'diag:event-viewer', 'gamesync:scan']) {
+    for (const id of ['toggle:tray', 'system:lock', 'system:sleep', 'diag:event-viewer']) {
       expect(win.has(id)).toBe(true);
       expect(mac.has(id)).toBe(false);
     }

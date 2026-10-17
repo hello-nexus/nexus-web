@@ -137,6 +137,9 @@ export const fetchCloudAccounts = () =>
 export const cloudRegister = (email: string, password: string, username: string) =>
   cloudFetch<CloudRegisterResponse>('/cloud/register', 'POST', { email, password, username });
 
+export const cloudResendVerification = (email: string) =>
+  cloudFetch<CloudEnvelope>('/cloud/resend-verification', 'POST', { email });
+
 export const cloudLogin = (identifier: string, password: string) =>
   cloudFetch<CloudLoginResponse>('/cloud/login', 'POST', { identifier, password });
 

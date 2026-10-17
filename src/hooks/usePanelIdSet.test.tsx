@@ -34,7 +34,7 @@ describe.each(['lightingSelection', 'coolingSelection'] as const)('usePanelIdSet
   it('desktop: writes through to localStorage and restores from it on a fresh mount', () => {
     const first = mount(null, field);
     act(() => first.result.current[1](new Set(['a', 'b'])));
-    expect(JSON.parse(localStorage.getItem(KEYS[field])!)).toEqual(['a', 'b']);
+    expect(JSON.parse(localStorage.getItem(`${KEYS[field]}.immersive`)!)).toEqual(['a', 'b']);
     first.unmount();
 
     const second = mount(null, field);
@@ -43,8 +43,19 @@ describe.each(['lightingSelection', 'coolingSelection'] as const)('usePanelIdSet
   });
 
   it('desktop: restores a selection that only storage holds, as after a restart', () => {
-    localStorage.setItem(KEYS[field], JSON.stringify(['x']));
+    localStorage.setItem(`${KEYS[field]}.immersive`, JSON.stringify(['x']));
     expect([...mount(null, field).result.current[0]]).toEqual(['x']);
+  });
+
+  it('never shares a selection with the desktop page, in either direction', async () => {
+    localStorage.setItem(KEYS[field], JSON.stringify(['page-pick']));
+    for (const panelId of [null, 'panel-a']) {
+      const view = mount(panelId, field);
+      expect(view.result.current[0].size).toBe(0);
+      act(() => view.result.current[1](new Set(['all', 'of', 'them'])));
+      expect(JSON.parse(localStorage.getItem(KEYS[field])!)).toEqual(['page-pick']);
+    }
+    await waitFor(() => expect(records.current['panel-a'][field]).toEqual(['all', 'of', 'them']));
   });
 
   it('keeps each panel and the desktop independent', async () => {
@@ -99,11 +110,34 @@ describe.each(['lightingSelection', 'coolingSelection'] as const)('usePanelIdSet
     expect([...view.result.current[0]]).toEqual(['fresh']);
   });
 
-  it('prunes gone ids only after the record has landed, and writes the pruned set back', async () => {
-    records.current['panel-a'] = { [field]: ['one', 'ghost'] };
-    const view = renderHook(() => usePanelIdSet(KEYS[field], field, new Set(['one', 'two'])), { wrapper: inPanel('panel-a') });
+  it('hides ids that are not listed but never prunes what is stored, so a partial list cannot shrink it', async () => {
+    records.current['panel-a'] = { [field]: ['one', 'two', 'three'] };
+    const listed = { current: new Set(['one']) as ReadonlySet<string> };
+    const view = renderHook(() => usePanelIdSet(KEYS[field], field, listed.current), { wrapper: inPanel('panel-a') });
     await waitFor(() => expect([...view.result.current[0]]).toEqual(['one']));
-    await waitFor(() => expect(records.current['panel-a'][field]).toEqual(['one']));
+    expect(records.current['panel-a'][field]).toEqual(['one', 'two', 'three']);
+    expect(JSON.parse(localStorage.getItem(`${KEYS[field]}.panel-a`)!)).toEqual(['one', 'two', 'three']);
+
+    listed.current = new Set(['one', 'two', 'three']);
+    view.rerender();
+    expect([...view.result.current[0]]).toEqual(['one', 'two', 'three']);
+  });
+
+  it('an edit made while the list is partial keeps the stored ids that are not listed', async () => {
+    records.current['panel-a'] = { [field]: ['one', 'two', 'three'] };
+    const view = renderHook(() => usePanelIdSet(KEYS[field], field, new Set(['one'])), { wrapper: inPanel('panel-a') });
+    await waitFor(() => expect([...view.result.current[0]]).toEqual(['one']));
+    const { patchPanelDevice } = await import('../api/panel');
+    vi.mocked(patchPanelDevice).mockClear();
+
+    act(() => view.result.current[1](prev => new Set(prev)));
+    act(() => view.result.current[1](new Set(['one'])));
+    expect(patchPanelDevice).not.toHaveBeenCalled();
+
+    act(() => view.result.current[1](new Set()));
+    act(() => view.result.current[1](prev => new Set([...prev, 'one'])));
+    await waitFor(() => expect(records.current['panel-a'][field]).toEqual(['one', 'two', 'three']));
+    expect([...view.result.current[0]]).toEqual(['one']);
   });
 
   it('keeps writes in order when taps come fast', async () => {

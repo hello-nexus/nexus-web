@@ -1,7 +1,9 @@
 import { fireEvent, render } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StaticPickerCanvas } from './StaticPickerCanvas';
-import { PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES } from './staticPickerField';
+import {
+  PICKER_ACTIVE_MS, PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES, pickerHexAt,
+} from './staticPickerField';
 
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -33,8 +35,35 @@ const cellPoint = (col: number, row: number) => ({
 });
 const swatch = (col: number, row: number) => SEGMENT_SWATCHES[row * PICKER_SEGMENT_COLS + col];
 
+describe('StaticPickerCanvas under a legacy zoom engine', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // Older WebView2 reports the rect in unzoomed px while the pointer stays in
+  // viewport px; the panel's immersive body zooms the field by --panel-scale.
+  it('picks the color under the fingertip when the rect is unzoomed', () => {
+    const zoom = 1.83;
+    const { field, onPreview } = setup(false);
+    vi.spyOn(window, 'getComputedStyle').mockImplementation(
+      el => ({ zoom: el === field ? String(zoom) : '1' }) as CSSStyleDeclaration,
+    );
+    Object.defineProperty(field, 'offsetWidth', { configurable: true, value: W });
+    field.getBoundingClientRect = () => ({
+      left: 100, top: 200, right: 100 + W, bottom: 200 + H, width: W, height: H, x: 100, y: 200, toJSON: () => ({}),
+    });
+    fireEvent.pointerDown(field, {
+      pointerId: 1, clientX: (100 + 0.5 * W) * zoom, clientY: (200 + 0.5 * H) * zoom,
+    });
+    expect(onPreview).toHaveBeenLastCalledWith(pickerHexAt(0.5, 0.5));
+  });
+});
+
 describe('StaticPickerCanvas touch', () => {
-  beforeEach(() => vi.clearAllMocks());
+  let now: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    now = vi.spyOn(performance, 'now').mockReturnValue(0);
+  });
+  afterEach(() => now.mockRestore());
 
   it('picks the drawn row under a tap, in every row', () => {
     for (let row = 0; row < PICKER_SEGMENT_ROWS; row++) {
@@ -82,14 +111,48 @@ describe('StaticPickerCanvas touch', () => {
     expect(onPreview).toHaveBeenLastCalledWith(swatch(4, 5));
   });
 
-  it('recovers when the owner never released: the same pointer or a new primary takes over', () => {
+  it('recovers when the owner never released: the same pointer or a later contact takes over', () => {
     const { field, onPreview } = setup();
     fireEvent.pointerDown(field, { pointerId: 1, ...cellPoint(2, 2) });
     fireEvent.pointerDown(field, { pointerId: 1, ...cellPoint(4, 3) });
     expect(onPreview).toHaveBeenLastCalledWith(swatch(4, 3));
-    const down = new Event('pointerdown', { bubbles: true });
-    Object.assign(down, { pointerId: 7, isPrimary: true, ...cellPoint(6, 1) });
-    fireEvent(field, down);
+    now.mockReturnValue(PICKER_ACTIVE_MS + 1);
+    fireEvent.pointerDown(field, { pointerId: 7, ...cellPoint(6, 1) });
     expect(onPreview).toHaveBeenLastCalledWith(swatch(6, 1));
+  });
+
+  it('lets a fingertip take the pick from a palm that landed first', () => {
+    const { field, onPreview, onCommit } = setup();
+    fireEvent.pointerDown(field, { pointerId: 1, ...cellPoint(11, 6) });
+    now.mockReturnValue(PICKER_ACTIVE_MS + 1);
+    fireEvent.pointerDown(field, { pointerId: 2, ...cellPoint(3, 2) });
+    expect(onPreview).toHaveBeenLastCalledWith(swatch(3, 2));
+    fireEvent.pointerMove(field, { pointerId: 1, ...cellPoint(10, 6) });
+    fireEvent.pointerUp(field, { pointerId: 1 });
+    expect(onCommit).not.toHaveBeenCalled();
+    fireEvent.pointerUp(field, { pointerId: 2 });
+    expect(onCommit).toHaveBeenCalledWith(swatch(3, 2));
+  });
+
+  it('keeps a fresh tap when a palm grazes right behind the fingertip', () => {
+    const { field, onPreview, onCommit } = setup();
+    fireEvent.pointerDown(field, { pointerId: 1, ...cellPoint(3, 2) });
+    now.mockReturnValue(PICKER_ACTIVE_MS - 10);
+    fireEvent.pointerDown(field, { pointerId: 2, ...cellPoint(11, 6) });
+    fireEvent.pointerUp(field, { pointerId: 1 });
+    expect(onPreview).not.toHaveBeenCalledWith(swatch(11, 6));
+    expect(onCommit).toHaveBeenCalledWith(swatch(3, 2));
+  });
+
+  it('keeps a drag in progress when a palm lands mid-stroke', () => {
+    const { field, onPreview, onCommit } = setup();
+    fireEvent.pointerDown(field, { pointerId: 1, ...cellPoint(2, 2) });
+    now.mockReturnValue(PICKER_ACTIVE_MS * 2);
+    fireEvent.pointerMove(field, { pointerId: 1, ...cellPoint(3, 2) });
+    now.mockReturnValue(PICKER_ACTIVE_MS * 3 - 10);
+    fireEvent.pointerDown(field, { pointerId: 2, ...cellPoint(11, 6) });
+    fireEvent.pointerUp(field, { pointerId: 1 });
+    expect(onPreview).not.toHaveBeenCalledWith(swatch(11, 6));
+    expect(onCommit).toHaveBeenCalledWith(swatch(3, 2));
   });
 });

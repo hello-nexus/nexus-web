@@ -1037,9 +1037,8 @@
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {
   position: fixed;
   // Above the safe-area scrim (z 140) so the focused widget reads sharp on
-  // top of the backdrop blur. The editor sheet (z 230) sits above this so a
-  // 4x4 widget docked in the 4x2 detent is overlaid by the drawer, not the
-  // other way around.
+  // top of the backdrop blur. It also paints above the editor sheet, which
+  // is kept off it by geometry (see .editorBackdrop).
   z-index: 200;
   top: var(--panel-editor-dock-top, max(8px, env(safe-area-inset-top)));
   left: var(--panel-editor-dock-left, 50%);
@@ -1053,10 +1052,10 @@
   // Picking a new size in the edit drawer updates the dock CSS vars; the
   // cell retargets the new span (matching the rearrange context menu).
   transition:
-    width 220ms cubic-bezier(0.32, 0.72, 0, 1),
-    height 220ms cubic-bezier(0.32, 0.72, 0, 1),
-    top 220ms cubic-bezier(0.32, 0.72, 0, 1),
-    left 220ms cubic-bezier(0.32, 0.72, 0, 1);
+    width var(--ease) cubic-bezier(0.32, 0.72, 0, 1),
+    height var(--ease) cubic-bezier(0.32, 0.72, 0, 1),
+    top var(--ease) cubic-bezier(0.32, 0.72, 0, 1),
+    left var(--ease) cubic-bezier(0.32, 0.72, 0, 1);
   backdrop-filter: none;
   will-change: transform;
 }
@@ -1185,9 +1184,9 @@
   // scrimIn/scrimOut fill holds an active zero-radius backdrop-filter on
   // this element permanently, so the docked widget (z 200) paints above the
   // whole backdrop+sheet group. Sheet/dock overlap is instead avoided by
-  // geometry: the phone settings sheet top-anchors below the dock, and the
-  // bottom-sheet max-height keeps its top clear of the tallest dock on
-  // Y70-class surfaces.
+  // geometry: the dock publishes --panel-editor-dock-clear-bottom/-right (its
+  // far edges plus a gap); portrait sheets cap their height below it and
+  // landscape drawers cap their width beside it.
   // Plain darkening, no blur - the actions tray's scrim treatment - so the
   // stage widgets and background stay readable while adding a widget or
   // editing the theme. Widget-edit mode ([data-mode='settings']) adds a
@@ -1564,6 +1563,21 @@
     animation: sheetDown 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 
+  // Widget-edit with a docked widget: the sheet starts at the dock's bottom
+  // edge and fills the rest of the screen, its body scrolling.
+  &[data-docked='true'] .editorSheet {
+    height: calc(100dvh - var(--panel-editor-dock-clear-bottom));
+    max-height: none;
+  }
+
+  // Follows the dock's own size transition (.cellEditorDocked) so the sheet
+  // never lags behind the dock's far edge while the size picker resizes it.
+  &[data-docked='true'] .editorSheet:not([data-drag]) {
+    transition:
+      height var(--ease) cubic-bezier(0.32, 0.72, 0, 1),
+      top var(--ease) cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
   .editorSheetGrabber {
     display: block;
     position: absolute;
@@ -1596,6 +1610,11 @@
     max-height: calc(min(300vw, 100dvh) / var(--panel-scale, 1));
     margin-inline: auto;
   }
+
+  &[data-docked='true'] .editorSheet {
+    height: calc((100dvh - var(--panel-editor-dock-clear-bottom)) / var(--panel-scale, 1));
+    max-height: none;
+  }
 }
 
 .editorBackdrop[data-surface='phone'],
@@ -1626,9 +1645,13 @@
 // its contents are shaped at their shown size. The drawer hugs the right edge
 // and fills the height. align-items is vestigial at height:100%; left alone
 // rather than changing layout this change was not measured against.
+// Landscape Y70 widget-edit takes the same drawer: the dock sits at the left
+// edge there, so a full-width bottom sheet would cover it.
 @media (orientation: landscape) {
-  .editorBackdrop[data-touch-chrome='true'][data-surface='monitor'] {
+  .editorBackdrop[data-touch-chrome='true'][data-surface='monitor'],
+  .editorBackdrop[data-mode='settings'][data-surface='y70'] {
     align-items: center;
+    justify-content: flex-end;
 
     .editorSheet {
       zoom: var(--panel-scale, 1);
@@ -1637,7 +1660,16 @@
       // wants; the vw cap is divided because it would be multiplied too.
       width: min(380px, calc(88vw / var(--panel-scale, 1)));
       height: 100%;
+      max-height: none;
+      border-left: 1px solid var(--panel-border);
+      border-radius: 0;
+      box-shadow: -24px 0 60px rgb(0 0 0 / var(--alpha-medium));
+      padding-top: max(14px, env(safe-area-inset-top));
       animation: sheetInSide 170ms ease-out both;
+    }
+
+    .editorSheetGrabber {
+      display: none;
     }
 
     // Restated here: this rule outranks the global data-entered suppression
@@ -1663,6 +1695,25 @@
   to { transform: translateX(28px); opacity: 0; }
 }
 
+// Landscape docks sit at the left edge: whatever the drawer's own width, it
+// stops short of the dock. Lengths here are in the sheet's zoomed space.
+@media (orientation: landscape) {
+  .editorBackdrop[data-mode='settings']:not([data-surface='desktop']) .editorSheet {
+    max-width: calc((100vw - var(--panel-editor-dock-clear-right, 0px)) / var(--sheet-zoom, 1));
+  }
+
+  // Same timing as the dock's size transition, so a shrinking dock never
+  // overlaps a drawer that has already moved. height and top stay listed for
+  // surfaces that remain a bottom sheet in landscape.
+  .editorBackdrop[data-mode='settings'][data-docked='true']:not([data-surface='desktop']) .editorSheet:not([data-drag]) {
+    transition:
+      max-width var(--ease) cubic-bezier(0.32, 0.72, 0, 1),
+      width var(--ease) cubic-bezier(0.32, 0.72, 0, 1),
+      height var(--ease) cubic-bezier(0.32, 0.72, 0, 1),
+      top var(--ease) cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
 .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
   // Top edge tracks the edited widget's height (its row span), floored at the
   // 2-row (4x2) detent. Widgets up to 2 rows keep the optimal high rest
@@ -1672,12 +1723,12 @@
   // lower top just shortens it (no overflow).
   --editor-sheet-rows: max(2, var(--panel-editor-dock-rows, 2));
   position: absolute;
-  top: calc(
+  top: var(--panel-editor-dock-clear-bottom, calc(
     max(8px, env(safe-area-inset-top))
     + var(--editor-sheet-rows) * var(--panel-cell-size)
     + (var(--editor-sheet-rows) - 1) * var(--panel-gap)
     + 24px
-  );
+  ));
   left: 0;
   right: 0;
   bottom: 0;
@@ -1685,7 +1736,7 @@
   height: auto;
   max-height: none;
   padding-top: 14px;
-  transition: top 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: top var(--ease) cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .editorBackdrop[data-surface='phone'][data-mode='catalog'] .editorSheet,

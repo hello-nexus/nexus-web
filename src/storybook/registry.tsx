@@ -296,6 +296,10 @@ function PreviewInfoTooltip() {
         <span>Devices</span>
         <InfoTooltip message="Every USB device Nexus can see. Browse the supported-hardware catalogue or inspect the raw USB table." side="top" />
       </div>
+      <div className={styles.previewHoverCard}>
+        <span>With action</span>
+        <InfoTooltip message="This feature was removed." side="right" action={{ label: 'Remove', onClick: () => {} }} />
+      </div>
     </div>
   );
 }
@@ -2762,7 +2766,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'InfoTooltip', category: 'status',
     filePath: 'src/components/common/InfoTooltip/InfoTooltip.tsx',
-    description: 'Subtle info affordance rendered next to section titles. Hover (pointer) or click (touch) reveals a one-sentence explanation in an elevated-surface tooltip matching the app chrome. Used by ViewHeader (via titleTooltip prop) and inline next to Cooling section h3s.', Preview: PreviewInfoTooltip,
+    description: 'Subtle info affordance rendered next to section titles. Hover (pointer) or click (touch) reveals a one-sentence explanation in an elevated-surface tooltip matching the app chrome. An optional action prop adds a button under the message; the bubble stays open while the pointer or focus is inside it and Tab from the icon reaches the button. Used by ViewHeader (via titleTooltip prop) and inline next to Cooling section h3s.', Preview: PreviewInfoTooltip,
     notes: 'Hover, or Tab into the icon, or click to toggle. Esc closes. Auto-positions via the `side` prop (top/bottom/left/right).',
   },
   {
