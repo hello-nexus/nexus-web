@@ -86,8 +86,7 @@ export interface SelectProps {
    *  trigger's title since the text is no longer visible. */
   triggerIconOnly?: boolean;
   /** A control drawn inside the box, left of the value, as a sibling of the
-   *  trigger so it can be a real button (never nested in the trigger's own
-   *  button). Pressing it does not open the menu. */
+   *  trigger so it can be a real button. Pressing it does not open the menu. */
   leadingAction?: ReactNode;
 }
 
@@ -440,7 +439,9 @@ export function Select({
   };
 
   return (
-    <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, leadingAction != null && styles.hasLeading, className)}>
+    <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, !!leadingAction && styles.hasLeading, className)}>
+      {/* Before the trigger so tab order matches the left-to-right look. */}
+      {!!leadingAction && <span className={styles.leadingAction}>{leadingAction}</span>}
       <button
         ref={triggerRef}
         type="button"
@@ -460,7 +461,6 @@ export function Select({
           {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
         </span>
       </button>
-      {leadingAction != null && <span className={styles.leadingAction}>{leadingAction}</span>}
       {!triggerIconOnly && (
         <ChevronDown
           className={styles.chevron}

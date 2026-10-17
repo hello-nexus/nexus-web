@@ -13,6 +13,24 @@ function open(label = 'fruit') {
   return screen.getByRole('listbox');
 }
 
+describe('Select leadingAction', () => {
+  it('comes before the trigger in DOM order, and pressing it does not open the list', () => {
+    const onLead = vi.fn();
+    render(
+      <Select
+        value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit"
+        leadingAction={<button type="button" aria-label="lead" onClick={onLead} />}
+      />,
+    );
+    const lead = screen.getByRole('button', { name: 'lead' });
+    const trigger = screen.getByRole('button', { name: 'fruit' });
+    expect(lead.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(lead);
+    expect(onLead).toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+});
+
 describe('Select', () => {
   it('shows the selected option label on the trigger', () => {
     render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" />);

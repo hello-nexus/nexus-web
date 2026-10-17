@@ -316,27 +316,29 @@ export const FanCard = memo(function FanCard({
       { value: '__create__', label: t('cooling.card.createCurve'), className: styles.fanModeOptionCreate, icon: <Plus size={14} /> },
     ] : []),
   ];
-  // Select renders the selected option's icon in its trigger, so hanging the
-  // pin on the current mode is what puts it inside the dropdown ("[pin]
-  // Silent"). The fan icon no longer carries it.
   const pinTip = t(pinTooltipKey(channel));
-  // The pin is a real button that unpins, like the lighting card's: pressing it
-  // writes the same override the menu's Unpin does.
+  const roleBtnRef = useRef<HTMLButtonElement>(null);
+  // The pin unpins, like the lighting card's: it writes the same override the
+  // menu's Unpin does. The press unmounts the button, so a keyboard press first
+  // hands focus to the role picker, which is always present.
   const pinButton = pinned ? (
     <HoverTooltip body={pinTip} side="top">
       <button
         type="button"
         className={styles.fanPinBtn}
-        aria-label={pinTip}
+        aria-label={t('cooling.pin.unpin')}
         data-no-dnd
-        onClick={e => { e.stopPropagation(); onTogglePin(channel.id, false); }}
+        onClick={e => {
+          e.stopPropagation();
+          if (e.detail === 0) roleBtnRef.current?.focus();
+          onTogglePin(channel.id, false);
+        }}
       >
         <Pin size={12} className={styles.fanPinOn} aria-hidden="true" />
         <PinOff size={12} className={styles.fanPinOff} aria-hidden="true" />
       </button>
     </HoverTooltip>
   ) : null;
-  const modeOptions: SelectOption[] = baseModeOptions;
 
   const handleModeChange = (v: string) => {
     if (v === '__create__') { onCreateCurve(); return; }
@@ -428,12 +430,6 @@ export const FanCard = memo(function FanCard({
   // exposes no controls at all.
   const menuEnabled = !isHwDisconnected && !isReadOnly && menuItems().length > 0;
 
-  // The pin normally rides the selected mode option's icon, so a branch with
-  // no dropdown (disconnected, fixed, read-only, Nexus Control off) would show
-  // no pin at all - and the menu still offers Pin/Unpin there. Carry it
-  // beside the state badge in those rows instead.
-  const pinGlyph = pinButton;
-
   return (
     <div
       ref={setCardEl}
@@ -483,6 +479,7 @@ export const FanCard = memo(function FanCard({
               </span>
             ) : (
               <button
+                ref={roleBtnRef}
                 type="button"
                 className={`${styles.fanKindToggle} ${styles.fanPinToggle}`}
                 aria-haspopup="menu"
@@ -563,7 +560,7 @@ export const FanCard = memo(function FanCard({
           <div className={styles.fanStateBadge}>
             <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
           </div>
-          {pinGlyph}
+          {pinButton}
         </div>
       ) : isReadOnly ? null : isFixed ? (
         // Fixed speed: the RPM readout stays in the header and the duty bar
@@ -575,7 +572,7 @@ export const FanCard = memo(function FanCard({
               <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
             </div>
           </HoverTooltip>
-          {pinGlyph}
+          {pinButton}
         </div>
       ) : (
         <>
@@ -625,7 +622,7 @@ export const FanCard = memo(function FanCard({
               value={modeValue}
               onChange={handleModeChange}
               ariaLabel={t('cooling.card.mode')}
-              options={modeOptions}
+              options={baseModeOptions}
               leadingAction={pinButton}
             />
             </span>

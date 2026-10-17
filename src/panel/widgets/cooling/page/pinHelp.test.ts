@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FanChannel } from '../../../../api/cooling';
-import { pinTooltipKey, presetReach } from './pinHelp';
-
-const fan = (id: string, over: Partial<FanChannel> = {}): FanChannel => ({
-  id, name: id, dutyPercent: 30, rpm: 800, mode: 'Auto', classification: 'Controllable', ...over,
-});
+import { pinTooltipKey } from './pinHelp';
 
 describe('pinTooltipKey', () => {
   it('names the GPU reason first, even on a channel flagged otherwise', () => {
@@ -24,13 +19,5 @@ describe('pinTooltipKey', () => {
   it('falls back to the plain pin copy', () => {
     expect(pinTooltipKey({ kind: 'Fan' })).toBe('cooling.pin.tip');
     expect(pinTooltipKey({})).toBe('cooling.pin.tip');
-  });
-});
-
-describe('presetReach', () => {
-  it('skips pinned fans unless Off hands them back', () => {
-    const chans = [fan('a'), fan('b', { pinned: true })];
-    expect([...presetReach(chans)]).toEqual(['a']);
-    expect([...presetReach(chans, true)]).toEqual(['a', 'b']);
   });
 });

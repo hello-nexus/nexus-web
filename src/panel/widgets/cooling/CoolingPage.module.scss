@@ -455,7 +455,8 @@
   > :first-child { flex: 1 1 auto; min-width: 0; }
 }
 
-// Stands in for the dropdown's pin icon on the rows that have no dropdown.
+// The pin button: inside the mode dropdown's box, or beside the state badge on
+// the rows that have no dropdown.
 .fanPinBtn {
   display: inline-flex;
   align-items: center;
@@ -484,7 +485,6 @@
 .fanPinBtn:focus-visible .fanPinOff {
   display: inline;
 }
-
 
 // The role picker is an inline <Popover>, so it paints inside this card's
 // box in the list's stacking order - the next card down, being later in the

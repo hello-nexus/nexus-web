@@ -1,10 +1,4 @@
-import { isFanDisconnected, type FanChannel } from '../../../../api/cooling';
-
-/** The fans a mode retargets (skipping pinned ones), or with `includePinned` the ones Off hands back. */
-export const presetReach = (channels: readonly FanChannel[], includePinned = false): Set<string> => new Set(channels
-  .filter(ch => (includePinned || !ch.pinned) && ch.controlled !== false && !ch.readOnly
-    && ch.classification !== 'Fixed' && !isFanDisconnected(ch))
-  .map(ch => ch.id));
+import type { FanChannel } from '../../../../api/cooling';
 
 /**
  * Tooltip key for a pinned fan's pin icon. A GPU fan, a pump and an AIO
