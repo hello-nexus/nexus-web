@@ -19,6 +19,8 @@ import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { DeviceNotice } from './DeviceNotice';
+import { ControlledByStrip } from './ControlledByStrip';
+import type { CardAppStrip } from './controlledBy';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -311,6 +313,8 @@ export function ZoneCard({
   pin,
   target = false,
   pulseSeq,
+  appStrip,
+  onOpenAppStrip,
 }: {
   device: LightingDevice;
   /** Deep-link anchor the card answers to; see CollapsibleSection's searchAnchor. */
@@ -399,6 +403,10 @@ export function ZoneCard({
   target?: boolean;
   /** Set when a press or pick changed this card; each new value plays the pulse once. */
   pulseSeq?: number;
+  /** Running apps that compete for this device; the footer strip names them. */
+  appStrip?: CardAppStrip;
+  /** Strip press: opens the conflict dialog for those apps. */
+  onOpenAppStrip?: () => void;
 }) {
   const { t, language } = useTranslation();
   const unpinHintId = useId();
@@ -457,6 +465,7 @@ export function ZoneCard({
   // nothing behind those to act on. A pick-only surface carries no menu, so
   // there it keeps the old rule - a tap would commit a look the device cannot
   // show, and its own select-all skips those cards.
+  const showAppStrip = !!appStrip && !!onOpenAppStrip && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
   const clickable = !unavailable && !firmwareControlled
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
@@ -635,6 +644,7 @@ export function ZoneCard({
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
+        showAppStrip ? styles.deviceCardWithStrip : '',
         stacked ? styles.deviceCardStacked : '',
         stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
@@ -806,6 +816,7 @@ export function ZoneCard({
         )}
       </div>
       </div>
+      {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
       {menuEnabled && (
         <MenuArrowButton
           variant="card"

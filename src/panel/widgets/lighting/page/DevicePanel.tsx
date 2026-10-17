@@ -11,6 +11,7 @@ import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard'
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
+import type { CardAppStrip } from './controlledBy';
 import { lightingDeviceAnchor, lightingGroupAnchor } from '../../../../lib/pageAnchors';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -35,7 +36,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, appStrips, onOpenAppStrip }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -126,6 +127,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   /** Tail card explaining a short list; absent once a mode is running. */
   discovery?: DiscoveryState;
   rgbRunning?: boolean;
+  /** Footer strips naming the running apps that compete for a device, keyed by the card hosting each. */
+  appStrips?: ReadonlyMap<string, CardAppStrip>;
+  /** Opens the conflict dialog for these app ids. */
+  onOpenAppStrip?: (appIds: string[]) => void;
   /** User-made groups, in display order. */
   groups?: DeviceGroup[];
   /** Absent leaves the rail ungroupable (no drag between groups, no add button). */
@@ -478,6 +483,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
       pin={pinFor(d.id)}
       target={pickTargetIds?.has(d.id)}
       pulseSeq={pulse?.ids.has(d.id) ? pulse.seq : undefined}
+      appStrip={appStrips?.get(d.id)}
+      onOpenAppStrip={onOpenAppStrip ? () => onOpenAppStrip(appStrips?.get(d.id)?.apps.map(a => a.id) ?? []) : undefined}
       onUnstack={stackOf(stacks, d.id) ? () => onStacksChange?.(unstackDevices(stacks, [d.id])) : undefined}
     />
   );

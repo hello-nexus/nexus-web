@@ -2680,6 +2680,7 @@
   "lighting.devices.activeCount.other": "{count} 台のデバイスが点灯",
   "lighting.devices.brightness": "明るさ",
   "lighting.devices.controlled": "制御中",
+  "lighting.devices.controlledBy": "{app} が制御中",
   "lighting.devices.deselect": "選択を解除",
   "lighting.devices.detectionFailed": "検出されましたが制御できません",
   "lighting.devices.detectionFailedTooltip": "このデバイスは OpenRGB で検出されましたが、ディテクターの初期化に失敗したため、Nexus はライティングを制御できません。",

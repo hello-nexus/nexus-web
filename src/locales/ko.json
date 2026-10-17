@@ -2680,6 +2680,7 @@
   "lighting.devices.activeCount.other": "{count}개 장치 점등",
   "lighting.devices.brightness": "밝기",
   "lighting.devices.controlled": "제어 중",
+  "lighting.devices.controlledBy": "{app}에서 제어 중",
   "lighting.devices.deselect": "선택 해제",
   "lighting.devices.detectionFailed": "감지되었으나 제어할 수 없음",
   "lighting.devices.detectionFailedTooltip": "OpenRGB가 이 장치를 감지했지만 감지기 초기화에 실패했습니다. Nexus는 이 장치의 조명을 제어할 수 없습니다.",

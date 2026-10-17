@@ -2680,6 +2680,7 @@
   "lighting.devices.activeCount.other": "{count} apparaten verlicht",
   "lighting.devices.brightness": "Helderheid",
   "lighting.devices.controlled": "Aangestuurd",
+  "lighting.devices.controlledBy": "Bestuurd door {app}",
   "lighting.devices.deselect": "Selectie opheffen",
   "lighting.devices.detectionFailed": "Gedetecteerd maar niet aanstuurbaar",
   "lighting.devices.detectionFailedTooltip": "Dit apparaat is door OpenRGB gezien, maar de detector kon het niet initialiseren, dus Nexus kan de verlichting niet aansturen.",

@@ -57,7 +57,12 @@ import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageMode
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
 import { Notice } from '../../../components/common/Notice/Notice';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
-import { useUiSettings } from '../../../hooks/useUiSettings';
+import { useConflictAutoKillExclusions, useUiSettings } from '../../../hooks/useUiSettings';
+import { useConflictApps } from '../../../hooks/useConflictApps';
+import { useDevices } from '../../../hooks/useDevices';
+import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
+import { ConflictWarningModal } from '../../../components/common/Sidebar/ConflictWarning';
+import { controlledByStrips } from './page/controlledBy';
 import { Coachmark } from '../../../components/common/Coachmark/Coachmark';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
@@ -1581,6 +1586,29 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [orderedDevices, hideUncontrolled, railSearch.query, railSearchFields],
   );
 
+  // Running apps that compete for a card's hardware, named in its footer strip.
+  const { conflicts: runningApps, ready: runningAppsReady } = useConflictApps(serviceOnline);
+  const { devices: curatedDevices } = useDevices(serviceOnline && runningApps.length > 0);
+  const curatedAppByHandler = useMemo(
+    () => new Map(curatedDevices.flatMap(d => (d.conflictAppId ? [[d.id, d.conflictAppId] as const] : []))),
+    [curatedDevices],
+  );
+  const appStrips = useMemo(
+    () => controlledByStrips(railDevices, runningApps, curatedAppByHandler),
+    [railDevices, runningApps, curatedAppByHandler],
+  );
+  const [appStripIds, setAppStripIds] = useState<readonly string[] | null>(null);
+  const conflictExclusions = useConflictAutoKillExclusions();
+  // Nexus 2 is never whitelisted: the service ends it whatever the list says.
+  const conflictWhitelisted = useMemo(
+    () => new Set(conflictExclusions.filter(id => id !== HYTE_NEXUS2_CONFLICT_ID)),
+    [conflictExclusions],
+  );
+  const appStripConflicts = useMemo(
+    () => (appStripIds ? runningApps.filter(c => appStripIds.includes(c.id)) : []),
+    [appStripIds, runningApps],
+  );
+
   const selectableIds = useMemo(
     () => orderedDevices.filter(zoneCardSelectable).map(d => d.id),
     [orderedDevices],
@@ -2922,6 +2950,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
             discovery={discovery}
             rgbRunning={rgb.running}
+            appStrips={appStrips}
+            onOpenAppStrip={setAppStripIds}
           />
         </div>
         <div
@@ -3209,6 +3239,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => { setKeyReactionsId(null); void refreshKeyReactive(); }}
         />
       )}
+      <ConflictWarningModal
+        open={appStripIds !== null}
+        conflicts={appStripConflicts}
+        ready={runningAppsReady}
+        whitelisted={conflictWhitelisted}
+        onClose={() => setAppStripIds(null)}
+      />
       {presetAppsTarget && (
         <PresetAppsModal
           presetName={presetAppsTarget.name}

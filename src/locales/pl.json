@@ -2696,6 +2696,7 @@
   "lighting.devices.activeCount.other": "{count} urządzeń podświetlonych",
   "lighting.devices.brightness": "Jasnosc",
   "lighting.devices.controlled": "Sterowane",
+  "lighting.devices.controlledBy": "Sterowane przez {app}",
   "lighting.devices.deselect": "Odznacz",
   "lighting.devices.detectionFailed": "Wykryto, ale nie mozna sterowac",
   "lighting.devices.detectionFailedTooltip": "Urzadzenie zostalo wykryte przez OpenRGB, ale detektor nie zdolal go zainicjalizowac, wiec Nexus nie moze sterowac jego podswietleniem.",

@@ -2696,6 +2696,7 @@
   "lighting.devices.activeCount.other": "{count} устройств подсвечено",
   "lighting.devices.brightness": "Яркость",
   "lighting.devices.controlled": "Управляется",
+  "lighting.devices.controlledBy": "Управляется: {app}",
   "lighting.devices.deselect": "Снять выделение",
   "lighting.devices.detectionFailed": "Обнаружено, но недоступно",
   "lighting.devices.detectionFailedTooltip": "Это устройство было обнаружено OpenRGB, но инициализация драйвера не удалась, поэтому Nexus не может управлять его подсветкой.",
