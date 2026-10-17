@@ -62,7 +62,7 @@ describe('BenchmarkResults', () => {
 
   it('shows the upload prompt only when onUpload is set and there is no submission yet', () => {
     render(<BenchmarkResults result={mkResult()} submission={null} submitting={false} />);
-    expect(screen.queryByText('benchmark.result.uploadCta')).not.toBeInTheDocument();
+    expect(screen.queryByText('benchmark.result.publishCta')).not.toBeInTheDocument();
   });
 
   it('calls onUpload when the upload button is clicked, and hides it once submitting', () => {
@@ -71,11 +71,22 @@ describe('BenchmarkResults', () => {
       <BenchmarkResults result={mkResult()} submission={null} submitting={false} onUpload={onUpload} />,
     );
 
-    fireEvent.click(screen.getByText('benchmark.result.uploadCta'));
+    fireEvent.click(screen.getByText('benchmark.result.publishCta'));
     expect(onUpload).toHaveBeenCalledTimes(1);
 
     rerender(<BenchmarkResults result={mkResult()} submission={null} submitting onUpload={onUpload} />);
-    expect(screen.queryByText('benchmark.result.uploadCta')).not.toBeInTheDocument();
+    expect(screen.queryByText('benchmark.result.publishCta')).not.toBeInTheDocument();
+  });
+
+  it('calls onDismissUpload from the Not now button without uploading', () => {
+    const onUpload = vi.fn();
+    const onDismissUpload = vi.fn();
+    render(
+      <BenchmarkResults result={mkResult()} submission={null} submitting={false} onUpload={onUpload} onDismissUpload={onDismissUpload} />,
+    );
+    fireEvent.click(screen.getByText('benchmark.result.publishDismiss'));
+    expect(onDismissUpload).toHaveBeenCalledTimes(1);
+    expect(onUpload).not.toHaveBeenCalled();
   });
 
   it('hides the upload prompt once a submission exists', () => {
@@ -87,7 +98,7 @@ describe('BenchmarkResults', () => {
         onUpload={vi.fn()}
       />,
     );
-    expect(screen.queryByText('benchmark.result.uploadCta')).not.toBeInTheDocument();
+    expect(screen.queryByText('benchmark.result.publishCta')).not.toBeInTheDocument();
   });
 
   describe('standing', () => {

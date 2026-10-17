@@ -19,6 +19,8 @@ export interface BenchmarkRun {
   submissionId?: string | null;
   /** Leaderboard standing returned by the submit, so the Results tab can keep showing it. */
   submission?: BenchmarkStanding | null;
+  /** The user chose "Not now" on the publish prompt; the run is never offered again. */
+  publishDismissed?: boolean;
 }
 
 export interface BenchmarkStanding {
@@ -96,6 +98,13 @@ export function useBenchmarkHistory() {
     setHistory(clear);
   }, []);
 
+  const dismissRunPublish = useCallback((id: string) => {
+    const mark = (runs: BenchmarkRun[]) =>
+      runs.map(run => run.id === id ? { ...run, publishDismissed: true } : run);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mark(loadHistory()))); } catch { /* quota */ }
+    setHistory(mark);
+  }, []);
+
   const latest = history[0] ?? null;
-  return { history, latest, addRun, updateRunSubmission, clearRunSubmission };
+  return { history, latest, addRun, updateRunSubmission, clearRunSubmission, dismissRunPublish };
 }

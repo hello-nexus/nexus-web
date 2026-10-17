@@ -307,6 +307,13 @@
   border-radius: var(--radius-lg);
 }
 
+.publishActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
 .percentile {
   @include text-body;
   font-weight: var(--weight-heading);
@@ -368,6 +375,10 @@
     justify-self: center;
     align-items: center;
     text-align: center;
+  }
+
+  .publishActions {
+    justify-content: center;
   }
 
   .subGrid {
