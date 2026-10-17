@@ -1829,7 +1829,7 @@
   "focus.effect.panelsOff": "panels off",
   "focus.effect.staticBackgrounds": "static backgrounds",
   "focus.effect.traffic": "traffic paused",
-  "focus.holdNotifications.description": "Queue system notifications and show them when the mode ends.",
+  "focus.holdNotifications.description": "Queue Nexus notifications and show them when the mode ends.",
   "focus.holdNotifications.label": "Hold notifications",
   "focus.holdTraffic.description": "Defer telemetry, update checks and cloud uploads. Anything you start yourself still runs.",
   "focus.holdTraffic.label": "Pause background traffic",

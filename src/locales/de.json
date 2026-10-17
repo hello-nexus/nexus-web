@@ -1829,7 +1829,7 @@
   "focus.effect.panelsOff": "Panels aus",
   "focus.effect.staticBackgrounds": "statische Hintergründe",
   "focus.effect.traffic": "Datenverkehr pausiert",
-  "focus.holdNotifications.description": "Systembenachrichtigungen sammeln und nach dem Modus anzeigen.",
+  "focus.holdNotifications.description": "Nexus-Benachrichtigungen sammeln und nach dem Modus anzeigen.",
   "focus.holdNotifications.label": "Benachrichtigungen zurückhalten",
   "focus.holdTraffic.description": "Telemetrie, Update-Prüfungen und Cloud-Uploads aufschieben. Selbst gestartete Vorgänge laufen weiter.",
   "focus.holdTraffic.label": "Hintergrund-Datenverkehr pausieren",

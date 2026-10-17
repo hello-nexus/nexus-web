@@ -1829,7 +1829,7 @@
   "focus.effect.panelsOff": "面板已关闭",
   "focus.effect.staticBackgrounds": "静态背景",
   "focus.effect.traffic": "流量已暂停",
-  "focus.holdNotifications.description": "将系统通知排队，在模式结束后显示。",
+  "focus.holdNotifications.description": "将 Nexus 通知排队，在模式结束后显示。",
   "focus.holdNotifications.label": "暂缓通知",
   "focus.holdTraffic.description": "推迟遥测、更新检查和云端上传。你自己发起的操作仍会继续。",
   "focus.holdTraffic.label": "暂停后台流量",

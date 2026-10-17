@@ -1829,7 +1829,7 @@
   "focus.effect.panelsOff": "panelen uit",
   "focus.effect.staticBackgrounds": "statische achtergronden",
   "focus.effect.traffic": "verkeer gepauzeerd",
-  "focus.holdNotifications.description": "Systeemmeldingen in de wachtrij zetten en tonen zodra de modus eindigt.",
+  "focus.holdNotifications.description": "Nexus-meldingen in de wachtrij zetten en tonen zodra de modus eindigt.",
   "focus.holdNotifications.label": "Meldingen vasthouden",
   "focus.holdTraffic.description": "Telemetrie, updatecontroles en cloud-uploads uitstellen. Wat je zelf start, blijft werken.",
   "focus.holdTraffic.label": "Achtergrondverkeer pauzeren",

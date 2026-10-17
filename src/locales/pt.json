@@ -1829,7 +1829,7 @@
   "focus.effect.panelsOff": "painéis desligados",
   "focus.effect.staticBackgrounds": "fundos estáticos",
   "focus.effect.traffic": "tráfego em pausa",
-  "focus.holdNotifications.description": "Colocar as notificações do sistema em fila e mostrá-las quando o modo terminar.",
+  "focus.holdNotifications.description": "Colocar as notificações do Nexus em fila e mostrá-las quando o modo terminar.",
   "focus.holdNotifications.label": "Reter notificações",
   "focus.holdTraffic.description": "Adiar telemetria, verificação de atualizações e envios para a nuvem. O que iniciar continua a funcionar.",
   "focus.holdTraffic.label": "Pausar tráfego em segundo plano",

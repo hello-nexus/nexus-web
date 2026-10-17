@@ -1841,7 +1841,7 @@
   "focus.effect.panelsOff": "panele wyłączone",
   "focus.effect.staticBackgrounds": "statyczne tła",
   "focus.effect.traffic": "ruch wstrzymany",
-  "focus.holdNotifications.description": "Kolejkuj powiadomienia systemowe i pokaż je po zakończeniu trybu.",
+  "focus.holdNotifications.description": "Kolejkuj powiadomienia Nexus i pokaż je po zakończeniu trybu.",
   "focus.holdNotifications.label": "Wstrzymaj powiadomienia",
   "focus.holdTraffic.description": "Odłóż telemetrię, sprawdzanie aktualizacji i przesyłanie do chmury. To, co uruchomisz sam, działa dalej.",
   "focus.holdTraffic.label": "Wstrzymaj ruch w tle",
