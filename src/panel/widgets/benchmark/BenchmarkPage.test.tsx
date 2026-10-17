@@ -62,6 +62,7 @@ const h = vi.hoisted(() => ({
   result: null as BenchmarkResult | null,
   addRun: vi.fn(() => `run-${Date.now()}`),
   updateRunSubmission: vi.fn(),
+  dismissRunPublish: vi.fn(),
   history: [] as any[],
   start: vi.fn(),
 }));
@@ -85,6 +86,8 @@ vi.mock('../../../hooks/useBenchmarkHistory', () => ({
     history: h.history,
     addRun: h.addRun,
     updateRunSubmission: h.updateRunSubmission,
+    clearRunSubmission: vi.fn(),
+    dismissRunPublish: h.dismissRunPublish,
   }),
 }));
 
@@ -100,6 +103,11 @@ vi.mock('../../../api/nexusApi', () => ({
 
 vi.mock('../../../api/cloud', () => ({
   submitCloudBenchmark: (...args: any[]) => mockSubmitCloudBenchmark(...args),
+}));
+
+// Consent ON was the old auto-upload trigger; a reintroduced consent-gated upload must fail the tests below.
+vi.mock('../../../api/telemetry', () => ({
+  fetchTelemetryConsent: async () => ({ enabled: true }),
 }));
 
 import { BenchmarkPage } from './BenchmarkPage';
@@ -121,6 +129,10 @@ describe('BenchmarkPage opt-in publishing', () => {
       h.history = h.history.map(run => (run.id === id ? { ...run, submissionId, submission } : run));
     }) as any);
     mockSubmitCloudBenchmark.mockReset();
+    h.dismissRunPublish.mockReset();
+    h.dismissRunPublish.mockImplementation(((id: string) => {
+      h.history = h.history.map(run => (run.id === id ? { ...run, publishDismissed: true } : run));
+    }) as any);
   });
 
   it('uploads nothing after a run completes, and publishes once on click', async () => {
@@ -129,6 +141,8 @@ describe('BenchmarkPage opt-in publishing', () => {
     render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
     const publish = await screen.findByText('benchmark.result.publishCta');
+    expect(h.addRun).toHaveBeenCalledTimes(1);
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
     expect(mockSubmitCloudBenchmark).not.toHaveBeenCalled();
 
     await act(async () => { publish.closest('button')!.click(); });
@@ -146,8 +160,16 @@ describe('BenchmarkPage opt-in publishing', () => {
     const dismiss = await screen.findByText('benchmark.result.publishDismiss');
     await act(async () => { dismiss.closest('button')!.click(); });
 
-    expect(screen.queryByText('benchmark.result.publishCta')).not.toBeInTheDocument();
+    expect(h.dismissRunPublish).toHaveBeenCalledTimes(1);
     expect(mockSubmitCloudBenchmark).not.toHaveBeenCalled();
+  });
+
+  it('never prompts for a run whose prompt was dismissed earlier', async () => {
+    h.history = [{ ...mkRun('hist-3', mkResult()), publishDismissed: true }];
+    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+
+    await screen.findByText('benchmark.result.composite');
+    expect(screen.queryByText('benchmark.result.publishCta')).not.toBeInTheDocument();
   });
 
   it('records a run handed over twice (same runId, new object) only once', async () => {

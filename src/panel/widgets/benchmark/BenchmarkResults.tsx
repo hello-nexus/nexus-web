@@ -127,11 +127,11 @@ export function BenchmarkResults({ result, submission, submitting, onUpload, onD
               <>
                 <span className={styles.percentilePending}>{t('benchmark.result.publishPrompt')}</span>
                 <div className={styles.publishActions}>
-                  <Button tone="accent" icon={<Trophy size={14} />} onClick={onUpload}>
+                  <Button tone="neutral" icon={<Trophy size={14} />} onClick={onUpload}>
                     {t('benchmark.result.publishCta')}
                   </Button>
                   {onDismissUpload && (
-                    <Button tone="ghost" onClick={onDismissUpload}>
+                    <Button tone="neutral" onClick={onDismissUpload}>
                       {t('benchmark.result.publishDismiss')}
                     </Button>
                   )}

@@ -3,7 +3,7 @@
   "about.credits": "Nexus был бы невозможен без неустанного вклада этих замечательных проектов:",
   "about.githubOrg": "Nexus на GitHub",
   "about.version": "{version}",
-  "account.authentication.description": "Аккаунт Nexus сохраняет копии ваших профилей, отслеживает ваши системы и приложения из Marketplace и даёт вам публичную страницу профиля.",
+  "account.authentication.description": "Аккаунт Nexus сохраняет копии ваших профилей, отслеживает ваши системы и приложения из Marketplace и даёт вам страницу профиля, которую вы можете сделать публичной.",
   "account.authentication.title": "Аккаунт",
   "account.avatar.change": "Изменить аватар",
   "account.avatar.updated": "Аватар обновлён",

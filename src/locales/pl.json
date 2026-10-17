@@ -3,7 +3,7 @@
   "about.credits": "Nexus nie byłby możliwy bez niestrudzonego wkładu tych wspaniałych projektów:",
   "about.githubOrg": "Nexus na GitHubie",
   "about.version": "{version}",
-  "account.authentication.description": "Konto Nexus tworzy kopie Twoich profili, śledzi Twoje systemy i aplikacje z Marketplace oraz daje Ci publiczną stronę profilu.",
+  "account.authentication.description": "Konto Nexus tworzy kopie Twoich profili, śledzi Twoje systemy i aplikacje z Marketplace oraz daje Ci stronę profilu, którą możesz upublicznić.",
   "account.authentication.title": "Konto",
   "account.avatar.change": "Zmień awatar",
   "account.avatar.updated": "Awatar zaktualizowany",

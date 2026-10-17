@@ -3,7 +3,7 @@
   "about.credits": "Nexus ne serait pas possible sans les contributions inlassables de ces merveilleux projets :",
   "about.githubOrg": "Nexus sur GitHub",
   "about.version": "{version}",
-  "account.authentication.description": "Votre compte Nexus sauvegarde vos profils, suit vos systèmes et vos apps du Marketplace, et vous donne une page de profil publique.",
+  "account.authentication.description": "Votre compte Nexus sauvegarde vos profils, suit vos systèmes et vos apps du Marketplace, et vous donne une page de profil que vous pouvez rendre publique.",
   "account.authentication.title": "Compte",
   "account.avatar.change": "Changer l'avatar",
   "account.avatar.updated": "Avatar mis à jour",

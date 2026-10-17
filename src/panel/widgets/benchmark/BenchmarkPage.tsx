@@ -90,7 +90,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   const { t } = useTranslation();
   const { dateFormat, timeFormat } = useUnitPrefs();
   const { status, progress, result, error, start, cancel, reset } = useBenchmark(serviceOnline);
-  const { history, addRun, updateRunSubmission, clearRunSubmission } = useBenchmarkHistory();
+  const { history, addRun, updateRunSubmission, clearRunSubmission, dismissRunPublish } = useBenchmarkHistory();
   const ownSubmissionIds = useMemo(
     () => new Set(history.flatMap(run => (run.submissionId ? [run.submissionId] : []))),
     [history],
@@ -99,8 +99,6 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   // What the Results tab shows on top: Latest after a run, else the session's pick, else Best.
   const [resultsView, setResultsView] = useState<ResultsView>(() => readResultsPick() ?? 'best');
   const [uploadingRunId, setUploadingRunId] = useState<string | null>(null);
-  // Runs whose publish prompt was dismissed this visit; nothing is uploaded for them.
-  const [dismissedRunIds, setDismissedRunIds] = useState<ReadonlySet<string>>(() => new Set());
   // useBenchmark can hand over the same run more than once (WS frame + poller).
   const decidedRunIdRef = useRef<string | null>(null);
   // Run whose closing reveal has played; until then a completed run keeps the modal open.
@@ -146,18 +144,17 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     if (!result || result.state !== 'complete') return;
     if (decidedRunIdRef.current === result.runId) return;
     decidedRunIdRef.current = result.runId;
-    // Saved locally only; publishing is the user's explicit choice on the results view.
     addRun(result, null);
     setResultsView('latest');
     onTabChange('results');
   }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canPublish = (run: BenchmarkRun | null): run is BenchmarkRun =>
-    !!run && !run.submission && uploadingRunId !== run.id && !dismissedRunIds.has(run.id);
+    !!run && !run.submission && uploadingRunId !== run.id && !run.publishDismissed;
   const uploadHandlerFor = (run: BenchmarkRun | null) =>
     canPublish(run) ? () => { void upload(run.id, run.result); } : undefined;
   const dismissHandlerFor = (run: BenchmarkRun | null) =>
-    canPublish(run) ? () => setDismissedRunIds(prev => new Set(prev).add(run.id)) : undefined;
+    canPublish(run) ? () => dismissRunPublish(run.id) : undefined;
 
   const handleRerun = useCallback(async () => {
     decidedRunIdRef.current = null;
