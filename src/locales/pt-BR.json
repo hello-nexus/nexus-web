@@ -904,6 +904,7 @@
   "devices.lianli-wireless.linkRxMissing": "Apenas o transmissor do controlador foi detectado. Reconecte o cabo USB dele.",
   "devices.lianli-wireless.linkTxMissing": "Apenas o receptor do controlador foi detectado. Reconecte o cabo USB dele.",
   "devices.lianli-wireless.loadingScreens": "Carregando telas…",
+  "devices.lianli-wireless.lockBlocksPairing": "Desative \"Bloquear dispositivos pareados\" para parear ou desparear dispositivos.",
   "devices.lianli-wireless.lockBoundDevices": "Bloquear dispositivos pareados",
   "devices.lianli-wireless.lockBoundDevicesHint": "Pareia novamente seus ventiladores e Strimers com este controlador automaticamente se eles caírem. Desative para gerenciar o pareamento manualmente.",
   "devices.lianli-wireless.managePanel": "Gerenciar painel",

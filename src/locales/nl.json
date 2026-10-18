@@ -904,6 +904,7 @@
   "devices.lianli-wireless.linkRxMissing": "Alleen de zender van de controller is gedetecteerd. Sluit de USB-kabel opnieuw aan.",
   "devices.lianli-wireless.linkTxMissing": "Alleen de ontvanger van de controller is gedetecteerd. Sluit de USB-kabel opnieuw aan.",
   "devices.lianli-wireless.loadingScreens": "Schermen laden…",
+  "devices.lianli-wireless.lockBlocksPairing": "Schakel 'Gekoppelde apparaten vergrendelen' uit om apparaten te koppelen of te ontkoppelen.",
   "devices.lianli-wireless.lockBoundDevices": "Gekoppelde apparaten vergrendelen",
   "devices.lianli-wireless.lockBoundDevicesHint": "Koppelt je ventilatoren en Strimers automatisch opnieuw aan deze controller als de verbinding wegvalt. Schakel uit om het koppelen handmatig te beheren.",
   "devices.lianli-wireless.managePanel": "Paneel beheren",

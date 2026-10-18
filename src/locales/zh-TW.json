@@ -904,6 +904,7 @@
   "devices.lianli-wireless.linkRxMissing": "僅偵測到控制器的傳送端。請重新連接其 USB 連接線。",
   "devices.lianli-wireless.linkTxMissing": "僅偵測到控制器的接收端。請重新連接其 USB 連接線。",
   "devices.lianli-wireless.loadingScreens": "正在載入螢幕…",
+  "devices.lianli-wireless.lockBlocksPairing": "關閉「鎖定已配對裝置」後才能配對或取消配對裝置。",
   "devices.lianli-wireless.lockBoundDevices": "鎖定已配對裝置",
   "devices.lianli-wireless.lockBoundDevicesHint": "風扇或 Strimer 斷線時，自動重新與此控制器配對。關閉後可手動管理配對。",
   "devices.lianli-wireless.managePanel": "管理面板",

@@ -140,6 +140,22 @@ describe('LianLiWirelessFansTab', () => {
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
     });
 
+    it('disables bind and unbind and shows the hint once while locked', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...on, fans: [boundFan, unbound] });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeDisabled();
+      expect(screen.getAllByText('devices.lianli-wireless.lockBlocksPairing')).toHaveLength(1);
+    });
+
+    it('enables bind and unbind and hides the hint while unlocked', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...off, fans: [boundFan, unbound] });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeDisabled();
+      expect(screen.queryByText('devices.lianli-wireless.lockBlocksPairing')).not.toBeInTheDocument();
+    });
+
     it('renders unchecked and disabled before the state loads', async () => {
       await renderTab(null);
       expect(lockSwitch()).toBeDisabled();

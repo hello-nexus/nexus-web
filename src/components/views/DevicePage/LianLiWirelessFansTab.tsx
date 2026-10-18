@@ -20,6 +20,8 @@ import styles from './LianLiWirelessDevicePage.module.scss';
 const BIND_PENDING_TIMEOUT_MS = 10000;
 
 
+const LOCK_HINT_ID = 'lianli-wireless-lock-hint';
+
 type BindAction = 'bind' | 'unbind';
 
 /** Fan subtype (fans_type[0]) -> i18n key suffix naming the product line; same ranges as the service's fan families. */
@@ -151,18 +153,21 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
     });
   }, [state, clearPendingTimeout]);
 
+  const serviceLocked = state?.lockBoundDevices !== false;
+
   const handleBind = useCallback((mac: string) => {
+    if (serviceLocked) return;
     startPending(mac, 'bind');
     void bindLianLiWirelessFan(mac).then(() => { void refresh(); });
-  }, [startPending, refresh]);
+  }, [serviceLocked, startPending, refresh]);
 
   const handleUnbindConfirmed = useCallback(() => {
     const mac = unbindTarget;
     setUnbindTarget(null);
-    if (!mac) return;
+    if (!mac || serviceLocked) return;
     startPending(mac, 'unbind');
     void unbindLianLiWirelessFan(mac).then(() => { void refresh(); });
-  }, [unbindTarget, startPending, refresh]);
+  }, [unbindTarget, serviceLocked, startPending, refresh]);
 
   const handleIdentify = useCallback((mac: string) => {
     setIdentifying(prev => ({ ...prev, [mac]: true }));
@@ -225,6 +230,9 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
         title={t('devices.lianli-wireless.devicesSection')}
         boxClassName={styles.sectionBox}
       >
+        {lockBound && (
+          <p id={LOCK_HINT_ID} className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.lockBlocksPairing')}</p>
+        )}
         {loaded && state.fans.length > 0
           ? state.fans.map(fan => (
             <DeviceRow
@@ -232,6 +240,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
               fan={fan}
               pending={pending[fan.mac]}
               identifying={!!identifying[fan.mac]}
+              pairingLocked={lockBound || lockPending !== null}
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
@@ -257,6 +266,7 @@ function DeviceRow({
   fan,
   pending,
   identifying,
+  pairingLocked,
   onBind,
   onUnbindRequest,
   onIdentify,
@@ -265,6 +275,7 @@ function DeviceRow({
   fan: LianLiWirelessFan;
   pending: BindAction | undefined;
   identifying: boolean;
+  pairingLocked: boolean;
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
@@ -300,11 +311,11 @@ function DeviceRow({
       )}
     >
       {fan.boundToUs ? (
-        <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
+        <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? LOCK_HINT_ID : undefined} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
         </Button>
       ) : (
-        <Button size="sm" tone="accent" disabled={busy} onClick={() => onBind(fan.mac)}>
+        <Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? LOCK_HINT_ID : undefined} onClick={() => onBind(fan.mac)}>
           {bindLabel}
         </Button>
       )}
