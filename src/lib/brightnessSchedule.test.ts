@@ -103,7 +103,7 @@ describe('sun levels', () => {
   });
 
   describe('when sunset comes before sunrise on the clock', () => {
-    // Sunrise 21:30, sunset 11:50 next day; the service's points mod 1440, sorted.
+    // Sunset falls before sunrise on the clock; points wrapped and sorted as the service sends them.
     const sun = {
       status: 'ok' as const, date: '2026-03-05', sunriseMin: 1290, sunsetMin: 710, resolvedLocation: null, autoLocation: null,
       sunPoints: [590, 710, 770, 1230, 1290, 1410].map(min => ({ min, brightness: 1 })),

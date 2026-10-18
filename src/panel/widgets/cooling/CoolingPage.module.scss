@@ -1,4 +1,5 @@
 @use '../../../styles/interactions' as *;
+@use '../../../styles/text' as *;
 @use '../../styles/flexGap' as *;
 // Two-column shape (mirrors LightingPage): main pane on the left holds the
 // trend chart + curves list; the right sidebar holds the fan cards. The
@@ -1158,8 +1159,8 @@
   gap: 3px;
   padding: 0 4px;
   transform: translateX(-50%);
+  @include text-caption;
   color: var(--text-dim);
-  font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   background: var(--bg);
