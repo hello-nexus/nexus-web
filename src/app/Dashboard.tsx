@@ -987,6 +987,7 @@ export function Dashboard() {
           onDeviceSelect={k => navigate('system', 'device', k)}
           tab={subtab}
           onTabChange={setSubtab}
+          onOpenLighting={() => navigate('system', 'lighting')}
         />
       );
       case 'device':     return (

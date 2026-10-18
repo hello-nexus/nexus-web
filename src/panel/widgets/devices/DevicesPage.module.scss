@@ -87,6 +87,11 @@
 /* Device glyph rendered as a CSS mask so the icon colour tracks the theme
    text colour (off-white on dark, ink on light). The dynamic SVG URL comes
    in through --icon-url, set inline on the element. */
+.rowIconTile > .rowGlyph {
+  width: 28px;
+  height: 28px;
+}
+
 .rowIcon {
   display: block;
   width: 28px;

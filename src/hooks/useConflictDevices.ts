@@ -24,7 +24,7 @@ interface ConflictDeviceGroup extends ConflictDevice {
 
 const LIGHTING_POLL_MS = 3000;
 
-function lightingGroupName(cards: readonly LightingDevice[], deviceId: string): string {
+export function lightingGroupName(cards: readonly LightingDevice[], deviceId: string): string {
   const whole = cards.find(c => c.id === deviceId);
   if (whole) return whole.name;
   // Zone cards are named "<device> - <zone>"; show the device once, not every header.

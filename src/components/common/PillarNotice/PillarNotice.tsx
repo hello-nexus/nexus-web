@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Info } from 'lucide-react';
 import { SettingRow } from '../SettingRow/SettingRow';
 
@@ -7,10 +8,12 @@ import { SettingRow } from '../SettingRow/SettingRow';
  * hit for a hidden setting scrolls to this notice instead of finding nothing
  * (see search/scroll.ts).
  */
-export function PillarNotice({ message, anchors }: { message: string; anchors: readonly string[] }) {
+export function PillarNotice({ message, anchors, action }: { message: string; anchors: readonly string[]; action?: ReactNode }) {
   return (
     <div data-search-fallback={anchors.join(' ')}>
-      <SettingRow icon={<Info />} iconLeading="subtle" description={<span role="status">{message}</span>} />
+      <SettingRow icon={<Info />} iconLeading="subtle" description={<span role="status">{message}</span>}>
+        {action}
+      </SettingRow>
     </div>
   );
 }
