@@ -176,6 +176,22 @@ describe('LianLiWirelessDevicePage', () => {
     expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
   });
 
+  it('drops a state read that was sent earlier but resolved after a newer one', async () => {
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText('8')).toBeInTheDocument();
+    let resolveSlow: (v: unknown) => void = () => {};
+    mockGetLianLiWirelessState.mockImplementationOnce(() => new Promise(r => { resolveSlow = r; }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, channel: 9 });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(screen.getByText('9')).toBeInTheDocument();
+    await act(async () => { resolveSlow({ ...connectedState, channel: 7 }); });
+    expect(screen.getByText('9')).toBeInTheDocument();
+    expect(screen.queryByText('7')).not.toBeInTheDocument();
+  });
+
   it('shows the bound badge for a fan bound to us', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);

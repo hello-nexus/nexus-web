@@ -77,8 +77,10 @@ export function deviceTypeKey(devType: number, fanType: number):
 
 export interface LianLiWirelessFansTabProps {
   state: LianLiWirelessState | null;
-  /** When the GET that produced `state` was sent. */
-  stateSentAt?: number;
+  /** Send-order number of the GET that produced `state`. */
+  stateSeq?: number;
+  /** Send-order number of the most recently sent state GET. */
+  readSentSeq?: () => number;
   refresh: () => Promise<void>;
   /** Opens the panel page of a device that has one, by MAC; undefined when it has none. */
   panelOpener?: (mac: string) => (() => void) | undefined;
@@ -89,7 +91,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, stateSentAt, refresh, panelOpener }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, stateSeq, readSentSeq, refresh, panelOpener }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -181,29 +183,33 @@ export function LianLiWirelessFansTab({ state, stateSentAt, refresh, panelOpener
 
   const loaded = state !== null;
 
-  // Optimistic lock value. `resolvedAt` is null while its PUT is queued or in flight; once the PUT
+  // Optimistic lock value. `resolvedSeq` is null while its PUT is queued or in flight; once the PUT
   // succeeds the value is held until a state read sent after that moment arrives.
-  const [lockOverride, setLockOverride] = useState<{ value: boolean; resolvedAt: number | null } | null>(null);
+  const [lockOverride, setLockOverride] = useState<{ value: boolean; resolvedSeq: number | null } | null>(null);
   const lockSeqRef = useRef(0);
   const lockChainRef = useRef<Promise<void>>(Promise.resolve());
   const serviceLock = state?.lockBoundDevices !== false;
   useEffect(() => {
-    if (!lockOverride || lockOverride.resolvedAt === null) return;
-    const fresh = stateSentAt === undefined ? serviceLock === lockOverride.value : stateSentAt > lockOverride.resolvedAt;
+    if (!lockOverride || lockOverride.resolvedSeq === null) return;
+    const fresh = stateSeq === undefined ? serviceLock === lockOverride.value : stateSeq > lockOverride.resolvedSeq;
     if (fresh) setLockOverride(null);
-  }, [serviceLock, stateSentAt, lockOverride]);
+  }, [serviceLock, stateSeq, lockOverride]);
   const lockBound = loaded && (lockOverride?.value ?? serviceLock);
   // PUTs run one at a time and a superseded click is dropped, so the last click is what persists.
   const onLockChange = useCallback((next: boolean) => {
     const seq = ++lockSeqRef.current;
-    setLockOverride({ value: next, resolvedAt: null });
+    setLockOverride({ value: next, resolvedSeq: null });
     lockChainRef.current = lockChainRef.current.then(async () => {
       if (seq !== lockSeqRef.current) return;
-      const ok = await setLianLiWirelessLockBound(next);
-      if (!aliveRef.current || seq !== lockSeqRef.current) return;
-      setLockOverride(ok ? { value: next, resolvedAt: Date.now() } : null);
+      // A throw counts as a failed PUT and must not leave the chain rejected.
+      const ok = await setLianLiWirelessLockBound(next).catch(() => false);
+      if (!aliveRef.current) return;
+      // A failure, even of a replaced PUT, re-reads the service so the toggle shows what persisted.
+      if (!ok) void refresh();
+      if (seq !== lockSeqRef.current) return;
+      setLockOverride(ok ? { value: next, resolvedSeq: readSentSeq?.() ?? 0 } : null);
     });
-  }, []);
+  }, [refresh, readSentSeq]);
 
   return (
     <>
