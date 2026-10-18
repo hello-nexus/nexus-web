@@ -17,3 +17,18 @@ export function hiddenCardIds(res: { devices: { id: string }[]; allDevices?: { i
   return new Set((res.allDevices ?? []).filter(d => !shown.has(d.id)).map(d => d.id));
 }
 
+
+/** The saved card order against the service's ids: drops ids that are gone, keeps hidden ones in place, appends new ones. */
+export function reconcileDeviceOrder(prev: readonly string[], ids: readonly string[], hidden: ReadonlySet<string>): string[] {
+  const live = new Set(ids);
+  const kept = prev.filter(id => live.has(id) || hidden.has(id));
+  for (const id of ids) if (!kept.includes(id)) kept.push(id);
+  return kept.length === prev.length && kept.every((id, i) => id === prev[i]) ? [...prev] : kept;
+}
+
+/** A refreshed list that leaves already-listed cards as they were and only appends cards that just arrived. */
+export function appendNewCards<T extends { id: string }>(prev: readonly T[], fresh: readonly T[]): T[] {
+  const freshIds = new Set(fresh.map(c => c.id));
+  const listed = new Set(prev.map(c => c.id));
+  return [...prev.filter(c => freshIds.has(c.id)), ...fresh.filter(c => !listed.has(c.id))];
+}

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { hiddenCardIds } from '../lib/lightingVisibility';
+import { appendNewCards, hiddenCardIds, reconcileDeviceOrder } from '../lib/lightingVisibility';
 
 let rgbRunning: boolean | null = true;
 const fetchServiceMock = vi.fn(async (path: string) => {
@@ -70,5 +70,22 @@ describe('hiddenCardIds', () => {
     const res = { devices: [{ id: 'keeb' }], allDevices: [{ id: 'keeb' }, { id: 'openrgb-s-1' }] };
     expect([...hiddenCardIds(res)]).toEqual(['openrgb-s-1']);
     expect([...hiddenCardIds({ devices: [{ id: 'keeb' }] })]).toEqual([]);
+  });
+});
+
+describe('reconcileDeviceOrder', () => {
+  it('keeps hidden OpenRGB ids at their place, drops gone ones, appends new ones', () => {
+    const order = reconcileDeviceOrder(['openrgb-1', 'keeb', 'gone', 'openrgb-2'], ['keeb', 'new'], new Set(['openrgb-1', 'openrgb-2']));
+    expect(order).toEqual(['openrgb-1', 'keeb', 'openrgb-2', 'new']);
+  });
+});
+
+describe('appendNewCards', () => {
+  it('leaves listed cards in order and as the same objects, appending only new arrivals', () => {
+    const a = { id: 'a', n: 1 }; const b = { id: 'b', n: 1 };
+    const out = appendNewCards([a, b], [{ id: 'b', n: 2 }, { id: 'c', n: 2 }, { id: 'a', n: 2 }]);
+    expect(out.map(c => c.id)).toEqual(['a', 'b', 'c']);
+    expect(out[0]).toBe(a);
+    expect(out[1]).toBe(b);
   });
 });

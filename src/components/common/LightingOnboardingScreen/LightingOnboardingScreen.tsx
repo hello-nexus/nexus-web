@@ -19,6 +19,7 @@ import { paletteColor, paletteKey } from '../../../types/lightingPalette';
 import { SIMPLE_ANIMATION_KEYS, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
+import { appendNewCards } from '../../../lib/lightingVisibility';
 import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
@@ -95,6 +96,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // at all. Simple drives everything, so there is nothing here to choose.
   const [mode, setMode] = useState<'simple' | 'advanced'>('simple');
   const updateUiSettings = useUiSettingsUpdateSafe();
+  const awaitingRgbRef = useRef(false);
   const devicesRef = useRef<LightingDevice[] | null>(null);
   devicesRef.current = devices;
   // What the user asked for per device, held until the service reports it.
@@ -148,7 +150,8 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
           if ((d.controlled !== false) === want) { intents.delete(d.id); return d; }
           return { ...d, controlled: want };
         });
-        setDevices(fresh);
+        // While OpenRGB is still starting, listed cards stay put and only new ones are appended.
+        setDevices(prev => (awaitingRgbRef.current && prev && prev.length > 0 ? appendNewCards(prev, fresh) : fresh));
       }
       // isInit=false with the RGB subprocess up means the bridge is still
       // coming online: treat it as scanning so a fresh boot shows progress,
@@ -165,6 +168,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // keeps rebuilding the list underneath the user, which reorders the cards
   // and makes a click land on a card object that no longer exists.
   const awaitingRgb = lightingOn && !rgbUp && !rgbWaitOver;
+  awaitingRgbRef.current = awaitingRgb;
   const settled = devices !== null && devices.length > 0 && !scanning && !awaitingRgb;
   useEffect(() => {
     if (!open || !awaitingRgb) return;
