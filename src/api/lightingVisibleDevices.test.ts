@@ -81,7 +81,7 @@ describe('reconcileDeviceOrder', () => {
 });
 
 describe('appendNewCards', () => {
-  it('keeps the shown order with each kept card's fresh state, appending only new arrivals', () => {
+  it('keeps the shown order with fresh state for each kept card, appending only new arrivals', () => {
     const a = { id: 'a', n: 1 }; const b = { id: 'b', n: 1 };
     // n stands for upstream state such as `controlled`.
     const out = appendNewCards([a, b], [{ id: 'b', n: 2 }, { id: 'c', n: 2 }, { id: 'a', n: 2 }]);
