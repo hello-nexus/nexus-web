@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import vectors from './sunsetShiftVectors.json';
-import { localDateKey, minuteOfDay, scheduledBrightness, sunCurve } from './brightnessSchedule';
+import { dragSunLevels, localDateKey, minuteOfDay, scheduledBrightness, sunCurve, sunRole, sunRoleLevel } from './brightnessSchedule';
 
 // Vectors shared with nexus-service's MasterBrightnessTests: both sides
 // evaluate the same rule, so the slider's readout and the LEDs never
@@ -83,6 +83,35 @@ describe('sunCurve', () => {
 
 // Shared with nexus-service: the generated points and the level the service
 // reads from them at sample minutes.
+describe('sun levels', () => {
+  const sunTimes = { sunriseMin: 420, sunsetMin: 1140 };
+  it('tells night, day and the locked sunrise and sunset points apart', () => {
+    expect([360, 420, 540, 1020, 1140, 1200].map(m => sunRole(m, sunTimes)))
+      .toEqual(['night', 'mid', 'day', 'day', 'mid', 'night']);
+  });
+
+  it('puts the sunrise and sunset points midway between night and day', () => {
+    expect(sunRoleLevel('mid', { night: 10, day: 100 })).toBe(55);
+    expect(sunRoleLevel('mid', { night: 20, day: 61 })).toBe(41);
+  });
+
+  it('keeps a dragged level within 0..100 and night at or below day', () => {
+    expect(dragSunLevels('night', 90, { night: 10, day: 60 })).toEqual({ night: 60, day: 60 });
+    expect(dragSunLevels('day', 5, { night: 10, day: 60 })).toEqual({ night: 10, day: 10 });
+    expect(dragSunLevels('day', 140, { night: 10, day: 60 })).toEqual({ night: 10, day: 100 });
+    expect(dragSunLevels('night', -8, { night: 10, day: 60 })).toEqual({ night: 0, day: 60 });
+  });
+
+  it('re-levels the generated points locally, x unchanged', () => {
+    const sun = {
+      status: 'ok' as const, date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, resolvedLocation: null, autoLocation: null,
+      sunPoints: [360, 420, 540, 1020, 1140, 1200].map(min => ({ min, brightness: 1 })),
+    };
+    expect(sunCurve(true, sun, { night: 20, day: 80 })!.map(p => p.brightness)).toEqual([20, 50, 80, 80, 50, 20]);
+    expect(sunCurve(true, sun)!.map(p => p.brightness)).toEqual([1, 1, 1, 1, 1, 1]);
+  });
+});
+
 describe('sun curve vectors shared with the service', () => {
   it.each(vectors.map((v, i) => [i, v] as const))('case %i agrees at every sample', (_i, v) => {
     const curve = sunCurve(true, {

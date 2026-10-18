@@ -18,14 +18,49 @@ export function localDateKey(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/** Out-of-box night and day levels of the generated curve. */
+export const SUN_DEFAULT_NIGHT = 10;
+export const SUN_DEFAULT_DAY = 100;
+
+export interface SunLevels { night: number; day: number }
+/** Night points flank the dark hours, day points the lit ones, and the points
+ *  at sunrise and sunset sit midway between the two levels. */
+export type SunRole = 'night' | 'mid' | 'day';
+
+const ROLE_EPSILON_MIN = 0.01;
+
+/** Which level a generated point follows, from where it sits against today's sun. */
+export function sunRole(min: number, sun: { sunriseMin: number | null; sunsetMin: number | null }): SunRole {
+  const { sunriseMin: r, sunsetMin: s } = sun;
+  if (r === null || s === null) return 'night';
+  if (Math.abs(min - r) < ROLE_EPSILON_MIN || Math.abs(min - s) < ROLE_EPSILON_MIN) return 'mid';
+  return min > r && min < s ? 'day' : 'night';
+}
+
+export function sunRoleLevel(role: SunRole, levels: SunLevels): number {
+  return role === 'night' ? levels.night : role === 'day' ? levels.day : Math.round((levels.night + levels.day) / 2);
+}
+
+/** A night or day level after a drag, kept within 0..100 and night <= day. */
+export function dragSunLevels(role: 'night' | 'day', value: number, levels: SunLevels): SunLevels {
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  return role === 'night' ? { night: Math.min(v, levels.day), day: levels.day } : { night: levels.night, day: Math.max(v, levels.night) };
+}
+
 /**
- * The curve the service plays instead of the user's points while the sunset
- * shift is on: today's generated points, hour in fractional hours. Null when
- * the shift is off or there is nothing usable, so the user's curve plays.
+ * The curve the service plays instead of the user's points while Daylight sync
+ * is on: today's generated points, hour in fractional hours. Null when it is
+ * off or there is nothing usable, so the user's curve plays. `levels` re-levels
+ * the points locally (a drag the service has not answered yet).
  */
-export function sunCurve(sunShift: boolean, sun: BrightnessScheduleSun | null | undefined): BrightnessSchedulePoint[] | null {
+export function sunCurve(
+  sunShift: boolean, sun: BrightnessScheduleSun | null | undefined, levels?: SunLevels,
+): BrightnessSchedulePoint[] | null {
   if (!sunShift || !sun || sun.status !== 'ok' || !sun.sunPoints || sun.sunPoints.length === 0) return null;
-  return sun.sunPoints.map(p => ({ hour: p.min / 60, brightness: p.brightness }));
+  return sun.sunPoints.map(p => ({
+    hour: p.min / 60,
+    brightness: levels ? sunRoleLevel(sunRole(p.min, sun), levels) : p.brightness,
+  }));
 }
 
 /**

@@ -770,6 +770,9 @@ export interface BrightnessScheduleSun {
 export interface BrightnessScheduleResponse extends BrightnessSchedule {
   defaults: BrightnessSchedulePoint[];
   sunShift: boolean;
+  /** Levels (0..100) of the generated curve; night <= day. */
+  sunNight: number;
+  sunDay: number;
   location: BrightnessScheduleLocation | null;
   sun: BrightnessScheduleSun;
 }
@@ -777,6 +780,8 @@ export interface BrightnessScheduleResponse extends BrightnessSchedule {
 export interface BrightnessScheduleUpdate extends BrightnessSchedule {
   sunShift?: boolean;
   location?: BrightnessScheduleLocation | null;
+  sunNight?: number;
+  sunDay?: number;
 }
 
 export const fetchBrightnessSchedule = () =>

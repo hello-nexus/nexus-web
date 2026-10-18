@@ -4,11 +4,21 @@ import {
   type BrightnessSchedule, type BrightnessScheduleLocation, type BrightnessSchedulePoint,
   type BrightnessScheduleResponse, type BrightnessScheduleSun,
 } from '../api/lighting';
-import { localDateKey, minuteOfDay, scheduledBrightness, sunCurve } from '../lib/brightnessSchedule';
+import {
+  localDateKey, minuteOfDay, scheduledBrightness, SUN_DEFAULT_DAY, SUN_DEFAULT_NIGHT, sunCurve,
+  type SunLevels,
+} from '../lib/brightnessSchedule';
 import { useTopicCallback } from './useMultiplexSocket';
 
 // Longest a write may stay unanswered before refetches stop waiting for it.
 const WRITE_TIMEOUT_MS = 10_000;
+
+export interface SunPatch {
+  sunShift?: boolean;
+  location?: BrightnessScheduleLocation | null;
+  sunNight?: number;
+  sunDay?: number;
+}
 
 export interface BrightnessScheduleState {
   /** Null until the first fetch resolves. */
@@ -30,8 +40,10 @@ export interface BrightnessScheduleState {
   /** Today's generated curve, which replaces the user's points while the
    *  shift is on; null when the user's curve plays (shift off or no sun). */
   sunPoints: BrightnessSchedulePoint[] | null;
-  /** Change the sunset shift or its location; the schedule itself is kept. */
-  saveSun: (patch: { sunShift?: boolean; location?: BrightnessScheduleLocation | null }) => Promise<void>;
+  /** Night and day levels of the generated curve. */
+  sunLevels: SunLevels;
+  /** Change Daylight sync, its location or its levels; the schedule itself is kept. */
+  saveSun: (patch: SunPatch) => Promise<void>;
   /** Persist a new schedule. Optimistic: the state updates before the POST
    *  answers, and the `lighting` topic push re-syncs it either way. */
   save: (next: BrightnessSchedule) => Promise<void>;
@@ -48,6 +60,10 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
   const [sunShift, setSunShift] = useState(true);
   const [location, setLocation] = useState<BrightnessScheduleLocation | null>(null);
   const [sun, setSun] = useState<BrightnessScheduleSun | null>(null);
+  const [sunLevels, setSunLevels] = useState<SunLevels>({ night: SUN_DEFAULT_NIGHT, day: SUN_DEFAULT_DAY });
+  // The levels the service generated `sun.sunPoints` with; a local edit differs
+  // from them until the service answers.
+  const [servedLevels, setServedLevels] = useState<SunLevels>({ night: SUN_DEFAULT_NIGHT, day: SUN_DEFAULT_DAY });
   const [minute, setMinute] = useState(() => minuteOfDay());
 
   // A GET that began before a local write, or that lands while one is still
@@ -64,6 +80,9 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
     setSunShift(data.sunShift !== false);
     setLocation(data.location ?? null);
     setSun(data.sun ?? null);
+    const levels = { night: data.sunNight ?? SUN_DEFAULT_NIGHT, day: data.sunDay ?? SUN_DEFAULT_DAY };
+    setSunLevels(levels);
+    setServedLevels(levels);
   }, []);
 
   const refresh = useCallback(() => {
@@ -136,15 +155,21 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
 
   // The service takes the schedule with every write, so a sun change sends the
   // current one along; the sun fields it leaves out stay as stored.
-  const saveSun = useCallback(async (patch: { sunShift?: boolean; location?: BrightnessScheduleLocation | null }) => {
+  const saveSun = useCallback(async (patch: SunPatch) => {
     if (!schedule) return;
     await write(() => {
       if (patch.sunShift !== undefined) setSunShift(patch.sunShift);
       if (patch.location !== undefined) setLocation(patch.location);
+      if (patch.sunNight !== undefined || patch.sunDay !== undefined) {
+        setSunLevels(prev => ({ night: patch.sunNight ?? prev.night, day: patch.sunDay ?? prev.day }));
+      }
     }, { enabled: schedule.enabled, points: schedule.points, ...patch });
   }, [schedule, write]);
 
-  const sunPoints = useMemo(() => sunCurve(sunShift, sun), [sunShift, sun]);
+  const sunPoints = useMemo(() => {
+    const edited = sunLevels.night !== servedLevels.night || sunLevels.day !== servedLevels.day;
+    return sunCurve(sunShift, sun, edited ? sunLevels : undefined);
+  }, [sunShift, sun, sunLevels, servedLevels]);
   const current = schedule?.enabled ? Math.round(scheduledBrightness(sunPoints ?? schedule.points, minute)) : null;
-  return { schedule, defaults, current, minute, sunShift, location, sun, sunPoints, saveSun, save };
+  return { schedule, defaults, current, minute, sunShift, location, sun, sunPoints, sunLevels, saveSun, save };
 }

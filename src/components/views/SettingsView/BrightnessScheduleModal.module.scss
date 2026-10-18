@@ -16,7 +16,19 @@
   font-weight: var(--weight-body);
 }
 
-// The two hint lines overlap in one grid cell; the hidden one still sizes it.
+// Everything the schedule owns; dimmed and inert while the schedule is off.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+
+  &[data-off] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+// The hint lines overlap in one grid cell; the hidden one still sizes it.
 .hints {
   display: grid;
 

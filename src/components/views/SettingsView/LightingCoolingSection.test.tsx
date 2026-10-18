@@ -263,8 +263,14 @@ describe('LightingCoolingSection brightness schedule', () => {
   });
 
   it('saves one point per hour, mapping the right edge onto the last hour', async () => {
+    // The graph is only editable while the schedule is on.
+    lightingApi.fetchBrightnessSchedule.mockResolvedValue({
+      enabled: true,
+      points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+      defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+    });
     render(<LightingCoolingSection serviceOnline platform="windows" />);
-    await screen.findByText('lighting.schedule.row.off');
+    await screen.findByText('lighting.schedule.row.on');
     fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
 
     // jsdom has no layout, so drive the graph's commit through a real drag on
@@ -281,7 +287,7 @@ describe('LightingCoolingSection brightness schedule', () => {
     fireEvent.pointerUp(noon, { pointerId: 1 });
 
     expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
-      enabled: false,
+      enabled: true,
       points: [{ hour: 0, brightness: 20 }, { hour: 23, brightness: 100 }],
     });
 
@@ -293,7 +299,7 @@ describe('LightingCoolingSection brightness schedule', () => {
     fireEvent.pointerMove(first, { pointerId: 2, clientX: 600, clientY: 70 });
     fireEvent.pointerUp(first, { pointerId: 2 });
     expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
-      enabled: false,
+      enabled: true,
       points: [{ hour: 23, brightness: 100 }],
     });
   });

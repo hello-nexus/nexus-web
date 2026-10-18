@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CurveGraph } from './CurveEditor';
 
@@ -144,5 +144,46 @@ describe('CurveGraph axis', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  describe('verticalDrag', () => {
+    const pts = [{ temp: 2, speed: 10 }, { temp: 6, speed: 50 }, { temp: 12, speed: 100 }];
+    const drag = {
+      isLocked: (p: { temp: number }) => p.temp === 6,
+      apply: (all: { temp: number; speed: number }[], i: number, speed: number) =>
+        all.map((p, k) => (k === i || (i === 0 && k === 2) ? { ...p, speed } : p)),
+    };
+    const setup = (onChange = vi.fn()) => {
+      vi.spyOn(SVGSVGElement.prototype, 'getBoundingClientRect')
+        .mockReturnValue({ left: 0, top: 0, width: 400, height: 140, right: 400, bottom: 140, x: 0, y: 0, toJSON: () => ({}) });
+      Element.prototype.setPointerCapture = vi.fn();
+      const view = render(<CurveGraph points={pts} tempMin={0} tempMax={24} editable verticalDrag={drag} onChange={onChange} />);
+      const handles = Array.from(view.container.querySelectorAll('circle[class*="curvePoint"]')) as SVGCircleElement[];
+      return { ...view, handles, onChange };
+    };
+
+    it('draws locked points as inert dots and the rest as vertical handles', () => {
+      const { handles } = setup();
+      expect(handles.map(h => h.getAttribute('r'))).toEqual(['7', '3', '7']);
+      expect(handles.map(h => h.style.cursor)).toEqual(['ns-resize', '', 'ns-resize']);
+    });
+
+    it('commits the group a drag returns, with x unchanged and previews on the way', () => {
+      const { handles, onChange } = setup();
+      fireEvent.pointerDown(handles[0]);
+      fireEvent.pointerMove(handles[0], { clientX: 300, clientY: 82.4 });
+      fireEvent.pointerUp(handles[0]);
+      expect(onChange).toHaveBeenCalledWith([{ temp: 2, speed: 40 }, { temp: 6, speed: 50 }, { temp: 12, speed: 40 }]);
+    });
+
+    it('ignores a drag on a locked point and never adds or removes points', () => {
+      const { handles, onChange, container } = setup();
+      fireEvent.pointerDown(handles[1]);
+      fireEvent.pointerMove(handles[1], { clientX: 100, clientY: 20 });
+      fireEvent.pointerUp(handles[1]);
+      fireEvent.doubleClick(container.querySelector('svg[preserveAspectRatio]')!, { clientX: 200, clientY: 60 });
+      fireEvent.contextMenu(handles[0]);
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 });

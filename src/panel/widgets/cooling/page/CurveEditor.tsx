@@ -193,6 +193,15 @@ export interface CurveGraphMarker {
   icon?: ReactNode;
 }
 
+/** Drag rules for a curve whose x positions are fixed: only the vertical
+ *  position of a point moves, `apply` returns the whole new point set for a
+ *  dragged point (so one drag can move a group), and points can be neither
+ *  added nor removed. Locked points are drawn as inert dots. */
+export interface CurveGraphVerticalDrag {
+  isLocked: (point: CurvePoint, index: number) => boolean;
+  apply: (points: CurvePoint[], index: number, speed: number) => CurvePoint[];
+}
+
 // Samples across the chart width for a drawn curve; one every few pixels at
 // the widest chart, invisible as a polyline.
 const SHAPE_SAMPLES = 192;
@@ -231,7 +240,7 @@ function sampleCurveShape(
 // piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers, readOnly = false,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers, readOnly = false, verticalDrag,
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -251,6 +260,8 @@ export function CurveGraph({
   markers?: CurveGraphMarker[];
   /** Points are drawn as small inert dots instead of handles. */
   readOnly?: boolean;
+  /** Fixed-x editing: see CurveGraphVerticalDrag. Ignored unless `editable`. */
+  verticalDrag?: CurveGraphVerticalDrag;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -372,7 +383,7 @@ export function CurveGraph({
     };
   };
   const onHandleDown = (idx: number, e: React.PointerEvent) => {
-    if (!editable) return;
+    if (!editable || (verticalDrag && verticalDrag.isLocked(sorted[idx], idx))) return;
     e.preventDefault(); e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
     dragIdxRef.current = idx;
@@ -382,6 +393,12 @@ export function CurveGraph({
     const i = dragIdxRef.current;
     if (i === null) return;
     const base = (dragPoints ?? sorted).slice().sort((a, b) => a.temp - b.temp);
+    if (verticalDrag) {
+      const next = verticalDrag.apply(base, i, Math.round(Math.max(0, Math.min(100, pointerToData(e).speed))));
+      setDragPoints(next);
+      onPreview?.(next);
+      return;
+    }
     const lo = i > 0 ? base[i - 1].temp : tempMin;
     const hi = i < base.length - 1 ? base[i + 1].temp : tempMax;
     const { temp, speed } = pointerToData(e);
@@ -411,7 +428,7 @@ export function CurveGraph({
   // land in 0-100 / tempMin-tempMax. Removal floors at 2 points. Both abandon
   // any in-flight drag so a stale dragIdx can't write into the new point set.
   const onAddPoint = (e: React.MouseEvent) => {
-    if (!editable || !onChange) return;
+    if (!editable || !onChange || verticalDrag) return;
     const { temp, speed } = pointerToData(e);
     dragIdxRef.current = null; setDragPoints(null); setHoverIdx(null);
     onChange([...sorted, {
@@ -422,7 +439,7 @@ export function CurveGraph({
   const onRemovePoint = (idx: number, e: React.MouseEvent) => {
     if (!editable || !onChange) return;
     e.preventDefault();
-    if (sorted.length <= 2) return;
+    if (verticalDrag || sorted.length <= 2) return;
     dragIdxRef.current = null; setDragPoints(null); setHoverIdx(null);
     onChange(sorted.filter((_, i) => i !== idx));
   };
@@ -454,7 +471,7 @@ export function CurveGraph({
         <div className={styles.curveChartArea}>
           <div ref={chartAreaRef} className={styles.curveSvgWrap}>
           <svg ref={svgRef} className={styles.curveGraph} style={{ height, touchAction: editable ? 'none' : undefined }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
-            onDoubleClick={editable ? onAddPoint : undefined}>
+            onDoubleClick={editable && !verticalDrag ? onAddPoint : undefined}>
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
             {vLines.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
             <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
@@ -477,17 +494,20 @@ export function CurveGraph({
                 <circle cx={dotX} cy={dotY} r={4} className={styles.tempDot} />
               </g>
             )}
-            {showPoints && sorted.map((p, i) => (
-              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={readOnly ? 3 : editable ? 7 : 6}
-                className={readOnly ? styles.curvePointStatic : styles.curvePoint}
-                style={editable ? { cursor: 'grab' } : undefined}
+            {showPoints && sorted.map((p, i) => {
+              const locked = readOnly || (editable && !!verticalDrag?.isLocked(p, i));
+              return (
+              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={locked ? 3 : editable ? 7 : 6}
+                className={locked ? styles.curvePointStatic : styles.curvePoint}
+                style={editable && !locked ? { cursor: verticalDrag ? 'ns-resize' : 'grab' } : undefined}
                 onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
                 onPointerMove={editable ? onHandleMove : undefined}
                 onPointerUp={editable ? onHandleUp : undefined}
                 onPointerEnter={editable ? () => setHoverIdx(i) : undefined}
                 onPointerLeave={editable ? () => setHoverIdx(null) : undefined}
                 onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined} />
-            ))}
+              );
+            })}
           </svg>
           {markers && markers.length > 0 && (
             <div className={styles.curveMarkers} aria-hidden="true">

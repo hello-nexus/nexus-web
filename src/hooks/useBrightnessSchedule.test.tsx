@@ -77,6 +77,24 @@ describe('useBrightnessSchedule sun writes', () => {
     expect(result.current.location).toEqual(OSLO);
   });
 
+  it('re-levels the curve at once on a night or day drag and adopts the answer', async () => {
+    const sun = { status: 'ok', date: localDateKey(), sunriseMin: 420, sunsetMin: 1140, resolvedLocation: null, autoLocation: null,
+      sunPoints: [360, 420, 540, 1020, 1140, 1200].map((min, i) => ({ min, brightness: [10, 55, 100, 100, 55, 10][i] })) };
+    api.fetchBrightnessSchedule.mockResolvedValue(state({ sun, sunNight: 10, sunDay: 100 }));
+    const { result } = renderHook(() => useBrightnessSchedule(true));
+    await waitFor(() => expect(result.current.sunPoints).not.toBeNull());
+    let answer: (v: unknown) => void = () => {};
+    api.setBrightnessSchedule.mockReturnValue(new Promise(r => { answer = r; }));
+    let done: Promise<void> = Promise.resolve();
+    act(() => { done = result.current.saveSun({ sunNight: 30 }); });
+    expect(result.current.sunLevels).toEqual({ night: 30, day: 100 });
+    expect(result.current.sunPoints!.map(p => p.brightness)).toEqual([30, 65, 100, 100, 65, 30]);
+    expect(api.setBrightnessSchedule).toHaveBeenCalledWith(expect.objectContaining({ sunNight: 30 }));
+    const served = { ...sun, sunPoints: sun.sunPoints.map((p, i) => ({ ...p, brightness: [30, 65, 100, 100, 65, 30][i] })) };
+    await act(async () => { answer(state({ sun: served, sunNight: 30, sunDay: 100 })); await done; });
+    expect(result.current.sunPoints!.map(p => p.brightness)).toEqual([30, 65, 100, 100, 65, 30]);
+  });
+
   it('plays the sun curve only while the shift is on and the sun is ok', async () => {
     const sun = { status: 'ok', date: localDateKey(), sunriseMin: 420, sunsetMin: 1140, resolvedLocation: null, autoLocation: null,
       sunPoints: [{ min: 0, brightness: 25 }, { min: 720, brightness: 25 }] };
