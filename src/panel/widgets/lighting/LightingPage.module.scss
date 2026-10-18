@@ -1346,6 +1346,8 @@
     border-bottom-left-radius: var(--radius);
     border-bottom-right-radius: var(--radius);
   }
+
+  &:not(.deviceCardStackLast) .deviceControlledBy { border-radius: 0; }
 }
 
 // Second line of the device card: LED count on the left, action icons
