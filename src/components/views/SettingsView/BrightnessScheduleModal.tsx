@@ -138,6 +138,15 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
     >
       <div className={styles.modal}>
         <SettingToggle
+          label={t('lighting.schedule.enable.label')}
+          description={t('lighting.schedule.enable.description')}
+          checked={schedule?.enabled ?? false}
+          disabled={!schedule}
+          onChange={enabled => { if (schedule) void save({ ...schedule, enabled }); }}
+          stackOnNarrow
+        />
+
+        <SettingToggle
           label={t('lighting.schedule.sun.label')}
           description={t('lighting.schedule.sun.description')}
           checked={sunShift}
@@ -167,15 +176,6 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
             </p>
           ) : sunNote && <p className={styles.hint}>{sunNote}</p>}
         </div>
-
-        <SettingToggle
-          label={t('lighting.schedule.enable.label')}
-          description={t('lighting.schedule.enable.description')}
-          checked={schedule?.enabled ?? false}
-          disabled={!schedule}
-          onChange={enabled => { if (schedule) void save({ ...schedule, enabled }); }}
-          stackOnNarrow
-        />
 
         <div className={styles.hints}>
           <p className={styles.hint} aria-hidden={sunApplies ? true : undefined} data-hidden={sunApplies ? '' : undefined}>

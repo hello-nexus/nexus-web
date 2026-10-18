@@ -237,6 +237,12 @@ describe('BrightnessScheduleModal sunset shift', () => {
     scheduleState.save.mockClear();
   });
 
+  it('lists Follow the schedule first, then Sunset shift', () => {
+    withState({});
+    const names = screen.getAllByRole('switch').map(el => el.getAttribute('aria-label'));
+    expect(names.slice(0, 2)).toEqual(['lighting.schedule.enable.label', 'lighting.schedule.sun.label']);
+  });
+
   it('shows the toggle on and saves the flip immediately', async () => {
     withState({ sunShift: true });
     const toggle = screen.getByRole('switch', { name: 'lighting.schedule.sun.label' });
