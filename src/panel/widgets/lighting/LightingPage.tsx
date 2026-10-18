@@ -1520,7 +1520,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [deviceOrder]);
   // Reconcile the saved order against the live devices list: drop ids for
   // devices that no longer exist (hidden OpenRGB cards still exist), append
-  // new ones. Without this, the saved order would accumulate dead ids across USB unplugs / OpenRGB rescans.
+  // new ones. Without this, the saved order would accumulate dead ids across
+  // USB unplugs / OpenRGB rescans.
   useEffect(() => {
     if (devices.length === 0) return;
     setDeviceOrder(prev => {
