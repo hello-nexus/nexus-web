@@ -102,6 +102,20 @@ describe('sun levels', () => {
     expect(dragSunLevels('night', -8, { night: 10, day: 60 })).toEqual({ night: 0, day: 60 });
   });
 
+  describe('when sunset comes before sunrise on the clock', () => {
+    // Sunrise 21:30, sunset 11:50 next day; the service's points mod 1440, sorted.
+    const sun = {
+      status: 'ok' as const, date: '2026-03-05', sunriseMin: 1290, sunsetMin: 710, resolvedLocation: null, autoLocation: null,
+      sunPoints: [590, 710, 770, 1230, 1290, 1410].map(min => ({ min, brightness: 1 })),
+    };
+    it('labels the day points as day', () => {
+      expect(sun.sunPoints.map(p => sunRole(p.min, sun))).toEqual(['day', 'mid', 'night', 'night', 'mid', 'day']);
+    });
+    it('re-levels the curve by those roles', () => {
+      expect(sunCurve(true, sun, { night: 20, day: 80 })!.map(p => p.brightness)).toEqual([80, 50, 20, 20, 50, 80]);
+    });
+  });
+
   it('re-levels the generated points locally, x unchanged', () => {
     const sun = {
       status: 'ok' as const, date: '2026-03-05', sunriseMin: 420, sunsetMin: 1140, resolvedLocation: null, autoLocation: null,

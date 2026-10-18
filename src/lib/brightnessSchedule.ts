@@ -34,7 +34,9 @@ export function sunRole(min: number, sun: { sunriseMin: number | null; sunsetMin
   const { sunriseMin: r, sunsetMin: s } = sun;
   if (r === null || s === null) return 'night';
   if (Math.abs(min - r) < ROLE_EPSILON_MIN || Math.abs(min - s) < ROLE_EPSILON_MIN) return 'mid';
-  return min > r && min < s ? 'day' : 'night';
+  // Past midnight the day wraps: sunset can come before sunrise on the clock.
+  const inDay = r <= s ? min > r && min < s : min > r || min < s;
+  return inDay ? 'day' : 'night';
 }
 
 export function sunRoleLevel(role: SunRole, levels: SunLevels): number {

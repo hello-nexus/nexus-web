@@ -749,7 +749,7 @@ export const setGlobalBrightness = (value: number) =>
 export interface BrightnessSchedulePoint { hour: number; brightness: number }
 export interface BrightnessSchedule { enabled: boolean; points: BrightnessSchedulePoint[] }
 
-// Sunset shift: the morning and evening ramps follow today's sunrise and
+// Daylight sync: the morning and evening ramps follow today's sunrise and
 // sunset at a place. A null location is Auto (the service's IP lookup).
 export interface BrightnessScheduleLocation { lat: number; lon: number; label: string; cc: string }
 export type SunStatus = 'ok' | 'polar-day' | 'polar-night' | 'no-location';

@@ -364,6 +364,14 @@ describe('BrightnessScheduleModal sunset shift', () => {
       expect(scheduleState.saveSun).not.toHaveBeenCalled();
     });
 
+    it('moves Day from a day point on a sun that sets before it rises on the clock', () => {
+      const wrapped = { ...SUN_OK, sunriseMin: 1290, sunsetMin: 710 };
+      const points = [590, 710, 770, 1230, 1290, 1410].map((min, i) => ({ hour: min / 60, brightness: [100, 55, 10, 10, 55, 100][i] }));
+      withState({ sunShift: true, sun: wrapped, sunPoints: points });
+      drag(0, yFor(70));
+      expect(scheduleState.saveSun).toHaveBeenCalledWith({ sunDay: 70 });
+    });
+
     it('resets Night and Day to 10 and 100, enabled only when they differ', () => {
       withState({ sunShift: true, sun: SUN_OK, sunPoints: SUN6, sunLevels: { night: 20, day: 80 }, defaults: [{ hour: 0, brightness: 5 }, { hour: 12, brightness: 90 }] });
       fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.reset' }));
