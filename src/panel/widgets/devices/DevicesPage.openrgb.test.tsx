@@ -81,6 +81,14 @@ describe('DevicesPage OpenRGB section', () => {
     expect(setControlled).not.toHaveBeenCalled();
   });
 
+  it('lists no rows while OpenRGB is off, even when the list holds snapshots', async () => {
+    rgbRunning = false;
+    cards = [card({ id: 'openrgb-s-1', deviceId: 'openrgb-s-1', name: 'M65 PRO', controlled: false })];
+    renderPage();
+    expect(await screen.findByText('devices.openrgb.lightingOff')).toBeTruthy();
+    expect(screen.queryByText('M65 PRO')).toBeNull();
+  });
+
   it('shows the notice when the Lighting feature is off', async () => {
     flags.lighting = false;
     renderPage();

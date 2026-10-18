@@ -121,8 +121,10 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   const smbusDevices = useMemo(() => orderedDevices.filter(d => d.bus === 'smbus'), [orderedDevices]);
   const { lighting: lightingFeatureOn } = useFeatureFlags();
   const openRgb = useOpenRgbDevices(serviceOnline && availableActive);
-  const openRgbDevices = useMemo(() => groupOpenRgbDevices(openRgb.cards), [openRgb.cards]);
-  const openRgbNotice = openRgb.loaded && openRgbNoticeShown(lightingFeatureOn, openRgb.daemonUp);
+  const openRgbOff = openRgbNoticeShown(lightingFeatureOn, openRgb.daemonUp);
+  // No rows while OpenRGB is off: held-off snapshots would invite toggles that kill a competing app.
+  const openRgbDevices = useMemo(() => (openRgbOff ? [] : groupOpenRgbDevices(openRgb.cards)), [openRgbOff, openRgb.cards]);
+  const openRgbNotice = openRgb.loaded && openRgbOff;
   const renderOpenRgbCard = useCallback((o: OpenRgbDevice) => {
     // The conflict guard checks one app id: the competing app that is running now.
     const runningConflict = conflicts.find(c => o.conflictAppIds.includes(c.id));

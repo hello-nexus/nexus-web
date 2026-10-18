@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Info } from 'lucide-react';
 import { SettingRow } from '../SettingRow/SettingRow';
+import styles from './PillarNotice.module.scss';
 
 /**
  * Stands in for the rows of a setting group whose feature pillar is off. The
@@ -9,11 +10,14 @@ import { SettingRow } from '../SettingRow/SettingRow';
  * (see search/scroll.ts).
  */
 export function PillarNotice({ message, anchors, action }: { message: string; anchors: readonly string[]; action?: ReactNode }) {
+  const text = <span role="status">{message}</span>;
   return (
     <div data-search-fallback={anchors.join(' ')}>
-      <SettingRow icon={<Info />} iconLeading="subtle" description={<span role="status">{message}</span>}>
-        {action}
-      </SettingRow>
+      <SettingRow
+        icon={<Info />}
+        iconLeading="subtle"
+        description={action ? <span className={styles.withAction}>{text}{action}</span> : text}
+      />
     </div>
   );
 }
