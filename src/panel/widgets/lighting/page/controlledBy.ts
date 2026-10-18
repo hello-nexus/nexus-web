@@ -73,7 +73,10 @@ export function controlledByStrips(
   }
   const visibleIds = new Set(visible.map(v => v.id));
   for (const members of byDevice.values()) {
-    const host = members.findLast(m => visibleIds.has(m.id) && canHost(m));
+    let host: LightingDevice | undefined;
+    for (let i = members.length - 1; i >= 0 && !host; i--) {
+      if (visibleIds.has(members[i].id) && canHost(members[i])) host = members[i];
+    }
     if (!host) continue;
     const apps = conflictAppsForCard(members[0], conflicts, curated);
     if (apps.length === 0) continue;

@@ -1,18 +1,11 @@
 import { AlertTriangle, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
+import { formatList } from '../../../../components/common/Nexus2WelcomeScreen/nexus2WelcomeUtils';
 import type { CardAppStrip } from './controlledBy';
 import styles from '../LightingPage.module.scss';
 
 // Stands in for the app list while translating, so each locale keeps its own word order around it.
 const APP_TOKEN = '\uE000';
-
-function listFormat(language: string): Intl.ListFormat {
-  try {
-    return new Intl.ListFormat(language, { type: 'conjunction' });
-  } catch {
-    return new Intl.ListFormat('en', { type: 'conjunction' });
-  }
-}
 
 /**
  * The footer of a lighting card naming the apps that compete for its hardware.
@@ -36,7 +29,7 @@ export function ControlledByStrip({ strip, onOpen }: { strip: CardAppStrip; onOp
       <Icon aria-hidden />
       <span>
         {before}
-        <b>{listFormat(language).format(strip.apps.map(a => a.name))}</b>
+        <b>{formatList(strip.apps.map(a => a.name), language)}</b>
         {after}
       </span>
     </button>
