@@ -1293,7 +1293,7 @@
   "devices.saving": "Guardando…",
   "devices.section.openrgb": "Dispositivos OpenRGB",
   "devices.section.smbus": "Dispositivos SMBus",
-  "devices.section.usb": "Dispositivos USB",
+  "devices.section.usb": "Dispositivos Nexus",
   "devices.simulated": "Simulado",
   "devices.smartHub.fanSection": "Comportamiento autónomo del ventilador",
   "devices.smartHub.fanSectionDescription1": "Guardado en la memoria flash del hub. 5 segundos después de la última escritura de ventilador desde el host, el hub aplica este duty a los cuatro puertos PWM - el PC está apagado, en reposo o el servicio se detuvo.",

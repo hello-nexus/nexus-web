@@ -1293,7 +1293,7 @@
   "devices.saving": "Opslaan…",
   "devices.section.openrgb": "OpenRGB-apparaten",
   "devices.section.smbus": "SMBus-apparaten",
-  "devices.section.usb": "USB-apparaten",
+  "devices.section.usb": "Nexus-apparaten",
   "devices.simulated": "Gesimuleerd",
   "devices.smartHub.fanSection": "Standalone-ventilatorgedrag",
   "devices.smartHub.fanSectionDescription1": "Opgeslagen in het flashgeheugen van de hub. 5 seconden na de laatste ventilatorschrijfactie van de host past de hub deze belasting toe op alle vier de PWM-poorten - de pc is uit, in slaapstand, of de service is gestopt.",

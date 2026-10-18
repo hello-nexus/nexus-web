@@ -4,7 +4,7 @@ import { lightingGroupName } from '../../../hooks/useConflictDevices';
 /** One physical OpenRGB device: every lighting card (zone, header) it owns folded into a row. */
 export interface OpenRgbDevice {
   key: string;
-  /** The owning device id the icon look keys on. */
+  /** The controller id the icon look keys on. */
   deviceId: string;
   name: string;
   iconType?: string;
@@ -22,7 +22,8 @@ export function groupOpenRgbDevices(cards: readonly LightingDevice[]): OpenRgbDe
   const byDevice = new Map<string, LightingDevice[]>();
   for (const card of cards) {
     if (card.controlHandlerId) continue;
-    const deviceId = card.deviceId || card.id;
+    // A motherboard's ports each carry their own deviceId; parentDeviceId is the controller they share.
+    const deviceId = card.parentDeviceId || card.deviceId || card.id;
     const bucket = byDevice.get(deviceId);
     if (bucket) bucket.push(card);
     else byDevice.set(deviceId, [card]);
@@ -32,7 +33,9 @@ export function groupOpenRgbDevices(cards: readonly LightingDevice[]): OpenRgbDe
     groups.push({
       key: `openrgb:${deviceId}`,
       deviceId,
-      name: members.find(c => c.deviceName)?.deviceName ?? lightingGroupName(members, deviceId),
+      name: members.find(c => c.parentName)?.parentName
+        ?? (members.length === 1 ? members[0].deviceName : null)
+        ?? lightingGroupName(members, deviceId),
       iconType: members[0].iconType ?? members[0].type,
       cardIds: members.map(c => c.id),
       controlled: members.some(c => c.controlled !== false),

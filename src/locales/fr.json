@@ -1293,7 +1293,7 @@
   "devices.saving": "Enregistrement...",
   "devices.section.openrgb": "Appareils OpenRGB",
   "devices.section.smbus": "Appareils SMBus",
-  "devices.section.usb": "Appareils USB",
+  "devices.section.usb": "Appareils Nexus",
   "devices.simulated": "Simulé",
   "devices.smartHub.fanSection": "Comportement autonome des ventilateurs",
   "devices.smartHub.fanSectionDescription1": "Conservé dans la mémoire flash du hub. 5 secondes après la dernière commande de ventilateur de l'hôte, le hub applique ce duty aux quatre ports PWM - le PC est éteint, en veille ou le service est arrêté.",

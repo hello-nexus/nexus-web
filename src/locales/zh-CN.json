@@ -1293,7 +1293,7 @@
   "devices.saving": "保存中…",
   "devices.section.openrgb": "OpenRGB 设备",
   "devices.section.smbus": "SMBus 设备",
-  "devices.section.usb": "USB 设备",
+  "devices.section.usb": "Nexus 设备",
   "devices.simulated": "模拟",
   "devices.smartHub.fanSection": "独立风扇行为",
   "devices.smartHub.fanSectionDescription1": "持久保存到集线器的闪存。在主机最后一次写入风扇 5 秒后，集线器会将此占空比应用到全部四个 PWM 端口：电脑关机、休眠或服务停止时。",

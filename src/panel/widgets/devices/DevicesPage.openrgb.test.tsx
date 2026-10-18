@@ -57,6 +57,15 @@ describe('DevicesPage OpenRGB section', () => {
     expect(setControlled).toHaveBeenCalledWith('a2', false);
   });
 
+  it('dims the identity of a card whose Nexus Control is off, not its switch', async () => {
+    cards = [card({ id: 'a1', deviceId: 'd', name: 'Board', controlled: false })];
+    renderPage();
+    const toggle = await screen.findByRole('switch', { name: 'devices.nexusControl' });
+    const row = screen.getByText('Board').closest('[class*="card"]') as HTMLElement;
+    expect(row.className).toContain('controlOff');
+    expect(toggle.closest('[class*="controlGroup"]')!.className).not.toContain('controlOff');
+  });
+
   it('hides the section when lighting is on and nothing is detected', async () => {
     renderPage();
     await screen.findByText('devices.available.missingNotice');

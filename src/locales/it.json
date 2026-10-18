@@ -1293,7 +1293,7 @@
   "devices.saving": "Salvataggio…",
   "devices.section.openrgb": "Dispositivi OpenRGB",
   "devices.section.smbus": "Dispositivi SMBus",
-  "devices.section.usb": "Dispositivi USB",
+  "devices.section.usb": "Dispositivi Nexus",
   "devices.simulated": "Simulato",
   "devices.smartHub.fanSection": "Comportamento ventola autonomo",
   "devices.smartHub.fanSectionDescription1": "Memorizzato nella flash dell'hub. 5 secondi dopo l'ultima scrittura ventola dall'host, l'hub applica questo duty a tutte e quattro le porte PWM - il PC è spento, in sospensione o il servizio è fermo.",

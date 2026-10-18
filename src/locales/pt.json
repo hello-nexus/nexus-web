@@ -1293,7 +1293,7 @@
   "devices.saving": "A guardar…",
   "devices.section.openrgb": "Dispositivos OpenRGB",
   "devices.section.smbus": "Dispositivos SMBus",
-  "devices.section.usb": "Dispositivos USB",
+  "devices.section.usb": "Dispositivos Nexus",
   "devices.simulated": "Simulado",
   "devices.smartHub.fanSection": "Comportamento autónomo da ventoinha",
   "devices.smartHub.fanSectionDescription1": "Guardado na flash do hub. 5 segundos após a última escrita de ventoinha pelo anfitrião, o hub aplica este duty a todas as quatro portas PWM - o PC está desligado, em suspensão ou o serviço parou.",

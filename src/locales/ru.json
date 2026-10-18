@@ -1300,7 +1300,7 @@
   "devices.saving": "Сохранение…",
   "devices.section.openrgb": "Устройства OpenRGB",
   "devices.section.smbus": "SMBus-устройства",
-  "devices.section.usb": "USB-устройства",
+  "devices.section.usb": "Устройства Nexus",
   "devices.simulated": "Симуляция",
   "devices.smartHub.fanSection": "Автономное поведение вентиляторов",
   "devices.smartHub.fanSectionDescription1": "Сохраняется во флеш-память хаба. Через 5 секунд после последней записи скорости вентилятора от хоста хаб применяет этот duty ко всем четырём PWM-портам - ПК выключен, в спящем режиме или служба остановлена.",

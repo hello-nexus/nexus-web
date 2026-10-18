@@ -1293,7 +1293,7 @@
   "devices.saving": "Wird gespeichert…",
   "devices.section.openrgb": "OpenRGB-Geräte",
   "devices.section.smbus": "SMBus-Geräte",
-  "devices.section.usb": "USB-Geräte",
+  "devices.section.usb": "Nexus-Geräte",
   "devices.simulated": "Simuliert",
   "devices.smartHub.fanSection": "Eigenständiges Lüfterverhalten",
   "devices.smartHub.fanSectionDescription1": "Im Flash des Hubs gespeichert. 5 Sekunden nach dem letzten Host-Lüfterbefehl wendet der Hub diese Leistung auf alle vier PWM-Ports an - der PC ist aus, im Ruhezustand oder der Dienst gestoppt.",

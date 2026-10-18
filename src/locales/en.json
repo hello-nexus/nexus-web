@@ -1293,7 +1293,7 @@
   "devices.saving": "Saving…",
   "devices.section.openrgb": "OpenRGB Devices",
   "devices.section.smbus": "SMBus Devices",
-  "devices.section.usb": "USB Devices",
+  "devices.section.usb": "Nexus Devices",
   "devices.simulated": "Simulated",
   "devices.smartHub.fanSection": "Standalone fan behaviour",
   "devices.smartHub.fanSectionDescription1": "Persisted to the hub's flash. 5 seconds after the last host fan write, the hub applies this duty to all four PWM ports - the PC is off, asleep, or the service stopped.",

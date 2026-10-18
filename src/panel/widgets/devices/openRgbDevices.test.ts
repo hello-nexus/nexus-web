@@ -30,6 +30,20 @@ describe('groupOpenRgbDevices', () => {
     expect(rows.find(r => r.deviceId === 'b')!.cardIds).toEqual(['b']);
   });
 
+  it('collapses a motherboard with per-port deviceIds into one row', () => {
+    const rows = groupOpenRgbDevices([
+      card({ id: 'mb-0', deviceId: 'port-0', parentDeviceId: 'openrgb-0', name: 'Z790 - ARGB 1', controlled: false }),
+      card({ id: 'mb-1', deviceId: 'port-1', parentDeviceId: 'openrgb-0', name: 'Z790 - ARGB 2' }),
+      card({ id: 'mb-2', deviceId: 'port-2', parentDeviceId: 'openrgb-0', name: 'Z790 - Header', parentName: 'My Board' }),
+      card({ id: 'ram', deviceId: 'ram', name: 'DIMM' }),
+    ]);
+    expect(rows).toHaveLength(2);
+    const board = rows.find(r => r.deviceId === 'openrgb-0')!;
+    expect(board.cardIds).toEqual(['mb-0', 'mb-1', 'mb-2']);
+    expect(board.name).toBe('My Board');
+    expect(board.controlled).toBe(true);
+  });
+
   it('is off only when every card is uncontrolled', () => {
     const [row] = groupOpenRgbDevices([
       card({ id: 'a1', deviceId: 'd', controlled: false }),

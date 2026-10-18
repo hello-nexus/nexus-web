@@ -400,17 +400,18 @@ function DeviceCard({
   );
 
   const stateClass = device.connected ? '' : styles.disconnected;
+  const controlOffClass = onToggleControl && !device.nexusControlEnabled ? ` ${styles.controlOff}` : '';
 
   // Non-navigable devices (e.g. the MiniHub - controlled from Cooling/Lighting,
   // no dedicated page) render as a static status card: shown for visibility,
   // but not a button that deep-links into an empty page.
   if (!device.navigable) {
-    return <div className={`${styles.card} ${styles.staticCard} ${stateClass}`}>{body}</div>;
+    return <div className={`${styles.card} ${styles.staticCard} ${stateClass}${controlOffClass}`}>{body}</div>;
   }
 
   return (
     <div
-      className={`${styles.card} ${stateClass}`}
+      className={`${styles.card} ${stateClass}${controlOffClass}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
