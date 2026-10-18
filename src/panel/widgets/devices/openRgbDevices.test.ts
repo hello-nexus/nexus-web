@@ -17,17 +17,17 @@ describe('groupOpenRgbDevices', () => {
 
   it('folds zone cards of one device into a single row', () => {
     const rows = groupOpenRgbDevices([
-      card({ id: 'a1', deviceId: 'dev-a', name: 'Board - Header 1', controlled: false }),
-      card({ id: 'a2', deviceId: 'dev-a', name: 'Board - Header 2', conflictAppIds: ['x'] }),
-      card({ id: 'b', name: 'Mouse' }),
+      card({ id: 'a1', deviceId: 'openrgb-1', name: 'Board - Header 1', controlled: false }),
+      card({ id: 'a2', deviceId: 'openrgb-1', name: 'Board - Header 2', conflictAppIds: ['x'] }),
+      card({ id: 'openrgb-b', name: 'Mouse' }),
     ]);
     expect(rows).toHaveLength(2);
-    const board = rows.find(r => r.deviceId === 'dev-a')!;
+    const board = rows.find(r => r.deviceId === 'openrgb-1')!;
     expect(board.name).toBe('Board');
     expect(board.cardIds).toEqual(['a1', 'a2']);
     expect(board.controlled).toBe(true);
     expect(board.conflictAppIds).toEqual(['x']);
-    expect(rows.find(r => r.deviceId === 'b')!.cardIds).toEqual(['b']);
+    expect(rows.find(r => r.deviceId === 'openrgb-b')!.cardIds).toEqual(['openrgb-b']);
   });
 
   it('collapses a motherboard with per-port deviceIds into one row', () => {
@@ -35,7 +35,7 @@ describe('groupOpenRgbDevices', () => {
       card({ id: 'mb-0', deviceId: 'port-0', parentDeviceId: 'openrgb-0', name: 'Z790 - ARGB 1', controlled: false }),
       card({ id: 'mb-1', deviceId: 'port-1', parentDeviceId: 'openrgb-0', name: 'Z790 - ARGB 2' }),
       card({ id: 'mb-2', deviceId: 'port-2', parentDeviceId: 'openrgb-0', name: 'Z790 - Header', parentName: 'My Board' }),
-      card({ id: 'ram', deviceId: 'ram', name: 'DIMM' }),
+      card({ id: 'ram', deviceId: 'openrgb-ram', name: 'DIMM' }),
     ]);
     expect(rows).toHaveLength(2);
     const board = rows.find(r => r.deviceId === 'openrgb-0')!;
@@ -46,10 +46,19 @@ describe('groupOpenRgbDevices', () => {
 
   it('is off only when every card is uncontrolled', () => {
     const [row] = groupOpenRgbDevices([
-      card({ id: 'a1', deviceId: 'd', controlled: false }),
-      card({ id: 'a2', deviceId: 'd', controlled: false }),
+      card({ id: 'a1', deviceId: 'openrgb-d', controlled: false }),
+      card({ id: 'a2', deviceId: 'openrgb-d', controlled: false }),
     ]);
     expect(row.controlled).toBe(false);
+  });
+
+  it('skips first-party cards that carry no control handler', () => {
+    expect(groupOpenRgbDevices([card({ id: 'keeb', deviceId: 'keeb', name: 'HYTE Keeb TKL' })])).toEqual([]);
+  });
+
+  it('keeps a held-off snapshot card of an OpenRGB device', () => {
+    const rows = groupOpenRgbDevices([card({ id: 'openrgb-s-123', deviceId: 'openrgb-s-123', name: 'M65 PRO', controlled: false })]);
+    expect(rows.map(r => r.name)).toEqual(['M65 PRO']);
   });
 
   it('skips cards a curated handler already owns', () => {
@@ -57,7 +66,7 @@ describe('groupOpenRgbDevices', () => {
   });
 
   it('sets every card of the device', async () => {
-    const [row] = groupOpenRgbDevices([card({ id: 'a1', deviceId: 'd' }), card({ id: 'a2', deviceId: 'd' })]);
+    const [row] = groupOpenRgbDevices([card({ id: 'a1', deviceId: 'openrgb-d' }), card({ id: 'a2', deviceId: 'openrgb-d' })]);
     await setOpenRgbDeviceControlled(row, false);
     expect(setControlled.mock.calls).toEqual([['a1', false], ['a2', false]]);
   });

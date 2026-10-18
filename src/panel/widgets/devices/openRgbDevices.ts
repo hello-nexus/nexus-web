@@ -1,6 +1,8 @@
 import { setLightingDeviceControlled, type LightingDevice } from '../../../api/lighting';
 import { lightingGroupName } from '../../../hooks/useConflictDevices';
 
+const OPENRGB_ID_PREFIX = 'openrgb-';
+
 /** One physical OpenRGB device: every lighting card (zone, header) it owns folded into a row. */
 export interface OpenRgbDevice {
   key: string;
@@ -15,8 +17,8 @@ export interface OpenRgbDevice {
 }
 
 /**
- * Groups the service's lighting cards by owning device. Cards a curated handler
- * claims are skipped: the Devices list already renders that handler's own row.
+ * Groups the service's lighting cards by owning device. Cards another
+ * provider owns (a curated handler's, or any first-party device) are skipped: the Devices list already renders those rows.
  */
 export function groupOpenRgbDevices(cards: readonly LightingDevice[]): OpenRgbDevice[] {
   const byDevice = new Map<string, LightingDevice[]>();
@@ -24,6 +26,8 @@ export function groupOpenRgbDevices(cards: readonly LightingDevice[]): OpenRgbDe
     if (card.controlHandlerId) continue;
     // A motherboard's ports each carry their own deviceId; parentDeviceId is the controller they share.
     const deviceId = card.parentDeviceId || card.deviceId || card.id;
+    // The list merges every lighting provider; only OpenRGB controller ids (live and held-off snapshots) start with this.
+    if (!deviceId.startsWith(OPENRGB_ID_PREFIX)) continue;
     const bucket = byDevice.get(deviceId);
     if (bucket) bucket.push(card);
     else byDevice.set(deviceId, [card]);

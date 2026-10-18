@@ -47,7 +47,7 @@ describe('DevicesPage OpenRGB section', () => {
   });
 
   it('lists one row per device and sets every card when toggled', async () => {
-    cards = [card({ id: 'a1', deviceId: 'd', name: 'Board - H1' }), card({ id: 'a2', deviceId: 'd', name: 'Board - H2' })];
+    cards = [card({ id: 'a1', deviceId: 'openrgb-d', name: 'Board - H1' }), card({ id: 'a2', deviceId: 'openrgb-d', name: 'Board - H2' })];
     renderPage();
     expect(await screen.findByText('Board')).toBeTruthy();
     expect(screen.queryByText('devices.openrgb.lightingOff')).toBeNull();
@@ -58,7 +58,7 @@ describe('DevicesPage OpenRGB section', () => {
   });
 
   it('dims the identity of a card whose Nexus Control is off, not its switch', async () => {
-    cards = [card({ id: 'a1', deviceId: 'd', name: 'Board', controlled: false })];
+    cards = [card({ id: 'a1', deviceId: 'openrgb-d', name: 'Board', controlled: false })];
     renderPage();
     const toggle = await screen.findByRole('switch', { name: 'devices.nexusControl' });
     const row = screen.getByText('Board').closest('[class*="card"]') as HTMLElement;
