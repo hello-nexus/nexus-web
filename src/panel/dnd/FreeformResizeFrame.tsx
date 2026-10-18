@@ -44,7 +44,7 @@ export function FreeformResizeFrame({
   hover?: boolean;
   // Touch panels get larger grab areas.
   touch?: boolean;
-  // Corners that can still grow; the others stay draggable inward.
+  // Corners that can reach another span; the others take no drag.
   room: Record<FreeformCorner, boolean>;
   onBegin: () => boolean;
   onUpdate: (gesture: FreeformGesture, dCols: number, dRows: number) => void;
@@ -58,6 +58,7 @@ export function FreeformResizeFrame({
   const startPress = (gesture: FreeformGesture) => (event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.stopPropagation();
+    if (gesture !== 'move' && !room[gesture]) return;
     if (!onBegin()) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     pressRef.current = { gesture, x: event.clientX, y: event.clientY, moved: false };

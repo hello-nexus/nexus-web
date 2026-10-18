@@ -54,7 +54,7 @@ describe('freeformSnapSpans without the even spans', () => {
 
   it('computes corner room from the declared sizes only', () => {
     const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], { cols: 8, rows: 8 }, false);
-    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, snap, { cols: 8, rows: 8 })).toEqual({ tl: false, tr: false, bl: false, br: false });
+    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, snap, { cols: 8, rows: 8 })).toEqual({ tl: true, tr: true, bl: true, br: true });
     expect(cornerRoom({ col: 2, row: 2, cols: 2, rows: 2 }, snap, { cols: 8, rows: 8 })).toEqual({ tl: true, tr: true, bl: true, br: true });
   });
 
@@ -157,30 +157,32 @@ describe('clampFreeformSize', () => {
 });
 
 describe('cornerRoom', () => {
-  const snap = freeformSnapSpans(['4x2', '4x4'], { cols: 8, rows: 8 });
   const bounds = { cols: 8, rows: 8 };
+  const all = { tl: true, tr: true, bl: true, br: true };
+  const none = { tl: false, tr: false, bl: false, br: false };
+  const declared = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
 
-  it('enables every corner of a tile with room all round', () => {
-    expect(cornerRoom({ col: 2, row: 2, cols: 4, rows: 4 }, snap, bounds)).toEqual({ tl: true, tr: true, bl: true, br: true });
+  it('dims every corner of the smallest size when nothing larger fits', () => {
+    expect(cornerRoom({ col: 0, row: 0, cols: 2, rows: 2 }, [{ cols: 2, rows: 2 }, { cols: 4, rows: 4 }], { cols: 3, rows: 3 })).toEqual(none);
   });
 
-  it('disables the corners on an edge the tile already touches when no larger span fits', () => {
-    const full = cornerRoom({ col: 0, row: 0, cols: 8, rows: 8 }, snap, bounds);
-    expect(full).toEqual({ tl: false, tr: false, bl: false, br: false });
+  it('keeps the smallest size enabled where it has room to grow', () => {
+    expect(cornerRoom({ col: 3, row: 3, cols: 2, rows: 2 }, declared, bounds)).toEqual(all);
+    const corner = cornerRoom({ col: 0, row: 0, cols: 2, rows: 2 }, declared, bounds);
+    expect(corner.br).toBe(true);
   });
 
-  it('disables a corner whose growth would cross the grid edge', () => {
-    expect(cornerRoom({ col: 4, row: 0, cols: 4, rows: 4 }, snap, bounds)).toEqual({ tl: true, tr: false, bl: true, br: true });
-    expect(cornerRoom({ col: 4, row: 2, cols: 4, rows: 6 }, snap, { cols: 8, rows: 8 })).toEqual({ tl: true, tr: true, bl: true, br: false });
+  it('keeps a size above the smallest enabled against the grid edge, since it can shrink', () => {
+    expect(cornerRoom({ col: 4, row: 4, cols: 4, rows: 4 }, declared, bounds)).toEqual(all);
+    expect(cornerRoom({ col: 0, row: 0, cols: 8, rows: 8 }, freeformSnapSpans(['4x2', '4x4'], bounds), bounds)).toEqual(all);
   });
 
-  it('uses the whole grid width on a 4 wide grid and only grows by rows', () => {
-    const narrow = freeformSnapSpans(['4x2', '4x4'], { cols: 4, rows: 8 });
-    expect(cornerRoom({ col: 0, row: 2, cols: 4, rows: 4 }, narrow, { cols: 4, rows: 8 })).toEqual({ tl: true, tr: true, bl: true, br: true });
-    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 8 }, narrow, { cols: 4, rows: 8 })).toEqual({ tl: false, tr: false, bl: false, br: false });
+  it('enables every corner of the largest declared size', () => {
+    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, declared, bounds)).toEqual(all);
   });
 
-  it('counts no room when nothing larger is offered', () => {
-    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, [], bounds)).toEqual({ tl: false, tr: false, bl: false, br: false });
+  it('dims everything when no other span is offered', () => {
+    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, [{ cols: 4, rows: 4 }], bounds)).toEqual(none);
+    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, [], bounds)).toEqual(none);
   });
 });

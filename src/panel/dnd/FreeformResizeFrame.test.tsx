@@ -46,14 +46,15 @@ describe('FreeformResizeFrame', () => {
     }
   });
 
-  it('marks corners without room and keeps them draggable inward', () => {
-    const { onUpdate } = setup();
+  it('marks corners that reach no other span and takes no drag from them', () => {
+    const { onBegin, onUpdate } = setup();
     const tr = screen.getByRole('button', { name: 'panel.freeform.handle.topRight' });
     expect(tr).toHaveAttribute('data-room', 'false');
     expect(screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' })).toHaveAttribute('data-room', 'true');
     press(tr, 0, 0);
     move(tr, -100, 50);
-    expect(onUpdate).toHaveBeenLastCalledWith('tr', -1, 1);
+    expect(onBegin).not.toHaveBeenCalled();
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 
   it('flags a touch frame so its grab areas grow', () => {
@@ -144,7 +145,7 @@ describe('FreeformResizeFrame hover corners', () => {
     const onParentDown = vi.fn();
     const { container } = render(
       <div data-surface="y70" onClick={onParentClick} onPointerDown={onParentDown}>
-        <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} hover onBegin={onBegin} onUpdate={onUpdate} onEnd={onEnd} onExit={vi.fn()} />
+        <FreeformResizeFrame widget={widget} label="Web View" room={{ tl: true, tr: true, bl: true, br: true }} hover onBegin={onBegin} onUpdate={onUpdate} onEnd={onEnd} onExit={vi.fn()} />
       </div>,
     );
     return { onBegin, onUpdate, onEnd, onParentClick, onParentDown, container };

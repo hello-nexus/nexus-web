@@ -74,7 +74,7 @@ export function resizeRectFromCorner(
   return best ?? start;
 }
 
-/** Whether each corner can grow: a larger snap span containing the rect fits the grid with the opposite corner fixed. */
+/** Whether dragging each corner can reach any other snap span that fits the grid with the opposite corner fixed. */
 export function cornerRoom(
   rect: FreeformRect,
   snapSpans: readonly GridSpan[],
@@ -83,7 +83,6 @@ export function cornerRoom(
   const right = rect.col + rect.cols;
   const bottom = rect.row + rect.rows;
   const room = (fromLeft: boolean, fromTop: boolean) => snapSpans.some(span => {
-    if (span.cols < rect.cols || span.rows < rect.rows) return false;
     if (span.cols === rect.cols && span.rows === rect.rows) return false;
     const col = fromLeft ? right - span.cols : rect.col;
     const row = fromTop ? bottom - span.rows : rect.row;
