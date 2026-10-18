@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Te aplikacje sterują tym samym podświetleniem, wentylatorami lub urządzeniami peryferyjnymi co Nexus. Wybierz, które Nexus ma zakończyć. Możesz to zmienić później w Ustawieniach.",
   "conflicts.onboarding.title": "Aplikacje rywalizujące o twój sprzęt",
   "conflicts.outcome.bothDrive": "Obie aplikacje będą próbowały sterować tymi urządzeniami.",
-  "conflicts.outcome.colApp": "Aplikacja",
-  "conflicts.outcome.colOutcome": "Co się stanie",
   "conflicts.outcome.competesFor": "Rywalizuje o {devices}",
   "conflicts.outcome.continue": "Kontynuuj",
   "conflicts.outcome.keepAll": "Zostaw wszystkie uruchomione",

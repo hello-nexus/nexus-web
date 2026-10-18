@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Эти приложения управляют той же подсветкой, вентиляторами или периферией, что и Nexus. Выберите, какие из них завершит Nexus. Позже это можно изменить в настройках.",
   "conflicts.onboarding.title": "Приложения, борющиеся за ваше оборудование",
   "conflicts.outcome.bothDrive": "Оба приложения будут пытаться управлять этими устройствами.",
-  "conflicts.outcome.colApp": "Приложение",
-  "conflicts.outcome.colOutcome": "Что произойдёт",
   "conflicts.outcome.competesFor": "Конкурирует за: {devices}",
   "conflicts.outcome.continue": "Продолжить",
   "conflicts.outcome.keepAll": "Оставить все запущенными",

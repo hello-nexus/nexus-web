@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "这些应用与 Nexus 控制相同的灯效、风扇或外设。请选择由 Nexus 结束的应用。之后可以在设置中更改。",
   "conflicts.onboarding.title": "正在争夺硬件控制权的应用",
   "conflicts.outcome.bothDrive": "两个应用都会尝试控制这些设备。",
-  "conflicts.outcome.colApp": "应用",
-  "conflicts.outcome.colOutcome": "将会怎样",
   "conflicts.outcome.competesFor": "争夺 {devices}",
   "conflicts.outcome.continue": "继续",
   "conflicts.outcome.keepAll": "全部保持运行",

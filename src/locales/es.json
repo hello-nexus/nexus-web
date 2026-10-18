@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Estas aplicaciones controlan la misma iluminación, ventiladores o periféricos que Nexus. Elige cuáles finaliza Nexus. Puedes cambiarlo más tarde en Ajustes.",
   "conflicts.onboarding.title": "Apps que compiten por tu hardware",
   "conflicts.outcome.bothDrive": "Ambas aplicaciones intentarán controlar estos dispositivos.",
-  "conflicts.outcome.colApp": "Aplicación",
-  "conflicts.outcome.colOutcome": "Qué ocurre",
   "conflicts.outcome.competesFor": "Compite por {devices}",
   "conflicts.outcome.continue": "Continuar",
   "conflicts.outcome.keepAll": "Mantener todas abiertas",

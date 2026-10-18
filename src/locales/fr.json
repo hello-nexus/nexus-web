@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Ces applications pilotent le même éclairage, les mêmes ventilateurs ou périphériques que Nexus. Choisissez celles que Nexus ferme. Vous pourrez le modifier plus tard dans les paramètres.",
   "conflicts.onboarding.title": "Applications en concurrence pour votre matériel",
   "conflicts.outcome.bothDrive": "Les deux applications essaieront de piloter ces appareils.",
-  "conflicts.outcome.colApp": "Application",
-  "conflicts.outcome.colOutcome": "Ce qui se passe",
   "conflicts.outcome.competesFor": "Se dispute {devices}",
   "conflicts.outcome.continue": "Continuer",
   "conflicts.outcome.keepAll": "Tout laisser ouvert",
