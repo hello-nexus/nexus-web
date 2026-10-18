@@ -62,7 +62,7 @@ import { LightingFeatureSeed } from './LightingFeatureSeed';
 import { PillarsReporter } from './PillarsReporter';
 import { importStepOffered } from './importStep';
 import { usePillarsLatch } from './usePillarsLatch';
-import { deriveOnboardingGates, isHyteStepAvailable } from './onboardingGates';
+import { deriveOnboardingGates, isHyteStepAvailable, isLightingStepShown, onboardingStepIndicator, type OnboardingStepId } from './onboardingGates';
 import { useConsumeSkippedOffers } from './useConsumeSkippedOffers';
 import { useNexus2NonCoolingContent } from './useNexus2NonCoolingContent';
 import { useTranslation } from '../lib/i18n';
@@ -303,12 +303,13 @@ function WindowResizeStrips() {
  * the one-shot REST seed returned.
  */
 function ConflictOnboardingGate({
-  enabled, armed, done, nexus2Installed, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
+  enabled, armed, done, nexus2Installed, step, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
 }: {
   enabled: boolean;
   armed: boolean;
   done: boolean;
   nexus2Installed: boolean;
+  step: { total: number; active: number };
   onArm: () => void;
   onSpend: () => void;
   onComplete: () => void;
@@ -340,6 +341,7 @@ function ConflictOnboardingGate({
       conflicts={conflicts}
       ready={ready}
       nexus2Installed={nexus2Installed}
+      step={step}
       onComplete={onComplete}
       onSkipOnboarding={onSkipOnboarding}
       onBack={onBack}
@@ -536,6 +538,28 @@ export function Dashboard() {
     lightingPending: lightingStatus === 'pending',
     lightingDismissed: lightingOnboardingDismissed,
   });
+  // Dots on every onboarding screen. Each step counts by the same condition its
+  // gate uses; the conflicts step is only knowable here for an installed
+  // Nexus 2 (the live conflict list belongs to its gate), or once it armed.
+  const stepShown = {
+    welcome: onboardingStatus === 'pending' || welcomeRevisit,
+    // Not hyteStepAvailable: that one also waits for Welcome to be done, which would hide this step from Welcome's own dots.
+    hyte: isHyteStepAvailable({
+      featuresPending: featuresStatus === 'pending',
+      featuresReplay,
+      nexus2Known: nexus2.status !== 'unknown',
+      nexus2Installed: nexus2.payload?.detected === true,
+    }),
+    features: featuresStatus === 'pending',
+    import: importOffered,
+    conflicts: nexus2.payload?.detected === true || conflictStepArmed,
+    lighting: isLightingStepShown({
+      lightingFeatureOff,
+      lightingPending: lightingStatus === 'pending',
+      lightingDismissed: lightingOnboardingDismissed,
+    }),
+  };
+  const stepFor = (id: OnboardingStepId) => onboardingStepIndicator(stepShown, id);
   // A late server read must never open a gate over a dashboard that is already showing.
   if (gateOpened) gateEverOpened.current = true;
   // An import offer skipped because its pillar is off is consumed when the whole
@@ -1159,6 +1183,7 @@ export function Dashboard() {
             below, same root-modal tier. */}
         <WelcomeScreen
           open={welcomeOpen}
+          step={stepFor('welcome')}
           platform={status.ping?.platform ?? ''}
           onComplete={() => { latchedAt.current = Date.now(); setOnboardingDismissed(true); }}
         />
@@ -1169,6 +1194,7 @@ export function Dashboard() {
         <LightingFeatureSeed active={featuresStatus === 'completed'} lightingPending={lightingStatus === 'pending'} onLightingOff={markLightingFeatureOff} />
         <HyteOnboardingScreen
           open={hyteOpen}
+          step={stepFor('hyte')}
           onContinue={() => setHyteStepDismissed(true)}
           onSkipOnboarding={skipOnboarding}
           onBack={onboardingStatus === 'pending'
@@ -1177,6 +1203,7 @@ export function Dashboard() {
         />
         <FeaturesOnboardingScreen
           open={featuresOpen}
+          step={stepFor('features')}
           fromCurrent={featuresReplay}
           onComplete={(flags) => {
             latchedAt.current = Date.now();
@@ -1194,6 +1221,7 @@ export function Dashboard() {
             Ending one is the conflict gate's job, on an explicit click. */}
         <ImportOnboardingScreen
           open={importOpen}
+          step={stepFor('import')}
           nexus2={nexus2.payload}
           fanControl={fanControl.payload}
           // Which apps this gate is being shown FOR. Only these start ticked;
@@ -1224,6 +1252,7 @@ export function Dashboard() {
           armed={conflictStepArmed}
           done={conflictStepDone}
           nexus2Installed={nexus2.payload?.detected === true}
+          step={stepFor('conflicts')}
           onArm={armConflictStep}
           onSpend={spendConflictStep}
           onComplete={spendConflictStep}
@@ -1246,6 +1275,7 @@ export function Dashboard() {
             import, else features, else welcome. */}
         <LightingOnboardingScreen
           open={lightingOnboardingOpen}
+          step={stepFor('lighting')}
           onComplete={() => { latchedAt.current = Date.now(); setLightingOnboardingDismissed(true); }}
           onSkipOnboarding={skipOnboarding}
           onBack={() => {

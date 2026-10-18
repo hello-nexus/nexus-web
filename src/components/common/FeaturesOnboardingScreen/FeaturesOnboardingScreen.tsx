@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Activity, Ban, Check, Fan, Lightbulb, SlidersHorizontal, Stethoscope, type LucideIcon } from 'lucide-react';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
+import { OnboardingStepDots } from '../OnboardingStepDots/OnboardingStepDots';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { completeFeaturesOnboarding, completeLightingOnboarding } from '../../../api/onboarding';
@@ -11,6 +12,8 @@ import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './FeaturesOnboardingScreen.module.scss';
 
 export interface FeaturesOnboardingScreenProps {
+  /** Position among the onboarding steps this user will see. */
+  step?: { total: number; active: number };
   /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
   onSkipOnboarding?: () => void;
   open: boolean;
@@ -41,7 +44,7 @@ const ALL_ON: FeatureFlags = { lighting: true, cooling: true, monitoring: true, 
  * write succeeds. Turning Lighting off here also completes the lighting
  * onboarding step, so Dashboard skips the device-selection screen.
  */
-export function FeaturesOnboardingScreen({ open, fromCurrent, onComplete, onBack, onSkipOnboarding }: FeaturesOnboardingScreenProps) {
+export function FeaturesOnboardingScreen({ open, fromCurrent, step, onComplete, onBack, onSkipOnboarding }: FeaturesOnboardingScreenProps) {
   const { t } = useTranslation();
   // Only the switches the user touched; the rest keep following the base values.
   const [picked, setPicked] = useState<Partial<FeatureFlags>>({});
@@ -180,6 +183,7 @@ export function FeaturesOnboardingScreen({ open, fromCurrent, onComplete, onBack
           {t('featuresOnboarding.continue')}
         </Button>
       </div>
+      <OnboardingStepDots step={step} />
     </Overlay>
   );
 }

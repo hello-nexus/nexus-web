@@ -5,17 +5,15 @@ import { Button } from '../Button/Button';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingRow } from '../SettingRow/SettingRow';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
-import { PanelPageIndicator } from '../../../panel/chrome/PanelPageIndicator';
+import { OnboardingStepDots } from '../OnboardingStepDots/OnboardingStepDots';
 import styles from './HyteOnboardingScreen.module.scss';
 
 const HYTE_MARK = '/assets/devices/hyte.svg';
 
-/** Welcome, this step, Features, Import, Conflicts, Lighting. */
-const STEP_COUNT = 6;
-const STEP_INDEX = 1;
-
 export interface HyteOnboardingScreenProps {
   open: boolean;
+  /** Position among the onboarding steps this user will see. */
+  step: { total: number; active: number };
   onContinue: () => void;
   /** Steps back to the welcome screen; the Back button only renders when provided. */
   onBack?: () => void;
@@ -34,7 +32,7 @@ const ROWS: { key: string; Icon?: LucideIcon }[] = [
  * Informational onboarding step for people who still have HYTE Nexus 2
  * installed: thanks them, says what the new app adds, and offers no choices.
  */
-export function HyteOnboardingScreen({ open, onContinue, onBack, onSkipOnboarding }: HyteOnboardingScreenProps) {
+export function HyteOnboardingScreen({ open, step, onContinue, onBack, onSkipOnboarding }: HyteOnboardingScreenProps) {
   const { t } = useTranslation();
   if (!open) return null;
 
@@ -90,8 +88,8 @@ export function HyteOnboardingScreen({ open, onContinue, onBack, onSkipOnboardin
         <Button tone="accent" size="lg" onClick={onContinue} className={styles.continueButton}>
           {t('hyteOnboarding.continue')}
         </Button>
-        <PanelPageIndicator total={STEP_COUNT} active={STEP_INDEX} persistent className={styles.steps} />
       </div>
+      <OnboardingStepDots step={step} />
     </Overlay>
   );
 }

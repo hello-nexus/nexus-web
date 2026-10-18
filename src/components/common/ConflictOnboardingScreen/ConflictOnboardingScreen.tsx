@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
+import { OnboardingStepDots } from '../OnboardingStepDots/OnboardingStepDots';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { ConflictOutcomePanel, type ConflictOutcomeAction } from '../ConflictOutcomePanel/ConflictOutcomePanel';
@@ -13,6 +14,8 @@ import styles from './ConflictOnboardingScreen.module.scss';
 const HERO_ICON_SIZE = 40;
 
 export interface ConflictOnboardingScreenProps {
+  /** Position among the onboarding steps this user will see. */
+  step?: { total: number; active: number };
   open: boolean;
   conflicts: readonly DetectedConflict[];
   /** False while the detected-app snapshot is unresolved; the roster then holds its rows instead of reading the gap as apps exiting. */
@@ -35,7 +38,7 @@ export interface ConflictOnboardingScreenProps {
  * every listed app and ends nothing.
  */
 export function ConflictOnboardingScreen({
-  open, conflicts, ready, onComplete, onBack, onSkipOnboarding, nexus2Installed,
+  open, conflicts, ready, step, onComplete, onBack, onSkipOnboarding, nexus2Installed,
 }: ConflictOnboardingScreenProps) {
   const { t } = useTranslation();
   const exclusions = useConflictAutoKillExclusions();
@@ -105,6 +108,7 @@ export function ConflictOnboardingScreen({
         onBusyChange={setBusy}
         onDone={() => onComplete()}
       />
+      <OnboardingStepDots step={step} />
     </Overlay>
   );
 }

@@ -11,11 +11,13 @@ interface PanelPageIndicatorProps {
   className?: string;
   /** Skips the fade-out, for a surface where the indicator is a fixed part of the layout. */
   persistent?: boolean;
+  /** Step-progress look: the current dot and every one before it are filled, and the indicator never fades. */
+  progress?: boolean;
 }
 
 const FADE_HOLD_MS = 1500;
 
-export function PanelPageIndicator({ total, active, visibilityToken, className, persistent }: PanelPageIndicatorProps) {
+export function PanelPageIndicator({ total, active, visibilityToken, className, persistent, progress }: PanelPageIndicatorProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(true);
 
@@ -33,7 +35,7 @@ export function PanelPageIndicator({ total, active, visibilityToken, className, 
   return (
     <div
       className={`${styles.indicator}${className ? ` ${className}` : ''}`}
-      data-fade={visible || persistent ? undefined : 'true'}
+      data-fade={visible || persistent || progress ? undefined : 'true'}
       role="tablist"
       aria-label={t('panel.pages.label')}
     >
@@ -42,6 +44,7 @@ export function PanelPageIndicator({ total, active, visibilityToken, className, 
           key={idx}
           className={styles.dot}
           data-active={idx === active ? 'true' : undefined}
+          data-filled={progress && idx <= active ? 'true' : undefined}
           aria-current={idx === active ? 'page' : undefined}
         />
       ))}

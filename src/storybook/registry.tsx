@@ -3105,6 +3105,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - Continue posts real /preferences and /onboarding/features-complete requests (and /onboarding/lighting-complete when Lighting is switched off), so opening it here would mutate the running install\'s feature switches.',
   },
   {
+    name: 'OnboardingStepDots', category: 'modals',
+    filePath: 'src/components/common/OnboardingStepDots/OnboardingStepDots.tsx',
+    description: 'Progress dots shared by every full-viewport onboarding screen: PanelPageIndicator in progress mode, pinned to the bottom center, the current step and all passed steps filled.',
+    notes: 'No live preview - it is fixed to the viewport bottom and only makes sense inside an onboarding screen.',
+  },
+  {
     name: 'HyteOnboardingScreen', category: 'modals',
     filePath: 'src/components/common/HyteOnboardingScreen/HyteOnboardingScreen.tsx',
     description: 'Informational onboarding step between WelcomeScreen and FeaturesOnboardingScreen, shown only while HYTE Nexus 2 is installed: HYTE plus Nexus marks, a thank-you with two intro paragraphs, a What\'s new list of four static rows, a Continue button and a fixed step indicator. No controls besides Back, Skip onboarding and Continue.',

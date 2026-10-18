@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Activity, Lightbulb, Fan, LayoutGrid, Smartphone, Heart, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { OnboardingStepDots } from '../OnboardingStepDots/OnboardingStepDots';
 import { Overlay } from '../Overlay/Overlay';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingToggle } from '../SettingRow/SettingRow';
@@ -19,6 +20,8 @@ import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './WelcomeScreen.module.scss';
 
 export interface WelcomeScreenProps {
+  /** Position among the onboarding steps this user will see. */
+  step?: { total: number; active: number };
   open: boolean;
   // Ping's reported OS, drives the platform-aware start-with-OS label.
   platform: string;
@@ -47,7 +50,7 @@ const CAPABILITIES: readonly { Icon: LucideIcon; key: string }[] = [
  * so a failed write can never strand the gate open with no way forward and
  * can never silently mark a failed save as done.
  */
-export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps) {
+export function WelcomeScreen({ open, platform, step, onComplete }: WelcomeScreenProps) {
   const { t } = useTranslation();
   const [startWithOs, setStartWithOsValue] = useState(true);
   // null until seeded, so useHeartBurstTrigger treats the load as baseline, not a transition to animate.
@@ -183,6 +186,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
       >
         {t('welcome.enter')}
       </Button>
+      <OnboardingStepDots step={step} />
     </Overlay>
   );
 }

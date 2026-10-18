@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, DownloadCloud } from 'lucide-react';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
+import { OnboardingStepDots } from '../OnboardingStepDots/OnboardingStepDots';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { ImportCenter, type ImportCenterHandle, type ImportSourceId, type SourceDetection } from '../ImportCenter/ImportCenter';
@@ -22,6 +23,8 @@ const COOLING_GROUPS = ['fanCurves'] as const;
 const SELECTION_SETTLE_TIMEOUT_MS = 10_000;
 
 export interface ImportOnboardingScreenProps {
+  /** Position among the onboarding steps this user will see. */
+  step?: { total: number; active: number };
   /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
   onSkipOnboarding?: () => void;
   open: boolean;
@@ -42,7 +45,7 @@ export interface ImportOnboardingScreenProps {
  * app; the end-of-onboarding conflict step does that, per app, on an explicit
  * click.
  */
-export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, coolingOn = true, onComplete, onBack, onSkipOnboarding }: ImportOnboardingScreenProps) {
+export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, coolingOn = true, step, onComplete, onBack, onSkipOnboarding }: ImportOnboardingScreenProps) {
   const { t } = useTranslation();
 
   const [applyPhase, setApplyPhase] = useState<ApplyPhase>('idle');
@@ -236,6 +239,7 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, c
               : t('importOnboarding.continue')}
         </Button>
       </div>
+      <OnboardingStepDots step={step} />
     </Overlay>
   );
 }
