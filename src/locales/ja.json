@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "{count} 台のデバイスを選択",
   "lighting.devices.selectModeHint": "ライティングモードを選択して、デバイスの検出またはスキャンを開始します。",
   "lighting.devices.selectOnly": "{name} のみを選択",
+  "lighting.devices.setLedCounts": "LED数を設定",
   "lighting.devices.stackCount.one": "スタック ({count} 台のデバイス)",
   "lighting.devices.stackCount.other": "スタック ({count} 台のデバイス)",
   "lighting.devices.stackLayout": "スタックの配置",

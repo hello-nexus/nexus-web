@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "Sélectionner {count} appareils",
   "lighting.devices.selectModeHint": "Sélectionnez un mode d'éclairage pour découvrir ou rechercher des appareils.",
   "lighting.devices.selectOnly": "Sélectionner uniquement {name}",
+  "lighting.devices.setLedCounts": "Définir le nombre de LED",
   "lighting.devices.stackCount.one": "Empiler ({count} appareil)",
   "lighting.devices.stackCount.other": "Empiler ({count} appareils)",
   "lighting.devices.stackLayout": "Disposition de la pile",

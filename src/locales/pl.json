@@ -2788,6 +2788,7 @@
   "lighting.devices.selectGroupCount.other": "Zaznacz {count} urządzeń",
   "lighting.devices.selectModeHint": "Wybierz tryb podswietlenia, aby rozpoczac wykrywanie urzadzen.",
   "lighting.devices.selectOnly": "Zaznacz tylko {name}",
+  "lighting.devices.setLedCounts": "Ustaw liczbę diod LED",
   "lighting.devices.stackCount.few": "Ułóż w stos ({count} urządzenia)",
   "lighting.devices.stackCount.one": "Ułóż w stos ({count} urządzenie)",
   "lighting.devices.stackCount.other": "Ułóż w stos ({count} urządzeń)",

@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "Selecionar {count} dispositivos",
   "lighting.devices.selectModeHint": "Selecione um modo de iluminacao para iniciar a deteccao de dispositivos.",
   "lighting.devices.selectOnly": "Selecionar apenas {name}",
+  "lighting.devices.setLedCounts": "Definir a quantidade de LEDs",
   "lighting.devices.stackCount.one": "Empilhar ({count} dispositivo)",
   "lighting.devices.stackCount.other": "Empilhar ({count} dispositivos)",
   "lighting.devices.stackLayout": "Disposição da pilha",

@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "{count} apparaten selecteren",
   "lighting.devices.selectModeHint": "Selecteer een verlichtingsmodus om apparaten te ontdekken of te scannen.",
   "lighting.devices.selectOnly": "Alleen {name} selecteren",
+  "lighting.devices.setLedCounts": "Stel het aantal LED's in",
   "lighting.devices.stackCount.one": "Stapelen ({count} apparaat)",
   "lighting.devices.stackCount.other": "Stapelen ({count} apparaten)",
   "lighting.devices.stackLayout": "Stapelindeling",

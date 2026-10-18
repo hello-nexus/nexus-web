@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "选择 {count} 个设备",
   "lighting.devices.selectModeHint": "选择灯光模式以开始发现或扫描设备。",
   "lighting.devices.selectOnly": "仅选择 {name}",
+  "lighting.devices.setLedCounts": "设置 LED 数量",
   "lighting.devices.stackCount.one": "堆叠（{count} 个设备）",
   "lighting.devices.stackCount.other": "堆叠（{count} 个设备）",
   "lighting.devices.stackLayout": "堆叠布局",

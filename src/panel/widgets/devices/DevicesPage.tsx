@@ -138,7 +138,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
       connected: true, kind: 'app-device', navigable: false, nexusControlEnabled: o.controlled,
       supportsNexusControl: true, experimental: false, requiresBeta: false, conflictAppId: runningConflict?.id,
     };
-    const zoneDevice = zoneDeviceFor(openRgbZones.devices, o.deviceId, o.cardIds);
+    const zoneDevice = zoneDeviceFor(openRgbZones.devices, o.deviceId);
     return (
       <div key={o.key} className={styles.openRgbEntry}>
         <DeviceCard
@@ -152,10 +152,10 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
             else apply();
           }}
         />
-        {zoneDevice && <OpenRgbZoneSizes device={zoneDevice} onSetSize={setOpenRgbZoneSize} />}
+        {zoneDevice && <OpenRgbZoneSizes device={zoneDevice} onSetSize={setOpenRgbZoneSize} onFailed={() => push({ title: t('devices.openrgb.zoneSizeFailed') })} />}
       </div>
     );
-  }, [conflicts, setOpenRgbControlled, requestEnable, openRgbZones.devices, setOpenRgbZoneSize]);
+  }, [conflicts, setOpenRgbControlled, requestEnable, openRgbZones.devices, setOpenRgbZoneSize, push, t]);
   const headersShown = smbusDevices.length > 0;
 
   const renderDeviceCard = useCallback((d: UnifiedDevice) => {

@@ -1134,3 +1134,25 @@ describe('ZoneCard controlled-by strip', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 });
+
+describe('ZoneCard unsized OpenRGB device', () => {
+  const empty: LightingDevice = { ...baseDevice, ledCount: 0 };
+
+  it('links to the Devices block instead of reporting a failed detection', () => {
+    const onOpenZoneSizes = vi.fn();
+    render(
+      <ZoneCard
+        device={empty} selected={false} indent={false} onSelect={() => {}} onTogglePower={() => {}}
+        onToggleControlled={() => {}} onOpenSettings={() => {}} onOpenZoneSizes={onOpenZoneSizes}
+      />,
+    );
+    expect(screen.queryByText('lighting.devices.detectionFailed')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.setLedCounts' }));
+    expect(onOpenZoneSizes).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the detection-failed line when nothing can be sized', () => {
+    renderCard(empty);
+    expect(screen.getByText('lighting.devices.detectionFailed')).toBeTruthy();
+  });
+});

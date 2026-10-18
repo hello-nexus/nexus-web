@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "Select {count} devices",
   "lighting.devices.selectModeHint": "Select a lighting mode to start discovering or scanning devices.",
   "lighting.devices.selectOnly": "Select only {name}",
+  "lighting.devices.setLedCounts": "Set LED counts",
   "lighting.devices.stackCount.one": "Stack ({count} device)",
   "lighting.devices.stackCount.other": "Stack ({count} devices)",
   "lighting.devices.stackLayout": "Stack layout",

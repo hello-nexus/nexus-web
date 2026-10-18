@@ -5,9 +5,9 @@ export function resizableZones(device: OpenRgbZoneDevice): OpenRgbZone[] {
   return device.zones.filter(z => z.resizable);
 }
 
-/** True when any zone still waits for its first user-chosen size. */
+/** True when a zone that has a control still waits for its first user-chosen size. */
 export function deviceNeedsSize(device: OpenRgbZoneDevice | undefined): boolean {
-  return device?.zones.some(z => z.needsSize) === true;
+  return device != null && resizableZones(device).some(z => z.needsSize);
 }
 
 /** Keeps a count inside the zone's range; a malformed range collapses to its minimum. */
@@ -16,14 +16,7 @@ export function clampZoneCount(zone: Pick<OpenRgbZone, 'ledsMin' | 'ledsMax'>, c
   return Math.min(max, Math.max(zone.ledsMin, Math.round(count)));
 }
 
-/**
- * The zone list for one Devices row. The service keys a device by the id of its
- * unsplit card; a split device's row id is its parent, so any owned card id matches too.
- */
-export function zoneDeviceFor(
-  zones: readonly OpenRgbZoneDevice[],
-  deviceId: string,
-  cardIds: readonly string[],
-): OpenRgbZoneDevice | undefined {
-  return zones.find(z => z.deviceId === deviceId) ?? zones.find(z => cardIds.includes(z.deviceId));
+/** The service keys a device by its OpenRGB device id, the same id the Devices row carries. */
+export function zoneDeviceFor(zones: readonly OpenRgbZoneDevice[], deviceId: string): OpenRgbZoneDevice | undefined {
+  return zones.find(z => z.deviceId === deviceId);
 }

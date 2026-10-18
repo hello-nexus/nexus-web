@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "Selezione {count} dispositîfs",
   "lighting.devices.selectModeHint": "Selezione une modalitât di iluminazion par scomençâ a scuvierzi o scansionâ i dispositîfs.",
   "lighting.devices.selectOnly": "Selezione dome {name}",
+  "lighting.devices.setLedCounts": "Stabilìs il numar di LED",
   "lighting.devices.stackCount.one": "Intassâ ({count} dispositîf)",
   "lighting.devices.stackCount.other": "Intassâ ({count} dispositîfs)",
   "lighting.devices.stackLayout": "Disposizion de pile",

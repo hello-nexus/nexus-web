@@ -2760,6 +2760,7 @@
   "lighting.devices.selectGroupCount.other": "{count} cihaz seç",
   "lighting.devices.selectModeHint": "Cihazlari kesfetmek veya taramak icin bir aydinlatma modu secin.",
   "lighting.devices.selectOnly": "Yalnızca {name} seç",
+  "lighting.devices.setLedCounts": "LED sayısını ayarlayın",
   "lighting.devices.stackCount.one": "Yığınla ({count} cihaz)",
   "lighting.devices.stackCount.other": "Yığınla ({count} cihaz)",
   "lighting.devices.stackLayout": "Yığın düzeni",

@@ -299,6 +299,7 @@ export function ZoneCard({
   firmwareControlled,
   onTakeControl,
   onOpenDevicePage,
+  onOpenZoneSizes,
   groupMove,
   inStack,
   colorTuned,
@@ -365,6 +366,8 @@ export function ZoneCard({
   onTakeControl?: () => void;
   /** Opens the device page, where a firmware-owned card's own effect is set. */
   onOpenDevicePage?: () => void;
+  /** Opens the Devices page, where an unsized OpenRGB header gets its LED count. Present only on a zero-LED card waiting for one. */
+  onOpenZoneSizes?: () => void;
   /** Group placement for this card's rail row: the card, or the stack it is a
    *  zone of. */
   groupMove?: GroupMove;
@@ -716,6 +719,10 @@ export function ZoneCard({
               <Badge label={t('lighting.devices.hardwareControlBadge')} icon={<Cpu size={11} />} compact uppercase color="var(--text-dim)" />
             </span>
           </HoverTooltip>
+        ) : unavailable && onOpenZoneSizes ? (
+          <button type="button" className={styles.deviceMetaLink} onClick={e => { e.stopPropagation(); onOpenZoneSizes(); }}>
+            {t('lighting.devices.setLedCounts')}
+          </button>
         ) : unavailable ? (
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}

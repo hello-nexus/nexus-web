@@ -19,6 +19,10 @@ describe('zoneSizeUtils', () => {
     expect(deviceNeedsSize(undefined)).toBe(false);
   });
 
+  it('ignores an unsized zone that has no control', () => {
+    expect(deviceNeedsSize(device([zone({ resizable: false, needsSize: true })]))).toBe(false);
+  });
+
   it('clamps a count into the zone range', () => {
     const z = zone({ ledsMin: 0, ledsMax: 34 });
     expect(clampZoneCount(z, 99)).toBe(34);
@@ -27,10 +31,9 @@ describe('zoneSizeUtils', () => {
     expect(clampZoneCount({ ledsMin: 5, ledsMax: 5 }, 2)).toBe(5);
   });
 
-  it('matches a row by device id or by one of its card ids', () => {
-    const zs = [device([zone({})], 'openrgb-1'), device([zone({})], 'openrgb-2-0')];
-    expect(zoneDeviceFor(zs, 'openrgb-1', [])?.deviceId).toBe('openrgb-1');
-    expect(zoneDeviceFor(zs, 'openrgb-2', ['openrgb-2-0'])?.deviceId).toBe('openrgb-2-0');
-    expect(zoneDeviceFor(zs, 'openrgb-9', ['x'])).toBeUndefined();
+  it('matches a row by device id', () => {
+    const zs = [device([zone({})], 'openrgb-1'), device([zone({})], 'openrgb-2')];
+    expect(zoneDeviceFor(zs, 'openrgb-2')?.deviceId).toBe('openrgb-2');
+    expect(zoneDeviceFor(zs, 'openrgb-9')).toBeUndefined();
   });
 });

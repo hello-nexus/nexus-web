@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { OpenRgbZone, OpenRgbZoneDevice } from '../../../api/openRgbZones';
 
@@ -45,14 +45,42 @@ describe('OpenRgbZoneSizes', () => {
     expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('34');
   });
 
-  it('applies a value on release and warns when the service refuses it', async () => {
+  const drag = (slider: HTMLElement, value: string) => {
+    fireEvent.pointerDown(slider);
+    fireEvent.change(slider, { target: { value } });
+    fireEvent.pointerUp(window);
+  };
+
+  it('applies a value on release and reports a refused write', async () => {
     const onSetSize = vi.fn(() => Promise.resolve(false));
-    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ index: 3 })])} />);
+    const onFailed = vi.fn();
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} onFailed={onFailed} device={device([zone({ index: 3 })])} />);
+    drag(screen.getByRole('slider'), '12');
+    await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledWith('openrgb-1', 3, 12));
+    await vi.waitFor(() => expect(onFailed).toHaveBeenCalled());
+  });
+
+  it('keeps the chosen count shown until the write settles', async () => {
+    let settle: (ok: boolean) => void = () => undefined;
+    const onSetSize = vi.fn(() => new Promise<boolean>(r => { settle = r; }));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ ledCount: 12, needsSize: false })])} />);
+    fireEvent.click(screen.getByRole('button', { name: /zoneSizesToggle/ }));
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    drag(slider, '20');
+    await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledWith('openrgb-1', 0, 20));
+    expect(slider.value).toBe('20');
+    await act(async () => { settle(true); });
+    await vi.waitFor(() => expect(slider.value).toBe('12'));
+  });
+
+  it('does not write when a release leaves the value where it started', async () => {
+    const onSetSize = vi.fn(() => Promise.resolve(true));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({})])} />);
     const slider = screen.getByRole('slider');
-    fireEvent.change(slider, { target: { value: '12' } });
     fireEvent.pointerDown(slider);
     fireEvent.pointerUp(window);
-    await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledWith('openrgb-1', 3, 12));
-    expect(await screen.findByText('devices.openrgb.zoneSizeFailed')).toBeTruthy();
+    fireEvent.keyUp(slider, { key: 'Tab' });
+    await new Promise(r => setTimeout(r, 20));
+    expect(onSetSize).not.toHaveBeenCalled();
   });
 });
