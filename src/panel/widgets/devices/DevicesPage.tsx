@@ -6,7 +6,6 @@ import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../
 import { useOpenRgbDevices } from '../../../hooks/useOpenRgbDevices';
 import { useFeatureFlags } from '../../../hooks/useUiSettings';
 import { groupOpenRgbDevices, openRgbNoticeShown, type OpenRgbDevice } from './openRgbDevices';
-import { PillarNotice } from '../../../components/common/PillarNotice/PillarNotice';
 import { DeviceGroupIcon } from '../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useConflictGuardedEnable } from '../../../hooks/useConflictGuardedEnable';
@@ -237,13 +236,15 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
                 <>
                   <SectionHeader className={styles.sectionHeader}>{t('devices.section.openrgb')}</SectionHeader>
                   {openRgbNotice && (
-                    <PillarNotice
-                      message={t('devices.openrgb.lightingOff')}
-                      anchors={[]}
-                      action={onOpenLighting && (
+                    <Notice
+                      tone="info"
+                      role="status"
+                      actions={onOpenLighting && (
                         <Button size="sm" tone="neutral" onClick={onOpenLighting}>{t('devices.openrgb.openLighting')}</Button>
                       )}
-                    />
+                    >
+                      {t('devices.openrgb.lightingOff')}
+                    </Notice>
                   )}
                   {openRgbDevices.length > 0 && (
                     <div className={styles.list}>
