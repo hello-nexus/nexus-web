@@ -73,14 +73,46 @@ describe('OpenRgbZoneSizes', () => {
     await vi.waitFor(() => expect(slider.value).toBe('12'));
   });
 
-  it('does not write when a release leaves the value where it started', async () => {
+  it('does not confirm an unsized zone on a key press alone', async () => {
     const onSetSize = vi.fn(() => Promise.resolve(true));
     render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({})])} />);
     const slider = screen.getByRole('slider');
-    fireEvent.pointerDown(slider);
-    fireEvent.pointerUp(window);
     fireEvent.keyUp(slider, { key: 'Tab' });
     await new Promise(r => setTimeout(r, 20));
     expect(onSetSize).not.toHaveBeenCalled();
+  });
+
+  it('confirms an unsized zone at the value it shows on a plain release', async () => {
+    const onSetSize = vi.fn(() => Promise.resolve(true));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ index: 2, ledCount: 5 })])} />);
+    const slider = screen.getByRole('slider');
+    fireEvent.pointerDown(slider);
+    fireEvent.pointerUp(window);
+    await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledWith('openrgb-1', 2, 5));
+  });
+
+  it('confirms an unsized zone stored below its minimum at the minimum', async () => {
+    const onSetSize = vi.fn(() => Promise.resolve(true));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ index: 2, ledCount: 0, ledsMin: 3 })])} />);
+    const slider = screen.getByRole('slider');
+    fireEvent.pointerDown(slider);
+    fireEvent.pointerUp(window);
+    await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledWith('openrgb-1', 2, 3));
+  });
+
+  it('keeps an in-flight write draft when a later release changes nothing', async () => {
+    let settle: (ok: boolean) => void = () => undefined;
+    const onSetSize = vi.fn(() => new Promise<boolean>(r => { settle = r; }));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ ledCount: 12, needsSize: false })])} />);
+    fireEvent.click(screen.getByRole('button', { name: /zoneSizesToggle/ }));
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    drag(slider, '20');
+    await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledTimes(1));
+    fireEvent.pointerDown(slider);
+    fireEvent.pointerUp(window);
+    await new Promise(r => setTimeout(r, 20));
+    expect(onSetSize).toHaveBeenCalledTimes(1);
+    expect(slider.value).toBe('20');
+    await act(async () => { settle(true); });
   });
 });

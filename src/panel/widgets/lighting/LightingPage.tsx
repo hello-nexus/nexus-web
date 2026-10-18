@@ -862,10 +862,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [serviceOnline, mode, hydrateAnimateSettings]);
 
   const openRgbZones = useOpenRgbZones(serviceOnline);
-  const zoneSizeDeviceIds = useMemo(
-    () => new Set(openRgbZones.devices.filter(deviceNeedsSize).map(d => d.deviceId)),
-    [openRgbZones.devices],
-  );
+  const zoneSizeKey = openRgbZones.devices.filter(deviceNeedsSize).map(d => d.deviceId).join('\n');
+  // Keyed by content, so a refetch that changes nothing keeps the same Set.
+  const zoneSizeDeviceIds = useMemo(() => new Set(zoneSizeKey ? zoneSizeKey.split('\n') : []), [zoneSizeKey]);
 
   // Push-driven refresh: every /lighting/* mutation publishes a 'lighting'
   // frame on the multiplex hub. Each branch refetches the resource it owns.

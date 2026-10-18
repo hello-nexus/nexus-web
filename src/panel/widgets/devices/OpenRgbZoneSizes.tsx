@@ -35,8 +35,9 @@ export function OpenRgbZoneSizes({
   const [drafts, setDrafts] = useState<Record<number, Draft>>({});
   const nextToken = useRef(0);
   // What the slider showed when this gesture began; a release at the same value is not a change.
-  const gestureStart = useRef<Record<number, number>>({});
+  const gestureStart = useRef<Record<number, { value: number; draft: Draft | undefined }>>({});
   const typed = useRef<Set<number>>(new Set());
+  const pointered = useRef<Set<number>>(new Set());
 
   if (zones.length === 0) return null;
 
@@ -67,7 +68,10 @@ export function OpenRgbZoneSizes({
       >
         <div className={styles.zoneSizeList}>
           {zones.map(zone => {
-            const value = clampZoneCount(zone, drafts[zone.index]?.count ?? zone.ledCount);
+            const draft = drafts[zone.index];
+            const value = clampZoneCount(zone, draft?.count ?? zone.ledCount);
+            // An unsized zone's count is a placeholder, so it reads as unset until the user confirms one.
+            const unset = zone.needsSize && draft === undefined;
             return (
               <Slider
                 key={zone.index}
@@ -78,22 +82,29 @@ export function OpenRgbZoneSizes({
                 value={value}
                 min={zone.ledsMin}
                 max={zone.ledsMax}
+                mixed={unset}
+                mixedLabel={String(value)}
+                onPointerDown={() => { pointered.current.add(zone.index); }}
                 onChange={(v, typedEdit) => {
-                  if (gestureStart.current[zone.index] === undefined) gestureStart.current[zone.index] = value;
+                  if (gestureStart.current[zone.index] === undefined) gestureStart.current[zone.index] = { value, draft };
                   if (typedEdit) typed.current.add(zone.index);
                   setDrafts(prev => ({ ...prev, [zone.index]: { count: clampZoneCount(zone, v), token: ++nextToken.current } }));
                 }}
                 onCommit={v => {
                   const start = gestureStart.current[zone.index];
                   const wasTyped = typed.current.delete(zone.index);
+                  const wasPointer = pointered.current.delete(zone.index);
                   delete gestureStart.current[zone.index];
                   const count = clampZoneCount(zone, v);
-                  if (wasTyped || (start !== undefined && start !== count)) {
+                  // A release on an unsized zone confirms the count it shows; a key press alone does not.
+                  const confirm = wasTyped || (zone.needsSize && wasPointer);
+                  if (confirm || (start !== undefined && start.value !== count)) {
                     commit(zone.index, count);
                   } else if (start !== undefined) {
                     setDrafts(prev => {
                       const rest = { ...prev };
-                      delete rest[zone.index];
+                      if (start.draft) rest[zone.index] = start.draft;
+                      else delete rest[zone.index];
                       return rest;
                     });
                   }
