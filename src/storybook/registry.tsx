@@ -3105,6 +3105,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - Continue posts real /preferences and /onboarding/features-complete requests (and /onboarding/lighting-complete when Lighting is switched off), so opening it here would mutate the running install\'s feature switches.',
   },
   {
+    name: 'HyteOnboardingScreen', category: 'modals',
+    filePath: 'src/components/common/HyteOnboardingScreen/HyteOnboardingScreen.tsx',
+    description: 'Informational onboarding step between WelcomeScreen and FeaturesOnboardingScreen, shown only while HYTE Nexus 2 is installed: HYTE plus Nexus marks, a thank-you with two intro paragraphs, a What\'s new label over four static cards, a Continue button and a fixed step indicator. No controls besides Back, Skip onboarding and Continue.',
+    notes: 'No live preview - it mounts as a full-viewport non-dismissable overlay that would cover the Storybook modal.',
+  },
+  {
     name: 'Nexus2ImportSection', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportSection.tsx',
     description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Hosted by ImportCenter, which the onboarding gate and the Settings entry both open.',

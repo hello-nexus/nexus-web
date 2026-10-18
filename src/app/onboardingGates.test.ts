@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOnboardingGates, type OnboardingGateInputs } from './onboardingGates';
+import { deriveOnboardingGates, isHyteStepAvailable, type OnboardingGateInputs } from './onboardingGates';
 
 // A returning launch: onboarding done, nothing pending, everything resolved.
 const base: OnboardingGateInputs = {
@@ -72,5 +72,26 @@ describe('deriveOnboardingGates', () => {
     expect(gates()).toMatchObject({ showDashboard: true, gateOpened: true });
     expect(gates({ liveReady: false, stickyReady: false }).gateOpened).toBe(false);
     expect(gates({ importOffered: true }).gateOpened).toBe(true);
+  });
+});
+
+describe('isHyteStepAvailable', () => {
+  const ok = { featuresPending: true, featuresReplay: false, nexus2Known: true, nexus2Installed: true };
+
+  it('is available while Nexus 2 is installed and Features is next', () => {
+    expect(isHyteStepAvailable(ok)).toBe(true);
+  });
+
+  it('is not available when Nexus 2 is not installed', () => {
+    expect(isHyteStepAvailable({ ...ok, nexus2Installed: false })).toBe(false);
+  });
+
+  it('is not available before the Nexus 2 status is known', () => {
+    expect(isHyteStepAvailable({ ...ok, nexus2Known: false })).toBe(false);
+  });
+
+  it('is not available on a Features replay or when Features is not pending', () => {
+    expect(isHyteStepAvailable({ ...ok, featuresReplay: true })).toBe(false);
+    expect(isHyteStepAvailable({ ...ok, featuresPending: false })).toBe(false);
   });
 });

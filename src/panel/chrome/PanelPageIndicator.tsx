@@ -9,11 +9,13 @@ interface PanelPageIndicatorProps {
   // before fading back out. Caller bumps it on swipe / page change.
   visibilityToken?: number | string;
   className?: string;
+  /** Skips the fade-out, for a surface where the indicator is a fixed part of the layout. */
+  persistent?: boolean;
 }
 
 const FADE_HOLD_MS = 1500;
 
-export function PanelPageIndicator({ total, active, visibilityToken, className }: PanelPageIndicatorProps) {
+export function PanelPageIndicator({ total, active, visibilityToken, className, persistent }: PanelPageIndicatorProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(true);
 
@@ -31,7 +33,7 @@ export function PanelPageIndicator({ total, active, visibilityToken, className }
   return (
     <div
       className={`${styles.indicator}${className ? ` ${className}` : ''}`}
-      data-fade={visible ? undefined : 'true'}
+      data-fade={visible || persistent ? undefined : 'true'}
       role="tablist"
       aria-label={t('panel.pages.label')}
     >

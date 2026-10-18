@@ -50,3 +50,17 @@ export function deriveOnboardingGates(i: OnboardingGateInputs): OnboardingGates 
   const gateOpened = i.welcomeOpen || i.featuresOpen || importOpen || conflictStepPending || lightingOnboardingOpen || showDashboard;
   return { importOpen, conflictStepPending, lightingOnboardingOpen, showDashboard, gateOpened };
 }
+
+/**
+ * The informational HYTE step sits before Features and shows only while
+ * HYTE Nexus 2 is installed now. `nexus2Installed` must be the service's
+ * `detected` flag: `pending` and `importAvailable` outlive an uninstall.
+ */
+export function isHyteStepAvailable(i: {
+  featuresPending: boolean;
+  featuresReplay: boolean;
+  nexus2Known: boolean;
+  nexus2Installed: boolean;
+}): boolean {
+  return i.featuresPending && !i.featuresReplay && i.nexus2Known && i.nexus2Installed;
+}
