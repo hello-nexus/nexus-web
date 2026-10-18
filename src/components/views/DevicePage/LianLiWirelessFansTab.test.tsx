@@ -123,19 +123,20 @@ describe('LianLiWirelessFansTab', () => {
 
   describe('lock bound devices toggle', () => {
     const lockSwitch = () => screen.getByRole('switch', { name: 'devices.lianli-wireless.lockBoundDevices' });
+    const on = { ...wirelessState, lockBoundDevices: true };
+    const off = { ...wirelessState, lockBoundDevices: false };
+
+    function deferred<T>() {
+      let resolve: (v: T) => void = () => {};
+      const promise = new Promise<T>(r => { resolve = r; });
+      return { promise, resolve };
+    }
 
     it('reads on when the service omits the key and off when it reports false', async () => {
       await renderTab();
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
       cleanup();
-      await renderTab({ ...wirelessState, lockBoundDevices: false });
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
-    });
-
-    it('flips optimistically and PUTs the new value', async () => {
-      await renderTab({ ...wirelessState, lockBoundDevices: true });
-      await act(async () => { fireEvent.click(lockSwitch()); });
-      expect(mockSetLianLiWirelessLockBound).toHaveBeenCalledWith(false);
+      await renderTab(off);
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
     });
 
@@ -145,55 +146,43 @@ describe('LianLiWirelessFansTab', () => {
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('a failed earlier PUT does not wipe a later click, and only the last click persists', async () => {
-      let failFirst: (ok: boolean) => void = () => {};
-      mockSetLianLiWirelessLockBound.mockReturnValueOnce(new Promise<boolean>(r => { failFirst = r; }));
-      await renderTab({ ...wirelessState, lockBoundDevices: true });
-      await act(async () => { fireEvent.click(lockSwitch()); });
-      await act(async () => { fireEvent.click(lockSwitch()); });
-      await act(async () => { fireEvent.click(lockSwitch()); });
-      await act(async () => { failFirst(false); });
-      expect(mockSetLianLiWirelessLockBound.mock.calls).toEqual([[false], [false]]);
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
-    });
-
-    it('keeps the toggle through a stale read sent before the PUT resolved', async () => {
-      const refresh = vi.fn();
-      const sentSeq = 5;
+    it('shows the clicked value and is disabled while saving, then shows the server value after the refresh', async () => {
+      const put = deferred<boolean>();
+      const reread = deferred<void>();
+      mockSetLianLiWirelessLockBound.mockReturnValueOnce(put.promise);
+      const refresh = vi.fn().mockReturnValue(reread.promise);
       let view: ReturnType<typeof render> | undefined;
-      await act(async () => {
-        view = render(<LianLiWirelessFansTab state={{ ...wirelessState, lockBoundDevices: true }} stateSeq={5} readSentSeq={() => sentSeq} refresh={refresh} />);
-      });
-      await act(async () => { fireEvent.click(lockSwitch()); });
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
-      // A read sent before the PUT resolved still says on: it must not flip the toggle back.
-      await act(async () => {
-        view!.rerender(<LianLiWirelessFansTab state={{ ...wirelessState, lockBoundDevices: true }} stateSeq={5} readSentSeq={() => sentSeq} refresh={refresh} />);
-      });
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
-      // A read sent after it is authoritative.
-      await act(async () => {
-        view!.rerender(<LianLiWirelessFansTab state={{ ...wirelessState, lockBoundDevices: true }} stateSeq={6} readSentSeq={() => sentSeq} refresh={refresh} />);
-      });
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
-    });
-
-    it('a throwing PUT counts as failed, refreshes, and does not block the next click', async () => {
-      mockSetLianLiWirelessLockBound.mockRejectedValueOnce(new Error('bad body'));
-      const refresh = await renderTab({ ...wirelessState, lockBoundDevices: true });
-      await act(async () => { fireEvent.click(lockSwitch()); });
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
-      expect(refresh).toHaveBeenCalled();
-      await act(async () => { fireEvent.click(lockSwitch()); });
-      expect(mockSetLianLiWirelessLockBound).toHaveBeenCalledTimes(2);
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
-    });
-
-    it('reverts when the PUT fails', async () => {
-      mockSetLianLiWirelessLockBound.mockResolvedValue(false);
-      await renderTab({ ...wirelessState, lockBoundDevices: true });
+      await act(async () => { view = render(<LianLiWirelessFansTab state={on} refresh={refresh} />); });
       await act(async () => { fireEvent.click(lockSwitch()); });
       expect(mockSetLianLiWirelessLockBound).toHaveBeenCalledWith(false);
+      expect(lockSwitch()).toBeDisabled();
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+      await act(async () => { put.resolve(true); });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(lockSwitch()).toBeDisabled();
+      await act(async () => {
+        view!.rerender(<LianLiWirelessFansTab state={off} refresh={refresh} />);
+        reread.resolve();
+      });
+      expect(lockSwitch()).not.toBeDisabled();
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('reverts to the server value when the PUT fails', async () => {
+      mockSetLianLiWirelessLockBound.mockResolvedValue(false);
+      const refresh = await renderTab(on);
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(lockSwitch()).not.toBeDisabled();
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('a throwing PUT does not leave the toggle disabled', async () => {
+      mockSetLianLiWirelessLockBound.mockRejectedValueOnce(new Error('bad body'));
+      const refresh = await renderTab(on);
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(lockSwitch()).not.toBeDisabled();
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
     });
   });

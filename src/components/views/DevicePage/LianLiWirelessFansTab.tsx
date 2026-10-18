@@ -77,10 +77,6 @@ export function deviceTypeKey(devType: number, fanType: number):
 
 export interface LianLiWirelessFansTabProps {
   state: LianLiWirelessState | null;
-  /** Send-order number of the GET that produced `state`. */
-  stateSeq?: number;
-  /** Send-order number of the most recently sent state GET. */
-  readSentSeq?: () => number;
   refresh: () => Promise<void>;
   /** Opens the panel page of a device that has one, by MAC; undefined when it has none. */
   panelOpener?: (mac: string) => (() => void) | undefined;
@@ -91,7 +87,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, stateSeq, readSentSeq, refresh, panelOpener }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -183,33 +179,17 @@ export function LianLiWirelessFansTab({ state, stateSeq, readSentSeq, refresh, p
 
   const loaded = state !== null;
 
-  // Optimistic lock value. `resolvedSeq` is null while its PUT is queued or in flight; once the PUT
-  // succeeds the value is held until a state read sent after that moment arrives.
-  const [lockOverride, setLockOverride] = useState<{ value: boolean; resolvedSeq: number | null } | null>(null);
-  const lockSeqRef = useRef(0);
-  const lockChainRef = useRef<Promise<void>>(Promise.resolve());
-  const serviceLock = state?.lockBoundDevices !== false;
-  useEffect(() => {
-    if (!lockOverride || lockOverride.resolvedSeq === null) return;
-    const fresh = stateSeq === undefined ? serviceLock === lockOverride.value : stateSeq > lockOverride.resolvedSeq;
-    if (fresh) setLockOverride(null);
-  }, [serviceLock, stateSeq, lockOverride]);
-  const lockBound = loaded && (lockOverride?.value ?? serviceLock);
-  // PUTs run one at a time and a superseded click is dropped, so the last click is what persists.
-  const onLockChange = useCallback((next: boolean) => {
-    const seq = ++lockSeqRef.current;
-    setLockOverride({ value: next, resolvedSeq: null });
-    lockChainRef.current = lockChainRef.current.then(async () => {
-      if (seq !== lockSeqRef.current) return;
-      // A throw counts as a failed PUT and must not leave the chain rejected.
-      const ok = await setLianLiWirelessLockBound(next).catch(() => false);
-      if (!aliveRef.current) return;
-      // A failure, even of a replaced PUT, re-reads the service so the toggle shows what persisted.
-      if (!ok) void refresh();
-      if (seq !== lockSeqRef.current) return;
-      setLockOverride(ok ? { value: next, resolvedSeq: readSentSeq?.() ?? 0 } : null);
-    });
-  }, [refresh, readSentSeq]);
+  // The clicked lock value, shown while its PUT is in flight and the toggle is disabled; the
+  // service value takes over once the state is re-read.
+  const [lockPending, setLockPending] = useState<boolean | null>(null);
+  const lockBound = loaded && (lockPending ?? state.lockBoundDevices !== false);
+  const onLockChange = useCallback(async (next: boolean) => {
+    setLockPending(next);
+    // A throw counts as a failed PUT; either way the service value is what ends up shown.
+    await setLianLiWirelessLockBound(next).catch(() => false);
+    await refresh();
+    if (aliveRef.current) setLockPending(null);
+  }, [refresh]);
 
   return (
     <>
@@ -230,9 +210,9 @@ export function LianLiWirelessFansTab({ state, stateSeq, readSentSeq, refresh, p
           label={t('devices.lianli-wireless.lockBoundDevices')}
           description={t('devices.lianli-wireless.lockBoundDevicesHint')}
           checked={lockBound}
-          onChange={onLockChange}
+          onChange={next => { void onLockChange(next); }}
           ariaLabel={t('devices.lianli-wireless.lockBoundDevices')}
-          disabled={!loaded}
+          disabled={!loaded || lockPending !== null}
         />
       </SettingsSection>
 

@@ -192,6 +192,20 @@ describe('LianLiWirelessDevicePage', () => {
     expect(screen.queryByText('7')).not.toBeInTheDocument();
   });
 
+  it('drops a slow first load that resolves after a newer interval tick', async () => {
+    let resolveSlow: (v: unknown) => void = () => {};
+    mockGetLianLiWirelessState.mockImplementationOnce(() => new Promise(r => { resolveSlow = r; }));
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, channel: 9 });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(screen.getByText('9')).toBeInTheDocument();
+    await act(async () => { resolveSlow({ ...connectedState, channel: 7 }); });
+    expect(screen.getByText('9')).toBeInTheDocument();
+    expect(screen.queryByText('7')).not.toBeInTheDocument();
+  });
+
   it('shows the bound badge for a fan bound to us', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
