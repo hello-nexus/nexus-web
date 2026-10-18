@@ -82,6 +82,8 @@ import { ConflictAllClear } from '../components/common/ConflictAllClear/Conflict
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
 import { OnboardingNote } from '../components/common/OnboardingNote/OnboardingNote';
 import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
+import { OnboardingHeader } from '../components/common/OnboardingHeader/OnboardingHeader';
+import { OnboardingFooter } from '../components/common/OnboardingFooter/OnboardingFooter';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -1346,6 +1348,24 @@ function PreviewOnboardingNote() {
   return (
     <div className={styles.previewStack}>
       <OnboardingNote>You can change these settings any time.</OnboardingNote>
+    </div>
+  );
+}
+
+function PreviewOnboardingHeader() {
+  return (
+    <div className={styles.previewStack}>
+      <OnboardingHeader onBack={() => { /* preview only */ }} onSkip={() => { /* preview only */ }} />
+    </div>
+  );
+}
+
+function PreviewOnboardingFooter() {
+  return (
+    <div className={styles.previewStack}>
+      <OnboardingFooter label="Continue" onContinue={() => { /* preview only */ }}>
+        <OnboardingNote>You can change these settings any time.</OnboardingNote>
+      </OnboardingFooter>
     </div>
   );
 }
@@ -2739,6 +2759,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/OnboardingNote/OnboardingNote.tsx',
     description: 'The closing "you can change this any time" line of an onboarding page, centered and muted at the bottom below the content. Onboarding-only: a settings section explains itself with its description prop instead.',
     Preview: PreviewOnboardingNote,
+  },
+  {
+    name: 'OnboardingHeader', category: 'inputs',
+    filePath: 'src/components/common/OnboardingHeader/OnboardingHeader.tsx',
+    description: 'Top bar shared by every onboarding screen after the welcome step: Back in the left corner when a handler is given, the Skip escape hatch in the right. Spans the surface edges; an absent side keeps its slot so the other stays put.',
+    Preview: PreviewOnboardingHeader,
+  },
+  {
+    name: 'OnboardingFooter', category: 'inputs',
+    filePath: 'src/components/common/OnboardingFooter/OnboardingFooter.tsx',
+    description: 'Bottom block shared by every onboarding screen: an optional closing note (children), an optional error line, then the large accent primary action with an optional secondary action beside it. Content-column width, buttons 280px.',
+    Preview: PreviewOnboardingFooter,
   },
 
   {

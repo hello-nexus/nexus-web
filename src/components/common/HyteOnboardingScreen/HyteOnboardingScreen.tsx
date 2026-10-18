@@ -1,10 +1,10 @@
-import { ArrowLeft, CloudUpload, Plug, SlidersHorizontal, type LucideIcon } from 'lucide-react';
+import { CloudUpload, Plug, SlidersHorizontal, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
-import { Button } from '../Button/Button';
+import { OnboardingHeader } from '../OnboardingHeader/OnboardingHeader';
+import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingRow } from '../SettingRow/SettingRow';
-import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { HYTE_LOGO } from '../../../panel/device/panelDevices';
 import styles from './HyteOnboardingScreen.module.scss';
 
@@ -44,14 +44,7 @@ export function HyteOnboardingScreen({ open, onContinue, onBack, onSkipOnboardin
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
-      <div className={styles.topBar}>
-        {onBack ? (
-          <Button tone="ghost" size="sm" icon={<ArrowLeft />} onClick={onBack}>
-            {t('nav.back')}
-          </Button>
-        ) : <span />}
-        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} /> : <span />}
-      </div>
+      <OnboardingHeader onBack={onBack} onSkip={onSkipOnboarding} />
 
       <div className={styles.scroller}>
         <div className={styles.hero}>
@@ -80,11 +73,7 @@ export function HyteOnboardingScreen({ open, onContinue, onBack, onSkipOnboardin
         </SettingsSection>
       </div>
 
-      <div className={styles.footer}>
-        <Button tone="accent" size="lg" onClick={onContinue} className={styles.continueButton}>
-          {t('hyteOnboarding.continue')}
-        </Button>
-      </div>
+      <OnboardingFooter label={t('hyteOnboarding.continue')} onContinue={onContinue} />
     </Overlay>
   );
 }

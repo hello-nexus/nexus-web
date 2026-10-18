@@ -119,25 +119,6 @@
   to { transform: rotate(360deg); }
 }
 
-.error {
-  @include text-caption;
-  margin: -0.75rem 0 0;
-  color: var(--bad);
-  text-align: center;
-}
-
-.footerRow {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.continueButton {
-  width: min(280px, 100%);
-}
-
 // Quick check that the lights respond, above the device grid.
 .testStrip {
   display: flex;
@@ -231,12 +212,3 @@
   pointer-events: none;
 }
 
-.topBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  // Sticks to the surface edges rather than the centred content column, so
-  // Back and Skip sit in the page corners.
-  flex-shrink: 0;
-}

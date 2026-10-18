@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, DownloadCloud } from 'lucide-react';
-import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
+import { DownloadCloud } from 'lucide-react';
+import { OnboardingHeader } from '../OnboardingHeader/OnboardingHeader';
+import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
-import { Button } from '../Button/Button';
 import { ImportCenter, type ImportCenterHandle, type ImportSourceId, type SourceDetection } from '../ImportCenter/ImportCenter';
 import { dismissFanControlImport } from '../../../api/fancontrol';
 import type { FanControlStatusResponse } from '../../../api/fancontrol';
@@ -179,14 +179,7 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, c
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
-      <div className={styles.topBar}>
-        {onBack ? (
-          <Button tone="ghost" size="sm" icon={<ArrowLeft />} disabled={busy || importBusy} onClick={onBack}>
-            {t('nav.back')}
-          </Button>
-        ) : <span />}
-        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} /> : <span />}
-      </div>
+      <OnboardingHeader onBack={onBack} onSkip={onSkipOnboarding} backDisabled={busy || importBusy} />
       <div className={styles.hero}>
         <span className={styles.heroIcon} aria-hidden>
           <DownloadCloud size={HERO_ICON_SIZE} />
@@ -209,33 +202,18 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, c
         />
       </div>
 
-      <div className={styles.footerRow}>
-        {applyPhase !== 'failed' && importHasSelection && (
-          <Button
-            tone="neutral"
-            size="lg"
-            onClick={() => handleContinue(false)}
-            disabled={busy}
-            className={styles.continueButton}
-          >
-            {t('importOnboarding.skip')}
-          </Button>
-        )}
-        <Button
-          tone="accent"
-          size="lg"
-          onClick={() => handleContinue(true)}
-          loading={busy}
-          loadingHidesLabel
-          className={styles.continueButton}
-        >
-          {applyPhase === 'failed'
-            ? t('importOnboarding.continueAnyway')
-            : importHasSelection
-              ? t('importOnboarding.importAndContinue')
-              : t('importOnboarding.continue')}
-        </Button>
-      </div>
+      <OnboardingFooter
+        secondary={applyPhase !== 'failed' && importHasSelection
+          ? { label: t('importOnboarding.skip'), onClick: () => handleContinue(false), disabled: busy }
+          : undefined}
+        onContinue={() => handleContinue(true)}
+        loading={busy}
+        label={applyPhase === 'failed'
+          ? t('importOnboarding.continueAnyway')
+          : importHasSelection
+            ? t('importOnboarding.importAndContinue')
+            : t('importOnboarding.continue')}
+      />
     </Overlay>
   );
 }

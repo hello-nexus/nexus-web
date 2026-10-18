@@ -118,25 +118,7 @@ $group-gap: 0.75rem;
   flex: 0 0 auto;
 }
 
-// Closes the page under the box, with the standard gap before what follows.
-.note {
-  width: min($onboarding-content-width, 100%);
-  margin-top: 0.4rem;
-  margin-bottom: var(--space-xl);
-}
-
 .telemetryRow {
   position: relative;
 }
 
-.enterButton {
-  width: min(280px, 100%);
-  flex-shrink: 0;
-}
-
-.error {
-  @include text-caption;
-  margin: 0 0 var(--space-xl);
-  color: var(--bad);
-  text-align: center;
-}

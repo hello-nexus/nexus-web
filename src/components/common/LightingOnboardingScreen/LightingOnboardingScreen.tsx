@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Ban, CheckCheck, Lightbulb, PanelsTopLeft, RotateCw, SquareDashed } from 'lucide-react';
-import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
+import { Ban, CheckCheck, Lightbulb, PanelsTopLeft, RotateCw, SquareDashed } from 'lucide-react';
+import { OnboardingHeader } from '../OnboardingHeader/OnboardingHeader';
+import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
@@ -286,14 +287,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
-      <div className={styles.topBar}>
-        {onBack ? (
-          <Button tone="ghost" size="sm" icon={<ArrowLeft />} disabled={submitting} onClick={onBack}>
-            {t('nav.back')}
-          </Button>
-        ) : <span />}
-        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} /> : <span />}
-      </div>
+      <OnboardingHeader onBack={onBack} onSkip={onSkipOnboarding} backDisabled={submitting} />
       <div className={styles.hero}>
         <span className={styles.heroIcon} aria-hidden>
           <Lightbulb size={40} />
@@ -419,22 +413,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
         </div>
       )}
 
-      <OnboardingNote>{t('lightingOnboarding.hint')}</OnboardingNote>
-
-      {error && <p className={styles.error}>{t('welcome.error')}</p>}
-
-      <div className={styles.footerRow}>
-        <Button
-          tone="accent"
-          size="lg"
-          onClick={handleContinue}
-          loading={submitting}
-          loadingHidesLabel
-          className={styles.continueButton}
-        >
-          {t('onboarding.finish')}
-        </Button>
-      </div>
+      <OnboardingFooter
+        label={t('onboarding.finish')}
+        onContinue={handleContinue}
+        loading={submitting}
+        error={error ? t('welcome.error') : undefined}
+      >
+        <OnboardingNote>{t('lightingOnboarding.hint')}</OnboardingNote>
+      </OnboardingFooter>
     </Overlay>
   );
 }

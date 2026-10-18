@@ -1,0 +1,31 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/onboarding' as *;
+
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: min($onboarding-content-width, 100%);
+}
+
+.error {
+  @include text-caption;
+  margin: 0;
+  color: var(--bad);
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.action {
+  width: min(280px, 100%);
+}

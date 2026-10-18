@@ -4,7 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingToggle } from '../SettingRow/SettingRow';
-import { Button } from '../Button/Button';
+import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { HeartBurst, useHeartBurstTrigger } from '../HeartBurst/HeartBurst';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { PlatformIcon } from '../../icons/PlatformIcons';
@@ -169,20 +169,14 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
           </div>
         )}
       </SettingsSection>
-      <OnboardingNote className={styles.note}>{t('welcome.preferences.hint')}</OnboardingNote>
-
-      {error && <p className={styles.error}>{t('welcome.error')}</p>}
-
-      <Button
-        tone="accent"
-        size="lg"
-        onClick={handleEnter}
+      <OnboardingFooter
+        label={t('welcome.enter')}
+        onContinue={handleEnter}
         loading={submitting}
-        loadingHidesLabel
-        className={styles.enterButton}
+        error={error ? t('welcome.error') : undefined}
       >
-        {t('welcome.enter')}
-      </Button>
+        <OnboardingNote>{t('welcome.preferences.hint')}</OnboardingNote>
+      </OnboardingFooter>
     </Overlay>
   );
 }
