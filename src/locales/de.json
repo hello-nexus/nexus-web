@@ -904,6 +904,7 @@
   "devices.lianli-wireless.linkRxMissing": "Es wurde nur der Sender des Controllers erkannt. Schließen Sie sein USB-Kabel erneut an.",
   "devices.lianli-wireless.linkTxMissing": "Es wurde nur der Empfänger des Controllers erkannt. Schließen Sie sein USB-Kabel erneut an.",
   "devices.lianli-wireless.loadingScreens": "Bildschirme werden geladen…",
+  "devices.lianli-wireless.lockBlocksPairing": "Deaktivieren Sie „Gekoppelte Geräte sperren“, um Geräte zu koppeln oder zu entkoppeln.",
   "devices.lianli-wireless.lockBoundDevices": "Gekoppelte Geräte sperren",
   "devices.lianli-wireless.lockBoundDevicesHint": "Koppelt Ihre Lüfter und Strimer automatisch wieder mit diesem Controller, wenn sie die Verbindung verlieren. Deaktivieren Sie die Option, um das Koppeln manuell zu verwalten.",
   "devices.lianli-wireless.managePanel": "Panel verwalten",

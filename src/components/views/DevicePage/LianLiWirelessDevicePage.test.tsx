@@ -55,6 +55,7 @@ const connectedState = {
   masterMac: '8A0EEF6232DC',
   channel: 8,
   txFirmwareVersion: 16,
+  lockBoundDevices: false,
   fans: [
     {
       mac: '998D1DE566E1',
