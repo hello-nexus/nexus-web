@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOnboardingGates, isHyteStepAvailable, isLightingStepShown, onboardingStepIndicator, type OnboardingGateInputs } from './onboardingGates';
+import { deriveOnboardingGates, isHyteStepAvailable, type OnboardingGateInputs } from './onboardingGates';
 
 // A returning launch: onboarding done, nothing pending, everything resolved.
 const base: OnboardingGateInputs = {
@@ -93,42 +93,5 @@ describe('isHyteStepAvailable', () => {
   it('is not available on a Features replay or when Features is not pending', () => {
     expect(isHyteStepAvailable({ ...ok, featuresReplay: true })).toBe(false);
     expect(isHyteStepAvailable({ ...ok, featuresPending: false })).toBe(false);
-  });
-});
-
-describe('onboardingStepIndicator', () => {
-  const all = { welcome: true, hyte: true, features: true, import: true, conflicts: true, lighting: true };
-
-  it('counts every step when all show', () => {
-    expect(onboardingStepIndicator(all, 'hyte')).toEqual({ total: 6, active: 1 });
-  });
-
-  it('drops the import step when none is offered', () => {
-    expect(onboardingStepIndicator({ ...all, import: false }, 'hyte')).toEqual({ total: 5, active: 1 });
-  });
-
-  it('drops the conflicts step when it is spent', () => {
-    expect(onboardingStepIndicator({ ...all, conflicts: false }, 'hyte')).toEqual({ total: 5, active: 1 });
-  });
-
-  it('drops the lighting step when lighting is disabled', () => {
-    const lighting = isLightingStepShown({ lightingFeatureOff: true, lightingPending: true, lightingDismissed: false });
-    expect(lighting).toBe(false);
-    expect(onboardingStepIndicator({ ...all, lighting }, 'hyte')).toEqual({ total: 5, active: 1 });
-  });
-
-  it('moves the active index when welcome is not part of the run', () => {
-    expect(onboardingStepIndicator({ ...all, welcome: false }, 'hyte')).toEqual({ total: 5, active: 0 });
-  });
-
-  it('ends fully filled on the last step', () => {
-    expect(onboardingStepIndicator(all, 'lighting')).toEqual({ total: 6, active: 5 });
-    expect(onboardingStepIndicator({ ...all, lighting: false }, 'conflicts')).toEqual({ total: 5, active: 4 });
-  });
-
-  it('numbers the same steps identically from every screen', () => {
-    const shown = { ...all, import: false, hyte: true };
-    const totals = (['welcome', 'hyte', 'features', 'conflicts', 'lighting'] as const).map(id => onboardingStepIndicator(shown, id).total);
-    expect(new Set(totals).size).toBe(1);
   });
 });

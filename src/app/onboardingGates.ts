@@ -43,7 +43,8 @@ export function deriveOnboardingGates(i: OnboardingGateInputs): OnboardingGates 
   const conflictStepPending = i.liveReady && !i.importUndecided && known
     && i.ranEarlierGate && !i.welcomeOpen && !i.featuresOpen && !importOpen && !i.conflictStepDone;
   const lightingOnboardingOpen = i.liveReady && !i.importUndecided && known
-    && !i.welcomeOpen && !importOpen && !i.featuresOpen && !conflictStepPending && isLightingStepShown(i);
+    && !i.welcomeOpen && !importOpen && !i.featuresOpen && !conflictStepPending && !i.lightingFeatureOff
+    && i.lightingPending && !i.lightingDismissed;
   const showDashboard = i.stickyReady && !i.importUndecided && known
     && !i.welcomeOpen && !i.featuresOpen && !lightingOnboardingOpen && !importOpen && !conflictStepPending;
   const gateOpened = i.welcomeOpen || i.featuresOpen || importOpen || conflictStepPending || lightingOnboardingOpen || showDashboard;
@@ -62,29 +63,4 @@ export function isHyteStepAvailable(i: {
   nexus2Installed: boolean;
 }): boolean {
   return i.featuresPending && !i.featuresReplay && i.nexus2Known && i.nexus2Installed;
-}
-
-export type OnboardingStepId = 'welcome' | 'hyte' | 'features' | 'import' | 'conflicts' | 'lighting';
-
-const STEP_ORDER: readonly OnboardingStepId[] = ['welcome', 'hyte', 'features', 'import', 'conflicts', 'lighting'];
-
-/**
- * Where `current` sits among the steps that will show for this user. A step
- * counts when its own gate condition holds; `current` always counts.
- */
-export function onboardingStepIndicator(
-  shown: Partial<Record<OnboardingStepId, boolean>>,
-  current: OnboardingStepId,
-): { total: number; active: number } {
-  const steps = STEP_ORDER.filter(id => id === current || shown[id]);
-  return { total: steps.length, active: steps.indexOf(current) };
-}
-
-/** Lighting shows unless Features switched it off or it was already decided. */
-export function isLightingStepShown(i: {
-  lightingFeatureOff: boolean;
-  lightingPending: boolean;
-  lightingDismissed: boolean;
-}): boolean {
-  return !i.lightingFeatureOff && i.lightingPending && !i.lightingDismissed;
 }

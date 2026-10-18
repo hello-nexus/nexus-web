@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { ArrowLeft, Ban, CheckCheck, Lightbulb, PanelsTopLeft, RotateCw, SquareDashed } from 'lucide-react';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
-import { OnboardingStepDots } from '../OnboardingStepDots/OnboardingStepDots';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { EmptyState } from '../EmptyState/EmptyState';
@@ -26,8 +25,6 @@ import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
 
 export interface LightingOnboardingScreenProps {
-  /** Position among the onboarding steps this user will see. */
-  step?: { total: number; active: number };
   /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
   onSkipOnboarding?: () => void;
   open: boolean;
@@ -83,7 +80,7 @@ const isToggleable = (d: LightingDevice): boolean => !zoneCardUnavailable(d);
  * write through immediately (same call the lighting page uses), so Finish has
  * nothing to batch.
  */
-export function LightingOnboardingScreen({ open, step, onComplete, onBack, onSkipOnboarding }: LightingOnboardingScreenProps) {
+export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboarding }: LightingOnboardingScreenProps) {
   const { t } = useTranslation();
   const [devices, setDevices] = useState<LightingDevice[] | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -438,7 +435,6 @@ export function LightingOnboardingScreen({ open, step, onComplete, onBack, onSki
           {t('onboarding.finish')}
         </Button>
       </div>
-      <OnboardingStepDots step={step} />
     </Overlay>
   );
 }

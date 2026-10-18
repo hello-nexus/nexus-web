@@ -31,10 +31,6 @@
   transform: scale(1.18);
 }
 
-.dot[data-filled='true'] {
-  background: var(--panel-accent, white);
-}
-
 .panelRoot[data-theme='light'] .indicator {
   background: color-mix(in srgb, white 70%, transparent);
 }
