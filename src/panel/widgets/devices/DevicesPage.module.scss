@@ -73,6 +73,27 @@
   opacity: 0.5;
 }
 
+// Sizing controls sit directly under their OpenRGB card.
+.openRgbEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.zoneSizes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0 0.9rem;
+}
+
+.zoneSizeList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.5rem 0 0.25rem;
+}
+
 // Nexus Control off: the identity (icon, name, meta) recedes while the switch,
 // badges and buttons stay at full strength. No transition, so a poll refresh
 // never flashes.
