@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Legen Sie für jeden Lüfter- oder Strip-Anschluss die LED-Anzahl passend zum angeschlossenen Gerät fest.",
   "devices.openrgb.zoneSizes": "LED-Anzahl",
   "devices.openrgb.zoneSizesToggle": "LED-Anzahl für {name}",
+  "devices.openrgb.zoneUnset": "{value}, nicht festgelegt",
   "devices.page.notConnected": "Gerät nicht verbunden",
   "devices.page.title": "Gerät",
   "devices.panels.nextPage": "Nächste Seite",

@@ -73,8 +73,17 @@ export function OpenRgbZoneSizes({
             // An unsized zone's count is a placeholder, so it reads as unset until the user confirms one.
             const unset = zone.needsSize && draft === undefined;
             return (
-              <Slider
+              // Enter on the focused slider confirms the count an unsized zone shows.
+              <div
                 key={zone.index}
+                onKeyDown={e => {
+                  if (unset && e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && (e.target as HTMLInputElement).type === 'range') {
+                    e.preventDefault();
+                    commit(zone.index, value);
+                  }
+                }}
+              >
+              <Slider
                 orientation="stacked"
                 editable
                 trackFill
@@ -83,8 +92,9 @@ export function OpenRgbZoneSizes({
                 min={zone.ledsMin}
                 max={zone.ledsMax}
                 mixed={unset}
-                mixedLabel={String(value)}
-                onPointerDown={() => { pointered.current.add(zone.index); }}
+                mixedLabel={t('devices.openrgb.zoneUnset', { value })}
+                onPointerDown={e => { if (e.button === 0) pointered.current.add(zone.index); }}
+                onPointerCancel={() => { pointered.current.delete(zone.index); }}
                 onChange={(v, typedEdit) => {
                   if (gestureStart.current[zone.index] === undefined) gestureStart.current[zone.index] = { value, draft };
                   if (typedEdit) typed.current.add(zone.index);
@@ -110,6 +120,7 @@ export function OpenRgbZoneSizes({
                   }
                 }}
               />
+              </div>
             );
           })}
         </div>

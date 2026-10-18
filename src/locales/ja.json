@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "各ファンまたはストリップのヘッダーに、接続されている機器に合わせたLED数を設定してください。",
   "devices.openrgb.zoneSizes": "LED数",
   "devices.openrgb.zoneSizesToggle": "{name}のLED数",
+  "devices.openrgb.zoneUnset": "{value}、未設定",
   "devices.page.notConnected": "デバイスが接続されていません",
   "devices.page.title": "デバイス",
   "devices.panels.nextPage": "次のページ",

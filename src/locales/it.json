@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Imposta il numero di LED di ogni connettore per ventola o strip in base a ciò che è collegato.",
   "devices.openrgb.zoneSizes": "Numero di LED",
   "devices.openrgb.zoneSizesToggle": "Numero di LED per {name}",
+  "devices.openrgb.zoneUnset": "{value}, non impostato",
   "devices.page.notConnected": "Dispositivo non connesso",
   "devices.page.title": "Dispositivo",
   "devices.panels.nextPage": "Pagina successiva",

@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Define el número de LED de cada conector de ventilador o tira para que coincida con lo que está conectado.",
   "devices.openrgb.zoneSizes": "Número de LED",
   "devices.openrgb.zoneSizesToggle": "Número de LED de {name}",
+  "devices.openrgb.zoneUnset": "{value}, sin definir",
   "devices.page.notConnected": "Dispositivo no conectado",
   "devices.page.title": "Dispositivo",
   "devices.panels.nextPage": "Página siguiente",

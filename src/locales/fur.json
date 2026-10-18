@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Stabilìs il numar di LED di ogni conetôr par ventule o strip daûr di ce che al è colegât.",
   "devices.openrgb.zoneSizes": "Numar di LED",
   "devices.openrgb.zoneSizesToggle": "Numar di LED di {name}",
+  "devices.openrgb.zoneUnset": "{value}, no impostât",
   "devices.page.notConnected": "Dispositîf no conetût",
   "devices.page.title": "Dispositîf",
   "devices.panels.nextPage": "Pagjine sucessive",

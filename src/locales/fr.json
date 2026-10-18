@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Définissez le nombre de LED de chaque connecteur de ventilateur ou de bandeau selon ce qui y est branché.",
   "devices.openrgb.zoneSizes": "Nombre de LED",
   "devices.openrgb.zoneSizesToggle": "Nombre de LED pour {name}",
+  "devices.openrgb.zoneUnset": "{value}, non défini",
   "devices.page.notConnected": "Appareil non connecté",
   "devices.page.title": "Appareil",
   "devices.panels.nextPage": "Page suivante",

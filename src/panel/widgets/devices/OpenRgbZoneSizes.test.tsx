@@ -115,4 +115,34 @@ describe('OpenRgbZoneSizes', () => {
     expect(slider.value).toBe('20');
     await act(async () => { settle(true); });
   });
+
+  it('does not confirm an unsized zone on a right-click release', async () => {
+    const onSetSize = vi.fn(() => Promise.resolve(true));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ ledCount: 5 })])} />);
+    const slider = screen.getByRole('slider');
+    fireEvent.pointerDown(slider, { button: 2 });
+    fireEvent.pointerUp(window);
+    await new Promise(r => setTimeout(r, 20));
+    expect(onSetSize).not.toHaveBeenCalled();
+  });
+
+  it('forgets a cancelled press so a later key press cannot confirm', async () => {
+    const onSetSize = vi.fn(() => Promise.resolve(true));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ ledCount: 5 })])} />);
+    const slider = screen.getByRole('slider');
+    fireEvent.pointerDown(slider, { button: 0 });
+    fireEvent.pointerCancel(slider);
+    fireEvent.keyUp(slider, { key: 'Tab' });
+    await new Promise(r => setTimeout(r, 20));
+    expect(onSetSize).not.toHaveBeenCalled();
+  });
+
+  it('cues an unsized zone as not set and lets Enter confirm the shown count', async () => {
+    const onSetSize = vi.fn(() => Promise.resolve(true));
+    render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ index: 4, ledCount: 5 })])} />);
+    const slider = screen.getByRole('slider');
+    expect(slider.getAttribute('aria-valuetext')).toBe('devices.openrgb.zoneUnset');
+    fireEvent.keyDown(slider, { key: 'Enter' });
+    await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledWith('openrgb-1', 4, 5));
+  });
 });

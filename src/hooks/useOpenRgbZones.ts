@@ -17,7 +17,7 @@ export function useOpenRgbZones(enabled: boolean) {
   // A slow older fetch must never overwrite a newer answer.
   const fetchSeq = useRef(0);
   // Writes waiting for their count to show up, by zone; a newer write to the same zone supersedes.
-  const waiters = useRef(new Map<string, { count: number; done: () => void }>());
+  const waiters = useRef(new Map<string, { deviceId: string; zoneIndex: number; count: number; done: () => void }>());
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -30,9 +30,8 @@ export function useOpenRgbZones(enabled: boolean) {
     // A split device's counts have one editor, the LED map; it gets no block here.
     const next = (res.devices ?? []).filter(d => d.splitOwned !== true);
     setDevices(next);
-    for (const [key, w] of [...waiters.current]) {
-      const [deviceId, index] = key.split('|');
-      const zone = next.find(d => d.deviceId === deviceId)?.zones.find(z => z.index === Number(index));
+    for (const w of [...waiters.current.values()]) {
+      const zone = next.find(d => d.deviceId === w.deviceId)?.zones.find(z => z.index === w.zoneIndex);
       if (zone?.ledCount === w.count) w.done();
     }
     return next;
@@ -59,6 +58,8 @@ export function useOpenRgbZones(enabled: boolean) {
     await new Promise<void>(resolve => {
       let finished = false;
       const waiter = {
+        deviceId,
+        zoneIndex,
         count: ledCount,
         done: () => {
           if (finished) return;

@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "각 팬 또는 스트립 헤더에 연결된 장치에 맞게 LED 개수를 설정하세요.",
   "devices.openrgb.zoneSizes": "LED 개수",
   "devices.openrgb.zoneSizesToggle": "{name}의 LED 개수",
+  "devices.openrgb.zoneUnset": "{value}, 설정 안 됨",
   "devices.page.notConnected": "장치가 연결되지 않음",
   "devices.page.title": "장치",
   "devices.panels.nextPage": "다음 페이지",

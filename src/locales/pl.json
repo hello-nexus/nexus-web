@@ -1182,6 +1182,7 @@
   "devices.openrgb.zoneSizePrompt": "Ustaw liczbę diod LED dla każdego złącza wentylatora lub taśmy zgodnie z tym, co jest podłączone.",
   "devices.openrgb.zoneSizes": "Liczba diod LED",
   "devices.openrgb.zoneSizesToggle": "Liczba diod LED dla {name}",
+  "devices.openrgb.zoneUnset": "{value}, nie ustawiono",
   "devices.page.notConnected": "Urządzenie niepodłączone",
   "devices.page.title": "Urządzenie",
   "devices.panels.nextPage": "Następna strona",

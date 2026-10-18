@@ -1182,6 +1182,7 @@
   "devices.openrgb.zoneSizePrompt": "Укажите количество светодиодов для каждого разъема вентилятора или ленты в соответствии с подключенным устройством.",
   "devices.openrgb.zoneSizes": "Количество светодиодов",
   "devices.openrgb.zoneSizesToggle": "Количество светодиодов: {name}",
+  "devices.openrgb.zoneUnset": "{value}, не задано",
   "devices.page.notConnected": "Устройство не подключено",
   "devices.page.title": "Устройство",
   "devices.panels.nextPage": "Следующая страница",

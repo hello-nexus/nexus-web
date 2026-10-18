@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Her fan veya şerit başlığı için LED sayısını bağlı olan cihaza uyacak şekilde ayarlayın.",
   "devices.openrgb.zoneSizes": "LED sayısı",
   "devices.openrgb.zoneSizesToggle": "{name} için LED sayısı",
+  "devices.openrgb.zoneUnset": "{value}, ayarlanmadı",
   "devices.page.notConnected": "Cihaz bağlı değil",
   "devices.page.title": "Cihaz",
   "devices.panels.nextPage": "Sonraki sayfa",

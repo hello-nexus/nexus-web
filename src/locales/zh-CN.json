@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "请为每个风扇或灯带接口设置与所连接设备相符的 LED 数量。",
   "devices.openrgb.zoneSizes": "LED 数量",
   "devices.openrgb.zoneSizesToggle": "{name}的 LED 数量",
+  "devices.openrgb.zoneUnset": "{value}，未设置",
   "devices.page.notConnected": "设备未连接",
   "devices.page.title": "设备",
   "devices.panels.nextPage": "下一页",

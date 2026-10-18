@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Set the LED count for each fan or strip header to match what is connected to it.",
   "devices.openrgb.zoneSizes": "LED counts",
   "devices.openrgb.zoneSizesToggle": "LED counts for {name}",
+  "devices.openrgb.zoneUnset": "{value}, not set",
   "devices.page.notConnected": "Device not connected",
   "devices.page.title": "Device",
   "devices.panels.nextPage": "Next page",

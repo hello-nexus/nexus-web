@@ -1175,6 +1175,7 @@
   "devices.openrgb.zoneSizePrompt": "Stel voor elke fan- of stripaansluiting het aantal LED's in dat past bij wat erop is aangesloten.",
   "devices.openrgb.zoneSizes": "Aantal LED's",
   "devices.openrgb.zoneSizesToggle": "Aantal LED's voor {name}",
+  "devices.openrgb.zoneUnset": "{value}, niet ingesteld",
   "devices.page.notConnected": "Apparaat niet verbonden",
   "devices.page.title": "Apparaat",
   "devices.panels.nextPage": "Volgende pagina",
