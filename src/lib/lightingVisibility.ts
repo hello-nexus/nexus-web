@@ -26,9 +26,9 @@ export function reconcileDeviceOrder(prev: readonly string[], ids: readonly stri
   return kept.length === prev.length && kept.every((id, i) => id === prev[i]) ? [...prev] : kept;
 }
 
-/** A refreshed list that leaves already-listed cards as they were and only appends cards that just arrived. */
+/** A refreshed list in the order already shown, with each kept card's fresh state, and cards that just arrived appended. */
 export function appendNewCards<T extends { id: string }>(prev: readonly T[], fresh: readonly T[]): T[] {
-  const freshIds = new Set(fresh.map(c => c.id));
+  const byId = new Map(fresh.map(c => [c.id, c]));
   const listed = new Set(prev.map(c => c.id));
-  return [...prev.filter(c => freshIds.has(c.id)), ...fresh.filter(c => !listed.has(c.id))];
+  return [...prev.filter(c => byId.has(c.id)).map(c => byId.get(c.id)!), ...fresh.filter(c => !listed.has(c.id))];
 }

@@ -81,11 +81,12 @@ describe('reconcileDeviceOrder', () => {
 });
 
 describe('appendNewCards', () => {
-  it('leaves listed cards in order and as the same objects, appending only new arrivals', () => {
+  it('keeps the shown order with each kept card's fresh state, appending only new arrivals', () => {
     const a = { id: 'a', n: 1 }; const b = { id: 'b', n: 1 };
+    // n stands for upstream state such as `controlled`.
     const out = appendNewCards([a, b], [{ id: 'b', n: 2 }, { id: 'c', n: 2 }, { id: 'a', n: 2 }]);
     expect(out.map(c => c.id)).toEqual(['a', 'b', 'c']);
-    expect(out[0]).toBe(a);
-    expect(out[1]).toBe(b);
+    expect(out[0].n).toBe(2);
+    expect(out[1].n).toBe(2);
   });
 });

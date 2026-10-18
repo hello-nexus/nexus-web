@@ -150,8 +150,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
           if ((d.controlled !== false) === want) { intents.delete(d.id); return d; }
           return { ...d, controlled: want };
         });
-        // While OpenRGB is still starting, listed cards stay put and only new ones are appended.
-        setDevices(prev => (awaitingRgbRef.current && prev && prev.length > 0 ? appendNewCards(prev, fresh) : fresh));
+        // While OpenRGB is still starting, listed cards keep their order and only new ones are appended.
+        // The poll that sees it running replaces the list outright.
+        const holdOrder = awaitingRgbRef.current && status?.rgbRunning !== true;
+        setDevices(prev => (holdOrder && prev && prev.length > 0 ? appendNewCards(prev, fresh) : fresh));
       }
       // isInit=false with the RGB subprocess up means the bridge is still
       // coming online: treat it as scanning so a fresh boot shows progress,
