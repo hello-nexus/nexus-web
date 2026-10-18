@@ -179,6 +179,7 @@ import {
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
 import { cornerRoom, freeformSnapSpans } from './engine/freeformResize';
+import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
 // before the editor sheet unmounts. Matches the SETTLE_MS / settling transition
@@ -854,9 +855,11 @@ export function PanelContent({
   const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
 
   // Resize mode is entered from the widget context menu and ends on a press outside the frame.
+  // Hovering a tile with a mouse shows the same corners without the mode.
   const [freeformId, setFreeformId] = useState<string | null>(null);
+  const [hoverResizeId, setHoverResizeId] = useState<string | null>(null);
+  const resizeGestureRef = useRef(false);
   const freeformWidget = freeformId ? findWidgetById(paginatedLayout, freeformId) : undefined;
-  const freeformDef = freeformWidget ? lookupApp(freeformWidget.type) : undefined;
   const resizeBounds = { cols: capacity.gridCols, rows: capacity.pageRows };
   // Corners snap to the widget's declared sizes that fit; opted-in widgets also get the even spans past 4x4.
   const resizeSpansFor = (type: string): GridSpan[] => {
@@ -867,14 +870,18 @@ export function PanelContent({
   };
   const canResizeType = (type: string) => dragEditable && resizeSpansFor(type).length > 1;
   const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type));
-  const freeformSpans = freeformWidget ? resizeSpansFor(freeformWidget.type) : NO_SPANS;
+  const hoverWidget = !freeformId && hoverResizeId ? findWidgetById(paginatedLayout, hoverResizeId) : undefined;
+  const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type));
+  const cornerTarget = freeformActive ? freeformWidget : hoverActive ? hoverWidget : undefined;
+  const freeformDef = cornerTarget ? lookupApp(cornerTarget.type) : undefined;
+  const freeformSpans = cornerTarget ? resizeSpansFor(cornerTarget.type) : NO_SPANS;
   const freeformRoom = (w: PanelWidget) => {
     const span = sizeToSpan(w.size);
     return cornerRoom({ col: w.col, row: w.row, cols: span.cols, rows: span.rows }, freeformSpans, resizeBounds);
   };
   const handleFreeformReject = useCallback((id: string) => triggerFlash(id), [triggerFlash]);
   const freeform = useFreeformResize({
-    widgetId: freeformActive ? freeformId : null,
+    widgetId: cornerTarget?.id ?? null,
     layout: paginatedLayout,
     capacity,
     snapSpans: freeformSpans,
@@ -882,6 +889,14 @@ export function PanelContent({
     onCommit: setLayout,
     onReject: handleFreeformReject,
   });
+  const beginResize = useCallback(() => {
+    resizeGestureRef.current = freeform.begin();
+    return resizeGestureRef.current;
+  }, [freeform]);
+  const endResize = useCallback(() => {
+    resizeGestureRef.current = false;
+    freeform.end();
+  }, [freeform]);
   const exitFreeform = useCallback(() => setFreeformId(null), []);
   // A press outside the frame ends the mode and goes no further.
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
@@ -1199,6 +1214,21 @@ export function PanelContent({
     webViewHost.setSuppressed(webViewSuppressed);
     return () => webViewHost.setSuppressed(false);
   }, [webViewSuppressed]);
+  const hoverResizeBusy = freeformActive || Boolean(activeDragId) || Boolean(dragArmedId) || Boolean(sheetMode) || Boolean(touch.ctxMenu) || touch.rearranging;
+  useEffect(() => {
+    if (hoverResizeBusy && !resizeGestureRef.current) setHoverResizeId(null);
+  }, [hoverResizeBusy]);
+  const trackHoverResize = (e: React.PointerEvent) => {
+    if (resizeGestureRef.current) return;
+    const allowed = hoverResizeAllowed({
+      pointerType: e.pointerType,
+      hoverCapable: typeof window.matchMedia !== 'function' || window.matchMedia('(hover: hover)').matches,
+      mouseAsTouch,
+      busy: hoverResizeBusy,
+    });
+    const id = allowed ? hoverTargetId(e.target) : null;
+    if (id !== undefined) setHoverResizeId(prev => (prev === id ? prev : id));
+  };
   const { connectionIntroHost, clearConnectionIntro, resetAnnounced } = useConnectionIntro({
     blocked: connectionIntroBlocked,
     embedded,
@@ -1897,7 +1927,8 @@ export function PanelContent({
         onPointerDownCapture={freeformActive ? swallowOutsideFreeform : undefined}
         onClickCapture={freeformActive ? swallowOutsideFreeform : undefined}
         onPointerDown={handleBackgroundPointerDown}
-        onPointerMove={backgroundLongPress.onPointerMove}
+        onPointerMove={e => { backgroundLongPress.onPointerMove(e); trackHoverResize(e); }}
+        onPointerLeave={() => { if (!resizeGestureRef.current) setHoverResizeId(null); }}
         onPointerUp={backgroundLongPress.onPointerUp}
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
@@ -2024,15 +2055,16 @@ export function PanelContent({
                             />
                           </ErrorBoundary>
                         ))}
-                        {freeformActive && freeformWidget && page.widgets.some(w => w.id === freeformWidget.id) ? (
+                        {cornerTarget && page.widgets.some(w => w.id === cornerTarget.id) ? (
                           <FreeformResizeFrame
-                            widget={page.widgets.find(w => w.id === freeformWidget.id) ?? freeformWidget}
-                            label={t(freeformDef?.meta.i18nKey ?? '') || freeformWidget.type}
+                            widget={page.widgets.find(w => w.id === cornerTarget.id) ?? cornerTarget}
+                            label={t(freeformDef?.meta.i18nKey ?? '') || cornerTarget.type}
+                            hover={!freeformActive}
                             touch={kioskBehavior && surfaceSupportsTouch(surface, deviceTouch)}
-                            room={freeformRoom(page.widgets.find(w => w.id === freeformWidget.id) ?? freeformWidget)}
-                            onBegin={freeform.begin}
+                            room={freeformRoom(page.widgets.find(w => w.id === cornerTarget.id) ?? cornerTarget)}
+                            onBegin={beginResize}
                             onUpdate={freeform.update}
-                            onEnd={freeform.end}
+                            onEnd={endResize}
                             onExit={exitFreeform}
                           />
                         ) : null}

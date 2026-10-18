@@ -134,3 +134,39 @@ describe('FreeformResizeFrame', () => {
     expect(onExit).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('FreeformResizeFrame hover corners', () => {
+  function setupHover() {
+    const onBegin = vi.fn(() => true);
+    const onUpdate = vi.fn();
+    const onEnd = vi.fn();
+    const onParentClick = vi.fn();
+    const onParentDown = vi.fn();
+    const { container } = render(
+      <div data-surface="y70" onClick={onParentClick} onPointerDown={onParentDown}>
+        <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} hover onBegin={onBegin} onUpdate={onUpdate} onEnd={onEnd} onExit={vi.fn()} />
+      </div>,
+    );
+    return { onBegin, onUpdate, onEnd, onParentClick, onParentDown, container };
+  }
+
+  it('renders only the four corners, with no body to catch other presses', () => {
+    const { container } = setupHover();
+    expect(container.querySelector('[data-freeform-frame]')).toHaveAttribute('data-hover', 'true');
+    expect(screen.queryByRole('button', { name: 'panel.freeform.body' })).toBeNull();
+    expect(container.querySelectorAll('button[data-corner]')).toHaveLength(4);
+  });
+
+  it('resizes from a corner press without any press or click reaching the panel behind', () => {
+    const { onUpdate, onEnd, onParentClick, onParentDown } = setupHover();
+    const handle = screen.getByRole('button', { name: 'panel.freeform.handle.bottomRight' });
+    press(handle, 0, 0);
+    move(handle, 100, 100);
+    release(handle, 100, 100);
+    fireEvent.click(handle);
+    expect(onUpdate).toHaveBeenLastCalledWith('br', 1, 2);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onParentDown).not.toHaveBeenCalled();
+    expect(onParentClick).not.toHaveBeenCalled();
+  });
+});

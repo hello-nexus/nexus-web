@@ -19,6 +19,16 @@
   --_hit-min: 44px;
 }
 
+// Hover corners: only the grab areas take presses.
+.frame[data-hover='true'] {
+  pointer-events: none;
+  box-shadow: none;
+
+  .handle {
+    pointer-events: auto;
+  }
+}
+
 .body {
   position: absolute;
   top: 0;

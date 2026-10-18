@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useRef, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { sizeToSpan } from '../engine/grid';
 import { readCellMetrics } from '../engine/panelLayoutHelpers';
@@ -32,6 +32,7 @@ export function FreeformResizeFrame({
   label,
   room,
   touch = false,
+  hover = false,
   onBegin,
   onUpdate,
   onEnd,
@@ -39,6 +40,8 @@ export function FreeformResizeFrame({
 }: {
   widget: PanelWidget;
   label: string;
+  // Corners only, shown while a mouse hovers the tile: the frame and body let every other press through.
+  hover?: boolean;
   // Touch panels get larger grab areas.
   touch?: boolean;
   // Corners that can still grow; the others stay draggable inward.
@@ -108,12 +111,16 @@ export function FreeformResizeFrame({
     onPointerUp: endPress,
     onPointerCancel: cancelPress,
     onKeyDown: keyStep(gesture),
+    // A grab never counts as a click on the tile or the panel behind it.
+    onClick: (event: MouseEvent<HTMLElement>) => event.stopPropagation(),
   });
 
   return (
     <div
       data-freeform-frame=""
       data-touch={touch ? 'true' : undefined}
+      data-freeform-widget={widget.id}
+      data-hover={hover ? 'true' : undefined}
       className={styles.frame}
       role="group"
       aria-label={t('panel.freeform.frame', { name: label })}
@@ -122,7 +129,7 @@ export function FreeformResizeFrame({
         gridRow: `${widget.row + 1} / span ${span.rows}`,
       } as CSSProperties}
     >
-      <div
+      {!hover && <div
         className={styles.body}
         role="button"
         tabIndex={0}
@@ -136,7 +143,7 @@ export function FreeformResizeFrame({
           }
           keyStep('move')(event);
         }}
-      />
+      />}
       {CORNERS.map(corner => (
         <button
           key={corner}
