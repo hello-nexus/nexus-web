@@ -62,7 +62,6 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useDevices } from '../../../hooks/useDevices';
 import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
 import { ConflictWarningModal } from '../../../components/common/Sidebar/ConflictWarning';
-import { controlledByStrips } from './page/controlledBy';
 import { Coachmark } from '../../../components/common/Coachmark/Coachmark';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
@@ -1589,13 +1588,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Running apps that compete for a card's hardware, named in its footer strip.
   const { conflicts: runningApps, ready: runningAppsReady } = useConflictApps(serviceOnline);
   const { devices: curatedDevices } = useDevices(serviceOnline && runningApps.length > 0);
-  const curatedAppByHandler = useMemo(
-    () => new Map(curatedDevices.flatMap(d => (d.conflictAppId ? [[d.id, d.conflictAppId] as const] : []))),
+  const curatedControl = useMemo(
+    () => new Map(curatedDevices.flatMap(d => (d.conflictAppId
+      ? [[d.id, { appId: d.conflictAppId, enabled: d.nexusControlEnabled !== false }] as const]
+      : []))),
     [curatedDevices],
-  );
-  const appStrips = useMemo(
-    () => controlledByStrips(railDevices, runningApps, curatedAppByHandler),
-    [railDevices, runningApps, curatedAppByHandler],
   );
   const [appStripIds, setAppStripIds] = useState<readonly string[] | null>(null);
   const conflictExclusions = useConflictAutoKillExclusions();
@@ -2950,7 +2947,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
             discovery={discovery}
             rgbRunning={rgb.running}
-            appStrips={appStrips}
+            runningApps={runningApps}
+            curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
           />
         </div>

@@ -4,7 +4,15 @@ import type { CardAppStrip } from './controlledBy';
 import styles from '../LightingPage.module.scss';
 
 // Stands in for the app list while translating, so each locale keeps its own word order around it.
-const APP_TOKEN = '';
+const APP_TOKEN = '\uE000';
+
+function listFormat(language: string): Intl.ListFormat {
+  try {
+    return new Intl.ListFormat(language, { type: 'conjunction' });
+  } catch {
+    return new Intl.ListFormat('en', { type: 'conjunction' });
+  }
+}
 
 /**
  * The footer of a lighting card naming the apps that compete for its hardware.
@@ -12,7 +20,7 @@ const APP_TOKEN = '';
  * conflict dialog, so the press never reaches the card's select or drag.
  */
 export function ControlledByStrip({ strip, onOpen }: { strip: CardAppStrip; onOpen: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const warn = strip.controlled;
   const [before, after = ''] = t(warn ? 'devices.conflictRunning.badge' : 'lighting.devices.controlledBy', { app: APP_TOKEN }).split(APP_TOKEN);
   const Icon = warn ? AlertTriangle : AppWindow;
@@ -22,13 +30,13 @@ export function ControlledByStrip({ strip, onOpen }: { strip: CardAppStrip; onOp
       className={`${styles.deviceControlledBy} ${warn ? styles.deviceControlledByWarn : ''}`}
       data-no-dnd
       onClick={e => { e.stopPropagation(); onOpen(); }}
-      onContextMenu={e => e.stopPropagation()}
-      onKeyDown={e => e.stopPropagation()}
+      // Enter and Space activate the button; keep them from the card's key handlers (drag, toggle). Everything else bubbles.
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
     >
       <Icon aria-hidden />
       <span>
         {before}
-        <b>{strip.apps.map(a => a.name).join(', ')}</b>
+        <b>{listFormat(language).format(strip.apps.map(a => a.name))}</b>
         {after}
       </span>
     </button>

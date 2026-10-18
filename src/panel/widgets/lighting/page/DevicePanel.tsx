@@ -11,7 +11,8 @@ import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard'
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
-import type { CardAppStrip } from './controlledBy';
+import { controlledByStrips, type CuratedControlByHandler } from './controlledBy';
+import type { DetectedConflict } from '../../../../api/conflicts';
 import { lightingDeviceAnchor, lightingGroupAnchor } from '../../../../lib/pageAnchors';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -36,7 +37,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, appStrips, onOpenAppStrip }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -127,8 +128,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   /** Tail card explaining a short list; absent once a mode is running. */
   discovery?: DiscoveryState;
   rgbRunning?: boolean;
-  /** Footer strips naming the running apps that compete for a device, keyed by the card hosting each. */
-  appStrips?: ReadonlyMap<string, CardAppStrip>;
+  /** Detected apps; each device whose hardware one competes for gets a footer strip naming it. */
+  runningApps?: readonly DetectedConflict[];
+  /** Curated hub handler id to its competing app and gate state, for hub cards. */
+  curatedControl?: CuratedControlByHandler;
   /** Opens the conflict dialog for these app ids. */
   onOpenAppStrip?: (appIds: string[]) => void;
   /** User-made groups, in display order. */
@@ -373,6 +376,13 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
     d.devicePageReason !== undefined
     || lianLiHubOf(d) !== undefined
     || (d.deviceId !== undefined && !!firmwareDeviceIds?.has(d.deviceId));
+  const appStrips = controlledByStrips(
+    every,
+    devices,
+    runningApps ?? [],
+    curatedControl ?? new Map(),
+    d => !zoneCardUnavailable(d) && !fwOf(d),
+  );
   const takeControlFor = (d: LightingDevice) => {
     if (!fwOf(d) || d.devicePageReason !== undefined) return undefined;
     const hub = lianLiHubOf(d);
@@ -483,8 +493,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
       pin={pinFor(d.id)}
       target={pickTargetIds?.has(d.id)}
       pulseSeq={pulse?.ids.has(d.id) ? pulse.seq : undefined}
-      appStrip={appStrips?.get(d.id)}
-      onOpenAppStrip={onOpenAppStrip ? () => onOpenAppStrip(appStrips?.get(d.id)?.apps.map(a => a.id) ?? []) : undefined}
+      appStrip={appStrips.get(d.id)}
+      onOpenAppStrip={onOpenAppStrip ? () => onOpenAppStrip(appStrips.get(d.id)?.apps.map(a => a.id) ?? []) : undefined}
       onUnstack={stackOf(stacks, d.id) ? () => onStacksChange?.(unstackDevices(stacks, [d.id])) : undefined}
     />
   );
