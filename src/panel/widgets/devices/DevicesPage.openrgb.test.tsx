@@ -24,8 +24,7 @@ let cards: LightingDevice[] = [];
 let rgbRunning = true;
 const setControlled = vi.fn(() => Promise.resolve({}));
 vi.mock('../../../api/lighting', () => ({
-  fetchLightingDevices: () => Promise.resolve({ isInit: true, devices: cards }),
-  fetchLightingStatus: () => Promise.resolve({ rgbRunning }),
+  fetchLightingDevices: () => Promise.resolve({ isInit: true, devices: cards, rgbRunning }),
   setLightingDeviceControlled: (...a: unknown[]) => setControlled(...(a as [])),
 }));
 

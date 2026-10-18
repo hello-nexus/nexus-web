@@ -1,7 +1,8 @@
+@use '../../../panel/styles/flexGap' as *;
+
 // The action sits right after the message, not in the row's right-aligned control slot.
 .withAction {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
+  @include hgap(var(--space-sm));
 }

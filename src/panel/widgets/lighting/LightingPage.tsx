@@ -38,6 +38,7 @@ import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
 import { buildDeviceBlocks, sortZonesWithinDevice, type ZoneBlock } from './page/deviceBlocks';
 import { usePins } from './page/usePins';
 import { canStack, isStackedSet, setStackLayout, stackDevices, stackOf, unstackDevices, withStacked, type DeviceStack } from './page/deviceStacks';
+import { hiddenCardIds } from '../../../lib/lightingVisibility';
 import { controlGroupOf } from './page/controlGroupOf';
 import { stackLayoutOf, type StackLayout } from '../../../lib/stackSlots';
 import { useTranslation } from '../../../lib/i18n';
@@ -524,6 +525,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleCompositionChanged = useCallback(async (hubId: string) => {
     const data = await fetchLightingDevices();
     if (!data) return;
+    hiddenDeviceIdsRef.current = hiddenCardIds(data);
     setDeviceGroups(data.groups ?? []);
     setDeviceStacks(data.stacks ?? []);
     const next = (data.devices ?? []).map(d => ({
@@ -1612,6 +1614,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   );
   // Cards a SELECTION can hold, which is wider: a click lands on a dark or
   // un-driven card too, since selecting it is how its menu gets opened.
+  const hiddenDeviceIdsRef = useRef<ReadonlySet<string>>(new Set());
   const selectionKeepIds = useMemo(
     () => orderedDevices.filter(zoneCardSelectionHoldable).map(d => d.id),
     [orderedDevices],
@@ -1723,7 +1726,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // card the user picked precisely because its lights were off.
   useEffect(() => {
     if (orderedDevices.length === 0) return;
-    const keep = new Set(selectionKeepIds);
+    // Hidden OpenRGB cards come back with the daemon, so their ids stay selected.
+    const keep = new Set([...selectionKeepIds, ...hiddenDeviceIdsRef.current]);
     setSelectedDeviceIds(prev => {
       if ([...prev].every(id => keep.has(id))) return prev;
       return new Set([...prev].filter(id => keep.has(id)));
@@ -1739,6 +1743,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const refreshDevices = useCallback(async () => {
     const data = await fetchLightingDevices();
     if (!data || deviceDraggingRef.current) return;
+    hiddenDeviceIdsRef.current = hiddenCardIds(data);
     const devices = (data.devices ?? []).map(d => ({
       ...d,
       canvasW: Math.max(60, d.canvasW),

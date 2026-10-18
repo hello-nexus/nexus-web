@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { hiddenCardIds } from '../lib/lightingVisibility';
 
 let rgbRunning: boolean | null = true;
 const fetchServiceMock = vi.fn(async (path: string) => {
@@ -17,32 +18,57 @@ vi.mock('./service', async importOriginal => ({
   fetchService: (path: string) => fetchServiceMock(path),
 }));
 
-import { fetchLightingDevices } from './lighting';
-import { deriveConflictDevices } from '../hooks/useConflictDevices';
-
-const ids = async () => (await fetchLightingDevices())!.devices.map(d => d.id);
+// The last known daemon state lives in the module, so each test starts from a fresh one.
+async function load() {
+  vi.resetModules();
+  const lighting = await import('./lighting');
+  const conflicts = await import('../hooks/useConflictDevices');
+  return { fetchLightingDevices: lighting.fetchLightingDevices, deriveConflictDevices: conflicts.deriveConflictDevices };
+}
 
 describe('fetchLightingDevices', () => {
   beforeEach(() => { rgbRunning = true; });
 
   it('keeps snapshot and native cards while OpenRGB runs', async () => {
-    expect(await ids()).toEqual(['openrgb-s-1', 'mb-0', 'keeb']);
+    const { fetchLightingDevices } = await load();
+    expect((await fetchLightingDevices())!.devices.map(d => d.id)).toEqual(['openrgb-s-1', 'mb-0', 'keeb']);
   });
 
-  it('hides every OpenRGB card, and only those, while it is off', async () => {
+  it('hides every OpenRGB card, and only those, while it is off, and still reports them', async () => {
     rgbRunning = false;
-    expect(await ids()).toEqual(['keeb']);
+    const { fetchLightingDevices } = await load();
+    const res = (await fetchLightingDevices())!;
+    expect(res.devices.map(d => d.id)).toEqual(['keeb']);
+    expect(res.allDevices).toHaveLength(3);
+    expect(res.rgbRunning).toBe(false);
   });
 
-  it('hides them while the daemon state is unknown', async () => {
+  it('hides them while the daemon state has never been read', async () => {
     rgbRunning = null;
-    expect(await ids()).toEqual(['keeb']);
+    const { fetchLightingDevices } = await load();
+    expect((await fetchLightingDevices())!.devices.map(d => d.id)).toEqual(['keeb']);
+  });
+
+  it('keeps the last known state when a status read fails', async () => {
+    const { fetchLightingDevices } = await load();
+    await fetchLightingDevices();
+    rgbRunning = null;
+    expect((await fetchLightingDevices())!.devices.map(d => d.id)).toEqual(['openrgb-s-1', 'mb-0', 'keeb']);
   });
 
   it('leaves the conflict list nothing to target while OpenRGB is off', async () => {
     rgbRunning = false;
+    const { fetchLightingDevices, deriveConflictDevices } = await load();
     const lighting = (await fetchLightingDevices())!.devices.map(d => ({ ...d, conflictAppIds: ['icue'] }));
     const groups = deriveConflictDevices([{ id: 'icue' } as never], [], lighting).get('icue')!;
     expect(groups.some(g => g.lightingIds.some(i => i.startsWith('openrgb-') || i === 'mb-0'))).toBe(false);
+  });
+});
+
+describe('hiddenCardIds', () => {
+  it('names ids the service lists but the response hides, so a selection prune can keep them', () => {
+    const res = { devices: [{ id: 'keeb' }], allDevices: [{ id: 'keeb' }, { id: 'openrgb-s-1' }] };
+    expect([...hiddenCardIds(res)]).toEqual(['openrgb-s-1']);
+    expect([...hiddenCardIds({ devices: [{ id: 'keeb' }] })]).toEqual([]);
   });
 });

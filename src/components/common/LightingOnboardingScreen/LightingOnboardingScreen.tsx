@@ -19,7 +19,7 @@ import { paletteColor, paletteKey } from '../../../types/lightingPalette';
 import { SIMPLE_ANIMATION_KEYS, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
-import { useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
+import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
 
@@ -54,6 +54,8 @@ const MODE_CHOICES = [
 const RAINBOW = SIMPLE_ANIMATION_KEYS[0];
 const RAINBOW_SWATCH = 'conic-gradient(#ff2d2d, #ffd21e, #2fd45a, #22d3ee, #2f6bff, #a855f7, #ff2d2d)';
 
+const RGB_WAIT_MS = 30_000;
+
 // Simple mode's own palette colours, so a pick here is the swatch the simple
 // page marks active afterwards.
 const TEST_COLORS: { id: string; labelKey: string }[] = [
@@ -81,6 +83,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   const { t } = useTranslation();
   const [devices, setDevices] = useState<LightingDevice[] | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [rgbUp, setRgbUp] = useState(false);
+  // Bounds the wait for OpenRGB so a box that never starts it still settles.
+  const [rgbWaitOver, setRgbWaitOver] = useState(false);
+  const lightingOn = useFeatureFlags().lighting;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   // RAINBOW or a palette id: what the lights are wearing, and what Finish keeps.
@@ -148,6 +154,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       // coming online: treat it as scanning so a fresh boot shows progress,
       // not "no devices". With the subprocess down (lighting off entirely)
       // no devices can ever arrive, so that is the real empty state.
+      setRgbUp(status?.rgbRunning === true);
       setScanning(status?.scanning === true || (data?.isInit === false && status?.rgbRunning === true));
     } finally {
       pollInFlightRef.current = false;
@@ -157,7 +164,13 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // Polls only until a scan has settled with devices in hand. Left running it
   // keeps rebuilding the list underneath the user, which reorders the cards
   // and makes a click land on a card object that no longer exists.
-  const settled = devices !== null && devices.length > 0 && !scanning;
+  const awaitingRgb = lightingOn && !rgbUp && !rgbWaitOver;
+  const settled = devices !== null && devices.length > 0 && !scanning && !awaitingRgb;
+  useEffect(() => {
+    if (!open || !awaitingRgb) return;
+    const timer = setTimeout(() => setRgbWaitOver(true), RGB_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [open, awaitingRgb]);
   useEffect(() => {
     if (!open || settled) return;
     void refresh();

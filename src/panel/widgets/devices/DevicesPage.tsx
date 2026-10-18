@@ -5,7 +5,7 @@ import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevice
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useOpenRgbDevices } from '../../../hooks/useOpenRgbDevices';
 import { useFeatureFlags } from '../../../hooks/useUiSettings';
-import { groupOpenRgbDevices, openRgbNoticeShown, setOpenRgbDeviceControlled, type OpenRgbDevice } from './openRgbDevices';
+import { groupOpenRgbDevices, openRgbNoticeShown, type OpenRgbDevice } from './openRgbDevices';
 import { PillarNotice } from '../../../components/common/PillarNotice/PillarNotice';
 import { DeviceGroupIcon } from '../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { useConflictApps } from '../../../hooks/useConflictApps';
@@ -121,6 +121,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   const smbusDevices = useMemo(() => orderedDevices.filter(d => d.bus === 'smbus'), [orderedDevices]);
   const { lighting: lightingFeatureOn } = useFeatureFlags();
   const openRgb = useOpenRgbDevices(serviceOnline && availableActive);
+  const setOpenRgbControlled = openRgb.setControlled;
   const openRgbOff = openRgbNoticeShown(lightingFeatureOn, openRgb.daemonUp);
   // No rows while OpenRGB is off: held-off snapshots would invite toggles that kill a competing app.
   const openRgbDevices = useMemo(() => (openRgbOff ? [] : groupOpenRgbDevices(openRgb.cards)), [openRgbOff, openRgb.cards]);
@@ -141,16 +142,13 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         runningConflict={runningConflict}
         onClick={() => undefined}
         onToggleControl={next => {
-          const apply = () => {
-            openRgb.setControlledLocal(o.cardIds, next);
-            void setOpenRgbDeviceControlled(o, next).then(openRgb.refresh);
-          };
+          const apply = () => void setOpenRgbControlled(o.cardIds, next);
           if (next) void requestEnable(device, apply);
           else apply();
         }}
       />
     );
-  }, [conflicts, openRgb, requestEnable]);
+  }, [conflicts, setOpenRgbControlled, requestEnable]);
   const headersShown = smbusDevices.length > 0;
 
   const renderDeviceCard = useCallback((d: UnifiedDevice) => {

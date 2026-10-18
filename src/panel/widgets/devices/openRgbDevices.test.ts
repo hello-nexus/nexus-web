@@ -6,7 +6,7 @@ vi.mock('../../../api/lighting', () => ({
   setLightingDeviceControlled: (...a: unknown[]) => setControlled(...a),
 }));
 
-import { groupOpenRgbDevices, openRgbNoticeShown, setOpenRgbDeviceControlled } from './openRgbDevices';
+import { groupOpenRgbDevices, openRgbNoticeShown, setOpenRgbCardsControlled } from './openRgbDevices';
 
 function card(over: Partial<LightingDevice>): LightingDevice {
   return { id: 'c', name: 'Board', ledsOn: true, ledCount: 1, ...over } as LightingDevice;
@@ -67,8 +67,10 @@ describe('groupOpenRgbDevices', () => {
 
   it('sets every card of the device', async () => {
     const [row] = groupOpenRgbDevices([card({ id: 'a1', deviceId: 'openrgb-d' }), card({ id: 'a2', deviceId: 'openrgb-d' })]);
-    await setOpenRgbDeviceControlled(row, false);
+    expect(await setOpenRgbCardsControlled(row.cardIds, false)).toBe(true);
     expect(setControlled.mock.calls).toEqual([['a1', false], ['a2', false]]);
+    setControlled.mockResolvedValueOnce(null);
+    expect(await setOpenRgbCardsControlled(row.cardIds, true)).toBe(false);
   });
 });
 

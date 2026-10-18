@@ -54,7 +54,8 @@ export function openRgbNoticeShown(featureOn: boolean, daemonUp: boolean): boole
   return !featureOn || !daemonUp;
 }
 
-/** Sets Nexus Control on every card of the device through the Lighting page's endpoint. */
-export async function setOpenRgbDeviceControlled(device: OpenRgbDevice, controlled: boolean): Promise<void> {
-  await Promise.allSettled(device.cardIds.map(id => setLightingDeviceControlled(id, controlled)));
+/** Sets Nexus Control on the given cards through the Lighting page's endpoint. Resolves false when any write failed. */
+export async function setOpenRgbCardsControlled(ids: readonly string[], controlled: boolean): Promise<boolean> {
+  const results = await Promise.allSettled(ids.map(id => setLightingDeviceControlled(id, controlled)));
+  return results.every(r => r.status === 'fulfilled' && r.value !== null && r.value !== false);
 }

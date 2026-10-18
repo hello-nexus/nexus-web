@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { setConflictWhitelisted, type DetectedConflict } from '../api/conflicts';
 import { fetchLightingDevices, setLightingDeviceControlled, type LightingDevice } from '../api/lighting';
+import { visibleLightingCards } from '../lib/lightingVisibility';
 import { useDevices, type DeviceListItem } from './useDevices';
 
 export type ConflictDeviceOwner = 'nexus' | 'app' | 'mixed';
@@ -112,7 +113,9 @@ export interface ConflictDevicesState {
  */
 export function useConflictDevices(conflicts: readonly DetectedConflict[], enabled: boolean): ConflictDevicesState {
   const { devices: curated, controlDevice } = useDevices(enabled);
+  // Every card the service lists: owner writes must reach hidden OpenRGB cards too, or Nexus could drive them against the pick.
   const [lighting, setLighting] = useState<LightingDevice[]>([]);
+  const [rgbRunning, setRgbRunning] = useState(true);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -121,7 +124,10 @@ export function useConflictDevices(conflicts: readonly DetectedConflict[], enabl
 
   const refreshLighting = useCallback(async () => {
     const res = await fetchLightingDevices().catch(() => null);
-    if (res && mountedRef.current) setLighting(res.devices);
+    if (res && mountedRef.current) {
+      setLighting(res.allDevices ?? res.devices);
+      setRgbRunning(res.rgbRunning ?? true);
+    }
   }, []);
 
   useEffect(() => {
@@ -131,13 +137,17 @@ export function useConflictDevices(conflicts: readonly DetectedConflict[], enabl
     return () => window.clearInterval(timer);
   }, [enabled, refreshLighting]);
 
-  const byApp = useMemo(
+  const allByApp = useMemo(
     () => deriveConflictDevices(conflicts, curated, lighting),
     [conflicts, curated, lighting],
   );
+  const byApp = useMemo(
+    () => deriveConflictDevices(conflicts, curated, visibleLightingCards(lighting, rgbRunning)),
+    [conflicts, curated, lighting, rgbRunning],
+  );
 
   const setOwner = useCallback(async (conflictId: string, owner: 'nexus' | 'app') => {
-    const groups = byApp.get(conflictId) ?? [];
+    const groups = allByApp.get(conflictId) ?? [];
     const controlled = owner === 'nexus';
     const handlerIds = groups.flatMap(g => (g.handlerId ? [g.handlerId] : []));
     // A hub's cards are left alone when handing it to the app: the gate going
@@ -157,7 +167,7 @@ export function useConflictDevices(conflicts: readonly DetectedConflict[], enabl
     // A failed device write leaves the devices disagreeing with the whitelist, so the card must not hold the pick.
     const devicesLanded = writes.every(w => w.status === 'fulfilled' && w.value !== null && w.value !== false);
     return !!res && !res.error && devicesLanded;
-  }, [byApp, controlDevice, refreshLighting]);
+  }, [allByApp, controlDevice, refreshLighting]);
 
   return { devicesByApp: byApp, setOwner };
 }

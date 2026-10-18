@@ -4,6 +4,7 @@ import { fetchService, postService, deleteService, putService, authFetchWithStat
 import { lianLiHubQuery } from './lianli';
 import { type DeviceGroup } from '../lib/deviceGroups';
 import { type DeviceStack } from '../lib/stackSlots';
+import { visibleLightingCards } from '../lib/lightingVisibility';
 import { parseShaderParams, type ShaderParamSpec } from '../lib/shaderParams';
 import { parseSensorUniforms, type SensorBinding, type SensorUniform } from '../lib/sensorBinding';
 import type { EffectState } from '../types/lighting';
@@ -507,6 +508,10 @@ export interface LightingDevicesResponse {
   groups?: DeviceGroup[];
   /** Cards stacked to one canvas frame and one selection, each with how the frame is shared. Absent on older services. */
   stacks?: DeviceStack[];
+  /** Set by fetchLightingDevices: every card the service listed, OpenRGB ones included, for ids that must outlive a hidden card. */
+  allDevices?: LightingDevice[];
+  /** Set by fetchLightingDevices: the daemon state `devices` was filtered by. */
+  rgbRunning?: boolean;
 }
 
 /** Whole-list replace; the page owns group order and membership. */
@@ -517,18 +522,8 @@ export const saveLightingGroups = (groups: DeviceGroup[]) =>
 export const saveLightingStacks = (stacks: DeviceStack[]) =>
   putService<{ stacks: DeviceStack[] }>('/devices/lighting-devices/stacks', { stacks });
 
-/**
- * OpenRGB cards (ids starting "openrgb-") exist only while the OpenRGB daemon runs. Without it the
- * service still lists held-off snapshots, which no surface may toggle or kill a competing app for.
- * Native cards are untouched. An unknown daemon state hides them too, so nothing flashes in.
- */
-export function visibleLightingCards<T extends { id: string; deviceId?: string; parentDeviceId?: string }>(
-  cards: readonly T[],
-  rgbRunning: boolean,
-): T[] {
-  if (rgbRunning) return [...cards];
-  return cards.filter(c => !(c.parentDeviceId || c.deviceId || c.id).startsWith('openrgb-'));
-}
+// Kept across calls so a failed status read leaves the cards as they were; unknown until the first success counts as off.
+let lastRgbRunning = false;
 
 /** The device list every surface shares, with OpenRGB cards hidden while OpenRGB is not running. */
 export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | null> => {
@@ -537,7 +532,9 @@ export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | 
     fetchLightingStatus().catch(() => null),
   ]);
   if (!res) return res;
-  return { ...res, devices: visibleLightingCards(res.devices ?? [], status?.rgbRunning === true) };
+  if (status) lastRgbRunning = status.rgbRunning === true;
+  const all = res.devices ?? [];
+  return { ...res, devices: visibleLightingCards(all, lastRgbRunning), allDevices: all, rgbRunning: lastRgbRunning };
 };
 
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
