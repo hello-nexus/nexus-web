@@ -56,20 +56,23 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
   const [state, setState] = useState<LianLiWirelessState | null>(null);
-  // When the GET behind `state` was sent; lets the Devices tab tell a fresh read from a stale one.
-  const [stateSentAt, setStateSentAt] = useState<number | undefined>(undefined);
-  const appliedSentAtRef = useRef(0);
+  // Send order of state GETs: a response is applied only if no later-sent one already was, and the
+  // Devices tab uses it to tell a read sent after its PUT from a stale one.
+  const [stateSeq, setStateSeq] = useState<number | undefined>(undefined);
+  const sentSeqRef = useRef(0);
+  const appliedSeqRef = useRef(0);
+  const readSentSeq = useCallback(() => sentSeqRef.current, []);
   const [linkStatus, setLinkStatus] = useState<LianLiWirelessLinkStatus | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<LianLiWirelessTab>('fans');
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    const sentAt = Date.now();
+    const seq = ++sentSeqRef.current;
     const s = await getLianLiWirelessState();
     if (!aliveRef.current) return;
-    if (s === null || sentAt < appliedSentAtRef.current) return;
-    appliedSentAtRef.current = sentAt;
+    if (s === null || seq < appliedSeqRef.current) return;
+    appliedSeqRef.current = seq;
     setLinkStatus(s.linkStatus);
     if (!s.isConnected) {
       connectedRef.current = false;
@@ -80,17 +83,17 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
     connectedRef.current = true;
     setConnection('connected');
     setState(s);
-    setStateSentAt(sentAt);
+    setStateSeq(seq);
   }, []);
 
   // Steady-state telemetry tick: refresh the fan list (RPM changes every
   // poll) without re-triggering the disconnected branch on a transient null.
   const refreshLive = useCallback(async () => {
     if (!connectedRef.current) { void refresh(); return; }
-    const sentAt = Date.now();
+    const seq = ++sentSeqRef.current;
     const s = await getLianLiWirelessState();
-    if (!aliveRef.current || s === null || sentAt < appliedSentAtRef.current) return;
-    appliedSentAtRef.current = sentAt;
+    if (!aliveRef.current || s === null || seq < appliedSeqRef.current) return;
+    appliedSeqRef.current = seq;
     setLinkStatus(s.linkStatus);
     if (!s.isConnected) {
       connectedRef.current = false;
@@ -99,7 +102,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
       return;
     }
     setState(s);
-    setStateSentAt(sentAt);
+    setStateSeq(seq);
   }, [refresh]);
 
   useEffect(() => {
@@ -190,7 +193,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>
           {tab === 'fans' && (
-            <LianLiWirelessFansTab state={state} stateSentAt={stateSentAt} refresh={refresh} panelOpener={panelOpener} />
+            <LianLiWirelessFansTab state={state} stateSeq={stateSeq} readSentSeq={readSentSeq} refresh={refresh} panelOpener={panelOpener} />
           )}
           {tab === 'lighting' && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
           {tab === 'cooling' && <LianLiWirelessCoolingTab state={state} />}
