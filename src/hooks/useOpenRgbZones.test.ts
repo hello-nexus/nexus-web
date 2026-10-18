@@ -63,4 +63,12 @@ describe('useOpenRgbZones', () => {
     await act(async () => { slow(reply(0)); });
     expect(result.current.devices[0].zones[0].ledCount).toBe(20);
   });
+
+  it('drops devices the LED map editor owns', async () => {
+    const owned = { deviceId: 'mb', name: 'Board', splitOwned: true, zones: [] };
+    const plain = { deviceId: 'd', name: 'D', zones: [] };
+    api.fetchOpenRgbZones.mockResolvedValue({ error: false, msg: '', devices: [owned, plain] });
+    const { result } = renderHook(() => useOpenRgbZones(true));
+    await vi.waitFor(() => expect(result.current.devices.map(d => d.deviceId)).toEqual(['d']));
+  });
 });

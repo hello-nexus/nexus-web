@@ -973,6 +973,8 @@ export function Dashboard() {
           if (payload.settingsAnchor) requestSearchScroll(payload.settingsAnchor);
           return;
         }
+        // Unsized OpenRGB headers deep-link to the Devices page's Available tab.
+        if (target === 'devices' && payload?.tab) { navigate('system', 'devices', payload.tab); return; }
         // The Studio links a just-published effect's Marketplace page.
         if (target === 'store' && payload?.tab) { navigate('system', 'store', payload.tab); return; }
         setView(target);

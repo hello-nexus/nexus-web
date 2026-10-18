@@ -21,7 +21,8 @@ export function useOpenRgbZones(enabled: boolean) {
     const seq = ++fetchSeq.current;
     const res = await fetchOpenRgbZones().catch(() => null);
     if (!res || res.error || !mounted.current || seq !== fetchSeq.current) return null;
-    const next = res.devices ?? [];
+    // A split device's counts have one editor, the LED map; it gets no block here.
+    const next = (res.devices ?? []).filter(d => d.splitOwned !== true);
     setDevices(next);
     return next;
   }, []);

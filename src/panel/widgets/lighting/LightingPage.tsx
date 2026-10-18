@@ -2957,7 +2957,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             }}
             onOpenDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
             zoneSizeDeviceIds={zoneSizeDeviceIds}
-            onOpenZoneSizes={() => onSectionNavigate?.('devices')}
+            onOpenZoneSizes={() => onSectionNavigate?.('devices', { tab: 'available' })}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
             discovery={discovery}
             rgbRunning={rgb.running}

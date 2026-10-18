@@ -17,6 +17,8 @@ export interface OpenRgbZone {
 export interface OpenRgbZoneDevice {
   deviceId: string;
   name: string;
+  /** The LED map editor sizes this device's zones; absent on older services. */
+  splitOwned?: boolean;
   zones: OpenRgbZone[];
 }
 
