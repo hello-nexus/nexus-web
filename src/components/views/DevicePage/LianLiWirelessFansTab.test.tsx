@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
 import type { LianLiWirelessState } from '../../../api/lianli-wireless';
@@ -15,11 +15,13 @@ vi.mock('../../../lib/i18n', () => ({
 const mockBindLianLiWirelessFan = vi.fn();
 const mockUnbindLianLiWirelessFan = vi.fn();
 const mockIdentifyLianLiWirelessFan = vi.fn();
+const mockSetLianLiWirelessLockBound = vi.fn();
 
 vi.mock('../../../api/lianli-wireless', () => ({
   bindLianLiWirelessFan: (...args: any[]) => mockBindLianLiWirelessFan(...args),
   unbindLianLiWirelessFan: (...args: any[]) => mockUnbindLianLiWirelessFan(...args),
   identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
+  setLianLiWirelessLockBound: (...args: any[]) => mockSetLianLiWirelessLockBound(...args),
 }));
 
 const mockFetchFanChannels = vi.fn();
@@ -67,6 +69,7 @@ beforeEach(() => {
   mockBindLianLiWirelessFan.mockResolvedValue(true);
   mockUnbindLianLiWirelessFan.mockResolvedValue(true);
   mockIdentifyLianLiWirelessFan.mockResolvedValue(true);
+  mockSetLianLiWirelessLockBound.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -84,7 +87,7 @@ async function renderTab(state: LianLiWirelessState | null = wirelessState) {
 describe('LianLiWirelessFansTab', () => {
   it('renders bind/unbind/identify actions for a bound chain, with no speed controls', async () => {
     await renderTab();
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.bound - devices.lianli-wireless.slot:{"n":1}')).toBeInTheDocument();
@@ -113,7 +116,33 @@ describe('LianLiWirelessFansTab', () => {
     expect(screen.queryByText(/devices\.lianli-wireless\.slot/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(1);
   });
 
+  describe('lock bound devices toggle', () => {
+    const lockSwitch = () => screen.getByRole('switch', { name: 'devices.lianli-wireless.lockBoundDevices' });
+
+    it('reads on when the service omits the key and off when it reports false', async () => {
+      await renderTab();
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
+      cleanup();
+      await renderTab({ ...wirelessState, lockBoundDevices: false });
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('flips optimistically and PUTs the new value', async () => {
+      await renderTab({ ...wirelessState, lockBoundDevices: true });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      expect(mockSetLianLiWirelessLockBound).toHaveBeenCalledWith(false);
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('reverts when the PUT fails', async () => {
+      mockSetLianLiWirelessLockBound.mockResolvedValue(false);
+      await renderTab({ ...wirelessState, lockBoundDevices: true });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      expect(mockSetLianLiWirelessLockBound).toHaveBeenCalledWith(false);
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
+    });
+  });
 });

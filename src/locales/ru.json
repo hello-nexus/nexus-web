@@ -911,6 +911,8 @@
   "devices.lianli-wireless.linkRxMissing": "Обнаружен только передатчик контроллера. Переподключите его USB-кабель.",
   "devices.lianli-wireless.linkTxMissing": "Обнаружен только приёмник контроллера. Переподключите его USB-кабель.",
   "devices.lianli-wireless.loadingScreens": "Загрузка экранов…",
+  "devices.lianli-wireless.lockBoundDevices": "Блокировать сопряженные устройства",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Автоматически снова сопрягает ваши вентиляторы и Strimer с этим контроллером, если связь пропала. Отключите, чтобы управлять сопряжением вручную.",
   "devices.lianli-wireless.managePanel": "Управление панелью",
   "devices.lianli-wireless.masterMac": "MAC мастера",
   "devices.lianli-wireless.merge": "Объединить все вентиляторы",

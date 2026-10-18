@@ -904,6 +904,8 @@
   "devices.lianli-wireless.linkRxMissing": "Al è stât rilevât dome il trasmetidôr dal controlôr. Torne a tacâ il so cabli USB.",
   "devices.lianli-wireless.linkTxMissing": "Al è stât rilevât dome il ricevidôr dal controlôr. Torne a tacâ il so cabli USB.",
   "devices.lianli-wireless.loadingScreens": "Daûr a cjariâ i schermis…",
+  "devices.lianli-wireless.lockBoundDevices": "Bloche i dispositîfs associâts",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Al associe di gnûf in automatic i tiei ventilons e Strimer cun chest controlôr se si disconetin. Disative par gjestî l'associazion a man.",
   "devices.lianli-wireless.managePanel": "Gjestìs il panel",
   "devices.lianli-wireless.masterMac": "MAC dal mestri",
   "devices.lianli-wireless.merge": "Unìs ducj i ventiladôrs",

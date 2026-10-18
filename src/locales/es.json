@@ -904,6 +904,8 @@
   "devices.lianli-wireless.linkRxMissing": "Solo se detectó el transmisor del controlador. Vuelve a conectar su cable USB.",
   "devices.lianli-wireless.linkTxMissing": "Solo se detectó el receptor del controlador. Vuelve a conectar su cable USB.",
   "devices.lianli-wireless.loadingScreens": "Cargando pantallas…",
+  "devices.lianli-wireless.lockBoundDevices": "Bloquear dispositivos vinculados",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Vuelve a vincular automáticamente tus ventiladores y Strimers a este controlador si se desconectan. Desactívalo para gestionar la vinculación a mano.",
   "devices.lianli-wireless.managePanel": "Gestionar panel",
   "devices.lianli-wireless.masterMac": "MAC maestra",
   "devices.lianli-wireless.merge": "Fusionar todos los ventiladores",
