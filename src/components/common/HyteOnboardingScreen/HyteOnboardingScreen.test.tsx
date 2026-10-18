@@ -7,11 +7,10 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 describe('HyteOnboardingScreen', () => {
-  it('renders the thanks copy and the four cards', () => {
+  it('renders the thanks copy and the four rows', () => {
     render(<HyteOnboardingScreen open onContinue={vi.fn()} />);
     expect(screen.getByText('hyteOnboarding.title')).toBeTruthy();
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
-    for (const k of ['hyte', 'devices', 'backup', 'choice']) {
+        for (const k of ['hyte', 'devices', 'backup', 'choice']) {
       expect(screen.getByText(`hyteOnboarding.card.${k}.title`)).toBeTruthy();
     }
   });

@@ -3107,7 +3107,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'HyteOnboardingScreen', category: 'modals',
     filePath: 'src/components/common/HyteOnboardingScreen/HyteOnboardingScreen.tsx',
-    description: 'Informational onboarding step between WelcomeScreen and FeaturesOnboardingScreen, shown only while HYTE Nexus 2 is installed: HYTE plus Nexus marks, a thank-you with two intro paragraphs, a What\'s new label over four static cards, a Continue button and a fixed step indicator. No controls besides Back, Skip onboarding and Continue.',
+    description: 'Informational onboarding step between WelcomeScreen and FeaturesOnboardingScreen, shown only while HYTE Nexus 2 is installed: HYTE plus Nexus marks, a thank-you with two intro paragraphs, a What\'s new list of four static rows, a Continue button and a fixed step indicator. No controls besides Back, Skip onboarding and Continue.',
     notes: 'No live preview - it mounts as a full-viewport non-dismissable overlay that would cover the Storybook modal.',
   },
   {

@@ -2,6 +2,8 @@ import { ArrowLeft, CloudUpload, Plug, SlidersHorizontal, type LucideIcon } from
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
+import { SettingsSection } from '../SettingsSection/SettingsSection';
+import { SettingRow } from '../SettingRow/SettingRow';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { PanelPageIndicator } from '../../../panel/chrome/PanelPageIndicator';
 import styles from './HyteOnboardingScreen.module.scss';
@@ -21,7 +23,7 @@ export interface HyteOnboardingScreenProps {
   onSkipOnboarding?: () => void;
 }
 
-const CARDS: { key: string; Icon?: LucideIcon }[] = [
+const ROWS: { key: string; Icon?: LucideIcon }[] = [
   { key: 'hyte' },
   { key: 'devices', Icon: Plug },
   { key: 'backup', Icon: CloudUpload },
@@ -69,20 +71,19 @@ export function HyteOnboardingScreen({ open, onContinue, onBack, onSkipOnboardin
           <p className={styles.intro}>{t('hyteOnboarding.intro2')}</p>
         </div>
 
-        <p className={styles.groupLabel}>{t('hyteOnboarding.whatsNew')}</p>
-        <ul className={styles.grid}>
-          {CARDS.map(({ key, Icon }) => (
-            <li key={key} className={styles.card}>
-              <span className={styles.cardIcon} aria-hidden>
-                {Icon
-                  ? <Icon size={44} strokeWidth={1.75} />
-                  : <span className={styles.hyteMark} style={{ ['--mark' as string]: `url(${HYTE_MARK})` }} />}
-              </span>
-              <span className={styles.cardTitle}>{t(`hyteOnboarding.card.${key}.title`)}</span>
-              <span className={styles.cardDescription}>{t(`hyteOnboarding.card.${key}.description`)}</span>
-            </li>
+        <SettingsSection flush title={t('hyteOnboarding.whatsNew')} className={styles.list}>
+          {ROWS.map(({ key, Icon }) => (
+            <SettingRow
+              key={key}
+              iconLeading
+              icon={Icon
+                ? <Icon strokeWidth={1.75} />
+                : <span className={styles.rowMark} style={{ ['--mark' as string]: `url(${HYTE_MARK})` }} />}
+              label={t(`hyteOnboarding.card.${key}.title`)}
+              description={t(`hyteOnboarding.card.${key}.description`)}
+            />
           ))}
-        </ul>
+        </SettingsSection>
       </div>
 
       <div className={styles.footer}>
