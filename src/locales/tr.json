@@ -904,6 +904,8 @@
   "devices.lianli-wireless.linkRxMissing": "Yalnızca denetleyicinin vericisi algılandı. USB kablosunu yeniden takın.",
   "devices.lianli-wireless.linkTxMissing": "Yalnızca denetleyicinin alıcısı algılandı. USB kablosunu yeniden takın.",
   "devices.lianli-wireless.loadingScreens": "Ekranlar yükleniyor…",
+  "devices.lianli-wireless.lockBoundDevices": "Eşleşen aygıtları kilitle",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Fanlarınız ve Strimer'larınız bağlantıyı kaybederse bunları bu denetleyiciyle otomatik olarak yeniden eşleştirir. Eşleştirmeyi elle yönetmek için kapatın.",
   "devices.lianli-wireless.managePanel": "Paneli yönet",
   "devices.lianli-wireless.masterMac": "Ana MAC",
   "devices.lianli-wireless.merge": "Tüm fanları birleştir",

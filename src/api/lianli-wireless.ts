@@ -45,6 +45,8 @@ export interface LianLiWirelessState {
   masterMac: string;
   channel: number;
   txFirmwareVersion: number;
+  /** Re-bind owned chains that drop or get bound elsewhere. Absent on an older service, which reads as on. */
+  lockBoundDevices?: boolean;
   fans: LianLiWirelessFan[];
 }
 
@@ -67,6 +69,10 @@ export async function bindLianLiWirelessFan(mac: string): Promise<boolean> {
 
 export async function unbindLianLiWirelessFan(mac: string): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/unbind', { mac }));
+}
+
+export async function setLianLiWirelessLockBound(enabled: boolean): Promise<boolean> {
+  return isOk(await putService<OkResponse>('/devices/lianli-wireless/lock', { enabled }));
 }
 
 export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {

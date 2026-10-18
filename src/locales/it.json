@@ -904,6 +904,8 @@
   "devices.lianli-wireless.linkRxMissing": "È stato rilevato solo il trasmettitore del controller. Ricollega il suo cavo USB.",
   "devices.lianli-wireless.linkTxMissing": "È stato rilevato solo il ricevitore del controller. Ricollega il suo cavo USB.",
   "devices.lianli-wireless.loadingScreens": "Caricamento schermi…",
+  "devices.lianli-wireless.lockBoundDevices": "Blocca i dispositivi associati",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Riassocia automaticamente le tue ventole e i tuoi Strimer a questo controller se si disconnettono. Disattiva per gestire l'associazione a mano.",
   "devices.lianli-wireless.managePanel": "Gestisci pannello",
   "devices.lianli-wireless.masterMac": "MAC del master",
   "devices.lianli-wireless.merge": "Unisci tutte le ventole",

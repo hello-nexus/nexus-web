@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MonitorSmartphone } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import {
   bindLianLiWirelessFan,
   unbindLianLiWirelessFan,
   identifyLianLiWirelessFan,
+  setLianLiWirelessLockBound,
   type LianLiWirelessFan,
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
@@ -178,6 +179,20 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
 
   const loaded = state !== null;
 
+  // Optimistic lock value, held until the polled state agrees or the PUT fails.
+  const [lockOverride, setLockOverride] = useState<boolean | null>(null);
+  const serviceLock = state?.lockBoundDevices !== false;
+  useEffect(() => {
+    if (lockOverride !== null && serviceLock === lockOverride) setLockOverride(null);
+  }, [serviceLock, lockOverride]);
+  const lockBound = lockOverride ?? serviceLock;
+  const onLockChange = useCallback((next: boolean) => {
+    setLockOverride(next);
+    void setLianLiWirelessLockBound(next).then(ok => {
+      if (!ok && aliveRef.current) setLockOverride(null);
+    });
+  }, []);
+
   return (
     <>
       <SettingsSection
@@ -193,6 +208,14 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
         <SettingRow label={t('devices.lianli-wireless.txFirmware')}>
           <span className={styles.rowValueMono}>{loaded ? state.txFirmwareVersion : '-'}</span>
         </SettingRow>
+        <SettingToggle
+          label={t('devices.lianli-wireless.lockBoundDevices')}
+          description={t('devices.lianli-wireless.lockBoundDevicesHint')}
+          checked={lockBound}
+          onChange={onLockChange}
+          ariaLabel={t('devices.lianli-wireless.lockBoundDevices')}
+          disabled={!loaded}
+        />
       </SettingsSection>
 
       <SettingsSection

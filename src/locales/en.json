@@ -904,6 +904,8 @@
   "devices.lianli-wireless.linkRxMissing": "Only the controller's transmitter was detected. Reconnect its USB cable.",
   "devices.lianli-wireless.linkTxMissing": "Only the controller's receiver was detected. Reconnect its USB cable.",
   "devices.lianli-wireless.loadingScreens": "Loading screens…",
+  "devices.lianli-wireless.lockBoundDevices": "Lock bound devices",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Automatically re-bind your fans and Strimers to this controller if they drop. Turn off to manage binding by hand.",
   "devices.lianli-wireless.managePanel": "Manage panel",
   "devices.lianli-wireless.masterMac": "Master MAC",
   "devices.lianli-wireless.merge": "Merge all fans",
