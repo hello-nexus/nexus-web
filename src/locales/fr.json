@@ -905,7 +905,7 @@
   "devices.lianli-wireless.linkTxMissing": "Seul le récepteur du contrôleur a été détecté. Rebranchez son câble USB.",
   "devices.lianli-wireless.loadingScreens": "Chargement des écrans…",
   "devices.lianli-wireless.lockBoundDevices": "Verrouiller les appareils jumelés",
-  "devices.lianli-wireless.lockBoundDevicesHint": "Jumelle automatiquement vos ventilateurs et Strimers à ce contrôleur s'ils se déconnectent. Désactivez l'option pour gérer le jumelage manuellement.",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Jumelle de nouveau automatiquement vos ventilateurs et Strimers à ce contrôleur s'ils se déconnectent. Désactivez l'option pour gérer le jumelage manuellement.",
   "devices.lianli-wireless.managePanel": "Gérer le panneau",
   "devices.lianli-wireless.masterMac": "MAC maître",
   "devices.lianli-wireless.merge": "Fusionner tous les ventilateurs",

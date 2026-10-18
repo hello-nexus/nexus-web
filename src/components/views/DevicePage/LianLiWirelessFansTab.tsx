@@ -187,8 +187,13 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
     setLockPending(next);
     // A throw counts as a failed PUT; either way the service value is what ends up shown.
     await setLianLiWirelessLockBound(next).catch(() => false);
-    await refresh();
-    if (aliveRef.current) setLockPending(null);
+    try {
+      await refresh();
+    } catch {
+      // The next poll re-reads the state; the toggle must not stay disabled.
+    } finally {
+      if (aliveRef.current) setLockPending(null);
+    }
   }, [refresh]);
 
   return (

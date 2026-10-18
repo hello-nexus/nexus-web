@@ -168,6 +168,26 @@ describe('LianLiWirelessFansTab', () => {
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
     });
 
+    it('shows the server value when it disagrees with the click', async () => {
+      let view: ReturnType<typeof render> | undefined;
+      const refresh = vi.fn().mockResolvedValue(undefined);
+      await act(async () => { view = render(<LianLiWirelessFansTab state={on} refresh={refresh} />); });
+      await act(async () => {
+        fireEvent.click(lockSwitch());
+        view!.rerender(<LianLiWirelessFansTab state={on} refresh={refresh} />);
+      });
+      expect(lockSwitch()).not.toBeDisabled();
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('re-enables when the refresh rejects', async () => {
+      const refresh = vi.fn().mockRejectedValue(new Error('offline'));
+      await act(async () => { render(<LianLiWirelessFansTab state={on} refresh={refresh} />); });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(lockSwitch()).not.toBeDisabled();
+    });
+
     it('reverts to the server value when the PUT fails', async () => {
       mockSetLianLiWirelessLockBound.mockResolvedValue(false);
       const refresh = await renderTab(on);
