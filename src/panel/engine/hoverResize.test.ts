@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { hoverResizeAllowed, hoverTargetId } from './hoverResize';
 
-const base = { pointerType: 'mouse', hoverCapable: true, mouseAsTouch: false, busy: false };
+const base = { canvasHost: true, pointerType: 'mouse', hoverCapable: true, mouseAsTouch: false, busy: false };
 
 describe('hoverResizeAllowed', () => {
   it('allows a hovering mouse', () => {
     expect(hoverResizeAllowed(base)).toBe(true);
+  });
+
+  it('is off on every host but the device page canvas', () => {
+    expect(hoverResizeAllowed({ ...base, canvasHost: false })).toBe(false);
   });
 
   it('never allows touch or pen input', () => {

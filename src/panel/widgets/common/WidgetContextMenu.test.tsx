@@ -2,7 +2,7 @@
 // pointerdown (which starts this menu's close timer) and then a
 // contextmenu that PanelApp turns into a keyed remount. The remount must
 // leave the new menu open: the old instance's timer dies with it.
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WidgetContextMenu } from './WidgetContextMenu';
 
@@ -82,5 +82,20 @@ describe('WidgetContextMenu on a scaled panel', () => {
     const paintedLeft = left + origin * (1 - 3);
     expect(paintedLeft).toBeCloseTo(720 - 600 - 8);
     expect(origin).toBeLessThanOrEqual(200);
+  });
+
+  it('offers Resize on the dashboard menu and starts the mode when chosen', () => {
+    const onResizeMode = vi.fn();
+    render(
+      <WidgetContextMenu x={100} y={100} currentSize="2x2" sizes={['2x2', '4x2']} hasConfig surface="desktop"
+        onResize={vi.fn()} onResizeMode={onResizeMode} onEdit={vi.fn()} onRemove={vi.fn()} onClose={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByText('panel.widget.menu.resize'));
+    expect(onResizeMode).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits Resize when the caller offers no mode', () => {
+    render(menu(1, vi.fn()));
+    expect(screen.queryByText('panel.widget.menu.resize')).toBeNull();
   });
 });

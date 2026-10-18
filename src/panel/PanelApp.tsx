@@ -381,6 +381,7 @@ export function PanelContent({
   layoutState,
   embedded = false,
   simulator = false,
+  hoverResize = false,
   simulatorTheme,
   simulatorThemeMode,
   simulatorSelectedWidgetId,
@@ -413,6 +414,8 @@ export function PanelContent({
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
+  // Set only by the device page's right-side canvas: a hovering mouse shows resize corners there.
+  hoverResize?: boolean;
   simulatorTheme?: SimulatorTheme;
   simulatorThemeMode?: 'dark' | 'light';
   simulatorSelectedWidgetId?: string | null;
@@ -1221,6 +1224,7 @@ export function PanelContent({
   const trackHoverResize = (e: React.PointerEvent) => {
     if (resizeGestureRef.current) return;
     const allowed = hoverResizeAllowed({
+      canvasHost: hoverResize,
       pointerType: e.pointerType,
       hoverCapable: typeof window.matchMedia !== 'function' || window.matchMedia('(hover: hover)').matches,
       mouseAsTouch,

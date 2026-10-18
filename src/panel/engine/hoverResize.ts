@@ -1,4 +1,6 @@
 export interface HoverResizeInput {
+  /** Only the device page's right-side canvas hosts hover corners; every other host starts resizing from the context menu. */
+  canvasHost: boolean;
   pointerType: string;
   hoverCapable: boolean;
   /** A touchscreen delivering mouse pointers: it has no hover. */
@@ -9,7 +11,7 @@ export interface HoverResizeInput {
 
 /** Corners show on hover only for a real hovering mouse. */
 export function hoverResizeAllowed(i: HoverResizeInput): boolean {
-  return i.pointerType === 'mouse' && i.hoverCapable && !i.mouseAsTouch && !i.busy;
+  return i.canvasHost && i.pointerType === 'mouse' && i.hoverCapable && !i.mouseAsTouch && !i.busy;
 }
 
 /** The widget under the pointer; a corner of the frame keeps its own widget. */
