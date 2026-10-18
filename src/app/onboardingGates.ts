@@ -81,6 +81,14 @@ export function deriveEarlyGates(i: {
   return { hyteStepAvailable, hyteOpen, featuresOpen: i.featuresPending && i.nexus2Known && !hyteOpen };
 }
 
+/**
+ * Whether a new onboarding read re-opens the HYTE step. Only a reset re-pends
+ * Welcome; a reconnect after Welcome (Features still pending) must not.
+ */
+export function shouldReopenHyte(i: { welcomeStatus: 'unknown' | 'pending' | 'completed' }): boolean {
+  return i.welcomeStatus === 'pending';
+}
+
 /** Where Back goes from Features: the HYTE step when it ran, else Welcome while that is part of this run. */
 export function featuresBackTarget(i: { hyteStepAvailable: boolean; welcomePending: boolean }): 'hyte' | 'welcome' | null {
   if (i.hyteStepAvailable) return 'hyte';

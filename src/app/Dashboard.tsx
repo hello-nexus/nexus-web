@@ -62,7 +62,7 @@ import { LightingFeatureSeed } from './LightingFeatureSeed';
 import { PillarsReporter } from './PillarsReporter';
 import { importStepOffered } from './importStep';
 import { usePillarsLatch } from './usePillarsLatch';
-import { deriveEarlyGates, deriveOnboardingGates, featuresBackTarget, hyteBackTarget } from './onboardingGates';
+import { deriveEarlyGates, deriveOnboardingGates, featuresBackTarget, hyteBackTarget, shouldReopenHyte } from './onboardingGates';
 import { useConsumeSkippedOffers } from './useConsumeSkippedOffers';
 import { useNexus2NonCoolingContent } from './useNexus2NonCoolingContent';
 import { useTranslation } from '../lib/i18n';
@@ -404,7 +404,8 @@ export function Dashboard() {
     seenOnboardingGeneration.current = onboardingGeneration;
     if (readAt < latchedAt.current) return;
     if (onboardingStatus === 'pending') setOnboardingDismissed(false);
-    if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); setHyteStepDismissed(false); }
+    if (featuresStatus === 'pending') setFeaturesOnboardingDismissed(false);
+    if (shouldReopenHyte({ welcomeStatus: onboardingStatus })) setHyteStepDismissed(false);
     if (lightingStatus === 'pending') setLightingOnboardingDismissed(false);
   }, [onboardingGeneration, readAt, onboardingStatus, featuresStatus, lightingStatus]);
 

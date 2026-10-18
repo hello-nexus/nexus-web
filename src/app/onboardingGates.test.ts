@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOnboardingGates, deriveEarlyGates, featuresBackTarget, hyteBackTarget, isHyteStepAvailable, type OnboardingGateInputs } from './onboardingGates';
+import { deriveOnboardingGates, deriveEarlyGates, featuresBackTarget, hyteBackTarget, isHyteStepAvailable, shouldReopenHyte, type OnboardingGateInputs } from './onboardingGates';
 
 // A returning launch: onboarding done, nothing pending, everything resolved.
 const base: OnboardingGateInputs = {
@@ -115,8 +115,10 @@ describe('deriveEarlyGates', () => {
     expect(deriveEarlyGates({ ...ready, nexus2Known: false, nexus2Installed: false }).featuresOpen).toBe(false);
   });
 
-  it('reopens HYTE when its dismissal is cleared, as a factory reset does', () => {
-    expect(deriveEarlyGates({ ...ready, hyteDismissed: false }).hyteOpen).toBe(true);
+  it('a reset (Welcome pending again) reopens HYTE; a reconnect after Welcome does not', () => {
+    expect(shouldReopenHyte({ welcomeStatus: 'pending' })).toBe(true);
+    expect(shouldReopenHyte({ welcomeStatus: 'completed' })).toBe(false);
+    expect(shouldReopenHyte({ welcomeStatus: 'unknown' })).toBe(false);
   });
 
   it('keeps the later gates closed while HYTE is open', () => {

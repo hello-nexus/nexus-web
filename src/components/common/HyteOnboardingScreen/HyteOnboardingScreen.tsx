@@ -8,7 +8,6 @@ import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButt
 import { HYTE_LOGO } from '../../../panel/device/panelDevices';
 import styles from './HyteOnboardingScreen.module.scss';
 
-
 export interface HyteOnboardingScreenProps {
   open: boolean;
   onContinue: () => void;
