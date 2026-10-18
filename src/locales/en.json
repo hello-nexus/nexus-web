@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "These apps drive the same lighting, fans, or peripherals as Nexus. Choose which ones Nexus terminates. Change this later in Settings.",
   "conflicts.onboarding.title": "Apps competing for your hardware",
   "conflicts.outcome.bothDrive": "Both apps will try to drive these devices.",
-  "conflicts.outcome.colApp": "App",
-  "conflicts.outcome.colOutcome": "What happens",
   "conflicts.outcome.competesFor": "Competes for {devices}",
   "conflicts.outcome.continue": "Continue",
   "conflicts.outcome.keepAll": "Keep all running",

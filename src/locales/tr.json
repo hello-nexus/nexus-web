@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Bu uygulamalar Nexus ile aynı aydınlatmayı, fanları veya çevre birimlerini yönetiyor. Nexus'un hangilerini sonlandıracağını seçin. Bunu daha sonra Ayarlar'dan değiştirebilirsiniz.",
   "conflicts.onboarding.title": "Donanımın için yarışan uygulamalar",
   "conflicts.outcome.bothDrive": "Her iki uygulama da bu cihazları yönetmeye çalışacak.",
-  "conflicts.outcome.colApp": "Uygulama",
-  "conflicts.outcome.colOutcome": "Ne olacak",
   "conflicts.outcome.competesFor": "{devices} için çekişiyor",
   "conflicts.outcome.continue": "Devam",
   "conflicts.outcome.keepAll": "Hepsini çalışır durumda bırak",

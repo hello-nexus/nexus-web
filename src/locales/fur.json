@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Chestis aplicazions a controlin la stesse iluminazion, i stes ventilatôrs o lis stessis perifericjis di Nexus. Sielç cuâls che Nexus al termine. Tu puedis cambiâ dopo tes Impostazions.",
   "conflicts.onboarding.title": "Aplicazions che a si contindin il to hardware",
   "conflicts.outcome.bothDrive": "Ducj i doi aplicazions a tentaran di controlâ chescj dispositîfs.",
-  "conflicts.outcome.colApp": "Aplicazion",
-  "conflicts.outcome.colOutcome": "It sucêt",
   "conflicts.outcome.competesFor": "Al combat par {devices}",
   "conflicts.outcome.continue": "Cuntinue",
   "conflicts.outcome.keepAll": "Lasse dutis in esecuzion",

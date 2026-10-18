@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Diese Apps steuern dieselbe Beleuchtung, Lüfter oder Peripherie wie Nexus. Wähle aus, welche Nexus beendet. Das kannst du später in den Einstellungen ändern.",
   "conflicts.onboarding.title": "Apps, die um deine Hardware konkurrieren",
   "conflicts.outcome.bothDrive": "Beide Apps versuchen dann, diese Geräte anzusteuern.",
-  "conflicts.outcome.colApp": "App",
-  "conflicts.outcome.colOutcome": "Was passiert",
   "conflicts.outcome.competesFor": "Konkurriert um {devices}",
   "conflicts.outcome.continue": "Weiter",
   "conflicts.outcome.keepAll": "Alle weiterlaufen lassen",

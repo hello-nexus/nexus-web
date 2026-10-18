@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Estes apps controlam a mesma iluminação, ventoinhas ou periféricos que o Nexus. Escolha quais o Nexus encerra. Você pode mudar isso depois nas Configurações.",
   "conflicts.onboarding.title": "Apps disputando seu hardware",
   "conflicts.outcome.bothDrive": "Os dois apps vão tentar controlar estes dispositivos.",
-  "conflicts.outcome.colApp": "App",
-  "conflicts.outcome.colOutcome": "O que acontece",
   "conflicts.outcome.competesFor": "Disputa {devices}",
   "conflicts.outcome.continue": "Continuar",
   "conflicts.outcome.keepAll": "Manter todos em execução",

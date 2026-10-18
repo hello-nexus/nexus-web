@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "Deze apps sturen dezelfde verlichting, ventilatoren of randapparatuur aan als Nexus. Kies welke Nexus beëindigt. Dit kun je later wijzigen in Instellingen.",
   "conflicts.onboarding.title": "Apps die om je hardware concurreren",
   "conflicts.outcome.bothDrive": "Beide apps proberen deze apparaten aan te sturen.",
-  "conflicts.outcome.colApp": "App",
-  "conflicts.outcome.colOutcome": "Wat er gebeurt",
   "conflicts.outcome.competesFor": "Strijdt om {devices}",
   "conflicts.outcome.continue": "Doorgaan",
   "conflicts.outcome.keepAll": "Alles laten draaien",

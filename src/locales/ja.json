@@ -326,8 +326,6 @@
   "conflicts.onboarding.intro": "これらのアプリは、Nexus と同じライティング、ファン、周辺機器を制御しています。Nexus が終了するアプリを選んでください。後で設定から変更できます。",
   "conflicts.onboarding.title": "ハードウェアを奪い合っているアプリ",
   "conflicts.outcome.bothDrive": "両方のアプリがこれらのデバイスを制御しようとします。",
-  "conflicts.outcome.colApp": "アプリ",
-  "conflicts.outcome.colOutcome": "動作",
   "conflicts.outcome.competesFor": "{devices} を奪い合っています",
   "conflicts.outcome.continue": "続ける",
   "conflicts.outcome.keepAll": "すべて実行したままにする",
