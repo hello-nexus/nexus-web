@@ -62,7 +62,7 @@ import { LightingFeatureSeed } from './LightingFeatureSeed';
 import { PillarsReporter } from './PillarsReporter';
 import { importStepOffered } from './importStep';
 import { usePillarsLatch } from './usePillarsLatch';
-import { deriveOnboardingGates, isHyteStepAvailable } from './onboardingGates';
+import { deriveEarlyGates, deriveOnboardingGates, featuresBackTarget, hyteBackTarget } from './onboardingGates';
 import { useConsumeSkippedOffers } from './useConsumeSkippedOffers';
 import { useNexus2NonCoolingContent } from './useNexus2NonCoolingContent';
 import { useTranslation } from '../lib/i18n';
@@ -384,6 +384,7 @@ export function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [featuresOnboardingDismissed, setFeaturesOnboardingDismissed] = useState(false);
   const [lightingOnboardingDismissed, setLightingOnboardingDismissed] = useState(false);
+  const [hyteStepDismissed, setHyteStepDismissed] = useState(false);
   // Latched by FeaturesOnboardingScreen's onComplete when the user switched
   // Lighting off there. Dashboard's body can't call useUiSettings() itself
   // (it renders the provider), so this is the only way the skip decision
@@ -403,7 +404,7 @@ export function Dashboard() {
     seenOnboardingGeneration.current = onboardingGeneration;
     if (readAt < latchedAt.current) return;
     if (onboardingStatus === 'pending') setOnboardingDismissed(false);
-    if (featuresStatus === 'pending') setFeaturesOnboardingDismissed(false);
+    if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); setHyteStepDismissed(false); }
     if (lightingStatus === 'pending') setLightingOnboardingDismissed(false);
   }, [onboardingGeneration, readAt, onboardingStatus, featuresStatus, lightingStatus]);
 
@@ -423,15 +424,13 @@ export function Dashboard() {
   // Between welcome and features, only while HYTE Nexus 2 is installed right
   // now (`detected`, not the import offer). Features waits on the same read so
   // it never flashes before this step.
-  const [hyteStepDismissed, setHyteStepDismissed] = useState(false);
-  const hyteStepAvailable = isHyteStepAvailable({
+  const { hyteStepAvailable, hyteOpen, featuresOpen } = deriveEarlyGates({
     featuresPending,
     featuresReplay,
     nexus2Known: nexus2.status !== 'unknown',
     nexus2Installed: nexus2.payload?.detected === true,
+    hyteDismissed: hyteStepDismissed,
   });
-  const hyteOpen = hyteStepAvailable && !hyteStepDismissed;
-  const featuresOpen = featuresPending && nexus2.status !== 'unknown' && !hyteOpen;
   const fanControl = useFanControlStatus();
   const [importDismissed, setImportDismissed] = useState(false);
   // Second gate: a returning Nexus 2 user closes/imports from the old app
@@ -1171,7 +1170,7 @@ export function Dashboard() {
           open={hyteOpen}
           onContinue={() => setHyteStepDismissed(true)}
           onSkipOnboarding={skipOnboarding}
-          onBack={onboardingStatus === 'pending'
+          onBack={hyteBackTarget({ welcomePending: onboardingStatus === 'pending' }) === 'welcome'
             ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
             : undefined}
         />
@@ -1184,11 +1183,12 @@ export function Dashboard() {
             if (!flags.lighting) setLightingFeatureOff(true);
           }}
           onSkipOnboarding={skipOnboarding}
-          onBack={hyteStepAvailable
-            ? () => setHyteStepDismissed(false)
-            : onboardingStatus === 'pending'
-              ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
-              : undefined}
+          onBack={(() => {
+            const target = featuresBackTarget({ hyteStepAvailable, welcomePending: onboardingStatus === 'pending' });
+            if (target === 'hyte') return () => setHyteStepDismissed(false);
+            if (target === 'welcome') return () => { setWelcomeRevisit(true); setOnboardingDismissed(false); };
+            return undefined;
+          })()}
         />
         {/* Import gate: offers every app a previous setup can come from.
             Ending one is the conflict gate's job, on an explicit click. */}

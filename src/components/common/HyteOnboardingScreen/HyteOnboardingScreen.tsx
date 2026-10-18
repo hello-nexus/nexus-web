@@ -5,9 +5,9 @@ import { Button } from '../Button/Button';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingRow } from '../SettingRow/SettingRow';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
+import { HYTE_LOGO } from '../../../panel/device/panelDevices';
 import styles from './HyteOnboardingScreen.module.scss';
 
-const HYTE_MARK = '/assets/devices/hyte.svg';
 
 export interface HyteOnboardingScreenProps {
   open: boolean;
@@ -57,7 +57,7 @@ export function HyteOnboardingScreen({ open, onContinue, onBack, onSkipOnboardin
       <div className={styles.scroller}>
         <div className={styles.hero}>
           <div className={styles.brands} aria-hidden>
-            <span className={styles.hyteMark} style={{ ['--mark' as string]: `url(${HYTE_MARK})` }} />
+            <span className={`${styles.mark} ${styles.brandMark}`} style={{ ['--mark' as string]: `url(${HYTE_LOGO})` }} />
             <span className={styles.plus}>+</span>
             <img src="/nexus-mark-color.png" alt="" width={44} height={44} className={styles.nexusMark} />
           </div>
@@ -73,7 +73,7 @@ export function HyteOnboardingScreen({ open, onContinue, onBack, onSkipOnboardin
               iconLeading
               icon={Icon
                 ? <Icon strokeWidth={1.75} />
-                : <span className={styles.rowMark} style={{ ['--mark' as string]: `url(${HYTE_MARK})` }} />}
+                : <span className={styles.mark} style={{ ['--mark' as string]: `url(${HYTE_LOGO})` }} />}
               label={t(`hyteOnboarding.card.${key}.title`)}
               description={t(`hyteOnboarding.card.${key}.description`)}
             />

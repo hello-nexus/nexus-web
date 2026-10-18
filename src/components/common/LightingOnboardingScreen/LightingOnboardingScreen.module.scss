@@ -67,7 +67,7 @@
   @include text-body;
   margin: 0;
   color: var(--text-dim);
-  max-width: 560px;
+  max-width: $onboarding-content-width;
 }
 
 // Bulk-toggle actions, flush right above the grid; the negative margin pulls

@@ -142,7 +142,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
         </div>
       </div>
 
-      <SettingsSection flush className={styles.section} boxClassName={styles.sectionBox}>
+      <SettingsSection flush className={styles.section}>
         {showStartWithOs && (
           <SettingToggle
             label={startLabel}

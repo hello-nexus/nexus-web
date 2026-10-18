@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOnboardingGates, isHyteStepAvailable, type OnboardingGateInputs } from './onboardingGates';
+import { deriveOnboardingGates, deriveEarlyGates, featuresBackTarget, hyteBackTarget, isHyteStepAvailable, type OnboardingGateInputs } from './onboardingGates';
 
 // A returning launch: onboarding done, nothing pending, everything resolved.
 const base: OnboardingGateInputs = {
@@ -93,5 +93,50 @@ describe('isHyteStepAvailable', () => {
   it('is not available on a Features replay or when Features is not pending', () => {
     expect(isHyteStepAvailable({ ...ok, featuresReplay: true })).toBe(false);
     expect(isHyteStepAvailable({ ...ok, featuresPending: false })).toBe(false);
+  });
+});
+
+describe('deriveEarlyGates', () => {
+  const ready = { featuresPending: true, featuresReplay: false, nexus2Known: true, nexus2Installed: true, hyteDismissed: false };
+
+  it('opens HYTE first and holds Features back while Nexus 2 is installed', () => {
+    expect(deriveEarlyGates(ready)).toEqual({ hyteStepAvailable: true, hyteOpen: true, featuresOpen: false });
+  });
+
+  it('hands off to Features once HYTE is dismissed', () => {
+    expect(deriveEarlyGates({ ...ready, hyteDismissed: true })).toEqual({ hyteStepAvailable: true, hyteOpen: false, featuresOpen: true });
+  });
+
+  it('skips HYTE when Nexus 2 is not installed', () => {
+    expect(deriveEarlyGates({ ...ready, nexus2Installed: false })).toEqual({ hyteStepAvailable: false, hyteOpen: false, featuresOpen: true });
+  });
+
+  it('holds Features until the Nexus 2 read is known', () => {
+    expect(deriveEarlyGates({ ...ready, nexus2Known: false, nexus2Installed: false }).featuresOpen).toBe(false);
+  });
+
+  it('reopens HYTE when its dismissal is cleared, as a factory reset does', () => {
+    expect(deriveEarlyGates({ ...ready, hyteDismissed: false }).hyteOpen).toBe(true);
+  });
+
+  it('keeps the later gates closed while HYTE is open', () => {
+    const early = deriveEarlyGates(ready);
+    const gates = deriveOnboardingGates({
+      ...base, featuresOpen: early.featuresOpen || early.hyteOpen, importOffered: true, lightingPending: true, ranEarlierGate: true,
+    });
+    expect(gates).toMatchObject({ importOpen: false, conflictStepPending: false, lightingOnboardingOpen: false, showDashboard: false });
+  });
+});
+
+describe('Back targets', () => {
+  it('Features goes back to HYTE when it ran, else Welcome, else nowhere', () => {
+    expect(featuresBackTarget({ hyteStepAvailable: true, welcomePending: true })).toBe('hyte');
+    expect(featuresBackTarget({ hyteStepAvailable: false, welcomePending: true })).toBe('welcome');
+    expect(featuresBackTarget({ hyteStepAvailable: false, welcomePending: false })).toBeNull();
+  });
+
+  it('HYTE goes back to Welcome only while Welcome is part of the run', () => {
+    expect(hyteBackTarget({ welcomePending: true })).toBe('welcome');
+    expect(hyteBackTarget({ welcomePending: false })).toBeNull();
   });
 });
