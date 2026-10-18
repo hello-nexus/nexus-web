@@ -1,19 +1,17 @@
 // Lengths are authored at operator size; the upscale undoes the preview iframe's fit scale.
 .frame {
   --_upscale: var(--panel-preview-upscale, 1);
-  --_handle: calc(18px * var(--_upscale));
-  --_inset: calc(4px * var(--_upscale));
+  --_radius: var(--panel-card-radius, var(--radius));
+  // Hit area per corner, extending inside the tile; the bracket fills it.
+  --_hit: max(calc(28px * var(--_upscale)), calc(var(--_radius) + 12px * var(--_upscale)));
+  --_stroke: calc(5px * var(--_upscale));
   --_halo: rgb(0 0 0 / var(--alpha-strong));
-  --_ring: calc(3px * var(--_upscale));
-  --_handle-ring: calc(1.5px * var(--_upscale));
   position: relative;
   z-index: 20;
   min-width: 0;
   min-height: 0;
   border-radius: var(--panel-card-radius, var(--radius));
-  outline: calc(2px * var(--_upscale)) solid var(--accent);
-  outline-offset: calc(-1px * var(--_upscale));
-  box-shadow: 0 0 0 var(--_ring) var(--_halo);
+  box-shadow: 0 0 0 calc(1px * var(--_upscale)) var(--_halo);
 }
 
 .body {
@@ -37,45 +35,92 @@
   }
 }
 
+// A corner bracket: two thick edges meeting in the tile's own corner radius.
 .handle {
   position: absolute;
-  width: var(--_handle);
-  height: var(--_handle);
+  width: var(--_hit);
+  height: var(--_hit);
   margin: 0;
   padding: 0;
-  border: calc(2px * var(--_upscale)) solid var(--text);
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 var(--_handle-ring) var(--_halo);
+  border: 0;
+  background: transparent;
   touch-action: none;
   z-index: 1;
 
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    pointer-events: none;
+    border: 0 solid var(--accent);
+    transition: opacity var(--ease-fast) ease-out;
+  }
+
+  &[data-room='false'] {
+    cursor: not-allowed;
+
+    &::before {
+      opacity: 0.3;
+    }
+  }
+
   &:focus-visible {
     outline: calc(2px * var(--_upscale)) solid var(--text);
-    outline-offset: calc(2px * var(--_upscale));
+    outline-offset: calc(-2px * var(--_upscale));
   }
 
   &[data-corner='tl'] {
-    top: var(--_inset);
-    left: var(--_inset);
+    top: 0;
+    left: 0;
     cursor: nwse-resize;
+
+    &::before {
+      border-top-width: var(--_stroke);
+      border-left-width: var(--_stroke);
+      border-top-left-radius: var(--_radius);
+    }
   }
 
   &[data-corner='tr'] {
-    top: var(--_inset);
-    right: var(--_inset);
+    top: 0;
+    right: 0;
     cursor: nesw-resize;
+
+    &::before {
+      border-top-width: var(--_stroke);
+      border-right-width: var(--_stroke);
+      border-top-right-radius: var(--_radius);
+    }
   }
 
   &[data-corner='bl'] {
-    bottom: var(--_inset);
-    left: var(--_inset);
+    bottom: 0;
+    left: 0;
     cursor: nesw-resize;
+
+    &::before {
+      border-bottom-width: var(--_stroke);
+      border-left-width: var(--_stroke);
+      border-bottom-left-radius: var(--_radius);
+    }
   }
 
   &[data-corner='br'] {
-    right: var(--_inset);
-    bottom: var(--_inset);
+    right: 0;
+    bottom: 0;
     cursor: nwse-resize;
+
+    &::before {
+      border-bottom-width: var(--_stroke);
+      border-right-width: var(--_stroke);
+      border-bottom-right-radius: var(--_radius);
+    }
+  }
+
+  &[data-room='false'][data-corner] {
+    cursor: not-allowed;
   }
 }

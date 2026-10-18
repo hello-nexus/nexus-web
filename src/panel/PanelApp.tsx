@@ -177,6 +177,7 @@ import {
 } from './dnd/PanelDragCells';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
+import { cornerRoom, freeformSnapSpans } from './engine/freeformResize';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
 // before the editor sheet unmounts. Matches the SETTLE_MS / settling transition
@@ -857,15 +858,23 @@ export function PanelContent({
   const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
 
   // Freeform resize mode exists only in the device-page preview.
-  const freeformWidget = simulator && simulatorFreeformWidgetId
-    ? findWidgetById(paginatedLayout, simulatorFreeformWidgetId)
+  const [localFreeformId, setLocalFreeformId] = useState<string | null>(null);
+  const [pendingFreeformId, setPendingFreeformId] = useState<string | null>(null);
+  const activeFreeformId = simulator ? (simulatorFreeformWidgetId ?? localFreeformId) : null;
+  const freeformWidget = activeFreeformId
+    ? findWidgetById(paginatedLayout, activeFreeformId)
     : undefined;
   const freeformDef = freeformWidget ? lookupApp(freeformWidget.type) : undefined;
   const freeformActive = Boolean(freeformWidget && freeformDef?.meta.freeform && dragEditable);
   const freeformDeclaredSizes = freeformDef?.meta.sizes ?? NO_SIZES;
+  const freeformRoom = (w: PanelWidget) => {
+    const bounds = { cols: capacity.gridCols, rows: capacity.pageRows };
+    const span = sizeToSpan(w.size);
+    return cornerRoom({ col: w.col, row: w.row, cols: span.cols, rows: span.rows }, freeformSnapSpans(freeformDeclaredSizes, bounds), bounds);
+  };
   const handleFreeformReject = useCallback((id: string) => triggerFlash(id), [triggerFlash]);
   const freeform = useFreeformResize({
-    widgetId: freeformActive ? simulatorFreeformWidgetId : null,
+    widgetId: freeformActive ? activeFreeformId : null,
     layout: paginatedLayout,
     capacity,
     declaredSizes: freeformDeclaredSizes,
@@ -873,7 +882,10 @@ export function PanelContent({
     onCommit: setLayout,
     onReject: handleFreeformReject,
   });
-  const exitFreeform = useCallback(() => onSimulatorFreeformExit?.(), [onSimulatorFreeformExit]);
+  const exitFreeform = useCallback(() => {
+    setLocalFreeformId(null);
+    onSimulatorFreeformExit?.();
+  }, [onSimulatorFreeformExit]);
   // A press outside the frame ends the mode and goes no further.
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
     if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
@@ -894,10 +906,16 @@ export function PanelContent({
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [freeformActive, exitFreeform]);
+  // The mode starts once the edit sheet that requested it has closed.
+  useEffect(() => {
+    if (!pendingFreeformId || sheetMode) return;
+    setLocalFreeformId(pendingFreeformId);
+    setPendingFreeformId(null);
+  }, [pendingFreeformId, sheetMode]);
   // A mode whose widget is gone reports its exit.
   useEffect(() => {
-    if (simulatorFreeformWidgetId && !freeformActive) onSimulatorFreeformExit?.();
-  }, [simulatorFreeformWidgetId, freeformActive, onSimulatorFreeformExit]);
+    if (activeFreeformId && !freeformActive) exitFreeform();
+  }, [activeFreeformId, freeformActive, exitFreeform]);
 
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
   // predates the service reporting it - the embedded desktop dashboard is
@@ -2007,6 +2025,7 @@ export function PanelContent({
                           <FreeformResizeFrame
                             widget={page.widgets.find(w => w.id === freeformWidget.id) ?? freeformWidget}
                             label={t(freeformDef?.meta.i18nKey ?? '') || freeformWidget.type}
+                            room={freeformRoom(page.widgets.find(w => w.id === freeformWidget.id) ?? freeformWidget)}
                             onBegin={freeform.begin}
                             onUpdate={freeform.update}
                             onEnd={freeform.end}
@@ -2315,6 +2334,7 @@ export function PanelContent({
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}
           onResize={resizeWidget}
+          onFreeform={simulator ? id => { setPendingFreeformId(id); closeSheet(); } : undefined}
           onUpdate={updateWidgetConfig}
           onRemove={removeWidget}
           dockStyle={editorDockSupported && sheetMode === 'settings' ? editorDockMotion?.style : undefined}

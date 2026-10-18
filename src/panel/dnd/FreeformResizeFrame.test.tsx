@@ -11,6 +11,7 @@ vi.mock('../engine/panelLayoutHelpers', () => ({
   readCellMetrics: () => ({ cellSize: 90, rowSize: 40, gap: 10 }),
 }));
 
+const ROOM = { tl: true, tr: false, bl: true, br: false };
 const widget: PanelWidget = { id: 'w1', type: 'web-view', size: '6x4', col: 1, row: 2 };
 
 beforeAll(() => {
@@ -24,7 +25,7 @@ function setup() {
   const onExit = vi.fn();
   const { container } = render(
     <div data-surface="y70">
-      <FreeformResizeFrame widget={widget} label="Web View" onBegin={onBegin} onUpdate={onUpdate} onEnd={onEnd} onExit={onExit} />
+      <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} onBegin={onBegin} onUpdate={onUpdate} onEnd={onEnd} onExit={onExit} />
     </div>,
   );
   return { onBegin, onUpdate, onEnd, onExit, container };
@@ -43,6 +44,16 @@ describe('FreeformResizeFrame', () => {
     for (const key of ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']) {
       expect(screen.getByRole('button', { name: `panel.freeform.handle.${key}` })).toBeInTheDocument();
     }
+  });
+
+  it('marks corners without room and keeps them draggable inward', () => {
+    const { onUpdate } = setup();
+    const tr = screen.getByRole('button', { name: 'panel.freeform.handle.topRight' });
+    expect(tr).toHaveAttribute('data-room', 'false');
+    expect(screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' })).toHaveAttribute('data-room', 'true');
+    press(tr, 0, 0);
+    move(tr, -100, 50);
+    expect(onUpdate).toHaveBeenLastCalledWith('tr', -1, 1);
   });
 
   it('exits on a body tap and not on a body drag', () => {
@@ -86,7 +97,7 @@ describe('FreeformResizeFrame', () => {
     const onUpdate = vi.fn();
     render(
       <div data-surface="y70">
-        <FreeformResizeFrame widget={widget} label="Web View" onBegin={onBegin} onUpdate={onUpdate} onEnd={vi.fn()} onExit={vi.fn()} />
+        <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} onBegin={onBegin} onUpdate={onUpdate} onEnd={vi.fn()} onExit={vi.fn()} />
       </div>,
     );
     const handle = screen.getByRole('button', { name: 'panel.freeform.handle.bottomRight' });

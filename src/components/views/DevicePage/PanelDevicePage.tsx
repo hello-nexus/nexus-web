@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink, Scaling } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
+import { FreeformSizeButton } from '../../../panel/widgets/common/FreeformSizeButton';
+import { previewFit } from '../../../panel/widgets/common/widgetPreviewFit';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from '../../../panel/widgets/common/PanelGaugeGradientContext';
@@ -2335,13 +2337,14 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
           {(() => {
             const Comp = def.Widget;
             const span = sizeToSpan(widget.size);
-            const previewW = span.cols * 90 + (span.cols - 1) * 6;
-            const previewH = span.rows * 90 + (span.rows - 1) * 6;
-            return (
+            const fit = previewFit(span.cols, span.rows);
+            const previewW = fit.width;
+            const previewH = fit.height;
+            const root = (
               <div
                 className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
                 data-theme={themeMode}
-                style={{ ...themeStyle, width: previewW, height: previewH }}
+                style={{ ...themeStyle, width: previewW, height: previewH, ...(fit.scale < 1 ? { transform: `scale(${fit.scale})`, transformOrigin: 'top left' } : {}) }}
               >
                 <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
                   <ErrorBoundary label={widget.type}>
@@ -2364,6 +2367,10 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
                 </div>
               </div>
             );
+            // A scaled box keeps its full layout size, so the wrapper reserves the scaled one.
+            return fit.scale < 1
+              ? <div style={{ width: previewW * fit.scale, height: previewH * fit.scale }}>{root}</div>
+              : root;
           })()}
         </div>
       )}
@@ -2388,14 +2395,10 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
                   );
                 })}
                 {offersFreeform && (
-                  <IconLabelButton
+                  <FreeformSizeButton
                     className={styles.inlineIconButton}
                     active={!sizes.includes(widget.size)}
-                    icon={<Scaling aria-hidden="true" />}
-                    label={t('devices.panels.widgetSettings.freeform')}
-                    ariaLabel={t('devices.panels.widgetSettings.freeform.aria')}
                     onPress={() => onFreeform(widget.id)}
-                    title={t('devices.panels.widgetSettings.freeform.hint')}
                   />
                 )}
               </WidgetControlGroup>

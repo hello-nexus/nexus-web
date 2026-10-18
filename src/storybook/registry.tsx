@@ -128,6 +128,7 @@ import { StableDigits } from '../panel/widgets/common/StableDigits';
 import { FitLine } from '../panel/widgets/common/FitLine';
 import { WidgetOfflineState } from '../panel/widgets/common/WidgetOfflineState';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
+import { FreeformSizeButton } from '../panel/widgets/common/FreeformSizeButton';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
 import type { DeckIcon, DeckConfig, DeckDial } from '../panel/widgets/deck/types';
@@ -2155,6 +2156,15 @@ function PreviewSizeIcons() {
   );
 }
 
+function PreviewFreeformSizeButton() {
+  return (
+    <div className={styles.previewRow}>
+      <FreeformSizeButton active={false} onPress={() => {}} />
+      <FreeformSizeButton active onPress={() => {}} />
+    </div>
+  );
+}
+
 function PreviewGaugeTrack() {
   return (
     <div className={styles.previewStack}>
@@ -3582,6 +3592,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/SizeIcons.tsx',
     description: 'SIZE_ICONS record: one glyph per widget size (1x1 ... 4x4) used by the size selector in widget settings and the context menu resize row.',
     Preview: PreviewSizeIcons,
+  },
+  {
+    name: 'FreeformSizeButton', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/FreeformSizeButton.tsx',
+    description: 'Size-picker button that starts freeform resize mode for widgets that opt in; active while the widget holds a freeform span.',
+    Preview: PreviewFreeformSizeButton,
   },
   {
     name: 'IconPicker', category: 'panel-kit',

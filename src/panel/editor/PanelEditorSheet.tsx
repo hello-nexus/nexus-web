@@ -7,6 +7,7 @@ import type { DeckEditView } from '../widgets/types';
 import type { DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
 import { Notice } from '../../components/common/Notice/Notice';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
+import { FreeformSizeButton } from '../widgets/common/FreeformSizeButton';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
 import { SettingsSection, SettingsToggle } from '../widgets/common/SettingsRow/SettingsRow';
 import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
@@ -98,6 +99,7 @@ export function PanelEditorSheet({
   onMachineNameCommit,
   onAdd,
   onResize,
+  onFreeform,
   onUpdate,
   onRemove,
   dockStyle,
@@ -191,6 +193,8 @@ export function PanelEditorSheet({
   onMachineNameCommit: (next: string) => void;
   onAdd: (type: string, size: PanelWidgetSize) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
+  // Set where freeform resize mode exists (the device-page preview); gates the Freeform button.
+  onFreeform?: (widgetId: string) => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onRemove: (widgetId: string) => void;
   // Style of the docked widget; its clearance vars keep the sheet off the widget.
@@ -217,6 +221,7 @@ export function PanelEditorSheet({
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
   const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch, forcedGrid) : [];
+  const offersFreeform = !!onFreeform && !!def?.meta.freeform && !isSingleWidgetSurface(surface);
   const slotLayoutOptions = editingWidget && isMonitoringWidget ? slotLayoutOptionsForSize(editingWidget.size) : [];
   const slotLayout = editingWidget && isMonitoringWidget
     ? resolvedSlotLayout(editingWidget.size, editingWidget.config)
@@ -367,10 +372,10 @@ export function PanelEditorSheet({
 
         {mode === 'settings' && editingWidget && def && (
           <div className={styles.settingsBody}>
-            {(widgetSizes.length > 1 || slotLayoutOptions.length > 1) && (
+            {(widgetSizes.length > 1 || offersFreeform || slotLayoutOptions.length > 1) && (
               <div className={styles.editorActions}>
                 <div className={styles.controlPicker}>
-                  {widgetSizes.length > 1 && (
+                  {(widgetSizes.length > 1 || offersFreeform) && (
                     <WidgetControlGroup title={isMonitoringWidget ? t('panel.editor.layout') : t('panel.editor.size')}>
                       {widgetSizes.map(size => {
                         const SizeIcon = SIZE_ICONS[size];
@@ -386,6 +391,13 @@ export function PanelEditorSheet({
                           />
                         );
                       })}
+                      {offersFreeform && editingWidget && (
+                        <FreeformSizeButton
+                          className={styles.editorControlButton}
+                          active={!widgetSizes.includes(editingWidget.size)}
+                          onPress={() => onFreeform?.(editingWidget.id)}
+                        />
+                      )}
                     </WidgetControlGroup>
                   )}
                   {isMonitoringWidget && slotLayoutOptions.length > 0 && (

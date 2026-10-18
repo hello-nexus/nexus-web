@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   clampFreeformSize,
+  cornerRoom,
   freeformSnapSpans,
   moveRect,
   resizeRectFromCorner,
@@ -127,5 +128,34 @@ describe('clampFreeformSize', () => {
     expect(clampFreeformSize('6x8', { cols: 8, rows: 4 })).toBe('6x4');
     expect(clampFreeformSize('6x4', { cols: 8, rows: 8 })).toBe('6x4');
     expect(clampFreeformSize('4x4', { cols: 2, rows: 2 })).toBe('4x4');
+  });
+});
+
+describe('cornerRoom', () => {
+  const snap = freeformSnapSpans(['4x2', '4x4'], { cols: 8, rows: 8 });
+  const bounds = { cols: 8, rows: 8 };
+
+  it('enables every corner of a tile with room all round', () => {
+    expect(cornerRoom({ col: 2, row: 2, cols: 4, rows: 4 }, snap, bounds)).toEqual({ tl: true, tr: true, bl: true, br: true });
+  });
+
+  it('disables the corners on an edge the tile already touches when no larger span fits', () => {
+    const full = cornerRoom({ col: 0, row: 0, cols: 8, rows: 8 }, snap, bounds);
+    expect(full).toEqual({ tl: false, tr: false, bl: false, br: false });
+  });
+
+  it('disables a corner whose growth would cross the grid edge', () => {
+    expect(cornerRoom({ col: 4, row: 0, cols: 4, rows: 4 }, snap, bounds)).toEqual({ tl: true, tr: false, bl: true, br: true });
+    expect(cornerRoom({ col: 4, row: 2, cols: 4, rows: 6 }, snap, { cols: 8, rows: 8 })).toEqual({ tl: true, tr: true, bl: true, br: false });
+  });
+
+  it('uses the whole grid width on a 4 wide grid and only grows by rows', () => {
+    const narrow = freeformSnapSpans(['4x2', '4x4'], { cols: 4, rows: 8 });
+    expect(cornerRoom({ col: 0, row: 2, cols: 4, rows: 4 }, narrow, { cols: 4, rows: 8 })).toEqual({ tl: true, tr: true, bl: true, br: true });
+    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 8 }, narrow, { cols: 4, rows: 8 })).toEqual({ tl: false, tr: false, bl: false, br: false });
+  });
+
+  it('counts no room when nothing larger is offered', () => {
+    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, [], bounds)).toEqual({ tl: false, tr: false, bl: false, br: false });
   });
 });

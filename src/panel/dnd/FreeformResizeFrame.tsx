@@ -30,6 +30,7 @@ interface Press { gesture: FreeformGesture; x: number; y: number; moved: boolean
 export function FreeformResizeFrame({
   widget,
   label,
+  room,
   onBegin,
   onUpdate,
   onEnd,
@@ -37,6 +38,8 @@ export function FreeformResizeFrame({
 }: {
   widget: PanelWidget;
   label: string;
+  // Corners that can still grow; the others stay draggable inward.
+  room: Record<FreeformCorner, boolean>;
   onBegin: () => boolean;
   onUpdate: (gesture: FreeformGesture, dCols: number, dRows: number) => void;
   onEnd: () => void;
@@ -136,6 +139,7 @@ export function FreeformResizeFrame({
           type="button"
           className={styles.handle}
           data-corner={corner}
+          data-room={room[corner] ? 'true' : 'false'}
           aria-label={t(CORNER_LABEL_KEY[corner], { name: label })}
           {...handlers(corner)}
         />

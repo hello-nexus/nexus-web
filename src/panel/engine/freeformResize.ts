@@ -73,6 +73,24 @@ export function resizeRectFromCorner(
   return best ?? start;
 }
 
+/** Whether each corner can grow: a larger snap span containing the rect fits the grid with the opposite corner fixed. */
+export function cornerRoom(
+  rect: FreeformRect,
+  snapSpans: readonly GridSpan[],
+  bounds: FreeformBounds,
+): Record<FreeformCorner, boolean> {
+  const right = rect.col + rect.cols;
+  const bottom = rect.row + rect.rows;
+  const room = (fromLeft: boolean, fromTop: boolean) => snapSpans.some(span => {
+    if (span.cols < rect.cols || span.rows < rect.rows) return false;
+    if (span.cols === rect.cols && span.rows === rect.rows) return false;
+    const col = fromLeft ? right - span.cols : rect.col;
+    const row = fromTop ? bottom - span.rows : rect.row;
+    return col >= 0 && row >= 0 && col + span.cols <= bounds.cols && row + span.rows <= bounds.rows;
+  });
+  return { tl: room(true, true), tr: room(false, true), bl: room(true, false), br: room(false, false) };
+}
+
 /** Moves a rect by (dCols, dRows) cells, rounded to whole cells and kept inside the grid. */
 export function moveRect(
   start: FreeformRect,
