@@ -1,5 +1,6 @@
 @use '../../../styles/scrollbar' as *;
 @use '../../../styles/interactions' as *;
+@use '../../../styles/text' as *;
 
 .lighting {
   display: flex;
@@ -1232,6 +1233,56 @@
   &.deviceCardPoweredOff {
     .deviceName { color: var(--text-dim); }
     .deviceMeta { opacity: 0.6; }
+  }
+}
+
+// A card carrying the controlled-by strip: the strip wraps onto its own row
+// inside the card, so one border, fill and outline cover both.
+.deviceCardWithStrip {
+  flex-wrap: wrap;
+  padding-bottom: 0;
+}
+
+// Bleeds to the card's inner edges; the left inset puts the icon under a compact badge's icon.
+.deviceControlledBy {
+  @include text-caption;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: calc(100% + 1.5rem);
+  margin: 0.6rem -0.75rem 0;
+  padding: 4px 0.75rem 5px calc(0.75rem + 5px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-top: var(--border-width) solid var(--separator);
+  background: transparent;
+  color: var(--text-dim);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color var(--ease-fast), filter var(--ease-fast);
+
+  svg { width: 11px; height: 11px; flex: none; }
+  b { font-weight: inherit; color: var(--text); }
+
+  &:hover { color: var(--text); }
+
+  &:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -1px;
+  }
+}
+
+.deviceControlledByWarn {
+  color: var(--warn);
+
+  b { color: var(--warn); }
+
+  &:hover {
+    color: var(--warn);
+    filter: brightness(1.2);
   }
 }
 

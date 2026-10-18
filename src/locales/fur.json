@@ -2680,6 +2680,7 @@
   "lighting.devices.activeCount.other": "{count} dispositîfs impiâts",
   "lighting.devices.brightness": "Luminositât",
   "lighting.devices.controlled": "Controlât",
+  "lighting.devices.controlledBy": "Controlât di {app}",
   "lighting.devices.deselect": "Deselezione",
   "lighting.devices.detectionFailed": "Rilevât ma no controlabil",
   "lighting.devices.detectionFailedTooltip": "Chest dispositîf al è stât viodût di OpenRGB ma il so rilevatôr nol è rivât a inizializâlu, cussì Nexus nol pues controlâ la sô iluminazion.",

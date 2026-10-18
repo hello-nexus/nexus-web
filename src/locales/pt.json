@@ -2680,6 +2680,7 @@
   "lighting.devices.activeCount.other": "{count} dispositivos acesos",
   "lighting.devices.brightness": "Brilho",
   "lighting.devices.controlled": "Controlado",
+  "lighting.devices.controlledBy": "Controlado por {app}",
   "lighting.devices.deselect": "Desselecionar",
   "lighting.devices.detectionFailed": "Detetado mas nao controlavel",
   "lighting.devices.detectionFailedTooltip": "Este dispositivo foi visto pelo OpenRGB mas o seu detetor nao conseguiu inicializa-lo, pelo que o Nexus nao consegue controlar a sua iluminacao.",

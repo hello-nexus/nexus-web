@@ -2680,6 +2680,7 @@
   "lighting.devices.activeCount.other": "{count} 个设备已点亮",
   "lighting.devices.brightness": "亮度",
   "lighting.devices.controlled": "控制中",
+  "lighting.devices.controlledBy": "由 {app} 控制",
   "lighting.devices.deselect": "取消选择",
   "lighting.devices.detectionFailed": "已检测到但无法控制",
   "lighting.devices.detectionFailedTooltip": "OpenRGB 检测到此设备，但其检测器初始化失败，Nexus 无法控制其灯光。",

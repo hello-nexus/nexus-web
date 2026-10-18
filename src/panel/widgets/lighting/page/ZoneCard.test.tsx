@@ -1048,3 +1048,89 @@ describe('ZoneCard firmware-owned menu', () => {
     expect(screen.queryByRole('button', { name: /menuTakeControl/ })).toBeNull();
   });
 });
+
+describe('ZoneCard controlled-by strip', () => {
+  const strip = (controlled: boolean, names = ['Corsair iCUE']) => ({
+    controlled,
+    apps: names.map((name, i) => ({ id: `app-${i}`, name })),
+  });
+  function renderStrip(device: LightingDevice, appStrip?: ReturnType<typeof strip>, handlers: { onSelect?: () => void; onOpenAppStrip?: () => void } = {}) {
+    return render(
+      <ZoneCard
+        device={device}
+        selected={false}
+        indent={false}
+        onSelect={handlers.onSelect ?? (() => {})}
+        onOpenSettings={() => {}}
+        appStrip={appStrip}
+        onOpenAppStrip={handlers.onOpenAppStrip ?? (() => {})}
+      />,
+    );
+  }
+
+  it('reads as gray "controlled by" when Nexus does not drive the card', () => {
+    renderStrip({ ...baseDevice, controlled: false }, strip(false));
+    const button = screen.getByRole('button', { name: /lighting\.devices\.controlledBy/ });
+    expect(button.className).not.toContain(styles.deviceControlledByWarn);
+    expect(button.textContent).toContain('Corsair iCUE');
+    expect(document.querySelector(`.${styles.deviceCard}`)?.className).toContain(styles.deviceCardWithStrip);
+  });
+
+  it('reads as amber "running" when Nexus drives the card', () => {
+    renderStrip(baseDevice, strip(true));
+    const button = screen.getByRole('button', { name: /devices\.conflictRunning\.badge/ });
+    expect(button.className).toContain(styles.deviceControlledByWarn);
+  });
+
+  it('renders no strip without a matching running app', () => {
+    renderStrip(baseDevice, undefined);
+    expect(screen.queryByRole('button', { name: /controlledBy|conflictRunning/ })).toBeNull();
+    expect(document.querySelector(`.${styles.deviceCard}`)?.className).not.toContain(styles.deviceCardWithStrip);
+  });
+
+  it('lists several apps in the order given, comma-separated', () => {
+    renderStrip({ ...baseDevice, controlled: false }, strip(false, ['Corsair iCUE', 'SignalRGB', 'OpenRGB']));
+    expect(screen.getByRole('button', { name: /controlledBy/ }).textContent).toContain('Corsair iCUE, SignalRGB, and OpenRGB');
+  });
+
+  it('stays hidden in toggle, select-only, firmware-controlled and unavailable modes', () => {
+    const device = { ...baseDevice, controlled: false };
+    const props = { selected: false, indent: false, onSelect: () => {}, appStrip: strip(false), onOpenAppStrip: () => {} };
+    const hidden = (extra: Record<string, unknown>, dev: LightingDevice = device) => {
+      const view = render(<ZoneCard device={dev} {...props} {...extra} />);
+      const found = screen.queryByRole('button', { name: /controlledBy/ });
+      view.unmount();
+      return found;
+    };
+    expect(hidden({ toggleMode: true, onToggleControlled: () => {} })).toBeNull();
+    expect(hidden({ selectOnly: true })).toBeNull();
+    expect(hidden({ firmwareControlled: true })).toBeNull();
+    expect(hidden({}, { ...device, ledCount: 0 })).toBeNull();
+    expect(hidden({})).not.toBeNull();
+  });
+
+  it('keeps Enter and Space off the card but lets Escape bubble', () => {
+    const onKeyDown = vi.fn();
+    render(
+      <div onKeyDown={e => onKeyDown(e.key)}>
+        <ZoneCard device={{ ...baseDevice, controlled: false }} selected={false} indent={false} onSelect={() => {}} appStrip={strip(false)} onOpenAppStrip={() => {}} />
+      </div>,
+    );
+    const button = screen.getByRole('button', { name: /controlledBy/ });
+    fireEvent.keyDown(button, { key: 'Enter' });
+    fireEvent.keyDown(button, { key: ' ' });
+    expect(onKeyDown).not.toHaveBeenCalled();
+    fireEvent.keyDown(button, { key: 'Escape' });
+    expect(onKeyDown).toHaveBeenCalledWith('Escape');
+  });
+
+  it('opens the conflict dialog on press without selecting the card', () => {
+    const onSelect = vi.fn();
+    const onOpenAppStrip = vi.fn();
+    renderStrip({ ...baseDevice, controlled: false }, strip(false), { onSelect, onOpenAppStrip });
+    fireEvent.click(screen.getByRole('button', { name: /controlledBy/ }));
+    expect(onOpenAppStrip).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+});
