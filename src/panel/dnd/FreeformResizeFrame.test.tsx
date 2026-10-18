@@ -56,6 +56,15 @@ describe('FreeformResizeFrame', () => {
     expect(onUpdate).toHaveBeenLastCalledWith('tr', -1, 1);
   });
 
+  it('flags a touch frame so its grab areas grow', () => {
+    const { container } = render(
+      <div data-surface="y70">
+        <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} touch onBegin={vi.fn(() => true)} onUpdate={vi.fn()} onEnd={vi.fn()} onExit={vi.fn()} />
+      </div>,
+    );
+    expect(container.querySelector('[data-freeform-frame]')).toHaveAttribute('data-touch', 'true');
+  });
+
   it('exits on a body tap and not on a body drag', () => {
     const { onBegin, onUpdate, onEnd, onExit } = setup();
     const body = screen.getByRole('button', { name: 'panel.freeform.body' });

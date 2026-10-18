@@ -40,6 +40,31 @@ describe('freeformSnapSpans', () => {
   });
 });
 
+describe('freeformSnapSpans without the even spans', () => {
+  it('offers only the declared sizes that fit the grid', () => {
+    const declared = ['2x2', '4x2', '4x4'] as const;
+    expect(names(freeformSnapSpans(declared, { cols: 8, rows: 8 }, false))).toEqual(['2x2', '4x2', '4x4']);
+    expect(names(freeformSnapSpans(declared, { cols: 4, rows: 2 }, false))).toEqual(['2x2', '4x2']);
+  });
+
+  it('gives a widget with one fitting size nothing to resize to', () => {
+    expect(freeformSnapSpans(['4x4'], { cols: 8, rows: 8 }, false)).toHaveLength(1);
+    expect(freeformSnapSpans(['2x2round'], { cols: 8, rows: 8 }, false)).toHaveLength(0);
+  });
+
+  it('computes corner room from the declared sizes only', () => {
+    const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], { cols: 8, rows: 8 }, false);
+    expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, snap, { cols: 8, rows: 8 })).toEqual({ tl: false, tr: false, bl: false, br: false });
+    expect(cornerRoom({ col: 2, row: 2, cols: 2, rows: 2 }, snap, { cols: 8, rows: 8 })).toEqual({ tl: true, tr: true, bl: true, br: true });
+  });
+
+  it('resizes a corner to the nearest declared size', () => {
+    const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], { cols: 8, rows: 8 }, false);
+    expect(resizeRectFromCorner({ col: 0, row: 0, cols: 2, rows: 2 }, 'br', 2, 2, snap, { cols: 8, rows: 8 })).toEqual({ col: 0, row: 0, cols: 4, rows: 4 });
+    expect(resizeRectFromCorner({ col: 4, row: 4, cols: 4, rows: 4 }, 'tl', 2, 2, snap, { cols: 8, rows: 8 })).toEqual({ col: 6, row: 6, cols: 2, rows: 2 });
+  });
+});
+
 describe('resizeRectFromCorner', () => {
   const bounds = { cols: 8, rows: 8 };
   const snap = freeformSnapSpans(['4x2', '4x4'], bounds);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeVisible, isTopmost, probePoints } from './webViewVisibility';
+import { computeVisible, isTopmost, probePoints, webViewSuppressedBy } from './webViewVisibility';
 
 const rect = { x: 100, y: 200, w: 400, h: 300 };
 
@@ -85,5 +85,25 @@ describe('computeVisible', () => {
     const i = base();
     const { other } = setup();
     expect(computeVisible({ ...i, hit: () => other })).toBe(false);
+  });
+});
+
+describe('webViewSuppressedBy', () => {
+  const idle = { sheet: false, tray: false, controlCenter: false, contextMenu: false, rearranging: false, dragging: false, resizing: false };
+
+  it('leaves the native view up when nothing covers or moves tiles', () => {
+    expect(webViewSuppressedBy(idle)).toBe(false);
+  });
+
+  it('hides it for each covering or moving state, resize mode included', () => {
+    for (const key of Object.keys(idle) as Array<keyof typeof idle>) {
+      expect(webViewSuppressedBy({ ...idle, [key]: true }), key).toBe(true);
+    }
+  });
+
+  it('hides a view the resize frame covers even without the flag, via the hit test', () => {
+    const { el, other } = setup();
+    expect(computeVisible({ supported: true, documentVisible: true, suppressed: webViewSuppressedBy({ ...idle, resizing: true }), connected: true, loadFailed: false, rect, el, hit: () => el })).toBe(false);
+    expect(computeVisible({ supported: true, documentVisible: true, suppressed: false, connected: true, loadFailed: false, rect, el, hit: () => other })).toBe(false);
   });
 });

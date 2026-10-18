@@ -1,11 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
+import type { PanelLayout, PanelWidget } from '../types';
 import { findWidgetById } from './panelLayoutHelpers';
-import { sizeToSpan } from './grid';
+import { sizeToSpan, type GridSpan } from './grid';
 import { tryResizeWidget } from './panelLayoutOps';
 import type { PaginateCapacity } from './paginate';
 import {
-  freeformSnapSpans,
   moveRect,
   resizeRectFromCorner,
   sameRect,
@@ -23,7 +22,7 @@ export function useFreeformResize({
   widgetId,
   layout,
   capacity,
-  declaredSizes,
+  snapSpans,
   maxPages,
   onCommit,
   onReject,
@@ -31,7 +30,7 @@ export function useFreeformResize({
   widgetId: string | null;
   layout: PanelLayout;
   capacity: PaginateCapacity;
-  declaredSizes: readonly PanelWidgetSize[];
+  snapSpans: readonly GridSpan[];
   maxPages: number;
   onCommit: (next: PanelLayout) => void;
   onReject: (widgetId: string) => void;
@@ -61,7 +60,7 @@ export function useFreeformResize({
     const bounds = { cols: boundCols, rows: boundRows };
     const target: FreeformRect = gesture === 'move'
       ? moveRect(session.start, dCols, dRows, bounds)
-      : resizeRectFromCorner(session.start, gesture, dCols, dRows, freeformSnapSpans(declaredSizes, bounds), bounds);
+      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds);
     if (sameRect(target, session.start)) {
       setBoth(null);
       return;
@@ -76,7 +75,7 @@ export function useFreeformResize({
     );
     if (next) setBoth(next === session.base ? null : next);
     else onReject(widgetId);
-  }, [boundCols, boundRows, capacity, declaredSizes, maxPages, onReject, setBoth, widgetId]);
+  }, [boundCols, boundRows, capacity, snapSpans, maxPages, onReject, setBoth, widgetId]);
 
   const end = useCallback(() => {
     const next = draftRef.current;

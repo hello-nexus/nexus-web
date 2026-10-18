@@ -34,9 +34,6 @@ interface PanelEmbedFrameProps {
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
-  // The widget in freeform resize mode; the preview reports leaving it through onFreeformExit.
-  freeformWidgetId?: string | null;
-  onFreeformExit?: () => void;
   // One-shot flash request for a widget the parent rejected (e.g. a resize
   // that can't fit). The nonce re-fires repeats; null until the first reject.
   flashSignal?: { widgetId: string; nonce: number } | null;
@@ -216,8 +213,6 @@ export function PanelEmbedFrame({
   theme,
   themeMode,
   selectedWidgetId,
-  freeformWidgetId = null,
-  onFreeformExit,
   flashSignal,
   onLayoutChange,
   onWidgetClicked,
@@ -337,10 +332,6 @@ export function PanelEmbedFrame({
           if (widget) onWidgetClicked(widget);
           break;
         }
-        case 'simulator/freeform-exited': {
-          onFreeformExit?.();
-          break;
-        }
         case 'simulator/background-clicked': {
           onBackgroundClicked();
           break;
@@ -355,7 +346,7 @@ export function PanelEmbedFrame({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [layout, onBackgroundClicked, onFreeformExit, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
+  }, [layout, onBackgroundClicked, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
 
   // Init handshake: send the full state once the child says it's ready.
   useEffect(() => {
@@ -434,11 +425,6 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-selection', widgetId: selectedWidgetId });
   }, [childReady, selectedWidgetId, post]);
-
-  useEffect(() => {
-    if (!childReady) return;
-    post({ type: 'simulator/set-freeform', widgetId: freeformWidgetId });
-  }, [childReady, freeformWidgetId, post]);
 
   // Forward a reject flash to the iframe. Keyed on the nonce so it fires once
   // per reject, not on the initial null or on childReady toggling.

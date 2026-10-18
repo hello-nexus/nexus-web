@@ -35,7 +35,7 @@ import { TouchViaPointerContext, useTouchViaPointer } from './engine/touchViaPoi
 import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
-import { panelWidgetPaddingRatio, sizeToSpan } from './engine/grid';
+import { panelWidgetPaddingRatio, sizeToSpan, type GridSpan } from './engine/grid';
 import { layoutRowExtent, overflowLayout, repaginatePanelLayout, restoreOverflowPositions, type PaginateCapacity } from './engine/paginate';
 import {
   BLANK_PAGE_ID,
@@ -58,6 +58,7 @@ import { PanelSwipeHint } from './chrome/PanelSwipeHint';
 import { hasTouchInput, usePanelSwipeOnboarding } from './engine/usePanelSwipeOnboarding';
 import { PanelImmersiveOverlay } from './overlays/PanelImmersiveOverlay';
 import { webViewHost } from './webview/webViewHost';
+import { webViewSuppressedBy } from './webview/webViewVisibility';
 import {
   canMarkImmersiveOnLoad,
   immersiveOnLoadResolvable,
@@ -185,7 +186,7 @@ import { cornerRoom, freeformSnapSpans } from './engine/freeformResize';
 // is removed.
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
-const NO_SIZES: readonly PanelWidgetSize[] = [];
+const NO_SPANS: readonly GridSpan[] = [];
 const CLICK_AFTER_RELEASE_MS = 100;
 
 export interface PanelLayoutState {
@@ -383,10 +384,8 @@ export function PanelContent({
   simulatorThemeMode,
   simulatorSelectedWidgetId,
   simulatorFlashSignal,
-  simulatorFreeformWidgetId = null,
   simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
-  onSimulatorFreeformExit,
   onSimulatorBackgroundClicked,
   onSimulatorPlaylistShown,
   openCatalogSignal,
@@ -422,9 +421,6 @@ export function PanelContent({
   // The parent's iframe fit scale. Preview overlays meant for the desktop
   // operator divide it out so they do not shrink with the canvas.
   simulatorPreviewScale?: number;
-  // Device-page editor only: the widget in freeform resize mode, and the exit report.
-  simulatorFreeformWidgetId?: string | null;
-  onSimulatorFreeformExit?: () => void;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
   onSimulatorPlaylistShown?: (type: string | null) => void;
@@ -857,35 +853,36 @@ export function PanelContent({
   // The dashboard has one page by design; a panel without touch has no way to swipe.
   const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
 
-  // Freeform resize mode exists only in the device-page preview.
-  const [localFreeformId, setLocalFreeformId] = useState<string | null>(null);
-  const [pendingFreeformId, setPendingFreeformId] = useState<string | null>(null);
-  const activeFreeformId = simulator ? (simulatorFreeformWidgetId ?? localFreeformId) : null;
-  const freeformWidget = activeFreeformId
-    ? findWidgetById(paginatedLayout, activeFreeformId)
-    : undefined;
+  // Resize mode is entered from the widget context menu and ends on a press outside the frame.
+  const [freeformId, setFreeformId] = useState<string | null>(null);
+  const freeformWidget = freeformId ? findWidgetById(paginatedLayout, freeformId) : undefined;
   const freeformDef = freeformWidget ? lookupApp(freeformWidget.type) : undefined;
-  const freeformActive = Boolean(freeformWidget && freeformDef?.meta.freeform && dragEditable);
-  const freeformDeclaredSizes = freeformDef?.meta.sizes ?? NO_SIZES;
+  const resizeBounds = { cols: capacity.gridCols, rows: capacity.pageRows };
+  // Corners snap to the widget's declared sizes that fit; opted-in widgets also get the even spans past 4x4.
+  const resizeSpansFor = (type: string): GridSpan[] => {
+    const meta = lookupApp(type)?.meta;
+    if (!meta || isSingleWidgetSurface(surface)) return [];
+    const declared = sizesForSurface(meta, surface, deviceTouch, forcedGrid).filter(size => size !== '2x2round');
+    return freeformSnapSpans(declared, resizeBounds, Boolean(meta.freeform));
+  };
+  const canResizeType = (type: string) => dragEditable && resizeSpansFor(type).length > 1;
+  const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type));
+  const freeformSpans = freeformWidget ? resizeSpansFor(freeformWidget.type) : NO_SPANS;
   const freeformRoom = (w: PanelWidget) => {
-    const bounds = { cols: capacity.gridCols, rows: capacity.pageRows };
     const span = sizeToSpan(w.size);
-    return cornerRoom({ col: w.col, row: w.row, cols: span.cols, rows: span.rows }, freeformSnapSpans(freeformDeclaredSizes, bounds), bounds);
+    return cornerRoom({ col: w.col, row: w.row, cols: span.cols, rows: span.rows }, freeformSpans, resizeBounds);
   };
   const handleFreeformReject = useCallback((id: string) => triggerFlash(id), [triggerFlash]);
   const freeform = useFreeformResize({
-    widgetId: freeformActive ? activeFreeformId : null,
+    widgetId: freeformActive ? freeformId : null,
     layout: paginatedLayout,
     capacity,
-    declaredSizes: freeformDeclaredSizes,
+    snapSpans: freeformSpans,
     maxPages: singlePage ? 1 : MAX_PANEL_PAGES,
     onCommit: setLayout,
     onReject: handleFreeformReject,
   });
-  const exitFreeform = useCallback(() => {
-    setLocalFreeformId(null);
-    onSimulatorFreeformExit?.();
-  }, [onSimulatorFreeformExit]);
+  const exitFreeform = useCallback(() => setFreeformId(null), []);
   // A press outside the frame ends the mode and goes no further.
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
     if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
@@ -904,18 +901,17 @@ export function PanelContent({
     if (!freeformActive) return undefined;
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') exitFreeform(); };
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [freeformActive, exitFreeform]);
-  // The mode starts once the edit sheet that requested it has closed.
-  useEffect(() => {
-    if (!pendingFreeformId || sheetMode) return;
-    setLocalFreeformId(pendingFreeformId);
-    setPendingFreeformId(null);
-  }, [pendingFreeformId, sheetMode]);
+    // In the preview a press on the page around the iframe takes focus out of it.
+    if (simulator) window.addEventListener('blur', exitFreeform);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('blur', exitFreeform);
+    };
+  }, [freeformActive, exitFreeform, simulator]);
   // A mode whose widget is gone reports its exit.
   useEffect(() => {
-    if (activeFreeformId && !freeformActive) exitFreeform();
-  }, [activeFreeformId, freeformActive, exitFreeform]);
+    if (freeformId && !freeformActive) exitFreeform();
+  }, [freeformId, freeformActive, exitFreeform]);
 
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
   // predates the service reporting it - the embedded desktop dashboard is
@@ -1190,8 +1186,15 @@ export function PanelContent({
       || immersiveWidgetId,
   );
   // Any state that moves or covers tiles hides the native web views.
-  const webViewSuppressed = Boolean(sheetMode) || trayOpen || controlCenterOpen || Boolean(touch.ctxMenu)
-    || touch.rearranging || Boolean(dragArmedId) || Boolean(activeDragId);
+  const webViewSuppressed = webViewSuppressedBy({
+    sheet: Boolean(sheetMode),
+    tray: trayOpen,
+    controlCenter: controlCenterOpen,
+    contextMenu: Boolean(touch.ctxMenu),
+    rearranging: touch.rearranging,
+    dragging: Boolean(dragArmedId) || Boolean(activeDragId),
+    resizing: freeformActive,
+  });
   useEffect(() => {
     webViewHost.setSuppressed(webViewSuppressed);
     return () => webViewHost.setSuppressed(false);
@@ -2025,6 +2028,7 @@ export function PanelContent({
                           <FreeformResizeFrame
                             widget={page.widgets.find(w => w.id === freeformWidget.id) ?? freeformWidget}
                             label={t(freeformDef?.meta.i18nKey ?? '') || freeformWidget.type}
+                            touch={kioskBehavior && surfaceSupportsTouch(surface, deviceTouch)}
                             room={freeformRoom(page.widgets.find(w => w.id === freeformWidget.id) ?? freeformWidget)}
                             onBegin={freeform.begin}
                             onUpdate={freeform.update}
@@ -2085,7 +2089,7 @@ export function PanelContent({
                 pairSheetAvailable={localPairAvailable || pairedPcsAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
-                disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId || controlCenterOpen}
+                disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId || controlCenterOpen || freeformActive}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}
                 onSentry={surface === 'phone' && sentrySupported ? () => setSentryOpenRequest((n) => n + 1) : undefined}
@@ -2109,7 +2113,7 @@ export function PanelContent({
                 trayOpen={trayOpen}
                 offline={isOffline}
                 rearranging={touch.rearranging}
-                dragArmed={dragInProgress}
+                dragArmed={dragInProgress || freeformActive}
                 asleep={screenAsleep}
               />
             )}
@@ -2192,7 +2196,9 @@ export function PanelContent({
             themeMode={resolvedThemeMode}
             themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
-            onEdit={() => openWidgetSettings(ctxWidget, ctxPoint)}
+            onResizeMode={canResizeType(ctxWidget.type) ? () => setFreeformId(ctxWidget.id) : undefined}
+            // The preview edits in the device page's settings pane, as a plain click does.
+            onEdit={() => (simulator ? onSimulatorWidgetClicked?.(ctxWidget.id) : openWidgetSettings(ctxWidget, ctxPoint))}
             onRemove={() => removeWidget(ctxWidget.id)}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
             onAddToDesktop={desktopAddAvailable ? () => {
@@ -2334,7 +2340,6 @@ export function PanelContent({
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}
           onResize={resizeWidget}
-          onFreeform={simulator ? id => { setPendingFreeformId(id); closeSheet(); } : undefined}
           onUpdate={updateWidgetConfig}
           onRemove={removeWidget}
           dockStyle={editorDockSupported && sheetMode === 'settings' ? editorDockMotion?.style : undefined}

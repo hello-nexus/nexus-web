@@ -3,7 +3,8 @@
   --_upscale: var(--panel-preview-upscale, 1);
   --_radius: var(--panel-card-radius, var(--radius));
   // Hit area per corner, extending inside the tile; the bracket fills it.
-  --_hit: max(calc(28px * var(--_upscale)), calc(var(--_radius) + 12px * var(--_upscale)));
+  --_hit: max(calc(var(--_hit-min) * var(--_upscale)), calc(var(--_radius) + 12px * var(--_upscale)));
+  --_hit-min: 28px;
   --_stroke: calc(5px * var(--_upscale));
   --_halo: rgb(0 0 0 / var(--alpha-strong));
   position: relative;
@@ -12,6 +13,10 @@
   min-height: 0;
   border-radius: var(--panel-card-radius, var(--radius));
   box-shadow: 0 0 0 calc(1px * var(--_upscale)) var(--_halo);
+}
+
+.frame[data-touch='true'] {
+  --_hit-min: 44px;
 }
 
 .body {

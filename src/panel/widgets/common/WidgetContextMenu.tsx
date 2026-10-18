@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Lock, Maximize2, Monitor, MonitorOff, Pencil, Pin, PinOff, Trash2, Unlock } from 'lucide-react';
+import { Check, ExternalLink, Lock, Maximize2, Monitor, MonitorOff, Pencil, Pin, PinOff, Scaling, Trash2, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -16,6 +16,8 @@ interface WidgetContextMenuProps {
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
   onResize: (size: PanelWidgetSize) => void;
+  // Starts corner-drag resize mode; the caller offers it only where the widget has more than one size to snap to.
+  onResizeMode?: () => void;
   onEdit: () => void;
   onRemove: () => void;
   // Optional - only shown when the widget has an ImmersiveComponent
@@ -70,7 +72,7 @@ export function WidgetContextMenu({
   surface,
   themeMode = 'dark',
   themeStyle,
-  onResize, onEdit, onRemove, onImmersive,
+  onResize, onResizeMode, onEdit, onRemove, onImmersive,
   onAddToDesktop, onRemoveFromDesktop,
   onPinToSidebar, onUnpinFromSidebar,
   onClose,
@@ -250,6 +252,13 @@ export function WidgetContextMenu({
         <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
           <Pencil size={14} />
           <span>{t('panel.widget.menu.edit')}</span>
+        </button>
+      )}
+
+      {onResizeMode && !locked && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onResizeMode)}>
+          <Scaling size={14} />
+          <span>{t('panel.widget.menu.resize')}</span>
         </button>
       )}
 

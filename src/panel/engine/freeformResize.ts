@@ -16,10 +16,11 @@ export function spanToSize(span: GridSpan): PanelWidgetSize {
   return `${span.cols}x${span.rows}`;
 }
 
-/** Declared sizes plus every span with both sides even and at least 4, capped by the grid; the round mask is not a span. */
+/** Declared sizes, plus (withEvenSpans) every span with both sides even and at least 4, capped by the grid; the round mask is not a span. */
 export function freeformSnapSpans(
   declared: readonly PanelWidgetSize[],
   bounds: FreeformBounds,
+  withEvenSpans = true,
 ): GridSpan[] {
   const spans = new Map<string, GridSpan>();
   const add = (span: GridSpan) => {
@@ -29,7 +30,7 @@ export function freeformSnapSpans(
   for (const size of declared) {
     if (size !== '2x2round') add(sizeToSpan(size));
   }
-  for (let cols = FREEFORM_MIN_SIDE; cols <= bounds.cols; cols += 2) {
+  for (let cols = FREEFORM_MIN_SIDE; withEvenSpans && cols <= bounds.cols; cols += 2) {
     for (let rows = FREEFORM_MIN_SIDE; rows <= bounds.rows; rows += 2) add({ cols, rows });
   }
   return [...spans.values()];

@@ -3,7 +3,6 @@ import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, Unplug, Cam
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
-import { FreeformSizeButton } from '../../../panel/widgets/common/FreeformSizeButton';
 import { previewFit } from '../../../panel/widgets/common/widgetPreviewFit';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
@@ -330,8 +329,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // displays like the Xeneon Edge); null falls back to the surface default.
   const [liveDpi, setLiveDpi] = useState<number | null>(null);
   const [configuringWidgetId, setConfiguringWidgetId] = useState<string | null>(null);
-  // The widget in freeform resize mode in the preview; the edit pane is closed meanwhile.
-  const [freeformWidgetId, setFreeformWidgetId] = useState<string | null>(null);
   // Derived, never snapshotted: the on-device panel writes its own edits back
   // through the panel/device reverse sync below, so a copy of the widget goes
   // stale the moment its size or config changes anywhere but here. Resolving
@@ -1070,24 +1067,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
   }, [editorCapacity, layout, updateLayout]);
 
-  const handleStartFreeform = useCallback((widgetId: string) => {
-    setConfiguringWidgetId(null);
-    setFreeformWidgetId(widgetId);
-  }, []);
-
-  // The preview ends the mode on a press inside it; a press anywhere else on the page does too.
-  useEffect(() => {
-    if (!freeformWidgetId) return undefined;
-    const exit = () => setFreeformWidgetId(null);
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') exit(); };
-    document.addEventListener('pointerdown', exit, true);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', exit, true);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [freeformWidgetId]);
-
   const handleImmersiveOnLoad = useCallback((widgetId: string, on: boolean) => {
     updateLayout(setImmersiveOnLoadWidgetId(layout, on ? widgetId : null));
   }, [layout, updateLayout]);
@@ -1427,7 +1406,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         title={pageTitle}
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
-        onTabChange={(k) => { setConfiguringWidgetId(null); setFreeformWidgetId(null); setTab(k as Tab); }}
+        onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
         // Only where there is a panel to capture: the firmware-gate,
         // disconnected and secondary-monitor states render no embed frame, so
         // the button could do nothing but report an error.
@@ -1511,7 +1490,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 onBack={() => setConfiguringWidgetId(null)}
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
-                onFreeform={handleStartFreeform}
                 onRemove={handleRemoveWidget}
                 immersiveOnLoadAvailable={
                   canMarkImmersiveOnLoad(layout, configuringWidget, surface, previewLandscape, deviceTouch)
@@ -2107,8 +2085,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 theme={theme}
                 themeMode={resolvedPanelThemeMode}
                 selectedWidgetId={configuringWidget?.id ?? null}
-                freeformWidgetId={freeformWidgetId}
-                onFreeformExit={() => setFreeformWidgetId(null)}
                 flashSignal={flashSignal}
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}
@@ -2253,7 +2229,6 @@ interface InlineWidgetSettingsProps {
   onBack: () => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
-  onFreeform: (widgetId: string) => void;
   onRemove: (widgetId: string) => void;
   // Whether this widget can be marked immersive-on-load: a first-page widget
   // with an immersive view in the panel's current orientation.
@@ -2263,12 +2238,11 @@ interface InlineWidgetSettingsProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onFreeform, onRemove, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
   const sizes = def ? sizesForSurface(def.meta, surface, deviceTouch, forcedGrid) : [];
-  const offersFreeform = !!def?.meta.freeform && !isSingleWidgetSurface(surface);
   const Settings = def?.Settings;
   const isMonitoringWidget = widget.type === 'monitoring';
   // Slot selection (clicking a sub-cell in the live preview to edit it) is a
@@ -2376,9 +2350,9 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
       )}
 
       <div className={styles.inlineSettingsBody}>
-        {(sizes.length > 1 || offersFreeform || slotLayoutOptions.length > 1) && (
+        {(sizes.length > 1 || slotLayoutOptions.length > 1) && (
           <div className={styles.inlineControlsRow}>
-            {(sizes.length > 1 || offersFreeform) && (
+            {sizes.length > 1 && (
               <WidgetControlGroup title={isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')}>
                 {sizes.map(s => {
                   const SizeIcon = SIZE_ICONS[s];
@@ -2394,13 +2368,6 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
                     />
                   );
                 })}
-                {offersFreeform && (
-                  <FreeformSizeButton
-                    className={styles.inlineIconButton}
-                    active={!sizes.includes(widget.size)}
-                    onPress={() => onFreeform(widget.id)}
-                  />
-                )}
               </WidgetControlGroup>
             )}
             {isMonitoringWidget && slotLayoutOptions.length > 0 && (

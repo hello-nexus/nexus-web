@@ -37,10 +37,8 @@ export function PanelSimulatorContent() {
           simulatorTheme={sim.theme}
           simulatorThemeMode={sim.themeMode}
           simulatorSelectedWidgetId={sim.selectedWidgetId}
-          simulatorFreeformWidgetId={sim.freeformWidgetId}
           simulatorFlashSignal={sim.flashSignal}
           onSimulatorWidgetClicked={sim.onWidgetClicked}
-          onSimulatorFreeformExit={sim.onFreeformExit}
           onSimulatorBackgroundClicked={sim.onBackgroundClicked}
           onSimulatorPlaylistShown={sim.onPlaylistShown}
         />

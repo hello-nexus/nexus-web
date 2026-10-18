@@ -31,6 +31,7 @@ export function FreeformResizeFrame({
   widget,
   label,
   room,
+  touch = false,
   onBegin,
   onUpdate,
   onEnd,
@@ -38,6 +39,8 @@ export function FreeformResizeFrame({
 }: {
   widget: PanelWidget;
   label: string;
+  // Touch panels get larger grab areas.
+  touch?: boolean;
   // Corners that can still grow; the others stay draggable inward.
   room: Record<FreeformCorner, boolean>;
   onBegin: () => boolean;
@@ -110,6 +113,7 @@ export function FreeformResizeFrame({
   return (
     <div
       data-freeform-frame=""
+      data-touch={touch ? 'true' : undefined}
       className={styles.frame}
       role="group"
       aria-label={t('panel.freeform.frame', { name: label })}
