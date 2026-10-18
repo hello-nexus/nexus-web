@@ -87,7 +87,8 @@ async function renderTab(state: LianLiWirelessState | null = wirelessState) {
 describe('LianLiWirelessFansTab', () => {
   it('renders bind/unbind/identify actions for a bound chain, with no speed controls', async () => {
     await renderTab();
-    expect(screen.getAllByRole('switch')).toHaveLength(1);
+    expect(screen.getAllByRole('switch').map(el => el.getAttribute('aria-label')))
+      .toEqual(['devices.lianli-wireless.lockBoundDevices']);
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.bound - devices.lianli-wireless.slot:{"n":1}')).toBeInTheDocument();
@@ -116,7 +117,8 @@ describe('LianLiWirelessFansTab', () => {
     expect(screen.queryByText(/devices\.lianli-wireless\.slot/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
-    expect(screen.getAllByRole('switch')).toHaveLength(1);
+    expect(screen.getAllByRole('switch').map(el => el.getAttribute('aria-label')))
+      .toEqual(['devices.lianli-wireless.lockBoundDevices']);
   });
 
   describe('lock bound devices toggle', () => {
@@ -135,6 +137,45 @@ describe('LianLiWirelessFansTab', () => {
       await act(async () => { fireEvent.click(lockSwitch()); });
       expect(mockSetLianLiWirelessLockBound).toHaveBeenCalledWith(false);
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('renders unchecked and disabled before the state loads', async () => {
+      await renderTab(null);
+      expect(lockSwitch()).toBeDisabled();
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('a failed earlier PUT does not wipe a later click, and only the last click persists', async () => {
+      let failFirst: (ok: boolean) => void = () => {};
+      mockSetLianLiWirelessLockBound.mockReturnValueOnce(new Promise<boolean>(r => { failFirst = r; }));
+      await renderTab({ ...wirelessState, lockBoundDevices: true });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      await act(async () => { failFirst(false); });
+      expect(mockSetLianLiWirelessLockBound.mock.calls).toEqual([[false], [false]]);
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('keeps the toggle through a stale read sent before the PUT resolved', async () => {
+      const refresh = vi.fn();
+      const sent = Date.now();
+      let view: ReturnType<typeof render> | undefined;
+      await act(async () => {
+        view = render(<LianLiWirelessFansTab state={{ ...wirelessState, lockBoundDevices: true }} stateSentAt={sent} refresh={refresh} />);
+      });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+      // A read sent before the PUT resolved still says on: it must not flip the toggle back.
+      await act(async () => {
+        view!.rerender(<LianLiWirelessFansTab state={{ ...wirelessState, lockBoundDevices: true }} stateSentAt={sent - 1000} refresh={refresh} />);
+      });
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+      // A read sent after it is authoritative.
+      await act(async () => {
+        view!.rerender(<LianLiWirelessFansTab state={{ ...wirelessState, lockBoundDevices: true }} stateSentAt={Date.now() + 1000} refresh={refresh} />);
+      });
+      expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
     });
 
     it('reverts when the PUT fails', async () => {
