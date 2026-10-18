@@ -1,6 +1,7 @@
 import {
   isSingleWidgetSurface,
   normalizePanelWidgetSize,
+  parseWidgetSizeSpan,
   type PanelSurface,
   type PanelWidgetSize,
   singleWidgetSurfaceSize,
@@ -92,7 +93,8 @@ export function resolvePanelSpacing(extent: number, count: number, ratio: number
 }
 
 export function sizeToSpan(size: PanelWidgetSize | string): GridSpan {
-  switch (normalizePanelWidgetSize(size)) {
+  const normalized = normalizePanelWidgetSize(size);
+  switch (normalized) {
     case '1x1': return { cols: 1, rows: 1 };
     case '2x2': return { cols: 2, rows: 2 };
     case '2x4': return { cols: 2, rows: 4 };
@@ -101,6 +103,7 @@ export function sizeToSpan(size: PanelWidgetSize | string): GridSpan {
     case '4x4': return { cols: 4, rows: 4 };
     // Round is a 2x2 block; only its rendering is circular.
     case '2x2round': return { cols: 2, rows: 2 };
+    default: return parseWidgetSizeSpan(normalized) ?? { cols: 4, rows: 4 };
   }
 }
 

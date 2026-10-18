@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { patchPanelDeviceWithStatus } from '../../api/panel';
 import {
+  isFreeformWidgetSize,
   isSingleWidgetSurface,
   normalizePanelWidgetSizeForSurface,
   type PanelLayout,
@@ -11,6 +12,7 @@ import {
 } from '../types';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import { defaultLayoutForSurface } from './defaultLayout';
+import { sizeToSpan } from './grid';
 import type { PanelRecordState } from './usePanelRecord';
 import { broadcastLayoutChanged } from './panelSync';
 import {
@@ -32,15 +34,10 @@ const DECK_ACTION_REQUIRES_DESKTOP_MSG = 'deck_action_requires_desktop';
 
 const SAVE_FORBIDDEN_NOTICE_MS = 5000;
 
-const SIZE_AREA: Record<PanelWidgetSize, number> = {
-  '1x1': 1,
-  '2x2': 4,
-  '2x4': 8,
-  '4x1': 4,
-  '4x2': 8,
-  '4x4': 16,
-  // Same cell footprint as 2x2; only the mask differs.
-  '2x2round': 4,
+// Cell footprint; the round tile has the same footprint as 2x2.
+const sizeArea = (size: PanelWidgetSize): number => {
+  const span = sizeToSpan(size);
+  return span.cols * span.rows;
 };
 
 // Pick the size from `allowed` closest in area to `requested`. Ties prefer
@@ -53,14 +50,14 @@ function nearestAllowedSize(
 ): PanelWidgetSize {
   if (allowed.includes(requested)) return requested;
   if (allowed.length === 0) return fallback;
-  const target = SIZE_AREA[requested];
+  const target = sizeArea(requested);
   // A 4-wide widget (4x1, 4x2 or 4x4) becomes a square tile, never the tall 2x4 strip.
   const squares = requested === '4x1' || requested === '4x2' || requested === '4x4' ? allowed.filter(s => s !== '2x4') : allowed;
   return (squares.length > 0 ? squares : allowed).slice().sort((a, b) => {
-    const da = Math.abs(SIZE_AREA[a] - target);
-    const db = Math.abs(SIZE_AREA[b] - target);
+    const da = Math.abs(sizeArea(a) - target);
+    const db = Math.abs(sizeArea(b) - target);
     if (da !== db) return da - db;
-    return SIZE_AREA[a] - SIZE_AREA[b];
+    return sizeArea(a) - sizeArea(b);
   })[0];
 }
 
@@ -115,7 +112,10 @@ function reconcileAppsAgainstRegistry(
     if (!appAvailableForSurface(def.meta, surface, { deviceTouch, forcedGrid })) return [];
     const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface);
     const allowed = sizesForSurface(def.meta, surface, deviceTouch, forcedGrid);
-    const finalSize = nearestAllowedSize(surfaceSize, allowed, def.meta.defaultSize);
+    // A freeform widget keeps any span it was resized to; the grid clamps it per device.
+    const finalSize = def.meta.freeform && isFreeformWidgetSize(surfaceSize) && allowed.length > 0
+      ? surfaceSize
+      : nearestAllowedSize(surfaceSize, allowed, def.meta.defaultSize);
     if (finalSize === widget.size) return [widget];
     return [{ ...widget, size: finalSize }];
   });

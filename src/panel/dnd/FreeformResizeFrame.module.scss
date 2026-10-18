@@ -1,0 +1,81 @@
+// Lengths are authored at operator size; the upscale undoes the preview iframe's fit scale.
+.frame {
+  --_upscale: var(--panel-preview-upscale, 1);
+  --_handle: calc(18px * var(--_upscale));
+  --_inset: calc(4px * var(--_upscale));
+  --_halo: rgb(0 0 0 / var(--alpha-strong));
+  --_ring: calc(3px * var(--_upscale));
+  --_handle-ring: calc(1.5px * var(--_upscale));
+  position: relative;
+  z-index: 20;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--panel-card-radius, var(--radius));
+  outline: calc(2px * var(--_upscale)) solid var(--accent);
+  outline-offset: calc(-1px * var(--_upscale));
+  box-shadow: 0 0 0 var(--_ring) var(--_halo);
+}
+
+.body {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  cursor: grab;
+  touch-action: none;
+  background: rgb(255 255 255 / 0.06);
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: calc(2px * var(--_upscale)) solid var(--text);
+    outline-offset: calc(-4px * var(--_upscale));
+  }
+}
+
+.handle {
+  position: absolute;
+  width: var(--_handle);
+  height: var(--_handle);
+  margin: 0;
+  padding: 0;
+  border: calc(2px * var(--_upscale)) solid var(--text);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 var(--_handle-ring) var(--_halo);
+  touch-action: none;
+  z-index: 1;
+
+  &:focus-visible {
+    outline: calc(2px * var(--_upscale)) solid var(--text);
+    outline-offset: calc(2px * var(--_upscale));
+  }
+
+  &[data-corner='tl'] {
+    top: var(--_inset);
+    left: var(--_inset);
+    cursor: nwse-resize;
+  }
+
+  &[data-corner='tr'] {
+    top: var(--_inset);
+    right: var(--_inset);
+    cursor: nesw-resize;
+  }
+
+  &[data-corner='bl'] {
+    bottom: var(--_inset);
+    left: var(--_inset);
+    cursor: nesw-resize;
+  }
+
+  &[data-corner='br'] {
+    right: var(--_inset);
+    bottom: var(--_inset);
+    cursor: nwse-resize;
+  }
+}

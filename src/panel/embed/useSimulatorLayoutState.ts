@@ -35,6 +35,7 @@ export interface SimulatorRuntimeState {
   theme: SimulatorTheme | null;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
+  freeformWidgetId: string | null;
   // Set when the parent rejects an action (e.g. a resize that can't fit);
   // drives a one-shot flash on the named widget. nonce re-fires repeats.
   flashSignal: { widgetId: string; nonce: number } | null;
@@ -43,6 +44,7 @@ export interface SimulatorRuntimeState {
   showPanel: boolean;
   deviceId: string | null;
   onWidgetClicked: (id: string) => void;
+  onFreeformExit: () => void;
   onBackgroundClicked: () => void;
   onPlaylistShown: (widgetType: string | null) => void;
 }
@@ -80,6 +82,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+  const [freeformWidgetId, setFreeformWidgetId] = useState<string | null>(null);
   const [brightness, setBrightness] = useState(100);
   const [screenOn, setScreenOn] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
@@ -141,6 +144,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setSelectedWidgetId(data.widgetId);
           break;
         }
+        case 'simulator/set-freeform': {
+          setFreeformWidgetId(data.widgetId);
+          break;
+        }
         case 'simulator/flash-widget': {
           setFlashSignal({ widgetId: data.widgetId, nonce: data.nonce });
           break;
@@ -170,6 +177,11 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     postToParent({ type: 'simulator/widget-clicked', widgetId: id });
   }, []);
 
+  const onFreeformExit = useCallback(() => {
+    setFreeformWidgetId(null);
+    postToParent({ type: 'simulator/freeform-exited' });
+  }, []);
+
   const onBackgroundClicked = useCallback(() => {
     postToParent({ type: 'simulator/background-clicked' });
   }, []);
@@ -196,12 +208,14 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     theme,
     themeMode,
     selectedWidgetId,
+    freeformWidgetId,
     flashSignal,
     brightness,
     screenOn,
     showPanel,
     deviceId,
     onWidgetClicked,
+    onFreeformExit,
     onBackgroundClicked,
     onPlaylistShown,
   };

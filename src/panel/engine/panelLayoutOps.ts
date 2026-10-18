@@ -510,7 +510,9 @@ function shiftPreview(
  * rejection: do NOT mutate state, surface feedback to the user.
  *
  * Cascade order: source page first (so a shrink stays put), then later
- * pages in order, then earlier pages, then a new trailing page.
+ * pages in order, then earlier pages, then a new trailing page. `at`
+ * places the widget at an explicit origin instead of sliding it in place,
+ * which is how freeform resize moves a top or left edge and moves a widget.
  */
 export function tryResizeWidget(
   layout: PanelLayout,
@@ -518,6 +520,7 @@ export function tryResizeWidget(
   newSize: PanelWidgetSize,
   capacity: PaginateCapacity,
   maxPages: number,
+  at?: { col: number; row: number },
 ): PanelLayout | null {
   const cols = Math.max(1, capacity.gridCols);
   const rows = Math.max(1, capacity.pageRows);
@@ -529,7 +532,7 @@ export function tryResizeWidget(
     if (found) { source = found; sourcePageIdx = i; break; }
   }
   if (!source) return layout;
-  if (source.size === newSize) return layout;
+  if (source.size === newSize && (!at || (at.col === source.col && at.row === source.row))) return layout;
 
   const newSpan = sizeToSpan(newSize);
   const newColSpan = Math.max(1, Math.min(newSpan.cols, cols));
@@ -541,8 +544,8 @@ export function tryResizeWidget(
   // returns the widget to the coarser grid the larger size snaps to.
   const fromRowStrip = source.size === '4x1';
   const snapDown = (value: number, span: number) => fromRowStrip ? value - (value % snapStride(span)) : value;
-  const placedCol = Math.max(0, Math.min(snapDown(source.col, newColSpan), cols - newColSpan));
-  const placedRow = Math.max(0, Math.min(snapDown(source.row, newRowSpan), rows - newRowSpan));
+  const placedCol = Math.max(0, Math.min(at ? at.col : snapDown(source.col, newColSpan), cols - newColSpan));
+  const placedRow = Math.max(0, Math.min(at ? at.row : snapDown(source.row, newRowSpan), rows - newRowSpan));
   const placed: PanelWidget = { ...source, size: newSize, col: placedCol, row: placedRow };
   const placedRect: WidgetRect = { col: placedCol, row: placedRow, colSpan: newColSpan, rowSpan: newRowSpan };
 

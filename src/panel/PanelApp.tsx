@@ -125,6 +125,7 @@ import {
   type DragGestureState,
   PANEL_DRAG_START_THRESHOLD_PX,
   buildPanelCollisionDetection,
+  findWidgetById,
   isDashboardClickthroughType,
   noopCellPointers,
   parseDragTarget,
@@ -174,6 +175,8 @@ import {
   PanelDragOverlayCell,
   PanelTouchCell,
 } from './dnd/PanelDragCells';
+import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
+import { useFreeformResize } from './engine/useFreeformResize';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
 // before the editor sheet unmounts. Matches the SETTLE_MS / settling transition
@@ -181,6 +184,8 @@ import {
 // is removed.
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
+const NO_SIZES: readonly PanelWidgetSize[] = [];
+const CLICK_AFTER_RELEASE_MS = 100;
 
 export interface PanelLayoutState {
   layout: PanelLayout;
@@ -377,8 +382,10 @@ export function PanelContent({
   simulatorThemeMode,
   simulatorSelectedWidgetId,
   simulatorFlashSignal,
+  simulatorFreeformWidgetId = null,
   simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
+  onSimulatorFreeformExit,
   onSimulatorBackgroundClicked,
   onSimulatorPlaylistShown,
   openCatalogSignal,
@@ -414,6 +421,9 @@ export function PanelContent({
   // The parent's iframe fit scale. Preview overlays meant for the desktop
   // operator divide it out so they do not shrink with the canvas.
   simulatorPreviewScale?: number;
+  // Device-page editor only: the widget in freeform resize mode, and the exit report.
+  simulatorFreeformWidgetId?: string | null;
+  onSimulatorFreeformExit?: () => void;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
   onSimulatorPlaylistShown?: (type: string | null) => void;
@@ -843,6 +853,52 @@ export function PanelContent({
     [fittedLayout, fitColumns, layout, capacity],
   );
 
+  // The dashboard has one page by design; a panel without touch has no way to swipe.
+  const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
+
+  // Freeform resize mode exists only in the device-page preview.
+  const freeformWidget = simulator && simulatorFreeformWidgetId
+    ? findWidgetById(paginatedLayout, simulatorFreeformWidgetId)
+    : undefined;
+  const freeformDef = freeformWidget ? lookupApp(freeformWidget.type) : undefined;
+  const freeformActive = Boolean(freeformWidget && freeformDef?.meta.freeform && dragEditable);
+  const freeformDeclaredSizes = freeformDef?.meta.sizes ?? NO_SIZES;
+  const handleFreeformReject = useCallback((id: string) => triggerFlash(id), [triggerFlash]);
+  const freeform = useFreeformResize({
+    widgetId: freeformActive ? simulatorFreeformWidgetId : null,
+    layout: paginatedLayout,
+    capacity,
+    declaredSizes: freeformDeclaredSizes,
+    maxPages: singlePage ? 1 : MAX_PANEL_PAGES,
+    onCommit: setLayout,
+    onReject: handleFreeformReject,
+  });
+  const exitFreeform = useCallback(() => onSimulatorFreeformExit?.(), [onSimulatorFreeformExit]);
+  // A press outside the frame ends the mode and goes no further.
+  const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
+    if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
+    e.stopPropagation();
+    if (e.type !== 'pointerdown') return;
+    // The release and click completing this press would otherwise reach the widget under it.
+    const stop = (ev: Event) => ev.stopPropagation();
+    document.addEventListener('pointerup', ev => {
+      ev.stopPropagation();
+      document.addEventListener('click', stop, { capture: true, once: true });
+      window.setTimeout(() => document.removeEventListener('click', stop, { capture: true }), CLICK_AFTER_RELEASE_MS);
+    }, { capture: true, once: true });
+    exitFreeform();
+  }, [exitFreeform]);
+  useEffect(() => {
+    if (!freeformActive) return undefined;
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') exitFreeform(); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [freeformActive, exitFreeform]);
+  // A mode whose widget is gone reports its exit.
+  useEffect(() => {
+    if (simulatorFreeformWidgetId && !freeformActive) onSimulatorFreeformExit?.();
+  }, [simulatorFreeformWidgetId, freeformActive, onSimulatorFreeformExit]);
+
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
   // predates the service reporting it - the embedded desktop dashboard is
   // the only surface that owns dashboardLayout writes.
@@ -879,13 +935,14 @@ export function PanelContent({
   // empty page (if under MAX_PANEL_PAGES) so the user can drop onto a new
   // page. Outside drag, equals paginatedLayout so persistence is unaffected.
   const dragLayout = useMemo<PanelLayout>(() => {
-    if (!activeDragId || !dragExtraPageId) return paginatedLayout;
-    if (paginatedLayout.pages.length >= MAX_PANEL_PAGES) return paginatedLayout;
+    const shown = freeform.draft ?? paginatedLayout;
+    if (!activeDragId || !dragExtraPageId) return shown;
+    if (shown.pages.length >= MAX_PANEL_PAGES) return shown;
     return {
-      ...paginatedLayout,
-      pages: [...paginatedLayout.pages, { id: dragExtraPageId, widgets: [] }],
+      ...shown,
+      pages: [...shown.pages, { id: dragExtraPageId, widgets: [] }],
     };
-  }, [paginatedLayout, activeDragId, dragExtraPageId]);
+  }, [paginatedLayout, freeform.draft, activeDragId, dragExtraPageId]);
 
   // Widget playlist (single-widget surfaces): render-only like the offline
   // clock below. Held on the edited widget while the device-page editor has
@@ -915,8 +972,6 @@ export function PanelContent({
   // stored (addWidget creates it), though activePageId can point at it so every
   // surface shows the same page. A drag mints its own trailing page.
   const [blankPageId] = useState(createUuid);
-  // The dashboard has one page by design; a panel without touch has no way to swipe.
-  const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
   const blankPageEligible = (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && surfaceSupportsTouch(surface, deviceTouch)))
     && !singlePage
     && !isSingleWidgetSurface(surface)
@@ -1516,7 +1571,7 @@ export function PanelContent({
   );
   // A panel that can't be drag-edited (single-widget glass; display-only glass outside
   // the preview) registers no drag sensor, so a pointer press never lifts a cell.
-  const sensors = useSensors(dragEditable ? pointerSensor : null);
+  const sensors = useSensors(dragEditable && !freeformActive ? pointerSensor : null);
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
   // Gesture refs for the collision detector. startX/Y is dnd-kit's press
@@ -1818,6 +1873,8 @@ export function PanelContent({
           // unstopped. Forward to the parent to close its settings pane.
           if (e.target === e.currentTarget) onSimulatorBackgroundClicked?.();
         } : undefined}
+        onPointerDownCapture={freeformActive ? swallowOutsideFreeform : undefined}
+        onClickCapture={freeformActive ? swallowOutsideFreeform : undefined}
         onPointerDown={handleBackgroundPointerDown}
         onPointerMove={backgroundLongPress.onPointerMove}
         onPointerUp={backgroundLongPress.onPointerUp}
@@ -1887,7 +1944,7 @@ export function PanelContent({
                   pages={allFiltered}
                   activeIndex={Math.min(activePageIndex, pageCount - 1)}
                   onActiveChange={handlePageChange}
-                  swipeEnabled={!sheetMode && !dragArmedId}
+                  swipeEnabled={!sheetMode && !dragArmedId && !freeformActive}
                   renderPage={page => (
                     <>
                       <div
@@ -1923,7 +1980,7 @@ export function PanelContent({
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               movable={dragEditable}
                               onContextMenu={dragEditable ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
-                              cellPointers={dragEditable ? touch.bindCellPointers(w) : noopCellPointers}
+                              cellPointers={dragEditable && !freeformActive ? touch.bindCellPointers(w) : noopCellPointers}
                               // Single-widget sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
@@ -1946,6 +2003,16 @@ export function PanelContent({
                             />
                           </ErrorBoundary>
                         ))}
+                        {freeformActive && freeformWidget && page.widgets.some(w => w.id === freeformWidget.id) ? (
+                          <FreeformResizeFrame
+                            widget={page.widgets.find(w => w.id === freeformWidget.id) ?? freeformWidget}
+                            label={t(freeformDef?.meta.i18nKey ?? '') || freeformWidget.type}
+                            onBegin={freeform.begin}
+                            onUpdate={freeform.update}
+                            onEnd={freeform.end}
+                            onExit={exitFreeform}
+                          />
+                        ) : null}
                         {activeDragId && allCellsForPage(page, capacity).map(cell => (
                           <EmptyCellDroppable
                             key={`${page.id}:${cell.col}:${cell.row}`}

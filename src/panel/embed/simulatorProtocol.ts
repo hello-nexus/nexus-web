@@ -97,6 +97,13 @@ export interface SimulatorSetSelectionMessage {
   widgetId: string | null;
 }
 
+// The widget in freeform resize mode (handles on its corners, body drag moves
+// it); null leaves the mode. The preview owns the gesture, the parent the id.
+export interface SimulatorSetFreeformMessage {
+  type: 'simulator/set-freeform';
+  widgetId: string | null;
+}
+
 export interface SimulatorFlashWidgetMessage {
   type: 'simulator/flash-widget';
   widgetId: string;
@@ -107,6 +114,11 @@ export interface SimulatorFlashWidgetMessage {
 export interface SimulatorLayoutChangedMessage {
   type: 'simulator/layout-changed';
   layout: PanelLayout;
+}
+
+// The preview left freeform resize mode (a blank-space click, a body tap or Escape).
+export interface SimulatorFreeformExitedMessage {
+  type: 'simulator/freeform-exited';
 }
 
 export interface SimulatorWidgetClickedMessage {
@@ -133,12 +145,14 @@ export type SimulatorParentToChild =
   | SimulatorSetDisplayBoundMessage
   | SimulatorSetThemeMessage
   | SimulatorSetSelectionMessage
+  | SimulatorSetFreeformMessage
   | SimulatorFlashWidgetMessage
   | SimulatorSetDisplayMessage;
 
 export type SimulatorChildToParent =
   | SimulatorReadyMessage
   | SimulatorLayoutChangedMessage
+  | SimulatorFreeformExitedMessage
   | SimulatorWidgetClickedMessage
   | SimulatorBackgroundClickedMessage
   | SimulatorPlaylistShownMessage;

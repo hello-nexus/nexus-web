@@ -1,0 +1,145 @@
+import { useRef, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useTranslation } from '../../lib/i18n';
+import { sizeToSpan } from '../engine/grid';
+import { readCellMetrics } from '../engine/panelLayoutHelpers';
+import type { FreeformCorner } from '../engine/freeformResize';
+import type { FreeformGesture } from '../engine/useFreeformResize';
+import type { PanelWidget } from '../types';
+import styles from './FreeformResizeFrame.module.scss';
+
+const CORNERS: readonly FreeformCorner[] = ['tl', 'tr', 'bl', 'br'];
+const CORNER_LABEL_KEY: Record<FreeformCorner, string> = {
+  tl: 'panel.freeform.handle.topLeft',
+  tr: 'panel.freeform.handle.topRight',
+  bl: 'panel.freeform.handle.bottomLeft',
+  br: 'panel.freeform.handle.bottomRight',
+};
+// A body press that travels less than this is a tap.
+const TAP_SLOP_PX = 4;
+
+const ARROW_STEP: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
+
+interface Press { gesture: FreeformGesture; x: number; y: number; moved: boolean; }
+
+/** Resize chrome for the selected widget: a handle on each corner and a body that moves it. */
+export function FreeformResizeFrame({
+  widget,
+  label,
+  onBegin,
+  onUpdate,
+  onEnd,
+  onExit,
+}: {
+  widget: PanelWidget;
+  label: string;
+  onBegin: () => boolean;
+  onUpdate: (gesture: FreeformGesture, dCols: number, dRows: number) => void;
+  onEnd: () => void;
+  onExit: () => void;
+}) {
+  const { t } = useTranslation();
+  const pressRef = useRef<Press | null>(null);
+  const span = sizeToSpan(widget.size);
+
+  const startPress = (gesture: FreeformGesture) => (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.stopPropagation();
+    if (!onBegin()) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pressRef.current = { gesture, x: event.clientX, y: event.clientY, moved: false };
+  };
+
+  const movePress = (event: ReactPointerEvent<HTMLElement>) => {
+    const press = pressRef.current;
+    if (!press) return;
+    const dx = event.clientX - press.x;
+    const dy = event.clientY - press.y;
+    if (!press.moved && Math.hypot(dx, dy) < TAP_SLOP_PX) return;
+    press.moved = true;
+    const metrics = readCellMetrics(event.currentTarget.closest<HTMLElement>('[data-surface]'));
+    if (!metrics) return;
+    onUpdate(press.gesture, dx / (metrics.cellSize + metrics.gap), dy / (metrics.rowSize + metrics.gap));
+  };
+
+  const endPress = (event: ReactPointerEvent<HTMLElement>) => {
+    const press = pressRef.current;
+    pressRef.current = null;
+    if (!press) return;
+    event.stopPropagation();
+    onEnd();
+    if (press.gesture === 'move' && !press.moved) onExit();
+  };
+
+  const cancelPress = () => {
+    if (!pressRef.current) return;
+    pressRef.current = null;
+    onEnd();
+  };
+
+  const keyStep = (gesture: FreeformGesture) => (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onExit();
+      return;
+    }
+    const step = ARROW_STEP[event.key];
+    if (!step) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!onBegin()) return;
+    onUpdate(gesture, step[0], step[1]);
+    onEnd();
+  };
+
+  const handlers = (gesture: FreeformGesture) => ({
+    onPointerDown: startPress(gesture),
+    onPointerMove: movePress,
+    onPointerUp: endPress,
+    onPointerCancel: cancelPress,
+    onKeyDown: keyStep(gesture),
+  });
+
+  return (
+    <div
+      data-freeform-frame=""
+      className={styles.frame}
+      role="group"
+      aria-label={t('panel.freeform.frame', { name: label })}
+      style={{
+        gridColumn: `${widget.col + 1} / span ${span.cols}`,
+        gridRow: `${widget.row + 1} / span ${span.rows}`,
+      } as CSSProperties}
+    >
+      <div
+        className={styles.body}
+        role="button"
+        tabIndex={0}
+        aria-label={t('panel.freeform.body', { name: label })}
+        {...handlers('move')}
+        onKeyDown={event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onExit();
+            return;
+          }
+          keyStep('move')(event);
+        }}
+      />
+      {CORNERS.map(corner => (
+        <button
+          key={corner}
+          type="button"
+          className={styles.handle}
+          data-corner={corner}
+          aria-label={t(CORNER_LABEL_KEY[corner], { name: label })}
+          {...handlers(corner)}
+        />
+      ))}
+    </div>
+  );
+}
