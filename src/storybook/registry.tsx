@@ -2769,7 +2769,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'OnboardingFooter', category: 'inputs',
     filePath: 'src/components/common/OnboardingFooter/OnboardingFooter.tsx',
-    description: 'Bottom block shared by every onboarding screen: an optional closing note (children), an optional error line, then the large accent primary action with an optional secondary action beside it. Content-column width, buttons 280px.',
+    description: 'Bottom block shared by every onboarding screen: an optional closing note (children), an optional error line, then the large accent primary action with an optional secondary action beside it. Content-column width with fixed-width actions.',
     Preview: PreviewOnboardingFooter,
   },
 

@@ -3,7 +3,6 @@ import { Button } from '../Button/Button';
 import styles from './OnboardingFooter.module.scss';
 
 export interface OnboardingFooterProps {
-  /** Primary action label. */
   label: ReactNode;
   onContinue: () => void;
   /** Spinner in place of the label while the action runs. */
