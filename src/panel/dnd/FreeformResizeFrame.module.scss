@@ -5,6 +5,8 @@
   // Hit area per corner, extending inside the tile; the bracket fills it.
   --_hit: max(calc(var(--_hit-min) * var(--_upscale)), calc(var(--_radius) + 12px * var(--_upscale)));
   --_hit-min: 28px;
+  // Visible arm length, independent of the grab area.
+  --_arm: max(calc(19px * var(--_upscale)), calc(var(--_radius) + 6px * var(--_upscale)));
   --_stroke: calc(5px * var(--_upscale));
   --_halo: rgb(0 0 0 / var(--alpha-strong));
   position: relative;
@@ -65,10 +67,8 @@
   &::before {
     content: '';
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    width: var(--_arm);
+    height: var(--_arm);
     pointer-events: none;
     border: 0 solid var(--accent);
     transition: opacity var(--ease-fast) ease-out;
@@ -93,6 +93,8 @@
     cursor: nwse-resize;
 
     &::before {
+      top: 0;
+      left: 0;
       border-top-width: var(--_stroke);
       border-left-width: var(--_stroke);
       border-top-left-radius: var(--_radius);
@@ -105,6 +107,8 @@
     cursor: nesw-resize;
 
     &::before {
+      top: 0;
+      right: 0;
       border-top-width: var(--_stroke);
       border-right-width: var(--_stroke);
       border-top-right-radius: var(--_radius);
@@ -117,6 +121,8 @@
     cursor: nesw-resize;
 
     &::before {
+      bottom: 0;
+      left: 0;
       border-bottom-width: var(--_stroke);
       border-left-width: var(--_stroke);
       border-bottom-left-radius: var(--_radius);
@@ -129,6 +135,8 @@
     cursor: nwse-resize;
 
     &::before {
+      bottom: 0;
+      right: 0;
       border-bottom-width: var(--_stroke);
       border-right-width: var(--_stroke);
       border-bottom-right-radius: var(--_radius);
