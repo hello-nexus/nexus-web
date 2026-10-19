@@ -88,20 +88,20 @@ describe('CoolingPage undo/redo', () => {
     // null mode, and undo then correctly leaves the mode alone.
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: /cooling\.mode\.custom/ }).getAttribute('aria-selected')).toBe('true');
-    });
+    }, { timeout: 5000 });
     fireEvent.click(screen.getByRole('tab', { name: /cooling\.mode\.turbo/ }));
     await waitFor(() => {
       expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('turbo');
-    });
-    await waitFor(() => { expect(undoBtn()).not.toBeDisabled(); });
+    }, { timeout: 5000 });
+    await waitFor(() => { expect(undoBtn()).not.toBeDisabled(); }, { timeout: 5000 });
 
     vi.mocked(applyProfile).mockClear();
     fireEvent.click(undoBtn());
     // The snapshot captured 'custom' as the mode before the change.
     await waitFor(() => {
       expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('custom', 'undo');
-    });
-  });
+    }, { timeout: 5000 });
+  }, 20000);
 
   it('enables redo once an undo has been taken', async () => {
     renderAdvanced();

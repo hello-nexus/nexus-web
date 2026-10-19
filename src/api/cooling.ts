@@ -204,11 +204,7 @@ export const fetchTemperatureSources = () =>
 export const fetchProfiles = () =>
   fetchService<ProfilesResponse>('/cooling/profiles');
 
-/**
- * `source` tells the service whether the write is a deliberate speed pick
- * (omitted = "user"), the page taking a fan from BIOS into software control
- * ("seed", with the `target` the user chose), or a history replay ("undo").
- */
+/** What a non-user fan write is: a seed taking a fan from BIOS to `target`, or an undo replay. */
 export type FanSpeedIntent =
   | { source: 'seed'; target: 'manual' | 'curve' }
   | { source: 'undo' };

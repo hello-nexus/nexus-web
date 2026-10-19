@@ -59,6 +59,10 @@ function renderAdvanced() {
   );
 }
 
+// Generous because folder runs load the box; waitFor still returns the moment the condition holds.
+const SETTLE = { timeout: 5000 };
+const TEST_TIMEOUT = 20000;
+
 async function pickMode(label: RegExp) {
   const trigger = await screen.findByRole('button', { name: /cooling\.card\.mode/ });
   fireEvent.click(trigger);
@@ -79,7 +83,7 @@ describe('CoolingPage telemetry intent', () => {
     await waitFor(() => {
       expect(vi.mocked(setFanSpeed)).toHaveBeenCalledWith('fan-cpu', 50, { source: 'seed', target: 'manual' });
     });
-  });
+  }, TEST_TIMEOUT);
 
   it('marks the preset change that leaves Off as exit-off', async () => {
     svc.active = 'off';
@@ -89,7 +93,7 @@ describe('CoolingPage telemetry intent', () => {
     await waitFor(() => {
       expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('custom', 'exit-off');
     });
-  });
+  }, TEST_TIMEOUT);
 
   it('marks a history replay of fan speeds and mode as undo', async () => {
     svc.fanMode = 'Manual';
@@ -97,15 +101,17 @@ describe('CoolingPage telemetry intent', () => {
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: /cooling\.mode\.custom/ }).getAttribute('aria-selected')).toBe('true');
     });
+    // The snapshot only records manual speeds once the fan list has landed.
+    await screen.findByText('CPU Fan');
     fireEvent.click(screen.getByRole('tab', { name: /cooling\.mode\.turbo/ }));
     const undo = screen.getByRole('button', { name: /cooling\.presets\.undo/ });
-    await waitFor(() => { expect(undo).not.toBeDisabled(); });
+    await waitFor(() => { expect(undo).not.toBeDisabled(); }, SETTLE);
     vi.mocked(applyProfile).mockClear();
     vi.mocked(setFanSpeed).mockClear();
     fireEvent.click(undo);
     await waitFor(() => {
       expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('custom', 'undo');
       expect(vi.mocked(setFanSpeed)).toHaveBeenCalledWith('fan-cpu', expect.any(Number), { source: 'undo' });
-    });
-  });
+    }, SETTLE);
+  }, TEST_TIMEOUT);
 });

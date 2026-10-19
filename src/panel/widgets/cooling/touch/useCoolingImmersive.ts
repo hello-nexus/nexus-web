@@ -324,7 +324,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       await exitOffToCustomIfNeeded();
       const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: null } };
       setFanStates(nextStates);
-      await apiSetFanSpeed(fanId, 50);
+      await apiSetFanSpeed(fanId, 50, { source: 'seed', target: 'manual' });
     } else {
       const nextStates = { ...fanStates };
       delete nextStates[fanId];

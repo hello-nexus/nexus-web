@@ -674,7 +674,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       await exitOffToCustomIfNeeded();
       const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: null } };
       setFanStates(nextStates);
-      await setFanSpeed(fanId, 50);
+      await setFanSpeed(fanId, 50, { source: 'seed', target: 'manual' });
     } else {
       // Disabling software control means BIOS Control - allowed in Off, no tab switch.
       const nextStates = { ...fanStates };
