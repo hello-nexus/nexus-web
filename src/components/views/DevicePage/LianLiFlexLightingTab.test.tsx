@@ -284,4 +284,46 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     await renderTab([{ ...tlUnit, mode: 'custom', effectMode: 'rainbow' }]);
     expect(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })).not.toBeDisabled();
   });
+
+  it('says no unit leads for an empty mergeLeaderMac, with no Follows row', async () => {
+    const a = { ...tlUnit, sortIndex: 0, merge: true };
+    const b = { ...slInfUnit, sortIndex: 1, merge: true };
+    mockGet.mockResolvedValue({ laneModes: [], chains: [a, b], mergeLeaderMac: '' });
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
+    expect(screen.queryByText(/followsLeader/)).not.toBeInTheDocument();
+  });
+
+  describe('follow the motherboard ARGB', () => {
+    const argbSwitch = () => screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' });
+
+    it('is offered only while the cable is connected or the toggle is on', async () => {
+      await renderTab([tlUnit]);
+      expect(argbSwitch()).not.toBeInTheDocument();
+      document.body.innerHTML = '';
+      await renderTab([{ ...tlUnit, argbCableConnected: true }]);
+      expect(argbSwitch()).toHaveAttribute('aria-checked', 'false');
+      document.body.innerHTML = '';
+      await renderTab([{ ...tlUnit, motherboardArgb: true }]);
+      expect(argbSwitch()).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('with no saved choice shows what the unit reports it is playing', async () => {
+      await renderTab([{ ...tlUnit, argbCableConnected: true, motherboardArgb: null, playingMotherboardArgb: true }]);
+      expect(argbSwitch()).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('saves the choice through the Flex lighting route', async () => {
+      await renderTab([{ ...tlUnit, argbCableConnected: true }]);
+      await act(async () => { fireEvent.click(argbSwitch()!); });
+      expect(mockSet).toHaveBeenCalledWith('AA11', { motherboardArgb: true, effectMode: undefined });
+    });
+
+    it('while on, locks the effect controls, the Lighting page switch and the swap like the wireless tab', async () => {
+      await renderTab([{ ...tlUnit, argbCableConnected: true, motherboardArgb: true }]);
+      expect(screen.getByLabelText('devices.lianli.lightingMode')).toBeDisabled();
+      expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toBeDisabled();
+      expect(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })).toBeDisabled();
+      expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.merge' })).toBeDisabled();
+    });
+  });
 });
