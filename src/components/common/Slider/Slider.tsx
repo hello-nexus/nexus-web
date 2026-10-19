@@ -47,6 +47,8 @@ export interface SliderProps {
   zeroMarker?: boolean;
   showRange?: boolean;
   formatValue?: (v: number) => string;
+  /** Inline layout: reserve this many characters for the value instead of sizing from the endpoints, so sliders of one group share a track length. */
+  valueWidthCh?: number;
   onChange: (v: number, commit?: boolean) => void;
   onCommit?: (v: number) => void;
   onPointerDown?: PointerEventHandler<HTMLInputElement>;
@@ -80,7 +82,7 @@ export interface SliderProps {
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
-  formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
+  formatValue, valueWidthCh, onChange, onCommit, onPointerDown, onPointerCancel,
   disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel,
 }: SliderProps) {
   const rangeId = useId();
@@ -180,7 +182,7 @@ export function Slider({
   // track's right edge doesn't shift as the value's width changes. The value
   // is the sole, right-aligned child of the reserver, so its click/hit area
   // is never overlapped.
-  const reserveCh = Math.max(fmt(min).length, fmt(max).length) + 1;
+  const reserveCh = valueWidthCh ?? Math.max(fmt(min).length, fmt(max).length) + 1;
   const inlineValueNode = (
     <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (

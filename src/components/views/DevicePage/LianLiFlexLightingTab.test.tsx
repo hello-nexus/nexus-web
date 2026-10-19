@@ -63,8 +63,9 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     await renderTab([tlUnit]);
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
     const options = (await screen.findAllByRole('option')).map(o => o.textContent);
-    expect(options).toEqual(['devices.lianliEffect.rainbow', 'devices.lianliEffect.static', 'devices.lianliEffect.meteor', 'devices.lianli-flex.modePerZone']);
-    expect(screen.queryByText(/devices.lianli-flex.zoneSection/)).not.toBeInTheDocument();
+    // Per zone leads, set apart from the effects by a rule that is not an option.
+    expect(options).toEqual(['devices.lianli-flex.modePerZone', 'devices.lianliEffect.rainbow', 'devices.lianliEffect.static', 'devices.lianliEffect.meteor']);
+    expect(screen.queryByText('devices.lianli-flex.zoneUp')).not.toBeInTheDocument();
   });
 
   it('picking Per zone saves the mode', async () => {
@@ -76,9 +77,10 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
 
   it('TL Per zone lists Up and Down, each with its own effect, and saves one zone at a time', async () => {
     await renderTab([{ ...tlUnit, mode: 'perZone' }]);
-    const up = screen.getByText(/zoneSection.*devices.lianli-flex.zoneUp/).closest('section')!;
-    expect(screen.getByText(/zoneSection.*devices.lianli-flex.zoneDown/)).toBeInTheDocument();
-    fireEvent.click(within(up).getByLabelText('devices.lianli.lightingMode'));
+    expect(screen.getByText('devices.lianli-flex.zoneUp')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.zoneDown')).toBeInTheDocument();
+    // The chain's own Mode, then Up's, then Down's.
+    fireEvent.click(screen.getAllByLabelText('devices.lianli.lightingMode')[1]);
     fireEvent.click(await screen.findByRole('option', { name: 'devices.lianliEffect.static' }));
     expect(mockSet).toHaveBeenCalledWith('AA11', { zones: [{ id: 'up', mode: 'static' }], effectMode: undefined });
   });
@@ -86,7 +88,7 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
   it('SL-INF Per zone lists Blades, Inner and Outer', async () => {
     await renderTab([{ ...slInfUnit, mode: 'perZone' }]);
     for (const z of ['Center', 'Inner', 'Outer']) {
-      expect(screen.getByText(new RegExp(`zoneSection.*devices.lianli-flex.zone${z}`))).toBeInTheDocument();
+      expect(screen.getByText(`devices.lianli-flex.zone${z}`)).toBeInTheDocument();
     }
     expect(screen.queryByText(/zoneUp/)).not.toBeInTheDocument();
   });
@@ -171,8 +173,7 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
   it('saves at most four colors from a zone too', async () => {
     const zones = [zone('up', { mode: 'meteor', colors: ['#111111', '#222222', '#333333', '#444444'] }), zone('down')];
     await renderTab([{ ...tlUnit, mode: 'perZone', zones }]);
-    const up = screen.getByText(/zoneSection.*devices.lianli-flex.zoneUp/).closest('section')!;
-    fireEvent.change(within(up).getAllByLabelText('common.hexColor')[3], { target: { value: '#abcdef' } });
+    fireEvent.change(screen.getAllByLabelText('common.hexColor')[3], { target: { value: '#abcdef' } });
     const sent = mockSet.mock.calls[mockSet.mock.calls.length - 1][1];
     expect(sent.zones[0].colors).toEqual(['#111111', '#222222', '#333333', '#abcdef']);
   });
@@ -227,5 +228,72 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     expect(screen.getByText('group-footer')).toBeInTheDocument();
     expect(screen.getByText('extra-AA11')).toBeInTheDocument();
     expect(screen.getByText('extra-BB22')).toBeInTheDocument();
+  });
+
+  it('puts each zone directly under the Mode, before the swap, order, reset and apply rows', async () => {
+    await renderTab([{ ...tlUnit, mode: 'perZone' }]);
+    const order = [
+      screen.getAllByLabelText('devices.lianli.lightingMode')[0],
+      screen.getByText('devices.lianli-flex.zoneUp'),
+      screen.getByText('devices.lianli-flex.zoneDown'),
+      screen.getByText('devices.lianli-flex.upDownSwap'),
+      screen.getByText('devices.lianli-flex.resetLighting'),
+    ];
+    order.slice(1).forEach((el, i) => {
+      expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+    expect(document.querySelectorAll('section')).toHaveLength(1);
+  });
+
+  it('keeps the leader Merge row visible and disabled with a reason when its mode cannot merge', async () => {
+    await renderTab([{ ...tlUnit, mode: 'perZone', merge: true }]);
+    const merge = screen.getByRole('switch', { name: 'devices.lianli-wireless.merge' });
+    expect(merge).toBeDisabled();
+    expect(screen.getByText('devices.lianli-flex.mergeNeedsEffect')).toBeInTheDocument();
+  });
+
+  it('never says Follows when no unit leads', async () => {
+    const a = { ...tlUnit, mode: 'perZone', sortIndex: 0, merge: true };
+    const b = { ...slInfUnit, sortIndex: 1, merge: true };
+    await renderTab([a, b]);
+    // b is the first unit that can merge, so it leads and a (per zone) is not a follower.
+    expect(screen.queryByText(/followsLeader/)).not.toBeInTheDocument();
+    document.body.innerHTML = '';
+    await renderTab([{ ...tlUnit, merge: false }, { ...slInfUnit, merge: false }]);
+    expect(screen.queryByText(/followsLeader/)).not.toBeInTheDocument();
+  });
+
+  it('takes the leader from the service when it names one', async () => {
+    const a = { ...tlUnit, sortIndex: 0, merge: true };
+    const b = { ...slInfUnit, sortIndex: 1, merge: true };
+    mockGet.mockResolvedValue({ laneModes: [], chains: [a, b], mergeLeaderMac: 'BB22' });
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
+    const aSection = screen.getByText('devices.lianli-wireless.fanTypeTlFlex').closest('section')!;
+    expect(within(aSection).getByText(/followsLeader/)).toBeInTheDocument();
+    mockGet.mockResolvedValue({ laneModes: [], chains: [a, b], mergeLeaderMac: null });
+    document.body.innerHTML = '';
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
+    expect(screen.queryByText(/followsLeader/)).not.toBeInTheDocument();
+  });
+
+  it('with sync on, every fan follows it: look locked, merge locked, swap and order still usable', async () => {
+    mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit, slInfUnit] });
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} syncOn />); });
+    expect(screen.getAllByText('devices.lianli-flex.followsSync')).toHaveLength(2);
+    for (const select of screen.getAllByLabelText('devices.lianli.lightingMode')) expect(select).toBeDisabled();
+    for (const merge of screen.getAllByRole('switch', { name: 'devices.lianli-wireless.merge' })) expect(merge).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })).not.toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })[0]).not.toBeDisabled();
+  });
+
+  it('the reset confirm says it ends Lighting page control when the fan is under it', async () => {
+    await renderTab([{ ...tlUnit, mode: 'custom', effectMode: 'rainbow' }]);
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.resetLightingButton' }));
+    expect(await screen.findByText('devices.lianli-flex.resetConfirmMessageLightingPage')).toBeInTheDocument();
+  });
+
+  it('keeps swap enabled while the Lighting page controls the fan', async () => {
+    await renderTab([{ ...tlUnit, mode: 'custom', effectMode: 'rainbow' }]);
+    expect(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })).not.toBeDisabled();
   });
 });

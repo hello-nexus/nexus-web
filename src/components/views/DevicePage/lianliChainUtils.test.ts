@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
-import { applyChainPatch, mergeLeaderMac, moveInSequence, sortBySequence } from './lianliChainUtils';
+import { applyChainPatch, canMerge, mergeLeaderMac, moveInSequence, sortBySequence } from './lianliChainUtils';
 
 function chain(mac: string, extra: Partial<LianLiWirelessChainLighting> = {}): LianLiWirelessChainLighting {
   return {
@@ -59,13 +59,32 @@ describe('moveInSequence', () => {
   });
 });
 
+const modes = [
+  { key: 'rainbow', hasSpeed: true, hasDirection: true, colorsMin: 0, colorsMax: 0, mergeable: true },
+  { key: 'twinkle', hasSpeed: true, hasDirection: true, colorsMin: 0, colorsMax: 0 },
+];
+
+describe('canMerge', () => {
+  it('needs a mergeable effect, not custom, per zone or per lane', () => {
+    expect(canMerge(chain('A', { modes, mode: 'rainbow' }))).toBe(true);
+    expect(canMerge(chain('A', { modes, mode: 'twinkle' }))).toBe(false);
+    expect(canMerge(chain('A', { modes, mode: 'perZone' }))).toBe(false);
+    expect(canMerge(chain('A', { modes, mode: 'custom', effectMode: 'rainbow' }))).toBe(false);
+  });
+});
+
 describe('mergeLeaderMac', () => {
-  it('is the first unit with merge on in sequence order', () => {
-    const list = [chain('A', { sortIndex: 0, merge: false }), chain('C', { sortIndex: 1, merge: true }), chain('B', { sortIndex: 1, merge: true })];
+  it('is the first unit with merge on and a mergeable effect, in sequence order then MAC', () => {
+    const list = [
+      chain('A', { modes, sortIndex: 0, merge: true, mode: 'perZone' }),
+      chain('C', { modes, sortIndex: 1, merge: true }),
+      chain('B', { modes, sortIndex: 1, merge: true }),
+    ];
     expect(mergeLeaderMac(list)).toBe('B');
   });
 
-  it('is null when no unit merges', () => {
-    expect(mergeLeaderMac([chain('A'), chain('B', { merge: false })])).toBeNull();
+  it('is null when no unit qualifies', () => {
+    expect(mergeLeaderMac([chain('A', { modes }), chain('B', { modes, merge: false })])).toBeNull();
+    expect(mergeLeaderMac([chain('A', { modes, merge: true, mode: 'custom' })])).toBeNull();
   });
 });

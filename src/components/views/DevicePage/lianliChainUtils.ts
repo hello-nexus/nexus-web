@@ -25,9 +25,20 @@ export function sortBySequence(chains: readonly LianLiWirelessChainLighting[]): 
     .map(x => x.chain);
 }
 
-/** MAC of the unit that sets the look of a merged group: the first unit with merge on in sequence order. */
+const NON_EFFECT_MODES = ['custom', 'perZone', 'perLane'];
+
+/** The chain plays an effect that has a merged variant, so its Merge switch can take effect. */
+export function canMerge(chain: LianLiWirelessChainLighting): boolean {
+  if (NON_EFFECT_MODES.includes(chain.mode)) return false;
+  return chain.modes.some(e => e.key === chain.mode && e.mergeable === true);
+}
+
+/**
+ * MAC of the unit that sets the look of a merged group: the first unit in sequence order with
+ * merge on and an effect that can merge. Null when no unit qualifies.
+ */
 export function mergeLeaderMac(chains: readonly LianLiWirelessChainLighting[]): string | null {
-  return sortBySequence(chains).find(c => c.merge === true)?.mac ?? null;
+  return sortBySequence(chains).find(c => c.merge === true && canMerge(c))?.mac ?? null;
 }
 
 /**

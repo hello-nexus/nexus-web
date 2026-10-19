@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LianLiFlexSyncSection } from './LianLiFlexSyncSection';
+import { LianLiFlexSyncSection, useLianLiFlexSync } from './LianLiFlexSyncSection';
 import { LianLiFlexThermalAlertSection } from './LianLiFlexThermalAlertSection';
 import { LianLiFlexApplyAllRow } from './LianLiFlexApplyAllRow';
 import type { LianLiFlexSync, LianLiFlexThermalAlert } from '../../../api/lianli-flex';
@@ -59,7 +59,11 @@ beforeEach(() => {
 });
 
 describe('LianLiFlexSyncSection', () => {
-  const renderSync = async () => { await act(async () => { render(<LianLiFlexSyncSection />); }); };
+  function Harness() {
+    const sync = useLianLiFlexSync(true);
+    return <LianLiFlexSyncSection sync={sync} />;
+  }
+  const renderSync = async () => { await act(async () => { render(<Harness />); }); };
 
   it('renders nothing for a service without the route or a single fan', async () => {
     mockGetSync.mockResolvedValue(null);
@@ -101,6 +105,12 @@ describe('LianLiFlexSyncSection', () => {
     expect(mockSetSync).toHaveBeenCalledWith({
       members: [{ mac: 'AA11', sliceDirection: 1 }, { mac: 'BB22', sliceDirection: 1 }],
     });
+  });
+
+  it('shows the first effect, not a blank, when the stored mode is not a group effect', async () => {
+    mockGetSync.mockResolvedValue(sync({ mode: 'perZone' }));
+    await renderSync();
+    expect(screen.getByLabelText('devices.lianli.lightingMode')).toHaveTextContent('devices.lianliEffect.rainbow');
   });
 
   it('locks the look while sync is off', async () => {
@@ -171,6 +181,13 @@ describe('LianLiFlexThermalAlertSection', () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.thermalMember:{"fan":"SL-INF Flex"}' }));
     });
     expect(mockSetAlert).toHaveBeenLastCalledWith({ members: [] });
+  });
+
+  it('lays the CPU and GPU colors out side by side like the effect palette', async () => {
+    await renderAlert();
+    const pickers = screen.getAllByLabelText('common.hexColor');
+    expect(pickers).toHaveLength(2);
+    expect(pickers[0].closest('[class*="colorPairRow"]')).toBe(pickers[1].closest('[class*="colorPairRow"]'));
   });
 
   it('has no fan list for a single unit', async () => {

@@ -48,12 +48,15 @@ export function CoolingFanRow({
   rpmUnavailable = false,
   channel,
   curves,
+  modeLabel,
 }: {
   label: string;
   rpm: number;
   rpmUnavailable?: boolean;
   channel: FanChannel | null;
   curves: readonly WireCurve[];
+  /** Names how the fan is driven in place of the curve's own name, for a curve the device manages itself. */
+  modeLabel?: string;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -70,7 +73,7 @@ export function CoolingFanRow({
   if (channel?.controlled === false) {
     mode = t('cooling.fan.notControlled');
   } else if (curveName) {
-    mode = curveName;
+    mode = modeLabel ?? curveName;
     showDuty = true;
   } else if (channel?.mode === 'Manual') {
     mode = t('cooling.card.manual');

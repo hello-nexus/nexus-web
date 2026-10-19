@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 
@@ -110,7 +110,9 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.unbind' })).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.lockBoundDevices' })).not.toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli-wireless.connectionSection')).not.toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.masterMac')).not.toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.connectedByUsb')).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' }));
     });
@@ -205,5 +207,41 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
       expect(screen.getByRole('slider', { name: 'devices.lianli-wireless.brightness' })).toBeInTheDocument();
       expect(screen.getByText('devices.lcd.sleepWhenLocked')).toBeInTheDocument();
     });
+  });
+
+  it('the Cooling shortcut opens the first fan on the Cooling page', async () => {
+    const nav = vi.fn();
+    await act(async () => { render(<LianLiWirelessDevicePage flex onSectionNavigate={nav} />); });
+    await act(async () => { fireEvent.click(tab('cooling.title')); });
+    fireEvent.click(screen.getByText('devices.coolingPage.setHint'));
+    expect(nav).toHaveBeenCalledWith('cooling', expect.objectContaining({ coolingFanId: 'lianli-flex:AA11:port0' }));
+  });
+
+  it('names the screen tiles with the short fan names, TL first', async () => {
+    const sl = { ...unit, mac: 'BB22', fanType: 43, family: 'slInfFlex', screenSerial: 'SCR2', sortIndex: 0 };
+    mockState.mockResolvedValue(connected([sl, { ...unit, sortIndex: 1 }]));
+    mockScreens.mockResolvedValue([
+      { serial: 'SCR2', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'Lian Li SL-INF LCD Flex Screen' },
+      { serial: 'SCR1', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'Lian Li TL LCD Flex Screen' },
+    ]);
+    await act(async () => { render(<LianLiWirelessDevicePage flex />); });
+    await act(async () => { fireEvent.click(tab('devices.lianli-wireless.tab.screen')); });
+    const tiles = within(screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' })).getAllByRole('button');
+    expect(tiles.map(b => b.textContent)).toEqual(['devices.lianli-wireless.fanTypeTlFlex', 'devices.lianli-wireless.fanTypeSlInfFlex']);
+  });
+});
+
+describe('the wireless page with wired LCD Flex units', () => {
+  it('lists a unit the wired page owns as Connected by USB with a link, and no Bind', async () => {
+    mockWirelessState.mockResolvedValue({
+      isConnected: true, masterMac: 'M', channel: 8, txFirmwareVersion: 1, lockBoundDevices: false,
+      fans: [{ mac: 'AA11', masterMac: '', boundToUs: false, channel: 0, slot: 254, devType: 0, fanType: 51, fanCount: 1, rpm: [0, 0, 0, 0], pwm: [0, 0, 0, 0] }],
+    });
+    const nav = vi.fn();
+    await act(async () => { render(<LianLiWirelessDevicePage onSectionNavigate={nav} />); });
+    expect(screen.getByText('devices.lianli-flex.connectedByUsb')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.openWiredPage' }));
+    expect(nav).toHaveBeenCalledWith('device', { deviceKey: 'curated-lianli-flex' });
   });
 });

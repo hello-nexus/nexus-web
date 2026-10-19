@@ -250,6 +250,7 @@ export function SettingSlider({
   anchorId,
   ariaLabel,
   controlWidth,
+  valueWidthCh,
   mixed,
   mixedLabel,
 }: {
@@ -275,6 +276,8 @@ export function SettingSlider({
   ariaLabel?: string;
   // Overrides the default control width (min(12rem, 45vw)); pass a CSS length.
   controlWidth?: string;
+  // Characters reserved for the value; see Slider.
+  valueWidthCh?: number;
   // The controlled targets hold different values; see Slider.
   mixed?: boolean;
   mixedLabel?: string;
@@ -299,6 +302,7 @@ export function SettingSlider({
           max={max}
           step={step}
           formatValue={formatValue}
+          valueWidthCh={valueWidthCh}
           onChange={onChange}
           onCommit={onCommit}
           editable={editable}

@@ -302,9 +302,15 @@ describe('LianLiWirelessFansTab wired', () => {
       render(<LianLiWirelessFansTab state={{ isConnected: true, fans: [wiredFan] }} refresh={vi.fn()} wired identify={identify} />);
     });
     expect(screen.getByText('devices.lianli-flex.devicesSection')).toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli-wireless.connectionSection')).not.toBeInTheDocument();
+    // The wired unit gets its own Connection section, with the link status.
+    expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.link_ok')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.masterMac')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.unbind' })).not.toBeInTheDocument();
-    expect(screen.getByText(/devices.lianli-flex.lcdFirmware/)).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.connectedByUsb')).toBeInTheDocument();
+    // Receiver and screen firmware are separate lines.
+    const screenLine = screen.getByText(/devices.lianli-flex.lcdFirmware/);
+    expect(screenLine.textContent).not.toMatch(/firmwareVersion/);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })); });
     expect(identify).toHaveBeenCalledWith(wiredFan.mac);
     expect(mockIdentifyLianLiWirelessFan).not.toHaveBeenCalled();
@@ -315,5 +321,65 @@ describe('LianLiWirelessFansTab wired', () => {
       render(<LianLiWirelessFansTab state={{ isConnected: true, fans: [{ ...wiredFan, boundToUs: false, receiverBound: true }] }} refresh={vi.fn()} wired />);
     });
     expect(screen.getByText('devices.lianli-flex.boundElsewhere')).toBeInTheDocument();
+  });
+
+  it('shows the link status of a busy or missing wired unit', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ isConnected: false, linkStatus: 'busy', fans: [] }} refresh={vi.fn()} wired />);
+    });
+    expect(screen.getByText('devices.lianli-flex.link_busy')).toBeInTheDocument();
+  });
+
+  it('keeps Identify pending for a few seconds after a wired request returns', async () => {
+    const identify = vi.fn().mockResolvedValue(true);
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ isConnected: true, fans: [wiredFan] }} refresh={vi.fn()} wired identify={identify} />);
+    });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })); });
+    expect(screen.getByRole('button', { name: 'devices.lianli-flex.identifying' })).toBeDisabled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).not.toBeDisabled();
+  });
+
+  it('shows Identify as pending while the service reports the unit identifying', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ isConnected: true, fans: [{ ...wiredFan, identifying: true }] }} refresh={vi.fn()} wired />);
+    });
+    expect(screen.getByRole('button', { name: 'devices.lianli-flex.identifying' })).toBeDisabled();
+  });
+});
+
+describe('LianLiWirelessFansTab units owned by the wired page', () => {
+  const flexFan = { ...boundFan, boundToUs: false, masterMac: '', slot: 254, fanType: 51, fanCount: 1 };
+
+  it('says Connected by USB with a link to the LCD Flex page and offers no Bind or Identify', async () => {
+    const open = vi.fn();
+    await act(async () => {
+      render(<LianLiWirelessFansTab
+        state={{ ...wirelessState, fans: [flexFan] }}
+        refresh={vi.fn()}
+        wiredMacs={new Set([flexFan.mac])}
+        onOpenWiredPage={open}
+      />);
+    });
+    expect(screen.getByText('devices.lianli-flex.connectedByUsb')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.identify' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.openWiredPage' }));
+    expect(open).toHaveBeenCalled();
+  });
+
+  it('honors the service flag without the wired page state', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: true }] }} refresh={vi.fn()} />);
+    });
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
+  });
+
+  it('still offers Bind for a unit the wired page does not own', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} wiredMacs={new Set()} />);
+    });
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
   });
 });

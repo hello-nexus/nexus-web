@@ -85,6 +85,7 @@ import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { requestSearchScroll } from '../search/scroll';
+import { requestCoolingFan } from '../lib/coolingFanIntent';
 import { fireSearchSignal } from '../search/signals';
 import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
@@ -1013,6 +1014,7 @@ export function Dashboard() {
           onSectionNavigate={(target, payload) => {
             if (target === 'device' && payload?.deviceKey) { navigate('system', 'device', payload.deviceKey); return; }
             setView(target);
+            if (payload?.coolingFanId) requestCoolingFan(payload.coolingFanId);
             if (payload?.scrollAnchors) requestSearchScroll(payload.scrollAnchors);
           }}
         />

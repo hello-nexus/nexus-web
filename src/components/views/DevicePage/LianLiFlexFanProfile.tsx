@@ -7,6 +7,7 @@ import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import {
   APPLY_FAN,
+  LIANLI_FLEX_CHANNEL_PREFIX,
   LIANLI_FLEX_PROFILES,
   getLianLiFlexFanProfile,
   restoreLianLiFlexFanDefault,
@@ -37,8 +38,12 @@ const SOURCE_LABEL_KEYS: Record<LianLiFlexFanSource, string> = {
 
 type Translate = ReturnType<typeof useTranslation>['t'];
 
-function profileLabel(t: Translate, key: LianLiFlexProfileKey): string {
+/** What a fan with no profile reads: its speed is set by hand. */
+const MANUAL = '';
+
+function profileLabel(t: Translate, key: LianLiFlexProfileKey | typeof MANUAL): string {
   switch (key) {
+    case MANUAL: return t('cooling.card.manual');
     case 'quiet': return t('devices.lianli-flex.profileQuiet');
     case 'stdsp': return t('devices.lianli-flex.profileStd');
     case 'highsp': return t('devices.lianli-flex.profileHigh');
@@ -46,6 +51,11 @@ function profileLabel(t: Translate, key: LianLiFlexProfileKey): string {
     case 'fixed': return t('devices.lianli-flex.profileFixed');
     default: return t('devices.lianli-flex.profileCustomN', { n: Number(key.slice('custom'.length)) });
   }
+}
+
+/** The badge a fan shows on the Cooling tab: its profile, or that it follows the board. */
+export function flexFanModeLabel(t: Translate, data: LianLiFlexFanProfile): string {
+  return data.mbSync ? t('cooling.card.bios') : profileLabel(t, data.profile);
 }
 
 export interface LianLiFlexProfiles {
@@ -121,8 +131,13 @@ export function LianLiFlexFanProfileSection({ mac, title, data, profiles, onSect
   const commit = (patch: LianLiFlexFanProfilePatch) => { void profiles.commit(mac, patch); };
 
   // A fan that follows the board has no profile to edit.
+  const manual = data.profile === MANUAL;
   const locked = data.mbSync;
-  const profileOptions = LIANLI_FLEX_PROFILES.map(key => ({ value: key, label: profileLabel(t, key) }));
+  // Manual is only shown while it is the state; picking a profile leaves it for good.
+  const profileOptions = [
+    ...(manual ? [{ value: MANUAL, label: profileLabel(t, MANUAL) }] : []),
+    ...LIANLI_FLEX_PROFILES.map(key => ({ value: key, label: profileLabel(t, key) })),
+  ];
 
   return (
     <SettingsSection title={t('devices.lianli-flex.profileSection', { device: title })} boxClassName={rowStyles.rows}>
@@ -137,7 +152,7 @@ export function LianLiFlexFanProfileSection({ mac, title, data, profiles, onSect
         value={data.profile}
         options={profileOptions}
         disabled={locked}
-        onChange={v => commit({ profile: v as LianLiFlexProfileKey })}
+        onChange={v => { if (v !== MANUAL) commit({ profile: v as LianLiFlexProfileKey }); }}
       />
       {data.profile === 'fixed' ? (
         <SettingSlider
@@ -159,7 +174,7 @@ export function LianLiFlexFanProfileSection({ mac, title, data, profiles, onSect
           <SettingRow
             label={t('devices.lianli-flex.sourceLabel')}
             description={data.sourceAvailable.water ? undefined : t('devices.lianli-flex.sourceWaterHint')}
-            disabled={locked}
+            disabled={locked || manual}
           >
             <ChipGroup
               ariaLabel={t('devices.lianli-flex.sourceLabel')}
@@ -176,7 +191,7 @@ export function LianLiFlexFanProfileSection({ mac, title, data, profiles, onSect
             label={t('devices.lianli-flex.startStop')}
             description={t('devices.lianli-flex.startStopHint')}
             checked={data.startStop}
-            disabled={locked}
+            disabled={locked || manual}
             onChange={on => commit({ startStop: on })}
           />
         </>
@@ -187,7 +202,7 @@ export function LianLiFlexFanProfileSection({ mac, title, data, profiles, onSect
             size="sm"
             tone="neutral"
             icon={<Fan size={14} />}
-            onClick={() => onSectionNavigate('cooling', { scrollAnchors: [coolingGroupAnchor(`lianli-flex:${mac}`)] })}
+            onClick={() => onSectionNavigate('cooling', { scrollAnchors: [coolingGroupAnchor(`lianli-flex:${mac}`)], coolingFanId: `${LIANLI_FLEX_CHANNEL_PREFIX}${mac}:port0` })}
           >
             {t('devices.coolingPage.go')}
           </Button>
@@ -204,6 +219,7 @@ export function LianLiFlexFanProfileSection({ mac, title, data, profiles, onSect
         title={t('devices.lianli-flex.restoreProfileTitle')}
         message={t('devices.lianli-flex.restoreProfileMessage')}
         confirmLabel={t('devices.lianli-flex.restoreProfileButton')}
+        destructive={false}
         onCancel={() => setConfirmRestore(false)}
         onConfirm={() => {
           setConfirmRestore(false);

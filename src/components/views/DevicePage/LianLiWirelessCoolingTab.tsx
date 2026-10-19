@@ -5,7 +5,7 @@ import { buildLianLiWirelessCoolingChains, WIRELESS_CHANNEL_PREFIX } from './lia
 import { fanTypeKey } from './LianLiWirelessFansTab';
 import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
-import { LianLiFlexFanProfileSection, useLianLiFlexProfiles } from './LianLiFlexFanProfile';
+import { LianLiFlexFanProfileSection, flexFanModeLabel, useLianLiFlexProfiles } from './LianLiFlexFanProfile';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import { useTranslation } from '../../../lib/i18n';
 import rowStyles from './CoolingFanRow.module.scss';
@@ -57,6 +57,7 @@ export function LianLiWirelessCoolingTab({ state, channelPrefix = WIRELESS_CHANN
               rpmUnavailable={p.rpmUnavailable}
               channel={p.channel}
               curves={curves}
+              modeLabel={profiles.byMac[chain.mac] ? flexFanModeLabel(t, profiles.byMac[chain.mac]) : undefined}
             />
           ))}
         </SettingsSection>

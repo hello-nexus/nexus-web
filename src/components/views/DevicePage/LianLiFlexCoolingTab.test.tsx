@@ -19,7 +19,10 @@ vi.mock('../../../api/cooling', () => ({
       { id: 'lianli-flex:BB22:port0', name: 'B', dutyPercent: 40, rpm: 700, mode: 'Manual' },
     ],
   }),
-  fetchCurves: () => Promise.resolve({ globalSpeedModifier: 100, curves: [] }),
+  fetchCurves: () => Promise.resolve({
+    globalSpeedModifier: 100,
+    curves: [{ id: 'flex-AA11', name: 'Lian Li TL LCD Flex 6CE1', type: 'Graph', input: { id: '', type: '', device: '' }, outputs: [{ id: 'lianli-flex:AA11:port0', type: 'fan' }] }],
+  }),
 }));
 
 const mockGetProfile = vi.fn();
@@ -153,7 +156,10 @@ describe('Flex Cooling tab fan profile', () => {
   it('opens the curve editor on the Cooling page at the unit group', async () => {
     const nav = await renderTab();
     fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.go' }));
-    expect(nav).toHaveBeenCalledWith('cooling', { scrollAnchors: ['cooling-group:lianli-flex:AA11'] });
+    expect(nav).toHaveBeenCalledWith('cooling', {
+      scrollAnchors: ['cooling-group:lianli-flex:AA11'],
+      coolingFanId: 'lianli-flex:AA11:port0',
+    });
   });
 
   it('applies the fan profile to the other fans in the chosen scope after confirming', async () => {
@@ -188,5 +194,36 @@ describe('Flex Cooling tab fan profile', () => {
     await renderTab(twoUnits);
     await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.mbSyncAll' })); });
     expect(mockFanSync).toHaveBeenCalledWith(true);
+  });
+
+  it('reads Manual, not a blank, when no profile is set, and keeps source and start/stop off', async () => {
+    profiles.AA11 = profile('AA11', { profile: '' });
+    await renderTab();
+    expect(screen.getByLabelText('devices.lianli-flex.profileLabel')).toHaveTextContent('cooling.card.manual');
+    expect(screen.getByRole('switch', { name: 'devices.lianli-flex.startStop' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('devices.lianli-flex.profileLabel'));
+    const options = (await screen.findAllByRole('option')).map(o => o.textContent);
+    expect(options[0]).toBe('cooling.card.manual');
+    await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'cooling.card.manual' })); });
+    expect(mockSetProfile).not.toHaveBeenCalled();
+  });
+
+  it('offers no Manual choice once a profile is set', async () => {
+    await renderTab();
+    fireEvent.click(screen.getByLabelText('devices.lianli-flex.profileLabel'));
+    expect((await screen.findAllByRole('option')).map(o => o.textContent)).not.toContain('cooling.card.manual');
+  });
+
+  it('the fan badge names the profile, not the managed curve', async () => {
+    await renderTab();
+    // Once in the picker and once in the fan row's badge.
+    expect(screen.getAllByText('devices.lianli-flex.profileStd')).toHaveLength(2);
+    expect(screen.queryByText('Lian Li TL LCD Flex 6CE1')).not.toBeInTheDocument();
+  });
+
+  it('the fan badge says the board drives the fan when it follows the motherboard', async () => {
+    profiles.AA11 = profile('AA11', { mbSync: true });
+    await renderTab();
+    expect(screen.getByText('cooling.card.bios')).toBeInTheDocument();
   });
 });

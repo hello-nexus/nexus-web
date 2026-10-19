@@ -178,6 +178,18 @@ describe('Flex screens 2D animation', () => {
     expect(screen.getByRole('slider', { name: 'devices.lianli-flex.anim2dZoom' })).toHaveValue('120');
   });
 
+  it('shows units on the position, size and radius sliders', async () => {
+    const overlay = {
+      type: 'circular', spriteMediaId: 'm1', speed: 3, loop: true, zoom: 120, direction: 0, centerX: 150, centerY: 90, params: { radius: 100 },
+    };
+    await renderTab([{ ...screen1, contentType: 'animation2d', overlay } as LianLiWirelessScreen, screen2]);
+    expect(screen.getByText('devices.lianli-flex.pixels:{"n":"150"}')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.pixels:{"n":"90"}')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.pixels:{"n":"100"}')).toBeInTheDocument();
+    expect(screen.getByText('3/10')).toBeInTheDocument();
+    expect(screen.getByText('120%')).toBeInTheDocument();
+  });
+
   it('changing the motion type saves the overlay with the new type', async () => {
     const overlay = {
       type: 'circular', spriteMediaId: 'm1', speed: 3, loop: true, zoom: 100, direction: 0, centerX: 200, centerY: 200, params: {},
@@ -202,6 +214,15 @@ describe('Flex screens 2D animation', () => {
     expect(mockSetContent).toHaveBeenLastCalledWith('S1', 'animation2d', undefined, {
       overlay: expect.objectContaining({ params: { selfRotate: true } }),
     });
+  });
+});
+
+describe('Flex screens media names', () => {
+  it('shows the stored media names as they are', async () => {
+    mockGetMedia.mockResolvedValue([{ id: 'm1', name: 'vid.mp4', kind: 'video' }]);
+    await renderTab();
+    await chooseContentType('devices.lianli-wireless.contentTypeMedia');
+    expect(screen.getByText('vid.mp4').className).toMatch(/labelAsIs/);
   });
 });
 
@@ -237,10 +258,32 @@ describe('Flex screens capture', () => {
 });
 
 describe('Flex screens sync to all', () => {
-  it('copies the selected screen to the others', async () => {
+  async function confirmSync() {
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.screenSyncAllButton' }));
+    expect(await screen.findByText('devices.lianli-flex.screenSyncAllConfirmTitle')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-flex.screenSyncAllButton' }).pop()!);
+    });
+  }
+
+  it('asks first, then copies the selected screen to the others and says it is done', async () => {
     await renderTab();
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.screenSyncAllButton' })); });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.screenSyncAllButton' }));
+    expect(mockSyncAll).not.toHaveBeenCalled();
+    await screen.findByText('devices.lianli-flex.screenSyncAllConfirmTitle');
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-flex.screenSyncAllButton' }).pop()!);
+    });
     expect(mockSyncAll).toHaveBeenCalledWith('S1');
+    expect(screen.getByRole('status')).toHaveTextContent('devices.lianli-flex.screenSyncAllDone');
+  });
+
+  it('cancelling the confirm syncs nothing', async () => {
+    await renderTab();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.screenSyncAllButton' }));
+    await screen.findByText('devices.lianli-flex.screenSyncAllConfirmTitle');
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+    expect(mockSyncAll).not.toHaveBeenCalled();
   });
 
   it('is unavailable with several screens selected or only one screen', async () => {
@@ -251,8 +294,28 @@ describe('Flex screens sync to all', () => {
   it('shows an error when the service refuses', async () => {
     mockSyncAll.mockResolvedValue(false);
     await renderTab();
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.screenSyncAllButton' })); });
+    await confirmSync();
     expect(screen.getByRole('alert')).toHaveTextContent('devices.lianli-flex.screenSyncAllFailed');
+  });
+});
+
+describe('Flex screens tile names and order', () => {
+  it('names tiles from the page labels and lists them in the page order', async () => {
+    mockGetScreens.mockResolvedValue([screen1, screen2]);
+    await act(async () => {
+      render(<LianLiWirelessScreenTab api={api} flex screenLabels={{ S1: 'SL-INF Flex', S2: 'TL Flex' }} defaultOrder={['S2', 'S1']} />);
+    });
+    const tiles = within(screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' })).getAllByRole('button');
+    expect(tiles.map(b => b.textContent)).toEqual(['TL Flex', 'SL-INF Flex']);
+  });
+
+  it('keeps a saved order over the page order', async () => {
+    mockGetScreens.mockResolvedValue([{ ...screen1, order: 0 }, { ...screen2, order: 1 }]);
+    await act(async () => {
+      render(<LianLiWirelessScreenTab api={api} flex defaultOrder={['S2', 'S1']} />);
+    });
+    const tiles = within(screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' })).getAllByRole('button');
+    expect(tiles[0].textContent).toContain('TL Flex');
   });
 });
 

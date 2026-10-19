@@ -21,6 +21,7 @@ const MIN_THRESHOLD = 1;
 const MAX_THRESHOLD = 110;
 
 type SourceKey = 'cpu' | 'gpu';
+const SOURCES: SourceKey[] = ['cpu', 'gpu'];
 const WARN_TONE = 'warn' as const;
 
 interface LianLiFlexThermalAlertSectionProps {
@@ -117,16 +118,6 @@ export function LianLiFlexThermalAlertSection({ units }: LianLiFlexThermalAlertS
           }}
           onCommit={(v: number) => { void commit({ [key]: { threshold: Math.round(v) } }); }}
         />
-        <div className={`${styles.colorBlock} ${off ? styles.rowDisabled : ''}`} data-settings-aside="true">
-          <div className={styles.colorEntry}>
-            <span className={styles.colorLabel}>{t('devices.lianli-flex.thermalColor', { source: sourceName(key) })}</span>
-            <HsvPicker
-              value={source.color}
-              onPreview={(hex: string) => previewSource(key, { color: hex })}
-              onCommit={(hex: string) => { void commit({ [key]: { color: hex } }); }}
-            />
-          </div>
-        </div>
       </>
     );
   };
@@ -147,6 +138,23 @@ export function LianLiFlexThermalAlertSection({ units }: LianLiFlexThermalAlertS
       />
       {sourceRows('cpu')}
       {sourceRows('gpu')}
+      <div className={styles.colorBlock} data-settings-aside="true">
+        <div className={styles.colorPairRow}>
+          {SOURCES.map(key => {
+            const off = !data.enabled || !data[key].enabled;
+            return (
+              <div key={key} className={`${styles.colorEntry} ${off ? styles.rowDisabled : ''}`}>
+                <span className={styles.colorLabel}>{t('devices.lianli-flex.thermalColor', { source: sourceName(key) })}</span>
+                <HsvPicker
+                  value={data[key].color}
+                  onPreview={(hex: string) => previewSource(key, { color: hex })}
+                  onCommit={(hex: string) => { void commit({ [key]: { color: hex } }); }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
       {units.length > 1 && units.map(unit => (
         <SettingToggle
           key={unit.mac}

@@ -63,6 +63,12 @@ function orderKey(s: LianLiWirelessScreen): number {
   return s.order !== undefined && s.order >= 0 ? s.order : Number.MAX_SAFE_INTEGER;
 }
 
+// Where a serial sits in the page's preferred order; unknown serials keep the service's order.
+function hintIndex(order: readonly string[] | undefined, serial: string): number {
+  const i = order?.indexOf(serial) ?? -1;
+  return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+}
+
 // Picture, dynamic and video content share one picker entry; the stored type is the item's kind.
 type ContentChoice = LianLiWirelessScreenContentType | 'media';
 
@@ -143,7 +149,7 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  */
 export function LianLiWirelessScreenTab({
   aioMacs = [], usbMacs = [], panelOpener, api = WIRELESS_SCREEN_API,
-  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart, flex = false,
+  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart, flex = false, screenLabels, defaultOrder,
 }: {
   aioMacs?: string[];
   /** AIOs whose USB cable is connected, by MAC. */
@@ -160,6 +166,10 @@ export function LianLiWirelessScreenTab({
   onOpenScreenPanel?: (panelDeviceId: string) => void;
   /** The wired LCD Flex screens: adds the live screen and 2D animation content, capture, sync to all and templates. */
   flex?: boolean;
+  /** Short names for the tiles by screen serial, in place of the service's label. */
+  screenLabels?: Readonly<Record<string, string>>;
+  /** Serials in the order screens without a saved order are listed. */
+  defaultOrder?: readonly string[];
   /** Restart LCD for families whose screens can be restarted; absent otherwise. */
   lcdRestart?: {
     isRestarting: (serial: string) => boolean;
@@ -184,6 +194,8 @@ export function LianLiWirelessScreenTab({
   const [captureSeconds, setCaptureSeconds] = useState(CAPTURE_DEFAULT_SECONDS);
   const [captureFailed, setCaptureFailed] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
+  const [syncDone, setSyncDone] = useState(false);
+  const [confirmSync, setConfirmSync] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [cropState, setCropState] = useState<CropState | null>(null);
   const [klipyOpen, setKlipyOpen] = useState(false);
@@ -232,11 +244,15 @@ export function LianLiWirelessScreenTab({
   const loaded = screens !== null;
   // Saved order first, then the firmware position; equal keys keep the
   // service's list order (Array.sort is stable).
+  const defaultOrderKey = defaultOrder?.join(',') ?? '';
   const orderedScreens = useMemo(
-    () => (screens
-      ? [...screens].sort((a, b) => orderKey(a) - orderKey(b) || a.position - b.position)
-      : []),
-    [screens],
+    () => {
+      const hint = defaultOrderKey ? defaultOrderKey.split(',') : undefined;
+      return screens
+        ? [...screens].sort((a, b) => orderKey(a) - orderKey(b) || a.position - b.position || hintIndex(hint, a.serial) - hintIndex(hint, b.serial))
+        : [];
+    },
+    [screens, defaultOrderKey],
   );
 
   // Select the first screen once the list first loads; after that the user's
@@ -436,9 +452,11 @@ export function LianLiWirelessScreenTab({
 
   const handleSyncAll = useCallback(async (serial: string) => {
     setSyncFailed(false);
+    setSyncDone(false);
     const ok = await syncLianLiFlexScreens(serial).catch(() => false);
     if (!aliveRef.current) return;
     setSyncFailed(!ok);
+    setSyncDone(ok);
     lastEditRef.current = Number.NEGATIVE_INFINITY;
     void refreshScreens();
   }, [refreshScreens]);
@@ -573,7 +591,7 @@ export function LianLiWirelessScreenTab({
                       {contentTypeIcon(s.contentType)}
                     </span>
                     <span className={styles.screenPreviewLabel}>
-                      {s.label || t('devices.lianli-wireless.fanN', { n: i + 1 })}
+                      {screenLabels?.[s.serial] || s.label || t('devices.lianli-wireless.fanN', { n: i + 1 })}
                     </span>
                   </button>
                 );
@@ -792,11 +810,14 @@ export function LianLiWirelessScreenTab({
               size="sm"
               tone="neutral"
               disabled={selected.size !== 1 || !representative || orderedScreens.length < 2}
-              onClick={() => { if (representative) void handleSyncAll(representative.serial); }}
+              onClick={() => { if (representative) setConfirmSync(representative.serial); }}
             >
               {t('devices.lianli-flex.screenSyncAllButton')}
             </Button>
           </SettingRow>
+        )}
+        {flex && syncDone && (
+          <p className={styles.emptyNote} role="status" data-settings-aside="true">{t('devices.lianli-flex.screenSyncAllDone')}</p>
         )}
         {flex && syncFailed && (
           <p className={styles.emptyNote} role="alert" data-settings-aside="true">{t('devices.lianli-flex.screenSyncAllFailed')}</p>
@@ -818,6 +839,20 @@ export function LianLiWirelessScreenTab({
           sourceSerial={selected.size === 1 ? representative?.serial ?? null : null}
         />
       )}
+
+      <ConfirmModal
+        open={confirmSync !== null}
+        title={t('devices.lianli-flex.screenSyncAllConfirmTitle')}
+        message={t('devices.lianli-flex.screenSyncAllConfirmMessage')}
+        confirmLabel={t('devices.lianli-flex.screenSyncAllButton')}
+        destructive={false}
+        onCancel={() => setConfirmSync(null)}
+        onConfirm={() => {
+          const serial = confirmSync;
+          setConfirmSync(null);
+          if (serial) void handleSyncAll(serial);
+        }}
+      />
 
       <ConfirmModal
         open={pendingDeleteMedia != null}
@@ -935,6 +970,7 @@ function MediaPanel({
               key={item.id}
               asDiv
               label={item.name}
+              keepCase
               thumbUrl={item.thumb}
               thumbStatic
               thumbAspect={1}

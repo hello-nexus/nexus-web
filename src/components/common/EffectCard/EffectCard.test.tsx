@@ -12,4 +12,11 @@ describe('EffectCard', () => {
     rerender(<EffectCard label="Glitch Garden" thumbUrl="blob:fresh" onClick={() => {}} />);
     expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:fresh');
   });
+
+  it('shows a name as given when asked to keep its case', () => {
+    const { getByText, rerender } = render(<EffectCard label="vid.mp4" keepCase onClick={() => {}} />);
+    expect(getByText('vid.mp4').className).toMatch(/labelAsIs/);
+    rerender(<EffectCard label="vid.mp4" onClick={() => {}} />);
+    expect(getByText('vid.mp4').className).not.toMatch(/labelAsIs/);
+  });
 });

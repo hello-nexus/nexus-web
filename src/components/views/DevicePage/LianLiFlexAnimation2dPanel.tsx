@@ -8,6 +8,8 @@ import { localizeNumbers } from '../../../lib/units';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 const NO_BACKGROUND = '';
+// One value column for every slider here, so their tracks line up.
+const VALUE_WIDTH_CH = 7;
 const SCREEN_SIZE = 400;
 const OVERLAY_TYPES: LianLiOverlayType[] = ['circular', 'rotate', 'bounce', 'collision'];
 
@@ -57,6 +59,9 @@ export function LianLiFlexAnimation2dPanel({ overlay, backgroundMediaId, media, 
   const pictures = media.filter(m => m.kind === 'image' || m.kind === 'gif');
   const pictureOptions = pictures.map(m => ({ value: m.id, label: m.name }));
   const percent = (v: number) => localizeNumbers(`${v}%`, numberFormat);
+  const pixels = (v: number) => t('devices.lianli-flex.pixels', { n: localizeNumbers(String(v), numberFormat) });
+  const degrees = (v: number) => localizeNumbers(`${v}\u00B0`, numberFormat);
+  const outOf = (max: number) => (v: number) => localizeNumbers(`${v}/${max}`, numberFormat);
 
   const save = (next: LianLiOverlay, bg: string = background) => {
     setDraft(next);
@@ -74,6 +79,7 @@ export function LianLiFlexAnimation2dPanel({ overlay, backgroundMediaId, media, 
     step = 1,
   ) => (
     <SettingSlider
+      valueWidthCh={VALUE_WIDTH_CH}
       editable
       trackFill
       label={label}
@@ -116,10 +122,10 @@ export function LianLiFlexAnimation2dPanel({ overlay, backgroundMediaId, media, 
         options={[{ value: NO_BACKGROUND, label: t('devices.lianli-flex.anim2dNoBackground') }, ...pictureOptions]}
         onChange={v => { setBackground(v); save(draft, v); }}
       />
-      {slider(t('devices.lianli-flex.anim2dSpeed'), draft.speed, 1, 10, v => ({ ...draft, speed: Math.round(v) }))}
+      {slider(t('devices.lianli-flex.anim2dSpeed'), draft.speed, 1, 10, v => ({ ...draft, speed: Math.round(v) }), outOf(10))}
       {slider(t('devices.lianli-flex.anim2dZoom'), draft.zoom, 50, 200, v => ({ ...draft, zoom: Math.round(v) }), percent)}
-      {slider(t('devices.lianli-flex.anim2dCenterX'), draft.centerX, 0, SCREEN_SIZE, v => ({ ...draft, centerX: Math.round(v) }))}
-      {slider(t('devices.lianli-flex.anim2dCenterY'), draft.centerY, 0, SCREEN_SIZE, v => ({ ...draft, centerY: Math.round(v) }))}
+      {slider(t('devices.lianli-flex.anim2dCenterX'), draft.centerX, 0, SCREEN_SIZE, v => ({ ...draft, centerX: Math.round(v) }), pixels)}
+      {slider(t('devices.lianli-flex.anim2dCenterY'), draft.centerY, 0, SCREEN_SIZE, v => ({ ...draft, centerY: Math.round(v) }), pixels)}
       <SettingRow label={t('devices.lianli-flex.anim2dDirection')}>
         <ChipGroup
           ariaLabel={t('devices.lianli-flex.anim2dDirection')}
@@ -138,7 +144,7 @@ export function LianLiFlexAnimation2dPanel({ overlay, backgroundMediaId, media, 
       />
       {draft.type === 'circular' && (
         <>
-          {slider(t('devices.lianli-flex.anim2dRadius'), params.radius ?? 100, 0, 180, v => withParams({ radius: Math.round(v) }))}
+          {slider(t('devices.lianli-flex.anim2dRadius'), params.radius ?? 100, 0, 180, v => withParams({ radius: Math.round(v) }), pixels)}
           <SettingToggle
             label={t('devices.lianli-flex.anim2dSelfRotate')}
             checked={params.selfRotate === true}
@@ -148,7 +154,7 @@ export function LianLiFlexAnimation2dPanel({ overlay, backgroundMediaId, media, 
       )}
       {draft.type === 'rotate' && (
         <>
-          {slider(t('devices.lianli-flex.anim2dAngle'), params.rotateAngle ?? 0, 0, 359, v => withParams({ rotateAngle: Math.round(v) }))}
+          {slider(t('devices.lianli-flex.anim2dAngle'), params.rotateAngle ?? 0, 0, 359, v => withParams({ rotateAngle: Math.round(v) }), degrees)}
           <SettingToggle
             label={t('devices.lianli-flex.anim2dAutoReverse')}
             checked={params.autoReverse === true}
@@ -158,8 +164,8 @@ export function LianLiFlexAnimation2dPanel({ overlay, backgroundMediaId, media, 
       )}
       {draft.type === 'bounce' && (
         <>
-          {slider(t('devices.lianli-flex.anim2dHeight'), params.upHeight ?? 80, 0, 300, v => withParams({ upHeight: Math.round(v) }))}
-          {slider(t('devices.lianli-flex.anim2dBounciness'), params.bounciness ?? 2, 0, 4, v => withParams({ bounciness: Math.round(v) }))}
+          {slider(t('devices.lianli-flex.anim2dHeight'), params.upHeight ?? 80, 0, 300, v => withParams({ upHeight: Math.round(v) }), pixels)}
+          {slider(t('devices.lianli-flex.anim2dBounciness'), params.bounciness ?? 2, 0, 4, v => withParams({ bounciness: Math.round(v) }), outOf(4))}
           {slider(
             t('devices.lianli-flex.anim2dPause'),
             params.dwellSeconds ?? 0.2,

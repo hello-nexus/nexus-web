@@ -38,6 +38,10 @@ export interface LianLiWirelessFan {
   lcdFirmware?: string;
   /** Wired LCD Flex units only: position in the light sequence. */
   sortIndex?: number;
+  /** Wired LCD Flex units only: the unit is flashing for Identify. */
+  identifying?: boolean;
+  /** A Flex unit that the wired LCD Flex page owns, so it is not offered for RF binding here. */
+  wiredOwned?: boolean;
 }
 
 /** Why the link is down, for the device page. Absent on a service older than the field. */
@@ -167,6 +171,8 @@ export interface LianLiFlexZone {
 }
 
 export interface LianLiWirelessLighting {
+  /** The unit whose look a merged group plays, as the service decided; null when no unit leads. Absent on an older service. */
+  mergeLeaderMac?: string | null;
   laneModes: string[];
   chains: LianLiWirelessChainLighting[];
 }

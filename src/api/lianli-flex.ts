@@ -106,7 +106,8 @@ export const LIANLI_FLEX_PROFILES: readonly LianLiFlexProfileKey[] =
 
 export interface LianLiFlexFanProfile {
   mac: string;
-  profile: LianLiFlexProfileKey;
+  /** Empty when no profile is set: the fan's speed is set by hand. */
+  profile: LianLiFlexProfileKey | '';
   /** The fan follows the motherboard fan header. */
   mbSync: boolean;
   source: LianLiFlexFanSource;

@@ -65,6 +65,7 @@ export function LianLiFlexApplyAllRow({ mac, what, onApplied }: LianLiFlexApplyA
         title={t('devices.lianli-flex.applyAllConfirmTitle')}
         message={t(what === 'fan' ? 'devices.lianli-flex.applyAllConfirmFan' : 'devices.lianli-flex.applyAllConfirmLighting')}
         confirmLabel={t('devices.lianli-flex.applyAllButton')}
+        destructive={false}
         onCancel={() => setConfirm(false)}
         onConfirm={() => { void run(); }}
       />
