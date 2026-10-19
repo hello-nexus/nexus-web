@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { MonitorSmartphone } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
@@ -20,7 +20,8 @@ import styles from './LianLiWirelessDevicePage.module.scss';
 const BIND_PENDING_TIMEOUT_MS = 10000;
 
 
-const LOCK_HINT_ID = 'lianli-wireless-lock-hint';
+// A lock change is held until a polled state confirms it; past this the poll speaks for itself.
+const LOCK_PENDING_TIMEOUT_MS = 6000;
 
 type BindAction = 'bind' | 'unbind';
 
@@ -153,21 +154,62 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
     });
   }, [state, clearPendingTimeout]);
 
-  const serviceLocked = state?.lockBoundDevices !== false;
+  const loaded = state !== null;
+  const lockSupported = loaded && typeof state.lockBoundDevices === 'boolean';
+  const [lockPending, setLockPending] = useState<boolean | null>(null);
+  const [lockSaving, setLockSaving] = useState(false);
+  const lockTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(undefined);
+  const lockHintId = useId();
+  const lockBound = lockPending ?? (lockSupported && state.lockBoundDevices === true);
+  const pairingBlocked = lockBound || lockSaving;
+
+  const clearLockPending = useCallback(() => {
+    window.clearTimeout(lockTimeoutRef.current);
+    lockTimeoutRef.current = undefined;
+    setLockPending(null);
+  }, []);
+
+  useEffect(() => {
+    if (lockPending !== null && state?.lockBoundDevices === lockPending) clearLockPending();
+  }, [state, lockPending, clearLockPending]);
+
+  useEffect(() => () => window.clearTimeout(lockTimeoutRef.current), []);
+
+  useEffect(() => {
+    if (pairingBlocked) setUnbindTarget(null);
+  }, [pairingBlocked]);
+
+  const failPending = useCallback((mac: string) => {
+    clearPendingTimeout(mac);
+    if (!aliveRef.current) return;
+    setPending(prev => {
+      if (!(mac in prev)) return prev;
+      const next = { ...prev };
+      delete next[mac];
+      return next;
+    });
+  }, [clearPendingTimeout]);
+
+  const runBindAction = useCallback((mac: string, action: BindAction) => {
+    startPending(mac, action);
+    const call = action === 'bind' ? bindLianLiWirelessFan : unbindLianLiWirelessFan;
+    void call(mac).catch(() => false).then(ok => {
+      if (!ok) failPending(mac);
+      void refresh();
+    });
+  }, [startPending, failPending, refresh]);
 
   const handleBind = useCallback((mac: string) => {
-    if (serviceLocked) return;
-    startPending(mac, 'bind');
-    void bindLianLiWirelessFan(mac).then(() => { void refresh(); });
-  }, [serviceLocked, startPending, refresh]);
+    if (pairingBlocked) return;
+    runBindAction(mac, 'bind');
+  }, [pairingBlocked, runBindAction]);
 
   const handleUnbindConfirmed = useCallback(() => {
     const mac = unbindTarget;
     setUnbindTarget(null);
-    if (!mac || serviceLocked) return;
-    startPending(mac, 'unbind');
-    void unbindLianLiWirelessFan(mac).then(() => { void refresh(); });
-  }, [unbindTarget, serviceLocked, startPending, refresh]);
+    if (!mac || pairingBlocked) return;
+    runBindAction(mac, 'unbind');
+  }, [unbindTarget, pairingBlocked, runBindAction]);
 
   const handleIdentify = useCallback((mac: string) => {
     setIdentifying(prev => ({ ...prev, [mac]: true }));
@@ -182,24 +224,27 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
     });
   }, []);
 
-  const loaded = state !== null;
-
-  // The clicked lock value, shown while its PUT is in flight and the toggle is disabled; the
-  // service value takes over once the state is re-read.
-  const [lockPending, setLockPending] = useState<boolean | null>(null);
-  const lockBound = loaded && (lockPending ?? state.lockBoundDevices !== false);
   const onLockChange = useCallback(async (next: boolean) => {
+    window.clearTimeout(lockTimeoutRef.current);
     setLockPending(next);
-    // A throw counts as a failed PUT; either way the service value is what ends up shown.
-    await setLianLiWirelessLockBound(next).catch(() => false);
+    setLockSaving(true);
+    const ok = await setLianLiWirelessLockBound(next).catch(() => false);
+    if (!aliveRef.current) return;
+    setLockSaving(false);
+    if (ok) {
+      lockTimeoutRef.current = window.setTimeout(() => {
+        lockTimeoutRef.current = undefined;
+        setLockPending(null);
+      }, LOCK_PENDING_TIMEOUT_MS);
+    } else {
+      clearLockPending();
+    }
     try {
       await refresh();
     } catch {
-      // The next poll re-reads the state; the toggle must not stay disabled.
-    } finally {
-      if (aliveRef.current) setLockPending(null);
+      // The next poll re-reads the state.
     }
-  }, [refresh]);
+  }, [refresh, clearLockPending]);
 
   return (
     <>
@@ -216,38 +261,39 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
         <SettingRow label={t('devices.lianli-wireless.txFirmware')}>
           <span className={styles.rowValueMono}>{loaded ? state.txFirmwareVersion : '-'}</span>
         </SettingRow>
-        <SettingToggle
-          label={t('devices.lianli-wireless.lockBoundDevices')}
-          description={t('devices.lianli-wireless.lockBoundDevicesHint')}
-          checked={lockBound}
-          onChange={next => { void onLockChange(next); }}
-          ariaLabel={t('devices.lianli-wireless.lockBoundDevices')}
-          disabled={!loaded || lockPending !== null}
-        />
+        {(!loaded || lockSupported) && (
+          <SettingToggle
+            label={t('devices.lianli-wireless.lockBoundDevices')}
+            description={<span id={lockHintId}>{t('devices.lianli-wireless.lockBoundDevicesHint')}</span>}
+            checked={lockBound}
+            mixed={!loaded && lockPending === null}
+            onChange={next => { void onLockChange(next); }}
+            ariaLabel={t('devices.lianli-wireless.lockBoundDevices')}
+            disabled={!loaded || lockSaving || lockPending !== null}
+          />
+        )}
       </SettingsSection>
 
       <SettingsSection
         title={t('devices.lianli-wireless.devicesSection')}
         boxClassName={styles.sectionBox}
       >
-        {lockBound && (
-          <p id={LOCK_HINT_ID} className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.lockBlocksPairing')}</p>
-        )}
-        {loaded && state.fans.length > 0
+        {loaded && (state.fans.length > 0
           ? state.fans.map(fan => (
             <DeviceRow
               key={fan.mac}
               fan={fan}
               pending={pending[fan.mac]}
               identifying={!!identifying[fan.mac]}
-              pairingLocked={lockBound || lockPending !== null}
+              pairingLocked={pairingBlocked}
+              lockHintId={lockSupported ? lockHintId : undefined}
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
               onOpenPanel={panelOpener?.(fan.mac)}
             />
           ))
-          : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>}
+          : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>)}
       </SettingsSection>
 
       <ConfirmModal
@@ -267,6 +313,7 @@ function DeviceRow({
   pending,
   identifying,
   pairingLocked,
+  lockHintId,
   onBind,
   onUnbindRequest,
   onIdentify,
@@ -276,6 +323,7 @@ function DeviceRow({
   pending: BindAction | undefined;
   identifying: boolean;
   pairingLocked: boolean;
+  lockHintId: string | undefined;
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
@@ -311,11 +359,11 @@ function DeviceRow({
       )}
     >
       {fan.boundToUs ? (
-        <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? LOCK_HINT_ID : undefined} onClick={() => onUnbindRequest(fan.mac)}>
+        <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
         </Button>
       ) : (
-        <Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? LOCK_HINT_ID : undefined} onClick={() => onBind(fan.mac)}>
+        <Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onBind(fan.mac)}>
           {bindLabel}
         </Button>
       )}

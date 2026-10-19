@@ -45,7 +45,7 @@ export interface LianLiWirelessState {
   masterMac: string;
   channel: number;
   txFirmwareVersion: number;
-  /** Re-bind owned chains that drop or get bound elsewhere. Absent on an older service, which reads as on. */
+  /** Re-bind owned chains that drop or get bound elsewhere. Absent on an older service, which has no lock. */
   lockBoundDevices?: boolean;
   fans: LianLiWirelessFan[];
 }

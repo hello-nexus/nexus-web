@@ -902,7 +902,6 @@
   "devices.lianli-wireless.linkRxMissing": "仅检测到控制器的发射端。请重新连接其 USB 线缆。",
   "devices.lianli-wireless.linkTxMissing": "仅检测到控制器的接收端。请重新连接其 USB 线缆。",
   "devices.lianli-wireless.loadingScreens": "正在加载屏幕…",
-  "devices.lianli-wireless.lockBlocksPairing": "关闭“锁定已配对设备”后才能配对或取消配对设备。",
   "devices.lianli-wireless.lockBoundDevices": "锁定已配对设备",
   "devices.lianli-wireless.lockBoundDevicesHint": "风扇或 Strimer 掉线时，自动重新与此控制器配对。关闭后可手动管理配对。",
   "devices.lianli-wireless.managePanel": "管理面板",

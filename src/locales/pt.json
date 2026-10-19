@@ -902,7 +902,6 @@
   "devices.lianli-wireless.linkRxMissing": "Apenas foi detetado o transmissor do controlador. Volte a ligar o respetivo cabo USB.",
   "devices.lianli-wireless.linkTxMissing": "Apenas foi detetado o recetor do controlador. Volte a ligar o respetivo cabo USB.",
   "devices.lianli-wireless.loadingScreens": "A carregar ecrãs…",
-  "devices.lianli-wireless.lockBlocksPairing": "Desative \"Bloquear dispositivos emparelhados\" para emparelhar ou desemparelhar dispositivos.",
   "devices.lianli-wireless.lockBoundDevices": "Bloquear dispositivos emparelhados",
   "devices.lianli-wireless.lockBoundDevicesHint": "Volta a emparelhar automaticamente as suas ventoinhas e Strimers com este controlador se se desligarem. Desative para gerir o emparelhamento manualmente.",
   "devices.lianli-wireless.managePanel": "Gerir painel",

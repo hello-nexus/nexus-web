@@ -52,6 +52,7 @@ const wirelessState: LianLiWirelessState = {
   masterMac: '8A0EEF6232DC',
   channel: 8,
   txFirmwareVersion: 16,
+  lockBoundDevices: false,
   fans: [boundFan],
 };
 
@@ -132,34 +133,99 @@ describe('LianLiWirelessFansTab', () => {
       return { promise, resolve };
     }
 
-    it('reads on when the service omits the key and off when it reports false', async () => {
-      await renderTab();
+    it('reads on when the service reports true and off when it reports false', async () => {
+      await renderTab(on);
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
       cleanup();
       await renderTab(off);
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('disables bind and unbind and shows the hint once while locked', async () => {
+    it('hides the toggle and leaves binding enabled when the service omits the field', async () => {
       const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
-      await renderTab({ ...on, fans: [boundFan, unbound] });
-      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeDisabled();
-      expect(screen.getAllByText('devices.lianli-wireless.lockBlocksPairing')).toHaveLength(1);
-    });
-
-    it('enables bind and unbind and hides the hint while unlocked', async () => {
-      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
-      await renderTab({ ...off, fans: [boundFan, unbound] });
+      await renderTab({ ...wirelessState, lockBoundDevices: undefined, fans: [boundFan, unbound] });
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).not.toBeDisabled();
       expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeDisabled();
-      expect(screen.queryByText('devices.lianli-wireless.lockBlocksPairing')).not.toBeInTheDocument();
     });
 
-    it('renders unchecked and disabled before the state loads', async () => {
+    it('disables bind and unbind and points them at the toggle description while locked', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...on, fans: [boundFan, unbound] });
+      const hint = screen.getByText('devices.lianli-wireless.lockBoundDevicesHint');
+      for (const name of ['devices.lianli-wireless.unbind', 'devices.lianli-wireless.bind']) {
+        const btn = screen.getByRole('button', { name });
+        expect(btn).toBeDisabled();
+        expect(btn).toHaveAttribute('aria-describedby', hint.id);
+      }
+      expect(hint.id).not.toBe('');
+    });
+
+    it('enables bind and unbind with no description link while unlocked', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...off, fans: [boundFan, unbound] });
+      for (const name of ['devices.lianli-wireless.unbind', 'devices.lianli-wireless.bind']) {
+        const btn = screen.getByRole('button', { name });
+        expect(btn).not.toBeDisabled();
+        expect(btn).not.toHaveAttribute('aria-describedby');
+      }
+    });
+
+    it('renders mixed and disabled, with no empty note, before the state loads', async () => {
       await renderTab(null);
-      expect(lockSwitch()).toBeDisabled();
-      expect(lockSwitch()).toHaveAttribute('aria-checked', 'false');
+      const toggle = screen.getByRole('checkbox', { name: 'devices.lianli-wireless.lockBoundDevices' });
+      expect(toggle).toBeDisabled();
+      expect(toggle).toHaveAttribute('aria-checked', 'mixed');
+      expect(screen.queryByText('devices.lianli-wireless.noDevicesPaired')).not.toBeInTheDocument();
+    });
+
+    it('keeps bind and unbind disabled while a lock-off PUT is in flight', async () => {
+      const put = deferred<boolean>();
+      mockSetLianLiWirelessLockBound.mockReturnValueOnce(put.promise);
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...on, fans: [boundFan, unbound] });
+      await act(async () => { fireEvent.click(lockSwitch()); });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeDisabled();
+      await act(async () => { put.resolve(true); });
+    });
+
+    it('closes the unbind confirm when the lock turns on', async () => {
+      let view: ReturnType<typeof render> | undefined;
+      const refresh = vi.fn().mockResolvedValue(undefined);
+      await act(async () => { view = render(<LianLiWirelessFansTab state={off} refresh={refresh} />); });
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })); });
+      expect(screen.getByText('devices.lianli-wireless.unbindConfirmTitle')).toBeInTheDocument();
+      await act(async () => { view!.rerender(<LianLiWirelessFansTab state={on} refresh={refresh} />); });
+      expect(screen.queryByText('devices.lianli-wireless.unbindConfirmTitle')).not.toBeInTheDocument();
+    });
+
+    it('clears the row pending state and refreshes when bind resolves false', async () => {
+      mockBindLianLiWirelessFan.mockResolvedValue(false);
+      const refresh = await renderTab({ ...off, fans: [{ ...boundFan, boundToUs: false }] });
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })); });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeDisabled();
+      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.binding' })).not.toBeInTheDocument();
+      expect(refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears the row pending state and refreshes when unbind resolves false', async () => {
+      mockUnbindLianLiWirelessFan.mockResolvedValue(false);
+      const refresh = await renderTab(off);
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })); });
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbindConfirmLabel' })); });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).not.toBeDisabled();
+      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.unbinding' })).not.toBeInTheDocument();
+      expect(refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears the row pending state and refreshes when bind rejects', async () => {
+      mockBindLianLiWirelessFan.mockRejectedValue(new Error('offline'));
+      const refresh = await renderTab({ ...off, fans: [{ ...boundFan, boundToUs: false }] });
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })); });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeDisabled();
+      expect(refresh).toHaveBeenCalledTimes(1);
     });
 
     it('shows the clicked value and is disabled while saving, then shows the server value after the refresh', async () => {
@@ -192,15 +258,18 @@ describe('LianLiWirelessFansTab', () => {
         fireEvent.click(lockSwitch());
         view!.rerender(<LianLiWirelessFansTab state={on} refresh={refresh} />);
       });
+      expect(lockSwitch()).toBeDisabled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
       expect(lockSwitch()).not.toBeDisabled();
       expect(lockSwitch()).toHaveAttribute('aria-checked', 'true');
     });
 
-    it('re-enables when the refresh rejects', async () => {
+    it('re-enables after the pending window when the refresh rejects', async () => {
       const refresh = vi.fn().mockRejectedValue(new Error('offline'));
       await act(async () => { render(<LianLiWirelessFansTab state={on} refresh={refresh} />); });
       await act(async () => { fireEvent.click(lockSwitch()); });
       expect(refresh).toHaveBeenCalledTimes(1);
+      await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
       expect(lockSwitch()).not.toBeDisabled();
     });
 

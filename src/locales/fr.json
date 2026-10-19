@@ -902,7 +902,6 @@
   "devices.lianli-wireless.linkRxMissing": "Seul l'émetteur du contrôleur a été détecté. Rebranchez son câble USB.",
   "devices.lianli-wireless.linkTxMissing": "Seul le récepteur du contrôleur a été détecté. Rebranchez son câble USB.",
   "devices.lianli-wireless.loadingScreens": "Chargement des écrans…",
-  "devices.lianli-wireless.lockBlocksPairing": "Désactivez « Verrouiller les appareils jumelés » pour jumeler ou dissocier des appareils.",
   "devices.lianli-wireless.lockBoundDevices": "Verrouiller les appareils jumelés",
   "devices.lianli-wireless.lockBoundDevicesHint": "Jumelle de nouveau automatiquement vos ventilateurs et Strimers à ce contrôleur s'ils se déconnectent. Désactivez l'option pour gérer le jumelage manuellement.",
   "devices.lianli-wireless.managePanel": "Gérer le panneau",

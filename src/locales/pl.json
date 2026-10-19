@@ -909,7 +909,6 @@
   "devices.lianli-wireless.linkRxMissing": "Wykryto tylko nadajnik kontrolera. Podłącz ponownie jego kabel USB.",
   "devices.lianli-wireless.linkTxMissing": "Wykryto tylko odbiornik kontrolera. Podłącz ponownie jego kabel USB.",
   "devices.lianli-wireless.loadingScreens": "Ładowanie ekranów…",
-  "devices.lianli-wireless.lockBlocksPairing": "Wyłącz „Blokuj sparowane urządzenia”, aby sparować lub rozparować urządzenia.",
   "devices.lianli-wireless.lockBoundDevices": "Blokuj sparowane urządzenia",
   "devices.lianli-wireless.lockBoundDevicesHint": "Automatycznie ponownie paruje Twoje wentylatory i Strimery z tym kontrolerem, jeśli się rozłączą. Wyłącz, aby zarządzać parowaniem ręcznie.",
   "devices.lianli-wireless.managePanel": "Zarządzaj panelem",
