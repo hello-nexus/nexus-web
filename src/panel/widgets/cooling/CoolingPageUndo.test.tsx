@@ -99,7 +99,7 @@ describe('CoolingPage undo/redo', () => {
     fireEvent.click(undoBtn());
     // The snapshot captured 'custom' as the mode before the change.
     await waitFor(() => {
-      expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('custom');
+      expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('custom', 'undo');
     });
   });
 

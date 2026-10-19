@@ -204,14 +204,24 @@ export const fetchTemperatureSources = () =>
 export const fetchProfiles = () =>
   fetchService<ProfilesResponse>('/cooling/profiles');
 
-export const setFanSpeed = (id: string, speed: number) =>
-  postService(`/cooling/fan/${encodeURIComponent(id)}/speed`, { speed });
+/**
+ * `source` tells the service whether the write is a deliberate speed pick
+ * (omitted = "user"), the page taking a fan from BIOS into software control
+ * ("seed", with the `target` the user chose), or a history replay ("undo").
+ */
+export type FanSpeedIntent =
+  | { source: 'seed'; target: 'manual' | 'curve' }
+  | { source: 'undo' };
+
+export const setFanSpeed = (id: string, speed: number, intent?: FanSpeedIntent) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/speed`, { speed, ...intent });
 
 export const releaseFanAuto = (id: string) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/auto`, {});
 
-export const applyProfile = (name: string) =>
-  postService(`/cooling/profile/${encodeURIComponent(name)}`, {});
+/** `source` marks an automatic apply ("exit-off", "undo"); omitted = a user pick. */
+export const applyProfile = (name: string, source?: 'exit-off' | 'undo') =>
+  postService(`/cooling/profile/${encodeURIComponent(name)}${source ? `?source=${source}` : ''}`, {});
 
 export const resetPresetCurve = (name: string) =>
   postService(`/cooling/profile/${encodeURIComponent(name)}/reset`, {});
