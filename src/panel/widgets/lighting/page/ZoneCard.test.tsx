@@ -262,7 +262,7 @@ describe('ZoneCard bulk selection', () => {
     expect(rows).toEqual(['lighting.ledMap.settings']);
   });
 
-  it.each(['pl', 'ru'])('asks %s for the CLDR few form at 3', (language) => {
+  it.each(['pl', 'ru', 'cs'])('asks %s for the CLDR few form at 3', (language) => {
     i18n.language = language;
     renderBulkAndOpen(bulkProps({ count: 3, identifyCount: 3 }));
     expect(screen.getByRole('button', { name: /menuControlOffCount\.few/ })).toBeTruthy();

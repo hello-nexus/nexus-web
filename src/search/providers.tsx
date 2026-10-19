@@ -242,7 +242,7 @@ const ACCENT_NAMES: Record<string, string> = {
 const LANG_EN: Record<string, string> = {
   en: 'English', 'zh-TW': 'Chinese Traditional', 'zh-CN': 'Chinese Simplified', ja: 'Japanese', ko: 'Korean',
   de: 'German', nl: 'Dutch', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese', 'pt-BR': 'Portuguese Brazil',
-  ru: 'Russian', tr: 'Turkish', pl: 'Polish', fur: 'Friulian',
+  ru: 'Russian', tr: 'Turkish', pl: 'Polish', cs: 'Czech', fur: 'Friulian',
 };
 
 // Lighting modes, keyed by the canonical MODES. `apply` present → runs now;
