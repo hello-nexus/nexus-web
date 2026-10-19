@@ -109,8 +109,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const { push } = useToastSafe();
 
   // The Manage modal's keep-running choices apply at once: an override per app
-  // shows the click before the service answers, and drops once the list agrees
-  // or the write failed. Same-app writes run in order so a double click ends in
+  // shows the click before the service answers. It drops when the list agrees,
+  // when the write failed, or on the first list read after its last write
+  // settled, so a value changed elsewhere is never hidden. Same-app writes run in order so a double click ends in
   // the second click's state.
   const exclusionList = settings.general.conflictAutoKillExclusions;
   const [keepOverrides, setKeepOverrides] = useState<Readonly<Record<string, boolean>>>({});
@@ -118,11 +119,16 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const keepInFlight = useRef(new Map<string, number>());
   const exclusionsRef = useRef(exclusionList);
   exclusionsRef.current = exclusionList;
+  // The list that was current when an app's last write settled.
+  const settledAgainst = useRef(new Map<string, readonly string[]>());
   const dropAgreed = useCallback(() => {
     setKeepOverrides(prev => {
       let next: Record<string, boolean> | null = null;
       for (const [id, wanted] of Object.entries(prev)) {
-        if ((keepInFlight.current.get(id) ?? 0) === 0 && exclusionsRef.current.includes(id) === wanted) {
+        if ((keepInFlight.current.get(id) ?? 0) > 0) continue;
+        const settled = settledAgainst.current.get(id);
+        if (exclusionsRef.current.includes(id) === wanted || (settled !== undefined && settled !== exclusionsRef.current)) {
+          settledAgainst.current.delete(id);
           next ??= { ...prev };
           delete next[id];
         }
@@ -141,6 +147,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   }, [exclusionList, keepOverrides]);
   const setKeepRunning = useCallback((id: string, keep: boolean) => {
     setKeepOverrides(prev => ({ ...prev, [id]: keep }));
+    settledAgainst.current.delete(id);
     keepInFlight.current.set(id, (keepInFlight.current.get(id) ?? 0) + 1);
     const run = async () => {
       const res = await setConflictWhitelisted(id, keep).catch(() => null);
@@ -158,7 +165,10 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         }
         return;
       }
-      if (left === 0) dropAgreed();
+      if (left === 0) {
+        settledAgainst.current.set(id, exclusionsRef.current);
+        dropAgreed();
+      }
     };
     const queued = (keepQueue.current.get(id) ?? Promise.resolve()).then(run);
     keepQueue.current.set(id, queued);
