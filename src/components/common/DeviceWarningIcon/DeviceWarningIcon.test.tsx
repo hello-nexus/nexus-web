@@ -16,6 +16,11 @@ describe('DeviceWarningIcon', () => {
     expect(screen.getByRole('img', { name: 'devices.warning.touchPermission' })).toBeInTheDocument();
   });
 
+  it('maps the access-denied code', () => {
+    render(<DeviceWarningIcon code="access-denied" />);
+    expect(screen.getByRole('img', { name: 'devices.warning.accessDenied' })).toBeInTheDocument();
+  });
+
   it('falls back to the raw code for an unmapped code', () => {
     render(<DeviceWarningIcon code="some-future-code" />);
     expect(screen.getByRole('img', { name: 'some-future-code' })).toBeInTheDocument();
@@ -23,6 +28,11 @@ describe('DeviceWarningIcon', () => {
 });
 
 describe('DeviceWarningIcon chip', () => {
+  it('labels access-denied with its own chip', () => {
+    render(<DeviceWarningIcon code="access-denied" chip />);
+    expect(screen.getByText('devices.warning.chip.accessDenied')).toBeInTheDocument();
+  });
+
   it('labels a known code briefly and keeps the full message as its name', () => {
     render(<DeviceWarningIcon code="usb-disconnected" chip />);
     expect(screen.getByText('devices.warning.chip.usbDisconnected')).toBeInTheDocument();

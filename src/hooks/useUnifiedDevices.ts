@@ -407,7 +407,7 @@ function buildUnifiedList(
       experimental: d.experimental ?? false,
       requiresBeta: d.requiresBeta ?? false,
       // Off never opens a cooler LCD's pipe, so its unavailable warning only restates the off state.
-      warning: (d.nexusControlEnabled === false && d.warning === 'bulk-pipe-unavailable' ? undefined : d.warning) ?? undefined,
+      warning: (d.nexusControlEnabled === false && (d.warning === 'bulk-pipe-unavailable' || d.warning === 'access-denied') ? undefined : d.warning) ?? undefined,
       conflictAppId: d.conflictAppId,
       bus: d.bus ?? 'usb',
     });
