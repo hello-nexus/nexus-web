@@ -89,9 +89,15 @@ describe('CoolingPage undo/redo', () => {
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: /cooling\.mode\.custom/ }).getAttribute('aria-selected')).toBe('true');
     }, { timeout: 5000 });
+    // The snapshot records manual speeds and fan states only after the fan list lands.
+    await screen.findByText('CPU Fan');
     fireEvent.click(screen.getByRole('tab', { name: /cooling\.mode\.turbo/ }));
     await waitFor(() => {
       expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('turbo');
+    }, { timeout: 5000 });
+    // Undo reverts only a mode the page still shows; wait for turbo to be the shown one.
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /cooling\.mode\.turbo/ }).getAttribute('aria-selected')).toBe('true');
     }, { timeout: 5000 });
     await waitFor(() => { expect(undoBtn()).not.toBeDisabled(); }, { timeout: 5000 });
 
