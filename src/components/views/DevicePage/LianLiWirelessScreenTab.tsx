@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  MonitorOff, Image as ImageIcon, Film, Video, Gauge, Clock, Sparkles, MonitorSmartphone, Cast, Orbit,
+  MonitorOff, Image as ImageIcon, Film, Video, Gauge, Clock, Sparkles, MonitorSmartphone,
 } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
@@ -31,15 +31,9 @@ import {
   type LianLiWirelessScreenContentExtra,
   type LianLiWirelessMediaItem,
   type LianLiWirelessMediaKind,
-  type LianLiOverlay,
-  type LianLiScreenSource,
 } from '../../../api/lianli-wireless';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { sharedValue } from './screenSelection';
-import { captureLianLiFlexMedia, syncLianLiFlexScreens } from '../../../api/lianli-flex';
-import { DEFAULT_SCREEN_SOURCE, LianLiScreenSourcePicker } from './LianLiScreenSourcePicker';
-import { DEFAULT_OVERLAY, LianLiFlexAnimation2dPanel } from './LianLiFlexAnimation2dPanel';
-import { LianLiFlexTemplatesSection } from './LianLiFlexTemplatesSection';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -79,15 +73,6 @@ function isMediaType(type: LianLiWirelessScreenContentType): boolean {
 function choiceOf(type: LianLiWirelessScreenContentType): ContentChoice {
   return isMediaType(type) ? 'media' : type;
 }
-
-const FLEX_CONTENT_TYPES: { value: ContentChoice; labelKey: string }[] = [
-  { value: 'screen', labelKey: 'devices.lianli-flex.contentTypeScreen' },
-  { value: 'animation2d', labelKey: 'devices.lianli-flex.contentTypeAnimation2d' },
-];
-
-const CAPTURE_MIN_SECONDS = 1;
-const CAPTURE_MAX_SECONDS = 30;
-const CAPTURE_DEFAULT_SECONDS = 5;
 
 const CONTENT_TYPES: { value: ContentChoice; labelKey: string }[] = [
   { value: 'off', labelKey: 'devices.lianli-wireless.contentTypeOff' },
@@ -134,8 +119,6 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
     case 'sensor': return <Gauge size={20} aria-hidden />;
     case 'clock': return <Clock size={20} aria-hidden />;
     case 'animation': return <Sparkles size={20} aria-hidden />;
-    case 'screen': return <Cast size={20} aria-hidden />;
-    case 'animation2d': return <Orbit size={20} aria-hidden />;
     default: return <MonitorOff size={20} aria-hidden />;
   }
 }
@@ -149,7 +132,7 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  */
 export function LianLiWirelessScreenTab({
   aioMacs = [], usbMacs = [], panelOpener, api = WIRELESS_SCREEN_API,
-  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart, flex = false, screenLabels, defaultOrder,
+  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart, screenLabels, defaultOrder,
 }: {
   aioMacs?: string[];
   /** AIOs whose USB cable is connected, by MAC. */
@@ -164,17 +147,15 @@ export function LianLiWirelessScreenTab({
   supportsSleepWhenLocked?: boolean;
   /** Opens the sidebar panel of a screen in panel mode, by its panel record id. */
   onOpenScreenPanel?: (panelDeviceId: string) => void;
-  /** The wired LCD Flex screens: adds the live screen and 2D animation content, capture, sync to all and templates. */
-  flex?: boolean;
-  /** Short names for the tiles by screen serial, in place of the service's label. */
-  screenLabels?: Readonly<Record<string, string>>;
-  /** Serials in the order screens without a saved order are listed. */
-  defaultOrder?: readonly string[];
   /** Restart LCD for families whose screens can be restarted; absent otherwise. */
   lcdRestart?: {
     isRestarting: (serial: string) => boolean;
     onRestart: (serial: string) => void;
   };
+  /** Short names for the tiles by screen serial, in place of the service's label. */
+  screenLabels?: Readonly<Record<string, string>>;
+  /** Serials in the order screens without a saved order are listed. */
+  defaultOrder?: readonly string[];
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -187,15 +168,6 @@ export function LianLiWirelessScreenTab({
   const [brightnessDragging, setBrightnessDragging] = useState(false);
   // "Media" chosen before any item: no content type is posted until an item is picked.
   const [mediaPending, setMediaPending] = useState(false);
-  // 2D animation chosen before a sprite: nothing is posted until the sprite is picked.
-  const [animation2dPending, setAnimation2dPending] = useState(false);
-  const [capturing, setCapturing] = useState(false);
-  const [captureSource, setCaptureSource] = useState<LianLiScreenSource>(DEFAULT_SCREEN_SOURCE);
-  const [captureSeconds, setCaptureSeconds] = useState(CAPTURE_DEFAULT_SECONDS);
-  const [captureFailed, setCaptureFailed] = useState(false);
-  const [syncFailed, setSyncFailed] = useState(false);
-  const [syncDone, setSyncDone] = useState(false);
-  const [confirmSync, setConfirmSync] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [cropState, setCropState] = useState<CropState | null>(null);
   const [klipyOpen, setKlipyOpen] = useState(false);
@@ -322,9 +294,8 @@ export function LianLiWirelessScreenTab({
     && targetScreens.every(s => choiceOf(s.contentType) === choiceOf(targetScreens[0].contentType))
     ? choiceOf(targetScreens[0].contentType)
     : null;
-  const contentMixed = targetScreens.length > 0 && sharedChoice === null && !mediaPending && !animation2dPending;
-  const showAnimation2d = animation2dPending || sharedChoice === 'animation2d';
-  const showMedia = !animation2dPending && (mediaPending || sharedChoice === 'media');
+  const contentMixed = targetScreens.length > 0 && sharedChoice === null && !mediaPending;
+  const showMedia = mediaPending || sharedChoice === 'media';
 
   useEffect(() => {
     if (!brightnessInteractingRef.current && representative) {
@@ -385,17 +356,10 @@ export function LianLiWirelessScreenTab({
 
   const handleContentTypeChange = useCallback((choice: ContentChoice) => {
     if (choice === 'media') {
-      setAnimation2dPending(false);
       setMediaPending(true);
       return;
     }
-    if (choice === 'animation2d') {
-      setMediaPending(false);
-      setAnimation2dPending(true);
-      return;
-    }
     setMediaPending(false);
-    setAnimation2dPending(false);
     const contentType = choice;
     applyToTargets(
       s => ({ ...s, contentType }),
@@ -405,7 +369,6 @@ export function LianLiWirelessScreenTab({
 
   const handleMediaSelect = useCallback((item: LianLiWirelessMediaItem) => {
     setMediaPending(false);
-    setAnimation2dPending(false);
     applyToTargets(
       s => ({ ...s, contentType: item.kind, mediaId: item.id }),
       serial => { void api.setContent(serial, item.kind, item.id); },
@@ -427,39 +390,6 @@ export function LianLiWirelessScreenTab({
       serial => { void api.setContent(serial, contentType, undefined, patch); },
     );
   }, [applyToTargets, api]);
-
-  const handleOverlayCommit = useCallback((overlay: LianLiOverlay, backgroundMediaId: string | undefined) => {
-    setAnimation2dPending(false);
-    applyToTargets(
-      s => ({ ...s, contentType: 'animation2d', overlay, mediaId: backgroundMediaId }),
-      serial => { void api.setContent(serial, 'animation2d', backgroundMediaId, { overlay }); },
-    );
-  }, [applyToTargets, api]);
-
-  const handleCapture = useCallback(async (mode: 'screenshot' | 'recording') => {
-    setCapturing(true);
-    setCaptureFailed(false);
-    const item = await captureLianLiFlexMedia(mode === 'recording' ? { durationSeconds: captureSeconds, screenSource: captureSource } : { screenSource: captureSource }).catch(() => null);
-    if (!aliveRef.current) return;
-    setCapturing(false);
-    if (!item) {
-      setCaptureFailed(true);
-      return;
-    }
-    await refreshMedia();
-    if (aliveRef.current) handleMediaSelect(item);
-  }, [captureSeconds, captureSource, refreshMedia, handleMediaSelect]);
-
-  const handleSyncAll = useCallback(async (serial: string) => {
-    setSyncFailed(false);
-    setSyncDone(false);
-    const ok = await syncLianLiFlexScreens(serial).catch(() => false);
-    if (!aliveRef.current) return;
-    setSyncFailed(!ok);
-    setSyncDone(ok);
-    lastEditRef.current = Number.NEGATIVE_INFINITY;
-    void refreshScreens();
-  }, [refreshScreens]);
 
   const openUpload = useCallback(() => { fileInputRef.current?.click(); }, []);
 
@@ -531,7 +461,7 @@ export function LianLiWirelessScreenTab({
     });
   }, [t]);
 
-  const contentTypeOptions: SelectOption[] = [...CONTENT_TYPES, ...(flex ? FLEX_CONTENT_TYPES : [])].map(ct => ({
+  const contentTypeOptions: SelectOption[] = CONTENT_TYPES.map(ct => ({
     value: ct.value,
     label: t(ct.labelKey),
   }));
@@ -720,7 +650,7 @@ export function LianLiWirelessScreenTab({
         <SettingRow label={t('devices.lianli-wireless.contentTypeLabel')} disabled={!representative || nexusPanel.value === true}>
           <Select
             className={styles.contentTypeSelect}
-            value={contentMixed ? '' : (showAnimation2d ? 'animation2d' : showMedia ? 'media' : (sharedChoice ?? 'off'))}
+            value={contentMixed ? '' : (showMedia ? 'media' : (sharedChoice ?? 'off'))}
             placeholder={t('common.mixed')}
             options={contentTypeOptions}
             disabled={!representative || nexusPanel.value === true}
@@ -746,51 +676,23 @@ export function LianLiWirelessScreenTab({
                 onKlipyClick={() => setKlipyOpen(true)}
                 onSelect={handleMediaSelect}
                 onDeleteRequest={setPendingDeleteMedia}
-                capture={flex ? {
-                  busy: capturing,
-                  failed: captureFailed,
-                  seconds: captureSeconds,
-                  onSeconds: setCaptureSeconds,
-                  source: captureSource,
-                  onSource: setCaptureSource,
-                  onCapture: mode => { void handleCapture(mode); },
-                } : undefined}
               />
             )}
-            {showAnimation2d && (
-              <LianLiFlexAnimation2dPanel
-                overlay={sharedChoice === 'animation2d' ? representative.overlay ?? DEFAULT_OVERLAY : DEFAULT_OVERLAY}
-                backgroundMediaId={sharedChoice === 'animation2d' ? representative.mediaId : undefined}
-                media={media}
-                onCommit={handleOverlayCommit}
-              />
-            )}
-            {!showAnimation2d && !showMedia && sharedChoice === 'screen' && (
-              <>
-                <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-flex.screenMirrorHint')}</p>
-                <LianLiScreenSourcePicker
-                  label={t('devices.lianli-flex.screenSourceRegionAria')}
-                  value={representative.screenSource ?? DEFAULT_SCREEN_SOURCE}
-                  onPreview={screenSource => previewContentField({ screenSource })}
-                  onCommit={screenSource => commitContentField('screen', { screenSource })}
-                />
-              </>
-            )}
-            {!showAnimation2d && !showMedia && sharedChoice === 'sensor' && (
+            {!showMedia && sharedChoice === 'sensor' && (
               <SensorPanel
                 screens={targetScreens}
                 onPreview={previewContentField}
                 onCommit={patch => commitContentField('sensor', patch)}
               />
             )}
-            {!showAnimation2d && !showMedia && sharedChoice === 'clock' && (
+            {!showMedia && sharedChoice === 'clock' && (
               <ClockPanel
                 screens={targetScreens}
                 onPreview={previewContentField}
                 onCommit={patch => commitContentField('clock', patch)}
               />
             )}
-            {!showAnimation2d && !showMedia && sharedChoice === 'animation' && (
+            {!showMedia && sharedChoice === 'animation' && (
               <AnimationPanel
                 screens={targetScreens}
                 onPreview={previewContentField}
@@ -798,29 +700,6 @@ export function LianLiWirelessScreenTab({
               />
             )}
           </div>
-        )}
-
-        {flex && (
-          <SettingRow
-            label={t('devices.lianli-flex.screenSyncAll')}
-            description={t('devices.lianli-flex.screenSyncAllHint')}
-            disabled={selected.size !== 1}
-          >
-            <Button
-              size="sm"
-              tone="neutral"
-              disabled={selected.size !== 1 || !representative || orderedScreens.length < 2}
-              onClick={() => { if (representative) setConfirmSync(representative.serial); }}
-            >
-              {t('devices.lianli-flex.screenSyncAllButton')}
-            </Button>
-          </SettingRow>
-        )}
-        {flex && syncDone && (
-          <p className={styles.emptyNote} role="status" data-settings-aside="true">{t('devices.lianli-flex.screenSyncAllDone')}</p>
-        )}
-        {flex && syncFailed && (
-          <p className={styles.emptyNote} role="alert" data-settings-aside="true">{t('devices.lianli-flex.screenSyncAllFailed')}</p>
         )}
 
         <input
@@ -832,27 +711,6 @@ export function LianLiWirelessScreenTab({
           data-settings-aside="true"
         />
       </SettingsSection>}
-
-      {flex && fanScreens && (
-        <LianLiFlexTemplatesSection
-          serials={[...selected]}
-          sourceSerial={selected.size === 1 ? representative?.serial ?? null : null}
-        />
-      )}
-
-      <ConfirmModal
-        open={confirmSync !== null}
-        title={t('devices.lianli-flex.screenSyncAllConfirmTitle')}
-        message={t('devices.lianli-flex.screenSyncAllConfirmMessage')}
-        confirmLabel={t('devices.lianli-flex.screenSyncAllButton')}
-        destructive={false}
-        onCancel={() => setConfirmSync(null)}
-        onConfirm={() => {
-          const serial = confirmSync;
-          setConfirmSync(null);
-          if (serial) void handleSyncAll(serial);
-        }}
-      />
 
       <ConfirmModal
         open={pendingDeleteMedia != null}
@@ -892,7 +750,7 @@ export function LianLiWirelessScreenTab({
 }
 
 function MediaPanel({
-  media, currentMediaId, uploading, onUploadClick, onKlipyClick, onSelect, onDeleteRequest, capture,
+  media, currentMediaId, uploading, onUploadClick, onKlipyClick, onSelect, onDeleteRequest,
 }: {
   media: LianLiWirelessMediaItem[];
   currentMediaId: string | null;
@@ -901,16 +759,6 @@ function MediaPanel({
   onKlipyClick: () => void;
   onSelect: (item: LianLiWirelessMediaItem) => void;
   onDeleteRequest: (item: LianLiWirelessMediaItem) => void;
-  /** Wired LCD Flex only: capture the display into the library. */
-  capture?: {
-    busy: boolean;
-    failed: boolean;
-    seconds: number;
-    onSeconds: (seconds: number) => void;
-    source: LianLiScreenSource;
-    onSource: (source: LianLiScreenSource) => void;
-    onCapture: (mode: 'screenshot' | 'recording') => void;
-  };
 }) {
   const { t } = useTranslation();
 
@@ -930,39 +778,6 @@ function MediaPanel({
           {t('lighting.controls.klipyBrowse')}
         </Button>
       </div>
-      {capture && (
-        <>
-          <LianLiScreenSourcePicker
-            label={t('devices.lianli-flex.captureRegionAria')}
-            value={capture.source}
-            onPreview={capture.onSource}
-            onCommit={capture.onSource}
-          />
-          <div className={styles.orderButtons}>
-            <Button size="sm" tone="neutral" disabled={capture.busy || uploading} onClick={() => capture.onCapture('screenshot')}>
-              {capture.busy ? t('devices.lianli-flex.capturing') : t('devices.lianli-flex.captureScreenshot')}
-            </Button>
-            <Button size="sm" tone="neutral" disabled={capture.busy || uploading} onClick={() => capture.onCapture('recording')}>
-              {capture.busy ? t('devices.lianli-flex.capturing') : t('devices.lianli-flex.captureRecording')}
-            </Button>
-          </div>
-          <SettingSlider
-            editable
-            trackFill
-            label={t('devices.lianli-flex.captureSeconds')}
-            value={capture.seconds}
-            min={CAPTURE_MIN_SECONDS}
-            max={CAPTURE_MAX_SECONDS}
-            step={1}
-            formatValue={v => t('devices.lianli-flex.seconds', { n: v })}
-            ariaLabel={t('devices.lianli-flex.captureSeconds')}
-            disabled={capture.busy}
-            onChange={(v: number) => capture.onSeconds(Math.round(v))}
-            onCommit={(v: number) => capture.onSeconds(Math.round(v))}
-          />
-          {capture.failed && <p className={styles.emptyNote} role="alert">{t('devices.lianli-flex.captureFailed')}</p>}
-        </>
-      )}
       {media.length > 0 ? (
         <div className={styles.mediaGrid}>
           {media.map(item => (

@@ -62,16 +62,12 @@ interface LianLiWirelessLightingTabProps {
   api?: LianLiChainLightingApi;
   /** Rendered above the chains, for example a group control. */
   header?: ReactNode;
-  /** Rendered below the chains. */
-  footer?: ReactNode;
-  /** Extra rows at the end of one chain's section. */
-  chainExtra?: (chain: LianLiWirelessChainLighting, reload: () => void) => ReactNode;
   /** The wired fans are synced as a group, so their own look controls do nothing. */
   syncOn?: boolean;
 }
 
 /** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
-export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, footer, chainExtra, syncOn = false }: LianLiWirelessLightingTabProps) {
+export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false }: LianLiWirelessLightingTabProps) {
   const { t } = useTranslation();
   const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
@@ -131,7 +127,6 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
           laneModes={data.laneModes}
           onPreview={patch => preview(chain.mac, patch)}
           onCommit={patch => { void commit(chain.mac, patch); }}
-          extra={chainExtra?.(chain, () => { void refresh(); })}
           followsTitle={leader && leader.mac !== chain.mac ? chainTitle(t, leader) : undefined}
           onReset={api.reset ? () => reset(chain.mac) : undefined}
           onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
@@ -141,7 +136,6 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
           onSectionNavigate={onSectionNavigate}
         />
       ))}
-      {footer}
     </>
   );
 }
@@ -155,8 +149,6 @@ interface ChainSectionProps {
   onReset?: () => Promise<boolean>;
   /** Title of the unit whose look this one follows while merged, when it is not the leader. */
   followsTitle?: string;
-  /** Extra rows at the end of the section. */
-  extra?: ReactNode;
   /** Present when the fans have an order to set. */
   onMove?: (delta: -1 | 1) => void;
   first: boolean;
@@ -166,7 +158,7 @@ interface ChainSectionProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, extra, followsTitle, onMove, first, last, synced, onSectionNavigate }: ChainSectionProps) {
+function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, synced, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetFailed, setResetFailed] = useState(false);
@@ -295,7 +287,6 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, extra, f
           </Button>
         </SettingRow>
       )}
-      {extra}
       {resetFailed && (
         <p className={styles.customNote} role="alert" data-settings-aside="true">
           {t('devices.lianli-flex.resetFailed')}

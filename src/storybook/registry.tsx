@@ -140,7 +140,6 @@ import { DeckPageStrip } from '../panel/widgets/deck/DeckPageStrip';
 import { DeckDevicePreview } from '../panel/widgets/deck/DeckDevicePreview';
 import { makePresetDeckTarget } from '../panel/widgets/deck/deckTarget';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
-import { SquareRegionPicker } from '../components/common/SquareRegionPicker/SquareRegionPicker';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
@@ -2389,17 +2388,6 @@ function PreviewMediaCropper() {
   );
 }
 
-function PreviewSquareRegionPicker() {
-  const [region, setRegion] = useState({ x: 0, y: 0, size: 0 });
-  return (
-    <div style={{ width: 320 }}>
-      <SquareRegionPicker aspect={16 / 9} region={region} ariaLabel="Region" onPreview={setRegion} onCommit={setRegion}>
-        Display
-      </SquareRegionPicker>
-    </div>
-  );
-}
-
 function PreviewMenuDivider() {
   return (
     <div style={{ width: 200, background: 'var(--bg-elevated)', padding: '0.35rem', borderRadius: 'var(--radius-sm)' }}>
@@ -3244,18 +3232,6 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/MediaCropper/MediaCropper.tsx',
     description: 'Aspect-locked image cropper modal. Drag to pan, corner handles to resize. Emits NormalizedCrop { x, y, w, h } in 0..1 of the source image. Used when importing lighting media, selecting a background media item for a panel device, and cropping the account avatar (aspect={1}).',
     Preview: PreviewMediaCropper,
-  },
-  {
-    name: 'SquareRegionPicker', category: 'inputs',
-    filePath: 'src/components/common/SquareRegionPicker/SquareRegionPicker.tsx',
-    description: 'A display drawn at its aspect ratio with a draggable square on it, normalized to the display. Drag it or move it with the arrow keys; children (a picture or live preview) draw under the square. Used for choosing the part of a display a fan screen shows or captures.',
-    Preview: PreviewSquareRegionPicker,
-  },
-  {
-    name: 'ScreenPreviewCanvas', category: 'inputs',
-    filePath: 'src/components/common/ScreenPreviewCanvas/ScreenPreviewCanvas.tsx',
-    description: 'Canvas showing the live capture of the Mirror monitor from the service preview stream; reports the frame size and renders nothing when the service has no capture source.',
-    notes: 'No live preview - it opens a WebSocket to the running service, so it is not mounted here.',
   },
   {
     name: 'SyncConflictModal', category: 'modals',

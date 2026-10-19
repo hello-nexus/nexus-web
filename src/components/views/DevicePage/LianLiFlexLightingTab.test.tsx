@@ -212,22 +212,10 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     }
   });
 
-  it('renders the header, footer and per-unit extra rows around the units', async () => {
+  it('renders the header above the units', async () => {
     mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit, slInfUnit] });
-    await act(async () => {
-      render(
-        <LianLiWirelessLightingTab
-          api={api}
-          header={<p>group-header</p>}
-          footer={<p>group-footer</p>}
-          chainExtra={chain => <p>extra-{chain.mac}</p>}
-        />,
-      );
-    });
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} header={<p>group-header</p>} />); });
     expect(screen.getByText('group-header')).toBeInTheDocument();
-    expect(screen.getByText('group-footer')).toBeInTheDocument();
-    expect(screen.getByText('extra-AA11')).toBeInTheDocument();
-    expect(screen.getByText('extra-BB22')).toBeInTheDocument();
   });
 
   it('puts each zone directly under the Mode, before the swap, order, reset and apply rows', async () => {
