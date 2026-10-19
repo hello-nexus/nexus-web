@@ -5075,7 +5075,6 @@
   "settings.conflictApps.notifyLaunch.description": "Pokaż powiadomienie Windows z przyciskiem do zamknięcia aplikacji, gdy jedna z włączonych poniżej aplikacji uruchomi się podczas działania Nexusa",
   "settings.conflictApps.notifyLaunch.label": "Powiadamiaj, gdy zostanie uruchomiona konfliktująca aplikacja",
   "settings.conflictApps.runningNow": "Uruchomione na tym komputerze",
-  "settings.conflictApps.saveFailed": "Nie można zapisać tego wyboru.",
   "settings.conflictApps.searchPlaceholder": "Szukaj aplikacji",
   "settings.conflictApps.title": "Aplikacje powodujące konflikt",
   "settings.conflictApps.toggleColumn": "Zamknij",

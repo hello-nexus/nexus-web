@@ -5028,7 +5028,6 @@
   "settings.conflictApps.notifyLaunch.description": "Eine Windows-Benachrichtigung mit einer Schaltfläche zum Beenden der App anzeigen, wenn eine der unten aktivierten Apps startet, während Nexus läuft",
   "settings.conflictApps.notifyLaunch.label": "Benachrichtigen, wenn eine konfliktverursachende App geöffnet wird",
   "settings.conflictApps.runningNow": "Auf diesem PC aktiv",
-  "settings.conflictApps.saveFailed": "Diese Auswahl konnte nicht gespeichert werden.",
   "settings.conflictApps.searchPlaceholder": "Apps suchen",
   "settings.conflictApps.title": "Konfliktverursachende Apps",
   "settings.conflictApps.toggleColumn": "Beenden",

@@ -5075,7 +5075,6 @@
   "settings.conflictApps.notifyLaunch.description": "Zobrazí oznámení Windows s tlačítkem pro ukončení aplikace, když se za běhu Nexusu spustí některá z níže povolených aplikací",
   "settings.conflictApps.notifyLaunch.label": "Upozornit při otevření konfliktní aplikace",
   "settings.conflictApps.runningNow": "Běží na tomto PC",
-  "settings.conflictApps.saveFailed": "Tuto volbu se nepodařilo uložit.",
   "settings.conflictApps.searchPlaceholder": "Hledat aplikace",
   "settings.conflictApps.title": "Konfliktní aplikace",
   "settings.conflictApps.toggleColumn": "Ukončit",

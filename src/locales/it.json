@@ -5028,7 +5028,6 @@
   "settings.conflictApps.notifyLaunch.description": "Mostra una notifica di Windows con un pulsante per chiudere l'app quando una delle app attivate qui sotto si avvia mentre Nexus è in esecuzione",
   "settings.conflictApps.notifyLaunch.label": "Notifica quando si apre un'app in conflitto",
   "settings.conflictApps.runningNow": "In esecuzione su questo PC",
-  "settings.conflictApps.saveFailed": "Impossibile salvare questa scelta.",
   "settings.conflictApps.searchPlaceholder": "Cerca app",
   "settings.conflictApps.title": "App in conflitto",
   "settings.conflictApps.toggleColumn": "Chiudi",

@@ -5028,7 +5028,6 @@
   "settings.conflictApps.notifyLaunch.description": "Nexus の実行中に下でオンにしたアプリが起動すると、終了ボタン付きの Windows 通知を表示します",
   "settings.conflictApps.notifyLaunch.label": "競合するアプリが起動したら通知する",
   "settings.conflictApps.runningNow": "この PC で実行中",
-  "settings.conflictApps.saveFailed": "この選択を保存できませんでした。",
   "settings.conflictApps.searchPlaceholder": "アプリを検索",
   "settings.conflictApps.title": "競合するアプリ",
   "settings.conflictApps.toggleColumn": "終了",

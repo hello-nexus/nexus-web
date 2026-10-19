@@ -5075,7 +5075,6 @@
   "settings.conflictApps.notifyLaunch.description": "Показывать уведомление Windows с кнопкой для завершения приложения, когда одно из включённых ниже приложений запускается во время работы Nexus",
   "settings.conflictApps.notifyLaunch.label": "Уведомлять при запуске конфликтующего приложения",
   "settings.conflictApps.runningNow": "Запущены на этом ПК",
-  "settings.conflictApps.saveFailed": "Не удалось сохранить этот выбор.",
   "settings.conflictApps.searchPlaceholder": "Поиск приложений",
   "settings.conflictApps.title": "Конфликтующие приложения",
   "settings.conflictApps.toggleColumn": "Закрыть",

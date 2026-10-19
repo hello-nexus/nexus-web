@@ -5028,7 +5028,6 @@
   "settings.conflictApps.notifyLaunch.description": "Afficher une notification Windows avec un bouton pour fermer l'application lorsqu'une des applications activées ci-dessous démarre pendant l'exécution de Nexus",
   "settings.conflictApps.notifyLaunch.label": "Avertir à l'ouverture d'une application en conflit",
   "settings.conflictApps.runningNow": "En cours d'exécution sur ce PC",
-  "settings.conflictApps.saveFailed": "Impossible d'enregistrer ce choix.",
   "settings.conflictApps.searchPlaceholder": "Rechercher des applications",
   "settings.conflictApps.title": "Applications en conflit",
   "settings.conflictApps.toggleColumn": "Fermer",
