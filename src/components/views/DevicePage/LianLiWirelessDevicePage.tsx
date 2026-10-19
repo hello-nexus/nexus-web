@@ -8,6 +8,7 @@ import {
   type LianLiWirelessLinkStatus,
 } from '../../../api/lianli-wireless';
 import {
+  APPLY_LIGHTING,
   LIANLI_FLEX_CHANNEL_PREFIX,
   getLianLiFlexState,
   identifyLianLiFlexFan,
@@ -16,6 +17,9 @@ import {
   restartLianLiFlexLcd,
 } from '../../../api/lianli-flex';
 import { WIRELESS_CHANNEL_PREFIX } from './lianliWirelessCoolingUtils';
+import { LianLiFlexApplyAllRow } from './LianLiFlexApplyAllRow';
+import { LianLiFlexSyncSection } from './LianLiFlexSyncSection';
+import { LianLiFlexThermalAlertSection } from './LianLiFlexThermalAlertSection';
 import { reconcileRestarts, type RestartPending } from './lianliFlexRestart';
 import { fetchPanelDevices } from '../../../api/panel';
 import { streamedPanelId } from '../../../hooks/usePanelDevices';
@@ -213,6 +217,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
   // A wired unit with its control on always can.
   const hasLighting = flex ? hasFans : hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
     && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
+  const flexUnits = (state?.fans ?? []).filter(f => f.boundToUs).map(f => ({
+    mac: f.mac,
+    title: t(`devices.lianli-wireless.${fanTypeKey(f.fanType)}` as Parameters<typeof t>[0]),
+  }));
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
   const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
   const usbMacs = (state?.fans ?? []).filter(f => f.usbConnected).map(f => f.mac);
@@ -263,17 +271,23 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
             <LianLiWirelessLightingTab
               onSectionNavigate={onSectionNavigate}
               api={flex ? lianLiFlexLightingApi : undefined}
+              header={flex ? <LianLiFlexSyncSection /> : undefined}
+              footer={flex ? <LianLiFlexThermalAlertSection units={flexUnits} /> : undefined}
+              chainExtra={flex ? (chain, reload) => <LianLiFlexApplyAllRow mac={chain.mac} what={APPLY_LIGHTING} onApplied={reload} /> : undefined}
             />
           )}
           {tab === 'cooling' && (
             <LianLiWirelessCoolingTab
               state={state}
               channelPrefix={flex ? LIANLI_FLEX_CHANNEL_PREFIX : WIRELESS_CHANNEL_PREFIX}
+              flex={flex}
+              onSectionNavigate={onSectionNavigate}
             />
           )}
           {tab === 'screen' && (
             <LianLiWirelessScreenTab
               api={flex ? lianLiFlexScreenApi : undefined}
+              flex={flex}
               lcdRestart={lcdRestart}
               aioMacs={aioMacs}
               usbMacs={usbMacs}

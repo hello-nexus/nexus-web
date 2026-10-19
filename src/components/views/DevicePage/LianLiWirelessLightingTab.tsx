@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
@@ -60,10 +60,16 @@ interface LianLiWirelessLightingTabProps {
   onSectionNavigate?: (section: string) => void;
   /** The lighting endpoints of the device family; the wireless ones by default. */
   api?: LianLiChainLightingApi;
+  /** Rendered above the chains, for example a group control. */
+  header?: ReactNode;
+  /** Rendered below the chains. */
+  footer?: ReactNode;
+  /** Extra rows at the end of one chain's section. */
+  chainExtra?: (chain: LianLiWirelessChainLighting, reload: () => void) => ReactNode;
 }
 
 /** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
-export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API }: LianLiWirelessLightingTabProps) {
+export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, footer, chainExtra }: LianLiWirelessLightingTabProps) {
   const { t } = useTranslation();
   const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
@@ -114,6 +120,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   const leader = chains.find(c => c.mac === leaderMac);
   return (
     <>
+      {header}
       {chains.map((chain, i) => (
         <ChainSection
           key={chain.mac}
@@ -121,6 +128,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
           laneModes={data.laneModes}
           onPreview={patch => preview(chain.mac, patch)}
           onCommit={patch => { void commit(chain.mac, patch); }}
+          extra={chainExtra?.(chain, () => { void refresh(); })}
           followsTitle={leader && leader.mac !== chain.mac ? chainTitle(t, leader) : undefined}
           onReset={api.reset ? () => reset(chain.mac) : undefined}
           onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
@@ -129,6 +137,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
           onSectionNavigate={onSectionNavigate}
         />
       ))}
+      {footer}
     </>
   );
 }
@@ -142,6 +151,8 @@ interface ChainSectionProps {
   onReset?: () => Promise<boolean>;
   /** Title of the unit whose look this one follows while merged, when it is not the leader. */
   followsTitle?: string;
+  /** Extra rows at the end of the section. */
+  extra?: ReactNode;
   /** Present when the fans have an order to set. */
   onMove?: (delta: -1 | 1) => void;
   first: boolean;
@@ -149,7 +160,7 @@ interface ChainSectionProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, onSectionNavigate }: ChainSectionProps) {
+function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, extra, followsTitle, onMove, first, last, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetFailed, setResetFailed] = useState(false);
@@ -260,6 +271,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, followsT
           </Button>
         </SettingRow>
       )}
+      {extra}
       {resetFailed && (
         <p className={styles.customNote} role="alert" data-settings-aside="true">
           {t('devices.lianli-flex.resetFailed')}

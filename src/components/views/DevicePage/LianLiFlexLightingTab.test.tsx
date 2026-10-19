@@ -210,4 +210,22 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('devices.lianli-flex.resetFailed');
     }
   });
+
+  it('renders the header, footer and per-unit extra rows around the units', async () => {
+    mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit, slInfUnit] });
+    await act(async () => {
+      render(
+        <LianLiWirelessLightingTab
+          api={api}
+          header={<p>group-header</p>}
+          footer={<p>group-footer</p>}
+          chainExtra={chain => <p>extra-{chain.mac}</p>}
+        />,
+      );
+    });
+    expect(screen.getByText('group-header')).toBeInTheDocument();
+    expect(screen.getByText('group-footer')).toBeInTheDocument();
+    expect(screen.getByText('extra-AA11')).toBeInTheDocument();
+    expect(screen.getByText('extra-BB22')).toBeInTheDocument();
+  });
 });

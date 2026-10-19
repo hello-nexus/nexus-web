@@ -227,7 +227,7 @@ export async function setLianLiAioScreen(mac: string, patch: LianLiAioScreenPatc
 }
 
 export type LianLiWirelessScreenContentType =
-  | 'off' | 'image' | 'gif' | 'video' | 'sensor' | 'clock' | 'animation';
+  | 'off' | 'image' | 'gif' | 'video' | 'sensor' | 'clock' | 'animation' | 'screen' | 'animation2d';
 
 export type LianLiWirelessSensorSource =
   'cpuLoad' | 'cpuTemp' | 'gpuLoad' | 'gpuTemp' | 'memoryUsage' | 'vramUsage' | 'fanRpm';
@@ -235,6 +235,36 @@ export type LianLiWirelessSensorStyle = 'ring' | 'bar';
 export type LianLiWirelessClockFace = 'digital' | 'digitalMinimal' | 'analogClassic' | 'analogMinimal';
 export type LianLiWirelessAnimationId = 'pulse' | 'spectrum' | 'spin';
 export type LianLiWirelessTempUnit = 'c' | 'f';
+
+export type LianLiOverlayType = 'circular' | 'rotate' | 'bounce' | 'collision';
+
+/** A sprite that moves over the screen's background (2D animation). */
+export interface LianLiOverlay {
+  type: LianLiOverlayType;
+  /** PNG or GIF from the media library. */
+  spriteMediaId: string;
+  /** 1 slowest .. 10 fastest */
+  speed: number;
+  loop: boolean;
+  /** Percent, 50..200 */
+  zoom: number;
+  /** 0 clockwise, 1 counterclockwise */
+  direction: number;
+  centerX: number;
+  centerY: number;
+  params: {
+    radius?: number;
+    rotateAngle?: number;
+    autoReverse?: boolean;
+    upHeight?: number;
+    /** Index 0..4 */
+    bounciness?: number;
+    dwellSeconds?: number;
+    /** Index 0..2 */
+    rotationIntensity?: number;
+    selfRotate?: boolean;
+  };
+}
 
 export interface LianLiWirelessScreen {
   serial: string;
@@ -271,11 +301,14 @@ export interface LianLiWirelessScreen {
   panelDeviceId?: string | null;
   /** The screen is a Nexus panel; `contentType` is what it shows while this is off. */
   nexusPanel?: boolean;
+  /** Set when contentType is "animation2d". */
+  overlay?: LianLiOverlay;
   /** Uni Fan TL only: the screen's port and fan, e.g. "#1.2"; empty when unknown. */
   label?: string;
 }
 
 export interface LianLiWirelessScreenContentExtra {
+  overlay?: LianLiOverlay;
   sensorSource?: LianLiWirelessSensorSource;
   sensorStyle?: LianLiWirelessSensorStyle;
   clockFace?: LianLiWirelessClockFace;
@@ -349,7 +382,7 @@ export interface LianLiWirelessMediaItem {
 // <img> loads can't send a Bearer header, so the authenticated thumbnail URL
 // carries the session token as a query param (server's ExtractBearerOrQueryToken
 // accepts ?token=), same scheme as tryxMediaFileUrl.
-function mediaThumbUrl(id: string): string {
+export function lianLiMediaThumbUrl(id: string): string {
   const base = resolveHttp(`/devices/lianli-wireless/media/${encodeURIComponent(id)}/thumb`);
   const t = getTokenSync();
   return t ? `${base}?token=${encodeURIComponent(t)}` : base;
@@ -363,7 +396,7 @@ interface MediaListItem {
 
 export async function getLianLiWirelessMedia(): Promise<LianLiWirelessMediaItem[]> {
   const r = await fetchService<{ items: MediaListItem[] }>('/devices/lianli-wireless/media');
-  return (r?.items ?? []).map(it => ({ ...it, thumb: mediaThumbUrl(it.id) }));
+  return (r?.items ?? []).map(it => ({ ...it, thumb: lianLiMediaThumbUrl(it.id) }));
 }
 
 // LCD screens are a fixed 400x400 square; every upload is cropped to that
@@ -389,7 +422,7 @@ export async function importLianLiWirelessMedia(
   form.append('targetHeight', String(LIANLI_WIRELESS_MEDIA_HEIGHT));
   const r = await postServiceForm<MediaImportResponse>('/devices/lianli-wireless/media/import', form);
   if (!r || r.error || !r.mediaId) return null;
-  return { id: r.mediaId, name: r.name ?? file.name, kind: r.kind ?? 'image', thumb: mediaThumbUrl(r.mediaId) };
+  return { id: r.mediaId, name: r.name ?? file.name, kind: r.kind ?? 'image', thumb: lianLiMediaThumbUrl(r.mediaId) };
 }
 
 export async function deleteLianLiWirelessMedia(id: string): Promise<boolean> {
