@@ -8,7 +8,7 @@ import { localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
 const PERCENT_PER_LEVEL = 25;
-// The palette the service renders with when a chain has no user colours.
+// Palette slots shown for a service that reports no default colors of its own.
 export const LIANLI_DEFAULT_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
 
 type Translate = ReturnType<typeof useTranslation>['t'];
@@ -36,6 +36,8 @@ interface LianLiChainEffectControlsProps {
   /** Dims the palette without locking it, as the Lighting page does while it owns the fan. */
   paletteDimmed?: boolean;
   hideBrightness?: boolean;
+  /** Saves only the colors the effect uses; a service that caps the palette refuses more. */
+  trimPalette?: boolean;
   /** Shows the speed slider even for an effect that has none of its own. */
   forceSpeed?: boolean;
   onModeChange: (key: string) => void;
@@ -47,7 +49,7 @@ interface LianLiChainEffectControlsProps {
 
 /** Mode, brightness, speed, direction and palette of one wireless-style animation. */
 export function LianLiChainEffectControls({
-  modes, value, modeOptions, modeValue, disabled, paletteDimmed = false, hideBrightness = false, forceSpeed = false,
+  modes, value, modeOptions, modeValue, disabled, paletteDimmed = false, hideBrightness = false, forceSpeed = false, trimPalette = false,
   onModeChange, onPreview, onCommit, children,
 }: LianLiChainEffectControlsProps) {
   const { t } = useTranslation();
@@ -59,12 +61,14 @@ export function LianLiChainEffectControls({
     { value: '1', label: t('devices.lianli.directionRtl') },
   ];
 
-  // The palette is a fixed set of slots; an effect reads its first colorsMax.
-  const palette = LIANLI_DEFAULT_COLORS.map((fallback, i) => value.colors[i] ?? fallback);
+  // The palette is a fixed set of slots; an effect reads its first colorsMax. Empty slots show
+  // what the effect plays by default.
+  const fallbacks = effect?.defaultColors?.length ? effect.defaultColors : LIANLI_DEFAULT_COLORS;
+  const palette = LIANLI_DEFAULT_COLORS.map((slot, i) => value.colors[i] ?? fallbacks[i] ?? slot);
   const setColor = (i: number, hex: string, commit: boolean) => {
     const next = [...palette];
     next[i] = hex;
-    (commit ? onCommit : onPreview)({ colors: next });
+    (commit ? onCommit : onPreview)({ colors: trimPalette && effect ? next.slice(0, effect.colorsMax) : next });
   };
 
   return (

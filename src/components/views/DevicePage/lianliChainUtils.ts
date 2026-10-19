@@ -15,12 +15,19 @@ export function applyChainPatch(chain: LianLiWirelessChainLighting, patch: LianL
   return next;
 }
 
-/** Chains in light-sequence order. A service without sequence numbers keeps its own order. */
+/** Chains in light-sequence order; equal sequence numbers fall back to the MAC, as the service orders them. */
 export function sortBySequence(chains: readonly LianLiWirelessChainLighting[]): LianLiWirelessChainLighting[] {
   return chains
     .map((chain, index) => ({ chain, index }))
-    .sort((a, b) => (a.chain.sortIndex ?? 0) - (b.chain.sortIndex ?? 0) || a.index - b.index)
+    .sort((a, b) => (a.chain.sortIndex ?? 0) - (b.chain.sortIndex ?? 0)
+      || (a.chain.mac < b.chain.mac ? -1 : a.chain.mac > b.chain.mac ? 1 : 0)
+      || a.index - b.index)
     .map(x => x.chain);
+}
+
+/** MAC of the unit that sets the look of a merged group: the first unit with merge on in sequence order. */
+export function mergeLeaderMac(chains: readonly LianLiWirelessChainLighting[]): string | null {
+  return sortBySequence(chains).find(c => c.merge === true)?.mac ?? null;
 }
 
 /**

@@ -351,7 +351,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [wirelessPresetIds, setWirelessPresetIds] = useState<ReadonlySet<string>>(() => new Set());
   const refreshWirelessPresets = useCallback(async () => {
     const [wireless, flex] = await Promise.all([
-      getLianLiWirelessLighting(),
+      getLianLiWirelessLighting().catch(() => null),
       lianLiFlexLightingApi.get().catch(() => null),
     ]);
     if (!wireless && !flex) return;

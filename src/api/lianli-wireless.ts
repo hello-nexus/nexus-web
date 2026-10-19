@@ -102,6 +102,8 @@ export interface LianLiWirelessLightingEffect {
   colorsMax: number;
   /** Has a variant that runs across every fan of the chain. Absent on an older service. */
   mergeable?: boolean;
+  /** Palette the effect plays when no colors are chosen, as #RRGGBB. Absent on a service that has none. */
+  defaultColors?: string[];
 }
 
 export interface LianLiWirelessLane {

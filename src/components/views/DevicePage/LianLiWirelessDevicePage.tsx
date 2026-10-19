@@ -61,7 +61,6 @@ const LINK_HINT_KEYS: Partial<Record<LianLiWirelessLinkStatus, string>> = {
 
 const FLEX_LINK_HINT_KEYS: Partial<Record<LianLiWirelessLinkStatus, string>> = {
   busy: 'devices.lianli-flex.linkBusy',
-  openFailed: 'devices.lianli-flex.linkOpenFailed',
 };
 
 interface LianLiWirelessDevicePageProps {

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
-import { applyChainPatch, moveInSequence, sortBySequence } from './lianliChainUtils';
+import { applyChainPatch, mergeLeaderMac, moveInSequence, sortBySequence } from './lianliChainUtils';
 
 function chain(mac: string, extra: Partial<LianLiWirelessChainLighting> = {}): LianLiWirelessChainLighting {
   return {
@@ -33,10 +33,10 @@ describe('applyChainPatch', () => {
 });
 
 describe('sortBySequence', () => {
-  it('orders by sort index and keeps the service order for ties and absent indexes', () => {
-    const list = [chain('A', { sortIndex: 1 }), chain('B', { sortIndex: 0 }), chain('C', { sortIndex: 0 })];
+  it('orders by sort index and breaks ties on the MAC', () => {
+    const list = [chain('A', { sortIndex: 1 }), chain('C', { sortIndex: 0 }), chain('B', { sortIndex: 0 })];
     expect(sortBySequence(list).map(c => c.mac)).toEqual(['B', 'C', 'A']);
-    expect(sortBySequence([chain('X'), chain('Y')]).map(c => c.mac)).toEqual(['X', 'Y']);
+    expect(sortBySequence([chain('Y'), chain('X')]).map(c => c.mac)).toEqual(['X', 'Y']);
   });
 });
 
@@ -56,5 +56,16 @@ describe('moveInSequence', () => {
     expect(moveInSequence(list, 'A', -1)).toEqual([]);
     expect(moveInSequence(list, 'B', 1)).toEqual([]);
     expect(moveInSequence(list, 'Z', 1)).toEqual([]);
+  });
+});
+
+describe('mergeLeaderMac', () => {
+  it('is the first unit with merge on in sequence order', () => {
+    const list = [chain('A', { sortIndex: 0, merge: false }), chain('C', { sortIndex: 1, merge: true }), chain('B', { sortIndex: 1, merge: true })];
+    expect(mergeLeaderMac(list)).toBe('B');
+  });
+
+  it('is null when no unit merges', () => {
+    expect(mergeLeaderMac([chain('A'), chain('B', { merge: false })])).toBeNull();
   });
 });

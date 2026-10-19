@@ -171,6 +171,17 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
       expect(button()).not.toBeDisabled();
     });
 
+    it('keeps the pending state while the restarting screen is missing from the screens list', async () => {
+      await openScreens();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.restartLcdButton' }));
+      });
+      mockScreens.mockResolvedValue([]);
+      mockState.mockResolvedValue(connected([{ ...unit, lcdRestarting: true }]));
+      await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+      expect(screen.getByRole('button', { name: 'devices.lianli-flex.restartingLcd' })).toBeDisabled();
+    });
+
     it('re-enables the button when the service refuses the restart', async () => {
       mockRestart.mockResolvedValue(false);
       await openScreens();

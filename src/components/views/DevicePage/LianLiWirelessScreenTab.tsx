@@ -266,6 +266,8 @@ export function LianLiWirelessScreenTab({
   const targetScreens = orderedScreens.filter(s => selected.has(s.serial));
   const selectedIndex = selected.size === 1 ? orderedScreens.findIndex(s => selected.has(s.serial)) : -1;
   const representative = targetScreens[0] ?? null;
+  // A restarting screen can drop out of the screens list, so this reads the selection, not the list.
+  const restarting = !!lcdRestart && [...selected].some(serial => lcdRestart.isRestarting(serial));
   // A control shows the shared value, or a mixed state when the selected screens differ.
   const brightness = sharedValue(targetScreens, s => s.brightness);
   const rotation = sharedValue(targetScreens, s => s.rotation);
@@ -579,15 +581,15 @@ export function LianLiWirelessScreenTab({
           <SettingRow
             label={t('devices.lianli-flex.restartLcd')}
             description={t('devices.lianli-flex.restartLcdHint')}
-            disabled={!representative}
+            disabled={!representative && !restarting}
           >
             <Button
               size="sm"
               tone="neutral"
-              disabled={!representative || targetScreens.some(s => lcdRestart.isRestarting(s.serial))}
+              disabled={(!representative && !restarting) || restarting}
               onClick={() => targetScreens.forEach(s => lcdRestart.onRestart(s.serial))}
             >
-              {targetScreens.some(s => lcdRestart.isRestarting(s.serial))
+              {restarting
                 ? t('devices.lianli-flex.restartingLcd')
                 : t('devices.lianli-flex.restartLcdButton')}
             </Button>
