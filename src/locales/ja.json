@@ -612,7 +612,7 @@
   "datepicker.prevMonth": "前月",
   "datepicker.today": "今日",
   "devices.accessDenied.body": "Windows がアクセスを拒否しました。メーカーのアプリが起動している場合は閉じてください。Nexus は再試行を続け、自動的に接続します。",
-  "devices.accessDenied.title": "Nexus はこのデバイスを開けません",
+  "devices.accessDenied.title": "Nexus はこのデバイスにアクセスできません",
   "devices.asiahorse-umbra.asyncNoPorts": "LED のあるポートがまだありません。下の「LED ポート」で LED 数を設定するか、「LED を自動検出」を実行してください。",
   "devices.asiahorse-umbra.autoDetect": "LED を自動検出",
   "devices.asiahorse-umbra.autoDetectFailed": "コントローラーが戻ってきませんでした。USB 接続を確認して、もう一度お試しください。",

@@ -619,7 +619,7 @@
   "datepicker.prevMonth": "Предыдущий месяц",
   "datepicker.today": "Сегодня",
   "devices.accessDenied.body": "Windows отказала в доступе. Если приложение производителя запущено, закройте его. Nexus продолжает попытки и подключится сам.",
-  "devices.accessDenied.title": "Nexus не может открыть это устройство",
+  "devices.accessDenied.title": "Nexus не может получить доступ к этому устройству",
   "devices.asiahorse-umbra.asyncNoPorts": "Ни у одного порта пока нет светодиодов. Задайте их число в разделе «Порты светодиодов» ниже или запустите автоопределение светодиодов.",
   "devices.asiahorse-umbra.autoDetect": "Автоопределение светодиодов",
   "devices.asiahorse-umbra.autoDetectFailed": "Контроллер не вернулся. Проверьте USB-подключение и повторите попытку.",

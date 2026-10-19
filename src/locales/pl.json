@@ -619,7 +619,7 @@
   "datepicker.prevMonth": "Poprzedni miesiąc",
   "datepicker.today": "Dziś",
   "devices.accessDenied.body": "System Windows odmówił dostępu. Jeśli aplikacja producenta jest uruchomiona, zamknij ją. Nexus ponawia próby i połączy się sam.",
-  "devices.accessDenied.title": "Nexus nie może otworzyć tego urządzenia",
+  "devices.accessDenied.title": "Nexus nie ma dostępu do tego urządzenia",
   "devices.asiahorse-umbra.asyncNoPorts": "Żaden port nie ma jeszcze diod LED. Ustaw liczbę diod w sekcji Porty LED poniżej lub uruchom automatyczne wykrywanie diod LED.",
   "devices.asiahorse-umbra.autoDetect": "Wykryj diody LED automatycznie",
   "devices.asiahorse-umbra.autoDetectFailed": "Kontroler nie wrócił. Sprawdź połączenie USB i spróbuj ponownie.",

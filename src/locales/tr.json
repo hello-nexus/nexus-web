@@ -612,7 +612,7 @@
   "datepicker.prevMonth": "Önceki ay",
   "datepicker.today": "Bugün",
   "devices.accessDenied.body": "Windows erişimi reddetti. Üreticinin uygulaması çalışıyorsa kapatın. Nexus denemeye devam eder ve kendiliğinden bağlanır.",
-  "devices.accessDenied.title": "Nexus bu cihazı açamıyor",
+  "devices.accessDenied.title": "Nexus bu cihaza erişemiyor",
   "devices.asiahorse-umbra.asyncNoPorts": "Henüz hiçbir bağlantı noktasında LED yok. Aşağıdaki LED bağlantı noktaları bölümünden LED sayısını ayarlayın veya LED'leri otomatik algılayın.",
   "devices.asiahorse-umbra.autoDetect": "LED'leri otomatik algıla",
   "devices.asiahorse-umbra.autoDetectFailed": "Denetleyici geri dönmedi. USB bağlantısını kontrol edip yeniden deneyin.",

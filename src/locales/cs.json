@@ -619,7 +619,7 @@
   "datepicker.prevMonth": "Předchozí měsíc",
   "datepicker.today": "Dnes",
   "devices.accessDenied.body": "Windows odepřel přístup. Pokud běží aplikace výrobce, zavřete ji. Nexus se to neustále pokouší a připojí se sám.",
-  "devices.accessDenied.title": "Nexus nemůže toto zařízení otevřít",
+  "devices.accessDenied.title": "Nexus nemá k tomuto zařízení přístup",
   "devices.asiahorse-umbra.asyncNoPorts": "Žádný port zatím nemá LED. Nastavte počet LED v části LED porty níže nebo spusťte Automaticky zjistit LED.",
   "devices.asiahorse-umbra.autoDetect": "Automaticky zjistit LED",
   "devices.asiahorse-umbra.autoDetectFailed": "Řadič se znovu nepřipojil. Zkontrolujte připojení USB a zkuste to znovu.",

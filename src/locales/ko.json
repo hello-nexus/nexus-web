@@ -612,7 +612,7 @@
   "datepicker.prevMonth": "이전 달",
   "datepicker.today": "오늘",
   "devices.accessDenied.body": "Windows에서 접근을 거부했습니다. 제조사 앱이 실행 중이면 종료하세요. Nexus가 계속 시도하며 자동으로 연결됩니다.",
-  "devices.accessDenied.title": "Nexus에서 이 장치를 열 수 없습니다",
+  "devices.accessDenied.title": "Nexus에서 이 장치에 접근할 수 없습니다",
   "devices.asiahorse-umbra.asyncNoPorts": "아직 LED가 있는 포트가 없습니다. 아래 LED 포트에서 LED 수를 설정하거나 LED 자동 감지를 실행하세요.",
   "devices.asiahorse-umbra.autoDetect": "LED 자동 감지",
   "devices.asiahorse-umbra.autoDetectFailed": "컨트롤러가 다시 연결되지 않았습니다. USB 연결을 확인한 후 다시 시도하세요.",

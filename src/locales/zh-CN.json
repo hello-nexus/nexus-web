@@ -612,7 +612,7 @@
   "datepicker.prevMonth": "上一月",
   "datepicker.today": "今天",
   "devices.accessDenied.body": "Windows 拒绝了访问。如果制造商的应用正在运行，请将其关闭。Nexus 会持续重试并自动连接。",
-  "devices.accessDenied.title": "Nexus 无法打开此设备",
+  "devices.accessDenied.title": "Nexus 无法访问此设备",
   "devices.asiahorse-umbra.asyncNoPorts": "目前没有带 LED 的接口。请在下方的 LED 接口中设置 LED 数量，或运行自动检测 LED。",
   "devices.asiahorse-umbra.autoDetect": "自动检测 LED",
   "devices.asiahorse-umbra.autoDetectFailed": "控制器没有恢复连接。请检查 USB 连接后重试。",

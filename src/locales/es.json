@@ -612,7 +612,7 @@
   "datepicker.prevMonth": "Mes anterior",
   "datepicker.today": "Hoy",
   "devices.accessDenied.body": "Windows denegó el acceso. Si la aplicación del fabricante está abierta, ciérrala. Nexus sigue intentándolo y se conecta solo.",
-  "devices.accessDenied.title": "Nexus no puede abrir este dispositivo",
+  "devices.accessDenied.title": "Nexus no puede acceder a este dispositivo",
   "devices.asiahorse-umbra.asyncNoPorts": "Ningún puerto tiene LED todavía. Define un número de LED en Puertos LED, más abajo, o usa Detectar LED automáticamente.",
   "devices.asiahorse-umbra.autoDetect": "Detectar LED automáticamente",
   "devices.asiahorse-umbra.autoDetectFailed": "El controlador no volvió a conectarse. Comprueba la conexión USB e inténtalo de nuevo.",

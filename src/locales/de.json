@@ -612,7 +612,7 @@
   "datepicker.prevMonth": "Vorheriger Monat",
   "datepicker.today": "Heute",
   "devices.accessDenied.body": "Windows hat den Zugriff verweigert. Falls die App des Herstellers läuft, schließen Sie sie. Nexus versucht es weiter und verbindet sich von selbst.",
-  "devices.accessDenied.title": "Nexus kann dieses Gerät nicht öffnen",
+  "devices.accessDenied.title": "Nexus hat keinen Zugriff auf dieses Gerät",
   "devices.asiahorse-umbra.asyncNoPorts": "Noch kein Anschluss hat LEDs. Legen Sie unten unter LED-Anschlüsse eine LED-Anzahl fest oder starten Sie die automatische LED-Erkennung.",
   "devices.asiahorse-umbra.autoDetect": "LEDs automatisch erkennen",
   "devices.asiahorse-umbra.autoDetectFailed": "Der Controller ist nicht zurückgekehrt. Prüfen Sie die USB-Verbindung und versuchen Sie es erneut.",
