@@ -10,6 +10,7 @@ import type {
   LianLiChainLightingApi,
   LianLiFansState,
   LianLiScreenApi,
+  LianLiScreenSource,
   LianLiScreenSettingsPatch,
   LianLiWirelessLighting,
   LianLiWirelessLightingEffect,
@@ -232,6 +233,8 @@ export interface LianLiFlexCaptureRequest {
   mode: 'screenshot' | 'recording';
   /** Recording length, 1..30. */
   seconds?: number;
+  /** Display and square to capture; absent means the main display's largest centered square. */
+  screenSource?: LianLiScreenSource;
 }
 
 /** Captures the display into the shared media library; null when the service refuses or has no capture. */

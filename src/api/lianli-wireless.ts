@@ -236,6 +236,15 @@ export type LianLiWirelessClockFace = 'digital' | 'digitalMinimal' | 'analogClas
 export type LianLiWirelessAnimationId = 'pulse' | 'spectrum' | 'spin';
 export type LianLiWirelessTempUnit = 'c' | 'f';
 
+/** Which display the live screen content shows and the square cut from it, all normalized 0..1. */
+export interface LianLiScreenSource {
+  displayId: string;
+  cropX: number;
+  cropY: number;
+  /** Edge as a fraction of the display's shorter side; 0 is the largest centered square. */
+  cropSize: number;
+}
+
 export type LianLiOverlayType = 'circular' | 'rotate' | 'bounce' | 'collision';
 
 /** A sprite that moves over the screen's background (2D animation). */
@@ -303,12 +312,15 @@ export interface LianLiWirelessScreen {
   nexusPanel?: boolean;
   /** Set when contentType is "animation2d". */
   overlay?: LianLiOverlay;
+  /** Set when contentType is "screen". */
+  screenSource?: LianLiScreenSource;
   /** Uni Fan TL only: the screen's port and fan, e.g. "#1.2"; empty when unknown. */
   label?: string;
 }
 
 export interface LianLiWirelessScreenContentExtra {
   overlay?: LianLiOverlay;
+  screenSource?: LianLiScreenSource;
   sensorSource?: LianLiWirelessSensorSource;
   sensorStyle?: LianLiWirelessSensorStyle;
   clockFace?: LianLiWirelessClockFace;

@@ -32,10 +32,12 @@ import {
   type LianLiWirelessMediaItem,
   type LianLiWirelessMediaKind,
   type LianLiOverlay,
+  type LianLiScreenSource,
 } from '../../../api/lianli-wireless';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { sharedValue } from './screenSelection';
 import { captureLianLiFlexMedia, syncLianLiFlexScreens } from '../../../api/lianli-flex';
+import { DEFAULT_SCREEN_SOURCE, LianLiScreenSourcePicker } from './LianLiScreenSourcePicker';
 import { DEFAULT_OVERLAY, LianLiFlexAnimation2dPanel } from './LianLiFlexAnimation2dPanel';
 import { LianLiFlexTemplatesSection } from './LianLiFlexTemplatesSection';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -178,6 +180,7 @@ export function LianLiWirelessScreenTab({
   // 2D animation chosen before a sprite: nothing is posted until the sprite is picked.
   const [animation2dPending, setAnimation2dPending] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [captureSource, setCaptureSource] = useState<LianLiScreenSource>(DEFAULT_SCREEN_SOURCE);
   const [captureSeconds, setCaptureSeconds] = useState(CAPTURE_DEFAULT_SECONDS);
   const [captureFailed, setCaptureFailed] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
@@ -420,7 +423,7 @@ export function LianLiWirelessScreenTab({
   const handleCapture = useCallback(async (mode: 'screenshot' | 'recording') => {
     setCapturing(true);
     setCaptureFailed(false);
-    const item = await captureLianLiFlexMedia(mode === 'recording' ? { mode, seconds: captureSeconds } : { mode }).catch(() => null);
+    const item = await captureLianLiFlexMedia(mode === 'recording' ? { mode, seconds: captureSeconds, screenSource: captureSource } : { mode, screenSource: captureSource }).catch(() => null);
     if (!aliveRef.current) return;
     setCapturing(false);
     if (!item) {
@@ -429,7 +432,7 @@ export function LianLiWirelessScreenTab({
     }
     await refreshMedia();
     if (aliveRef.current) handleMediaSelect(item);
-  }, [captureSeconds, refreshMedia, handleMediaSelect]);
+  }, [captureSeconds, captureSource, refreshMedia, handleMediaSelect]);
 
   const handleSyncAll = useCallback(async (serial: string) => {
     setSyncFailed(false);
@@ -730,6 +733,8 @@ export function LianLiWirelessScreenTab({
                   failed: captureFailed,
                   seconds: captureSeconds,
                   onSeconds: setCaptureSeconds,
+                  source: captureSource,
+                  onSource: setCaptureSource,
                   onCapture: mode => { void handleCapture(mode); },
                 } : undefined}
               />
@@ -743,9 +748,15 @@ export function LianLiWirelessScreenTab({
               />
             )}
             {!showAnimation2d && !showMedia && sharedChoice === 'screen' && (
-              <div className={styles.typePanel}>
-                <p className={styles.emptyNote}>{t('devices.lianli-flex.screenMirrorHint')}</p>
-              </div>
+              <>
+                <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-flex.screenMirrorHint')}</p>
+                <LianLiScreenSourcePicker
+                  label={t('devices.lianli-flex.screenSourceRegionAria')}
+                  value={representative.screenSource ?? DEFAULT_SCREEN_SOURCE}
+                  onPreview={screenSource => previewContentField({ screenSource })}
+                  onCommit={screenSource => commitContentField('screen', { screenSource })}
+                />
+              </>
             )}
             {!showAnimation2d && !showMedia && sharedChoice === 'sensor' && (
               <SensorPanel
@@ -861,6 +872,8 @@ function MediaPanel({
     failed: boolean;
     seconds: number;
     onSeconds: (seconds: number) => void;
+    source: LianLiScreenSource;
+    onSource: (source: LianLiScreenSource) => void;
     onCapture: (mode: 'screenshot' | 'recording') => void;
   };
 }) {
@@ -884,6 +897,12 @@ function MediaPanel({
       </div>
       {capture && (
         <>
+          <LianLiScreenSourcePicker
+            label={t('devices.lianli-flex.captureRegionAria')}
+            value={capture.source}
+            onPreview={capture.onSource}
+            onCommit={capture.onSource}
+          />
           <div className={styles.orderButtons}>
             <Button size="sm" tone="neutral" disabled={capture.busy || uploading} onClick={() => capture.onCapture('screenshot')}>
               {capture.busy ? t('devices.lianli-flex.capturing') : t('devices.lianli-flex.captureScreenshot')}

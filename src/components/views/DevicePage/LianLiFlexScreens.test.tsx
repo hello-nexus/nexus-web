@@ -13,6 +13,13 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockGetMedia = vi.fn();
+vi.mock('../../../api/lighting', () => ({
+  fetchScreenMonitors: () => Promise.resolve({ effects: [], selectionMode: 'app', selectedMonitor: '0', monitors: [{ id: '0', name: 'Main' }, { id: '1', name: 'Side' }] }),
+  screenPreviewUrl: () => Promise.resolve('ws://localhost/preview'),
+}));
+
+vi.mock('../../common/ScreenPreviewCanvas/ScreenPreviewCanvas', () => ({ ScreenPreviewCanvas: () => null }));
+
 vi.mock('../../../api/lianli-wireless', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../api/lianli-wireless')>()),
   getLianLiWirelessMedia: (...a: any[]) => mockGetMedia(...a),
@@ -115,6 +122,26 @@ describe('Flex screens content types', () => {
     await chooseContentType('devices.lianli-flex.contentTypeScreen');
     expect(mockSetContent).toHaveBeenCalledWith('S1', 'screen');
     expect(await screen.findByText('devices.lianli-flex.screenMirrorHint')).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'devices.lianli-flex.screenSourceRegionAria' })).toBeInTheDocument();
+  });
+
+  it('saves the display and region of the live screen with the content', async () => {
+    await renderTab([{ ...screen1, contentType: 'screen' }, screen2]);
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'devices.lianli-flex.screenSourceRegionAria' }), { key: 'ArrowLeft' });
+    expect(mockSetContent).toHaveBeenCalledWith('S1', 'screen', undefined, {
+      screenSource: expect.objectContaining({ displayId: '', cropSize: 1 }),
+    });
+  });
+
+  it('captures from the region chosen next to the capture buttons', async () => {
+    await renderTab();
+    await chooseContentType('devices.lianli-wireless.contentTypeMedia');
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'devices.lianli-flex.captureRegionAria' }), { key: 'ArrowLeft' });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.captureScreenshot' })); });
+    expect(mockCapture).toHaveBeenCalledWith({
+      mode: 'screenshot',
+      screenSource: expect.objectContaining({ cropSize: 1, displayId: '' }),
+    });
   });
 });
 
@@ -188,7 +215,7 @@ describe('Flex screens capture', () => {
   it('captures a screenshot into the library and shows it on the screen', async () => {
     await openMedia();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.captureScreenshot' })); });
-    expect(mockCapture).toHaveBeenCalledWith({ mode: 'screenshot' });
+    expect(mockCapture).toHaveBeenCalledWith({ mode: 'screenshot', screenSource: { displayId: '', cropX: 0, cropY: 0, cropSize: 0 } });
     await waitFor(() => expect(mockSetContent).toHaveBeenCalledWith('S1', 'image', 'm9'));
   });
 
@@ -198,7 +225,7 @@ describe('Flex screens capture', () => {
     expect(screen.getByRole('slider', { name: 'devices.lianli-flex.captureSeconds' })).toHaveAttribute('max', '30');
     fireEvent.change(screen.getByRole('slider', { name: 'devices.lianli-flex.captureSeconds' }), { target: { value: '12' } });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.captureRecording' })); });
-    expect(mockCapture).toHaveBeenCalledWith({ mode: 'recording', seconds: 12 });
+    expect(mockCapture).toHaveBeenCalledWith({ mode: 'recording', seconds: 12, screenSource: { displayId: '', cropX: 0, cropY: 0, cropSize: 0 } });
   });
 
   it('reports a failed capture and leaves the content alone', async () => {
