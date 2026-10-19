@@ -8,6 +8,7 @@ import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { fetchFastStartup, setFastStartup, type FastStartupInfo } from '../../../api/fastStartup';
 import { postService } from '../../../api/service';
+import { setConflictWhitelisted } from '../../../api/conflicts';
 import { downloadSupportBundle } from '../../../api/diagnostics';
 import { saveLastRoute } from '../../../api/session';
 import { useToastSafe } from '../../common/Toast/Toast';
@@ -466,7 +467,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         endOnLaunch={settings.general.endConflictsOnLaunch}
         onEndOnLaunchChange={v => updateGeneral({ endConflictsOnLaunch: v })}
         exclusions={settings.general.conflictAutoKillExclusions}
-        onExclusionsChange={ids => updateGeneral({ conflictAutoKillExclusions: ids })}
+        onWhitelistChange={(id, whitelisted) => { void setConflictWhitelisted(id, whitelisted); }}
         notifyLaunches={settings.general.notifyConflictLaunches}
         onNotifyLaunchesChange={v => updateGeneral({ notifyConflictLaunches: v })}
       />
