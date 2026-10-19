@@ -7,6 +7,28 @@ import styles from './DatePicker.module.scss';
 
 const POPUP_MIN_WIDTH = 260;
 const VIEWPORT_MARGIN = 8;
+const POPUP_OFFSET = 6;
+
+interface VerticalPlacement {
+  above: boolean;
+  maxHeight?: number;
+}
+
+/** Opens on the roomier side and caps the height to it so the popup never leaves the viewport. */
+export function placePopupVertically(
+  triggerTop: number,
+  triggerBottom: number,
+  popupHeight: number,
+  viewportHeight: number,
+): VerticalPlacement {
+  const below = viewportHeight - triggerBottom - POPUP_OFFSET - VIEWPORT_MARGIN;
+  const above = triggerTop - POPUP_OFFSET - VIEWPORT_MARGIN;
+  if (popupHeight <= below) return { above: false };
+  if (popupHeight <= above) return { above: true };
+  return below >= above
+    ? { above: false, maxHeight: Math.max(below, 0) }
+    : { above: true, maxHeight: Math.max(above, 0) };
+}
 
 interface DatePickerProps {
   /** ISO date string YYYY-MM-DD. */
@@ -25,7 +47,9 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(value.slice(0, 7));
   const [alignRight, setAlignRight] = useState(false);
+  const [vertical, setVertical] = useState<VerticalPlacement>({ above: false });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setViewMonth(value.slice(0, 7));
@@ -48,6 +72,7 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
   useLayoutEffect(() => {
     if (!open) {
       setAlignRight(false);
+      setVertical({ above: false });
       return;
     }
     const compute = () => {
@@ -55,6 +80,11 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
       if (!wrap) return;
       const rect = wrap.getBoundingClientRect();
       setAlignRight(rect.left + POPUP_MIN_WIDTH > window.innerWidth - VIEWPORT_MARGIN);
+      const popup = popupRef.current;
+      if (popup) {
+        const next = placePopupVertically(rect.top, rect.bottom, popup.scrollHeight + 2, window.innerHeight);
+        setVertical(prev => (prev.above === next.above && prev.maxHeight === next.maxHeight ? prev : next));
+      }
     };
     compute();
     window.addEventListener('resize', compute);
@@ -104,7 +134,9 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
 
       {open && (
         <div
-          className={`${styles.popup}${alignRight ? ` ${styles.popupAlignRight}` : ''}`}
+          ref={popupRef}
+          className={`${styles.popup}${alignRight ? ` ${styles.popupAlignRight}` : ''}${vertical.above ? ` ${styles.popupAbove}` : ''}`}
+          style={vertical.maxHeight === undefined ? undefined : { maxHeight: vertical.maxHeight }}
           role="dialog"
           aria-label={t('datepicker.popup')}
         >
