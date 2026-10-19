@@ -909,6 +909,8 @@
   "devices.lianli-wireless.linkRxMissing": "Byl zjištěn pouze vysílač řadiče. Znovu připojte jeho kabel USB.",
   "devices.lianli-wireless.linkTxMissing": "Byl zjištěn pouze přijímač řadiče. Znovu připojte jeho kabel USB.",
   "devices.lianli-wireless.loadingScreens": "Načítání obrazovek…",
+  "devices.lianli-wireless.lockBoundDevices": "Zamknout spárovaná zařízení",
+  "devices.lianli-wireless.lockBoundDevicesHint": "Pokud se vaše ventilátory a Strimery odpojí, automaticky je znovu spáruje s tímto řadičem. Vypněte, chcete-li spárování spravovat ručně.",
   "devices.lianli-wireless.managePanel": "Spravovat panel",
   "devices.lianli-wireless.masterMac": "Hlavní MAC",
   "devices.lianli-wireless.merge": "Sloučit všechny ventilátory",
