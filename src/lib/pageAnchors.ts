@@ -9,6 +9,7 @@ export const coolingGroupAnchor = (blockId: string) => `cooling-group:${blockId}
 
 const WIRED_HUB_ID = 'lianli';
 const WIRELESS_HUB_ID = 'lianli-wireless';
+const FLEX_ID = 'lianli-flex';
 const OPENRGB_PORT_ID = /^(openrgb-s-.+)-\d+$/;
 
 /** Lighting rail targets for the wired hub. With sync on, the source header
@@ -41,4 +42,14 @@ export function lianLiWirelessLightingAnchors(): string[] {
 /** Cooling rail targets for the wireless controller: each bound chain's group. */
 export function lianLiWirelessCoolingAnchors(macs: readonly string[]): string[] {
   return macs.map(mac => coolingGroupAnchor(`${WIRELESS_HUB_ID}:${mac}`));
+}
+
+/** Lighting rail targets for the wired LCD Flex fans: each unit's card. */
+export function lianLiFlexLightingAnchors(macs: readonly string[]): string[] {
+  return macs.map(mac => lightingDeviceAnchor(`${FLEX_ID}:${mac}`));
+}
+
+/** Cooling rail targets for the wired LCD Flex fans: each unit's group. */
+export function lianLiFlexCoolingAnchors(macs: readonly string[]): string[] {
+  return macs.map(mac => coolingGroupAnchor(`${FLEX_ID}:${mac}`));
 }

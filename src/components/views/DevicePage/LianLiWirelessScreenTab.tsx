@@ -126,7 +126,7 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  */
 export function LianLiWirelessScreenTab({
   aioMacs = [], usbMacs = [], panelOpener, api = WIRELESS_SCREEN_API,
-  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel,
+  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart,
 }: {
   aioMacs?: string[];
   /** AIOs whose USB cable is connected, by MAC. */
@@ -141,6 +141,11 @@ export function LianLiWirelessScreenTab({
   supportsSleepWhenLocked?: boolean;
   /** Opens the sidebar panel of a screen in panel mode, by its panel record id. */
   onOpenScreenPanel?: (panelDeviceId: string) => void;
+  /** Restart LCD for families whose screens can be restarted; absent otherwise. */
+  lcdRestart?: {
+    isRestarting: (serial: string) => boolean;
+    onRestart: (serial: string) => void;
+  };
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -570,6 +575,24 @@ export function LianLiWirelessScreenTab({
             }))}
           />
         </SettingRow>
+        {lcdRestart && (
+          <SettingRow
+            label={t('devices.lianli-flex.restartLcd')}
+            description={t('devices.lianli-flex.restartLcdHint')}
+            disabled={!representative}
+          >
+            <Button
+              size="sm"
+              tone="neutral"
+              disabled={!representative || targetScreens.some(s => lcdRestart.isRestarting(s.serial))}
+              onClick={() => targetScreens.forEach(s => lcdRestart.onRestart(s.serial))}
+            >
+              {targetScreens.some(s => lcdRestart.isRestarting(s.serial))
+                ? t('devices.lianli-flex.restartingLcd')
+                : t('devices.lianli-flex.restartLcdButton')}
+            </Button>
+          </SettingRow>
+        )}
         {supportsSleepWhenLocked && <SettingToggle
           label={t('devices.lcd.sleepWhenLocked')}
           checked={sleep.value ?? true}

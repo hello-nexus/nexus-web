@@ -100,6 +100,7 @@ export const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'lianli-hydroshift-lcd': '/assets/devices/lianli.svg',
   'lianli-tl-lcd': '/assets/devices/lianli.svg',
   'lianli-wireless-lcd': '/assets/devices/lianli.svg',
+  'lianli-flex-lcd': '/assets/devices/lianli.svg',
   'lianli-hydroshift2': '/assets/devices/lianli.svg',
   'lianli-hydroshift2-curve': '/assets/devices/lianli.svg',
   'corsair-link-lcd': '/assets/devices/corsair.svg',

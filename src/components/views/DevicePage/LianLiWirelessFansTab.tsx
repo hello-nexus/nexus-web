@@ -10,7 +10,7 @@ import {
   identifyLianLiWirelessFan,
   setLianLiWirelessLockBound,
   type LianLiWirelessFan,
-  type LianLiWirelessState,
+  type LianLiFansState,
 } from '../../../api/lianli-wireless';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiWirelessDevicePage.module.scss';
@@ -79,8 +79,12 @@ export function deviceTypeKey(devType: number, fanType: number):
 }
 
 export interface LianLiWirelessFansTabProps {
-  state: LianLiWirelessState | null;
+  state: LianLiFansState | null;
   refresh: () => Promise<void>;
+  /** Wired units: no controller link, bind or lock, only the devices themselves. */
+  wired?: boolean;
+  /** Flashes one device; the wireless endpoint by default. */
+  identify?: (mac: string) => Promise<boolean>;
   /** Opens the panel page of a device that has one, by MAC; undefined when it has none. */
   panelOpener?: (mac: string) => (() => void) | undefined;
 }
@@ -90,7 +94,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = false, identify = identifyLianLiWirelessFan }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -155,7 +159,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
   }, [state, clearPendingTimeout]);
 
   const loaded = state !== null;
-  const lockSupported = loaded && typeof state.lockBoundDevices === 'boolean';
+  const lockSupported = !wired && loaded && typeof state.lockBoundDevices === 'boolean';
   const [lockPending, setLockPending] = useState<boolean | null>(null);
   const [lockSaving, setLockSaving] = useState(false);
   const lockTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(undefined);
@@ -213,7 +217,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
 
   const handleIdentify = useCallback((mac: string) => {
     setIdentifying(prev => ({ ...prev, [mac]: true }));
-    void identifyLianLiWirelessFan(mac).finally(() => {
+    void identify(mac).finally(() => {
       if (!aliveRef.current) return;
       setIdentifying(prev => {
         if (!prev[mac]) return prev;
@@ -222,7 +226,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
         return next;
       });
     });
-  }, []);
+  }, [identify]);
 
   const onLockChange = useCallback(async (next: boolean) => {
     window.clearTimeout(lockTimeoutRef.current);
@@ -248,7 +252,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
 
   return (
     <>
-      <SettingsSection
+      {!wired && <SettingsSection
         title={t('devices.lianli-wireless.connectionSection')}
         boxClassName={styles.sectionBox}
       >
@@ -272,10 +276,10 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
             disabled={!loaded || lockSaving || lockPending !== null}
           />
         )}
-      </SettingsSection>
+      </SettingsSection>}
 
       <SettingsSection
-        title={t('devices.lianli-wireless.devicesSection')}
+        title={t(wired ? 'devices.lianli-flex.devicesSection' : 'devices.lianli-wireless.devicesSection')}
         boxClassName={styles.sectionBox}
       >
         {loaded && (state.fans.length > 0
@@ -285,6 +289,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
               fan={fan}
               pending={pending[fan.mac]}
               identifying={!!identifying[fan.mac]}
+              wired={wired}
               pairingLocked={pairingBlocked}
               lockHintId={lockSupported ? lockHintId : undefined}
               onBind={handleBind}
@@ -312,6 +317,7 @@ function DeviceRow({
   fan,
   pending,
   identifying,
+  wired,
   pairingLocked,
   lockHintId,
   onBind,
@@ -322,6 +328,7 @@ function DeviceRow({
   fan: LianLiWirelessFan;
   pending: BindAction | undefined;
   identifying: boolean;
+  wired: boolean;
   pairingLocked: boolean;
   lockHintId: string | undefined;
   onBind: (mac: string) => void;
@@ -339,11 +346,14 @@ function DeviceRow({
   const unbindLabel = pending === 'unbind'
     ? t('devices.lianli-wireless.unbinding')
     : t('devices.lianli-wireless.unbind');
-  const bindState: SettingState = fan.boundToUs
+  const bindState: SettingState | undefined = wired
+    ? (fan.receiverBound ? { label: t('devices.lianli-flex.boundElsewhere'), tone: 'warn' } : undefined)
+    : fan.boundToUs
     ? { label: `${t('devices.lianli-wireless.bound')} - ${t('devices.lianli-wireless.slot', { n: fan.slot })}`, tone: 'accent' }
     : { label: t('devices.lianli-wireless.unbound') };
   const details = [
     fan.firmwareVersion ? t('devices.lianli-wireless.firmwareVersion', { v: fan.firmwareVersion }) : null,
+    wired && fan.lcdFirmware ? t('devices.lianli-flex.lcdFirmware', { v: fan.lcdFirmware }) : null,
     fan.boundToUs && !isStrimerDevice(fan.devType) && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
   ].filter(Boolean).join(' - ');
 
@@ -358,7 +368,7 @@ function DeviceRow({
         </Button>
       )}
     >
-      {fan.boundToUs ? (
+      {wired ? null : fan.boundToUs ? (
         <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
         </Button>

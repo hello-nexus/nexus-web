@@ -1,35 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { Button } from '../../common/Button/Button';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { LightingPageSwitch } from './LightingPageSwitch';
 import {
   getLianLiWirelessLighting,
   setLianLiWirelessChainLighting,
+  type LianLiChainLightingApi,
+  type LianLiFlexZone,
   type LianLiWirelessChainLighting,
   type LianLiWirelessChainPatch,
   type LianLiWirelessLane,
   type LianLiWirelessLighting,
 } from '../../../api/lianli-wireless';
 import { fanTypeKey } from './LianLiWirelessFansTab';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { LIANLI_DEFAULT_COLORS as DEFAULT_COLORS, LianLiChainEffectControls, effectLabel } from './LianLiChainEffectControls';
+import { applyChainPatch, moveInSequence, sortBySequence } from './lianliChainUtils';
 import { useTranslation } from '../../../lib/i18n';
-import { localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
-const PERCENT_PER_LEVEL = 25;
+const WIRELESS_LIGHTING_API: LianLiChainLightingApi = {
+  get: () => getLianLiWirelessLighting(),
+  set: (mac, patch) => setLianLiWirelessChainLighting(mac, patch),
+};
+
 const MODE_CUSTOM = 'custom';
 const MODE_PER_LANE = 'perLane';
+const MODE_PER_ZONE = 'perZone';
 const DEFAULT_LANE_MODE = 'rainbow';
 const DEFAULT_EFFECT = 'rainbow';
-// The palette the service renders with when a chain has no user colours.
-const DEFAULT_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
 
 type Translate = ReturnType<typeof useTranslation>['t'];
-
-function effectLabel(t: Translate, key: string): string {
-  return t(`devices.lianliEffect.${key}` as Parameters<Translate>[0]);
-}
 
 function chainTitle(t: Translate, chain: LianLiWirelessChainLighting): string {
   return chain.kind === 'strimer'
@@ -45,19 +48,29 @@ function lanesOf(chain: LianLiWirelessChainLighting): LianLiWirelessLane[] {
   });
 }
 
+const ZONE_LABEL_KEYS: Record<LianLiFlexZone['id'], string> = {
+  up: 'devices.lianli-flex.zoneUp',
+  down: 'devices.lianli-flex.zoneDown',
+  center: 'devices.lianli-flex.zoneCenter',
+  inner: 'devices.lianli-flex.zoneInner',
+  outer: 'devices.lianli-flex.zoneOuter',
+};
+
 interface LianLiWirelessLightingTabProps {
   onSectionNavigate?: (section: string) => void;
+  /** The lighting endpoints of the device family; the wireless ones by default. */
+  api?: LianLiChainLightingApi;
 }
 
 /** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
-export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessLightingTabProps) {
+export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API }: LianLiWirelessLightingTabProps) {
   const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
 
   const refresh = useCallback(async () => {
-    const d = await getLianLiWirelessLighting();
+    const d = await api.get();
     if (aliveRef.current && d) setData(d);
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -73,26 +86,41 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
   const preview = useCallback((mac: string, patch: LianLiWirelessChainPatch) => {
     setData(prev => prev && {
       ...prev,
-      chains: prev.chains.map(c => (c.mac === mac ? { ...c, ...patch } : c)),
+      chains: prev.chains.map(c => (c.mac === mac ? applyChainPatch(c, patch) : c)),
     });
   }, []);
 
   const commit = useCallback(async (mac: string, patch: LianLiWirelessChainPatch) => {
     preview(mac, patch);
     // effectMode is derived by the service; it only feeds the preview.
-    if (!await setLianLiWirelessChainLighting(mac, { ...patch, effectMode: undefined })) void refresh();
-  }, [preview, refresh]);
+    if (!await api.set(mac, { ...patch, effectMode: undefined })) void refresh();
+  }, [api, preview, refresh]);
+
+  const reset = useCallback(async (mac: string) => {
+    await api.reset?.(mac);
+    await refresh();
+  }, [api, refresh]);
+
+  const move = useCallback((mac: string, delta: -1 | 1) => {
+    if (!data) return;
+    for (const { mac: m, sortIndex } of moveInSequence(data.chains, mac, delta)) void commit(m, { sortIndex });
+  }, [data, commit]);
 
   if (!data) return null;
+  const chains = sortBySequence(data.chains);
   return (
     <>
-      {data.chains.map(chain => (
+      {chains.map((chain, i) => (
         <ChainSection
           key={chain.mac}
           chain={chain}
           laneModes={data.laneModes}
           onPreview={patch => preview(chain.mac, patch)}
           onCommit={patch => { void commit(chain.mac, patch); }}
+          onReset={api.reset ? () => reset(chain.mac) : undefined}
+          onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
+          first={i === 0}
+          last={i === chains.length - 1}
           onSectionNavigate={onSectionNavigate}
         />
       ))}
@@ -105,12 +133,18 @@ interface ChainSectionProps {
   laneModes: string[];
   onPreview: (patch: LianLiWirelessChainPatch) => void;
   onCommit: (patch: LianLiWirelessChainPatch) => void;
+  /** Present when the family can restore a fan's default look. */
+  onReset?: () => Promise<void>;
+  /** Present when the fans have an order to set. */
+  onMove?: (delta: -1 | 1) => void;
+  first: boolean;
+  last: boolean;
   onSectionNavigate?: (section: string) => void;
 }
 
-function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate }: ChainSectionProps) {
+function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, onMove, first, last, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const [confirmReset, setConfirmReset] = useState(false);
   const lightingPage = chain.mode === MODE_CUSTOM;
   // With no saved choice the switch shows what the chain reports it is doing.
   const argbOn = chain.motherboardArgb ?? chain.playingMotherboardArgb === true;
@@ -120,24 +154,18 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
   const effectKey = lightingPage ? chain.effectMode ?? DEFAULT_EFFECT : chain.mode;
   const effect = chain.modes.find(e => e.key === effectKey) ?? null;
   const perLane = chain.supportsPerLane && effectKey === MODE_PER_LANE;
+  const perZone = chain.supportsZones === true && effectKey === MODE_PER_ZONE;
 
+  const effectOptions = chain.modes.map(e => ({ value: e.key, label: effectLabel(t, e.key) }));
   const modeOptions = [
-    ...chain.modes.map(e => ({ value: e.key, label: effectLabel(t, e.key) })),
+    ...effectOptions,
     ...(chain.supportsPerLane ? [{ value: MODE_PER_LANE, label: t('devices.lianli-wireless.strimerModePerLane') }] : []),
+    ...(chain.supportsZones ? [{ value: MODE_PER_ZONE, label: t('devices.lianli-flex.modePerZone') }] : []),
   ];
   const directionOptions = [
     { value: '0', label: t('devices.lianli.directionLtr') },
     { value: '1', label: t('devices.lianli.directionRtl') },
   ];
-  const percent = (v: number) => localizeNumbers(`${v}%`, numberFormat);
-
-  // The palette is a fixed set of slots; an effect reads its first colorsMax.
-  const palette = DEFAULT_COLORS.map((fallback, i) => chain.colors[i] ?? fallback);
-  const setColor = (i: number, hex: string, commit: boolean) => {
-    const next = [...palette];
-    next[i] = hex;
-    (commit ? onCommit : onPreview)({ colors: next });
-  };
 
   const lanes = lanesOf(chain);
   const setLane = (i: number, lane: Partial<LianLiWirelessLane>, commit: boolean) => {
@@ -146,6 +174,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
   };
 
   return (
+    <>
     <SettingsSection title={chainTitle(t, chain)} boxClassName={styles.sectionBox}>
       {(chain.argbCableConnected || argbOn) && (
         <SettingToggle
@@ -162,87 +191,57 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
         onSectionNavigate={onSectionNavigate}
       />
 
-      <SettingSelect
-        label={t('devices.lianli.lightingMode')}
-        value={effectKey}
-        onChange={v => onCommit({ mode: v, effectMode: v })}
-        options={modeOptions}
+      <LianLiChainEffectControls
+        modes={chain.modes}
+        value={{ mode: effectKey, speed: chain.speed, direction: chain.direction, brightness: chain.brightness, colors: chain.colors }}
+        modeOptions={modeOptions}
+        modeValue={effectKey}
         disabled={locked}
-      />
+        paletteDimmed={lightingPage}
+        hideBrightness={perZone}
+        forceSpeed={perLane}
+        onModeChange={v => onCommit({ mode: v, effectMode: v })}
+        onPreview={onPreview}
+        onCommit={onCommit}
+      >
+        {effect?.mergeable && (
+          <SettingToggle
+            label={t('devices.lianli-wireless.merge')}
+            description={chain.supportsZones ? t('devices.lianli-flex.mergeHint') : t('devices.lianli-wireless.mergeHint')}
+            checked={chain.merge ?? false}
+            onChange={on => onCommit({ merge: on })}
+            disabled={locked}
+          />
+        )}
+      </LianLiChainEffectControls>
 
-      {effect?.mergeable && (
+      {chain.upDownSwap != null && (
         <SettingToggle
-          label={t('devices.lianli-wireless.merge')}
-          description={t('devices.lianli-wireless.mergeHint')}
-          checked={chain.merge ?? false}
-          onChange={on => onCommit({ merge: on })}
-          disabled={locked}
+          label={t('devices.lianli-flex.upDownSwap')}
+          description={t('devices.lianli-flex.upDownSwapHint')}
+          checked={chain.upDownSwap}
+          onChange={on => onCommit({ upDownSwap: on })}
+          disabled={argbOn}
         />
       )}
 
-      <SettingSlider
-        editable
-        trackFill
-        label={t('devices.lianli.lightingBrightness')}
-        value={chain.brightness * PERCENT_PER_LEVEL}
-        min={0}
-        max={100}
-        step={PERCENT_PER_LEVEL}
-        formatValue={percent}
-        ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-        disabled={locked}
-        onChange={(v: number, commit?: boolean) => {
-          const level = Math.round(v / PERCENT_PER_LEVEL);
-          (commit ? onCommit : onPreview)({ brightness: level });
-        }}
-        onCommit={(v: number) => onCommit({ brightness: Math.round(v / PERCENT_PER_LEVEL) })}
-      />
-
-      {(perLane || effect?.hasSpeed) && (
-        <SettingSlider
-          editable
-          trackFill
-          label={t('devices.lianli.lightingSpeed')}
-          value={chain.speed * PERCENT_PER_LEVEL}
-          min={0}
-          max={100}
-          step={PERCENT_PER_LEVEL}
-          formatValue={percent}
-          ariaLabel={t('devices.lianli.lightingSpeedAria')}
-          disabled={locked}
-          onChange={(v: number, commit?: boolean) => {
-            const level = Math.round(v / PERCENT_PER_LEVEL);
-            (commit ? onCommit : onPreview)({ speed: level });
-          }}
-          onCommit={(v: number) => onCommit({ speed: Math.round(v / PERCENT_PER_LEVEL) })}
-        />
+      {onMove && (
+        <SettingRow label={t('devices.lianli-flex.lightSequence')} description={t('devices.lianli-flex.lightSequenceHint')}>
+          <Button size="sm" tone="neutral" disabled={first} onClick={() => onMove(-1)}>
+            {t('devices.lianli-wireless.orderMoveLeft')}
+          </Button>
+          <Button size="sm" tone="neutral" disabled={last} onClick={() => onMove(1)}>
+            {t('devices.lianli-wireless.orderMoveRight')}
+          </Button>
+        </SettingRow>
       )}
 
-      {effect?.hasDirection && (
-        <SettingSelect
-          label={t('devices.lianli.lightingDirection')}
-          value={String(chain.direction)}
-          onChange={v => onCommit({ direction: Number(v) })}
-          options={directionOptions}
-          disabled={locked}
-        />
-      )}
-
-      {effect && effect.colorsMax > 0 && (
-        <div className={`${styles.colorBlock} ${lightingPage ? styles.rowDisabled : ''}`} data-settings-aside="true">
-          <div className={styles.colorPairRow}>
-            {palette.slice(0, effect.colorsMax).map((color, i) => (
-              <div key={i} className={styles.colorEntry}>
-                <span className={styles.colorLabel}>{t('devices.lianli.colorN', { n: i + 1 })}</span>
-                <HsvPicker
-                  value={color}
-                  onPreview={(hex: string) => setColor(i, hex, false)}
-                  onCommit={(hex: string) => setColor(i, hex, true)}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+      {onReset && (
+        <SettingRow label={t('devices.lianli-flex.resetLighting')} description={t('devices.lianli-flex.resetLightingHint')}>
+          <Button size="sm" tone="neutral" onClick={() => setConfirmReset(true)}>
+            {t('devices.lianli-flex.resetLightingButton')}
+          </Button>
+        </SettingRow>
       )}
 
       {perLane && lanes.map((lane, i) => (
@@ -269,5 +268,38 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
         </div>
       ))}
     </SettingsSection>
+
+    {perZone && (chain.zones ?? []).map(zone => (
+      <SettingsSection
+        key={zone.id}
+        title={t('devices.lianli-flex.zoneSection', {
+          device: chainTitle(t, chain),
+          zone: t(ZONE_LABEL_KEYS[zone.id] as Parameters<Translate>[0]),
+        })}
+        boxClassName={styles.sectionBox}
+      >
+        <LianLiChainEffectControls
+          modes={chain.modes}
+          value={zone}
+          modeOptions={effectOptions}
+          modeValue={zone.mode}
+          disabled={locked}
+          paletteDimmed={lightingPage}
+          onModeChange={v => onCommit({ zones: [{ id: zone.id, mode: v }] })}
+          onPreview={patch => onPreview({ zones: [{ id: zone.id, ...patch }] })}
+          onCommit={patch => onCommit({ zones: [{ id: zone.id, ...patch }] })}
+        />
+      </SettingsSection>
+    ))}
+
+    <ConfirmModal
+      open={confirmReset}
+      title={t('devices.lianli-flex.resetConfirmTitle')}
+      message={t('devices.lianli-flex.resetConfirmMessage')}
+      confirmLabel={t('devices.lianli-flex.resetLighting')}
+      onCancel={() => setConfirmReset(false)}
+      onConfirm={() => { setConfirmReset(false); void onReset?.(); }}
+    />
+    </>
   );
 }
