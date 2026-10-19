@@ -1118,7 +1118,7 @@
   "devices.loading": "Načítání...",
   "devices.motherboardArgb.hint": "Přehrává barvy, které základní deska posílá synchronizačním kabelem. Když je zapnuto, Nexus jeho osvětlení neřídí.",
   "devices.motherboardArgb.label": "Sledovat ARGB základní desky",
-  "devices.nexusControl": "Ovládání Nexus",
+  "devices.nexusControl": "Nexus Control",
   "devices.nexusControlOff.conflictHint": "Toto zařízení právě ovládá {app}. Chcete-li zapnout Nexus Control, nejprve ji ukončete.",
   "devices.nexusControlOff.detecting": "Zjišťování zařízení...",
   "devices.nexusControlOff.enableHint": "Nexus Control je vypnutý. Zapněte ho, aby Nexus mohl toto zařízení spravovat.",
