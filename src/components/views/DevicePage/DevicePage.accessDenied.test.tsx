@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 
@@ -18,10 +18,19 @@ vi.mock('../../../hooks/useConflictApps', () => ({
 }));
 
 let mockUnified: UnifiedDevice[] = [];
-vi.mock('../../../hooks/useUnifiedDevices', async importOriginal => ({
-  ...(await importOriginal<typeof import('../../../hooks/useUnifiedDevices')>()),
-  useUnifiedDevices: () => ({ unified: mockUnified, controlDevice: vi.fn() }),
-}));
+vi.mock('../../../hooks/useUnifiedDevices', async importOriginal => {
+  const { useState } = await import('react');
+  return {
+    ...(await importOriginal<typeof import('../../../hooks/useUnifiedDevices')>()),
+    useUnifiedDevices: () => {
+      const [on, setOn] = useState(false);
+      return {
+        unified: mockUnified.map(d => ({ ...d, nexusControlEnabled: d.nexusControlEnabled || on })),
+        controlDevice: async () => { setOn(true); },
+      };
+    },
+  };
+});
 
 import { DevicePage } from './DevicePage';
 
@@ -56,6 +65,16 @@ describe('DevicePage access-denied', () => {
     expect(screen.getByText('Thermalright LCD')).toBeInTheDocument();
     expect(screen.queryByText('devices.page.notConnected')).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'warning');
+  });
+
+  it('shows the notice at once after Nexus Control turns on, without the detecting hold', () => {
+    mockUnified = [lcd({ nexusControlEnabled: false, warning: 'access-denied' })];
+    render(<DevicePage deviceKey="curated-thermalright-lcd" serviceOnline />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+
+    expect(screen.getByText('devices.accessDenied.title')).toBeInTheDocument();
+    expect(screen.queryByText('devices.nexusControlOff.detecting')).not.toBeInTheDocument();
   });
 
   it('keeps "not connected" for a panel with no warning', () => {

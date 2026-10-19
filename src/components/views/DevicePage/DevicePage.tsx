@@ -309,7 +309,8 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
 /** A screen whose page is its panel (a cooler LCD, a Q-series), before that panel connects. */
 function PanelNotConnected({ name, deviceKey, warning }: { name: string; deviceKey: string; warning?: string }) {
   const { t } = useTranslation();
-  useReportDeviceWaiting(true);
+  // Access denied is a settled state with its own notice, so it never holds the detecting screen.
+  useReportDeviceWaiting(warning !== 'access-denied');
   // Unmounts when the panel row claims the key, which ends the detecting hold.
   const report = useContext(DeviceDetectingContext);
   useEffect(() => () => report?.(false), [report]);
