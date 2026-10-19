@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
-import { CircleAlert, ShieldCheck } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleX, ShieldCheck, Trash2 } from 'lucide-react';
 import { Badge } from '../Badge/Badge';
 import { Button } from '../Button/Button';
+import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { Card } from '../Card/Card';
 import { Checkbox } from '../Checkbox/Checkbox';
 import { ChipGroup } from '../ChipGroup/ChipGroup';
@@ -31,6 +32,7 @@ import {
 import styles from './ConflictOutcomePanel.module.scss';
 
 const WARN_ICON_SIZE = 13;
+const OUTCOME_ICON_SIZE = 20;
 const NEXUS2_NAME = 'HYTE Nexus 2';
 
 export type ConflictOutcomeAction = 'apply' | 'keepAll';
@@ -186,10 +188,6 @@ export function ConflictOutcomePanel({
         <ConflictAllClear />
       ) : (
         <div className={styles.scroll}>
-          <div className={styles.columns} aria-hidden>
-            <span>{t('conflicts.outcome.colApp')}</span>
-            <span>{t('conflicts.outcome.colOutcome')}</span>
-          </div>
           <ul className={styles.list}>
             {appEntries.map(entry => {
               const id = entry.conflict.id;
@@ -237,21 +235,24 @@ export function ConflictOutcomePanel({
                         )}
                       </div>
                       <div className={styles.outcome}>
-                        <Badge
-                          uppercase
-                          label={t(state.end ? 'conflicts.outcome.willTerminate' : 'conflicts.outcome.keepsRunning')}
-                          color={state.end ? 'var(--text)' : 'var(--text-dim)'}
-                        />
-                        {state.end && autostartCount > 0 && (
-                          <div onClick={e => e.stopPropagation()}>
-                            <Checkbox
-                              checked={state.unstart}
-                              disabled={busy}
-                              onChange={value => patchChoice(id, { unstart: value })}
-                              label={t('conflicts.outcome.removeFromStartup')}
-                            />
-                          </div>
-                        )}
+                        {state.end
+                          ? <CircleX size={OUTCOME_ICON_SIZE} className={styles.outcomeIcon} aria-hidden />
+                          : <CircleCheck size={OUTCOME_ICON_SIZE} className={`${styles.outcomeIcon} ${styles.outcomeDim}`} aria-hidden />}
+                        <div className={styles.outcomeText}>
+                          <span className={`${styles.outcomeLabel} ${state.end ? '' : styles.outcomeDim}`}>
+                            {t(state.end ? 'conflicts.outcome.willTerminate' : 'conflicts.outcome.keepsRunning')}
+                          </span>
+                          {state.end && autostartCount > 0 && (
+                            <div onClick={e => e.stopPropagation()}>
+                              <Checkbox
+                                checked={state.unstart}
+                                disabled={busy}
+                                onChange={value => patchChoice(id, { unstart: value })}
+                                label={t('conflicts.outcome.removeFromStartup')}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -267,11 +268,14 @@ export function ConflictOutcomePanel({
                       <div className={styles.meta}><Badge label={t('conflicts.outcome.olderVersion')} /></div>
                     </div>
                     <div className={styles.outcome}>
-                      <Badge
-                        uppercase
-                        label={t(nexus2Uninstall ? 'conflicts.outcome.willUninstall' : 'conflicts.outcome.staysInstalled')}
-                        color={nexus2Uninstall ? 'var(--text)' : 'var(--text-dim)'}
-                      />
+                      {nexus2Uninstall
+                        ? <Trash2 size={OUTCOME_ICON_SIZE} className={styles.outcomeIcon} aria-hidden />
+                        : <CircleCheck size={OUTCOME_ICON_SIZE} className={`${styles.outcomeIcon} ${styles.outcomeDim}`} aria-hidden />}
+                      <div className={styles.outcomeText}>
+                        <span className={`${styles.outcomeLabel} ${nexus2Uninstall ? '' : styles.outcomeDim}`}>
+                          {t(nexus2Uninstall ? 'conflicts.outcome.willUninstall' : 'conflicts.outcome.staysInstalled')}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -281,7 +285,15 @@ export function ConflictOutcomePanel({
         </div>
       )}
 
-      {ready && showList && (
+      {ready && showList && (variant === 'onboarding' ? (
+        <OnboardingFooter
+          secondary={{ label: t('conflicts.outcome.keepAll'), onClick: () => { void run('keepAll'); }, disabled: busy }}
+          icon={<ShieldCheck />}
+          loading={busy}
+          label={primaryLabel}
+          onContinue={() => { void run('apply'); }}
+        />
+      ) : (
         <div className={styles.footer}>
           <Button tone="ghost" size="lg" disabled={busy} onClick={() => { void run('keepAll'); }}>
             {t('conflicts.outcome.keepAll')}
@@ -298,7 +310,7 @@ export function ConflictOutcomePanel({
             {primaryLabel}
           </Button>
         </div>
-      )}
+      ))}
 
       <ExperimentalEnableModal
         open={confirming !== null}

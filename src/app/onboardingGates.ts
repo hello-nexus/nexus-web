@@ -50,3 +50,52 @@ export function deriveOnboardingGates(i: OnboardingGateInputs): OnboardingGates 
   const gateOpened = i.welcomeOpen || i.featuresOpen || importOpen || conflictStepPending || lightingOnboardingOpen || showDashboard;
   return { importOpen, conflictStepPending, lightingOnboardingOpen, showDashboard, gateOpened };
 }
+
+/**
+ * The informational HYTE step sits before Features and shows only while
+ * HYTE Nexus 2 is installed now. `nexus2Installed` must be the service's
+ * `detected` flag: `pending` and `importAvailable` outlive an uninstall.
+ */
+export function isHyteStepAvailable(i: {
+  featuresPending: boolean;
+  featuresReplay: boolean;
+  nexus2Known: boolean;
+  nexus2Installed: boolean;
+}): boolean {
+  return i.featuresPending && !i.featuresReplay && i.nexus2Known && i.nexus2Installed;
+}
+
+/**
+ * The two gates between Welcome and Import. Features waits on the Nexus 2
+ * read so it never flashes before the HYTE step, and yields to it while it is open.
+ */
+export function deriveEarlyGates(i: {
+  featuresPending: boolean;
+  featuresReplay: boolean;
+  nexus2Known: boolean;
+  nexus2Installed: boolean;
+  hyteDismissed: boolean;
+}): { hyteStepAvailable: boolean; hyteOpen: boolean; featuresOpen: boolean } {
+  const hyteStepAvailable = isHyteStepAvailable(i);
+  const hyteOpen = hyteStepAvailable && !i.hyteDismissed;
+  return { hyteStepAvailable, hyteOpen, featuresOpen: i.featuresPending && i.nexus2Known && !hyteOpen };
+}
+
+/**
+ * Whether a new onboarding read re-opens the HYTE step. Only a reset re-pends
+ * Welcome; a reconnect after Welcome (Features still pending) must not.
+ */
+export function shouldReopenHyte(i: { welcomeStatus: 'unknown' | 'pending' | 'completed' }): boolean {
+  return i.welcomeStatus === 'pending';
+}
+
+/** Where Back goes from Features: the HYTE step when it ran, else Welcome while that is part of this run. */
+export function featuresBackTarget(i: { hyteStepAvailable: boolean; welcomePending: boolean }): 'hyte' | 'welcome' | null {
+  if (i.hyteStepAvailable) return 'hyte';
+  return i.welcomePending ? 'welcome' : null;
+}
+
+/** Where Back goes from the HYTE step. */
+export function hyteBackTarget(i: { welcomePending: boolean }): 'welcome' | null {
+  return i.welcomePending ? 'welcome' : null;
+}

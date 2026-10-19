@@ -84,6 +84,15 @@ describe('ConflictOutcomePanel', () => {
     expect(mockKill).not.toHaveBeenCalled();
   });
 
+  it('has no column header row, and each outcome label carries its icon', () => {
+    const { container } = renderPanel(['razer']);
+
+    expect(screen.queryByText('conflicts.outcome.colApp')).toBeNull();
+    expect(screen.queryByText('conflicts.outcome.colOutcome')).toBeNull();
+    expect(container.querySelectorAll('svg.lucide-circle-x')).toHaveLength(1);
+    expect(container.querySelectorAll('svg.lucide-circle-check')).toHaveLength(2);
+  });
+
   it('a card click toggles the outcome, from the keyboard too', () => {
     renderPanel();
 

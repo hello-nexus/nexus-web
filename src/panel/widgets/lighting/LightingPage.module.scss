@@ -1237,9 +1237,12 @@
 }
 
 // A card carrying the controlled-by strip: the strip wraps onto its own row
-// inside the card, so one border, fill and outline cover both.
+// inside the card, so one border, fill and outline cover both. The strip's own
+// top margin stands in for the card's bottom padding, so the part above the
+// separator measures the same as a card without a strip.
 .deviceCardWithStrip {
   flex-wrap: wrap;
+  row-gap: 0;
   padding-bottom: 0;
 }
 
@@ -1250,24 +1253,29 @@
   box-sizing: border-box;
   width: calc(100% + 1.5rem);
   margin: 0.6rem -0.75rem 0;
-  padding: 4px 0.75rem 5px calc(0.75rem + 5px);
+  padding: 0.5rem 0.75rem 0.5rem calc(0.75rem + 5px);
   display: flex;
   align-items: center;
   gap: 4px;
   border: 0;
   border-top: var(--border-width) solid var(--separator);
+  border-radius: 0 0 calc(var(--radius) - var(--border-width)) calc(var(--radius) - var(--border-width));
   background: transparent;
   color: var(--text-dim);
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: color var(--ease-fast), filter var(--ease-fast);
+  transition: background var(--ease-fast);
 
   svg { width: 11px; height: 11px; flex: none; }
   b { font-weight: inherit; color: var(--text); }
 
-  &:hover { color: var(--text); }
+  &:hover,
+  &:focus-visible { background: rgb(255 255 255 / var(--alpha-faint)); }
+
+  :global([data-theme="light"]) &:hover,
+  :global([data-theme="light"]) &:focus-visible { background: rgb(0 0 0 / var(--alpha-faint)); }
 
   &:focus-visible {
     outline: 1px solid var(--accent);
@@ -1280,10 +1288,10 @@
 
   b { color: var(--warn); }
 
-  &:hover {
-    color: var(--warn);
-    filter: brightness(1.2);
-  }
+  &:hover,
+  &:focus-visible,
+  :global([data-theme="light"]) &:hover,
+  :global([data-theme="light"]) &:focus-visible { background: var(--warn-soft); }
 }
 
 // One device's zones under its name, stacked into a single card
@@ -1338,6 +1346,8 @@
     border-bottom-left-radius: var(--radius);
     border-bottom-right-radius: var(--radius);
   }
+
+  &:not(.deviceCardStackLast) .deviceControlledBy { border-radius: 0; }
 }
 
 // Second line of the device card: LED count on the left, action icons

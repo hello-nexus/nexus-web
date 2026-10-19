@@ -416,6 +416,26 @@ describe('LightingOnboardingScreen colour test strip', () => {
     }
   });
 
+  it('keeps polling until OpenRGB is running, then stops', async () => {
+    vi.useFakeTimers();
+    try {
+      seed([strip], false, true, false);
+      render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      const before = vi.mocked(fetchLightingDevices).mock.calls.length;
+      await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+      expect(vi.mocked(fetchLightingDevices).mock.calls.length).toBeGreaterThan(before);
+
+      seed([strip], false, true, true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+      const settled = vi.mocked(fetchLightingDevices).mock.calls.length;
+      await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+      expect(vi.mocked(fetchLightingDevices).mock.calls.length).toBe(settled);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('keeps polling while a scan is still running', async () => {
     vi.useFakeTimers();
     try {

@@ -82,6 +82,8 @@ import { ConflictAllClear } from '../components/common/ConflictAllClear/Conflict
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
 import { OnboardingNote } from '../components/common/OnboardingNote/OnboardingNote';
 import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
+import { OnboardingHeader } from '../components/common/OnboardingHeader/OnboardingHeader';
+import { OnboardingFooter } from '../components/common/OnboardingFooter/OnboardingFooter';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -1346,6 +1348,24 @@ function PreviewOnboardingNote() {
   return (
     <div className={styles.previewStack}>
       <OnboardingNote>You can change these settings any time.</OnboardingNote>
+    </div>
+  );
+}
+
+function PreviewOnboardingHeader() {
+  return (
+    <div className={styles.previewStack}>
+      <OnboardingHeader onBack={() => { /* preview only */ }} onSkip={() => { /* preview only */ }} />
+    </div>
+  );
+}
+
+function PreviewOnboardingFooter() {
+  return (
+    <div className={styles.previewStack}>
+      <OnboardingFooter label="Continue" onContinue={() => { /* preview only */ }}>
+        <OnboardingNote>You can change these settings any time.</OnboardingNote>
+      </OnboardingFooter>
     </div>
   );
 }
@@ -2740,6 +2760,18 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'The closing "you can change this any time" line of an onboarding page, centered and muted at the bottom below the content. Onboarding-only: a settings section explains itself with its description prop instead.',
     Preview: PreviewOnboardingNote,
   },
+  {
+    name: 'OnboardingHeader', category: 'inputs',
+    filePath: 'src/components/common/OnboardingHeader/OnboardingHeader.tsx',
+    description: 'Top bar shared by every onboarding screen after the welcome step: Back in the left corner when a handler is given, the Skip escape hatch in the right. Spans the surface edges; an absent side keeps its slot so the other stays put.',
+    Preview: PreviewOnboardingHeader,
+  },
+  {
+    name: 'OnboardingFooter', category: 'inputs',
+    filePath: 'src/components/common/OnboardingFooter/OnboardingFooter.tsx',
+    description: 'Bottom block shared by every onboarding screen: an optional closing note (children), an optional error line, then the large accent primary action with an optional secondary action beside it. Content-column width with fixed-width actions.',
+    Preview: PreviewOnboardingFooter,
+  },
 
   {
     name: 'SettingRow / SettingToggle / SettingSelect / SettingSlider', category: 'inputs',
@@ -3103,6 +3135,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/FeaturesOnboardingScreen/FeaturesOnboardingScreen.tsx',
     description: 'Non-dismissable onboarding gate, queued right after WelcomeScreen: a 2x2 grid of feature-pillar cards (Lighting, Cooling, Monitoring, Diagnostics), all on on a fresh install and starting from the current pillars on a replay, and a Continue button that saves all four pillar values before writing /onboarding/features-complete.',
     notes: 'No live preview - Continue posts real /preferences and /onboarding/features-complete requests (and /onboarding/lighting-complete when Lighting is switched off), so opening it here would mutate the running install\'s feature switches.',
+  },
+  {
+    name: 'HyteOnboardingScreen', category: 'modals',
+    filePath: 'src/components/common/HyteOnboardingScreen/HyteOnboardingScreen.tsx',
+    description: 'Informational onboarding step between WelcomeScreen and FeaturesOnboardingScreen, shown only while HYTE Nexus 2 is installed: HYTE plus Nexus marks, a thank-you with two intro paragraphs, a What\'s new list of four static rows, and a Continue button. No controls besides Back, Skip onboarding and Continue.',
+    notes: 'No live preview - it mounts as a full-viewport non-dismissable overlay that would cover the Storybook modal.',
   },
   {
     name: 'Nexus2ImportSection', category: 'modals',

@@ -1,0 +1,92 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { appendNewCards, hiddenCardIds, reconcileDeviceOrder } from '../lib/lightingVisibility';
+
+let rgbRunning: boolean | null = true;
+const fetchServiceMock = vi.fn(async (path: string) => {
+  if (path === '/lighting/status') return rgbRunning === null ? null : { rgbRunning };
+  return {
+    isInit: true,
+    devices: [
+      { id: 'openrgb-s-1', deviceId: 'openrgb-s-1', name: 'M65 PRO' },
+      { id: 'mb-0', deviceId: 'port-0', parentDeviceId: 'openrgb-0', name: 'Board' },
+      { id: 'keeb', deviceId: 'keeb', name: 'Keeb' },
+    ],
+  };
+});
+vi.mock('./service', async importOriginal => ({
+  ...(await importOriginal<typeof import('./service')>()),
+  fetchService: (path: string) => fetchServiceMock(path),
+}));
+
+// The last known daemon state lives in the module, so each test starts from a fresh one.
+async function load() {
+  vi.resetModules();
+  const lighting = await import('./lighting');
+  const conflicts = await import('../hooks/useConflictDevices');
+  return { fetchLightingDevices: lighting.fetchLightingDevices, deriveConflictDevices: conflicts.deriveConflictDevices };
+}
+
+describe('fetchLightingDevices', () => {
+  beforeEach(() => { rgbRunning = true; });
+
+  it('keeps snapshot and native cards while OpenRGB runs', async () => {
+    const { fetchLightingDevices } = await load();
+    expect((await fetchLightingDevices())!.devices.map(d => d.id)).toEqual(['openrgb-s-1', 'mb-0', 'keeb']);
+  });
+
+  it('hides every OpenRGB card, and only those, while it is off, and still reports them', async () => {
+    rgbRunning = false;
+    const { fetchLightingDevices } = await load();
+    const res = (await fetchLightingDevices())!;
+    expect(res.devices.map(d => d.id)).toEqual(['keeb']);
+    expect(res.allDevices).toHaveLength(3);
+    expect(res.rgbRunning).toBe(false);
+  });
+
+  it('hides them while the daemon state has never been read', async () => {
+    rgbRunning = null;
+    const { fetchLightingDevices } = await load();
+    expect((await fetchLightingDevices())!.devices.map(d => d.id)).toEqual(['keeb']);
+  });
+
+  it('keeps the last known state when a status read fails', async () => {
+    const { fetchLightingDevices } = await load();
+    await fetchLightingDevices();
+    rgbRunning = null;
+    expect((await fetchLightingDevices())!.devices.map(d => d.id)).toEqual(['openrgb-s-1', 'mb-0', 'keeb']);
+  });
+
+  it('leaves the conflict list nothing to target while OpenRGB is off', async () => {
+    rgbRunning = false;
+    const { fetchLightingDevices, deriveConflictDevices } = await load();
+    const lighting = (await fetchLightingDevices())!.devices.map(d => ({ ...d, conflictAppIds: ['icue'] }));
+    const groups = deriveConflictDevices([{ id: 'icue' } as never], [], lighting).get('icue')!;
+    expect(groups.some(g => g.lightingIds.some(i => i.startsWith('openrgb-') || i === 'mb-0'))).toBe(false);
+  });
+});
+
+describe('hiddenCardIds', () => {
+  it('names ids the service lists but the response hides, so a selection prune can keep them', () => {
+    const res = { devices: [{ id: 'keeb' }], allDevices: [{ id: 'keeb' }, { id: 'openrgb-s-1' }] };
+    expect([...hiddenCardIds(res)]).toEqual(['openrgb-s-1']);
+    expect([...hiddenCardIds({ devices: [{ id: 'keeb' }] })]).toEqual([]);
+  });
+});
+
+describe('reconcileDeviceOrder', () => {
+  it('keeps hidden OpenRGB ids at their place, drops gone ones, appends new ones', () => {
+    const order = reconcileDeviceOrder(['openrgb-1', 'keeb', 'gone', 'openrgb-2'], ['keeb', 'new'], new Set(['openrgb-1', 'openrgb-2']));
+    expect(order).toEqual(['openrgb-1', 'keeb', 'openrgb-2', 'new']);
+  });
+});
+
+describe('appendNewCards', () => {
+  it('keeps the shown order with fresh state for each kept card, appending only new arrivals', () => {
+    const a = { id: 'a', n: 1 }; const b = { id: 'b', n: 1 };
+    // n stands for upstream state such as `controlled`.
+    const out = appendNewCards([a, b], [{ id: 'b', n: 2 }, { id: 'c', n: 2 }, { id: 'a', n: 2 }]);
+    expect(out.map(c => c.id)).toEqual(['a', 'b', 'c']);
+    expect(out[0].n).toBe(2);
+    expect(out[1].n).toBe(2);
+  });
+});

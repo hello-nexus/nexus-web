@@ -62,7 +62,7 @@ import { LightingFeatureSeed } from './LightingFeatureSeed';
 import { PillarsReporter } from './PillarsReporter';
 import { importStepOffered } from './importStep';
 import { usePillarsLatch } from './usePillarsLatch';
-import { deriveOnboardingGates } from './onboardingGates';
+import { deriveEarlyGates, deriveOnboardingGates, featuresBackTarget, hyteBackTarget, shouldReopenHyte } from './onboardingGates';
 import { useConsumeSkippedOffers } from './useConsumeSkippedOffers';
 import { useNexus2NonCoolingContent } from './useNexus2NonCoolingContent';
 import { useTranslation } from '../lib/i18n';
@@ -91,6 +91,7 @@ import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { FeaturesOnboardingScreen } from '../components/common/FeaturesOnboardingScreen/FeaturesOnboardingScreen';
+import { HyteOnboardingScreen } from '../components/common/HyteOnboardingScreen/HyteOnboardingScreen';
 import { LightingOnboardingScreen } from '../components/common/LightingOnboardingScreen/LightingOnboardingScreen';
 import { ImportOnboardingScreen } from '../components/common/ImportOnboarding/ImportOnboardingScreen';
 import { FeatureGate } from '../components/common/FeatureDisabled/FeatureDisabled';
@@ -383,6 +384,7 @@ export function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [featuresOnboardingDismissed, setFeaturesOnboardingDismissed] = useState(false);
   const [lightingOnboardingDismissed, setLightingOnboardingDismissed] = useState(false);
+  const [hyteStepDismissed, setHyteStepDismissed] = useState(false);
   // Latched by FeaturesOnboardingScreen's onComplete when the user switched
   // Lighting off there. Dashboard's body can't call useUiSettings() itself
   // (it renders the provider), so this is the only way the skip decision
@@ -403,6 +405,7 @@ export function Dashboard() {
     if (readAt < latchedAt.current) return;
     if (onboardingStatus === 'pending') setOnboardingDismissed(false);
     if (featuresStatus === 'pending') setFeaturesOnboardingDismissed(false);
+    if (shouldReopenHyte({ welcomeStatus: onboardingStatus })) setHyteStepDismissed(false);
     if (lightingStatus === 'pending') setLightingOnboardingDismissed(false);
   }, [onboardingGeneration, readAt, onboardingStatus, featuresStatus, lightingStatus]);
 
@@ -413,12 +416,22 @@ export function Dashboard() {
   const welcomeOpen = (onboardingStatus === 'pending' || welcomeRevisit) && !onboardingDismissed;
   // First gate after welcome: which functional pillars (lighting/cooling/
   // monitoring/diagnostics) the user wants at all.
-  const featuresOpen = onboardingStatus !== 'unknown'
+  const featuresPending = onboardingStatus !== 'unknown'
     && (onboardingStatus === 'completed' || onboardingDismissed)
     && !welcomeOpen && featuresStatus === 'pending' && !featuresOnboardingDismissed;
   // Fetched on mount alongside onboarding (not deferred) so the handoff from
   // WelcomeScreen to this screen can land in the same render pass.
   const nexus2 = useNexus2WelcomeStatus();
+  // Between welcome and features, only while HYTE Nexus 2 is installed right
+  // now (`detected`, not the import offer). Features waits on the same read so
+  // it never flashes before this step.
+  const { hyteStepAvailable, hyteOpen, featuresOpen } = deriveEarlyGates({
+    featuresPending,
+    featuresReplay,
+    nexus2Known: nexus2.status !== 'unknown',
+    nexus2Installed: nexus2.payload?.detected === true,
+    hyteDismissed: hyteStepDismissed,
+  });
   const fanControl = useFanControlStatus();
   const [importDismissed, setImportDismissed] = useState(false);
   // Second gate: a returning Nexus 2 user closes/imports from the old app
@@ -436,7 +449,7 @@ export function Dashboard() {
   const serviceDown = status.state === 'offline' || status.state === 'offline-installed';
   const gateEverOpened = useRef(false);
   const { pillars, hydrated: pillarsHydrated, ready: pillarsReady, report: reportPillars } = usePillarsLatch(
-    onboardingStatus === 'unknown' || welcomeOpen || featuresOpen,
+    onboardingStatus === 'unknown' || welcomeOpen || hyteOpen || featuresOpen,
     serviceDown,
     gateEverOpened,
   );
@@ -513,7 +526,7 @@ export function Dashboard() {
     nexus2Known: nexus2.status !== 'unknown',
     fanControlKnown: fanControl.status !== 'unknown',
     welcomeOpen,
-    featuresOpen,
+    featuresOpen: featuresOpen || hyteOpen,
     welcomeDone: onboardingStatus === 'completed' || onboardingDismissed,
     importOffered,
     importDismissed,
@@ -987,6 +1000,7 @@ export function Dashboard() {
           onDeviceSelect={k => navigate('system', 'device', k)}
           tab={subtab}
           onTabChange={setSubtab}
+          onOpenLighting={() => navigate('system', 'lighting')}
         />
       );
       case 'device':     return (
@@ -1153,6 +1167,14 @@ export function Dashboard() {
             that sequence is still running. */}
         <PillarsReporter onPillars={reportPillars} />
         <LightingFeatureSeed active={featuresStatus === 'completed'} lightingPending={lightingStatus === 'pending'} onLightingOff={markLightingFeatureOff} />
+        <HyteOnboardingScreen
+          open={hyteOpen}
+          onContinue={() => setHyteStepDismissed(true)}
+          onSkipOnboarding={skipOnboarding}
+          onBack={hyteBackTarget({ welcomePending: onboardingStatus === 'pending' }) === 'welcome'
+            ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
+            : undefined}
+        />
         <FeaturesOnboardingScreen
           open={featuresOpen}
           fromCurrent={featuresReplay}
@@ -1162,9 +1184,12 @@ export function Dashboard() {
             if (!flags.lighting) setLightingFeatureOff(true);
           }}
           onSkipOnboarding={skipOnboarding}
-          onBack={onboardingStatus === 'pending'
-            ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
-            : undefined}
+          onBack={(() => {
+            const target = featuresBackTarget({ hyteStepAvailable, welcomePending: onboardingStatus === 'pending' });
+            if (target === 'hyte') return () => setHyteStepDismissed(false);
+            if (target === 'welcome') return () => { setWelcomeRevisit(true); setOnboardingDismissed(false); };
+            return undefined;
+          })()}
         />
         {/* Import gate: offers every app a previous setup can come from.
             Ending one is the conflict gate's job, on an explicit click. */}
