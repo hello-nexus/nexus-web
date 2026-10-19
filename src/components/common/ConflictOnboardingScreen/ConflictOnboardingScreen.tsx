@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ArrowLeft, TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import { Overlay } from '../Overlay/Overlay';
-import { Button } from '../Button/Button';
 import { ConflictOutcomePanel, type ConflictOutcomeAction } from '../ConflictOutcomePanel/ConflictOutcomePanel';
-import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
+import { OnboardingHeader } from '../OnboardingHeader/OnboardingHeader';
 import { useTranslation } from '../../../lib/i18n';
 import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
 import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
@@ -74,16 +73,14 @@ export function ConflictOnboardingScreen({
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
-      <div className={styles.topBar}>
-        {onBack ? (
-          <Button tone="ghost" size="sm" icon={<ArrowLeft />} disabled={busy} onClick={onBack}>
-            {t('nav.back')}
-          </Button>
-        ) : <span />}
-        {onSkipOnboarding ? (
-          <SkipOnboardingButton onSkip={() => { report('skipOnboarding', conflicts.map(c => c.id), []); onSkipOnboarding(); }} disabled={busy} />
-        ) : <span />}
-      </div>
+      <OnboardingHeader
+        onBack={onBack}
+        backDisabled={busy}
+        onSkip={onSkipOnboarding
+          ? () => { report('skipOnboarding', conflicts.map(c => c.id), []); onSkipOnboarding(); }
+          : undefined}
+        skipDisabled={busy}
+      />
 
       <ConflictOutcomePanel
         conflicts={conflicts}
