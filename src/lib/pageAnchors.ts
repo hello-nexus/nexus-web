@@ -44,9 +44,17 @@ export function lianLiWirelessCoolingAnchors(macs: readonly string[]): string[] 
   return macs.map(mac => coolingGroupAnchor(`${WIRELESS_HUB_ID}:${mac}`));
 }
 
-/** Lighting rail targets for the wired LCD Flex fans: each unit's card. */
+const FLEX_ZONE_IDS = ['up', 'down', 'center', 'inner', 'outer'];
+
+/** Lighting rail targets for the wired LCD Flex fans: each unit's split group, then its zone cards, then the parent group. */
 export function lianLiFlexLightingAnchors(macs: readonly string[]): string[] {
-  return macs.map(mac => lightingDeviceAnchor(`${FLEX_ID}:${mac}`));
+  return [
+    ...macs.flatMap(mac => [
+      lightingGroupAnchor(`mb:${FLEX_ID}:${mac}`),
+      ...FLEX_ZONE_IDS.map(zone => lightingDeviceAnchor(`${FLEX_ID}:${mac}:${zone}`)),
+    ]),
+    lightingGroupAnchor(`mb:${FLEX_ID}`),
+  ];
 }
 
 /** Cooling rail targets for the wired LCD Flex fans: each unit's group. */

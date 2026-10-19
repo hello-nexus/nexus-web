@@ -58,11 +58,14 @@ describe('lianli-flex api', () => {
     ]);
   });
 
-  it('sends brightness and rotation for a screen but never sleep-when-locked', async () => {
+  it('sends only the screen settings that changed, sleep-when-locked included', async () => {
     await lianLiFlexScreenApi.setSettings('S1', { brightness: 40, rotation: 1, sleepWhenLocked: true });
-    expect(mockPost).toHaveBeenCalledWith('/devices/lianli-flex/screen/settings', { serial: 'S1', brightness: 40, rotation: 1 });
+    expect(mockPost).toHaveBeenCalledWith('/devices/lianli-flex/screen/settings', { serial: 'S1', brightness: 40, rotation: 1, sleepWhenLocked: true });
     mockPost.mockClear();
-    expect(await lianLiFlexScreenApi.setSettings('S1', { sleepWhenLocked: true })).toBe(true);
+    await lianLiFlexScreenApi.setSettings('S1', { sleepWhenLocked: false });
+    expect(mockPost).toHaveBeenCalledWith('/devices/lianli-flex/screen/settings', { serial: 'S1', sleepWhenLocked: false });
+    mockPost.mockClear();
+    expect(await lianLiFlexScreenApi.setSettings('S1', {})).toBe(true);
     expect(mockPost).not.toHaveBeenCalled();
   });
 

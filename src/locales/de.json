@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "Die Reihenfolge der Lüfter für Effekte, die über beide laufen",
   "devices.lianli-flex.linkBusy": "Eine andere App verwendet die Lüfter. Beenden Sie sie, damit Nexus sich verbinden kann.",
   "devices.lianli-flex.linkOpenFailed": "Die Lüfter konnten nicht geöffnet werden. Stecken Sie ihr USB-Kabel neu ein.",
-  "devices.lianli-flex.mergeHint": "Eine Animation läuft über beide Lüfter, statt sich auf jedem Lüfter zu wiederholen",
+  "devices.lianli-flex.mergeHint": "Eine Animation läuft über alle Lüfter mit aktivierter Zusammenführung. Der erste Lüfter in der Lichtreihenfolge bestimmt das Aussehen.",
   "devices.lianli-flex.modePerZone": "Pro Zone",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex nicht verbunden",
   "devices.lianli-flex.resetConfirmMessage": "Dadurch wird die aktuelle Beleuchtung dieses Lüfters durch das Standardaussehen ersetzt.",

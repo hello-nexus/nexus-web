@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "風扇的順序，用於橫跨兩個風扇的效果",
   "devices.lianli-flex.linkBusy": "另一個應用程式正在佔用這些風扇。請關閉該程式，Nexus 才能連線。",
   "devices.lianli-flex.linkOpenFailed": "無法開啟這些風扇。請重新連接它們的 USB 線。",
-  "devices.lianli-flex.mergeHint": "一個動畫貫穿兩個風扇，而非在每個風扇上重複",
+  "devices.lianli-flex.mergeHint": "一個動畫貫穿所有開啟合併的風扇。燈光順序中的第一個風扇決定外觀。",
   "devices.lianli-flex.modePerZone": "依分區",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex 未連線",
   "devices.lianli-flex.resetConfirmMessage": "這會將此風扇目前的燈光取代為預設外觀。",

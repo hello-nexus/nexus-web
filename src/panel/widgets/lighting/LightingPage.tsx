@@ -26,6 +26,8 @@ import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLa
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
 import { getLianLiWirelessLighting, setLianLiWirelessChainLighting } from '../../../api/lianli-wireless';
+import { lianLiFlexLightingApi } from '../../../api/lianli-flex';
+import { FLEX_DEVICE_PREFIX, WIRELESS_DEVICE_PREFIX, presetDeviceIds, presetTarget } from './page/firmwareChains';
 import { getHydroShift2Lighting, setHydroShift2Lighting } from '../../../api/hydroshift2';
 import { getGalahad2Lighting, setGalahad2Lighting } from '../../../api/lianli-aio';
 import { getStrimerLighting, setStrimerLighting } from '../../../api/strimer';
@@ -348,16 +350,24 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Device ids of wireless chains playing an uploaded animation instead of the engine's frames.
   const [wirelessPresetIds, setWirelessPresetIds] = useState<ReadonlySet<string>>(() => new Set());
   const refreshWirelessPresets = useCallback(async () => {
-    const data = await getLianLiWirelessLighting();
-    if (!data) return;
-    setWirelessPresetIds(new Set(
-      data.chains.filter(c => c.mode !== 'custom').map(c => `lianli-wireless:${c.mac}`),
-    ));
+    const [wireless, flex] = await Promise.all([
+      getLianLiWirelessLighting(),
+      lianLiFlexLightingApi.get().catch(() => null),
+    ]);
+    if (!wireless && !flex) return;
+    setWirelessPresetIds(new Set([
+      ...presetDeviceIds(WIRELESS_DEVICE_PREFIX, wireless?.chains ?? []),
+      ...presetDeviceIds(FLEX_DEVICE_PREFIX, flex?.chains ?? []),
+    ]));
   }, []);
   const handleWirelessTakeControl = useCallback(async (deviceId: string) => {
-    const mac = deviceId.slice('lianli-wireless:'.length);
+    const target = presetTarget(deviceId);
+    if (!target) return;
     setWirelessPresetIds(prev => new Set([...prev].filter(id => id !== deviceId)));
-    if (!await setLianLiWirelessChainLighting(mac, { mode: 'custom' })) void refreshWirelessPresets();
+    const ok = target.family === 'flex'
+      ? await lianLiFlexLightingApi.set(target.mac, { mode: 'custom' })
+      : await setLianLiWirelessChainLighting(target.mac, { mode: 'custom' });
+    if (!ok) void refreshWirelessPresets();
   }, [refreshWirelessPresets]);
 
   // Device ids of OWN_EFFECT_DEVICES not following the Lighting page; only present devices are read.

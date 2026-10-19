@@ -189,10 +189,10 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
       expect(screen.getByRole('button', { name: 'devices.lianli-flex.restartLcdButton' })).not.toBeDisabled();
     });
 
-    it('offers screen brightness but not sleep-when-locked', async () => {
+    it('offers screen brightness and sleep-when-locked', async () => {
       await openScreens();
       expect(screen.getByRole('slider', { name: 'devices.lianli-wireless.brightness' })).toBeInTheDocument();
-      expect(screen.queryByText('devices.lcd.sleepWhenLocked')).not.toBeInTheDocument();
+      expect(screen.getByText('devices.lcd.sleepWhenLocked')).toBeInTheDocument();
     });
   });
 });

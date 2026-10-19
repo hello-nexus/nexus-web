@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "A ordem das ventoinhas, usada pelos efeitos que percorrem ambas",
   "devices.lianli-flex.linkBusy": "Outra aplicação está a utilizar as ventoinhas. Feche-a para o Nexus se poder ligar.",
   "devices.lianli-flex.linkOpenFailed": "Não foi possível abrir as ventoinhas. Volte a ligar o respetivo cabo USB.",
-  "devices.lianli-flex.mergeHint": "Uma única animação percorre ambas as ventoinhas em vez de se repetir em cada uma",
+  "devices.lianli-flex.mergeHint": "Uma única animação percorre todas as ventoinhas com a fusão ativa. A primeira ventoinha da sequência de luzes define o aspeto.",
   "devices.lianli-flex.modePerZone": "Por zona",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex não ligado",
   "devices.lianli-flex.resetConfirmMessage": "Isto substitui a iluminação atual desta ventoinha pelo aspeto predefinido.",

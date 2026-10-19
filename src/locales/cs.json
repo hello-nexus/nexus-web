@@ -822,7 +822,7 @@
   "devices.lianli-flex.lightSequenceHint": "Pořadí ventilátorů, které používají efekty probíhající přes oba",
   "devices.lianli-flex.linkBusy": "Ventilátory používá jiná aplikace. Zavřete ji, aby se Nexus mohl připojit.",
   "devices.lianli-flex.linkOpenFailed": "Ventilátory se nepodařilo otevřít. Znovu připojte jejich kabel USB.",
-  "devices.lianli-flex.mergeHint": "Jedna animace běží přes oba ventilátory místo opakování na každém z nich",
+  "devices.lianli-flex.mergeHint": "Jedna animace běží přes všechny ventilátory se zapnutým sloučením. Vzhled určuje první ventilátor v pořadí osvětlení.",
   "devices.lianli-flex.modePerZone": "Podle zóny",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex není připojen",
   "devices.lianli-flex.resetConfirmMessage": "Tím se současné osvětlení tohoto ventilátoru nahradí výchozím vzhledem.",

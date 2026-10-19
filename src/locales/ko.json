@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "두 팬에 걸쳐 실행되는 효과에 사용되는 팬 순서",
   "devices.lianli-flex.linkBusy": "다른 앱이 팬을 사용하고 있습니다. Nexus가 연결할 수 있도록 종료하세요.",
   "devices.lianli-flex.linkOpenFailed": "팬을 열 수 없습니다. USB 케이블을 다시 연결하세요.",
-  "devices.lianli-flex.mergeHint": "팬마다 반복하지 않고 하나의 애니메이션이 두 팬을 가로지릅니다",
+  "devices.lianli-flex.mergeHint": "병합이 켜진 모든 팬에 걸쳐 하나의 애니메이션이 실행됩니다. 조명 순서에서 첫 번째 팬이 모양을 정합니다.",
   "devices.lianli-flex.modePerZone": "구역별",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex가 연결되지 않음",
   "devices.lianli-flex.resetConfirmMessage": "이 팬의 현재 조명이 기본 모양으로 바뀝니다.",

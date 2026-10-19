@@ -47,15 +47,15 @@ async function getScreens(): Promise<LianLiWirelessScreen[] | null> {
   return r?.screens ?? null;
 }
 
-// Sleep-when-locked is not offered for these screens, so it is never sent.
 async function setScreenSettings(serial: string, settings: LianLiScreenSettingsPatch): Promise<boolean> {
-  const { brightness, rotation, nexusPanel } = settings;
-  if (brightness === undefined && rotation === undefined && nexusPanel === undefined) return true;
+  const { brightness, rotation, nexusPanel, sleepWhenLocked } = settings;
+  if (brightness === undefined && rotation === undefined && nexusPanel === undefined && sleepWhenLocked === undefined) return true;
   return isOk(await postService<OkResponse>(`${BASE}/screen/settings`, {
     serial,
     ...(brightness !== undefined ? { brightness } : {}),
     ...(rotation !== undefined ? { rotation } : {}),
     ...(nexusPanel !== undefined ? { nexusPanel } : {}),
+    ...(sleepWhenLocked !== undefined ? { sleepWhenLocked } : {}),
   }));
 }
 

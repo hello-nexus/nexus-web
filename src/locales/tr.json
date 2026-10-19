@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "Her iki fana yayılan efektlerin kullandığı fan sırası",
   "devices.lianli-flex.linkBusy": "Fanları başka bir uygulama kullanıyor. Nexus'un bağlanabilmesi için onu kapatın.",
   "devices.lianli-flex.linkOpenFailed": "Fanlar açılamadı. USB kablolarını yeniden bağlayın.",
-  "devices.lianli-flex.mergeHint": "Tek bir animasyon her fanda tekrarlanmak yerine her iki fana yayılır",
+  "devices.lianli-flex.mergeHint": "Birleştirme açık olan tüm fanlarda tek bir animasyon ilerler. Görünümü ışık sırasındaki ilk fan belirler.",
   "devices.lianli-flex.modePerZone": "Bölgeye göre",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex bağlı değil",
   "devices.lianli-flex.resetConfirmMessage": "Bu, bu fanın mevcut aydınlatmasını varsayılan görünümle değiştirir.",

@@ -275,7 +275,6 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
           {tab === 'screen' && (
             <LianLiWirelessScreenTab
               api={flex ? lianLiFlexScreenApi : undefined}
-              supportsSleepWhenLocked={!flex}
               lcdRestart={lcdRestart}
               aioMacs={aioMacs}
               usbMacs={usbMacs}

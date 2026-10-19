@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "L'ordre des ventilateurs, utilisé par les effets qui s'étendent sur les deux",
   "devices.lianli-flex.linkBusy": "Une autre application utilise les ventilateurs. Fermez-la pour que Nexus puisse se connecter.",
   "devices.lianli-flex.linkOpenFailed": "Impossible d'ouvrir les ventilateurs. Rebranchez leur câble USB.",
-  "devices.lianli-flex.mergeHint": "Une seule animation s'étend sur les deux ventilateurs au lieu de se répéter sur chacun",
+  "devices.lianli-flex.mergeHint": "Une seule animation s'étend sur tous les ventilateurs dont la fusion est activée. Le premier ventilateur de la séquence lumineuse définit l'apparence.",
   "devices.lianli-flex.modePerZone": "Par zone",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex non connecté",
   "devices.lianli-flex.resetConfirmMessage": "Cela remplace l'éclairage actuel de ce ventilateur par l'apparence par défaut.",

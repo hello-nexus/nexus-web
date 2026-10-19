@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "De volgorde van de ventilatoren, gebruikt door effecten die over beide lopen",
   "devices.lianli-flex.linkBusy": "Een andere app gebruikt de ventilatoren. Sluit die af zodat Nexus verbinding kan maken.",
   "devices.lianli-flex.linkOpenFailed": "De ventilatoren konden niet worden geopend. Sluit hun USB-kabel opnieuw aan.",
-  "devices.lianli-flex.mergeHint": "Eén animatie loopt over beide ventilatoren in plaats van zich op elke ventilator te herhalen",
+  "devices.lianli-flex.mergeHint": "Eén animatie loopt over alle ventilatoren waarvoor samenvoegen aan staat. De eerste ventilator in de lichtvolgorde bepaalt de look.",
   "devices.lianli-flex.modePerZone": "Per zone",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex niet verbonden",
   "devices.lianli-flex.resetConfirmMessage": "Hiermee wordt de huidige verlichting van deze ventilator vervangen door de standaardlook.",

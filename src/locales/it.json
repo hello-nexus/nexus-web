@@ -815,7 +815,7 @@
   "devices.lianli-flex.lightSequenceHint": "L'ordine delle ventole, usato dagli effetti che attraversano entrambe",
   "devices.lianli-flex.linkBusy": "Un'altra app sta usando le ventole. Chiudila per consentire la connessione di Nexus.",
   "devices.lianli-flex.linkOpenFailed": "Impossibile aprire le ventole. Ricollega il loro cavo USB.",
-  "devices.lianli-flex.mergeHint": "Un'unica animazione attraversa entrambe le ventole invece di ripetersi su ciascuna",
+  "devices.lianli-flex.mergeHint": "Un'unica animazione attraversa tutte le ventole con l'unione attiva. La prima ventola della sequenza luci definisce l'aspetto.",
   "devices.lianli-flex.modePerZone": "Per zona",
   "devices.lianli-flex.notConnected": "Lian Li LCD Flex non collegato",
   "devices.lianli-flex.resetConfirmMessage": "Questo sostituisce l'illuminazione attuale di questa ventola con l'aspetto predefinito.",
