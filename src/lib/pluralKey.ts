@@ -5,7 +5,8 @@ export type PluralSuffix = 'one' | 'few' | 'other';
 /**
  * CLDR cardinal-plural category for `count` in `language`, collapsed onto
  * the three suffixes our locale files use (`.one` / `.few` / `.other`).
- * Polish and Russian each have their own three-form rule (one/few/many) -
+ * Czech counts few for exactly 2 to 4 (12 to 14 and 22 are other); Polish and
+ * Russian each have their own three-form rule (one/few/many) -
  * CLDR's "many" bucket is stored under the existing `.other` key (already
  * the correct genitive-plural text for both), so `.few` is the only new
  * form. Every other shipped locale has no CLDR "few" category for cardinal
@@ -21,6 +22,10 @@ export function pluralSuffix(language: Language, count: number): PluralSuffix {
   if (language === 'pl') {
     if (n === 1) return 'one';
     return isFew ? 'few' : 'other';
+  }
+  if (language === 'cs') {
+    if (n === 1) return 'one';
+    return n >= 2 && n <= 4 ? 'few' : 'other';
   }
   if (language === 'ru') {
     if (mod10 === 1 && mod100 !== 11) return 'one';
