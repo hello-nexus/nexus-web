@@ -147,10 +147,10 @@ describe('lianli-flex round 2 api', () => {
 
   it('captures into the media library and returns null when refused', async () => {
     mockPost.mockResolvedValue({ error: false, msg: '', mediaId: 'm9', name: 'cap', kind: 'video' });
-    expect(await captureLianLiFlexMedia({ mode: 'recording', seconds: 5 })).toMatchObject({ id: 'm9', kind: 'video' });
-    expect(mockPost).toHaveBeenCalledWith('/devices/lianli-flex/media/capture', { mode: 'recording', seconds: 5 });
+    expect(await captureLianLiFlexMedia({ durationSeconds: 5 })).toMatchObject({ id: 'm9', kind: 'video' });
+    expect(mockPost).toHaveBeenCalledWith('/devices/lianli-flex/media/capture', { durationSeconds: 5 });
     mockPost.mockResolvedValue({ error: true, msg: 'no' });
-    expect(await captureLianLiFlexMedia({ mode: 'screenshot' })).toBeNull();
+    expect(await captureLianLiFlexMedia({})).toBeNull();
   });
 
   it('lists, saves, applies and deletes templates', async () => {

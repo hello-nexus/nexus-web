@@ -139,7 +139,6 @@ describe('Flex screens content types', () => {
     fireEvent.keyDown(screen.getByRole('slider', { name: 'devices.lianli-flex.captureRegionAria' }), { key: 'ArrowLeft' });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.captureScreenshot' })); });
     expect(mockCapture).toHaveBeenCalledWith({
-      mode: 'screenshot',
       screenSource: expect.objectContaining({ cropSize: 1, displayId: '' }),
     });
   });
@@ -215,7 +214,7 @@ describe('Flex screens capture', () => {
   it('captures a screenshot into the library and shows it on the screen', async () => {
     await openMedia();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.captureScreenshot' })); });
-    expect(mockCapture).toHaveBeenCalledWith({ mode: 'screenshot', screenSource: { displayId: '', cropX: 0, cropY: 0, cropSize: 0 } });
+    expect(mockCapture).toHaveBeenCalledWith({ screenSource: { displayId: '', cropX: 0, cropY: 0, cropSize: 0 } });
     await waitFor(() => expect(mockSetContent).toHaveBeenCalledWith('S1', 'image', 'm9'));
   });
 
@@ -225,7 +224,7 @@ describe('Flex screens capture', () => {
     expect(screen.getByRole('slider', { name: 'devices.lianli-flex.captureSeconds' })).toHaveAttribute('max', '30');
     fireEvent.change(screen.getByRole('slider', { name: 'devices.lianli-flex.captureSeconds' }), { target: { value: '12' } });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.captureRecording' })); });
-    expect(mockCapture).toHaveBeenCalledWith({ mode: 'recording', seconds: 12, screenSource: { displayId: '', cropX: 0, cropY: 0, cropSize: 0 } });
+    expect(mockCapture).toHaveBeenCalledWith({ durationSeconds: 12, screenSource: { displayId: '', cropX: 0, cropY: 0, cropSize: 0 } });
   });
 
   it('reports a failed capture and leaves the content alone', async () => {

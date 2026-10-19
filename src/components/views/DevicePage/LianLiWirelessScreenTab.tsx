@@ -423,7 +423,7 @@ export function LianLiWirelessScreenTab({
   const handleCapture = useCallback(async (mode: 'screenshot' | 'recording') => {
     setCapturing(true);
     setCaptureFailed(false);
-    const item = await captureLianLiFlexMedia(mode === 'recording' ? { mode, seconds: captureSeconds, screenSource: captureSource } : { mode, screenSource: captureSource }).catch(() => null);
+    const item = await captureLianLiFlexMedia(mode === 'recording' ? { durationSeconds: captureSeconds, screenSource: captureSource } : { screenSource: captureSource }).catch(() => null);
     if (!aliveRef.current) return;
     setCapturing(false);
     if (!item) {

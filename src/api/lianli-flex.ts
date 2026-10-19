@@ -230,9 +230,8 @@ export async function syncLianLiFlexScreens(serial: string): Promise<boolean> {
 }
 
 export interface LianLiFlexCaptureRequest {
-  mode: 'screenshot' | 'recording';
-  /** Recording length, 1..30. */
-  seconds?: number;
+  /** Absent or 0: one still. 1..30: a clip of that many seconds. */
+  durationSeconds?: number;
   /** Display and square to capture; absent means the main display's largest centered square. */
   screenSource?: LianLiScreenSource;
 }
