@@ -300,6 +300,7 @@
   "common.loading": "Загрузка...",
   "common.mixed": "Разное",
   "common.nexusHome": "Главная Nexus",
+  "common.openFolderFailed": "Не удалось открыть папку. Повторите попытку через несколько секунд.",
   "common.pager.next": "Следующая страница",
   "common.pager.pageOf": "Страница {n} из {total}",
   "common.pager.prev": "Предыдущая страница",

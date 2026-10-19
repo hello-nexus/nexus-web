@@ -300,6 +300,7 @@
   "common.loading": "Yukleniyor...",
   "common.mixed": "Karışık",
   "common.nexusHome": "Nexus ana sayfası",
+  "common.openFolderFailed": "Klasör açılamadı. Birazdan tekrar deneyin.",
   "common.pager.next": "Sonraki sayfa",
   "common.pager.pageOf": "Sayfa {n} / {total}",
   "common.pager.prev": "Önceki sayfa",

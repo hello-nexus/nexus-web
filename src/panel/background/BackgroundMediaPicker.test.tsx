@@ -51,6 +51,12 @@ vi.mock('../../api/klipy', () => ({
   stageKlipyBackground: vi.fn(async () => ({ stageId: 'stage-happy-cat', alpha: false, error: false, msg: '' })),
 }));
 
+const toast = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock('../../components/common/Toast/Toast', () => ({
+  useToastSafe: () => ({ push: toast.push }),
+}));
+
 vi.mock('./useBackgroundMedia', () => ({
   useBackgroundMedia: () => ({ items: api.library, thumbs: {}, refresh: api.refresh, removeLocal: vi.fn() }),
 }));
@@ -67,6 +73,7 @@ vi.mock('../../lib/i18n', () => {
 import {
   cancelBackgroundMediaStage,
   commitBackgroundMedia,
+  openBackgroundMediaFolder,
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
 import { stageKlipyBackground } from '../../api/klipy';
@@ -123,6 +130,24 @@ beforeEach(() => {
   api.unreachable = new Set();
   api.tooLarge = new Set();
   api.gate = null;
+});
+
+describe('BackgroundMediaPicker open folder', () => {
+  beforeEach(() => { toast.push.mockClear(); });
+
+  it('says so when the service could not open the folder', async () => {
+    vi.mocked(openBackgroundMediaFolder).mockResolvedValueOnce(false);
+    renderPicker();
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.mediaManageFolder' }));
+    await waitFor(() => expect(toast.push).toHaveBeenCalledWith({ title: 'common.openFolderFailed' }));
+  });
+
+  it('stays quiet when the folder opened', async () => {
+    renderPicker();
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.mediaManageFolder' }));
+    await waitFor(() => expect(openBackgroundMediaFolder).toHaveBeenCalledWith('dev1'));
+    expect(toast.push).not.toHaveBeenCalled();
+  });
 });
 
 describe('BackgroundMediaPicker multi-file import', () => {

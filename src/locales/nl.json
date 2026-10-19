@@ -300,6 +300,7 @@
   "common.loading": "Laden...",
   "common.mixed": "Gemengd",
   "common.nexusHome": "Nexus-startpagina",
+  "common.openFolderFailed": "Kan de map niet openen. Probeer het zo opnieuw.",
   "common.pager.next": "Volgende pagina",
   "common.pager.pageOf": "Pagina {n} van {total}",
   "common.pager.prev": "Vorige pagina",

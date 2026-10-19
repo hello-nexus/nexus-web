@@ -300,6 +300,7 @@
   "common.loading": "Načítání...",
   "common.mixed": "Smíšené",
   "common.nexusHome": "Domů Nexus",
+  "common.openFolderFailed": "Složku se nepodařilo otevřít. Zkuste to za chvíli znovu.",
   "common.pager.next": "Další stránka",
   "common.pager.pageOf": "Stránka {n} z {total}",
   "common.pager.prev": "Předchozí stránka",

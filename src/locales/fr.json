@@ -300,6 +300,7 @@
   "common.loading": "Chargement...",
   "common.mixed": "Varié",
   "common.nexusHome": "Accueil Nexus",
+  "common.openFolderFailed": "Impossible d'ouvrir le dossier. Réessayez dans un instant.",
   "common.pager.next": "Page suivante",
   "common.pager.pageOf": "Page {n} sur {total}",
   "common.pager.prev": "Page précédente",
