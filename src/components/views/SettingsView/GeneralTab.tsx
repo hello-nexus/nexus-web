@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Compass, Eraser, FolderOpen, GitBranch, History, Languages, Megaphone, PackageOpen, PanelBottom, Power, PowerOff, RefreshCw, SlidersHorizontal, SquareMenu, Timer, TriangleAlert, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -107,6 +107,62 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   };
 
   const { push } = useToastSafe();
+
+  // The Manage modal's keep-running choices apply at once: an override per app
+  // shows the click before the service answers, and drops once the list agrees
+  // or the write failed. Same-app writes run in order so a double click ends in
+  // the second click's state.
+  const exclusionList = settings.general.conflictAutoKillExclusions;
+  const [keepOverrides, setKeepOverrides] = useState<Readonly<Record<string, boolean>>>({});
+  const keepQueue = useRef(new Map<string, Promise<void>>());
+  const keepInFlight = useRef(new Map<string, number>());
+  const exclusionsRef = useRef(exclusionList);
+  exclusionsRef.current = exclusionList;
+  const dropAgreed = useCallback(() => {
+    setKeepOverrides(prev => {
+      let next: Record<string, boolean> | null = null;
+      for (const [id, wanted] of Object.entries(prev)) {
+        if ((keepInFlight.current.get(id) ?? 0) === 0 && exclusionsRef.current.includes(id) === wanted) {
+          next ??= { ...prev };
+          delete next[id];
+        }
+      }
+      return next ?? prev;
+    });
+  }, []);
+  useEffect(dropAgreed, [exclusionList, dropAgreed]);
+  const shownExclusions = useMemo(() => {
+    const ids = new Set(exclusionList);
+    for (const [id, keep] of Object.entries(keepOverrides)) {
+      if (keep) ids.add(id);
+      else ids.delete(id);
+    }
+    return [...ids];
+  }, [exclusionList, keepOverrides]);
+  const setKeepRunning = useCallback((id: string, keep: boolean) => {
+    setKeepOverrides(prev => ({ ...prev, [id]: keep }));
+    keepInFlight.current.set(id, (keepInFlight.current.get(id) ?? 0) + 1);
+    const run = async () => {
+      const res = await setConflictWhitelisted(id, keep).catch(() => null);
+      const left = (keepInFlight.current.get(id) ?? 1) - 1;
+      keepInFlight.current.set(id, left);
+      if (!res || res.error) {
+        push({ title: t('settings.conflictApps.saveFailed') });
+        // A later click already queued owns the toggle; otherwise it reverts.
+        if (left === 0) {
+          setKeepOverrides(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        }
+        return;
+      }
+      if (left === 0) dropAgreed();
+    };
+    const queued = (keepQueue.current.get(id) ?? Promise.resolve()).then(run);
+    keepQueue.current.set(id, queued);
+  }, [push, t, dropAgreed]);
 
   // Null hides the row: not Windows, route missing on an older service, or request failed.
   const [fastStartup, setFastStartupInfo] = useState<FastStartupInfo | null>(null);
@@ -466,8 +522,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         onAutoShutdownChange={v => updateGeneral({ autoKillConflictsAtStartup: v })}
         endOnLaunch={settings.general.endConflictsOnLaunch}
         onEndOnLaunchChange={v => updateGeneral({ endConflictsOnLaunch: v })}
-        exclusions={settings.general.conflictAutoKillExclusions}
-        onWhitelistChange={(id, whitelisted) => { void setConflictWhitelisted(id, whitelisted); }}
+        exclusions={shownExclusions}
+        onWhitelistChange={setKeepRunning}
         notifyLaunches={settings.general.notifyConflictLaunches}
         onNotifyLaunchesChange={v => updateGeneral({ notifyConflictLaunches: v })}
       />

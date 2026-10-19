@@ -5066,6 +5066,7 @@
   "settings.conflictApps.endOnLaunch.label": "Закрывать конфликтующие приложения сразу при открытии",
   "settings.conflictApps.listIntro": "Включённое приложение будет закрыто. Выключите его, чтобы оставить работать.",
   "settings.conflictApps.loadFailed": "Не удалось загрузить список приложений. Убедитесь, что Nexus запущен, и откройте это окно заново.",
+  "settings.conflictApps.saveFailed": "Не удалось сохранить этот выбор. Ничего не изменилось.",
   "settings.conflictApps.loading": "Загрузка приложений…",
   "settings.conflictApps.manage.action": "Управление",
   "settings.conflictApps.manage.description": "Выберите, какие приложения Nexus будет закрывать, чтобы управлять оборудованием",

@@ -5019,6 +5019,7 @@
   "settings.conflictApps.endOnLaunch.label": "Chiudi le app in conflitto quando si aprono",
   "settings.conflictApps.listIntro": "Un'app attivata verrà chiusa. Disattivala per lasciarla in esecuzione.",
   "settings.conflictApps.loadFailed": "Impossibile caricare l'elenco delle app. Verifica che Nexus sia in esecuzione e riapri questa finestra.",
+  "settings.conflictApps.saveFailed": "Impossibile salvare questa scelta. Non è stato modificato nulla.",
   "settings.conflictApps.loading": "Caricamento delle app…",
   "settings.conflictApps.manage.action": "Gestisci",
   "settings.conflictApps.manage.description": "Scegli quali app Nexus deve chiudere per poter controllare il tuo hardware",

@@ -5019,6 +5019,7 @@
   "settings.conflictApps.endOnLaunch.label": "Çakışan uygulamaları açıldıkları anda kapat",
   "settings.conflictApps.listIntro": "Açık olan bir uygulama kapatılır. Çalışmaya devam etmesi için kapalı duruma getirin.",
   "settings.conflictApps.loadFailed": "Uygulama listesi yüklenemedi. Nexus'un çalıştığından emin olup bu pencereyi yeniden açın.",
+  "settings.conflictApps.saveFailed": "Bu seçim kaydedilemedi. Hiçbir şey değişmedi.",
   "settings.conflictApps.loading": "Uygulamalar yükleniyor…",
   "settings.conflictApps.manage.action": "Yönet",
   "settings.conflictApps.manage.description": "Nexus'un donanımınızı sürebilmesi için hangi uygulamaları kapatacağını seçin",

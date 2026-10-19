@@ -5019,6 +5019,7 @@
   "settings.conflictApps.endOnLaunch.label": "冲突应用启动时立即关闭",
   "settings.conflictApps.listIntro": "开启的应用将被关闭。关闭开关则保留其运行。",
   "settings.conflictApps.loadFailed": "无法加载应用列表。请确认 Nexus 正在运行，然后重新打开此窗口。",
+  "settings.conflictApps.saveFailed": "无法保存此选择。未做任何更改。",
   "settings.conflictApps.loading": "正在加载应用…",
   "settings.conflictApps.manage.action": "管理",
   "settings.conflictApps.manage.description": "选择 Nexus 关闭哪些应用，以便接管你的硬件",

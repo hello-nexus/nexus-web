@@ -5019,6 +5019,7 @@
   "settings.conflictApps.endOnLaunch.label": "충돌하는 앱이 열리면 바로 종료",
   "settings.conflictApps.listIntro": "켜진 앱은 종료됩니다. 계속 실행하려면 끄세요.",
   "settings.conflictApps.loadFailed": "앱 목록을 불러오지 못했습니다. Nexus가 실행 중인지 확인한 뒤 이 창을 다시 여세요.",
+  "settings.conflictApps.saveFailed": "이 선택을 저장하지 못했습니다. 아무것도 변경되지 않았습니다.",
   "settings.conflictApps.loading": "앱을 불러오는 중…",
   "settings.conflictApps.manage.action": "관리",
   "settings.conflictApps.manage.description": "Nexus가 하드웨어를 제어할 수 있도록 종료할 앱을 선택하세요",

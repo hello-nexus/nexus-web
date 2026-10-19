@@ -5066,6 +5066,7 @@
   "settings.conflictApps.endOnLaunch.label": "Zamykaj aplikacje powodujące konflikt zaraz po ich uruchomieniu",
   "settings.conflictApps.listIntro": "Włączona aplikacja zostanie zamknięta. Wyłącz ją, aby pozostała uruchomiona.",
   "settings.conflictApps.loadFailed": "Nie można wczytać listy aplikacji. Sprawdź, czy Nexus działa, i otwórz to okno ponownie.",
+  "settings.conflictApps.saveFailed": "Nie można zapisać tego wyboru. Nic nie zostało zmienione.",
   "settings.conflictApps.loading": "Wczytywanie aplikacji…",
   "settings.conflictApps.manage.action": "Zarządzaj",
   "settings.conflictApps.manage.description": "Wybierz, które aplikacje Nexus zamyka, aby móc sterować sprzętem",

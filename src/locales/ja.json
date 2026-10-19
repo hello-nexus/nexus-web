@@ -5019,6 +5019,7 @@
   "settings.conflictApps.endOnLaunch.label": "競合するアプリを起動と同時に終了する",
   "settings.conflictApps.listIntro": "オンのアプリは終了されます。実行したままにするにはオフにしてください。",
   "settings.conflictApps.loadFailed": "アプリ一覧を読み込めませんでした。Nexus が実行中か確認して、このウィンドウを開き直してください。",
+  "settings.conflictApps.saveFailed": "この選択を保存できませんでした。変更は行われていません。",
   "settings.conflictApps.loading": "アプリを読み込み中…",
   "settings.conflictApps.manage.action": "管理",
   "settings.conflictApps.manage.description": "Nexus がハードウェアを制御できるよう、終了させるアプリを選択します",

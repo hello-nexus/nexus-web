@@ -5019,6 +5019,7 @@
   "settings.conflictApps.endOnLaunch.label": "Konfliktverursachende Apps beim Öffnen beenden",
   "settings.conflictApps.listIntro": "Eine aktivierte App wird beendet. Deaktivieren Sie eine App, um sie weiterlaufen zu lassen.",
   "settings.conflictApps.loadFailed": "Die App-Liste konnte nicht geladen werden. Prüfen Sie, ob Nexus läuft, und öffnen Sie dieses Fenster erneut.",
+  "settings.conflictApps.saveFailed": "Diese Auswahl konnte nicht gespeichert werden. Es wurde nichts geändert.",
   "settings.conflictApps.loading": "Apps werden geladen…",
   "settings.conflictApps.manage.action": "Verwalten",
   "settings.conflictApps.manage.description": "Wählen Sie aus, welche Apps Nexus beendet, um Ihre Hardware steuern zu können",
