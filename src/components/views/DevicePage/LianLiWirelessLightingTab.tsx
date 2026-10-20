@@ -84,9 +84,9 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   // Send order of reads: a response is applied only if no later-sent one was.
   const sentRef = useRef(0);
   // Writes still awaiting the service; a read answered meanwhile predates their previews, so it is dropped.
-  // A write the service never answers holds reads back only for WRITE_HOLD_MS.
+  // A write the service never answers counts as settled after WRITE_HOLD_MS, so it cannot block reads for good.
   const inFlightRef = useRef(0);
-  const holdSinceRef = useRef(0);
+  const holdTimersRef = useRef(new Set<number>());
 
   const refresh = useCallback(async () => {
     const seq = ++sentRef.current;
@@ -96,26 +96,44 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
     } catch {
       // A failed read leaves the screen as it is.
     }
-    if (aliveRef.current && d && seq === sentRef.current
-      && (inFlightRef.current === 0 || Date.now() - holdSinceRef.current > WRITE_HOLD_MS)) setData(d);
+    if (aliveRef.current && d && seq === sentRef.current && inFlightRef.current === 0) setData(d);
   }, [api]);
 
-  const beginWrite = useCallback(() => {
-    if (inFlightRef.current === 0) holdSinceRef.current = Date.now();
-    inFlightRef.current += 1;
-  }, []);
-
-  // One read after the last write settles, so a half-applied batch (a move sends one write per unit) never replaces a preview.
   // The service may change more than the patch (a merge or Lighting-page switch moves other units), so read it back.
-  const endWrite = useCallback(async () => {
-    inFlightRef.current -= 1;
-    if (inFlightRef.current > 0) return;
+  const settleRead = useCallback(async () => {
     try {
       await refresh();
     } finally {
       onSettled?.();
     }
   }, [refresh, onSettled]);
+
+  // Returns the call that ends the write. One read follows the last write to settle, so a half-applied batch
+  // (a move sends one write per unit) never replaces a preview.
+  const beginWrite = useCallback(() => {
+    inFlightRef.current += 1;
+    let state: 'open' | 'expired' | 'done' = 'open';
+    const timer = window.setTimeout(() => {
+      holdTimersRef.current.delete(timer);
+      if (state !== 'open') return;
+      state = 'expired';
+      inFlightRef.current -= 1;
+      if (inFlightRef.current === 0) void settleRead();
+    }, WRITE_HOLD_MS);
+    holdTimersRef.current.add(timer);
+    return async () => {
+      window.clearTimeout(timer);
+      holdTimersRef.current.delete(timer);
+      const expired = state === 'expired';
+      state = 'done';
+      // An expired write already left the count; it only asks for one more read.
+      if (!expired) {
+        inFlightRef.current -= 1;
+        if (inFlightRef.current > 0) return;
+      }
+      await settleRead();
+    };
+  }, [settleRead]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -127,6 +145,14 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
       window.removeEventListener('focus', onFocus);
     };
   }, [refresh]);
+
+  useEffect(() => {
+    const timers = holdTimersRef.current;
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
 
   const firstSignalRef = useRef(true);
   useEffect(() => {
@@ -145,7 +171,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
 
   const commit = useCallback(async (mac: string, patch: LianLiWirelessChainPatch) => {
     preview(mac, patch);
-    beginWrite();
+    const endWrite = beginWrite();
     try {
       // effectMode is derived by the service; it only feeds the preview.
       await api.set(mac, { ...patch, effectMode: undefined });
@@ -154,10 +180,10 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
     } finally {
       await endWrite();
     }
-  }, [api, preview, beginWrite, endWrite]);
+  }, [api, preview, beginWrite]);
 
   const reset = useCallback(async (mac: string) => {
-    beginWrite();
+    const endWrite = beginWrite();
     try {
       return (await api.reset?.(mac)) ?? false;
     } catch {
@@ -165,7 +191,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
     } finally {
       await endWrite();
     }
-  }, [api, beginWrite, endWrite]);
+  }, [api, beginWrite]);
 
   const move = useCallback((mac: string, delta: -1 | 1) => {
     if (!data) return;

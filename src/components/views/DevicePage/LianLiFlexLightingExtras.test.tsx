@@ -137,16 +137,19 @@ describe('LianLiFlexSyncSection', () => {
 
     it('keeps a reorder made after a forced read was sent, even within one clock tick', async () => {
       const now = vi.spyOn(performance, 'now').mockReturnValue(5000);
-      const pending: Array<(v: LianLiFlexSync) => void> = [];
-      mockGetSync.mockResolvedValueOnce(sync());
-      await act(async () => { render(<Probe />); });
-      mockGetSync.mockImplementation(() => new Promise(resolve => { pending.push(resolve); }));
-      await act(async () => { fireEvent.click(screen.getByText('reload')); });
-      fireEvent.click(screen.getByText('reorder'));
-      expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
-      await act(async () => { pending[0](sync()); });
-      expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
-      now.mockRestore();
+      try {
+        const pending: Array<(v: LianLiFlexSync) => void> = [];
+        mockGetSync.mockResolvedValueOnce(sync());
+        await act(async () => { render(<Probe />); });
+        mockGetSync.mockImplementation(() => new Promise(resolve => { pending.push(resolve); }));
+        await act(async () => { fireEvent.click(screen.getByText('reload')); });
+        fireEvent.click(screen.getByText('reorder'));
+        expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
+        await act(async () => { pending[0](sync()); });
+        expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
+      } finally {
+        now.mockRestore();
+      }
     });
   });
 

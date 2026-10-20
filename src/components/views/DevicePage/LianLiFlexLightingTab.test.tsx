@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { mergeLeaderMac } from './lianliChainUtils';
@@ -398,22 +398,92 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
       expect(reads).toHaveLength(1);
     });
 
-    it('lets reads apply again once a write has gone unanswered for the hold cap', async () => {
-      vi.useFakeTimers({ toFake: ['Date'] });
-      try {
-        mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tl, mode: 'rainbow' }] });
-        mockSet.mockImplementation(() => new Promise(() => {}));
-        await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
-        await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })); });
-        mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tl, mode: 'perZone' }] });
-        await act(async () => { window.dispatchEvent(new Event('focus')); });
-        expect(screen.queryByText('devices.lianli-flex.zoneUp')).not.toBeInTheDocument();
-        vi.setSystemTime(Date.now() + 10001);
-        await act(async () => { window.dispatchEvent(new Event('focus')); });
-        expect(screen.getByText('devices.lianli-flex.zoneUp')).toBeInTheDocument();
-      } finally {
-        vi.useRealTimers();
+    describe('a write the service never answers', () => {
+      const HOLD = 10001;
+      const swapSwitch = () => screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' });
+
+      async function setup() {
+        vi.useFakeTimers();
+        const settled = vi.fn();
+        const writes: Array<() => void> = [];
+        mockGet.mockResolvedValue({ laneModes: [], chains: [tl] });
+        mockSet.mockImplementation(() => new Promise(resolve => { writes.push(() => resolve(true)); }));
+        await act(async () => { render(<LianLiWirelessLightingTab api={api} onSettled={settled} />); });
+        return { settled, writes };
       }
+
+      it('stops holding reads back after the cap, and reads and reports settled then', async () => {
+        const { settled } = await setup();
+        try {
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tl, mode: 'perZone' }] });
+          await act(async () => { window.dispatchEvent(new Event('focus')); });
+          expect(screen.queryByText('devices.lianli-flex.zoneUp')).not.toBeInTheDocument();
+          expect(settled).not.toHaveBeenCalled();
+          await act(async () => { await vi.advanceTimersByTimeAsync(HOLD); });
+          expect(settled).toHaveBeenCalledTimes(1);
+          expect(screen.getByText('devices.lianli-flex.zoneUp')).toBeInTheDocument();
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
+      it('holds and settles a later write on its own, however long the first one hangs', async () => {
+        const { settled, writes } = await setup();
+        try {
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          await act(async () => { await vi.advanceTimersByTimeAsync(HOLD); });
+          expect(settled).toHaveBeenCalledTimes(1);
+          const reads = mockGet.mock.calls.length;
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          // The second write is held: a read answered meanwhile is dropped.
+          mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tl, mode: 'perZone' }] });
+          await act(async () => { window.dispatchEvent(new Event('focus')); });
+          expect(screen.queryByText('devices.lianli-flex.zoneUp')).not.toBeInTheDocument();
+          await act(async () => { writes[1](); });
+          expect(mockGet.mock.calls.length).toBe(reads + 2);
+          expect(settled).toHaveBeenCalledTimes(2);
+          expect(screen.getByText('devices.lianli-flex.zoneUp')).toBeInTheDocument();
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
+      it('sets no expiry timer going once the tab is gone', async () => {
+        const { settled } = await setup();
+        try {
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          const reads = mockGet.mock.calls.length;
+          document.body.innerHTML = '';
+          cleanup();
+          await act(async () => { await vi.advanceTimersByTimeAsync(HOLD); });
+          expect(mockGet.mock.calls.length).toBe(reads);
+          expect(settled).not.toHaveBeenCalled();
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
+      it('asks for exactly one more read when the expired write finally resolves, and does not count it twice', async () => {
+        const { settled, writes } = await setup();
+        try {
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          await act(async () => { await vi.advanceTimersByTimeAsync(HOLD); });
+          const reads = mockGet.mock.calls.length;
+          await act(async () => { writes[0](); });
+          expect(mockGet.mock.calls.length).toBe(reads + 1);
+          expect(settled).toHaveBeenCalledTimes(2);
+          // The count is back to zero, not negative: the next write is held and settled normally.
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tl, mode: 'perZone' }] });
+          await act(async () => { window.dispatchEvent(new Event('focus')); });
+          expect(screen.queryByText('devices.lianli-flex.zoneUp')).not.toBeInTheDocument();
+          await act(async () => { writes[1](); });
+          expect(screen.getByText('devices.lianli-flex.zoneUp')).toBeInTheDocument();
+        } finally {
+          vi.useRealTimers();
+        }
+      });
     });
 
     describe('a failure', () => {
