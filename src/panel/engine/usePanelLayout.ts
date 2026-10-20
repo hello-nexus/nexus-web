@@ -227,19 +227,20 @@ export function usePanelLayout(
   // read can hand back the same `writable` value, which would never re-arm it.
   useEffect(() => { writableRef.current = writable; });
 
-  // What the pending debounced write was based on, and the last layout this
-  // hook wrote (its own echo must not cancel a newer edit).
+  // What the pending debounced write was based on, and every layout this hook
+  // queued or sent recently (any of their echoes must not cancel a newer edit).
   const pendingBaseRef = useRef<string | null>(null);
-  const lastWrittenRef = useRef<string | null>(null);
+  const ownWritesRef = useRef<string[]>([]);
 
   useEffect(() => {
     // A record that moved on under a pending edit (profile switch) must not
     // be overwritten by the stale edit.
     if (writeTimer.current && pendingBaseRef.current !== null) {
       const incoming = JSON.stringify(storedLayout);
-      if (incoming !== pendingBaseRef.current && incoming !== lastWrittenRef.current) {
+      if (incoming !== pendingBaseRef.current && !ownWritesRef.current.includes(incoming)) {
         clearTimeout(writeTimer.current);
         writeTimer.current = null;
+        ownWritesRef.current = [];
       }
     }
     setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid));
@@ -252,7 +253,7 @@ export function usePanelLayout(
     if (!writableRef.current) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     else pendingBaseRef.current = JSON.stringify(storedRef.current);
-    lastWrittenRef.current = JSON.stringify(normalized);
+    ownWritesRef.current = [...ownWritesRef.current, JSON.stringify(normalized)].slice(-8);
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
       void patchPanelDeviceWithStatus(deviceId, { layout: normalized }).then(result => {

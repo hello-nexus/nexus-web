@@ -368,4 +368,24 @@ describe('usePanelLayout pending write vs record change', () => {
 
     expect(patchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps edit 2 pending when the echo of the already-sent edit 1 arrives', async () => {
+    patchMock.mockResolvedValue({ ok: true });
+    const edit1 = { ...base, marker: 'edit-1' } as unknown as typeof base;
+    const edit2 = { ...base, marker: 'edit-2' } as unknown as typeof base;
+    const { result, rerender } = renderHook(
+      ({ s }) => usePanelLayout(s, 'live', 'y70'),
+      { initialProps: { s: stateOf(base) } },
+    );
+
+    act(() => { result.current.setLayout(edit1); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(patchMock).toHaveBeenCalledTimes(1);
+
+    act(() => { result.current.setLayout(edit2); });
+    rerender({ s: stateOf(edit1) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    expect(patchMock).toHaveBeenCalledTimes(2);
+  });
 });
