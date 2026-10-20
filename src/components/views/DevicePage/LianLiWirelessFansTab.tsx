@@ -19,9 +19,6 @@ import styles from './LianLiWirelessDevicePage.module.scss';
 // state poll to confirm it and let the poll speak for itself past this.
 const BIND_PENDING_TIMEOUT_MS = 10000;
 
-// A wired fan reacts to Identify a few seconds after the request returns.
-const WIRED_IDENTIFY_PENDING_MS = 4000;
-
 
 // A lock change is held until a polled state confirms it; past this the poll speaks for itself.
 const LOCK_PENDING_TIMEOUT_MS = 6000;
@@ -90,8 +87,6 @@ export interface LianLiWirelessFansTabProps {
   identify?: (mac: string) => Promise<boolean>;
   /** Opens the panel page of a device that has one, by MAC; undefined when it has none. */
   panelOpener?: (mac: string) => (() => void) | undefined;
-  /** Wireless page: MACs of units the wired LCD Flex page owns; they are not offered for binding. */
-  wiredMacs?: ReadonlySet<string>;
   /** Opens the wired LCD Flex page, for a unit it owns. */
   onOpenWiredPage?: () => void;
 }
@@ -101,7 +96,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = false, identify = identifyLianLiWirelessFan, wiredMacs, onOpenWiredPage }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = false, identify = identifyLianLiWirelessFan, onOpenWiredPage }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -224,9 +219,8 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
 
   const handleIdentify = useCallback((mac: string) => {
     setIdentifying(prev => ({ ...prev, [mac]: true }));
-    void identify(mac).then(() => (wired
-      ? new Promise<void>(resolve => { window.setTimeout(resolve, WIRED_IDENTIFY_PENDING_MS); })
-      : undefined)).finally(() => {
+    // A wired unit reports `identifying` on its own row, so the local flag only bridges to that state read.
+    void identify(mac).then(() => (wired ? refresh() : undefined)).finally(() => {
       if (!aliveRef.current) return;
       setIdentifying(prev => {
         if (!prev[mac]) return prev;
@@ -235,7 +229,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
         return next;
       });
     });
-  }, [identify, wired]);
+  }, [identify, wired, refresh]);
 
   const onLockChange = useCallback(async (next: boolean) => {
     window.clearTimeout(lockTimeoutRef.current);
@@ -310,7 +304,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
               pending={pending[fan.mac]}
               identifying={!!identifying[fan.mac]}
               wired={wired}
-              wiredOwned={!wired && (fan.wiredOwned === true || !!wiredMacs?.has(fan.mac))}
+              wiredOwned={!wired && (fan.wiredOwned === true)}
               onOpenWiredPage={onOpenWiredPage}
               pairingLocked={pairingBlocked}
               lockHintId={lockSupported ? lockHintId : undefined}

@@ -600,7 +600,7 @@ export function LianLiWirelessScreenTab({
             <Button
               size="sm"
               tone="neutral"
-              disabled={(!representative && !restarting) || restarting}
+              disabled={!representative || restarting}
               onClick={() => targetScreens.forEach(s => lcdRestart.onRestart(s.serial))}
             >
               {restarting

@@ -26,8 +26,8 @@ import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLa
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
 import { getLianLiWirelessLighting, setLianLiWirelessChainLighting } from '../../../api/lianli-wireless';
-import { lianLiFlexLightingApi } from '../../../api/lianli-flex';
-import { FLEX_DEVICE_PREFIX, WIRELESS_DEVICE_PREFIX, presetDeviceIds, presetTarget } from './page/firmwareChains';
+import { LIANLI_FLEX_CHANNEL_PREFIX, lianLiFlexLightingApi } from '../../../api/lianli-flex';
+import { WIRELESS_DEVICE_PREFIX, presetDeviceIds, presetTarget } from './page/firmwareChains';
 import { getHydroShift2Lighting, setHydroShift2Lighting } from '../../../api/hydroshift2';
 import { getGalahad2Lighting, setGalahad2Lighting } from '../../../api/lianli-aio';
 import { getStrimerLighting, setStrimerLighting } from '../../../api/strimer';
@@ -350,16 +350,25 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Device ids of wireless chains playing an uploaded animation instead of the engine's frames.
   const [wirelessPresetIds, setWirelessPresetIds] = useState<ReadonlySet<string>>(() => new Set());
   const refreshWirelessPresets = useCallback(async () => {
+    const hasFlex = devicesRef.current.some(d => d.id.startsWith(LIANLI_FLEX_CHANNEL_PREFIX));
     const [wireless, flex] = await Promise.all([
       getLianLiWirelessLighting().catch(() => null),
-      lianLiFlexLightingApi.get().catch(() => null),
+      hasFlex ? lianLiFlexLightingApi.get().catch(() => null) : Promise.resolve(null),
     ]);
     if (!wireless && !flex) return;
-    setWirelessPresetIds(new Set([
-      ...presetDeviceIds(WIRELESS_DEVICE_PREFIX, wireless?.chains ?? []),
-      ...presetDeviceIds(FLEX_DEVICE_PREFIX, flex?.chains ?? []),
-    ]));
+    // A source that failed to answer keeps the ids it had; one with no hardware has none.
+    setWirelessPresetIds(prev => {
+      const keep = (prefix: string, fresh: readonly string[] | null) => fresh ?? [...prev].filter(id => id.startsWith(prefix));
+      return new Set([
+        ...keep(WIRELESS_DEVICE_PREFIX, wireless && presetDeviceIds(WIRELESS_DEVICE_PREFIX, wireless.chains)),
+        ...keep(LIANLI_FLEX_CHANNEL_PREFIX, !hasFlex ? [] : flex && presetDeviceIds(LIANLI_FLEX_CHANNEL_PREFIX, flex.chains)),
+      ]);
+    });
   }, []);
+  const hasFlexDevice = devices.some(d => d.id.startsWith(LIANLI_FLEX_CHANNEL_PREFIX));
+  useEffect(() => {
+    if (hasFlexDevice) void refreshWirelessPresets();
+  }, [hasFlexDevice, refreshWirelessPresets]);
   const handleWirelessTakeControl = useCallback(async (deviceId: string) => {
     const target = presetTarget(deviceId);
     if (!target) return;

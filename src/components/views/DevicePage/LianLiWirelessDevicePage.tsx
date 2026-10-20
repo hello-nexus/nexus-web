@@ -77,23 +77,6 @@ interface LianLiWirelessDevicePageProps {
  */
 export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: LianLiWirelessDevicePageProps) {
   const { t } = useTranslation();
-  const flexSync = useLianLiFlexSync(flex);
-  // Units the wired LCD Flex page owns, so this page does not offer them for RF binding.
-  const [wiredMacs, setWiredMacs] = useState<ReadonlySet<string>>(() => new Set());
-  useEffect(() => {
-    if (flex) return undefined;
-    let alive = true;
-    const read = () => {
-      void getLianLiFlexState().catch(() => null).then(s => {
-        if (!alive) return;
-        const next = new Set((s?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac));
-        setWiredMacs(prev => (prev.size === next.size && [...next].every(m => prev.has(m)) ? prev : next));
-      });
-    };
-    read();
-    const id = window.setInterval(read, RPM_POLL_MS);
-    return () => { alive = false; window.clearInterval(id); };
-  }, [flex]);
   const getState = flex ? getLianLiFlexState : getLianLiWirelessState;
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
@@ -103,6 +86,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
   const appliedSeqRef = useRef(0);
   const [linkStatus, setLinkStatus] = useState<LianLiWirelessLinkStatus | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<LianLiWirelessTab>('fans');
+  // A sync write changes each unit's own look, so the Lighting tab re-reads the units after it.
+  const [lightingRev, setLightingRev] = useState(0);
+  const onSyncWritten = useCallback(() => setLightingRev(r => r + 1), []);
+  const flexSync = useLianLiFlexSync(flex && activeTab === 'lighting', onSyncWritten);
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
 
@@ -284,7 +271,6 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
               refresh={refresh}
               panelOpener={panelOpener}
               wired={flex}
-              wiredMacs={flex ? undefined : wiredMacs}
               onOpenWiredPage={onSectionNavigate ? () => onSectionNavigate('device', { deviceKey: 'curated-lianli-flex' }) : undefined}
               identify={flex ? identifyLianLiFlexFan : undefined}
             />
@@ -293,8 +279,11 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
             <LianLiWirelessLightingTab
               onSectionNavigate={onSectionNavigate}
               api={flex ? lianLiFlexLightingApi : undefined}
-              header={flex ? <LianLiFlexSyncSection sync={flexSync} /> : undefined}
+              header={flex ? chains => <LianLiFlexSyncSection sync={flexSync} chains={chains} /> : undefined}
               syncOn={flex && isSyncOn(flexSync)}
+              onWritten={flex ? flexSync.refresh : undefined}
+              onSequence={flex ? flexSync.reorder : undefined}
+              reloadSignal={lightingRev}
             />
           )}
           {tab === 'cooling' && (

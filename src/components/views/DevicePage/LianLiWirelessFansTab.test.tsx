@@ -330,14 +330,20 @@ describe('LianLiWirelessFansTab wired', () => {
     expect(screen.getByText('devices.lianli-flex.link_busy')).toBeInTheDocument();
   });
 
-  it('keeps Identify pending for a few seconds after a wired request returns', async () => {
+  it('keeps a wired Identify pending until the state read, then follows the unit identifying flag', async () => {
     const identify = vi.fn().mockResolvedValue(true);
-    await act(async () => {
-      render(<LianLiWirelessFansTab state={{ isConnected: true, fans: [wiredFan] }} refresh={vi.fn()} wired identify={identify} />);
-    });
+    let finishRefresh: () => void = () => {};
+    const refresh = vi.fn(() => new Promise<void>(resolve => { finishRefresh = resolve; }));
+    const view = render(<LianLiWirelessFansTab state={{ isConnected: true, fans: [wiredFan] }} refresh={refresh} wired identify={identify} />);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })); });
+    expect(refresh).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'devices.lianli-flex.identifying' })).toBeDisabled();
-    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    view.rerender(<LianLiWirelessFansTab state={{ isConnected: true, fans: [{ ...wiredFan, identifying: true }] }} refresh={refresh} wired identify={identify} />);
+    await act(async () => { finishRefresh(); });
+    // No fixed timer: the button stays pending for as long as the service reports the flash.
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    expect(screen.getByRole('button', { name: 'devices.lianli-flex.identifying' })).toBeDisabled();
+    view.rerender(<LianLiWirelessFansTab state={{ isConnected: true, fans: [{ ...wiredFan, identifying: false }] }} refresh={refresh} wired identify={identify} />);
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).not.toBeDisabled();
   });
 
@@ -356,9 +362,8 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
     const open = vi.fn();
     await act(async () => {
       render(<LianLiWirelessFansTab
-        state={{ ...wirelessState, fans: [flexFan] }}
+        state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: true }] }}
         refresh={vi.fn()}
-        wiredMacs={new Set([flexFan.mac])}
         onOpenWiredPage={open}
       />);
     });
@@ -369,16 +374,9 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
     expect(open).toHaveBeenCalled();
   });
 
-  it('honors the service flag without the wired page state', async () => {
-    await act(async () => {
-      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: true }] }} refresh={vi.fn()} />);
-    });
-    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
-  });
-
   it('still offers Bind for a unit the wired page does not own', async () => {
     await act(async () => {
-      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} wiredMacs={new Set()} />);
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} />);
     });
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
   });

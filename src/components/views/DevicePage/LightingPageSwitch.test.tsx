@@ -10,7 +10,7 @@ describe('LightingPageSwitch', () => {
   it('always renders the link to the Lighting page so the row keeps its height', () => {
     const { rerender } = render(<LightingPageSwitch on={false} onChange={vi.fn()} onSectionNavigate={vi.fn()} />);
     const link = screen.getByText('smartLights.colorOnLightingPage');
-    expect(link.closest('span[aria-hidden]')).toHaveStyle({ visibility: 'hidden' });
+    expect(link.closest('span[aria-hidden]')?.className).toContain('linkHidden');
     expect(screen.queryByRole('button', { name: 'smartLights.colorOnLightingPage' })).not.toBeInTheDocument();
     rerender(<LightingPageSwitch on onChange={vi.fn()} onSectionNavigate={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' })).not.toBeDisabled();

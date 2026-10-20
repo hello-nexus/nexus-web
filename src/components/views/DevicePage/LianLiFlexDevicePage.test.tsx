@@ -20,11 +20,13 @@ const mockRestart = vi.fn();
 const mockScreens = vi.fn();
 const mockWirelessState = vi.fn();
 const mockWirelessIdentify = vi.fn();
+const mockSync = vi.fn();
 
 vi.mock('../../../api/lianli-flex', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../api/lianli-flex')>()),
   getLianLiFlexState: (...a: any[]) => mockState(...a),
   identifyLianLiFlexFan: (...a: any[]) => mockIdentify(...a),
+  getLianLiFlexSync: (...a: any[]) => mockSync(...a),
   restartLianLiFlexLcd: (...a: any[]) => mockRestart(...a),
   lianLiFlexLightingApi: { get: () => Promise.resolve(null), set: () => Promise.resolve(true), reset: () => Promise.resolve(true) },
   lianLiFlexScreenApi: {
@@ -70,6 +72,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockState.mockResolvedValue(connected());
   mockIdentify.mockResolvedValue(true);
+  mockSync.mockResolvedValue(null);
   mockRestart.mockResolvedValue(true);
   mockScreens.mockResolvedValue([
     { serial: 'SCR1', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'TL Flex' },
@@ -231,11 +234,31 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
   });
 });
 
+describe('polling', () => {
+  it('reads the sync group only while the Lighting tab is shown', async () => {
+    await act(async () => { render(<LianLiWirelessDevicePage flex />); });
+    expect(mockSync).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.click(screen.getByRole('tab', { name: /lighting.title/ })); });
+    expect(mockSync).toHaveBeenCalled();
+    mockSync.mockClear();
+    await act(async () => { fireEvent.click(screen.getByRole('tab', { name: /devices.lianli-wireless.tab.devices/ })); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+    expect(mockSync).not.toHaveBeenCalled();
+  });
+
+  it('does not poll the wired state from the wireless page', async () => {
+    mockWirelessState.mockResolvedValue({ isConnected: true, masterMac: 'M', channel: 8, txFirmwareVersion: 1, lockBoundDevices: false, fans: [] });
+    await act(async () => { render(<LianLiWirelessDevicePage />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+    expect(mockState).not.toHaveBeenCalled();
+  });
+});
+
 describe('the wireless page with wired LCD Flex units', () => {
   it('lists a unit the wired page owns as Connected by USB with a link, and no Bind', async () => {
     mockWirelessState.mockResolvedValue({
       isConnected: true, masterMac: 'M', channel: 8, txFirmwareVersion: 1, lockBoundDevices: false,
-      fans: [{ mac: 'AA11', masterMac: '', boundToUs: false, channel: 0, slot: 254, devType: 0, fanType: 51, fanCount: 1, rpm: [0, 0, 0, 0], pwm: [0, 0, 0, 0] }],
+      fans: [{ mac: 'AA11', masterMac: '', boundToUs: false, channel: 0, slot: 254, devType: 0, fanType: 51, fanCount: 1, rpm: [0, 0, 0, 0], pwm: [0, 0, 0, 0], wiredOwned: true }],
     });
     const nav = vi.fn();
     await act(async () => { render(<LianLiWirelessDevicePage onSectionNavigate={nav} />); });

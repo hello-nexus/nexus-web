@@ -1,5 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getLianLiWirelessLighting } from '../../../api/lianli-wireless';
+import { fetchLightingDevices } from '../../../api/lighting';
+import { fetchService } from '../../../api/service';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { LightingPage } from './LightingPage';
 
@@ -118,5 +121,25 @@ describe('LightingPage cards of a wired LCD Flex fan playing its own effect', ()
     await waitFor(() => {
       expect(screen.getByTestId('rail').dataset.firmware).toBe('');
     });
+  });
+
+  it('keeps the Flex ids when only the Flex read fails while the wireless one answers', async () => {
+    vi.mocked(getLianLiWirelessLighting).mockResolvedValue({ laneModes: [], chains: [{ mac: 'BB22', mode: 'rainbow' }] } as never);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('rail').dataset.firmware).toBe('lianli-flex:AA11,lianli-wireless:BB22');
+    });
+    vi.mocked(fetchService).mockResolvedValue(null);
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(screen.getByTestId('rail').dataset.firmware).toBe('lianli-flex:AA11,lianli-wireless:BB22');
+  });
+
+  it('does not read the Flex lighting on a machine with no Flex lighting device', async () => {
+    devicesRef.current = [];
+    renderPage();
+    await waitFor(() => {
+      expect(fetchLightingDevices).toHaveBeenCalled();
+    });
+    expect(vi.mocked(fetchService).mock.calls.some(c => c[0] === '/devices/lianli-flex/lighting')).toBe(false);
   });
 });

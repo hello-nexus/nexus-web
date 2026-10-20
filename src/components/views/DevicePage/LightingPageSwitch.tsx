@@ -2,6 +2,7 @@ import { Lightbulb } from 'lucide-react';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
+import styles from './LightingPageSwitch.module.scss';
 
 interface LightingPageSwitchProps {
   on: boolean;
@@ -15,7 +16,7 @@ export function LightingPageSwitch({ on, onChange, disabled, onSectionNavigate }
   const { t } = useTranslation();
   // The link rides the label line and is only hidden while off, so the row never changes height.
   const link = onSectionNavigate && (
-    <span style={{ visibility: on ? 'visible' : 'hidden' }} aria-hidden={!on}>
+    <span className={on ? undefined : styles.linkHidden} aria-hidden={!on}>
       <Button
         size="sm"
         tone="neutral"
