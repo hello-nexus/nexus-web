@@ -152,12 +152,12 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
           <div className={styles.emptyActions}>
             {reason === 'auth'
               ? onConfigure && (
-                <button type="button" className="panel-chip" onClick={onConfigure}>
+                <button type="button" className={styles.emptyAction} onClick={onConfigure}>
                   {t('panel.widget.obs.openSettings')}
                 </button>
               )
               : (
-                <button type="button" className="panel-chip" onClick={() => run(connectObs)} disabled={busy}>
+                <button type="button" className={styles.emptyAction} onClick={() => run(connectObs)} disabled={busy}>
                   {t('panel.widget.obs.connect')}
                 </button>
               )}
