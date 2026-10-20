@@ -48,7 +48,7 @@ export const SIMULATED_SCREEN_CATALOG: readonly SimulatedScreen[] = [
   { id: 'corsair-link-lcd', name: 'Corsair iCUE LINK LCD', vendor: 'Corsair', surface: 'lcd-round', family: 'corsair-link-lcd', width: 480, height: 480, dpi: LCD_DPI },
   { id: 'corsair-xc7-lcd', name: 'Corsair XC7 RGB Elite LCD', vendor: 'Corsair', surface: 'lcd-round', family: 'corsair-xc7-lcd', width: 480, height: 480, dpi: LCD_DPI },
   { id: 'corsair-capellix-lcd', name: 'Corsair Elite Capellix LCD', vendor: 'Corsair', surface: 'lcd-square', family: 'corsair-capellix-lcd', width: 480, height: 480, dpi: LCD_DPI },
-  // The service records only the 294 dpi of the 5" glass; 720x1280 is the portrait 9:16 size that density implies.
+  // The service records only the glass density; the portrait pixel size is derived from it and the diagonal.
   { id: 'icue-link-lcd5', name: 'Corsair iCUE LINK 5" LCD', vendor: 'Corsair', surface: 'monitor', family: 'icue-link-lcd5', width: 720, height: 1280, dpi: 294 },
   { id: 'xeneon-edge', name: 'Corsair Xeneon Edge', vendor: 'Corsair', surface: 'monitor', family: 'xeneon-edge', width: 2560, height: 720, dpi: 183, touch: true },
 

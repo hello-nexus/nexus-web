@@ -364,7 +364,16 @@ export function PanelSimulatorCard() {
             <div key={panel.id} className={styles.simRow}>
               <div className={styles.simMeta}>
                 <strong>{panel.name}</strong>
-                <span>{panel.surface} - {panel.width}x{panel.height} @ {panel.dpi} dpi - short {formatPanelInches(physical.shortSideInches)} / diag {formatPanelInches(physical.diagonalInches)} - {capacity.columns}x{capacity.rows} widget grid</span>
+                <span>{t('tools.panelSim.spec', {
+                  surface: panel.surface,
+                  width: panel.width,
+                  height: panel.height,
+                  dpi: panel.dpi,
+                  short: formatPanelInches(physical.shortSideInches),
+                  diag: formatPanelInches(physical.diagonalInches),
+                  columns: capacity.columns,
+                  rows: capacity.rows,
+                })}</span>
               </div>
               <Button type="button" tone="danger" size="sm" onClick={() => removePanel(panel.id)}>
                 {t('tools.panelSim.remove')}
@@ -377,7 +386,7 @@ export function PanelSimulatorCard() {
                     min={240}
                     max={4096}
                     value={customWidth}
-                    aria-label="Custom panel width"
+                    aria-label={t('tools.panelSim.customWidth')}
                     onChange={e => setCustomWidth(Number(e.target.value))}
                   />
                   <span className={styles.dim}>x</span>
@@ -387,7 +396,7 @@ export function PanelSimulatorCard() {
                     min={240}
                     max={4096}
                     value={customHeight}
-                    aria-label="Custom panel height"
+                    aria-label={t('tools.panelSim.customHeight')}
                     onChange={e => setCustomHeight(Number(e.target.value))}
                   />
                   <span className={styles.dim}>@</span>
@@ -397,7 +406,7 @@ export function PanelSimulatorCard() {
                     min={72}
                     max={600}
                     value={customDpi}
-                    aria-label="Custom panel DPI"
+                    aria-label={t('tools.panelSim.customDpi')}
                     onChange={e => setCustomDpi(Number(e.target.value))}
                   />
                   <span className={styles.dim}>dpi</span>
@@ -405,17 +414,17 @@ export function PanelSimulatorCard() {
                     className={`${styles.dimensionInput} ${styles.readonlyInput}`}
                     type="text"
                     readOnly
-                    value={`short ${formatPanelInches(customPhysical.shortSideInches)}`}
-                    aria-label="Custom panel short side inches"
+                    value={t('tools.panelSim.short', { value: formatPanelInches(customPhysical.shortSideInches) })}
+                    aria-label={t('tools.panelSim.customShortSide')}
                   />
                   <input
                     className={`${styles.dimensionInput} ${styles.readonlyInput}`}
                     type="text"
                     readOnly
-                    value={`diag ${formatPanelInches(customPhysical.diagonalInches)}`}
-                    aria-label="Custom panel diagonal inches"
+                    value={t('tools.panelSim.diag', { value: formatPanelInches(customPhysical.diagonalInches) })}
+                    aria-label={t('tools.panelSim.customDiagonal')}
                   />
-                  <Button type="button" tone="accent" size="sm" onClick={applyCustom} className={styles.applyBtn}>Apply</Button>
+                  <Button type="button" tone="accent" size="sm" onClick={applyCustom} className={styles.applyBtn}>{t('tools.panelSim.apply')}</Button>
                 </div>
               )}
             </div>

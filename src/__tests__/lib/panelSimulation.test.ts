@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const allocatePanelDevice = vi.fn();
 const deletePanelDevice = vi.fn();
-const fetchPanelDevice = vi.fn();
+const fetchPanelDeviceWithStatus = vi.fn();
+const patchPanelDevice = vi.fn();
 vi.mock('../../api/panel', () => ({
   allocatePanelDevice: (...a: unknown[]) => allocatePanelDevice(...a),
   deletePanelDevice: (...a: unknown[]) => deletePanelDevice(...a),
-  fetchPanelDevice: (...a: unknown[]) => fetchPanelDevice(...a),
+  fetchPanelDeviceWithStatus: (...a: unknown[]) => fetchPanelDeviceWithStatus(...a),
+  patchPanelDevice: (...a: unknown[]) => patchPanelDevice(...a),
 }));
 
 import {
@@ -23,6 +25,7 @@ import {
   setCustomSimulatedPanelSize,
   setSimulatedPanelConnected,
   ensureSimulatedPanelRecord,
+  persistSimulatorDefaultLayout,
   getSimulatedPanelRecordId,
   setY70Simulated,
 } from '../../lib/panelSimulation';
@@ -34,7 +37,8 @@ describe('panelSimulation', () => {
     let n = 0;
     allocatePanelDevice.mockImplementation(async () => ({ id: `rec-${++n}` }));
     deletePanelDevice.mockResolvedValue({ error: false });
-    fetchPanelDevice.mockResolvedValue({ id: 'exists' });
+    fetchPanelDeviceWithStatus.mockResolvedValue({ found: true, record: { id: 'exists' } });
+    patchPanelDevice.mockResolvedValue({ ok: true });
   });
 
   it('includes a named tablet preset for common-size UI testing', () => {
@@ -170,10 +174,46 @@ describe('panelSimulation', () => {
       await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(first);
       expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
 
-      fetchPanelDevice.mockResolvedValue(null);
+      fetchPanelDeviceWithStatus.mockResolvedValue({ found: false, status: 404 });
       await ensureSimulatedPanelRecord('q60');
       expect(allocatePanelDevice).toHaveBeenCalledTimes(2);
       expect(getSimulatedPanelRecordId('q60')).not.toBe(first);
+    });
+
+    it('keeps the stored record when the lookup fails for a reason other than 404', async () => {
+      setSimulatedPanelConnected('q60', true);
+      await ensureSimulatedPanelRecord('q60');
+      const first = getSimulatedPanelRecordId('q60');
+
+      for (const status of [0, 500]) {
+        fetchPanelDeviceWithStatus.mockResolvedValue({ found: false, status });
+        await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(first);
+      }
+      expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
+      expect(deletePanelDevice).not.toHaveBeenCalled();
+    });
+
+    it('ignores non-string entries in the stored record map', () => {
+      localStorage.setItem('nexus_simulated_panel_records', JSON.stringify({ q60: { x: 1 }, phone: 5, tablet: '', y70: 'rec-y' }));
+
+      expect(getSimulatedPanelRecordId('q60')).toBeUndefined();
+      expect(getSimulatedPanelRecordId('phone')).toBeUndefined();
+      expect(getSimulatedPanelRecordId('tablet')).toBeUndefined();
+      expect(getSimulatedPanelRecordId('y70')).toBe('rec-y');
+    });
+
+    it('persists the simulator surface default layout, not the service Y70 seed, right after allocating', async () => {
+      setSimulatedPanelConnected('lianli-tl-lcd-flex', true);
+      await ensureSimulatedPanelRecord('lianli-tl-lcd-flex');
+
+      const recordId = getSimulatedPanelRecordId('lianli-tl-lcd-flex');
+      expect(patchPanelDevice).toHaveBeenCalledWith(recordId, { layout: expect.objectContaining({ surface: 'lcd-round' }) });
+    });
+
+    it('lays a family with a Widget size out as that size default surface', async () => {
+      await persistSimulatorDefaultLayout('icue-link-lcd5', 'rec-x');
+
+      expect(patchPanelDevice).toHaveBeenCalledWith('rec-x', { layout: expect.objectContaining({ surface: 'monitor' }) });
     });
 
     it('allocates once for concurrent callers', async () => {

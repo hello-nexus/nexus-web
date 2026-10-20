@@ -86,6 +86,8 @@ vi.mock('./PanelEmbedFrame', () => ({
       data-testid="embed"
       data-surface={props.surface}
       data-device-id={props.deviceId ?? ''}
+      data-layout-surface={props.layout.surface}
+      data-widget-sizes={props.layout.pages.flatMap(pg => pg.widgets).map(w => w.size).join(',')}
     >
       <button data-testid="edit" onClick={() => props.onLayoutChange(props.layout)}>edit</button>
     </div>
@@ -168,5 +170,39 @@ describe('PanelDevicePage simulator', () => {
     expect(allocatePanelDeviceMock.mock.calls[0][0]).toBeUndefined();
     for (const [id] of patchPanelDeviceMock.mock.calls) expect(id).toBe('sim-new');
     expect(JSON.parse(localStorage.getItem('nexus_simulated_panel_records') ?? '{}')).toEqual({ 'lianli-tl-lcd-flex': 'sim-new' });
+  });
+
+  it('keeps the family layout surface on reload: an iCUE LINK 5" simulator at Large stays a single q60 tile', async () => {
+    const lcd5 = {
+      ...SIM,
+      id: 'simulated:icue-link-lcd5',
+      sourceId: 'icue-link-lcd5',
+      runtimeSurface: 'monitor',
+      family: 'icue-link-lcd5',
+      previewSize: { width: 720, height: 1280 },
+      previewDpi: 294,
+      capabilities: { surface: 'monitor', touch: false },
+    } as PanelDevice;
+    localStorage.setItem('nexus_simulated_panel_records', JSON.stringify({ 'icue-link-lcd5': 'sim-lcd5' }));
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'sim-lcd5',
+        displayName: 'sim',
+        widgetSize: 'large',
+        layout: {
+          layoutSchemaVersion: 2,
+          surface: 'q60',
+          pages: [{ id: 'p1', widgets: [{ id: 'w', type: 'cooling', size: '2x4', col: 0, row: 0 }] }],
+          activePageId: 'p1',
+        },
+      }],
+    });
+    render(<PanelDevicePage device={lcd5} />);
+    await flush();
+
+    await waitFor(() => expect(screen.getByTestId('embed').dataset.deviceId).toBe('sim-lcd5'));
+    expect(screen.getByTestId('embed').dataset.surface).toBe('q60');
+    expect(screen.getByTestId('embed').dataset.layoutSurface).toBe('q60');
+    expect(screen.getByTestId('embed').dataset.widgetSizes).toBe('2x4');
   });
 });

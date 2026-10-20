@@ -448,10 +448,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // layout before the record's widget size reaches state.
   const layoutSurfaceOf = useCallback((record: PanelDeviceRecord | null | undefined, touch: boolean | undefined) => {
     const caps = record?.capabilities;
-    const laidOut = panelLayoutSurface(glassSurface, caps?.family, record?.widgetSize);
+    const family = caps?.family ?? device?.family;
+    const laidOut = panelLayoutSurface(glassSurface, family, record?.widgetSize);
     // Same canvas the editor grid reads: the record's own, else the device entry's.
     const canvas = caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight } : device?.previewSize;
-    const dpi = panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI)
+    const dpi = panelLayoutDpi(glassSurface, family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI)
       ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
     const canvasDensitySlots = canvas
       ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (caps?.cssWidth ? caps.dpr : device?.previewDpr) || 1, dpi)
@@ -460,11 +461,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       surface: laidOut,
       touch: laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
-        panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize, canvasDensitySlots),
+        panelShortSideSlots(glassSurface, family, record?.widgetSize, canvasDensitySlots),
         isLandscapeCanvas(canvas),
       ),
     };
-  }, [glassSurface, device?.previewSize, device?.previewDpi, device?.previewDpr]);
+  }, [glassSurface, device?.family, device?.previewSize, device?.previewDpi, device?.previewDpr]);
   // Promoted monitors with a DDC/CI-capable display get a brightness-only
   // settings tab wired to the generic /displays brightness endpoint.
   const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);

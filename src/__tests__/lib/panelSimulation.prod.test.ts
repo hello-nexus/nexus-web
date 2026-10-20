@@ -5,7 +5,8 @@ vi.mock('../../lib/devTools', () => ({ DEV_TOOLS: false }));
 vi.mock('../../api/panel', () => ({
   allocatePanelDevice: vi.fn().mockResolvedValue(null),
   deletePanelDevice: vi.fn().mockResolvedValue(null),
-  fetchPanelDevice: vi.fn().mockResolvedValue(null),
+  fetchPanelDeviceWithStatus: vi.fn().mockResolvedValue({ found: false, status: 0 }),
+  patchPanelDevice: vi.fn().mockResolvedValue(null),
 }));
 
 import {

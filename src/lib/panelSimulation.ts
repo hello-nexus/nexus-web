@@ -1,4 +1,4 @@
-import type { PanelSurface } from '../panel/types';
+import { panelLayoutSurface, type PanelSurface } from '../panel/types';
 import {
   DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES,
   panelGridCapacityForCanvas,
@@ -6,7 +6,8 @@ import {
   type PanelGridCapacity,
 } from '../panel/engine/grid';
 import { DEV_TOOLS } from './devTools';
-import { deletePanelDevice, allocatePanelDevice, fetchPanelDevice } from '../api/panel';
+import { allocatePanelDevice, deletePanelDevice, fetchPanelDeviceWithStatus, patchPanelDevice } from '../api/panel';
+import { defaultLayoutForSurface } from '../panel/engine/defaultLayout';
 import {
   GENERIC_VENDOR,
   LEGACY_SIMULATED_SCREEN_IDS,
@@ -245,7 +246,8 @@ export function setSimulatedPanelConnected(id: string, connected: boolean): void
 // record can never be matched by surface or reused by a real device.
 function readRecordIds(): Record<string, string> {
   const raw = readJson<unknown>(SIMULATED_PANEL_RECORDS_KEY, {});
-  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, string> : {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return Object.fromEntries(Object.entries(raw).filter(([, v]) => typeof v === 'string' && v !== ''));
 }
 
 function writeRecordIds(map: Record<string, string>): void {
@@ -263,13 +265,25 @@ export function getSimulatedPanelRecordId(id: string): string | undefined {
 
 const pendingRecords = new Map<string, Promise<string | undefined>>();
 
+/** Writes the layout a fresh record of this simulator starts from; the service would seed a surface-less record with the Y70 starter. */
+export async function persistSimulatorDefaultLayout(id: string, recordId: string): Promise<void> {
+  const def = getSimulatedPanelDefinition(id);
+  if (!def) return;
+  const layout = defaultLayoutForSurface(panelLayoutSurface(def.surface, def.family, null));
+  await patchPanelDevice(recordId, { layout }).catch(() => null);
+}
+
 /** The record a simulator edits, allocated on first use. Undefined while the service is unreachable. */
 export function ensureSimulatedPanelRecord(id: string): Promise<string | undefined> {
   const pending = pendingRecords.get(id);
   if (pending) return pending;
   const task = (async () => {
     const stored = getSimulatedPanelRecordId(id);
-    if (stored && await fetchPanelDevice(stored).catch(() => null)) return stored;
+    if (stored) {
+      const found = await fetchPanelDeviceWithStatus(stored);
+      // Only a 404 means the record is gone; any other failure keeps the id for a later retry.
+      if (found.found || found.status !== 404) return stored;
+    }
     const name = getSimulatedPanelDefinition(id)?.name;
     const record = await allocatePanelDevice(undefined, name).catch(() => null);
     if (!record?.id) return undefined;
@@ -278,6 +292,7 @@ export function ensureSimulatedPanelRecord(id: string): Promise<string | undefin
       return undefined;
     }
     writeRecordIds({ ...readRecordIds(), [id]: record.id });
+    await persistSimulatorDefaultLayout(id, record.id);
     dispatchSimulationChanged();
     return record.id;
   })().finally(() => { pendingRecords.delete(id); });

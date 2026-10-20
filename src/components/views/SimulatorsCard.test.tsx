@@ -46,7 +46,8 @@ const mockDeleteRecord = vi.fn();
 vi.mock('../../api/panel', () => ({
   allocatePanelDevice: (...a: unknown[]) => mockAllocate(...a),
   deletePanelDevice: (...a: unknown[]) => mockDeleteRecord(...a),
-  fetchPanelDevice: vi.fn().mockResolvedValue(null),
+  fetchPanelDeviceWithStatus: vi.fn().mockResolvedValue({ found: false, status: 404 }),
+  patchPanelDevice: vi.fn().mockResolvedValue({ ok: true }),
 }));
 vi.mock('../../api/displays', () => ({
   getDevPanelVariant: vi.fn().mockResolvedValue(null),
@@ -150,7 +151,7 @@ describe('PanelSimulatorCard', () => {
 
     expect(getConnectedSimulatedPanelIds()).toEqual(['lianli-tl-lcd-flex']);
     expect(screen.getByText('Lian Li Uni Fan TL LCD Flex')).toBeInTheDocument();
-    expect(screen.getByText(/lcd-round - 400x400 @ 210 dpi/)).toBeInTheDocument();
+    expect(screen.getByText(/^tools\.panelSim\.spec:.*"surface":"lcd-round","width":400,"height":400,"dpi":210/)).toBeInTheDocument();
     expect(mockAllocate).toHaveBeenCalledTimes(1);
     expect(mockAllocate.mock.calls[0][0]).toBeUndefined();
   });
