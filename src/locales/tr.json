@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Kişiselleştirmeyi sıfırla",
   "devices.panels.resetPersonalization.wipeList": "Widget düzeni ve widget ayarları\nTema, arka plan ve buzlu cam\nYüklenen arka plan medyası",
   "devices.panels.running": "Çalışıyor",
+  "devices.panels.saveFailedBody": "Nexus bu paneldeki değişikliği kaydedemedi.",
+  "devices.panels.saveFailedTitle": "Değişiklik kaydedilmedi",
   "devices.panels.screenshot": "Ekran görüntüsünü kaydet",
   "devices.panels.screenshotError": "Ekran görüntüsü alınamadı",
   "devices.panels.screenshotPngType": "PNG görseli",

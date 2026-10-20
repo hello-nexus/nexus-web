@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Ripristina personalizzazione",
   "devices.panels.resetPersonalization.wipeList": "Layout e impostazioni dei widget\nTema, sfondo e vetro smerigliato\nContenuti di sfondo caricati",
   "devices.panels.running": "In esecuzione",
+  "devices.panels.saveFailedBody": "Nexus non è riuscito a salvare la modifica a questo pannello.",
+  "devices.panels.saveFailedTitle": "Modifica non salvata",
   "devices.panels.screenshot": "Salva screenshot",
   "devices.panels.screenshotError": "Screenshot non riuscito",
   "devices.panels.screenshotPngType": "Immagine PNG",

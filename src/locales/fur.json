@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Ripristine la personalizazion",
   "devices.panels.resetPersonalization.wipeList": "Disposizion e impostazions dai widgets\nTeme, fonts e veri smerilât\nContignûts di fonts cjariâts",
   "devices.panels.running": "In esecuzion",
+  "devices.panels.saveFailedBody": "Nexus nol à rivât a salvâ il cambiament di chest panel.",
+  "devices.panels.saveFailedTitle": "Cambiament no salvât",
   "devices.panels.screenshot": "Salve la cature",
   "devices.panels.screenshotError": "La cature dal schermi no je lade a bon fin",
   "devices.panels.screenshotPngType": "Imagjin PNG",

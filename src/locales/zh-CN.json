@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "重置个性化",
   "devices.panels.resetPersonalization.wipeList": "小组件布局和小组件设置\n主题、背景和毛玻璃\n已上传的背景媒体",
   "devices.panels.running": "运行中",
+  "devices.panels.saveFailedBody": "Nexus 无法保存对此面板的更改。",
+  "devices.panels.saveFailedTitle": "更改未保存",
   "devices.panels.screenshot": "保存截图",
   "devices.panels.screenshotError": "截图失败",
   "devices.panels.screenshotPngType": "PNG 图片",

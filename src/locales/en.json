@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Reset personalization",
   "devices.panels.resetPersonalization.wipeList": "Widget layout and widget settings\nTheme, background, and frosted glass\nUploaded background media",
   "devices.panels.running": "Running",
+  "devices.panels.saveFailedBody": "Nexus couldn't save the change to this panel.",
+  "devices.panels.saveFailedTitle": "Change not saved",
   "devices.panels.screenshot": "Save screenshot",
   "devices.panels.screenshotError": "Screenshot failed",
   "devices.panels.screenshotPngType": "PNG image",

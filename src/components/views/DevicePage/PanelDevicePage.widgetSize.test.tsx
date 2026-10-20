@@ -8,6 +8,12 @@ import type { PanelLayout, PanelWidget } from '../../../panel/types';
 
 const fetchPanelDevicesMock = vi.fn();
 const patchPanelDeviceMock = vi.fn();
+const pushToastMock = vi.fn();
+
+vi.mock('../../common/Toast/Toast', () => ({
+  useToast: () => ({ push: pushToastMock }),
+  useToastSafe: () => ({ push: pushToastMock }),
+}));
 
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
@@ -126,6 +132,7 @@ const patches = () => patchPanelDeviceMock.mock.calls.map(([, patch]) => patch a
 beforeEach(() => {
   fetchPanelDevicesMock.mockReset();
   patchPanelDeviceMock.mockReset().mockResolvedValue({ ok: true });
+  pushToastMock.mockReset();
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -168,6 +175,28 @@ describe('PanelDevicePage widget size', () => {
     expect(patches()[0].widgetSize).toBe('small');
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
     expect(screen.queryByRole('switch', { name: 'panel.playlist.playlist' })).not.toBeInTheDocument();
+  });
+
+  it('shows one error toast when the record write is refused or rejected', async () => {
+    patchPanelDeviceMock.mockResolvedValue(null);
+    await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
+
+    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await waitFor(() => expect(pushToastMock).toHaveBeenCalledTimes(1));
+    expect(pushToastMock).toHaveBeenCalledWith({ title: 'devices.panels.saveFailedTitle', body: 'devices.panels.saveFailedBody' });
+
+    patchPanelDeviceMock.mockRejectedValue(new Error('network'));
+    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+    await waitFor(() => expect(patches().length).toBeGreaterThan(1));
+    expect(pushToastMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no toast when the record write succeeds', async () => {
+    await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
+
+    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await waitFor(() => expect(patches()).toHaveLength(1));
+    expect(pushToastMock).not.toHaveBeenCalled();
   });
 
   it('keeps a non-touch panel on one page when its grid is full', async () => {

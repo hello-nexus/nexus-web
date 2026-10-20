@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Personalisatie herstellen",
   "devices.panels.resetPersonalization.wipeList": "Widget-indeling en widget-instellingen\nThema, achtergrond en matglas\nGeüploade achtergrondmedia",
   "devices.panels.running": "Actief",
+  "devices.panels.saveFailedBody": "Nexus kon de wijziging aan dit paneel niet opslaan.",
+  "devices.panels.saveFailedTitle": "Wijziging niet opgeslagen",
   "devices.panels.screenshot": "Schermafbeelding opslaan",
   "devices.panels.screenshotError": "Schermafbeelding mislukt",
   "devices.panels.screenshotPngType": "PNG-afbeelding",

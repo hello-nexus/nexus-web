@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "パーソナライズをリセット",
   "devices.panels.resetPersonalization.wipeList": "ウィジェットのレイアウトと設定\nテーマ、背景、すりガラス\nアップロードした背景メディア",
   "devices.panels.running": "実行中",
+  "devices.panels.saveFailedBody": "Nexus はこのパネルへの変更を保存できませんでした。",
+  "devices.panels.saveFailedTitle": "変更を保存できませんでした",
   "devices.panels.screenshot": "スクリーンショットを保存",
   "devices.panels.screenshotError": "スクリーンショットに失敗しました",
   "devices.panels.screenshotPngType": "PNG画像",

@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Personalisierung zurücksetzen",
   "devices.panels.resetPersonalization.wipeList": "Widget-Layout und Widget-Einstellungen\nDesign, Hintergrund und Milchglas\nHochgeladene Hintergrundmedien",
   "devices.panels.running": "Wird ausgeführt",
+  "devices.panels.saveFailedBody": "Nexus konnte die Änderung an diesem Panel nicht speichern.",
+  "devices.panels.saveFailedTitle": "Änderung nicht gespeichert",
   "devices.panels.screenshot": "Screenshot speichern",
   "devices.panels.screenshotError": "Screenshot fehlgeschlagen",
   "devices.panels.screenshotPngType": "PNG-Bild",

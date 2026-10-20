@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "개인화 초기화",
   "devices.panels.resetPersonalization.wipeList": "위젯 레이아웃 및 위젯 설정\n테마, 배경, 젖빛 유리\n업로드한 배경 미디어",
   "devices.panels.running": "실행 중",
+  "devices.panels.saveFailedBody": "Nexus가 이 패널의 변경 사항을 저장하지 못했습니다.",
+  "devices.panels.saveFailedTitle": "변경 사항이 저장되지 않았습니다",
   "devices.panels.screenshot": "스크린샷 저장",
   "devices.panels.screenshotError": "스크린샷 실패",
   "devices.panels.screenshotPngType": "PNG 이미지",

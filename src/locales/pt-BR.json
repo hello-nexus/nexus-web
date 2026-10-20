@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Redefinir personalização",
   "devices.panels.resetPersonalization.wipeList": "Layout e configurações dos widgets\nTema, plano de fundo e vidro fosco\nMídias de fundo enviadas",
   "devices.panels.running": "Em execução",
+  "devices.panels.saveFailedBody": "O Nexus não conseguiu salvar a alteração neste painel.",
+  "devices.panels.saveFailedTitle": "Alteração não salva",
   "devices.panels.screenshot": "Salvar captura de tela",
   "devices.panels.screenshotError": "Falha na captura de tela",
   "devices.panels.screenshotPngType": "Imagem PNG",

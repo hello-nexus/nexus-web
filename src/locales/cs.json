@@ -1277,6 +1277,8 @@
   "devices.panels.resetPersonalization.label": "Obnovit přizpůsobení",
   "devices.panels.resetPersonalization.wipeList": "Rozvržení a nastavení widgetů\nMotiv, pozadí a matné rozostření\nNahraná média pozadí",
   "devices.panels.running": "Spuštěno",
+  "devices.panels.saveFailedBody": "Nexus nemohl uložit změnu tohoto panelu.",
+  "devices.panels.saveFailedTitle": "Změna nebyla uložena",
   "devices.panels.screenshot": "Uložit snímek obrazovky",
   "devices.panels.screenshotError": "Snímek obrazovky se nezdařil",
   "devices.panels.screenshotPngType": "Obrázek PNG",

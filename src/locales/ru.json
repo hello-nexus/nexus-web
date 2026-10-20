@@ -1277,6 +1277,8 @@
   "devices.panels.resetPersonalization.label": "Сбросить персонализацию",
   "devices.panels.resetPersonalization.wipeList": "Раскладка и настройки виджетов\nТема, фон и матовое стекло\nЗагруженные фоновые медиафайлы",
   "devices.panels.running": "Работает",
+  "devices.panels.saveFailedBody": "Nexus не удалось сохранить изменение этой панели.",
+  "devices.panels.saveFailedTitle": "Изменение не сохранено",
   "devices.panels.screenshot": "Сохранить снимок экрана",
   "devices.panels.screenshotError": "Не удалось сделать снимок экрана",
   "devices.panels.screenshotPngType": "Изображение PNG",

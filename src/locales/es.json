@@ -1270,6 +1270,8 @@
   "devices.panels.resetPersonalization.label": "Restablecer personalización",
   "devices.panels.resetPersonalization.wipeList": "Diseño y configuración de widgets\nTema, fondo y vidrio esmerilado\nMedios de fondo subidos",
   "devices.panels.running": "En ejecución",
+  "devices.panels.saveFailedBody": "Nexus no pudo guardar el cambio en este panel.",
+  "devices.panels.saveFailedTitle": "Cambio no guardado",
   "devices.panels.screenshot": "Guardar captura",
   "devices.panels.screenshotError": "Error al crear la captura de pantalla",
   "devices.panels.screenshotPngType": "Imagen PNG",

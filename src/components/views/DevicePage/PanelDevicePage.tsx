@@ -230,6 +230,8 @@ function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
     : 'failed';
 }
 
+const WRITE_FAIL_TOAST_GAP_MS = 4000;
+
 type Tab = 'widgets' | 'theme' | 'background' | 'settings';
 
 type XeneonEdgeControlKey = 'brightness' | 'backlight' | 'contrast' | 'red' | 'green' | 'blue';
@@ -863,12 +865,24 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   // A write of ours in flight defers broadcast refetches, or the echo reverts a
   // controlled field mid-edit; the last write to settle runs the deferred read.
+  // One toast per failure burst: a failing service makes every write fail.
+  const lastWriteFailToastRef = useRef(0);
+  const reportWriteFailed = useCallback(() => {
+    const now = Date.now();
+    if (now - lastWriteFailToastRef.current < WRITE_FAIL_TOAST_GAP_MS) return;
+    lastWriteFailToastRef.current = now;
+    pushToast({ title: t('devices.panels.saveFailedTitle'), body: t('devices.panels.saveFailedBody') });
+  }, [pushToast, t]);
+
   const writeRecordPatch = useCallback((id: string, patch: PanelDevicePatch) => {
     pendingWritesRef.current += 1;
     writeSeqRef.current += 1;
     return patchPanelDevice(id, patch)
-      .then(() => broadcastLayoutChanged())
-      .catch(() => {})
+      .then(saved => {
+        broadcastLayoutChanged();
+        if (saved === null) reportWriteFailed();
+      })
+      .catch(reportWriteFailed)
       .finally(() => {
         pendingWritesRef.current -= 1;
         if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
@@ -876,7 +890,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           refetchDeviceRecord();
         }
       });
-  }, [refetchDeviceRecord]);
+  }, [refetchDeviceRecord, reportWriteFailed]);
 
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so

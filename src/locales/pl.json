@@ -1277,6 +1277,8 @@
   "devices.panels.resetPersonalization.label": "Zresetuj personalizację",
   "devices.panels.resetPersonalization.wipeList": "Układ i ustawienia widżetów\nMotyw, tło i matowe szkło\nPrzesłane multimedia tła",
   "devices.panels.running": "Uruchomiony",
+  "devices.panels.saveFailedBody": "Nexus nie mógł zapisać zmiany tego panelu.",
+  "devices.panels.saveFailedTitle": "Zmiana nie została zapisana",
   "devices.panels.screenshot": "Zapisz zrzut ekranu",
   "devices.panels.screenshotError": "Nie udało się wykonać zrzutu ekranu",
   "devices.panels.screenshotPngType": "Obraz PNG",
