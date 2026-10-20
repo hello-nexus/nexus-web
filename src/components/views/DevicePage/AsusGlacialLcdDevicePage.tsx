@@ -31,6 +31,8 @@ const SLOT_COUNTS = [1, 2, 3] as const;
 const SENSOR_CATEGORIES = ['cpu', 'gpu', 'motherboard'] as const;
 // The display shows only these two units.
 const SENSOR_TYPES = ['Temperature', 'Voltage'] as const;
+// The service starts this animation when the display is turned on before any mode was chosen.
+const FIRST_RUN_ANIMATION = 1;
 const DEFAULT_CATEGORY = SENSOR_CATEGORIES[0];
 
 export function AsusGlacialLcdDevicePage() {
@@ -108,7 +110,10 @@ export function AsusGlacialLcdDevicePage() {
             label={t('devices.asus-glacial-lcd.displayOn')}
             checked={state?.displayOn ?? false}
             disabled={!ready}
-            onChange={on => edit({ displayOn: on }, { displayOn: on })}
+            onChange={on => edit(
+              on && !chosen ? { displayOn: on, mode: 'animated', animatedAsset: FIRST_RUN_ANIMATION, modeChosen: true } : { displayOn: on },
+              { displayOn: on },
+            )}
           />
           <SettingToggle
             label={t('devices.asus-glacial-lcd.stayOn')}
@@ -141,7 +146,7 @@ export function AsusGlacialLcdDevicePage() {
               ariaLabel={t('devices.asus-glacial-lcd.mode')}
               activeKey={chosen ? mode : ''}
               options={MODES.map(m => ({ key: m, label: t(MODE_KEYS[m]), disabled: !ready }))}
-              onChange={key => edit({ mode: key as GlacialMode }, { mode: key as GlacialMode })}
+              onChange={key => edit({ mode: key as GlacialMode, modeChosen: true }, { mode: key as GlacialMode })}
             />
           </SettingRow>
 

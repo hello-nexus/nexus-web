@@ -128,6 +128,41 @@ describe('AsusGlacialLcdDevicePage', () => {
     expect(screen.queryByText('devices.asus-glacial-lcd.picture')).toBeNull();
   });
 
+  it('a mode chip click shows its rows before the refetch resolves', async () => {
+    await mount({ ...base, mode: 'static', modeChosen: false });
+    let release: (v: unknown) => void = () => {};
+    mockGet.mockReturnValue(new Promise(r => { release = r; }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modeMonitor' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ mode: 'monitor' });
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modeMonitor' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getAllByTestId('sensor-picker').length).toBeGreaterThan(0);
+    await act(async () => { release({ ...base, modeChosen: true }); });
+  });
+
+  it('turning the display on before a mode is chosen selects the first-run animation', async () => {
+    await mount({ ...base, displayOn: false, modeChosen: false });
+    let release: (v: unknown) => void = () => {};
+    mockGet.mockReturnValue(new Promise(r => { release = r; }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.asus-glacial-lcd.displayOn' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ displayOn: true });
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modeAnimation' })).toHaveAttribute('aria-checked', 'true');
+    await act(async () => { release({ ...base, displayOn: true, mode: 'animated', animatedAsset: 1, modeChosen: true }); });
+  });
+
+  it('rolls the chosen mode back when the save is refused', async () => {
+    await mount({ ...base, modeChosen: false });
+    mockSet.mockResolvedValue(false);
+    mockGet.mockResolvedValue({ ...base, modeChosen: false });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePicture' }));
+    });
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePicture' })).toHaveAttribute('aria-checked', 'false');
+  });
+
   it('the stay-on switch sends stayOnWhileAsleep', async () => {
     await mount();
     await act(async () => {
