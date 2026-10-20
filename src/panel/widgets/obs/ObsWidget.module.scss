@@ -227,22 +227,6 @@
   max-width: 30ch;
 }
 
-.emptyAction {
-  @include text-button;
-  @include key-surface;
-  min-height: 32px;
-  padding: 0 14px;
-  border-radius: var(--radius);
-  font-family: var(--panel-font);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-}
-
 .emptyActions {
   display: flex;
   flex-wrap: wrap;

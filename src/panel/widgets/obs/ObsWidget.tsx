@@ -33,6 +33,11 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
   // Requests are numbered at start; a response older than one already applied is dropped.
   const startedSeq = useRef(0);
   const appliedSeq = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const [busy, setBusy] = useState(false);
   const connected = Boolean(status?.connected && !status.error);
   const compact = widget.size === '2x2';
@@ -49,7 +54,7 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
   const refresh = useCallback(async () => {
     const seq = ++startedSeq.current;
     const next = await fetchObsStatus();
-    if (next) accept(seq, next);
+    if (next && mounted.current) accept(seq, next);
   }, [accept]);
 
   useEffect(() => {
@@ -80,16 +85,17 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
 
   const run = useCallback(async (action: () => Promise<ObsStatusResponse | unknown | null>) => {
     setBusy(true);
-    const seq = ++startedSeq.current;
     try {
       const next = await action();
+      if (!mounted.current) return;
       if (next && typeof next === 'object' && 'connected' in next) {
-        accept(seq, next as ObsStatusResponse);
+        // Numbered on arrival so it outranks every poll that started before it resolved.
+        accept(++startedSeq.current, next as ObsStatusResponse);
       } else {
         await refresh();
       }
     } finally {
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   }, [refresh, accept]);
 
@@ -178,12 +184,12 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
           <div className={styles.emptyActions}>
             {reason === 'auth'
               ? onConfigure && (
-                <button type="button" className={styles.emptyAction} onClick={onConfigure}>
+                <button type="button" className="panel-chip" onClick={onConfigure}>
                   {t('panel.widget.obs.openSettings')}
                 </button>
               )
               : (
-                <button type="button" className={styles.emptyAction} onClick={() => run(connectObs)} disabled={busy}>
+                <button type="button" className="panel-chip" onClick={() => run(connectObs)} disabled={busy}>
                   {t('panel.widget.obs.connect')}
                 </button>
               )}

@@ -1,5 +1,5 @@
 // Panel key surface shared by the calculator and OBS widgets: a borderless
-// wash of the widget's own ink, so it stays legible when auto text colour
+// wash of the widget's own ink, so it stays legible when auto text color
 // flips it. The wash is a ::before layer (opacity on a --text fill) because
 // color-mix() does not parse on Chromium 83.
 

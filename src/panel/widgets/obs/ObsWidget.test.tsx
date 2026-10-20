@@ -63,7 +63,7 @@ describe('ObsWidget timers', () => {
     api.fetchObsStatus.mockResolvedValue(status({}));
     render(<ObsWidget widget={widget} />);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    // Only the 2.5 s poll interval remains.
+    // Only the poll interval remains.
     expect(vi.getTimerCount()).toBe(1);
   });
 
@@ -93,6 +93,23 @@ describe('ObsWidget timers', () => {
     await act(async () => { resolvePoll(status({})); });
     expect(screen.getByText('00:01')).toBeTruthy();
     expect(screen.queryByText('panel.widget.obs.stream')).toBeNull();
+  });
+
+  it('keeps a toggle response that resolves after a poll started during it', async () => {
+    let resolveToggle: (s: ObsStatusResponse) => void = () => {};
+    let resolvePoll: (s: ObsStatusResponse) => void = () => {};
+    api.fetchObsStatus
+      .mockResolvedValueOnce(status({}))
+      .mockImplementationOnce(() => new Promise<ObsStatusResponse>(r => { resolvePoll = r; }));
+    api.toggleObsStreaming.mockImplementation(() => new Promise<ObsStatusResponse>(r => { resolveToggle = r; }));
+    render(<ObsWidget widget={widget} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { screen.getByText('panel.widget.obs.stream').click(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+    await act(async () => { resolvePoll(status({ streaming: false })); });
+    await act(async () => { resolveToggle(status({ streaming: true, streamingDurationMs: 1000 })); });
+    expect(screen.getByText('panel.widget.obs.live')).toBeTruthy();
+    expect(screen.getByText('00:01')).toBeTruthy();
   });
 
   it('does not poll or tick in picker preview', () => {
