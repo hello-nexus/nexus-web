@@ -6,11 +6,18 @@ import {
   type PanelGridCapacity,
 } from '../panel/engine/grid';
 import { DEV_TOOLS } from './devTools';
+import { deletePanelDevice, allocatePanelDevice, fetchPanelDevice } from '../api/panel';
+import {
+  GENERIC_VENDOR,
+  LEGACY_SIMULATED_SCREEN_IDS,
+  SIMULATED_SCREEN_CATALOG,
+} from './simulatedScreenCatalog';
 
 const SIMULATE_Y70_KEY = 'nexus_simulate_y70';
 const SIMULATED_PANEL_IDS_KEY = 'nexus_simulated_panel_ids';
 const SIMULATED_PANEL_CUSTOM_KEY = 'nexus_simulated_panel_custom';
 const SIMULATED_PANEL_GRID_SIZING_KEY = 'nexus_simulated_panel_grid_sizing';
+const SIMULATED_PANEL_RECORDS_KEY = 'nexus_simulated_panel_records';
 
 export const PANEL_SIMULATION_CHANGED_EVENT = 'y70-simulate-changed';
 
@@ -21,6 +28,9 @@ export interface SimulatedPanelDefinition {
   width: number;
   height: number;
   dpi: number;
+  vendor?: string;
+  family?: string;
+  touch?: boolean;
 }
 
 export interface PanelPhysicalSize {
@@ -34,29 +44,7 @@ export interface SimulatedPanelGridSizing {
   shortSideJumpAtInches: number;
 }
 
-export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
-  // Two Y70 touch variants. Simulator names carry the resolution class to
-  // disambiguate them in the sidebar / picker; a real connected Y70 shows the
-  // variant name the service reports (Y70Handler.Name).
-  { id: 'y70',    name: 'HYTE Y70 Touch 2.5K', surface: 'y70', width: 682,  height: 2560, dpi: 337 },
-  { id: 'y70-4k', name: 'HYTE Y70 Touch 4K',   surface: 'y70', width: 1100, height: 3840, dpi: 283 },
-  { id: 'q60', name: 'HYTE Q60', surface: 'q60', width: 720, height: 1280, dpi: 220 },
-  // NZXT Kraken LCD: 2.36" 640x640 round glass, one tile. Matches the streamed
-  // record KrakenPanelDiscovery reports (640x640 @ dpr 1).
-  { id: 'kraken', name: 'NZXT Kraken LCD', surface: 'kraken', width: 640, height: 640, dpi: 271 },
-  // Cooler LCDs fed pushed JPEG frames. One preset per distinct panel geometry rather
-  // than per model: 'lcd-round' at 480 covers the Galahad II LCD and the Corsair XC7,
-  // and the Elite Capellix is the same glass without the circular mask.
-  { id: 'lcd-round-480', name: 'Cooler LCD 480 Round', surface: 'lcd-round', width: 480, height: 480, dpi: 210 },
-  { id: 'lcd-square-480', name: 'Cooler LCD 480', surface: 'lcd-square', width: 480, height: 480, dpi: 210 },
-  { id: 'lcd-wide-1600', name: 'Cooler LCD 1600 Wide', surface: 'lcd-wide', width: 1600, height: 720, dpi: 210 },
-  { id: 'lcd-round-240', name: 'Cooler LCD 240 Round', surface: 'lcd-round', width: 240, height: 240, dpi: 160 },
-  // Corsair Xeneon Edge 14.5" 2560x720 strip; rides the promoted-monitor
-  // surface (a real one registers via POST /displays/{id}/panel).
-  { id: 'xeneon-edge', name: 'Corsair Xeneon Edge', surface: 'monitor', width: 2560, height: 720, dpi: 183 },
-  { id: 'phone', name: 'Phone Panel', surface: 'phone', width: 1206, height: 2622, dpi: 460 },
-  { id: 'tablet', name: 'Tablet Panel', surface: 'phone', width: 1640, height: 2360, dpi: 264 },
-];
+export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = SIMULATED_SCREEN_CATALOG;
 
 export const DEFAULT_SIMULATED_PANEL_GRID_SIZING: SimulatedPanelGridSizing = {
   shortSideJumpAtInches: DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES,
@@ -71,6 +59,7 @@ export const DEFAULT_SIMULATED_PANEL_GRID_SIZING: SimulatedPanelGridSizing = {
 const DEFAULT_CUSTOM_PANEL: SimulatedPanelDefinition = {
   id: 'custom',
   name: 'Custom Panel',
+  vendor: GENERIC_VENDOR,
   surface: 'y70',
   width: 682,
   height: 2560,
@@ -123,7 +112,9 @@ function readJson<T>(key: string, fallback: T): T {
 function readConnectedIds(): string[] {
   const rawIds = readJson<unknown>(SIMULATED_PANEL_IDS_KEY, []);
   const ids = Array.isArray(rawIds)
-    ? rawIds.filter((id): id is string => typeof id === 'string')
+    ? [...new Set(rawIds
+      .filter((id): id is string => typeof id === 'string')
+      .map(id => LEGACY_SIMULATED_SCREEN_IDS[id] ?? id))]
     : [];
   try {
     if (typeof localStorage === 'undefined') return ids;
@@ -240,10 +231,67 @@ export function isSimulatedPanelConnected(id: string): boolean {
 
 export function setSimulatedPanelConnected(id: string, connected: boolean): void {
   const ids = new Set(getConnectedSimulatedPanelIds());
+  const wasConnected = ids.has(id);
   if (connected) ids.add(id);
   else ids.delete(id);
   writeConnectedIds([...ids]);
   dispatchSimulationChanged();
+  if (connected && !wasConnected && DEV_TOOLS) void ensureSimulatedPanelRecord(id);
+  if (!connected) releaseSimulatedPanelRecord(id);
+}
+
+// A simulator owns one panel record of its own. It is allocated without a surface:
+// the registry reuses a record per single-instance surface, and a surface-less
+// record can never be matched by surface or reused by a real device.
+function readRecordIds(): Record<string, string> {
+  const raw = readJson<unknown>(SIMULATED_PANEL_RECORDS_KEY, {});
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, string> : {};
+}
+
+function writeRecordIds(map: Record<string, string>): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(SIMULATED_PANEL_RECORDS_KEY, JSON.stringify(map));
+  } catch {
+    // Storage unavailable; the record is re-allocated on the next edit.
+  }
+}
+
+export function getSimulatedPanelRecordId(id: string): string | undefined {
+  return readRecordIds()[id];
+}
+
+const pendingRecords = new Map<string, Promise<string | undefined>>();
+
+/** The record a simulator edits, allocated on first use. Undefined while the service is unreachable. */
+export function ensureSimulatedPanelRecord(id: string): Promise<string | undefined> {
+  const pending = pendingRecords.get(id);
+  if (pending) return pending;
+  const task = (async () => {
+    const stored = getSimulatedPanelRecordId(id);
+    if (stored && await fetchPanelDevice(stored).catch(() => null)) return stored;
+    const name = getSimulatedPanelDefinition(id)?.name;
+    const record = await allocatePanelDevice(undefined, name).catch(() => null);
+    if (!record?.id) return undefined;
+    if (!isSimulatedPanelConnected(id)) {
+      void deletePanelDevice(record.id).catch(() => null);
+      return undefined;
+    }
+    writeRecordIds({ ...readRecordIds(), [id]: record.id });
+    dispatchSimulationChanged();
+    return record.id;
+  })().finally(() => { pendingRecords.delete(id); });
+  pendingRecords.set(id, task);
+  return task;
+}
+
+function releaseSimulatedPanelRecord(id: string): void {
+  const map = readRecordIds();
+  const recordId = map[id];
+  if (!recordId) return;
+  delete map[id];
+  writeRecordIds(map);
+  void deletePanelDevice(recordId).catch(() => null);
 }
 
 export function isY70Simulated(): boolean {

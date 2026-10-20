@@ -1,4 +1,14 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const allocatePanelDevice = vi.fn();
+const deletePanelDevice = vi.fn();
+const fetchPanelDevice = vi.fn();
+vi.mock('../../api/panel', () => ({
+  allocatePanelDevice: (...a: unknown[]) => allocatePanelDevice(...a),
+  deletePanelDevice: (...a: unknown[]) => deletePanelDevice(...a),
+  fetchPanelDevice: (...a: unknown[]) => fetchPanelDevice(...a),
+}));
+
 import {
   formatPanelInches,
   getConnectedSimulatedPanelIds,
@@ -12,45 +22,52 @@ import {
   setPanelGridSizingSettings,
   setCustomSimulatedPanelSize,
   setSimulatedPanelConnected,
+  ensureSimulatedPanelRecord,
+  getSimulatedPanelRecordId,
   setY70Simulated,
 } from '../../lib/panelSimulation';
 
 describe('panelSimulation', () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.clearAllMocks();
+    let n = 0;
+    allocatePanelDevice.mockImplementation(async () => ({ id: `rec-${++n}` }));
+    deletePanelDevice.mockResolvedValue({ error: false });
+    fetchPanelDevice.mockResolvedValue({ id: 'exists' });
   });
 
   it('includes a named tablet preset for common-size UI testing', () => {
-    expect(SIMULATED_PANEL_PRESETS).toContainEqual({
+    expect(SIMULATED_PANEL_PRESETS).toContainEqual(expect.objectContaining({
       id: 'tablet',
       name: 'Tablet Panel',
       surface: 'phone',
       width: 1640,
       height: 2360,
       dpi: 264,
-    });
+    }));
   });
 
   it('uses iPhone 17 Pro resolution for the phone preset', () => {
-    expect(SIMULATED_PANEL_PRESETS).toContainEqual({
+    expect(SIMULATED_PANEL_PRESETS).toContainEqual(expect.objectContaining({
       id: 'phone',
       name: 'Phone Panel',
       surface: 'phone',
       width: 1206,
       height: 2622,
       dpi: 460,
-    });
+    }));
   });
 
   it('carries the Kraken round glass as a single-tile 640x640 preset', () => {
-    expect(SIMULATED_PANEL_PRESETS).toContainEqual({
+    expect(SIMULATED_PANEL_PRESETS).toContainEqual(expect.objectContaining({
       id: 'kraken',
-      name: 'NZXT Kraken LCD',
+      name: 'NZXT Kraken Elite V2',
       surface: 'kraken',
       width: 640,
       height: 640,
-      dpi: 271,
-    });
+      dpi: 240,
+    }));
 
     const kraken = SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'kraken');
 
@@ -88,7 +105,7 @@ describe('panelSimulation', () => {
       surface: 'q60',
       width: 720,
       height: 1280,
-      dpi: 220,
+      dpi: 240,
     });
     expect(q60 && getSimulatedPanelGridCapacity(q60)).toMatchObject({
       columns: 2,
@@ -120,6 +137,77 @@ describe('panelSimulation', () => {
       surface: 'q60',
       width: 720,
       height: 1280,
+    });
+  });
+
+  it('maps the ids of replaced generic presets to the real model and drops duplicates', () => {
+    localStorage.setItem('nexus_simulated_panel_ids', JSON.stringify(['lcd-round-480', 'lcd-wide-1600', 'corsair-link-lcd']));
+
+    expect(getConnectedSimulatedPanelIds()).toEqual(['corsair-link-lcd', 'thermalright-wonder-vision']);
+  });
+
+  describe('simulator records', () => {
+    it('allocates a surface-less record when a simulator is added and keeps it per simulator', async () => {
+      setSimulatedPanelConnected('lianli-tl-lcd-flex', true);
+      setSimulatedPanelConnected('lianli-tl-lcd', true);
+      await ensureSimulatedPanelRecord('lianli-tl-lcd-flex');
+      await ensureSimulatedPanelRecord('lianli-tl-lcd');
+
+      expect(allocatePanelDevice).toHaveBeenCalledTimes(2);
+      for (const call of allocatePanelDevice.mock.calls) expect(call[0]).toBeUndefined();
+      const a = getSimulatedPanelRecordId('lianli-tl-lcd-flex');
+      const b = getSimulatedPanelRecordId('lianli-tl-lcd');
+      expect(a).toBeDefined();
+      expect(b).toBeDefined();
+      expect(a).not.toBe(b);
+    });
+
+    it('reuses the stored record while it still exists and reallocates when it is gone', async () => {
+      setSimulatedPanelConnected('q60', true);
+      await ensureSimulatedPanelRecord('q60');
+      const first = getSimulatedPanelRecordId('q60');
+
+      await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(first);
+      expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
+
+      fetchPanelDevice.mockResolvedValue(null);
+      await ensureSimulatedPanelRecord('q60');
+      expect(allocatePanelDevice).toHaveBeenCalledTimes(2);
+      expect(getSimulatedPanelRecordId('q60')).not.toBe(first);
+    });
+
+    it('allocates once for concurrent callers', async () => {
+      setSimulatedPanelConnected('q60', true);
+      const [a, b] = await Promise.all([ensureSimulatedPanelRecord('q60'), ensureSimulatedPanelRecord('q60')]);
+
+      expect(a).toBe(b);
+      expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
+    });
+
+    it('deletes the record it created when the simulator is removed', async () => {
+      setSimulatedPanelConnected('q60', true);
+      await ensureSimulatedPanelRecord('q60');
+      const recordId = getSimulatedPanelRecordId('q60');
+
+      setSimulatedPanelConnected('q60', false);
+
+      expect(deletePanelDevice).toHaveBeenCalledWith(recordId);
+      expect(getSimulatedPanelRecordId('q60')).toBeUndefined();
+    });
+
+    it('deletes a record that finishes allocating after its simulator was removed', async () => {
+      setSimulatedPanelConnected('q60', true);
+      setSimulatedPanelConnected('q60', false);
+      await ensureSimulatedPanelRecord('q60');
+
+      expect(deletePanelDevice).toHaveBeenCalledTimes(1);
+      expect(getSimulatedPanelRecordId('q60')).toBeUndefined();
+    });
+
+    it('never deletes anything when a simulator without a record is removed', () => {
+      setSimulatedPanelConnected('phone', false);
+
+      expect(deletePanelDevice).not.toHaveBeenCalled();
     });
   });
 

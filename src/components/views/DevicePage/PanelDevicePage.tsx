@@ -39,7 +39,7 @@ import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
 import { fitLayoutToPages, fitLayoutToSinglePage, repaginatePanelLayout, type PaginateCapacity } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
-import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
+import { ensureSimulatedPanelRecord, getPanelGridSizingSettings, getSimulatedPanelRecordId } from '../../../lib/panelSimulation';
 import {
   canMarkImmersiveOnLoad,
   isImmersiveOnLoadWidget,
@@ -285,12 +285,15 @@ const XENEON_EDGE_CONTROLS: { key: XeneonEdgeControlKey; labelKey: string; min: 
 // lastSeenAt desc). Display-bound records are excluded from the surface match:
 // they are per-physical-monitor and only their own row (panelRecordId) may edit
 // them - a simulated monitor otherwise binds a real display's record, PATCHes
-// its layout, and inherits its canvas instead of the preset's.
+// its layout, and inherits its canvas instead of the preset's. A simulator binds
+// only the record it allocated for itself, never one found by surface.
 function matchPanelRecord(
   records: PanelDeviceRecord[] | undefined,
   panelRecordId: string | undefined,
   surface: PanelSurface,
+  simulated = false,
 ): PanelDeviceRecord | undefined {
+  if (simulated) return panelRecordId ? records?.find(d => d.id === panelRecordId) : undefined;
   return panelRecordId
     ? records?.find(d => d.id === panelRecordId)
     : records?.find(d => d.capabilities?.surface === surface && !d.displayId);
@@ -389,7 +392,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
   // Curated display family (capabilities.family, e.g. 'xeneon-edge') off the
   // matched record - drives which promoted-monitor-only settings apply.
-  const [recordFamily, setRecordFamily] = useState<string | undefined>(undefined);
+  const [matchedFamily, setMatchedFamily] = useState<string | undefined>(undefined);
+  // A simulator has no matched record family, so it takes the one of the device it stands in for.
+  const recordFamily = matchedFamily ?? device?.family;
   const [recordWidgetSize, setRecordWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
   const [pendingWidgetSize, setPendingWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
   // The glass drives hardware settings and record matching; `surface` is the one whose
@@ -399,6 +404,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const widgetSizeOptions = panelWidgetSizeOptions(glassSurface, recordFamily);
   const widgetSizeMode = resolvePanelWidgetSize(glassSurface, recordFamily, recordWidgetSize);
   const isSimulated = device?.connectionKind === 'simulated';
+  const simulatorId = isSimulated ? device?.sourceId : undefined;
+  const boundRecordId = useCallback(
+    () => (isSimulated
+      ? (simulatorId ? getSimulatedPanelRecordId(simulatorId) : undefined)
+      : device?.panelRecordId),
+    [isSimulated, simulatorId, device?.panelRecordId],
+  );
   // Simulated panels render a preview that never takes the focus hold.
   const backgroundHeldBy = useFocusStaticBackground(glassSurface, !isSimulated);
   const supportsDisplayControls = device?.capabilities.displayControls ?? glassSurface === 'y70';
@@ -647,7 +659,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
-      const match = matchPanelRecord(devices?.devices, device?.panelRecordId, glassSurface);
+      const match = matchPanelRecord(devices?.devices, boundRecordId(), glassSurface, isSimulated);
       setEditingDeviceId(match?.id ?? null);
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
@@ -670,7 +682,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
-      setRecordFamily(match?.capabilities?.family);
+      setMatchedFamily(match?.capabilities?.family);
       setRecordWidgetSize(match?.widgetSize ?? null);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       setRecordTouch(match?.capabilities?.touch);
@@ -688,7 +700,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       if (!isXeneonEdgePanel) setResettingHardware(false);
     }).catch(() => { if (!cancelled) { setLoaded(true); setResettingHardware(false); } });
     return () => { cancelled = true; };
-  }, [glassSurface, layoutSurfaceOf, supportsDisplayControls, isQSeries, isXeneonEdgePanel, device?.panelRecordId, device?.capabilities.touch, settingsRefreshNonce]);
+  }, [glassSurface, layoutSurfaceOf, supportsDisplayControls, isQSeries, isXeneonEdgePanel, boundRecordId, isSimulated, device?.capabilities.touch, settingsRefreshNonce]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);
@@ -895,13 +907,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       return;
     }
     allocatingRef.current = true;
-    void allocatePanelDevice({ surface: glassSurface }, `${glassSurface} panel`).then(record => {
+    const allocated = simulatorId
+      ? ensureSimulatedPanelRecord(simulatorId).then(id => (id ? { id } : null))
+      : allocatePanelDevice({ surface: glassSurface }, `${glassSurface} panel`);
+    void allocated.then(record => {
       if (record?.id) {
         setEditingDeviceId(record.id);
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, surface, glassSurface, deviceTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, deviceTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -918,11 +933,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     if (!editingDeviceId) {
       if (allocatingRef.current) return;
       void fetchPanelDevices().then(list => {
-        const match = matchPanelRecord(list?.devices, device?.panelRecordId, glassSurface);
+        const match = matchPanelRecord(list?.devices, boundRecordId(), glassSurface, isSimulated);
         if (!match) return;
         setEditingDeviceId(match.id);
         // A capability, not a user edit: a family-less page offers the plain-monitor Widget size.
-        setRecordFamily(match.capabilities?.family);
+        setMatchedFamily(match.capabilities?.family);
         const since = rebootRequestedAtRef.current;
         if (since !== null && (match.lastSeenAt ?? 0) > since) {
           rebootRequestedAtRef.current = null;

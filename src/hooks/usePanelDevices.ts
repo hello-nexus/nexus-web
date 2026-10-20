@@ -138,6 +138,12 @@ const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: str
   'icue-link-lcd5': { name: 'Corsair iCUE LINK 5" LCD', icon: '/assets/devices/corsair.svg', defaultNames: ['xmd 00ea', "icue link 5''"], experimental: true },
 };
 
+export function simulatedPanelIcon(panel: Pick<SimulatedPanelDefinition, 'id' | 'family'>): string {
+  const family = panel.family;
+  return (family ? STREAMED_FAMILY_ICONS[family] ?? PROMOTED_FAMILY_BRANDING[family]?.icon : undefined)
+    ?? panelIconForSource(panel.id);
+}
+
 // The 5" LCD is a TITAN II's screen when that pump is on the LINK hub; sold on its own
 // it can sit on another cooler. The hub reports no radiator size, so neither does this.
 const ICUE_LINK_LCD5_ON_TITAN_II = 'Corsair TITAN II LCD';
@@ -335,10 +341,14 @@ export function buildPanelDevices({
       runtimeSurface: panel.surface,
       previewSize: { width: panel.width, height: panel.height },
       previewDpi: panel.dpi,
-      iconSrc: panelIconForSource(panel.id),
+      iconSrc: simulatedPanelIcon(panel),
+      family: panel.family,
       // A simulated panel claims the capabilities its real counterpart has:
       // the Kraken's round glass is driven host-side with no digitizer.
-      capabilities: SIMULATED_SURFACE_CAPABILITIES[panel.surface] ?? WIDGET_PANEL_CAPABILITIES,
+      capabilities: {
+        ...(SIMULATED_SURFACE_CAPABILITIES[panel.surface] ?? WIDGET_PANEL_CAPABILITIES),
+        ...(panel.touch === undefined ? {} : { touch: panel.touch }),
+      },
       modalKind: panel.surface === 'y70' ? 'y70-compat' : 'panel-editor',
     });
   }
