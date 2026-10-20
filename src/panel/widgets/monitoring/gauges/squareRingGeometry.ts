@@ -15,30 +15,53 @@ const HALF_SIDE = GAUGE_FIGURE_OUTER - RING_STROKE / 2;
 // half a stroke, which keeps the inner corners rounded too.
 export const CORNER_RADIUS = OUTER_CORNER_SHARE * OUTER_SIDE - RING_STROKE / 2;
 
-/** Closed path length in viewBox units. */
-export const SQUARE_PERIMETER = 8 * (HALF_SIDE - CORNER_RADIUS) + 2 * Math.PI * CORNER_RADIUS;
-
 /** Normalized path length: dash values are percentages of the perimeter. */
 export const PATH_LENGTH = 100;
 
-/** Rounded square center line from top centre, clockwise, closing at the start. */
-export const SQUARE_PATH = (() => {
-  const r = CORNER_RADIUS;
-  const lo = CENTER - HALF_SIDE;
-  const hi = CENTER + HALF_SIDE;
-  return [
-    `M ${CENTER} ${lo}`,
-    `H ${hi - r}`,
-    `A ${r} ${r} 0 0 1 ${hi} ${lo + r}`,
-    `V ${hi - r}`,
-    `A ${r} ${r} 0 0 1 ${hi - r} ${hi}`,
-    `H ${lo + r}`,
-    `A ${r} ${r} 0 0 1 ${lo} ${hi - r}`,
-    `V ${lo + r}`,
-    `A ${r} ${r} 0 0 1 ${lo + r} ${lo}`,
+export interface SquareRingShape {
+  /** ViewBox size: the short side is always the shared figure size. */
+  width: number;
+  height: number;
+  /** Rounded rectangle center line from top center, clockwise, closing at the start. */
+  path: string;
+  /** Closed path length in viewBox units. */
+  perimeter: number;
+}
+
+const FIGURE_SIZE = 100;
+
+/**
+ * Shape for a slot of the given measured size. The short side keeps the square
+ * ring's units, so stroke and corner radius look the same at any aspect; the
+ * long side stretches only the straight edges. An unmeasured slot is a square.
+ */
+export function squareRingShape(slotWidth?: number, slotHeight?: number): SquareRingShape {
+  const known = !!slotWidth && !!slotHeight && slotWidth > 0 && slotHeight > 0;
+  const short = known ? Math.min(slotWidth, slotHeight) : 1;
+  const width = known ? (FIGURE_SIZE * slotWidth) / short : FIGURE_SIZE;
+  const height = known ? (FIGURE_SIZE * slotHeight) / short : FIGURE_SIZE;
+  const inset = CENTER - HALF_SIDE;
+  const left = inset;
+  const right = width - inset;
+  const top = inset;
+  const bottom = height - inset;
+  const r = Math.min(CORNER_RADIUS, (right - left) / 2, (bottom - top) / 2);
+  const mid = width / 2;
+  const path = [
+    `M ${mid} ${top}`,
+    `H ${right - r}`,
+    `A ${r} ${r} 0 0 1 ${right} ${top + r}`,
+    `V ${bottom - r}`,
+    `A ${r} ${r} 0 0 1 ${right - r} ${bottom}`,
+    `H ${left + r}`,
+    `A ${r} ${r} 0 0 1 ${left} ${bottom - r}`,
+    `V ${top + r}`,
+    `A ${r} ${r} 0 0 1 ${left + r} ${top}`,
     'Z',
   ].join(' ');
-})();
+  const perimeter = 2 * (right - left - 2 * r) + 2 * (bottom - top - 2 * r) + 2 * Math.PI * r;
+  return { width, height, path, perimeter };
+}
 
 /** Dash pattern that draws the first `percent` of the path. */
 export function progressDash(percent: number): string {

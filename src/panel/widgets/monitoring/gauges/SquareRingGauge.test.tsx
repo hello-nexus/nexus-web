@@ -6,7 +6,7 @@ import { designFillsRoundFrame, designKeysForSlot } from '../perfSlots';
 import { designIsFill } from '../perfDomain';
 import { GAUGE_DESIGNS, GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from './index';
 import { DESIGN_ICONS } from './DesignIcons';
-import { CORNER_RADIUS, PATH_LENGTH, RING_STROKE, progressDash } from './squareRingGeometry';
+import { CORNER_RADIUS, PATH_LENGTH, RING_STROKE, progressDash, squareRingShape } from './squareRingGeometry';
 import { SquareRingGauge } from './SquareRingGauge';
 
 const props = {
@@ -67,5 +67,36 @@ describe('squareRing geometry', () => {
     expect(gap).toBe(PATH_LENGTH);
     expect(container.querySelectorAll('g[mask] path')).toHaveLength(40);
     expect(container.querySelector('path[class*="fillRing"]')).toBeNull();
+  });
+
+  it('keeps the square shape for a square or unmeasured slot', () => {
+    const square = squareRingShape(180, 180);
+    expect(squareRingShape()).toEqual(square);
+    expect([square.width, square.height]).toEqual([100, 100]);
+    expect(square.path.startsWith('M 50 6.5 H ')).toBe(true);
+  });
+
+  it('stretches only the straight edges of a wide slot', () => {
+    const wide = squareRingShape(200, 100);
+    expect([wide.width, wide.height]).toEqual([200, 100]);
+    expect(wide.path.startsWith('M 100 6.5 H ')).toBe(true);
+    expect(wide.path).toContain(`H ${200 - 6.5 - CORNER_RADIUS} A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 193.5 `);
+    expect(wide.path).toContain(`V ${100 - 6.5 - CORNER_RADIUS}`);
+    const square = squareRingShape(100, 100);
+    expect(wide.perimeter - square.perimeter).toBeCloseTo(2 * 100, 6);
+  });
+
+  it('stretches only the straight edges of a tall slot', () => {
+    const tall = squareRingShape(100, 200);
+    expect([tall.width, tall.height]).toEqual([100, 200]);
+    expect(tall.path.startsWith('M 50 6.5 H ')).toBe(true);
+    expect(tall.path).toContain(`V ${200 - 6.5 - CORNER_RADIUS}`);
+    expect(tall.perimeter - squareRingShape().perimeter).toBeCloseTo(2 * 100, 6);
+  });
+
+  it('keeps the corner radius the same at every aspect', () => {
+    for (const shape of [squareRingShape(), squareRingShape(200, 100), squareRingShape(100, 200)]) {
+      expect(shape.path).toContain(`A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1`);
+    }
   });
 });
