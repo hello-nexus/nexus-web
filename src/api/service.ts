@@ -381,11 +381,13 @@ interface RequestOptions {
   body?: unknown;
   signal?: AbortSignal;
   cache?: RequestCache;
+  /** The route may answer from the HTTP cache, so its response does not show the service is reachable. */
+  mayBeCached?: boolean;
 }
 
-async function serviceFetch(path: string, init: RequestInit): Promise<Response> {
+async function serviceFetch(path: string, init: RequestInit, mayBeCached = false): Promise<Response> {
   const response = await fetch(resolveHttp(path), init);
-  markServiceAnswered();
+  if (!mayBeCached) markServiceAnswered();
   return response;
 }
 
@@ -419,13 +421,13 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
       cache: opts.cache,
     };
 
-    let response = await serviceFetch(path, init);
+    let response = await serviceFetch(path, init, opts.mayBeCached);
 
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await serviceFetch(path, init);
+        response = await serviceFetch(path, init, opts.mayBeCached);
       }
     }
 
@@ -559,13 +561,13 @@ export async function authFetchWithStatus(path: string, opts: RequestOptions = {
       cache: opts.cache,
     };
 
-    let response = await serviceFetch(path, init);
+    let response = await serviceFetch(path, init, opts.mayBeCached);
 
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await serviceFetch(path, init);
+        response = await serviceFetch(path, init, opts.mayBeCached);
       }
     }
 
@@ -746,7 +748,7 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   // server cache hint and refetch on every mount.
   // An error status must yield null, not a blob of the JSON error body -
   // callers feed this straight into URL.createObjectURL for <img> sources.
-  const r = await authFetch(path);
+  const r = await authFetch(path, { mayBeCached: true });
   if (!r || !r.ok) return null;
   try {
     return await r.blob();
@@ -759,7 +761,7 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
 /** Like fetchServiceBlob, but also returns the HTTP status (0 = transport
  *  failure) so a caller can tell a definitive miss from a transient one. */
 export async function fetchServiceBlobWithStatus(path: string): Promise<{ blob: Blob | null; status: number }> {
-  const { response, status } = await authFetchWithStatus(path);
+  const { response, status } = await authFetchWithStatus(path, { mayBeCached: true });
   if (!response || !response.ok) return { blob: null, status };
   try {
     return { blob: await response.blob(), status };
@@ -772,7 +774,7 @@ export async function fetchServiceBlobWithStatus(path: string): Promise<{ blob: 
  *  that need a server-supplied detail (e.g. Content-Disposition on a file
  *  download) use this instead. */
 export async function fetchServiceBlobWithHeaders(path: string): Promise<{ blob: Blob; headers: Headers } | null> {
-  const r = await authFetch(path);
+  const r = await authFetch(path, { mayBeCached: true });
   if (!r || !r.ok) return null;
   try {
     return { blob: await r.blob(), headers: r.headers };

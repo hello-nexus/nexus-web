@@ -19,8 +19,8 @@ export interface ServiceStatus {
 
 const POLL_INTERVAL_MS = 5_000;
 const POLL_INTERVAL_LAUNCHING_MS = 500;
-// Starved REST still completes about once per ping cycle; two cycles with no
-// sign of life read as a lost link.
+// Starved REST still completes within a ping cycle; silence longer than that
+// reads as a lost link.
 export const LIVENESS_WINDOW_MS = 2 * POLL_INTERVAL_MS;
 export const INSTALLED_KEY = 'nexus_installed';
 
@@ -30,8 +30,8 @@ export const INSTALLED_KEY = 'nexus_installed';
  *   mount, require it to be continuously unreachable for this long before
  *   reporting an offline state; 0 (default) flips on the first failed ping.
  *   Never delays the boot path - with no good state to hold, the first
- *   failure surfaces offline immediately. Pass HOST_DISPLAY_OFFLINE_GRACE_MS
- *   for host-display panels.
+ *   failure surfaces offline immediately. Panels take theirs from
+ *   panelOfflineGrace.
  * @param hold           when a miss inside the grace is held (see OfflineHold)
  */
 export function useServiceStatus(enabled = true, offlineGraceMs = 0, hold: OfflineHold = 'always'): ServiceStatus {
