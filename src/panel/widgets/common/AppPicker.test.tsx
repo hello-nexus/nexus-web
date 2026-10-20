@@ -43,7 +43,8 @@ describe('useAppIcon', () => {
     });
 
     expect(fetchServiceBlobWithStatus).toHaveBeenCalledWith(
-      '/shortcuts/icon?targetId=com.spotify.client'
+      '/shortcuts/icon?targetId=com.spotify.client',
+      { mayBeCached: true },
     );
     expect(result.current).toBe('blob:mock-url');
   });
@@ -103,7 +104,8 @@ describe('useAppIcon', () => {
     });
 
     expect(fetchServiceBlobWithStatus).toHaveBeenCalledWith(
-      '/shortcuts/icon?targetId=app%20with%20spaces!'
+      '/shortcuts/icon?targetId=app%20with%20spaces!',
+      { mayBeCached: true },
     );
   });
 

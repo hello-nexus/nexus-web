@@ -39,7 +39,7 @@ function renderModal(overrides: Partial<Parameters<typeof ManageConflictAppsModa
     endOnLaunch: false,
     onEndOnLaunchChange: vi.fn(),
     exclusions: [] as string[],
-    onExclusionsChange: vi.fn(),
+    onWhitelistChange: vi.fn(),
     notifyLaunches: true,
     onNotifyLaunchesChange: vi.fn(),
     ...overrides,
@@ -77,24 +77,24 @@ describe('ManageConflictAppsModal', () => {
     expect(screen.getByLabelText('NZXT CAM').getAttribute('aria-checked')).toBe('true');
   });
 
-  it('turning an app off adds it to the exclusions', async () => {
+  it('turning an app off keeps it running, one app at a time', async () => {
     vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
     vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
     const props = renderModal();
 
     await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
     fireEvent.click(screen.getByLabelText('NZXT CAM'));
-    expect(props.onExclusionsChange).toHaveBeenCalledWith(['nzxt-cam']);
+    expect(props.onWhitelistChange).toHaveBeenCalledWith('nzxt-cam', true);
   });
 
-  it('turning an excluded app back on drops it from the exclusions', async () => {
+  it('turning an excluded app back on removes only that app', async () => {
     vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
     vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
     const props = renderModal({ exclusions: ['nzxt-cam', 'signalrgb'] });
 
     await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
     fireEvent.click(screen.getByLabelText('NZXT CAM'));
-    expect(props.onExclusionsChange).toHaveBeenCalledWith(['signalrgb']);
+    expect(props.onWhitelistChange).toHaveBeenCalledWith('nzxt-cam', false);
   });
 
   it('lifts a detected app into its own group ahead of the rest', async () => {

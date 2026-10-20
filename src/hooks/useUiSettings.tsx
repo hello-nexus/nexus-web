@@ -373,10 +373,9 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; hiddenSidebarDevices: string[] }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; hiddenSidebarDevices: string[] }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
-  if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
   if (patch.notifyConflictLaunches !== undefined) ui.notifyConflictLaunches = patch.notifyConflictLaunches;
   if (patch.endConflictsOnLaunch !== undefined) ui.endConflictsOnLaunch = patch.endConflictsOnLaunch;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;

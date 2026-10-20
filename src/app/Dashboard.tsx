@@ -32,7 +32,8 @@ const FramesPage = lazy(() => import('../panel/widgets/frames/FramesPage').then(
 const BuildPage = lazy(() => import('../components/views/BuildPage/BuildPage').then(m => ({ default: m.BuildPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
-import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
+import { useServiceStatus } from '../hooks/useServiceStatus';
+import { DESKTOP_OFFLINE_GRACE_MS } from '../lib/serviceLiveness';
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useConflictApps } from '../hooks/useConflictApps';

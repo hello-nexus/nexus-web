@@ -7,6 +7,54 @@ import styles from './DatePicker.module.scss';
 
 const POPUP_MIN_WIDTH = 260;
 const VIEWPORT_MARGIN = 8;
+// Gap between trigger and popup; must match the .popup offset in DatePicker.module.scss.
+const POPUP_OFFSET = 6;
+// Both vertical borders of .popup, which scrollHeight excludes.
+const POPUP_BORDER_TOTAL = 2;
+
+interface VerticalPlacement {
+  above: boolean;
+  maxHeight?: number;
+}
+
+interface VerticalBounds {
+  top: number;
+  bottom: number;
+}
+
+/**
+ * Opens below when it fits, else above when it fits, else on the roomier side
+ * with the height capped. Bounds are the visible area the popup may occupy.
+ */
+export function placePopupVertically(
+  triggerTop: number,
+  triggerBottom: number,
+  popupHeight: number,
+  bounds: VerticalBounds,
+): VerticalPlacement {
+  const below = bounds.bottom - triggerBottom - POPUP_OFFSET - VIEWPORT_MARGIN;
+  const above = triggerTop - bounds.top - POPUP_OFFSET - VIEWPORT_MARGIN;
+  if (popupHeight <= below) return { above: false };
+  if (popupHeight <= above) return { above: true };
+  return below >= above
+    ? { above: false, maxHeight: Math.max(below, 0) }
+    : { above: true, maxHeight: Math.max(above, 0) };
+}
+
+/** The viewport narrowed to the nearest scrolling ancestor, which clips the popup. */
+function visibleBounds(el: HTMLElement): VerticalBounds {
+  const bounds = { top: 0, bottom: window.innerHeight };
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'hidden') {
+      const r = node.getBoundingClientRect();
+      bounds.top = Math.max(bounds.top, r.top);
+      bounds.bottom = Math.min(bounds.bottom, r.bottom);
+      break;
+    }
+  }
+  return bounds;
+}
 
 interface DatePickerProps {
   /** ISO date string YYYY-MM-DD. */
@@ -25,7 +73,9 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(value.slice(0, 7));
   const [alignRight, setAlignRight] = useState(false);
+  const [vertical, setVertical] = useState<VerticalPlacement>({ above: false });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setViewMonth(value.slice(0, 7));
@@ -48,6 +98,7 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
   useLayoutEffect(() => {
     if (!open) {
       setAlignRight(false);
+      setVertical({ above: false });
       return;
     }
     const compute = () => {
@@ -55,11 +106,29 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
       if (!wrap) return;
       const rect = wrap.getBoundingClientRect();
       setAlignRight(rect.left + POPUP_MIN_WIDTH > window.innerWidth - VIEWPORT_MARGIN);
+      const popup = popupRef.current;
+      if (popup) {
+        const next = placePopupVertically(
+          rect.top,
+          rect.bottom,
+          popup.scrollHeight + POPUP_BORDER_TOTAL,
+          visibleBounds(wrap),
+        );
+        setVertical(prev => (prev.above === next.above && prev.maxHeight === next.maxHeight ? prev : next));
+      }
     };
     compute();
     window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
-  }, [open]);
+    // Capture phase: scroll does not bubble, and the clipping ancestor is not the window.
+    window.addEventListener('scroll', compute, true);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(compute);
+    if (popupRef.current) observer?.observe(popupRef.current);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
+      observer?.disconnect();
+    };
+  }, [open, viewMonth]);
 
   const grid = useMemo(() => buildGrid(viewMonth), [viewMonth]);
   const todayIso = useMemo(() => isoToday(), []);
@@ -104,7 +173,9 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
 
       {open && (
         <div
-          className={`${styles.popup}${alignRight ? ` ${styles.popupAlignRight}` : ''}`}
+          ref={popupRef}
+          className={`${styles.popup}${alignRight ? ` ${styles.popupAlignRight}` : ''}${vertical.above ? ` ${styles.popupAbove}` : ''}`}
+          style={vertical.maxHeight === undefined ? undefined : { maxHeight: vertical.maxHeight }}
           role="dialog"
           aria-label={t('datepicker.popup')}
         >

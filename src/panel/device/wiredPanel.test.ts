@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { usesTouchPanelChrome, isWiredPanel, supportsDesktopWallpaper, wiredPanelClass } from './wiredPanel';
+import { usesTouchPanelChrome, isWiredPanel, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGrace } from './wiredPanel';
+import { HOST_DISPLAY_OFFLINE_GRACE_MS, PHONE_OFFLINE_GRACE_MS } from '../../lib/serviceLiveness';
 
 describe('isWiredPanel', () => {
   beforeEach(() => {
@@ -103,5 +104,40 @@ describe('usesTouchPanelChrome', () => {
     expect(usesTouchPanelChrome('q60', true, true)).toBe(false);
     expect(usesTouchPanelChrome('phone', true, true)).toBe(false);
     expect(usesTouchPanelChrome('desktop', true, true)).toBe(false);
+  });
+});
+
+describe('panelOfflineGrace', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('holds a WiFi phone on the plain LAN transport while the service shows signs of life', () => {
+    expect(panelOfflineGrace('phone', 'lan')).toEqual({ graceMs: PHONE_OFFLINE_GRACE_MS, hold: 'while-live' });
+  });
+
+  it('gives a phone on a tunneled or closed transport no hold', () => {
+    expect(panelOfflineGrace('phone', 'relay').hold).toBe('never');
+    expect(panelOfflineGrace('phone', 'lan-sealed').hold).toBe('never');
+    expect(panelOfflineGrace('phone', 'direct').hold).toBe('never');
+    expect(panelOfflineGrace('phone', null).hold).toBe('never');
+  });
+
+  it('gives a USB phone no grace', () => {
+    localStorage.setItem('nexus_link', 'usb');
+    expect(panelOfflineGrace('phone', 'lan')).toEqual({ graceMs: 0, hold: 'never' });
+  });
+
+  it('holds host displays unconditionally, whatever the transport', () => {
+    for (const transport of ['lan', 'relay', null] as const) {
+      expect(panelOfflineGrace('y70', transport)).toEqual({ graceMs: HOST_DISPLAY_OFFLINE_GRACE_MS, hold: 'always' });
+      expect(panelOfflineGrace('monitor', transport)).toEqual({ graceMs: HOST_DISPLAY_OFFLINE_GRACE_MS, hold: 'always' });
+    }
+  });
+
+  it('gives the q60 and non-phone surfaces no grace', () => {
+    expect(panelOfflineGrace('q60', 'lan').graceMs).toBe(0);
+    expect(panelOfflineGrace('desktop', 'lan').graceMs).toBe(0);
+    expect(panelOfflineGrace('kraken', 'lan').graceMs).toBe(0);
   });
 });
