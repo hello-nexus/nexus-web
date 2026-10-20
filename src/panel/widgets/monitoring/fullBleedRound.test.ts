@@ -75,4 +75,16 @@ describe('round full-bleed monitoring tile geometry', () => {
     expect(width * counter).toBeCloseTo(FIT, 6);
     expect(counter * scale).toBeCloseTo(1, 6);
   });
+
+  it('applies the editor preview fit scale on a wrapper, never on the widget root', () => {
+    const previewCss = sass.compile(join(__dirname, '../../../components/views/DevicePage/PanelDevicePage.module.scss')).css;
+    const round = /\.inlineSettingsPreviewCard\[data-size=["']2x2round["']\]/;
+    const rules = [...previewCss.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .filter(m => round.test(m[1]) && /transform:\s*scale\(/.test(m[2]));
+    expect(rules.length).toBeGreaterThan(0);
+    for (const m of rules) {
+      expect(m[1]).toContain('.inlineSettingsPreviewFit');
+      expect(m[1]).not.toMatch(/>\s*\*/);
+    }
+  });
 });
