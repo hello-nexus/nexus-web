@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import {
@@ -7,7 +8,9 @@ import {
   type LianLiFlexSync,
   type LianLiFlexSyncPatch,
 } from '../../../api/lianli-flex';
+import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
 import { LianLiChainEffectControls, effectLabel, type LianLiEffectValue } from './LianLiChainEffectControls';
+import { numberDuplicateTitles } from './lianliChainUtils';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
 
@@ -18,10 +21,16 @@ export interface LianLiFlexSyncState {
   data: LianLiFlexSync | null;
   preview: (patch: Partial<LianLiFlexSync>) => void;
   commit: (patch: LianLiFlexSyncPatch) => Promise<void>;
+  refresh: () => Promise<void>;
+  /** Applies a new light sequence locally, so a change sent before the next read keeps it. */
+  reorder: (macs: readonly string[]) => void;
 }
 
-/** The sync group of the wired LCD Flex fans, polled while mounted. Idle when `active` is false. */
-export function useLianLiFlexSync(active: boolean): LianLiFlexSyncState {
+/**
+ * The sync group of the wired LCD Flex fans, polled while `active`.
+ * `onWritten` runs after a write the service accepted, for views that show the units it changed.
+ */
+export function useLianLiFlexSync(active: boolean, onWritten?: () => void): LianLiFlexSyncState {
   const [data, setData] = useState<LianLiFlexSync | null>(null);
   const aliveRef = useRef(true);
   const lastEditRef = useRef(Number.NEGATIVE_INFINITY);
@@ -44,19 +53,40 @@ export function useLianLiFlexSync(active: boolean): LianLiFlexSyncState {
 
   const preview = useCallback((patch: Partial<LianLiFlexSync>) => setData(prev => prev && { ...prev, ...patch }), []);
 
+  const reorder = useCallback((macs: readonly string[]) => {
+    lastEditRef.current = performance.now();
+    setData(prev => {
+      if (!prev) return prev;
+      const rank = (mac: string) => { const i = macs.indexOf(mac); return i < 0 ? macs.length : i; };
+      const members = [...prev.members].sort((a, b) => rank(a.mac) - rank(b.mac)).map((m, sortIndex) => ({ ...m, sortIndex }));
+      return { ...prev, members };
+    });
+  }, []);
+
   const commit = useCallback(async (patch: LianLiFlexSyncPatch) => {
     lastEditRef.current = performance.now();
     const look: Partial<LianLiFlexSync> = { ...patch, members: undefined };
     delete look.members;
     setData(prev => prev && { ...prev, ...look });
-    if (!await setLianLiFlexSync(patch).catch(() => false)) {
-      lastEditRef.current = Number.NEGATIVE_INFINITY;
-      void refresh();
-    }
+    const ok = await setLianLiFlexSync(patch).catch(() => false);
+    // The write is settled either way, so the next read is canonical.
+    lastEditRef.current = Number.NEGATIVE_INFINITY;
+    await refresh();
+    if (ok) onWritten?.();
+  }, [refresh, onWritten]);
+
+  // A read the caller asks for is wanted now, so it skips the post-edit grace.
+  const reload = useCallback(async () => {
+    lastEditRef.current = Number.NEGATIVE_INFINITY;
+    await refresh();
   }, [refresh]);
 
-  return { data, preview, commit };
+  return { data, preview, commit, refresh: reload, reorder };
 }
+
+/** A unit under Lighting-page control or on Per zone loses that state when sync takes the fans. */
+export const syncReplacesState = (chains: readonly LianLiWirelessChainLighting[]): boolean =>
+  chains.some(c => c.mode === 'custom' || c.mode === 'perZone');
 
 /** Whether the group is synced: every fan then follows the shared look. */
 export const isSyncOn = (sync: LianLiFlexSyncState): boolean => !!sync.data && sync.data.members.length > 1 && sync.data.enabled;
@@ -65,9 +95,10 @@ export const isSyncOn = (sync: LianLiFlexSyncState): boolean => !!sync.data && s
  * Quick sync for the wired LCD Flex fans: one merged animation across all of
  * them, in light sequence order, with a direction for each fan's slice.
  */
-export function LianLiFlexSyncSection({ sync }: { sync: LianLiFlexSyncState }) {
+export function LianLiFlexSyncSection({ sync, chains }: { sync: LianLiFlexSyncState; chains: readonly LianLiWirelessChainLighting[] }) {
   const { t } = useTranslation();
   const { data, preview, commit } = sync;
+  const [confirmOn, setConfirmOn] = useState(false);
 
   // A service without the sync route, or a single fan, has nothing to group.
   if (!data || data.members.length < 2) return null;
@@ -77,6 +108,9 @@ export function LianLiFlexSyncSection({ sync }: { sync: LianLiFlexSyncState }) {
   const value: LianLiEffectValue = {
     mode, speed: data.speed, direction: data.direction, brightness: data.brightness, colors: data.colors,
   };
+  const memberNames = numberDuplicateTitles(data.members.map(m => t(
+    m.family === 'slInfFlex' ? 'devices.lianli-wireless.fanTypeSlInfFlex' : 'devices.lianli-wireless.fanTypeTlFlex',
+  )));
   const directionOptions = [
     { value: '0', label: t('devices.lianli.directionLtr') },
     { value: '1', label: t('devices.lianli.directionRtl') },
@@ -88,7 +122,10 @@ export function LianLiFlexSyncSection({ sync }: { sync: LianLiFlexSyncState }) {
         label={t('devices.lianli-flex.syncEnable')}
         description={t('devices.lianli-flex.syncHint')}
         checked={data.enabled}
-        onChange={on => { void commit({ enabled: on }); }}
+        onChange={on => {
+          if (on && syncReplacesState(chains)) setConfirmOn(true);
+          else void commit({ enabled: on });
+        }}
       />
       <LianLiChainEffectControls
         modes={data.modes}
@@ -102,10 +139,10 @@ export function LianLiFlexSyncSection({ sync }: { sync: LianLiFlexSyncState }) {
         onPreview={patch => preview(patch)}
         onCommit={patch => { void commit(patch); }}
       />
-      {data.members.map(member => (
+      {data.members.map((member, i) => (
         <SettingSelect
           key={member.mac}
-          label={t('devices.lianli-flex.syncMemberDirection', { fan: member.label })}
+          label={t('devices.lianli-flex.syncMemberDirection', { fan: memberNames[i] })}
           value={String(member.sliceDirection)}
           options={directionOptions}
           disabled={!data.enabled}
@@ -116,6 +153,15 @@ export function LianLiFlexSyncSection({ sync }: { sync: LianLiFlexSyncState }) {
           }}
         />
       ))}
+      <ConfirmModal
+        open={confirmOn}
+        title={t('devices.lianli-flex.syncConfirmTitle')}
+        message={t('devices.lianli-flex.syncConfirmMessage')}
+        destructive={false}
+        confirmLabel={t('devices.lianli-flex.syncConfirmButton')}
+        onCancel={() => setConfirmOn(false)}
+        onConfirm={() => { setConfirmOn(false); void commit({ enabled: true }); }}
+      />
     </SettingsSection>
   );
 }

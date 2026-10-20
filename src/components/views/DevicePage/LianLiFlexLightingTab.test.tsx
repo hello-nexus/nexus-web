@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
+import { mergeLeaderMac } from './lianliChainUtils';
 import type {
   LianLiChainLightingApi,
   LianLiFlexZone,
@@ -49,6 +50,19 @@ async function renderTab(chains: LianLiWirelessChainLighting[], withApi: LianLiC
   mockGet.mockResolvedValue(data);
   await act(async () => {
     render(<LianLiWirelessLightingTab api={withApi} />);
+  });
+}
+
+/** Renders against a service that applies each accepted patch and names the merge leader, as the real one does. */
+async function renderServed(chains: LianLiWirelessChainLighting[], extra: Parameters<typeof render>[1] = undefined) {
+  let store = chains;
+  mockGet.mockImplementation(() => Promise.resolve({ laneModes: [], chains: store, mergeLeaderMac: mergeLeaderMac(store) ?? '' }));
+  mockSet.mockImplementation((mac: string, patch: Partial<LianLiWirelessChainLighting>) => {
+    store = store.map(c => (c.mac === mac ? { ...c, ...patch } : c));
+    return Promise.resolve(true);
+  });
+  await act(async () => {
+    render(<LianLiWirelessLightingTab api={api} />, extra);
   });
 }
 
@@ -129,7 +143,7 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
   });
 
   it('lists the units in light sequence order and moves one along it', async () => {
-    await renderTab([{ ...tlUnit, sortIndex: 1 }, { ...slInfUnit, sortIndex: 0 }]);
+    await renderServed([{ ...tlUnit, sortIndex: 1 }, { ...slInfUnit, sortIndex: 0 }]);
     const titles = screen.getAllByText(/devices.lianli-wireless.fanType/).map(e => e.textContent);
     expect(titles).toEqual(['devices.lianli-wireless.fanTypeSlInfFlex', 'devices.lianli-wireless.fanTypeTlFlex']);
     const first = screen.getByText('devices.lianli-wireless.fanTypeSlInfFlex').closest('section')!;
@@ -214,7 +228,7 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
 
   it('renders the header above the units', async () => {
     mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit, slInfUnit] });
-    await act(async () => { render(<LianLiWirelessLightingTab api={api} header={<p>group-header</p>} />); });
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} header={() => <p>group-header</p>} />); });
     expect(screen.getByText('group-header')).toBeInTheDocument();
   });
 
@@ -270,6 +284,7 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     expect(screen.getAllByText('devices.lianli-flex.followsSync')).toHaveLength(2);
     for (const select of screen.getAllByLabelText('devices.lianli.lightingMode')) expect(select).toBeDisabled();
     for (const merge of screen.getAllByRole('switch', { name: 'devices.lianli-wireless.merge' })) expect(merge).toBeDisabled();
+    for (const sw of screen.getAllByRole('switch', { name: 'devices.lightingPage.use' })) expect(sw).toBeDisabled();
     expect(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })).not.toBeDisabled();
     expect(screen.getAllByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })[0]).not.toBeDisabled();
   });
@@ -291,6 +306,66 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     mockGet.mockResolvedValue({ laneModes: [], chains: [a, b], mergeLeaderMac: '' });
     await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
     expect(screen.queryByText(/followsLeader/)).not.toBeInTheDocument();
+  });
+
+  it('names two units of one model apart, and says which one it follows', async () => {
+    const a = { ...tlUnit, mac: 'AA11', sortIndex: 0, merge: true };
+    const b = { ...tlUnit, mac: 'CC33', sortIndex: 1, merge: true };
+    await renderTab([a, b]);
+    const second = screen.getByText('devices.lianli-wireless.fanTypeTlFlex 2').closest('section')!;
+    expect(within(second).getByText('devices.lianli-flex.followsLeader:{"leader":"devices.lianli-wireless.fanTypeTlFlex"}')).toBeInTheDocument();
+  });
+
+  it('reads the units back after every accepted write and tells the caller', async () => {
+    const written = vi.fn();
+    mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit] });
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} onWritten={written} />); });
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })); });
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(written).toHaveBeenCalledTimes(1);
+    mockSet.mockResolvedValue(false);
+    await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })); });
+    expect(mockGet).toHaveBeenCalledTimes(3);
+    expect(written).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-reads the units when a write made outside the tab, such as the sync header, signals it', async () => {
+    mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tlUnit, mode: 'perZone' }] });
+    const view = render(<LianLiWirelessLightingTab api={api} reloadSignal={0} />);
+    await act(async () => {});
+    expect(screen.getByText('devices.lianli-flex.zoneUp')).toBeInTheDocument();
+    mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tlUnit, mode: 'rainbow' }] });
+    await act(async () => { view.rerender(<LianLiWirelessLightingTab api={api} reloadSignal={1} />); });
+    expect(screen.queryByText('devices.lianli-flex.zoneUp')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('devices.lianli.lightingMode')).toHaveTextContent('devices.lianliEffect.rainbow');
+  });
+
+  it('shows Follows right after Merge is turned on for both units, then follows the leader as it changes', async () => {
+    const a = { ...tlUnit, mac: 'AA11', sortIndex: 0, merge: false };
+    const b = { ...tlUnit, mac: 'CC33', sortIndex: 1, merge: false };
+    await renderServed([a, b]);
+    const merges = () => screen.getAllByRole('switch', { name: 'devices.lianli-wireless.merge' });
+    const sectionOf = (title: string) => screen.getByText(title).closest('section')!;
+    await act(async () => { fireEvent.click(merges()[0]); });
+    await act(async () => { fireEvent.click(merges()[1]); });
+    expect(within(sectionOf('devices.lianli-wireless.fanTypeTlFlex 2')).getByText(/followsLeader/)).toBeInTheDocument();
+    expect(within(sectionOf('devices.lianli-wireless.fanTypeTlFlex 2')).getByLabelText('devices.lianli.lightingMode')).toBeDisabled();
+    // The first unit stops merging, so the second now leads and nothing follows.
+    await act(async () => { fireEvent.click(merges()[0]); });
+    expect(screen.queryByText(/followsLeader/)).not.toBeInTheDocument();
+    expect(within(sectionOf('devices.lianli-wireless.fanTypeTlFlex 2')).getByLabelText('devices.lianli.lightingMode')).not.toBeDisabled();
+  });
+
+  it('does not let a leader named before a merge toggle hide the follower while the write is in flight', async () => {
+    const a = { ...tlUnit, mac: 'AA11', sortIndex: 0, merge: true };
+    const b = { ...tlUnit, mac: 'CC33', sortIndex: 1, merge: false };
+    mockGet.mockResolvedValue({ laneModes: [], chains: [a, b], mergeLeaderMac: '' });
+    mockSet.mockReturnValue(new Promise(() => {}));
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
+    const second = screen.getByText('devices.lianli-wireless.fanTypeTlFlex 2').closest('section')!;
+    await act(async () => { fireEvent.click(within(second).getByRole('switch', { name: 'devices.lianli-wireless.merge' })); });
+    expect(within(second).getByText(/followsLeader/)).toBeInTheDocument();
   });
 
   describe('follow the motherboard ARGB', () => {

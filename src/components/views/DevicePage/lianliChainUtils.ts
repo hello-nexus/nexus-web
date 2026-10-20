@@ -62,3 +62,20 @@ export function moveInSequence(
     .filter(x => x.changed)
     .map(({ mac: m, sortIndex }) => ({ mac: m, sortIndex }));
 }
+
+/** A patch that can change which unit leads a merged group, so a leader named by an earlier read may be stale. */
+export function patchAffectsLeader(patch: LianLiWirelessChainPatch): boolean {
+  return patch.merge !== undefined || patch.mode !== undefined || patch.sortIndex !== undefined;
+}
+
+/** Numbers repeated titles in order ("TL Flex", "TL Flex 2"); a title used once is unchanged. */
+export function numberDuplicateTitles(titles: readonly string[]): string[] {
+  const total = new Map<string, number>();
+  for (const title of titles) total.set(title, (total.get(title) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return titles.map(title => {
+    const n = (seen.get(title) ?? 0) + 1;
+    seen.set(title, n);
+    return (total.get(title) ?? 0) > 1 && n > 1 ? `${title} ${n}` : title;
+  });
+}

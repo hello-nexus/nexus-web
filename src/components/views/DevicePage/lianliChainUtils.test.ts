@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
-import { applyChainPatch, canMerge, mergeLeaderMac, moveInSequence, sortBySequence } from './lianliChainUtils';
+import { applyChainPatch, canMerge, mergeLeaderMac, moveInSequence, numberDuplicateTitles, patchAffectsLeader, sortBySequence } from './lianliChainUtils';
 
 function chain(mac: string, extra: Partial<LianLiWirelessChainLighting> = {}): LianLiWirelessChainLighting {
   return {
@@ -86,5 +86,21 @@ describe('mergeLeaderMac', () => {
   it('is null when no unit qualifies', () => {
     expect(mergeLeaderMac([chain('A', { modes }), chain('B', { modes, merge: false })])).toBeNull();
     expect(mergeLeaderMac([chain('A', { modes, merge: true, mode: 'custom' })])).toBeNull();
+  });
+});
+
+describe('patchAffectsLeader', () => {
+  it('is true for a patch that changes merge, the effect or the order, false for a look change', () => {
+    expect(patchAffectsLeader({ merge: true })).toBe(true);
+    expect(patchAffectsLeader({ mode: 'meteor' })).toBe(true);
+    expect(patchAffectsLeader({ sortIndex: 1 })).toBe(true);
+    expect(patchAffectsLeader({ speed: 2, brightness: 3 })).toBe(false);
+  });
+});
+
+describe('numberDuplicateTitles', () => {
+  it('numbers repeats in order and leaves a single title alone', () => {
+    expect(numberDuplicateTitles(['TL Flex', 'SL-INF Flex', 'TL Flex', 'TL Flex'])).toEqual(['TL Flex', 'SL-INF Flex', 'TL Flex 2', 'TL Flex 3']);
+    expect(numberDuplicateTitles(['TL Flex'])).toEqual(['TL Flex']);
   });
 });

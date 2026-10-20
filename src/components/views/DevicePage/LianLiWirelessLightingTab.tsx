@@ -17,7 +17,7 @@ import {
 } from '../../../api/lianli-wireless';
 import { fanTypeKey } from './LianLiWirelessFansTab';
 import { LIANLI_DEFAULT_COLORS as DEFAULT_COLORS, LianLiChainEffectControls, effectLabel } from './LianLiChainEffectControls';
-import { applyChainPatch, canMerge, mergeLeaderMac, moveInSequence, sortBySequence } from './lianliChainUtils';
+import { applyChainPatch, canMerge, mergeLeaderMac, moveInSequence, numberDuplicateTitles, patchAffectsLeader, sortBySequence } from './lianliChainUtils';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
 
@@ -60,21 +60,31 @@ interface LianLiWirelessLightingTabProps {
   onSectionNavigate?: (section: string) => void;
   /** The lighting endpoints of the device family; the wireless ones by default. */
   api?: LianLiChainLightingApi;
-  /** Rendered above the chains, for example a group control. */
-  header?: ReactNode;
+  /** Rendered above the chains, for example a group control; it receives the chains as last read. */
+  header?: (chains: readonly LianLiWirelessChainLighting[]) => ReactNode;
   /** The wired fans are synced as a group, so their own look controls do nothing. */
   syncOn?: boolean;
+  /** Runs after the service accepted a write, for views that mirror the units it changed. */
+  onWritten?: () => void;
+  /** A change here re-reads the chains, after a write made outside this tab. */
+  reloadSignal?: number;
+  /** Runs when a move changes the light sequence, with the new order of the chains' MACs. */
+  onSequence?: (macs: string[]) => void;
 }
 
 /** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
-export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false }: LianLiWirelessLightingTabProps) {
+export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false, onWritten, reloadSignal, onSequence }: LianLiWirelessLightingTabProps) {
   const { t } = useTranslation();
   const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
 
+  // Send order of reads: a response is applied only if no later-sent one was.
+  const sentRef = useRef(0);
+
   const refresh = useCallback(async () => {
+    const seq = ++sentRef.current;
     const d = await api.get();
-    if (aliveRef.current && d) setData(d);
+    if (aliveRef.current && d && seq === sentRef.current) setData(d);
   }, [api]);
 
   useEffect(() => {
@@ -88,9 +98,17 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
     };
   }, [refresh]);
 
+  const firstSignalRef = useRef(true);
+  useEffect(() => {
+    if (firstSignalRef.current) { firstSignalRef.current = false; return; }
+    void refresh();
+  }, [reloadSignal, refresh]);
+
   const preview = useCallback((mac: string, patch: LianLiWirelessChainPatch) => {
     setData(prev => prev && {
       ...prev,
+      // A named leader may no longer hold once the merge, the effect or the order changes.
+      mergeLeaderMac: patchAffectsLeader(patch) ? undefined : prev.mergeLeaderMac,
       chains: prev.chains.map(c => (c.mac === mac ? applyChainPatch(c, patch) : c)),
     });
   }, []);
@@ -98,36 +116,49 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   const commit = useCallback(async (mac: string, patch: LianLiWirelessChainPatch) => {
     preview(mac, patch);
     // effectMode is derived by the service; it only feeds the preview.
-    if (!await api.set(mac, { ...patch, effectMode: undefined })) void refresh();
-  }, [api, preview, refresh]);
+    const ok = await api.set(mac, { ...patch, effectMode: undefined }).catch(() => false);
+    // The service may change more than the patch (a merge or Lighting-page switch moves other units), so read it back.
+    await refresh();
+    if (ok) onWritten?.();
+  }, [api, preview, refresh, onWritten]);
 
   const reset = useCallback(async (mac: string) => {
     const ok = await (api.reset?.(mac) ?? Promise.resolve(false)).catch(() => false);
     await refresh();
+    if (ok) onWritten?.();
     return ok;
-  }, [api, refresh]);
+  }, [api, refresh, onWritten]);
 
   const move = useCallback((mac: string, delta: -1 | 1) => {
     if (!data) return;
-    for (const { mac: m, sortIndex } of moveInSequence(data.chains, mac, delta)) void commit(m, { sortIndex });
-  }, [data, commit]);
+    const moves = moveInSequence(data.chains, mac, delta);
+    if (moves.length > 0) {
+      const next = data.chains.map(c => ({ ...c, sortIndex: moves.find(m => m.mac === c.mac)?.sortIndex ?? c.sortIndex }));
+      onSequence?.(sortBySequence(next).map(c => c.mac));
+    }
+    for (const { mac: m, sortIndex } of moves) void commit(m, { sortIndex });
+  }, [data, commit, onSequence]);
 
   if (!data) return null;
   const chains = sortBySequence(data.chains);
   // The service names the leader when it can; otherwise the same rule applies here.
   const leaderMac = data.mergeLeaderMac !== undefined ? data.mergeLeaderMac : mergeLeaderMac(chains);
   const leader = chains.find(c => c.mac === leaderMac);
+  // Units of one model read the same, so repeated titles are numbered in sequence order.
+  const titles = numberDuplicateTitles(chains.map(c => chainTitle(t, c)));
+  const leaderTitle = leader && titles[chains.indexOf(leader)];
   return (
     <>
-      {header}
+      {header?.(chains)}
       {chains.map((chain, i) => (
         <ChainSection
           key={chain.mac}
           chain={chain}
+          title={titles[i]}
           laneModes={data.laneModes}
           onPreview={patch => preview(chain.mac, patch)}
           onCommit={patch => { void commit(chain.mac, patch); }}
-          followsTitle={leader && leader.mac !== chain.mac ? chainTitle(t, leader) : undefined}
+          followsTitle={leader && leader.mac !== chain.mac ? leaderTitle : undefined}
           onReset={api.reset ? () => reset(chain.mac) : undefined}
           onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
           first={i === 0}
@@ -142,6 +173,8 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
 
 interface ChainSectionProps {
   chain: LianLiWirelessChainLighting;
+  /** The unit's name on this page, numbered when several share a model. */
+  title: string;
   laneModes: string[];
   onPreview: (patch: LianLiWirelessChainPatch) => void;
   onCommit: (patch: LianLiWirelessChainPatch) => void;
@@ -158,7 +191,7 @@ interface ChainSectionProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, synced, onSectionNavigate }: ChainSectionProps) {
+function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, synced, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetFailed, setResetFailed] = useState(false);
@@ -195,7 +228,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, followsT
 
   return (
     <>
-    <SettingsSection title={chainTitle(t, chain)} boxClassName={styles.sectionBox}>
+    <SettingsSection title={title} boxClassName={styles.sectionBox}>
       {(chain.argbCableConnected || argbOn) && (
         <SettingToggle
           label={t('devices.motherboardArgb.label')}
@@ -206,7 +239,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onReset, followsT
       )}
       <LightingPageSwitch
         on={lightingPage}
-        disabled={argbOn}
+        disabled={argbOn || synced}
         onChange={on => onCommit(on ? { mode: MODE_CUSTOM } : { mode: effectKey, effectMode: effectKey })}
         onSectionNavigate={onSectionNavigate}
       />
