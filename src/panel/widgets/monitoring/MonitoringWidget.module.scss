@@ -1,7 +1,7 @@
 @use 'sass:math';
 
-// The round full-bleed tile pads by the same fraction of its layout box that
-// the plain tile pads at the box a round surface lays out in (zero gap, no
+// The round full-bleed tile pads by a fraction of its layout box, equal to the
+// plain tile padding over the box a round surface lays out in (zero gap, no
 // label strip). fullBleedRound.test.ts pins that box against the grid solver.
 $tile-pad: 14;
 $round-box: 180;
@@ -96,9 +96,9 @@ $tile-pad-fraction: math.div($tile-pad, $round-box);
   padding-bottom: 12%;
 }
 
-// Round glass with a frame-filling design: the gauge keeps its normal padded
+// Round display with a frame-filling design: the gauge keeps its normal padded
 // layout and the whole tile scales as one unit, so ring, value and caption keep
-// their proportions. The factor lifts the padded slot to the glass diameter.
+// their proportions. The factor lifts the padded slot to the display diameter.
 // Percent padding resolves against the layout box, so the factor holds for any
 // box size.
 .fullBleed {
@@ -117,7 +117,7 @@ $tile-pad-fraction: math.div($tile-pad, $round-box);
   .slotSelectable {
     border-radius: 50%;
 
-    // The scaled slot reaches the rim, where the glass would clip the ring.
+    // The scaled slot reaches the rim, where the display would clip the ring.
     // Size it to the card's inscribed fit box and counter-scale it, so the
     // stroke keeps its on-screen weight (a fractional border width is snapped
     // to whole pixels, a transform is not).
