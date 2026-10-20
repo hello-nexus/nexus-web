@@ -26,6 +26,8 @@ import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLa
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
 import { getLianLiWirelessLighting, setLianLiWirelessChainLighting } from '../../../api/lianli-wireless';
+import { LIANLI_FLEX_CHANNEL_PREFIX, lianLiFlexLightingApi } from '../../../api/lianli-flex';
+import { WIRELESS_DEVICE_PREFIX, presetDeviceIds, presetTarget } from './page/firmwareChains';
 import { getHydroShift2Lighting, setHydroShift2Lighting } from '../../../api/hydroshift2';
 import { getGalahad2Lighting, setGalahad2Lighting } from '../../../api/lianli-aio';
 import { getStrimerLighting, setStrimerLighting } from '../../../api/strimer';
@@ -105,6 +107,8 @@ import { MediaCanvasNotice } from './page/MediaCanvasNotice';
 import { MediaBackdrop } from './page/MediaBackdrop';
 import { MirrorBackdrop } from './page/MirrorBackdrop';
 import { DevicePanel } from './page/DevicePanel';
+import { useOpenRgbZones } from '../../../hooks/useOpenRgbZones';
+import { deviceNeedsSize } from '../devices/zoneSizeUtils';
 import { type DiscoveryState } from './page/DeviceDiscoveryCard';
 import { LIGHTING_PIN_HINT_ID, zoneCardSelectable, zoneCardSelectionHoldable, zoneCardUnavailable } from './page/ZoneCard';
 import { Button } from '../../../components/common/Button/Button';
@@ -348,16 +352,33 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Device ids of wireless chains playing an uploaded animation instead of the engine's frames.
   const [wirelessPresetIds, setWirelessPresetIds] = useState<ReadonlySet<string>>(() => new Set());
   const refreshWirelessPresets = useCallback(async () => {
-    const data = await getLianLiWirelessLighting();
-    if (!data) return;
-    setWirelessPresetIds(new Set(
-      data.chains.filter(c => c.mode !== 'custom').map(c => `lianli-wireless:${c.mac}`),
-    ));
+    const hasFlex = devicesRef.current.some(d => d.id.startsWith(LIANLI_FLEX_CHANNEL_PREFIX));
+    const [wireless, flex] = await Promise.all([
+      getLianLiWirelessLighting().catch(() => null),
+      hasFlex ? lianLiFlexLightingApi.get().catch(() => null) : Promise.resolve(null),
+    ]);
+    if (!wireless && !flex) return;
+    // A source that failed to answer keeps the ids it had; one with no hardware has none.
+    setWirelessPresetIds(prev => {
+      const keep = (prefix: string, fresh: readonly string[] | null) => fresh ?? [...prev].filter(id => id.startsWith(prefix));
+      return new Set([
+        ...keep(WIRELESS_DEVICE_PREFIX, wireless && presetDeviceIds(WIRELESS_DEVICE_PREFIX, wireless.chains)),
+        ...keep(LIANLI_FLEX_CHANNEL_PREFIX, !hasFlex ? [] : flex && presetDeviceIds(LIANLI_FLEX_CHANNEL_PREFIX, flex.chains)),
+      ]);
+    });
   }, []);
+  const hasFlexDevice = devices.some(d => d.id.startsWith(LIANLI_FLEX_CHANNEL_PREFIX));
+  useEffect(() => {
+    if (hasFlexDevice) void refreshWirelessPresets();
+  }, [hasFlexDevice, refreshWirelessPresets]);
   const handleWirelessTakeControl = useCallback(async (deviceId: string) => {
-    const mac = deviceId.slice('lianli-wireless:'.length);
+    const target = presetTarget(deviceId);
+    if (!target) return;
     setWirelessPresetIds(prev => new Set([...prev].filter(id => id !== deviceId)));
-    if (!await setLianLiWirelessChainLighting(mac, { mode: 'custom' })) void refreshWirelessPresets();
+    const ok = target.family === 'flex'
+      ? await lianLiFlexLightingApi.set(target.mac, { mode: 'custom' })
+      : await setLianLiWirelessChainLighting(target.mac, { mode: 'custom' });
+    if (!ok) void refreshWirelessPresets();
   }, [refreshWirelessPresets]);
 
   // Device ids of OWN_EFFECT_DEVICES not following the Lighting page; only present devices are read.
@@ -858,6 +879,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
     return () => { cancelled = true; };
   }, [serviceOnline, mode, hydrateAnimateSettings]);
+
+  const openRgbZones = useOpenRgbZones(serviceOnline);
+  const zoneSizeKey = openRgbZones.devices.filter(deviceNeedsSize).map(d => d.deviceId).join('\n');
+  // Keyed by content, so a refetch that changes nothing keeps the same Set.
+  const zoneSizeDeviceIds = useMemo(() => new Set(zoneSizeKey ? zoneSizeKey.split('\n') : []), [zoneSizeKey]);
 
   // Push-driven refresh: every /lighting/* mutation publishes a 'lighting'
   // frame on the multiplex hub. Each branch refetches the resource it owns.
@@ -2948,6 +2974,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               void (ownEffectIds.has(id) ? handleOwnEffectTakeControl(id) : handleWirelessTakeControl(id));
             }}
             onOpenDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
+            zoneSizeDeviceIds={zoneSizeDeviceIds}
+            onOpenZoneSizes={() => onSectionNavigate?.('devices', { tab: 'available' })}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
             discovery={discovery}
             rgbRunning={rgb.running}

@@ -74,6 +74,7 @@ import { matchesAllWords } from '../../../search/match';
 import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
+import { takeCoolingFan } from '../../../lib/coolingFanIntent';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { ThermalGuardPanel } from './page/ThermalGuardPanel';
 import { hazardMessages, isManagedCurve, latestError } from './page/guardUtils';
@@ -778,6 +779,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // fan, so a curve can be assigned to a group in one action. Declared here
   // because the curve-creation paths below clear it.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
+
+  // A device page's jump to one of its fans: select it once it is listed, which opens its curve.
+  const fanIntentRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = takeCoolingFan();
+    if (id) fanIntentRef.current = id;
+  }, []);
+  useEffect(() => {
+    const id = fanIntentRef.current;
+    if (!id || !fanStates[id]) return;
+    fanIntentRef.current = null;
+    setSelectedFanIds(new Set([id]));
+  }, [fanStates, setSelectedFanIds]);
 
   const addCurve = useCallback((): string => {
     if (curves.length >= MAX_CURVES) return '';

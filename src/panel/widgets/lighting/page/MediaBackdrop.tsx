@@ -25,7 +25,7 @@ export function MediaBackdrop() {
     if (!current || seq !== seqRef.current || !aliveRef.current) return;
     const id = current.mediaId ?? null;
     if (id !== null && id === shownIdRef.current) return;
-    const blob = id ? await fetchServiceBlob(`/media/${encodeURIComponent(id)}/thumbnail`) : null;
+    const blob = id ? await fetchServiceBlob(`/media/${encodeURIComponent(id)}/thumbnail`, { mayBeCached: true }) : null;
     if (seq !== seqRef.current || !aliveRef.current) return;
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = blob ? URL.createObjectURL(blob) : null;

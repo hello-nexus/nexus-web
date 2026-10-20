@@ -9,6 +9,7 @@ import { usePanelToggles } from './usePanelToggles';
 import { useSearchLiveState } from './useSearchLiveState';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useCommandPalette } from './CommandPaletteContext';
+import { useToastSafe } from '../components/common/Toast/Toast';
 import { subscribeMarketplaceRegistry } from '../widgets/marketplaceRegistry';
 import type { CommandContext, PaletteDevice, SearchEntry } from './types';
 import { buildEntries } from './providers';
@@ -46,6 +47,7 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
   const { settings, update } = useUiSettings();
   const { unified } = useUnifiedDevices(isOpen);
   const { profiles, activeId, switchProfile } = useProfiles(isOpen);
+  const { push } = useToastSafe();
   const panel = usePanelToggles(isOpen);
   const live = useSearchLiveState(isOpen && online);
   // The local assistant is a dev-tools surface; a release build never asks.
@@ -110,7 +112,8 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
     profiles: profiles.map((p) => ({ id: p.id, name: p.name })),
     activeProfileId: activeId,
     switchProfile: (id) => { void switchProfile(id); },
-  }), [t, online, devices, settings, update, host, close, panel, platform, live, profiles, activeId, switchProfile]);
+    notify: (title) => push({ title }),
+  }), [t, online, devices, settings, update, host, close, panel, platform, live, profiles, activeId, switchProfile, push]);
 
   // marketTick busts the memo when the marketplace registry refreshes (the
   // installed-apps source reads a module cache that isn't part of ctx).

@@ -276,6 +276,10 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
     return <LianLiWirelessDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
+  if (device.curatedId === 'lianli-flex') {
+    return <LianLiWirelessDevicePage key={device.key} flex onSectionNavigate={onSectionNavigate} />;
+  }
+
   if (device.curatedId === 'strimer') {
     return <StrimerDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }

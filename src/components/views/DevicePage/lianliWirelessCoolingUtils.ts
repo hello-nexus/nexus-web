@@ -6,12 +6,12 @@ import type { FanChannel } from '../../../api/cooling';
 import type { LianLiWirelessFan } from '../../../api/lianli-wireless';
 
 // Matches Slv3CoolingProvider.IdPrefix / PortId in nexus-service.
-const CHANNEL_PREFIX = 'lianli-wireless:';
+export const WIRELESS_CHANNEL_PREFIX = 'lianli-wireless:';
 
 /** The generic-cooling channel id the service registers for one port of a
- *  bound wireless fan chain. */
-export function lianliWirelessPortChannelId(mac: string, port: number): string {
-  return `${CHANNEL_PREFIX}${mac}:port${port}`;
+ *  bound fan chain; the prefix names the handler that owns it. */
+export function lianliWirelessPortChannelId(mac: string, port: number, prefix = WIRELESS_CHANNEL_PREFIX): string {
+  return `${prefix}${mac}:port${port}`;
 }
 
 export interface LianLiWirelessCoolingPort {
@@ -40,10 +40,11 @@ export interface LianLiWirelessCoolingChain {
 export function buildLianLiWirelessCoolingChains(
   fans: readonly LianLiWirelessFan[],
   channels: readonly FanChannel[],
+  prefix = WIRELESS_CHANNEL_PREFIX,
 ): LianLiWirelessCoolingChain[] {
   const byId = new Map<string, FanChannel>();
   for (const ch of channels) {
-    if (ch.id.startsWith(CHANNEL_PREFIX)) byId.set(ch.id, ch);
+    if (ch.id.startsWith(prefix)) byId.set(ch.id, ch);
   }
   const chains: LianLiWirelessCoolingChain[] = [];
   for (const fan of fans) {
@@ -51,13 +52,13 @@ export function buildLianLiWirelessCoolingChains(
     // The service registers contiguous port0..portN-1 channels per chain, so
     // the channel count doubles as the highest port index + 1.
     const chainChannelCount = channels.filter(
-      ch => ch.id.startsWith(`${CHANNEL_PREFIX}${fan.mac}:port`),
+      ch => ch.id.startsWith(`${prefix}${fan.mac}:port`),
     ).length;
     const portCount = chainChannelCount > 0 ? chainChannelCount : fan.fanCount;
     if (portCount <= 0) continue;
     const ports: LianLiWirelessCoolingPort[] = [];
     for (let port = 0; port < portCount; port++) {
-      const channel = byId.get(lianliWirelessPortChannelId(fan.mac, port)) ?? null;
+      const channel = byId.get(lianliWirelessPortChannelId(fan.mac, port, prefix)) ?? null;
       ports.push({
         port,
         rpm: fan.rpm[port] ?? 0,

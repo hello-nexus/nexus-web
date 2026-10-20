@@ -1565,6 +1565,16 @@
   font-size: 0.7rem;
 }
 
+.deviceMetaLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  @include text-caption;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .deviceMetaUnavailable {
   font-size: 0.65rem;
   color: var(--warn);

@@ -10,7 +10,7 @@ import {
   identifyLianLiWirelessFan,
   setLianLiWirelessLockBound,
   type LianLiWirelessFan,
-  type LianLiWirelessState,
+  type LianLiFansState,
 } from '../../../api/lianli-wireless';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiWirelessDevicePage.module.scss';
@@ -79,10 +79,16 @@ export function deviceTypeKey(devType: number, fanType: number):
 }
 
 export interface LianLiWirelessFansTabProps {
-  state: LianLiWirelessState | null;
+  state: LianLiFansState | null;
   refresh: () => Promise<void>;
+  /** Wired units: no controller link, bind or lock, only the devices themselves. */
+  wired?: boolean;
+  /** Flashes one device; the wireless endpoint by default. */
+  identify?: (mac: string) => Promise<boolean>;
   /** Opens the panel page of a device that has one, by MAC; undefined when it has none. */
   panelOpener?: (mac: string) => (() => void) | undefined;
+  /** Opens the wired LCD Flex page, for a unit it owns. */
+  onOpenWiredPage?: () => void;
 }
 
 /**
@@ -90,7 +96,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = false, identify = identifyLianLiWirelessFan, onOpenWiredPage }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -155,7 +161,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
   }, [state, clearPendingTimeout]);
 
   const loaded = state !== null;
-  const lockSupported = loaded && typeof state.lockBoundDevices === 'boolean';
+  const lockSupported = !wired && loaded && typeof state.lockBoundDevices === 'boolean';
   const [lockPending, setLockPending] = useState<boolean | null>(null);
   const [lockSaving, setLockSaving] = useState(false);
   const lockTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(undefined);
@@ -213,7 +219,8 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
 
   const handleIdentify = useCallback((mac: string) => {
     setIdentifying(prev => ({ ...prev, [mac]: true }));
-    void identifyLianLiWirelessFan(mac).finally(() => {
+    // A wired unit reports `identifying` on its own row, so the local flag only bridges to that state read.
+    void identify(mac).then(() => (wired ? refresh() : undefined)).finally(() => {
       if (!aliveRef.current) return;
       setIdentifying(prev => {
         if (!prev[mac]) return prev;
@@ -222,7 +229,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
         return next;
       });
     });
-  }, []);
+  }, [identify, wired, refresh]);
 
   const onLockChange = useCallback(async (next: boolean) => {
     window.clearTimeout(lockTimeoutRef.current);
@@ -248,7 +255,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
 
   return (
     <>
-      <SettingsSection
+      {!wired && <SettingsSection
         title={t('devices.lianli-wireless.connectionSection')}
         boxClassName={styles.sectionBox}
       >
@@ -272,10 +279,21 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
             disabled={!loaded || lockSaving || lockPending !== null}
           />
         )}
-      </SettingsSection>
+      </SettingsSection>}
+
+      {wired && (
+        <SettingsSection title={t('devices.lianli-wireless.connectionSection')} boxClassName={styles.sectionBox}>
+          <SettingRow label={t('devices.lianli-flex.linkStatus')}>
+            <span className={styles.rowValueMono}>{t(`devices.lianli-flex.link_${state?.linkStatus === 'busy' ? 'busy' : state?.linkStatus === 'none' ? 'none' : 'ok'}` as Parameters<typeof t>[0])}</span>
+          </SettingRow>
+          <SettingRow label={t('devices.lianli-flex.fansDetected')}>
+            <span className={styles.rowValueMono}>{loaded ? state.fans.length : '-'}</span>
+          </SettingRow>
+        </SettingsSection>
+      )}
 
       <SettingsSection
-        title={t('devices.lianli-wireless.devicesSection')}
+        title={t(wired ? 'devices.lianli-flex.devicesSection' : 'devices.lianli-wireless.devicesSection')}
         boxClassName={styles.sectionBox}
       >
         {loaded && (state.fans.length > 0
@@ -285,6 +303,9 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWir
               fan={fan}
               pending={pending[fan.mac]}
               identifying={!!identifying[fan.mac]}
+              wired={wired}
+              wiredOwned={!wired && (fan.wiredOwned === true)}
+              onOpenWiredPage={onOpenWiredPage}
               pairingLocked={pairingBlocked}
               lockHintId={lockSupported ? lockHintId : undefined}
               onBind={handleBind}
@@ -312,6 +333,9 @@ function DeviceRow({
   fan,
   pending,
   identifying,
+  wired,
+  wiredOwned,
+  onOpenWiredPage,
   pairingLocked,
   lockHintId,
   onBind,
@@ -322,6 +346,10 @@ function DeviceRow({
   fan: LianLiWirelessFan;
   pending: BindAction | undefined;
   identifying: boolean;
+  wired: boolean;
+  /** A wireless-page row for a unit the wired LCD Flex page owns. */
+  wiredOwned: boolean;
+  onOpenWiredPage?: () => void;
   pairingLocked: boolean;
   lockHintId: string | undefined;
   onBind: (mac: string) => void;
@@ -331,7 +359,7 @@ function DeviceRow({
 }) {
   const { t } = useTranslation();
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
-  const busy = pending !== undefined || identifying;
+  const busy = pending !== undefined || identifying || fan.identifying === true;
 
   const bindLabel = pending === 'bind'
     ? t('devices.lianli-wireless.binding')
@@ -339,18 +367,29 @@ function DeviceRow({
   const unbindLabel = pending === 'unbind'
     ? t('devices.lianli-wireless.unbinding')
     : t('devices.lianli-wireless.unbind');
-  const bindState: SettingState = fan.boundToUs
+  const usbState: SettingState = { label: t('devices.lianli-flex.connectedByUsb'), tone: 'accent' };
+  const bindState: SettingState | undefined = wired
+    ? (fan.receiverBound ? { label: t('devices.lianli-flex.boundElsewhere'), tone: 'warn' } : usbState)
+    : wiredOwned
+    ? usbState
+    : fan.boundToUs
     ? { label: `${t('devices.lianli-wireless.bound')} - ${t('devices.lianli-wireless.slot', { n: fan.slot })}`, tone: 'accent' }
     : { label: t('devices.lianli-wireless.unbound') };
-  const details = [
+  const lines = [
+    wiredOwned && fan.boundToUs ? t('devices.lianli-flex.usbBoundHint') : null,
     fan.firmwareVersion ? t('devices.lianli-wireless.firmwareVersion', { v: fan.firmwareVersion }) : null,
+    wired && fan.lcdFirmware ? t('devices.lianli-flex.lcdFirmware', { v: fan.lcdFirmware }) : null,
     fan.boundToUs && !isStrimerDevice(fan.devType) && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
-  ].filter(Boolean).join(' - ');
+  ].filter((line): line is string => !!line);
+  // One fact per line, so a long screen firmware name does not run on from the receiver's.
+  const details = lines.length === 0 ? undefined : (
+    <>{lines.map(line => <span key={line} className={styles.detailLine}>{line}</span>)}</>
+  );
 
   return (
     <SettingRow
       label={typeLabel}
-      description={details || undefined}
+      description={details}
       state={bindState}
       labelSuffix={onOpenPanel && (
         <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
@@ -358,7 +397,19 @@ function DeviceRow({
         </Button>
       )}
     >
-      {fan.boundToUs ? (
+      {wired ? null : wiredOwned ? (
+        <>
+          <Button size="sm" tone="neutral" onClick={onOpenWiredPage}>
+            {t('devices.lianli-flex.openWiredPage')}
+          </Button>
+          {/* The service allows only a release here: Unbind hands the fan to USB. */}
+          {fan.boundToUs && (
+            <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
+              {unbindLabel}
+            </Button>
+          )}
+        </>
+      ) : fan.boundToUs ? (
         <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
         </Button>
@@ -367,9 +418,11 @@ function DeviceRow({
           {bindLabel}
         </Button>
       )}
-      <Button size="sm" tone="neutral" disabled={busy} onClick={() => onIdentify(fan.mac)}>
-        {t('devices.lianli-wireless.identify')}
-      </Button>
+      {!wiredOwned && (
+        <Button size="sm" tone="neutral" disabled={busy} onClick={() => onIdentify(fan.mac)}>
+          {identifying || fan.identifying ? t('devices.lianli-flex.identifying') : t('devices.lianli-wireless.identify')}
+        </Button>
+      )}
     </SettingRow>
   );
 }
