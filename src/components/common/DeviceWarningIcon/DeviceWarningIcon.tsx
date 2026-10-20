@@ -16,6 +16,7 @@ interface WarningCopy {
 // handler can flag an issue via DeviceListItem.warning without new UI - add the
 // code here.
 const WARNINGS: Record<string, WarningCopy> = {
+  'access-denied': { message: 'devices.warning.accessDenied', chip: 'devices.warning.chip.accessDenied' },
   'bulk-pipe-unavailable': { message: 'devices.warning.bulkPipeUnavailable' },
   'usb-disconnected': { message: 'devices.warning.usbDisconnected', chip: 'devices.warning.chip.usbDisconnected' },
   'display-disconnected': { message: 'devices.warning.displayDisconnected', chip: 'devices.warning.chip.displayDisconnected' },
