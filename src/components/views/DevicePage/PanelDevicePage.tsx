@@ -103,6 +103,7 @@ import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { HydroShift2RingSettings } from './HydroShift2RingSettings';
 import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
 import { HydroShift2CurveSettings } from './HydroShift2CurveSettings';
+import { AsusGlacialLcdControls } from './AsusGlacialLcdDevicePage';
 import { useHydroShift2CurveScreen } from './useHydroShift2CurveScreen';
 import { hydroShift2CurveMediaPreviewUrl } from '../../../api/hydroshift2Curve';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -496,6 +497,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
   const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;
+  const isGlacialLcdPanel = recordFamily === 'asus-glacial-lcd' && !isSimulated;
   const curveScreen = useHydroShift2CurveScreen(isHydroShift2CurvePanel);
   // Cooler LCDs whose firmware takes a backlight command. The service decides
   // which those are and stamps the capability on the record, so a new dimmable
@@ -580,7 +582,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
-    || isRenderScalablePanel;
+    || isRenderScalablePanel
+    || isGlacialLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -1944,6 +1947,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     <div className={styles.settingsContent}>
                       <HydroShift2CurveHeadSettings />
                       <HydroShift2CurveSettings screen={curveScreen} />
+                    </div>
+                  )}
+                  {activeTab === 'settings' && isGlacialLcdPanel && (
+                    <div className={styles.settingsContent}>
+                      <AsusGlacialLcdControls />
                     </div>
                   )}
                   {activeTab === 'settings' && glassSurface === 'kraken' && !isSimulated && (

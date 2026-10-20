@@ -22,7 +22,9 @@ vi.mock('../../../api/asus-glacial-lcd', () => ({
 }));
 
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
-  useSensorLookup: () => ({}),
+  useSensorLookup: () => ({
+    resolve: (category: string, sensor: string) => (sensor ? { name: `name-${category}-${sensor}` } : undefined),
+  }),
   SensorPicker: ({ category, sensor, onChange }: { category: string; sensor: string; onChange: (s: { category: string; sensor: string }) => void }) => (
     <button type="button" data-testid="sensor-picker" onClick={() => onChange({ category: 'gpu', sensor: 'gpu-temp' })}>
       {category}/{sensor}
@@ -180,6 +182,53 @@ describe('AsusGlacialLcdDevicePage', () => {
     });
     expect(mockSet).toHaveBeenCalledWith({ mode: 'panel' });
     expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePanel' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('shows the sensor display name as the default label', async () => {
+    await mount();
+    expect(screen.getByRole('textbox', { name: 'devices.asus-glacial-lcd.widgetLabel:{"n":1}' })).toHaveValue('name-cpu-cpu-temp');
+    expect(screen.getByRole('textbox', { name: 'devices.asus-glacial-lcd.widgetLabel:{"n":2}' })).toHaveValue('Fan');
+  });
+
+  it('typing a label sends it with all three slots', async () => {
+    await mount();
+    const box = screen.getByRole('textbox', { name: 'devices.asus-glacial-lcd.widgetLabel:{"n":1}' });
+    await act(async () => {
+      fireEvent.input(box, { target: { value: 'Core' } });
+      fireEvent.blur(box);
+    });
+    expect(mockSet).toHaveBeenCalledWith({
+      slots: [
+        { category: 'cpu', sensor: 'cpu-temp', label: 'Core' },
+        { category: '', sensor: '', label: 'Fan' },
+        { category: '', sensor: '', label: '' },
+      ],
+    });
+  });
+
+  it('sends an empty label when the text is cleared or equals the default', async () => {
+    await mount();
+    const box = screen.getByRole('textbox', { name: 'devices.asus-glacial-lcd.widgetLabel:{"n":2}' });
+    await act(async () => {
+      fireEvent.input(box, { target: { value: '' } });
+      fireEvent.blur(box);
+    });
+    expect(mockSet).toHaveBeenCalledWith({
+      slots: [
+        { category: 'cpu', sensor: 'cpu-temp', label: '' },
+        { category: '', sensor: '', label: '' },
+        { category: '', sensor: '', label: '' },
+      ],
+    });
+  });
+
+  it('caps a multibyte label at 17 UTF-8 bytes on a character boundary', async () => {
+    await mount();
+    const box = screen.getByRole('textbox', { name: 'devices.asus-glacial-lcd.widgetLabel:{"n":1}' });
+    await act(async () => {
+      fireEvent.input(box, { target: { value: '温度温度温度温度温度温度' } });
+    });
+    expect(box).toHaveValue('温度温度温');
   });
 
   it('the stay-on switch sends stayOnWhileAsleep', async () => {

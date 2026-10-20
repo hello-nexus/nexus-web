@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "睡眠時保持亮起",
   "devices.asus-glacial-lcd.stayOnHint": "電腦睡眠時保持顯示器亮起。",
   "devices.asus-glacial-lcd.widgetCount": "小工具",
+  "devices.asus-glacial-lcd.widgetLabel": "小工具 {n} 標籤",
   "devices.asus-glacial-lcd.widgetN": "小工具 {n}",
   "devices.available.missingNotice": "如果您的裝置未在此列出，請先確認已正確連接，然後使用製造商的官方軟體更新韌體。",
   "devices.available.none": "目前沒有可用的受支援裝置。",

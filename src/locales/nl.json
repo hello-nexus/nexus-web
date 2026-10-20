@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "Aan blijven tijdens slaapstand",
   "devices.asus-glacial-lcd.stayOnHint": "Houdt het display verlicht terwijl de pc in slaapstand staat.",
   "devices.asus-glacial-lcd.widgetCount": "Widgets",
+  "devices.asus-glacial-lcd.widgetLabel": "Label van widget {n}",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "Staat je apparaat hier niet? Controleer eerst of het goed is aangesloten en werk daarna de firmware bij met de officiële software van de fabrikant.",
   "devices.available.none": "Momenteel geen ondersteunde apparaten beschikbaar.",

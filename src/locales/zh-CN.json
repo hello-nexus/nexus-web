@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "睡眠时保持点亮",
   "devices.asus-glacial-lcd.stayOnHint": "PC 睡眠时保持显示屏点亮。",
   "devices.asus-glacial-lcd.widgetCount": "小组件",
+  "devices.asus-glacial-lcd.widgetLabel": "小组件 {n} 标签",
   "devices.asus-glacial-lcd.widgetN": "小组件 {n}",
   "devices.available.missingNotice": "如果您的设备未在此列出，请先确认已正确连接，然后使用制造商的官方软件更新固件。",
   "devices.available.none": "当前没有可用的受支持设备。",

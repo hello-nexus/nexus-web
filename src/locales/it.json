@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "Resta acceso in sospensione",
   "devices.asus-glacial-lcd.stayOnHint": "Mantiene il display illuminato mentre il PC è in sospensione.",
   "devices.asus-glacial-lcd.widgetCount": "Widget",
+  "devices.asus-glacial-lcd.widgetLabel": "Etichetta del widget {n}",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "Se il tuo dispositivo non compare qui, assicurati prima che sia collegato correttamente, poi aggiorna il firmware con il software ufficiale del produttore.",
   "devices.available.none": "Nessun dispositivo supportato attualmente disponibile.",

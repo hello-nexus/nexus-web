@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "Stay on while asleep",
   "devices.asus-glacial-lcd.stayOnHint": "Keeps the display lit while the PC sleeps.",
   "devices.asus-glacial-lcd.widgetCount": "Widgets",
+  "devices.asus-glacial-lcd.widgetLabel": "Widget {n} label",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "If your device isn't listed here, first make sure it's plugged in correctly, then update its firmware using the manufacturer's official software.",
   "devices.available.none": "No supported devices currently available.",

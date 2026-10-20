@@ -711,6 +711,7 @@
   "devices.asus-glacial-lcd.stayOn": "Zůstat zapnutý v režimu spánku",
   "devices.asus-glacial-lcd.stayOnHint": "Udržuje displej rozsvícený, když počítač spí.",
   "devices.asus-glacial-lcd.widgetCount": "Widgety",
+  "devices.asus-glacial-lcd.widgetLabel": "Popisek widgetu {n}",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "Pokud zde vaše zařízení není uvedeno, nejprve se ujistěte, že je správně připojené, a poté aktualizujte jeho firmware pomocí oficiálního softwaru výrobce.",
   "devices.available.none": "Momentálně nejsou k dispozici žádná podporovaná zařízení.",

@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "Im Ruhezustand eingeschaltet lassen",
   "devices.asus-glacial-lcd.stayOnHint": "Hält das Display beleuchtet, während der PC im Ruhezustand ist.",
   "devices.asus-glacial-lcd.widgetCount": "Widgets",
+  "devices.asus-glacial-lcd.widgetLabel": "Bezeichnung für Widget {n}",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "Wird Ihr Gerät hier nicht aufgeführt, stellen Sie zuerst sicher, dass es richtig angeschlossen ist, und aktualisieren Sie dann seine Firmware mit der offiziellen Software des Herstellers.",
   "devices.available.none": "Derzeit sind keine unterstützten Geräte verfügbar.",

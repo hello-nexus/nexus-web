@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "Uyku modunda açık kalsın",
   "devices.asus-glacial-lcd.stayOnHint": "PC uyku modundayken ekranı aydınlık tutar.",
   "devices.asus-glacial-lcd.widgetCount": "Widget'lar",
+  "devices.asus-glacial-lcd.widgetLabel": "Widget {n} etiketi",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "Cihazınız burada listelenmiyorsa önce doğru şekilde takılı olduğundan emin olun, ardından üreticinin resmi yazılımıyla ürün yazılımını güncelleyin.",
   "devices.available.none": "Şu anda kullanılabilir desteklenen cihaz yok.",

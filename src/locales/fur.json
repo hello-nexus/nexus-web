@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "Reste impiât in sospension",
   "devices.asus-glacial-lcd.stayOnHint": "Al ten il visôr impiât intant che il PC al è in sospension.",
   "devices.asus-glacial-lcd.widgetCount": "Widget",
+  "devices.asus-glacial-lcd.widgetLabel": "Etichete dal widget {n}",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "Se il to dispositîf nol è listât chi, prime controle che al sedi tacât ben, po inzorne il so firmware cul software uficiâl dal produtôr.",
   "devices.available.none": "Nissun dispositîf supuartât disponibil in chest moment.",

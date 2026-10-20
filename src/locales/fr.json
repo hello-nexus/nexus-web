@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "Rester allumé en veille",
   "devices.asus-glacial-lcd.stayOnHint": "Garde l'écran allumé pendant la veille du PC.",
   "devices.asus-glacial-lcd.widgetCount": "Widgets",
+  "devices.asus-glacial-lcd.widgetLabel": "Libellé du widget {n}",
   "devices.asus-glacial-lcd.widgetN": "Widget {n}",
   "devices.available.missingNotice": "Si votre appareil n'apparaît pas ici, vérifiez d'abord qu'il est correctement branché, puis mettez à jour son firmware avec le logiciel officiel du fabricant.",
   "devices.available.none": "Aucun appareil pris en charge actuellement disponible.",

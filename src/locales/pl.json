@@ -711,6 +711,7 @@
   "devices.asus-glacial-lcd.stayOn": "Pozostaw włączony w uśpieniu",
   "devices.asus-glacial-lcd.stayOnHint": "Utrzymuje podświetlenie wyświetlacza, gdy komputer jest uśpiony.",
   "devices.asus-glacial-lcd.widgetCount": "Widżety",
+  "devices.asus-glacial-lcd.widgetLabel": "Etykieta widżetu {n}",
   "devices.asus-glacial-lcd.widgetN": "Widżet {n}",
   "devices.available.missingNotice": "Jeśli Twoje urządzenie nie jest tu wymienione, najpierw upewnij się, że jest poprawnie podłączone, a następnie zaktualizuj jego firmware za pomocą oficjalnego oprogramowania producenta.",
   "devices.available.none": "Aktualnie brak dostępnych obsługiwanych urządzeń.",

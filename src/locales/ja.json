@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "スリープ中も点灯したままにする",
   "devices.asus-glacial-lcd.stayOnHint": "PCのスリープ中もディスプレイを点灯したままにします。",
   "devices.asus-glacial-lcd.widgetCount": "ウィジェット",
+  "devices.asus-glacial-lcd.widgetLabel": "ウィジェット {n} のラベル",
   "devices.asus-glacial-lcd.widgetN": "ウィジェット {n}",
   "devices.available.missingNotice": "お使いのデバイスがここに表示されない場合は、まず正しく接続されていることを確認し、次にメーカーの公式ソフトウェアでファームウェアを更新してください。",
   "devices.available.none": "現在利用可能な対応デバイスはありません。",

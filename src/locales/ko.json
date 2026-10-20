@@ -704,6 +704,7 @@
   "devices.asus-glacial-lcd.stayOn": "절전 중에도 켜 두기",
   "devices.asus-glacial-lcd.stayOnHint": "PC가 절전 상태일 때도 디스플레이를 켜 둡니다.",
   "devices.asus-glacial-lcd.widgetCount": "위젯",
+  "devices.asus-glacial-lcd.widgetLabel": "위젯 {n} 레이블",
   "devices.asus-glacial-lcd.widgetN": "위젯 {n}",
   "devices.available.missingNotice": "장치가 여기에 표시되지 않으면 먼저 올바르게 연결되어 있는지 확인한 다음 제조사의 공식 소프트웨어로 펌웨어를 업데이트하세요.",
   "devices.available.none": "현재 사용 가능한 지원 장치가 없습니다.",
