@@ -279,9 +279,9 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
             <LianLiWirelessLightingTab
               onSectionNavigate={onSectionNavigate}
               api={flex ? lianLiFlexLightingApi : undefined}
-              header={flex ? chains => <LianLiFlexSyncSection sync={flexSync} chains={chains} /> : undefined}
+              header={flex ? (chains, names) => <LianLiFlexSyncSection sync={flexSync} chains={chains} names={names} /> : undefined}
               syncOn={flex && isSyncOn(flexSync)}
-              onWritten={flex ? flexSync.refresh : undefined}
+              onSettled={flex ? flexSync.refresh : undefined}
               onSequence={flex ? flexSync.reorder : undefined}
               reloadSignal={lightingRev}
             />

@@ -316,10 +316,10 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     expect(within(second).getByText('devices.lianli-flex.followsLeader:{"leader":"devices.lianli-wireless.fanTypeTlFlex"}')).toBeInTheDocument();
   });
 
-  it('reads the units back after every accepted write and tells the caller', async () => {
+  it('reads the units back after every write, accepted or not, and tells the caller', async () => {
     const written = vi.fn();
     mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit] });
-    await act(async () => { render(<LianLiWirelessLightingTab api={api} onWritten={written} />); });
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} onSettled={written} />); });
     expect(mockGet).toHaveBeenCalledTimes(1);
     await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })); });
     expect(mockGet).toHaveBeenCalledTimes(2);
@@ -327,7 +327,27 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     mockSet.mockResolvedValue(false);
     await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })); });
     expect(mockGet).toHaveBeenCalledTimes(3);
-    expect(written).toHaveBeenCalledTimes(1);
+    expect(written).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads once, after both writes of a move settle', async () => {
+    const settled = vi.fn();
+    const releases: Array<() => void> = [];
+    let store = [{ ...tlUnit, mac: 'AA11', sortIndex: 0 }, { ...tlUnit, mac: 'CC33', sortIndex: 1 }];
+    mockGet.mockImplementation(() => Promise.resolve({ laneModes: [], chains: store }));
+    mockSet.mockImplementation((mac: string, patch: Partial<LianLiWirelessChainLighting>) => new Promise(resolve => {
+      releases.push(() => { store = store.map(c => (c.mac === mac ? { ...c, ...patch } : c)); resolve(true); });
+    }));
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} onSettled={settled} />); });
+    const reads = mockGet.mock.calls.length;
+    await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })[0]); });
+    expect(releases).toHaveLength(2);
+    await act(async () => { releases[0](); });
+    expect(mockGet).toHaveBeenCalledTimes(reads);
+    expect(settled).not.toHaveBeenCalled();
+    await act(async () => { releases[1](); });
+    expect(mockGet).toHaveBeenCalledTimes(reads + 1);
+    expect(settled).toHaveBeenCalledTimes(1);
   });
 
   it('re-reads the units when a write made outside the tab, such as the sync header, signals it', async () => {

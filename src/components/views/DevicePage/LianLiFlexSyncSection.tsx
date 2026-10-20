@@ -10,7 +10,6 @@ import {
 } from '../../../api/lianli-flex';
 import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
 import { LianLiChainEffectControls, effectLabel, type LianLiEffectValue } from './LianLiChainEffectControls';
-import { numberDuplicateTitles } from './lianliChainUtils';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
 
@@ -35,9 +34,13 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
   const aliveRef = useRef(true);
   const lastEditRef = useRef(Number.NEGATIVE_INFINITY);
 
+  // Send order of reads: a response is applied only if no later-sent one was.
+  const sentRef = useRef(0);
+
   const refresh = useCallback(async () => {
+    const seq = ++sentRef.current;
     const d = await getLianLiFlexSync().catch(() => null);
-    if (aliveRef.current && d && performance.now() - lastEditRef.current > EDIT_GRACE_MS) setData(d);
+    if (aliveRef.current && d && seq === sentRef.current && performance.now() - lastEditRef.current > EDIT_GRACE_MS) setData(d);
   }, []);
 
   useEffect(() => {
@@ -95,7 +98,7 @@ export const isSyncOn = (sync: LianLiFlexSyncState): boolean => !!sync.data && s
  * Quick sync for the wired LCD Flex fans: one merged animation across all of
  * them, in light sequence order, with a direction for each fan's slice.
  */
-export function LianLiFlexSyncSection({ sync, chains }: { sync: LianLiFlexSyncState; chains: readonly LianLiWirelessChainLighting[] }) {
+export function LianLiFlexSyncSection({ sync, chains, names }: { sync: LianLiFlexSyncState; chains: readonly LianLiWirelessChainLighting[]; names: ReadonlyMap<string, string> }) {
   const { t } = useTranslation();
   const { data, preview, commit } = sync;
   const [confirmOn, setConfirmOn] = useState(false);
@@ -108,9 +111,10 @@ export function LianLiFlexSyncSection({ sync, chains }: { sync: LianLiFlexSyncSt
   const value: LianLiEffectValue = {
     mode, speed: data.speed, direction: data.direction, brightness: data.brightness, colors: data.colors,
   };
-  const memberNames = numberDuplicateTitles(data.members.map(m => t(
+  // The names come from the Lighting tab, so both numbering orders agree.
+  const memberName = (m: LianLiFlexSync['members'][number]) => names.get(m.mac) ?? t(
     m.family === 'slInfFlex' ? 'devices.lianli-wireless.fanTypeSlInfFlex' : 'devices.lianli-wireless.fanTypeTlFlex',
-  )));
+  );
   const directionOptions = [
     { value: '0', label: t('devices.lianli.directionLtr') },
     { value: '1', label: t('devices.lianli.directionRtl') },
@@ -139,10 +143,10 @@ export function LianLiFlexSyncSection({ sync, chains }: { sync: LianLiFlexSyncSt
         onPreview={patch => preview(patch)}
         onCommit={patch => { void commit(patch); }}
       />
-      {data.members.map((member, i) => (
+      {data.members.map(member => (
         <SettingSelect
           key={member.mac}
-          label={t('devices.lianli-flex.syncMemberDirection', { fan: memberNames[i] })}
+          label={t('devices.lianli-flex.syncMemberDirection', { fan: memberName(member) })}
           value={String(member.sliceDirection)}
           options={directionOptions}
           disabled={!data.enabled}

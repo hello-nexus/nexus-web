@@ -60,12 +60,12 @@ interface LianLiWirelessLightingTabProps {
   onSectionNavigate?: (section: string) => void;
   /** The lighting endpoints of the device family; the wireless ones by default. */
   api?: LianLiChainLightingApi;
-  /** Rendered above the chains, for example a group control; it receives the chains as last read. */
-  header?: (chains: readonly LianLiWirelessChainLighting[]) => ReactNode;
+  /** Rendered above the chains, for example a group control; it receives the chains as last read and each unit's name on this page. */
+  header?: (chains: readonly LianLiWirelessChainLighting[], names: ReadonlyMap<string, string>) => ReactNode;
   /** The wired fans are synced as a group, so their own look controls do nothing. */
   syncOn?: boolean;
-  /** Runs after the service accepted a write, for views that mirror the units it changed. */
-  onWritten?: () => void;
+  /** Runs once every write in flight has settled and the units are read back, accepted or not, for views that mirror them. */
+  onSettled?: () => void;
   /** A change here re-reads the chains, after a write made outside this tab. */
   reloadSignal?: number;
   /** Runs when a move changes the light sequence, with the new order of the chains' MACs. */
@@ -73,7 +73,7 @@ interface LianLiWirelessLightingTabProps {
 }
 
 /** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
-export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false, onWritten, reloadSignal, onSequence }: LianLiWirelessLightingTabProps) {
+export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false, onSettled, reloadSignal, onSequence }: LianLiWirelessLightingTabProps) {
   const { t } = useTranslation();
   const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
@@ -113,21 +113,27 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
     });
   }, []);
 
+  const inFlightRef = useRef(0);
+
   const commit = useCallback(async (mac: string, patch: LianLiWirelessChainPatch) => {
     preview(mac, patch);
+    inFlightRef.current += 1;
     // effectMode is derived by the service; it only feeds the preview.
-    const ok = await api.set(mac, { ...patch, effectMode: undefined }).catch(() => false);
+    await api.set(mac, { ...patch, effectMode: undefined }).catch(() => false);
+    inFlightRef.current -= 1;
+    // One read after the last write settles, so a half-applied batch (a move sends one write per unit) never replaces a preview.
     // The service may change more than the patch (a merge or Lighting-page switch moves other units), so read it back.
+    if (inFlightRef.current > 0) return;
     await refresh();
-    if (ok) onWritten?.();
-  }, [api, preview, refresh, onWritten]);
+    onSettled?.();
+  }, [api, preview, refresh, onSettled]);
 
   const reset = useCallback(async (mac: string) => {
     const ok = await (api.reset?.(mac) ?? Promise.resolve(false)).catch(() => false);
     await refresh();
-    if (ok) onWritten?.();
+    onSettled?.();
     return ok;
-  }, [api, refresh, onWritten]);
+  }, [api, refresh, onSettled]);
 
   const move = useCallback((mac: string, delta: -1 | 1) => {
     if (!data) return;
@@ -146,10 +152,11 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   const leader = chains.find(c => c.mac === leaderMac);
   // Units of one model read the same, so repeated titles are numbered in sequence order.
   const titles = numberDuplicateTitles(chains.map(c => chainTitle(t, c)));
+  const names = new Map(chains.map((c, i) => [c.mac, titles[i]]));
   const leaderTitle = leader && titles[chains.indexOf(leader)];
   return (
     <>
-      {header?.(chains)}
+      {header?.(chains, names)}
       {chains.map((chain, i) => (
         <ChainSection
           key={chain.mac}

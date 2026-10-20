@@ -330,6 +330,16 @@ describe('LianLiWirelessFansTab wired', () => {
     expect(screen.getByText('devices.lianli-flex.link_busy')).toBeInTheDocument();
   });
 
+  it('re-enables a wired Identify right after the state read when the unit is not identifying', async () => {
+    const identify = vi.fn().mockResolvedValue(true);
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    render(<LianLiWirelessFansTab state={{ isConnected: true, fans: [{ ...wiredFan, identifying: false }] }} refresh={refresh} wired identify={identify} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })); });
+    expect(identify).toHaveBeenCalledWith(wiredFan.mac);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).not.toBeDisabled();
+  });
+
   it('keeps a wired Identify pending until the state read, then follows the unit identifying flag', async () => {
     const identify = vi.fn().mockResolvedValue(true);
     let finishRefresh: () => void = () => {};

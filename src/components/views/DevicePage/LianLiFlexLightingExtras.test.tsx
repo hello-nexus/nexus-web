@@ -51,7 +51,7 @@ describe('LianLiFlexSyncSection', () => {
     const sync = useLianLiFlexSync(true, written);
     return (
       <>
-        <LianLiFlexSyncSection sync={sync} chains={chains} />
+        <LianLiFlexSyncSection sync={sync} chains={chains} names={new Map()} />
         <button type="button" onClick={() => sync.reorder(['BB22', 'AA11'])}>reorder</button>
       </>
     );
@@ -108,6 +108,25 @@ describe('LianLiFlexSyncSection', () => {
     expect(mockSetSync).toHaveBeenCalledWith({
       members: [{ mac: 'BB22', sliceDirection: 0 }, { mac: 'AA11', sliceDirection: 0 }],
     });
+  });
+
+  it('rolls the local order back to the service order when asked to re-read', async () => {
+    function Rollback() {
+      const s = useLianLiFlexSync(true);
+      return (
+        <>
+          <button type="button" onClick={() => s.reorder(['BB22', 'AA11'])}>reorder</button>
+          <button type="button" onClick={() => { void s.refresh(); }}>reload</button>
+          <p data-testid="order">{s.data?.members.map(m => m.mac).join(',')}</p>
+        </>
+      );
+    }
+    await act(async () => { render(<Rollback />); });
+    expect(screen.getByTestId('order')).toHaveTextContent('AA11,BB22');
+    fireEvent.click(screen.getByText('reorder'));
+    expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
+    await act(async () => { fireEvent.click(screen.getByText('reload')); });
+    expect(screen.getByTestId('order')).toHaveTextContent('AA11,BB22');
   });
 
   it('tells the caller about an accepted write and reads the group back', async () => {
