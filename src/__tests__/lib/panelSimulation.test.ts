@@ -39,7 +39,7 @@ const shape = (l: StoredLayout) => ({
   widgets: l.pages.map(pg => pg.widgets.map(w => [w.type, w.size, w.col, w.row])),
 });
 
-const service = new Map<string, { id: string; layout: unknown }>();
+const service = new Map<string, { id: string; layout: unknown; widgetSize?: string }>();
 
 describe('panelSimulation', () => {
   beforeEach(() => {
@@ -254,6 +254,24 @@ describe('panelSimulation', () => {
       await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(id);
       expect(shape(service.get(id!)!.layout as StoredLayout)).toEqual(shape(defaultLayoutForSurface('q60') as unknown as StoredLayout));
       expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
+    });
+
+    it('heals a layout-less record at the surface its stored Widget size lays out as', async () => {
+      setSimulatedPanelConnected('icue-link-lcd5', true);
+      const id = await ensureSimulatedPanelRecord('icue-link-lcd5');
+      Object.assign(service.get(id!)!, { layout: null, widgetSize: 'large' });
+
+      await ensureSimulatedPanelRecord('icue-link-lcd5');
+
+      expect((service.get(id!)!.layout as StoredLayout).surface).toBe('q60');
+    });
+
+    it('allocates and writes the default once for concurrent callers', async () => {
+      setSimulatedPanelConnected('q60', true);
+      await Promise.all([ensureSimulatedPanelRecord('q60'), ensureSimulatedPanelRecord('q60')]);
+
+      expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
+      expect(patchPanelDevice).toHaveBeenCalledTimes(1);
     });
 
     it('does not rewrite a stored layout', async () => {

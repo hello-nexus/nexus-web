@@ -266,10 +266,10 @@ export function getSimulatedPanelRecordId(id: string): string | undefined {
 const pendingRecords = new Map<string, Promise<string | undefined>>();
 
 /** Writes the layout a record of this simulator starts from; the service seeds a surface-less record's null layout with the Y70 starter on read. */
-export async function persistSimulatorDefaultLayout(id: string, recordId: string): Promise<boolean> {
+export async function persistSimulatorDefaultLayout(id: string, recordId: string, widgetSize?: string | null): Promise<boolean> {
   const def = getSimulatedPanelDefinition(id);
   if (!def) return false;
-  const layout = defaultLayoutForSurface(panelLayoutSurface(def.surface, def.family, null));
+  const layout = defaultLayoutForSurface(panelLayoutSurface(def.surface, def.family, widgetSize));
   return !!(await patchPanelDevice(recordId, { layout }).catch(() => null));
 }
 
@@ -285,7 +285,7 @@ export function ensureSimulatedPanelRecord(id: string): Promise<string | undefin
       if (!list) return stored;
       const record = list.devices.find(d => d.id === stored);
       if (record) {
-        if (!record.layout) await persistSimulatorDefaultLayout(id, stored);
+        if (!record.layout) await persistSimulatorDefaultLayout(id, stored, record.widgetSize);
         return stored;
       }
     }
