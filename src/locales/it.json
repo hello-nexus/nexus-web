@@ -5147,6 +5147,8 @@
   "settings.profiles.sharing.cat.device.label": "Dispositivi",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "Illuminazione",
+  "settings.profiles.sharing.cat.panels.desc": "Layout, stili e preset dei pannelli e dei display dei dissipatori.",
+  "settings.profiles.sharing.cat.panels.label": "Pannelli",
   "settings.profiles.sharing.cat.theme.desc": "Modalità tema, colore accento, lingua.",
   "settings.profiles.sharing.cat.theme.label": "Tema",
   "settings.profiles.sharing.deletePrimaryDisabled": "Imposta prima un altro profilo come Principale.",

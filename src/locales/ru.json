@@ -5194,6 +5194,8 @@
   "settings.profiles.sharing.cat.device.label": "Устройства",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "Подсветка",
+  "settings.profiles.sharing.cat.panels.desc": "Макеты, оформление и пресеты панелей и дисплеев кулеров.",
+  "settings.profiles.sharing.cat.panels.label": "Панели",
   "settings.profiles.sharing.cat.theme.desc": "Режим темы, акцентный цвет, язык.",
   "settings.profiles.sharing.cat.theme.label": "Тема",
   "settings.profiles.sharing.deletePrimaryDisabled": "Сначала назначьте основным другой профиль.",

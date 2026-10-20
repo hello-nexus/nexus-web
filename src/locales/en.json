@@ -5147,6 +5147,8 @@
   "settings.profiles.sharing.cat.device.label": "Devices",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync mode, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "Lighting",
+  "settings.profiles.sharing.cat.panels.desc": "Panel and cooler display layouts, looks and presets.",
+  "settings.profiles.sharing.cat.panels.label": "Panels",
   "settings.profiles.sharing.cat.theme.desc": "Theme mode, accent color, language.",
   "settings.profiles.sharing.cat.theme.label": "Theme",
   "settings.profiles.sharing.deletePrimaryDisabled": "Mark another profile as Primary first.",

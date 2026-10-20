@@ -5147,6 +5147,8 @@
   "settings.profiles.sharing.cat.device.label": "Apparaten",
   "settings.profiles.sharing.cat.lighting.desc": "RGB-effecten, synchronisatiemodus, nabewerking.",
   "settings.profiles.sharing.cat.lighting.label": "Verlichting",
+  "settings.profiles.sharing.cat.panels.desc": "Indelingen, stijlen en voorinstellingen van panelen en koelerdisplays.",
+  "settings.profiles.sharing.cat.panels.label": "Panelen",
   "settings.profiles.sharing.cat.theme.desc": "Themamodus, accentkleur, taal.",
   "settings.profiles.sharing.cat.theme.label": "Thema",
   "settings.profiles.sharing.deletePrimaryDisabled": "Markeer eerst een ander profiel als primair.",

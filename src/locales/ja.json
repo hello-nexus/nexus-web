@@ -5147,6 +5147,8 @@
   "settings.profiles.sharing.cat.device.label": "デバイス",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "ライティング",
+  "settings.profiles.sharing.cat.panels.desc": "パネルとクーラーディスプレイのレイアウト、外観、プリセット。",
+  "settings.profiles.sharing.cat.panels.label": "パネル",
   "settings.profiles.sharing.cat.theme.desc": "テーマモード、アクセントカラー、言語。",
   "settings.profiles.sharing.cat.theme.label": "テーマ",
   "settings.profiles.sharing.deletePrimaryDisabled": "先に別のプロファイルをプライマリに設定してください。",

@@ -5194,6 +5194,8 @@
   "settings.profiles.sharing.cat.device.label": "Urządzenia",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "Podświetlenie",
+  "settings.profiles.sharing.cat.panels.desc": "Układy, wygląd i ustawienia wstępne paneli oraz wyświetlaczy chłodzenia.",
+  "settings.profiles.sharing.cat.panels.label": "Panele",
   "settings.profiles.sharing.cat.theme.desc": "Tryb motywu, kolor akcentu, język.",
   "settings.profiles.sharing.cat.theme.label": "Motyw",
   "settings.profiles.sharing.deletePrimaryDisabled": "Najpierw oznacz inny profil jako główny.",

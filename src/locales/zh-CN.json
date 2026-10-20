@@ -5147,6 +5147,8 @@
   "settings.profiles.sharing.cat.device.label": "设备",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "灯效",
+  "settings.profiles.sharing.cat.panels.desc": "面板和散热器显示屏的布局、外观与预设。",
+  "settings.profiles.sharing.cat.panels.label": "面板",
   "settings.profiles.sharing.cat.theme.desc": "主题模式、强调色、语言。",
   "settings.profiles.sharing.cat.theme.label": "主题",
   "settings.profiles.sharing.deletePrimaryDisabled": "请先将另一个配置文件标记为主配置文件。",

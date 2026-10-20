@@ -5147,6 +5147,8 @@
   "settings.profiles.sharing.cat.device.label": "장치",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "조명",
+  "settings.profiles.sharing.cat.panels.desc": "패널 및 쿨러 디스플레이의 레이아웃, 모양, 프리셋.",
+  "settings.profiles.sharing.cat.panels.label": "패널",
   "settings.profiles.sharing.cat.theme.desc": "테마 모드, 강조 색상, 언어.",
   "settings.profiles.sharing.cat.theme.label": "테마",
   "settings.profiles.sharing.deletePrimaryDisabled": "먼저 다른 프로필을 기본으로 지정하세요.",

@@ -5147,6 +5147,8 @@
   "settings.profiles.sharing.cat.device.label": "Cihazlar",
   "settings.profiles.sharing.cat.lighting.desc": "RGB effects, sync, post-processing.",
   "settings.profiles.sharing.cat.lighting.label": "Aydınlatma",
+  "settings.profiles.sharing.cat.panels.desc": "Panel ve soğutucu ekranlarının düzenleri, görünümleri ve ön ayarları.",
+  "settings.profiles.sharing.cat.panels.label": "Paneller",
   "settings.profiles.sharing.cat.theme.desc": "Tema modu, vurgu rengi, dil.",
   "settings.profiles.sharing.cat.theme.label": "Tema",
   "settings.profiles.sharing.deletePrimaryDisabled": "Önce başka bir profili Birincil olarak işaretleyin.",
