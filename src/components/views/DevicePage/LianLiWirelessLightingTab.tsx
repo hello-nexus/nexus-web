@@ -10,6 +10,7 @@ import {
   type LianLiWirelessChainPatch,
   type LianLiWirelessLane,
   type LianLiWirelessLighting,
+  type LianLiWirelessScope,
 } from '../../../api/lianli-wireless';
 import { fanTypeKey } from './LianLiWirelessFansTab';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -24,6 +25,7 @@ const DEFAULT_LANE_MODE = 'rainbow';
 const DEFAULT_EFFECT = 'rainbow';
 // The palette the service renders with when a chain has no user colours.
 const DEFAULT_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
+const SCOPES: LianLiWirelessScope[] = ['all', 'top', 'bottom'];
 
 type Translate = ReturnType<typeof useTranslation>['t'];
 
@@ -169,6 +171,16 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
         options={modeOptions}
         disabled={locked}
       />
+
+      {effect?.hasScope && (
+        <SettingSelect
+          label={t('devices.lianli-tl.lightingScope')}
+          value={chain.scope ?? 'all'}
+          onChange={v => onCommit({ scope: v as LianLiWirelessScope })}
+          options={SCOPES.map(s => ({ value: s, label: t(`devices.lianli-tl.scopes.${s}`) }))}
+          disabled={locked}
+        />
+      )}
 
       {effect?.mergeable && (
         <SettingToggle
