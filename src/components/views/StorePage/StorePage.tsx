@@ -306,7 +306,7 @@ function useHighlights(latest: StoreVersion): Highlight[] {
       value: latest.hasWidget ? t('store.value.hasFeature') : t('store.value.noFeature'),
     },
   ];
-  const { grid, single } = panelSizesForListing(latest.sizes, latest.gridSizes);
+  const { grid, single } = panelSizesForListing(latest.sizes, latest.gridSizes, latest.surfaces);
   if (latest.hasWidget && grid.length > 0) {
     out.push({
       key: 'sizes',

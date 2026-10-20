@@ -293,15 +293,15 @@ describe('StorePage app page layout', () => {
     ...version,
     version: '2.5.0',
     sizes: ['2x2', '4x2', '2x4', '4x4', '2x2round'],
-    surfaces: ['y70'],
+    surfaces: [],
     gridSizes: ['4x4'],
   };
 
-  it('lists the grid sizes and the forced-grid 2x4 strip in the widget sizes cell, and every single-widget size in its own', async () => {
+  it('lists only the sizes a grid panel offers in the widget sizes cell, and every single-widget size in its own', async () => {
     fetchStoreApp.mockResolvedValue({ ...detail, latest: aquariumLatest });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('2x4, 4x4')).toBeInTheDocument();
+    expect(await screen.findByText('4x4')).toBeInTheDocument();
     expect(screen.getByText('store.spec.panelSizes')).toBeInTheDocument();
     expect(screen.getByText('2x2, 4x2, 2x4, store.value.roundTile')).toBeInTheDocument();
   });
@@ -310,14 +310,14 @@ describe('StorePage app page layout', () => {
     fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, gridSizes: undefined } });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('2x2, 4x2, 2x4, 4x4')).toBeInTheDocument();
+    expect(await screen.findByText('2x2, 4x2, 4x4')).toBeInTheDocument();
   });
 
   it('falls back to every multi-widget size when gridSizes names none of them', async () => {
     fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, gridSizes: ['8x8'] } });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('2x2, 4x2, 2x4, 4x4')).toBeInTheDocument();
+    expect(await screen.findByText('2x2, 4x2, 4x4')).toBeInTheDocument();
   });
 
   it('offers a plain 2x2 and 4x2 widget to the square and wide single-widget panels', async () => {
@@ -326,6 +326,22 @@ describe('StorePage app page layout', () => {
 
     expect(await screen.findAllByText('2x2, 4x2')).toHaveLength(2);
     expect(screen.getByText('store.spec.panelSizes')).toBeInTheDocument();
+  });
+
+  it('hides the single-widget cell for a version limited to grid surfaces', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, surfaces: ['y70'] } });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.spec.widgetSizes')).toBeInTheDocument();
+    expect(screen.queryByText('store.spec.panelSizes')).not.toBeInTheDocument();
+  });
+
+  it('hides the widget sizes cell for a version limited to single-widget panels', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, surfaces: ['q60'] } });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.spec.panelSizes')).toBeInTheDocument();
+    expect(screen.queryByText('store.spec.widgetSizes')).not.toBeInTheDocument();
   });
 
   it('omits the single-widget cell when no panel kind takes any declared size', async () => {

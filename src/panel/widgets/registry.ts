@@ -285,16 +285,25 @@ export function sizesForSurface(meta: SizeRuleMeta, surface?: PanelSurface, devi
   return (meta.gridSizes ?? meta.sizes).filter(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
-// What a listing's sizes mean per panel kind, for the Marketplace page: the sizes
-// multi-widget panels offer (a forced short axis also takes the 2x4 strip), and the
-// sizes each single-widget panel kind takes, which gridSizes never limits.
-export function panelSizesForListing(manifestSizes?: string[], manifestGridSizes?: string[]): { grid: PanelWidgetSize[]; single: PanelWidgetSize[] } {
+// What a listing's sizes mean per panel kind, for the Marketplace page: the sizes a
+// multi-widget panel offers (what the Y70 editor lists), and the sizes each
+// single-widget panel kind takes, which gridSizes never limits. A surfaces list that
+// names panel surfaces limits both rows to them; the legacy vocabulary names none and
+// stays open.
+export function panelSizesForListing(
+  manifestSizes?: string[],
+  manifestGridSizes?: string[],
+  manifestSurfaces?: string[],
+): { grid: PanelWidgetSize[]; single: PanelWidgetSize[] } {
   const { sizes, gridSizes } = normalizeListingSizes(manifestSizes, manifestGridSizes);
+  const named = (manifestSurfaces ?? []).filter((s): s is PanelSurface => (PANEL_SURFACES as readonly string[]).includes(s));
+  const allowed = (surface: PanelSurface) => named.length === 0 || named.includes(surface);
   const meta: SizeRuleMeta = { sizes, gridSizes: gridSizes.length > 0 ? gridSizes : undefined, touch: false };
-  const grid = new Set<PanelWidgetSize>(sizesForSurface(meta, 'y70'));
-  if (sizes.includes('2x4')) grid.add('2x4');
+  const singleSurfaces = Object.keys(SINGLE_WIDGET_SURFACE_SIZE) as PanelSurface[];
+  const gridOpen = PANEL_SURFACES.some(surface => !singleSurfaces.includes(surface) && allowed(surface));
+  const grid = new Set<PanelWidgetSize>(gridOpen ? sizesForSurface(meta, 'y70') : []);
   const single = new Set<PanelWidgetSize>(
-    (Object.keys(SINGLE_WIDGET_SURFACE_SIZE) as PanelSurface[]).flatMap(surface => sizesForSurface(meta, surface)),
+    singleSurfaces.filter(allowed).flatMap(surface => sizesForSurface(meta, surface)),
   );
   return { grid: sizes.filter(s => grid.has(s)), single: sizes.filter(s => single.has(s)) };
 }
