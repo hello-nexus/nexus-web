@@ -52,7 +52,7 @@
 
   // After, not before: a wrapped line then never starts with a dot.
   li:not(:last-child)::after {
-    content: '·';
+    content: '-';
     margin: 0 0.5rem;
     color: var(--text-dim);
   }

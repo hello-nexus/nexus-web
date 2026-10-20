@@ -32,7 +32,7 @@ export function eventTooltipText(t: Translate, event: TimelineEvent, timeFormat:
   const when = formatEventTime(event.t, timeFormat);
   const kind = eventKindLabel(t, event.kind);
   if (event.kind.startsWith('privacy-')) {
-    return `${kind} · ${event.label} · ${formatPrivacyDuration(t, event.t, event.endT)} · ${when}`;
+    return `${kind} - ${event.label} - ${formatPrivacyDuration(t, event.t, event.endT)} - ${when}`;
   }
-  return `${kind} · ${event.label} · ${when}`;
+  return `${kind} - ${event.label} - ${when}`;
 }

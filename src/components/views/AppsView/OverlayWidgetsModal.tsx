@@ -272,7 +272,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
                     {Icon ? <Icon size={14} aria-hidden="true" /> : <span className={styles.itemDot} />}
                     <span className={styles.itemLabel}>{label}</span>
                     <span className={styles.itemMeta}>
-                      {size}{monitor > 0 ? ` · monitor ${monitor + 1}` : ''}
+                      {size}{monitor > 0 ? ` - monitor ${monitor + 1}` : ''}
                     </span>
                     <button
                       type="button"

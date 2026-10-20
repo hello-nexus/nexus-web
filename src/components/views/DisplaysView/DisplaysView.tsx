@@ -114,7 +114,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                 <span className={styles.detailName}>{selected.name}</span>
                 {(selected.manufacturer || selected.model) && (
                   <span className={styles.detailSub}>
-                    {[selected.manufacturer, selected.model].filter(Boolean).join(' · ')}
+                    {[selected.manufacturer, selected.model].filter(Boolean).join(' - ')}
                   </span>
                 )}
               </div>
