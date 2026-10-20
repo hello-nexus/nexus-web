@@ -107,8 +107,7 @@ import { MediaCanvasNotice } from './page/MediaCanvasNotice';
 import { MediaBackdrop } from './page/MediaBackdrop';
 import { MirrorBackdrop } from './page/MirrorBackdrop';
 import { DevicePanel } from './page/DevicePanel';
-import { useOpenRgbZones } from '../../../hooks/useOpenRgbZones';
-import { deviceNeedsSize } from '../devices/zoneSizeUtils';
+import { useZoneSizeDeviceIds } from '../../../hooks/useZoneSizeDeviceIds';
 import { type DiscoveryState } from './page/DeviceDiscoveryCard';
 import { LIGHTING_PIN_HINT_ID, zoneCardSelectable, zoneCardSelectionHoldable, zoneCardUnavailable } from './page/ZoneCard';
 import { Button } from '../../../components/common/Button/Button';
@@ -880,10 +879,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return () => { cancelled = true; };
   }, [serviceOnline, mode, hydrateAnimateSettings]);
 
-  const openRgbZones = useOpenRgbZones(serviceOnline);
-  const zoneSizeKey = openRgbZones.devices.filter(deviceNeedsSize).map(d => d.deviceId).join('\n');
-  // Keyed by content, so a refetch that changes nothing keeps the same Set.
-  const zoneSizeDeviceIds = useMemo(() => new Set(zoneSizeKey ? zoneSizeKey.split('\n') : []), [zoneSizeKey]);
+  const zoneSizeDeviceIds = useZoneSizeDeviceIds(serviceOnline, devices);
 
   // Push-driven refresh: every /lighting/* mutation publishes a 'lighting'
   // frame on the multiplex hub. Each branch refetches the resource it owns.

@@ -2828,7 +2828,7 @@
   "lighting.devices.selectModeHint": "選擇燈光模式以開始探索或掃描裝置。",
   "lighting.devices.selectOnly": "僅選擇 {name}",
   "lighting.devices.setLedCounts": "設定 LED 數量",
-  "lighting.devices.setLedCountsAfterSetup": "完成設定後設定 LED 數量",
+  "lighting.devices.setLedCountsAfterSetup": "初始設定後指定 LED 數量",
   "lighting.devices.stackCount.one": "堆疊（{count} 台裝置）",
   "lighting.devices.stackCount.other": "堆疊（{count} 台裝置）",
   "lighting.devices.stackLayout": "堆疊佈局",

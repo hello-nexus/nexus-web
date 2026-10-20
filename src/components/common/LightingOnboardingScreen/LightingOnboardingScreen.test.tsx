@@ -13,7 +13,7 @@ import {
 import { paletteColor } from '../../../types/lightingPalette';
 import { completeLightingOnboarding } from '../../../api/onboarding';
 import { useConflictApps } from '../../../hooks/useConflictApps';
-import { useOpenRgbZones } from '../../../hooks/useOpenRgbZones';
+import { useZoneSizeDeviceIds } from '../../../hooks/useZoneSizeDeviceIds';
 
 vi.mock('../../../api/lighting', () => ({
   fetchLightingDevices: vi.fn(),
@@ -42,8 +42,8 @@ vi.mock('../../../hooks/useConflictApps', () => ({
   useConflictApps: vi.fn(),
 }));
 
-vi.mock('../../../hooks/useOpenRgbZones', () => ({
-  useOpenRgbZones: vi.fn(),
+vi.mock('../../../hooks/useZoneSizeDeviceIds', () => ({
+  useZoneSizeDeviceIds: vi.fn(),
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -82,7 +82,7 @@ function chooseAdvanced() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
-  vi.mocked(useOpenRgbZones).mockReturnValue({ devices: [], setSize: vi.fn(), refresh: vi.fn() } as unknown as ReturnType<typeof useOpenRgbZones>);
+  vi.mocked(useZoneSizeDeviceIds).mockReturnValue(new Set());
   vi.mocked(setLightingDeviceControlled).mockResolvedValue(null);
   vi.mocked(setPins).mockResolvedValue(true);
 });
@@ -238,11 +238,7 @@ describe('LightingOnboardingScreen - device grid', () => {
   it('tells an unsized OpenRGB device its LED counts come after setup', async () => {
     const unsized: LightingDevice = { ...strip, id: 'openrgb-2', name: 'Test Controller', ledCount: 0 };
     const broken: LightingDevice = { ...strip, id: 'openrgb-3', name: 'Test Broken', ledCount: 0 };
-    vi.mocked(useOpenRgbZones).mockReturnValue({
-      devices: [{ deviceId: 'openrgb-2', name: 'Test Controller', zones: [{ index: 0, name: 'Fan 1', ledCount: 0, ledsMin: 0, ledsMax: 34, resizable: true, needsSize: true }] }],
-      setSize: vi.fn(),
-      refresh: vi.fn(),
-    } as unknown as ReturnType<typeof useOpenRgbZones>);
+    vi.mocked(useZoneSizeDeviceIds).mockReturnValue(new Set(['openrgb-2']));
     seed([unsized, broken]);
     renderScreen();
 

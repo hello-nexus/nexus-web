@@ -2828,7 +2828,7 @@
   "lighting.devices.selectModeHint": "조명 모드를 선택하여 장치 검색 또는 스캔을 시작하세요.",
   "lighting.devices.selectOnly": "{name}만 선택",
   "lighting.devices.setLedCounts": "LED 개수 설정",
-  "lighting.devices.setLedCountsAfterSetup": "설정 후 LED 개수 설정",
+  "lighting.devices.setLedCountsAfterSetup": "초기 설정 후 LED 개수 지정",
   "lighting.devices.stackCount.one": "스택 ({count}개 장치)",
   "lighting.devices.stackCount.other": "스택 ({count}개 장치)",
   "lighting.devices.stackLayout": "스택 배치",
