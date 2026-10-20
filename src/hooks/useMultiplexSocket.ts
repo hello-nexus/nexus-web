@@ -5,6 +5,7 @@ import {
   setActiveHttpTunnel, setActiveTransport, type ActiveTransport,
 } from '../api/service';
 import { getToken } from '../api/auth';
+import { markServiceAnswered } from '../lib/serviceLiveness';
 import { RelayChannel } from './relayChannel';
 import { resetRelayHttpTunnel } from '../api/relayHttp';
 import { isRtcDirectEligible, openRtcDirect, RtcRuntimeChannel, type RtcDirectConnection } from '../api/rtcDirect';
@@ -495,6 +496,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         const parsed = JSON.parse(e.data);
         if (!parsed || typeof parsed !== 'object' || typeof parsed.t !== 'string') return;
         const msg = parsed as { t: string; d: unknown };
+        markServiceAnswered();
         lastFrameCache.set(msg.t, msg.d);
         const entry = topicsRef.current.get(msg.t);
         if (entry) {

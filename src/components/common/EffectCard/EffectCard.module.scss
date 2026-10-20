@@ -186,6 +186,10 @@
   text-transform: capitalize;
 }
 
+.labelAsIs {
+  text-transform: none;
+}
+
 .meta {
   font-size: 0.62rem;
   color: var(--text-dim);

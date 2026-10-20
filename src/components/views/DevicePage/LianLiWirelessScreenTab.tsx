@@ -57,6 +57,12 @@ function orderKey(s: LianLiWirelessScreen): number {
   return s.order !== undefined && s.order >= 0 ? s.order : Number.MAX_SAFE_INTEGER;
 }
 
+// Where a serial sits in the page's preferred order; unknown serials keep the service's order.
+function hintIndex(order: readonly string[] | undefined, serial: string): number {
+  const i = order?.indexOf(serial) ?? -1;
+  return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+}
+
 // Picture, dynamic and video content share one picker entry; the stored type is the item's kind.
 type ContentChoice = LianLiWirelessScreenContentType | 'media';
 
@@ -126,7 +132,7 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  */
 export function LianLiWirelessScreenTab({
   aioMacs = [], usbMacs = [], panelOpener, api = WIRELESS_SCREEN_API,
-  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel,
+  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart, screenLabels, defaultOrder,
 }: {
   aioMacs?: string[];
   /** AIOs whose USB cable is connected, by MAC. */
@@ -141,6 +147,15 @@ export function LianLiWirelessScreenTab({
   supportsSleepWhenLocked?: boolean;
   /** Opens the sidebar panel of a screen in panel mode, by its panel record id. */
   onOpenScreenPanel?: (panelDeviceId: string) => void;
+  /** Restart LCD for families whose screens can be restarted; absent otherwise. */
+  lcdRestart?: {
+    isRestarting: (serial: string) => boolean;
+    onRestart: (serial: string) => void;
+  };
+  /** Short names for the tiles by screen serial, in place of the service's label. */
+  screenLabels?: Readonly<Record<string, string>>;
+  /** Serials in the order screens without a saved order are listed. */
+  defaultOrder?: readonly string[];
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -201,11 +216,15 @@ export function LianLiWirelessScreenTab({
   const loaded = screens !== null;
   // Saved order first, then the firmware position; equal keys keep the
   // service's list order (Array.sort is stable).
+  const defaultOrderKey = defaultOrder?.join(',') ?? '';
   const orderedScreens = useMemo(
-    () => (screens
-      ? [...screens].sort((a, b) => orderKey(a) - orderKey(b) || a.position - b.position)
-      : []),
-    [screens],
+    () => {
+      const hint = defaultOrderKey ? defaultOrderKey.split(',') : undefined;
+      return screens
+        ? [...screens].sort((a, b) => orderKey(a) - orderKey(b) || a.position - b.position || hintIndex(hint, a.serial) - hintIndex(hint, b.serial))
+        : [];
+    },
+    [screens, defaultOrderKey],
   );
 
   // Select the first screen once the list first loads; after that the user's
@@ -261,6 +280,8 @@ export function LianLiWirelessScreenTab({
   const targetScreens = orderedScreens.filter(s => selected.has(s.serial));
   const selectedIndex = selected.size === 1 ? orderedScreens.findIndex(s => selected.has(s.serial)) : -1;
   const representative = targetScreens[0] ?? null;
+  // A restarting screen can drop out of the screens list, so this reads the selection, not the list.
+  const restarting = !!lcdRestart && [...selected].some(serial => lcdRestart.isRestarting(serial));
   // A control shows the shared value, or a mixed state when the selected screens differ.
   const brightness = sharedValue(targetScreens, s => s.brightness);
   const rotation = sharedValue(targetScreens, s => s.rotation);
@@ -500,7 +521,7 @@ export function LianLiWirelessScreenTab({
                       {contentTypeIcon(s.contentType)}
                     </span>
                     <span className={styles.screenPreviewLabel}>
-                      {s.label || t('devices.lianli-wireless.fanN', { n: i + 1 })}
+                      {screenLabels?.[s.serial] || s.label || t('devices.lianli-wireless.fanN', { n: i + 1 })}
                     </span>
                   </button>
                 );
@@ -570,6 +591,24 @@ export function LianLiWirelessScreenTab({
             }))}
           />
         </SettingRow>
+        {lcdRestart && (
+          <SettingRow
+            label={t('devices.lianli-flex.restartLcd')}
+            description={t('devices.lianli-flex.restartLcdHint')}
+            disabled={!representative && !restarting}
+          >
+            <Button
+              size="sm"
+              tone="neutral"
+              disabled={!representative || restarting}
+              onClick={() => targetScreens.forEach(s => lcdRestart.onRestart(s.serial))}
+            >
+              {restarting
+                ? t('devices.lianli-flex.restartingLcd')
+                : t('devices.lianli-flex.restartLcdButton')}
+            </Button>
+          </SettingRow>
+        )}
         {supportsSleepWhenLocked && <SettingToggle
           label={t('devices.lcd.sleepWhenLocked')}
           checked={sleep.value ?? true}
@@ -746,6 +785,7 @@ function MediaPanel({
               key={item.id}
               asDiv
               label={item.name}
+              keepCase
               thumbUrl={item.thumb}
               thumbStatic
               thumbAspect={1}

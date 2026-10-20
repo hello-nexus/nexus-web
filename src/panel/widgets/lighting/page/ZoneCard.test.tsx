@@ -262,7 +262,7 @@ describe('ZoneCard bulk selection', () => {
     expect(rows).toEqual(['lighting.ledMap.settings']);
   });
 
-  it.each(['pl', 'ru'])('asks %s for the CLDR few form at 3', (language) => {
+  it.each(['pl', 'ru', 'cs'])('asks %s for the CLDR few form at 3', (language) => {
     i18n.language = language;
     renderBulkAndOpen(bulkProps({ count: 3, identifyCount: 3 }));
     expect(screen.getByRole('button', { name: /menuControlOffCount\.few/ })).toBeTruthy();
@@ -1132,5 +1132,39 @@ describe('ZoneCard controlled-by strip', () => {
     expect(onOpenAppStrip).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+});
+
+describe('ZoneCard unsized OpenRGB device', () => {
+  const empty: LightingDevice = { ...baseDevice, ledCount: 0 };
+
+  it('links to the Devices block instead of reporting a failed detection', () => {
+    const onOpenZoneSizes = vi.fn();
+    render(
+      <ZoneCard
+        device={empty} selected={false} indent={false} onSelect={() => {}} onTogglePower={() => {}}
+        onToggleControlled={() => {}} onOpenSettings={() => {}} onOpenZoneSizes={onOpenZoneSizes}
+      />,
+    );
+    expect(screen.queryByText('lighting.devices.detectionFailed')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.setLedCounts' }));
+    expect(onOpenZoneSizes).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the detection-failed line when nothing can be sized', () => {
+    renderCard(empty);
+    expect(screen.getByText('lighting.devices.detectionFailed')).toBeTruthy();
+  });
+
+  it('says the counts come after setup where the Devices page is out of reach', () => {
+    render(
+      <ZoneCard
+        device={empty} selected={false} indent={false} onSelect={() => {}} onTogglePower={() => {}}
+        onToggleControlled={() => {}} onOpenSettings={() => {}} toggleMode needsLedCounts
+      />,
+    );
+    expect(screen.getByText('lighting.devices.setLedCountsAfterSetup')).toBeTruthy();
+    expect(screen.queryByText('lighting.devices.detectionFailed')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'lighting.devices.setLedCounts' })).toBeNull();
   });
 });

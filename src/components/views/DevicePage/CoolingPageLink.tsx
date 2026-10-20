@@ -33,11 +33,11 @@ export function CoolingPageLink({ hint, onSectionNavigate }: CoolingPageLinkProp
 }
 
 /** A device Cooling tab's tab-row button to the Cooling page, labelled with what it sets there. */
-export function CoolingPageShortcut({ onSectionNavigate, anchors }: { onSectionNavigate: DashboardSectionNavigate; anchors?: readonly string[] }) {
+export function CoolingPageShortcut({ onSectionNavigate, anchors, fanId }: { onSectionNavigate: DashboardSectionNavigate; anchors?: readonly string[]; fanId?: string }) {
   const { t } = useTranslation();
   const label = t('devices.coolingPage.setHint');
   return (
-    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} title={label} onClick={() => onSectionNavigate('cooling', anchors ? { scrollAnchors: anchors } : undefined)}>
+    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} title={label} onClick={() => onSectionNavigate('cooling', anchors || fanId ? { ...(anchors ? { scrollAnchors: anchors } : {}), ...(fanId ? { coolingFanId: fanId } : {}) } : undefined)}>
       <span className={styles.pageShortcutLabel}>{label}</span>
     </Button>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FolderOpen, Image as ImageIcon, Sparkles, Upload } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
+import { useToastSafe } from '../../components/common/Toast/Toast';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
 import { SettingSelect, SettingToggle } from '../../components/common/SettingRow/SettingRow';
@@ -79,6 +80,7 @@ export function BackgroundMediaPicker({
   onOrderChange?: (ids: string[]) => void;
 }) {
   const { t, language } = useTranslation();
+  const { push } = useToastSafe();
   const { items, thumbs, refresh, removeLocal } = useBackgroundMedia(deviceId);
   const [importing, setImporting] = useState(false);
   const [importingName, setImportingName] = useState<string | null>(null);
@@ -373,7 +375,11 @@ export function BackgroundMediaPicker({
             <Button
               className={styles.manageFolderBtn}
               icon={<FolderOpen size={16} aria-hidden />}
-              onClick={() => { openBackgroundMediaFolder(deviceId).catch(() => {}); }}
+              onClick={() => {
+                openBackgroundMediaFolder(deviceId)
+                  .then(ok => { if (!ok) push({ title: t('common.openFolderFailed') }); })
+                  .catch(() => push({ title: t('common.openFolderFailed') }));
+              }}
             >
               {t('lighting.controls.mediaManageFolder')}
             </Button>

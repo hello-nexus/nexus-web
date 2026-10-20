@@ -9,7 +9,7 @@ import {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'nl', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl', 'fur'] as const;
+export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'nl', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl', 'cs', 'fur'] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -28,6 +28,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ru: 'Русский',
   tr: 'Türkçe',
   pl: 'Polski',
+  cs: 'Čeština',
   fur: 'Furlan',
 };
 
@@ -47,6 +48,7 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
   ru: '\u{1F1F7}\u{1F1FA}',
   tr: '\u{1F1F9}\u{1F1F7}',
   pl: '\u{1F1F5}\u{1F1F1}',
+  cs: '\u{1F1E8}\u{1F1FF}',
   // Friûl has no Unicode flag emoji. Required by the exhaustive Record type;
   // the value is unused - GeneralTab special-cases fur and renders its flag
   // from an image asset instead.

@@ -378,6 +378,18 @@ describe('useUnifiedDevices - cooler LCD rows', () => {
     expect(result.current.unified.find(d => d.curatedId === 'lianli-hydroshift2')?.warning).toBeUndefined();
   });
 
+  it('drops the access-denied warning while Nexus Control is off', () => {
+    mockUseDevices.mockReturnValue({ devices: [lcd({ nexusControlEnabled: false, warning: 'access-denied' })], controlDevice: vi.fn() });
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'lianli-hydroshift2')?.warning).toBeUndefined();
+  });
+
+  it('keeps the access-denied warning while Nexus Control is on', () => {
+    mockUseDevices.mockReturnValue({ devices: [lcd({ warning: 'access-denied' })], controlDevice: vi.fn() });
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'lianli-hydroshift2')?.warning).toBe('access-denied');
+  });
+
   it('keeps the pipe-unavailable warning while Nexus Control is on', () => {
     mockUseDevices.mockReturnValue({ devices: [lcd()], controlDevice: vi.fn() });
     const { result } = renderHook(() => useUnifiedDevices(true));

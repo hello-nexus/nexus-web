@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { DeviceCanvas } from './DeviceCanvas';
+import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
@@ -728,5 +728,54 @@ describe('DeviceCanvas stacks', () => {
     fireEvent.contextMenu(screen.getByText('Loose'));
     fireEvent.click(screen.getByText('lighting.devices.stackCount.one'));
     expect(stack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('minimizeInto grid slots', () => {
+  // The origin/main rule, one slot per device, kept here as the reference.
+  function referenceSlot(index: number, n: number) {
+    const GRID_PAD = 12, MIN_W = 140, MIN_H = 120, STAGGER = 24;
+    const availW = 1000 - 2 * GRID_PAD, availH = 600 - 2 * GRID_PAD;
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n * (availW / availH))));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const cellW = availW / cols, cellH = availH / rows;
+    const fit = Math.min(Math.min(MIN_W, cellW * 0.92) / MIN_W, Math.min(MIN_H, cellH * 0.7) / MIN_H);
+    const w = MIN_W * fit, h = MIN_H * fit;
+    const total = cols * rows;
+    const sl = ((index % total) + total) % total;
+    const col = sl % cols, row = Math.floor(sl / cols);
+    const slack = (cellH - h) * 0.5;
+    const stagger = Math.min(STAGGER, slack);
+    let x = GRID_PAD + col * cellW + (cellW - w) * 0.5;
+    let y = GRID_PAD + row * cellH + slack + (col % 2 === 0 ? -stagger : stagger);
+    if (x > 1000 - GRID_PAD - w) x = 1000 - GRID_PAD - w;
+    if (y > 600 - GRID_PAD - h) y = 600 - GRID_PAD - h;
+    if (x < GRID_PAD) x = GRID_PAD;
+    if (y < GRID_PAD) y = GRID_PAD;
+    return { canvasX: x, canvasY: y, canvasW: w, canvasH: h };
+  }
+  const rect = (d: LightingDevice) => ({ canvasX: d.canvasX, canvasY: d.canvasY, canvasW: d.canvasW, canvasH: d.canvasH });
+  const make = (ids: string[]) => ids.map(id => dragDevice(id, id));
+
+  it('matches the one-slot-per-device rule when no device is a Flex zone', () => {
+    for (const n of [1, 2, 3, 5, 8, 13]) {
+      const devices = make(Array.from({ length: n }, (_, i) => `rgb:${i}`));
+      minimizeInto(devices, devices);
+      devices.forEach((d, i) => expect(rect(d)).toEqual(referenceSlot(i, n)));
+    }
+  });
+
+  it('puts the zones of one Flex fan into one shared rect', () => {
+    const devices = make(['lianli-flex:AA11:up', 'lianli-flex:AA11:down']);
+    minimizeInto(devices, devices);
+    expect(rect(devices[0])).toEqual(rect(devices[1]));
+    expect(rect(devices[0])).toEqual(referenceSlot(0, 1));
+  });
+
+  it('numbers slots like the service: a slot per non-Flex device and per fan, in list order', () => {
+    const devices = make(['rgb:a', 'lianli-flex:AA11:up', 'lianli-flex:AA11:down', 'rgb:b', 'lianli-flex:BB22:center', 'lianli-flex:AA11:extra', 'lianli-flex:CC33']);
+    minimizeInto(devices, devices);
+    const slots = [0, 1, 1, 2, 3, 1, 4];
+    devices.forEach((d, i) => expect(rect(d)).toEqual(referenceSlot(slots[i], 5)));
   });
 });

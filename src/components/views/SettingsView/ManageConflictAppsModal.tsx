@@ -35,7 +35,8 @@ interface ManageConflictAppsModalProps {
   onEndOnLaunchChange: (enabled: boolean) => void;
   /** Catalog ids opted OUT. Every app not listed here is shut down. */
   exclusions: string[];
-  onExclusionsChange: (ids: string[]) => void;
+  /** One app at a time, never the whole list: a copy held here can be older than the service's. */
+  onWhitelistChange: (id: string, whitelisted: boolean) => void;
   /** Windows notification with an "End task" button when a conflicting app launches. */
   notifyLaunches: boolean;
   onNotifyLaunchesChange: (enabled: boolean) => void;
@@ -57,7 +58,7 @@ interface ManageConflictAppsModalProps {
  */
 export function ManageConflictAppsModal({
   open, onClose, autoShutdown, onAutoShutdownChange, endOnLaunch, onEndOnLaunchChange,
-  exclusions, onExclusionsChange, notifyLaunches, onNotifyLaunchesChange,
+  exclusions, onWhitelistChange, notifyLaunches, onNotifyLaunchesChange,
 }: ManageConflictAppsModalProps) {
   const { t } = useTranslation();
   const [catalog, setCatalog] = useState<ConflictCatalogApp[] | null>(null);
@@ -132,12 +133,7 @@ export function ManageConflictAppsModal({
     return out;
   }, [catalog, runningIds, query, t]);
 
-  const setEnabled = (id: string, enabled: boolean) => {
-    const next = new Set(excluded);
-    if (enabled) next.delete(id);
-    else next.add(id);
-    onExclusionsChange([...next]);
-  };
+  const setEnabled = (id: string, enabled: boolean) => onWhitelistChange(id, !enabled);
 
   if (!open) return null;
 

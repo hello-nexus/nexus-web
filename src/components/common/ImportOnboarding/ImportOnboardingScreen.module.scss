@@ -67,25 +67,6 @@
   overflow-y: auto;
 }
 
-.error {
-  @include text-caption;
-  margin: 0;
-  color: var(--danger);
-  text-align: center;
-}
-
-.footerRow {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.continueButton {
-  width: min(280px, 100%);
-}
-
 // What continuing does to the app, stated in its card. Not a choice: it and
 // Nexus drive the same hardware.
 .closeNote {
@@ -97,12 +78,3 @@
   color: var(--text-dim);
 }
 
-.topBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  // Sticks to the surface edges rather than the centred content column, so
-  // Back and Skip sit in the page corners.
-  flex-shrink: 0;
-}

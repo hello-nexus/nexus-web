@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   lianLiCoolingAnchors,
+  lianLiFlexCoolingAnchors,
+  lianLiFlexLightingAnchors,
   lianLiLightingAnchors,
   lianLiWirelessCoolingAnchors,
   lianLiWirelessLightingAnchors,
@@ -52,5 +54,18 @@ describe('pageAnchors', () => {
       'cooling-group:lianli-wireless:998D1DE566E1',
       'cooling-group:lianli-wireless:AABBCCDDEEFF',
     ]);
+  });
+
+  it('wired LCD Flex lighting targets each unit group and zone card, then the parent group', () => {
+    const anchors = lianLiFlexLightingAnchors(['AA11']);
+    expect(anchors[0]).toBe('lighting-group:mb:lianli-flex:AA11');
+    expect(anchors).toContain('lighting-device:lianli-flex:AA11:up');
+    expect(anchors).toContain('lighting-device:lianli-flex:AA11:outer');
+    expect(anchors).not.toContain('lighting-device:lianli-flex:AA11');
+    expect(anchors[anchors.length - 1]).toBe('lighting-group:mb:lianli-flex');
+  });
+
+  it('wired LCD Flex cooling targets each unit group', () => {
+    expect(lianLiFlexCoolingAnchors(['AA11', 'BB22'])).toEqual(['cooling-group:lianli-flex:AA11', 'cooling-group:lianli-flex:BB22']);
   });
 });

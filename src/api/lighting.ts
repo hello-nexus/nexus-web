@@ -4,6 +4,7 @@ import { fetchService, postService, deleteService, putService, authFetchWithStat
 import { lianLiHubQuery } from './lianli';
 import { type DeviceGroup } from '../lib/deviceGroups';
 import { type DeviceStack } from '../lib/stackSlots';
+import { visibleLightingCards } from '../lib/lightingVisibility';
 import { parseShaderParams, type ShaderParamSpec } from '../lib/shaderParams';
 import { parseSensorUniforms, type SensorBinding, type SensorUniform } from '../lib/sensorBinding';
 import type { EffectState } from '../types/lighting';
@@ -507,6 +508,10 @@ export interface LightingDevicesResponse {
   groups?: DeviceGroup[];
   /** Cards stacked to one canvas frame and one selection, each with how the frame is shared. Absent on older services. */
   stacks?: DeviceStack[];
+  /** Set by fetchLightingDevices: every card the service listed, OpenRGB ones included, for ids that must outlive a hidden card. */
+  allDevices?: LightingDevice[];
+  /** Set by fetchLightingDevices: the daemon state `devices` was filtered by. */
+  rgbRunning?: boolean;
 }
 
 /** Whole-list replace; the page owns group order and membership. */
@@ -517,8 +522,20 @@ export const saveLightingGroups = (groups: DeviceGroup[]) =>
 export const saveLightingStacks = (stacks: DeviceStack[]) =>
   putService<{ stacks: DeviceStack[] }>('/devices/lighting-devices/stacks', { stacks });
 
-export const fetchLightingDevices = () =>
-  fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
+// Kept across calls so a failed status read leaves the cards as they were; unknown until the first success counts as off.
+let lastRgbRunning = false;
+
+/** The device list every surface shares, with OpenRGB cards hidden while OpenRGB is not running. */
+export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | null> => {
+  const [res, status] = await Promise.all([
+    fetchService<LightingDevicesResponse>('/devices/lighting-devices/all'),
+    fetchLightingStatus().catch(() => null),
+  ]);
+  if (!res) return res;
+  if (status) lastRgbRunning = status.rgbRunning === true;
+  const all = res.devices ?? [];
+  return { ...res, devices: visibleLightingCards(all, lastRgbRunning), allDevices: all, rgbRunning: lastRgbRunning };
+};
 
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });

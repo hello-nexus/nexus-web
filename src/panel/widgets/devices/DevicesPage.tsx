@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Usb, Monitor, HardDriveDownload, FileText, Cable, BookOpen, Link2 } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import { useOpenRgbDevices } from '../../../hooks/useOpenRgbDevices';
+import { useOpenRgbZones } from '../../../hooks/useOpenRgbZones';
+import { useFeatureFlags } from '../../../hooks/useUiSettings';
+import { groupOpenRgbDevices, openRgbNoticeShown, type OpenRgbDevice } from './openRgbDevices';
+import { zoneDeviceFor } from './zoneSizeUtils';
+import { OpenRgbZoneSizes } from './OpenRgbZoneSizes';
+import { DeviceGroupIcon } from '../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useConflictGuardedEnable } from '../../../hooks/useConflictGuardedEnable';
 import type { DetectedConflict } from '../../../api/conflicts';
@@ -50,12 +57,14 @@ interface DevicesViewProps {
   // Falls back to local state when not routed (dashboard widget reuse).
   tab?: string | null;
   onTabChange?: (tab: string) => void;
+  // Opens the Lighting page, the one place that turns lighting on.
+  onOpenLighting?: () => void;
 }
 
 type TabKey = 'available' | 'displays' | 'firmware' | 'specs';
 const TAB_KEYS: readonly string[] = ['available', 'displays', 'firmware', 'specs'];
 
-export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, tab: routedTab, onTabChange }: DevicesViewProps) {
+export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, tab: routedTab, onTabChange, onOpenLighting }: DevicesViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
   const [localTab, setLocalTab] = useState<TabKey>('available');
@@ -112,6 +121,41 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   // so the tab renders today's single unheaded list.
   const usbDevices = useMemo(() => orderedDevices.filter(d => (d.bus ?? 'usb') === 'usb'), [orderedDevices]);
   const smbusDevices = useMemo(() => orderedDevices.filter(d => d.bus === 'smbus'), [orderedDevices]);
+  const { lighting: lightingFeatureOn } = useFeatureFlags();
+  const openRgb = useOpenRgbDevices(serviceOnline && availableActive);
+  const setOpenRgbControlled = openRgb.setControlled;
+  const openRgbZones = useOpenRgbZones(serviceOnline && availableActive);
+  const setOpenRgbZoneSize = openRgbZones.setSize;
+  const openRgbOff = openRgbNoticeShown(lightingFeatureOn, openRgb.daemonUp);
+  // No rows while OpenRGB is off: held-off snapshots would invite toggles that kill a competing app.
+  const openRgbDevices = useMemo(() => (openRgbOff ? [] : groupOpenRgbDevices(openRgb.cards)), [openRgbOff, openRgb.cards]);
+  const openRgbNotice = openRgb.loaded && openRgbOff;
+  const renderOpenRgbCard = useCallback((o: OpenRgbDevice) => {
+    // The conflict guard checks one app id: the competing app that is running now.
+    const runningConflict = conflicts.find(c => o.conflictAppIds.includes(c.id));
+    const device: UnifiedDevice = {
+      key: o.key, shortName: o.name, name: o.name, subtitle: '', category: o.iconType ?? '', iconSrc: '',
+      connected: true, kind: 'app-device', navigable: false, nexusControlEnabled: o.controlled,
+      supportsNexusControl: true, experimental: false, requiresBeta: false, conflictAppId: runningConflict?.id,
+    };
+    const zoneDevice = zoneDeviceFor(openRgbZones.devices, o.deviceId);
+    return (
+      <div key={o.key} className={styles.openRgbEntry}>
+        <DeviceCard
+          device={device}
+          icon={<DeviceGroupIcon id={o.deviceId} iconType={o.iconType} className={styles.rowGlyph} />}
+          runningConflict={runningConflict}
+          onClick={() => undefined}
+          onToggleControl={next => {
+            const apply = () => void setOpenRgbControlled(o.cardIds, next);
+            if (next) void requestEnable(device, apply);
+            else apply();
+          }}
+        />
+        {zoneDevice && <OpenRgbZoneSizes device={zoneDevice} onSetSize={setOpenRgbZoneSize} onFailed={() => push({ title: t('devices.openrgb.zoneSizeFailed') })} />}
+      </div>
+    );
+  }, [conflicts, setOpenRgbControlled, requestEnable, openRgbZones.devices, setOpenRgbZoneSize, push, t]);
   const headersShown = smbusDevices.length > 0;
 
   const renderDeviceCard = useCallback((d: UnifiedDevice) => {
@@ -196,6 +240,28 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
                 </div>
               )}
 
+              {(openRgbNotice || openRgbDevices.length > 0) && (
+                <>
+                  <SectionHeader className={styles.sectionHeader}>{t('devices.section.openrgb')}</SectionHeader>
+                  {openRgbNotice && (
+                    <Notice
+                      tone="info"
+                      role="status"
+                      actions={onOpenLighting && (
+                        <Button size="sm" tone="neutral" onClick={onOpenLighting}>{t('devices.openrgb.openLighting')}</Button>
+                      )}
+                    >
+                      {t('devices.openrgb.lightingOff')}
+                    </Notice>
+                  )}
+                  {openRgbDevices.length > 0 && (
+                    <div className={styles.list}>
+                      {openRgbDevices.map(renderOpenRgbCard)}
+                    </div>
+                  )}
+                </>
+              )}
+
               <div className={styles.missingNotice}>
                 <Notice tone="info" role="status">{t('devices.available.missingNotice')}</Notice>
               </div>
@@ -277,9 +343,11 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
 }
 
 function DeviceCard({
-  device, runningConflict, updateAvailable, onClick, onToggleControl,
+  device, icon, runningConflict, updateAvailable, onClick, onToggleControl,
 }: {
   device: UnifiedDevice;
+  /** Replaces the mask icon for rows whose art is a component, not an SVG url. */
+  icon?: ReactNode;
   /** The device's competing app, when the watcher reports it running. */
   runningConflict?: DetectedConflict;
   updateAvailable?: boolean;
@@ -304,11 +372,13 @@ function DeviceCard({
       <span className={styles.rowIconTile}>
         {/* Decorative: the only available label is the service's raw
             untranslated category enum. */}
-        <span
-          className={styles.rowIcon}
-          aria-hidden
-          style={{ ['--icon-url' as string]: `url(${device.iconSrc})` }}
-        />
+        {icon ?? (
+          <span
+            className={styles.rowIcon}
+            aria-hidden
+            style={{ ['--icon-url' as string]: `url(${device.iconSrc})` }}
+          />
+        )}
       </span>
       <div className={styles.rowInfo}>
         <span className={styles.rowName}>{device.shortName}</span>
@@ -339,17 +409,18 @@ function DeviceCard({
   );
 
   const stateClass = device.connected ? '' : styles.disconnected;
+  const controlOffClass = onToggleControl && !device.nexusControlEnabled ? ` ${styles.controlOff}` : '';
 
   // Non-navigable devices (e.g. the MiniHub - controlled from Cooling/Lighting,
   // no dedicated page) render as a static status card: shown for visibility,
   // but not a button that deep-links into an empty page.
   if (!device.navigable) {
-    return <div className={`${styles.card} ${styles.staticCard} ${stateClass}`}>{body}</div>;
+    return <div className={`${styles.card} ${styles.staticCard} ${stateClass}${controlOffClass}`}>{body}</div>;
   }
 
   return (
     <div
-      className={`${styles.card} ${stateClass}`}
+      className={`${styles.card} ${stateClass}${controlOffClass}`}
       onClick={onClick}
       role="button"
       tabIndex={0}

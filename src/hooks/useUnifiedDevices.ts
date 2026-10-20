@@ -161,6 +161,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
   'lianli-wireless': '/assets/devices/lianli.svg',
+  'lianli-flex': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/lianli.svg',
   nollie: '/assets/devices/nollie.svg',
   tryx: '/assets/devices/tryx.svg',
@@ -185,6 +186,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'lianli-tl': 'Lian Li Uni Fan TL',
   'lianli-aio': 'Lian Li Galahad II',
   'lianli-wireless': 'Lian Li L-Wireless Controller',
+  'lianli-flex': 'Lian Li LCD Flex',
   strimer: 'Lian Li Strimer Plus',
   nollie: 'Nollie',
   tryx: 'Tryx Panorama',
@@ -406,8 +408,8 @@ function buildUnifiedList(
       supportsNexusControl: d.supportsNexusControl ?? false,
       experimental: d.experimental ?? false,
       requiresBeta: d.requiresBeta ?? false,
-      // Off never opens a cooler LCD's pipe, so its unavailable warning only restates the off state.
-      warning: (d.nexusControlEnabled === false && d.warning === 'bulk-pipe-unavailable' ? undefined : d.warning) ?? undefined,
+      // Off never opens a cooler LCD's pipe, so its pipe-unavailable and access-denied warnings only restate the off state.
+      warning: (d.nexusControlEnabled === false && (d.warning === 'bulk-pipe-unavailable' || d.warning === 'access-denied') ? undefined : d.warning) ?? undefined,
       conflictAppId: d.conflictAppId,
       bus: d.bus ?? 'usb',
     });

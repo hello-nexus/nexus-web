@@ -242,7 +242,7 @@ const ACCENT_NAMES: Record<string, string> = {
 const LANG_EN: Record<string, string> = {
   en: 'English', 'zh-TW': 'Chinese Traditional', 'zh-CN': 'Chinese Simplified', ja: 'Japanese', ko: 'Korean',
   de: 'German', nl: 'Dutch', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese', 'pt-BR': 'Portuguese Brazil',
-  ru: 'Russian', tr: 'Turkish', pl: 'Polish', fur: 'Friulian',
+  ru: 'Russian', tr: 'Turkish', pl: 'Polish', cs: 'Czech', fur: 'Friulian',
 };
 
 // Lighting modes, keyed by the canonical MODES. `apply` present → runs now;
@@ -860,7 +860,11 @@ const diagnostics: SearchSource = (ctx) => [
     subtitle: ctx.t('settings.diagnostics.title'),
     icon: <FolderOpen size={18} />,
     keywords: ['folder', 'data', 'files', 'programdata', 'app data', 'settings.json', 'diagnostics'],
-    run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
+    run: () => {
+      void postService('/diagnostics/open-logs', {})
+        .then(res => { if (!res) ctx.notify(ctx.t('common.openFolderFailed')); })
+        .catch(() => ctx.notify(ctx.t('common.openFolderFailed')));
+    },
   }),
   ...(ctx.online ? [
     act('diag:download-report', {

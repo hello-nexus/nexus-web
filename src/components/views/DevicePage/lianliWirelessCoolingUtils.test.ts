@@ -119,3 +119,28 @@ describe('buildLianLiWirelessCoolingChains', () => {
     expect(chains[1].ports).toHaveLength(2);
   });
 });
+
+describe('wired LCD Flex channels', () => {
+  const flexId = (mac: string) => lianliWirelessPortChannelId(mac, 0, 'lianli-flex:');
+
+  it('builds the channel id with the handler prefix', () => {
+    expect(flexId('AABBCC')).toBe('lianli-flex:AABBCC:port0');
+  });
+
+  it('joins a unit with its own channel and ignores wireless channels of the same MAC', () => {
+    const fan = makeFan({ mac: 'AABBCC', fanType: 51, fanCount: 1, rpm: [661, 0, 0, 0] });
+    const channels = [
+      makeChannel({ id: flexId('AABBCC'), name: 'Flex' }),
+      makeChannel({ id: lianliWirelessPortChannelId('AABBCC', 0), name: 'Wireless' }),
+    ];
+    const [chain] = buildLianLiWirelessCoolingChains([fan], channels, 'lianli-flex:');
+    expect(chain.ports).toHaveLength(1);
+    expect(chain.ports[0].channel?.name).toBe('Flex');
+    expect(chain.ports[0].rpm).toBe(661);
+  });
+
+  it('shows nothing for a unit bound elsewhere', () => {
+    const fan = makeFan({ mac: 'AABBCC', boundToUs: false, receiverBound: true });
+    expect(buildLianLiWirelessCoolingChains([fan], [makeChannel({ id: flexId('AABBCC') })], 'lianli-flex:')).toEqual([]);
+  });
+});

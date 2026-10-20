@@ -115,37 +115,10 @@ $group-gap: 0.75rem;
 
 .section {
   width: min($onboarding-content-width, 100%);
-  flex: 0 1 auto;
-  // Room for one row; below it the surface scrolls.
-  min-height: 10.4rem;
-}
-
-// Closes the page under the box, with the standard gap before what follows.
-.note {
-  width: min($onboarding-content-width, 100%);
-  margin-top: 0.4rem;
-  margin-bottom: var(--space-xl);
-}
-
-// Shrinks and scrolls before anything else.
-.sectionBox {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
+  flex: 0 0 auto;
 }
 
 .telemetryRow {
   position: relative;
 }
 
-.enterButton {
-  width: min(280px, 100%);
-  flex-shrink: 0;
-}
-
-.error {
-  @include text-caption;
-  margin: 0 0 var(--space-xl);
-  color: var(--bad);
-  text-align: center;
-}

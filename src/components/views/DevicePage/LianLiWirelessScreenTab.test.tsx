@@ -698,3 +698,39 @@ describe('LianLiWirelessScreenTab', () => {
     expect(mockImportMedia.mock.calls[0][0]).toBeInstanceOf(File);
   });
 });
+
+describe('LianLiWirelessScreenTab Restart LCD', () => {
+  async function renderRestart(isRestarting: (serial: string) => boolean = () => false) {
+    const onRestart = vi.fn();
+    await act(async () => {
+      render(<LianLiWirelessScreenTab lcdRestart={{ isRestarting, onRestart }} />);
+    });
+    return onRestart;
+  }
+
+  it('restarts the selected screen', async () => {
+    const onRestart = await renderRestart();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.restartLcdButton' }));
+    expect(onRestart).toHaveBeenCalledTimes(1);
+    expect(onRestart).toHaveBeenCalledWith('S1');
+  });
+
+  it('restarts every selected screen in multiple mode', async () => {
+    const onRestart = await renderRestart();
+    fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+    fireEvent.click(fanTile(2));
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.restartLcdButton' }));
+    expect(onRestart.mock.calls.map(c => c[0]).sort()).toEqual(['S1', 'S2']);
+  });
+
+  it('shows the pending label and disables the button while the screen restarts', async () => {
+    await renderRestart(serial => serial === 'S1');
+    const button = screen.getByRole('button', { name: 'devices.lianli-flex.restartingLcd' });
+    expect(button).toBeDisabled();
+  });
+
+  it('has no Restart LCD row for a family that cannot restart', async () => {
+    await renderTab();
+    expect(screen.queryByText('devices.lianli-flex.restartLcd')).not.toBeInTheDocument();
+  });
+});

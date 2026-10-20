@@ -12,6 +12,15 @@ describe('pluralSuffix', () => {
     expect(pluralSuffix('pl', 25)).toBe('other');
   });
 
+  it('resolves the CLDR category for Czech, where few is exactly 2 to 4', () => {
+    expect(pluralSuffix('cs', 1)).toBe('one');
+    expect(pluralSuffix('cs', 2)).toBe('few');
+    expect(pluralSuffix('cs', 4)).toBe('few');
+    expect(pluralSuffix('cs', 5)).toBe('other');
+    expect(pluralSuffix('cs', 0)).toBe('other');
+    expect(pluralSuffix('cs', 22)).toBe('other');
+  });
+
   it('resolves the correct 3-form CLDR category for Russian, which differs from Polish at 21', () => {
     expect(pluralSuffix('ru', 1)).toBe('one');
     expect(pluralSuffix('ru', 3)).toBe('few');

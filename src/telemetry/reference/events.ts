@@ -85,9 +85,19 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Fan speed set',
     status: 'live',
     source: 'service',
-    description: 'A fan channel was set to a manual speed from the panel (POST /cooling/fan/{id}/speed).',
+    description: 'A fan channel was set to a manual speed by a deliberate user pick (POST /cooling/fan/{id}/speed). Not counted: the seed speed written when a BIOS fan is taken into software control (see fan_control_taken) and undo/redo replays.',
     params: [
       { name: 'speed', type: 'number', required: true, description: 'Resulting fan speed the hardware accepted (percent).' },
+    ],
+  },
+  {
+    name: 'fan_control_taken',
+    title: 'Fan control taken',
+    status: 'live',
+    source: 'service',
+    description: 'A fan was taken from BIOS into software control from the panel, once per fan. The page writes a placeholder speed to do it, which is not a speed choice; this records the control the user picked instead (POST /cooling/fan/{id}/speed with source "seed").',
+    params: [
+      { name: 'target', type: 'string', required: true, description: 'manual | curve - the control the user chose for the fan.' },
     ],
   },
   {
@@ -115,7 +125,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Fan preset applied',
     status: 'live',
     source: 'service',
-    description: 'A cooling preset was applied from the panel (POST /cooling/profile/{name}) - the fan-mode widget.',
+    description: 'A cooling preset was applied by a user pick from the panel (POST /cooling/profile/{name}) - the fan-mode widget. Not counted: the automatic switch from Off to Custom when a fan is changed, and undo/redo replays.',
     params: [
       { name: 'preset', type: 'string', required: true, description: 'The applied preset - a built-in name (silent, balanced, turbo, …), a custom curve name, or "off".' },
     ],
@@ -125,10 +135,10 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Lighting effect applied',
     status: 'live',
     source: 'service',
-    description: 'A lighting look was applied, from any of the three headless-start routes. Deduped on mode plus effect, so the ~30 posts/second a slider drag produces cost nothing and only a real change is recorded; stopping lighting clears the dedupe, so restarting the same look reports again. The count is therefore transitions, not time spent.',
+    description: 'A lighting look was applied, from any of the three headless-start routes. Deduped against the look already running (read from the persisted state before each start), so the ~30 posts/second a slider drag produces, a page replaying the running look after a restart, and looks changed by auto-restore, profile or preset switches cost nothing and only a real change is recorded; stopping lighting clears the dedupe, so restarting the same look reports again. The count is therefore transitions, not time spent.',
     params: [
       { name: 'mode', type: 'string', required: true, description: 'animate | static | screen - the mode the service actually ran, which is not always the route it arrived on: a static-catalog key posted to the animate route is rerouted into Static and reported as static.' },
-      { name: 'effect', type: 'string', required: true, description: 'Effect key, lowercased the same way the provider lowercases it before matching (e.g. plasma, fire, gradientlinear). Defaults are filled in as the service applies them - an animate start with no key runs rainbow. Anything outside the lowercase slug alphabet reports as "other". Always "screen" in screen mode, where the service ignores the field.' },
+      { name: 'effect', type: 'string', required: true, description: 'Effect key, lowercased the same way the provider lowercases it before matching (e.g. plasma, fire, gradientlinear). Defaults are filled in as the service applies them - an animate start with no key runs rainbow. Anything outside the lowercase slug alphabet reports as "other". Always "screen" in screen mode, where the service ignores the field. Always "flat" for a flat color (static mode with a color), whatever effect key the client sends with it.' },
     ],
   },
   {
