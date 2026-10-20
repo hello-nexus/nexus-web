@@ -26,6 +26,22 @@ export interface LianLiWirelessFan {
   pwmCableConnected?: boolean;
   /** A HydroShift II that is also on USB, whose screen has its own panel page. */
   usbConnected?: boolean;
+  /** Wired LCD Flex units only: "tlFlex" or "slInfFlex". */
+  family?: string;
+  /** Wired LCD Flex units only: serial of the paired screen, empty when none. */
+  screenSerial?: string;
+  /** Wired LCD Flex units only: the screen is mid restart. */
+  lcdRestarting?: boolean;
+  /** Wired LCD Flex units only: bound to a wireless master elsewhere, so Nexus lighting and cooling are off. */
+  receiverBound?: boolean;
+  /** Wired LCD Flex units only: screen firmware, empty until read. */
+  lcdFirmware?: string;
+  /** Wired LCD Flex units only: position in the light sequence. */
+  sortIndex?: number;
+  /** Wired LCD Flex units only: the unit is flashing for Identify. */
+  identifying?: boolean;
+  /** A Flex unit that the wired LCD Flex page owns, so it is not offered for RF binding here. */
+  wiredOwned?: boolean;
 }
 
 /** Why the link is down, for the device page. Absent on a service older than the field. */
@@ -49,6 +65,9 @@ export interface LianLiWirelessState {
   lockBoundDevices?: boolean;
   fans: LianLiWirelessFan[];
 }
+
+/** What the Devices, Cooling and Lighting tabs read: the wireless state, or the subset a wired unit reports. */
+export type LianLiFansState = Pick<LianLiWirelessState, 'isConnected' | 'fans'> & Partial<LianLiWirelessState>;
 
 export function getLianLiWirelessState(): Promise<LianLiWirelessState | null> {
   return fetchService<LianLiWirelessState>('/devices/lianli-wireless/state');
@@ -87,6 +106,8 @@ export interface LianLiWirelessLightingEffect {
   colorsMax: number;
   /** Has a variant that runs across every fan of the chain. Absent on an older service. */
   mergeable?: boolean;
+  /** Palette the effect plays when no colors are chosen, as #RRGGBB. Absent on a service that has none. */
+  defaultColors?: string[];
 }
 
 export interface LianLiWirelessLane {
@@ -129,15 +150,46 @@ export interface LianLiWirelessChainLighting {
   argbCableConnected?: boolean;
   /** The chain reports it is playing its motherboard input. */
   playingMotherboardArgb?: boolean;
+  /** Wired LCD Flex only: the fan has zones that can each play their own effect (mode 'perZone'). */
+  supportsZones?: boolean;
+  zones?: LianLiFlexZone[];
+  /** Wired TL Flex only: the two halves are exchanged. Null or absent when the fan has no such switch. */
+  upDownSwap?: boolean | null;
+  /** Wired LCD Flex only: position in the light sequence. */
+  sortIndex?: number;
+}
+
+/** One independently lit part of a wired LCD Flex fan, with its own effect. */
+export interface LianLiFlexZone {
+  id: 'up' | 'down' | 'center' | 'inner' | 'outer';
+  ledCount: number;
+  mode: string;
+  speed: number;
+  direction: number;
+  brightness: number;
+  colors: string[];
 }
 
 export interface LianLiWirelessLighting {
+  /** The unit whose look a merged group plays, as the service decided; null when no unit leads. Absent on an older service. */
+  mergeLeaderMac?: string | null;
   laneModes: string[];
   chains: LianLiWirelessChainLighting[];
 }
 
+export type LianLiFlexZonePatch = Partial<Omit<LianLiFlexZone, 'ledCount'>> & Pick<LianLiFlexZone, 'id'>;
+
 export type LianLiWirelessChainPatch = Partial<Pick<LianLiWirelessChainLighting,
-  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings' | 'motherboardArgb'>>;
+  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings' | 'motherboardArgb'
+  | 'upDownSwap' | 'sortIndex'>> & { zones?: LianLiFlexZonePatch[] };
+
+/** The lighting endpoints of one Lian Li fan family; the Lighting tab is written against this. */
+export interface LianLiChainLightingApi {
+  get: () => Promise<LianLiWirelessLighting | null>;
+  set: (mac: string, patch: LianLiWirelessChainPatch) => Promise<boolean>;
+  /** Wired LCD Flex only: restores the default look of one fan. */
+  reset?: (mac: string) => Promise<boolean>;
+}
 
 export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | null> {
   return fetchService<LianLiWirelessLighting>('/devices/lianli-wireless/lighting');

@@ -82,8 +82,8 @@ import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '..
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
-import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
-import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass } from './device/wiredPanel';
+import { useServiceStatus } from '../hooks/useServiceStatus';
+import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGrace } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -483,12 +483,12 @@ export function PanelContent({
   // A host-display panel (Y70/monitor) is the host's own loopback screen: a real
   // service outage drops its connections at once, so a missed ping is almost
   // always transient and it can ride one out instead of flipping offline and
-  // tearing down an open editor. Cabled surfaces (q60, USB phone) and WiFi/relay
-  // phones keep the instant offline response so a real unplug / signal loss
-  // surfaces right away.
+  // tearing down an open editor. Cabled surfaces (q60, USB phone) keep the
+  // instant offline response so a real unplug surfaces right away.
   const isHostDisplay = wiredPanelClass(glassSurface) === 'host-display';
-  const serviceStatus = useServiceStatus(kioskBehavior, isHostDisplay ? HOST_DISPLAY_OFFLINE_GRACE_MS : 0);
   const multiplex = useMultiplex();
+  const offlineGrace = panelOfflineGrace(glassSurface, multiplex?.connected ? multiplex.transport : null);
+  const serviceStatus = useServiceStatus(kioskBehavior, offlineGrace.graceMs, offlineGrace.hold);
   // The context menu's "Pin to Sidebar" gates on the current pinned-tail
   // (only pinnable types not already pinned). Always inside a
   // UiSettingsProvider - every PanelContent mount wraps one (see

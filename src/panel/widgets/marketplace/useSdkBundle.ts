@@ -28,7 +28,7 @@ async function resolveRuntime(): Promise<string | null> {
   // the website loads the copy its own origin ships, built with its receiver.
   const blob = isRemoteOrigin && isForceLanMode()
     ? await fetch(RUNTIME_PATH).then((r) => (r.ok ? r.blob() : null), () => null)
-    : await fetchServiceBlob(RUNTIME_PATH);
+    : await fetchServiceBlob(RUNTIME_PATH, { mayBeCached: true });
   if (!blob) return null;
   return URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
 }

@@ -204,8 +204,13 @@ describe('motherboard ARGB', () => {
   });
 
   it('turning it on saves the choice and locks the effect controls', async () => {
-    mockSetStrimer.mockResolvedValue(true);
-    await renderTab({ ...catalog, chains: [{ ...fanChain, argbCableConnected: true }] });
+    let chains = [{ ...fanChain, argbCableConnected: true }];
+    mockSetStrimer.mockImplementation((_mac: string, patch: object) => {
+      chains = chains.map(c => ({ ...c, ...patch }));
+      return Promise.resolve(true);
+    });
+    await renderTab({ ...catalog, chains });
+    mockGetStrimers.mockImplementation(() => Promise.resolve({ ...catalog, chains }));
 
     await act(async () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.motherboardArgb.label' }));

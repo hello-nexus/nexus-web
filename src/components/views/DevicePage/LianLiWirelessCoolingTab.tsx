@@ -1,23 +1,25 @@
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import type { LianLiWirelessState } from '../../../api/lianli-wireless';
-import { buildLianLiWirelessCoolingChains } from './lianliWirelessCoolingUtils';
+import type { LianLiFansState } from '../../../api/lianli-wireless';
+import { buildLianLiWirelessCoolingChains, WIRELESS_CHANNEL_PREFIX } from './lianliWirelessCoolingUtils';
 import { fanTypeKey } from './LianLiWirelessFansTab';
 import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { useTranslation } from '../../../lib/i18n';
 import rowStyles from './CoolingFanRow.module.scss';
 
 interface LianLiWirelessCoolingTabProps {
-  state: LianLiWirelessState | null;
+  state: LianLiFansState | null;
+  /** Id prefix of the family's channels in the cooling list. */
+  channelPrefix?: string;
 }
 
 /**
  * Cooling tab: a read-only line per port of every bound fan chain with its
  * live RPM and how it is driven. Every setting lives on the Cooling page.
  */
-export function LianLiWirelessCoolingTab({ state }: LianLiWirelessCoolingTabProps) {
+export function LianLiWirelessCoolingTab({ state, channelPrefix = WIRELESS_CHANNEL_PREFIX }: LianLiWirelessCoolingTabProps) {
   const { t } = useTranslation();
   const { channels, curves } = useCoolingChannels();
-  const chains = buildLianLiWirelessCoolingChains(state?.fans ?? [], channels);
+  const chains = buildLianLiWirelessCoolingChains(state?.fans ?? [], channels, channelPrefix);
 
   return (
     <>

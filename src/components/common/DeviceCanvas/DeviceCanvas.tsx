@@ -140,6 +140,33 @@ function defaultSlot(index: number, totalCount: number): { x: number; y: number;
   return { x, y, w, h };
 }
 
+/** The grid slot of each device, in the order given: one per device, except that
+ *  the zones of one Flex fan ("lianli-flex:{MAC}:{zone}") share the fan's slot.
+ *  Mirrors CompositeLightingDeviceProvider.ApplyDefaultLayouts in the service. */
+function gridSlots(devices: readonly LightingDevice[]): { slotOf: number[]; total: number } {
+  const fanSlots = new Map<string, number>();
+  const slotOf: number[] = [];
+  let total = 0;
+  for (const d of devices) {
+    const fan = flexFanKey(d.id);
+    const shared = fan === null ? undefined : fanSlots.get(fan);
+    if (shared !== undefined) { slotOf.push(shared); continue; }
+    slotOf.push(total);
+    if (fan !== null) fanSlots.set(fan, total);
+    total++;
+  }
+  return { slotOf, total };
+}
+
+const FLEX_PREFIX = 'lianli-flex:';
+
+/** "lianli-flex:{MAC}" for a Flex zone id, else null. */
+function flexFanKey(id: string): string | null {
+  if (!id.startsWith(FLEX_PREFIX)) return null;
+  const second = id.indexOf(':', FLEX_PREFIX.length);
+  return second < 0 ? id : id.slice(0, second);
+}
+
 /** Returns each target to the default grid slot for its place among the frames
  *  on the canvas, so no two on-canvas frames can land on each other. Indexes into
  *  the frames the canvas holds, not the service's full device list, so a canvas
@@ -147,10 +174,11 @@ function defaultSlot(index: number, totalCount: number): { x: number; y: number;
  *  reserving slots nothing occupies; it matches the service's grid exactly when
  *  none are hidden. A hidden frame keeps its own rect, so switching one back on
  *  can reveal it under a slot taken meanwhile. */
-function minimizeInto(targets: LightingDevice[], all: LightingDevice[]): void {
+export function minimizeInto(targets: LightingDevice[], all: LightingDevice[]): void {
+  const { slotOf, total } = gridSlots(all);
   for (const t of targets) {
     const i = all.indexOf(t);
-    const { x, y, w, h } = defaultSlot(i < 0 ? 0 : i, all.length);
+    const { x, y, w, h } = defaultSlot(i < 0 ? 0 : slotOf[i], total);
     t.canvasX = x;
     t.canvasY = y;
     t.canvasW = w;

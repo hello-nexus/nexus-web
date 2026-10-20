@@ -370,7 +370,8 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
-    expect(screen.getByText(/devices\.lianli-wireless\.firmwareVersion.*devices\.lianli-wireless\.noPwmCable/)).toBeInTheDocument();
+    expect(screen.getByText(/devices\.lianli-wireless\.firmwareVersion/)).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.noPwmCable')).toBeInTheDocument();
   });
 
   it('says nothing about the PWM cable while Nexus drives the chain', async () => {

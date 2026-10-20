@@ -22,6 +22,8 @@ export interface DashboardSectionNavigatePayload {
   // Anchors to scroll to and shine on the target page, first mounted wins
   // (the device pages' jump to the Lighting or Cooling rail).
   scrollAnchors?: readonly string[];
+  // A fan channel id the Cooling page selects on arrival, so its curve opens in the editor.
+  coolingFanId?: string;
 }
 
 export type DashboardSectionNavigate =

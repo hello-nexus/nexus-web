@@ -32,7 +32,8 @@ const FramesPage = lazy(() => import('../panel/widgets/frames/FramesPage').then(
 const BuildPage = lazy(() => import('../components/views/BuildPage/BuildPage').then(m => ({ default: m.BuildPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
-import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
+import { useServiceStatus } from '../hooks/useServiceStatus';
+import { DESKTOP_OFFLINE_GRACE_MS } from '../lib/serviceLiveness';
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useConflictApps } from '../hooks/useConflictApps';
@@ -85,6 +86,7 @@ import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
 import { requestSearchScroll } from '../search/scroll';
+import { requestCoolingFan } from '../lib/coolingFanIntent';
 import { fireSearchSignal } from '../search/signals';
 import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
@@ -986,6 +988,8 @@ export function Dashboard() {
           if (payload.settingsAnchor) requestSearchScroll(payload.settingsAnchor);
           return;
         }
+        // Unsized OpenRGB headers deep-link to the Devices page's Available tab.
+        if (target === 'devices' && payload?.tab) { navigate('system', 'devices', payload.tab); return; }
         // The Studio links a just-published effect's Marketplace page.
         if (target === 'store' && payload?.tab) { navigate('system', 'store', payload.tab); return; }
         setView(target);
@@ -1013,6 +1017,7 @@ export function Dashboard() {
           onSectionNavigate={(target, payload) => {
             if (target === 'device' && payload?.deviceKey) { navigate('system', 'device', payload.deviceKey); return; }
             setView(target);
+            if (payload?.coolingFanId) requestCoolingFan(payload.coolingFanId);
             if (payload?.scrollAnchors) requestSearchScroll(payload.scrollAnchors);
           }}
         />

@@ -185,7 +185,7 @@ export function useGalleryImageLoader(width: number): {
 
     const promise = (async () => {
       try {
-        const blob = await fetchServiceBlob(galleryItemFileUrl(id, width));
+        const blob = await fetchServiceBlob(galleryItemFileUrl(id, width), { mayBeCached: true });
         // A fetch resolving after unmount - or after a resize moved the
         // cache to another width - must not mint an object URL that nothing
         // will ever revoke.

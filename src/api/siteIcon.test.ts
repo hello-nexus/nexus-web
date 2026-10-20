@@ -15,6 +15,7 @@ describe('fetchSiteIcon', () => {
 
     expect(fetchServiceBlob).toHaveBeenCalledWith(
       '/deck/site-icon?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3D1%26c%3D2',
+      { mayBeCached: true },
     );
     expect(result).toBe(blob);
   });

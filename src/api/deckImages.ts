@@ -24,5 +24,5 @@ export async function uploadDeckImage(blob: Blob): Promise<string | null> {
 
 /** Fetch a previously uploaded key-icon image's bytes, or null on failure. */
 export function fetchDeckImage(id: string): Promise<Blob | null> {
-  return fetchServiceBlob(`/deck/images/${encodeURIComponent(id)}`);
+  return fetchServiceBlob(`/deck/images/${encodeURIComponent(id)}`, { mayBeCached: true });
 }
