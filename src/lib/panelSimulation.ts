@@ -6,7 +6,7 @@ import {
   type PanelGridCapacity,
 } from '../panel/engine/grid';
 import { DEV_TOOLS } from './devTools';
-import { allocatePanelDevice, deletePanelDevice, fetchPanelDeviceWithStatus, patchPanelDevice } from '../api/panel';
+import { allocatePanelDevice, deletePanelDevice, fetchPanelDevices, patchPanelDevice } from '../api/panel';
 import { defaultLayoutForSurface } from '../panel/engine/defaultLayout';
 import {
   GENERIC_VENDOR,
@@ -265,34 +265,40 @@ export function getSimulatedPanelRecordId(id: string): string | undefined {
 
 const pendingRecords = new Map<string, Promise<string | undefined>>();
 
-/** Writes the layout a fresh record of this simulator starts from; the service would seed a surface-less record with the Y70 starter. */
-export async function persistSimulatorDefaultLayout(id: string, recordId: string): Promise<void> {
+/** Writes the layout a record of this simulator starts from; the service seeds a surface-less record's null layout with the Y70 starter on read. */
+export async function persistSimulatorDefaultLayout(id: string, recordId: string): Promise<boolean> {
   const def = getSimulatedPanelDefinition(id);
-  if (!def) return;
+  if (!def) return false;
   const layout = defaultLayoutForSurface(panelLayoutSurface(def.surface, def.family, null));
-  await patchPanelDevice(recordId, { layout }).catch(() => null);
+  return !!(await patchPanelDevice(recordId, { layout }).catch(() => null));
 }
 
-/** The record a simulator edits, allocated on first use. Undefined while the service is unreachable. */
+/** The record a simulator edits, allocated on first use. Undefined while the service is unreachable or the simulator is gone. */
 export function ensureSimulatedPanelRecord(id: string): Promise<string | undefined> {
   const pending = pendingRecords.get(id);
   if (pending) return pending;
   const task = (async () => {
     const stored = getSimulatedPanelRecordId(id);
     if (stored) {
-      const found = await fetchPanelDeviceWithStatus(stored);
-      // Only a 404 means the record is gone; any other failure keeps the id for a later retry.
-      if (found.found || found.status !== 404) return stored;
+      // The list returns stored records as they are; a single GET seeds a null layout and hides it.
+      const list = await fetchPanelDevices().catch(() => null);
+      if (!list) return stored;
+      const record = list.devices.find(d => d.id === stored);
+      if (record) {
+        if (!record.layout) await persistSimulatorDefaultLayout(id, stored);
+        return stored;
+      }
     }
     const name = getSimulatedPanelDefinition(id)?.name;
     const record = await allocatePanelDevice(undefined, name).catch(() => null);
     if (!record?.id) return undefined;
+    // The id is published only once its default layout is stored, so no consumer can edit before it lands.
+    if (isSimulatedPanelConnected(id)) await persistSimulatorDefaultLayout(id, record.id);
     if (!isSimulatedPanelConnected(id)) {
       void deletePanelDevice(record.id).catch(() => null);
       return undefined;
     }
     writeRecordIds({ ...readRecordIds(), [id]: record.id });
-    await persistSimulatorDefaultLayout(id, record.id);
     dispatchSimulationChanged();
     return record.id;
   })().finally(() => { pendingRecords.delete(id); });

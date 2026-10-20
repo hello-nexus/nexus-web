@@ -2,15 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const allocatePanelDevice = vi.fn();
 const deletePanelDevice = vi.fn();
-const fetchPanelDeviceWithStatus = vi.fn();
+const fetchPanelDevices = vi.fn();
 const patchPanelDevice = vi.fn();
 vi.mock('../../api/panel', () => ({
   allocatePanelDevice: (...a: unknown[]) => allocatePanelDevice(...a),
   deletePanelDevice: (...a: unknown[]) => deletePanelDevice(...a),
-  fetchPanelDeviceWithStatus: (...a: unknown[]) => fetchPanelDeviceWithStatus(...a),
+  fetchPanelDevices: (...a: unknown[]) => fetchPanelDevices(...a),
   patchPanelDevice: (...a: unknown[]) => patchPanelDevice(...a),
 }));
 
+import { defaultLayoutForSurface } from '../../panel/engine/defaultLayout';
 import {
   formatPanelInches,
   getConnectedSimulatedPanelIds,
@@ -30,15 +31,36 @@ import {
   setY70Simulated,
 } from '../../lib/panelSimulation';
 
+type StoredLayout = { surface: string; layoutSchemaVersion: number; pages: Array<{ widgets: Array<{ type: string; size: string; col: number; row: number }> }> };
+// Default layouts carry generated ids; compare what they place.
+const shape = (l: StoredLayout) => ({
+  surface: l.surface,
+  version: l.layoutSchemaVersion,
+  widgets: l.pages.map(pg => pg.widgets.map(w => [w.type, w.size, w.col, w.row])),
+});
+
+const service = new Map<string, { id: string; layout: unknown }>();
+
 describe('panelSimulation', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
     let n = 0;
-    allocatePanelDevice.mockImplementation(async () => ({ id: `rec-${++n}` }));
-    deletePanelDevice.mockResolvedValue({ error: false });
-    fetchPanelDeviceWithStatus.mockResolvedValue({ found: true, record: { id: 'exists' } });
-    patchPanelDevice.mockResolvedValue({ ok: true });
+    // Stands in for the service: the list returns stored records, a null layout until a PATCH writes one.
+    service.clear();
+    allocatePanelDevice.mockImplementation(async () => {
+      const id = `rec-${++n}`;
+      service.set(id, { id, layout: null });
+      return { id };
+    });
+    deletePanelDevice.mockImplementation(async (id: string) => { service.delete(id); return { error: false }; });
+    fetchPanelDevices.mockImplementation(async () => ({ devices: [...service.values()] }));
+    patchPanelDevice.mockImplementation(async (id: string, patch: { layout?: unknown }) => {
+      const record = service.get(id);
+      if (!record) return null;
+      record.layout = patch.layout ?? record.layout;
+      return { ...record };
+    });
   });
 
   it('includes a named tablet preset for common-size UI testing', () => {
@@ -174,21 +196,21 @@ describe('panelSimulation', () => {
       await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(first);
       expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
 
-      fetchPanelDeviceWithStatus.mockResolvedValue({ found: false, status: 404 });
+      service.delete(first!);
       await ensureSimulatedPanelRecord('q60');
       expect(allocatePanelDevice).toHaveBeenCalledTimes(2);
       expect(getSimulatedPanelRecordId('q60')).not.toBe(first);
     });
 
-    it('keeps the stored record when the lookup fails for a reason other than 404', async () => {
+    it('keeps the stored record when the list cannot be read', async () => {
       setSimulatedPanelConnected('q60', true);
       await ensureSimulatedPanelRecord('q60');
       const first = getSimulatedPanelRecordId('q60');
 
-      for (const status of [0, 500]) {
-        fetchPanelDeviceWithStatus.mockResolvedValue({ found: false, status });
-        await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(first);
-      }
+      fetchPanelDevices.mockResolvedValue(null);
+      await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(first);
+      fetchPanelDevices.mockRejectedValue(new Error('offline'));
+      await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(first);
       expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
       expect(deletePanelDevice).not.toHaveBeenCalled();
     });
@@ -202,12 +224,59 @@ describe('panelSimulation', () => {
       expect(getSimulatedPanelRecordId('y70')).toBe('rec-y');
     });
 
-    it('persists the simulator surface default layout, not the service Y70 seed, right after allocating', async () => {
+    it('persists the full surface default layout before the id is published or returned', async () => {
       setSimulatedPanelConnected('lianli-tl-lcd-flex', true);
-      await ensureSimulatedPanelRecord('lianli-tl-lcd-flex');
+      const seen: Array<string | undefined> = [];
+      patchPanelDevice.mockImplementationOnce(async (id: string, patch: { layout: unknown }) => {
+        seen.push(getSimulatedPanelRecordId('lianli-tl-lcd-flex'));
+        service.get(id)!.layout = patch.layout;
+        return { id };
+      });
 
-      const recordId = getSimulatedPanelRecordId('lianli-tl-lcd-flex');
-      expect(patchPanelDevice).toHaveBeenCalledWith(recordId, { layout: expect.objectContaining({ surface: 'lcd-round' }) });
+      const returned = await ensureSimulatedPanelRecord('lianli-tl-lcd-flex');
+
+      expect(seen).toEqual([undefined]);
+      expect(getSimulatedPanelRecordId('lianli-tl-lcd-flex')).toBe(returned);
+      const layout = service.get(returned!)!.layout as StoredLayout;
+      expect(layout.surface).toBe('lcd-round');
+      expect(shape(layout)).toEqual(shape(defaultLayoutForSurface('lcd-round') as unknown as StoredLayout));
+      expect(layout.pages.length).toBeGreaterThan(0);
+    });
+
+    it('still publishes the id when the default PATCH fails, and writes the default on a later call', async () => {
+      setSimulatedPanelConnected('q60', true);
+      patchPanelDevice.mockResolvedValueOnce(null);
+
+      const id = await ensureSimulatedPanelRecord('q60');
+      expect(getSimulatedPanelRecordId('q60')).toBe(id);
+      expect(service.get(id!)!.layout).toBeNull();
+
+      await expect(ensureSimulatedPanelRecord('q60')).resolves.toBe(id);
+      expect(shape(service.get(id!)!.layout as StoredLayout)).toEqual(shape(defaultLayoutForSurface('q60') as unknown as StoredLayout));
+      expect(allocatePanelDevice).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not rewrite a stored layout', async () => {
+      setSimulatedPanelConnected('q60', true);
+      const id = await ensureSimulatedPanelRecord('q60');
+      service.get(id!)!.layout = { custom: true };
+      patchPanelDevice.mockClear();
+
+      await ensureSimulatedPanelRecord('q60');
+
+      expect(patchPanelDevice).not.toHaveBeenCalled();
+    });
+
+    it('returns undefined and deletes the record when the simulator is removed during the default PATCH', async () => {
+      setSimulatedPanelConnected('q60', true);
+      patchPanelDevice.mockImplementationOnce(async () => {
+        setSimulatedPanelConnected('q60', false);
+        return { ok: true };
+      });
+
+      await expect(ensureSimulatedPanelRecord('q60')).resolves.toBeUndefined();
+      expect(getSimulatedPanelRecordId('q60')).toBeUndefined();
+      expect(service.size).toBe(0);
     });
 
     it('lays a family with a Widget size out as that size default surface', async () => {
