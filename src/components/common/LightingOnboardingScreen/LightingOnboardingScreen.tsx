@@ -22,6 +22,7 @@ import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/p
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
 import { appendNewCards } from '../../../lib/lightingVisibility';
 import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
+import { useZoneSizeDeviceIds } from '../../../hooks/useZoneSizeDeviceIds';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
 
@@ -97,6 +98,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // at all. Simple drives everything, so there is nothing here to choose.
   const [mode, setMode] = useState<'simple' | 'advanced'>('simple');
   const updateUiSettings = useUiSettingsUpdateSafe();
+  const zoneSizeDeviceIds = useZoneSizeDeviceIds(open, devices);
   const awaitingRgbRef = useRef(false);
   const devicesRef = useRef<LightingDevice[] | null>(null);
   devicesRef.current = devices;
@@ -358,6 +360,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
                   onTogglePower={noop}
                   onToggleControlled={mode === 'advanced' ? () => handleToggle(raw) : undefined}
                   onOpenSettings={noop}
+                  needsLedCounts={zoneSizeDeviceIds.has(raw.id)}
                 />
               ))}
             </div>
