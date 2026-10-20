@@ -289,6 +289,47 @@ describe('StorePage app page layout', () => {
     expect(screen.queryByText(/2x2round/)).not.toBeInTheDocument();
   });
 
+  // Aquarium's wire shape as nexus-api serves it (latest of GET /store/apps/:id, captured from a local nexus-api run).
+  const aquariumLatest = {
+    ...version,
+    version: '2.5.0',
+    sizes: ['2x2', '4x2', '2x4', '4x4', '2x2round'],
+    surfaces: ['y70'],
+    gridSizes: ['4x4'],
+  };
+
+  it('lists only the grid sizes in the widget sizes cell, and the single-widget sizes in their own', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: aquariumLatest });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('4x4')).toBeInTheDocument();
+    expect(screen.queryByText(/4x2/)).not.toBeInTheDocument();
+    expect(screen.getByText('store.spec.panelSizes')).toBeInTheDocument();
+    expect(screen.getByText('2x4 · store.value.roundTile')).toBeInTheDocument();
+  });
+
+  it('offers every multi-widget size when the version carries no gridSizes', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, gridSizes: undefined } });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('2x2 · 4x2 · 4x4')).toBeInTheDocument();
+    expect(screen.getByText('2x4 · store.value.roundTile')).toBeInTheDocument();
+  });
+
+  it('falls back to every multi-widget size when gridSizes names none of them', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, gridSizes: ['8x8'] } });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('2x2 · 4x2 · 4x4')).toBeInTheDocument();
+  });
+
+  it('omits the single-widget cell when no such size is declared', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.spec.widgetSizes')).toBeInTheDocument();
+    expect(screen.queryByText('store.spec.panelSizes')).not.toBeInTheDocument();
+  });
+
   it('omits the sizes cell for an app that declares no widget', async () => {
     fetchStoreApp.mockResolvedValue({
       ...detail,

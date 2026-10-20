@@ -15,6 +15,8 @@ export interface StoreVersion {
   requiresTouch: boolean;
   sizes: string[];
   surfaces: string[];
+  /** Sizes a multi-widget panel offers; absent or empty (a catalog older than the field) means every entry of sizes. */
+  gridSizes?: string[];
   releasedAt: string;
   /** The version manifest's capabilities as published; author-supplied JSON, so every field is unchecked. */
   capabilities?: Record<string, unknown>;

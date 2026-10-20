@@ -30,7 +30,7 @@ import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import { AppIconTile } from '../../common/AppIconTile/AppIconTile';
 import { resolveHttp } from '../../../api/service';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
-import { widgetLayoutSize, type PanelWidgetSize } from '../../../panel/types';
+import { SINGLE_WIDGET_SIZES, type PanelWidgetSize } from '../../../panel/types';
 import styles from './StorePage.module.scss';
 
 const AnimationIcon = LIGHTING_MODE_ICONS.animate;
@@ -295,6 +295,17 @@ interface Highlight { key: string; icon: ReactNode; label: string; value: string
 
 const HIGHLIGHT_ICON = 30;
 
+/** Mirrors sizesForSurface: multi-widget panels offer gridSizes (else every size) minus the sizes reserved for single-widget panels. */
+function splitWidgetSizes(latest: StoreVersion): { grid: string[]; single: string[] } {
+  const isSingle = (s: string) => SINGLE_WIDGET_SIZES.has(s as PanelWidgetSize);
+  const multi = latest.sizes.filter((s) => !isSingle(s));
+  const named = (latest.gridSizes ?? []).filter((s) => multi.includes(s));
+  return {
+    grid: [...new Set(named.length > 0 ? named : multi)],
+    single: [...new Set(latest.sizes.filter(isSingle))],
+  };
+}
+
 /** The sizes and Nexus-floor cells are each dropped when the app declares nothing for them. */
 function useHighlights(latest: StoreVersion): Highlight[] {
   const { t } = useTranslation();
@@ -306,13 +317,21 @@ function useHighlights(latest: StoreVersion): Highlight[] {
       value: latest.hasWidget ? t('store.value.hasFeature') : t('store.value.noFeature'),
     },
   ];
-  if (latest.hasWidget && latest.sizes.length > 0) {
+  const { grid, single } = splitWidgetSizes(latest);
+  if (latest.hasWidget && grid.length > 0) {
     out.push({
       key: 'sizes',
       icon: <Ruler size={HIGHLIGHT_ICON} aria-hidden={true} />,
       label: t('store.spec.widgetSizes'),
-      // Round folds into 2x2, which every 2x2 widget already covers; the Set dedupes the fold and wire repeats.
-      value: [...new Set(latest.sizes.map((s) => widgetLayoutSize(s as PanelWidgetSize)))].join(' · '),
+      value: grid.join(' · '),
+    });
+  }
+  if (latest.hasWidget && single.length > 0) {
+    out.push({
+      key: 'panelSizes',
+      icon: <Ruler size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      label: t('store.spec.panelSizes'),
+      value: single.map((s) => (s === '2x2round' ? t('store.value.roundTile') : s)).join(' · '),
     });
   }
   out.push(
