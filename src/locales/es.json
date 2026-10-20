@@ -300,7 +300,7 @@
   "common.loading": "Cargando...",
   "common.mixed": "Variado",
   "common.nexusHome": "Inicio de Nexus",
-  "common.openFolderFailed": "No se pudo abrir la carpeta. Inténtalo de nuevo en un momento.",
+  "common.openFolderFailed": "No se pudo abrir la carpeta.",
   "common.pager.next": "Página siguiente",
   "common.pager.pageOf": "Página {n} de {total}",
   "common.pager.prev": "Página anterior",

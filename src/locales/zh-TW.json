@@ -300,7 +300,7 @@
   "common.loading": "載入中...",
   "common.mixed": "多種",
   "common.nexusHome": "Nexus 首頁",
-  "common.openFolderFailed": "無法開啟資料夾。請稍後再試。",
+  "common.openFolderFailed": "無法開啟資料夾。",
   "common.pager.next": "下一頁",
   "common.pager.pageOf": "第 {n} 頁，共 {total} 頁",
   "common.pager.prev": "上一頁",

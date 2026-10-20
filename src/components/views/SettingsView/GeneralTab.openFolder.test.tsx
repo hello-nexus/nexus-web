@@ -48,10 +48,13 @@ describe('GeneralTab open data folder', () => {
   });
 
   it('stays quiet when the folder opened', async () => {
-    vi.mocked(postService).mockResolvedValue({ error: false, msg: 'Ok' });
+    const settled = Promise.resolve({ error: false, msg: 'Ok' });
+    vi.mocked(postService).mockReturnValue(settled);
     render(<GeneralTab settings={settings} updateGeneral={vi.fn()} serviceOnline platform="windows" />);
     fireEvent.click(openButton());
     await waitFor(() => expect(postService).toHaveBeenCalledWith('/diagnostics/open-logs', {}));
+    await settled;
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(toast.push).not.toHaveBeenCalled();
   });
 });

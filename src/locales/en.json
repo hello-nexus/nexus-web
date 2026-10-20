@@ -300,7 +300,7 @@
   "common.loading": "Loading...",
   "common.mixed": "Mixed",
   "common.nexusHome": "Nexus home",
-  "common.openFolderFailed": "Couldn't open the folder. Try again in a moment.",
+  "common.openFolderFailed": "Couldn't open the folder.",
   "common.pager.next": "Next page",
   "common.pager.pageOf": "Page {n} of {total}",
   "common.pager.prev": "Previous page",

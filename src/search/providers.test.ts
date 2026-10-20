@@ -349,11 +349,13 @@ describe('open data folder action', () => {
   const run = (notify: () => void) => buildEntries(ctx(true, { notify })).find((e) => e.id === 'diag:open-data-folder')!.run();
 
   it('posts to the service and stays quiet on success', async () => {
-    service.post.mockResolvedValueOnce({ error: false });
+    const settled = Promise.resolve({ error: false });
+    service.post.mockReturnValueOnce(settled);
     const notify = vi.fn();
     run(notify);
-    await vi.waitFor(() => expect(service.post).toHaveBeenCalledWith('/diagnostics/open-logs', {}));
-    await Promise.resolve();
+    expect(service.post).toHaveBeenCalledWith('/diagnostics/open-logs', {});
+    await settled;
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(notify).not.toHaveBeenCalled();
   });
 

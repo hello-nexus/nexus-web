@@ -146,6 +146,8 @@ describe('BackgroundMediaPicker open folder', () => {
     renderPicker();
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.mediaManageFolder' }));
     await waitFor(() => expect(openBackgroundMediaFolder).toHaveBeenCalledWith('dev1'));
+    await vi.mocked(openBackgroundMediaFolder).mock.results.at(-1)!.value;
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(toast.push).not.toHaveBeenCalled();
   });
 });

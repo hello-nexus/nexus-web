@@ -105,6 +105,8 @@ describe('media controls open folder', () => {
     renderMedia();
     fireEvent.click(openButton());
     await waitFor(() => expect(openMediaFolder).toHaveBeenCalled());
+    await vi.mocked(openMediaFolder).mock.results.at(-1)!.value;
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(toast.push).not.toHaveBeenCalled();
   });
 });
