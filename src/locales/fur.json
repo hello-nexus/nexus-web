@@ -692,6 +692,8 @@
   "devices.asus-glacial-lcd.contentSection": "Contignût",
   "devices.asus-glacial-lcd.displayOn": "Visôr impiât",
   "devices.asus-glacial-lcd.displaySection": "Visôr",
+  "devices.asus-glacial-lcd.failedBody": "Il cambiament dal visôr nol è stât aplicât.",
+  "devices.asus-glacial-lcd.failedTitle": "Cambiament falît",
   "devices.asus-glacial-lcd.mode": "Modalitât",
   "devices.asus-glacial-lcd.modeAnimation": "Animazion",
   "devices.asus-glacial-lcd.modeMonitor": "Monitor",

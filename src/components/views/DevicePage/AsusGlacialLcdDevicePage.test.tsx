@@ -10,6 +10,11 @@ vi.mock('../../../lib/i18n', () => ({
 
 const mockGet = vi.fn();
 const mockSet = vi.fn();
+const mockPush = vi.fn();
+
+vi.mock('../../common/Toast/Toast', () => ({
+  useToast: () => ({ push: mockPush }),
+}));
 
 vi.mock('../../../api/asus-glacial-lcd', () => ({
   getGlacialState: () => mockGet(),
@@ -33,9 +38,9 @@ const base = {
   animatedAsset: 0,
   slotCount: 2,
   slots: [
-    { category: 'cpu', sensor: 'cpu-temp', label: '' },
-    { category: '', sensor: '', label: '' },
-    { category: '', sensor: '', label: '' },
+    { category: 'cpu', sensor: 'cpu-temp', label: '', resolvedCategory: 'cpu', resolvedSensor: 'cpu-temp' },
+    { category: '', sensor: '', label: 'Fan', resolvedCategory: 'motherboard', resolvedSensor: 'mb-temp' },
+    { category: '', sensor: '', label: '', resolvedCategory: 'gpu', resolvedSensor: 'gpu-hot' },
   ],
   brightness: 60,
   stayOnWhileAsleep: false,
@@ -89,16 +94,21 @@ describe('AsusGlacialLcdDevicePage', () => {
     expect(mockSet).toHaveBeenCalledWith({ slotCount: 3 });
   });
 
-  it('picking a sensor replaces that slot and leaves its label empty', async () => {
+  it('an unpicked slot shows its resolved sensor', async () => {
+    await mount();
+    expect(screen.getAllByTestId('sensor-picker')[1].textContent).toBe('motherboard/mb-temp');
+  });
+
+  it('picking a sensor replaces that slot and keeps its label', async () => {
     await mount();
     await act(async () => {
       fireEvent.click(screen.getAllByTestId('sensor-picker')[1]);
     });
     expect(mockSet).toHaveBeenCalledWith({
       slots: [
-        base.slots[0],
-        { category: 'gpu', sensor: 'gpu-temp', label: '' },
-        base.slots[2],
+        { category: 'cpu', sensor: 'cpu-temp', label: '' },
+        { category: 'gpu', sensor: 'gpu-temp', label: 'Fan' },
+        { category: '', sensor: '', label: '' },
       ],
     });
   });
@@ -109,6 +119,26 @@ describe('AsusGlacialLcdDevicePage', () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.asus-glacial-lcd.stayOn' }));
     });
     expect(mockSet).toHaveBeenCalledWith({ stayOnWhileAsleep: true });
+  });
+
+  it('shows the error toast and refetches when the save is refused', async () => {
+    await mount();
+    mockSet.mockResolvedValue(false);
+    mockGet.mockClear();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.asus-glacial-lcd.stayOn' }));
+    });
+    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.asus-glacial-lcd.failedTitle', body: 'devices.asus-glacial-lcd.failedBody' });
+    expect(mockGet).toHaveBeenCalled();
+  });
+
+  it('shows the error toast when the save throws', async () => {
+    await mount();
+    mockSet.mockRejectedValue(new Error('network'));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePicture' }));
+    });
+    expect(mockPush).toHaveBeenCalled();
   });
 
   it('disables the controls while the device is not connected', async () => {

@@ -692,6 +692,8 @@
   "devices.asus-glacial-lcd.contentSection": "Inhoud",
   "devices.asus-glacial-lcd.displayOn": "Display aan",
   "devices.asus-glacial-lcd.displaySection": "Display",
+  "devices.asus-glacial-lcd.failedBody": "De displaywijziging kon niet worden toegepast.",
+  "devices.asus-glacial-lcd.failedTitle": "Wijziging mislukt",
   "devices.asus-glacial-lcd.mode": "Modus",
   "devices.asus-glacial-lcd.modeAnimation": "Animatie",
   "devices.asus-glacial-lcd.modeMonitor": "Monitor",

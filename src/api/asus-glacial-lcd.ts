@@ -8,6 +8,12 @@ export interface GlacialSlot {
   label: string;
 }
 
+export interface GlacialSlotState extends GlacialSlot {
+  /** The sensor the widget reads; an unpicked slot reports its default. */
+  resolvedCategory: string;
+  resolvedSensor: string;
+}
+
 export interface GlacialState {
   isConnected: boolean;
   displayOn: boolean;
@@ -17,7 +23,7 @@ export interface GlacialState {
   /** 1..3. */
   slotCount: number;
   /** Always three entries. */
-  slots: GlacialSlot[];
+  slots: GlacialSlotState[];
   /** 0-100. */
   brightness: number;
   stayOnWhileAsleep: boolean;

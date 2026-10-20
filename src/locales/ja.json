@@ -692,6 +692,8 @@
   "devices.asus-glacial-lcd.contentSection": "コンテンツ",
   "devices.asus-glacial-lcd.displayOn": "ディスプレイ オン",
   "devices.asus-glacial-lcd.displaySection": "ディスプレイ",
+  "devices.asus-glacial-lcd.failedBody": "ディスプレイの変更を適用できませんでした。",
+  "devices.asus-glacial-lcd.failedTitle": "変更に失敗しました",
   "devices.asus-glacial-lcd.mode": "モード",
   "devices.asus-glacial-lcd.modeAnimation": "アニメーション",
   "devices.asus-glacial-lcd.modeMonitor": "モニター",

@@ -699,6 +699,8 @@
   "devices.asus-glacial-lcd.contentSection": "Zawartość",
   "devices.asus-glacial-lcd.displayOn": "Wyświetlacz włączony",
   "devices.asus-glacial-lcd.displaySection": "Wyświetlacz",
+  "devices.asus-glacial-lcd.failedBody": "Nie udało się zastosować zmiany wyświetlacza.",
+  "devices.asus-glacial-lcd.failedTitle": "Zmiana nie powiodła się",
   "devices.asus-glacial-lcd.mode": "Tryb",
   "devices.asus-glacial-lcd.modeAnimation": "Animacja",
   "devices.asus-glacial-lcd.modeMonitor": "Monitor",

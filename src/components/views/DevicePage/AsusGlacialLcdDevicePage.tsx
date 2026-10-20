@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
+import { Slider } from '../../common/Slider/Slider';
+import { useToast } from '../../common/Toast/Toast';
 import { SensorPicker, useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
 import {
   getGlacialState,
   setGlacialSettings,
   type GlacialMode,
   type GlacialSettingsPatch,
-  type GlacialSlot,
+  type GlacialSlotState,
   type GlacialState,
 } from '../../../api/asus-glacial-lcd';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -33,6 +35,7 @@ const DEFAULT_CATEGORY = SENSOR_CATEGORIES[0];
 
 export function AsusGlacialLcdDevicePage() {
   const { t } = useTranslation();
+  const { push } = useToast();
   const { numberFormat } = useUnitPrefs();
   const lookup = useSensorLookup();
   const [state, setState] = useState<GlacialState | null>(null);
@@ -62,14 +65,18 @@ export function AsusGlacialLcdDevicePage() {
 
   const commit = useCallback(async (patch: GlacialSettingsPatch) => {
     busyRef.current += 1;
+    let ok = false;
     try {
-      await setGlacialSettings(patch);
+      ok = await setGlacialSettings(patch);
+    } catch {
+      ok = false;
     } finally {
       busyRef.current -= 1;
     }
+    if (!ok) push({ title: t('devices.asus-glacial-lcd.failedTitle'), body: t('devices.asus-glacial-lcd.failedBody') });
     const next = await getGlacialState();
     if (aliveRef.current && next !== null && busyRef.current === 0) setState(next);
-  }, []);
+  }, [push, t]);
 
   const edit = useCallback((local: Partial<GlacialState>, patch: GlacialSettingsPatch) => {
     setState(prev => prev && { ...prev, ...local });
@@ -84,8 +91,8 @@ export function AsusGlacialLcdDevicePage() {
 
   const setSlot = (index: number, category: string, sensor: string) => {
     if (!state) return;
-    const slots: GlacialSlot[] = state.slots.map((s, i) => (i === index ? { category, sensor, label: '' } : s));
-    edit({ slots }, { slots });
+    const slots: GlacialSlotState[] = state.slots.map((s, i) => (i === index ? { ...s, category, sensor } : s));
+    edit({ slots }, { slots: slots.map(({ category: c, sensor: n, label }) => ({ category: c, sensor: n, label })) });
   };
 
   return (
@@ -109,16 +116,18 @@ export function AsusGlacialLcdDevicePage() {
             disabled={!ready}
             onChange={on => edit({ stayOnWhileAsleep: on }, { stayOnWhileAsleep: on })}
           />
-          <SettingSlider
+          <Slider
+            // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+            orientation="stacked"
             editable
             trackFill
             label={t('devices.asus-glacial-lcd.brightness')}
+            ariaLabel={t('devices.asus-glacial-lcd.brightnessAria')}
             value={state?.brightness ?? 0}
             min={0}
             max={100}
             step={1}
             formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
-            ariaLabel={t('devices.asus-glacial-lcd.brightnessAria')}
             disabled={!ready}
             onChange={v => setState(prev => prev && { ...prev, brightness: v })}
             onCommit={v => { void commit({ brightness: v }); }}
@@ -163,8 +172,8 @@ export function AsusGlacialLcdDevicePage() {
                 <SettingRow key={i} label={t('devices.asus-glacial-lcd.widgetN', { n: i + 1 })}>
                   <SensorPicker
                     lookup={lookup}
-                    category={slot.category || DEFAULT_CATEGORY}
-                    sensor={slot.sensor}
+                    category={(slot.sensor ? slot.category : slot.resolvedCategory) || DEFAULT_CATEGORY}
+                    sensor={slot.sensor || slot.resolvedSensor}
                     categories={SENSOR_CATEGORIES}
                     sensorTypes={SENSOR_TYPES}
                     disabled={!ready}

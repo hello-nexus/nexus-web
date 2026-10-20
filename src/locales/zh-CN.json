@@ -692,6 +692,8 @@
   "devices.asus-glacial-lcd.contentSection": "内容",
   "devices.asus-glacial-lcd.displayOn": "显示屏开启",
   "devices.asus-glacial-lcd.displaySection": "显示屏",
+  "devices.asus-glacial-lcd.failedBody": "无法应用显示屏更改。",
+  "devices.asus-glacial-lcd.failedTitle": "更改失败",
   "devices.asus-glacial-lcd.mode": "模式",
   "devices.asus-glacial-lcd.modeAnimation": "动画",
   "devices.asus-glacial-lcd.modeMonitor": "监控",

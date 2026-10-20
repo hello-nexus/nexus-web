@@ -692,6 +692,8 @@
   "devices.asus-glacial-lcd.contentSection": "콘텐츠",
   "devices.asus-glacial-lcd.displayOn": "디스플레이 켜기",
   "devices.asus-glacial-lcd.displaySection": "디스플레이",
+  "devices.asus-glacial-lcd.failedBody": "디스플레이 변경 사항을 적용하지 못했습니다.",
+  "devices.asus-glacial-lcd.failedTitle": "변경 실패",
   "devices.asus-glacial-lcd.mode": "모드",
   "devices.asus-glacial-lcd.modeAnimation": "애니메이션",
   "devices.asus-glacial-lcd.modeMonitor": "모니터",
