@@ -45,6 +45,8 @@ export interface CommandContext {
   /** Snapshot of stateful service data fetched at palette open. */
   live: SearchLiveState;
   host: CommandHost;
+  /** Show a short message in a toast, for actions that run after the palette has closed. */
+  notify: (title: string) => void;
   /** Close the palette. Most entries don't need this - the palette closes
    *  itself after run() unless the entry sets keepOpen. */
   close: () => void;

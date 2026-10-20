@@ -1,10 +1,22 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ScreenControls } from './ModeControls';
+import { ModeControls, ScreenControls } from './ModeControls';
+import { openMediaFolder } from '../../../../api/mediaLibrary';
 import { fetchScreenEffect, fetchScreenMonitors, setScreenEffect, startScreenMirror } from '../../../../api/lighting';
 
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key, language: 'en' }),
+}));
+const toast = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock('../../../../components/common/Toast/Toast', () => ({
+  useToastSafe: () => ({ push: toast.push }),
+}));
+vi.mock('../effecteditor/useMediaLibrary', () => ({
+  useMediaLibrary: () => ({ items: [], activeId: null, thumbs: {}, refresh: vi.fn(() => Promise.resolve()), play: vi.fn(), removeLocal: vi.fn() }),
+}));
+vi.mock('../../../../api/mediaLibrary', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../../api/mediaLibrary')>()),
+  openMediaFolder: vi.fn(() => Promise.resolve(true)),
 }));
 vi.mock('../../../../api/lighting', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../api/lighting')>()),
@@ -76,3 +88,25 @@ describe('ScreenControls with picks blocked', () => {
   });
 });
 
+
+describe('media controls open folder', () => {
+  beforeEach(() => { toast.push.mockClear(); });
+  const renderMedia = () => render(<ModeControls mode="gif" screenPP={pp} onScreenPPChange={() => {}} />);
+  const openButton = () => screen.getByRole('button', { name: 'lighting.controls.mediaManageFolder' });
+
+  it('says so when the service could not open the folder', async () => {
+    vi.mocked(openMediaFolder).mockResolvedValueOnce(false);
+    renderMedia();
+    fireEvent.click(openButton());
+    await waitFor(() => expect(toast.push).toHaveBeenCalledWith({ title: 'common.openFolderFailed' }));
+  });
+
+  it('stays quiet when the folder opened', async () => {
+    renderMedia();
+    fireEvent.click(openButton());
+    await waitFor(() => expect(openMediaFolder).toHaveBeenCalled());
+    await vi.mocked(openMediaFolder).mock.results.at(-1)!.value;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(toast.push).not.toHaveBeenCalled();
+  });
+});

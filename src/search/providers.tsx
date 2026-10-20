@@ -860,7 +860,11 @@ const diagnostics: SearchSource = (ctx) => [
     subtitle: ctx.t('settings.diagnostics.title'),
     icon: <FolderOpen size={18} />,
     keywords: ['folder', 'data', 'files', 'programdata', 'app data', 'settings.json', 'diagnostics'],
-    run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
+    run: () => {
+      void postService('/diagnostics/open-logs', {})
+        .then(res => { if (!res) ctx.notify(ctx.t('common.openFolderFailed')); })
+        .catch(() => ctx.notify(ctx.t('common.openFolderFailed')));
+    },
   }),
   ...(ctx.online ? [
     act('diag:download-report', {

@@ -300,6 +300,7 @@
   "common.loading": "Daûr a cjariâ...",
   "common.mixed": "Miscliç",
   "common.nexusHome": "Pagjine principâl di Nexus",
+  "common.openFolderFailed": "Impussibil vierzi la cartele.",
   "common.pager.next": "Pagjine prossime",
   "common.pager.pageOf": "Pagjine {n} di {total}",
   "common.pager.prev": "Pagjine precedente",
