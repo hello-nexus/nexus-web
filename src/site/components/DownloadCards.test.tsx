@@ -19,9 +19,9 @@ describe('DownloadCards', () => {
     });
     render(<I18nProvider><DownloadCards /></I18nProvider>);
 
-    expect(await screen.findByText('v3.1.0 · 24 MB')).toBeInTheDocument();
-    expect(screen.getByText('v3.1.0 · 31 MB')).toBeInTheDocument();
-    expect(screen.getByText('v3.1.0 · 18 MB')).toBeInTheDocument();
+    expect(await screen.findByText('v3.1.0 - 24 MB')).toBeInTheDocument();
+    expect(screen.getByText('v3.1.0 - 31 MB')).toBeInTheDocument();
+    expect(screen.getByText('v3.1.0 - 18 MB')).toBeInTheDocument();
   });
 
   it('renders the buttons without a caption when the manifest is unavailable', async () => {
@@ -40,8 +40,8 @@ describe('DownloadCards', () => {
     });
     render(<I18nProvider><DownloadCards /></I18nProvider>);
 
-    expect(await screen.findByText('v3.1.0 · 24 MB')).toBeInTheDocument();
-    expect(screen.getByText('v3.1.0 · 18 MB')).toBeInTheDocument();
+    expect(await screen.findByText('v3.1.0 - 24 MB')).toBeInTheDocument();
+    expect(screen.getByText('v3.1.0 - 18 MB')).toBeInTheDocument();
     expect(screen.getAllByText(/\d+ MB/)).toHaveLength(2);
   });
 });

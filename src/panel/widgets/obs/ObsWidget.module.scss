@@ -1,5 +1,5 @@
 @use '../../../styles/text' as *;
-@use '../../../styles/interactions' as *;
+@use '../../styles/keySurface' as *;
 
 .obs {
   width: 100%;
@@ -63,12 +63,12 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--panel-bad);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--panel-bad) 50%, transparent);
+  box-shadow: 0 0 6px var(--panel-bad);
 }
 
 .obs[data-connected='true'] .dot {
   background: var(--panel-good);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--panel-good) 50%, transparent);
+  box-shadow: 0 0 6px var(--panel-good);
 }
 
 .iconButton {
@@ -77,14 +77,10 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  border: 1px solid var(--panel-border);
   border-radius: var(--radius);
-  background: var(--panel-element-bg);
-  color: var(--text-dim);
+  @include key-surface;
   padding: 0;
   cursor: pointer;
-
-  @include widget-button-hover;
 
   &:disabled {
     opacity: 0.45;
@@ -117,8 +113,7 @@
   min-width: 0;
   padding: 0 9px;
   border-radius: var(--radius);
-  background: var(--panel-element-bg);
-  color: var(--text);
+  @include key-wash;
 
   svg {
     flex-shrink: 0;
@@ -143,14 +138,10 @@
 
 .action,
 .scene {
-  border: 1px solid var(--panel-border);
-  background: var(--panel-element-bg);
-  color: var(--text-dim);
+  @include key-surface;
   font-family: var(--panel-font);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-
-  @include widget-button-hover;
 }
 
 .action {
@@ -167,7 +158,6 @@
 
   svg {
     grid-row: 1 / 3;
-    color: var(--text-dim);
   }
 
   span {
@@ -180,18 +170,12 @@
 
   em {
     @include text-caption;
-    color: var(--text-dim);
     font-style: normal;
+    font-variant-numeric: tabular-nums;
   }
 
   &[data-active='true'] {
-    border-color: var(--panel-bad);
-    background: color-mix(in srgb, var(--panel-bad) 16%, transparent);
-
-    svg,
-    span {
-      color: var(--panel-bad);
-    }
+    @include key-solid(var(--panel-bad), var(--panel-bad), #fff);
   }
 }
 
@@ -217,9 +201,11 @@
   text-align: left;
 
   &[data-active='true'] {
-    border-color: var(--panel-accent);
-    background: var(--panel-accent-soft);
-    color: var(--panel-ink-accent, var(--panel-accent-glow));
+    @include key-solid(
+      var(--panel-accent),
+      var(--panel-accent),
+      var(--panel-accent-text, var(--accent-text))
+    );
   }
 }
 

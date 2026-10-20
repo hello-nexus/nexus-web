@@ -1773,7 +1773,7 @@ function PreviewSectionHeader() {
     <div className="panel-root" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Widgets</SectionHeader>
-        <div style={{ color: 'var(--text)', fontSize: 13 }}>Widget labels · blur · opacity</div>
+        <div style={{ color: 'var(--text)', fontSize: 13 }}>Widget labels - blur - opacity</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Theme</SectionHeader>

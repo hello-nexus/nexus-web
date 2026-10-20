@@ -50,7 +50,7 @@ function PresetThumbButton({
   // Badge meaning rides the existing preset tooltip: label becomes the bold
   // title, the live/panel hints the body (so hovering explains the icons).
   const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
-  const tip = hints.length ? { title: label, body: hints.join(' · ') } : { body: label };
+  const tip = hints.length ? { title: label, body: hints.join(' - ') } : { body: label };
   return (
     <HoverTooltip {...tip} side="top">
       <button

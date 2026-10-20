@@ -81,7 +81,7 @@ export function KeebTesterView() {
             {history.map(entry => (
               <InfoRow
                 key={`${entry.timestamp}-${entry.key}`}
-                label={`${entry.key} · ${entry.code}`}
+                label={`${entry.key} - ${entry.code}`}
                 value={formatEventClock(entry.timestamp, timeFormat)}
               />
             ))}

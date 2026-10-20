@@ -27,7 +27,7 @@ function PairPromptBody({ sas, deviceLabel, remoteAddress, busy = false, error =
       <p className={styles.meta}>
         {t('phonePair.code.requestTitle', { device: deviceLabel })}
         {remoteAddress
-          ? ` · ${t('phonePair.code.requestFrom', { ip: remoteAddress })}`
+          ? ` - ${t('phonePair.code.requestFrom', { ip: remoteAddress })}`
           : ''}
       </p>
       {error && <p className={styles.error}>{error}</p>}

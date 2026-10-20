@@ -1596,6 +1596,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           <PanelThemeSettings
                             theme={theme}
                             deviceId={editingDeviceId}
+                            showEffectSearch
                             resolvedThemeMode={resolvedPanelThemeMode}
                             onThemeSyncCommit={panelTheme.commitThemeSync}
                             onThemeModeCommit={panelTheme.commitThemeMode}

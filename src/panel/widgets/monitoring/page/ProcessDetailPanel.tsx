@@ -235,12 +235,12 @@ export function ProcessDetailPanel({
   const sessions = sessionsForProcess(privacySessions, name);
   const showPrivacy = privacySupported && sessions.length > 0;
 
-  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} · ${formatAbsolute(ms, dateFormat, timeFormat)}`;
+  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} - ${formatAbsolute(ms, dateFormat, timeFormat)}`;
 
   const headerMeta = (instanceCount !== undefined || data?.publisher) ? (
     <span className={styles.headerMeta}>
       {instanceCount !== undefined && t(pluralKey('monitoring.processDetail.instances', language, instanceCount), { count: instanceCount })}
-      {instanceCount !== undefined && data?.publisher && ' · '}
+      {instanceCount !== undefined && data?.publisher && ' - '}
       {data?.publisher}
     </span>
   ) : undefined;
@@ -298,7 +298,7 @@ export function ProcessDetailPanel({
             <>
               <ProcessMiniChart points={chartSeries.points} />
               <div className={styles.chartMeta}>
-                {t('monitoring.history.avg')} {valueFormat(chartSeries.avg)} · {t('monitoring.history.max')} {valueFormat(chartSeries.max)}
+                {t('monitoring.history.avg')} {valueFormat(chartSeries.avg)} - {t('monitoring.history.max')} {valueFormat(chartSeries.max)}
               </div>
             </>
           )}

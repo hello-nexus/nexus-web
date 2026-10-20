@@ -1,0 +1,57 @@
+// Panel key surface shared by the calculator and OBS widgets: a borderless
+// wash of the widget's own ink, so it stays legible when auto text color
+// flips it. The wash is a ::before layer (opacity on a --text fill) because
+// color-mix() does not parse on Chromium 83.
+
+// Static wash for a non-interactive row that sits beside keys.
+@mixin key-wash($rest: 0.1) {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  color: var(--text);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--text);
+    opacity: $rest;
+    pointer-events: none;
+    transition: opacity var(--ease-fast) ease;
+  }
+}
+
+@mixin key-surface($rest: 0.1, $hover: 0.16, $press: 0.24) {
+  @include key-wash($rest);
+  border: 0;
+  transition: transform var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  &:hover:not(:disabled)::before { opacity: $hover; }
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+
+    &::before { opacity: $press; }
+  }
+}
+
+// Filled state on a key-surface: the wash is hidden and the element paints the fill.
+@mixin key-solid($fill, $fill-hover, $ink) {
+  background: $fill;
+  color: $ink;
+  transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease;
+
+  &::before { display: none; }
+
+  &:hover:not(:disabled) {
+    background: $fill-hover;
+    color: $ink;
+  }
+
+  &:active:not(:disabled) { background: $fill; }
+}

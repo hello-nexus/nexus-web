@@ -180,7 +180,7 @@ export function GalleryPage() {
       failed.length > 0 ? t('gallery.page.addFailed', { name: failed.join(', ') }) : null,
     ].filter(Boolean);
     if (messages.length > 0) {
-      setActionError(messages.join(' · '));
+      setActionError(messages.join(' - '));
     }
     await refresh();
   }, [refresh, t]);
