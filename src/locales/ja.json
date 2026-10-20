@@ -5688,7 +5688,6 @@
   "tools.panelSim.add": "シミュレーターを追加",
   "tools.panelSim.alreadyActive": "シミュレーション中",
   "tools.panelSim.apply": "適用",
-  "tools.panelSim.controlOff": "先にこのデバイスの Nexus Control をオンにしてください",
   "tools.panelSim.customDiagonal": "カスタムパネルの対角（インチ）",
   "tools.panelSim.customDpi": "カスタムパネルのDPI",
   "tools.panelSim.customHeight": "カスタムパネルの高さ",

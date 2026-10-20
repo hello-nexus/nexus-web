@@ -5688,7 +5688,6 @@
   "tools.panelSim.add": "Simülatör ekle",
   "tools.panelSim.alreadyActive": "Zaten simüle ediliyor",
   "tools.panelSim.apply": "Uygula",
-  "tools.panelSim.controlOff": "Önce bu cihaz için Nexus Control'ü açın",
   "tools.panelSim.customDiagonal": "Özel panel köşegeni (inç)",
   "tools.panelSim.customDpi": "Özel panel DPI",
   "tools.panelSim.customHeight": "Özel panel yüksekliği",

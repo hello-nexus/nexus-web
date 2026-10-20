@@ -18,7 +18,6 @@ import {
 } from '../../lib/panelSimulation';
 import { GENERIC_VENDOR } from '../../lib/simulatedScreenCatalog';
 import { isTryxSimulated, setTryxSimulated } from '../../lib/tryxSimulation';
-import { useDevices } from '../../hooks/useDevices';
 import { useStreamDecks } from '../../hooks/useStreamDecks';
 import {
   getStreamDeckDevModels,
@@ -224,11 +223,6 @@ export function PanelSimulatorCard() {
   const [tryxOn, setTryxOn] = useState(() => isTryxSimulated());
   const deckSim = useStreamDeckSim();
   const nollieSim = useNollieSim();
-  // The service drops a simulated deck or board on its next tick while that handler's Nexus Control is off.
-  const { devices: curated } = useDevices(true);
-  const controlOff = (handlerId: string) => curated.find(d => d.id === handlerId)?.nexusControlEnabled === false;
-  const deckControlOff = controlOff('streamdeck');
-  const nollieControlOff = controlOff('nollie');
 
   const customPhysical = getSimulatedPanelPhysicalSize({
     width: customWidth,
@@ -251,7 +245,6 @@ export function PanelSimulatorCard() {
   const options = useMemo(() => {
     const alreadyActive = t('tools.panelSim.alreadyActive');
     const oneAtATime = t('tools.panelSim.oneAtATime');
-    const controlOffText = t('tools.panelSim.controlOff');
     const groups = new Map<string, SelectOption[]>();
     const add = (vendor: string, option: SelectOption) => {
       groups.set(vendor, [...(groups.get(vendor) ?? []), option]);
@@ -272,16 +265,16 @@ export function PanelSimulatorCard() {
       add('Elgato', {
         value: STREAMDECK_PREFIX + model.productId,
         label,
-        disabled: !!deckSim.active || deckSim.busy || deckControlOff,
-        description: deckSim.active ? oneAtATime : deckControlOff ? controlOffText : undefined,
+        disabled: !!deckSim.active || deckSim.busy,
+        description: deckSim.active ? oneAtATime : undefined,
       });
     }
     for (const model of nollieSim.models) {
       add('Nollie', {
         value: NOLLIE_PREFIX + model.id,
         label: model.name,
-        disabled: !!nollieSim.active || nollieSim.busy || nollieControlOff,
-        description: nollieSim.active ? oneAtATime : nollieControlOff ? controlOffText : undefined,
+        disabled: !!nollieSim.active || nollieSim.busy,
+        description: nollieSim.active ? oneAtATime : undefined,
       });
     }
     add('Tryx', {
@@ -296,7 +289,7 @@ export function PanelSimulatorCard() {
       { value: '', label: vendor === GENERIC_VENDOR ? t('tools.panelSim.vendorGeneric') : vendor, header: true },
       ...groups.get(vendor)!,
     ]);
-  }, [t, panels, connectedIds, deckSim.models, deckSim.active, deckSim.busy, nollieSim.models, nollieSim.active, nollieSim.busy, deckControlOff, nollieControlOff, tryxOn]);
+  }, [t, panels, connectedIds, deckSim.models, deckSim.active, deckSim.busy, nollieSim.models, nollieSim.active, nollieSim.busy, tryxOn]);
 
   const addSimulator = (value: string) => {
     if (value.startsWith(PANEL_PREFIX)) {

@@ -5688,7 +5688,6 @@
   "tools.panelSim.add": "시뮬레이터 추가",
   "tools.panelSim.alreadyActive": "이미 시뮬레이션 중",
   "tools.panelSim.apply": "적용",
-  "tools.panelSim.controlOff": "먼저 이 기기의 Nexus Control을 켜세요",
   "tools.panelSim.customDiagonal": "사용자 지정 패널 대각선(인치)",
   "tools.panelSim.customDpi": "사용자 지정 패널 DPI",
   "tools.panelSim.customHeight": "사용자 지정 패널 높이",

@@ -5688,7 +5688,6 @@
   "tools.panelSim.add": "Adicionar simulador",
   "tools.panelSim.alreadyActive": "Já simulado",
   "tools.panelSim.apply": "Aplicar",
-  "tools.panelSim.controlOff": "Ative primeiro o Nexus Control para este dispositivo",
   "tools.panelSim.customDiagonal": "Diagonal do painel personalizado (polegadas)",
   "tools.panelSim.customDpi": "DPI do painel personalizado",
   "tools.panelSim.customHeight": "Altura do painel personalizado",

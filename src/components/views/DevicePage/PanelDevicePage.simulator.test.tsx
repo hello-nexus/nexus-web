@@ -12,10 +12,12 @@ const patchPanelDeviceMock = vi.fn();
 const allocatePanelDeviceMock = vi.fn();
 const fetchServiceMock = vi.fn();
 const postServiceMock = vi.fn();
+const putServiceMock = vi.fn();
 
 vi.mock('../../../api/service', () => ({
   fetchService: (...a: unknown[]) => fetchServiceMock(...a),
   postService: (...a: unknown[]) => postServiceMock(...a),
+  putService: (...a: unknown[]) => putServiceMock(...a),
 }));
 vi.mock('../../../api/displays', () => ({
   demoteDisplayPanel: vi.fn().mockResolvedValue(null),
@@ -124,6 +126,7 @@ const flush = () => act(async () => { await Promise.resolve(); });
 beforeEach(() => {
   fetchServiceMock.mockReset().mockResolvedValue(null);
   postServiceMock.mockReset().mockResolvedValue(null);
+  putServiceMock.mockReset().mockResolvedValue(null);
   localStorage.clear();
   fetchPanelDevicesMock.mockReset();
   fetchPanelDeviceMock.mockReset().mockResolvedValue(OWN);
@@ -213,7 +216,7 @@ describe('PanelDevicePage simulator', () => {
   it.each([
     ['q60', 'q60', 'HYTE Q60'],
     ['y70', 'y70', 'HYTE Y70 Touch 2.5K'],
-  ])('a simulated %s page makes no /qseries or /y70 hardware call', async (id, surface, name) => {
+  ])('a simulated %s page makes no Q-series, Y70 or firmware hardware call', async (id, surface, name) => {
     const sim = {
       ...SIM, id: `simulated:${id}`, name, sourceId: id, runtimeSurface: surface, family: undefined,
       previewSize: { width: 720, height: 1280 },
@@ -221,11 +224,12 @@ describe('PanelDevicePage simulator', () => {
     } as unknown as PanelDevice;
     fetchPanelDevicesMock.mockResolvedValue({ devices: [] });
     render(<PanelDevicePage device={sim} />);
+    await screen.findByTestId('embed');
+    await waitFor(() => expect(fetchPanelDevicesMock).toHaveBeenCalled());
     await flush();
-    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
 
-    const paths = [...fetchServiceMock.mock.calls, ...postServiceMock.mock.calls].map(c => String(c[0]));
-    expect(paths.filter(p => p.startsWith('/qseries') || p.startsWith('/y70'))).toEqual([]);
+    const paths = [...fetchServiceMock.mock.calls, ...postServiceMock.mock.calls, ...putServiceMock.mock.calls].map(c => String(c[0]));
+    expect(paths.filter(p => /qseries|\/y70|\/devices\/firmware/.test(p))).toEqual([]);
     expect(screen.queryByRole('tab', { name: /settings/ })).toBeNull();
   });
 });
