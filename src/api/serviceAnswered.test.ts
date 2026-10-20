@@ -48,7 +48,7 @@ describe('service sign of life', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
     await fetchService('/sentry');
     now += 60_000;
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(new Blob(['img']), { status: 200 })));
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('img', { status: 200 })));
     expect(await fetchServiceBlob('/deck/images/abc')).not.toBeNull();
     expect((await fetchServiceBlobWithStatus('/shortcuts/icon?targetId=x')).status).toBe(200);
     expect(serviceAnsweredAt()).toBe(1_000_000);
