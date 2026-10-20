@@ -1,7 +1,11 @@
-// Tile padding and the round 2x2 layout box, both in layout px. The box is two
-// 90px design cells, the base every panel widget is laid out at.
+@use 'sass:math';
+
+// The round full-bleed tile pads by the same fraction of its layout box that
+// the plain tile pads at the box a round surface lays out in (zero gap, no
+// label strip). fullBleedRound.test.ts pins that box against the grid solver.
 $tile-pad: 14;
 $round-box: 180;
+$tile-pad-fraction: math.div($tile-pad, $round-box);
 
 .performance {
   display: grid;
@@ -94,10 +98,13 @@ $round-box: 180;
 
 // Round glass with a frame-filling design: the gauge keeps its normal padded
 // layout and the whole tile scales as one unit, so ring, value and caption keep
-// their proportions. The factor lifts the padded slot to the rim box, which is
-// the card's inscribed-square fit reciprocal of the layout box.
+// their proportions. The factor lifts the padded slot to the glass diameter.
+// Percent padding resolves against the layout box, so the factor holds for any
+// box size.
 .fullBleed {
-  transform: scale(calc(#{$round-box} / (#{$round-box} - #{2 * $tile-pad}) / var(--panel-round-fit, 0.85)));
+  --_fb-scale: calc(1 / (1 - #{2 * $tile-pad-fraction}) / var(--panel-round-fit, 0.85));
+  padding: math.percentage($tile-pad-fraction);
+  transform: scale(var(--_fb-scale));
   transform-origin: 50% 50%;
 
   // The tile is scaled past its box on purpose, so the slot and the gauge
@@ -109,6 +116,21 @@ $round-box: 180;
 
   .slotSelectable {
     border-radius: 50%;
+
+    // The scaled slot reaches the rim, where the glass would clip the ring.
+    // Size it to the card's inscribed fit box and counter-scale it, so the
+    // stroke keeps its on-screen weight (a fractional border width is snapped
+    // to whole pixels, a transform is not).
+    &::after {
+      top: 50%;
+      left: 50%;
+      right: auto;
+      bottom: auto;
+      width: calc(100% * var(--panel-round-fit, 0.85) * var(--_fb-scale));
+      height: calc(100% * var(--panel-round-fit, 0.85) * var(--_fb-scale));
+      transform: translate(-50%, -50%) scale(calc(1 / var(--_fb-scale)));
+      box-sizing: border-box;
+    }
   }
 }
 
