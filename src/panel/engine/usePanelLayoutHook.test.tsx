@@ -330,3 +330,42 @@ describe('usePanelLayout hydration gate', () => {
     expect(result.current.layout.pages[0].id).toBe('STORED2');
   });
 });
+
+describe('usePanelLayout pending write vs record change', () => {
+  const base = defaultLayoutForSurface('y70');
+  const switched = { ...base, marker: 'other-profile' } as unknown as typeof base;
+  const stateOf = (layout: typeof base) => ({
+    record: { id: 'live', displayName: 'Live', firstSeenAt: 0, lastSeenAt: 0, layout },
+    loaded: true,
+    missing: false,
+    refetch: () => {},
+  });
+
+  it('drops a pending write when the record layout changes underneath it', async () => {
+    patchMock.mockResolvedValue({ ok: true });
+    const { result, rerender } = renderHook(
+      ({ s }) => usePanelLayout(s, 'live', 'y70'),
+      { initialProps: { s: stateOf(base) } },
+    );
+
+    act(() => { result.current.setLayout(base); });
+    rerender({ s: stateOf(switched) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    expect(patchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps a pending write when the record layout is unchanged', async () => {
+    patchMock.mockResolvedValue({ ok: true });
+    const { result, rerender } = renderHook(
+      ({ s }) => usePanelLayout(s, 'live', 'y70'),
+      { initialProps: { s: stateOf(base) } },
+    );
+
+    act(() => { result.current.setLayout(base); });
+    rerender({ s: stateOf({ ...base }) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    expect(patchMock).toHaveBeenCalledTimes(1);
+  });
+});
