@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { mergeLeaderMac } from './lianliChainUtils';
@@ -398,14 +398,32 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
       expect(reads).toHaveLength(1);
     });
 
+    it('lets reads apply again once a write has gone unanswered for the hold cap', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tl, mode: 'rainbow' }] });
+        mockSet.mockImplementation(() => new Promise(() => {}));
+        await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
+        await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })); });
+        mockGet.mockResolvedValue({ laneModes: [], chains: [{ ...tl, mode: 'perZone' }] });
+        await act(async () => { window.dispatchEvent(new Event('focus')); });
+        expect(screen.queryByText('devices.lianli-flex.zoneUp')).not.toBeInTheDocument();
+        vi.setSystemTime(Date.now() + 10001);
+        await act(async () => { window.dispatchEvent(new Event('focus')); });
+        expect(screen.getByText('devices.lianli-flex.zoneUp')).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     describe('a failure', () => {
       const unhandled = vi.fn();
       beforeEach(() => { unhandled.mockClear(); process.on('unhandledRejection', unhandled); });
       afterEach(() => { process.off('unhandledRejection', unhandled); });
-      const swap = () => act(async () => {
-        fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' }));
-        await new Promise(resolve => setTimeout(resolve, 0));
-      });
+      const swap = async (settled: () => void) => {
+        await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })); });
+        await waitFor(() => expect(settled).toHaveBeenCalledTimes(1));
+      };
 
       it('in the read after a write still reports settled, with nothing unhandled', async () => {
         const settled = vi.fn();
@@ -413,7 +431,7 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
         mockSet.mockResolvedValue(true);
         await act(async () => { render(<LianLiWirelessLightingTab api={api} onSettled={settled} />); });
         mockGet.mockRejectedValue(new Error('bad json'));
-        await swap();
+        await swap(settled);
         expect(settled).toHaveBeenCalledTimes(1);
         expect(unhandled).not.toHaveBeenCalled();
       });
@@ -423,7 +441,7 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
         mockGet.mockResolvedValue({ laneModes: [], chains: [tl] });
         mockSet.mockImplementation(() => { throw new Error('offline'); });
         await act(async () => { render(<LianLiWirelessLightingTab api={api} onSettled={settled} />); });
-        await swap();
+        await swap(settled);
         expect(mockGet).toHaveBeenCalledTimes(2);
         expect(settled).toHaveBeenCalledTimes(1);
         expect(unhandled).not.toHaveBeenCalled();

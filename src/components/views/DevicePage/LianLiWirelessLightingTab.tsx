@@ -26,6 +26,9 @@ const WIRELESS_LIGHTING_API: LianLiChainLightingApi = {
   set: (mac, patch) => setLianLiWirelessChainLighting(mac, patch),
 };
 
+// The longest a write in flight keeps reads from applying.
+const WRITE_HOLD_MS = 10000;
+
 const MODE_CUSTOM = 'custom';
 const MODE_PER_LANE = 'perLane';
 const MODE_PER_ZONE = 'perZone';
@@ -81,7 +84,9 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   // Send order of reads: a response is applied only if no later-sent one was.
   const sentRef = useRef(0);
   // Writes still awaiting the service; a read answered meanwhile predates their previews, so it is dropped.
+  // A write the service never answers holds reads back only for WRITE_HOLD_MS.
   const inFlightRef = useRef(0);
+  const holdSinceRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const seq = ++sentRef.current;
@@ -91,10 +96,12 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
     } catch {
       // A failed read leaves the screen as it is.
     }
-    if (aliveRef.current && d && seq === sentRef.current && inFlightRef.current === 0) setData(d);
+    if (aliveRef.current && d && seq === sentRef.current
+      && (inFlightRef.current === 0 || Date.now() - holdSinceRef.current > WRITE_HOLD_MS)) setData(d);
   }, [api]);
 
   const beginWrite = useCallback(() => {
+    if (inFlightRef.current === 0) holdSinceRef.current = Date.now();
     inFlightRef.current += 1;
   }, []);
 

@@ -135,7 +135,8 @@ describe('LianLiFlexSyncSection', () => {
       expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
     });
 
-    it('keeps a reorder made after a forced read was sent', async () => {
+    it('keeps a reorder made after a forced read was sent, even within one clock tick', async () => {
+      const now = vi.spyOn(performance, 'now').mockReturnValue(5000);
       const pending: Array<(v: LianLiFlexSync) => void> = [];
       mockGetSync.mockResolvedValueOnce(sync());
       await act(async () => { render(<Probe />); });
@@ -145,6 +146,7 @@ describe('LianLiFlexSyncSection', () => {
       expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
       await act(async () => { pending[0](sync()); });
       expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
+      now.mockRestore();
     });
   });
 

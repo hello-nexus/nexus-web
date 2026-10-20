@@ -34,6 +34,8 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
   const [data, setData] = useState<LianLiFlexSync | null>(null);
   const aliveRef = useRef(true);
   const lastEditRef = useRef(Number.NEGATIVE_INFINITY);
+  // Counts edits, so "made before the read was sent" does not rest on a clock that browsers coarsen.
+  const editCountRef = useRef(0);
 
   // Send order of reads: a response is applied only if no later-sent one was.
   const sentRef = useRef(0);
@@ -41,10 +43,9 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
   // A forced read skips the post-edit grace, but only for edits made before it was sent.
   const refresh = useCallback(async (force = false) => {
     const seq = ++sentRef.current;
-    const sentAt = performance.now();
+    const editsAtSend = editCountRef.current;
     const d = await getLianLiFlexSync().catch(() => null);
-    const editAt = lastEditRef.current;
-    const graceOver = performance.now() - editAt > EDIT_GRACE_MS || (force && editAt <= sentAt);
+    const graceOver = performance.now() - lastEditRef.current > EDIT_GRACE_MS || (force && editCountRef.current === editsAtSend);
     if (aliveRef.current && d && seq === sentRef.current && graceOver) setData(d);
   }, []);
 
@@ -63,6 +64,7 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
 
   const reorder = useCallback((macs: readonly string[]) => {
     lastEditRef.current = performance.now();
+    editCountRef.current += 1;
     setData(prev => {
       if (!prev) return prev;
       const rank = (mac: string) => { const i = macs.indexOf(mac); return i < 0 ? macs.length : i; };
@@ -73,6 +75,7 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
 
   const commit = useCallback(async (patch: LianLiFlexSyncPatch) => {
     lastEditRef.current = performance.now();
+    editCountRef.current += 1;
     const look: Partial<LianLiFlexSync> = { ...patch, members: undefined };
     delete look.members;
     setData(prev => prev && { ...prev, ...look });
