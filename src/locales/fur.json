@@ -848,6 +848,7 @@
   "devices.lianli-flex.syncSection": "Sincronizazion",
   "devices.lianli-flex.upDownSwap": "Scambie disore e disot",
   "devices.lianli-flex.upDownSwapHint": "Al scambie lis dós metâts di ogni ventiladôr",
+  "devices.lianli-flex.usbBoundHint": "Conetût par USB, associât ae radio di chest PC. Disassocie par passâ il control a USB.",
   "devices.lianli-flex.zoneCenter": "Palis",
   "devices.lianli-flex.zoneDown": "Disot",
   "devices.lianli-flex.zoneInner": "Dentri",

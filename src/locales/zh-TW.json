@@ -848,6 +848,7 @@
   "devices.lianli-flex.syncSection": "同步",
   "devices.lianli-flex.upDownSwap": "上下互換",
   "devices.lianli-flex.upDownSwapHint": "互換每個風扇的兩個半區",
+  "devices.lianli-flex.usbBoundHint": "已透過 USB 連線，並與這台電腦的無線模組配對。取消配對即可將控制權交給 USB。",
   "devices.lianli-flex.zoneCenter": "扇葉",
   "devices.lianli-flex.zoneDown": "下",
   "devices.lianli-flex.zoneInner": "內圈",

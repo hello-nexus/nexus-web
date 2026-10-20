@@ -376,6 +376,7 @@ function DeviceRow({
     ? { label: `${t('devices.lianli-wireless.bound')} - ${t('devices.lianli-wireless.slot', { n: fan.slot })}`, tone: 'accent' }
     : { label: t('devices.lianli-wireless.unbound') };
   const lines = [
+    wiredOwned && fan.boundToUs ? t('devices.lianli-flex.usbBoundHint') : null,
     fan.firmwareVersion ? t('devices.lianli-wireless.firmwareVersion', { v: fan.firmwareVersion }) : null,
     wired && fan.lcdFirmware ? t('devices.lianli-flex.lcdFirmware', { v: fan.lcdFirmware }) : null,
     fan.boundToUs && !isStrimerDevice(fan.devType) && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
@@ -397,9 +398,17 @@ function DeviceRow({
       )}
     >
       {wired ? null : wiredOwned ? (
-        <Button size="sm" tone="neutral" onClick={onOpenWiredPage}>
-          {t('devices.lianli-flex.openWiredPage')}
-        </Button>
+        <>
+          <Button size="sm" tone="neutral" onClick={onOpenWiredPage}>
+            {t('devices.lianli-flex.openWiredPage')}
+          </Button>
+          {/* The service allows only a release here: Unbind hands the fan to USB. */}
+          {fan.boundToUs && (
+            <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
+              {unbindLabel}
+            </Button>
+          )}
+        </>
       ) : fan.boundToUs ? (
         <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}

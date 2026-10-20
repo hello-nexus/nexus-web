@@ -848,6 +848,7 @@
   "devices.lianli-flex.syncSection": "Synchronisierung",
   "devices.lianli-flex.upDownSwap": "Oben und unten tauschen",
   "devices.lianli-flex.upDownSwapHint": "Vertauscht die beiden Hälften jedes Lüfters",
+  "devices.lianli-flex.usbBoundHint": "Per USB verbunden, mit dem Funkmodul dieses PCs gekoppelt. Entkoppeln Sie es, um die Steuerung an USB zu übergeben.",
   "devices.lianli-flex.zoneCenter": "Flügel",
   "devices.lianli-flex.zoneDown": "Unten",
   "devices.lianli-flex.zoneInner": "Innen",

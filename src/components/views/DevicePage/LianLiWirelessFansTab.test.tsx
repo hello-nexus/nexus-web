@@ -384,6 +384,33 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
     expect(open).toHaveBeenCalled();
   });
 
+  it('offers only Unbind, with the hint, for a wired unit still bound to this radio, and unbinds after the confirm', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab
+        state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: true, boundToUs: true, slot: 1 }] }}
+        refresh={vi.fn()}
+        onOpenWiredPage={vi.fn()}
+      />);
+    });
+    expect(screen.getByText('devices.lianli-flex.usbBoundHint')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.identify' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-flex.openWiredPage' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' }));
+    expect(mockUnbindLianLiWirelessFan).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbindConfirmLabel' })); });
+    expect(mockUnbindLianLiWirelessFan).toHaveBeenCalledWith(flexFan.mac);
+  });
+
+  it('keeps a wired unit that is not bound to this radio free of actions apart from the page link', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: true }] }} refresh={vi.fn()} onOpenWiredPage={vi.fn()} />);
+    });
+    expect(screen.queryByText('devices.lianli-flex.usbBoundHint')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.unbind' })).not.toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.connectedByUsb')).toBeInTheDocument();
+  });
+
   it('still offers Bind for a unit the wired page does not own', async () => {
     await act(async () => {
       render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} />);

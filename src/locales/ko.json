@@ -848,6 +848,7 @@
   "devices.lianli-flex.syncSection": "동기화",
   "devices.lianli-flex.upDownSwap": "위아래 바꾸기",
   "devices.lianli-flex.upDownSwapHint": "각 팬의 두 반쪽을 서로 바꿉니다",
+  "devices.lianli-flex.usbBoundHint": "USB로 연결되어 있고 이 PC의 무선에 페어링되어 있습니다. 페어링을 해제하면 USB로 제어가 넘어갑니다.",
   "devices.lianli-flex.zoneCenter": "블레이드",
   "devices.lianli-flex.zoneDown": "아래",
   "devices.lianli-flex.zoneInner": "안쪽",

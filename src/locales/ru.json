@@ -855,6 +855,7 @@
   "devices.lianli-flex.syncSection": "Синхронизация",
   "devices.lianli-flex.upDownSwap": "Поменять верх и низ",
   "devices.lianli-flex.upDownSwapHint": "Меняет местами две половины каждого вентилятора",
+  "devices.lianli-flex.usbBoundHint": "Подключён по USB и сопряжён с радиомодулем этого ПК. Отмените сопряжение, чтобы передать управление USB.",
   "devices.lianli-flex.zoneCenter": "Лопасти",
   "devices.lianli-flex.zoneDown": "Низ",
   "devices.lianli-flex.zoneInner": "Внутренняя",

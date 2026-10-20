@@ -848,6 +848,7 @@
   "devices.lianli-flex.syncSection": "Eşitleme",
   "devices.lianli-flex.upDownSwap": "Üst ve altı değiştir",
   "devices.lianli-flex.upDownSwapHint": "Her fanın iki yarısını birbiriyle değiştirir",
+  "devices.lianli-flex.usbBoundHint": "USB ile bağlı ve bu bilgisayarın radyosuyla eşleşmiş. Kontrolü USB'ye devretmek için eşleşmeyi kaldırın.",
   "devices.lianli-flex.zoneCenter": "Kanatlar",
   "devices.lianli-flex.zoneDown": "Alt",
   "devices.lianli-flex.zoneInner": "İç",
