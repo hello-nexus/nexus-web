@@ -1,9 +1,14 @@
+// Tile padding and the round 2x2 layout box, both in layout px. The box is two
+// 90px design cells, the base every panel widget is laid out at.
+$tile-pad: 14;
+$round-box: 180;
+
 .performance {
   display: grid;
   gap: 14px;
   height: 100%;
   width: 100%;
-  padding: 14px;
+  padding: #{$tile-pad}px;
   box-sizing: border-box;
 }
 
@@ -87,14 +92,15 @@
   padding-bottom: 12%;
 }
 
-// Round glass with a frame-filling design: no tile padding, and the figure grows
-// by the reciprocal of the card's inscribed-square fit so its outer edge reaches
-// the glass. Only the figure layer scales; value and caption keep their size.
+// Round glass with a frame-filling design: the gauge keeps its normal padded
+// layout and the whole tile scales as one unit, so ring, value and caption keep
+// their proportions. The factor lifts the padded slot to the rim box, which is
+// the card's inscribed-square fit reciprocal of the layout box.
 .fullBleed {
-  padding: 0;
-  --gauge-figure-scale: calc(1 / var(--panel-round-fit, 0.85));
+  transform: scale(calc(#{$round-box} / (#{$round-box} - #{2 * $tile-pad}) / var(--panel-round-fit, 0.85)));
+  transform-origin: 50% 50%;
 
-  // The figure is scaled past its box on purpose, so the slot and the gauge
+  // The tile is scaled past its box on purpose, so the slot and the gauge
   // root must not clip it - the card's own circular mask is what should.
   .slot,
   .slot > * {
