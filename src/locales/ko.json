@@ -1017,6 +1017,8 @@
   "devices.lianliCurve.mediaUpload": "동영상 업로드",
   "devices.lianliCurve.mediaUploadFailed": "업로드 실패",
   "devices.lianliCurve.mediaUploading": "업로드 중...",
+  "devices.lianliCurve.offlineMode": "오프라인 모드",
+  "devices.lianliCurve.offlineModeHint": "PC가 꺼져 있는 동안 디스플레이에 날짜와 시간을 표시합니다.",
   "devices.lianliCurve.pumpFollowsMotherboard": "펌프가 메인보드를 따름",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Nexus가 펌프를 제어하지 않을 때는 기본 속도 대신 연결된 메인보드 팬 헤더를 따릅니다.",
   "devices.lianliCurve.pumpSection": "펌프",

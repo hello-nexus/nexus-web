@@ -1024,6 +1024,8 @@
   "devices.lianliCurve.mediaUpload": "Nahrát video",
   "devices.lianliCurve.mediaUploadFailed": "Nahrání selhalo",
   "devices.lianliCurve.mediaUploading": "Nahrávání...",
+  "devices.lianliCurve.offlineMode": "Offline režim",
+  "devices.lianliCurve.offlineModeHint": "Zobrazuje datum a čas na displeji, když je váš počítač vypnutý.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Čerpadlo sleduje základní desku",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Když Nexus čerpadlo neřídí, sleduje čerpadlo konektor ventilátoru na základní desce, ke kterému je připojeno, místo svých výchozích otáček.",
   "devices.lianliCurve.pumpSection": "Čerpadlo",

@@ -1024,6 +1024,8 @@
   "devices.lianliCurve.mediaUpload": "Prześlij film",
   "devices.lianliCurve.mediaUploadFailed": "Przesyłanie nie powiodło się",
   "devices.lianliCurve.mediaUploading": "Przesyłanie...",
+  "devices.lianliCurve.offlineMode": "Tryb offline",
+  "devices.lianliCurve.offlineModeHint": "Wyświetla datę i godzinę na ekranie, gdy komputer jest wyłączony.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Pompa podąża za płytą główną",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Gdy Nexus nie steruje pompą, podąża ona za złączem wentylatora płyty głównej, do którego jest podłączona, zamiast używać prędkości domyślnej.",
   "devices.lianliCurve.pumpSection": "Pompa",

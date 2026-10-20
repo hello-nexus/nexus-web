@@ -1017,6 +1017,8 @@
   "devices.lianliCurve.mediaUpload": "Cjame video",
   "devices.lianliCurve.mediaUploadFailed": "Cjamament falît",
   "devices.lianliCurve.mediaUploading": "Cjamament...",
+  "devices.lianliCurve.offlineMode": "Modalitât fûr di linie",
+  "devices.lianliCurve.offlineModeHint": "Al mostre la date e la ore su lo schermi cuant che il to PC al è studât.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La pompe e sta daûr de schede mari",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Cuant che Nexus nol controle la pompe, e sta daûr dal conetôr de ventule de schede mari a cui che e je colegade, invezit de sô velocitât predefinide.",
   "devices.lianliCurve.pumpSection": "Pompe",

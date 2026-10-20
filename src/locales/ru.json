@@ -1024,6 +1024,8 @@
   "devices.lianliCurve.mediaUpload": "Загрузить видео",
   "devices.lianliCurve.mediaUploadFailed": "Не удалось загрузить",
   "devices.lianliCurve.mediaUploading": "Загрузка...",
+  "devices.lianliCurve.offlineMode": "Автономный режим",
+  "devices.lianliCurve.offlineModeHint": "Показывает дату и время на дисплее, пока ваш ПК выключен.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Помпа следует за материнской платой",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Когда Nexus не управляет помпой, она следует за разъёмом вентилятора материнской платы, к которому подключена, вместо скорости по умолчанию.",
   "devices.lianliCurve.pumpSection": "Помпа",

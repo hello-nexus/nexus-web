@@ -189,6 +189,12 @@ export function HydroShift2CurveSettings({ screen }: { screen: HydroShift2CurveS
             )}
           </div>
         )}
+        <SettingToggle
+          label={t('devices.lianliCurve.offlineMode')}
+          description={t('devices.lianliCurve.offlineModeHint')}
+          checked={settings.offlineMode === true}
+          onChange={offlineMode => { void write({ offlineMode }); }}
+        />
       </SettingsSection>
 
       <SettingsSection title={t('devices.lianliCurve.saverSection')}>

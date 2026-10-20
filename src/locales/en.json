@@ -1017,6 +1017,8 @@
   "devices.lianliCurve.mediaUpload": "Upload video",
   "devices.lianliCurve.mediaUploadFailed": "Upload failed",
   "devices.lianliCurve.mediaUploading": "Uploading...",
+  "devices.lianliCurve.offlineMode": "Offline Mode",
+  "devices.lianliCurve.offlineModeHint": "Shows the date and time on the display while your PC is off.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Pump follows motherboard",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "When Nexus is not controlling the pump, it follows the motherboard fan header it is wired to instead of its default speed.",
   "devices.lianliCurve.pumpSection": "Pump",

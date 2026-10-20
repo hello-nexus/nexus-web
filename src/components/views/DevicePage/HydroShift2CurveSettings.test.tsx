@@ -282,4 +282,12 @@ describe('HydroShift2CurveSettings', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'devices.lianliCurve.pumpFollowsMotherboard' }));
     await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ pumpFollowsMotherboard: true }));
   });
+
+  it('PUTs the offline mode toggle and shows null as off', async () => {
+    await renderSettings({ offlineMode: null });
+    const sw = screen.getByRole('switch', { name: 'devices.lianliCurve.offlineMode' });
+    expect(sw).not.toBeChecked();
+    fireEvent.click(sw);
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ offlineMode: true }));
+  });
 });

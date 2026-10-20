@@ -1017,6 +1017,8 @@
   "devices.lianliCurve.mediaUpload": "Video yükle",
   "devices.lianliCurve.mediaUploadFailed": "Yükleme başarısız",
   "devices.lianliCurve.mediaUploading": "Yükleniyor...",
+  "devices.lianliCurve.offlineMode": "Çevrimdışı Mod",
+  "devices.lianliCurve.offlineModeHint": "Bilgisayarınız kapalıyken ekranda tarih ve saati gösterir.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Pompa anakartı izler",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Nexus pompayı kontrol etmediğinde pompa, varsayılan hızı yerine bağlı olduğu anakart fan başlığını izler.",
   "devices.lianliCurve.pumpSection": "Pompa",

@@ -1017,6 +1017,8 @@
   "devices.lianliCurve.mediaUpload": "Carica video",
   "devices.lianliCurve.mediaUploadFailed": "Caricamento non riuscito",
   "devices.lianliCurve.mediaUploading": "Caricamento...",
+  "devices.lianliCurve.offlineMode": "Modalità offline",
+  "devices.lianliCurve.offlineModeHint": "Mostra data e ora sul display quando il PC è spento.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La pompa segue la scheda madre",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Quando Nexus non controlla la pompa, questa segue il connettore ventola della scheda madre a cui è collegata invece della velocità predefinita.",
   "devices.lianliCurve.pumpSection": "Pompa",

@@ -51,6 +51,8 @@ export interface HydroShift2CurveSettings {
   screenSaverVideo?: string | null;
   screenSaverBrightness: number;
   pumpFollowsMotherboard: boolean;
+  /** Null when Nexus never set it; the device may still have it on from another app. */
+  offlineMode?: boolean | null;
 }
 
 export type HydroShift2CurveSettingsPatch = Partial<Omit<HydroShift2CurveSettings, 'connected' | 'playing'>>;
