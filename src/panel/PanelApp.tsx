@@ -83,7 +83,7 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary'
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus } from '../hooks/useServiceStatus';
-import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGraceMs } from './device/wiredPanel';
+import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGrace } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -485,14 +485,10 @@ export function PanelContent({
   // always transient and it can ride one out instead of flipping offline and
   // tearing down an open editor. Cabled surfaces (q60, USB phone) keep the
   // instant offline response so a real unplug surfaces right away.
-  // A WiFi/relay phone holds only while its multiplex transport is open.
   const isHostDisplay = wiredPanelClass(glassSurface) === 'host-display';
   const multiplex = useMultiplex();
-  const serviceStatus = useServiceStatus(
-    kioskBehavior,
-    panelOfflineGraceMs(glassSurface),
-    isHostDisplay || (multiplex?.connected ?? false),
-  );
+  const offlineGrace = panelOfflineGrace(glassSurface, multiplex?.connected ? multiplex.transport : null);
+  const serviceStatus = useServiceStatus(kioskBehavior, offlineGrace.graceMs, offlineGrace.hold);
   // The context menu's "Pin to Sidebar" gates on the current pinned-tail
   // (only pinnable types not already pinned). Always inside a
   // UiSettingsProvider - every PanelContent mount wraps one (see

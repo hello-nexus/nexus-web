@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useMultiplexConnection } from './useMultiplexSocket';
+import { serviceAnsweredAt } from '../lib/serviceLiveness';
 
 // isRelayActive controls the remote-origin eager-relay branch. Default false
 // (the LAN-first tests assume a service-served origin); the remote-origin test
@@ -296,6 +297,19 @@ describe('useMultiplexConnection reconnect schedule', () => {
       await Promise.resolve();
     });
     expect(FakeWebSocket.instances.length).toBe(beforeReset + 1);
+  });
+
+  it('stamps a service sign of life on every multiplex frame', async () => {
+    renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const ws = FakeWebSocket.instances[0];
+    act(() => { ws.triggerOpen(); });
+    vi.setSystemTime(5_000_000);
+    act(() => { ws.onmessage?.({ data: JSON.stringify({ t: 'monitoring', d: { cpu: 42 } }) }); });
+    expect(serviceAnsweredAt()).toBe(5_000_000);
   });
 
   it('reconnect() resets backoff and reconnects immediately', async () => {

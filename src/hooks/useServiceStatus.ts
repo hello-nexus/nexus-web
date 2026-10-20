@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pingService, type PingResponse } from '../api/service';
+import { serviceAnsweredAt, type OfflineHold } from '../lib/serviceLiveness';
 import { isLaunching, resolveLaunch, useLaunchState } from './useServiceLaunch';
 
 /**
@@ -18,30 +19,10 @@ export interface ServiceStatus {
 
 const POLL_INTERVAL_MS = 5_000;
 const POLL_INTERVAL_LAUNCHING_MS = 500;
+// Starved REST still completes about once per ping cycle; two cycles with no
+// sign of life read as a lost link.
+export const LIVENESS_WINDOW_MS = 2 * POLL_INTERVAL_MS;
 export const INSTALLED_KEY = 'nexus_installed';
-
-// Grace before a host-display panel declares the local service offline. A
-// host-display surface (Y70/monitor) is the host's own screen - it can't be
-// unplugged as a normal action, so a single failed /ping is almost always a
-// transient hiccup (e.g. the ping starved behind a burst of slow /shortcuts/icon
-// requests while browsing apps in the deck editor), not a real outage. Flipping
-// offline on the first miss tears down an open editor (PanelApp's isOffline
-// effect), so a host-display panel holds its last good state until the service
-// is unreachable this long. Cabled surfaces (q60, USB phone) deliberately keep
-// the instant-offline path: pulling the cable is a real user-initiated
-// disconnect that should surface right away.
-export const HOST_DISPLAY_OFFLINE_GRACE_MS = 30_000;
-
-// Grace before the desktop dashboard declares the local service offline. The
-// dashboard runs against the host's own service, so a single failed /ping is
-// almost always a transient hiccup - most visibly a display-mode change (the
-// Y70 auto-orientation rotate) blinking the WebView2 network for a beat - not a
-// real outage. Holding last-known-good this long stops a rotate from flashing
-// "service required" while keeping a genuine sustained outage visible.
-export const DESKTOP_OFFLINE_GRACE_MS = 8_000;
-
-// Outlasts the 17s starved-ping streak measured on Lighting's effect grid.
-export const PHONE_OFFLINE_GRACE_MS = 20_000;
 
 /**
  * @param enabled        poll while true
@@ -51,10 +32,9 @@ export const PHONE_OFFLINE_GRACE_MS = 20_000;
  *   Never delays the boot path - with no good state to hold, the first
  *   failure surfaces offline immediately. Pass HOST_DISPLAY_OFFLINE_GRACE_MS
  *   for host-display panels.
- * @param graceWhile     the grace holds only while this is true; false reports
- *   a held miss as offline at once.
+ * @param hold           when a miss inside the grace is held (see OfflineHold)
  */
-export function useServiceStatus(enabled = true, offlineGraceMs = 0, graceWhile = true): ServiceStatus {
+export function useServiceStatus(enabled = true, offlineGraceMs = 0, hold: OfflineHold = 'always'): ServiceStatus {
   const [state, setState] = useState<ConnectionState>('checking');
   const [ping, setPing] = useState<PingResponse | null>(null);
   // True while a failed ping is being held inside the grace window.
@@ -71,6 +51,8 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0, graceWhile 
   // offline gate can render.
   const wasOnlineRef = useRef(false);
   const launching = useLaunchState();
+  const holdRef = useRef(hold);
+  holdRef.current = hold;
 
   const tick = useCallback(async () => {
     if (!enabled) return;
@@ -96,7 +78,9 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0, graceWhile 
         // so a transient miss doesn't surface offline / tear down the editor.
         // Only when there IS a good state to hold: at boot the first failed
         // ping must surface offline immediately, not extend the blank frame.
-        if (wasOnlineRef.current && now - firstFailureAtRef.current < offlineGraceMs) {
+        const mode = holdRef.current;
+        const holds = mode === 'always' || (mode === 'while-live' && now - serviceAnsweredAt() < LIVENESS_WINDOW_MS);
+        if (holds && wasOnlineRef.current && now - firstFailureAtRef.current < offlineGraceMs) {
           setHeld(true);
           return;
         }
@@ -146,7 +130,15 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0, graceWhile 
     void tick();
   }, [enabled, launching, tick]);
 
-  if (held && !graceWhile) return { state: offlineState(), ping: null, retry };
+  // A hold that loses its condition stays offline until a ping answers.
+  useEffect(() => {
+    if (!held || hold !== 'never') return;
+    setHeld(false);
+    setState(offlineState());
+    setPing(null);
+  }, [held, hold]);
+
+  if (held && hold === 'never') return { state: offlineState(), ping: null, retry };
   return { state, ping, retry };
 }
 

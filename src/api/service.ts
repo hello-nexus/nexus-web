@@ -5,6 +5,7 @@
 import { getToken, getTokenSync, handleUnauthorized, hasSessionToken } from './auth';
 import { relayFetch, type RelayHttpMethod } from './relayHttp';
 import type { RelayResponse } from './httpTunnelFraming';
+import { markServiceAnswered } from '../lib/serviceLiveness';
 
 const DEFAULT_SERVICE_PORT = '9400';
 const DEFAULT_HTTPS_PORT = '9443';
@@ -382,6 +383,12 @@ interface RequestOptions {
   cache?: RequestCache;
 }
 
+async function serviceFetch(path: string, init: RequestInit): Promise<Response> {
+  const response = await fetch(resolveHttp(path), init);
+  markServiceAnswered();
+  return response;
+}
+
 async function authFetch(path: string, opts: RequestOptions = {}): Promise<Response | null> {
   // Off-LAN: the panel is connected via the cloud relay, so the local service
   // HTTP endpoint is unreachable. Tunnel the call over the relay HTTP channel
@@ -412,13 +419,13 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
       cache: opts.cache,
     };
 
-    let response = await fetch(resolveHttp(path), init);
+    let response = await serviceFetch(path, init);
 
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(resolveHttp(path), init);
+        response = await serviceFetch(path, init);
       }
     }
 
@@ -552,13 +559,13 @@ export async function authFetchWithStatus(path: string, opts: RequestOptions = {
       cache: opts.cache,
     };
 
-    let response = await fetch(resolveHttp(path), init);
+    let response = await serviceFetch(path, init);
 
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(resolveHttp(path), init);
+        response = await serviceFetch(path, init);
       }
     }
 
@@ -633,12 +640,12 @@ async function postForm(path: string, form: FormData): Promise<Response | null> 
     const token = await getToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    let response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'POST', headers, body: form });
+    let response = await serviceFetch(path, { ...loopbackFetchInit, method: 'POST', headers, body: form });
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'POST', headers, body: form });
+        response = await serviceFetch(path, { ...loopbackFetchInit, method: 'POST', headers, body: form });
       }
     }
     return response;
@@ -703,12 +710,12 @@ async function sendServiceBytesWithStatus(method: 'PUT' | 'POST', path: string, 
     const headers: Record<string, string> = { 'Content-Type': contentType };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    let response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method, headers, body });
+    let response = await serviceFetch(path, { ...loopbackFetchInit, method, headers, body });
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method, headers, body });
+        response = await serviceFetch(path, { ...loopbackFetchInit, method, headers, body });
       }
     }
     return { response, status: response.status };
