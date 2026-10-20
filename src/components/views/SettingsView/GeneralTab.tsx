@@ -8,6 +8,7 @@ import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { fetchFastStartup, setFastStartup, type FastStartupInfo } from '../../../api/fastStartup';
 import { postService } from '../../../api/service';
+import { setConflictWhitelisted } from '../../../api/conflicts';
 import { downloadSupportBundle } from '../../../api/diagnostics';
 import { saveLastRoute } from '../../../api/session';
 import { useToastSafe } from '../../common/Toast/Toast';
@@ -107,6 +108,13 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
   const { push } = useToastSafe();
 
+  // Local only (toServerPatch does not carry the list): the service edits it per app, and its prefs broadcast reconciles.
+  const setKeepRunning = (id: string, keep: boolean) => {
+    const rest = settings.general.conflictAutoKillExclusions.filter(x => x !== id);
+    updateGeneral({ conflictAutoKillExclusions: keep ? [...rest, id] : rest });
+    void setConflictWhitelisted(id, keep);
+  };
+
   // Null hides the row: not Windows, route missing on an older service, or request failed.
   const [fastStartup, setFastStartupInfo] = useState<FastStartupInfo | null>(null);
   const [fastStartupBusy, setFastStartupBusy] = useState(false);
@@ -157,7 +165,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   // Reveal the Nexus data folder in the OS file manager. Loopback-only
   // endpoint - acts on the local machine.
   const openDataFolder = async () => {
-    await postService('/diagnostics/open-logs', {});
+    const res = await postService('/diagnostics/open-logs', {});
+    if (!res) push({ title: t('common.openFolderFailed') });
   };
 
   const [exportingSupport, setExportingSupport] = useState(false);
@@ -466,7 +475,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         endOnLaunch={settings.general.endConflictsOnLaunch}
         onEndOnLaunchChange={v => updateGeneral({ endConflictsOnLaunch: v })}
         exclusions={settings.general.conflictAutoKillExclusions}
-        onExclusionsChange={ids => updateGeneral({ conflictAutoKillExclusions: ids })}
+        onWhitelistChange={setKeepRunning}
         notifyLaunches={settings.general.notifyConflictLaunches}
         onNotifyLaunchesChange={v => updateGeneral({ notifyConflictLaunches: v })}
       />

@@ -74,6 +74,7 @@ import { matchesAllWords } from '../../../search/match';
 import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
+import { takeCoolingFan } from '../../../lib/coolingFanIntent';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { ThermalGuardPanel } from './page/ThermalGuardPanel';
 import { hazardMessages, isManagedCurve, latestError } from './page/guardUtils';
@@ -545,13 +546,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       activeCoolingProfileRef.current = snap.mode;
       presetLockUntilRef.current = Date.now() + 1500;
       publishControlSync({ domain: 'cooling', activePreset: snap.mode });
-      await applyProfile(snap.mode);
+      await applyProfile(snap.mode, 'undo');
     }
     setCurves(snap.curves);
     setFanStates(snap.fanStates);
     await pushCurvesRef.current?.(snap.curves, snap.fanStates);
     for (const [fanId, duty] of Object.entries(snap.manualSpeeds)) {
-      await setFanSpeed(fanId, duty);
+      await setFanSpeed(fanId, duty, { source: 'undo' });
     }
     for (const ch of channelsRef.current) {
       const want = snap.offsets[ch.id] ?? 0;
@@ -647,7 +648,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     activeCoolingProfileRef.current = 'custom';
     presetLockUntilRef.current = Date.now() + 1500;
     publishControlSync({ domain: 'cooling', activePreset: 'custom' });
-    await applyProfile('custom');
+    await applyProfile('custom', 'exit-off');
   }, []);
 
   const handleModeChange = useCallback(async (key: string) => {
@@ -674,7 +675,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       await exitOffToCustomIfNeeded();
       const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: null } };
       setFanStates(nextStates);
-      await setFanSpeed(fanId, 50);
+      await setFanSpeed(fanId, 50, { source: 'seed', target: 'manual' });
     } else {
       // Disabling software control means BIOS Control - allowed in Off, no tab switch.
       const nextStates = { ...fanStates };
@@ -779,6 +780,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // because the curve-creation paths below clear it.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
 
+  // A device page's jump to one of its fans: select it once it is listed, which opens its curve.
+  const fanIntentRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = takeCoolingFan();
+    if (id) fanIntentRef.current = id;
+  }, []);
+  useEffect(() => {
+    const id = fanIntentRef.current;
+    if (!id || !fanStates[id]) return;
+    fanIntentRef.current = null;
+    setSelectedFanIds(new Set([id]));
+  }, [fanStates, setSelectedFanIds]);
+
   const addCurve = useCallback((): string => {
     if (curves.length >= MAX_CURVES) return '';
     const id = `curve-${Date.now()}`;
@@ -873,7 +887,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (!wasSw) {
       const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: targetCurveId } };
       setFanStates(nextStates);
-      await setFanSpeed(fanId, 50);
+      await setFanSpeed(fanId, 50, { source: 'seed', target: targetCurveId ? 'curve' : 'manual' });
       await pushCurves(curves, nextStates);
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
@@ -963,7 +977,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     setFanStates(next);
     // Seed a duty only for fans that were not already software-driven, same as
     // the single-fan path did.
-    for (const id of takingOver) await setFanSpeed(id, 50);
+    for (const id of takingOver) await setFanSpeed(id, 50, { source: 'seed', target: curveId ? 'curve' : 'manual' });
     await pushCurves(curves, next);
     if (takingOver.length > 0) {
       const fans = await fetchFanChannels();
@@ -1011,7 +1025,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     // disagree and grey the editor out - see addCurve.
     setSelectedFanIds(new Set());
     setSelectedCurveId(id);
-    if (!wasSw) await setFanSpeed(fanId, 50);
+    if (!wasSw) await setFanSpeed(fanId, 50, { source: 'seed', target: 'curve' });
     pushCurves(nextCurves, nextStates);
     if (!wasSw) {
       const fans = await fetchFanChannels();

@@ -277,7 +277,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       for (const item of mediaItems) {
         if (cancelled) return;
         if (mediaThumbsRef.current[item.id]) continue;
-        const blob = await fetchServiceBlob(`/media/${encodeURIComponent(item.id)}/thumbnail`);
+        const blob = await fetchServiceBlob(`/media/${encodeURIComponent(item.id)}/thumbnail`, { mayBeCached: true });
         if (cancelled) return;
         if (!blob) continue;
         const url = URL.createObjectURL(blob);

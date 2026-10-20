@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from './useServiceStatus';
+import { useServiceStatus, LIVENESS_WINDOW_MS } from './useServiceStatus';
+import { HOST_DISPLAY_OFFLINE_GRACE_MS, PHONE_OFFLINE_GRACE_MS, markServiceAnswered, type OfflineHold } from '../lib/serviceLiveness';
 import type { PingResponse } from '../api/service';
 
 // pingService is the only I/O the hook performs; flip its resolved value to
@@ -37,8 +38,11 @@ async function settle(): Promise<void> {
 let now = 0;
 
 beforeEach(() => {
-  now = 1_000_000;
   vi.spyOn(Date, 'now').mockImplementation(() => now);
+  // Every test starts with a long-stale sign of life.
+  now = 0;
+  markServiceAnswered();
+  now = 1_000_000;
   pingMock.mockReset();
   localStorage.clear();
 });
@@ -112,6 +116,106 @@ describe('useServiceStatus offline grace', () => {
     now += HOST_DISPLAY_OFFLINE_GRACE_MS - 1;
     pingMock.mockResolvedValue(null);
     await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+  });
+});
+
+describe('useServiceStatus hold policy', () => {
+  async function heldOnline(hold: OfflineHold) {
+    pingMock.mockResolvedValue(OK);
+    const hook = renderHook(({ hold }) => useServiceStatus(true, PHONE_OFFLINE_GRACE_MS, hold), { initialProps: { hold } });
+    await settle();
+    expect(hook.result.current.state).toBe('online');
+    pingMock.mockResolvedValue(null);
+    return hook;
+  }
+
+  it('gives no hold in never mode', async () => {
+    const { result } = await heldOnline('never');
+    markServiceAnswered();
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('offline-installed');
+    expect(result.current.ping).toBeNull();
+  });
+
+  it('holds while-live misses as long as REST responses keep completing, with no frames', async () => {
+    const { result } = await heldOnline('while-live');
+    for (let elapsed = 0; elapsed < PHONE_OFFLINE_GRACE_MS - LIVENESS_WINDOW_MS; elapsed += LIVENESS_WINDOW_MS - 1) {
+      markServiceAnswered();
+      now += LIVENESS_WINDOW_MS - 1;
+      await poll(result.current.retry);
+      expect(result.current.state).toBe('online');
+    }
+    expect(result.current.ping).not.toBeNull();
+  });
+
+  it('flips a while-live hold offline at the first miss once the last sign of life is stale', async () => {
+    const { result } = await heldOnline('while-live');
+    markServiceAnswered();
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+    now += LIVENESS_WINDOW_MS;
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('offline-installed');
+  });
+
+  it('gives a while-live miss no hold when the service has been silent', async () => {
+    const { result } = await heldOnline('while-live');
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('offline-installed');
+  });
+
+  it('caps a while-live hold even while signs of life keep arriving', async () => {
+    const { result } = await heldOnline('while-live');
+    markServiceAnswered();
+    await poll(result.current.retry);
+    now += PHONE_OFFLINE_GRACE_MS;
+    markServiceAnswered();
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('offline-installed');
+  });
+
+  it('ends a hold at once when the hold condition drops, without waiting for a poll', async () => {
+    const { result, rerender } = await heldOnline('while-live');
+    markServiceAnswered();
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+    rerender({ hold: 'never' });
+    expect(result.current.state).toBe('offline-installed');
+    expect(result.current.ping).toBeNull();
+  });
+
+  it('stays offline when the transport reopens during a hold, until a ping answers', async () => {
+    const { result, rerender } = await heldOnline('while-live');
+    markServiceAnswered();
+    await poll(result.current.retry);
+    rerender({ hold: 'never' });
+    await settle();
+    rerender({ hold: 'while-live' });
+    expect(result.current.state).toBe('offline-installed');
+    markServiceAnswered();
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('offline-installed');
+    pingMock.mockResolvedValue(OK);
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+  });
+
+  it('holds in always mode with no sign of life', async () => {
+    const { result } = await heldOnline('always');
+    await poll(result.current.retry);
+    now += LIVENESS_WINDOW_MS * 2;
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+  });
+
+  it('a recovered ping clears the hold so a later drop of the condition does not flip offline', async () => {
+    const { result, rerender } = await heldOnline('while-live');
+    markServiceAnswered();
+    await poll(result.current.retry);
+    pingMock.mockResolvedValue(OK);
+    await poll(result.current.retry);
+    rerender({ hold: 'never' });
     expect(result.current.state).toBe('online');
   });
 });

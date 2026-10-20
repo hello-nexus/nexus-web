@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CircleAlert, CircleCheck, CircleX, ShieldCheck, Trash2 } from 'lucide-react';
 import { Badge } from '../Badge/Badge';
 import { Button } from '../Button/Button';
+import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { Card } from '../Card/Card';
 import { Checkbox } from '../Checkbox/Checkbox';
 import { ChipGroup } from '../ChipGroup/ChipGroup';
@@ -284,7 +285,15 @@ export function ConflictOutcomePanel({
         </div>
       )}
 
-      {ready && showList && (
+      {ready && showList && (variant === 'onboarding' ? (
+        <OnboardingFooter
+          secondary={{ label: t('conflicts.outcome.keepAll'), onClick: () => { void run('keepAll'); }, disabled: busy }}
+          icon={<ShieldCheck />}
+          loading={busy}
+          label={primaryLabel}
+          onContinue={() => { void run('apply'); }}
+        />
+      ) : (
         <div className={styles.footer}>
           <Button tone="ghost" size="lg" disabled={busy} onClick={() => { void run('keepAll'); }}>
             {t('conflicts.outcome.keepAll')}
@@ -301,7 +310,7 @@ export function ConflictOutcomePanel({
             {primaryLabel}
           </Button>
         </div>
-      )}
+      ))}
 
       <ExperimentalEnableModal
         open={confirming !== null}

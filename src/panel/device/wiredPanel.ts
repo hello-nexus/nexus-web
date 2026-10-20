@@ -1,4 +1,6 @@
 import type { PanelSurface } from '../types';
+import type { ActiveTransport } from '../../api/service';
+import { HOST_DISPLAY_OFFLINE_GRACE_MS, PHONE_OFFLINE_GRACE_MS, type OfflineHold } from '../../lib/serviceLiveness';
 
 /** True when the surface is always physically wired to the host (no WiFi path). */
 export function isWiredPanel(surface: PanelSurface): boolean {
@@ -12,6 +14,15 @@ export function wiredPanelClass(surface: PanelSurface): 'cabled' | 'host-display
   if (surface === 'phone' && localStorage.getItem('nexus_link') === 'usb') return 'cabled';
   if (surface === 'y70' || surface === 'monitor') return 'host-display';
   return null;
+}
+
+/** How long, and on what condition, a panel holds its last good state through failed /pings. */
+export function panelOfflineGrace(surface: PanelSurface, transport: ActiveTransport | null): { graceMs: number; hold: OfflineHold } {
+  const cls = wiredPanelClass(surface);
+  if (cls === 'host-display') return { graceMs: HOST_DISPLAY_OFFLINE_GRACE_MS, hold: 'always' };
+  // Only the plain LAN transport sends /ping through the browser's HTTP pool, where a burst of slow REST can starve it.
+  if (surface === 'phone' && cls === null) return { graceMs: PHONE_OFFLINE_GRACE_MS, hold: transport === 'lan' ? 'while-live' : 'never' };
+  return { graceMs: 0, hold: 'never' };
 }
 
 /**

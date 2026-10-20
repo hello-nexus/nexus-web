@@ -29,6 +29,7 @@ function ctx(): CommandContext {
     activeProfileId: 'default',
     switchProfile: () => {},
     host: { goView: () => {}, goSection: () => {}, pairPhone: () => {} },
+    notify: () => {},
     close: () => {},
   };
 }

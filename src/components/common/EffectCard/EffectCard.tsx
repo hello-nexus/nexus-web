@@ -6,6 +6,8 @@ import styles from './EffectCard.module.scss';
 
 interface EffectCardBaseProps {
   label: string;
+  /** Shows the label as given, for names the user chose, instead of capitalizing it. */
+  keepCase?: boolean;
   /** Resolved blob URL for the thumbnail image. Null renders the shimmer skeleton. */
   thumbUrl: string | null;
   active: boolean;
@@ -65,7 +67,7 @@ type EffectCardProps = EffectCardBaseProps & (
 );
 
 export function EffectCard({
-  label, thumbUrl, active, onClick,
+  label, keepCase, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
   asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, hideLabel, metaSans, nonInteractive,
 }: EffectCardProps) {
@@ -104,7 +106,7 @@ export function EffectCard({
         )}
         {overlay && !hideLabel && <span className={styles.labelOverlay}>{label}</span>}
       </div>
-      {!overlay && <span className={styles.label}>{label}</span>}
+      {!overlay && <span className={`${styles.label} ${keepCase ? styles.labelAsIs : ''}`}>{label}</span>}
       {!overlay && meta !== undefined && <span className={`${styles.meta} ${metaSans ? styles.metaSans : ''}`}>{meta}</span>}
     </>
   );

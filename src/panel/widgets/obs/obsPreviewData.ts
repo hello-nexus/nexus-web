@@ -17,10 +17,9 @@ export const OBS_PREVIEW: ObsStatusResponse = {
     { name: 'Intermission', uuid: 'preview-scene-2' },
     { name: 'Starting Soon', uuid: 'preview-scene-3' },
   ],
-  // Live stream at 42min, not recording: shows the duration badge on one
-  // action and the idle state on the other.
-  streaming: true,
-  streamingDurationMs: 2_520_000,
+  // Idle: a Live badge in the picker reads as real state.
+  streaming: false,
+  streamingDurationMs: 0,
   recording: false,
   recordingDurationMs: 0,
 };
