@@ -343,8 +343,8 @@ export function buildPanelDevices({
       previewDpi: panel.dpi,
       iconSrc: simulatedPanelIcon(panel),
       family: panel.family,
-      // A simulated panel claims the capabilities its real counterpart has:
-      // the Kraken's round glass is driven host-side with no digitizer.
+      // Input and layout follow the real counterpart (the Kraken's round glass has no
+      // digitizer); display controls and kiosk launch stay off, there is no hardware.
       capabilities: {
         ...(SIMULATED_SURFACE_CAPABILITIES[panel.surface] ?? WIDGET_PANEL_CAPABILITIES),
         ...(panel.touch === undefined ? {} : { touch: panel.touch }),

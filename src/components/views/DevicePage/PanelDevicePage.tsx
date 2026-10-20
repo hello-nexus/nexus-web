@@ -301,7 +301,8 @@ function matchPanelRecord(
 
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t, language } = useTranslation();
-  const isQSeries = device?.runtimeSurface === 'q60';
+  // A simulated Q60 has no cooler or panel behind it, so no /qseries hardware read or write may fire for it.
+  const isQSeries = device?.runtimeSurface === 'q60' && device.connectionKind !== 'simulated';
   const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
@@ -581,7 +582,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // family, so it must not depend on ddcSupported/monitorRotation.
     || isXeneonEdgePanel
     // Q60 carries an AIO cooler, so its settings tab hosts the cooler firmware options.
-    || glassSurface === 'q60'
+    || (glassSurface === 'q60' && !isSimulated)
     // Same for the Kraken: the glass is a panel, the cooler around it is the
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
@@ -595,9 +596,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || isSecondaryMonitorCapablePanel
     || isRenderScalablePanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
-  // Simulator and real hardware share one code path: theme, layout,
-  // brightness, orientation, screen-on, and auto-launch all read/write the
-  // service's persisted state.
+  // Theme and layout read and write the panel record for simulators and hardware alike;
+  // a simulator has no display or cooler, so its hardware controls are off.
   const panelRecord = usePanelRecord(editingDeviceId);
   const panelTheme = usePanelTheme(panelRecord, editingDeviceId);
   const theme = panelTheme.theme;
@@ -1402,7 +1402,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const showQseriesNeedsHostReboot = showDisconnected
     && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && qseriesLinkState.hostRebootPending;
 
-  const showPreviewTroubleshoot = isQSeries;
+  const showPreviewTroubleshoot = device?.runtimeSurface === 'q60';
   const qseriesTroubleshootLink = (label: string) => (
     <a
       className={styles.troubleshootLink}
@@ -1773,7 +1773,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       variant={device?.firmwareType !== device?.sourceId ? device?.firmwareType : undefined}
                     />
                   )}
-                  {activeTab === 'settings' && glassSurface === 'q60' && (
+                  {activeTab === 'settings' && glassSurface === 'q60' && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <MonitorSettingsPanel
                         brightness={qSeriesBrightness}

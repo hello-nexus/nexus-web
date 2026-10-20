@@ -249,16 +249,13 @@ describe('PanelDevicePage Q-series panel lifecycle', () => {
     expect(screen.getByRole('button', { name: REBOOT_BUSY })).toBeDisabled();
   });
 
-  it('hides the danger zone on a simulated panel', async () => {
-    // A simulator carries no panelRecordId and binds the real panel's record
-    // through the surface scan, so its resets would wipe the physical device.
+  it('offers no Settings tab on a simulated panel, so no reset or cooler control can reach the real one', async () => {
     render(<PanelDevicePage device={{ ...Q60_DEVICE, id: 'simulated-q60', connectionKind: 'simulated', panelRecordId: undefined } as PanelDevice} />);
-    await openSettingsTab();
-    await screen.findByTestId('cooler-settings');
+    await screen.findByTestId('embed');
 
+    expect(screen.queryByRole('tab', { name: 'devices.y70.tab.settings' })).toBeNull();
+    expect(screen.queryByTestId('cooler-settings')).toBeNull();
     expect(screen.queryByRole('button', { name: REBOOT_BUTTON })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'devices.panels.resetHardware.button' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'devices.panels.troubleshooting.open' })).toBeInTheDocument();
   });
 
   it('offers neither on a non-Q-series panel', async () => {

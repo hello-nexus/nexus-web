@@ -644,8 +644,9 @@ describe('useUnifiedDevices - simulator beside a real Y70', () => {
     });
 
     const { result } = renderHook(() => useUnifiedDevices(true));
-    const rows = result.current.unified.filter(d => d.kind === 'panel');
+    const rows = result.current.unified;
 
+    expect(rows.map(r => r.key)).not.toContain('curated-y70');
     expect(rows).toHaveLength(2);
     expect(new Set(rows.map(r => r.key)).size).toBe(2);
     const [real, simulated] = rows;
