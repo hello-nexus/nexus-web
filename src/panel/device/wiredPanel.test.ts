@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { usesTouchPanelChrome, isWiredPanel, supportsDesktopWallpaper, wiredPanelClass } from './wiredPanel';
+import { usesTouchPanelChrome, isWiredPanel, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGraceMs } from './wiredPanel';
+import { HOST_DISPLAY_OFFLINE_GRACE_MS, PHONE_OFFLINE_GRACE_MS } from '../../hooks/useServiceStatus';
 
 describe('isWiredPanel', () => {
   beforeEach(() => {
@@ -103,5 +104,31 @@ describe('usesTouchPanelChrome', () => {
     expect(usesTouchPanelChrome('q60', true, true)).toBe(false);
     expect(usesTouchPanelChrome('phone', true, true)).toBe(false);
     expect(usesTouchPanelChrome('desktop', true, true)).toBe(false);
+  });
+});
+
+describe('panelOfflineGraceMs', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('gives a WiFi/relay phone the phone grace', () => {
+    expect(panelOfflineGraceMs('phone')).toBe(PHONE_OFFLINE_GRACE_MS);
+  });
+
+  it('gives a USB phone no grace', () => {
+    localStorage.setItem('nexus_link', 'usb');
+    expect(panelOfflineGraceMs('phone')).toBe(0);
+  });
+
+  it('gives host displays the host-display grace', () => {
+    expect(panelOfflineGraceMs('y70')).toBe(HOST_DISPLAY_OFFLINE_GRACE_MS);
+    expect(panelOfflineGraceMs('monitor')).toBe(HOST_DISPLAY_OFFLINE_GRACE_MS);
+  });
+
+  it('gives the q60 and non-phone surfaces no grace', () => {
+    expect(panelOfflineGraceMs('q60')).toBe(0);
+    expect(panelOfflineGraceMs('desktop')).toBe(0);
+    expect(panelOfflineGraceMs('kraken')).toBe(0);
   });
 });

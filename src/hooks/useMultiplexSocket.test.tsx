@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { msSinceLastMultiplexFrame, useMultiplexConnection } from './useMultiplexSocket';
+import { useMultiplexConnection } from './useMultiplexSocket';
 
 // isRelayActive controls the remote-origin eager-relay branch. Default false
 // (the LAN-first tests assume a service-served origin); the remote-origin test
@@ -450,29 +450,6 @@ describe('useMultiplexConnection relay fallback', () => {
     expect(relay.sent.some((s) => s.includes('"sub"') && s.includes('monitoring'))).toBe(true);
     act(() => { relay.onmessage?.({ data: JSON.stringify({ t: 'monitoring', d: { cpu: 42 } }) }); });
     expect(received).toEqual([{ cpu: 42 }]);
-  });
-
-  it('stamps the frame liveness clock on every valid frame, not on malformed ones', async () => {
-    relayState.nextPeerUp = true;
-    renderHook(() => useMultiplexConnection(true));
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    await act(async () => {
-      FakeWebSocket.instances[0].triggerClose(1006);
-      await flushRelayDetour();
-    });
-    const relay = FakeRelayChannel.instances[0];
-    act(() => { relay.onmessage?.({ data: JSON.stringify({ t: 'monitoring', d: {} }) }); });
-    expect(msSinceLastMultiplexFrame()).toBe(0);
-
-    vi.setSystemTime(Date.now() + 10_000);
-    act(() => { relay.onmessage?.({ data: 'not json' }); });
-    expect(msSinceLastMultiplexFrame()).toBe(10_000);
-
-    act(() => { relay.onmessage?.({ data: JSON.stringify({ t: 'cpu', d: {} }) }); });
-    expect(msSinceLastMultiplexFrame()).toBe(0);
   });
 
   it('on a remote origin (relay active) connects the relay directly, never opening a LAN /ws', async () => {

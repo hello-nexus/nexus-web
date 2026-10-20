@@ -40,6 +40,9 @@ export const HOST_DISPLAY_OFFLINE_GRACE_MS = 30_000;
 // "service required" while keeping a genuine sustained outage visible.
 export const DESKTOP_OFFLINE_GRACE_MS = 8_000;
 
+// Outlasts the 17s starved-ping streak measured on Lighting's effect grid.
+export const PHONE_OFFLINE_GRACE_MS = 20_000;
+
 /**
  * @param enabled        poll while true
  * @param offlineGraceMs once the service has answered at least once this
@@ -48,13 +51,14 @@ export const DESKTOP_OFFLINE_GRACE_MS = 8_000;
  *   Never delays the boot path - with no good state to hold, the first
  *   failure surfaces offline immediately. Pass HOST_DISPLAY_OFFLINE_GRACE_MS
  *   for host-display panels.
- * @param reachable      consulted on a failed ping once the service has
- *   answered: true holds the last good state (another channel proves the
- *   service is up). Must be referentially stable.
+ * @param graceWhile     the grace holds only while this is true; false reports
+ *   a held miss as offline at once.
  */
-export function useServiceStatus(enabled = true, offlineGraceMs = 0, reachable?: () => boolean): ServiceStatus {
+export function useServiceStatus(enabled = true, offlineGraceMs = 0, graceWhile = true): ServiceStatus {
   const [state, setState] = useState<ConnectionState>('checking');
   const [ping, setPing] = useState<PingResponse | null>(null);
+  // True while a failed ping is being held inside the grace window.
+  const [held, setHeld] = useState(false);
   const mounted = useRef(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
@@ -78,6 +82,7 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0, reachable?:
       if (result) {
         firstFailureAtRef.current = null;
         wasOnlineRef.current = true;
+        setHeld(false);
         setState('online');
         setPing(result);
         localStorage.setItem(INSTALLED_KEY, 'true');
@@ -85,19 +90,18 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0, reachable?:
         // wait the full 10s timeout.
         resolveLaunch();
       } else {
-        if (wasOnlineRef.current && reachable?.()) {
-          firstFailureAtRef.current = null;
-          return;
-        }
         const now = Date.now();
         firstFailureAtRef.current ??= now;
         // Within the grace window, hold the last good state (and its ping data)
         // so a transient miss doesn't surface offline / tear down the editor.
         // Only when there IS a good state to hold: at boot the first failed
         // ping must surface offline immediately, not extend the blank frame.
-        if (wasOnlineRef.current && now - firstFailureAtRef.current < offlineGraceMs) return;
-        const wasInstalled = localStorage.getItem(INSTALLED_KEY) === 'true';
-        setState(wasInstalled ? 'offline-installed' : 'offline');
+        if (wasOnlineRef.current && now - firstFailureAtRef.current < offlineGraceMs) {
+          setHeld(true);
+          return;
+        }
+        setHeld(false);
+        setState(offlineState());
         setPing(null);
       }
     } finally {
@@ -107,7 +111,7 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0, reachable?:
         timerRef.current = setTimeout(tick, interval);
       }
     }
-  }, [enabled, offlineGraceMs, reachable]);
+  }, [enabled, offlineGraceMs]);
 
   const retry = useCallback(() => {
     if (!enabled) return;
@@ -142,5 +146,10 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0, reachable?:
     void tick();
   }, [enabled, launching, tick]);
 
+  if (held && !graceWhile) return { state: offlineState(), ping: null, retry };
   return { state, ping, retry };
+}
+
+function offlineState(): ConnectionState {
+  return localStorage.getItem(INSTALLED_KEY) === 'true' ? 'offline-installed' : 'offline';
 }

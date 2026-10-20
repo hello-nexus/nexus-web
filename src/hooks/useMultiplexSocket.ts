@@ -47,14 +47,6 @@ interface TopicListener {
 // as a real server push and trigger unnecessary refetches.
 const lastFrameCache = new Map<string, unknown>();
 
-// Wall-clock ms of the last valid frame on any transport; 0 before the first.
-let lastFrameAt = 0;
-
-/** Ms since the last valid multiplex frame on any transport; Infinity before the first. */
-export function msSinceLastMultiplexFrame(): number {
-  return lastFrameAt === 0 ? Infinity : Date.now() - lastFrameAt;
-}
-
 // Live counters read by the renderer memory probe (src/diag/memoryProbe.ts).
 // `opens` increments on every transport open, so `opens - 1` approximates the
 // reconnect count (it also counts lan/relay/sealed/direct transport
@@ -503,7 +495,6 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         const parsed = JSON.parse(e.data);
         if (!parsed || typeof parsed !== 'object' || typeof parsed.t !== 'string') return;
         const msg = parsed as { t: string; d: unknown };
-        lastFrameAt = Date.now();
         lastFrameCache.set(msg.t, msg.d);
         const entry = topicsRef.current.get(msg.t);
         if (entry) {

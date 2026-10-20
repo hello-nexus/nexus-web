@@ -1,4 +1,5 @@
 import type { PanelSurface } from '../types';
+import { HOST_DISPLAY_OFFLINE_GRACE_MS, PHONE_OFFLINE_GRACE_MS } from '../../hooks/useServiceStatus';
 
 /** True when the surface is always physically wired to the host (no WiFi path). */
 export function isWiredPanel(surface: PanelSurface): boolean {
@@ -12,6 +13,14 @@ export function wiredPanelClass(surface: PanelSurface): 'cabled' | 'host-display
   if (surface === 'phone' && localStorage.getItem('nexus_link') === 'usb') return 'cabled';
   if (surface === 'y70' || surface === 'monitor') return 'host-display';
   return null;
+}
+
+/** Ms a panel holds its last good state through failed /pings. */
+export function panelOfflineGraceMs(surface: PanelSurface): number {
+  const cls = wiredPanelClass(surface);
+  if (cls === 'host-display') return HOST_DISPLAY_OFFLINE_GRACE_MS;
+  if (surface === 'phone' && cls === null) return PHONE_OFFLINE_GRACE_MS;
+  return 0;
 }
 
 /**

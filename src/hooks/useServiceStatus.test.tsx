@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from './useServiceStatus';
+import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS, PHONE_OFFLINE_GRACE_MS } from './useServiceStatus';
 import type { PingResponse } from '../api/service';
 
 // pingService is the only I/O the hook performs; flip its resolved value to
@@ -116,30 +116,58 @@ describe('useServiceStatus offline grace', () => {
   });
 });
 
-describe('useServiceStatus reachable hint', () => {
-  it('holds online on a failed ping while another channel proves the service up', async () => {
-    let live = true;
-    const reachable = () => live;
+describe('useServiceStatus grace gated on an open transport', () => {
+  async function heldOnline(open = true) {
     pingMock.mockResolvedValue(OK);
-    const { result } = renderHook(() => useServiceStatus(true, 0, reachable));
+    const hook = renderHook(({ open }) => useServiceStatus(true, PHONE_OFFLINE_GRACE_MS, open), { initialProps: { open } });
     await settle();
-    expect(result.current.state).toBe('online');
-
+    expect(hook.result.current.state).toBe('online');
     pingMock.mockResolvedValue(null);
+    return hook;
+  }
+
+  it('holds starved pings while the transport is open, with no multiplex frames at all', async () => {
+    const { result } = await heldOnline();
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+    now += PHONE_OFFLINE_GRACE_MS - 1;
     await poll(result.current.retry);
     expect(result.current.state).toBe('online');
     expect(result.current.ping).not.toBeNull();
+  });
 
-    // The other channel goes quiet too: the next miss flips offline.
-    live = false;
+  it('expires the hold into offline at the cap even with the transport open', async () => {
+    const { result } = await heldOnline();
+    await poll(result.current.retry);
+    now += PHONE_OFFLINE_GRACE_MS;
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('offline-installed');
+    expect(result.current.ping).toBeNull();
+  });
+
+  it('ends the hold at once when the transport closes, without waiting for a poll', async () => {
+    const { result, rerender } = await heldOnline();
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+    rerender({ open: false });
+    expect(result.current.state).toBe('offline-installed');
+    expect(result.current.ping).toBeNull();
+  });
+
+  it('gives no grace while the transport is closed', async () => {
+    const { result, rerender } = await heldOnline();
+    rerender({ open: false });
+    await settle();
     await poll(result.current.retry);
     expect(result.current.state).toBe('offline-installed');
   });
 
-  it('never holds the boot checking state on the hint', async () => {
-    pingMock.mockResolvedValue(null);
-    const { result } = renderHook(() => useServiceStatus(true, 0, () => true));
-    await settle();
-    expect(result.current.state).toBe('offline');
+  it('a recovered ping clears the hold so a later close does not flip offline', async () => {
+    const { result, rerender } = await heldOnline();
+    await poll(result.current.retry);
+    pingMock.mockResolvedValue(OK);
+    await poll(result.current.retry);
+    rerender({ open: false });
+    expect(result.current.state).toBe('online');
   });
 });
