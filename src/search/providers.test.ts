@@ -6,6 +6,11 @@ import type { CommandContext } from './types';
 import { requestChannelSwitch } from '../lib/channelSwitch';
 
 const gate = vi.hoisted(() => ({ canSwitch: true }));
+const service = vi.hoisted(() => ({ post: vi.fn() }));
+vi.mock('../api/service', async importOriginal => ({
+  ...(await importOriginal<typeof import('../api/service')>()),
+  postService: service.post,
+}));
 vi.mock('../lib/channelSwitch', () => ({ requestChannelSwitch: vi.fn(), canSwitchChannel: () => gate.canSwitch }));
 import { EMPTY_LIVE_STATE, type SearchLiveState } from './useSearchLiveState';
 import type { LightingDevice } from '../api/lighting';
@@ -59,6 +64,7 @@ function ctx(online: boolean, over?: Partial<CommandContext>): CommandContext {
     activeProfileId: 'default',
     switchProfile: () => {},
     host: { goView: () => {}, goSection: () => {}, pairPhone: () => {} },
+    notify: () => {},
     close: () => {},
     ...over,
   };
@@ -336,5 +342,25 @@ describe('buildEntries', () => {
     expect(green?.kind).toBe('action');
     green?.run();
     expect(patches).toEqual([{ accentColor: '#16c963', accentSource: 'custom' }]);
+  });
+});
+
+describe('open data folder action', () => {
+  const run = (notify: () => void) => buildEntries(ctx(true, { notify })).find((e) => e.id === 'diag:open-data-folder')!.run();
+
+  it('posts to the service and stays quiet on success', async () => {
+    service.post.mockResolvedValueOnce({ error: false });
+    const notify = vi.fn();
+    run(notify);
+    await vi.waitFor(() => expect(service.post).toHaveBeenCalledWith('/diagnostics/open-logs', {}));
+    await Promise.resolve();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('says so when the service refuses', async () => {
+    service.post.mockResolvedValueOnce(null);
+    const notify = vi.fn();
+    run(notify);
+    await vi.waitFor(() => expect(notify).toHaveBeenCalledWith('common.openFolderFailed'));
   });
 });
