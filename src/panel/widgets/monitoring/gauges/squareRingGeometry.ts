@@ -1,17 +1,17 @@
 import { GAUGE_FIGURE_OUTER } from './types';
 
-/** Ring stroke weight in viewBox units, shared by Ring and Square ring. */
+/** Ring stroke weight in viewBox units, shared by Ring and Square ring. CaterpillarGauge.module.scss mirrors it; a test pins the two together. */
 export const RING_STROKE = 9;
 
 // Outer corner radius as a share of the outer side, so the silhouette reads
-// rounded on the outside edge and not just along the stroke centre line.
+// rounded on the outside edge and not just along the stroke center line.
 const OUTER_CORNER_SHARE = 0.13;
 
 const CENTER = 50;
 const OUTER_SIDE = 2 * GAUGE_FIGURE_OUTER;
-// The stroke centre line sits half a stroke inside the shared outer edge.
+// The stroke center line sits half a stroke inside the shared outer edge.
 const HALF_SIDE = GAUGE_FIGURE_OUTER - RING_STROKE / 2;
-// Centre line radius: the outer radius minus half a stroke. It stays above
+// Center line radius: the outer radius minus half a stroke. It stays above
 // half a stroke, which keeps the inner corners rounded too.
 export const CORNER_RADIUS = OUTER_CORNER_SHARE * OUTER_SIDE - RING_STROKE / 2;
 
@@ -21,7 +21,7 @@ export const SQUARE_PERIMETER = 8 * (HALF_SIDE - CORNER_RADIUS) + 2 * Math.PI * 
 /** Normalized path length: dash values are percentages of the perimeter. */
 export const PATH_LENGTH = 100;
 
-/** Rounded square centre line from top centre, clockwise, closing at the start. */
+/** Rounded square center line from top centre, clockwise, closing at the start. */
 export const SQUARE_PATH = (() => {
   const r = CORNER_RADIUS;
   const lo = CENTER - HALF_SIDE;

@@ -58,7 +58,7 @@ export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
   text: 'Large Value',
   waterLevel: 'Liquid Fill',
   caterpillar: 'Ring',
-  squareRing: 'Square ring',
+  squareRing: 'Square Ring',
   bar: 'Progress Bar',
   microbars: 'Micro Bars',
   hbar: 'Block Stack',
