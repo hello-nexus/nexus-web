@@ -5,6 +5,7 @@ import {
   normalizePanelBackdrop,
   normalizePanelBackgroundFrost,
   normalizePanelWidgetPadding,
+  PANEL_BACKGROUND_EFFECTS,
   panelBackgroundFrostScale,
   resolvePanelBackdrop,
 } from './panelBackground';
@@ -82,5 +83,14 @@ describe('panelBackgroundFrostScale', () => {
     expect(panelBackgroundFrostScale(50)).toBe(1);
     expect(panelBackgroundFrostScale(100)).toBe(2);
     expect(panelBackgroundFrostScale(0)).toBe(0);
+  });
+});
+
+describe('PANEL_BACKGROUND_EFFECTS', () => {
+  it('offers every sensor-reactive effect', () => {
+    const keys = PANEL_BACKGROUND_EFFECTS.map(e => e.key);
+    for (const key of ['sensorbar', 'sensorclock', 'sensorsegments', 'sensorliquid', 'sensorcenter', 'sensorshift', 'sensorheat']) {
+      expect(keys).toContain(key);
+    }
   });
 });

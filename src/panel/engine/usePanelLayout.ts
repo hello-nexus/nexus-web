@@ -197,6 +197,22 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
   };
 }
 
+function canonicalJson(v: unknown): string {
+  const walk = (x: unknown): unknown => {
+    if (Array.isArray(x)) return x.map(walk);
+    if (x && typeof x === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const k of Object.keys(x as object).sort()) {
+        const val = (x as Record<string, unknown>)[k];
+        if (val !== null && val !== undefined) out[k] = walk(val);
+      }
+      return out;
+    }
+    return x;
+  };
+  return JSON.stringify(walk(v));
+}
+
 /**
  * The panel's layout, read from the shared device record and written back
  * with a 250 ms debounce. Sibling tabs and other devices refresh through the
@@ -227,16 +243,45 @@ export function usePanelLayout(
   // read can hand back the same `writable` value, which would never re-arm it.
   useEffect(() => { writableRef.current = writable; });
 
+  // What the pending debounced write was based on, and every layout this hook
+  // queued or sent recently (any of their echoes must not cancel a newer edit).
+  const pendingBaseRef = useRef<string | null>(null);
+  const ownWritesRef = useRef<string[]>([]);
+
+  // One canonical form for both sides of the echo comparison: the hook's own
+  // normalization, then a key-sorted serialization that drops null/undefined,
+  // so key order and omitted-vs-null fields from the service never matter.
+  const canonKey = useCallback((l: PanelLayout | null) => canonicalJson(
+    normalizePanelLayout(l ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid)),
+  [surface, deviceTouch, forcedGrid]);
+
   useEffect(() => {
+    const incoming = canonKey(storedLayout);
+    const own = ownWritesRef.current;
+    const at = own.lastIndexOf(incoming);
+    // A record that moved on under a pending edit (profile switch) must not
+    // be overwritten by the stale edit.
+    if (writeTimer.current && pendingBaseRef.current !== null
+      && incoming !== pendingBaseRef.current && at < 0) {
+      clearTimeout(writeTimer.current);
+      writeTimer.current = null;
+      ownWritesRef.current = [];
+    } else if (at >= 0) {
+      // Echo seen: older writes are superseded. The newest entry is kept
+      // while a newer edit is queued, since a duplicate echo can still land.
+      ownWritesRef.current = at === own.length - 1 && !writeTimer.current ? [] : own.slice(at);
+    }
     setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid));
     setHydrated(storedLayout !== null);
-  }, [storedLayout, surface, deviceTouch, forcedGrid]);
+  }, [storedLayout, surface, deviceTouch, forcedGrid, canonKey]);
 
   const setLayout = useCallback((next: PanelLayout) => {
     const normalized = normalizePanelLayout(next, surface, deviceTouch, forcedGrid);
     setLayoutState(normalized);
     if (!writableRef.current) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
+    else pendingBaseRef.current = canonKey(storedRef.current);
+    ownWritesRef.current = [...ownWritesRef.current, canonicalJson(normalized)].slice(-8);
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
       void patchPanelDeviceWithStatus(deviceId, { layout: normalized }).then(result => {
@@ -255,7 +300,7 @@ export function usePanelLayout(
         }
       });
     }, 250);
-  }, [deviceId, surface, deviceTouch, forcedGrid, refetch]);
+  }, [deviceId, surface, deviceTouch, forcedGrid, refetch, canonKey]);
 
   useEffect(() => {
     if (!saveForbidden) return undefined;
