@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useDeckImage } from './useDeckImage';
@@ -63,6 +64,47 @@ describe('useDeckImage', () => {
     expect(URL.revokeObjectURL).not.toHaveBeenCalled();
     b.unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+  });
+
+  it('a second user acquiring while the first fetch is pending shares it', async () => {
+    let resolveFetch!: (b: Blob) => void;
+    vi.mocked(fetchDeckImage).mockReturnValue(new Promise<Blob>(r => { resolveFetch = r; }));
+    const a = renderHook(() => useDeckImage('pending'));
+    const b = renderHook(() => useDeckImage('pending'));
+    await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+    expect(fetchDeckImage).toHaveBeenCalledTimes(1);
+
+    await act(async () => { resolveFetch(new Blob(['i'], { type: 'image/png' })); await new Promise(r => setTimeout(r, 10)); });
+    expect(a.result.current.url).toBe('blob:mock-url');
+    expect(b.result.current.url).toBe('blob:mock-url');
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it('survives StrictMode mount, unmount, mount and revokes every created URL on unmount', async () => {
+    let n = 0;
+    global.URL.createObjectURL = vi.fn(() => `blob:strict-${++n}`);
+    vi.mocked(fetchDeckImage).mockResolvedValue(new Blob(['i'], { type: 'image/png' }));
+    const { result, unmount } = renderHook(() => useDeckImage('strict'), { wrapper: StrictMode });
+    await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+
+    expect(result.current.url).toMatch(/^blob:strict-/);
+    unmount();
+    expect(vi.mocked(URL.revokeObjectURL).mock.calls.length).toBe(vi.mocked(URL.createObjectURL).mock.calls.length);
+  });
+
+  it('drops a failed fetch so the next user refetches', async () => {
+    vi.mocked(fetchDeckImage).mockResolvedValueOnce(null);
+    const a = renderHook(() => useDeckImage('flaky'));
+    await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+    expect(a.result.current.url).toBeNull();
+
+    vi.mocked(fetchDeckImage).mockResolvedValueOnce(new Blob(['i'], { type: 'image/png' }));
+    const b = renderHook(() => useDeckImage('flaky'));
+    await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+    expect(fetchDeckImage).toHaveBeenCalledTimes(2);
+    expect(b.result.current.url).toBe('blob:mock-url');
+    a.unmount();
+    b.unmount();
   });
 
   it('returns null when the fetch fails', async () => {

@@ -1,5 +1,5 @@
 export const DECK_ANIMATED_MAX_MB = 8;
-const DECODE_TIMEOUT_MS = 10000;
+const DECODE_TIMEOUT_MS = 5000;
 
 export type DeckPickKind = 'still' | 'gif' | 'video' | 'unsupportedVideo';
 
@@ -23,7 +23,7 @@ export function isDeckAnimatedTooLarge(size: number): boolean {
   return size > DECK_ANIMATED_MAX_MB * 1024 * 1024;
 }
 
-/** Resolves true when the browser can decode the first frame of the video, false on error or timeout. */
+/** Resolves false only on a decode error or metadata with no video track (audio-only decode); a timeout passes because some WebViews never load data without play(). */
 export function probeVideoDecodes(file: Blob): Promise<boolean> {
   return new Promise(resolve => {
     const video = document.createElement('video');
@@ -37,9 +37,11 @@ export function probeVideoDecodes(file: Blob): Promise<boolean> {
     };
     video.muted = true;
     video.preload = 'auto';
-    video.addEventListener('loadeddata', () => finish(true), { once: true });
+    const onLoaded = () => finish(video.videoWidth > 0);
+    video.addEventListener('loadedmetadata', onLoaded, { once: true });
+    video.addEventListener('loadeddata', onLoaded, { once: true });
     video.addEventListener('error', () => finish(false), { once: true });
-    const timer = setTimeout(() => finish(false), DECODE_TIMEOUT_MS);
+    const timer = setTimeout(() => finish(true), DECODE_TIMEOUT_MS);
     video.src = url;
   });
 }

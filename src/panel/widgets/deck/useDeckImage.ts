@@ -26,7 +26,8 @@ function acquire(id: string): CacheEntry {
   void withImageSlot(async () => {
     if (cache.get(id) !== entry) return;
     const blob = await fetchDeckImage(id);
-    if (cache.get(id) !== entry || !blob || blob.size === 0) return;
+    if (cache.get(id) !== entry) return;
+    if (!blob || blob.size === 0) { cache.delete(id); return; }
     entry.state = { url: URL.createObjectURL(blob), isVideo: blob.type.startsWith('video/') };
     entry.listeners.forEach(fn => fn());
   });

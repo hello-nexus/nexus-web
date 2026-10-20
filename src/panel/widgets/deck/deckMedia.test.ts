@@ -63,12 +63,33 @@ describe('probeVideoDecodes', () => {
     URL.revokeObjectURL = revokeObjectURL;
   });
 
-  it('resolves true on loadeddata and frees the object URL', async () => {
+  function setWidth(w: number) {
+    Object.defineProperty(video, 'videoWidth', { value: w, configurable: true });
+  }
+
+  it('resolves true when metadata loads with a video track and frees the object URL', async () => {
     setup();
     const p = probeVideoDecodes(new Blob(['x']));
-    video.dispatchEvent(new Event('loadeddata'));
+    setWidth(640);
+    video.dispatchEvent(new Event('loadedmetadata'));
     await expect(p).resolves.toBe(true);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:probe');
+  });
+
+  it('resolves true on loadeddata with a video track', async () => {
+    setup();
+    const p = probeVideoDecodes(new Blob(['x']));
+    setWidth(640);
+    video.dispatchEvent(new Event('loadeddata'));
+    await expect(p).resolves.toBe(true);
+  });
+
+  it('resolves false when only audio decodes (videoWidth 0)', async () => {
+    setup();
+    const p = probeVideoDecodes(new Blob(['x']));
+    setWidth(0);
+    video.dispatchEvent(new Event('loadedmetadata'));
+    await expect(p).resolves.toBe(false);
   });
 
   it('resolves false on a decode error', async () => {
@@ -78,11 +99,11 @@ describe('probeVideoDecodes', () => {
     await expect(p).resolves.toBe(false);
   });
 
-  it('resolves false when nothing loads before the timeout', async () => {
+  it('passes when nothing loads before the timeout', async () => {
     vi.useFakeTimers();
     setup();
     const p = probeVideoDecodes(new Blob(['x']));
-    vi.advanceTimersByTime(10001);
-    await expect(p).resolves.toBe(false);
+    vi.advanceTimersByTime(5001);
+    await expect(p).resolves.toBe(true);
   });
 });
