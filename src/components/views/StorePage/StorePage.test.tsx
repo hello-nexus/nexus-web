@@ -273,7 +273,7 @@ describe('StorePage app page layout', () => {
 
     expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
     expect(screen.getByText('store.value.hasFeature')).toBeInTheDocument();
-    expect(screen.getByText('2x2')).toBeInTheDocument();
+    expect(screen.getAllByText('2x2')).toHaveLength(2);
     expect(screen.getByText('store.value.touchAny')).toBeInTheDocument();
     expect(screen.getByText('1.0.2')).toBeInTheDocument();
   });
@@ -285,11 +285,10 @@ describe('StorePage app page layout', () => {
     });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('2x2 · 4x2')).toBeInTheDocument();
+    expect(await screen.findByText('2x2, 4x2')).toBeInTheDocument();
     expect(screen.queryByText(/2x2round/)).not.toBeInTheDocument();
   });
 
-  // Aquarium's wire shape as nexus-api serves it (latest of GET /store/apps/:id, captured from a local nexus-api run).
   const aquariumLatest = {
     ...version,
     version: '2.5.0',
@@ -298,32 +297,39 @@ describe('StorePage app page layout', () => {
     gridSizes: ['4x4'],
   };
 
-  it('lists only the grid sizes in the widget sizes cell, and the single-widget sizes in their own', async () => {
+  it('lists the grid sizes and the forced-grid 2x4 strip in the widget sizes cell, and every single-widget size in its own', async () => {
     fetchStoreApp.mockResolvedValue({ ...detail, latest: aquariumLatest });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('4x4')).toBeInTheDocument();
-    expect(screen.queryByText(/4x2/)).not.toBeInTheDocument();
+    expect(await screen.findByText('2x4, 4x4')).toBeInTheDocument();
     expect(screen.getByText('store.spec.panelSizes')).toBeInTheDocument();
-    expect(screen.getByText('2x4 · store.value.roundTile')).toBeInTheDocument();
+    expect(screen.getByText('2x2, 4x2, 2x4, store.value.roundTile')).toBeInTheDocument();
   });
 
   it('offers every multi-widget size when the version carries no gridSizes', async () => {
     fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, gridSizes: undefined } });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('2x2 · 4x2 · 4x4')).toBeInTheDocument();
-    expect(screen.getByText('2x4 · store.value.roundTile')).toBeInTheDocument();
+    expect(await screen.findByText('2x2, 4x2, 2x4, 4x4')).toBeInTheDocument();
   });
 
   it('falls back to every multi-widget size when gridSizes names none of them', async () => {
     fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, gridSizes: ['8x8'] } });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('2x2 · 4x2 · 4x4')).toBeInTheDocument();
+    expect(await screen.findByText('2x2, 4x2, 2x4, 4x4')).toBeInTheDocument();
   });
 
-  it('omits the single-widget cell when no such size is declared', async () => {
+  it('offers a plain 2x2 and 4x2 widget to the square and wide single-widget panels', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, sizes: ['2x2', '4x2'], gridSizes: undefined } });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findAllByText('2x2, 4x2')).toHaveLength(2);
+    expect(screen.getByText('store.spec.panelSizes')).toBeInTheDocument();
+  });
+
+  it('omits the single-widget cell when no panel kind takes any declared size', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...aquariumLatest, sizes: ['4x4'], gridSizes: undefined } });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
     expect(await screen.findByText('store.spec.widgetSizes')).toBeInTheDocument();

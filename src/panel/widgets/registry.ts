@@ -16,6 +16,7 @@ import { sizeToSpan } from '../engine/grid';
 import {
   PANEL_SURFACES,
   SINGLE_WIDGET_SIZES,
+  SINGLE_WIDGET_SURFACE_SIZE,
   singleWidgetSurfaceSize,
   surfaceSupportsTouch,
   type ForcedGrid,
@@ -181,6 +182,17 @@ const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '
 // native built-in equivalent needs one; the mechanism stays wired for that case.
 const MARKETPLACE_PREVIEWS: Record<string, AppManifest['Preview']> = {};
 
+// The sizes a manifest declares, cleaned the way every consumer needs them.
+function normalizeListingSizes(manifestSizes?: string[], manifestGridSizes?: string[]): { sizes: PanelWidgetSize[]; gridSizes: PanelWidgetSize[] } {
+  const sizes = (manifestSizes ?? [])
+    .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
+  const safeSizes: PanelWidgetSize[] = sizes.length > 0 ? sizes : ['2x2'];
+  // Sizes reserved for single-widget panels never count, so a list of only those offers every size.
+  const gridSizes = (manifestGridSizes ?? []).filter((s): s is PanelWidgetSize =>
+    (safeSizes as readonly string[]).includes(s) && !SINGLE_WIDGET_SIZES.has(s as PanelWidgetSize));
+  return { sizes: safeSizes, gridSizes };
+}
+
 // Synthesise an AppManifest for a marketplace app. Sizes come from
 // the listing's manifest so a 1x1 app stays 1x1 and a 4x2-only
 // weather stays 4x2. Anything the manifest declares that the panel
@@ -202,12 +214,7 @@ function makeMarketplaceAppManifest(
   // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
   const surfaces = (manifestSurfaces ?? [])
     .filter((s): s is PanelSurface => (PANEL_SURFACES as readonly string[]).includes(s));
-  const sizes = (manifestSizes ?? [])
-    .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
-  const safeSizes: PanelWidgetSize[] = sizes.length > 0 ? sizes : ['2x2'];
-  // Sizes reserved for single-widget panels never count, so a list of only those offers every size.
-  const gridSizes = (manifestGridSizes ?? []).filter((s): s is PanelWidgetSize =>
-    (safeSizes as readonly string[]).includes(s) && !SINGLE_WIDGET_SIZES.has(s as PanelWidgetSize));
+  const { sizes: safeSizes, gridSizes } = normalizeListingSizes(manifestSizes, manifestGridSizes);
   const defaultSize: PanelWidgetSize =
     (manifestDefault && (safeSizes as readonly string[]).includes(manifestDefault))
       ? (manifestDefault as PanelWidgetSize)
@@ -254,6 +261,8 @@ function makeMarketplaceAppManifest(
   };
 }
 
+type SizeRuleMeta = Pick<AppManifest['meta'], 'sizes' | 'gridSizes' | 'touch' | 'panelOnly'>;
+
 // Allowed sizes for an app on a given surface.
 //
 // Single-widget surfaces lock to one size: return [singleSize] when the
@@ -264,7 +273,7 @@ function makeMarketplaceAppManifest(
 // offer only an app's grid sizes when it declares them.
 // The reconciler snaps existing widgets at a hidden size to the nearest
 // non-reserved size on load.
-export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid): PanelWidgetSize[] {
+export function sizesForSurface(meta: SizeRuleMeta, surface?: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid): PanelWidgetSize[] {
   if (!surface) return [...meta.sizes];
   if (meta.touch && !surfaceSupportsTouch(surface, deviceTouch)) return [];
   if (meta.panelOnly && surface === 'desktop') return [];
@@ -276,10 +285,24 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
   return (meta.gridSizes ?? meta.sizes).filter(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
+// What a listing's sizes mean per panel kind, for the Marketplace page: the sizes
+// multi-widget panels offer (a forced short axis also takes the 2x4 strip), and the
+// sizes each single-widget panel kind takes, which gridSizes never limits.
+export function panelSizesForListing(manifestSizes?: string[], manifestGridSizes?: string[]): { grid: PanelWidgetSize[]; single: PanelWidgetSize[] } {
+  const { sizes, gridSizes } = normalizeListingSizes(manifestSizes, manifestGridSizes);
+  const meta: SizeRuleMeta = { sizes, gridSizes: gridSizes.length > 0 ? gridSizes : undefined, touch: false };
+  const grid = new Set<PanelWidgetSize>(sizesForSurface(meta, 'y70'));
+  if (sizes.includes('2x4')) grid.add('2x4');
+  const single = new Set<PanelWidgetSize>(
+    (Object.keys(SINGLE_WIDGET_SURFACE_SIZE) as PanelSurface[]).flatMap(surface => sizesForSurface(meta, surface)),
+  );
+  return { grid: sizes.filter(s => grid.has(s)), single: sizes.filter(s => single.has(s)) };
+}
+
 // A grid with a forced short axis offers only sizes that fit it (columns in portrait,
 // rows in landscape), and the 2x4 strip that other multi-widget grids reserve for
 // single-widget panels.
-function sizesForSlots(meta: AppManifest['meta'], { slots, landscape }: ForcedGrid): PanelWidgetSize[] {
+function sizesForSlots(meta: SizeRuleMeta, { slots, landscape }: ForcedGrid): PanelWidgetSize[] {
   const base = meta.gridSizes ?? meta.sizes;
   return meta.sizes.filter(s => s !== '2x2round'
     && (landscape ? sizeToSpan(s).rows : sizeToSpan(s).cols) <= slots
