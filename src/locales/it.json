@@ -2828,6 +2828,7 @@
   "lighting.devices.selectModeHint": "Seleziona una modalità di illuminazione per scoprire o cercare dispositivi.",
   "lighting.devices.selectOnly": "Seleziona solo {name}",
   "lighting.devices.setLedCounts": "Imposta il numero di LED",
+  "lighting.devices.setLedCountsAfterSetup": "Imposta il numero di LED dopo la configurazione",
   "lighting.devices.stackCount.one": "Impila ({count} dispositivo)",
   "lighting.devices.stackCount.other": "Impila ({count} dispositivi)",
   "lighting.devices.stackLayout": "Disposizione della pila",

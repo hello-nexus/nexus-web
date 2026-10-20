@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Ban, CheckCheck, Lightbulb, PanelsTopLeft, RotateCw, SquareDashed } from 'lucide-react';
 import { OnboardingHeader } from '../OnboardingHeader/OnboardingHeader';
 import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
@@ -22,6 +22,8 @@ import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/p
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
 import { appendNewCards } from '../../../lib/lightingVisibility';
 import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
+import { useOpenRgbZones } from '../../../hooks/useOpenRgbZones';
+import { deviceNeedsSize } from '../../../panel/widgets/devices/zoneSizeUtils';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
 
@@ -97,6 +99,9 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // at all. Simple drives everything, so there is nothing here to choose.
   const [mode, setMode] = useState<'simple' | 'advanced'>('simple');
   const updateUiSettings = useUiSettingsUpdateSafe();
+  const openRgbZones = useOpenRgbZones(open);
+  const zoneSizeKey = openRgbZones.devices.filter(deviceNeedsSize).map(d => d.deviceId).join('\n');
+  const zoneSizeDeviceIds = useMemo(() => new Set(zoneSizeKey ? zoneSizeKey.split('\n') : []), [zoneSizeKey]);
   const awaitingRgbRef = useRef(false);
   const devicesRef = useRef<LightingDevice[] | null>(null);
   devicesRef.current = devices;
@@ -358,6 +363,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
                   onTogglePower={noop}
                   onToggleControlled={mode === 'advanced' ? () => handleToggle(raw) : undefined}
                   onOpenSettings={noop}
+                  needsLedCounts={zoneSizeDeviceIds.has(raw.id)}
                 />
               ))}
             </div>

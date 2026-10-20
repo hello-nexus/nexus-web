@@ -1155,4 +1155,16 @@ describe('ZoneCard unsized OpenRGB device', () => {
     renderCard(empty);
     expect(screen.getByText('lighting.devices.detectionFailed')).toBeTruthy();
   });
+
+  it('says the counts come after setup where the Devices page is out of reach', () => {
+    render(
+      <ZoneCard
+        device={empty} selected={false} indent={false} onSelect={() => {}} onTogglePower={() => {}}
+        onToggleControlled={() => {}} onOpenSettings={() => {}} toggleMode needsLedCounts
+      />,
+    );
+    expect(screen.getByText('lighting.devices.setLedCountsAfterSetup')).toBeTruthy();
+    expect(screen.queryByText('lighting.devices.detectionFailed')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'lighting.devices.setLedCounts' })).toBeNull();
+  });
 });

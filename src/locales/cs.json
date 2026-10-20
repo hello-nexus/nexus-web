@@ -2856,6 +2856,7 @@
   "lighting.devices.selectModeHint": "Vyberte režim osvětlení, aby se začala zařízení zjišťovat a vyhledávat.",
   "lighting.devices.selectOnly": "Vybrat jen {name}",
   "lighting.devices.setLedCounts": "Nastavit počty LED",
+  "lighting.devices.setLedCountsAfterSetup": "Nastavit počty LED po úvodním nastavení",
   "lighting.devices.stackCount.few": "Seskupit na sebe ({count} zařízení)",
   "lighting.devices.stackCount.one": "Seskupit na sebe ({count} zařízení)",
   "lighting.devices.stackCount.other": "Seskupit na sebe ({count} zařízení)",

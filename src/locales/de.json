@@ -2828,6 +2828,7 @@
   "lighting.devices.selectModeHint": "Wähle einen Beleuchtungsmodus, um Geräte zu entdecken oder zu suchen.",
   "lighting.devices.selectOnly": "Nur {name} auswählen",
   "lighting.devices.setLedCounts": "LED-Anzahl festlegen",
+  "lighting.devices.setLedCountsAfterSetup": "LED-Anzahl nach der Einrichtung festlegen",
   "lighting.devices.stackCount.one": "Stapeln ({count} Gerät)",
   "lighting.devices.stackCount.other": "Stapeln ({count} Geräte)",
   "lighting.devices.stackLayout": "Stapel-Layout",
