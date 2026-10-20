@@ -14,5 +14,5 @@ export function processIconPath(name: string): string {
 }
 
 export async function fetchProcessIcon(name: string): Promise<Blob | null> {
-  return fetchServiceBlob(processIconPath(name));
+  return fetchServiceBlob(processIconPath(name), { mayBeCached: true });
 }

@@ -8,5 +8,5 @@ export function siteIconPath(url: string): string {
 }
 
 export function fetchSiteIcon(url: string): Promise<Blob | null> {
-  return fetchServiceBlob(siteIconPath(url));
+  return fetchServiceBlob(siteIconPath(url), { mayBeCached: true });
 }

@@ -80,7 +80,7 @@ export function useMediaLibrary() {
     (async () => {
       for (const item of items) {
         if (thumbsRef.current[item.id]) continue;
-        const blob = await fetchServiceBlob(`/media/${encodeURIComponent(item.id)}/thumbnail`);
+        const blob = await fetchServiceBlob(`/media/${encodeURIComponent(item.id)}/thumbnail`, { mayBeCached: true });
         if (cancelled) return;
         if (blob) {
           const url = URL.createObjectURL(blob);

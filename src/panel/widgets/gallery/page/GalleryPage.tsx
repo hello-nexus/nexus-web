@@ -144,7 +144,7 @@ export function GalleryPage() {
       for (const item of items) {
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
-        const blob = await fetchServiceBlob(galleryItemFileUrl(item.id, galleryThumbWidth()));
+        const blob = await fetchServiceBlob(galleryItemFileUrl(item.id, galleryThumbWidth()), { mayBeCached: true });
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
         const url = blob ? URL.createObjectURL(blob) : null;

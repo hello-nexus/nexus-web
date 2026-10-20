@@ -13,7 +13,7 @@ describe('fetchProcessIcon', () => {
 
     const result = await fetchProcessIcon('chrome.exe');
 
-    expect(fetchServiceBlob).toHaveBeenCalledWith('/monitoring/process-icon?name=chrome.exe');
+    expect(fetchServiceBlob).toHaveBeenCalledWith('/monitoring/process-icon?name=chrome.exe', { mayBeCached: true });
     expect(result).toBe(blob);
   });
 
@@ -22,7 +22,7 @@ describe('fetchProcessIcon', () => {
 
     await fetchProcessIcon('My App (x64).exe');
 
-    expect(fetchServiceBlob).toHaveBeenCalledWith('/monitoring/process-icon?name=My%20App%20(x64).exe');
+    expect(fetchServiceBlob).toHaveBeenCalledWith('/monitoring/process-icon?name=My%20App%20(x64).exe', { mayBeCached: true });
   });
 
   it('returns null when the blob fetch fails (404 or network error)', async () => {

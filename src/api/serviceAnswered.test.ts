@@ -11,7 +11,9 @@ vi.mock('./auth', () => ({
   hasSessionToken: vi.fn(() => true),
 }));
 
-import { fetchService, fetchServiceBlob, fetchServiceBlobWithStatus, setActiveTransport } from './service';
+import { fetchService, fetchServiceBlob, setActiveTransport } from './service';
+import { fetchDeckImage } from './deckImages';
+import { effectThumbnailPath } from './lighting';
 import { serviceAnsweredAt } from '../lib/serviceLiveness';
 
 let now = 0;
@@ -44,13 +46,18 @@ describe('service sign of life', () => {
     expect(serviceAnsweredAt()).toBe(1_000_000);
   });
 
-  it('does not stamp on a blob fetch, which the HTTP cache may answer', async () => {
+  it('stamps on a lighting thumbnail blob fetch, which always revalidates over the network', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('img', { status: 200 })));
+    expect(await fetchServiceBlob(effectThumbnailPath('rainbow', 0, 'abc'))).not.toBeNull();
+    expect(serviceAnsweredAt()).toBe(1_000_000);
+  });
+
+  it('does not stamp on a deck image fetch, which the HTTP cache may answer', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
     await fetchService('/sentry');
     now += 60_000;
     vi.stubGlobal('fetch', vi.fn(async () => new Response('img', { status: 200 })));
-    expect(await fetchServiceBlob('/deck/images/abc')).not.toBeNull();
-    expect((await fetchServiceBlobWithStatus('/shortcuts/icon?targetId=x')).status).toBe(200);
+    expect(await fetchDeckImage('abc')).not.toBeNull();
     expect(serviceAnsweredAt()).toBe(1_000_000);
   });
 });

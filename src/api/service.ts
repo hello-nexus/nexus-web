@@ -381,7 +381,7 @@ interface RequestOptions {
   body?: unknown;
   signal?: AbortSignal;
   cache?: RequestCache;
-  /** The route may answer from the HTTP cache, so its response does not show the service is reachable. */
+  /** The HTTP cache may answer this route, so its response is no sign of life. */
   mayBeCached?: boolean;
 }
 
@@ -741,14 +741,14 @@ export async function postServiceBytesWithStatus(path: string, bytes: Uint8Array
   return sendServiceBytesWithStatus('POST', path, bytes, contentType);
 }
 
-export async function fetchServiceBlob(path: string): Promise<Blob | null> {
+export async function fetchServiceBlob(path: string, opts: Pick<RequestOptions, 'mayBeCached'> = {}): Promise<Blob | null> {
   // No explicit cache directive: respect the server's Cache-Control header.
   // Effect thumbnails + app icons are static-per-key bytes; the routes that
   // care set Cache-Control accordingly. Forcing no-store here would void any
   // server cache hint and refetch on every mount.
   // An error status must yield null, not a blob of the JSON error body -
   // callers feed this straight into URL.createObjectURL for <img> sources.
-  const r = await authFetch(path, { mayBeCached: true });
+  const r = await authFetch(path, opts);
   if (!r || !r.ok) return null;
   try {
     return await r.blob();
@@ -760,8 +760,8 @@ export async function fetchServiceBlob(path: string): Promise<Blob | null> {
 
 /** Like fetchServiceBlob, but also returns the HTTP status (0 = transport
  *  failure) so a caller can tell a definitive miss from a transient one. */
-export async function fetchServiceBlobWithStatus(path: string): Promise<{ blob: Blob | null; status: number }> {
-  const { response, status } = await authFetchWithStatus(path, { mayBeCached: true });
+export async function fetchServiceBlobWithStatus(path: string, opts: Pick<RequestOptions, 'mayBeCached'> = {}): Promise<{ blob: Blob | null; status: number }> {
+  const { response, status } = await authFetchWithStatus(path, opts);
   if (!response || !response.ok) return { blob: null, status };
   try {
     return { blob: await response.blob(), status };
@@ -774,7 +774,7 @@ export async function fetchServiceBlobWithStatus(path: string): Promise<{ blob: 
  *  that need a server-supplied detail (e.g. Content-Disposition on a file
  *  download) use this instead. */
 export async function fetchServiceBlobWithHeaders(path: string): Promise<{ blob: Blob; headers: Headers } | null> {
-  const r = await authFetch(path, { mayBeCached: true });
+  const r = await authFetch(path);
   if (!r || !r.ok) return null;
   try {
     return { blob: await r.blob(), headers: r.headers };
