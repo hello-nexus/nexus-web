@@ -12,7 +12,11 @@ import { useDeckImage } from '../deck/useDeckImage';
 import { resizeDeckImage } from '../deck/resizeDeckImage';
 import { DeckImageMedia } from '../deck/DeckImageMedia';
 import { classifyDeckFile, isDeckAnimatedTooLarge, probeVideoDecodes, DECK_ANIMATED_MAX_MB } from '../deck/deckMedia';
-import { uploadDeckImage } from '../../../api/deckImages';
+import { KlipyPicker } from '../../../components/common/KlipyPicker/KlipyPicker';
+import { serializeCrop } from '../../../components/common/MediaCropper/mediaCrop';
+import { uploadDeckImage, uploadDeckAnimated, commitDeckKlipyStage, type DeckImageResult } from '../../../api/deckImages';
+import { stageKlipy, type KlipyGif } from '../../../api/klipy';
+import { cancelMediaStage, mediaStagePreviewUrl, mediaStageRawUrl, stagePreviewFor } from '../../../api/mediaLibrary';
 import type { DeckIcon } from '../deck/types';
 import styles from './IconPicker.module.scss';
 
@@ -54,6 +58,12 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
   // Object URL of the picked file while the cropper is open.
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   useEffect(() => (cropSrc ? () => URL.revokeObjectURL(cropSrc) : undefined), [cropSrc]);
+  // GIF/MP4/WebM crop state: a local pick carries its File; a Klipy pick carries its stage id.
+  const [animCrop, setAnimCrop] = useState<{ src: string; kind: 'image' | 'video'; fallbackSrc?: string; file?: File; stageId?: string } | null>(null);
+  useEffect(() => (animCrop?.file ? () => URL.revokeObjectURL(animCrop.src) : undefined), [animCrop]);
+  const [klipyOpen, setKlipyOpen] = useState(false);
+  const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
+  const [klipyError, setKlipyError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const showSearch = canEditFreeText(surface, desktopEditor);
   const { url: previewUrl, isVideo: previewIsVideo } = useDeckImage(value?.kind === 'image' ? value.value : undefined);
@@ -90,24 +100,66 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
       setUploadError(t('panel.iconPicker.fileTooLarge', { limit: DECK_ANIMATED_MAX_MB }));
       return;
     }
-    void handleAnimatedUpload(file, kind === 'video');
+    void handleAnimatedPick(file, kind === 'video');
   };
 
-  const handleAnimatedUpload = async (file: File, isVideo: boolean) => {
+  // Probes decodability for video, then opens the cropper on the original file.
+  const handleAnimatedPick = async (file: File, isVideo: boolean) => {
     setUploading(true);
     try {
       if (isVideo && !(await probeVideoDecodes(file))) {
         setUploadError(t('panel.iconPicker.videoUndecodable'));
         return;
       }
-      const id = await uploadDeckImage(file, file.name);
-      if (!id) { setUploadError(t('panel.iconPicker.uploadFailed')); return; }
-      onChange({ kind: 'image', value: id });
-    } catch {
-      setUploadError(t('panel.iconPicker.uploadFailed'));
+      setAnimCrop({ src: URL.createObjectURL(file), kind: isVideo ? 'video' : 'image', file });
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleAnimConfirm = async (crop: NormalizedCrop) => {
+    if (!animCrop) return;
+    const { file, stageId } = animCrop;
+    setUploading(true);
+    let result: DeckImageResult = { failure: 'failed' };
+    try {
+      const wire = serializeCrop(crop);
+      if (file) result = await uploadDeckAnimated(file, wire);
+      else if (stageId) result = await commitDeckKlipyStage(stageId, wire);
+    } catch {
+      // result stays failed
+    }
+    if ('id' in result) {
+      onChange({ kind: 'image', value: result.id });
+    } else {
+      if (stageId && result.failure !== 'expired') cancelMediaStage(stageId).catch(() => {});
+      setUploadError(t(
+        result.failure === 'tooLarge' ? 'panel.iconPicker.resultTooLarge'
+          : result.failure === 'expired' ? 'panel.iconPicker.stageExpired'
+          : 'panel.iconPicker.uploadFailed'));
+    }
+    setUploading(false);
+    setAnimCrop(null);
+  };
+
+  const handleAnimCancel = () => {
+    if (animCrop?.stageId) cancelMediaStage(animCrop.stageId).catch(() => {});
+    setAnimCrop(null);
+  };
+
+  const handleKlipyPick = async (gif: KlipyGif) => {
+    setKlipyBusy(gif.slug);
+    setKlipyError(null);
+    const staged = await stageKlipy(gif.slug);
+    setKlipyBusy(null);
+    if (!staged) { setKlipyError(t('lighting.controls.importNetworkError')); return; }
+    if (staged.error || !staged.stageId) { setKlipyError(t('lighting.controls.klipyPickFailed')); return; }
+    setKlipyOpen(false);
+    setUploadError(null);
+    setAnimCrop({
+      stageId: staged.stageId,
+      ...stagePreviewFor(staged.mediaKind, mediaStageRawUrl(staged.stageId), mediaStagePreviewUrl(staged.stageId)),
+    });
   };
 
   const handleCropConfirm = async (crop: NormalizedCrop, fit: boolean) => {
@@ -192,9 +244,14 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
                 : <span className={styles.customPreviewSkeleton} aria-hidden="true" />}
             </div>
           )}
-          <Button type="button" tone="neutral" size="sm" loading={uploading} onClick={() => fileRef.current?.click()}>
-            {t('panel.iconPicker.uploadImage')}
-          </Button>
+          <div className={styles.uploadRow}>
+            <Button type="button" tone="neutral" size="sm" loading={uploading} onClick={() => fileRef.current?.click()}>
+              {t('panel.iconPicker.uploadImage')}
+            </Button>
+            <Button type="button" tone="neutral" size="sm" icon={<Sparkles size={16} aria-hidden />} disabled={uploading} onClick={() => setKlipyOpen(true)}>
+              {t('lighting.controls.klipyBrowse')}
+            </Button>
+          </div>
           <input
             ref={fileRef}
             type="file"
@@ -206,6 +263,27 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
           {uploadError && <div className={styles.uploadError}>{uploadError}</div>}
         </div>
       )}
+
+      {animCrop && (
+        <MediaCropper
+          src={animCrop.src}
+          kind={animCrop.kind}
+          fallbackSrc={animCrop.fallbackSrc}
+          aspect={1}
+          busy={uploading}
+          onConfirm={crop => void handleAnimConfirm(crop)}
+          onCancel={handleAnimCancel}
+        />
+      )}
+
+      <KlipyPicker
+        open={klipyOpen}
+        busySlug={klipyBusy}
+        importError={klipyOpen ? klipyError : null}
+        thumbAspect={1}
+        onPick={gif => void handleKlipyPick(gif)}
+        onClose={() => { setKlipyOpen(false); setKlipyError(null); }}
+      />
 
       {cropSrc && (
         <MediaCropper
