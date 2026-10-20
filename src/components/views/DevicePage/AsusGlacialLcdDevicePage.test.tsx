@@ -34,6 +34,7 @@ const base = {
   isConnected: true,
   displayOn: true,
   mode: 'monitor',
+  modeChosen: true,
   staticAsset: 3,
   animatedAsset: 0,
   slotCount: 2,
@@ -99,7 +100,7 @@ describe('AsusGlacialLcdDevicePage', () => {
     expect(screen.getAllByTestId('sensor-picker')[1].textContent).toBe('motherboard/mb-temp');
   });
 
-  it('picking a sensor replaces that slot and keeps its label', async () => {
+  it('picking a sensor in a slot with a default label sends an empty label', async () => {
     await mount();
     await act(async () => {
       fireEvent.click(screen.getAllByTestId('sensor-picker')[1]);
@@ -107,10 +108,24 @@ describe('AsusGlacialLcdDevicePage', () => {
     expect(mockSet).toHaveBeenCalledWith({
       slots: [
         { category: 'cpu', sensor: 'cpu-temp', label: '' },
-        { category: 'gpu', sensor: 'gpu-temp', label: 'Fan' },
+        { category: 'gpu', sensor: 'gpu-temp', label: '' },
         { category: '', sensor: '', label: '' },
       ],
     });
+  });
+
+  it('shows no mode selection and no sub-controls until a mode is chosen', async () => {
+    await mount({ ...base, modeChosen: false });
+    for (const m of ['Monitor', 'Animation', 'Picture']) {
+      expect(screen.getByRole('radio', { name: `devices.asus-glacial-lcd.mode${m}` })).toHaveAttribute('aria-checked', 'false');
+    }
+    expect(screen.queryAllByTestId('sensor-picker')).toHaveLength(0);
+    expect(screen.queryByText('devices.asus-glacial-lcd.widgetCount')).toBeNull();
+  });
+
+  it('hides the asset select until a mode is chosen', async () => {
+    await mount({ ...base, mode: 'static', modeChosen: false });
+    expect(screen.queryByText('devices.asus-glacial-lcd.picture')).toBeNull();
   });
 
   it('the stay-on switch sends stayOnWhileAsleep', async () => {

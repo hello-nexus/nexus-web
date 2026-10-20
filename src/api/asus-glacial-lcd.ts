@@ -18,6 +18,8 @@ export interface GlacialState {
   isConnected: boolean;
   displayOn: boolean;
   mode: GlacialMode;
+  /** False until a mode is set from Nexus; mode, assets and slots are placeholders until then. */
+  modeChosen: boolean;
   staticAsset: number;
   animatedAsset: number;
   /** 1..3. */

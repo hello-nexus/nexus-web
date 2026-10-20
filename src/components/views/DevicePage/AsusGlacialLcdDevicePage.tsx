@@ -84,6 +84,7 @@ export function AsusGlacialLcdDevicePage() {
   }, [commit]);
 
   const ready = state !== null && state.isConnected;
+  const chosen = state?.modeChosen === true;
   const mode = state?.mode ?? 'monitor';
   const assets = mode === 'static' ? state?.staticAssets ?? [] : state?.animatedAssets ?? [];
   const activeAsset = mode === 'static' ? state?.staticAsset : state?.animatedAsset;
@@ -91,7 +92,7 @@ export function AsusGlacialLcdDevicePage() {
 
   const setSlot = (index: number, category: string, sensor: string) => {
     if (!state) return;
-    const slots: GlacialSlotState[] = state.slots.map((s, i) => (i === index ? { ...s, category, sensor } : s));
+    const slots: GlacialSlotState[] = state.slots.map((s, i) => (i === index ? { ...s, category, sensor, label: '' } : s));
     edit({ slots }, { slots: slots.map(({ category: c, sensor: n, label }) => ({ category: c, sensor: n, label })) });
   };
 
@@ -138,13 +139,13 @@ export function AsusGlacialLcdDevicePage() {
           <SettingRow label={t('devices.asus-glacial-lcd.mode')}>
             <ChipGroup
               ariaLabel={t('devices.asus-glacial-lcd.mode')}
-              activeKey={mode}
+              activeKey={chosen ? mode : ''}
               options={MODES.map(m => ({ key: m, label: t(MODE_KEYS[m]), disabled: !ready }))}
               onChange={key => edit({ mode: key as GlacialMode }, { mode: key as GlacialMode })}
             />
           </SettingRow>
 
-          {mode !== 'monitor' && (
+          {chosen && mode !== 'monitor' && (
             <SettingSelect
               label={t(mode === 'static' ? 'devices.asus-glacial-lcd.picture' : 'devices.asus-glacial-lcd.animation')}
               value={String(activeAsset ?? '')}
@@ -158,7 +159,7 @@ export function AsusGlacialLcdDevicePage() {
             />
           )}
 
-          {mode === 'monitor' && state && (
+          {chosen && mode === 'monitor' && state && (
             <>
               <SettingRow label={t('devices.asus-glacial-lcd.widgetCount')}>
                 <ChipGroup
