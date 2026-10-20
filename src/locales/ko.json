@@ -300,6 +300,7 @@
   "common.loading": "로드 중...",
   "common.mixed": "혼합",
   "common.nexusHome": "Nexus 홈",
+  "common.openFolderFailed": "폴더를 열 수 없습니다.",
   "common.pager.next": "다음 페이지",
   "common.pager.pageOf": "{total}페이지 중 {n}페이지",
   "common.pager.prev": "이전 페이지",

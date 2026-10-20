@@ -165,7 +165,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   // Reveal the Nexus data folder in the OS file manager. Loopback-only
   // endpoint - acts on the local machine.
   const openDataFolder = async () => {
-    await postService('/diagnostics/open-logs', {});
+    const res = await postService('/diagnostics/open-logs', {});
+    if (!res) push({ title: t('common.openFolderFailed') });
   };
 
   const [exportingSupport, setExportingSupport] = useState(false);

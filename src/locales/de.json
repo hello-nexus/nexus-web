@@ -300,6 +300,7 @@
   "common.loading": "Wird geladen...",
   "common.mixed": "Gemischt",
   "common.nexusHome": "Nexus-Startseite",
+  "common.openFolderFailed": "Ordner konnte nicht geöffnet werden.",
   "common.pager.next": "Nächste Seite",
   "common.pager.pageOf": "Seite {n} von {total}",
   "common.pager.prev": "Vorherige Seite",
