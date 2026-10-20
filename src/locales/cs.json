@@ -5256,6 +5256,8 @@
   "settings.profiles.sharing.cat.device.label": "Zařízení",
   "settings.profiles.sharing.cat.lighting.desc": "Efekty RGB, režim synchronizace, následné zpracování.",
   "settings.profiles.sharing.cat.lighting.label": "Osvětlení",
+  "settings.profiles.sharing.cat.panels.desc": "Rozvržení, vzhledy a předvolby panelů a displejů chladičů.",
+  "settings.profiles.sharing.cat.panels.label": "Panely",
   "settings.profiles.sharing.cat.theme.desc": "Režim motivu, barva zvýraznění, jazyk.",
   "settings.profiles.sharing.cat.theme.label": "Motiv",
   "settings.profiles.sharing.deletePrimaryDisabled": "Nejprve označte jiný profil jako primární.",

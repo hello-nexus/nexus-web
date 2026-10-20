@@ -1,6 +1,6 @@
 import type { SearchEntry } from './types';
 
-const BOUNDARY = /[\s\-_/.·›]/;
+const BOUNDARY = /[\s\-_/.›]/;
 
 /** True when every whitespace-separated word of `query` appears in one of `fields`, case-insensitive; an empty query matches. */
 export function matchesAllWords(query: string, fields: readonly (string | null | undefined)[]): boolean {

@@ -30,7 +30,7 @@ export function normalizeRotate(r: number | undefined): number {
 // Orientation is the dihedral group D4: a mirror (in source space) then k
 // quarter-turns CW. Each button composes a new operation in SCREEN space, so
 // the controls feel direct whatever the current state. Derivations use the
-// identity FlipH·Rot(t) = Rot(-t)·FlipH.
+// identity FlipH * Rot(t) = Rot(-t) * FlipH.
 
 export function rotateCw(o: Orientation): Orientation {
   return { rotate: (o.rotate + 90) % 360, mirror: o.mirror };

@@ -36,7 +36,7 @@ export function buildParamEntries(query: string, ctx: CommandContext): SearchEnt
     out.push({
       id: 'param:brightness',
       kind: 'action',
-      title: `${brightnessLabel} · ${value}%`,
+      title: `${brightnessLabel} - ${value}%`,
       subtitle: ctx.t('lighting.title'),
       icon: <Sun size={18} />,
       run: () => { void setGlobalBrightness(value / 100).catch(() => {}); },
@@ -48,7 +48,7 @@ export function buildParamEntries(query: string, ctx: CommandContext): SearchEnt
     out.push({
       id: 'param:volume',
       kind: 'action',
-      title: `${volumeLabel} · ${value}%`,
+      title: `${volumeLabel} - ${value}%`,
       icon: <Volume2 size={18} />,
       run: () => { void setSystemVolume(value / 100).catch(() => {}); },
     });

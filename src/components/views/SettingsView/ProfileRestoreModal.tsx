@@ -1,14 +1,36 @@
 import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
-import { getMarketplaceListing } from '../../../widgets/marketplaceRegistry';
+import {
+  getMarketplaceListing,
+  isMarketplaceRegistryExpired,
+  loadMarketplaceApps,
+  subscribeMarketplaceRegistry,
+} from '../../../widgets/marketplaceRegistry';
 import { useTranslation } from '../../../lib/i18n';
 
 type Translate = ReturnType<typeof useTranslation>['t'];
 
-/** Installed apps by manifest name; an app missing on this PC shows its id. */
+/** Last id segment, capitalized: "com.hellonexus.aquarium" reads "Aquarium". */
+export function readableAppName(id: string): string {
+  const last = id.split('.').filter(Boolean).pop() ?? id;
+  const words = last.split(/[-_]+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1));
+  return words.length > 0 ? words.join(' ') : id;
+}
+
+/** Installed apps by manifest name; an app missing on this PC shows a readable form of its id. */
 export function appDataNames(appIds: string[]): string[] {
-  return appIds.map(id => getMarketplaceListing(id)?.name || id);
+  return appIds.map(id => getMarketplaceListing(id)?.name || readableAppName(id));
+}
+
+/** Re-renders when the installed-apps registry changes, loading it first when it has not been read yet. */
+export function useAppNamesRefresh(): void {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const unsubscribe = subscribeMarketplaceRegistry(() => setTick(n => n + 1));
+    if (isMarketplaceRegistryExpired()) void loadMarketplaceApps();
+    return unsubscribe;
+  }, []);
 }
 
 /** "Aquarium, Stocks", or "3 apps" once a list would crowd the row. */
@@ -27,6 +49,7 @@ export function ProfileRestoreModal({ open, title, confirmLabel, appIds, onConfi
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  useAppNamesRefresh();
   const [includeAppData, setIncludeAppData] = useState(true);
   useEffect(() => { if (open) setIncludeAppData(true); }, [open]);
   const names = appDataNames(appIds).join(', ');

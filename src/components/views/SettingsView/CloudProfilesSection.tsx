@@ -16,7 +16,7 @@ import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatDateTime, hour12OptionFor } from '../../../lib/units';
-import { ProfileRestoreModal, appDataNames, appDataSummary } from './ProfileRestoreModal';
+import { ProfileRestoreModal, appDataNames, appDataSummary, useAppNamesRefresh } from './ProfileRestoreModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import styles from './SettingsView.module.scss';
 
@@ -46,6 +46,7 @@ export function CloudProfilesSection(
   },
 ) {
   const { t } = useTranslation();
+  useAppNamesRefresh();
   const { timeFormat, dateFormat } = useUnitPrefs();
   const accounts = useCloudAccounts(true);
   const signedIn = accounts.activeAccountId !== null;
@@ -191,7 +192,7 @@ export function CloudProfilesSection(
     const apps = includesApps(appIds);
     if (!apps) return text;
     if (!text) return apps;
-    return <>{text} · {apps}</>;
+    return <>{text} - {apps}</>;
   };
 
   const atLimit = profiles.profiles.length >= 5;
@@ -275,7 +276,7 @@ export function CloudProfilesSection(
           </>
         )}
         description={withApps(!row.isLocal
-          ? [t('profile.cloud.list.notOnThisComputer'), backedUp].filter(Boolean).join(' · ')
+          ? [t('profile.cloud.list.notOnThisComputer'), backedUp].filter(Boolean).join(' - ')
           : !row.inCloud
             ? t('profile.cloud.backup.never')
             : backedUp ?? t('profile.cloud.backup.never'), row.inCloud ? row.appIds : undefined)}
