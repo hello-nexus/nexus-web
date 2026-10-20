@@ -81,7 +81,7 @@ import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
-import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
+import { msSinceLastMultiplexFrame, useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
 import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
@@ -181,6 +181,10 @@ import {
 // is removed.
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
+
+// Streaming topics push a frame every second; a gap this long no longer proves the link is up.
+const MULTIPLEX_LIVENESS_MS = 5_000;
+const multiplexFramesFlowing = () => msSinceLastMultiplexFrame() < MULTIPLEX_LIVENESS_MS;
 
 export interface PanelLayoutState {
   layout: PanelLayout;
@@ -483,11 +487,18 @@ export function PanelContent({
   // A host-display panel (Y70/monitor) is the host's own loopback screen: a real
   // service outage drops its connections at once, so a missed ping is almost
   // always transient and it can ride one out instead of flipping offline and
-  // tearing down an open editor. Cabled surfaces (q60, USB phone) and WiFi/relay
-  // phones keep the instant offline response so a real unplug / signal loss
-  // surfaces right away.
-  const isHostDisplay = wiredPanelClass(glassSurface) === 'host-display';
-  const serviceStatus = useServiceStatus(kioskBehavior, isHostDisplay ? HOST_DISPLAY_OFFLINE_GRACE_MS : 0);
+  // tearing down an open editor. Cabled surfaces (q60, USB phone) keep the
+  // instant offline response so a real unplug surfaces right away. A WiFi/relay
+  // phone stays online while multiplex frames still arrive over its link: the
+  // Android wrapper's /ping rides a 6-socket HTTP/1.1 pool that a burst of slow
+  // loads (the Lighting effect grid's thumbnails) starves past its 3s abort.
+  const wiredClass = wiredPanelClass(glassSurface);
+  const isHostDisplay = wiredClass === 'host-display';
+  const serviceStatus = useServiceStatus(
+    kioskBehavior,
+    isHostDisplay ? HOST_DISPLAY_OFFLINE_GRACE_MS : 0,
+    glassSurface === 'phone' && wiredClass === null ? multiplexFramesFlowing : undefined,
+  );
   const multiplex = useMultiplex();
   // The context menu's "Pin to Sidebar" gates on the current pinned-tail
   // (only pinnable types not already pinned). Always inside a

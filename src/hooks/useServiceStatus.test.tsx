@@ -115,3 +115,31 @@ describe('useServiceStatus offline grace', () => {
     expect(result.current.state).toBe('online');
   });
 });
+
+describe('useServiceStatus reachable hint', () => {
+  it('holds online on a failed ping while another channel proves the service up', async () => {
+    let live = true;
+    const reachable = () => live;
+    pingMock.mockResolvedValue(OK);
+    const { result } = renderHook(() => useServiceStatus(true, 0, reachable));
+    await settle();
+    expect(result.current.state).toBe('online');
+
+    pingMock.mockResolvedValue(null);
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('online');
+    expect(result.current.ping).not.toBeNull();
+
+    // The other channel goes quiet too: the next miss flips offline.
+    live = false;
+    await poll(result.current.retry);
+    expect(result.current.state).toBe('offline-installed');
+  });
+
+  it('never holds the boot checking state on the hint', async () => {
+    pingMock.mockResolvedValue(null);
+    const { result } = renderHook(() => useServiceStatus(true, 0, () => true));
+    await settle();
+    expect(result.current.state).toBe('offline');
+  });
+});

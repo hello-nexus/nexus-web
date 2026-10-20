@@ -48,8 +48,11 @@ export const DESKTOP_OFFLINE_GRACE_MS = 8_000;
  *   Never delays the boot path - with no good state to hold, the first
  *   failure surfaces offline immediately. Pass HOST_DISPLAY_OFFLINE_GRACE_MS
  *   for host-display panels.
+ * @param reachable      consulted on a failed ping once the service has
+ *   answered: true holds the last good state (another channel proves the
+ *   service is up). Must be referentially stable.
  */
-export function useServiceStatus(enabled = true, offlineGraceMs = 0): ServiceStatus {
+export function useServiceStatus(enabled = true, offlineGraceMs = 0, reachable?: () => boolean): ServiceStatus {
   const [state, setState] = useState<ConnectionState>('checking');
   const [ping, setPing] = useState<PingResponse | null>(null);
   const mounted = useRef(true);
@@ -82,6 +85,10 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0): ServiceSta
         // wait the full 10s timeout.
         resolveLaunch();
       } else {
+        if (wasOnlineRef.current && reachable?.()) {
+          firstFailureAtRef.current = null;
+          return;
+        }
         const now = Date.now();
         firstFailureAtRef.current ??= now;
         // Within the grace window, hold the last good state (and its ping data)
@@ -100,7 +107,7 @@ export function useServiceStatus(enabled = true, offlineGraceMs = 0): ServiceSta
         timerRef.current = setTimeout(tick, interval);
       }
     }
-  }, [enabled, offlineGraceMs]);
+  }, [enabled, offlineGraceMs, reachable]);
 
   const retry = useCallback(() => {
     if (!enabled) return;
