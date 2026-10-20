@@ -5740,6 +5740,7 @@
   "tools.panelSim.add": "Добавить симулятор",
   "tools.panelSim.alreadyActive": "Уже симулируется",
   "tools.panelSim.apply": "Применить",
+  "tools.panelSim.controlOff": "Сначала включите Nexus Control для этого устройства",
   "tools.panelSim.customDiagonal": "Диагональ пользовательской панели (дюймы)",
   "tools.panelSim.customDpi": "DPI пользовательской панели",
   "tools.panelSim.customHeight": "Высота пользовательской панели",

@@ -5688,6 +5688,7 @@
   "tools.panelSim.add": "新增模擬器",
   "tools.panelSim.alreadyActive": "已在模擬",
   "tools.panelSim.apply": "套用",
+  "tools.panelSim.controlOff": "請先為此裝置開啟 Nexus Control",
   "tools.panelSim.customDiagonal": "自訂面板對角線（英吋）",
   "tools.panelSim.customDpi": "自訂面板 DPI",
   "tools.panelSim.customHeight": "自訂面板高度",

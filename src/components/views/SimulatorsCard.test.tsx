@@ -35,6 +35,9 @@ vi.mock('../../api/nollie', async () => {
   };
 });
 
+const mockUseDevices = vi.fn();
+vi.mock('../../hooks/useDevices', () => ({ useDevices: () => mockUseDevices() }));
+
 let tryxOn = false;
 vi.mock('../../lib/tryxSimulation', () => ({
   isTryxSimulated: () => tryxOn,
@@ -92,6 +95,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
   tryxOn = false;
+  mockUseDevices.mockReturnValue({ devices: [] });
   mockGetDevModels.mockResolvedValue([
     { productId: 99, name: 'Elgato Stream Deck Mini', rows: 2, cols: 3, keyCount: 6 },
     { productId: 128, name: 'Elgato Stream Deck MK.2', rows: 3, cols: 5, keyCount: 15 },
@@ -235,6 +239,33 @@ describe('PanelSimulatorCard', () => {
       await renderCard();
       openPicker();
       expect(option('tools.streamdeckSim.modelOptionDials:{"name":"Elgato Stream Deck Plus","count":8,"dials":4}')).toBeInTheDocument();
+    });
+  });
+
+  describe('with Nexus Control off for the handler', () => {
+    const off = (id: string) => ({ id, name: id, category: 'controller', connected: false, firmwareVersion: '', nexusControlEnabled: false });
+
+    it('disables Stream Deck and Nollie models with the reason, so the service cannot drop the simulator on its next tick', async () => {
+      mockUseDevices.mockReturnValue({ devices: [off('streamdeck'), off('nollie')] });
+      await renderCard();
+      openPicker();
+
+      expect(disabledOption('tools.streamdeckSim.modelOption:{"name":"Elgato Stream Deck XL","count":32}')).toHaveAttribute('aria-disabled', 'true');
+      expect(disabledOption('Nollie 32CH')).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getAllByText('tools.panelSim.controlOff').length).toBeGreaterThan(1);
+      fireEvent.click(disabledOption('Nollie 32CH'));
+      expect(mockSimulateNollie).not.toHaveBeenCalled();
+      expect(mockSimulate).not.toHaveBeenCalled();
+      expect(option('HYTE Q60')).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('only the handler that is off is disabled', async () => {
+      mockUseDevices.mockReturnValue({ devices: [off('nollie')] });
+      await renderCard();
+      openPicker();
+
+      expect(option('tools.streamdeckSim.modelOption:{"name":"Elgato Stream Deck XL","count":32}')).not.toHaveAttribute('aria-disabled', 'true');
+      expect(disabledOption('Nollie 32CH')).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
