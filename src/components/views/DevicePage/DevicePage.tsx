@@ -303,16 +303,21 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
     );
   }
 
-  return <PanelNotConnected name={device.shortName} />;
+  return <PanelNotConnected name={device.shortName} deviceKey={device.key} warning={device.warning} />;
 }
 
 /** A screen whose page is its panel (a cooler LCD, a Q-series), before that panel connects. */
-function PanelNotConnected({ name }: { name: string }) {
+function PanelNotConnected({ name, deviceKey, warning }: { name: string; deviceKey: string; warning?: string }) {
   const { t } = useTranslation();
-  useReportDeviceWaiting(true);
+  // Access denied is a settled state with its own notice, so it never holds the detecting screen.
+  useReportDeviceWaiting(warning !== 'access-denied');
   // Unmounts when the panel row claims the key, which ends the detecting hold.
   const report = useContext(DeviceDetectingContext);
   useEffect(() => () => report?.(false), [report]);
+  // Windows refused the open, so this is not an unplugged panel: the same gate block explains it.
+  if (warning === 'access-denied') {
+    return <NexusControlOff key={deviceKey} deviceKey={deviceKey} deviceName={name} accessDenied onEnable={() => {}} />;
+  }
   return (
     <div className={styles.page}>
       <ViewHeader title={name} />
@@ -351,7 +356,7 @@ function BetaRequiredNotice() {
   );
 }
 
-export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, detecting, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; detecting?: boolean; onEnable: () => void }) {
+export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -367,7 +372,12 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
       <div className={styles.controlOff}>
         <h2 className={styles.controlOffTitle}>{deviceName}</h2>
         <div className={styles.controlOffBody}>
-          {requiresBeta ? (
+          {accessDenied ? (
+            <Notice tone="warning" role="status" className={styles.controlOffNotice}>
+              <span>{t('devices.accessDenied.title')}</span>
+              <NoticeSecondary>{t('devices.accessDenied.body')}</NoticeSecondary>
+            </Notice>
+          ) : requiresBeta ? (
             <BetaRequiredNotice />
           ) : activeConflict ? (
             <>

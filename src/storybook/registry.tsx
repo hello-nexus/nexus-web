@@ -374,6 +374,7 @@ function PreviewDeviceWarningIcon() {
       <div className={styles.previewHoverCard}>
         <span>Chip (Devices list)</span>
         <DeviceWarningIcon code="usb-disconnected" chip />
+        <DeviceWarningIcon code="access-denied" chip />
         <DeviceWarningIcon code="some-future-code" chip />
       </div>
     </div>
