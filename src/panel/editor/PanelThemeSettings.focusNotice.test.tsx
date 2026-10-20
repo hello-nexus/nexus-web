@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { buildPanelTheme } from '../theme/panelTheme';
 import { PanelThemeSettings } from './PanelThemeSettings';
@@ -80,5 +80,34 @@ describe('PanelThemeSettings immersive background toggle', () => {
   it('hides the toggle for non-touch screens', () => {
     renderWith(false);
     expect(screen.queryByText('Immersive background')).toBeNull();
+  });
+});
+
+describe('PanelThemeSettings effect search', () => {
+  function renderAnimations(showEffectSearch?: boolean) {
+    const theme = { ...buildPanelTheme(null, null), backgroundMode: 'shader' as const };
+    render(
+      <PanelThemeSettings
+        theme={theme}
+        resolvedThemeMode="dark"
+        sections="background"
+        showEffectSearch={showEffectSearch}
+        {...handlers()}
+      />,
+    );
+  }
+
+  it('is hidden unless requested', () => {
+    renderAnimations();
+    expect(screen.getAllByLabelText('lighting.controls.sensorliquid').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('textbox', { name: 'lighting.effects.search' })).toBeNull();
+  });
+
+  it('filters the grid when requested', () => {
+    renderAnimations(true);
+    const input = screen.getByRole('textbox', { name: 'lighting.effects.search' });
+    fireEvent.change(input, { target: { value: 'liquid' } });
+    expect(screen.queryAllByLabelText('lighting.controls.plasma').length).toBe(0);
+    expect(screen.getAllByLabelText('lighting.controls.sensorliquid').length).toBeGreaterThan(0);
   });
 });
