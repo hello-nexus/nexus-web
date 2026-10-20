@@ -3,10 +3,15 @@ import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vites
 import { IconPicker, tabForValue } from './IconPicker';
 import { uploadDeckImage } from '../../../api/deckImages';
 import { resizeDeckImage } from '../deck/resizeDeckImage';
+import { probeVideoDecodes } from '../deck/deckMedia';
 import type { DeckIcon } from '../deck/types';
 
 vi.mock('../deck/useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? { url: 'blob:mock-preview', isVideo: false } : { url: null, isVideo: false }) }));
 vi.mock('../deck/resizeDeckImage', () => ({ resizeDeckImage: vi.fn(async () => new Blob(['png'])) }));
+vi.mock('../deck/deckMedia', async importOriginal => ({
+  ...(await importOriginal<typeof import('../deck/deckMedia')>()),
+  probeVideoDecodes: vi.fn(async () => true),
+}));
 vi.mock('../../../api/deckImages', () => ({ uploadDeckImage: vi.fn(async () => 'uploaded-id-1') }));
 
 // jsdom has no object URLs; the cropper only needs a string to render.
@@ -195,5 +200,60 @@ describe('IconPicker animated and video uploads', () => {
     fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
     await pickAndCrop(container);
     await waitFor(() => expect(resizeDeckImage).toHaveBeenCalled());
+  });
+
+  it('probes decodability for video but not for gif', async () => {
+    const { onChange, container } = renderPicker();
+    pick(container, new File(['x'], 'a.gif', { type: 'image/gif' }));
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+    expect(probeVideoDecodes).not.toHaveBeenCalled();
+    pick(container, new File(['x'], 'a.mp4', { type: 'video/mp4' }));
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
+    expect(probeVideoDecodes).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an error and uploads nothing when the video cannot be decoded', async () => {
+    vi.mocked(probeVideoDecodes).mockResolvedValueOnce(false);
+    const { onChange, container } = renderPicker();
+    pick(container, new File(['x'], 'hevc.mp4', { type: 'video/mp4' }));
+
+    expect(await screen.findByText('panel.iconPicker.videoUndecodable')).toBeInTheDocument();
+    expect(uploadDeckImage).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('shows an upload error when the animated upload returns null', async () => {
+    vi.mocked(uploadDeckImage).mockResolvedValueOnce(null);
+    const { onChange, container } = renderPicker();
+    pick(container, new File(['x'], 'a.gif', { type: 'image/gif' }));
+
+    expect(await screen.findByText('panel.iconPicker.uploadFailed')).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('shows an upload error when the animated upload throws', async () => {
+    vi.mocked(uploadDeckImage).mockRejectedValueOnce(new Error('boom'));
+    const { onChange, container } = renderPicker();
+    pick(container, new File(['x'], 'a.gif', { type: 'image/gif' }));
+
+    expect(await screen.findByText('panel.iconPicker.uploadFailed')).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it.each(['application/octet-stream', ''])('uploads a .mp4 with type "%s" via the extension', async type => {
+    const { onChange, container } = renderPicker();
+    const file = new File(['x'], 'clip.mp4', { type });
+    pick(container, file);
+
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(uploadDeckImage).toHaveBeenCalledWith(file, 'clip.mp4');
+    expect(resizeDeckImage).not.toHaveBeenCalled();
+  });
+
+  it('rejects a .mov with a generic type', () => {
+    const { container } = renderPicker();
+    pick(container, new File(['x'], 'clip.mov', { type: 'application/octet-stream' }));
+    expect(screen.getByText('panel.iconPicker.unsupportedFile')).toBeInTheDocument();
+    expect(uploadDeckImage).not.toHaveBeenCalled();
   });
 });

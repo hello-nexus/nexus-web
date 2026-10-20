@@ -11,7 +11,7 @@ import { EmojiPicker } from './EmojiPicker';
 import { useDeckImage } from '../deck/useDeckImage';
 import { resizeDeckImage } from '../deck/resizeDeckImage';
 import { DeckImageMedia } from '../deck/DeckImageMedia';
-import { classifyDeckFile, isDeckAnimatedTooLarge, DECK_ANIMATED_MAX_MB } from '../deck/deckMedia';
+import { classifyDeckFile, isDeckAnimatedTooLarge, probeVideoDecodes, DECK_ANIMATED_MAX_MB } from '../deck/deckMedia';
 import { uploadDeckImage } from '../../../api/deckImages';
 import type { DeckIcon } from '../deck/types';
 import styles from './IconPicker.module.scss';
@@ -90,12 +90,16 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
       setUploadError(t('panel.iconPicker.fileTooLarge', { limit: DECK_ANIMATED_MAX_MB }));
       return;
     }
-    void handleAnimatedUpload(file);
+    void handleAnimatedUpload(file, kind === 'video');
   };
 
-  const handleAnimatedUpload = async (file: File) => {
+  const handleAnimatedUpload = async (file: File, isVideo: boolean) => {
     setUploading(true);
     try {
+      if (isVideo && !(await probeVideoDecodes(file))) {
+        setUploadError(t('panel.iconPicker.videoUndecodable'));
+        return;
+      }
       const id = await uploadDeckImage(file, file.name);
       if (!id) { setUploadError(t('panel.iconPicker.uploadFailed')); return; }
       onChange({ kind: 'image', value: id });

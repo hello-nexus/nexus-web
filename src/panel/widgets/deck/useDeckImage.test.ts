@@ -48,6 +48,23 @@ describe('useDeckImage', () => {
     }
   });
 
+  it('shares one fetch and one object URL per id, revoked when the last user unmounts', async () => {
+    vi.mocked(fetchDeckImage).mockResolvedValue(new Blob(['i'], { type: 'image/png' }));
+    const a = renderHook(() => useDeckImage('shared'));
+    const b = renderHook(() => useDeckImage('shared'));
+    await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+
+    expect(fetchDeckImage).toHaveBeenCalledTimes(1);
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(a.result.current.url).toBe('blob:mock-url');
+    expect(b.result.current.url).toBe('blob:mock-url');
+
+    a.unmount();
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    b.unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+  });
+
   it('returns null when the fetch fails', async () => {
     vi.mocked(fetchDeckImage).mockResolvedValue(null);
 

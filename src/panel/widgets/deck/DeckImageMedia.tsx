@@ -1,3 +1,5 @@
+import { kickPlay } from '../../../lib/kickPlay';
+
 interface DeckImageMediaProps {
   url: string;
   isVideo: boolean;
@@ -7,7 +9,7 @@ interface DeckImageMediaProps {
 /** A stored deck key image: video loops muted inline, everything else (including GIF) is an img. */
 export function DeckImageMedia({ url, isVideo, className }: DeckImageMediaProps) {
   if (isVideo) {
-    return <video src={url} className={className} autoPlay loop muted playsInline aria-hidden="true" />;
+    return <video ref={kickPlay} src={url} className={className} autoPlay loop muted playsInline aria-hidden="true" />;
   }
   return <img src={url} className={className} alt="" />;
 }
