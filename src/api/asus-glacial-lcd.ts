@@ -1,6 +1,6 @@
 import { fetchService, putService } from './service';
 
-export type GlacialMode = 'static' | 'animated' | 'monitor';
+export type GlacialMode = 'static' | 'animated' | 'monitor' | 'panel';
 
 export interface GlacialSlot {
   category: string;

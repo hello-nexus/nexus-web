@@ -697,6 +697,7 @@
   "devices.asus-glacial-lcd.mode": "Modus",
   "devices.asus-glacial-lcd.modeAnimation": "Animatie",
   "devices.asus-glacial-lcd.modeMonitor": "Monitor",
+  "devices.asus-glacial-lcd.modePanel": "Nexus-paneel",
   "devices.asus-glacial-lcd.modePicture": "Afbeelding",
   "devices.asus-glacial-lcd.picture": "Afbeelding",
   "devices.asus-glacial-lcd.pictureN": "Afbeelding {n}",

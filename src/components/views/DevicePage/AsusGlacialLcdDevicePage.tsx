@@ -21,11 +21,12 @@ import { useReportDeviceWaiting } from './deviceDetecting';
 import styles from './LianLiDevicePage.module.scss';
 
 const POLL_MS = 3000;
-const MODES: readonly GlacialMode[] = ['monitor', 'animated', 'static'];
+const MODES: readonly GlacialMode[] = ['monitor', 'animated', 'static', 'panel'];
 const MODE_KEYS: Record<GlacialMode, string> = {
   monitor: 'devices.asus-glacial-lcd.modeMonitor',
   animated: 'devices.asus-glacial-lcd.modeAnimation',
   static: 'devices.asus-glacial-lcd.modePicture',
+  panel: 'devices.asus-glacial-lcd.modePanel',
 };
 const SLOT_COUNTS = [1, 2, 3] as const;
 const SENSOR_CATEGORIES = ['cpu', 'gpu', 'motherboard'] as const;
@@ -150,7 +151,7 @@ export function AsusGlacialLcdDevicePage() {
             />
           </SettingRow>
 
-          {chosen && mode !== 'monitor' && (
+          {chosen && (mode === 'static' || mode === 'animated') && (
             <SettingSelect
               label={t(mode === 'static' ? 'devices.asus-glacial-lcd.picture' : 'devices.asus-glacial-lcd.animation')}
               value={String(activeAsset ?? '')}

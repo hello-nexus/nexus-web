@@ -697,6 +697,7 @@
   "devices.asus-glacial-lcd.mode": "模式",
   "devices.asus-glacial-lcd.modeAnimation": "动画",
   "devices.asus-glacial-lcd.modeMonitor": "监控",
+  "devices.asus-glacial-lcd.modePanel": "Nexus 面板",
   "devices.asus-glacial-lcd.modePicture": "图片",
   "devices.asus-glacial-lcd.picture": "图片",
   "devices.asus-glacial-lcd.pictureN": "图片 {n}",

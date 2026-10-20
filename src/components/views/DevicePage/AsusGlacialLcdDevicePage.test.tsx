@@ -163,6 +163,25 @@ describe('AsusGlacialLcdDevicePage', () => {
     expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePicture' })).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('panel mode checks its chip and shows no asset select or sub-controls', async () => {
+    await mount({ ...base, mode: 'panel' });
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePanel' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryAllByTestId('sensor-picker')).toHaveLength(0);
+    expect(screen.queryByText('devices.asus-glacial-lcd.picture')).toBeNull();
+    expect(screen.queryByText('devices.asus-glacial-lcd.animation')).toBeNull();
+    expect(screen.queryByText('devices.asus-glacial-lcd.widgetCount')).toBeNull();
+  });
+
+  it('clicking the panel chip sends mode panel and checks it at once', async () => {
+    await mount({ ...base, modeChosen: false });
+    mockGet.mockReturnValue(new Promise(() => {}));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePanel' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ mode: 'panel' });
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePanel' })).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('the stay-on switch sends stayOnWhileAsleep', async () => {
     await mount();
     await act(async () => {
