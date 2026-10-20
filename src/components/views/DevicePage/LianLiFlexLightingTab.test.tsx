@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { mergeLeaderMac } from './lianliChainUtils';
 import type {
@@ -348,6 +348,87 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     await act(async () => { releases[1](); });
     expect(mockGet).toHaveBeenCalledTimes(reads + 1);
     expect(settled).toHaveBeenCalledTimes(1);
+  });
+
+  describe('reads that race a write', () => {
+    const tl = { ...tlUnit, mac: 'AA11', sortIndex: 0 };
+    const sl = { ...slInfUnit, mac: 'BB22', sortIndex: 1 };
+    const orderedTitles = () => screen.getAllByText(/devices.lianli-wireless.fanType(TlFlex|SlInfFlex)$/).map(e => e.textContent);
+
+    async function startMove() {
+      const reads: Array<(v: unknown) => void> = [];
+      const sets: Array<() => void> = [];
+      mockGet.mockImplementationOnce(() => Promise.resolve({ laneModes: [], chains: [tl, sl] }));
+      mockSet.mockImplementation(() => new Promise(resolve => { sets.push(() => resolve(true)); }));
+      await act(async () => { render(<LianLiWirelessLightingTab api={api} />); });
+      expect(orderedTitles()).toEqual(['devices.lianli-wireless.fanTypeTlFlex', 'devices.lianli-wireless.fanTypeSlInfFlex']);
+      mockGet.mockImplementation(() => new Promise(resolve => { reads.push(resolve); }));
+      return { reads, sets };
+    }
+
+    it('keeps a move preview when a read sent before the write lands after it', async () => {
+      const { reads, sets } = await startMove();
+      await act(async () => { window.dispatchEvent(new Event('focus')); });
+      expect(reads).toHaveLength(1);
+      await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })[0]); });
+      expect(orderedTitles()).toEqual(['devices.lianli-wireless.fanTypeSlInfFlex', 'devices.lianli-wireless.fanTypeTlFlex']);
+      await act(async () => { reads[0]({ laneModes: [], chains: [tl, sl] }); });
+      expect(orderedTitles()).toEqual(['devices.lianli-wireless.fanTypeSlInfFlex', 'devices.lianli-wireless.fanTypeTlFlex']);
+      expect(sets).toHaveLength(2);
+    });
+
+    it('drops a read answered while a write is still in flight, even one sent after it', async () => {
+      const { reads, sets } = await startMove();
+      await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })[0]); });
+      await act(async () => { window.dispatchEvent(new Event('focus')); });
+      expect(reads).toHaveLength(1);
+      await act(async () => { reads[0]({ laneModes: [], chains: [tl, sl] }); });
+      expect(orderedTitles()).toEqual(['devices.lianli-wireless.fanTypeSlInfFlex', 'devices.lianli-wireless.fanTypeTlFlex']);
+      expect(sets).toHaveLength(2);
+    });
+
+    it('counts a reset as a write: no read until the move settles', async () => {
+      const { reads, sets } = await startMove();
+      await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })[0]); });
+      mockReset.mockResolvedValue(true);
+      fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-flex.resetLightingButton' })[0]);
+      await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'devices.lianli-flex.resetLighting' })); });
+      expect(reads).toHaveLength(0);
+      await act(async () => { sets.forEach(s => s()); });
+      expect(reads).toHaveLength(1);
+    });
+
+    describe('a failure', () => {
+      const unhandled = vi.fn();
+      beforeEach(() => { unhandled.mockClear(); process.on('unhandledRejection', unhandled); });
+      afterEach(() => { process.off('unhandledRejection', unhandled); });
+      const swap = () => act(async () => {
+        fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' }));
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      it('in the read after a write still reports settled, with nothing unhandled', async () => {
+        const settled = vi.fn();
+        mockGet.mockResolvedValueOnce({ laneModes: [], chains: [tl] });
+        mockSet.mockResolvedValue(true);
+        await act(async () => { render(<LianLiWirelessLightingTab api={api} onSettled={settled} />); });
+        mockGet.mockRejectedValue(new Error('bad json'));
+        await swap();
+        expect(settled).toHaveBeenCalledTimes(1);
+        expect(unhandled).not.toHaveBeenCalled();
+      });
+
+      it('in the write itself still reads back and reports settled, with nothing unhandled', async () => {
+        const settled = vi.fn();
+        mockGet.mockResolvedValue({ laneModes: [], chains: [tl] });
+        mockSet.mockImplementation(() => { throw new Error('offline'); });
+        await act(async () => { render(<LianLiWirelessLightingTab api={api} onSettled={settled} />); });
+        await swap();
+        expect(mockGet).toHaveBeenCalledTimes(2);
+        expect(settled).toHaveBeenCalledTimes(1);
+        expect(unhandled).not.toHaveBeenCalled();
+      });
+    });
   });
 
   it('re-reads the units when a write made outside the tab, such as the sync header, signals it', async () => {

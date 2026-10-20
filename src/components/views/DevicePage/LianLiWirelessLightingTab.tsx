@@ -80,12 +80,35 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
 
   // Send order of reads: a response is applied only if no later-sent one was.
   const sentRef = useRef(0);
+  // Writes still awaiting the service; a read answered meanwhile predates their previews, so it is dropped.
+  const inFlightRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const seq = ++sentRef.current;
-    const d = await api.get();
-    if (aliveRef.current && d && seq === sentRef.current) setData(d);
+    let d: LianLiWirelessLighting | null = null;
+    try {
+      d = await api.get();
+    } catch {
+      // A failed read leaves the screen as it is.
+    }
+    if (aliveRef.current && d && seq === sentRef.current && inFlightRef.current === 0) setData(d);
   }, [api]);
+
+  const beginWrite = useCallback(() => {
+    inFlightRef.current += 1;
+  }, []);
+
+  // One read after the last write settles, so a half-applied batch (a move sends one write per unit) never replaces a preview.
+  // The service may change more than the patch (a merge or Lighting-page switch moves other units), so read it back.
+  const endWrite = useCallback(async () => {
+    inFlightRef.current -= 1;
+    if (inFlightRef.current > 0) return;
+    try {
+      await refresh();
+    } finally {
+      onSettled?.();
+    }
+  }, [refresh, onSettled]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -113,27 +136,29 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
     });
   }, []);
 
-  const inFlightRef = useRef(0);
-
   const commit = useCallback(async (mac: string, patch: LianLiWirelessChainPatch) => {
     preview(mac, patch);
-    inFlightRef.current += 1;
-    // effectMode is derived by the service; it only feeds the preview.
-    await api.set(mac, { ...patch, effectMode: undefined }).catch(() => false);
-    inFlightRef.current -= 1;
-    // One read after the last write settles, so a half-applied batch (a move sends one write per unit) never replaces a preview.
-    // The service may change more than the patch (a merge or Lighting-page switch moves other units), so read it back.
-    if (inFlightRef.current > 0) return;
-    await refresh();
-    onSettled?.();
-  }, [api, preview, refresh, onSettled]);
+    beginWrite();
+    try {
+      // effectMode is derived by the service; it only feeds the preview.
+      await api.set(mac, { ...patch, effectMode: undefined });
+    } catch {
+      // The read after the write shows what the service kept.
+    } finally {
+      await endWrite();
+    }
+  }, [api, preview, beginWrite, endWrite]);
 
   const reset = useCallback(async (mac: string) => {
-    const ok = await (api.reset?.(mac) ?? Promise.resolve(false)).catch(() => false);
-    await refresh();
-    onSettled?.();
-    return ok;
-  }, [api, refresh, onSettled]);
+    beginWrite();
+    try {
+      return (await api.reset?.(mac)) ?? false;
+    } catch {
+      return false;
+    } finally {
+      await endWrite();
+    }
+  }, [api, beginWrite, endWrite]);
 
   const move = useCallback((mac: string, delta: -1 | 1) => {
     if (!data) return;

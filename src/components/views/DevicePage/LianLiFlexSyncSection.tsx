@@ -10,6 +10,7 @@ import {
 } from '../../../api/lianli-flex';
 import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
 import { LianLiChainEffectControls, effectLabel, type LianLiEffectValue } from './LianLiChainEffectControls';
+import { numberDuplicateTitles } from './lianliChainUtils';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
 
@@ -37,10 +38,14 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
   // Send order of reads: a response is applied only if no later-sent one was.
   const sentRef = useRef(0);
 
-  const refresh = useCallback(async () => {
+  // A forced read skips the post-edit grace, but only for edits made before it was sent.
+  const refresh = useCallback(async (force = false) => {
     const seq = ++sentRef.current;
+    const sentAt = performance.now();
     const d = await getLianLiFlexSync().catch(() => null);
-    if (aliveRef.current && d && seq === sentRef.current && performance.now() - lastEditRef.current > EDIT_GRACE_MS) setData(d);
+    const editAt = lastEditRef.current;
+    const graceOver = performance.now() - editAt > EDIT_GRACE_MS || (force && editAt <= sentAt);
+    if (aliveRef.current && d && seq === sentRef.current && graceOver) setData(d);
   }, []);
 
   useEffect(() => {
@@ -73,16 +78,12 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
     setData(prev => prev && { ...prev, ...look });
     const ok = await setLianLiFlexSync(patch).catch(() => false);
     // The write is settled either way, so the next read is canonical.
-    lastEditRef.current = Number.NEGATIVE_INFINITY;
-    await refresh();
+    await refresh(true);
     if (ok) onWritten?.();
   }, [refresh, onWritten]);
 
   // A read the caller asks for is wanted now, so it skips the post-edit grace.
-  const reload = useCallback(async () => {
-    lastEditRef.current = Number.NEGATIVE_INFINITY;
-    await refresh();
-  }, [refresh]);
+  const reload = useCallback(() => refresh(true), [refresh]);
 
   return { data, preview, commit, refresh: reload, reorder };
 }
@@ -112,9 +113,10 @@ export function LianLiFlexSyncSection({ sync, chains, names }: { sync: LianLiFle
     mode, speed: data.speed, direction: data.direction, brightness: data.brightness, colors: data.colors,
   };
   // The names come from the Lighting tab, so both numbering orders agree.
-  const memberName = (m: LianLiFlexSync['members'][number]) => names.get(m.mac) ?? t(
+  const fallbackNames = numberDuplicateTitles(data.members.map(m => t(
     m.family === 'slInfFlex' ? 'devices.lianli-wireless.fanTypeSlInfFlex' : 'devices.lianli-wireless.fanTypeTlFlex',
-  );
+  )));
+  const memberName = (m: LianLiFlexSync['members'][number], i: number) => names.get(m.mac) ?? fallbackNames[i];
   const directionOptions = [
     { value: '0', label: t('devices.lianli.directionLtr') },
     { value: '1', label: t('devices.lianli.directionRtl') },
@@ -143,10 +145,10 @@ export function LianLiFlexSyncSection({ sync, chains, names }: { sync: LianLiFle
         onPreview={patch => preview(patch)}
         onCommit={patch => { void commit(patch); }}
       />
-      {data.members.map(member => (
+      {data.members.map((member, i) => (
         <SettingSelect
           key={member.mac}
-          label={t('devices.lianli-flex.syncMemberDirection', { fan: memberName(member) })}
+          label={t('devices.lianli-flex.syncMemberDirection', { fan: memberName(member, i) })}
           value={String(member.sliceDirection)}
           options={directionOptions}
           disabled={!data.enabled}

@@ -21,14 +21,22 @@ const mockScreens = vi.fn();
 const mockWirelessState = vi.fn();
 const mockWirelessIdentify = vi.fn();
 const mockSync = vi.fn();
+const mockSetSync = vi.fn();
+const mockLightingGet = vi.fn();
+const mockLightingSet = vi.fn();
 
 vi.mock('../../../api/lianli-flex', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../api/lianli-flex')>()),
   getLianLiFlexState: (...a: any[]) => mockState(...a),
   identifyLianLiFlexFan: (...a: any[]) => mockIdentify(...a),
   getLianLiFlexSync: (...a: any[]) => mockSync(...a),
+  setLianLiFlexSync: (...a: any[]) => mockSetSync(...a),
   restartLianLiFlexLcd: (...a: any[]) => mockRestart(...a),
-  lianLiFlexLightingApi: { get: () => Promise.resolve(null), set: () => Promise.resolve(true), reset: () => Promise.resolve(true) },
+  lianLiFlexLightingApi: {
+    get: (...a: any[]) => mockLightingGet(...a),
+    set: (...a: any[]) => mockLightingSet(...a),
+    reset: () => Promise.resolve(true),
+  },
   lianLiFlexScreenApi: {
     getScreens: (...a: any[]) => mockScreens(...a),
     setSettings: () => Promise.resolve(true),
@@ -73,6 +81,9 @@ beforeEach(() => {
   mockState.mockResolvedValue(connected());
   mockIdentify.mockResolvedValue(true);
   mockSync.mockResolvedValue(null);
+  mockSetSync.mockResolvedValue(true);
+  mockLightingGet.mockResolvedValue(null);
+  mockLightingSet.mockResolvedValue(true);
   mockRestart.mockResolvedValue(true);
   mockScreens.mockResolvedValue([
     { serial: 'SCR1', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'TL Flex' },
@@ -231,6 +242,55 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
     await act(async () => { fireEvent.click(tab('devices.lianli-wireless.tab.screen')); });
     const tiles = within(screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' })).getAllByRole('button');
     expect(tiles.map(b => b.textContent)).toEqual(['devices.lianli-wireless.fanTypeTlFlex', 'devices.lianli-wireless.fanTypeSlInfFlex']);
+  });
+});
+
+describe('moving a unit on the Lighting tab', () => {
+  const modes = [{ key: 'rainbow', hasSpeed: true, hasDirection: true, colorsMin: 0, colorsMax: 0, mergeable: true }];
+  const chain = (mac: string, fanType: number, sortIndex: number) => ({
+    mac, kind: 'fans', devType: 0, model: '', fanType, fanCount: 1, lanes: 0, ledsPerLane: 0, modes, supportsPerLane: false,
+    mode: 'rainbow', speed: 3, direction: 0, brightness: 4, colors: [], laneSettings: [], sortIndex,
+  });
+  const fan = (mac: string, fanType: number, family: string) => ({ ...unit, mac, fanType, family, screenSerial: '' });
+  const syncData = {
+    enabled: true, mode: 'rainbow', speed: 3, direction: 0, brightness: 4, colors: [], modes,
+    members: [
+      { mac: 'AA11', family: 'tlFlex', label: 'x', sortIndex: 0, sliceDirection: 0 },
+      { mac: 'BB22', family: 'slInfFlex', label: 'x', sortIndex: 1, sliceDirection: 0 },
+    ],
+  };
+  const dirLabels = () => screen.getAllByLabelText(/devices.lianli-flex.syncMemberDirection/).map(e => e.getAttribute('aria-label'));
+  const TL = 'devices.lianli-flex.syncMemberDirection:{"fan":"devices.lianli-wireless.fanTypeTlFlex"}';
+  const SL = 'devices.lianli-flex.syncMemberDirection:{"fan":"devices.lianli-wireless.fanTypeSlInfFlex"}';
+
+  async function openLighting() {
+    mockState.mockResolvedValue(connected([fan('AA11', 51, 'tlFlex'), fan('BB22', 43, 'slInfFlex')]));
+    mockSync.mockResolvedValue(syncData);
+    mockLightingGet.mockResolvedValue({ laneModes: [], chains: [chain('AA11', 51, 0), chain('BB22', 43, 1)] });
+    await act(async () => { render(<LianLiWirelessDevicePage flex />); });
+    await act(async () => { fireEvent.click(screen.getByRole('tab', { name: /lighting.title/ })); });
+  }
+  const moveFirstRight = async () => {
+    await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })[0]); });
+  };
+
+  it('sends the new order when a direction changes before the second write of the move resolves', async () => {
+    const releases: Array<() => void> = [];
+    await openLighting();
+    mockLightingSet.mockImplementation(() => new Promise(resolve => { releases.push(() => resolve(true)); }));
+    await moveFirstRight();
+    expect(releases).toHaveLength(2);
+    expect(dirLabels()).toEqual([SL, TL]);
+    fireEvent.click(screen.getByLabelText(TL));
+    await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.directionRtl' })); });
+    expect(mockSetSync).toHaveBeenCalledWith({ members: [{ mac: 'BB22', sliceDirection: 0 }, { mac: 'AA11', sliceDirection: 1 }] });
+  });
+
+  it('rolls the sync header back when a sortIndex write fails', async () => {
+    await openLighting();
+    mockLightingSet.mockResolvedValue(false);
+    await moveFirstRight();
+    expect(dirLabels()).toEqual([TL, SL]);
   });
 });
 

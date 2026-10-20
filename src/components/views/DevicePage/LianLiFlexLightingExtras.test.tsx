@@ -110,23 +110,51 @@ describe('LianLiFlexSyncSection', () => {
     });
   });
 
-  it('rolls the local order back to the service order when asked to re-read', async () => {
-    function Rollback() {
+  describe('reads of the group', () => {
+    function Probe() {
       const s = useLianLiFlexSync(true);
       return (
         <>
-          <button type="button" onClick={() => s.reorder(['BB22', 'AA11'])}>reorder</button>
           <button type="button" onClick={() => { void s.refresh(); }}>reload</button>
+          <button type="button" onClick={() => s.reorder(['BB22', 'AA11'])}>reorder</button>
           <p data-testid="order">{s.data?.members.map(m => m.mac).join(',')}</p>
         </>
       );
     }
-    await act(async () => { render(<Rollback />); });
-    expect(screen.getByTestId('order')).toHaveTextContent('AA11,BB22');
-    fireEvent.click(screen.getByText('reorder'));
-    expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
-    await act(async () => { fireEvent.click(screen.getByText('reload')); });
-    expect(screen.getByTestId('order')).toHaveTextContent('AA11,BB22');
+    const reversed = () => sync({ members: [...sync().members].reverse() });
+
+    it('drops an older response that lands after a newer read', async () => {
+      const pending: Array<(v: LianLiFlexSync) => void> = [];
+      mockGetSync.mockResolvedValueOnce(sync());
+      await act(async () => { render(<Probe />); });
+      mockGetSync.mockImplementation(() => new Promise(resolve => { pending.push(resolve); }));
+      await act(async () => { fireEvent.click(screen.getByText('reload')); });
+      await act(async () => { fireEvent.click(screen.getByText('reload')); });
+      await act(async () => { pending[1](reversed()); });
+      await act(async () => { pending[0](sync()); });
+      expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
+    });
+
+    it('keeps a reorder made after a forced read was sent', async () => {
+      const pending: Array<(v: LianLiFlexSync) => void> = [];
+      mockGetSync.mockResolvedValueOnce(sync());
+      await act(async () => { render(<Probe />); });
+      mockGetSync.mockImplementation(() => new Promise(resolve => { pending.push(resolve); }));
+      await act(async () => { fireEvent.click(screen.getByText('reload')); });
+      fireEvent.click(screen.getByText('reorder'));
+      expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
+      await act(async () => { pending[0](sync()); });
+      expect(screen.getByTestId('order')).toHaveTextContent('BB22,AA11');
+    });
+  });
+
+  it('keeps the duplicate numbering for members missing from the names', async () => {
+    mockGetSync.mockResolvedValue(sync({ members: [
+      { mac: 'AA11', family: 'tlFlex', label: 'x', sortIndex: 0, sliceDirection: 0 },
+      { mac: 'CC33', family: 'tlFlex', label: 'x', sortIndex: 1, sliceDirection: 0 },
+    ] }));
+    await renderSync();
+    expect(screen.getByLabelText('devices.lianli-flex.syncMemberDirection:{"fan":"devices.lianli-wireless.fanTypeTlFlex 2"}')).toBeInTheDocument();
   });
 
   it('tells the caller about an accepted write and reads the group back', async () => {
