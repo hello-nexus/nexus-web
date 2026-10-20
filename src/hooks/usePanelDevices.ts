@@ -84,7 +84,8 @@ const STREAMED_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
 // Simulated presets whose real counterpart is not an ordinary widget panel.
 // Anything absent falls back to WIDGET_PANEL_CAPABILITIES.
 const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCapabilities>> = {
-  y70: Y70_CAPABILITIES,
+  // No hardware behind it: brightness, rotation and kiosk controls would write to a real Y70 beside it.
+  y70: { ...Y70_CAPABILITIES, displayControls: false, launchClose: false },
   kraken: STREAMED_PANEL_CAPABILITIES,
   'lcd-round': STREAMED_PANEL_CAPABILITIES,
   'lcd-wide': STREAMED_PANEL_CAPABILITIES,
@@ -322,7 +323,6 @@ export function buildPanelDevices({
   }
 
   for (const panel of simulatedDefinitions) {
-    if (connectedWidgetPanels.some(d => d.id === panel.id)) continue;
     const capacity = getSimulatedPanelGridCapacity(panel);
     const physical = getSimulatedPanelPhysicalSize(panel);
     devices.push({
