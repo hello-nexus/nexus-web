@@ -855,7 +855,7 @@
   "devices.lianli-flex.syncSection": "Synchronizace",
   "devices.lianli-flex.upDownSwap": "Prohodit horní a dolní",
   "devices.lianli-flex.upDownSwapHint": "Prohodí obě poloviny každého ventilátoru",
-  "devices.lianli-flex.usbBoundHint": "Připojeno přes USB, spárováno s rádiem tohoto počítače. Odpárováním předáte řízení USB.",
+  "devices.lianli-flex.usbBoundHint": "Spárováno s rádiem tohoto počítače. Odpárováním předáte řízení USB.",
   "devices.lianli-flex.zoneCenter": "Lopatky",
   "devices.lianli-flex.zoneDown": "Dolní",
   "devices.lianli-flex.zoneInner": "Vnitřní",

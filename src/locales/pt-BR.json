@@ -848,7 +848,7 @@
   "devices.lianli-flex.syncSection": "Sincronização",
   "devices.lianli-flex.upDownSwap": "Trocar cima e baixo",
   "devices.lianli-flex.upDownSwapHint": "Troca as duas metades de cada ventilador",
-  "devices.lianli-flex.usbBoundHint": "Conectado por USB, pareado com o rádio deste PC. Desparear passa o controle para o USB.",
+  "devices.lianli-flex.usbBoundHint": "Pareado com o rádio deste PC. Desparear passa o controle para o USB.",
   "devices.lianli-flex.zoneCenter": "Pás",
   "devices.lianli-flex.zoneDown": "Baixo",
   "devices.lianli-flex.zoneInner": "Interior",

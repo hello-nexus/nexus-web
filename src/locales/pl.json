@@ -855,7 +855,7 @@
   "devices.lianli-flex.syncSection": "Synchronizacja",
   "devices.lianli-flex.upDownSwap": "Zamień górę i dół",
   "devices.lianli-flex.upDownSwapHint": "Zamienia miejscami obie połówki każdego wentylatora",
-  "devices.lianli-flex.usbBoundHint": "Połączony przez USB, sparowany z radiem tego komputera. Rozparuj, aby przekazać sterowanie USB.",
+  "devices.lianli-flex.usbBoundHint": "Sparowany z radiem tego komputera. Rozparuj, aby przekazać sterowanie USB.",
   "devices.lianli-flex.zoneCenter": "Łopatki",
   "devices.lianli-flex.zoneDown": "Dół",
   "devices.lianli-flex.zoneInner": "Wewnętrzna",

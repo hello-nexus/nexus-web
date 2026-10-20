@@ -162,6 +162,18 @@ describe('LianLiWirelessFansTab', () => {
       expect(hint.id).not.toBe('');
     });
 
+    it('disables Unbind of a wired-owned unit still bound to this radio while locked, like any other bound fan', async () => {
+      const wiredBound = { ...boundFan, wiredOwned: true };
+      await renderTab({ ...on, fans: [wiredBound] });
+      const hint = screen.getByText('devices.lianli-wireless.lockBoundDevicesHint');
+      const btn = screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' });
+      expect(btn).toBeDisabled();
+      expect(btn).toHaveAttribute('aria-describedby', hint.id);
+      cleanup();
+      await renderTab({ ...off, fans: [wiredBound] });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).not.toBeDisabled();
+    });
+
     it('enables bind and unbind with no description link while unlocked', async () => {
       const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
       await renderTab({ ...off, fans: [boundFan, unbound] });

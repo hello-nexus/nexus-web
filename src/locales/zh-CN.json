@@ -848,7 +848,7 @@
   "devices.lianli-flex.syncSection": "同步",
   "devices.lianli-flex.upDownSwap": "上下互换",
   "devices.lianli-flex.upDownSwapHint": "互换每个风扇的两个半区",
-  "devices.lianli-flex.usbBoundHint": "已通过 USB 连接，并与这台电脑的无线模块配对。取消配对即可将控制权交给 USB。",
+  "devices.lianli-flex.usbBoundHint": "已与这台电脑的无线模块配对。取消配对即可将控制权交给 USB。",
   "devices.lianli-flex.zoneCenter": "扇叶",
   "devices.lianli-flex.zoneDown": "下",
   "devices.lianli-flex.zoneInner": "内圈",

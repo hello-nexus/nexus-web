@@ -848,7 +848,7 @@
   "devices.lianli-flex.syncSection": "同期",
   "devices.lianli-flex.upDownSwap": "上下を入れ替え",
   "devices.lianli-flex.upDownSwapHint": "各ファンの 2 つの半分を入れ替えます",
-  "devices.lianli-flex.usbBoundHint": "USB で接続中で、この PC の無線に接続されています。ペアリングを解除すると USB に制御が移ります。",
+  "devices.lianli-flex.usbBoundHint": "この PC の無線に接続されています。ペアリングを解除すると USB に制御が移ります。",
   "devices.lianli-flex.zoneCenter": "ブレード",
   "devices.lianli-flex.zoneDown": "下",
   "devices.lianli-flex.zoneInner": "内側",

@@ -848,7 +848,7 @@
   "devices.lianli-flex.syncSection": "Sincronizzazione",
   "devices.lianli-flex.upDownSwap": "Scambia alto e basso",
   "devices.lianli-flex.upDownSwapHint": "Scambia le due metà di ogni ventola",
-  "devices.lianli-flex.usbBoundHint": "Collegato via USB, associato alla radio di questo PC. Dissocia per cedere il controllo a USB.",
+  "devices.lianli-flex.usbBoundHint": "Associato alla radio di questo PC. Dissocia per cedere il controllo a USB.",
   "devices.lianli-flex.zoneCenter": "Pale",
   "devices.lianli-flex.zoneDown": "Basso",
   "devices.lianli-flex.zoneInner": "Interno",

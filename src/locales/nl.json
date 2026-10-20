@@ -848,7 +848,7 @@
   "devices.lianli-flex.syncSection": "Synchronisatie",
   "devices.lianli-flex.upDownSwap": "Boven en onder omwisselen",
   "devices.lianli-flex.upDownSwapHint": "Wisselt de twee helften van elke ventilator om",
-  "devices.lianli-flex.usbBoundHint": "Verbonden via USB, gekoppeld aan de radio van deze pc. Ontkoppel om de besturing aan USB over te dragen.",
+  "devices.lianli-flex.usbBoundHint": "Gekoppeld aan de radio van deze pc. Ontkoppel om de besturing aan USB over te dragen.",
   "devices.lianli-flex.zoneCenter": "Bladen",
   "devices.lianli-flex.zoneDown": "Onder",
   "devices.lianli-flex.zoneInner": "Binnen",
