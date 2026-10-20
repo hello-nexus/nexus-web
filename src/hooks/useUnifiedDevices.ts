@@ -167,6 +167,7 @@ const CURATED_ICONS: Record<string, string> = {
   tryx: '/assets/devices/tryx.svg',
   'nzxt-kraken': '/assets/devices/nzxt.svg',
   'asus-ryujin-lcd': '/assets/devices/asus.svg',
+  'asus-slc4-lcd': '/assets/devices/asus.svg',
   'asiahorse-umbra': '/assets/devices/asiahorse.svg',
 };
 

@@ -96,6 +96,7 @@ const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCa
 export const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'nzxt-kraken': '/assets/devices/nzxt.svg',
   'asus-ryujin-lcd': '/assets/devices/asus.svg',
+  'asus-slc4-lcd': '/assets/devices/asus.svg',
   'lianli-galahad2-lcd': '/assets/devices/lianli.svg',
   'lianli-hydroshift-lcd': '/assets/devices/lianli.svg',
   'lianli-tl-lcd': '/assets/devices/lianli.svg',
