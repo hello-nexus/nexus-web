@@ -126,11 +126,10 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
       holdTimersRef.current.delete(timer);
       const expired = state === 'expired';
       state = 'done';
-      // An expired write already left the count; it only asks for one more read.
-      if (!expired) {
-        inFlightRef.current -= 1;
-        if (inFlightRef.current > 0) return;
-      }
+      // An expired write already left the count, so it only asks for one more read.
+      if (!expired) inFlightRef.current -= 1;
+      // While another write is in flight, that batch's own settle covers the read and the report.
+      if (inFlightRef.current > 0) return;
       await settleRead();
     };
   }, [settleRead]);

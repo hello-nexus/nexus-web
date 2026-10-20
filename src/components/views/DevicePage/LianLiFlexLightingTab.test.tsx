@@ -449,16 +449,34 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
         }
       });
 
-      it('sets no expiry timer going once the tab is gone', async () => {
+      it('clears the pending expiry timer when the tab unmounts', async () => {
         const { settled } = await setup();
         try {
           await act(async () => { fireEvent.click(swapSwitch()); });
           const reads = mockGet.mock.calls.length;
-          document.body.innerHTML = '';
           cleanup();
           await act(async () => { await vi.advanceTimersByTimeAsync(HOLD); });
           expect(mockGet.mock.calls.length).toBe(reads);
           expect(settled).not.toHaveBeenCalled();
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
+      it('does not report settled when an expired write resolves while a later write is still in flight', async () => {
+        const { settled, writes } = await setup();
+        try {
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          await act(async () => { await vi.advanceTimersByTimeAsync(HOLD); });
+          expect(settled).toHaveBeenCalledTimes(1);
+          await act(async () => { fireEvent.click(swapSwitch()); });
+          const reads = mockGet.mock.calls.length;
+          await act(async () => { writes[0](); });
+          expect(settled).toHaveBeenCalledTimes(1);
+          expect(mockGet.mock.calls.length).toBe(reads);
+          await act(async () => { writes[1](); });
+          expect(settled).toHaveBeenCalledTimes(2);
+          expect(mockGet.mock.calls.length).toBe(reads + 1);
         } finally {
           vi.useRealTimers();
         }
