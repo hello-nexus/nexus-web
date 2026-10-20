@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "Bu her zamankinden uzun sürüyor. Sisteminiz kapalı, uykuda veya başka bir ağda olabilir.",
   "panel.iconPicker.auto": "Otomatik",
   "panel.iconPicker.autoHint": "Eyleme göre otomatik simge",
+  "panel.iconPicker.busy": "Hizmet meşgul. Birazdan tekrar onaylayın.",
   "panel.iconPicker.custom": "Özel",
   "panel.iconPicker.customHint": "Bu tuşun simgesi olarak kullanılacak bir görsel veya video yükleyin",
   "panel.iconPicker.emoji": "Emoji",

@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "Das dauert länger als gewöhnlich. Dein System ist vielleicht aus, im Ruhezustand oder in einem anderen Netzwerk.",
   "panel.iconPicker.auto": "Auto",
   "panel.iconPicker.autoHint": "Automatisches Symbol je nach Aktion",
+  "panel.iconPicker.busy": "Der Dienst ist ausgelastet. Bestätigen Sie in einem Moment erneut.",
   "panel.iconPicker.custom": "Eigenes",
   "panel.iconPicker.customHint": "Lade ein Bild oder Video hoch, das als Symbol für diese Taste verwendet wird",
   "panel.iconPicker.emoji": "Emoji",

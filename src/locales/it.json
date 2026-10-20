@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "Sta richiedendo più tempo del solito. Il tuo sistema potrebbe essere spento, in sospensione o su un'altra rete.",
   "panel.iconPicker.auto": "Auto",
   "panel.iconPicker.autoHint": "Icona automatica in base all'azione",
+  "panel.iconPicker.busy": "Il servizio è occupato. Conferma di nuovo tra un momento.",
   "panel.iconPicker.custom": "Personalizzata",
   "panel.iconPicker.customHint": "Carica un'immagine o un video da usare come icona per questo tasto",
   "panel.iconPicker.emoji": "Emoji",

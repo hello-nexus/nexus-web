@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "Cela prend plus de temps que d'habitude. Votre système est peut-être éteint, en veille ou sur un autre réseau.",
   "panel.iconPicker.auto": "Auto",
   "panel.iconPicker.autoHint": "Icône automatique selon l'action",
+  "panel.iconPicker.busy": "Le service est occupé. Confirmez à nouveau dans un instant.",
   "panel.iconPicker.custom": "Personnalisé",
   "panel.iconPicker.customHint": "Importez une image ou une vidéo à utiliser comme icône pour cette touche",
   "panel.iconPicker.emoji": "Emoji",

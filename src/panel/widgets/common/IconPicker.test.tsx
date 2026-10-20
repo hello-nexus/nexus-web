@@ -24,6 +24,8 @@ vi.mock('../../../api/mediaLibrary', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../api/mediaLibrary')>()),
   cancelMediaStage: vi.fn(async () => {}),
 }));
+const toastPush = vi.hoisted(() => vi.fn());
+vi.mock('../../../components/common/Toast/Toast', () => ({ useToastSafe: () => ({ push: toastPush }) }));
 vi.mock('../../../components/common/KlipyPicker/KlipyPicker', () => ({
   KlipyPicker: ({ open, importError, onPick }: { open: boolean; importError?: string | null; onPick: (g: unknown) => void }) =>
     open ? (
@@ -370,5 +372,37 @@ describe('IconPicker Klipy flow', () => {
     expect(await screen.findByText('panel.iconPicker.uploadFailed')).toBeInTheDocument();
     expect(cancelMediaStage).toHaveBeenCalledWith('stage-1');
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps the cropper open and the stage on a busy reply so the user can confirm again', async () => {
+    vi.mocked(commitDeckKlipyStage).mockResolvedValueOnce({ failure: 'busy' });
+    const { onChange } = openKlipy();
+    fireEvent.click(screen.getByRole('button', { name: 'pick-gif' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
+
+    await waitFor(() => expect(toastPush).toHaveBeenCalledWith({ title: 'panel.iconPicker.busy' }));
+    expect(cancelMediaStage).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({ kind: 'image', value: 'klipy-id-1' }));
+    expect(commitDeckKlipyStage).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels the open stage when the picker unmounts', async () => {
+    const { unmount } = openKlipy();
+    fireEvent.click(screen.getByRole('button', { name: 'pick-gif' }));
+    await screen.findByRole('button', { name: 'cropper.confirm' });
+    unmount();
+    expect(cancelMediaStage).toHaveBeenCalledWith('stage-1');
+  });
+
+  it('cancels a stage that lands after the picker unmounted', async () => {
+    let resolveStage!: (v: { stageId: string; mediaKind: 'gif' }) => void;
+    vi.mocked(stageKlipy).mockReturnValueOnce(new Promise(r => { resolveStage = r; }));
+    const { unmount } = openKlipy();
+    fireEvent.click(screen.getByRole('button', { name: 'pick-gif' }));
+    unmount();
+    expect(cancelMediaStage).not.toHaveBeenCalled();
+    resolveStage({ stageId: 'late-stage', mediaKind: 'gif' });
+    await waitFor(() => expect(cancelMediaStage).toHaveBeenCalledWith('late-stage'));
   });
 });

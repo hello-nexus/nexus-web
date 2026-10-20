@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "This is taking longer than usual. Your system may be off, asleep, or on another network.",
   "panel.iconPicker.auto": "Auto",
   "panel.iconPicker.autoHint": "Automatic icon based on the action",
+  "panel.iconPicker.busy": "The service is busy. Confirm again in a moment.",
   "panel.iconPicker.custom": "Custom",
   "panel.iconPicker.customHint": "Upload an image or video to use as this key's icon",
   "panel.iconPicker.emoji": "Emoji",

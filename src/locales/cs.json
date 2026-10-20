@@ -3993,6 +3993,7 @@
   "panel.gate.slow": "Trvá to déle než obvykle. Vaše PC může být vypnuté, uspané nebo v jiné síti.",
   "panel.iconPicker.auto": "Automaticky",
   "panel.iconPicker.autoHint": "Automatická ikona podle akce",
+  "panel.iconPicker.busy": "Služba je zaneprázdněná. Za chvíli potvrďte znovu.",
   "panel.iconPicker.custom": "Vlastní",
   "panel.iconPicker.customHint": "Nahrajte obrázek nebo video, které se použije jako ikona této klávesy",
   "panel.iconPicker.emoji": "Emoji",

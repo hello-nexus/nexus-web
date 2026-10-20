@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useToastSafe } from '../../../components/common/Toast/Toast';
 import { Sparkles, Shapes, Smile, ImagePlus } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
@@ -51,6 +52,7 @@ export function tabForValue(value?: DeckIcon): Tab {
 
 export function IconPicker({ value, onChange, surface, desktopEditor }: IconPickerProps) {
   const { t } = useTranslation();
+  const { push } = useToastSafe();
   const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -58,12 +60,21 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
   // Object URL of the picked file while the cropper is open.
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   useEffect(() => (cropSrc ? () => URL.revokeObjectURL(cropSrc) : undefined), [cropSrc]);
-  // GIF/MP4/WebM crop state: a local pick carries its File; a Klipy pick carries its stage id.
   const [animCrop, setAnimCrop] = useState<{ src: string; kind: 'image' | 'video'; fallbackSrc?: string; file?: File; stageId?: string } | null>(null);
   useEffect(() => (animCrop?.file ? () => URL.revokeObjectURL(animCrop.src) : undefined), [animCrop]);
   const [klipyOpen, setKlipyOpen] = useState(false);
   const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const [klipyError, setKlipyError] = useState<string | null>(null);
+  const aliveRef = useRef(true);
+  const stageRef = useRef<string | null>(null);
+  stageRef.current = animCrop?.stageId ?? null;
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      if (stageRef.current) cancelMediaStage(stageRef.current).catch(() => {});
+    };
+  }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const showSearch = canEditFreeText(surface, desktopEditor);
   const { url: previewUrl, isVideo: previewIsVideo } = useDeckImage(value?.kind === 'image' ? value.value : undefined);
@@ -103,7 +114,6 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
     void handleAnimatedPick(file, kind === 'video');
   };
 
-  // Probes decodability for video, then opens the cropper on the original file.
   const handleAnimatedPick = async (file: File, isVideo: boolean) => {
     setUploading(true);
     try {
@@ -131,6 +141,10 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
     }
     if ('id' in result) {
       onChange({ kind: 'image', value: result.id });
+    } else if (result.failure === 'busy') {
+      push({ title: t('panel.iconPicker.busy') });
+      setUploading(false);
+      return;
     } else {
       if (stageId && result.failure !== 'expired') cancelMediaStage(stageId).catch(() => {});
       setUploadError(t(
@@ -151,6 +165,10 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
     setKlipyBusy(gif.slug);
     setKlipyError(null);
     const staged = await stageKlipy(gif.slug);
+    if (!aliveRef.current) {
+      if (staged?.stageId) cancelMediaStage(staged.stageId).catch(() => {});
+      return;
+    }
     setKlipyBusy(null);
     if (!staged) { setKlipyError(t('lighting.controls.importNetworkError')); return; }
     if (staged.error || !staged.stageId) { setKlipyError(t('lighting.controls.klipyPickFailed')); return; }

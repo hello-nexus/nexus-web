@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "Dit duurt langer dan gebruikelijk. Je systeem staat mogelijk uit, slaapt of zit op een ander netwerk.",
   "panel.iconPicker.auto": "Automatisch",
   "panel.iconPicker.autoHint": "Automatisch pictogram op basis van de actie",
+  "panel.iconPicker.busy": "De service is bezig. Bevestig over een moment opnieuw.",
   "panel.iconPicker.custom": "Aangepast",
   "panel.iconPicker.customHint": "Upload een afbeelding of video om als pictogram voor deze toets te gebruiken",
   "panel.iconPicker.emoji": "Emoji",

@@ -3993,6 +3993,7 @@
   "panel.gate.slow": "Trwa to dłużej niż zwykle. Twój system może być wyłączony, uśpiony lub w innej sieci.",
   "panel.iconPicker.auto": "Auto",
   "panel.iconPicker.autoHint": "Automatyczna ikona zależna od akcji",
+  "panel.iconPicker.busy": "Usługa jest zajęta. Potwierdź ponownie za chwilę.",
   "panel.iconPicker.custom": "Własny",
   "panel.iconPicker.customHint": "Prześlij obraz lub wideo, które będzie ikoną tego klawisza",
   "panel.iconPicker.emoji": "Emoji",

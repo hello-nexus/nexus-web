@@ -3993,6 +3993,7 @@
   "panel.gate.slow": "Это занимает больше времени, чем обычно. Возможно, система выключена, находится в спящем режиме или в другой сети.",
   "panel.iconPicker.auto": "Авто",
   "panel.iconPicker.autoHint": "Автоматический значок по действию",
+  "panel.iconPicker.busy": "Служба занята. Подтвердите еще раз через минуту.",
   "panel.iconPicker.custom": "Своё",
   "panel.iconPicker.customHint": "Загрузите изображение или видео для использования в качестве значка этой клавиши",
   "panel.iconPicker.emoji": "Emoji",

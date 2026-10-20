@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "Esto está tardando más de lo normal. Puede que tu sistema esté apagado, en suspensión o en otra red.",
   "panel.iconPicker.auto": "Auto",
   "panel.iconPicker.autoHint": "Icono automático según la acción",
+  "panel.iconPicker.busy": "El servicio está ocupado. Vuelve a confirmar en unos instantes.",
   "panel.iconPicker.custom": "Personalizado",
   "panel.iconPicker.customHint": "Sube una imagen o un vídeo para usarlo como icono de esta tecla",
   "panel.iconPicker.emoji": "Emoji",

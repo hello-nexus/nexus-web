@@ -3947,6 +3947,7 @@
   "panel.gate.slow": "通常より時間がかかっています。システムがオフ、スリープ中、または別のネットワークにある可能性があります。",
   "panel.iconPicker.auto": "自動",
   "panel.iconPicker.autoHint": "アクションに応じた自動アイコン",
+  "panel.iconPicker.busy": "サービスがビジー状態です。しばらくしてからもう一度確定してください。",
   "panel.iconPicker.custom": "カスタム",
   "panel.iconPicker.customHint": "このキーのアイコンとして使う画像または動画をアップロードします",
   "panel.iconPicker.emoji": "Emoji",
