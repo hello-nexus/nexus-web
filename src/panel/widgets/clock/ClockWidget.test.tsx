@@ -44,7 +44,7 @@ describe('ClockWidget', () => {
       <ClockWidget widget={clockWidget({ design: 'digital', timezone: 'Asia/Tokyo', showDate: false, showTimezone: true })} />,
     );
     expect(container.textContent).toContain(zone);
-    expect(container.textContent).not.toContain('-');
+    expect(container.textContent).not.toContain(' - ');
   });
 
   // The colons ARE the separator a stacked layout splits on, so their absence

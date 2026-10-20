@@ -3,7 +3,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import {
   getMarketplaceListing,
-  isMarketplaceRegistryStale,
+  isMarketplaceRegistryExpired,
   loadMarketplaceApps,
   subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
@@ -28,7 +28,7 @@ export function useAppNamesRefresh(): void {
   const [, setTick] = useState(0);
   useEffect(() => {
     const unsubscribe = subscribeMarketplaceRegistry(() => setTick(n => n + 1));
-    if (isMarketplaceRegistryStale()) void loadMarketplaceApps();
+    if (isMarketplaceRegistryExpired()) void loadMarketplaceApps();
     return unsubscribe;
   }, []);
 }

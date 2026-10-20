@@ -312,7 +312,7 @@ function useHighlights(latest: StoreVersion): Highlight[] {
       icon: <Ruler size={HIGHLIGHT_ICON} aria-hidden={true} />,
       label: t('store.spec.widgetSizes'),
       // Round folds into 2x2, which every 2x2 widget already covers; the Set dedupes the fold and wire repeats.
-      value: [...new Set(latest.sizes.map((s) => widgetLayoutSize(s as PanelWidgetSize)))].join(' - '),
+      value: [...new Set(latest.sizes.map((s) => widgetLayoutSize(s as PanelWidgetSize)))].join(', '),
     });
   }
   out.push(
