@@ -10,6 +10,8 @@ import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
 import { EmojiPicker } from './EmojiPicker';
 import { useDeckImage } from '../deck/useDeckImage';
 import { resizeDeckImage } from '../deck/resizeDeckImage';
+import { DeckImageMedia } from '../deck/DeckImageMedia';
+import { classifyDeckFile, isDeckAnimatedTooLarge, DECK_ANIMATED_MAX_MB } from '../deck/deckMedia';
 import { uploadDeckImage } from '../../../api/deckImages';
 import type { DeckIcon } from '../deck/types';
 import styles from './IconPicker.module.scss';
@@ -54,7 +56,7 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
   useEffect(() => (cropSrc ? () => URL.revokeObjectURL(cropSrc) : undefined), [cropSrc]);
   const fileRef = useRef<HTMLInputElement>(null);
   const showSearch = canEditFreeText(surface, desktopEditor);
-  const previewUrl = useDeckImage(value?.kind === 'image' ? value.value : undefined);
+  const { url: previewUrl, isVideo: previewIsVideo } = useDeckImage(value?.kind === 'image' ? value.value : undefined);
 
   // Remembers the last uploaded/selected image id across a round trip through
   // Auto (or any other tab) and back to Custom, so switching away and back
@@ -81,7 +83,27 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
     if (!file) return;
     e.target.value = '';
     setUploadError(null);
-    setCropSrc(URL.createObjectURL(file));
+    const kind = classifyDeckFile(file);
+    if (kind === 'still') { setCropSrc(URL.createObjectURL(file)); return; }
+    if (kind === 'unsupportedVideo') { setUploadError(t('panel.iconPicker.unsupportedFile')); return; }
+    if (isDeckAnimatedTooLarge(file.size)) {
+      setUploadError(t('panel.iconPicker.fileTooLarge', { limit: DECK_ANIMATED_MAX_MB }));
+      return;
+    }
+    void handleAnimatedUpload(file);
+  };
+
+  const handleAnimatedUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const id = await uploadDeckImage(file, file.name);
+      if (!id) { setUploadError(t('panel.iconPicker.uploadFailed')); return; }
+      onChange({ kind: 'image', value: id });
+    } catch {
+      setUploadError(t('panel.iconPicker.uploadFailed'));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleCropConfirm = async (crop: NormalizedCrop, fit: boolean) => {
@@ -162,7 +184,7 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
           {value?.kind === 'image' && (
             <div className={styles.customPreview}>
               {previewUrl
-                ? <img src={previewUrl} alt="" className={styles.customPreviewImg} />
+                ? <DeckImageMedia url={previewUrl} isVideo={previewIsVideo} className={styles.customPreviewImg} />
                 : <span className={styles.customPreviewSkeleton} aria-hidden="true" />}
             </div>
           )}
@@ -172,7 +194,7 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/mp4,video/webm"
             className={styles.hiddenInput}
             onChange={handleFileChange}
           />

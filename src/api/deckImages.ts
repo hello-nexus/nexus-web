@@ -14,10 +14,10 @@ interface UploadDeckImageResponse {
   id: string;
 }
 
-/** Upload an already client-resized key-icon image; returns its content-addressed id, or null on failure (including a blocked off-LAN transport). */
-export async function uploadDeckImage(blob: Blob): Promise<string | null> {
+/** Upload a key-icon image (client-resized still, or an untouched GIF/MP4/WebM file); returns its content-addressed id, or null on failure (including a blocked off-LAN transport). */
+export async function uploadDeckImage(blob: Blob, fileName = 'icon.png'): Promise<string | null> {
   const form = new FormData();
-  form.append('file', blob, 'icon.png');
+  form.append('file', blob, fileName);
   const res = await postServiceForm<UploadDeckImageResponse>('/deck/images', form);
   return res?.id ?? null;
 }

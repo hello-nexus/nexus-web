@@ -2,17 +2,15 @@ import { useEffect, useState } from 'react';
 import { fetchDeckImage } from '../../../api/deckImages';
 import { withMediaFetchSlot as withImageSlot } from '../../../lib/mediaFetchSlot';
 
-/**
- * A deck key's uploaded custom-image icon as an object URL, or null while
- * loading / absent / failed. Shared by DeckGrid (on-screen tile/key preview)
- * and IconPicker (Custom tab preview); mirrors useAppIcon's shape exactly.
- */
-export function useDeckImage(id: string | undefined): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+const NONE = { url: null, isVideo: false };
+
+/** A deck key's custom image as an object URL (null while loading, absent or failed) plus whether the blob is a video. */
+export function useDeckImage(id: string | undefined): { url: string | null; isVideo: boolean } {
+  const [state, setState] = useState<{ url: string | null; isVideo: boolean }>({ url: null, isVideo: false });
 
   useEffect(() => {
-    if (!id) { setUrl(null); return; }
-    setUrl(null);
+    if (!id) { setState(NONE); return; }
+    setState(NONE);
     let revoke = '';
     let cancelled = false;
     void withImageSlot(async () => {
@@ -21,7 +19,7 @@ export function useDeckImage(id: string | undefined): string | null {
       if (!cancelled && blob && blob.size > 0) {
         const objectUrl = URL.createObjectURL(blob);
         revoke = objectUrl;
-        setUrl(objectUrl);
+        setState({ url: objectUrl, isVideo: blob.type.startsWith('video/') });
       }
     });
     return () => {
@@ -30,5 +28,5 @@ export function useDeckImage(id: string | undefined): string | null {
     };
   }, [id]);
 
-  return url;
+  return state;
 }

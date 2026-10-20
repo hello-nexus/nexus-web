@@ -5,7 +5,7 @@ import { uploadDeckImage } from '../../../api/deckImages';
 import { resizeDeckImage } from '../deck/resizeDeckImage';
 import type { DeckIcon } from '../deck/types';
 
-vi.mock('../deck/useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? 'blob:mock-preview' : null) }));
+vi.mock('../deck/useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? { url: 'blob:mock-preview', isVideo: false } : { url: null, isVideo: false }) }));
 vi.mock('../deck/resizeDeckImage', () => ({ resizeDeckImage: vi.fn(async () => new Blob(['png'])) }));
 vi.mock('../../../api/deckImages', () => ({ uploadDeckImage: vi.fn(async () => 'uploaded-id-1') }));
 
@@ -139,5 +139,61 @@ describe('IconPicker custom upload flow', () => {
 
     await waitFor(() => expect(screen.getByText('panel.iconPicker.uploadFailed')).toBeInTheDocument());
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('IconPicker animated and video uploads', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  function pick(container: HTMLElement, file: File) {
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } });
+  }
+
+  it('accepts images plus mp4 and webm video', () => {
+    const { container } = renderPicker();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    expect(container.querySelector('input[type="file"]')?.getAttribute('accept')).toBe('image/*,video/mp4,video/webm');
+  });
+
+  it.each([
+    ['anim.gif', 'image/gif'],
+    ['clip.mp4', 'video/mp4'],
+    ['clip.webm', 'video/webm'],
+  ])('uploads %s unmodified, skipping the cropper and resize', async (name, type) => {
+    const { onChange, container } = renderPicker();
+    const file = new File(['x'], name, { type });
+    pick(container, file);
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({ kind: 'image', value: 'uploaded-id-1' }));
+    expect(uploadDeckImage).toHaveBeenCalledWith(file, name);
+    expect(resizeDeckImage).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'cropper.confirm' })).not.toBeInTheDocument();
+  });
+
+  it('shows an error and uploads nothing when the file is over the cap', () => {
+    const { onChange, container } = renderPicker();
+    const file = new File(['x'], 'big.mp4', { type: 'video/mp4' });
+    Object.defineProperty(file, 'size', { value: 8 * 1024 * 1024 + 1 });
+    pick(container, file);
+
+    expect(screen.getByText('panel.iconPicker.fileTooLarge')).toBeInTheDocument();
+    expect(uploadDeckImage).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('rejects a video type the service does not accept', () => {
+    const { container } = renderPicker();
+    pick(container, new File(['x'], 'clip.mov', { type: 'video/quicktime' }));
+
+    expect(screen.getByText('panel.iconPicker.unsupportedFile')).toBeInTheDocument();
+    expect(uploadDeckImage).not.toHaveBeenCalled();
+  });
+
+  it('still routes a png through the cropper and resize', async () => {
+    const { container } = renderPicker();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    await pickAndCrop(container);
+    await waitFor(() => expect(resizeDeckImage).toHaveBeenCalled());
   });
 });

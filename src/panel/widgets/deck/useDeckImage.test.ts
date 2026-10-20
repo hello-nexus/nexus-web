@@ -17,7 +17,7 @@ describe('useDeckImage', () => {
 
   it('returns null when no id is provided', () => {
     const { result } = renderHook(() => useDeckImage(undefined));
-    expect(result.current).toBeNull();
+    expect(result.current.url).toBeNull();
   });
 
   it('fetches the image blob and returns an object URL', async () => {
@@ -29,7 +29,23 @@ describe('useDeckImage', () => {
     await act(async () => { await new Promise(r => setTimeout(r, 10)); });
 
     expect(fetchDeckImage).toHaveBeenCalledWith('abc123');
-    expect(result.current).toBe('blob:mock-url');
+    expect(result.current.url).toBe('blob:mock-url');
+  });
+
+  it('flags video blobs by their content type', async () => {
+    vi.mocked(fetchDeckImage).mockResolvedValue(new Blob(['v'], { type: 'video/mp4' }));
+    const { result } = renderHook(() => useDeckImage('vid'));
+    await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+    expect(result.current).toEqual({ url: 'blob:mock-url', isVideo: true });
+  });
+
+  it('does not flag png or gif blobs as video', async () => {
+    for (const type of ['image/png', 'image/gif']) {
+      vi.mocked(fetchDeckImage).mockResolvedValue(new Blob(['i'], { type }));
+      const { result } = renderHook(() => useDeckImage(`img-${type}`));
+      await act(async () => { await new Promise(r => setTimeout(r, 10)); });
+      expect(result.current.isVideo).toBe(false);
+    }
   });
 
   it('returns null when the fetch fails', async () => {
@@ -39,7 +55,7 @@ describe('useDeckImage', () => {
 
     await act(async () => { await new Promise(r => setTimeout(r, 10)); });
 
-    expect(result.current).toBeNull();
+    expect(result.current.url).toBeNull();
   });
 
   it('returns null when the blob is empty', async () => {
@@ -50,7 +66,7 @@ describe('useDeckImage', () => {
 
     await act(async () => { await new Promise(r => setTimeout(r, 10)); });
 
-    expect(result.current).toBeNull();
+    expect(result.current.url).toBeNull();
   });
 
   it('revokes the old URL when the id changes', async () => {
@@ -78,10 +94,10 @@ describe('useDeckImage', () => {
       { initialProps: { id: 'img-1' as string | undefined } },
     );
     await act(async () => { await new Promise(r => setTimeout(r, 10)); });
-    expect(result.current).toBe('blob:mock-url');
+    expect(result.current.url).toBe('blob:mock-url');
 
     rerender({ id: undefined });
-    expect(result.current).toBeNull();
+    expect(result.current.url).toBeNull();
   });
 
   it('caps concurrent image fetches so the connection pool keeps headroom', async () => {
