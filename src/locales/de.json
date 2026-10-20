@@ -1064,6 +1064,8 @@
   "devices.lianliCurve.mediaUpload": "Video hochladen",
   "devices.lianliCurve.mediaUploadFailed": "Upload fehlgeschlagen",
   "devices.lianliCurve.mediaUploading": "Wird hochgeladen...",
+  "devices.lianliCurve.offlineMode": "Offline-Modus",
+  "devices.lianliCurve.offlineModeHint": "Zeigt Datum und Uhrzeit auf dem Display an, solange Ihr PC ausgeschaltet ist.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Pumpe folgt dem Mainboard",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Wenn Nexus die Pumpe nicht steuert, folgt sie dem Lüfteranschluss des Mainboards, an dem sie angeschlossen ist, statt ihrer Standarddrehzahl.",
   "devices.lianliCurve.pumpSection": "Pumpe",

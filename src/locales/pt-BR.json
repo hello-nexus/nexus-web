@@ -1064,6 +1064,8 @@
   "devices.lianliCurve.mediaUpload": "Enviar vídeo",
   "devices.lianliCurve.mediaUploadFailed": "Falha no envio",
   "devices.lianliCurve.mediaUploading": "Enviando...",
+  "devices.lianliCurve.offlineMode": "Modo offline",
+  "devices.lianliCurve.offlineModeHint": "Mostra a data e a hora no display enquanto o seu PC está desligado.",
   "devices.lianliCurve.pumpFollowsMotherboard": "A bomba segue a placa-mãe",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Quando o Nexus não controla a bomba, ela segue o conector de ventoinha da placa-mãe ao qual está ligada, em vez da velocidade padrão.",
   "devices.lianliCurve.pumpSection": "Bomba",

@@ -1064,6 +1064,8 @@
   "devices.lianliCurve.mediaUpload": "Video uploaden",
   "devices.lianliCurve.mediaUploadFailed": "Uploaden mislukt",
   "devices.lianliCurve.mediaUploading": "Uploaden...",
+  "devices.lianliCurve.offlineMode": "Offlinemodus",
+  "devices.lianliCurve.offlineModeHint": "Toont de datum en tijd op het scherm terwijl uw pc uit staat.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Pomp volgt moederbord",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Als Nexus de pomp niet aanstuurt, volgt die de ventilatoraansluiting van het moederbord waarop hij is aangesloten in plaats van zijn standaardsnelheid.",
   "devices.lianliCurve.pumpSection": "Pomp",

@@ -1064,6 +1064,8 @@
   "devices.lianliCurve.mediaUpload": "Subir vídeo",
   "devices.lianliCurve.mediaUploadFailed": "Error al subir",
   "devices.lianliCurve.mediaUploading": "Subiendo...",
+  "devices.lianliCurve.offlineMode": "Modo sin conexión",
+  "devices.lianliCurve.offlineModeHint": "Muestra la fecha y la hora en la pantalla mientras tu PC está apagado.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La bomba sigue a la placa base",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Cuando Nexus no controla la bomba, esta sigue el conector de ventilador de la placa base al que está conectada en lugar de su velocidad predeterminada.",
   "devices.lianliCurve.pumpSection": "Bomba",

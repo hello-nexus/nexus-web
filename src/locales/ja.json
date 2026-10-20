@@ -1064,6 +1064,8 @@
   "devices.lianliCurve.mediaUpload": "動画をアップロード",
   "devices.lianliCurve.mediaUploadFailed": "アップロードに失敗しました",
   "devices.lianliCurve.mediaUploading": "アップロード中...",
+  "devices.lianliCurve.offlineMode": "オフラインモード",
+  "devices.lianliCurve.offlineModeHint": "PC の電源が切れている間、ディスプレイに日付と時刻を表示します。",
   "devices.lianliCurve.pumpFollowsMotherboard": "ポンプがマザーボードに追従",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Nexus がポンプを制御していないときは、既定の回転数ではなく、接続先のマザーボードのファンヘッダーに追従します。",
   "devices.lianliCurve.pumpSection": "ポンプ",

@@ -1064,6 +1064,8 @@
   "devices.lianliCurve.mediaUpload": "Importer une vidéo",
   "devices.lianliCurve.mediaUploadFailed": "Échec de l'importation",
   "devices.lianliCurve.mediaUploading": "Importation...",
+  "devices.lianliCurve.offlineMode": "Mode hors ligne",
+  "devices.lianliCurve.offlineModeHint": "Affiche la date et l'heure sur l'écran lorsque votre PC est éteint.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La pompe suit la carte mère",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Quand Nexus ne contrôle pas la pompe, elle suit le connecteur de ventilateur de la carte mère auquel elle est reliée au lieu de sa vitesse par défaut.",
   "devices.lianliCurve.pumpSection": "Pompe",
