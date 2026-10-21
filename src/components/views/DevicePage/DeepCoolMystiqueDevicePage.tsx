@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { Slider } from '../../common/Slider/Slider';
-import { Button } from '../../common/Button/Button';
 import { useToast } from '../../common/Toast/Toast';
 import { SensorPicker, useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
+import { DECK_MONITORING_CATEGORIES } from '../../../panel/widgets/deck/deckMonitoring';
+import { sensorsForDevice } from '../../../panel/widgets/monitoring/sensorPicker';
 import {
   getMystiqueState,
   setMystiqueSettings,
@@ -55,12 +56,15 @@ export function DeepCoolMystiqueDevicePage() {
   const writeGenRef = useRef(0);
   // A brightness drag is under way, so a poll must not move the thumb.
   const draggingRef = useRef(false);
+  // The brightness the service last reported or accepted, so a commit that changes nothing sends nothing.
+  const brightnessRef = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     if (busyRef.current > 0 || draggingRef.current) return;
     const gen = writeGenRef.current;
     const next = await getMystiqueState();
     if (!aliveRef.current || next === null || busyRef.current > 0 || draggingRef.current || gen !== writeGenRef.current) return;
+    brightnessRef.current = next.brightness;
     setState(next);
   }, []);
 
@@ -91,7 +95,10 @@ export function DeepCoolMystiqueDevicePage() {
     if (!ok) push({ title: t('devices.deepcool-mystique.failedTitle'), body: t('devices.deepcool-mystique.failedBody') });
     const gen = writeGenRef.current;
     const next = await getMystiqueState();
-    if (aliveRef.current && next !== null && busyRef.current === 0 && !draggingRef.current && gen === writeGenRef.current) setState(next);
+    if (aliveRef.current && next !== null && busyRef.current === 0 && !draggingRef.current && gen === writeGenRef.current) {
+      brightnessRef.current = next.brightness;
+      setState(next);
+    }
   }, [push, t]);
 
   const edit = useCallback((local: Partial<MystiqueState>, patch: MystiqueSettingsPatch) => {
@@ -103,22 +110,23 @@ export function DeepCoolMystiqueDevicePage() {
   const chosen = state?.modeChosen === true;
   const mode = state?.mode ?? 'monitor';
 
+  // Only categories that list a fan reading: another one would send a pick the service treats as automatic.
+  const fanCategories = useMemo(
+    () => DECK_MONITORING_CATEGORIES.filter(c => sensorsForDevice(lookup.sensors, lookup.networkSensors, lookup.extras, c).some(o => o.type === 'Fan')),
+    [lookup.sensors, lookup.networkSensors, lookup.extras],
+  );
+
   const picker = (slot: MystiqueSensorState | undefined, onPick: (category: string, sensor: string) => void) => (
-    <>
-      <SensorPicker
-        lookup={lookup}
-        category={(slot?.sensor ? slot.category : slot?.resolvedCategory) || DEFAULT_CATEGORY}
-        sensor={slot?.sensor || slot?.resolvedSensor || ''}
-        disabled={!ready}
-        sensorTypes={FAN_TYPES}
-        onChange={sel => onPick(sel.category, sel.sensor)}
-      />
-      {slot?.sensor ? (
-        <Button size="sm" tone="ghost" disabled={!ready} onClick={() => onPick('', '')}>
-          {t('devices.deepcool-mystique.automatic')}
-        </Button>
-      ) : null}
-    </>
+    <SensorPicker
+      lookup={lookup}
+      category={(slot?.sensor ? slot.category : slot?.resolvedCategory) || DEFAULT_CATEGORY}
+      sensor={slot?.sensor || slot?.resolvedSensor || ''}
+      disabled={!ready}
+      categories={fanCategories}
+      sensorTypes={FAN_TYPES}
+      automatic={{ label: t('devices.deepcool-mystique.automatic'), active: !slot?.sensor, onSelect: () => onPick('', '') }}
+      onChange={sel => onPick(sel.category, sel.sensor)}
+    />
   );
 
   return (
@@ -142,11 +150,14 @@ export function DeepCoolMystiqueDevicePage() {
             step={1}
             formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
             disabled={!ready}
-            onPointerDown={() => { draggingRef.current = true; }}
+            onPointerDown={e => { if (e.button === 0) draggingRef.current = true; }}
             onPointerCancel={() => { draggingRef.current = false; }}
-            onChange={v => setState(prev => prev && { ...prev, brightness: v, deviceChosen: true })}
+            onChange={v => setState(prev => prev && { ...prev, brightness: v })}
             onCommit={v => {
               draggingRef.current = false;
+              if (v === brightnessRef.current) return;
+              brightnessRef.current = v;
+              setState(prev => prev && { ...prev, deviceChosen: true });
               void commit({ brightness: v });
             }}
           />
@@ -164,9 +175,10 @@ export function DeepCoolMystiqueDevicePage() {
             disabled={!ready}
             onChange={on => edit({ rgbSync: on, deviceChosen: true }, { rgbSync: on })}
           />
-          {state && !state.deviceChosen && (
-            <SettingRow label={t('devices.deepcool-mystique.notSet')} description={t('devices.deepcool-mystique.deviceUnsetHint')} />
-          )}
+          <SettingRow
+            label={t('devices.deepcool-mystique.sentTogether')}
+            description={t(state?.deviceChosen ? 'devices.deepcool-mystique.deviceSetHint' : 'devices.deepcool-mystique.deviceUnsetHint')}
+          />
         </SettingsSection>
 
         <SettingsSection title={t('devices.deepcool-mystique.contentSection')} boxClassName={styles.sectionBox}>
@@ -198,7 +210,7 @@ export function DeepCoolMystiqueDevicePage() {
             <>
               <SettingToggle
                 label={t('devices.deepcool-mystique.recordFrequency')}
-                description={state.recordingChosen ? undefined : t('devices.deepcool-mystique.recordingUnsetHint')}
+                description={t(state.recordingChosen ? 'devices.deepcool-mystique.recordingSetHint' : 'devices.deepcool-mystique.recordingUnsetHint')}
                 checked={state.recordFrequency}
                 disabled={!ready}
                 onChange={on => edit({ recordFrequency: on, recordingChosen: true }, { recordFrequency: on })}
