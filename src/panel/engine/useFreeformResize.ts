@@ -1,12 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
-import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
+import type { PanelLayout, PanelWidget } from '../types';
 import { canonicalJson } from './usePanelLayout';
 import { findWidgetById } from './panelLayoutHelpers';
 import { sizeToSpan, type GridSpan } from './grid';
-import { previewDrag, tryResizeWidget } from './panelLayoutOps';
+import { tryResizeWidget } from './panelLayoutOps';
 import type { PaginateCapacity } from './paginate';
 import {
-  moveRect,
   resizeRectFromCorner,
   sameRect,
   spanToSize,
@@ -16,25 +15,7 @@ import {
   type FreeformRect,
 } from './freeformResize';
 
-export type FreeformGesture = 'move' | FreeformCorner;
-
-// A move lands exactly as the regular drag's drop does (previewDrag: make-room cascade or shift, same page, refusal as null).
-// The widget is dropped at its rendered span and gets its stored size back.
-function dropLikeDrag(session: Session, widgetId: string, target: FreeformRect, capacity: PaginateCapacity): PanelLayout | null {
-  const page = session.base.pages.find(p => p.widgets.some(w => w.id === widgetId));
-  if (!page) return null;
-  const bounds = { cols: Math.max(1, capacity.gridCols), rows: Math.max(1, capacity.pageRows) };
-  const withSize = (layout: PanelLayout, size: (stored: PanelWidgetSize) => PanelWidgetSize): PanelLayout => ({
-    ...layout,
-    pages: layout.pages.map(p => ({ ...p, widgets: p.widgets.map(w => (w.id === widgetId ? { ...w, size: size(w.size) } : w)) })),
-  });
-  const dropped = previewDrag(withSize(session.base, stored => clampFreeformSize(stored, bounds)), widgetId, page.id, target.col, target.row, capacity);
-  if (!dropped) return null;
-  return withSize(dropped, () => session.size);
-}
-
-// `size` is the stored size: a move keeps it even when the rendered span is clamped to the grid.
-interface Session { base: PanelLayout; baseKey: string; cols: number; rows: number; start: FreeformRect; size: PanelWidgetSize; }
+interface Session { base: PanelLayout; baseKey: string; cols: number; rows: number; start: FreeformRect; }
 
 /** Every update re-derives the draft from the layout the gesture began on, so dragging back restores pushed widgets; `end` commits. */
 export function useFreeformResize({
@@ -55,8 +36,6 @@ export function useFreeformResize({
   const [draft, setDraft] = useState<PanelLayout | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const draftRef = useRef<PanelLayout | null>(null);
-  // A rejected target flashes once; the next accepted target or gesture re-arms it.
-  const rejectArmedRef = useRef(true);
   const boundCols = Math.max(1, capacity.gridCols);
   const boundRows = Math.max(1, capacity.pageRows);
 
@@ -69,8 +48,7 @@ export function useFreeformResize({
     const widget: PanelWidget | undefined = widgetId ? findWidgetById(layout, widgetId) : undefined;
     if (!widget) return false;
     const span = sizeToSpan(clampFreeformSize(widget.size, { cols: boundCols, rows: boundRows }));
-    rejectArmedRef.current = true;
-    sessionRef.current = { base: layout, baseKey: canonicalJson(layout), cols: boundCols, rows: boundRows, size: widget.size, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
+    sessionRef.current = { base: layout, baseKey: canonicalJson(layout), cols: boundCols, rows: boundRows, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
     return true;
   }, [layout, widgetId, boundCols, boundRows]);
 
@@ -79,38 +57,28 @@ export function useFreeformResize({
     session.base, widgetId, spanToSize(rect), capacity, 1, { col: rect.col, row: rect.row }, { samePage: true },
   ) !== null, [capacity, widgetId]);
 
-  const applyTarget = useCallback((session: Session, target: FreeformRect, moving: boolean) => {
+  const applyTarget = useCallback((session: Session, target: FreeformRect) => {
     if (!widgetId) return;
     if (sameRect(target, session.start)) {
-      rejectArmedRef.current = true;
       setBoth(null);
       return;
     }
-    const next = moving
-      ? dropLikeDrag(session, widgetId, target, capacity)
-      : tryResizeWidget(session.base, widgetId, spanToSize(target), capacity, 1, { col: target.col, row: target.row }, { samePage: true });
-    if (next) {
-      rejectArmedRef.current = true;
-      setBoth(next === session.base ? null : next);
-    } else if (rejectArmedRef.current) {
-      rejectArmedRef.current = false;
-      onReject(widgetId);
-    }
-  }, [capacity, onReject, setBoth, widgetId]);
+    const next = tryResizeWidget(session.base, widgetId, spanToSize(target), capacity, 1, { col: target.col, row: target.row }, { samePage: true });
+    // The candidates were already checked as placeable; a null here means the layout moved on, and the end check handles it.
+    if (next) setBoth(next === session.base ? null : next);
+  }, [capacity, setBoth, widgetId]);
 
-  const update = useCallback((gesture: FreeformGesture, dCols: number, dRows: number) => {
+  const update = useCallback((corner: FreeformCorner, dCols: number, dRows: number) => {
     const session = sessionRef.current;
     if (!session) return;
     const bounds = { cols: boundCols, rows: boundRows };
-    applyTarget(session, gesture === 'move'
-      ? moveRect(session.start, dCols, dRows, bounds)
-      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds, placeable(session)), gesture === 'move');
+    applyTarget(session, resizeRectFromCorner(session.start, corner, dCols, dRows, snapSpans, bounds, placeable(session)));
   }, [applyTarget, boundCols, boundRows, snapSpans, placeable]);
 
   const step = useCallback((corner: FreeformCorner, stepCols: number, stepRows: number) => {
     const session = sessionRef.current;
     if (!session) return;
-    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }, placeable(session)), false);
+    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }, placeable(session)));
   }, [applyTarget, boundCols, boundRows, snapSpans, placeable]);
 
   // A layout or grid that really changed mid-gesture (a sync, a rotation) leaves the draft on a stale base, so it is dropped with a flash;

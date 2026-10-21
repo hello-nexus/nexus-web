@@ -16,41 +16,16 @@
   min-height: 0;
   border-radius: var(--panel-card-radius, var(--radius));
   box-shadow: 0 0 0 calc(1px * var(--_s)) var(--_halo);
+  // Only the grab areas take presses; the tile underneath keeps its own drag and tap.
+  pointer-events: none;
+}
+
+.frame[data-hover='true'] {
+  box-shadow: none;
 }
 
 .frame[data-touch='true'] {
   --_hit-min: 44px;
-}
-
-// Hover corners: only the grab areas take presses.
-.frame[data-hover='true'] {
-  pointer-events: none;
-  box-shadow: none;
-
-  .handle {
-    pointer-events: auto;
-  }
-}
-
-.body {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  border-radius: inherit;
-  cursor: grab;
-  touch-action: none;
-  background: rgb(255 255 255 / 0.06);
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  &:focus-visible {
-    outline: calc(2px * var(--_upscale)) solid var(--text);
-    outline-offset: calc(-4px * var(--_upscale));
-  }
 }
 
 // A corner bracket: two thick edges meeting in the tile's own corner radius.
@@ -63,6 +38,7 @@
   border: 0;
   background: transparent;
   touch-action: none;
+  pointer-events: auto;
   z-index: 1;
 
   &::before {

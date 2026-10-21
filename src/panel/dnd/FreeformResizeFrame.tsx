@@ -1,9 +1,8 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '../../lib/i18n';
-import { sizeToSpan, snapStride } from '../engine/grid';
+import { sizeToSpan } from '../engine/grid';
 import { readCellMetrics } from '../engine/panelLayoutHelpers';
 import type { FreeformCorner } from '../engine/freeformResize';
-import type { FreeformGesture } from '../engine/useFreeformResize';
 import type { PanelWidget } from '../types';
 import styles from './FreeformResizeFrame.module.scss';
 
@@ -14,8 +13,8 @@ const CORNER_LABEL_KEY: Record<FreeformCorner, string> = {
   bl: 'panel.freeform.handle.bottomLeft',
   br: 'panel.freeform.handle.bottomRight',
 };
-// A body press that travels less than this is a tap.
-const TAP_SLOP_PX = 4;
+// A corner press that travels less than this has not started a drag.
+const DRAG_SLOP_PX = 4;
 
 const ARROW_STEP: Record<string, [number, number]> = {
   ArrowLeft: [-1, 0],
@@ -24,9 +23,9 @@ const ARROW_STEP: Record<string, [number, number]> = {
   ArrowDown: [0, 1],
 };
 
-interface Press { gesture: FreeformGesture; x: number; y: number; moved: boolean; }
+interface Press { gesture: FreeformCorner; x: number; y: number; moved: boolean; }
 
-/** Resize chrome for the selected widget: a handle on each corner and a body that moves it. */
+/** Resize chrome for the selected widget: a handle on each corner. Every other press falls through to the tile, so a body drag is the regular drag. */
 export function FreeformResizeFrame({
   widget,
   label,
@@ -42,14 +41,14 @@ export function FreeformResizeFrame({
 }: {
   widget: PanelWidget;
   label: string;
-  // Corners only, shown while a mouse hovers the tile: the frame and body let every other press through.
+  // Shown on a mouse hover rather than in resize mode: no halo around the tile.
   hover?: boolean;
   // Touch panels get larger grab areas.
   touch?: boolean;
   // Corners that can reach another span; the others take no drag.
   room: Record<FreeformCorner, boolean>;
   onBegin: () => boolean;
-  onUpdate: (gesture: FreeformGesture, dCols: number, dRows: number) => void;
+  onUpdate: (corner: FreeformCorner, dCols: number, dRows: number) => void;
   // One keyboard step of a corner to the next snap span.
   onStep: (corner: FreeformCorner, stepCols: number, stepRows: number) => void;
   onEnd: () => void;
@@ -70,10 +69,10 @@ export function FreeformResizeFrame({
     }
   }, []);
 
-  const startPress = (gesture: FreeformGesture) => (event: ReactPointerEvent<HTMLElement>) => {
+  const startPress = (gesture: FreeformCorner) => (event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.stopPropagation();
-    if (gesture !== 'move' && !room[gesture]) return;
+    if (!room[gesture]) return;
     if (!onBegin()) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     pressRef.current = { gesture, x: event.clientX, y: event.clientY, moved: false };
@@ -84,7 +83,7 @@ export function FreeformResizeFrame({
     if (!press) return;
     const dx = event.clientX - press.x;
     const dy = event.clientY - press.y;
-    if (!press.moved && Math.hypot(dx, dy) < TAP_SLOP_PX) return;
+    if (!press.moved && Math.hypot(dx, dy) < DRAG_SLOP_PX) return;
     press.moved = true;
     const metrics = readCellMetrics(event.currentTarget.closest<HTMLElement>('[data-surface]'));
     if (!metrics) return;
@@ -97,7 +96,6 @@ export function FreeformResizeFrame({
     if (!press) return;
     event.stopPropagation();
     onEnd();
-    if (press.gesture === 'move' && !press.moved) onExit();
   };
 
   const cancelPress = () => {
@@ -106,7 +104,7 @@ export function FreeformResizeFrame({
     onEnd();
   };
 
-  const keyStep = (gesture: FreeformGesture) => (event: KeyboardEvent<HTMLElement>) => {
+  const keyStep = (gesture: FreeformCorner) => (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {
       event.stopPropagation();
       onExit();
@@ -117,13 +115,11 @@ export function FreeformResizeFrame({
     event.preventDefault();
     event.stopPropagation();
     if (!onBegin()) return;
-    // A body step is one drag stride, so it lands where a regular drag by that much would.
-    if (gesture === 'move') onUpdate(gesture, step[0] * snapStride(span.cols), step[1] * snapStride(span.rows));
-    else onStep(gesture, step[0], step[1]);
+    onStep(gesture, step[0], step[1]);
     onEnd();
   };
 
-  const handlers = (gesture: FreeformGesture) => ({
+  const handlers = (gesture: FreeformCorner) => ({
     onPointerDown: startPress(gesture),
     onPointerMove: movePress,
     onPointerUp: endPress,
@@ -147,21 +143,6 @@ export function FreeformResizeFrame({
         gridRow: `${widget.row + 1} / span ${span.rows}`,
       } as CSSProperties}
     >
-      {!hover && <div
-        className={styles.body}
-        role="button"
-        tabIndex={0}
-        aria-label={t('panel.freeform.body', { name: label })}
-        {...handlers('move')}
-        onKeyDown={event => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            onExit();
-            return;
-          }
-          keyStep('move')(event);
-        }}
-      />}
       {CORNERS.map(corner => (
         <button
           key={corner}

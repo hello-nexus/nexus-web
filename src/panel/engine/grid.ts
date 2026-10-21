@@ -115,8 +115,7 @@ export function snapStride(span: number): number {
 }
 
 // Where a dragged widget drops: the top-left cell index rounded to the widget's own
-// per-axis stride and clamped so the rect stays inside the grid. The regular drag and
-// resize-mode moves both land through this.
+// per-axis stride and clamped so the rect stays inside the grid.
 export function snapDropCell(
   continuousCol: number,
   continuousRow: number,

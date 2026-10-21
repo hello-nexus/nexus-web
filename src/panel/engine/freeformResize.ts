@@ -2,7 +2,7 @@ import {
   isFreeformWidgetSize,
   type PanelWidgetSize,
 } from '../types';
-import { sizeToSpan, snapDropCell, snapStride, type GridSpan } from './grid';
+import { sizeToSpan, snapStride, type GridSpan } from './grid';
 
 // Spans are cols x rows, as in grid.ts.
 
@@ -143,17 +143,6 @@ export function cornerRoom(
     return !canPlace || canPlace({ col, row, cols: span.cols, rows: span.rows });
   });
   return { tl: room(true, true), tr: room(false, true), bl: room(true, false), br: room(false, false) };
-}
-
-/** Moves a rect by (dCols, dRows) cells and drops it on the regular drag's snap grid (per-axis stride, inside the grid). */
-export function moveRect(
-  start: FreeformRect,
-  dCols: number,
-  dRows: number,
-  bounds: FreeformBounds,
-): FreeformRect {
-  const { col, row } = snapDropCell(start.col + dCols, start.row + dRows, { cols: start.cols, rows: start.rows }, bounds);
-  return { ...start, col, row };
 }
 
 export function sameRect(a: FreeformRect, b: FreeformRect): boolean {
