@@ -1,6 +1,6 @@
-/** One uniform scale from two per-axis scales: the axis that moved further wins, keeping its sign. */
+/** One uniform scale from two per-axis scales: the axis that moved further from 1 wins (shrinking included), keeping its sign. */
 export function dominantScale(sx: number, sy: number): number {
-  return Math.abs(sx) >= Math.abs(sy) ? sx : sy;
+  return Math.abs(sx - 1) >= Math.abs(sy - 1) ? sx : sy;
 }
 
 /** Largest |scale| about the anchor that keeps every point inside [lo, hi] on both axes; the sign of `scale` is kept. */
@@ -24,7 +24,7 @@ export function capScaleToBounds(
   return scale < 0 ? -mag : mag;
 }
 
-/** Frame size scaled uniformly from its start size toward the requested size, clamped to a minimum side and a maximum box; the minimum wins when both cannot hold. */
+/** Frame size scaled uniformly from its start size by the axis that moved further, clamped to a minimum side and a maximum box; the minimum wins when both cannot hold. */
 export function lockedFrameSize(
   origW: number,
   origH: number,
@@ -34,7 +34,7 @@ export function lockedFrameSize(
   maxW: number,
   maxH: number,
 ): { w: number; h: number } {
-  const k = Math.max(w / origW, h / origH);
+  const k = dominantScale(w / origW, h / origH);
   const kMin = Math.max(min / origW, min / origH);
   const kMax = Math.min(maxW / origW, maxH / origH);
   const s = Math.max(kMin, Math.min(k, kMax));
