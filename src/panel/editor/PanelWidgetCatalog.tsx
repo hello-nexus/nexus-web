@@ -205,12 +205,6 @@ export function PanelWidgetCatalog({
   const visible = entries.filter(([type, def]) => matchesSearch(type, def));
   const visibleCount = visible.length;
 
-  const rootClass = [
-    'panel-root',
-    styles.root,
-    variant === 'desktop-modal' ? styles.desktop : '',
-    className ?? '',
-  ].filter(Boolean).join(' ');
 
   // No search field on a keyboard-less surface (Y70 kiosk, Q-series): it
   // can't be typed into on-device. A desktop modal editing such a panel
@@ -251,6 +245,7 @@ export function PanelWidgetCatalog({
   // Always set (cols/cellSize fall back before the first measure) so
   // `--panel-columns` is never undefined, which would collapse the grid.
   const rowSize = catalogRowSizeForGlass(surface, glassAspect, cellSize, gap) ?? cellSize;
+  const nonSquareTile = Math.abs(rowSize - cellSize) > 0.5;
   const panelGridVars: CSSProperties = {
     '--panel-columns': cols,
     '--panel-cell-size': `${cellSize}px`,
@@ -260,7 +255,7 @@ export function PanelWidgetCatalog({
     // this via CSS trig (`tan(atan2(...))`), which `scale()` reads but the cell
     // scaler's `width: calc(inner / scale)` division does NOT evaluate -
     // leaving widget content scaled down without compensation. A number fills.
-    '--panel-scale': cellSize / PHONE_WIDGET_REFERENCE_CELL,
+    '--panel-scale': Math.min(cellSize, rowSize) / PHONE_WIDGET_REFERENCE_CELL,
     '--panel-gap': `${gap}px`,
   } as CSSProperties;
 
@@ -385,6 +380,14 @@ export function PanelWidgetCatalog({
     ...panelGridVars,
     '--panel-card-bg-opacity': '100%',
   } as CSSProperties;
+
+  const rootClass = [
+    'panel-root',
+    styles.root,
+    variant === 'desktop-modal' ? styles.desktop : '',
+    nonSquareTile ? panelStyles.glassTile : '',
+    className ?? '',
+  ].filter(Boolean).join(' ');
 
   return (
     <div
