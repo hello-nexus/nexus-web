@@ -27,7 +27,6 @@ export function useFreeformResize({
   layout,
   capacity,
   snapSpans,
-  maxPages,
   onCommit,
   onReject,
 }: {
@@ -35,7 +34,6 @@ export function useFreeformResize({
   layout: PanelLayout;
   capacity: PaginateCapacity;
   snapSpans: readonly GridSpan[];
-  maxPages: number;
   onCommit: (next: PanelLayout) => void;
   onReject: (widgetId: string) => void;
 }) {
@@ -61,6 +59,11 @@ export function useFreeformResize({
     return true;
   }, [layout, widgetId, boundCols, boundRows]);
 
+  // A target is placeable only when every pushed widget still fits on this page.
+  const placeable = useCallback((session: Session) => (rect: FreeformRect) => !widgetId || tryResizeWidget(
+    session.base, widgetId, spanToSize(rect), capacity, 1, { col: rect.col, row: rect.row }, { samePage: true },
+  ) !== null, [capacity, widgetId]);
+
   const applyTarget = useCallback((session: Session, target: FreeformRect, moving: boolean) => {
     if (!widgetId) return;
     if (sameRect(target, session.start)) {
@@ -73,8 +76,9 @@ export function useFreeformResize({
       widgetId,
       moving ? session.size : spanToSize(target),
       capacity,
-      maxPages,
+      1,
       { col: target.col, row: target.row },
+      { samePage: true },
     );
     if (next) {
       rejectArmedRef.current = true;
@@ -83,7 +87,7 @@ export function useFreeformResize({
       rejectArmedRef.current = false;
       onReject(widgetId);
     }
-  }, [capacity, maxPages, onReject, setBoth, widgetId]);
+  }, [capacity, onReject, setBoth, widgetId]);
 
   const update = useCallback((gesture: FreeformGesture, dCols: number, dRows: number) => {
     const session = sessionRef.current;
@@ -91,14 +95,14 @@ export function useFreeformResize({
     const bounds = { cols: boundCols, rows: boundRows };
     applyTarget(session, gesture === 'move'
       ? moveRect(session.start, dCols, dRows, bounds)
-      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds), gesture === 'move');
-  }, [applyTarget, boundCols, boundRows, snapSpans]);
+      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds, placeable(session)), gesture === 'move');
+  }, [applyTarget, boundCols, boundRows, snapSpans, placeable]);
 
   const step = useCallback((corner: FreeformCorner, stepCols: number, stepRows: number) => {
     const session = sessionRef.current;
     if (!session) return;
-    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }), false);
-  }, [applyTarget, boundCols, boundRows, snapSpans]);
+    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }, placeable(session)), false);
+  }, [applyTarget, boundCols, boundRows, snapSpans, placeable]);
 
   // A layout or grid that really changed mid-gesture (a sync, a rotation) leaves the draft on a stale base, so it is dropped with a flash;
   // a same-content record refetch (an echo of our own save) is not a change.

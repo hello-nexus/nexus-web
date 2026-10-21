@@ -7,6 +7,9 @@ import { sizeToSpan, type GridSpan } from './grid';
 // Spans are cols x rows, as in grid.ts.
 
 export interface FreeformRect { col: number; row: number; cols: number; rows: number; }
+/** Whether a rect can really be placed (pushed widgets all have room on the page); candidates it refuses are skipped. */
+export type PlaceCheck = (rect: FreeformRect) => boolean;
+
 export interface FreeformBounds { cols: number; rows: number; }
 export type FreeformCorner = 'tl' | 'tr' | 'bl' | 'br';
 
@@ -48,6 +51,7 @@ export function resizeRectFromCorner(
   dRows: number,
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
+  canPlace?: PlaceCheck,
 ): FreeformRect {
   const fromLeft = corner === 'tl' || corner === 'bl';
   const fromTop = corner === 'tl' || corner === 'tr';
@@ -65,11 +69,12 @@ export function resizeRectFromCorner(
     if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
     const score = distance(span, rawCols, rawRows);
     const area = span.cols * span.rows;
-    if (score < bestScore || (score === bestScore && area < bestArea)) {
-      best = { col, row, cols: span.cols, rows: span.rows };
-      bestScore = score;
-      bestArea = area;
-    }
+    if (!(score < bestScore || (score === bestScore && area < bestArea))) continue;
+    const rect = { col, row, cols: span.cols, rows: span.rows };
+    if (canPlace && !canPlace(rect)) continue;
+    best = rect;
+    bestScore = score;
+    bestArea = area;
   }
   return best ?? start;
 }
@@ -82,6 +87,7 @@ export function stepRectFromCorner(
   stepRows: number,
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
+  canPlace?: PlaceCheck,
 ): FreeformRect {
   const fromLeft = corner === 'tl' || corner === 'bl';
   const fromTop = corner === 'tl' || corner === 'tr';
@@ -102,19 +108,21 @@ export function stepRectFromCorner(
     if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
     // Nearest on the stepped axis first, then least change on the other.
     const score = (growCols !== 0 ? Math.abs(dCols) : Math.abs(dRows)) * 1000 + (growCols !== 0 ? Math.abs(dRows) : Math.abs(dCols));
-    if (score < bestScore) {
-      best = { col, row, cols: span.cols, rows: span.rows };
-      bestScore = score;
-    }
+    if (score >= bestScore) continue;
+    const rect = { col, row, cols: span.cols, rows: span.rows };
+    if (canPlace && !canPlace(rect)) continue;
+    best = rect;
+    bestScore = score;
   }
   return best ?? start;
 }
 
-/** Whether dragging each corner can reach any other snap span that fits the grid with the opposite corner fixed. */
+/** Whether dragging each corner can reach any other snap span that fits the grid, and can be placed, with the opposite corner fixed. */
 export function cornerRoom(
   rect: FreeformRect,
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
+  canPlace?: PlaceCheck,
 ): Record<FreeformCorner, boolean> {
   const right = rect.col + rect.cols;
   const bottom = rect.row + rect.rows;
@@ -122,7 +130,8 @@ export function cornerRoom(
     if (span.cols === rect.cols && span.rows === rect.rows) return false;
     const col = fromLeft ? right - span.cols : rect.col;
     const row = fromTop ? bottom - span.rows : rect.row;
-    return col >= 0 && row >= 0 && col + span.cols <= bounds.cols && row + span.rows <= bounds.rows;
+    if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) return false;
+    return !canPlace || canPlace({ col, row, cols: span.cols, rows: span.rows });
   });
   return { tl: room(true, true), tr: room(false, true), bl: room(true, false), br: room(false, false) };
 }

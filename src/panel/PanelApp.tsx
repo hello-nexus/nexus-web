@@ -178,7 +178,7 @@ import {
 } from './dnd/PanelDragCells';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
-import { clampFreeformSize, cornerRoom, freeformSnapSpans } from './engine/freeformResize';
+import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
 import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
@@ -879,7 +879,11 @@ export function PanelContent({
   const freeformSpans = cornerTarget ? resizeSpansFor(cornerTarget.type) : NO_SPANS;
   const freeformRoom = (w: PanelWidget) => {
     const span = sizeToSpan(w.size);
-    return cornerRoom({ col: w.col, row: w.row, cols: span.cols, rows: span.rows }, freeformSpans, resizeBounds);
+    const shown = freeform.draft ?? paginatedLayout;
+    const canPlace = (rect: FreeformRect) => tryResizeWidget(
+      shown, w.id, spanToSize(rect), capacity, 1, { col: rect.col, row: rect.row }, { samePage: true },
+    ) !== null;
+    return cornerRoom({ col: w.col, row: w.row, cols: span.cols, rows: span.rows }, freeformSpans, resizeBounds, canPlace);
   };
   const handleFreeformReject = useCallback((id: string) => triggerFlash(id), [triggerFlash]);
   const freeform = useFreeformResize({
@@ -887,7 +891,6 @@ export function PanelContent({
     layout: paginatedLayout,
     capacity,
     snapSpans: freeformSpans,
-    maxPages: singlePage ? 1 : MAX_PANEL_PAGES,
     onCommit: setLayout,
     onReject: handleFreeformReject,
   });

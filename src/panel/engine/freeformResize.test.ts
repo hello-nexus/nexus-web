@@ -209,3 +209,23 @@ describe('stepRectFromCorner', () => {
     expect(stepRectFromCorner({ col: 4, row: 0, cols: 4, rows: 4 }, 'br', 1, 0, snap, bounds)).toEqual({ col: 4, row: 0, cols: 4, rows: 4 });
   });
 });
+
+describe('cornerRoom with a placement check', () => {
+  const bounds = { cols: 8, rows: 8 };
+  const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
+
+  it('dims a corner when every span it reaches is refused', () => {
+    const start = { col: 0, row: 0, cols: 4, rows: 4 };
+    const none = cornerRoom(start, snap, bounds, () => false);
+    expect(none).toEqual({ tl: false, tr: false, bl: false, br: false });
+    const some = cornerRoom(start, snap, bounds, rect => rect.cols <= 2);
+    expect(some.br).toBe(true);
+  });
+
+  it('keeps the drag from picking a refused span and takes the largest one allowed', () => {
+    const start = { col: 0, row: 0, cols: 2, rows: 2 };
+    const refuse44 = (rect: { cols: number; rows: number }) => !(rect.cols === 4 && rect.rows === 4);
+    expect(resizeRectFromCorner(start, 'br', 4, 4, snap, bounds, refuse44)).toEqual({ col: 0, row: 0, cols: 4, rows: 2 });
+    expect(stepRectFromCorner(start, 'br', 1, 1, snap, bounds, refuse44)).toEqual(start);
+  });
+});

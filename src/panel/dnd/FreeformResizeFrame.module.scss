@@ -1,20 +1,21 @@
-// Lengths are authored at operator size; the upscale undoes the preview iframe's fit scale.
+// Bracket drawing is sized in design units times --panel-scale (the cell over its design base),
+// so it is the same fraction of the tile on the device and in the canvas preview. Only the grab
+// area is a screen length: the upscale undoes the preview iframe's fit scale for mouse, touch is real px.
 .frame {
+  --_s: var(--panel-scale, 1);
   --_upscale: var(--panel-preview-upscale, 1);
   --_radius: var(--panel-card-radius, var(--radius));
-  // Hit area per corner, extending inside the tile; the bracket fills it.
-  --_hit: max(calc(var(--_hit-min) * var(--_upscale)), calc(var(--_radius) + 12px * var(--_upscale)));
-  --_hit-min: 28px;
-  // Visible arm length, independent of the grab area.
-  --_arm: max(calc(19px * var(--_upscale)), calc(var(--_radius) + 6px * var(--_upscale)));
-  --_stroke: calc(5px * var(--_upscale));
+  --_hit-min: calc(28px * var(--_upscale));
+  --_arm: max(calc(19px * var(--_s)), calc(var(--_radius) + 6px * var(--_s)));
+  --_stroke: calc(5px * var(--_s));
+  --_hit: max(var(--_hit-min), var(--_arm));
   --_halo: rgb(0 0 0 / var(--alpha-strong));
   position: relative;
   z-index: 20;
   min-width: 0;
   min-height: 0;
   border-radius: var(--panel-card-radius, var(--radius));
-  box-shadow: 0 0 0 calc(1px * var(--_upscale)) var(--_halo);
+  box-shadow: 0 0 0 calc(1px * var(--_s)) var(--_halo);
 }
 
 .frame[data-touch='true'] {
