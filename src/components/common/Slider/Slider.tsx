@@ -75,13 +75,15 @@ export interface SliderProps {
   mixed?: boolean;
   /** Visible text and spoken value while `mixed`. */
   mixedLabel?: string;
+  /** Spoken value (aria-valuetext) when it should say more than the visible text. */
+  valueText?: string;
 }
 
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel,
+  disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
   // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
@@ -242,7 +244,7 @@ export function Slider({
       aria-label={accessibleName}
       data-fill=""
       data-mixed={mixed ? 'true' : undefined}
-      aria-valuetext={mixed ? mixedLabel : undefined}
+      aria-valuetext={valueText ?? (mixed ? mixedLabel : undefined)}
       style={trackStyle}
       onChange={e => handleChange(Number(e.target.value), false)}
       onPointerDown={e => {

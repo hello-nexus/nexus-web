@@ -93,11 +93,13 @@
   padding: 0.5rem 0 0.25rem;
 }
 
-// One line per zone: label, track, value. A shared column grid keeps every
-// track aligned, and a long zone name wraps inside its column.
-.zoneSizeSlider {
+// One line per zone: name on the left, then a track a third of the row wide
+// (never under 7rem) and a fixed value column, so every track lines up whatever
+// the value reads. Scoped under .zoneSizeList so it outranks Slider's own
+// single-class rules without relying on stylesheet order.
+.zoneSizeList .zoneSizeSlider {
   display: grid;
-  grid-template-columns: clamp(5rem, 30%, 12rem) minmax(0, 1fr) max-content;
+  grid-template-columns: minmax(0, 1fr) max(7rem, 30%) 3.5rem;
   align-items: center;
   gap: 0.75rem;
 

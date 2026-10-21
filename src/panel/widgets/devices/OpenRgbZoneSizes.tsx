@@ -93,7 +93,8 @@ export function OpenRgbZoneSizes({
                 min={zone.ledsMin}
                 max={zone.ledsMax}
                 mixed={unset}
-                mixedLabel={t('devices.openrgb.zoneUnset', { value })}
+                mixedLabel={String(value)}
+                valueText={unset ? t('devices.openrgb.zoneUnset', { value }) : undefined}
                 onPointerDown={e => { if (e.button === 0) pointered.current.add(zone.index); }}
                 onPointerCancel={() => { pointered.current.delete(zone.index); }}
                 onChange={(v, typedEdit) => {
