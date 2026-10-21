@@ -967,7 +967,7 @@ export function PanelContent({
       if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) < FREEFORM_TAP_SLOP_PX && performance.now() - start.at < FREEFORM_TAP_MAX_MS) freeformTapPendingRef.current = true;
     },
     onPointerCancel: () => { freeformTapRef.current = null; },
-  }), [exitFreeform]);
+  }), []);
   // A press outside the frame and the resized tile ends the mode and goes no further; presses on the tile are its own.
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
     if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
