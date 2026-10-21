@@ -93,6 +93,22 @@
   padding: 0.5rem 0 0.25rem;
 }
 
+// One line per zone: label, track, value. A shared column grid keeps every
+// track aligned, and a long zone name wraps inside its column.
+.zoneSizeSlider {
+  display: grid;
+  grid-template-columns: clamp(5rem, 30%, 12rem) minmax(0, 1fr) 6rem;
+  align-items: center;
+  gap: 0.75rem;
+
+  > :first-child {
+    display: block;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
 // Nexus Control off: the identity (icon, name, meta) recedes while the switch,
 // badges and buttons stay at full strength. No transition, so a poll refresh
 // never flashes.
