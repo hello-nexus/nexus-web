@@ -62,3 +62,17 @@ describe('gpu2 picker category', () => {
     expect(visibleDeviceKeys(DEVICE_OPTION_KEYS, 'cpu', single, [], EMPTY_SENSOR_EXTRAS)).not.toContain('gpu2');
   });
 });
+
+describe('option sensor types', () => {
+  const temp = sensor({ id: 'summary/cpu-temp', name: 'CPU Temperature', type: 'Temperature' });
+  const load = sensor({ id: 'summary/memory-usage', name: 'Memory Usage', type: 'Load' });
+  const gpuTemp = sensor({ id: '/gpu-amd/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const igpu = { id: '/gpu-amd/0', name: 'AMD Radeon(TM) Graphics', integrated: true, sensors: [gpuTemp] };
+  const dgpu = { id: '/gpu-nvidia/0', name: 'NVIDIA GeForce RTX 5080', integrated: false, sensors: [gpuTemp] };
+  const state: SensorState = { ...EMPTY_SENSORS, summary: [temp, load], gpu: dgpu.sensors, gpuComponents: [igpu, dgpu] };
+
+  it('carries the sensor type on the quick and integrated-gpu options a typed picker filters on', () => {
+    expect(sensorsForDevice(state, [], EMPTY_SENSOR_EXTRAS, 'quick').map(o => o.type)).toEqual(['Temperature', 'Load']);
+    expect(sensorsForDevice(state, [], EMPTY_SENSOR_EXTRAS, 'igpu').map(o => o.type)).toEqual(['Temperature']);
+  });
+});
