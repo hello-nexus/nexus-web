@@ -19,6 +19,11 @@ export interface MystiqueState {
   isConnected: boolean;
   /** False until a mode is set from Nexus; the screen's own mode is unknown until then. */
   modeChosen: boolean;
+  /** False until the user changes it; the value shown is then a placeholder, not what the screen holds. */
+  readoutChosen: boolean;
+  recordingChosen: boolean;
+  /** Brightness, rotation and RGB sync share one command; false until the first change writes the values shown. */
+  deviceChosen: boolean;
   mode: MystiqueMode;
   readout: MystiqueReadout;
   recordFrequency: boolean;

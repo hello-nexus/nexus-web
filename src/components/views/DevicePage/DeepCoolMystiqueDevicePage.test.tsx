@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepCoolMystiqueDevicePage } from './DeepCoolMystiqueDevicePage';
+import pageSource from './DeepCoolMystiqueDevicePage.tsx?raw';
+import en from '../../../locales/en.json';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -33,6 +35,9 @@ vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
 const base = {
   isConnected: true,
   modeChosen: true,
+  readoutChosen: true,
+  recordingChosen: true,
+  deviceChosen: true,
   mode: 'monitor',
   readout: 'temperature',
   recordFrequency: true,
@@ -113,5 +118,66 @@ describe('DeepCoolMystiqueDevicePage', () => {
     await mount({ ...base, isConnected: false });
     expect((screen.getByRole('switch', { name: 'devices.deepcool-mystique.gyroscope' }) as HTMLInputElement).disabled
       || screen.getByRole('switch', { name: 'devices.deepcool-mystique.gyroscope' }).getAttribute('aria-disabled') === 'true').toBe(true);
+  });
+
+  it('every translation key the page uses exists in the English locale', () => {
+    const used = new Set(pageSource.match(/devices\.deepcool-mystique\.[A-Za-z]+/g) ?? []);
+    const locale = en as Record<string, string>;
+    expect(used.size).toBeGreaterThan(10);
+    expect([...used].filter(k => !(k in locale))).toEqual([]);
+  });
+
+  it('a poll that started before a write and resolves after it does not undo the write', async () => {
+    vi.useFakeTimers();
+    try {
+      let resolveStale: (v: unknown) => void = () => {};
+      mockGet.mockResolvedValueOnce(base);
+      await act(async () => {
+        render(<DeepCoolMystiqueDevicePage />);
+      });
+      mockGet.mockReturnValueOnce(new Promise(r => { resolveStale = r; }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3100);
+      });
+      mockGet.mockResolvedValue({ ...base, rgbSync: true });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('switch', { name: 'devices.deepcool-mystique.rgbSync' }));
+      });
+      await act(async () => {
+        resolveStale(base);
+      });
+      expect(screen.getByRole('switch', { name: 'devices.deepcool-mystique.rgbSync' })).toHaveAttribute('aria-checked', 'true');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a picked fan sensor can be returned to the automatic choice', async () => {
+    await mount({ ...base, cpuFan: { category: 'motherboard', sensor: 'fan/chassis', resolvedCategory: 'motherboard', resolvedSensor: 'fan/chassis' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.automatic' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ cpuFan: { category: '', sensor: '' } });
+  });
+
+  it('offers no automatic button while a readout is already automatic', async () => {
+    await mount();
+    expect(screen.queryByRole('button', { name: 'devices.deepcool-mystique.automatic' })).toBeNull();
+  });
+
+  it('marks the readout, recording and system groups as not set until the user changes them', async () => {
+    await mount({ ...base, readoutChosen: false, recordingChosen: false, deviceChosen: false });
+    expect(screen.getByText('devices.deepcool-mystique.deviceUnsetHint')).toBeTruthy();
+    expect(screen.getAllByText('devices.deepcool-mystique.notSet').length).toBeGreaterThan(0);
+  });
+
+  it('shows no unset note once the system group has been chosen', async () => {
+    await mount();
+    expect(screen.queryByText('devices.deepcool-mystique.deviceUnsetHint')).toBeNull();
+  });
+
+  it('recording mode notes that the toggles are not set yet', async () => {
+    await mount({ ...base, mode: 'recording', recordingChosen: false });
+    expect(screen.getByText('devices.deepcool-mystique.recordingUnsetHint')).toBeTruthy();
   });
 });
