@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "還原",
   "gallery.page.showMembers": "在播放清單中",
   "gallery.page.sources": "來源",
+  "gallery.page.truncated": "正在顯示前 {count} 個項目。移除一個來源即可查看其他項目。",
   "gallery.page.usage.count.one": "{name}（{count} 個小工具）",
   "gallery.page.usage.count.other": "{name}（{count} 個小工具）",
   "gallery.page.usage.dashboard": "應用程式儀表板",

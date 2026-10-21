@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Ripristina",
   "gallery.page.showMembers": "Nella playlist",
   "gallery.page.sources": "Sorgenti",
+  "gallery.page.truncated": "Vengono mostrati i primi {count} elementi. Rimuovi una sorgente per vederne altri.",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widget)",
   "gallery.page.usage.dashboard": "Dashboard App",

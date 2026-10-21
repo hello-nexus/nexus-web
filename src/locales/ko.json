@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "복원",
   "gallery.page.showMembers": "재생목록에 있음",
   "gallery.page.sources": "소스",
+  "gallery.page.truncated": "처음 {count}개 항목을 표시하고 있습니다. 소스를 제거하면 다른 항목을 볼 수 있습니다.",
   "gallery.page.usage.count.one": "{name}(위젯 {count}개)",
   "gallery.page.usage.count.other": "{name}(위젯 {count}개)",
   "gallery.page.usage.dashboard": "앱 대시보드",

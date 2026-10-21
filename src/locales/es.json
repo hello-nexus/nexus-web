@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Restaurar",
   "gallery.page.showMembers": "En la lista",
   "gallery.page.sources": "Fuentes",
+  "gallery.page.truncated": "Se muestran los primeros {count} elementos. Quita una fuente para ver otros.",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widgets)",
   "gallery.page.usage.dashboard": "Panel de apps",
