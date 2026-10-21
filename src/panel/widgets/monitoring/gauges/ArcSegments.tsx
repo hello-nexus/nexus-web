@@ -9,8 +9,9 @@ const SEGMENTS = 40;
 // Segments overlap by this fraction of their length so no seam shows between
 // two adjacent solid strokes.
 const OVERLAP = 0.6;
-// Extra mask width over the coloured band; see the mask path below.
-const MASK_BLEED = 4;
+// Extra segment width over the mask: the mask's antialiased edge then falls
+// outside the band, which would otherwise thin the stroke.
+const SEGMENT_BLEED = 4;
 
 export interface ArcGeometry {
   /** Centre of the arc's circle, in viewBox units. */
@@ -51,13 +52,15 @@ export function ArcSegments({ geometry, gradient, fillPercent }: {
   const sweepEnd = geometry.startDeg + geometry.sweepDeg;
   const arcLength = (geometry.sweepDeg / 360) * 2 * Math.PI * geometry.radius;
   const reveal = (Math.max(0, Math.min(100, fillPercent)) / 100) * arcLength;
-  // A closed ring has no gap: whatever sits before the start is the hot end,
-  // so nothing may poke past 12 o'clock in either direction. The mask starts
-  // one cap radius in (its round cap then lands exactly on the start) and the
-  // band's segments take butt caps; an open arc keeps round ends like its
-  // ungraded stroke.
+  // The mask is exactly the stroke width with round caps, so it shapes the
+  // ends like the ungraded stroke. A closed ring has no gap: whatever sits
+  // before the start is the hot end, so the mask starts one cap radius in (its
+  // round cap then lands exactly on the start) and the segments take butt caps.
+  // A complete ring drops the inset and caps, or two caps would leave a notch
+  // where the ends meet.
   const full = geometry.sweepDeg >= 360;
-  const capLength = full ? (geometry.strokeWidth + MASK_BLEED) / 2 : 0;
+  const complete = full && fillPercent >= 100;
+  const capLength = full && !complete ? geometry.strokeWidth / 2 : 0;
   const capDeg = (capLength / (2 * Math.PI * geometry.radius)) * 360;
   const maskStart = geometry.startDeg + capDeg;
   const dash = Math.max(0, reveal - 2 * capLength);
@@ -84,10 +87,8 @@ export function ArcSegments({ geometry, gradient, fillPercent }: {
           // accent's brightness instead of fully.
           fill="none"
           stroke="#fff"
-          // Wider than the band it reveals: at equal widths the mask's own
-          // antialiased edge multiplies the segments', thinning the stroke.
-          strokeWidth={geometry.strokeWidth + MASK_BLEED}
-          strokeLinecap="round"
+          strokeWidth={geometry.strokeWidth}
+          strokeLinecap={complete ? 'butt' : 'round'}
           strokeDasharray={`${dash.toFixed(3)} ${arcLength.toFixed(3)}`}
         />
       </mask>
@@ -98,7 +99,7 @@ export function ArcSegments({ geometry, gradient, fillPercent }: {
             d={seg.d}
             fill="none"
             stroke={seg.color}
-            strokeWidth={geometry.strokeWidth}
+            strokeWidth={geometry.strokeWidth + SEGMENT_BLEED}
             strokeLinecap={full ? 'butt' : 'round'}
           />
         ))}

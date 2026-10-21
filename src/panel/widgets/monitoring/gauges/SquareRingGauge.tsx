@@ -10,7 +10,7 @@ import styles from './CaterpillarGauge.module.scss';
 // dash mask, like the graded Ring.
 const SEGMENTS = 40;
 const OVERLAP = 0.6;
-const MASK_BLEED = 4;
+const SEGMENT_BLEED = 4;
 
 export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
@@ -20,8 +20,10 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
     [size?.width, size?.height],
   );
   // The mask starts one cap radius in so its round cap lands on the start and
-  // nothing pokes backward past it.
-  const capPercent = (((RING_STROKE + MASK_BLEED) / 2) / perimeter) * PATH_LENGTH;
+  // nothing pokes backward past it. A complete ring drops the inset and caps,
+  // or two caps would leave a notch where the ends meet.
+  const complete = clamped >= 100;
+  const capPercent = complete ? 0 : ((RING_STROKE / 2) / perimeter) * PATH_LENGTH;
   const segments = useMemo(() => {
     if (!gradient) return [];
     const step = PATH_LENGTH / SEGMENTS;
@@ -34,8 +36,8 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
   const maskId = gradient ? `${gradient.id}-square` : undefined;
 
   return (
-    <div className={styles.caterpillar}>
-      <svg ref={ref} className={styles.svg} viewBox={`0 0 ${width} ${height}`}>
+    <div ref={ref} className={styles.caterpillar}>
+      <svg className={styles.svg} viewBox={`0 0 ${width} ${height}`}>
         <path d={path} pathLength={PATH_LENGTH} className={styles.trackRing} />
         {gradient ? (
           <>
@@ -45,9 +47,9 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
                 pathLength={PATH_LENGTH}
                 fill="none"
                 stroke="#fff"
-                strokeWidth={RING_STROKE + MASK_BLEED}
-                strokeLinecap="round"
-                strokeDasharray={`${Math.max(0, clamped - 2 * capPercent)} ${PATH_LENGTH}`}
+                strokeWidth={RING_STROKE}
+                strokeLinecap={complete ? 'butt' : 'round'}
+                strokeDasharray={complete ? undefined : `${Math.max(0, clamped - 2 * capPercent)} ${PATH_LENGTH}`}
                 strokeDashoffset={-capPercent}
               />
             </mask>
@@ -59,7 +61,7 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
                   pathLength={PATH_LENGTH}
                   fill="none"
                   stroke={seg.color}
-                  strokeWidth={RING_STROKE}
+                  strokeWidth={RING_STROKE + SEGMENT_BLEED}
                   strokeDasharray={`${seg.length} ${PATH_LENGTH}`}
                   strokeDashoffset={-seg.start}
                 />

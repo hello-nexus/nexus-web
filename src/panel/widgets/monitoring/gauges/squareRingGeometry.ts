@@ -45,7 +45,7 @@ export function squareRingShape(slotWidth?: number, slotHeight?: number): Square
   const right = width - inset;
   const top = inset;
   const bottom = height - inset;
-  const r = Math.min(CORNER_RADIUS, (right - left) / 2, (bottom - top) / 2);
+  const r = CORNER_RADIUS;
   const mid = width / 2;
   const path = [
     `M ${mid} ${top}`,

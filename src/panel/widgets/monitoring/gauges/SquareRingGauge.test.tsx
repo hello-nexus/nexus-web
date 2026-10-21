@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { designFillsRoundFrame, designKeysForSlot } from '../perfSlots';
 import { designIsFill } from '../perfDomain';
 import { GAUGE_DESIGNS, GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from './index';
@@ -52,8 +53,17 @@ describe('squareRing geometry', () => {
   });
 
   it('keeps the Ring stylesheet stroke equal to the shared constant', () => {
-    const scss = readFileSync(resolve(process.cwd(), 'src/panel/widgets/monitoring/gauges/CaterpillarGauge.module.scss'), 'utf8');
+    const scss = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'CaterpillarGauge.module.scss'), 'utf8');
     expect(scss).toContain(`stroke-width: ${RING_STROKE};`);
+  });
+
+  it('closes a complete graded stroke without end caps', () => {
+    const gradient = { id: 'c', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
+    const { container } = render(<SquareRingGauge {...props} value={100} gradient={gradient} />);
+    const mask = container.querySelector('mask#c-square path')!;
+    expect(mask.getAttribute('stroke-linecap')).toBe('butt');
+    expect(mask.getAttribute('stroke-dasharray')).toBeNull();
+    expect(Number(mask.getAttribute('stroke-dashoffset'))).toBeCloseTo(0, 6);
   });
 
   it('reveals a graded stroke through a dash mask over the segments', () => {
@@ -62,10 +72,14 @@ describe('squareRing geometry', () => {
     const mask = container.querySelector('mask#g-square path')!;
     const [dash, gap] = mask.getAttribute('stroke-dasharray')!.split(' ').map(Number);
     const offset = Number(mask.getAttribute('stroke-dashoffset'));
-    expect(offset).toBeLessThan(0);
-    expect(dash).toBeCloseTo(50 + 2 * offset, 6);
+    const capPercent = (RING_STROKE / 2 / squareRingShape().perimeter) * PATH_LENGTH;
+    expect(mask.getAttribute('stroke-width')).toBe(String(RING_STROKE));
+    expect(offset).toBeCloseTo(-capPercent, 6);
+    expect(dash).toBeCloseTo(50 - 2 * capPercent, 6);
     expect(gap).toBe(PATH_LENGTH);
-    expect(container.querySelectorAll('g[mask] path')).toHaveLength(40);
+    const segments = container.querySelectorAll('g[mask] path');
+    expect(segments).toHaveLength(40);
+    segments.forEach(seg => expect(Number(seg.getAttribute('stroke-width'))).toBeGreaterThan(RING_STROKE));
     expect(container.querySelector('path[class*="fillRing"]')).toBeNull();
   });
 
@@ -98,5 +112,23 @@ describe('squareRing geometry', () => {
     for (const shape of [squareRingShape(), squareRingShape(200, 100), squareRingShape(100, 200)]) {
       expect(shape.path).toContain(`A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1`);
     }
+  });
+
+  describe('measured slot', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('stretches the viewBox and the mask cap to the measured box', () => {
+      vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
+      const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200);
+      const height = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100);
+      const gradient = { id: 'm', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
+      const { container } = render(<SquareRingGauge {...props} value={50} gradient={gradient} />);
+      width.mockRestore();
+      height.mockRestore();
+      expect(container.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 200 100');
+      const mask = container.querySelector('mask#m-square path')!;
+      const capPercent = (RING_STROKE / 2 / squareRingShape(200, 100).perimeter) * PATH_LENGTH;
+      expect(Number(mask.getAttribute('stroke-dashoffset'))).toBeCloseTo(-capPercent, 6);
+    });
   });
 });
