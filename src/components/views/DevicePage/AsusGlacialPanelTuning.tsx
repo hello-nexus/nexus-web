@@ -13,6 +13,8 @@ import {
   type GlacialScaleMode,
   type GlacialTuning,
   type GlacialTuningSettings,
+  type GlacialTuningAction,
+  GLACIAL_TUNING_UNAVAILABLE,
 } from '../../../api/asus-glacial-lcd';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -21,7 +23,11 @@ import styles from './LianLiDevicePage.module.scss';
 
 const POLL_MS = 1000;
 const IDLE_COMMIT_MS = 3000;
-const SCALE_STEPS = [25, 33, 50, 75, 100] as const;
+// The service snaps the frame to 9:16 on 8 px blocks, so these are the real steps.
+const SCALE_MIN = 30;
+const SCALE_STEP = 10;
+const BLOCK_W = 72;
+const BLOCK_H = 128;
 const SCALE_MODES: readonly GlacialScaleMode[] = ['send', 'upscale'];
 const SCALE_MODE_KEYS: Record<GlacialScaleMode, string> = {
   send: 'devices.asus-glacial-lcd.tuning.scaleModeSend',
@@ -53,6 +59,8 @@ export function AsusGlacialPanelTuning() {
   const abortRef = useRef<AbortController | null>(null);
   const pollingRef = useRef(false);
   const refreshQueuedRef = useRef(false);
+  // The service answers 409 to every tuning route while panel mode is off: stop calling and stay quiet.
+  const offRef = useRef(false);
   // A field is protected from the poll while the user holds it (previewed, not yet committed)
   // or while any write for it is in flight.
   const gestureRef = useRef(new Map<keyof GlacialTuningSettings, { value: unknown; timer: number }>());
@@ -76,7 +84,7 @@ export function AsusGlacialPanelTuning() {
   }, []);
 
   const refresh = useCallback(async (force = false) => {
-    if (document.hidden) return;
+    if (document.hidden || offRef.current) return;
     if (pollingRef.current) {
       if (force) refreshQueuedRef.current = true;
       return;
@@ -86,6 +94,10 @@ export function AsusGlacialPanelTuning() {
     try {
       const next = await getGlacialTuning(abortRef.current?.signal);
       if (!aliveRef.current || next === null) return;
+      if (next === GLACIAL_TUNING_UNAVAILABLE) {
+        offRef.current = true;
+        return;
+      }
       applyFresh(next, gen === writeGenRef.current);
     } catch {
       // A failed read leaves the last view; the next tick tries again.
@@ -116,6 +128,14 @@ export function AsusGlacialPanelTuning() {
 
   const commit = useCallback(async (patch: Partial<GlacialTuningSettings>) => {
     const keys = Object.keys(patch) as Array<keyof GlacialTuningSettings>;
+    if (offRef.current) {
+      for (const key of keys) {
+        const g = gestureRef.current.get(key);
+        if (g) window.clearTimeout(g.timer);
+        gestureRef.current.delete(key);
+      }
+      return;
+    }
     for (const key of keys) {
       const g = gestureRef.current.get(key);
       if (g) window.clearTimeout(g.timer);
@@ -123,13 +143,17 @@ export function AsusGlacialPanelTuning() {
       inflightRef.current.set(key, (inflightRef.current.get(key) ?? 0) + 1);
     }
     writeGenRef.current += 1;
-    let next: GlacialTuning | null = null;
+    let next: GlacialTuning | typeof GLACIAL_TUNING_UNAVAILABLE | null = null;
     try {
       next = await setGlacialTuning(patch);
     } catch {
       next = null;
     }
     for (const key of keys) inflightRef.current.set(key, Math.max(0, (inflightRef.current.get(key) ?? 1) - 1));
+    if (next === GLACIAL_TUNING_UNAVAILABLE) {
+      offRef.current = true;
+      return;
+    }
     // The toast is global, so a failure is told even when this card is gone.
     if (next === null) push({ title: t('devices.asus-glacial-lcd.failedTitle'), body: t('devices.asus-glacial-lcd.failedBody') });
     if (!aliveRef.current) return;
@@ -154,14 +178,19 @@ export function AsusGlacialPanelTuning() {
     void commit(local);
   }, [preview, commit]);
 
-  const act = useCallback(async (run: () => Promise<boolean>) => {
-    let ok = false;
+  const act = useCallback(async (run: () => Promise<GlacialTuningAction>) => {
+    if (offRef.current) return;
+    let result: GlacialTuningAction = 'failed';
     try {
-      ok = await run();
+      result = await run();
     } catch {
-      ok = false;
+      result = 'failed';
     }
-    if (!ok) push({ title: t('devices.asus-glacial-lcd.failedTitle'), body: t('devices.asus-glacial-lcd.failedBody') });
+    if (result === GLACIAL_TUNING_UNAVAILABLE) {
+      offRef.current = true;
+      return;
+    }
+    if (result !== 'ok') push({ title: t('devices.asus-glacial-lcd.failedTitle'), body: t('devices.asus-glacial-lcd.failedBody') });
     void refresh();
   }, [push, t, refresh]);
 
@@ -170,7 +199,7 @@ export function AsusGlacialPanelTuning() {
   const stats = tuning?.stats;
 
   const slider = (
-    key: 'maxFps' | 'pacePercent' | 'jpegQuality' | 'chunkKb',
+    key: 'maxFps' | 'pacePercent' | 'scalePercent' | 'jpegQuality' | 'chunkKb',
     label: string,
     hint: string,
     min: number,
@@ -216,18 +245,10 @@ export function AsusGlacialPanelTuning() {
         disabled={!ready}
         onChange={on => edit({ replyDriven: on })}
       />
-      <SettingRow
-        label={t('devices.asus-glacial-lcd.tuning.scalePercent')}
-        description={t('devices.asus-glacial-lcd.tuning.scalePercentHint')}
-        descriptionBelow
-      >
-        <ChipGroup
-          ariaLabel={t('devices.asus-glacial-lcd.tuning.scalePercent')}
-          activeKey={String(s?.scalePercent ?? '')}
-          options={SCALE_STEPS.map(n => ({ key: String(n), label: localizeNumbers(`${n}%`, numberFormat), disabled: !ready }))}
-          onChange={key => edit({ scalePercent: Number(key) })}
-        />
-      </SettingRow>
+      {slider('scalePercent', t('devices.asus-glacial-lcd.tuning.scalePercent'), t('devices.asus-glacial-lcd.tuning.scalePercentHint'), SCALE_MIN, 100, SCALE_STEP, v => {
+        const k = v / SCALE_STEP;
+        return localizeNumbers(`${v}% (${BLOCK_W * k}x${BLOCK_H * k})`, numberFormat);
+      })}
       <SettingRow
         label={t('devices.asus-glacial-lcd.tuning.scaleMode')}
         description={t('devices.asus-glacial-lcd.tuning.scaleModeHint')}

@@ -1,4 +1,4 @@
-import { fetchService, postService, putService } from './service';
+import { authFetchWithStatus, fetchService, putService } from './service';
 
 export type GlacialMode = 'static' | 'animated' | 'monitor' | 'panel';
 
@@ -104,23 +104,44 @@ function isTuning(body: GlacialTuning | null): body is GlacialTuning {
     && typeof body.stats === 'object' && body.stats !== null;
 }
 
-export async function getGlacialTuning(signal?: AbortSignal): Promise<GlacialTuning | null> {
-  const body = await fetchService<GlacialTuning>(`${BASE}/tuning`, signal);
+/** The service answers 409 to every tuning route while Nexus panel mode is not offered. */
+export const GLACIAL_TUNING_UNAVAILABLE = 'unavailable';
+export type GlacialTuningUnavailable = typeof GLACIAL_TUNING_UNAVAILABLE;
+const CONFLICT = 409;
+
+async function parseJson<T>(response: Response | null): Promise<T | null> {
+  if (!response) return null;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function getGlacialTuning(signal?: AbortSignal): Promise<GlacialTuning | GlacialTuningUnavailable | null> {
+  const { response, status } = await authFetchWithStatus(`${BASE}/tuning`, { cache: 'no-store', signal });
+  if (status === CONFLICT) return GLACIAL_TUNING_UNAVAILABLE;
+  const body = await parseJson<GlacialTuning>(response);
   return isTuning(body) ? body : null;
 }
 
-/** Resolves the fresh tuning, or null when the service refused the change. */
-export async function setGlacialTuning(patch: Partial<GlacialTuningSettings>): Promise<GlacialTuning | null> {
-  const body = await putService<GlacialTuning>(`${BASE}/tuning`, patch);
+/** Resolves the fresh tuning, 'unavailable' on a 409, or null when the service refused or did not answer. */
+export async function setGlacialTuning(patch: Partial<GlacialTuningSettings>): Promise<GlacialTuning | GlacialTuningUnavailable | null> {
+  const { response, status } = await authFetchWithStatus(`${BASE}/tuning`, { method: 'PUT', body: patch });
+  if (status === CONFLICT) return GLACIAL_TUNING_UNAVAILABLE;
+  const body = await parseJson<GlacialTuning>(response);
   return isTuning(body) ? body : null;
 }
 
-export async function resetGlacialTuningStats(): Promise<boolean> {
-  const res = await postService<{ error: boolean; msg: string }>(`${BASE}/tuning/reset-stats`, {});
-  return res !== null && !res.error;
+export type GlacialTuningAction = 'ok' | 'unavailable' | 'failed';
+
+async function tuningAction(path: string): Promise<GlacialTuningAction> {
+  const { response, status } = await authFetchWithStatus(path, { method: 'POST', body: {} });
+  if (status === CONFLICT) return GLACIAL_TUNING_UNAVAILABLE;
+  const body = await parseJson<{ error: boolean; msg: string }>(response);
+  return body !== null && !body.error ? 'ok' : 'failed';
 }
 
-export async function resumeGlacialTuning(): Promise<boolean> {
-  const res = await postService<{ error: boolean; msg: string }>(`${BASE}/tuning/resume`, {});
-  return res !== null && !res.error;
-}
+export const resetGlacialTuningStats = (): Promise<GlacialTuningAction> => tuningAction(`${BASE}/tuning/reset-stats`);
+
+export const resumeGlacialTuning = (): Promise<GlacialTuningAction> => tuningAction(`${BASE}/tuning/resume`);

@@ -20,6 +20,7 @@ vi.mock('../../../api/asus-glacial-lcd', () => ({
   setGlacialTuning: (patch: unknown) => mockSet(patch),
   resetGlacialTuningStats: () => mockReset(),
   resumeGlacialTuning: () => mockResume(),
+  GLACIAL_TUNING_UNAVAILABLE: 'unavailable',
 }));
 
 const tuning = (over: { settings?: object; stats?: object } = {}) => ({
@@ -43,8 +44,8 @@ describe('AsusGlacialPanelTuning', () => {
   beforeEach(() => {
     mockGet.mockReset();
     mockSet.mockReset();
-    mockReset.mockReset().mockResolvedValue(true);
-    mockResume.mockReset().mockResolvedValue(true);
+    mockReset.mockReset().mockResolvedValue('ok');
+    mockResume.mockReset().mockResolvedValue('ok');
     mockPush.mockReset();
   });
 
@@ -68,10 +69,8 @@ describe('AsusGlacialPanelTuning', () => {
     expect(mockSet).toHaveBeenCalledWith({ replyDriven: true });
   });
 
-  it('applies the scale step and mode chips', async () => {
+  it('applies the scale mode chip at once', async () => {
     await mount();
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: '75%' })); });
-    expect(mockSet).toHaveBeenCalledWith({ scalePercent: 75 });
     await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.tuning.scaleModeUpscale' })); });
     expect(mockSet).toHaveBeenCalledWith({ scaleMode: 'upscale' });
   });
@@ -234,5 +233,38 @@ describe('AsusGlacialPanelTuning slider edits against the poll', () => {
     await act(async () => { render(<AsusGlacialPanelTuning />); });
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(mockGet).toHaveBeenCalledTimes(1);
+  });
+
+  const scaleSlider = () => screen.getByRole('slider', { name: /scalePercent/ }) as HTMLInputElement;
+
+  it('offers the real frame sizes from 30 to 100 percent in steps of 10', async () => {
+    await mountReal();
+    const slider = scaleSlider();
+    expect([slider.min, slider.max, slider.step]).toEqual(['30', '100', '10']);
+    expect(screen.getByText('50% (360x640)')).toBeInTheDocument();
+    await act(async () => { fireEvent.change(slider, { target: { value: '70' } }); });
+    expect(screen.getByText('70% (504x896)')).toBeInTheDocument();
+    await act(async () => { fireEvent.pointerUp(slider); await vi.advanceTimersByTimeAsync(10); });
+    expect(mockSet).toHaveBeenCalledWith({ scalePercent: 70 });
+  });
+
+  it('stays quiet and stops calling once the service answers 409', async () => {
+    mockGet.mockResolvedValueOnce(tuning());
+    mockSet.mockResolvedValue('unavailable');
+    await act(async () => { render(<AsusGlacialPanelTuning />); });
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '30' } }); });
+    await act(async () => { fireEvent.pointerUp(paceSlider()); await vi.advanceTimersByTimeAsync(10); });
+    expect(mockPush).not.toHaveBeenCalled();
+    const calls = mockGet.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(mockGet.mock.calls.length).toBe(calls);
+  });
+
+  it('stops polling when a read answers 409', async () => {
+    mockGet.mockResolvedValue('unavailable');
+    await act(async () => { render(<AsusGlacialPanelTuning />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });
