@@ -177,7 +177,7 @@ function paintLook(
 
   // An area-sampled device is fed boxes' means the web cannot reproduce, so without the device's own bytes
   // (older service, relay connection, lighting off) the readout shows nothing rather than a wrong spot read.
-  if (device.areaSampling) {
+  if (device.sampling && device.sampling !== 'led') {
     ctx.clearRect(0, 0, cells, 1);
     return;
   }

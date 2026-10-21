@@ -66,7 +66,7 @@ describe('DeviceCanvas', () => {
 
   it('outlines each LED cell for an area-sampling device, skips empty cells, and draws dots otherwise', () => {
     const leds = { a: [{ index: 0, u: 0.5, v: 0.5 }], b: [{ index: 0, u: 0.5, v: 0.5 }] } as never;
-    const a = { ...dragDevice('a', 'A'), areaSampling: true, areaCells: [LEFT, [], RIGHT] } as LightingDevice;
+    const a = { ...dragDevice('a', 'A'), sampling: 'nearest', areaCells: [LEFT, [], RIGHT] } as LightingDevice;
     const { container } = render(
       <DeviceCanvas
         devices={[a, dragDevice('b', 'B')]}
@@ -84,7 +84,7 @@ describe('DeviceCanvas', () => {
   });
 
   it('shows no sibling dots beside an area-sampled card unless the sibling is the selected slot', () => {
-    const keys = { ...dragDevice('keys', 'Keys'), areaSampling: true, areaCells: [LEFT, RIGHT] } as LightingDevice;
+    const keys = { ...dragDevice('keys', 'Keys'), sampling: 'nearest', areaCells: [LEFT, RIGHT] } as LightingDevice;
     const under = dragDevice('under', 'Under');
     const leds = { keys: [{ index: 0, u: 0.5, v: 0.5 }], under: [{ index: 0, u: 0.1, v: 0.1 }] } as never;
     const mount = (primary: string) => render(
@@ -110,7 +110,7 @@ describe('DeviceCanvas', () => {
   it('a locked LED cell outline wears its color', () => {
     const a = {
       ...dragDevice('a', 'A'),
-      areaSampling: true, areaCells: [LEFT, RIGHT],
+      sampling: 'nearest', areaCells: [LEFT, RIGHT],
       ledColors: [{ index: 1, color: '#ff0000' }],
     } as unknown as LightingDevice;
     const { container } = render(

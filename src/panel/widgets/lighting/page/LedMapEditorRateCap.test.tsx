@@ -94,7 +94,7 @@ describe('LedMapEditor area sampling boxes', () => {
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'nearest', areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,
@@ -108,7 +108,7 @@ describe('LedMapEditor area sampling boxes', () => {
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'nearest', areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,
@@ -120,7 +120,7 @@ describe('LedMapEditor area sampling boxes', () => {
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'nearest', areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,
@@ -136,7 +136,7 @@ describe('LedMapEditor area sampling boxes', () => {
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: false, areaCells: undefined }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'led', areaCells: undefined }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,

@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
-import { Toggle } from '../../../../components/common/Toggle/Toggle';
+import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { useTranslation } from '../../../../lib/i18n';
-import { setLightingAreaSampling } from '../../../../api/lighting';
+import { setLightingSampling, type SamplingMode } from '../../../../api/lighting';
 import styles from './LedMapEditor.module.scss';
 
 interface Props {
   id: string;
-  value: boolean;
+  value: SamplingMode;
   onFail: () => void;
   /** Called after the newest save succeeds, so the parent refetches the device list. */
   onSaved?: () => void;
 }
 
-/** Per-device Area sampling. Applies on toggle; reverts when the save fails. */
-export function AreaSamplingToggle({ id, value, onFail, onSaved }: Props) {
+/** Per-device sampling mode. Applies on change; reverts when the save fails. */
+export function SamplingModeSelect({ id, value, onFail, onSaved }: Props) {
   const { t } = useTranslation();
-  const [current, setCurrent] = useState(value);
+  const [current, setCurrent] = useState<SamplingMode>(value);
   // Newest request wins, as in RateCapSelect.
   const seq = useRef(0);
   const pending = useRef(new Set<number>());
@@ -32,7 +32,15 @@ export function AreaSamplingToggle({ id, value, onFail, onSaved }: Props) {
     setCurrent(value);
   }, [value, id]);
 
-  const handleChange = (next: boolean) => {
+  const options: SelectOption[] = [
+    { value: 'led', label: t('lighting.ledMap.samplingLed') },
+    { value: 'nearest', label: t('lighting.ledMap.samplingNearest') },
+    { value: 'rows', label: t('lighting.ledMap.samplingRows') },
+    { value: 'columns', label: t('lighting.ledMap.samplingColumns') },
+  ];
+
+  const handleChange = (v: string) => {
+    const next = v as SamplingMode;
     const prev = current;
     const mine = ++seq.current;
     pending.current.add(mine);
@@ -42,7 +50,7 @@ export function AreaSamplingToggle({ id, value, onFail, onSaved }: Props) {
       setCurrent(prev);
       onFail();
     };
-    setLightingAreaSampling(id, next)
+    setLightingSampling(id, next)
       .then(r => {
         pending.current.delete(mine);
         if (!r || r.error) fail();
@@ -56,9 +64,9 @@ export function AreaSamplingToggle({ id, value, onFail, onSaved }: Props) {
 
   return (
     <div className={styles.rateCapField}>
-      <span>{t('lighting.ledMap.areaSampling')}</span>
-      <InfoTooltip message={t('lighting.ledMap.areaSamplingHint')} side="top" />
-      <Toggle checked={current} onChange={handleChange} ariaLabel={t('lighting.ledMap.areaSampling')} />
+      <span>{t('lighting.ledMap.sampling')}</span>
+      <InfoTooltip message={t('lighting.ledMap.samplingHint')} side="top" />
+      <Select value={current} onChange={handleChange} options={options} ariaLabel={t('lighting.ledMap.sampling')} />
     </div>
   );
 }

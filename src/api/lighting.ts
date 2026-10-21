@@ -440,6 +440,9 @@ export const setLockBlackout = (enabled: boolean) =>
 
 // --- Device list ---
 
+export const SAMPLING_MODES = ['led', 'nearest', 'rows', 'columns'] as const;
+export type SamplingMode = (typeof SAMPLING_MODES)[number];
+
 export interface LightingDevice {
   id: string;
   /** What the UI shows: the user's custom name once the card is renamed, the hardware name otherwise. */
@@ -467,9 +470,9 @@ export interface LightingDevice {
   rateCapSupported?: boolean;
   /** The user's frame-rate cap in FPS; null = Off. */
   maxRateHz?: number | null;
-  /** Each LED shows the average of the area around it instead of a spot. */
-  areaSampling?: boolean;
-  /** One polygon per card LED, [u0, v0, u1, v1, ...] in the frame's unrotated 0..1 space (v down), covering the frame with no overlap. Empty for a disabled LED. Absent when off. */
+  /** How each LED reads the effect: its own spot, or the nearest area split as cells, rows or columns. */
+  sampling?: SamplingMode;
+  /** One polygon per card LED, [u0, v0, u1, v1, ...] in the frame's unrotated 0..1 space (v down), covering the frame with no overlap. Empty for a disabled LED. Present only when sampling is not 'led'. */
   areaCells?: number[][];
   ledCount: number;
   /** The byte the lighting output frame tags this device's LEDs with. Absent on
@@ -754,9 +757,9 @@ export const setLightingColorAdjust = (ids: string[], patch: LightingColorAdjust
 export const setLightingMaxRate = (id: string, maxRateHz: number | null) =>
   postService<ApiEnvelope>('/devices/lighting-devices/max-rate', { id, maxRateHz });
 
-// Per-device Area sampling: each LED averages a box around it.
-export const setLightingAreaSampling = (id: string, enabled: boolean) =>
-  postService<ApiEnvelope>('/devices/lighting-devices/area-sampling', { id, enabled });
+// Per-device sampling mode.
+export const setLightingSampling = (id: string, mode: SamplingMode) =>
+  postService<ApiEnvelope>('/devices/lighting-devices/sampling', { id, mode });
 
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.

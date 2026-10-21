@@ -27,7 +27,7 @@ import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import { LedColorLockSection } from './LedColorLockSection';
 import { RateCapSelect } from './RateCapSelect';
-import { AreaSamplingToggle } from './AreaSamplingToggle';
+import { SamplingModeSelect } from './SamplingModeSelect';
 import { AreaCells } from '../../../../components/common/AreaCells/AreaCells';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
@@ -1450,7 +1450,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [draftCells, setDraftCells] = useState<{ id: string; cells: number[][] } | null>(null);
   const draftCellsSeq = useRef(0);
   // Toggling the mode makes any held draft cells stale.
-  const areaOn = devices.find(d => d.id === selectedZoneId)?.areaSampling;
+  const areaOn = devices.find(d => d.id === selectedZoneId)?.sampling;
   useEffect(() => { draftCellsSeq.current += 1; setDraftCells(null); }, [areaOn, selectedZoneId]);
 
   useEffect(() => {
@@ -2470,8 +2470,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             >
             </div>
 
-            {/* Area sampling: the box each LED averages, under the dots. Follows the cells the service returns for the draft layout, else the card's latest. */}
-            {zoneCard?.areaSampling && (draftCells?.id === zoneCard.id ? draftCells.cells : zoneCard.areaCells)?.length ? (() => {
+            {/* Sampling modes other than LED: the cell each LED reads, under the dots. Follows the cells the service returns for the draft layout, else the card's latest. */}
+            {zoneCard?.sampling && zoneCard.sampling !== 'led' && (draftCells?.id === zoneCard.id ? draftCells.cells : zoneCard.areaCells)?.length ? (() => {
               const pad = getPadPercent();
               return (
                 <AreaCells
@@ -2845,11 +2845,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </button>
             ) : <span />}
             <div className={styles.saveGroup}>
-              {zoneCard && zoneCard.areaSampling !== undefined && (
-                <AreaSamplingToggle
+              {zoneCard && zoneCard.sampling !== undefined && (
+                <SamplingModeSelect
                   id={zoneCard.id}
-                  value={zoneCard.areaSampling}
-                  onFail={() => push({ title: t('lighting.ledMap.areaSamplingFailed') })}
+                  value={zoneCard.sampling}
+                  onFail={() => push({ title: t('lighting.ledMap.samplingFailed') })}
                   onSaved={onRateCapChanged}
                 />
               )}

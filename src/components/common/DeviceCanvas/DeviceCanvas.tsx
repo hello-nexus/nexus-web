@@ -926,7 +926,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
         const frameHasBoxes = shownMembers.some(m => {
           if (foreignFrames?.has(m)) return false;
           const d = devices.find(x => x.id === m);
-          return !!(d?.areaSampling && d.areaCells?.length);
+          return !!(d?.sampling && d.sampling !== 'led' && d.areaCells?.length);
         });
         const foreign = !!foreignFrames && shownMembers.length > 0 && shownMembers.every(id => foreignFrames.has(id));
         // The canvas is held at the unit space's 5:3, so a turn in units is a
@@ -958,7 +958,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
                 const locked = ledColorsById.get(id);
                 const member = devices.find(d => d.id === id);
-                if (member?.areaSampling && member.areaCells?.length) {
+                if (member?.sampling && member.sampling !== 'led' && member.areaCells?.length) {
                   return [(
                     <AreaCells
                       key={`${id}:cells`}
