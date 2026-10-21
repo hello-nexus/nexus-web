@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Geri yükle",
   "gallery.page.showMembers": "Çalma listesinde",
   "gallery.page.sources": "Kaynaklar",
+  "gallery.page.truncated": "İlk {count} öğe gösteriliyor. Diğerlerini görmek için bir kaynağı kaldırın.",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widget)",
   "gallery.page.usage.dashboard": "Uygulamalar panosu",

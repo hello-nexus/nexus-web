@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "恢复",
   "gallery.page.showMembers": "在播放列表中",
   "gallery.page.sources": "来源",
+  "gallery.page.truncated": "正在显示前 {count} 个项目。移除一个来源即可查看其他项目。",
   "gallery.page.usage.count.one": "{name}（{count} 个小组件）",
   "gallery.page.usage.count.other": "{name}（{count} 个小组件）",
   "gallery.page.usage.dashboard": "应用仪表板",

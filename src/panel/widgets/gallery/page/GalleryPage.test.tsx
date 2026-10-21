@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryPage } from './GalleryPage';
+import { fetchServiceBlob } from '../../../../api/service';
 
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
@@ -8,13 +9,14 @@ const mockState = vi.hoisted(() => ({
   playlists: [] as { id: string; name: string; createdAtUnixMs: number; sourceIds: string[]; itemIds: string[]; excludedIds: string[] }[],
   uses: [] as { surface: 'dashboard' | 'panel' | 'desktop'; name: string; count: number }[] | null,
   bridgeAvailable: false,
+  truncated: false,
 }));
 
 vi.mock('../../../../api/gallery', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../api/gallery')>()),
   GALLERY_ERROR_DUPLICATE: 'duplicate',
   fetchGallerySources: vi.fn(() => Promise.resolve({ sources: mockState.sources })),
-  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists })),
+  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists, truncated: mockState.truncated })),
   createGalleryPlaylist: vi.fn((name: string) => {
     const playlist = { id: 'pl-new', name, createdAtUnixMs: 1, sourceIds: [], itemIds: [], excludedIds: [] };
     mockState.playlists = [...mockState.playlists, playlist];
@@ -75,7 +77,13 @@ beforeEach(() => {
   mockState.playlists = [];
   mockState.uses = [];
   mockState.bridgeAvailable = false;
+  mockState.truncated = false;
   vi.clearAllMocks();
+  let n = 0;
+  vi.stubGlobal('URL', Object.assign(URL, {
+    createObjectURL: vi.fn(() => `blob:t${n++}`),
+    revokeObjectURL: vi.fn(),
+  }));
 });
 
 describe('GalleryPage', () => {
@@ -410,5 +418,47 @@ describe('GalleryPage', () => {
       expect(await screen.findByText('gallery.page.deletePlaylistNote')).toBeTruthy();
       expect(screen.getByText('gallery.page.deletePlaylistMessage:name=Desk')).toBeTruthy();
     });
+  });
+});
+
+describe('GalleryPage paging', () => {
+  const many = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `i${i}`, name: `p${i}.png`, sourceId: 'Pictures' }));
+
+  it('renders one page of tiles and fetches thumbnails for that page only', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(250);
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    const { container } = render(<GalleryPage />);
+    await waitFor(() => expect(container.querySelectorAll('figure')).toHaveLength(100));
+    await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100));
+    expect(screen.getByText('common.pager.pageOf:n=1:total=3')).toBeTruthy();
+  });
+
+  it('paging fetches the next page and revokes pages left behind', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(450);
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    render(<GalleryPage />);
+    await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100));
+
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByLabelText('common.pager.next'));
+      await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100 * (i + 2)));
+    }
+    // Pages 1 and 2 left the window when page 4 opened.
+    await waitFor(() => expect(vi.mocked(URL.revokeObjectURL)).toHaveBeenCalledTimes(200));
+  });
+
+  it('shows the truncation notice only when the service flags it', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(2);
+    const { unmount } = render(<GalleryPage />);
+    await screen.findByText('Pictures');
+    expect(screen.queryByText(/gallery.page.truncated/)).toBeNull();
+    unmount();
+
+    mockState.truncated = true;
+    render(<GalleryPage />);
+    expect(await screen.findByText(/gallery.page.truncated/)).toBeTruthy();
   });
 });

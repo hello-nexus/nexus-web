@@ -2046,6 +2046,7 @@
   "gallery.page.restore": "Восстановить",
   "gallery.page.showMembers": "В плейлисте",
   "gallery.page.sources": "Источники",
+  "gallery.page.truncated": "Показаны первые {count} элементов. Удалите источник, чтобы увидеть остальные.",
   "gallery.page.usage.count.few": "{name} ({count} виджета)",
   "gallery.page.usage.count.one": "{name} ({count} виджет)",
   "gallery.page.usage.count.other": "{name} ({count} виджетов)",

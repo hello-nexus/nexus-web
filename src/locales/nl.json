@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Herstellen",
   "gallery.page.showMembers": "In afspeellijst",
   "gallery.page.sources": "Bronnen",
+  "gallery.page.truncated": "De eerste {count} items worden getoond. Verwijder een bron om andere te zien.",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widgets)",
   "gallery.page.usage.dashboard": "Apps-dashboard",

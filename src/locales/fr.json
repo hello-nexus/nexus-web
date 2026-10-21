@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Restaurer",
   "gallery.page.showMembers": "Dans la playlist",
   "gallery.page.sources": "Sources",
+  "gallery.page.truncated": "Affichage des {count} premiers éléments. Retirez une source pour en voir d'autres.",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widgets)",
   "gallery.page.usage.dashboard": "Tableau de bord Apps",
