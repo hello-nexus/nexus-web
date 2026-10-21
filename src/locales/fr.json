@@ -3934,7 +3934,6 @@
   "panel.editor.slotSplitColumns": "2 côte à côte",
   "panel.editor.slotSplitRows": "2 superposés",
   "panel.editor.slots": "Emplacements",
-  "panel.freeform.body": "Déplacer {name}. Appuyez sur Entrée pour terminer le redimensionnement.",
   "panel.freeform.frame": "{name}, redimensionnement libre",
   "panel.freeform.handle.bottomLeft": "Redimensionner {name} depuis le coin inférieur gauche",
   "panel.freeform.handle.bottomRight": "Redimensionner {name} depuis le coin inférieur droit",

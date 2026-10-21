@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Lock, SatelliteDish } from 'lucide-react';
 import {
-  DndContext, DragOverlay, MeasuringStrategy, PointerSensor,
+  DndContext, DragOverlay, MeasuringStrategy, PointerSensor, type PointerSensorOptions,
   useSensor, useSensors,
   type DragMoveEvent,
   type DragOverEvent,
@@ -106,6 +106,7 @@ import {
   type PanelSurface,
   type PanelWidget,
   type PanelWidgetSize,
+  type ForcedGrid,
 } from './types';
 import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
@@ -178,7 +179,7 @@ import {
 } from './dnd/PanelDragCells';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
-import { clampFreeformSize, cornerRoom, freeformSnapSpans } from './engine/freeformResize';
+import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
 import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
@@ -188,6 +189,40 @@ import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
 const NO_SPANS: readonly GridSpan[] = [];
+const NO_ROOM = { tl: false, tr: false, bl: false, br: false };
+
+// Corners snap to a widget's declared sizes that fit; opted-in widgets also get the even spans beyond the declared sizes.
+function resizeSpansForType(
+  type: string,
+  surface: PanelSurface,
+  deviceTouch: boolean | undefined,
+  forcedGrid: ForcedGrid | undefined,
+  bounds: { cols: number; rows: number },
+): GridSpan[] {
+  const meta = lookupApp(type)?.meta;
+  if (!meta || isSingleWidgetSurface(surface)) return [];
+  const declared = sizesForSurface(meta, surface, deviceTouch, forcedGrid).filter(size => size !== '2x2round');
+  return freeformSnapSpans(declared, bounds, Boolean(meta.freeform));
+}
+// A press that stays this close and ends within a hold is a tap, not the start of a drag.
+const FREEFORM_TAP_SLOP_PX = 4;
+const FREEFORM_TAP_MAX_MS = PANEL_CONTEXT_MENU_TRIGGER_MS;
+const DRAG_DISTANCE_PX = 6;
+
+// Both drag sensors register on every cell and dnd-kit lets the last-registered activator take a press, which in resize mode is this one.
+// Presses on any other tile never reach it: the capture-phase swallow ends the mode first.
+const onResizeTile = (event: Event) => event.target instanceof Element && event.target.closest('[data-resize-selected="true"]') !== null;
+const pointerActivator = (accept: (event: PointerEvent) => boolean) => [{
+  eventName: 'onPointerDown' as const,
+  handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }, { onActivation }: PointerSensorOptions) => {
+    if (!event.isPrimary || event.button !== 0 || !accept(event)) return false;
+    onActivation?.({ event });
+    return true;
+  },
+}];
+class ResizeTilePointerSensor extends PointerSensor {
+  static activators = pointerActivator(onResizeTile);
+}
 
 export interface PanelLayoutState {
   layout: PanelLayout;
@@ -856,38 +891,44 @@ export function PanelContent({
   // The dashboard has one page by design; a panel without touch has no way to swipe.
   const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
 
-  // Resize mode is entered from the widget context menu and ends on a press outside the frame.
+  // Resize mode is entered from the widget context menu.
   // Hovering a tile with a mouse shows the same corners without the mode.
   const [freeformId, setFreeformId] = useState<string | null>(null);
   const [hoverResizeId, setHoverResizeId] = useState<string | null>(null);
   const resizeGestureRef = useRef(false);
   const freeformWidget = freeformId ? findWidgetById(paginatedLayout, freeformId) : undefined;
-  const resizeBounds = { cols: Math.max(1, capacity.gridCols), rows: Math.max(1, capacity.pageRows) };
-  // Corners snap to the widget's declared sizes that fit; opted-in widgets also get the even spans beyond the declared sizes.
-  const resizeSpansFor = (type: string): GridSpan[] => {
-    const meta = lookupApp(type)?.meta;
-    if (!meta || isSingleWidgetSurface(surface)) return [];
-    const declared = sizesForSurface(meta, surface, deviceTouch, forcedGrid).filter(size => size !== '2x2round');
-    return freeformSnapSpans(declared, resizeBounds, Boolean(meta.freeform));
-  };
-  const canResizeType = (type: string) => dragEditable && resizeSpansFor(type).length > 1;
+  const resizeCols = Math.max(1, capacity.gridCols);
+  const resizeRows = Math.max(1, capacity.pageRows);
+  const resizeBounds = useMemo(() => ({ cols: resizeCols, rows: resizeRows }), [resizeCols, resizeRows]);
+  const canResizeType = (type: string) => dragEditable && resizeSpansForType(type, surface, deviceTouch, forcedGrid, resizeBounds).length > 1;
   const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type));
   const hoverWidget = !freeformId && hoverResizeId ? findWidgetById(paginatedLayout, hoverResizeId) : undefined;
   const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type));
   const cornerTarget = freeformActive ? freeformWidget : hoverActive ? hoverWidget : undefined;
+  const cornerTargetId = cornerTarget?.id;
+  const cornerType = cornerTarget?.type;
   const freeformDef = cornerTarget ? lookupApp(cornerTarget.type) : undefined;
-  const freeformSpans = cornerTarget ? resizeSpansFor(cornerTarget.type) : NO_SPANS;
-  const freeformRoom = (w: PanelWidget) => {
-    const span = sizeToSpan(w.size);
-    return cornerRoom({ col: w.col, row: w.row, cols: span.cols, rows: span.rows }, freeformSpans, resizeBounds);
-  };
+  const freeformSpans = useMemo(
+    () => (cornerType ? resizeSpansForType(cornerType, surface, deviceTouch, forcedGrid, resizeBounds) : NO_SPANS),
+    [cornerType, surface, deviceTouch, forcedGrid, resizeBounds],
+  );
+  // Computed from the layout the tile stands in (not a gesture's draft) and only for the tile showing corners,
+  // since each corner solves a placement per candidate span.
+  const cornerRooms = useMemo(() => {
+    const widget = cornerTargetId ? findWidgetById(paginatedLayout, cornerTargetId) : undefined;
+    if (!widget) return null;
+    const span = sizeToSpan(clampFreeformSize(widget.size, resizeBounds));
+    const canPlace = (rect: FreeformRect) => tryResizeWidget(
+      paginatedLayout, widget.id, spanToSize(rect), capacity, 1, { col: rect.col, row: rect.row }, { samePage: true },
+    ) !== null;
+    return cornerRoom({ col: widget.col, row: widget.row, cols: span.cols, rows: span.rows }, freeformSpans, resizeBounds, canPlace);
+  }, [paginatedLayout, cornerTargetId, freeformSpans, resizeBounds, capacity]);
   const handleFreeformReject = useCallback((id: string) => triggerFlash(id), [triggerFlash]);
   const freeform = useFreeformResize({
     widgetId: cornerTarget?.id ?? null,
     layout: paginatedLayout,
     capacity,
     snapSpans: freeformSpans,
-    maxPages: singlePage ? 1 : MAX_PANEL_PAGES,
     onCommit: setLayout,
     onReject: handleFreeformReject,
   });
@@ -908,9 +949,37 @@ export function PanelContent({
     if (resizeGestureRef.current) endResize();
     setFreeformId(null);
   }, [endResize]);
-  // A press outside the frame ends the mode and goes no further.
+  // Resize mode ends on a tap of the resized tile, a press anywhere else, or Escape.
+  const freeformTapRef = useRef<{ x: number; y: number; at: number } | null>(null);
+  // Exit waits for the tap's click: that click must still be swallowed while the mode is active, or it would fire a control in the tile.
+  const freeformTapPendingRef = useRef(false);
+  const freeformTapPointers = useMemo(() => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      freeformTapPendingRef.current = false;
+      freeformTapRef.current = { x: e.clientX, y: e.clientY, at: performance.now() };
+    },
+    onPointerMove: () => {},
+    onPointerUp: (e: React.PointerEvent) => {
+      const start = freeformTapRef.current;
+      freeformTapRef.current = null;
+      if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) < FREEFORM_TAP_SLOP_PX && performance.now() - start.at < FREEFORM_TAP_MAX_MS) freeformTapPendingRef.current = true;
+    },
+    onPointerCancel: () => { freeformTapRef.current = null; },
+  }), []);
+  // A press outside the frame and the resized tile ends the mode and goes no further; presses on the tile are its own.
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
     if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
+    if (e.target instanceof Element && freeformId && e.target.closest(`[data-panel-widget-id="${CSS.escape(freeformId)}"]`)) {
+      // The tile's own presses run its drag and tap; a pointer click must not also fire its controls.
+      // A keyboard or programmatic click (no pointer detail) passes through.
+      if (e.type === 'click') {
+        const pointerClick = (e.nativeEvent as MouseEvent).detail > 0;
+        if (pointerClick) e.stopPropagation();
+        if (pointerClick && freeformTapPendingRef.current) exitFreeform();
+        freeformTapPendingRef.current = false;
+      }
+      return;
+    }
     e.stopPropagation();
     if (e.type !== 'pointerdown') return;
     // The release and click completing this press would otherwise reach the widget under it;
@@ -938,10 +1007,13 @@ export function PanelContent({
     document.addEventListener('pointerup', onUp, true);
     document.addEventListener('pointercancel', onCancel, true);
     exitFreeform();
-  }, [exitFreeform]);
+  }, [exitFreeform, freeformId]);
   useEffect(() => {
     if (!freeformActive) return undefined;
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') exitFreeform(); };
+    const onKeyDown = (e: KeyboardEvent) => {
+      freeformTapPendingRef.current = false;
+      if (e.key === 'Escape') exitFreeform();
+    };
     document.addEventListener('keydown', onKeyDown);
     // In the preview a press on the page around the iframe takes focus out of it.
     if (simulator) window.addEventListener('blur', exitFreeform);
@@ -1651,12 +1723,17 @@ export function PanelContent({
   const pointerSensor = useSensor(
     PointerSensor,
     desktopActivation
-      ? { activationConstraint: { distance: 6 } }
+      ? { activationConstraint: { distance: DRAG_DISTANCE_PX } }
       : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
   );
+  // The tile in resize mode is already selected, so on a hold-to-drag panel it drags on distance, like the desktop.
+  const resizeTileSensor = useSensor(ResizeTilePointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } });
   // A panel that can't be drag-edited (single-widget glass; display-only glass outside
   // the preview) registers no drag sensor, so a pointer press never lifts a cell.
-  const sensors = useSensors(dragEditable && !freeformActive ? pointerSensor : null);
+  const sensors = useSensors(
+    dragEditable ? pointerSensor : null,
+    dragEditable && freeformActive && !desktopActivation ? resizeTileSensor : null,
+  );
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
   // Gesture refs for the collision detector. startX/Y is dnd-kit's press
@@ -2065,8 +2142,9 @@ export function PanelContent({
                               editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               movable={dragEditable}
-                              onContextMenu={dragEditable ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
-                              cellPointers={dragEditable && !freeformActive ? touch.bindCellPointers(w) : noopCellPointers}
+                              onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
+                              resizeSelected={freeformActive && w.id === freeformId}
+                              cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
                               // Single-widget sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
@@ -2089,13 +2167,13 @@ export function PanelContent({
                             />
                           </ErrorBoundary>
                         ))}
-                        {cornerTarget && page.widgets.some(w => w.id === cornerTarget.id) ? (
+                        {cornerTarget && !activeDragId && !dragArmedId && page.widgets.some(w => w.id === cornerTarget.id) ? (
                           <FreeformResizeFrame
                             widget={page.widgets.find(w => w.id === cornerTarget.id) ?? cornerTarget}
                             label={t(freeformDef?.meta.i18nKey ?? '') || cornerTarget.type}
                             hover={!freeformActive}
                             touch={kioskBehavior && surfaceSupportsTouch(surface, deviceTouch)}
-                            room={freeformRoom(page.widgets.find(w => w.id === cornerTarget.id) ?? cornerTarget)}
+                            room={cornerRooms ?? NO_ROOM}
                             onBegin={beginResize}
                             onUpdate={freeform.update}
                             onStep={freeform.step}

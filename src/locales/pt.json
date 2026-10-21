@@ -3934,7 +3934,6 @@
   "panel.editor.slotSplitColumns": "2 lado a lado",
   "panel.editor.slotSplitRows": "2 empilhados",
   "panel.editor.slots": "Posições",
-  "panel.freeform.body": "Mova {name}. Prima Enter para concluir o redimensionamento.",
   "panel.freeform.frame": "{name}, redimensionamento livre",
   "panel.freeform.handle.bottomLeft": "Redimensionar {name} pelo canto inferior esquerdo",
   "panel.freeform.handle.bottomRight": "Redimensionar {name} pelo canto inferior direito",

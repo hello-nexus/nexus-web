@@ -3980,7 +3980,6 @@
   "panel.editor.slotSplitColumns": "2 vedle sebe",
   "panel.editor.slotSplitRows": "2 nad sebou",
   "panel.editor.slots": "Sloty",
-  "panel.freeform.body": "Přesuňte {name}. Stisknutím Enter ukončíte změnu velikosti.",
   "panel.freeform.frame": "{name}, volná změna velikosti",
   "panel.freeform.handle.bottomLeft": "Změnit velikost {name} z levého dolního rohu",
   "panel.freeform.handle.bottomRight": "Změnit velikost {name} z pravého dolního rohu",

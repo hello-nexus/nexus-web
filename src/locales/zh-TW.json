@@ -3934,7 +3934,6 @@
   "panel.editor.slotSplitColumns": "左右 2 個",
   "panel.editor.slotSplitRows": "上下 2 個",
   "panel.editor.slots": "插槽",
-  "panel.freeform.body": "移動{name}。按 Enter 鍵結束調整大小。",
   "panel.freeform.frame": "{name}，自由調整大小",
   "panel.freeform.handle.bottomLeft": "從左下角調整{name}的大小",
   "panel.freeform.handle.bottomRight": "從右下角調整{name}的大小",
