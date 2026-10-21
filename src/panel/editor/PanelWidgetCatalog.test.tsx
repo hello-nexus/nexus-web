@@ -362,3 +362,25 @@ describe('PanelWidgetCatalog', () => {
     });
   });
 });
+
+describe('PanelWidgetCatalog glass aspect', () => {
+  const rowSizeOf = (container: HTMLElement) =>
+    Number.parseFloat((container.firstElementChild as HTMLElement).style.getPropertyValue('--panel-row-size'));
+  const cellSizeOf = (container: HTMLElement) =>
+    Number.parseFloat((container.firstElementChild as HTMLElement).style.getPropertyValue('--panel-cell-size'));
+
+  it('makes a single-widget tile taller than wide on portrait glass', () => {
+    const { container } = render(<PanelWidgetCatalog surface="lcd-square" glassAspect={720 / 1280} onAdd={vi.fn()} />);
+
+    expect(rowSizeOf(container)).toBeGreaterThan(cellSizeOf(container));
+  });
+
+  it('keeps square cells without a glass aspect or on a grid surface', () => {
+    const noAspect = render(<PanelWidgetCatalog surface="lcd-square" onAdd={vi.fn()} />);
+    expect(rowSizeOf(noAspect.container)).toBe(cellSizeOf(noAspect.container));
+    noAspect.unmount();
+
+    const grid = render(<PanelWidgetCatalog surface="monitor" glassAspect={720 / 1280} onAdd={vi.fn()} />);
+    expect(rowSizeOf(grid.container)).toBe(cellSizeOf(grid.container));
+  });
+});

@@ -1566,6 +1566,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           surface={surface}
                           deviceTouch={deviceTouch}
                           forcedGrid={forcedGrid}
+                          glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}
                           canAddSize={canAddSize}
                           onEditWidget={setConfiguringWidgetId}
