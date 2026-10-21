@@ -72,6 +72,9 @@ export interface WeatherAirQuality {
 
 // Every optional field is absent on a snapshot from a service build that
 // predates it; consumers treat absent and null alike.
+// Why the service could not refresh a snapshot. Absent/null = the reading is fresh.
+export type WeatherErrorReason = 'timeout' | 'unreachable' | 'http' | 'invalid';
+
 export interface WeatherSnapshot {
   temperatureC: number | null;
   temperatureF: number | null;
@@ -102,6 +105,9 @@ export interface WeatherSnapshot {
   // Provider-local wall-clock of the current reading, no offset suffix.
   localTime?: string;
   asOf: string;
+  // Empty asOf + error = no data at all; non-empty asOf + error = the latest
+  // refresh failed and this is the last good reading.
+  error?: WeatherErrorReason | null;
   hourly?: WeatherHourlyForecast[];
   daily?: WeatherDailyForecast[];
 }

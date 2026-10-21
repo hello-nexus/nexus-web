@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchWeather, weatherLocationQuery, type WeatherLocation, type WeatherSnapshot } from '../../../api/weather';
+import { fetchWeather, weatherLocationQuery, type WeatherErrorReason, type WeatherLocation, type WeatherSnapshot } from '../../../api/weather';
 
 export const WEATHER_REFRESH_MS = 15 * 60 * 1000;
 export const WEATHER_RETRY_MS = 30 * 1000;
@@ -20,7 +20,8 @@ function fetchCached(key: string, location: WeatherLocation | null): Promise<Wea
   if (pending) return pending;
   const p = fetchWeather(location)
     .then(snap => {
-      if (snap?.asOf) cache.set(key, { snap, at: Date.now() });
+      // A reading the service flagged as failed-to-refresh is not cached, so the next mount retries.
+      if (snap?.asOf && !snap.error) cache.set(key, { snap, at: Date.now() });
       return snap;
     })
     .catch(() => null)
@@ -41,6 +42,11 @@ export interface WeatherSnapshotState {
   loaded: boolean;
   // Wall clock of the fetch the snapshot came from; 0 before the first load.
   fetchedAt: number;
+  // Why the latest refresh failed; null when the reading is fresh. With a
+  // snapshot that has an asOf it is a stale last-good reading, without one
+  // there is no data at all. An empty snapshot from a service that predates
+  // the field reads as 'unreachable'.
+  error: WeatherErrorReason | null;
 }
 
 // Loads and periodically refreshes the snapshot for one location (null =
@@ -49,7 +55,7 @@ export function useWeatherSnapshot(location: WeatherLocation | null | undefined)
   const key = weatherLocationQuery(location);
   const [state, setState] = useState<WeatherSnapshotState>(() => {
     const hit = cache.get(key);
-    return hit ? { snap: hit.snap, loaded: true, fetchedAt: hit.at } : { snap: null, loaded: false, fetchedAt: 0 };
+    return hit ? { snap: hit.snap, loaded: true, fetchedAt: hit.at, error: null } : { snap: null, loaded: false, fetchedAt: 0, error: null };
   });
 
   useEffect(() => {
@@ -57,7 +63,7 @@ export function useWeatherSnapshot(location: WeatherLocation | null | undefined)
     const hit = cache.get(key);
     // Reset so a switch never shows the previous place's weather; a fresh
     // cache hit renders immediately.
-    setState(hit ? { snap: hit.snap, loaded: true, fetchedAt: hit.at } : { snap: null, loaded: false, fetchedAt: 0 });
+    setState(hit ? { snap: hit.snap, loaded: true, fetchedAt: hit.at, error: null } : { snap: null, loaded: false, fetchedAt: 0, error: null });
 
     let retry: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
@@ -67,13 +73,19 @@ export function useWeatherSnapshot(location: WeatherLocation | null | undefined)
       if (!force && cached && Date.now() - cached.at < WEATHER_REFRESH_MS) return;
       const snap = await fetchCached(key, location ?? null);
       if (cancelled) return;
-      // An empty asOf is the service's "upstream unreachable" marker, not a reading.
-      const reading = snap?.asOf ? snap : null;
-      setState(prev => ({
-        snap: reading ?? prev.snap ?? snap,
-        loaded: true,
-        fetchedAt: reading ? Date.now() : prev.fetchedAt,
-      }));
+      // An empty asOf is the service's "upstream unreachable" marker, not a
+      // reading; a non-empty asOf with an error is a stale last-good reading.
+      const reading = snap?.asOf && !snap.error ? snap : null;
+      const error: WeatherErrorReason | null = reading ? null : (snap?.error ?? 'unreachable');
+      setState(prev => {
+        const staleSnap = snap?.asOf ? snap : (prev.snap?.asOf ? prev.snap : null);
+        return {
+          snap: reading ?? staleSnap ?? snap,
+          loaded: true,
+          fetchedAt: reading ? Date.now() : (prev.fetchedAt || (staleSnap ? Date.now() : 0)),
+          error,
+        };
+      });
       clearTimeout(retry);
       if (reading) {
         failures = 0;

@@ -50,6 +50,9 @@ vi.mock('../../../lib/i18n', () => {
     'panel.widget.weather.noForecast': 'No forecast',
     'panel.widget.weather.cond.partlyCloudy': 'Partly cloudy',
     'panel.widget.offline': 'No connection',
+    'panel.widget.weather.error.timeout.short': 'Weather service timed out',
+    'panel.widget.weather.error.unreachable.short': 'Cannot reach weather service',
+    'panel.widget.weather.error.response.short': 'Weather service error',
   };
   const t = (key: string, params?: Record<string, string | number>) => {
     let text = dict[key] ?? key;
@@ -195,9 +198,41 @@ describe('WeatherWidget', () => {
       // The service's empty snapshot: upstream unreachable, no cached reading.
       vi.mocked(fetchService).mockResolvedValueOnce({ asOf: '' } as never);
       render(<WeatherWidget widget={weatherWidget('2x2')} />);
-      expect(await screen.findByText('No connection')).toBeInTheDocument();
+      expect(await screen.findByText('Cannot reach weather service')).toBeInTheDocument();
       await act(async () => { await vi.advanceTimersByTimeAsync(WEATHER_RETRY_MS); });
       expect(await screen.findByText('72°')).toBeInTheDocument();
+      expect(fetchService).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['timeout', 'Weather service timed out'],
+    ['unreachable', 'Cannot reach weather service'],
+    ['http', 'Weather service error'],
+    ['invalid', 'Weather service error'],
+  ])('names the reason on the tile when the snapshot is empty with error %s', async (error, label) => {
+    vi.mocked(fetchService).mockResolvedValueOnce({ asOf: '', error } as never);
+    render(<WeatherWidget widget={weatherWidget('2x2')} />);
+    expect(await screen.findByText(label)).toBeInTheDocument();
+    expect(screen.queryByText('--')).toBeNull();
+  });
+
+  it('reads an empty snapshot without an error field (older service) as unreachable', async () => {
+    vi.mocked(fetchService).mockResolvedValueOnce({ asOf: '' } as never);
+    render(<WeatherWidget widget={weatherWidget('2x2')} />);
+    expect(await screen.findByText('Cannot reach weather service')).toBeInTheDocument();
+  });
+
+  it('keeps drawing a stale reading that carries an error and retries it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(fetchService).mockResolvedValueOnce({ ...mockSnapshot.build(), error: 'timeout' } as never);
+      render(<WeatherWidget widget={weatherWidget('2x2')} />);
+      expect(await screen.findByText('72°')).toBeInTheDocument();
+      expect(screen.queryByText('Weather service timed out')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(WEATHER_RETRY_MS); });
       expect(fetchService).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();

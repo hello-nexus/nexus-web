@@ -6,7 +6,9 @@ import { CardDeleteButton } from '../../../components/common/CardDeleteButton/Ca
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { geocodeResultToLocation, weatherLocationKey, type WeatherGeocodeResult, type WeatherLocation, type WeatherUnitPref } from '../../../api/weather';
+import { CloudOff } from 'lucide-react';
 import { weatherConditionKey } from './weatherConditions';
+import { weatherErrorKey, weatherErrorShortKey, weatherHasNoData } from './weatherError';
 import { WeatherIcon } from './WeatherIcon';
 import { WeatherLocationSearch } from './WeatherLocationSearch';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
@@ -97,7 +99,8 @@ function WeatherPlaceRow({
 }) {
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
-  const { snap, loaded } = useWeatherSnapshot(place.location);
+  const { snap, loaded, error } = useWeatherSnapshot(place.location);
+  const noData = weatherHasNoData(snap, loaded);
   const unit = resolveUnit(unitPref, place.location?.cc ?? snap?.countryCode);
   const conditionKey = weatherConditionKey(snap?.weatherCode);
   const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
@@ -124,8 +127,12 @@ function WeatherPlaceRow({
             {subline && <span>{subline}</span>}
           </div>
           <div className={styles.rowCondition}>
-            <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.rowIcon} strokeWidth={1.6} />
-            <span>{loaded && !snap ? t('panel.widget.weather.noData') : conditionText}</span>
+            {noData
+              ? <CloudOff className={styles.rowIcon} strokeWidth={1.6} aria-hidden />
+              : <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.rowIcon} strokeWidth={1.6} />}
+            <span title={noData ? t(weatherErrorKey(error)) : undefined}>
+              {noData ? t(weatherErrorShortKey(error)) : conditionText}
+            </span>
           </div>
         </div>
         <div className={styles.rowSide}>

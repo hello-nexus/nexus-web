@@ -46,6 +46,15 @@ vi.mock('../../../lib/i18n', () => {
     'panel.widget.weather.settings.temperature': 'Temperature',
     'panel.widget.weather.settings.searchLocation': 'Search for a city...',
     'datepicker.today': 'Today',
+    'panel.widget.weather.am': 'AM',
+    'panel.widget.weather.pm': 'PM',
+    'panel.widget.weather.error.timeout': 'Timeout long',
+    'panel.widget.weather.error.timeout.short': 'Timeout short',
+    'panel.widget.weather.error.unreachable': 'Unreachable long',
+    'panel.widget.weather.error.unreachable.short': 'Unreachable short',
+    'panel.widget.weather.error.response': 'Response long',
+    'panel.widget.weather.error.response.short': 'Response short',
+    'panel.widget.weather.error.stale': 'Stale from {time}',
     'common.loading': 'Loading...',
   };
   const t = (key: string, params?: Record<string, string | number>) => {
@@ -120,6 +129,37 @@ describe('WeatherPage', () => {
     expect(screen.getByText('Air quality')).toBeInTheDocument();
     expect(screen.getByText('UV index')).toBeInTheDocument();
     expect(screen.getByText('2-day forecast')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['timeout', 'Timeout long', 'Timeout short'],
+    ['unreachable', 'Unreachable long', 'Unreachable short'],
+    ['http', 'Response long', 'Response short'],
+    ['invalid', 'Response long', 'Response short'],
+    [undefined, 'Unreachable long', 'Unreachable short'],
+  ])('explains an empty snapshot (error %s) in the detail pane and the rows', async (error, longText, shortText) => {
+    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('x', 0), asOf: '', error });
+    render(<WeatherPage />);
+    await flush();
+    expect(screen.getByText(longText)).toBeInTheDocument();
+    expect(screen.getAllByText(shortText)).toHaveLength(3);
+    expect(screen.queryByText('--', { exact: false })).toBeNull();
+    expect(screen.queryByText('2-day forecast')).toBeNull();
+  });
+
+  it('keeps the last reading and adds a stale line when the refresh failed', async () => {
+    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('Trieste, IT', 22), error: 'timeout' });
+    render(<WeatherPage />);
+    await flush();
+    expect(screen.getByText(/^Stale from \d{1,2}:\d{2}/)).toBeInTheDocument();
+    expect(screen.getByText('2-day forecast')).toBeInTheDocument();
+    expect(screen.queryByText('Timeout long')).toBeNull();
+  });
+
+  it('shows no stale line for a fresh reading', async () => {
+    render(<WeatherPage />);
+    await flush();
+    expect(screen.queryByText(/^Stale from/)).toBeNull();
   });
 
   it('switches the detail pane to the clicked place', async () => {

@@ -14,6 +14,7 @@ import { WeatherIcon } from './WeatherIcon';
 import { DAY_LABEL_KEYS, dailyMax, dailyMin, formatTemp, hourlyTemp, resolveUnit, upcomingHours } from './weatherFormat';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
 import { WeatherSky } from './sky/WeatherSky';
+import { weatherErrorShortKey } from './weatherError';
 import { barGradient, fahrenheitToCelsius } from './weatherTempColors';
 import styles from './WeatherWidget.module.scss';
 
@@ -24,7 +25,7 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
   const location = (widget.config?.location as WeatherLocation | null | undefined) ?? null;
-  const { snap, loaded, fetchedAt: referenceNow } = useWeatherSnapshot(location);
+  const { snap, loaded, fetchedAt: referenceNow, error } = useWeatherSnapshot(location);
   // Last drawable reading: the sky stays up and eases across while a newly
   // picked location loads, instead of dropping out behind the spinner.
   const [skySnap, setSkySnap] = useState(snap?.asOf ? snap : null);
@@ -76,7 +77,7 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
   // unreachable and no cached reading worth serving), so the tile says so
   // instead of drawing an unknown-condition glyph over placeholder readings.
   if (!snap || !snap.asOf) {
-    return <WidgetOfflineState compact={size === '1x1'} />;
+    return <WidgetOfflineState compact={size === '1x1'} label={t(weatherErrorShortKey(error))} />;
   }
 
   const now = referenceNow || 0;
