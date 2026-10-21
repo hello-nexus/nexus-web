@@ -2,6 +2,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { LedMapEditor } from './LedMapEditor';
+import styles from './LedMapEditor.module.scss';
 import type { LightingDevice } from '../../../../api/lighting';
 
 vi.mock('../../../../lib/i18n', () => ({
@@ -85,3 +86,33 @@ describe('LedMapEditor frame-rate cap', () => {
     await waitFor(() => expect(select.textContent).toContain('lighting.ledMap.rateCapOff'));
   });
 });
+
+describe('LedMapEditor area sampling boxes', () => {
+  it('underlays a box per enabled LED for an area-sampled card', async () => {
+    render(
+      <LedMapEditor
+        deviceId={ZONE_B}
+        initialZoneId={ZONE_B}
+        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0, 0, 0, 0, 0.5, 0, 1, 1] }]}
+        zoneCustomizable={false}
+        onClose={() => {}}
+      />,
+    );
+    await screen.findByLabelText('lighting.ledMap.selectAll');
+    await waitFor(() => expect(document.querySelectorAll(`.${styles.areaBox}`).length).toBe(2));
+  });
+  it('draws none when the mode is off', async () => {
+    render(
+      <LedMapEditor
+        deviceId={ZONE_B}
+        initialZoneId={ZONE_B}
+        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: false, areaBoxes: null }]}
+        zoneCustomizable={false}
+        onClose={() => {}}
+      />,
+    );
+    await screen.findByLabelText('lighting.ledMap.selectAll');
+    expect(document.querySelectorAll(`.${styles.areaBox}`).length).toBe(0);
+  });
+});
+

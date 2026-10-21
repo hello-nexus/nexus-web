@@ -8,14 +8,14 @@ import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
-import { areaBoxRects, sampleAreaBox } from '../../../lib/areaBoxes';
-import { subscribeLedFrame, type LedFrame } from '../../../lib/ledFrameStore';
+import { areaBoxRects } from '../../../lib/areaBoxes';
+import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
 import { DeviceContextMenu, menuSections, type DeviceMenuItem } from './DeviceContextMenu';
 import { stackMenuItems, type StackActions } from './groupMenuItems';
-import { sliceStackSlot, stackSlotOf, type DeviceStack, type StackSlot } from '../../../lib/stackSlots';
+import { sliceStackSlot, stackSlotOf, type DeviceStack } from '../../../lib/stackSlots';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 
@@ -319,67 +319,27 @@ function layoutLabels(
   return out;
 }
 
-/** One Area-sampling device's boxes, each filled with the live mean of its patch of the effect canvas. Painted from the frame store, so a frame never re-renders the page. Takes primitives so memo holds across a parent render. */
-const AreaBoxLayer = memo(function AreaBoxLayer({ x, y, w, h, rotation, boxes, slotLayout, slotIndex, slotCount, partX, partY, partW, partH, locked }: {
-  x: number; y: number; w: number; h: number; rotation: number; boxes: number[];
-  slotLayout?: StackSlot['layout']; slotIndex?: number; slotCount?: number;
-  partX: number; partY: number; partW: number; partH: number; locked?: Map<number, string>;
+/** One Area-sampling device's boxes as outlines, so the effect stays visible under them. A locked LED's outline wears its color, as a locked dot does. */
+const AreaBoxLayer = memo(function AreaBoxLayer({ boxes, partX, partY, partW, partH, locked }: {
+  boxes: number[]; partX: number; partY: number; partW: number; partH: number; locked?: Map<number, string>;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
   const rects = useMemo(() => areaBoxRects(boxes), [boxes]);
-  const slot = useMemo<StackSlot | null>(
-    () => (slotLayout ? { layout: slotLayout, index: slotIndex ?? 0, count: slotCount ?? 1 } : null),
-    [slotLayout, slotIndex, slotCount],
-  );
-  const device = useMemo(
-    () => ({ canvasX: x, canvasY: y, canvasW: w, canvasH: h, canvasRotation: rotation }),
-    [x, y, w, h, rotation],
-  );
-  const latest = useRef<LedFrame | null>(null);
-  // Last packed color per box (-1 unset), so an unchanged box costs no style write.
-  const last = useRef<Int32Array>(new Int32Array(0));
-  const paint = useCallback(() => {
-    const root = ref.current;
-    if (!root) return;
-    if (last.current.length !== rects.length) last.current = new Int32Array(rects.length).fill(-1);
-    const f = latest.current;
-    for (let i = 0; i < rects.length; i++) {
-      const el = root.children[i] as HTMLElement | undefined;
-      if (!el) continue;
-      const box = rects[i];
-      const lock = locked?.get(box.index);
-      if (lock) {
-        el.style.background = lock;
-        last.current[i] = -1;
-        continue;
-      }
-      let packed = 0;
-      if (f?.pixels && f.w > 0) {
-        const [r, g, b] = sampleAreaBox({ pixels: f.pixels, w: f.w, h: f.h }, device, box, slot);
-        packed = (r << 16) | (g << 8) | b;
-      }
-      if (last.current[i] === packed) continue;
-      last.current[i] = packed;
-      el.style.background = `rgb(${packed >> 16} ${(packed >> 8) & 255} ${packed & 255})`;
-    }
-  }, [rects, locked, device, slot]);
-  const paintRef = useRef(paint);
-  paintRef.current = paint;
-  useEffect(() => subscribeLedFrame(f => { latest.current = f; paintRef.current(); }), []);
-  // The frame rect moves during a drag and colors lock between frames.
-  useEffect(() => { last.current = new Int32Array(0); paint(); }, [paint]);
   return (
-    <div ref={ref} className={styles.ledBoxLayer}>
-      {rects.map(({ index, u0, v0, u1, v1 }) => (
-        <div
-          key={index}
-          className={styles.ledBox}
-          style={{
-            left: `${(partX + u0 * partW) * 100}%`, top: `${(partY + v0 * partH) * 100}%`,
-            width: `${(u1 - u0) * partW * 100}%`, height: `${(v1 - v0) * partH * 100}%`,
-          }}
-        />
-      ))}
+    <div className={styles.ledBoxLayer}>
+      {rects.map(({ index, u0, v0, u1, v1 }) => {
+        const lock = locked?.get(index);
+        return (
+          <div
+            key={index}
+            className={styles.ledBox}
+            style={{
+              left: `${(partX + u0 * partW) * 100}%`, top: `${(partY + v0 * partH) * 100}%`,
+              width: `${(u1 - u0) * partW * 100}%`, height: `${(v1 - v0) * partH * 100}%`,
+              ...(lock ? { borderColor: lock } : {}),
+            }}
+          />
+        );
+      })}
     </div>
   );
 });
@@ -1020,9 +980,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                   return [(
                     <AreaBoxLayer
                       key={`${id}:boxes`}
-                      x={dev.canvasX} y={dev.canvasY} w={dev.canvasW} h={dev.canvasH} rotation={dev.canvasRotation ?? 0}
                       boxes={member.areaBoxes}
-                      slotLayout={slot?.layout} slotIndex={slot?.index} slotCount={slot?.count}
                       partX={part.x} partY={part.y} partW={part.w} partH={part.h}
                       locked={locked}
                     />

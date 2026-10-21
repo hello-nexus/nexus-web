@@ -80,19 +80,16 @@ describe('DeviceCanvas', () => {
     const box = frames[0].querySelector<HTMLElement>(`.${styles.ledBox}`)!;
     expect(box.style.width).toBe('50%');
     expect(box.style.height).toBe('100%');
-    // No frame yet: boxes sit black until the stream paints them.
-    expect(box.style.background).toBe('rgb(0, 0, 0)');
+    // Outlines only: the effect stays visible under a box.
+    expect(box.style.background).toBe('');
   });
 
-  it('colors boxes from the live frame, with a locked color winning', () => {
-    const w = 100, h = 60;
-    const pixels = new Uint8Array(w * h * 3);
-    pixels.fill(255, 0, w * (h / 2) * 3);
-    publishLedFrame(pixels, w, h);
+  it('outlines boxes without filling them, a locked LED outline wearing its color', () => {
+    publishLedFrame(new Uint8Array(100 * 60 * 3).fill(255), 100, 60);
     const a = {
-      ...dragDevice('a', 'A'), canvasX: 0, canvasY: 0, canvasW: 1000, canvasH: 600, canvasRotation: 0,
-      areaSampling: true, areaBoxes: [0, 0, 1, 0.4, 0, 0.6, 1, 1, 0, 0, 1, 0.4],
-      ledColors: [{ index: 2, color: '#ff0000' }],
+      ...dragDevice('a', 'A'),
+      areaSampling: true, areaBoxes: [0, 0, 1, 0.4, 0, 0.6, 1, 1],
+      ledColors: [{ index: 1, color: '#ff0000' }],
     } as unknown as LightingDevice;
     const { container } = render(
       <DeviceCanvas
@@ -105,7 +102,8 @@ describe('DeviceCanvas', () => {
       />,
     );
     const boxes = [...container.querySelectorAll<HTMLElement>(`.${styles.ledBox}`)];
-    expect(boxes.map(b => b.style.background)).toEqual(['rgb(255, 255, 255)', 'rgb(0, 0, 0)', 'rgb(255, 0, 0)']);
+    expect(boxes.map(b => b.style.background)).toEqual(['', '']);
+    expect(boxes.map(b => b.style.borderColor)).toEqual(['', 'rgb(255, 0, 0)']);
   });
 
   it('draws no frames or names when asked to hide them', () => {

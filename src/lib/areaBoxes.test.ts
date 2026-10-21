@@ -51,3 +51,27 @@ describe('areaBoxSample', () => {
     close(areaBoxSample({ ...dev, canvasRotation: 90 }, { index: 0, u0: 0, v0: 0, u1: 0.5, v1: 1 }, 1000, 600, slot, true), [250, 300, 250, 300]);
   });
 });
+
+describe('sampleAreaBox on a non-uniform frame', () => {
+  // Linear device, 15 LEDs, no UV: full-height columns split along the frame width, over rainbow-ish vertical bars 10 px wide.
+  const w = 160, h = 96;
+  const pixels = new Uint8Array(w * h * 3);
+  const palette = [[255, 0, 0], [255, 255, 0], [0, 255, 0], [0, 255, 255], [0, 0, 255], [255, 0, 255]];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const c = palette[Math.floor(x / 10) % palette.length];
+    pixels.set(c, (y * w + x) * 3);
+  }
+  const boxes: number[] = [];
+  for (let i = 0; i < 15; i++) boxes.push(Math.max(0, (i - 0.5) / 14), 0, Math.min(1, (i + 0.5) / 14), 1);
+  const colors = (dev: { canvasX: number; canvasY: number; canvasW: number; canvasH: number; canvasRotation: number }) =>
+    areaBoxRects(boxes).map(b => sampleAreaBox({ pixels, w, h }, dev, b).join(','));
+
+  it('gives adjacent boxes different colors when the frame spans several bars', () => {
+    const c = colors({ canvasX: 100, canvasY: 200, canvasW: 800, canvasH: 100, canvasRotation: 0 });
+    for (let i = 1; i < c.length; i++) expect(c[i]).not.toBe(c[i - 1]);
+  });
+  it('gives equal colors only when the frame sits inside one bar', () => {
+    const c = colors({ canvasX: 70, canvasY: 200, canvasW: 40, canvasH: 30, canvasRotation: 0 });
+    expect(new Set(c).size).toBe(1);
+  });
+});

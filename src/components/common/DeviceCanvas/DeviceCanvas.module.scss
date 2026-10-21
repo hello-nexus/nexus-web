@@ -226,19 +226,19 @@
   z-index: 1;
 }
 
-// One LED under Area sampling: the box it averages. The outline keeps
-// neighboring boxes distinguishable.
 .ledBoxLayer {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
+// One LED under Area sampling: the box it averages, outlined so the effect stays visible. A light line with a dark
+// companion reads on dark and bright effects alike; neighboring boxes stay distinguishable.
 .ledBox {
   position: absolute;
   box-sizing: border-box;
-  background: #000;
-  border: 1px solid rgb(0 0 0 / var(--alpha-medium));
+  border: 1px solid rgb(255 255 255 / var(--alpha-strong));
+  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-medium));
   pointer-events: none;
   z-index: 1;
 }

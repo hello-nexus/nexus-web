@@ -89,6 +89,14 @@
   z-index: 0;
 }
 
+// A box the LED averages under Area sampling: an underlay, never a target.
+.areaBox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid rgb(255 255 255 / var(--alpha-medium));
+  pointer-events: none;
+  z-index: 0;
+}
 
 .led {
   position: absolute;

@@ -28,6 +28,7 @@ import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import { LedColorLockSection } from './LedColorLockSection';
 import { RateCapSelect } from './RateCapSelect';
 import { AreaSamplingToggle } from './AreaSamplingToggle';
+import { areaBoxRects } from '../../../../lib/areaBoxes';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
@@ -2456,6 +2457,25 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               }}
             >
             </div>
+
+            {/* Area sampling: the box each LED averages, under the dots. Follows the service's latest boxes for this card. */}
+            {zoneCard?.areaSampling && zoneCard.areaBoxes?.length ? (() => {
+              const pad = getPadPercent();
+              const innerW = devRect.w - 2 * pad.px;
+              const innerH = devRect.h - 2 * pad.py;
+              return areaBoxRects(zoneCard.areaBoxes).map(b => (
+                <div
+                  key={`box:${b.index}`}
+                  className={styles.areaBox}
+                  style={{
+                    left: `${devRect.x + pad.px + b.u0 * innerW}%`,
+                    top: `${devRect.y + pad.py + b.v0 * innerH}%`,
+                    width: `${(b.u1 - b.u0) * innerW}%`,
+                    height: `${(b.v1 - b.v0) * innerH}%`,
+                  }}
+                />
+              ));
+            })() : null}
 
             {(() => {
               const rendered = new Set<number>();
