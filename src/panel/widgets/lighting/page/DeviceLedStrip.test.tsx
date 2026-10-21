@@ -63,10 +63,14 @@ describe('DeviceLedStrip', () => {
     expect(ctx.fillStyle).toBe('#0000ff');
   });
 
-  it('uses the plain spot read for an area-sampled card when the frame has no device bytes', () => {
+  it('shows no per-LED colors for an area-sampled card without device bytes, and its bytes when present', () => {
     publishRed();
-    const area: LightingDevice = { ...device, areaSampling: true, areaCells: [[0, 0, 1, 0, 1, 1, 0, 1]] };
+    const area: LightingDevice = { ...device, frameIndex: 7, areaSampling: true, areaCells: [[0, 0, 1, 0, 1, 1, 0, 1]] };
     render(<DeviceLedStrip device={area} fullscreen />);
+    expect(ctx.putImageData).not.toHaveBeenCalled();
+    expect(ctx.clearRect).toHaveBeenCalled();
+    publishLedFrame(new Uint8Array(3 * 4), 2, 2, new Map([[7, new Uint8Array([255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255])]]));
+    render(<DeviceLedStrip device={area} />);
     expect(ctx.putImageData).toHaveBeenCalled();
   });
 

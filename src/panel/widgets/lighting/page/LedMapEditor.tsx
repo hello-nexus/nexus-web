@@ -1447,11 +1447,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Area cells the service recomputed from the draft layout, with the card they belong to.
-  const [draftBoxes, setDraftBoxes] = useState<{ id: string; cells: number[][] } | null>(null);
-  const draftBoxesSeq = useRef(0);
-  // Toggling the mode makes any held draft boxes stale.
+  const [draftCells, setDraftCells] = useState<{ id: string; cells: number[][] } | null>(null);
+  const draftCellsSeq = useRef(0);
+  // Toggling the mode makes any held draft cells stale.
   const areaOn = devices.find(d => d.id === selectedZoneId)?.areaSampling;
-  useEffect(() => { draftBoxesSeq.current += 1; setDraftBoxes(null); }, [areaOn, selectedZoneId]);
+  useEffect(() => { draftCellsSeq.current += 1; setDraftCells(null); }, [areaOn, selectedZoneId]);
 
   useEffect(() => {
     if (loading || saving) return;
@@ -1465,15 +1465,15 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     previewTimerRef.current = setTimeout(() => {
       if (isStagedZoneId(selectedZoneIdRef.current)) return;
       const sentFor = selectedZoneIdRef.current;
-      const mine = ++draftBoxesSeq.current;
+      const mine = ++draftCellsSeq.current;
       postLedPreviewLayout(
         sentFor,
         ledCount,
         // The service indexes a card's preview layout from 0, while a zone's LEDs carry device-level indices.
         [...zoneLeds].sort((a, b) => a.index - b.index).map((l, i) => ({ index: zoneScoped ? i : l.index, u: l.u, v: l.v, disabled: l.disabled })),
       ).then(r => {
-        // Newest response wins; the boxes follow the draft the service just read.
-        if (mine === draftBoxesSeq.current) setDraftBoxes(r && !r.error && r.areaCells ? { id: sentFor, cells: r.areaCells } : null);
+        // Newest response wins; the cells follow the draft the service just read.
+        if (mine === draftCellsSeq.current) setDraftCells(r && !r.error && r.areaCells ? { id: sentFor, cells: r.areaCells } : null);
       }).catch(() => { /* best-effort */ });
     }, 80);
     return () => clearTimeout(previewTimerRef.current);
@@ -2471,11 +2471,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             </div>
 
             {/* Area sampling: the box each LED averages, under the dots. Follows the cells the service returns for the draft layout, else the card's latest. */}
-            {zoneCard?.areaSampling && (draftBoxes?.id === zoneCard.id ? draftBoxes.cells : zoneCard.areaCells)?.length ? (() => {
+            {zoneCard?.areaSampling && (draftCells?.id === zoneCard.id ? draftCells.cells : zoneCard.areaCells)?.length ? (() => {
               const pad = getPadPercent();
               return (
                 <AreaCells
-                  cells={draftBoxes?.id === zoneCard.id ? draftBoxes.cells : zoneCard.areaCells!}
+                  cells={draftCells?.id === zoneCard.id ? draftCells.cells : zoneCard.areaCells!}
                   style={{
                     left: `${devRect.x + pad.px}%`,
                     top: `${devRect.y + pad.py}%`,
