@@ -38,16 +38,16 @@ const READOUT_KEYS: Record<MystiqueReadout, string> = {
   fan: 'devices.deepcool-mystique.readoutFan',
   fanPump: 'devices.deepcool-mystique.readoutFanPump',
 };
-const DEFAULT_CATEGORY = 'motherboard';
 type PickKey = 'cpuTemperature' | 'cpuFrequency' | 'cpuUsage' | 'ramUsage' | 'cpuFan' | 'pump';
 // Each readout takes one sensor type, so a picker offers only the categories that list one.
-const PICKS: readonly { key: PickKey; type: string; label: string }[] = [
-  { key: 'cpuTemperature', type: 'Temperature', label: 'devices.deepcool-mystique.cpuTemperature' },
-  { key: 'cpuFrequency', type: 'Clock', label: 'devices.deepcool-mystique.cpuFrequency' },
-  { key: 'cpuUsage', type: 'Load', label: 'devices.deepcool-mystique.cpuUsage' },
-  { key: 'ramUsage', type: 'Load', label: 'devices.deepcool-mystique.ramUsage' },
-  { key: 'cpuFan', type: 'Fan', label: 'devices.deepcool-mystique.cpuFan' },
-  { key: 'pump', type: 'Fan', label: 'devices.deepcool-mystique.pump' },
+// `fallback` is the category shown while an automatic readout resolves to nothing.
+const PICKS: readonly { key: PickKey; type: string; label: string; fallback: string }[] = [
+  { key: 'cpuTemperature', type: 'Temperature', label: 'devices.deepcool-mystique.cpuTemperature', fallback: 'cpu' },
+  { key: 'cpuFrequency', type: 'Clock', label: 'devices.deepcool-mystique.cpuFrequency', fallback: 'cpu' },
+  { key: 'cpuUsage', type: 'Load', label: 'devices.deepcool-mystique.cpuUsage', fallback: 'cpu' },
+  { key: 'ramUsage', type: 'Load', label: 'devices.deepcool-mystique.ramUsage', fallback: 'memory' },
+  { key: 'cpuFan', type: 'Fan', label: 'devices.deepcool-mystique.cpuFan', fallback: 'motherboard' },
+  { key: 'pump', type: 'Fan', label: 'devices.deepcool-mystique.pump', fallback: 'motherboard' },
 ];
 
 export function DeepCoolMystiqueDevicePage() {
@@ -126,7 +126,7 @@ export function DeepCoolMystiqueDevicePage() {
     return out;
   }, [lookup.sensors, lookup.networkSensors, lookup.extras]);
 
-  const picker = (key: PickKey, type: string) => {
+  const picker = (key: PickKey, type: string, fallback: string) => {
     const slot = state?.[key];
     const onPick = (category: string, sensor: string) => {
       if (!state) return;
@@ -135,7 +135,7 @@ export function DeepCoolMystiqueDevicePage() {
     return (
       <SensorPicker
         lookup={lookup}
-        category={(slot?.sensor ? slot.category : slot?.resolvedCategory) || DEFAULT_CATEGORY}
+        category={(slot?.sensor ? slot.category : slot?.resolvedCategory) || fallback}
         sensor={slot?.sensor || slot?.resolvedSensor || ''}
         disabled={!ready}
         categories={categoriesByType[type]}
@@ -243,9 +243,9 @@ export function DeepCoolMystiqueDevicePage() {
         </SettingsSection>
 
         <SettingsSection title={t('devices.deepcool-mystique.inputsSection')} boxClassName={styles.sectionBox}>
-          {PICKS.map(({ key, type, label }, i) => (
+          {PICKS.map(({ key, type, label, fallback }, i) => (
             <SettingRow key={key} label={t(label)} description={i === 0 ? t('devices.deepcool-mystique.inputsHint') : undefined}>
-              {picker(key, type)}
+              {picker(key, type, fallback)}
             </SettingRow>
           ))}
         </SettingsSection>
