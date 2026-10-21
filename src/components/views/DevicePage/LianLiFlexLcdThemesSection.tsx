@@ -90,7 +90,7 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
       return (<Fragment key={chain.mac}>
         {chain.upDownSwap != null && (
           <SettingsSection
-            title={`${multiple ? `${typeLabel} ${chain.mac.slice(-4)}` : typeLabel} - ${t('devices.lianli-flex.upDownSwap')}`}
+            title={multiple ? `${typeLabel} ${chain.mac.slice(-4)}` : typeLabel}
             boxClassName={styles.sectionBox}
           >
             <SettingToggle
