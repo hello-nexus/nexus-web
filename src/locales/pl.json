@@ -5032,7 +5032,7 @@
   "screentime.weekAverage": "Średnia dzienna",
   "screentime.weekTitle": "Ostatnie 7 dni",
   "screentime.weekTotal": "Suma tygodnia",
-  "sdk.avatar.loadError": "Nie udało się wczytać tej postaci.",
+  "sdk.canvas.loadError": "Nie udało się wczytać tego płótna.",
   "sdk.copybutton.copied": "Skopiowano do schowka",
   "sdk.copybutton.copy": "Kopiuj do schowka",
   "sdk.manipulable.remove": "Usuń",

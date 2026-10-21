@@ -4986,7 +4986,7 @@
   "screentime.weekAverage": "일일 평균",
   "screentime.weekTitle": "지난 7일",
   "screentime.weekTotal": "주간 합계",
-  "sdk.avatar.loadError": "이 캐릭터를 불러올 수 없습니다.",
+  "sdk.canvas.loadError": "이 캔버스를 불러올 수 없습니다.",
   "sdk.copybutton.copied": "클립보드에 복사됨",
   "sdk.copybutton.copy": "클립보드에 복사",
   "sdk.manipulable.remove": "제거",

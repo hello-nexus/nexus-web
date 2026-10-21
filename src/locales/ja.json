@@ -4986,7 +4986,7 @@
   "screentime.weekAverage": "1日平均",
   "screentime.weekTitle": "過去7日間",
   "screentime.weekTotal": "週合計",
-  "sdk.avatar.loadError": "このキャラクターを読み込めませんでした。",
+  "sdk.canvas.loadError": "このキャンバスを読み込めませんでした。",
   "sdk.copybutton.copied": "クリップボードにコピーしました",
   "sdk.copybutton.copy": "クリップボードにコピー",
   "sdk.manipulable.remove": "削除",

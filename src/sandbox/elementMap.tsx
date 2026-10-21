@@ -18,7 +18,7 @@ import {
   MediaImportHost, MediaGridHost, ConfirmHost, CollapsibleHost, TooltipHost,
 } from './ui/richComponents';
 import { CurveHost } from './ui/CurveHost';
-import { AvatarComposite } from './ui/AvatarComposite';
+import { CanvasComposite } from './ui/CanvasComposite';
 
 export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-stack': Stack,
@@ -58,7 +58,7 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-section': Section,
   'ui-worldclock': WorldClock,
   'ui-clockface': ClockFace,
-  'ui-avatar': AvatarComposite,
+  'ui-canvas': CanvasComposite,
   'ui-viewheader': ViewHeaderHost,
   'ui-mediaimport': MediaImportHost,
   'ui-mediagrid': MediaGridHost,

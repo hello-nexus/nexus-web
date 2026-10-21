@@ -4986,7 +4986,7 @@
   "screentime.weekAverage": "Media giornaliera",
   "screentime.weekTitle": "Ultimi 7 giorni",
   "screentime.weekTotal": "Totale settimana",
-  "sdk.avatar.loadError": "Impossibile caricare questo personaggio.",
+  "sdk.canvas.loadError": "Impossibile caricare questa tela.",
   "sdk.copybutton.copied": "Copiato negli appunti",
   "sdk.copybutton.copy": "Copia negli appunti",
   "sdk.manipulable.remove": "Rimuovi",

@@ -238,17 +238,17 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
     expect(nav).toHaveBeenCalledWith('cooling', expect.objectContaining({ coolingFanId: 'lianli-flex:AA11:port0' }));
   });
 
-  it('names the screen tiles with the short fan names, TL first', async () => {
+  it('names the screen tiles with the service labels, TL first', async () => {
     const sl = { ...unit, mac: 'BB22', fanType: 43, family: 'slInfFlex', screenSerial: 'SCR2', sortIndex: 0 };
     mockState.mockResolvedValue(connected([sl, { ...unit, sortIndex: 1 }]));
     mockScreens.mockResolvedValue([
-      { serial: 'SCR2', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'Lian Li SL-INF LCD Flex Screen' },
-      { serial: 'SCR1', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'Lian Li TL LCD Flex Screen' },
+      { serial: 'SCR2', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'SL-INF Flex' },
+      { serial: 'SCR1', position: -1, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'off', label: 'TL Flex' },
     ]);
     await act(async () => { render(<LianLiWirelessDevicePage flex />); });
     await act(async () => { fireEvent.click(tab('devices.lianli-wireless.tab.screen')); });
     const tiles = within(screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' })).getAllByRole('button');
-    expect(tiles.map(b => b.textContent)).toEqual(['devices.lianli-wireless.fanTypeTlFlex', 'devices.lianli-wireless.fanTypeSlInfFlex']);
+    expect(tiles.map(b => b.textContent)).toEqual(['TL Flex', 'SL-INF Flex']);
   });
 });
 

@@ -5032,7 +5032,7 @@
   "screentime.weekAverage": "Denní průměr",
   "screentime.weekTitle": "Posledních 7 dní",
   "screentime.weekTotal": "Celkem za týden",
-  "sdk.avatar.loadError": "Tuto postavu se nepodařilo načíst.",
+  "sdk.canvas.loadError": "Plátno se nepodařilo načíst.",
   "sdk.copybutton.copied": "Zkopírováno do schránky",
   "sdk.copybutton.copy": "Kopírovat do schránky",
   "sdk.manipulable.remove": "Odebrat",
