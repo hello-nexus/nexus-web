@@ -2995,7 +2995,7 @@
   "lighting.ledMap.sampling": "Sampling",
   "lighting.ledMap.samplingColumns": "Columns",
   "lighting.ledMap.samplingFailed": "Could not change sampling",
-  "lighting.ledMap.samplingHint": "How each LED reads the effect: its own point, or the area nearest to it, split by rows or columns",
+  "lighting.ledMap.samplingHint": "How each LED reads the effect: its own point, or the area nearest to it",
   "lighting.ledMap.samplingLed": "LED",
   "lighting.ledMap.samplingNearest": "Nearest",
   "lighting.ledMap.samplingRows": "Rows",

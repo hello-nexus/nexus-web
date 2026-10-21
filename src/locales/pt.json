@@ -2995,7 +2995,7 @@
   "lighting.ledMap.sampling": "Amostragem",
   "lighting.ledMap.samplingColumns": "Colunas",
   "lighting.ledMap.samplingFailed": "Não foi possível alterar a amostragem",
-  "lighting.ledMap.samplingHint": "Como cada LED lê o efeito: o seu próprio ponto ou a área mais próxima, dividida por linhas ou colunas",
+  "lighting.ledMap.samplingHint": "Como cada LED lê o efeito: o seu próprio ponto ou a área mais próxima",
   "lighting.ledMap.samplingLed": "LED",
   "lighting.ledMap.samplingNearest": "Mais próximo",
   "lighting.ledMap.samplingRows": "Linhas",

@@ -2995,7 +2995,7 @@
   "lighting.ledMap.sampling": "采样",
   "lighting.ledMap.samplingColumns": "列",
   "lighting.ledMap.samplingFailed": "无法更改采样",
-  "lighting.ledMap.samplingHint": "每个 LED 读取效果的方式：自身所在点，或离它最近的区域（按行或按列划分）",
+  "lighting.ledMap.samplingHint": "每个 LED 读取效果的方式：自身所在点，或离它最近的区域",
   "lighting.ledMap.samplingLed": "LED",
   "lighting.ledMap.samplingNearest": "最近",
   "lighting.ledMap.samplingRows": "行",

@@ -2995,7 +2995,7 @@
   "lighting.ledMap.sampling": "Abtastung",
   "lighting.ledMap.samplingColumns": "Spalten",
   "lighting.ledMap.samplingFailed": "Abtastung konnte nicht geändert werden",
-  "lighting.ledMap.samplingHint": "Wie jede LED den Effekt liest: ihren eigenen Punkt oder den nächstgelegenen Bereich, aufgeteilt nach Zeilen oder Spalten",
+  "lighting.ledMap.samplingHint": "Wie jede LED den Effekt liest: ihren eigenen Punkt oder den nächstgelegenen Bereich",
   "lighting.ledMap.samplingLed": "LED",
   "lighting.ledMap.samplingNearest": "Nächste",
   "lighting.ledMap.samplingRows": "Zeilen",

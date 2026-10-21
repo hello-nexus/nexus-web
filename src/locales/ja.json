@@ -2995,7 +2995,7 @@
   "lighting.ledMap.sampling": "サンプリング",
   "lighting.ledMap.samplingColumns": "列",
   "lighting.ledMap.samplingFailed": "サンプリングを変更できませんでした",
-  "lighting.ledMap.samplingHint": "各LEDがエフェクトを読み取る方法：自身の点、または最も近い領域（行または列で分割）",
+  "lighting.ledMap.samplingHint": "各LEDがエフェクトを読み取る方法：自身の点、または最も近い領域",
   "lighting.ledMap.samplingLed": "LED",
   "lighting.ledMap.samplingNearest": "最近傍",
   "lighting.ledMap.samplingRows": "行",

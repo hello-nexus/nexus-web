@@ -2995,7 +2995,7 @@
   "lighting.ledMap.sampling": "Campionament",
   "lighting.ledMap.samplingColumns": "Colonis",
   "lighting.ledMap.samplingFailed": "Impossibil cambiâ il campionament",
-  "lighting.ledMap.samplingHint": "Come che ogni LED al lei l'efiet: il so pont, o la aree plui visine, dividude par rindis o par colonis",
+  "lighting.ledMap.samplingHint": "Come che ogni LED al lei l'efiet: il so pont, o la aree plui visine",
   "lighting.ledMap.samplingLed": "LED",
   "lighting.ledMap.samplingNearest": "Plui visin",
   "lighting.ledMap.samplingRows": "Rindis",

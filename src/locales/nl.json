@@ -2995,7 +2995,7 @@
   "lighting.ledMap.sampling": "Bemonstering",
   "lighting.ledMap.samplingColumns": "Kolommen",
   "lighting.ledMap.samplingFailed": "Bemonstering kon niet worden gewijzigd",
-  "lighting.ledMap.samplingHint": "Hoe elke led het effect leest: zijn eigen punt, of het dichtstbijzijnde gebied, verdeeld per rij of kolom",
+  "lighting.ledMap.samplingHint": "Hoe elke led het effect leest: zijn eigen punt, of het dichtstbijzijnde gebied",
   "lighting.ledMap.samplingLed": "LED",
   "lighting.ledMap.samplingNearest": "Dichtstbijzijnde",
   "lighting.ledMap.samplingRows": "Rijen",
