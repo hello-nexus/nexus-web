@@ -30,7 +30,7 @@ describe('useWeatherSnapshot errors', () => {
   beforeEach(() => {
     resetWeatherSnapshotCache();
     api.fetchWeather.mockReset();
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.useFakeTimers();
   });
   afterEach(() => vi.useRealTimers());
 
