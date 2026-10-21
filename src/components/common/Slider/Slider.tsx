@@ -77,6 +77,16 @@ export interface SliderProps {
   mixedLabel?: string;
 }
 
+/** Width of the range thumb, as set in src/styles/global.scss. */
+const THUMB_PX = 14;
+
+/**
+ * Where a value at `pct` (0..100) of the range sits along the track. The thumb's
+ * centre stops half a thumb short of each end, so the value is that far along the
+ * thumb's path, not `pct` of the track's whole length; the two only agree at 50%.
+ */
+const onThumbPath = (pct: number) => `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${pct / 100})`;
+
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
@@ -109,10 +119,13 @@ export function Slider({
   }
   // Never past the fill end, or the gradient stops would decrease and mispaint.
   const capPct = fillCap != null ? Math.min(clamp(((fillCap - min) / (max - min)) * 100), fillEndPct) : null;
+  // A level fill starts at the track's own end; every other stop is a value, placed on the
+  // thumb's path so the fill ends under the thumb's centre and a centre-out fill starts where
+  // the thumb sits at 0, also when 0 is not the middle of the range.
   const trackStyle = {
-    '--slider-fill-start': mixed ? '0%' : `${fillStartPct}%`,
-    '--slider-fill-end': mixed ? '0%' : `${fillEndPct}%`,
-    ...(capPct != null ? { '--slider-fill-cap': `${capPct}%` } : {}),
+    '--slider-fill-start': mixed || !isBipolar ? '0%' : onThumbPath(fillStartPct),
+    '--slider-fill-end': mixed ? '0%' : onThumbPath(fillEndPct),
+    ...(capPct != null ? { '--slider-fill-cap': onThumbPath(capPct) } : {}),
   } as CSSProperties;
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
@@ -123,6 +136,15 @@ export function Slider({
     <span className={styles.marker} style={{ left: `${markerPct}%` }}>
       {markerLabel != null && <span className={styles.markerLabel}>{markerLabel}</span>}
       <span className={styles.markerCaret} aria-hidden />
+    </span>
+  ) : null;
+  // The zero tick, band and marker are placed on the thumb's path too, so each lines up
+  // with the thumb at its value.
+  const scaleNode = showZero || bandNode || markerNode ? (
+    <span className={styles.scale}>
+      {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+      {bandNode}
+      {markerNode}
     </span>
   ) : null;
 
@@ -265,9 +287,7 @@ export function Slider({
       <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
         <div className={styles.track}>
           {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
+          {scaleNode}
         </div>
       </div>
     );
@@ -284,9 +304,7 @@ export function Slider({
         </div>
         <div className={styles.track}>
           {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
+          {scaleNode}
         </div>
         {showRange && (
           <div className={styles.rangeLabels}>
@@ -307,9 +325,7 @@ export function Slider({
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
       <div className={styles.track}>
         {range}
-        {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-        {bandNode}
-        {markerNode}
+        {scaleNode}
       </div>
       {inlineValueNode}
     </div>
