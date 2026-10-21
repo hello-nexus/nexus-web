@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GlacialPanelRoute, showsGlacialPanelPage } from './GlacialPanelRoute';
 import type { GlacialState } from '../../../api/asus-glacial-lcd';
@@ -51,5 +51,56 @@ describe('GlacialPanelRoute', () => {
     mockGet.mockResolvedValue(state({}));
     await mount();
     expect(screen.getByText('panel-page')).toBeInTheDocument();
+  });
+
+  it('ignores an older response that lands after a newer one', async () => {
+    let resolveOld: (v: GlacialState) => void = () => {};
+    mockGet.mockReturnValueOnce(new Promise<GlacialState>(r => { resolveOld = r; }));
+    await mount();
+    mockGet.mockResolvedValueOnce(state({}));
+    await act(async () => { window.dispatchEvent(new Event('nexus:glacial-state-changed')); });
+    expect(screen.getByText('panel-page')).toBeInTheDocument();
+    await act(async () => { resolveOld(state({ mode: 'animated' })); });
+    expect(screen.getByText('panel-page')).toBeInTheDocument();
+  });
+
+  it('switches from the native page to the panel page when the change event refetches', async () => {
+    mockGet.mockResolvedValue(state({ mode: 'animated' }));
+    await mount();
+    expect(screen.getByText('native-page')).toBeInTheDocument();
+    mockGet.mockResolvedValue(state({}));
+    await act(async () => { window.dispatchEvent(new Event('nexus:glacial-state-changed')); });
+    expect(screen.getByText('panel-page')).toBeInTheDocument();
+  });
+
+  it('stops polling once the capability reads off', async () => {
+    vi.useFakeTimers();
+    try {
+      mockGet.mockResolvedValue(state({ panelModeAvailable: false }));
+      await act(async () => { render(<GlacialPanelRoute device={{} as never} />); });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears the interval and listener on unmount', async () => {
+    vi.useFakeTimers();
+    try {
+      mockGet.mockResolvedValue(state({}));
+      let view!: ReturnType<typeof render>;
+      await act(async () => { view = render(<GlacialPanelRoute device={{} as never} />); });
+      const calls = mockGet.mock.calls.length;
+      view.unmount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+        fireEvent(window, new Event('nexus:glacial-state-changed'));
+      });
+      expect(mockGet).toHaveBeenCalledTimes(calls);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
