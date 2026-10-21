@@ -22,7 +22,6 @@ import {
   createGalleryPlaylist,
   GALLERY_ERROR_DUPLICATE,
   GALLERY_ERROR_LIMIT,
-  GALLERY_ITEMS_MAX,
   GALLERY_PLAYLIST_NAME_MAX,
   GALLERY_PLAYLISTS_MAX,
   deleteGalleryPlaylist,
@@ -47,6 +46,9 @@ import {
 } from '../../../../api/gallery';
 import { clampGalleryPage, galleryKeepIds, galleryPageCount, galleryPageSlice } from './galleryPaging';
 import styles from './GalleryPage.module.scss';
+
+const THUMB_CONCURRENCY = 4;
+const THUMB_FLUSH_EVERY = 12;
 
 const KIND_ICONS = {
   file: FileImage,
@@ -149,24 +151,41 @@ export function GalleryPage() {
   const gridItems = selectedPlaylist && playlistView === 'members' ? members : items;
   const currentPage = clampGalleryPage(page, gridItems.length);
   const visibleItems = useMemo(() => galleryPageSlice(gridItems, currentPage), [gridItems, currentPage]);
-  const keepIds = useMemo(() => galleryKeepIds(gridItems, currentPage), [gridItems, currentPage]);
+  // Each playlist card's cover is its first member; the cache always holds it.
+  const coverItems = useMemo(() => {
+    const firsts = [items[0], ...playlists.map(p => galleryPlaylistItems(items, p)[0])];
+    return firsts.filter((i): i is GalleryItem => i !== undefined);
+  }, [items, playlists]);
+  const keepIds = useMemo(() => {
+    const keep = galleryKeepIds(gridItems, currentPage);
+    for (const c of coverItems) keep.add(c.id);
+    return keep;
+  }, [gridItems, currentPage, coverItems]);
+  const fetchItems = useMemo(() => [...visibleItems, ...coverItems], [visibleItems, coverItems]);
+
+  // Writes the clamped page back; a playlist deleted elsewhere returns to the library.
+  useEffect(() => {
+    if (page !== currentPage) setPage(currentPage);
+    if (selectedPlaylistId && !selectedPlaylist) {
+      setSelectedPlaylistId(null);
+      setPage(0);
+    }
+  }, [page, currentPage, selectedPlaylistId, selectedPlaylist]);
 
   // Preview blob cache (panel auth is token-based, <img> can't hit the route
-  // directly). Grid-sized derivatives for the current page only; ids outside
-  // the current and adjacent pages are revoked. For a video the derivative is
-  // its poster frame (the service 404s rather than send the clip when it
-  // cannot make one). null marks an unreadable file so the grid shows a
-  // placeholder, never retried.
+  // directly). Grid-sized derivatives for the current page and playlist covers;
+  // ids outside the current and adjacent pages are revoked. For a video the
+  // derivative is its poster frame (the service 404s rather than send the clip
+  // when it cannot make one). null marks an unreadable file so the grid shows
+  // a placeholder; it is retried once evicted and revisited.
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
-  const visibleItemsRef = useRef<GalleryItem[]>([]);
+  const fetchItemsRef = useRef<GalleryItem[]>([]);
   const keepIdsRef = useRef<Set<string>>(new Set());
 
-  const THUMB_CONCURRENCY = 4;
-  const THUMB_FLUSH_EVERY = 12;
-  const pageKey = visibleItems.map(i => i.id).join('|');
+  const pageKey = fetchItems.map(i => i.id).join('|');
   const keepKey = Array.from(keepIds).join('|');
-  visibleItemsRef.current = visibleItems;
+  fetchItemsRef.current = fetchItems;
   keepIdsRef.current = keepIds;
 
   useEffect(() => {
@@ -179,9 +198,12 @@ export function GalleryPage() {
       delete thumbsRef.current[id];
       dirty = true;
     }
-    const queue = visibleItemsRef.current.filter(i => !(i.id in thumbsRef.current));
-    let pending = 0;
-    const flush = () => setThumbs({ ...thumbsRef.current });
+    const queue = fetchItemsRef.current.filter((i, n, all) => !(i.id in thumbsRef.current) && all.findIndex(o => o.id === i.id) === n);
+    let unflushed = 0;
+    const flush = () => {
+      unflushed = 0;
+      setThumbs({ ...thumbsRef.current });
+    };
     if (dirty) flush();
     const worker = async () => {
       for (let item = queue.shift(); item && !cancelled; item = queue.shift()) {
@@ -193,11 +215,11 @@ export function GalleryPage() {
           continue;
         }
         thumbsRef.current[item.id] = url;
-        if (++pending % THUMB_FLUSH_EVERY === 0) flush();
+        if (++unflushed >= THUMB_FLUSH_EVERY) flush();
       }
     };
     Promise.all(Array.from({ length: THUMB_CONCURRENCY }, worker)).then(() => {
-      if (!cancelled && pending % THUMB_FLUSH_EVERY !== 0) flush();
+      if (unflushed > 0) flush();
     });
     return () => {
       cancelled = true;
@@ -377,8 +399,8 @@ export function GalleryPage() {
 
   // First member's thumbnail as the playlist card's cover.
   const coverFor = (playlistItems: GalleryItem[]) => {
-    const first = playlistItems.find(i => thumbs[i.id]);
-    return first ? thumbs[first.id] : null;
+    const first = playlistItems[0];
+    return first ? thumbs[first.id] ?? null : null;
   };
 
   // Whole-page drop target. dragenter/leave fire for every child crossed,
@@ -603,7 +625,7 @@ export function GalleryPage() {
           )}
           {truncated && (
             <Notice tone="warning" role="status" className={styles.truncatedNotice}>
-              {t('gallery.page.truncated', { count: GALLERY_ITEMS_MAX.toLocaleString(language) })}
+              {t('gallery.page.truncated', { count: items.length.toLocaleString(language) })}
             </Notice>
           )}
           <Card className={styles.libraryCard}>
@@ -635,67 +657,67 @@ export function GalleryPage() {
               />
             ) : (
               <>
-              <div className={styles.grid}>
-                {visibleItems.map(item => {
-                  const member = memberIds.has(item.id);
-                  return (
-                  <HoverTooltip
-                    key={item.id}
-                    title={item.kind === 'video' ? t('gallery.page.video') : undefined}
-                    body={item.name}
-                  >
-                    <figure
-                      className={[
-                        styles.tile,
-                        hoverSourceId === item.sourceId ? styles.tileHighlight : '',
-                        selectedPlaylist && !member ? styles.tileOut : '',
-                      ].join(' ')}
+                <div className={styles.grid}>
+                  {visibleItems.map(item => {
+                    const member = memberIds.has(item.id);
+                    return (
+                    <HoverTooltip
+                      key={item.id}
+                      title={item.kind === 'video' ? t('gallery.page.video') : undefined}
+                      body={item.name}
                     >
-                      {thumbs[item.id] ? (
-                        <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
-                      ) : (
-                        <span className={styles.tilePlaceholder}>
-                          {item.kind === 'video'
-                            ? <FileVideo size={20} aria-hidden="true" />
-                            : <ImageIcon size={20} aria-hidden="true" />}
-                        </span>
-                      )}
-                      {item.kind === 'video' && (
-                        <span className={styles.tileVideoBadge} aria-label={t('gallery.page.video')} role="img">
-                          <Play size={10} aria-hidden="true" />
-                        </span>
-                      )}
-                      {selectedPlaylist ? (
-                        // The whole tile is the switch; the badge only shows
-                        // which way it is set.
-                        <button
-                          type="button"
-                          className={styles.tileToggle}
-                          aria-pressed={member}
-                          aria-label={member ? t('gallery.page.removeFromPlaylist') : t('gallery.page.addToPlaylist')}
-                          onClick={() => savePlaylist(toggleGalleryPlaylistItem(selectedPlaylist, item))}
-                        >
-                          <span className={styles.tileMember} data-member={member ? 'true' : 'false'} aria-hidden="true">
-                            {member ? <Check size={12} /> : <Plus size={12} />}
+                      <figure
+                        className={[
+                          styles.tile,
+                          hoverSourceId === item.sourceId ? styles.tileHighlight : '',
+                          selectedPlaylist && !member ? styles.tileOut : '',
+                        ].join(' ')}
+                      >
+                        {thumbs[item.id] ? (
+                          <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
+                        ) : (
+                          <span className={styles.tilePlaceholder}>
+                            {item.kind === 'video'
+                              ? <FileVideo size={20} aria-hidden="true" />
+                              : <ImageIcon size={20} aria-hidden="true" />}
                           </span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.tileRemove}
-                          aria-label={t('gallery.page.removeImage')}
-                          onClick={() => removeItem(item)}
-                        >
-                          <X size={12} aria-hidden="true" />
-                        </button>
-                      )}
-                      <figcaption className={styles.tileName}>{item.name}</figcaption>
-                    </figure>
-                  </HoverTooltip>
-                  );
-                })}
-              </div>
-              <Pager className={styles.pager} page={currentPage} pageCount={galleryPageCount(gridItems.length)} onPageChange={setPage} />
+                        )}
+                        {item.kind === 'video' && (
+                          <span className={styles.tileVideoBadge} aria-label={t('gallery.page.video')} role="img">
+                            <Play size={10} aria-hidden="true" />
+                          </span>
+                        )}
+                        {selectedPlaylist ? (
+                          // The whole tile is the switch; the badge only shows
+                          // which way it is set.
+                          <button
+                            type="button"
+                            className={styles.tileToggle}
+                            aria-pressed={member}
+                            aria-label={member ? t('gallery.page.removeFromPlaylist') : t('gallery.page.addToPlaylist')}
+                            onClick={() => savePlaylist(toggleGalleryPlaylistItem(selectedPlaylist, item))}
+                          >
+                            <span className={styles.tileMember} data-member={member ? 'true' : 'false'} aria-hidden="true">
+                              {member ? <Check size={12} /> : <Plus size={12} />}
+                            </span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={styles.tileRemove}
+                            aria-label={t('gallery.page.removeImage')}
+                            onClick={() => removeItem(item)}
+                          >
+                            <X size={12} aria-hidden="true" />
+                          </button>
+                        )}
+                        <figcaption className={styles.tileName}>{item.name}</figcaption>
+                      </figure>
+                    </HoverTooltip>
+                    );
+                  })}
+                </div>
+                <Pager className={styles.pager} page={currentPage} pageCount={galleryPageCount(gridItems.length)} onPageChange={setPage} />
               </>
             )}
           </Card>
