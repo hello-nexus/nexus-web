@@ -23,10 +23,29 @@ export function weatherHasNoData(snap: WeatherSnapshot | null, loaded: boolean):
   return loaded && (!snap || !snap.asOf);
 }
 
-// Local clock time of the stale reading, or null when asOf does not parse.
-export function staleReadingClock(asOf: string | undefined): { hour: number; minute: number } | null {
-  if (!asOf) return null;
-  const d = new Date(asOf);
-  if (Number.isNaN(d.getTime())) return null;
-  return { hour: d.getHours(), minute: d.getMinutes() };
+export interface StaleStamp {
+  hour: number;
+  minute: number;
+  // False when the reading is from an earlier day than now, in the location's time.
+  today: boolean;
+  // UTC-field date carrying the location-local calendar day, for formatting with timeZone UTC.
+  day: Date;
+}
+
+// When the stale reading was taken, in the snapshot's location time (browser
+// time when the service sent no offset); null when asOf does not parse.
+export function staleReadingStamp(snap: WeatherSnapshot | null, nowMs: number): StaleStamp | null {
+  if (!snap?.asOf) return null;
+  const at = new Date(snap.asOf).getTime();
+  if (Number.isNaN(at)) return null;
+  const offsetMs = (snap.utcOffsetSeconds ?? -new Date(at).getTimezoneOffset() * 60) * 1000;
+  const shifted = new Date(at + offsetMs);
+  const nowShifted = new Date(nowMs + offsetMs);
+  const dayKey = (d: Date) => Math.floor(d.getTime() / 86_400_000);
+  return {
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+    today: dayKey(shifted) === dayKey(nowShifted),
+    day: shifted,
+  };
 }

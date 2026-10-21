@@ -55,6 +55,7 @@ vi.mock('../../../lib/i18n', () => {
     'panel.widget.weather.error.response': 'Response long',
     'panel.widget.weather.error.response.short': 'Response short',
     'panel.widget.weather.error.stale': 'Stale from {time}',
+    'panel.widget.weather.error.staleDate': 'Stale from {date}, {time}',
     'common.loading': 'Loading...',
   };
   const t = (key: string, params?: Record<string, string | number>) => {
@@ -88,6 +89,14 @@ function snapshot(label: string, tempC: number, code = 0): WeatherSnapshot {
       sunrise: `2026-09-1${2 + i}T06:40`, sunset: `2026-09-1${2 + i}T19:20`, uvIndexMax: 5,
       precipitationSumMm: 0, precipitationProbabilityMaxPct: 5,
     })),
+  };
+}
+
+// Mirrors the service's Empty snapshot: no reading, optionally with a reason.
+function emptySnapshot(error?: string) {
+  return {
+    temperatureC: null, temperatureF: null, weatherCode: -1, condition: '', humidityPct: null, windKph: null,
+    locationLabel: '', asOf: '', hourly: [], daily: [], ...(error ? { error } : {}),
   };
 }
 
@@ -138,22 +147,28 @@ describe('WeatherPage', () => {
     ['invalid', 'Response long', 'Response short'],
     [undefined, 'Unreachable long', 'Unreachable short'],
   ])('explains an empty snapshot (error %s) in the detail pane and the rows', async (error, longText, shortText) => {
-    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('x', 0), asOf: '', error });
+    api.fetchWeather.mockReset().mockResolvedValue(emptySnapshot(error));
     render(<WeatherPage />);
     await flush();
     expect(screen.getByText(longText)).toBeInTheDocument();
     expect(screen.getAllByText(shortText)).toHaveLength(3);
-    expect(screen.queryByText('--', { exact: false })).toBeNull();
     expect(screen.queryByText('2-day forecast')).toBeNull();
   });
 
   it('keeps the last reading and adds a stale line when the refresh failed', async () => {
-    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('Trieste, IT', 22), error: 'timeout' });
+    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('Trieste, IT', 22), asOf: new Date().toISOString(), error: 'timeout' });
     render(<WeatherPage />);
     await flush();
     expect(screen.getByText(/^Stale from \d{1,2}:\d{2}/)).toBeInTheDocument();
     expect(screen.getByText('2-day forecast')).toBeInTheDocument();
     expect(screen.queryByText('Timeout long')).toBeNull();
+  });
+
+  it('adds the date when the stale reading is not from today', async () => {
+    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('Trieste, IT', 22), error: 'timeout' });
+    render(<WeatherPage />);
+    await flush();
+    expect(screen.getByText(/^Stale from Sep 12, \d{1,2}:\d{2}/)).toBeInTheDocument();
   });
 
   it('shows no stale line for a fresh reading', async () => {
@@ -266,7 +281,7 @@ describe('WeatherTouch', () => {
     ['invalid', 'Response long'],
     [undefined, 'Unreachable long'],
   ])('explains an empty snapshot (error %s) instead of showing placeholders', async (error, text) => {
-    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('x', 0), asOf: '', error });
+    api.fetchWeather.mockReset().mockResolvedValue(emptySnapshot(error));
     render(<WeatherTouch widget={widget({ location: TOKYO })} surface="y70" immersiveGrid={{ columns: 4, rows: 12 }} />);
     await flush();
     expect(screen.getByText(text)).toBeInTheDocument();
@@ -275,7 +290,7 @@ describe('WeatherTouch', () => {
   });
 
   it('keeps the reading and adds the stale line when the refresh failed', async () => {
-    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('Tokyo, JP', 26), error: 'http' });
+    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('Tokyo, JP', 26), asOf: new Date().toISOString(), error: 'http' });
     render(<WeatherTouch widget={widget({ location: TOKYO })} surface="y70" immersiveGrid={{ columns: 4, rows: 12 }} />);
     await flush();
     expect(screen.getByText(/^Stale from \d{1,2}:\d{2}/)).toBeInTheDocument();

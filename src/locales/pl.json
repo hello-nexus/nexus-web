@@ -4761,6 +4761,7 @@
   "panel.widget.weather.error.response": "Usługa pogodowa zwróciła błąd. Ponowna próba nastąpi automatycznie.",
   "panel.widget.weather.error.response.short": "Błąd usługi pogodowej",
   "panel.widget.weather.error.stale": "Nie udało się zaktualizować, wyświetlane są dane z {time}",
+  "panel.widget.weather.error.staleDate": "Nie udało się zaktualizować, wyświetlane są dane z {date}, {time}",
   "panel.widget.weather.error.timeout": "Usługa pogodowa odpowiada zbyt wolno. Ponowna próba nastąpi automatycznie.",
   "panel.widget.weather.error.timeout.short": "Przekroczono czas oczekiwania na usługę pogodową",
   "panel.widget.weather.error.unreachable": "Nie można połączyć się z usługą pogodową. Sprawdź połączenie z internetem lub zaporę.",

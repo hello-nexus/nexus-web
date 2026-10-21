@@ -70,11 +70,11 @@ export interface WeatherAirQuality {
   nitrogenDioxide: number | null;
 }
 
-// Every optional field is absent on a snapshot from a service build that
-// predates it; consumers treat absent and null alike.
 // Why the service could not refresh a snapshot. Absent/null = the reading is fresh.
 export type WeatherErrorReason = 'timeout' | 'unreachable' | 'http' | 'invalid';
 
+// Every optional field is absent on a snapshot from a service build that
+// predates it; consumers treat absent and null alike.
 export interface WeatherSnapshot {
   temperatureC: number | null;
   temperatureF: number | null;

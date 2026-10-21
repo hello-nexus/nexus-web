@@ -4715,6 +4715,7 @@
   "panel.widget.weather.error.response": "O serviço meteorológico devolveu um erro. A tentar novamente automaticamente.",
   "panel.widget.weather.error.response.short": "Erro do serviço meteorológico",
   "panel.widget.weather.error.stale": "Não foi possível atualizar, a mostrar os dados das {time}",
+  "panel.widget.weather.error.staleDate": "Não foi possível atualizar, a mostrar os dados de {date}, {time}",
   "panel.widget.weather.error.timeout": "O serviço meteorológico está a demorar demasiado a responder. A tentar novamente automaticamente.",
   "panel.widget.weather.error.timeout.short": "Tempo esgotado no serviço meteorológico",
   "panel.widget.weather.error.unreachable": "Não foi possível contactar o serviço meteorológico. Verifique a ligação à internet ou a firewall.",

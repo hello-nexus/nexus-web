@@ -64,6 +64,14 @@ vi.mock('../../../lib/i18n', () => {
   return { useTranslation: () => ({ t }) };
 });
 
+// Mirrors the service's Empty snapshot: no reading, optionally with a reason.
+function emptySnapshot(error?: string) {
+  return {
+    temperatureC: null, temperatureF: null, weatherCode: -1, condition: '', humidityPct: null, windKph: null,
+    locationLabel: '', asOf: '', hourly: [], daily: [], ...(error ? { error } : {}),
+  };
+}
+
 function weatherWidget(size: PanelWidget['size'], config?: PanelWidget['config']): PanelWidget {
   return { id: `weather-${size}`, type: 'weather', size, col: 0, row: 0, config };
 }
@@ -196,7 +204,7 @@ describe('WeatherWidget', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       // The service's empty snapshot: upstream unreachable, no cached reading.
-      vi.mocked(fetchService).mockResolvedValueOnce({ asOf: '' } as never);
+      vi.mocked(fetchService).mockResolvedValueOnce(emptySnapshot() as never);
       render(<WeatherWidget widget={weatherWidget('2x2')} />);
       expect(await screen.findByText('Cannot reach weather service')).toBeInTheDocument();
       await act(async () => { await vi.advanceTimersByTimeAsync(WEATHER_RETRY_MS); });
@@ -213,14 +221,14 @@ describe('WeatherWidget', () => {
     ['http', 'Weather service error'],
     ['invalid', 'Weather service error'],
   ])('names the reason on the tile when the snapshot is empty with error %s', async (error, label) => {
-    vi.mocked(fetchService).mockResolvedValueOnce({ asOf: '', error } as never);
+    vi.mocked(fetchService).mockResolvedValueOnce(emptySnapshot(error) as never);
     render(<WeatherWidget widget={weatherWidget('2x2')} />);
     expect(await screen.findByText(label)).toBeInTheDocument();
     expect(screen.queryByText('--')).toBeNull();
   });
 
   it('reads an empty snapshot without an error field (older service) as unreachable', async () => {
-    vi.mocked(fetchService).mockResolvedValueOnce({ asOf: '' } as never);
+    vi.mocked(fetchService).mockResolvedValueOnce(emptySnapshot() as never);
     render(<WeatherWidget widget={weatherWidget('2x2')} />);
     expect(await screen.findByText('Cannot reach weather service')).toBeInTheDocument();
   });

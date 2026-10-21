@@ -4715,6 +4715,7 @@
   "panel.widget.weather.error.response": "天氣服務傳回錯誤。將自動重試。",
   "panel.widget.weather.error.response.short": "天氣服務錯誤",
   "panel.widget.weather.error.stale": "無法更新，正在顯示 {time} 的資料",
+  "panel.widget.weather.error.staleDate": "無法更新，正在顯示 {date} {time} 的資料",
   "panel.widget.weather.error.timeout": "天氣服務回應時間過長。將自動重試。",
   "panel.widget.weather.error.timeout.short": "天氣服務逾時",
   "panel.widget.weather.error.unreachable": "無法連線至天氣服務。請檢查您的網路連線或防火牆。",

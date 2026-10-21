@@ -29,11 +29,13 @@ export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const label = location ? location.label : (snap?.locationLabel || t('panel.widget.weather.myLocation'));
 
   const cells: ReactNode[] = [
-    <div key="hero" className={`${styles.cell} ${styles.grow}`}>
+    <div key="hero" className={styles.cell}>
       <WeatherErrorNotice snap={snap} loaded={loaded} error={error} />
       {!noData && (
         <>
-          <WeatherHero snap={snap} loaded={loaded} unit={unit} label={label} immersive />
+          <div className={styles.grow}>
+            <WeatherHero snap={snap} loaded={loaded} unit={unit} label={label} immersive />
+          </div>
           <WeatherHourlyStrip snap={snap} unit={unit} immersive />
         </>
       )}
