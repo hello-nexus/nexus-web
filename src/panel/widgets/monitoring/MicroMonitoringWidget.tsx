@@ -12,8 +12,7 @@ import {
   networkMaxValue,
   NETWORK_SENSOR_TOTAL,
 } from './networkSensors';
-import { DEFAULT_MICRO_DESIGN, isExtrasBackedDevice, isMicroMultiDevice, isTwoColumnMicro, microRowDevice, type DeviceKey } from './perfSlots';
-import type { GaugeDesignKey } from './gauges/types';
+import { DEFAULT_MICRO_DESIGN, isExtrasBackedDevice, isMicroMultiDevice, isTwoColumnMicro, microAlignOf, microRowDevice, type DeviceKey, type MicroAlign, type MicroDesignKey } from './perfSlots';
 import {
   displayLabel,
   labelForDevice,
@@ -120,14 +119,15 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
   // Row style shared by every bar; a 6/8-slot Micro on the wide 4x2 splits the
   // rows into two columns (3+3, 4+4) under the one shared caption. The tall 2x4
   // keeps all rows in one column.
-  const microDesign = (widget.config?.micro_design as GaugeDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
+  const microDesign = (widget.config?.micro_design as MicroDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
+  const microAlign = microAlignOf(widget.config);
   const twoColumn = isTwoColumnMicro(widget.size, count);
 
   const selectable = typeof onSelectSlot === 'function';
   const activeSlot = selectedSlot == null ? 0 : Math.max(0, Math.min(selectedSlot, count - 1));
 
   // Only the bar design sizes itself to its content; fill and backdrop stretch.
-  const growsRow = microDesign === 'fill' || microDesign === 'backdrop';
+  const growsRow = microDesign !== 'bar';
 
   const rowEls = sensorNames.map((rawName, i) => {
     const rowDevice = rowDevices[i];
@@ -145,6 +145,7 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
         labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
         labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
         design={microDesign}
+        align={microAlign}
         scale={microScale}
         fixedMin={microMin}
         fixedMax={microMax}
@@ -195,7 +196,7 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
       )}
       {!categoryHidden && (
         <HoverTooltip body={bottomLabel} side="top">
-          <div className={styles.bottomLabel}>{bottomLabel}</div>
+          <div className={`${styles.bottomLabel} ${microDesign === 'simple' ? styles[`caption_${microAlign}`] : ''}`}>{bottomLabel}</div>
         </HoverTooltip>
       )}
     </div>
@@ -213,7 +214,8 @@ interface MicroRowProps {
   sensorName: string;
   labelOverride?: string;
   labelMode?: string;
-  design: GaugeDesignKey;
+  design: MicroDesignKey;
+  align: MicroAlign;
   scale: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
@@ -226,7 +228,7 @@ interface MicroRowProps {
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, valueColor, valueColorReverse, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, align, scale, fixedMin, fixedMax, valueColor, valueColorReverse, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
@@ -261,6 +263,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixe
       formatted={formatted}
       fillPercent={fillPercent}
       design={design}
+      align={align}
       history={history}
       historyDomain={[domainMin, domainMax]}
       gradient={gradient}

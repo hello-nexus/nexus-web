@@ -221,6 +221,26 @@ describe('MonitoringSettings - Micro mode', () => {
     expect(updates[updates.length - 1]).toEqual({ micro_design: 'backdrop' });
   });
 
+  it('offers the Label + Value design and writes micro_design simple', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.designSimple' })); });
+    expect(updates[updates.length - 1]).toEqual({ micro_design: 'simple' });
+  });
+
+  it('shows the alignment options only for the simple design and persists micro_align', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
+    expect(screen.queryByRole('radiogroup', { name: 'monitoring.settings.align' })).not.toBeInTheDocument();
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.designSimple' })); });
+    expect(screen.getByRole('radio', { name: 'monitoring.settings.alignLeft' })).toHaveAttribute('aria-checked', 'true');
+    act(() => { fireEvent.click(screen.getByRole('radio', { name: 'monitoring.settings.alignRight' })); });
+    expect(updates[updates.length - 1]).toEqual({ micro_align: 'right' });
+    expect(screen.getByRole('radio', { name: 'monitoring.settings.alignRight' })).toHaveAttribute('aria-checked', 'true');
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'Progress Bar' })); });
+    expect(screen.queryByRole('radiogroup', { name: 'monitoring.settings.align' })).not.toBeInTheDocument();
+  });
+
   it('renders 4 sensor selects when count=4', () => {
     render(<MicroHarness initial={microWidget(4)} />);
     expect(screen.getByRole('combobox', { name: 'Sensor 1' })).toBeInTheDocument();

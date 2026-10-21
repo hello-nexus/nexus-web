@@ -1732,6 +1732,7 @@ function PreviewMicroBars() {
       <MicroBar label="CPU TOTAL" formatted="42 %" fillPercent={42} />
       <MicroBar label="TEMP" formatted="68 C" fillPercent={68} />
       <MicroBar label="POWER" formatted="92 W" fillPercent={61} />
+      <MicroBar label="TEMP" formatted="68 C" fillPercent={68} design="simple" />
     </div>
   );
 }
@@ -3480,7 +3481,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'MicroBar', category: 'panel-kit',
     filePath: 'src/panel/widgets/monitoring/MicroBar.tsx',
-    description: 'Single horizontal-progress row used by the Micro monitoring layout (count = 3 on 2x2 / 4x2). Label-left, value-right above a thin progress track. Stack 3 of these + a centered category/model label to compose the Micro tile.',
+    description: 'Single horizontal-progress row used by the Micro monitoring layout (count = 3 on 2x2 / 4x2). Label-left, value-right above a thin progress track. Stack 3 of these + a centered category/model label to compose the Micro tile. The simple design drops the track for a label over a value, aligned left, center, or right.',
     Preview: PreviewMicroBars,
   },
   {

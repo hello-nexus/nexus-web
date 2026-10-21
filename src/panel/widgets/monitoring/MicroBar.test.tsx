@@ -28,6 +28,30 @@ describe('MicroBar designs', () => {
     expect(hasGaugeReading(unlabeled.container, '72')).toBe(true);
   });
 
+  it('simple design renders label and value with no track, fill, or graph', () => {
+    const { container } = render(<MicroBar label="CPU" formatted="40 °C" fillPercent={40} design="simple" />);
+    expect(container.querySelector('svg')).toBeNull();
+    expect(within(container).getByText('CPU')).toBeInTheDocument();
+    expect(hasGaugeReading(container, '40 °C')).toBe(true);
+    expect(container.querySelector('[class*="track" i]')).toBeNull();
+    expect(container.querySelector('[class*="fillBar"]')).toBeNull();
+  });
+
+  it('simple design applies the alignment class, defaulting to left', () => {
+    const left = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" />);
+    expect(left.container.firstElementChild?.className).toMatch(/align_left/);
+    const right = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" align="right" />);
+    expect(right.container.firstElementChild?.className).toMatch(/align_right/);
+    const center = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" align="center" />);
+    expect(center.container.firstElementChild?.className).toMatch(/align_center/);
+  });
+
+  it('simple design omits the label span when empty', () => {
+    const { container } = render(<MicroBar label="" formatted="40" fillPercent={40} design="simple" />);
+    expect(container.querySelector('[class*="simpleLabel"]')).toBeNull();
+    expect(hasGaugeReading(container, '40')).toBe(true);
+  });
+
   it('defaults to the bar design when none is given', () => {
     const { container } = render(<MicroBar label="CPU" formatted="50%" fillPercent={50} />);
     expect(container.querySelector('svg')).toBeNull();

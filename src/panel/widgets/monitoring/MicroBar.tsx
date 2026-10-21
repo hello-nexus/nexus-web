@@ -5,7 +5,7 @@ import { GaugeValue } from './gauges/GaugeValue';
 import { GaugeTrack } from './gauges/GaugeTrack';
 import type { GaugeGradient } from './valueColor';
 import { GAUGE_LINE_THICKNESS } from './gauges/types';
-import type { GaugeDesignKey } from './gauges/types';
+import type { MicroAlign, MicroDesignKey } from './perfSlots';
 import styles from './MicroBar.module.scss';
 
 interface MicroBarProps {
@@ -13,8 +13,11 @@ interface MicroBarProps {
   formatted: string;
   fillPercent: number;
   // One of the Micro design keys (see MICRO_DESIGN_KEYS): 'bar' (fill track),
-  // 'fill' (value fill behind the caption), 'backdrop' (dim history graph).
-  design?: GaugeDesignKey;
+  // 'fill' (value fill behind the caption), 'backdrop' (dim history graph),
+  // 'simple' (label over value, no figure).
+  design?: MicroDesignKey;
+  // Only read by the 'simple' design: alignment of its label and value.
+  align?: MicroAlign;
   // Only read by the 'backdrop' design (the dim filled history trace).
   history?: number[];
   historyDomain?: [number, number];
@@ -24,13 +27,22 @@ interface MicroBarProps {
   style?: CSSProperties;
 }
 
-export function MicroBar({ label, formatted, fillPercent, design = 'bar', history, historyDomain, gradient, style }: MicroBarProps) {
+export function MicroBar({ label, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
   const head = (
     <div className={styles.head}>
       {label && <span className={styles.label}>{label}</span>}
       <GaugeValue formatted={formatted} className={styles.value} />
     </div>
   );
+
+  if (design === 'simple') {
+    return (
+      <div className={`${styles.rowSimple} ${styles[`align_${align}`]}`} style={style}>
+        {label && <span className={styles.simpleLabel}>{label}</span>}
+        <GaugeValue formatted={formatted} className={styles.simpleValue} />
+      </div>
+    );
+  }
 
   if (design === 'fill') {
     const clamped = Math.max(0, Math.min(100, fillPercent));

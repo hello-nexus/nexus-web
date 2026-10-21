@@ -49,6 +49,19 @@
   padding: 0 4px;
 }
 
+// The simple design aligns its rows; the shared caption follows them.
+.caption_center {
+  text-align: center;
+}
+
+.caption_left {
+  text-align: left;
+}
+
+.caption_right {
+  text-align: right;
+}
+
 // Outline offset clear of the bar, leaving the row's layout box untouched;
 // .slot would clip it, and the doubled class outranks the perf module's ::after.
 .rowSelectable.rowSelectable {
