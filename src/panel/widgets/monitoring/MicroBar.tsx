@@ -5,7 +5,8 @@ import { GaugeValue } from './gauges/GaugeValue';
 import { GaugeTrack } from './gauges/GaugeTrack';
 import type { GaugeGradient } from './valueColor';
 import { GAUGE_LINE_THICKNESS } from './gauges/types';
-import type { GaugeDesignKey } from './gauges/types';
+import type { MicroAlign, MicroDesignKey } from './perfSlots';
+import { useFitWidth } from '../common/useFitWidth';
 import styles from './MicroBar.module.scss';
 
 interface MicroBarProps {
@@ -13,8 +14,11 @@ interface MicroBarProps {
   formatted: string;
   fillPercent: number;
   // One of the Micro design keys (see MICRO_DESIGN_KEYS): 'bar' (fill track),
-  // 'fill' (value fill behind the caption), 'backdrop' (dim history graph).
-  design?: GaugeDesignKey;
+  // 'fill' (value fill behind the caption), 'backdrop' (dim history graph),
+  // 'simple' (label over value, no figure).
+  design?: MicroDesignKey;
+  // Only read by the 'simple' design: alignment of its label and value.
+  align?: MicroAlign;
   // Only read by the 'backdrop' design (the dim filled history trace).
   history?: number[];
   historyDomain?: [number, number];
@@ -24,7 +28,21 @@ interface MicroBarProps {
   style?: CSSProperties;
 }
 
-export function MicroBar({ label, formatted, fillPercent, design = 'bar', history, historyDomain, gradient, style }: MicroBarProps) {
+function SimpleRow({ label, formatted, align, style }: { label: string; formatted: string; align: MicroAlign; style?: CSSProperties }) {
+  const { boxRef, contentRef, scale } = useFitWidth(1, true);
+  return (
+    <div ref={boxRef} className={styles.rowSimple} style={style}>
+      <div ref={contentRef} className={`${styles.simpleContent} ${styles[`align_${align}`]}`} style={{ transform: `scale(${scale})` }}>
+        {label && <span className={styles.simpleLabel}>{label}</span>}
+        <GaugeValue formatted={formatted} className={styles.simpleValue} align={align} />
+      </div>
+    </div>
+  );
+}
+
+export function MicroBar({ label, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
+  if (design === 'simple') return <SimpleRow label={label} formatted={formatted} align={align} style={style} />;
+
   const head = (
     <div className={styles.head}>
       {label && <span className={styles.label}>{label}</span>}

@@ -8,6 +8,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
+import { AreaCells } from '../AreaCells/AreaCells';
 import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
@@ -920,6 +921,13 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
         // every one of them - that is the "clicked empty canvas" state.
         const deemphasized = !selected;
         const shownMembers = stackedWith(dev.id).filter(id => !hiddenIds.has(id));
+        // An area-sampled card shows boxes only. A stacked card without it keeps its dots only when it is the
+        // selected slot, so the frame never mixes a stray sibling dot into the boxes. Foreign members draw nothing.
+        const frameHasBoxes = shownMembers.some(m => {
+          if (foreignFrames?.has(m)) return false;
+          const d = devices.find(x => x.id === m);
+          return !!(d?.sampling && d.sampling !== 'led' && d.areaCells?.length);
+        });
         const foreign = !!foreignFrames && shownMembers.length > 0 && shownMembers.every(id => foreignFrames.has(id));
         // The canvas is held at the unit space's 5:3, so a turn in units is a
         // plain rotation on screen.
@@ -949,6 +957,18 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                 const slot = stackSlotOf(stacks, id);
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
                 const locked = ledColorsById.get(id);
+                const member = devices.find(d => d.id === id);
+                if (member?.sampling && member.sampling !== 'led' && member.areaCells?.length) {
+                  return [(
+                    <AreaCells
+                      key={`${id}:cells`}
+                      cells={member.areaCells}
+                      locked={locked}
+                      style={{ left: `${part.x * 100}%`, top: `${part.y * 100}%`, width: `${part.w * 100}%`, height: `${part.h * 100}%` }}
+                    />
+                  )];
+                }
+                if (frameHasBoxes && primaryDeviceId !== id) return [];
                 return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => {
                   const color = locked?.get(led.index);
                   return (

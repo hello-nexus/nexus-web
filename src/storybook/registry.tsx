@@ -156,6 +156,7 @@ import { TextInput } from '../components/common/TextInput/TextInput';
 import { Ring as StorybookRing } from '../components/common/Ring/Ring';
 import { Gauge as StorybookGauge } from '../components/common/Gauge/Gauge';
 import { CanvasNoticeBar } from '../components/common/CanvasNoticeBar';
+import { AreaCells } from '../components/common/AreaCells/AreaCells';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent - PanelDevicePage imports the same sheet.
@@ -1731,6 +1732,7 @@ function PreviewMicroBars() {
       <MicroBar label="CPU TOTAL" formatted="42 %" fillPercent={42} />
       <MicroBar label="TEMP" formatted="68 C" fillPercent={68} />
       <MicroBar label="POWER" formatted="92 W" fillPercent={61} />
+      <MicroBar label="TEMP" formatted="68 C" fillPercent={68} design="simple" />
     </div>
   );
 }
@@ -2445,6 +2447,17 @@ function PreviewCanvasNoticeBar() {
           action={{ label: 'Choose GPU', onClick: () => {} }}
         />
       </div>
+    </div>
+  );
+}
+
+function PreviewAreaCells() {
+  return (
+    <div style={{ position: 'relative', width: '100%', height: 96, background: '#222', borderRadius: 6 }}>
+      <AreaCells
+        cells={[[0, 0, 0.5, 0, 0.4, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.4, 1]]}
+        style={{ left: 0, top: 0, width: '100%', height: '100%' }}
+      />
     </div>
   );
 }
@@ -3451,6 +3464,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Bottom-docked translucent notice bar overlaid on a preview canvas. Click-through except for the optional action button. tone="wait" is the self-resolving state (GPU still initializing); the default fault tone warns that a shader effect previews in the browser but won\'t run on the service.',
     Preview: PreviewCanvasNoticeBar,
   },
+  {
+    name: 'AreaCells', category: 'status',
+    filePath: 'src/components/common/AreaCells/AreaCells.tsx',
+    description: 'Outlines of the cells Area sampling gives each LED, as one SVG over the unit square of the box it fills. Fixed-width stroke in the LED mark color; a locked LED outline wears its color. Non-interactive.',
+    Preview: PreviewAreaCells,
+  },
 
   // ── Panel kit ─────────────────────────────────────────────────────────
   {
@@ -3462,7 +3481,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'MicroBar', category: 'panel-kit',
     filePath: 'src/panel/widgets/monitoring/MicroBar.tsx',
-    description: 'Single horizontal-progress row used by the Micro monitoring layout (count = 3 on 2x2 / 4x2). Label-left, value-right above a thin progress track. Stack 3 of these + a centered category/model label to compose the Micro tile.',
+    description: 'Single horizontal-progress row used by the Micro monitoring layout (count = 3 on 2x2 / 4x2). Label-left, value-right above a thin progress track. Stack 3 of these + a centered category/model label to compose the Micro tile. The simple design drops the track for a label over a value, aligned left, center, or right.',
     Preview: PreviewMicroBars,
   },
   {

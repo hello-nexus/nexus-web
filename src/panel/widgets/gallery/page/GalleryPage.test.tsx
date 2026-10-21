@@ -1,6 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryPage } from './GalleryPage';
+import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { fetchServiceBlob } from '../../../../api/service';
 
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
@@ -8,13 +10,14 @@ const mockState = vi.hoisted(() => ({
   playlists: [] as { id: string; name: string; createdAtUnixMs: number; sourceIds: string[]; itemIds: string[]; excludedIds: string[] }[],
   uses: [] as { surface: 'dashboard' | 'panel' | 'desktop'; name: string; count: number }[] | null,
   bridgeAvailable: false,
+  truncated: false,
 }));
 
 vi.mock('../../../../api/gallery', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../api/gallery')>()),
   GALLERY_ERROR_DUPLICATE: 'duplicate',
   fetchGallerySources: vi.fn(() => Promise.resolve({ sources: mockState.sources })),
-  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists })),
+  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists, truncated: mockState.truncated })),
   createGalleryPlaylist: vi.fn((name: string) => {
     const playlist = { id: 'pl-new', name, createdAtUnixMs: 1, sourceIds: [], itemIds: [], excludedIds: [] };
     mockState.playlists = [...mockState.playlists, playlist];
@@ -75,7 +78,17 @@ beforeEach(() => {
   mockState.playlists = [];
   mockState.uses = [];
   mockState.bridgeAvailable = false;
+  mockState.truncated = false;
   vi.clearAllMocks();
+  vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(null));
+  let n = 0;
+  URL.createObjectURL = vi.fn(() => `blob:t${n++}`);
+  URL.revokeObjectURL = vi.fn();
+});
+
+afterEach(() => {
+  delete (URL as Partial<typeof URL>).createObjectURL;
+  delete (URL as Partial<typeof URL>).revokeObjectURL;
 });
 
 describe('GalleryPage', () => {
@@ -410,5 +423,116 @@ describe('GalleryPage', () => {
       expect(await screen.findByText('gallery.page.deletePlaylistNote')).toBeTruthy();
       expect(screen.getByText('gallery.page.deletePlaylistMessage:name=Desk')).toBeTruthy();
     });
+  });
+});
+
+describe('GalleryPage paging', () => {
+  const many = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `i${i}`, name: `p${i}.png`, sourceId: 'Pictures' }));
+
+  it('renders one page of tiles and fetches thumbnails for that page only', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(250);
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    const { container } = render(<GalleryPage />);
+    await waitFor(() => expect(container.querySelectorAll('figure')).toHaveLength(100));
+    await waitFor(() => expect(container.querySelectorAll('figure img')).toHaveLength(100));
+    expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100);
+    expect(screen.getByText('common.pager.pageOf:n=1:total=3')).toBeTruthy();
+  });
+
+  it('paging fetches the next page and revokes pages left behind', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(450);
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    const { container } = render(<GalleryPage />);
+    await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100));
+
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(screen.getByLabelText('common.pager.next'));
+      await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100 * (i + 2)));
+    }
+    // Pages 1 and 2 left the window when page 4 opened; the first item stays as the library cover.
+    await waitFor(() => expect(vi.mocked(URL.revokeObjectURL)).toHaveBeenCalledTimes(199));
+    const revoked = new Set(vi.mocked(URL.revokeObjectURL).mock.calls.map(c => c[0]));
+    const shown = Array.from(container.querySelectorAll('figure img')).map(img => img.getAttribute('src'));
+    expect(shown.length).toBeGreaterThan(0);
+    for (const src of shown) expect(revoked.has(src!)).toBe(false);
+  });
+
+  it('keeps a playlist cover cached while its first member is off the page', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(450);
+    mockState.playlists = [{ id: 'pl1', name: 'Mine', createdAtUnixMs: 1, sourceIds: [], itemIds: ['i150'], excludedIds: [] }];
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    render(<GalleryPage />);
+    const coverOf = () => screen.getByRole('button', { name: /Mine/ }).querySelector('img')?.getAttribute('src');
+    await waitFor(() => expect(coverOf()).toBeTruthy());
+    const cover = coverOf();
+
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByLabelText('common.pager.next'));
+    await waitFor(() => expect(document.querySelectorAll('figure img')).toHaveLength(50));
+    expect(vi.mocked(URL.revokeObjectURL).mock.calls.some(c => c[0] === cover)).toBe(false);
+    expect(coverOf()).toBe(cover);
+  });
+
+  it('clamps the page back when the library shrinks', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(250);
+    render(<GalleryPage />);
+    await screen.findByText('common.pager.pageOf:n=1:total=3');
+    fireEvent.click(screen.getByLabelText('common.pager.next'));
+    fireEvent.click(screen.getByLabelText('common.pager.next'));
+    await screen.findByText('common.pager.pageOf:n=3:total=3');
+    const refetch = vi.mocked(useTopicCallback).mock.calls[0][2] as () => Promise<void>;
+    mockState.items = many(120);
+    await act(async () => {
+      await refetch();
+    });
+    expect(await screen.findByText('common.pager.pageOf:n=2:total=2')).toBeTruthy();
+    // The written-back page holds when the library grows again.
+    mockState.items = many(250);
+    await act(async () => {
+      await refetch();
+    });
+    expect(await screen.findByText('common.pager.pageOf:n=2:total=3')).toBeTruthy();
+  });
+
+  it('a refresh that started before a create does not deselect the new playlist', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(3);
+    render(<GalleryPage />);
+    await screen.findByText('Pictures');
+    const { fetchGalleryItems } = await import('../../../../api/gallery');
+    let release: (v: { items: typeof mockState.items; playlists: never[] }) => void = () => {};
+    vi.mocked(fetchGalleryItems).mockImplementationOnce(() => new Promise(r => { release = r; }) as never);
+    const refetch = vi.mocked(useTopicCallback).mock.calls[0][2] as () => Promise<void>;
+    let stale!: Promise<void>;
+    act(() => {
+      stale = refetch();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.newPlaylist' }));
+    fireEvent.change(screen.getByPlaceholderText('gallery.page.playlistName'), { target: { value: 'Desk' } });
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.create' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Desk/ })).toBeTruthy());
+
+    await act(async () => {
+      release({ items: mockState.items, playlists: [] });
+      await stale;
+    });
+    expect(screen.getByRole('button', { name: /Desk/ }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('shows the truncation notice only when the service flags it', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(2);
+    const { unmount } = render(<GalleryPage />);
+    await screen.findByText('Pictures');
+    expect(screen.queryByText(/gallery.page.truncated/)).toBeNull();
+    unmount();
+
+    mockState.truncated = true;
+    render(<GalleryPage />);
+    expect(await screen.findByText(/gallery.page.truncated/)).toBeTruthy();
   });
 });
