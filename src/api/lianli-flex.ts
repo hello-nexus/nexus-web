@@ -25,8 +25,11 @@ function isOk(r: OkResponse | null): boolean {
   return !!r && r.error !== true;
 }
 
-export function getLianLiFlexState(): Promise<LianLiFansState | null> {
-  return fetchService<LianLiFansState>(`${BASE}/state`);
+/** The wired state plus the Flex screens on USB whose fans run over the radio. */
+export type LianLiFlexState = LianLiFansState & { screenOnlySerials?: string[] };
+
+export function getLianLiFlexState(): Promise<LianLiFlexState | null> {
+  return fetchService<LianLiFlexState>(`${BASE}/state`);
 }
 
 export const lianLiFlexLightingApi: LianLiChainLightingApi = {
