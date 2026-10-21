@@ -726,7 +726,7 @@
   "devices.asus-glacial-lcd.tuning.restoreDefaults": "還原預設值",
   "devices.asus-glacial-lcd.tuning.resume": "繼續",
   "devices.asus-glacial-lcd.tuning.scaleMode": "縮放後的影格",
-  "devices.asus-glacial-lcd.tuning.scaleModeHint": "「直接傳送」會把縮小的畫面交給顯示器。「放大」會在傳送前先還原為完整大小。",
+  "devices.asus-glacial-lcd.tuning.scaleModeHint": "「縮小傳送」會把縮小的畫面交給顯示器。「放大到完整大小」會在傳送前先還原為完整大小。",
   "devices.asus-glacial-lcd.tuning.scaleModeSend": "縮小傳送",
   "devices.asus-glacial-lcd.tuning.scaleModeUpscale": "放大到完整大小",
   "devices.asus-glacial-lcd.tuning.scalePercent": "影格大小",

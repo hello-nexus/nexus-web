@@ -726,7 +726,7 @@
   "devices.asus-glacial-lcd.tuning.restoreDefaults": "デフォルトに戻す",
   "devices.asus-glacial-lcd.tuning.resume": "再開",
   "devices.asus-glacial-lcd.tuning.scaleMode": "縮小フレーム",
-  "devices.asus-glacial-lcd.tuning.scaleModeHint": "「そのまま送信」はディスプレイに縮小した画像を渡します。「拡大」は送信前にフルサイズへ戻します。",
+  "devices.asus-glacial-lcd.tuning.scaleModeHint": "「縮小して送信」はディスプレイに縮小した画像を渡します。「フルサイズに拡大」は送信前にフルサイズへ戻します。",
   "devices.asus-glacial-lcd.tuning.scaleModeSend": "縮小して送信",
   "devices.asus-glacial-lcd.tuning.scaleModeUpscale": "フルサイズに拡大",
   "devices.asus-glacial-lcd.tuning.scalePercent": "フレームサイズ",

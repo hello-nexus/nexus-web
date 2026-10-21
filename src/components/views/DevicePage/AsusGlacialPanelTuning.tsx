@@ -49,43 +49,72 @@ export function AsusGlacialPanelTuning() {
   const { numberFormat } = useUnitPrefs();
   const [tuning, setTuning] = useState<GlacialTuning | null>(null);
   const aliveRef = useRef(true);
-  const busyRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const pollingRef = useRef(false);
+  // Settings the user has changed and the service has not yet answered for: a drag in progress,
+  // or a write in flight. The poll never overwrites these.
+  const pendingRef = useRef(new Set<keyof GlacialTuningSettings>());
+  // Bumped on every write, so a poll that started before it cannot undo it.
+  const writeGenRef = useRef(0);
   const num = (v: number, digits = 0) => localizeNumbers(v.toFixed(digits), numberFormat);
 
-  const refresh = useCallback(async () => {
-    if (document.hidden) return;
-    const next = await getGlacialTuning();
-    if (!aliveRef.current || next === null) return;
-    // Settings are the user's while a write is in flight or being dragged; only the readout follows the poll.
-    setTuning(prev => (prev && busyRef.current > 0 ? { ...prev, stats: next.stats } : next));
+  const applyFresh = useCallback((fresh: GlacialTuning, settingsAllowed: boolean) => {
+    setTuning(prev => {
+      if (!prev || !settingsAllowed) return prev ? { ...prev, stats: fresh.stats } : fresh;
+      const settings = { ...fresh.settings };
+      for (const key of pendingRef.current) (settings as Record<string, unknown>)[key] = prev.settings[key];
+      return { settings, stats: fresh.stats };
+    });
   }, []);
+
+  const refresh = useCallback(async () => {
+    if (document.hidden || pollingRef.current) return;
+    pollingRef.current = true;
+    const gen = writeGenRef.current;
+    try {
+      const next = await getGlacialTuning(abortRef.current?.signal);
+      if (!aliveRef.current || next === null) return;
+      applyFresh(next, gen === writeGenRef.current);
+    } catch {
+      // A failed read leaves the last view; the next tick tries again.
+    } finally {
+      pollingRef.current = false;
+    }
+  }, [applyFresh]);
 
   useEffect(() => {
     aliveRef.current = true;
+    const abort = new AbortController();
+    abortRef.current = abort;
     void refresh();
     const id = window.setInterval(() => { void refresh(); }, POLL_MS);
     return () => {
       aliveRef.current = false;
+      abort.abort();
       window.clearInterval(id);
     };
   }, [refresh]);
 
   const commit = useCallback(async (patch: Partial<GlacialTuningSettings>) => {
-    busyRef.current += 1;
+    const keys = Object.keys(patch) as Array<keyof GlacialTuningSettings>;
+    for (const key of keys) pendingRef.current.add(key);
+    writeGenRef.current += 1;
     let next: GlacialTuning | null = null;
     try {
       next = await setGlacialTuning(patch);
     } catch {
       next = null;
-    } finally {
-      busyRef.current -= 1;
     }
+    for (const key of keys) pendingRef.current.delete(key);
+    if (!aliveRef.current) return;
     if (next === null) push({ title: t('devices.asus-glacial-lcd.failedTitle'), body: t('devices.asus-glacial-lcd.failedBody') });
-    if (aliveRef.current && next !== null) setTuning(next);
-    else if (aliveRef.current) void refresh();
-  }, [push, t, refresh]);
+    writeGenRef.current += 1;
+    if (next !== null) applyFresh(next, true);
+    else void refresh();
+  }, [push, t, refresh, applyFresh]);
 
   const preview = useCallback((local: Partial<GlacialTuningSettings>) => {
+    for (const key of Object.keys(local) as Array<keyof GlacialTuningSettings>) pendingRef.current.add(key);
     setTuning(prev => prev && { ...prev, settings: { ...prev.settings, ...local } });
   }, []);
 
@@ -130,10 +159,7 @@ export function AsusGlacialPanelTuning() {
       step={step}
       formatValue={format}
       disabled={!ready}
-      onChange={(v: number, commitNow?: boolean) => {
-        preview({ [key]: v });
-        if (commitNow) void commit({ [key]: v });
-      }}
+      onChange={(v: number) => { preview({ [key]: v }); }}
       onCommit={(v: number) => { void commit({ [key]: v }); }}
     />
   );

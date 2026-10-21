@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AsusGlacialPanelTuning, GLACIAL_TUNING_DEFAULTS } from './AsusGlacialPanelTuning';
 
 vi.mock('../../../lib/i18n', () => ({
@@ -121,5 +121,68 @@ describe('AsusGlacialPanelTuning', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('AsusGlacialPanelTuning slider edits against the poll', () => {
+  const paceSlider = () => screen.getByRole('slider', { name: /pacePercent|devices.asus-glacial-lcd.tuning.pacePercent/ }) as HTMLInputElement;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockGet.mockReset();
+    mockSet.mockReset();
+    mockPush.mockReset();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function mountReal() {
+    mockGet.mockResolvedValue(tuning());
+    mockSet.mockImplementation(async (patch: object) => ({ ...tuning(), settings: { ...tuning().settings, ...patch } }));
+    await act(async () => { render(<AsusGlacialPanelTuning />); });
+  }
+
+  it('keeps the dragged thumb across a poll and commits the dragged value on release', async () => {
+    await mountReal();
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '80' } }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_100); });
+    expect(paceSlider().value).toBe('80');
+    expect(mockSet).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.pointerUp(paceSlider()); await vi.advanceTimersByTimeAsync(10); });
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith({ pacePercent: 80 });
+  });
+
+  it('ignores a poll that was already in flight when a write landed', async () => {
+    await mountReal();
+    let resolveStale: (v: ReturnType<typeof tuning>) => void = () => {};
+    mockGet.mockReturnValueOnce(new Promise(r => { resolveStale = r; }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_100); });
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '60' } }); });
+    await act(async () => { fireEvent.pointerUp(paceSlider()); await vi.advanceTimersByTimeAsync(10); });
+    expect(paceSlider().value).toBe('60');
+    await act(async () => { resolveStale(tuning({ settings: { pacePercent: 19 } })); });
+    expect(paceSlider().value).toBe('60');
+  });
+
+  it('sends one write for a typed value', async () => {
+    await mountReal();
+    await act(async () => { fireEvent.click(screen.getByText('19%')); });
+    const input = screen.getAllByDisplayValue('19').find(el => (el as HTMLInputElement).type !== 'range') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { value: '50' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith({ pacePercent: 50 });
+  });
+
+  it('never runs two polls at once', async () => {
+    mockGet.mockReturnValue(new Promise(() => {}));
+    await act(async () => { render(<AsusGlacialPanelTuning />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(mockGet).toHaveBeenCalledTimes(1);
   });
 });

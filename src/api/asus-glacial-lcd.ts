@@ -104,8 +104,8 @@ function isTuning(body: GlacialTuning | null): body is GlacialTuning {
     && typeof body.stats === 'object' && body.stats !== null;
 }
 
-export async function getGlacialTuning(): Promise<GlacialTuning | null> {
-  const body = await fetchService<GlacialTuning>(`${BASE}/tuning`);
+export async function getGlacialTuning(signal?: AbortSignal): Promise<GlacialTuning | null> {
+  const body = await fetchService<GlacialTuning>(`${BASE}/tuning`, signal);
   return isTuning(body) ? body : null;
 }
 
