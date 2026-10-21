@@ -80,10 +80,10 @@ export function EffectCard({
     ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
     : undefined;
   const thumbImgStyle = thumbAspect !== undefined
-    ? { objectFit: 'cover' as const, aspectRatio: String(thumbAspect) }
+    ? { objectFit: 'cover' as const, height: '100%' }
     : undefined;
   const thumbSkeletonStyle = thumbAspect !== undefined
-    ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
+    ? { height: '100%' }
     : undefined;
   const inner = (
     <>

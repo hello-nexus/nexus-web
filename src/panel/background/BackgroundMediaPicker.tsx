@@ -33,8 +33,6 @@ import { orderBackgroundMedia } from './slideshowOrder';
 import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
 import styles from '../widgets/lighting/LightingPage.module.scss';
 
-const BG_THUMB_ASPECT = 720 / 1280;
-
 // Mirrors PanelBgImporter's accepted extensions: the accept attribute is a
 // hint the file dialog lets the user override, and each stray file otherwise
 // costs an upload the service refuses.
@@ -426,7 +424,7 @@ export function BackgroundMediaPicker({
           onPlay={handleGridPlay}
           onDelete={requestDelete}
           deleteAriaLabel={t('lighting.controls.mediaDelete')}
-          thumbAspect={BG_THUMB_ASPECT}
+          thumbAspect={deviceAspect}
           onReorder={onOrderChange}
           prepend={importingName ? (
             <EffectCard
@@ -438,7 +436,7 @@ export function BackgroundMediaPicker({
               meta={importingLabel}
               thumbOverlay={<span className={styles.mediaSpinner} role="status" aria-label={importingLabel} />}
               ariaLabel={importingName}
-              thumbAspect={BG_THUMB_ASPECT}
+              thumbAspect={deviceAspect}
             />
           ) : undefined}
         />
