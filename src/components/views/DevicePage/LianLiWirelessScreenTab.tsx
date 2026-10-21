@@ -152,7 +152,7 @@ export function LianLiWirelessScreenTab({
     isRestarting: (serial: string) => boolean;
     onRestart: (serial: string) => void;
   };
-  /** Short names for the tiles by screen serial, in place of the service's label. */
+  /** Short names by screen serial, used only when the service sends no label. */
   screenLabels?: Readonly<Record<string, string>>;
   /** Serials in the order screens without a saved order are listed. */
   defaultOrder?: readonly string[];
@@ -521,7 +521,7 @@ export function LianLiWirelessScreenTab({
                       {contentTypeIcon(s.contentType)}
                     </span>
                     <span className={styles.screenPreviewLabel}>
-                      {screenLabels?.[s.serial] || s.label || t('devices.lianli-wireless.fanN', { n: i + 1 })}
+                      {s.label || screenLabels?.[s.serial] || t('devices.lianli-wireless.fanN', { n: i + 1 })}
                     </span>
                   </button>
                 );
