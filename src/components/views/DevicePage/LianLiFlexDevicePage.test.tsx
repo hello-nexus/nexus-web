@@ -143,6 +143,13 @@ describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
     expect(tab('devices.lianli-wireless.tab.screen')).toBeInTheDocument();
   });
 
+  it('shows the Screens tab for screens on USB whose fans run over the radio', async () => {
+    mockState.mockResolvedValue({ isConnected: true, linkStatus: 'ok', fans: [], screenOnlySerials: ['SCR1', 'SCR2'] });
+    await renderPage();
+    expect(tab('devices.lianli-wireless.tab.screen')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-flex.notConnected')).not.toBeInTheDocument();
+  });
+
   it('has no Screens tab for a unit without a screen', async () => {
     mockState.mockResolvedValue(connected([{ ...unit, screenSerial: '' }]));
     await renderPage();

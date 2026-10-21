@@ -235,7 +235,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <RadioReceiver size={14} /> },
     ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
     ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> }] : []),
-    ...(!flex || state?.fans.some(f => f.screenSerial) ? [{ key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <CircleEqual size={14} /> }] : []),
+    ...(!flex || state?.fans.some(f => f.screenSerial) || !!state?.screenOnlySerials?.length ? [{ key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <CircleEqual size={14} /> }] : []),
   ];
   // A tab that disappears (its chain unbound or out of range) falls back to Devices.
   const tab: LianLiWirelessTab = tabs.some(x => x.key === activeTab) ? activeTab : 'fans';
