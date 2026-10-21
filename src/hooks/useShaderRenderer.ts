@@ -10,7 +10,6 @@ import { SensorSignalContext } from './SensorSignalContext';
 const specLScratch = new Float32Array(64);
 const specRScratch = new Float32Array(64);
 
-/** Copies src into the 64-float scratch, padding with zeros or truncating, so uniform4fv always gets 16 vec4s. */
 function fill64(scratch: Float32Array, src: ArrayLike<number> | null | undefined): Float32Array {
   for (let i = 0; i < 64; i++) scratch[i] = src?.[i] ?? 0;
   return scratch;
