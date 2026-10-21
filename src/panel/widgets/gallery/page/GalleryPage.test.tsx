@@ -462,16 +462,15 @@ describe('GalleryPage paging', () => {
   it('keeps a playlist cover cached while its first member is off the page', async () => {
     mockState.sources = [folderSource('Pictures')];
     mockState.items = many(450);
-    mockState.playlists = [{ id: 'pl1', name: 'Mine', createdAtUnixMs: 1, sourceIds: ['Pictures'], itemIds: [], excludedIds: [] }];
+    mockState.playlists = [{ id: 'pl1', name: 'Mine', createdAtUnixMs: 1, sourceIds: [], itemIds: ['i150'], excludedIds: [] }];
     vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
-    const { container } = render(<GalleryPage />);
-    await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100));
-    const coverOf = () => container.querySelector('button[aria-pressed] img')?.getAttribute('src');
+    render(<GalleryPage />);
+    const coverOf = () => screen.getByRole('button', { name: /Mine/ }).querySelector('img')?.getAttribute('src');
     await waitFor(() => expect(coverOf()).toBeTruthy());
     const cover = coverOf();
 
     for (let i = 0; i < 4; i++) fireEvent.click(screen.getByLabelText('common.pager.next'));
-    await waitFor(() => expect(container.querySelectorAll('figure img')).toHaveLength(50));
+    await waitFor(() => expect(document.querySelectorAll('figure img')).toHaveLength(50));
     expect(vi.mocked(URL.revokeObjectURL).mock.calls.some(c => c[0] === cover)).toBe(false);
     expect(coverOf()).toBe(cover);
   });
@@ -484,12 +483,44 @@ describe('GalleryPage paging', () => {
     fireEvent.click(screen.getByLabelText('common.pager.next'));
     fireEvent.click(screen.getByLabelText('common.pager.next'));
     await screen.findByText('common.pager.pageOf:n=3:total=3');
-    mockState.items = many(120);
     const refetch = vi.mocked(useTopicCallback).mock.calls[0][2] as () => Promise<void>;
+    mockState.items = many(120);
     await act(async () => {
       await refetch();
     });
     expect(await screen.findByText('common.pager.pageOf:n=2:total=2')).toBeTruthy();
+    // The written-back page holds when the library grows again.
+    mockState.items = many(250);
+    await act(async () => {
+      await refetch();
+    });
+    expect(await screen.findByText('common.pager.pageOf:n=2:total=3')).toBeTruthy();
+  });
+
+  it('a refresh that started before a create does not deselect the new playlist', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(3);
+    render(<GalleryPage />);
+    await screen.findByText('Pictures');
+    const { fetchGalleryItems } = await import('../../../../api/gallery');
+    let release: (v: { items: typeof mockState.items; playlists: never[] }) => void = () => {};
+    vi.mocked(fetchGalleryItems).mockImplementationOnce(() => new Promise(r => { release = r; }) as never);
+    const refetch = vi.mocked(useTopicCallback).mock.calls[0][2] as () => Promise<void>;
+    let stale!: Promise<void>;
+    act(() => {
+      stale = refetch();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.newPlaylist' }));
+    fireEvent.change(screen.getByPlaceholderText('gallery.page.playlistName'), { target: { value: 'Desk' } });
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.create' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Desk/ })).toBeTruthy());
+
+    await act(async () => {
+      release({ items: mockState.items, playlists: [] });
+      await stale;
+    });
+    expect(screen.getByRole('button', { name: /Desk/ }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('shows the truncation notice only when the service flags it', async () => {
