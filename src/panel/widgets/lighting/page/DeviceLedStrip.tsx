@@ -7,7 +7,7 @@ import { isPaletteKey } from '../../../../types/lightingPalette';
 import { cardEnabledLedCount } from './zoneUtils';
 import { type StackSlot } from '../../../../lib/stackSlots';
 import { ledSample, sampleBox, sampleSpot } from '../../../../lib/ledSampling';
-import { areaBoxRects, sampleAreaBox } from '../../../../lib/areaBoxes';
+import { areaBoxesByLed, sampleAreaBox } from '../../../../lib/areaBoxes';
 import { getScenePoints } from '../../../../lib/scene/scenePointsStore';
 import type { LightingDevice } from '../../../../api/lighting';
 import styles from '../LightingPage.module.scss';
@@ -214,14 +214,14 @@ function paintLook(
   // frame center - the positions and the read the engine uses.
   const leds = Math.max(1, device.ledCount);
   const frameView = { pixels, w, h };
-  if (!fullscreen && device.areaSampling && device.areaBoxes?.length) {
-    // Area sampling: each cell is its LED's box mean, as the hardware shows.
-    const boxes = areaBoxRects(device.areaBoxes);
-    const byLed = new Map(boxes.map(b => [b.index, b]));
+  // Area sampling reads each LED's box. Under a sweep (fullscreen) the boxes map onto the whole canvas. The 3D scene
+  // box read is not modeled (it stays the spot read above): the web has only projected LED centers, not the surface corners the service projects boxes with.
+  if (device.areaSampling && device.areaBoxes?.length) {
+    const byLed = areaBoxesByLed(device.areaBoxes);
     for (let i = 0; i < cells; i++) {
       const led = cells === 1 ? 0 : Math.round((i * (leds - 1)) / (cells - 1));
       const box = byLed.get(led);
-      const [r, g, b] = box ? sampleAreaBox(frameView, device, box, slot) : [0, 0, 0];
+      const [r, g, b] = box ? sampleAreaBox(frameView, device, box, slot, fullscreen) : [0, 0, 0];
       const o = i * 4;
       d[o] = r * scale;
       d[o + 1] = g * scale;

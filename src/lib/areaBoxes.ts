@@ -26,8 +26,13 @@ export function areaBoxRects(flat: number[]): AreaBoxRect[] {
  * cut from the unturned rect first, as in ledSample.
  */
 export function areaBoxSample(
-  device: SampleDevice, box: AreaBoxRect, canvasW: number, canvasH: number, slot?: StackSlot | null,
+  device: SampleDevice, box: AreaBoxRect, canvasW: number, canvasH: number, slot?: StackSlot | null, fullFrame = false,
 ): LedSample {
+  // A sweep read maps the boxes onto the whole canvas, unturned and unsliced.
+  if (fullFrame) {
+    device = { canvasX: 0, canvasY: 0, canvasW: CANVAS_UNITS_W, canvasH: CANVAS_UNITS_H, canvasRotation: 0 };
+    slot = null;
+  }
   const kx = canvasW / CANVAS_UNITS_W;
   const ky = canvasH / CANVAS_UNITS_H;
   const frameCx = device.canvasX + device.canvasW * 0.5;
@@ -52,7 +57,19 @@ export function areaBoxSample(
 
 /** The live color of one Area-sampling LED box from the current frame. */
 export function sampleAreaBox(
-  frame: SampleFrame, device: SampleDevice, box: AreaBoxRect, slot?: StackSlot | null,
+  frame: SampleFrame, device: SampleDevice, box: AreaBoxRect, slot?: StackSlot | null, fullFrame = false,
 ): [number, number, number] {
-  return sampleBoxLinear(frame, areaBoxSample(device, box, frame.w, frame.h, slot));
+  return sampleBoxLinear(frame, areaBoxSample(device, box, frame.w, frame.h, slot, fullFrame));
+}
+
+const rectCache = new WeakMap<number[], Map<number, AreaBoxRect>>();
+
+/** The boxes by card-local LED index, built once per box array. */
+export function areaBoxesByLed(flat: number[]): Map<number, AreaBoxRect> {
+  let m = rectCache.get(flat);
+  if (!m) {
+    m = new Map(areaBoxRects(flat).map(b => [b.index, b]));
+    rectCache.set(flat, m);
+  }
+  return m;
 }

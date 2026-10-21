@@ -74,6 +74,17 @@ describe('DeviceLedStrip', () => {
     expect([...out]).toEqual([255, 255, 255, 255, 0, 0, 0, 255]);
   });
 
+  it('maps the boxes onto the whole canvas under a sweep read', () => {
+    const px = new Uint8Array(3 * 4);
+    px.fill(255, 0, 6);
+    publishLedFrame(px, 2, 2);
+    // The frame rect sits in the bottom half, but the sweep ignores it: the first box reads the top row.
+    const area: LightingDevice = { ...device, canvasY: 400, canvasH: 200, ledCount: 2, areaSampling: true, areaBoxes: [0, 0, 1, 0.5, 0, 0.5, 1, 1] };
+    render(<DeviceLedStrip device={area} fullscreen />);
+    const out = ctx.putImageData.mock.calls.at(-1)![0].data as Uint8ClampedArray;
+    expect([...out]).toEqual([255, 255, 255, 255, 0, 0, 0, 255]);
+  });
+
   describe('real device bytes', () => {
     const withIndex: LightingDevice = { ...device, frameIndex: 7 };
     // 4 LEDs: red, green, blue, white.

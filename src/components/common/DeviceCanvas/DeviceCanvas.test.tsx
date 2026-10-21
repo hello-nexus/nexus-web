@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
 import { publishLedFrame, clearLedFrame } from '../../../lib/ledFrameStore';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
@@ -27,6 +27,8 @@ function dragDevice(id: string, name: string): LightingDevice {
 }
 
 describe('DeviceCanvas', () => {
+  afterEach(() => { clearLedFrame(); });
+
   it('reports a gesture over when the frames hide mid-drag', () => {
     const onDragActiveChange = vi.fn();
     const props = {
@@ -104,7 +106,6 @@ describe('DeviceCanvas', () => {
     );
     const boxes = [...container.querySelectorAll<HTMLElement>(`.${styles.ledBox}`)];
     expect(boxes.map(b => b.style.background)).toEqual(['rgb(255, 255, 255)', 'rgb(0, 0, 0)', 'rgb(255, 0, 0)']);
-    clearLedFrame();
   });
 
   it('draws no frames or names when asked to hide them', () => {

@@ -30,4 +30,30 @@ describe('AreaSamplingToggle', () => {
     await waitFor(() => expect(onFail).toHaveBeenCalled());
     expect(sw.getAttribute('aria-checked')).toBe('false');
   });
+
+  it('resets to the new card value when the id changes', () => {
+    const { rerender } = render(<AreaSamplingToggle id="d1" value onFail={vi.fn()} />);
+    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
+    rerender(<AreaSamplingToggle id="d2" value={false} onFail={vi.fn()} />);
+    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('lets only the newest response decide: a stale failure neither reverts nor reports', async () => {
+    let rejectFirst: (v: { error: boolean; msg: string }) => void = () => {};
+    set.mockReset();
+    set.mockImplementationOnce(() => new Promise(res => { rejectFirst = res; }));
+    set.mockResolvedValueOnce({ error: false, msg: '' });
+    const onFail = vi.fn();
+    const onSaved = vi.fn();
+    render(<AreaSamplingToggle id="d1" value={false} onFail={onFail} onSaved={onSaved} />);
+    const sw = screen.getByRole('switch');
+    fireEvent.click(sw);
+    fireEvent.click(sw);
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    rejectFirst({ error: true, msg: 'x' });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onFail).not.toHaveBeenCalled();
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+  });
 });
