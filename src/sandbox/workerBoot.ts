@@ -52,18 +52,15 @@ const KILLED_NAVIGATOR = [
 // in the chain, so the prototype copy is no way around it.
 const FETCH_GUARD = `
 const _realFetch = self.fetch;
-// Everything the guard touches is captured at boot, so renderer code that later
-// replaces URL, Request, Request.prototype.url, Function.prototype.call or a
-// String method cannot change what the guard decides or what it sends.
+// Everything the guard touches is captured at boot, and the request it checks is
+// the one it sends, so renderer code replacing a global, prototype or getter
+// cannot change what it decides or what it sends.
 const _Request = Request;
 const _urlGetter = Object.getOwnPropertyDescriptor(Request.prototype, "url").get;
 const _apply = Reflect.apply;
 const _slice = String.prototype.slice;
 const _lower = String.prototype.toLowerCase;
 function _guardedFetch(input, init) {
-  // The request is built once and checked, then handed to the real fetch as
-  // that same object, so a spoofed toString or url getter cannot differ between
-  // the check and the request.
   let req;
   try {
     req = new _Request(input, init);
