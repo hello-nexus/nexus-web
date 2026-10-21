@@ -7,6 +7,8 @@ export interface LianLiWirelessFan {
   /** Bound master MAC, or empty when unbound. */
   masterMac: string;
   boundToUs: boolean;
+  /** A live LCD Flex chain on this PC's radio, the ones with built-in wireless themes. */
+  flexLcdEligible?: boolean;
   channel: number;
   /** rx_type slot (1..14); 0 or 0xFE means unbound. */
   slot: number;
