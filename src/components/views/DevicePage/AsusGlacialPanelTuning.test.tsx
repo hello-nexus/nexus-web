@@ -48,6 +48,11 @@ describe('AsusGlacialPanelTuning', () => {
     mockPush.mockReset();
   });
 
+  it('reads a frame rate cap of 30 as no cap', async () => {
+    await mount(tuning({ settings: { maxFps: 30 } }));
+    expect(screen.getByText('devices.asus-glacial-lcd.tuning.noCap')).toBeInTheDocument();
+  });
+
   it('shows the stats readout', async () => {
     await mount();
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.unitPerSec:{"n":"1.10"}')).toBeInTheDocument();
@@ -90,7 +95,7 @@ describe('AsusGlacialPanelTuning', () => {
     expect(mockReset).toHaveBeenCalledTimes(1);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.asus-glacial-lcd.tuning.restoreDefaults' })); });
     expect(mockSet).toHaveBeenCalledWith(GLACIAL_TUNING_DEFAULTS);
-    expect(GLACIAL_TUNING_DEFAULTS).toMatchObject({ pacePercent: 19, doubleBuffer: false, chunkKb: 4, jpegQuality: 65, scalePercent: 100 });
+    expect(GLACIAL_TUNING_DEFAULTS).toMatchObject({ maxFps: 30, replyDriven: false, scaleMode: 'send', pacePercent: 19, doubleBuffer: false, chunkKb: 4, jpegQuality: 65, scalePercent: 100 });
   });
 
   it('toasts when a write is refused', async () => {

@@ -716,6 +716,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "Son yükleme",
   "devices.asus-glacial-lcd.tuning.maxFps": "Güncelleme hızı sınırı",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Nexus'un göndermeye çalışacağı saniyedeki en yüksek kare sayısı. Düşük değerler güncellemeler arasında bağlantıyı boşta bırakır.",
+  "devices.asus-glacial-lcd.tuning.noCap": "Sınırsız",
   "devices.asus-glacial-lcd.tuning.pacePercent": "Yükleme temposu",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "Paketler arasındaki bekleme, üretici zamanlamasının yüzdesi olarak. %100 üretici uygulamasına denktir. Düşük değer daha hızlıdır ve ekranı kilitleyebilir.",
   "devices.asus-glacial-lcd.tuning.rate": "Saniyedeki yükleme",

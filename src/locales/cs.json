@@ -723,6 +723,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "Poslední nahrání",
   "devices.asus-glacial-lcd.tuning.maxFps": "Limit frekvence aktualizace",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Nejvyšší počet snímků za sekundu, který se Nexus pokusí odeslat. Nižší hodnoty nechají spojení mezi aktualizacemi nečinné.",
+  "devices.asus-glacial-lcd.tuning.noCap": "Bez omezení",
   "devices.asus-glacial-lcd.tuning.pacePercent": "Tempo odesílání",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "Čekání mezi pakety jako podíl časování výrobce. 100 % odpovídá aplikaci výrobce. Méně je rychlejší a může displej zablokovat.",
   "devices.asus-glacial-lcd.tuning.rate": "Nahrání za sekundu",

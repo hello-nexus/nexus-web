@@ -716,6 +716,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "上次上傳",
   "devices.asus-glacial-lcd.tuning.maxFps": "更新率上限",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Nexus 嘗試傳送的每秒最大影格數。數值較低時，兩次更新之間連線處於閒置。",
+  "devices.asus-glacial-lcd.tuning.noCap": "不限制",
   "devices.asus-glacial-lcd.tuning.pacePercent": "上傳節奏",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "封包之間的等待時間，以廠商時序的百分比表示。100% 與廠商應用程式相同。越低越快，但可能使顯示器卡住。",
   "devices.asus-glacial-lcd.tuning.rate": "每秒上傳次數",

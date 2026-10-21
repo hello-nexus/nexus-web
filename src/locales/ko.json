@@ -716,6 +716,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "마지막 업로드",
   "devices.asus-glacial-lcd.tuning.maxFps": "업데이트 속도 제한",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Nexus가 전송하려고 시도하는 초당 최대 프레임 수입니다. 값이 낮으면 업데이트 사이에 연결이 유휴 상태가 됩니다.",
+  "devices.asus-glacial-lcd.tuning.noCap": "제한 없음",
   "devices.asus-glacial-lcd.tuning.pacePercent": "업로드 속도 조절",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "패킷 사이의 대기 시간을 제조사 타이밍의 비율로 정합니다. 100%는 제조사 앱과 같습니다. 낮을수록 빠르지만 디스플레이가 멈출 수 있습니다.",
   "devices.asus-glacial-lcd.tuning.rate": "초당 업로드",

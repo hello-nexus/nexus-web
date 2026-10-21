@@ -723,6 +723,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "Последняя загрузка",
   "devices.asus-glacial-lcd.tuning.maxFps": "Предел частоты обновления",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Максимум кадров в секунду, который Nexus попытается отправить. При меньших значениях канал простаивает между обновлениями.",
+  "devices.asus-glacial-lcd.tuning.noCap": "Без ограничения",
   "devices.asus-glacial-lcd.tuning.pacePercent": "Темп загрузки",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "Пауза между пакетами как доля от тайминга производителя. 100% соответствует приложению производителя. Меньше быстрее, но дисплей может зависнуть.",
   "devices.asus-glacial-lcd.tuning.rate": "Загрузок в секунду",

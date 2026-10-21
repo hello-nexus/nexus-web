@@ -66,7 +66,7 @@ export async function setGlacialSettings(patch: GlacialSettingsPatch): Promise<b
 export type GlacialScaleMode = 'send' | 'upscale';
 
 export interface GlacialTuningSettings {
-  /** 0.2..30. */
+  /** 0.2..30; 30 is no cap. */
   maxFps: number;
   /** 0..100; 100 is the vendor timing. */
   pacePercent: number;
@@ -116,9 +116,11 @@ export async function setGlacialTuning(patch: Partial<GlacialTuningSettings>): P
 }
 
 export async function resetGlacialTuningStats(): Promise<boolean> {
-  return (await postService<unknown>(`${BASE}/tuning/reset-stats`, {})) !== null;
+  const res = await postService<{ error: boolean; msg: string }>(`${BASE}/tuning/reset-stats`, {});
+  return res !== null && !res.error;
 }
 
 export async function resumeGlacialTuning(): Promise<boolean> {
-  return (await postService<unknown>(`${BASE}/tuning/resume`, {})) !== null;
+  const res = await postService<{ error: boolean; msg: string }>(`${BASE}/tuning/resume`, {});
+  return res !== null && !res.error;
 }

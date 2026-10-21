@@ -723,6 +723,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "Ostatnie wysłanie",
   "devices.asus-glacial-lcd.tuning.maxFps": "Limit częstotliwości odświeżania",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Maksymalna liczba klatek na sekundę, jaką Nexus spróbuje wysłać. Niższe wartości pozostawiają łącze bezczynne między aktualizacjami.",
+  "devices.asus-glacial-lcd.tuning.noCap": "Bez limitu",
   "devices.asus-glacial-lcd.tuning.pacePercent": "Tempo wysyłania",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "Przerwa między pakietami jako część czasów producenta. 100% odpowiada aplikacji producenta. Niżej jest szybciej i może zawiesić wyświetlacz.",
   "devices.asus-glacial-lcd.tuning.rate": "Wysłane na sekundę",

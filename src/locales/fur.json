@@ -716,6 +716,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "Ultin cjariament",
   "devices.asus-glacial-lcd.tuning.maxFps": "Limit de frecuence di inzornament",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Il massim di fotograms al secont che Nexus al provarà a inviâ. Cun valôrs plui bas la conession e reste ferme tra un inzornament e chel altri.",
+  "devices.asus-glacial-lcd.tuning.noCap": "Nissun limit",
   "devices.asus-glacial-lcd.tuning.pacePercent": "Ritmo di cjariament",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "Pause tra i pachets come cuote dal timing dal produtôr. 100% al corispuint a la app dal produtôr. Plui bas al è plui svelt e al pues blocâ il display.",
   "devices.asus-glacial-lcd.tuning.rate": "Cjariaments al secont",

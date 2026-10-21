@@ -28,8 +28,11 @@ const SCALE_MODE_KEYS: Record<GlacialScaleMode, string> = {
 };
 const KB = 1024;
 
-/** What Restore defaults writes. The service default for the frame rate cap is not exposed, so it is left as is. */
-export const GLACIAL_TUNING_DEFAULTS: Omit<GlacialTuningSettings, 'maxFps'> = {
+const MAX_FPS_NO_CAP = 30;
+
+/** What Restore defaults writes: the service defaults. */
+export const GLACIAL_TUNING_DEFAULTS: GlacialTuningSettings = {
+  maxFps: MAX_FPS_NO_CAP,
   pacePercent: 19,
   replyDriven: false,
   scalePercent: 100,
@@ -147,7 +150,7 @@ export function AsusGlacialPanelTuning() {
         </Notice>
       )}
 
-      {slider('maxFps', t('devices.asus-glacial-lcd.tuning.maxFps'), t('devices.asus-glacial-lcd.tuning.maxFpsHint'), 0.2, 30, 0.1, v => t('devices.asus-glacial-lcd.tuning.unitFps', { n: num(v, 1) }))}
+      {slider('maxFps', t('devices.asus-glacial-lcd.tuning.maxFps'), t('devices.asus-glacial-lcd.tuning.maxFpsHint'), 0.2, 30, 0.1, v => (v >= MAX_FPS_NO_CAP ? t('devices.asus-glacial-lcd.tuning.noCap') : t('devices.asus-glacial-lcd.tuning.unitFps', { n: num(v, 1) })))}
       {slider('pacePercent', t('devices.asus-glacial-lcd.tuning.pacePercent'), t('devices.asus-glacial-lcd.tuning.pacePercentHint'), 0, 100, 1, v => localizeNumbers(`${v}%`, numberFormat))}
       <SettingToggle
         label={t('devices.asus-glacial-lcd.tuning.replyDriven')}

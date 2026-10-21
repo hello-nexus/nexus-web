@@ -716,6 +716,7 @@
   "devices.asus-glacial-lcd.tuning.lastUpload": "Dernier envoi",
   "devices.asus-glacial-lcd.tuning.maxFps": "Limite de fréquence de mise à jour",
   "devices.asus-glacial-lcd.tuning.maxFpsHint": "Le nombre maximal d'images par seconde que Nexus essaie d'envoyer. Des valeurs plus basses laissent la liaison au repos entre les mises à jour.",
+  "devices.asus-glacial-lcd.tuning.noCap": "Sans limite",
   "devices.asus-glacial-lcd.tuning.pacePercent": "Cadence d'envoi",
   "devices.asus-glacial-lcd.tuning.pacePercentHint": "Attente entre les paquets, en part du rythme du fabricant. 100 % correspond à l'application du fabricant. Plus bas est plus rapide et peut bloquer l'écran.",
   "devices.asus-glacial-lcd.tuning.rate": "Envois par seconde",
