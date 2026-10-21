@@ -84,11 +84,12 @@ $inline-gap: 0.5rem;
 /* Inline value reserver: a min-width holder that right-aligns the sole value
    child, so the track edge never shifts as the value's width changes while the
    value keeps a full, un-overlapped click/hit area. Font matches the value so
-   the ch-based min-width is measured in the value's own type. */
+   the ch-based min-width is measured in the value's own type. The column is
+   sized by the slider's own widest formatted value (set inline from Slider.tsx),
+   so the number sits flush at the right edge and the track takes the rest of
+   the control box. */
 .inline .inlineValue {
-  // A fixed column (it grows only for a value wider than it), so tracks start at
-  // the same x across rows whose values differ in length.
-  flex: 0 0 var(--slider-inline-value-width);
+  flex: none;
   display: inline-flex;
   justify-content: flex-end;
   font-size: var(--type-small);
