@@ -140,6 +140,8 @@ export interface PanelThemeSettingsProps {
   showMediaTab?: boolean;
   /** Device aspect ratio (W/H) forwarded to the media cropper. */
   deviceAspect?: number;
+  /** Round display: media tiles are drawn as circles, as the preview shows the panel. */
+  roundDisplay?: boolean;
   /** Device native pixel width for the import conversion. */
   deviceW?: number;
   /** Device native pixel height for the import conversion. */
@@ -202,6 +204,7 @@ export function PanelThemeSettings({
   onFontCommit,
   showMediaTab = false,
   deviceAspect = 9 / 16,
+  roundDisplay = false,
   deviceW,
   deviceH,
   hideWidgetLabelsToggle = false,
@@ -532,6 +535,7 @@ export function PanelThemeSettings({
                   deviceId={deviceId ?? ''}
                   activeId={theme.backgroundMediaId}
                   deviceAspect={deviceAspect}
+                  round={roundDisplay}
                   deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
                   deviceH={deviceH ?? 1280}
                   onSelect={(mediaId, type, alpha) => onBackgroundMediaCommit(mediaId, type, alpha)}

@@ -42,6 +42,8 @@ export interface LianLiWirelessFan {
   lcdFirmware?: string;
   /** Wired LCD Flex units only: position in the light sequence. */
   sortIndex?: number;
+  /** Wired LCD Flex units only: the service's name for the unit, shared by Cooling, Lighting and Screens. */
+  name?: string;
   /** Wired LCD Flex units only: the unit is flashing for Identify. */
   identifying?: boolean;
   /** A Flex unit that the wired LCD Flex page owns, so it is not offered for RF binding here. */
