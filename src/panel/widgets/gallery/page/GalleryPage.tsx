@@ -150,7 +150,7 @@ export function GalleryPage() {
   const gridItems = selectedPlaylist && playlistView === 'members' ? members : items;
   const currentPage = clampGalleryPage(page, gridItems.length);
   const visibleItems = useMemo(() => galleryPageSlice(gridItems, currentPage), [gridItems, currentPage]);
-  // Each playlist card's cover is its first member; the cache always holds it.
+  // Each playlist's first member is exempt from cache eviction.
   const coverItems = useMemo(() => {
     const firsts = [items[0], ...playlists.map(p => galleryPlaylistItems(items, p)[0])];
     return firsts.filter((i): i is GalleryItem => i !== undefined);
@@ -173,11 +173,10 @@ export function GalleryPage() {
 
   // Preview blob cache (panel auth is token-based, <img> can't hit the route
   // directly). Grid-sized derivatives for the current page; ids outside the
-  // current and adjacent pages are revoked, except each playlist's first member
-  // (its cover). For a video the
-  // derivative is its poster frame (the service 404s rather than send the clip
-  // when it cannot make one). null marks an unreadable file so the grid shows
-  // a placeholder; it is retried once evicted and revisited.
+  // current and adjacent pages are revoked. For a video the derivative is its
+  // poster frame (the service 404s rather than send the clip when it cannot
+  // make one). null marks an unreadable file so the grid shows a placeholder;
+  // it is retried once evicted and revisited.
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
   const fetchItemsRef = useRef<GalleryItem[]>([]);
