@@ -43,7 +43,10 @@ const ROLES: Record<number, ColorRole[]> = {
 };
 
 /** Built-in themes of the TL / SL-INF LCD Flex fans on this PC's radio: the fan's own screen draws them from readings sent over the air. */
-export function LianLiFlexLcdThemesSection() {
+export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
+  /** Changes when a chain is bound, unbound or changes its fan count, so the list follows the radio. */
+  reloadKey?: string;
+}) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [data, setData] = useState<LianLiFlexLcd | null>(null);
@@ -57,7 +60,7 @@ export function LianLiFlexLcdThemesSection() {
     let alive = true;
     void getLianLiFlexLcd().then(next => { if (alive && next) setData(next); });
     return () => { alive = false; };
-  }, []);
+  }, [reloadKey]);
 
   // Optimistic: a refused save reloads what the service holds.
   const commit = useCallback(async (mac: string, patch: LianLiFlexLcdPatch, local: (chain: LianLiFlexLcdChain) => LianLiFlexLcdChain) => {
@@ -142,8 +145,11 @@ export function LianLiFlexLcdThemesSection() {
                         ...c, fans: c.fans.map((f, i) => (i === index ? { ...f, source: next } : f)),
                       }));
                     }}
-                    options={(SOURCES.some(s => s.index === fan.source) ? SOURCES : SOURCES.concat({ index: fan.source, kind: 'usage', target: 'CPU' }))
-                      .map(spec => ({ value: String(spec.index), label: sourceLabel(spec) }))}
+                    options={[
+                      // A source this page does not offer keeps its number instead of passing for another reading.
+                      ...(SOURCES.some(s => s.index === fan.source) ? [] : [{ value: String(fan.source), label: `#${fan.source}` }]),
+                      ...SOURCES.map(spec => ({ value: String(spec.index), label: sourceLabel(spec) })),
+                    ]}
                   />
                   {roles.map((role, colorIndex) => {
                     const current = fan.colors?.[colorIndex] ?? theme?.defaults[colorIndex] ?? '#FFFFFF';

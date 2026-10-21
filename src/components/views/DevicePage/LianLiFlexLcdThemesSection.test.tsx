@@ -94,4 +94,18 @@ describe('LianLiFlexLcdThemesSection', () => {
     await act(async () => { fireEvent.click(screen.getByRole('switch')); });
     expect(mockGet).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps a saved source it does not offer under its number', async () => {
+    mockGet.mockResolvedValue({ sourceCount: 25, themes, chains: [chain({ enabled: true, fans: [{ theme: 0, source: 7, colors: null }] })] });
+    await renderSection();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.flexLcd.source' }));
+    expect(screen.getByRole('option', { name: '#7' })).toBeInTheDocument();
+  });
+
+  it('reads the list again when the chains on the radio change', async () => {
+    const view = await act(async () => render(<LianLiFlexLcdThemesSection reloadKey="a" />));
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    await act(async () => { view.rerender(<LianLiFlexLcdThemesSection reloadKey="b" />); });
+    expect(mockGet).toHaveBeenCalledTimes(2);
+  });
 });

@@ -230,6 +230,8 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
       || (a.sortIndex ?? 0) - (b.sortIndex ?? 0) || a.mac.localeCompare(b.mac))
     .map(f => f.screenSerial as string);
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
+  // Fan types of the LCD Flex fans, the only ones with built-in wireless themes.
+  const flexLcdKey = (state?.fans ?? []).filter(f => f.boundToUs && [43, 44, 47, 48, 51, 52, 55, 56].includes(f.fanType)).map(f => `${f.mac}:${f.fanCount}`).join(',');
   const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
   const usbMacs = (state?.fans ?? []).filter(f => f.usbConnected).map(f => f.mac);
   const tabs = [
@@ -294,7 +296,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
               channelPrefix={flex ? LIANLI_FLEX_CHANNEL_PREFIX : WIRELESS_CHANNEL_PREFIX}
             />
           )}
-          {tab === 'screen' && !flex && <LianLiFlexLcdThemesSection />}
+          {tab === 'screen' && !flex && <LianLiFlexLcdThemesSection reloadKey={flexLcdKey} />}
           {tab === 'screen' && (
             <LianLiWirelessScreenTab
               api={flex ? lianLiFlexScreenApi : undefined}
