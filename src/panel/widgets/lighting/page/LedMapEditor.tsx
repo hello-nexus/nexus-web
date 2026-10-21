@@ -1469,7 +1469,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       postLedPreviewLayout(
         sentFor,
         ledCount,
-        zoneLeds.map(l => ({ index: l.index, u: l.u, v: l.v, disabled: l.disabled })),
+        // The service indexes a card's preview layout from 0, while a zone's LEDs carry device-level indices.
+        [...zoneLeds].sort((a, b) => a.index - b.index).map((l, i) => ({ index: zoneScoped ? i : l.index, u: l.u, v: l.v, disabled: l.disabled })),
       ).then(r => {
         // Newest response wins; the boxes follow the draft the service just read.
         if (mine === draftBoxesSeq.current) setDraftBoxes(r && !r.error && r.areaBoxes ? { id: sentFor, boxes: r.areaBoxes } : null);

@@ -116,6 +116,22 @@ describe('LedMapEditor area sampling boxes', () => {
     );
     await waitFor(() => expect(document.querySelectorAll(`.${styles.areaBox}`).length).toBe(3));
   });
+  it('posts the selected zone\'s draft with card-local indices so its boxes come back usable', async () => {
+    render(
+      <LedMapEditor
+        deviceId={ZONE_B}
+        initialZoneId={ZONE_B}
+        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0.5, 0, 1, 1] }]}
+        zoneCustomizable={false}
+        onClose={() => {}}
+      />,
+    );
+    await waitFor(() => expect(api.postLedPreviewLayout).toHaveBeenCalled());
+    const [id, count, leds] = api.postLedPreviewLayout.mock.calls.at(-1)!;
+    expect(id).toBe(ZONE_B);
+    expect(count).toBe(5);
+    expect((leds as { index: number }[]).map(l => l.index)).toEqual([0, 1, 2, 3, 4]);
+  });
   it('draws none when the mode is off', async () => {
     render(
       <LedMapEditor
