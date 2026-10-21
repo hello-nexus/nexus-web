@@ -14,6 +14,7 @@ import {
   type GlacialSettingsPatch,
   type GlacialSlotState,
   type GlacialState,
+  GLACIAL_STATE_CHANGED_EVENT,
 } from '../../../api/asus-glacial-lcd';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -83,6 +84,7 @@ export function AsusGlacialLcdControls() {
     if (!ok) push({ title: t('devices.asus-glacial-lcd.failedTitle'), body: t('devices.asus-glacial-lcd.failedBody') });
     const next = await getGlacialState();
     if (aliveRef.current && next !== null && busyRef.current === 0) setState(next);
+    window.dispatchEvent(new Event(GLACIAL_STATE_CHANGED_EVENT));
   }, [push, t]);
 
   const edit = useCallback((local: Partial<GlacialState>, patch: GlacialSettingsPatch) => {
@@ -158,7 +160,7 @@ export function AsusGlacialLcdControls() {
         <ChipGroup
           ariaLabel={t('devices.asus-glacial-lcd.mode')}
           activeKey={chosen ? mode : ''}
-          options={MODES.map(m => ({ key: m, label: t(MODE_KEYS[m]), disabled: !ready }))}
+          options={MODES.filter(m => m !== 'panel' || state?.panelModeAvailable === true).map(m => ({ key: m, label: t(MODE_KEYS[m]), disabled: !ready }))}
           onChange={key => edit({ mode: key as GlacialMode, modeChosen: true }, { mode: key as GlacialMode })}
         />
       </SettingRow>

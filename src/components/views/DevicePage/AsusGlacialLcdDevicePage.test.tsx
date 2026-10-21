@@ -19,6 +19,7 @@ vi.mock('../../common/Toast/Toast', () => ({
 vi.mock('../../../api/asus-glacial-lcd', () => ({
   getGlacialState: () => mockGet(),
   setGlacialSettings: (patch: unknown) => mockSet(patch),
+  GLACIAL_STATE_CHANGED_EVENT: 'nexus:glacial-state-changed',
 }));
 
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
@@ -49,6 +50,7 @@ const base = {
   stayOnWhileAsleep: false,
   staticAssets: [3, 4],
   animatedAssets: [0, 1],
+  panelModeAvailable: false,
 };
 
 async function mount(state = base) {
@@ -166,7 +168,7 @@ describe('AsusGlacialLcdDevicePage', () => {
   });
 
   it('panel mode checks its chip and shows no asset select or sub-controls', async () => {
-    await mount({ ...base, mode: 'panel' });
+    await mount({ ...base, mode: 'panel', panelModeAvailable: true });
     expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePanel' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryAllByTestId('sensor-picker')).toHaveLength(0);
     expect(screen.queryByText('devices.asus-glacial-lcd.picture')).toBeNull();
@@ -174,8 +176,16 @@ describe('AsusGlacialLcdDevicePage', () => {
     expect(screen.queryByText('devices.asus-glacial-lcd.widgetCount')).toBeNull();
   });
 
+  it('hides the Nexus panel chip and keeps the native modes when panel mode is not offered', async () => {
+    await mount();
+    expect(screen.queryByRole('radio', { name: 'devices.asus-glacial-lcd.modePanel' })).toBeNull();
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modeMonitor' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modeAnimation' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePicture' })).toBeInTheDocument();
+  });
+
   it('clicking the panel chip sends mode panel and checks it at once', async () => {
-    await mount({ ...base, modeChosen: false });
+    await mount({ ...base, modeChosen: false, panelModeAvailable: true });
     mockGet.mockReturnValue(new Promise(() => {}));
     await act(async () => {
       fireEvent.click(screen.getByRole('radio', { name: 'devices.asus-glacial-lcd.modePanel' }));

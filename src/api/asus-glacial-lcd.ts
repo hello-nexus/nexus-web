@@ -31,7 +31,12 @@ export interface GlacialState {
   stayOnWhileAsleep: boolean;
   staticAssets: number[];
   animatedAssets: number[];
+  /** Whether Nexus panel mode is offered. Absent or false hides the mode and keeps the native page. */
+  panelModeAvailable?: boolean;
 }
+
+/** Raised after a settings write so the page router re-reads the mode at once. */
+export const GLACIAL_STATE_CHANGED_EVENT = 'nexus:glacial-state-changed';
 
 export interface GlacialSettingsPatch {
   displayOn?: boolean;

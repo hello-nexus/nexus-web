@@ -81,6 +81,7 @@ vi.mock('./PanelEmbedFrame', () => ({
 vi.mock('../../../api/asus-glacial-lcd', () => ({
   getGlacialState: () => mockGlacialGet(),
   setGlacialSettings: (patch: unknown) => mockGlacialSet(patch),
+  GLACIAL_STATE_CHANGED_EVENT: 'nexus:glacial-state-changed',
 }));
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
   useSensorLookup: () => ({ resolve: () => undefined }),
@@ -112,6 +113,7 @@ const glacialState = {
   isConnected: true,
   displayOn: true,
   mode: 'panel',
+  panelModeAvailable: true,
   modeChosen: true,
   staticAsset: 3,
   animatedAsset: 0,

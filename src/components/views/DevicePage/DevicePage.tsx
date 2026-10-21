@@ -19,6 +19,7 @@ import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { AsiahorseUmbraDevicePage } from './AsiahorseUmbraDevicePage';
 import { AsusGlacialLcdDevicePage } from './AsusGlacialLcdDevicePage';
+import { GlacialPanelRoute } from './GlacialPanelRoute';
 import { KrakenDevicePage } from './KrakenDevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
 import { NollieDevicePage } from './NollieDevicePage';
@@ -222,6 +223,10 @@ interface DeviceBodyProps {
 }
 
 function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }: DeviceBodyProps) {
+  if (device.kind === 'panel' && device.panelDevice && device.curatedId === 'asus-glacial-lcd') {
+    return <GlacialPanelRoute key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />;
+  }
+
   if (device.kind === 'panel' && device.panelDevice) {
     // `key` forces unmount + remount when navigating between panel device
     // pages (e.g. Q60 → Y70). Without it React reuses the same
