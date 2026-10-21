@@ -116,6 +116,8 @@ $group-gap: 0.75rem;
 .section {
   width: min($onboarding-content-width, 100%);
   flex: 0 0 auto;
+  // Matches the 1.5rem surface gap on the features onboarding screen.
+  margin-bottom: 1.5rem;
 }
 
 .telemetryRow {
