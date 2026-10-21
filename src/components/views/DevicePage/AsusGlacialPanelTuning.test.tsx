@@ -179,6 +179,56 @@ describe('AsusGlacialPanelTuning slider edits against the poll', () => {
     expect(mockSet).toHaveBeenCalledWith({ pacePercent: 50 });
   });
 
+  it('keeps a re-grabbed slider protected while its first write is still in flight', async () => {
+    await mountReal();
+    let answerFirst: (v: ReturnType<typeof tuning>) => void = () => {};
+    mockSet.mockReturnValueOnce(new Promise(r => { answerFirst = r; }));
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '60' } }); });
+    await act(async () => { fireEvent.pointerUp(paceSlider()); await vi.advanceTimersByTimeAsync(10); });
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '70' } }); });
+    await act(async () => { answerFirst(tuning({ settings: { pacePercent: 60 } })); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_100); });
+    expect(paceSlider().value).toBe('70');
+  });
+
+  it('commits a change that never reaches release once it goes quiet', async () => {
+    await mountReal();
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '45' } }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_900); });
+    expect(mockSet).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith({ pacePercent: 45 });
+  });
+
+  it('tells a failed write even when the card is gone', async () => {
+    mockGet.mockResolvedValue(tuning());
+    let failWrite: (v: null) => void = () => {};
+    mockSet.mockReturnValueOnce(new Promise(r => { failWrite = r; }));
+    let view!: ReturnType<typeof render>;
+    await act(async () => { view = render(<AsusGlacialPanelTuning />); });
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '30' } }); });
+    await act(async () => { fireEvent.pointerUp(paceSlider()); await vi.advanceTimersByTimeAsync(10); });
+    view.unmount();
+    await act(async () => { failWrite(null); });
+    expect(mockPush).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-reads after a failed write even while a poll is in flight', async () => {
+    mockGet.mockResolvedValue(tuning());
+    mockSet.mockResolvedValue(null);
+    await act(async () => { render(<AsusGlacialPanelTuning />); });
+    let finishPoll: (v: ReturnType<typeof tuning>) => void = () => {};
+    mockGet.mockReturnValueOnce(new Promise(r => { finishPoll = r; }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_100); });
+    const before = mockGet.mock.calls.length;
+    await act(async () => { fireEvent.change(paceSlider(), { target: { value: '30' } }); });
+    await act(async () => { fireEvent.pointerUp(paceSlider()); await vi.advanceTimersByTimeAsync(10); });
+    await act(async () => { finishPoll(tuning()); });
+    expect(mockGet.mock.calls.length).toBeGreaterThan(before);
+    expect(paceSlider().value).toBe('19');
+  });
+
   it('never runs two polls at once', async () => {
     mockGet.mockReturnValue(new Promise(() => {}));
     await act(async () => { render(<AsusGlacialPanelTuning />); });

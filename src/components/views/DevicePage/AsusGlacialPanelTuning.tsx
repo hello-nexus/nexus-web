@@ -20,6 +20,7 @@ import { localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
 const POLL_MS = 1000;
+const IDLE_COMMIT_MS = 3000;
 const SCALE_STEPS = [25, 33, 50, 75, 100] as const;
 const SCALE_MODES: readonly GlacialScaleMode[] = ['send', 'upscale'];
 const SCALE_MODE_KEYS: Record<GlacialScaleMode, string> = {
@@ -51,24 +52,35 @@ export function AsusGlacialPanelTuning() {
   const aliveRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
   const pollingRef = useRef(false);
-  // Settings the user has changed and the service has not yet answered for: a drag in progress,
-  // or a write in flight. The poll never overwrites these.
-  const pendingRef = useRef(new Set<keyof GlacialTuningSettings>());
+  const refreshQueuedRef = useRef(false);
+  // A field is protected from the poll while the user holds it (previewed, not yet committed)
+  // or while any write for it is in flight.
+  const gestureRef = useRef(new Map<keyof GlacialTuningSettings, { value: unknown; timer: number }>());
+  const inflightRef = useRef(new Map<keyof GlacialTuningSettings, number>());
   // Bumped on every write, so a poll that started before it cannot undo it.
   const writeGenRef = useRef(0);
   const num = (v: number, digits = 0) => localizeNumbers(v.toFixed(digits), numberFormat);
 
+  const isProtected = (key: keyof GlacialTuningSettings) =>
+    gestureRef.current.has(key) || (inflightRef.current.get(key) ?? 0) > 0;
+
   const applyFresh = useCallback((fresh: GlacialTuning, settingsAllowed: boolean) => {
     setTuning(prev => {
       if (!prev || !settingsAllowed) return prev ? { ...prev, stats: fresh.stats } : fresh;
-      const settings = { ...fresh.settings };
-      for (const key of pendingRef.current) (settings as Record<string, unknown>)[key] = prev.settings[key];
-      return { settings, stats: fresh.stats };
+      const settings = { ...fresh.settings } as Record<string, unknown>;
+      for (const key of Object.keys(settings) as Array<keyof GlacialTuningSettings>) {
+        if (isProtected(key)) settings[key] = prev.settings[key];
+      }
+      return { settings: settings as unknown as GlacialTuningSettings, stats: fresh.stats };
     });
   }, []);
 
-  const refresh = useCallback(async () => {
-    if (document.hidden || pollingRef.current) return;
+  const refresh = useCallback(async (force = false) => {
+    if (document.hidden) return;
+    if (pollingRef.current) {
+      if (force) refreshQueuedRef.current = true;
+      return;
+    }
     pollingRef.current = true;
     const gen = writeGenRef.current;
     try {
@@ -79,6 +91,10 @@ export function AsusGlacialPanelTuning() {
       // A failed read leaves the last view; the next tick tries again.
     } finally {
       pollingRef.current = false;
+      if (refreshQueuedRef.current && aliveRef.current) {
+        refreshQueuedRef.current = false;
+        void refresh(true);
+      }
     }
   }, [applyFresh]);
 
@@ -86,18 +102,26 @@ export function AsusGlacialPanelTuning() {
     aliveRef.current = true;
     const abort = new AbortController();
     abortRef.current = abort;
+    const gestures = gestureRef.current;
     void refresh();
     const id = window.setInterval(() => { void refresh(); }, POLL_MS);
     return () => {
       aliveRef.current = false;
       abort.abort();
       window.clearInterval(id);
+      for (const g of gestures.values()) window.clearTimeout(g.timer);
+      gestures.clear();
     };
   }, [refresh]);
 
   const commit = useCallback(async (patch: Partial<GlacialTuningSettings>) => {
     const keys = Object.keys(patch) as Array<keyof GlacialTuningSettings>;
-    for (const key of keys) pendingRef.current.add(key);
+    for (const key of keys) {
+      const g = gestureRef.current.get(key);
+      if (g) window.clearTimeout(g.timer);
+      gestureRef.current.delete(key);
+      inflightRef.current.set(key, (inflightRef.current.get(key) ?? 0) + 1);
+    }
     writeGenRef.current += 1;
     let next: GlacialTuning | null = null;
     try {
@@ -105,18 +129,25 @@ export function AsusGlacialPanelTuning() {
     } catch {
       next = null;
     }
-    for (const key of keys) pendingRef.current.delete(key);
-    if (!aliveRef.current) return;
+    for (const key of keys) inflightRef.current.set(key, Math.max(0, (inflightRef.current.get(key) ?? 1) - 1));
+    // The toast is global, so a failure is told even when this card is gone.
     if (next === null) push({ title: t('devices.asus-glacial-lcd.failedTitle'), body: t('devices.asus-glacial-lcd.failedBody') });
+    if (!aliveRef.current) return;
     writeGenRef.current += 1;
     if (next !== null) applyFresh(next, true);
-    else void refresh();
+    else void refresh(true);
   }, [push, t, refresh, applyFresh]);
 
   const preview = useCallback((local: Partial<GlacialTuningSettings>) => {
-    for (const key of Object.keys(local) as Array<keyof GlacialTuningSettings>) pendingRef.current.add(key);
+    for (const key of Object.keys(local) as Array<keyof GlacialTuningSettings>) {
+      const prior = gestureRef.current.get(key);
+      if (prior) window.clearTimeout(prior.timer);
+      // A change that never reaches the slider's release (assistive input, a held key) is committed once it goes quiet.
+      const timer = window.setTimeout(() => { void commit({ [key]: local[key] } as Partial<GlacialTuningSettings>); }, IDLE_COMMIT_MS);
+      gestureRef.current.set(key, { value: local[key], timer });
+    }
     setTuning(prev => prev && { ...prev, settings: { ...prev.settings, ...local } });
-  }, []);
+  }, [commit]);
 
   const edit = useCallback((local: Partial<GlacialTuningSettings>) => {
     preview(local);
