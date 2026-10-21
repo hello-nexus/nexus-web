@@ -67,10 +67,7 @@ export interface LianLiWirelessState {
 }
 
 /** What the Devices, Cooling and Lighting tabs read: the wireless state, or the subset a wired unit reports. */
-export type LianLiFansState = Pick<LianLiWirelessState, 'isConnected' | 'fans'> & Partial<LianLiWirelessState> & {
-  /** Flex screens on USB whose fan runs over the radio. */
-  screenOnlySerials?: string[];
-};
+export type LianLiFansState = Pick<LianLiWirelessState, 'isConnected' | 'fans'> & Partial<LianLiWirelessState>;
 
 export function getLianLiWirelessState(): Promise<LianLiWirelessState | null> {
   return fetchService<LianLiWirelessState>('/devices/lianli-wireless/state');

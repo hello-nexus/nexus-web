@@ -4,12 +4,12 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import {
   getLianLiWirelessState,
-  type LianLiFansState,
   type LianLiWirelessLinkStatus,
 } from '../../../api/lianli-wireless';
 import {
   LIANLI_FLEX_CHANNEL_PREFIX,
   getLianLiFlexState,
+  type LianLiFlexState,
   identifyLianLiFlexFan,
   lianLiFlexLightingApi,
   lianLiFlexScreenApi,
@@ -80,7 +80,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
   const getState = flex ? getLianLiFlexState : getLianLiWirelessState;
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
-  const [state, setState] = useState<LianLiFansState | null>(null);
+  const [state, setState] = useState<LianLiFlexState | null>(null);
   // Send order of state GETs: a response is applied only if no later-sent one already was.
   const sentSeqRef = useRef(0);
   const appliedSeqRef = useRef(0);
