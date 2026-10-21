@@ -1450,8 +1450,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [draftCells, setDraftCells] = useState<{ id: string; cells: number[][] } | null>(null);
   const draftCellsSeq = useRef(0);
   // Toggling the mode makes any held draft cells stale.
-  const areaOn = devices.find(d => d.id === selectedZoneId)?.sampling;
-  useEffect(() => { draftCellsSeq.current += 1; setDraftCells(null); }, [areaOn, selectedZoneId]);
+  const samplingMode = devices.find(d => d.id === selectedZoneId)?.sampling;
+  useEffect(() => { draftCellsSeq.current += 1; setDraftCells(null); }, [samplingMode, selectedZoneId]);
 
   useEffect(() => {
     if (loading || saving) return;
