@@ -14,6 +14,7 @@ import {
   isTwoColumnMicro,
   isWideMicroCount,
   microAlignOf,
+  microDesignOf,
   microSupportsSize,
   resolvedSlotCountForSize,
   slotCountOptionsForSize,
@@ -39,6 +40,11 @@ describe('perfSlots', () => {
   describe('Micro simple design', () => {
     it('is offered alongside the bar designs', () => {
       expect(MICRO_DESIGN_KEYS).toEqual(['bar', 'fill', 'backdrop', 'simple']);
+    });
+    it('microDesignOf falls back to bar for unknown or missing values', () => {
+      expect(microDesignOf(undefined)).toBe('bar');
+      expect(microDesignOf({ micro_design: 'sparkline' })).toBe('bar');
+      for (const k of MICRO_DESIGN_KEYS) expect(microDesignOf({ micro_design: k })).toBe(k);
     });
     it('microAlignOf defaults to left and ignores unknown values', () => {
       expect(DEFAULT_MICRO_ALIGN).toBe('left');

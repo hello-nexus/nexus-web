@@ -13,7 +13,6 @@ import { GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
-  DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
   defaultSlotDesign,
   designKeysForSlot,
@@ -22,6 +21,7 @@ import {
   MICRO_ALIGN_KEYS,
   MICRO_DESIGN_KEYS,
   microAlignOf,
+  microDesignOf,
   microRowDevice,
   resolvedSlotLayout,
   resolveSlotDesign,
@@ -425,8 +425,8 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
     const microCanType = canEditFreeText(surface, desktopEditor);
-    // Row style shared by every bar (Bars / Fill / Graph).
-    const microDesign = (widget.config?.micro_design as MicroDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
+    // Row style shared by every row (Bars / Fill / Backdrop / Label + Value).
+    const microDesign = microDesignOf(widget.config);
     const microAlign = microAlignOf(widget.config);
     const microDesignLabel = (k: MicroDesignKey) => (k === 'simple' ? t('monitoring.settings.designSimple') : GAUGE_DESIGN_LABELS[k]);
     // Micro has one shared range for every bar (no per-slot scale). The default

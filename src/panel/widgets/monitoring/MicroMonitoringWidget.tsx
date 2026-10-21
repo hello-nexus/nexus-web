@@ -12,7 +12,7 @@ import {
   networkMaxValue,
   NETWORK_SENSOR_TOTAL,
 } from './networkSensors';
-import { DEFAULT_MICRO_DESIGN, isExtrasBackedDevice, isMicroMultiDevice, isTwoColumnMicro, microAlignOf, microRowDevice, type DeviceKey, type MicroAlign, type MicroDesignKey } from './perfSlots';
+import { isExtrasBackedDevice, isMicroMultiDevice, isTwoColumnMicro, microAlignOf, microDesignOf, microRowDevice, type DeviceKey, type MicroAlign, type MicroDesignKey } from './perfSlots';
 import {
   displayLabel,
   labelForDevice,
@@ -116,17 +116,17 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
   const microScale = multiDevice ? DEFAULT_SCALE_MODE : (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
   const microMin = widget.config?.micro_min as number | undefined;
   const microMax = widget.config?.micro_max as number | undefined;
-  // Row style shared by every bar; a 6/8-slot Micro on the wide 4x2 splits the
+  // Row style (Bars / Fill / Backdrop / Label + Value) shared by every row; a 6/8-slot Micro on the wide 4x2 splits the
   // rows into two columns (3+3, 4+4) under the one shared caption. The tall 2x4
   // keeps all rows in one column.
-  const microDesign = (widget.config?.micro_design as MicroDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
+  const microDesign = microDesignOf(widget.config);
   const microAlign = microAlignOf(widget.config);
   const twoColumn = isTwoColumnMicro(widget.size, count);
 
   const selectable = typeof onSelectSlot === 'function';
   const activeSlot = selectedSlot == null ? 0 : Math.max(0, Math.min(selectedSlot, count - 1));
 
-  // Only the bar design sizes itself to its content; fill and backdrop stretch.
+  // Only the bar design sizes itself to its content; fill, backdrop and simple stretch.
   const growsRow = microDesign !== 'bar';
 
   const rowEls = sensorNames.map((rawName, i) => {

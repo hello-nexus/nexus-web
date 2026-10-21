@@ -6,6 +6,7 @@ import { GaugeTrack } from './gauges/GaugeTrack';
 import type { GaugeGradient } from './valueColor';
 import { GAUGE_LINE_THICKNESS } from './gauges/types';
 import type { MicroAlign, MicroDesignKey } from './perfSlots';
+import { useFitHeight } from './useFitHeight';
 import styles from './MicroBar.module.scss';
 
 interface MicroBarProps {
@@ -27,22 +28,27 @@ interface MicroBarProps {
   style?: CSSProperties;
 }
 
+function SimpleRow({ label, formatted, align, style }: { label: string; formatted: string; align: MicroAlign; style?: CSSProperties }) {
+  const { boxRef, contentRef, scale } = useFitHeight();
+  return (
+    <div ref={boxRef} className={styles.rowSimple} style={style}>
+      <div ref={contentRef} className={`${styles.simpleContent} ${styles[`align_${align}`]}`} style={{ transform: `scale(${scale})` }}>
+        {label && <span className={styles.simpleLabel}>{label}</span>}
+        <GaugeValue formatted={formatted} className={styles.simpleValue} align={align} />
+      </div>
+    </div>
+  );
+}
+
 export function MicroBar({ label, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
+  if (design === 'simple') return <SimpleRow label={label} formatted={formatted} align={align} style={style} />;
+
   const head = (
     <div className={styles.head}>
       {label && <span className={styles.label}>{label}</span>}
       <GaugeValue formatted={formatted} className={styles.value} />
     </div>
   );
-
-  if (design === 'simple') {
-    return (
-      <div className={`${styles.rowSimple} ${styles[`align_${align}`]}`} style={style}>
-        {label && <span className={styles.simpleLabel}>{label}</span>}
-        <GaugeValue formatted={formatted} className={styles.simpleValue} />
-      </div>
-    );
-  }
 
   if (design === 'fill') {
     const clamped = Math.max(0, Math.min(100, fillPercent));

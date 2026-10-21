@@ -49,7 +49,14 @@
   padding: 0 4px;
 }
 
-// The simple design aligns its rows; the shared caption follows them.
+// The simple design aligns its rows; the shared caption follows them, flush
+// with the row edge (no inset).
+.caption_center,
+.caption_left,
+.caption_right {
+  padding: 0;
+}
+
 .caption_center {
   text-align: center;
 }
@@ -79,8 +86,8 @@
   }
 }
 
-// The fill and backdrop bars grow to share the column height, which they can
-// only do if the wrapper grows with them.
+// The fill, backdrop and simple rows grow to share the column height, which
+// they can only do if the wrapper grows with them.
 .rowSelectableGrow.rowSelectableGrow {
   flex: 1;
 }

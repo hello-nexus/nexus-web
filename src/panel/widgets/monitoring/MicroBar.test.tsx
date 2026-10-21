@@ -39,11 +39,11 @@ describe('MicroBar designs', () => {
 
   it('simple design applies the alignment class, defaulting to left', () => {
     const left = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" />);
-    expect(left.container.firstElementChild?.className).toMatch(/align_left/);
+    expect(left.container.firstElementChild?.firstElementChild?.className).toMatch(/align_left/);
     const right = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" align="right" />);
-    expect(right.container.firstElementChild?.className).toMatch(/align_right/);
+    expect(right.container.firstElementChild?.firstElementChild?.className).toMatch(/align_right/);
     const center = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" align="center" />);
-    expect(center.container.firstElementChild?.className).toMatch(/align_center/);
+    expect(center.container.firstElementChild?.firstElementChild?.className).toMatch(/align_center/);
   });
 
   it('simple design omits the label span when empty', () => {

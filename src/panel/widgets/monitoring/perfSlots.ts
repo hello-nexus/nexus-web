@@ -55,6 +55,11 @@ export type MicroDesignKey = Extract<GaugeDesignKey, 'bar' | 'fill' | 'backdrop'
 export const MICRO_DESIGN_KEYS: MicroDesignKey[] = ['bar', 'fill', 'backdrop', 'simple'];
 export const DEFAULT_MICRO_DESIGN: MicroDesignKey = 'bar';
 
+export function microDesignOf(config: Record<string, PanelConfigValue> | undefined): MicroDesignKey {
+  const raw = config?.micro_design;
+  return (MICRO_DESIGN_KEYS as unknown[]).includes(raw) ? (raw as MicroDesignKey) : DEFAULT_MICRO_DESIGN;
+}
+
 // Text alignment of the 'simple' design's label and value (`micro_align`).
 export type MicroAlign = 'left' | 'center' | 'right';
 export const MICRO_ALIGN_KEYS: MicroAlign[] = ['left', 'center', 'right'];
