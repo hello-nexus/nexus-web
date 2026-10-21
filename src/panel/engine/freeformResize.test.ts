@@ -113,8 +113,9 @@ describe('moveRect', () => {
   const bounds = { cols: 8, rows: 8 };
   const start: FreeformRect = { col: 2, row: 2, cols: 4, rows: 4 };
 
-  it('moves in whole cells', () => {
-    expect(moveRect(start, 1.4, -0.6, bounds)).toEqual({ col: 3, row: 1, cols: 4, rows: 4 });
+  it('drops on the regular drag snap grid, two cells for a multi-cell tile', () => {
+    expect(moveRect(start, 1.4, -0.6, bounds)).toEqual({ col: 4, row: 2, cols: 4, rows: 4 });
+    expect(moveRect(start, 1, 0, bounds)).toEqual({ col: 4, row: 2, cols: 4, rows: 4 });
   });
 
   it('stops at the grid edges', () => {
@@ -168,7 +169,7 @@ describe('cornerRoom', () => {
   });
 
   it('keeps the smallest size enabled where it has room to grow', () => {
-    expect(cornerRoom({ col: 3, row: 3, cols: 2, rows: 2 }, declared, bounds)).toEqual(all);
+    expect(cornerRoom({ col: 2, row: 2, cols: 2, rows: 2 }, declared, bounds)).toEqual(all);
     const corner = cornerRoom({ col: 0, row: 0, cols: 2, rows: 2 }, declared, bounds);
     expect(corner.br).toBe(true);
   });
@@ -227,5 +228,30 @@ describe('cornerRoom with a placement check', () => {
     const refuse44 = (rect: { cols: number; rows: number }) => !(rect.cols === 4 && rect.rows === 4);
     expect(resizeRectFromCorner(start, 'br', 4, 4, snap, bounds, refuse44)).toEqual({ col: 0, row: 0, cols: 4, rows: 2 });
     expect(stepRectFromCorner(start, 'br', 1, 1, snap, bounds, refuse44)).toEqual(start);
+  });
+});
+
+describe('stride rules shared with the regular drag', () => {
+  const bounds = { cols: 8, rows: 8 };
+
+  it('moves a 1x1 a cell at a time and a 2x2 or 4x4 two at a time', () => {
+    expect(moveRect({ col: 0, row: 0, cols: 1, rows: 1 }, 1, 1, bounds)).toMatchObject({ col: 1, row: 1 });
+    expect(moveRect({ col: 0, row: 0, cols: 2, rows: 2 }, 1, 1, bounds)).toMatchObject({ col: 2, row: 2 });
+    expect(moveRect({ col: 0, row: 0, cols: 4, rows: 4 }, 1, 1, bounds)).toMatchObject({ col: 2, row: 2 });
+  });
+
+  it('moves a 4x1 one row and two columns at a time', () => {
+    expect(moveRect({ col: 0, row: 0, cols: 4, rows: 1 }, 1, 0, bounds)).toMatchObject({ col: 2, row: 0 });
+    expect(moveRect({ col: 0, row: 0, cols: 4, rows: 1 }, 0, 1, bounds)).toMatchObject({ col: 0, row: 1 });
+    expect(moveRect({ col: 0, row: 0, cols: 4, rows: 1 }, 0, 3, bounds)).toMatchObject({ row: 3 });
+  });
+
+  it('only moves a corner resize origin to a stride aligned cell', () => {
+    const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
+    // A 2x2 at col 3 is off the stride grid: growing from its top left would put the origin at col 1.
+    const off = resizeRectFromCorner({ col: 3, row: 2, cols: 2, rows: 2 }, 'tl', -2, -2, snap, bounds);
+    expect(off.col % 2 === 0 || off.col === 3).toBe(true);
+    const on = resizeRectFromCorner({ col: 4, row: 4, cols: 2, rows: 2 }, 'tl', -2, -2, snap, bounds);
+    expect(on).toEqual({ col: 2, row: 2, cols: 4, rows: 4 });
   });
 });

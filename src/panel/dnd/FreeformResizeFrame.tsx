@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '../../lib/i18n';
-import { sizeToSpan } from '../engine/grid';
+import { sizeToSpan, snapStride } from '../engine/grid';
 import { readCellMetrics } from '../engine/panelLayoutHelpers';
 import type { FreeformCorner } from '../engine/freeformResize';
 import type { FreeformGesture } from '../engine/useFreeformResize';
@@ -117,7 +117,8 @@ export function FreeformResizeFrame({
     event.preventDefault();
     event.stopPropagation();
     if (!onBegin()) return;
-    if (gesture === 'move') onUpdate(gesture, step[0], step[1]);
+    // A body step is one drag stride, so it lands where a regular drag by that much would.
+    if (gesture === 'move') onUpdate(gesture, step[0] * snapStride(span.cols), step[1] * snapStride(span.rows));
     else onStep(gesture, step[0], step[1]);
     onEnd();
   };

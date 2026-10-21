@@ -3,7 +3,7 @@ import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 import { canonicalJson } from './usePanelLayout';
 import { findWidgetById } from './panelLayoutHelpers';
 import { sizeToSpan, type GridSpan } from './grid';
-import { tryResizeWidget } from './panelLayoutOps';
+import { previewDrag, tryResizeWidget } from './panelLayoutOps';
 import type { PaginateCapacity } from './paginate';
 import {
   moveRect,
@@ -17,6 +17,21 @@ import {
 } from './freeformResize';
 
 export type FreeformGesture = 'move' | FreeformCorner;
+
+// A move lands exactly as the regular drag's drop does (previewDrag: make-room cascade or shift, same page, refusal as null).
+// The widget is dropped at its rendered span and gets its stored size back.
+function dropLikeDrag(session: Session, widgetId: string, target: FreeformRect, capacity: PaginateCapacity): PanelLayout | null {
+  const page = session.base.pages.find(p => p.widgets.some(w => w.id === widgetId));
+  if (!page) return null;
+  const bounds = { cols: Math.max(1, capacity.gridCols), rows: Math.max(1, capacity.pageRows) };
+  const withSize = (layout: PanelLayout, size: (stored: PanelWidgetSize) => PanelWidgetSize): PanelLayout => ({
+    ...layout,
+    pages: layout.pages.map(p => ({ ...p, widgets: p.widgets.map(w => (w.id === widgetId ? { ...w, size: size(w.size) } : w)) })),
+  });
+  const dropped = previewDrag(withSize(session.base, stored => clampFreeformSize(stored, bounds)), widgetId, page.id, target.col, target.row, capacity);
+  if (!dropped) return null;
+  return withSize(dropped, () => session.size);
+}
 
 // `size` is the stored size: a move keeps it even when the rendered span is clamped to the grid.
 interface Session { base: PanelLayout; baseKey: string; cols: number; rows: number; start: FreeformRect; size: PanelWidgetSize; }
@@ -71,15 +86,9 @@ export function useFreeformResize({
       setBoth(null);
       return;
     }
-    const next = tryResizeWidget(
-      session.base,
-      widgetId,
-      moving ? session.size : spanToSize(target),
-      capacity,
-      1,
-      { col: target.col, row: target.row },
-      { samePage: true },
-    );
+    const next = moving
+      ? dropLikeDrag(session, widgetId, target, capacity)
+      : tryResizeWidget(session.base, widgetId, spanToSize(target), capacity, 1, { col: target.col, row: target.row }, { samePage: true });
     if (next) {
       rejectArmedRef.current = true;
       setBoth(next === session.base ? null : next);

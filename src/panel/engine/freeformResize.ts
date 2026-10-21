@@ -2,7 +2,7 @@ import {
   isFreeformWidgetSize,
   type PanelWidgetSize,
 } from '../types';
-import { sizeToSpan, type GridSpan } from './grid';
+import { sizeToSpan, snapDropCell, snapStride, type GridSpan } from './grid';
 
 // Spans are cols x rows, as in grid.ts.
 
@@ -17,6 +17,12 @@ const FREEFORM_MIN_SIDE = 4;
 
 export function spanToSize(span: GridSpan): PanelWidgetSize {
   return `${span.cols}x${span.rows}`;
+}
+
+// A moved origin must land on the regular drag's stride grid; an origin that does not move is left as it is.
+function originOnStride(start: FreeformRect, col: number, row: number, span: GridSpan): boolean {
+  return (col === start.col || col % snapStride(span.cols) === 0)
+    && (row === start.row || row % snapStride(span.rows) === 0);
 }
 
 /** Declared sizes, plus (withEvenSpans) every span with both sides even and at least FREEFORM_MIN_SIDE, capped by the grid; the round mask is not a span. */
@@ -67,6 +73,7 @@ export function resizeRectFromCorner(
     const col = fromLeft ? right - span.cols : start.col;
     const row = fromTop ? bottom - span.rows : start.row;
     if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
+    if (!originOnStride(start, col, row, span)) continue;
     const score = distance(span, rawCols, rawRows);
     const area = span.cols * span.rows;
     if (!(score < bestScore || (score === bestScore && area < bestArea))) continue;
@@ -106,6 +113,7 @@ export function stepRectFromCorner(
     const col = fromLeft ? right - span.cols : start.col;
     const row = fromTop ? bottom - span.rows : start.row;
     if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
+    if (!originOnStride(start, col, row, span)) continue;
     // Nearest on the stepped axis first, then least change on the other.
     const score = (growCols !== 0 ? Math.abs(dCols) : Math.abs(dRows)) * 1000 + (growCols !== 0 ? Math.abs(dRows) : Math.abs(dCols));
     if (score >= bestScore) continue;
@@ -131,20 +139,20 @@ export function cornerRoom(
     const col = fromLeft ? right - span.cols : rect.col;
     const row = fromTop ? bottom - span.rows : rect.row;
     if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) return false;
+    if (!originOnStride(rect, col, row, span)) return false;
     return !canPlace || canPlace({ col, row, cols: span.cols, rows: span.rows });
   });
   return { tl: room(true, true), tr: room(false, true), bl: room(true, false), br: room(false, false) };
 }
 
-/** Moves a rect by (dCols, dRows) cells, rounded to whole cells and kept inside the grid. */
+/** Moves a rect by (dCols, dRows) cells and drops it on the regular drag's snap grid (per-axis stride, inside the grid). */
 export function moveRect(
   start: FreeformRect,
   dCols: number,
   dRows: number,
   bounds: FreeformBounds,
 ): FreeformRect {
-  const col = Math.max(0, Math.min(Math.round(start.col + dCols), bounds.cols - start.cols));
-  const row = Math.max(0, Math.min(Math.round(start.row + dRows), bounds.rows - start.rows));
+  const { col, row } = snapDropCell(start.col + dCols, start.row + dRows, { cols: start.cols, rows: start.rows }, bounds);
   return { ...start, col, row };
 }
 
