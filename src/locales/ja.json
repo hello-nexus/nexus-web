@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "復元",
   "gallery.page.showMembers": "プレイリスト内",
   "gallery.page.sources": "ソース",
+  "gallery.page.truncated": "最初の{count}件を表示しています。ソースを削除すると他の項目を表示できます。",
   "gallery.page.usage.count.one": "{name}（{count}個のウィジェット）",
   "gallery.page.usage.count.other": "{name}（{count}個のウィジェット）",
   "gallery.page.usage.dashboard": "アプリダッシュボード",

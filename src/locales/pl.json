@@ -2046,6 +2046,7 @@
   "gallery.page.restore": "Przywróć",
   "gallery.page.showMembers": "Na playliście",
   "gallery.page.sources": "Źródła",
+  "gallery.page.truncated": "Wyświetlono pierwsze {count} elementów. Usuń źródło, aby zobaczyć pozostałe.",
   "gallery.page.usage.count.few": "{name} ({count} widżety)",
   "gallery.page.usage.count.one": "{name} ({count} widżet)",
   "gallery.page.usage.count.other": "{name} ({count} widżetów)",

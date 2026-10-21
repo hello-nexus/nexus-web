@@ -2046,6 +2046,7 @@
   "gallery.page.restore": "Obnovit",
   "gallery.page.showMembers": "V playlistu",
   "gallery.page.sources": "Zdroje",
+  "gallery.page.truncated": "Zobrazuje se prvních {count} položek. Odeberte zdroj, abyste viděli další.",
   "gallery.page.usage.count.few": "{name} ({count} widgety)",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widgetů)",

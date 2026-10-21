@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Restore",
   "gallery.page.showMembers": "In playlist",
   "gallery.page.sources": "Sources",
+  "gallery.page.truncated": "Showing the first {count} items. Remove a source to see others.",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widgets)",
   "gallery.page.usage.dashboard": "Apps dashboard",

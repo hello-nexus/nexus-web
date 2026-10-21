@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Wiederherstellen",
   "gallery.page.showMembers": "In der Playlist",
   "gallery.page.sources": "Quellen",
+  "gallery.page.truncated": "Die ersten {count} Elemente werden angezeigt. Entfernen Sie eine Quelle, um andere zu sehen.",
   "gallery.page.usage.count.one": "{name} ({count} Widget)",
   "gallery.page.usage.count.other": "{name} ({count} Widgets)",
   "gallery.page.usage.dashboard": "Apps-Dashboard",

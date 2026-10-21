@@ -2034,6 +2034,7 @@
   "gallery.page.restore": "Ripristine",
   "gallery.page.showMembers": "Te playlist",
   "gallery.page.sources": "Sorzints",
+  "gallery.page.truncated": "A son mostrâts i prins {count} elements. Gjave une sorzint par viodinde altris.",
   "gallery.page.usage.count.one": "{name} ({count} widget)",
   "gallery.page.usage.count.other": "{name} ({count} widget)",
   "gallery.page.usage.dashboard": "Dashboard App",
