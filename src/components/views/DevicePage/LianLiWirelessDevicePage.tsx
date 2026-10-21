@@ -16,6 +16,7 @@ import {
   restartLianLiFlexLcd,
 } from '../../../api/lianli-flex';
 import { WIRELESS_CHANNEL_PREFIX } from './lianliWirelessCoolingUtils';
+import { LianLiFlexLcdThemesSection } from './LianLiFlexLcdThemesSection';
 import { LianLiFlexSyncSection, isSyncOn, useLianLiFlexSync } from './LianLiFlexSyncSection';
 import { reconcileRestarts, type RestartPending } from './lianliFlexRestart';
 import { fetchPanelDevices } from '../../../api/panel';
@@ -293,6 +294,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
               channelPrefix={flex ? LIANLI_FLEX_CHANNEL_PREFIX : WIRELESS_CHANNEL_PREFIX}
             />
           )}
+          {tab === 'screen' && !flex && <LianLiFlexLcdThemesSection />}
           {tab === 'screen' && (
             <LianLiWirelessScreenTab
               api={flex ? lianLiFlexScreenApi : undefined}
