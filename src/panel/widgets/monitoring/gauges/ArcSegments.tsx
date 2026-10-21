@@ -12,6 +12,8 @@ const OVERLAP = 0.6;
 // Extra segment width over the mask: the mask's antialiased edge then falls
 // outside the band, which would otherwise thin the stroke.
 const SEGMENT_BLEED = 4;
+// Share of the sweep covered on each side of the start by the seam patch.
+const SEAM_SHARE = 0.015;
 
 export interface ArcGeometry {
   /** Centre of the arc's circle, in viewBox units. */
@@ -93,6 +95,23 @@ export function ArcSegments({ geometry, gradient, fillPercent }: {
         />
       </mask>
       <g mask={`url(#${maskId})`}>
+        {complete && ['seam-tail', 'seam-head'].map((key, i) => {
+          // The first and last segment meet end to end at the start, so their
+          // antialiased edges leave a hairline of background. A patch of the
+          // end color under both edges covers it.
+          const span = geometry.sweepDeg * SEAM_SHARE;
+          const from = i === 0 ? sweepEnd - span : geometry.startDeg;
+          return (
+            <path
+              key={key}
+              data-seam=""
+              d={arcPath(geometry, from, from + span)}
+              fill="none"
+              stroke={segments[SEGMENTS - 1].color}
+              strokeWidth={geometry.strokeWidth + SEGMENT_BLEED}
+            />
+          );
+        })}
         {segments.map((seg, i) => (
           <path
             key={i}

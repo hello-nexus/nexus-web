@@ -54,6 +54,19 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
               />
             </mask>
             <g mask={`url(#${maskId})`}>
+              {complete && (
+                // The first and last segment meet end to end at the start, so
+                // their antialiased edges leave a hairline of background. A
+                // closed stroke of the end color underneath covers it.
+                <path
+                  data-seam=""
+                  d={path}
+                  pathLength={PATH_LENGTH}
+                  fill="none"
+                  stroke={segments[SEGMENTS - 1].color}
+                  strokeWidth={RING_STROKE + SEGMENT_BLEED}
+                />
+              )}
               {segments.map((seg, i) => (
                 <path
                   key={i}

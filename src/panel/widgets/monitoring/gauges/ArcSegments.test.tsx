@@ -38,4 +38,14 @@ describe('ArcSegments', () => {
     expect(mask.getAttribute('stroke-linecap')).toBe('butt');
     expect(Number(mask.getAttribute('stroke-dasharray')!.split(' ')[0])).toBeCloseTo(2 * Math.PI * ring.radius, 2);
   });
+
+  it('patches the start seam of a closed ring only when complete', () => {
+    const at = (fillPercent: number) => render(
+      <svg><ArcSegments geometry={ring} gradient={gradient} fillPercent={fillPercent} /></svg>,
+    ).container.querySelectorAll('path[data-seam]').length;
+    expect(at(100)).toBe(2);
+    expect(at(99)).toBe(0);
+    const open = render(<svg><ArcSegments geometry={{ ...ring, sweepDeg: 270 }} gradient={gradient} fillPercent={100} /></svg>);
+    expect(open.container.querySelectorAll('path[data-seam]')).toHaveLength(0);
+  });
 });

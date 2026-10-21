@@ -66,6 +66,15 @@ describe('squareRing geometry', () => {
     expect(Number(mask.getAttribute('stroke-dashoffset'))).toBeCloseTo(0, 6);
   });
 
+  it('underlays the start seam only when the graded stroke is complete', () => {
+    const gradient = { id: 's', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
+    const full = render(<SquareRingGauge {...props} value={100} gradient={gradient} />);
+    const patch = full.container.querySelector('path[data-seam]')!;
+    expect(patch.getAttribute('stroke')).toBe(full.container.querySelectorAll('g[mask] path')[40].getAttribute('stroke'));
+    const partial = render(<SquareRingGauge {...props} value={99} gradient={gradient} />);
+    expect(partial.container.querySelector('path[data-seam]')).toBeNull();
+  });
+
   it('reveals a graded stroke through a dash mask over the segments', () => {
     const gradient = { id: 'g', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
     const { container } = render(<SquareRingGauge {...props} value={50} gradient={gradient} />);
