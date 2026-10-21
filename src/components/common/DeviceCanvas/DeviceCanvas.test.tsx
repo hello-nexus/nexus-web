@@ -84,6 +84,30 @@ describe('DeviceCanvas', () => {
     expect(box.style.background).toBe('');
   });
 
+  it('shows no sibling dots beside an area-sampled card unless the sibling is the selected slot', () => {
+    const keys = { ...dragDevice('keys', 'Keys'), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0.5, 0, 1, 1] } as LightingDevice;
+    const under = dragDevice('under', 'Under');
+    const leds = { keys: [{ index: 0, u: 0.5, v: 0.5 }], under: [{ index: 0, u: 0.1, v: 0.1 }] } as never;
+    const mount = (primary: string) => render(
+      <DeviceCanvas
+        devices={[keys, under]}
+        selectedIds={new Set(['keys', 'under'])}
+        selectedDeviceLeds={leds}
+        primaryDeviceId={primary}
+        stacks={[{ id: 's', name: '', members: ['keys', 'under'] }]}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const first = mount('keys');
+    expect(first.container.querySelectorAll(`.${styles.ledBox}`).length).toBe(2);
+    expect(first.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(0);
+    first.unmount();
+    const second = mount('under');
+    expect(second.container.querySelectorAll(`.${styles.ledBox}`).length).toBe(2);
+    expect(second.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(1);
+  });
+
   it('outlines boxes without filling them, a locked LED outline wearing its color', () => {
     publishLedFrame(new Uint8Array(100 * 60 * 3).fill(255), 100, 60);
     const a = {

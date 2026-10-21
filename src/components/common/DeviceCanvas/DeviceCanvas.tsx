@@ -976,6 +976,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
                 const locked = ledColorsById.get(id);
                 const member = devices.find(d => d.id === id);
+                // An area-sampled card shows boxes only. A stacked card without it keeps its dots only when it is the
+                // selected slot, so the frame never mixes a stray sibling dot into the boxes.
+                const frameHasBoxes = shownMembers.some(m => { const d = devices.find(x => x.id === m); return !!(d?.areaSampling && d.areaBoxes?.length); });
                 if (member?.areaSampling && member.areaBoxes?.length) {
                   return [(
                     <AreaBoxLayer
@@ -986,6 +989,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                     />
                   )];
                 }
+                if (frameHasBoxes && primaryDeviceId !== id) return [];
                 return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => {
                   const color = locked?.get(led.index);
                   return (

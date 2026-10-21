@@ -7,6 +7,8 @@
   --frame-line-dim: rgb(255 255 255 / var(--alpha-medium));
   --frame-halo: rgb(0 0 0 / var(--alpha-strong));
   --frame-scrim: rgb(0 0 0 / var(--alpha-strong));
+  // The LED mark: the dot's fill and the area box's line, one color so the two stay in sync.
+  --led-mark: rgb(255 255 255 / var(--alpha-medium));
   position: relative;
   // Always the unit canvas's own aspect, so a unit is the same length on both
   // screen axes: a turned frame is then a plain rotation of the div and its
@@ -220,7 +222,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgb(255 255 255 / var(--alpha-medium));
+  background: var(--led-mark);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 1;
@@ -232,13 +234,13 @@
   pointer-events: none;
 }
 
-// One LED under Area sampling: the box it averages, outlined so the effect stays visible. A light line with a dark
-// companion reads on dark and bright effects alike; neighboring boxes stay distinguishable.
+// One LED under Area sampling: the box it averages, outlined so the effect stays visible. Drawn in the dots' own
+// stroke (mark color, thickness and shadow); neighboring boxes stay distinguishable.
 .ledBox {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid var(--frame-line);
-  box-shadow: 0 0 0 1px var(--frame-halo);
+  border: 2px solid var(--led-mark);
+  box-shadow: var(--shadow-sm);
   pointer-events: none;
   z-index: 1;
 }
