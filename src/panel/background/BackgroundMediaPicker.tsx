@@ -346,6 +346,7 @@ export function BackgroundMediaPicker({
           kind={cropState.kind}
           fallbackSrc={cropState.fallbackSrc}
           aspect={deviceAspect}
+          round={round}
           busy={converting}
           allowTransparency={cropState.alpha}
           allowFit
