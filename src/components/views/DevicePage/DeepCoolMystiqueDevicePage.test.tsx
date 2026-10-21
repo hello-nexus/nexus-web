@@ -23,12 +23,27 @@ vi.mock('../../../api/deepcool-mystique', () => ({
   setMystiqueSettings: (patch: unknown) => mockSet(patch),
 }));
 
+vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({
+  sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => (category === 'motherboard' ? [{ type: 'Fan' }] : []),
+}));
+
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
-  useSensorLookup: () => ({ resolve: () => undefined }),
-  SensorPicker: ({ category, sensor, onChange }: { category: string; sensor: string; onChange: (s: { category: string; sensor: string }) => void }) => (
-    <button type="button" data-testid="sensor-picker" onClick={() => onChange({ category: 'motherboard', sensor: 'fan/chassis' })}>
-      {category}/{sensor}
-    </button>
+  useSensorLookup: () => ({ resolve: () => undefined, sensors: {}, networkSensors: [], extras: {} }),
+  SensorPicker: ({ category, sensor, categories, automatic, onChange }: {
+    category: string;
+    sensor: string;
+    categories: string[];
+    automatic: { label: string; active: boolean; onSelect: () => void };
+    onChange: (s: { category: string; sensor: string }) => void;
+  }) => (
+    <div>
+      <button type="button" data-testid="sensor-picker" onClick={() => onChange({ category: 'motherboard', sensor: 'fan/chassis' })}>
+        {category}/{sensor}
+      </button>
+      <button type="button" data-testid="automatic-option" data-active={String(automatic.active)} data-categories={categories.join(',')} onClick={automatic.onSelect}>
+        {automatic.label}
+      </button>
+    </div>
   ),
 }));
 
@@ -154,15 +169,57 @@ describe('DeepCoolMystiqueDevicePage', () => {
 
   it('a picked fan sensor can be returned to the automatic choice', async () => {
     await mount({ ...base, cpuFan: { category: 'motherboard', sensor: 'fan/chassis', resolvedCategory: 'motherboard', resolvedSensor: 'fan/chassis' } });
+    const option = screen.getAllByTestId('automatic-option')[0];
+    expect(option.getAttribute('data-active')).toBe('false');
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.automatic' }));
+      fireEvent.click(option);
     });
     expect(mockSet).toHaveBeenCalledWith({ cpuFan: { category: '', sensor: '' } });
   });
 
-  it('offers no automatic button while a readout is already automatic', async () => {
+  it('marks the automatic option active while a readout is automatic', async () => {
     await mount();
-    expect(screen.queryByRole('button', { name: 'devices.deepcool-mystique.automatic' })).toBeNull();
+    expect(screen.getAllByTestId('automatic-option')[0].getAttribute('data-active')).toBe('true');
+  });
+
+  it('offers only categories that list a fan reading', async () => {
+    await mount();
+    expect(screen.getAllByTestId('automatic-option')[0].getAttribute('data-categories')).toBe('motherboard');
+  });
+
+  it('a right-click on the brightness slider neither holds off polling nor writes', async () => {
+    await mount();
+    const slider = screen.getByRole('slider');
+    await act(async () => {
+      fireEvent.pointerDown(slider, { button: 2, pointerId: 1 });
+      fireEvent.pointerUp(slider, { button: 2, pointerId: 1 });
+      await new Promise(r => setTimeout(r, 10));
+    });
+    expect(mockSet).not.toHaveBeenCalled();
+  });
+
+  it('a brightness commit that changes nothing sends nothing', async () => {
+    await mount();
+    const slider = screen.getByRole('slider');
+    await act(async () => {
+      fireEvent.pointerDown(slider, { button: 0, pointerId: 1 });
+      fireEvent.pointerUp(slider, { button: 0, pointerId: 1 });
+      await new Promise(r => setTimeout(r, 10));
+    });
+    expect(mockSet).not.toHaveBeenCalled();
+  });
+
+  it('a changed brightness sends once', async () => {
+    await mount();
+    const slider = screen.getByRole('slider');
+    await act(async () => {
+      fireEvent.pointerDown(slider, { button: 0, pointerId: 1 });
+      fireEvent.change(slider, { target: { value: '40' } });
+      fireEvent.pointerUp(slider, { button: 0, pointerId: 1 });
+      await new Promise(r => setTimeout(r, 10));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ brightness: 40 });
+    expect(mockSet).toHaveBeenCalledTimes(1);
   });
 
   it('marks the readout, recording and system groups as not set until the user changes them', async () => {
@@ -174,6 +231,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
   it('shows no unset note once the system group has been chosen', async () => {
     await mount();
     expect(screen.queryByText('devices.deepcool-mystique.deviceUnsetHint')).toBeNull();
+    expect(screen.getByText('devices.deepcool-mystique.deviceSetHint')).toBeTruthy();
   });
 
   it('recording mode notes that the toggles are not set yet', async () => {
