@@ -337,13 +337,14 @@ function buildUnifiedList(
   const claimedCuratedIds = new Set<string>();
 
   for (const p of panelDevices) {
-    if (p.sourceId) claimedCuratedIds.add(p.sourceId);
-    const sourceId = p.sourceId;
+    const isSimulated = p.connectionKind === 'simulated';
+    // A simulator shares its preset id with a real device (y70) and must not claim or inherit from it.
+    const sourceId = isSimulated ? undefined : p.sourceId;
+    if (sourceId) claimedCuratedIds.add(sourceId);
     // Real connected panels use CURATED_SHORT_NAMES where one exists so the
     // sidebar shows a normalized label. Simulator entries keep their preset
     // name so the resolution suffix ("HYTE Y70 Touch 2.5K" / "HYTE Y70 Touch
     // 4K") stays visible.
-    const isSimulated = p.connectionKind === 'simulated';
     const shortName = isSimulated
       ? p.name
       : (sourceId && CURATED_SHORT_NAMES[sourceId]) || p.name;

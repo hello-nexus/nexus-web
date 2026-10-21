@@ -123,8 +123,14 @@ describe('sizeToSpan', () => {
     });
   });
 
-  it('maps removed legacy sizes to 4x4', () => {
-    expect(sizeToSpan('4x8')).toEqual({ cols: 4, rows: 4 });
+  it('maps an unrecognized size to 4x4', () => {
+    expect(sizeToSpan('huge')).toEqual({ cols: 4, rows: 4 });
+    expect(sizeToSpan('0x4')).toEqual({ cols: 4, rows: 4 });
+  });
+
+  it('reads a freeform size as its span', () => {
+    expect(sizeToSpan('4x8')).toEqual({ cols: 4, rows: 8 });
+    expect(sizeToSpan('6x4')).toEqual({ cols: 6, rows: 4 });
   });
 
   // Corsair Xeneon Edge (2560x720, 14.5" -> 183 px/in) promoted as a monitor

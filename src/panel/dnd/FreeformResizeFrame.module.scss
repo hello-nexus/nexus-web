@@ -1,0 +1,126 @@
+// Bracket drawing is sized in design units times --panel-scale (the cell over its design base),
+// so it is the same fraction of the tile on the device and in the canvas preview. Only the grab
+// area is a screen length: the upscale undoes the preview iframe's fit scale for mouse, touch is real px.
+.frame {
+  --_s: var(--panel-scale, 1);
+  --_upscale: var(--panel-preview-upscale, 1);
+  --_radius: var(--panel-card-radius, var(--radius));
+  --_hit-min: calc(28px * var(--_upscale));
+  --_arm: max(calc(19px * var(--_s)), calc(var(--_radius) + 6px * var(--_s)));
+  --_stroke: calc(5px * var(--_s));
+  --_hit: max(var(--_hit-min), var(--_arm));
+  --_halo: rgb(0 0 0 / var(--alpha-strong));
+  position: relative;
+  z-index: 20;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--panel-card-radius, var(--radius));
+  box-shadow: 0 0 0 calc(1px * var(--_s)) var(--_halo);
+  // Only the grab areas take presses; the tile underneath keeps its own drag and tap.
+  pointer-events: none;
+}
+
+.frame[data-hover='true'] {
+  box-shadow: none;
+}
+
+.frame[data-touch='true'] {
+  --_hit-min: 44px;
+}
+
+// A corner bracket: two thick edges meeting in the tile's own corner radius.
+.handle {
+  position: absolute;
+  width: var(--_hit);
+  height: var(--_hit);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+  pointer-events: auto;
+  z-index: 1;
+
+  &::before {
+    content: '';
+    position: absolute;
+    width: var(--_arm);
+    height: var(--_arm);
+    pointer-events: none;
+    border: 0 solid var(--accent);
+    transition: opacity var(--ease-fast) ease-out;
+  }
+
+  &[data-room='false'] {
+    cursor: not-allowed;
+
+    &::before {
+      opacity: 0.3;
+    }
+  }
+
+  &:focus-visible {
+    outline: calc(2px * var(--_upscale)) solid var(--text);
+    outline-offset: calc(-2px * var(--_upscale));
+  }
+
+  &[data-corner='tl'] {
+    top: 0;
+    left: 0;
+    cursor: nwse-resize;
+
+    &::before {
+      top: 0;
+      left: 0;
+      border-top-width: var(--_stroke);
+      border-left-width: var(--_stroke);
+      border-top-left-radius: var(--_radius);
+    }
+  }
+
+  &[data-corner='tr'] {
+    top: 0;
+    right: 0;
+    cursor: nesw-resize;
+
+    &::before {
+      top: 0;
+      right: 0;
+      border-top-width: var(--_stroke);
+      border-right-width: var(--_stroke);
+      border-top-right-radius: var(--_radius);
+    }
+  }
+
+  &[data-corner='bl'] {
+    bottom: 0;
+    left: 0;
+    cursor: nesw-resize;
+
+    &::before {
+      bottom: 0;
+      left: 0;
+      border-bottom-width: var(--_stroke);
+      border-left-width: var(--_stroke);
+      border-bottom-left-radius: var(--_radius);
+    }
+  }
+
+  &[data-corner='br'] {
+    right: 0;
+    bottom: 0;
+    cursor: nwse-resize;
+
+    &::before {
+      bottom: 0;
+      right: 0;
+      border-bottom-width: var(--_stroke);
+      border-right-width: var(--_stroke);
+      border-bottom-right-radius: var(--_radius);
+    }
+  }
+
+  &[data-room='false'][data-corner] {
+    cursor: not-allowed;
+  }
+}

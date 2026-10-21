@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Fan, HardDrive, LayoutDashboard, Lightbulb, Palette, RotateCcw, UsersRound } from 'lucide-react';
+import { Fan, HardDrive, LayoutDashboard, Lightbulb, Palette, PanelTop, RotateCcw, UsersRound } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
@@ -28,6 +28,7 @@ export interface SharingSectionProps {
 export const CATEGORY_ICONS: Record<ProfileCategory, ReactNode> = {
   lighting: <Lightbulb />,
   cooling: <Fan />,
+  panels: <PanelTop />,
   theme: <Palette />,
   dashboard: <LayoutDashboard />,
   device: <HardDrive />,

@@ -45,7 +45,7 @@ export function formatMetaLine(
     }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value;
     if (zone) parts.push(zone);
   }
-  return parts.join(' · ');
+  return parts.join(' - ');
 }
 
 function getTimeParts(now: Date, tz?: string) {

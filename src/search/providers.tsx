@@ -406,7 +406,7 @@ const devices: SearchSource = (ctx) =>
 const cooling: SearchSource = (ctx) => {
   if (!ctx.online) return [];
   return COOLING_MODES.map(({ key, i18nKey, Icon }) => {
-    const opts = { title: `${ctx.t('cooling.title')} · ${ctx.t(i18nKey)}`, icon: <Icon size={18} />, keywords: ['cooling', 'fan', 'fans', 'preset', 'profile', 'mode', key] };
+    const opts = { title: `${ctx.t('cooling.title')} - ${ctx.t(i18nKey)}`, icon: <Icon size={18} />, keywords: ['cooling', 'fan', 'fans', 'preset', 'profile', 'mode', key] };
     return COOLING_NAVIGATE.has(key)
       ? go(`cooling:${key}`, { ...opts, to: () => ctx.host.goView('cooling') })
       : act(`cooling:${key}`, { ...opts, run: () => { void applyProfile(key).catch(() => {}); } });
@@ -417,7 +417,7 @@ const lightingModes: SearchSource = (ctx) => {
   if (!ctx.online) return [];
   return MODES.map((m) => {
     const p = MODE_POLICY[m.key];
-    const opts = { title: `${ctx.t('lighting.title')} · ${ctx.t(m.labelKey)}`, icon: p.icon, keywords: ['lighting', 'rgb', 'led', m.key, ...p.keywords] };
+    const opts = { title: `${ctx.t('lighting.title')} - ${ctx.t(m.labelKey)}`, icon: p.icon, keywords: ['lighting', 'rgb', 'led', m.key, ...p.keywords] };
     return p.apply
       ? act(`lighting-mode:${m.key}`, { ...opts, run: p.apply })
       : go(`lighting-mode:${m.key}`, { ...opts, to: () => ctx.host.goView('lighting') });
@@ -442,18 +442,18 @@ const lightingEffects: SearchSource = (ctx) => {
 };
 
 // Live appearance toggles. Titles compose from existing localized keys so an
-// Italian user sees "Tema · Scuro"; English keywords stay for cross-language match.
+// Italian user sees "Tema - Scuro"; English keywords stay for cross-language match.
 const appearance: SearchSource = (ctx) => {
   const active = ctx.t('search.hint.active');
   const out = THEMES.map(({ mode, labelKey, icon, words }) => act(`appearance:theme-${mode}`, {
-    title: `${ctx.t('settings.theme')} · ${ctx.t(labelKey)}`, icon, keywords: ['theme', 'mode', 'appearance', ...words],
+    title: `${ctx.t('settings.theme')} - ${ctx.t(labelKey)}`, icon, keywords: ['theme', 'mode', 'appearance', ...words],
     hint: ctx.settings.themeMode === mode ? active : undefined,
     run: () => ctx.updateSettings({ themeMode: mode }),
   }));
   for (const hex of PRESET_ACCENTS) {
     const name = ACCENT_NAMES[hex] ?? hex;
     out.push(act(`appearance:accent-${hex}`, {
-      title: `${ctx.t('settings.accent')} · ${name}`,
+      title: `${ctx.t('settings.accent')} - ${name}`,
       icon: <span className={styles.accentDot} style={{ background: hex }} aria-hidden />,
       keywords: ['accent', 'color', 'colour', 'theme', name],
       hint: ctx.settings.accentColor.toLowerCase() === hex.toLowerCase() ? active : undefined,
@@ -464,7 +464,7 @@ const appearance: SearchSource = (ctx) => {
   }
   for (const lang of LANGUAGES) {
     out.push(act(`appearance:lang-${lang}`, {
-      title: `${ctx.t('settings.language')} · ${LANGUAGE_LABELS[lang]}`,
+      title: `${ctx.t('settings.language')} - ${LANGUAGE_LABELS[lang]}`,
       icon: <Palette size={18} className={styles.langGlyph} />,
       keywords: ['language', 'locale', 'translation', LANG_EN[lang] ?? lang, LANGUAGE_LABELS[lang]],
       hint: ctx.settings.language === lang ? active : undefined,
@@ -478,7 +478,7 @@ const appearance: SearchSource = (ctx) => {
     : BACKGROUND_MODES.filter((m) => m !== 'glass');
   for (const mode of backgroundModes) {
     out.push(act(`appearance:background-${mode}`, {
-      title: `${ctx.t('settings.background')} · ${ctx.t(`settings.background.${mode}`)}`,
+      title: `${ctx.t('settings.background')} - ${ctx.t(`settings.background.${mode}`)}`,
       icon: <Monitor size={18} />,
       keywords: ['background', 'appearance', 'style', mode, 'glass', 'transparency'],
       hint: ctx.settings.backgroundMode === mode ? active : undefined,
@@ -540,7 +540,7 @@ const settingsToggles: SearchSource = (ctx) =>
 const profilesSource: SearchSource = (ctx) => {
   if (!ctx.online) return [];
   return ctx.profiles.map((p) => act(`profile:${p.id}`, {
-    title: `${ctx.t('settings.tab.profiles')} · ${p.name}`,
+    title: `${ctx.t('settings.tab.profiles')} - ${p.name}`,
     icon: <UserRound size={18} />,
     keywords: ['profile', 'preset', 'switch', p.name],
     hint: p.id === ctx.activeProfileId ? ctx.t('search.hint.active') : undefined,
@@ -562,7 +562,7 @@ const profilesExtra: SearchSource = (ctx) => {
   const activeProfile = ctx.profiles.find((p) => p.id === ctx.activeProfileId);
   if (ctx.online && activeProfile) {
     out.push(act('profiles:export', {
-      title: `${ctx.t('profile.export')} · ${activeProfile.name}`,
+      title: `${ctx.t('profile.export')} - ${activeProfile.name}`,
       subtitle: ctx.t('settings.tab.profiles'), icon: <Upload size={18} />,
       keywords: ['profile', 'export', 'backup', 'save', 'json'],
       run: () => { void exportProfile(activeProfile.id, activeProfile.name); },
@@ -619,14 +619,14 @@ const updatePrefs: SearchSource = (ctx) => {
   const active = ctx.t('search.hint.active');
   return [
     ...UPDATE_MODES.map((mode) => act(`update-mode:${mode}`, {
-      title: `${ctx.t('settings.updates.mode.label')} · ${ctx.t(`settings.updates.mode.${mode}`)}`,
+      title: `${ctx.t('settings.updates.mode.label')} - ${ctx.t(`settings.updates.mode.${mode}`)}`,
       icon: <Download size={18} />,
       keywords: ['update', 'updates', 'automatic', 'mode', mode],
       hint: ctx.settings.updateMode === mode ? active : undefined,
       run: () => ctx.updateSettings({ updateMode: mode }),
     })),
     ...(canSwitchChannel() ? UPDATE_CHANNELS : []).map((ch) => act(`update-channel:${ch}`, {
-      title: `${ctx.t('settings.updates.channel.label')} · ${ctx.t(`settings.updates.channel.${ch}`)}`,
+      title: `${ctx.t('settings.updates.channel.label')} - ${ctx.t(`settings.updates.channel.${ch}`)}`,
       icon: <Download size={18} />,
       keywords: ['update', 'updates', 'channel', ch],
       hint: ctx.settings.updateChannel === ch ? active : undefined,
@@ -672,7 +672,7 @@ const lightingExtras: SearchSource = (ctx) => {
   const current = ctx.live.globalBrightness;
   for (const pct of BRIGHTNESS_STEPS) {
     out.push(act(`brightness:${pct}`, {
-      title: `${ctx.t('lighting.devices.brightness')} · ${pct}%`,
+      title: `${ctx.t('lighting.devices.brightness')} - ${pct}%`,
       subtitle: ctx.t('lighting.title'), icon: <Sun size={18} />,
       keywords: ['brightness', 'bright', 'dim', 'lighting', 'rgb', String(pct)],
       hint: current !== null && Math.round(current * 100) === pct ? active : undefined,
@@ -705,7 +705,7 @@ const lightingDeviceActions: SearchSource = (ctx) => {
       isOn: d.ledsOn, set: (en) => { void setLightingDevicePower(d.id, en).catch(() => {}); },
     }),
     act(`light-identify:${d.id}`, {
-      title: `${ctx.t('lighting.devices.identify')} · ${d.name}`,
+      title: `${ctx.t('lighting.devices.identify')} - ${d.name}`,
       subtitle: ctx.t('lighting.title'), icon: <Crosshair size={18} />,
       keywords: ['identify', 'find', 'locate', 'blink', 'flash', d.name],
       run: () => { void identifyLightingDevice(d.id).catch(() => {}); },
@@ -720,7 +720,7 @@ const smartLightsSource: SearchSource = (ctx) => {
   for (const [brand, enabled] of Object.entries(ctx.live.smartLights.brandEnabled ?? {})) {
     const name = brand.charAt(0).toUpperCase() + brand.slice(1);
     out.push(toggleEntry(`smart-brand:${brand}`, {
-      label: `${ctx.t('smartLights.title')} · ${name}`, icon: <Lightbulb size={18} />,
+      label: `${ctx.t('smartLights.title')} - ${name}`, icon: <Lightbulb size={18} />,
       keywords: ['smart', 'lights', 'brand', brand, 'bulb'],
       isOn: enabled, set: (en) => { void setBrandEnabled(brand, en).catch(() => {}); },
     }));
@@ -742,12 +742,12 @@ const integrations: SearchSource = (ctx) => {
   const obs = ctx.live.obs;
   if (obs?.connected) {
     out.push(toggleEntry('obs:recording', {
-      label: `OBS · ${ctx.t('panel.widget.obs.record')}`, icon: <Disc size={18} />,
+      label: `OBS - ${ctx.t('panel.widget.obs.record')}`, icon: <Disc size={18} />,
       keywords: ['obs', 'record', 'recording', 'capture'],
       isOn: obs.recording, set: () => { void toggleObsRecording().catch(() => {}); },
     }));
     out.push(toggleEntry('obs:streaming', {
-      label: `OBS · ${ctx.t('panel.widget.obs.stream')}`, icon: <Radio size={18} />,
+      label: `OBS - ${ctx.t('panel.widget.obs.stream')}`, icon: <Radio size={18} />,
       keywords: ['obs', 'stream', 'streaming', 'live', 'broadcast'],
       isOn: obs.streaming, set: () => { void toggleObsStreaming().catch(() => {}); },
     }));
@@ -755,12 +755,12 @@ const integrations: SearchSource = (ctx) => {
   const discord = ctx.live.discord;
   if (discord?.connected && discord.voiceState) {
     out.push(toggleEntry('discord:mute', {
-      label: `Discord · ${ctx.t('discord.mute')}`, icon: <Mic size={18} />,
+      label: `Discord - ${ctx.t('discord.mute')}`, icon: <Mic size={18} />,
       keywords: ['discord', 'mute', 'microphone', 'mic', 'voice'],
       isOn: discord.voiceState.selfMute, set: (en) => { void setDiscordMute(en).catch(() => {}); },
     }));
     out.push(toggleEntry('discord:deafen', {
-      label: `Discord · ${ctx.t('discord.deafen')}`, icon: <Headphones size={18} />,
+      label: `Discord - ${ctx.t('discord.deafen')}`, icon: <Headphones size={18} />,
       keywords: ['discord', 'deafen', 'deaf', 'audio', 'voice'],
       isOn: discord.voiceState.selfDeaf, set: (en) => { void setDiscordDeaf(en).catch(() => {}); },
     }));

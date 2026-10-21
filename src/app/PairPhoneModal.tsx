@@ -28,7 +28,7 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
       onClick={onClick}
       disabled={disabled}
       className={classNames(styles.phonePairBtn, { [styles.phonePairBtnCompact]: compact })}
-      aria-label={compact ? `${t('phonePair.title')} · ${countLabel}` : undefined}
+      aria-label={compact ? `${t('phonePair.title')} - ${countLabel}` : undefined}
     >
       <span className={styles.phonePairIcon}>
         <Smartphone size={16} />
@@ -47,7 +47,7 @@ export function PairPhoneButton({ connectedCount, remoteEnabled, disabled, compa
   return (
     <div className={styles.phonePairWrap}>
       {compact
-        ? <HoverTooltip body={`${t('phonePair.title')} · ${countLabel}`}>{btn}</HoverTooltip>
+        ? <HoverTooltip body={`${t('phonePair.title')} - ${countLabel}`}>{btn}</HoverTooltip>
         : btn}
     </div>
   );

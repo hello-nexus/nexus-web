@@ -2,6 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Force a production build: dev tools off. Must precede the import under test.
 vi.mock('../../lib/devTools', () => ({ DEV_TOOLS: false }));
+vi.mock('../../api/panel', () => ({
+  allocatePanelDevice: vi.fn().mockResolvedValue(null),
+  deletePanelDevice: vi.fn().mockResolvedValue(null),
+  fetchPanelDevices: vi.fn().mockResolvedValue(null),
+  patchPanelDevice: vi.fn().mockResolvedValue(null),
+}));
 
 import {
   getConnectedSimulatedPanelIds,

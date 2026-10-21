@@ -111,6 +111,7 @@ function layoutWith(size: '2x2' | '4x4', label = 'before'): PanelLayout {
 const DEVICE: PanelDevice = {
   id: 'dev1',
   name: 'Y70',
+  sourceId: 'y70',
   connectionKind: 'simulated',
   surfaceProfileKey: 'y70',
   runtimeSurface: 'y70',
@@ -122,6 +123,7 @@ const DEVICE: PanelDevice = {
 const sizeButton = (size: string) => screen.getByLabelText(new RegExp(` ${size}$`));
 
 beforeEach(() => {
+  localStorage.setItem('nexus_simulated_panel_records', JSON.stringify({ y70: 'dev1' }));
   topicHandler = null;
   fetchPanelDeviceMock.mockReset().mockResolvedValue(null);
   patchPanelDeviceMock.mockReset().mockResolvedValue({ ok: true });

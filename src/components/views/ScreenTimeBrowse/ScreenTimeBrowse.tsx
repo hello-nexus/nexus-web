@@ -353,7 +353,7 @@ function DateNav({ date, setDate }: { date: string; setDate: (d: string) => void
       </button>
       <div className={styles.dateNavLabel}>
         {isToday ? t('screentime.dateNav.today') : labelDate}
-        {!isToday && <span className={styles.dateNavSubLabel}> · {labelDate}</span>}
+        {!isToday && <span className={styles.dateNavSubLabel}> - {labelDate}</span>}
       </div>
       <button type="button" className={styles.dateNavBtn}
         onClick={() => setDate(addDays(date, 1))}

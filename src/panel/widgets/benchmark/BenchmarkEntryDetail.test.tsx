@@ -37,8 +37,8 @@ describe('BenchmarkEntryDetail hardware card', () => {
   it('appends the peak clock to the CPU line and installed RAM to the RAM line', () => {
     render(<BenchmarkEntryDetail entry={mkEntry({ cpuMaxClockMhz: 5725, ramBytes: 64 * 1024 ** 3 })} numberFormat="comma" />);
 
-    expect(screen.getByText('Intel Core Ultra 9 285K · 5,7 GHz')).toBeInTheDocument();
-    expect(screen.getByText('Corsair CMP64GX5M2B6000C30 · 64 GB')).toBeInTheDocument();
+    expect(screen.getByText('Intel Core Ultra 9 285K - 5,7 GHz')).toBeInTheDocument();
+    expect(screen.getByText('Corsair CMP64GX5M2B6000C30 - 64 GB')).toBeInTheDocument();
   });
 
   it('shows bare models when the entry predates the extras, and never the core count', () => {

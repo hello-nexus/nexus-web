@@ -31,8 +31,6 @@
 .container {
   position: relative;
   border-radius: 50%;
-  transform: scale(var(--gauge-figure-scale, 1));
-  transform-origin: 50% 50%;
   overflow: hidden;
   display: flex;
   flex-direction: column;

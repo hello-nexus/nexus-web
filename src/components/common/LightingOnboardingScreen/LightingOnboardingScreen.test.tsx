@@ -13,6 +13,7 @@ import {
 import { paletteColor } from '../../../types/lightingPalette';
 import { completeLightingOnboarding } from '../../../api/onboarding';
 import { useConflictApps } from '../../../hooks/useConflictApps';
+import { useZoneSizeDeviceIds } from '../../../hooks/useZoneSizeDeviceIds';
 
 vi.mock('../../../api/lighting', () => ({
   fetchLightingDevices: vi.fn(),
@@ -39,6 +40,10 @@ vi.mock('../../../api/onboarding', () => ({
 
 vi.mock('../../../hooks/useConflictApps', () => ({
   useConflictApps: vi.fn(),
+}));
+
+vi.mock('../../../hooks/useZoneSizeDeviceIds', () => ({
+  useZoneSizeDeviceIds: vi.fn(),
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -77,6 +82,7 @@ function chooseAdvanced() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+  vi.mocked(useZoneSizeDeviceIds).mockReturnValue(new Set());
   vi.mocked(setLightingDeviceControlled).mockResolvedValue(null);
   vi.mocked(setPins).mockResolvedValue(true);
 });
@@ -227,6 +233,17 @@ describe('LightingOnboardingScreen - device grid', () => {
     seed([], false, false, false);
     render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
     expect(await screen.findByText('lighting.devices.empty')).toBeInTheDocument();
+  });
+
+  it('tells an unsized OpenRGB device its LED counts come after setup', async () => {
+    const unsized: LightingDevice = { ...strip, id: 'openrgb-2', name: 'Test Controller', ledCount: 0 };
+    const broken: LightingDevice = { ...strip, id: 'openrgb-3', name: 'Test Broken', ledCount: 0 };
+    vi.mocked(useZoneSizeDeviceIds).mockReturnValue(new Set(['openrgb-2']));
+    seed([unsized, broken]);
+    renderScreen();
+
+    expect(await screen.findByText('lighting.devices.setLedCountsAfterSetup')).toBeInTheDocument();
+    expect(screen.getAllByText('lighting.devices.detectionFailed')).toHaveLength(1);
   });
 });
 

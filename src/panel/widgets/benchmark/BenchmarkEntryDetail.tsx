@@ -22,7 +22,7 @@ const BYTES_PER_GIB = 1024 ** 3;
 
 function withExtra(model: string, extra: string): string {
   if (!extra) return model;
-  return model ? `${model} · ${extra}` : extra;
+  return model ? `${model} - ${extra}` : extra;
 }
 
 interface BenchmarkEntryDetailProps {

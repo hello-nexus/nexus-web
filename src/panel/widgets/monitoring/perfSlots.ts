@@ -335,8 +335,7 @@ export function resolveSlotDesign(
 }
 
 // Whether this design on this size fills the round glass edge to edge, so the
-// tile drops its padding and scales the figure by the reciprocal of the card's
-// fit. Shared by the live tile and the catalog preview.
+// tile scales as one unit to the rim. Shared by the live tile and the catalog preview.
 export function designFillsRoundFrame(size: PanelWidgetSize, design: GaugeDesignKey): boolean {
   return size === '2x2round' && FRAME_FILLING_DESIGNS.has(design);
 }

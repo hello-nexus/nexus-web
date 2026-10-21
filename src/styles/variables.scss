@@ -161,6 +161,7 @@
   // `rgb(R G B / var(--alpha-Y))`.
   --alpha-faint: 0.10;     // micro-tints, faint dividers, subtle borders
   --alpha-medium: 0.40;    // panel shadows, focus rings, soft overlays
+  --led-mark: rgb(255 255 255 / var(--alpha-medium)); // an LED's dot fill and its area box line, on the canvas and in the editor
   --alpha-strong: 0.65;    // overlays, scrim, dense backgrounds
 
   // Shadows. 3 rungs: thumb-tiny / card-medium / modal-huge.

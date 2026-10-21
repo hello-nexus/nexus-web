@@ -45,7 +45,7 @@ describe('scoreEntry', () => {
 
   it('an exact alias outranks a fuzzy title hit and ignores a leading slash', () => {
     const aliased = entry({ id: 'a', title: 'Export support bundle', aliases: ['logs'] });
-    const subsequence = entry({ id: 'b', title: 'Language · Português' });
+    const subsequence = entry({ id: 'b', title: 'Language - Português' });
     expect(scoreEntry('logs', aliased)!).toBeGreaterThan(scoreEntry('logs', subsequence)!);
     expect(scoreEntry('/logs', aliased)).toBe(scoreEntry('logs', aliased));
     expect(scoreEntry('LOGS', aliased)).toBe(scoreEntry('logs', aliased));

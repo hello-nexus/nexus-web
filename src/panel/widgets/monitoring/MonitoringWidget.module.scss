@@ -1,9 +1,18 @@
+@use 'sass:math';
+
+// The round full-bleed tile pads by a fraction of its layout box, equal to the
+// plain tile padding over the box a round surface lays out in (zero gap, no
+// label strip). fullBleedRound.test.ts pins that box against the grid solver.
+$tile-pad: 14;
+$round-box: 180;
+$tile-pad-fraction: math.div($tile-pad, $round-box);
+
 .performance {
   display: grid;
   gap: 14px;
   height: 100%;
   width: 100%;
-  padding: 14px;
+  padding: #{$tile-pad}px;
   box-sizing: border-box;
 }
 
@@ -87,14 +96,18 @@
   padding-bottom: 12%;
 }
 
-// Round glass with a frame-filling design: no tile padding, and the figure grows
-// by the reciprocal of the card's inscribed-square fit so its outer edge reaches
-// the glass. Only the figure layer scales; value and caption keep their size.
+// Round display with a frame-filling design: the gauge keeps its normal padded
+// layout and the whole tile scales as one unit, so ring, value and caption keep
+// their proportions. The factor lifts the padded slot to the display diameter.
+// Percent padding resolves against the layout box, so the factor holds for any
+// box size.
 .fullBleed {
-  padding: 0;
-  --gauge-figure-scale: calc(1 / var(--panel-round-fit, 0.85));
+  --_fb-scale: calc(1 / (1 - #{2 * $tile-pad-fraction}) / var(--panel-round-fit, 0.85));
+  padding: math.percentage($tile-pad-fraction);
+  transform: scale(var(--_fb-scale));
+  transform-origin: 50% 50%;
 
-  // The figure is scaled past its box on purpose, so the slot and the gauge
+  // The tile is scaled past its box on purpose, so the slot and the gauge
   // root must not clip it - the card's own circular mask is what should.
   .slot,
   .slot > * {
@@ -103,6 +116,21 @@
 
   .slotSelectable {
     border-radius: 50%;
+
+    // The scaled slot reaches the rim, where the display would clip the ring.
+    // Size it to the card's inscribed fit box and counter-scale it, so the
+    // stroke keeps its on-screen weight (a fractional border width is snapped
+    // to whole pixels, a transform is not).
+    &::after {
+      top: 50%;
+      left: 50%;
+      right: auto;
+      bottom: auto;
+      width: calc(100% * var(--panel-round-fit, 0.85) * var(--_fb-scale));
+      height: calc(100% * var(--panel-round-fit, 0.85) * var(--_fb-scale));
+      transform: translate(-50%, -50%) scale(calc(1 / var(--_fb-scale)));
+      box-sizing: border-box;
+    }
   }
 }
 

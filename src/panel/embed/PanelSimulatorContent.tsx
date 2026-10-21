@@ -34,6 +34,7 @@ export function PanelSimulatorContent() {
           displayBound={sim.displayBound}
           layoutState={sim.layoutState}
           simulator
+          hoverResize
           simulatorTheme={sim.theme}
           simulatorThemeMode={sim.themeMode}
           simulatorSelectedWidgetId={sim.selectedWidgetId}

@@ -62,10 +62,11 @@ describe('WebViewWidget placeholder', () => {
 });
 
 describe('web-view surface availability', () => {
-  it('is limited to y70 and monitor, 4x4 only', async () => {
+  it('is limited to y70 and monitor, 4x2 and 4x4, and opts into freeform resizing', async () => {
     const { webViewApp } = await import('./index');
     expect(webViewApp.meta.surfaces).toEqual(['y70', 'monitor']);
-    expect(webViewApp.meta.sizes).toEqual(['4x4']);
+    expect(webViewApp.meta.sizes).toEqual(['4x2', '4x4']);
+    expect(webViewApp.meta.freeform).toBe(true);
   });
 });
 
