@@ -3931,7 +3931,6 @@
   "panel.editor.slotSplitColumns": "가로 2개",
   "panel.editor.slotSplitRows": "세로 2개",
   "panel.editor.slots": "슬롯",
-  "panel.freeform.body": "{name}을(를) 이동합니다. Enter 키를 누르면 크기 조절을 마칩니다.",
   "panel.freeform.frame": "{name}, 자유 형식 크기 조절",
   "panel.freeform.handle.bottomLeft": "{name} 크기를 왼쪽 아래 모서리에서 조절",
   "panel.freeform.handle.bottomRight": "{name} 크기를 오른쪽 아래 모서리에서 조절",

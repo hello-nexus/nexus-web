@@ -3931,7 +3931,6 @@
   "panel.editor.slotSplitColumns": "2 nebeneinander",
   "panel.editor.slotSplitRows": "2 übereinander",
   "panel.editor.slots": "Slots",
-  "panel.freeform.body": "{name} verschieben. Mit der Eingabetaste beenden Sie die Größenänderung.",
   "panel.freeform.frame": "{name}, freie Größenänderung",
   "panel.freeform.handle.bottomLeft": "Größe von {name} an der unteren linken Ecke ändern",
   "panel.freeform.handle.bottomRight": "Größe von {name} an der unteren rechten Ecke ändern",

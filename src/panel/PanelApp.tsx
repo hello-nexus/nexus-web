@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Lock, SatelliteDish } from 'lucide-react';
 import {
-  DndContext, DragOverlay, MeasuringStrategy, PointerSensor,
+  DndContext, DragOverlay, MeasuringStrategy, PointerSensor, type PointerSensorOptions,
   useSensor, useSensors,
   type DragMoveEvent,
   type DragOverEvent,
@@ -204,9 +204,27 @@ function resizeSpansForType(
   const declared = sizesForSurface(meta, surface, deviceTouch, forcedGrid).filter(size => size !== '2x2round');
   return freeformSnapSpans(declared, bounds, Boolean(meta.freeform));
 }
-// A press that stays this close and ends this fast is a tap, not the start of a drag.
+// A press that stays this close and ends within a hold is a tap, not the start of a drag.
 const FREEFORM_TAP_SLOP_PX = 4;
-const FREEFORM_TAP_MAX_MS = 400;
+const FREEFORM_TAP_MAX_MS = PANEL_CONTEXT_MENU_TRIGGER_MS;
+const DRAG_DISTANCE_PX = 6;
+
+// A press on the tile in resize mode (marked by PanelTouchCell) belongs to the distance sensor, every other one to the hold sensor.
+const onResizeTile = (event: Event) => event.target instanceof Element && event.target.closest('[data-resize-selected="true"]') !== null;
+const pointerActivator = (accept: (event: PointerEvent) => boolean) => [{
+  eventName: 'onPointerDown' as const,
+  handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }, { onActivation }: PointerSensorOptions) => {
+    if (!event.isPrimary || event.button !== 0 || !accept(event)) return false;
+    onActivation?.({ event });
+    return true;
+  },
+}];
+class HoldPointerSensor extends PointerSensor {
+  static activators = pointerActivator(event => !onResizeTile(event));
+}
+class ResizeTilePointerSensor extends PointerSensor {
+  static activators = pointerActivator(onResizeTile);
+}
 
 export interface PanelLayoutState {
   layout: PanelLayout;
@@ -875,7 +893,7 @@ export function PanelContent({
   // The dashboard has one page by design; a panel without touch has no way to swipe.
   const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
 
-  // Resize mode is entered from the widget context menu and ends on a press outside the frame.
+  // Resize mode is entered from the widget context menu.
   // Hovering a tile with a mouse shows the same corners without the mode.
   const [freeformId, setFreeformId] = useState<string | null>(null);
   const [hoverResizeId, setHoverResizeId] = useState<string | null>(null);
@@ -933,22 +951,37 @@ export function PanelContent({
     if (resizeGestureRef.current) endResize();
     setFreeformId(null);
   }, [endResize]);
-  // Presses on the resized tile belong to it (its regular drag and tap); a tap that stays put ends the mode.
+  // Resize mode ends on a tap of the resized tile, a press anywhere else, or Escape.
   const freeformTapRef = useRef<{ x: number; y: number; at: number } | null>(null);
+  // A tap ends the mode on its click, so the click can be swallowed before it reaches a control in the tile.
+  const freeformTapPendingRef = useRef(false);
   const freeformTapPointers = useMemo(() => ({
-    onPointerDown: (e: React.PointerEvent) => { freeformTapRef.current = { x: e.clientX, y: e.clientY, at: performance.now() }; },
+    onPointerDown: (e: React.PointerEvent) => {
+      freeformTapPendingRef.current = false;
+      freeformTapRef.current = { x: e.clientX, y: e.clientY, at: performance.now() };
+    },
     onPointerMove: () => {},
     onPointerUp: (e: React.PointerEvent) => {
       const start = freeformTapRef.current;
       freeformTapRef.current = null;
-      if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) < FREEFORM_TAP_SLOP_PX && performance.now() - start.at < FREEFORM_TAP_MAX_MS) exitFreeform();
+      if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) < FREEFORM_TAP_SLOP_PX && performance.now() - start.at < FREEFORM_TAP_MAX_MS) freeformTapPendingRef.current = true;
     },
     onPointerCancel: () => { freeformTapRef.current = null; },
   }), [exitFreeform]);
-  // A press outside the frame and the resized tile ends the mode and goes no further.
+  // A press outside the frame and the resized tile ends the mode and goes no further; presses on the tile are its own.
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
-    if (e.target instanceof Element && (e.target.closest('[data-freeform-frame]')
-      || (freeformId && e.target.closest(`[data-panel-widget-id="${CSS.escape(freeformId)}"]`)))) return;
+    if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
+    if (e.target instanceof Element && freeformId && e.target.closest(`[data-panel-widget-id="${CSS.escape(freeformId)}"]`)) {
+      // The tile's own presses run its drag and tap; its controls must not also fire on a click.
+      if (e.type === 'click') {
+        e.stopPropagation();
+        if (freeformTapPendingRef.current) {
+          freeformTapPendingRef.current = false;
+          exitFreeform();
+        }
+      }
+      return;
+    }
     e.stopPropagation();
     if (e.type !== 'pointerdown') return;
     // The release and click completing this press would otherwise reach the widget under it;
@@ -1687,14 +1720,19 @@ export function PanelContent({
   // long-press first; tap still opens settings (no movement).
   const desktopActivation = surface === 'desktop' || simulator;
   const pointerSensor = useSensor(
-    PointerSensor,
+    desktopActivation ? PointerSensor : HoldPointerSensor,
     desktopActivation
-      ? { activationConstraint: { distance: 6 } }
+      ? { activationConstraint: { distance: DRAG_DISTANCE_PX } }
       : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
   );
+  // The tile in resize mode is already selected, so on a hold-to-drag panel it drags on distance, like the desktop.
+  const resizeTileSensor = useSensor(ResizeTilePointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } });
   // A panel that can't be drag-edited (single-widget glass; display-only glass outside
   // the preview) registers no drag sensor, so a pointer press never lifts a cell.
-  const sensors = useSensors(dragEditable ? pointerSensor : null);
+  const sensors = useSensors(
+    dragEditable ? pointerSensor : null,
+    dragEditable && freeformActive && !desktopActivation ? resizeTileSensor : null,
+  );
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
   // Gesture refs for the collision detector. startX/Y is dnd-kit's press
@@ -2103,7 +2141,8 @@ export function PanelContent({
                               editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               movable={dragEditable}
-                              onContextMenu={dragEditable ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
+                              onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
+                              resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
                               // Single-widget sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain

@@ -3931,7 +3931,6 @@
   "panel.editor.slotSplitColumns": "横に 2 つ",
   "panel.editor.slotSplitRows": "縦に 2 つ",
   "panel.editor.slots": "スロット",
-  "panel.freeform.body": "{name}を移動します。Enter キーを押すとサイズ変更を終了します。",
   "panel.freeform.frame": "{name}、フリーフォームでサイズ変更",
   "panel.freeform.handle.bottomLeft": "{name}を左下の角からサイズ変更",
   "panel.freeform.handle.bottomRight": "{name}を右下の角からサイズ変更",

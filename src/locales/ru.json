@@ -3977,7 +3977,6 @@
   "panel.editor.slotSplitColumns": "2 рядом",
   "panel.editor.slotSplitRows": "2 друг над другом",
   "panel.editor.slots": "Слоты",
-  "panel.freeform.body": "Переместите {name}. Нажмите Enter, чтобы завершить изменение размера.",
   "panel.freeform.frame": "{name}, свободное изменение размера",
   "panel.freeform.handle.bottomLeft": "Изменить размер {name} за левый нижний угол",
   "panel.freeform.handle.bottomRight": "Изменить размер {name} за правый нижний угол",

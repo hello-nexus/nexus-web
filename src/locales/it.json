@@ -3931,7 +3931,6 @@
   "panel.editor.slotSplitColumns": "2 affiancati",
   "panel.editor.slotSplitRows": "2 sovrapposti",
   "panel.editor.slots": "Slot",
-  "panel.freeform.body": "Sposta {name}. Premi Invio per terminare il ridimensionamento.",
   "panel.freeform.frame": "{name}, ridimensionamento libero",
   "panel.freeform.handle.bottomLeft": "Ridimensiona {name} dall’angolo in basso a sinistra",
   "panel.freeform.handle.bottomRight": "Ridimensiona {name} dall’angolo in basso a destra",

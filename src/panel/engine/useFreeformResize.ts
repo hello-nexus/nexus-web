@@ -64,7 +64,7 @@ export function useFreeformResize({
       return;
     }
     const next = tryResizeWidget(session.base, widgetId, spanToSize(target), capacity, 1, { col: target.col, row: target.row }, { samePage: true });
-    // The candidates were already checked as placeable; a null here means the layout moved on, and the end check handles it.
+    // The target was vetted against this same base; only a widget that vanished from it gives null.
     if (next) setBoth(next === session.base ? null : next);
   }, [capacity, setBoth, widgetId]);
 

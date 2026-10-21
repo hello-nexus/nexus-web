@@ -3977,7 +3977,6 @@
   "panel.editor.slotSplitColumns": "2 obok siebie",
   "panel.editor.slotSplitRows": "2 jeden pod drugim",
   "panel.editor.slots": "Sloty",
-  "panel.freeform.body": "Przesuń {name}. Naciśnij Enter, aby zakończyć zmianę rozmiaru.",
   "panel.freeform.frame": "{name}, dowolna zmiana rozmiaru",
   "panel.freeform.handle.bottomLeft": "Zmień rozmiar {name} z lewego dolnego rogu",
   "panel.freeform.handle.bottomRight": "Zmień rozmiar {name} z prawego dolnego rogu",

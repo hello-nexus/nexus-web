@@ -3931,7 +3931,6 @@
   "panel.editor.slotSplitColumns": "2 side by side",
   "panel.editor.slotSplitRows": "2 stacked",
   "panel.editor.slots": "Slots",
-  "panel.freeform.body": "Move {name}. Press Enter to finish resizing.",
   "panel.freeform.frame": "{name}, freeform resize",
   "panel.freeform.handle.bottomLeft": "Resize {name} from the bottom left corner",
   "panel.freeform.handle.bottomRight": "Resize {name} from the bottom right corner",

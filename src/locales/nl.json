@@ -3931,7 +3931,6 @@
   "panel.editor.slotSplitColumns": "2 naast elkaar",
   "panel.editor.slotSplitRows": "2 onder elkaar",
   "panel.editor.slots": "Slots",
-  "panel.freeform.body": "{name} verplaatsen. Druk op Enter om het aanpassen te beëindigen.",
   "panel.freeform.frame": "{name}, vrij van formaat veranderen",
   "panel.freeform.handle.bottomLeft": "Formaat van {name} wijzigen vanaf de linkeronderhoek",
   "panel.freeform.handle.bottomRight": "Formaat van {name} wijzigen vanaf de rechteronderhoek",
