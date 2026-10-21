@@ -23,6 +23,8 @@ import { sizeToSpan } from '../../engine/grid';
 import styles from './MarketplaceWidget.module.scss';
 import { usePanelGlassSurface } from '../common/PanelGlassSurfaceContext';
 
+const USED_PING_INTERVAL_MS = 60 * 60 * 1000;
+
 export interface SdkMarketplaceWidgetProps {
   listing: AppInstalledListing;
   size: PanelWidgetSize;
@@ -62,6 +64,16 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
     void settingsBridge.load();
     return unsub;
   }, [settingsBridge, preview]);
+
+  // Tells the service the app is running, on mount and hourly while mounted so a kiosk widget that stays up
+  // across midnight counts each UTC day. The settings editor deliberately does not do this.
+  useEffect(() => {
+    if (preview) return;
+    const ping = () => { postService<unknown>(`/apps-api/instance/${encodeURIComponent(instanceId)}/used`, {}).catch(() => {}); };
+    ping();
+    const timer = setInterval(ping, USED_PING_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [instanceId, preview]);
 
   const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
   const sensorsRead = useMemo(() => listing.capabilities['sensors.read'] ?? [], [listing]);

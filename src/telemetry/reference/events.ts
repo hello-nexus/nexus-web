@@ -273,7 +273,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     description: 'An app widget instance appeared in a layout (a panel device layout or the desktop dashboard). Derived from the layout save, so a save that keeps the same widgets emits nothing; the first save of a layout that never existed reports its app widgets as placed.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'App id of the widget.' },
-      { name: 'surface', type: 'string', required: true, description: 'Surface it was added to: desktop for the desktop dashboard, otherwise the device layout's surface (e.g. y70).' },
+      { name: 'surface', type: 'string', required: true, description: 'Surface it was added to: desktop for the desktop dashboard, otherwise the device layout surface (e.g. y70).' },
     ],
   },
   {
@@ -292,7 +292,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'App used',
     status: 'live',
     source: 'service',
-    description: 'An installed SDK app ran on this PC: its widget mounted or its page opened. At most once per app per UTC day per install; the day is remembered across restarts.',
+    description: 'An installed SDK app ran on this PC: its widget is mounted (the widget host reports on mount and hourly, so a widget left up across midnight counts each UTC day) or its page was opened. The settings editor does not count. At most once per app per UTC day per install; the day is remembered across restarts.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'Installed app id.' },
       { name: 'app_version', type: 'string', required: true, description: 'Installed version of the app.' },
