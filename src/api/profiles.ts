@@ -6,7 +6,7 @@ import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
 import type { TempUnit, TimeFormat, NumberFormat, DateFormat } from '../lib/units';
 
-export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard', 'device'] as const;
+export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'panels', 'theme', 'dashboard', 'device'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
 
 export interface ProfileEntry {
@@ -194,6 +194,7 @@ export interface UiPrefs {
   showUncontrolledDevices?: boolean;
   showUncontrolledLightingDevices?: boolean;
   showUncontrolledCoolingDevices?: boolean;
+  hiddenSidebarDevices?: string[];
 }
 
 export interface UpdatePrefs {
@@ -244,6 +245,9 @@ export interface Preferences {
   // boot-time start, clamped server-side to 0..60. Optional - an older service
   // omits it, and the client then keeps its last known value.
   startupDelaySeconds?: number;
+  // Machine-level (not per-profile): false stops reading the temperature
+  // sensor on each memory stick. Applies live. Missing means true.
+  readRamTemperatures?: boolean;
 }
 
 export interface PreferencesPatch {
@@ -258,6 +262,7 @@ export interface PreferencesPatch {
   diagnostics?: DiagnosticsPrefsPatch;
   features?: FeaturesPrefs;
   startupDelaySeconds?: number;
+  readRamTemperatures?: boolean;
 }
 
 interface GetProfilesResponse {

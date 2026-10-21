@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Clapperboard, Radio, RadioTower, RefreshCw, Video } from 'lucide-react';
 import {
   connectObs,
@@ -25,7 +25,19 @@ const EMPTY_COPY: Record<ObsFailureReason, string> = {
 export function ObsWidget({ widget, onConfigure }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
-  const [status, setStatus] = useState<ObsStatusResponse | null>(preview ? OBS_PREVIEW : null);
+  const [snapshot, setSnapshot] = useState<{ status: ObsStatusResponse | null; at: number }>(
+    () => ({ status: preview ? OBS_PREVIEW : null, at: performance.now() }),
+  );
+  const status = snapshot.status;
+  const [now, setNow] = useState(() => performance.now());
+  // Requests are numbered at start; a response older than one already applied is dropped.
+  const startedSeq = useRef(0);
+  const appliedSeq = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const [busy, setBusy] = useState(false);
   const connected = Boolean(status?.connected && !status.error);
   const compact = widget.size === '2x2';
@@ -33,17 +45,25 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
   // and its copy is the only one that does not accuse the user of a misconfig.
   const reason: ObsFailureReason = connected ? '' : (status?.reason || 'offline');
 
-  const refresh = useCallback(async () => {
-    const next = await fetchObsStatus();
-    if (next) setStatus(next);
+  const accept = useCallback((seq: number, next: ObsStatusResponse) => {
+    if (seq <= appliedSeq.current) return;
+    appliedSeq.current = seq;
+    setSnapshot({ status: next, at: performance.now() });
   }, []);
+
+  const refresh = useCallback(async () => {
+    const seq = ++startedSeq.current;
+    const next = await fetchObsStatus();
+    if (next && mounted.current) accept(seq, next);
+  }, [accept]);
 
   useEffect(() => {
     if (preview) return;
     let cancelled = false;
     const tick = async () => {
+      const seq = ++startedSeq.current;
       const next = await fetchObsStatus();
-      if (!cancelled && next) setStatus(next);
+      if (!cancelled && next) accept(seq, next);
     };
     tick();
     const timer = window.setInterval(tick, 2500);
@@ -51,21 +71,33 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [preview]);
+  }, [preview, accept]);
+
+  const timing = connected && Boolean(status?.streaming || status?.recording);
+  useEffect(() => {
+    if (preview || !timing) return;
+    const timer = window.setInterval(() => setNow(performance.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [preview, timing]);
+
+  const elapsed = (durationMs: number | undefined) =>
+    (durationMs ?? 0) + (preview ? 0 : Math.max(0, now - snapshot.at));
 
   const run = useCallback(async (action: () => Promise<ObsStatusResponse | unknown | null>) => {
     setBusy(true);
     try {
       const next = await action();
+      if (!mounted.current) return;
       if (next && typeof next === 'object' && 'connected' in next) {
-        setStatus(next as ObsStatusResponse);
+        // Numbered on arrival so it outranks every poll that started before it resolved.
+        accept(++startedSeq.current, next as ObsStatusResponse);
       } else {
         await refresh();
       }
     } finally {
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
-  }, [refresh]);
+  }, [refresh, accept]);
 
   return (
     <div className={styles.obs} data-size={widget.size} data-connected={connected ? 'true' : 'false'}>
@@ -110,7 +142,7 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
               >
                 <Radio size={15} />
                 <span>{status?.streaming ? t('panel.widget.obs.live') : t('panel.widget.obs.stream')}</span>
-                {status?.streaming && <em>{formatDuration(status.streamingDurationMs)}</em>}
+                {status?.streaming && <em>{formatDuration(elapsed(status.streamingDurationMs))}</em>}
               </button>
               <button
                 type="button"
@@ -121,7 +153,7 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
               >
                 <Video size={15} />
                 <span>{status?.recording ? t('panel.widget.obs.rec') : t('panel.widget.obs.record')}</span>
-                {status?.recording && <em>{formatDuration(status.recordingDurationMs)}</em>}
+                {status?.recording && <em>{formatDuration(elapsed(status.recordingDurationMs))}</em>}
               </button>
             </div>
           </section>

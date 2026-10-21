@@ -25,8 +25,8 @@ import styles from './Select.module.scss';
  * same everywhere.
  *
  * Accepts a flat `options` array or `<option>` children (value + text, with a
- * per-option `className`/`disabled` carried through). optgroups are unsupported,
- * unused in this codebase.
+ * per-option `className`/`disabled` carried through). optgroups are unsupported;
+ * group a flat list with `header` rows instead.
  *
  * A long dropdown grows an in-menu search field: on a device that has a fine
  * pointer and hover (mouse/keyboard desktop; not touch phones or the touch
@@ -48,10 +48,17 @@ export interface SelectOption {
   // CSS font-family the menu row draws its label in, enlarged, so a font
   // picker previews each face; the trigger keeps the control's own font.
   fontFamily?: string;
+  // Dim second line under the label in the menu row only (e.g. a caveat about
+  // the choice); the trigger shows the label alone.
+  description?: string;
   // Renders a thin rule instead of a selectable row, grouping the options above
   // and below it. Non-navigable and removed from the a11y tree; value/label are
   // ignored.
   divider?: boolean;
+  // Renders `label` as a section heading for the options that follow, up to the
+  // next header. Not selectable or focusable and skipped by keyboard nav; while
+  // searching it shows only if one of its options matches. value is ignored.
+  header?: boolean;
 }
 
 export interface SelectProps {
@@ -78,6 +85,9 @@ export interface SelectProps {
    *  menu is unchanged (icon + label rows). The selected label moves to the
    *  trigger's title since the text is no longer visible. */
   triggerIconOnly?: boolean;
+  /** A control drawn inside the box, left of the value, as a sibling of the
+   *  trigger so it can be a real button. Pressing it does not open the menu. */
+  leadingAction?: ReactNode;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -126,17 +136,27 @@ function optionsFromChildren(children: ReactNode): SelectOption[] {
 }
 
 // Case-insensitive substring filter. An empty query keeps the list intact
-// (dividers included); a non-empty query drops dividers, which only group the
-// full list and read as noise once it is narrowed.
+// (dividers and headers included); a non-empty query drops dividers, which only
+// group the full list and read as noise once it is narrowed, and keeps a header
+// only ahead of a matching option of its group.
 function filterOptions(opts: readonly SelectOption[], raw: string): readonly SelectOption[] {
   const needle = raw.trim().toLowerCase();
   if (!needle) return opts;
-  return opts.filter(o => !o.divider && o.label.toLowerCase().includes(needle));
+  const out: SelectOption[] = [];
+  let pending: SelectOption | null = null;
+  for (const o of opts) {
+    if (o.divider) continue;
+    if (o.header) { pending = o; continue; }
+    if (!o.label.toLowerCase().includes(needle)) continue;
+    if (pending) { out.push(pending); pending = null; }
+    out.push(o);
+  }
+  return out;
 }
 
-// Dividers and disabled options are never focusable or selectable.
+// Dividers, headers and disabled options are never focusable or selectable.
 function selectable(o: SelectOption): boolean {
-  return !o.disabled && !o.divider;
+  return !o.disabled && !o.divider && !o.header;
 }
 function firstEnabled(opts: readonly SelectOption[]): number {
   return opts.findIndex(selectable);
@@ -161,11 +181,11 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, accentValue, placeholder, height,
-  triggerIconOnly,
+  triggerIconOnly, leadingAction,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
-  const selectedIndex = resolved.findIndex(o => o.value === value);
+  const selectedIndex = resolved.findIndex(o => !o.header && !o.divider && o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
   const showPlaceholder = selectedIndex < 0 && placeholder != null;
@@ -175,7 +195,7 @@ export function Select({
   // per mount; it does not change mid-session.
   const [pointerSearch] = useState(supportsPointerSearch);
   const searchEnabled =
-    pointerSearch && resolved.filter(o => !o.divider).length >= SEARCH_MIN_OPTIONS;
+    pointerSearch && resolved.filter(o => !o.divider && !o.header).length >= SEARCH_MIN_OPTIONS;
 
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -239,11 +259,15 @@ export function Select({
     if (width == null) {
       const optionEls = Array.from(list.children) as HTMLElement[];
       for (const o of optionEls) o.style.overflow = 'visible';
+      // Descriptions wrap to the menu width the labels set; they never size it.
+      const descEls = Array.from(list.querySelectorAll<HTMLElement>('[data-option-description]'));
+      for (const d of descEls) d.style.display = 'none';
       menu.style.width = 'max-content';
       menu.style.minWidth = `${baseWidth}px`;
       menu.style.maxWidth = `${maxWidth}px`;
       const measured = menu.offsetWidth;
       for (const o of optionEls) o.style.overflow = '';
+      for (const d of descEls) d.style.display = '';
       width = Math.min(maxWidth, measured + MENU_WIDTH_PAD);
       menu.style.width = `${width}px`;
       menu.style.minWidth = '';
@@ -415,7 +439,9 @@ export function Select({
   };
 
   return (
-    <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, className)}>
+    <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, !!leadingAction && styles.hasLeading, className)}>
+      {/* Before the trigger so tab order matches the left-to-right look. */}
+      {!!leadingAction && <span className={styles.leadingAction}>{leadingAction}</span>}
       <button
         ref={triggerRef}
         type="button"
@@ -506,7 +532,9 @@ export function Select({
               // Not an option row - kept out of the listbox a11y semantics.
               <li className={styles.noResults} role="presentation">{t('select.noResults')}</li>
             ) : (
-              visible.map((opt, i) => opt.divider ? (
+              visible.map((opt, i) => opt.header ? (
+                <li key={`${opt.label}-${i}`} role="presentation" className={styles.header}>{opt.label}</li>
+              ) : opt.divider ? (
                 // Structural rule, removed from the a11y tree so it isn't
                 // announced as an empty option.
                 <li key={`${opt.value}-${i}`} className={styles.divider} aria-hidden="true" />
@@ -517,6 +545,7 @@ export function Select({
                   role="option"
                   aria-selected={opt.value === value}
                   aria-disabled={opt.disabled || undefined}
+                  aria-describedby={opt.description ? `${optionId(i)}-desc` : undefined}
                   className={classNames(
                     styles.option,
                     opt.className,
@@ -530,7 +559,12 @@ export function Select({
                   onClick={() => { if (!opt.disabled) commit(opt.value); }}
                 >
                   {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
-                  {opt.label}
+                  {opt.description ? (
+                    <span className={styles.optionText}>
+                      <span>{opt.label}</span>
+                      <span id={`${optionId(i)}-desc`} data-option-description="true" className={styles.optionDescription}>{opt.description}</span>
+                    </span>
+                  ) : opt.label}
                 </li>
               ))
             )}

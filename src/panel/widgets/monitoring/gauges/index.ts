@@ -5,6 +5,7 @@ import { LineGauge } from './LineGauge';
 import { TextGauge } from './TextGauge';
 import { WaterLevelGauge } from './WaterLevelGauge';
 import { CaterpillarGauge } from './CaterpillarGauge';
+import { SquareRingGauge } from './SquareRingGauge';
 import { BarGauge } from './BarGauge';
 import { MicrobarsGauge } from './MicrobarsGauge';
 import { HbarGauge } from './HbarGauge';
@@ -31,6 +32,7 @@ export const GAUGE_DESIGNS: Record<GaugeDesignKey, ComponentType<GaugeProps>> = 
   text: TextGauge,
   waterLevel: WaterLevelGauge,
   caterpillar: CaterpillarGauge,
+  squareRing: SquareRingGauge,
   bar: BarGauge,
   microbars: MicrobarsGauge,
   hbar: HbarGauge,
@@ -56,6 +58,7 @@ export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
   text: 'Large Value',
   waterLevel: 'Liquid Fill',
   caterpillar: 'Ring',
+  squareRing: 'Square Ring',
   bar: 'Progress Bar',
   microbars: 'Micro Bars',
   hbar: 'Block Stack',
@@ -81,13 +84,12 @@ export const GAUGE_DESIGN_KEYS: GaugeDesignKey[] = [
   'text', 'numberfill',
   'bar', 'fill', 'thermo', 'battery', 'hbar', 'dotgrid',
   'waterLevel',
-  'caterpillar', 'tickring', 'halfgauge', 'arc270', 'wedge', 'dial',
+  'caterpillar', 'squareRing', 'tickring', 'halfgauge', 'arc270', 'wedge', 'dial',
 ];
 
-// Designs a round tile scales by --gauge-figure-scale. Membership needs the
-// figure layer to measure the whole slot box: Dial, Half Gauge and Wedge stack
-// theirs above an info row, so scaling reaches neither the frame nor the
-// circle's centre.
+// Designs whose figure fills the whole slot box, so scaling the tile as one unit
+// puts the ring on the rim. Dial, Half Gauge and Wedge stack theirs above an
+// info row, so scaling reaches neither the frame nor the circle's centre.
 export const FRAME_FILLING_DESIGNS: ReadonlySet<GaugeDesignKey> = new Set<GaugeDesignKey>([
   'caterpillar', 'waterLevel', 'tickring', 'arc270', 'backdrop',
 ]);

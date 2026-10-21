@@ -3,8 +3,13 @@ import { useTranslation } from '../../../../lib/i18n';
 import { EFFECTS, categoryOf, type EffectDef, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderParams } from '../../../../hooks/useShaderParams';
 import { clampToSpec } from '../../../../lib/shaderParams';
+import { isCustomEffectKey } from '../../../../api/customEffects';
+import { cachedAnimateDefaults } from '../../../../api/lighting';
+import { cleanBinding, effectiveBinding, sensorBindingsEqual, type SensorBinding, type SensorUniform } from '../../../../lib/sensorBinding';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
+import { SensorBindingEditor } from '../../monitoring/picker/SensorBindingEditor';
+import { ParamToggle } from './ParamToggle';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -50,15 +55,37 @@ export const EffectControls = memo(function EffectControls({
 }) {
   const { t } = useTranslation();
   const def = customDef ?? EFFECTS.find(e => e.key === effect);
-  const { specs, loaded } = useShaderParams(effect);
+  const { specs, sensors, loaded } = useShaderParams(effect);
   if (!def) return null;
+  // A uniform's default is what the current preset ships with, else the shader's own annotation.
+  const presetDefaults = cachedAnimateDefaults()?.[effect]?.slots[bundle.selected]?.sensors;
+  // The row's reset is live while the slot's stored pick differs from the preset's entry, present against absent included.
+  // Without the shipped defaults a built-in has nothing to return to, as with the slot-level reset.
+  const defaultsUnknown = !cachedAnimateDefaults() && !isCustomEffectKey(effect);
+  const canResetSensor = (su: SensorUniform) => !defaultsUnknown && !sensorBindingsEqual(state.sensors?.[su.name], presetDefaults?.[su.name]);
+  const resetSensor = (su: SensorUniform) => {
+    const shipped = presetDefaults?.[su.name];
+    setSensor(su, shipped ?? null);
+  };
+  // Applies at once, like every slider. Any pick is stored, even one equal to the shader's default.
+  const setSensor = (su: SensorUniform, binding: SensorBinding | null) => {
+    const next = { ...state.sensors };
+    if (binding) next[su.name] = cleanBinding(binding);
+    else delete next[su.name];
+    onChange({ sensors: Object.keys(next).length > 0 ? next : undefined }, true);
+  };
+  const sensorLabel = (su: SensorUniform) => {
+    const named = def.sensors?.find(s => s.name === su.name);
+    if (named) return named.labelKey ? t(named.labelKey) : named.label;
+    return t('lighting.sensor.title');
+  };
   const selected = bundle.selected;
   // Simple fills are a fixed base colour: no colour wheel, no speed, no
   // contrast, and no preset slots - one look plus its sliders. Saturation is
   // the HSV-S post-process multiplier; simple.frag narrows u_saturation's own
   // range with a hint_range override line, so satSpec needs no isSimple branch.
   const isSimple = categoryOf(effect) === 'simple';
-  // Effects with colour slots write fragColor from their own colour params, so
+  // Effects with color slots write fragColor from their own color params, so
   // the tint post-process (palette ring, saturation, contrast, the global hex)
   // has no effect on them - showing those controls would be a dead UI.
   const ownsColors = !!def.colors?.length;
@@ -107,6 +134,14 @@ export const EffectControls = memo(function EffectControls({
             />
           </div>
         )}
+        {!isSimple && !ownsColors && loaded && def.params.filter(p => p.toggle && p.underWheel && specs[p.name]).map(p => (
+          <ParamToggle
+            key={p.name}
+            label={p.labelKey ? t(p.labelKey) : p.label}
+            value={state.params[p.name] ?? specs[p.name].defaultValue}
+            onChange={v => onChange({ params: { ...state.params, [p.name]: v } }, true)}
+          />
+        ))}
         {!ownsColors && speedSlider}
         {loaded && !isSimpleWhite && !ownsColors && satSpec && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')}
@@ -130,6 +165,15 @@ export const EffectControls = memo(function EffectControls({
           const spec = specs[p.name];
           if (!spec) return null;
           const label = p.labelKey ? t(p.labelKey) : p.label;
+          if (p.toggle) {
+            if (p.underWheel && !isSimple && !ownsColors) return null;
+            return (
+              <ParamToggle
+                key={p.name} label={label} value={state.params[p.name] ?? spec.defaultValue}
+                onChange={v => onChange({ params: { ...state.params, [p.name]: v } }, true)}
+              />
+            );
+          }
           if (p.options) {
             const currentVal = Math.round(clampToSpec(state.params[p.name] ?? spec.defaultValue, spec));
             return (
@@ -153,6 +197,21 @@ export const EffectControls = memo(function EffectControls({
             <Slider orientation="stacked" editable trackFill key={p.name} label={label} value={displayValue} min={min} max={max} zeroMarker={p.zeroMarker}
               onChange={(v, commit) => onChange({ params: { ...state.params, [p.name]: v / scale } }, commit)}
               onCommit={onCommit} />
+          );
+        })}
+        {loaded && sensors.map(su => {
+          const label = sensorLabel(su);
+          return (
+            <div key={su.name} className={styles.paramEnumRow}>
+              <span className={styles.paramEnumLabel}>{label}</span>
+              <SensorBindingEditor
+                binding={effectiveBinding(su, state.sensors)}
+                ariaLabel={label}
+                onChange={binding => setSensor(su, binding)}
+                showReset
+                onReset={canResetSensor(su) ? () => resetSensor(su) : undefined}
+              />
+            </div>
           );
         })}
       </div>

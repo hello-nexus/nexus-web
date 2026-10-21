@@ -172,3 +172,8 @@
   opacity: 0.5;
   pointer-events: none;
 }
+
+// One line of a row's detail text, so each fact stands on its own.
+.detailLine {
+  display: block;
+}

@@ -298,7 +298,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     activeProfileRef.current = 'custom';
     presetLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
     publishControlSync({ domain: 'cooling', activePreset: 'custom' });
-    await applyProfile('custom');
+    await applyProfile('custom', 'exit-off');
   }, []);
 
   const applyPreset = useCallback((key: CoolingModeKey) => {
@@ -324,7 +324,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       await exitOffToCustomIfNeeded();
       const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: null } };
       setFanStates(nextStates);
-      await apiSetFanSpeed(fanId, 50);
+      await apiSetFanSpeed(fanId, 50, { source: 'seed', target: 'manual' });
     } else {
       const nextStates = { ...fanStates };
       delete nextStates[fanId];
@@ -369,7 +369,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       next[id] = { ...next[id], softwareControl: true, curveId };
     }
     setFanStates(next);
-    for (const id of needSpeedSeed) await apiSetFanSpeed(id, 50);
+    for (const id of needSpeedSeed) await apiSetFanSpeed(id, 50, { source: 'seed', target: curveId ? 'curve' : 'manual' });
     await pushCurves(curves, next);
     if (needSpeedSeed.length > 0) {
       const fans = await fetchFanChannels();
@@ -441,7 +441,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (!wasSw) {
       const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: targetCurveId } };
       setFanStates(nextStates);
-      await apiSetFanSpeed(fanId, 50);
+      await apiSetFanSpeed(fanId, 50, { source: 'seed', target: targetCurveId ? 'curve' : 'manual' });
       await pushCurves(curves, nextStates);
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
@@ -477,7 +477,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     setCurves(nextCurves);
     setFanStates(nextStates);
     setSelectedCurveId(id);
-    if (!wasSw) await apiSetFanSpeed(fanId, 50);
+    if (!wasSw) await apiSetFanSpeed(fanId, 50, { source: 'seed', target: 'curve' });
     void pushCurves(nextCurves, nextStates);
     if (!wasSw) {
       const fans = await fetchFanChannels();

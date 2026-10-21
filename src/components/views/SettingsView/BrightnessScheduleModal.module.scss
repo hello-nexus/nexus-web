@@ -16,6 +16,26 @@
   font-weight: var(--weight-body);
 }
 
+// Everything the schedule owns; dimmed and inert while the schedule is off.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+
+  &[data-off] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+// The hint lines overlap in one grid cell; the hidden one still sizes it.
+.hints {
+  display: grid;
+
+  > .hint { grid-area: 1 / 1; }
+  > .hint[data-hidden] { visibility: hidden; }
+}
+
 // The graph owns its axis gutters; the frame just keeps it off the modal edge.
 .graph {
   padding: var(--space-xs) 0;
@@ -33,6 +53,13 @@
   color: var(--text-dim);
   font-weight: var(--weight-body);
   font-variant-numeric: tabular-nums;
+}
+
+// Location picker and search under the Daylight sync toggle.
+.sun {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
 // Idle dimming: independent of the schedule, so it sits under its own rule.

@@ -20,10 +20,11 @@ export interface SearchInputProps {
   ariaLabel?: string;
   className?: string;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
 }
 
 export function SearchInput({
-  value, onChange, placeholder, autoFocus, ariaLabel, className, onKeyDown,
+  value, onChange, placeholder, autoFocus, ariaLabel, className, onKeyDown, disabled,
 }: SearchInputProps) {
   const { t } = useTranslation();
   const hasValue = value.length > 0;
@@ -39,9 +40,10 @@ export function SearchInput({
         placeholder={placeholder}
         autoFocus={autoFocus}
         onKeyDown={onKeyDown}
+        disabled={disabled}
         aria-label={ariaLabel ?? placeholder}
       />
-      {hasValue && (
+      {hasValue && !disabled && (
         <button
           type="button"
           className={styles.clear}

@@ -138,7 +138,7 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
                   >
                     <span className={styles.rowName}>{profile.name}</span>
                     <span className={styles.rowMeta}>
-                      {profile.modelLabel} · {t('devices.streamdeck.import.profileSummary', { pages: profile.pageCount, keys: profile.keyCount })}
+                      {profile.modelLabel} - {t('devices.streamdeck.import.profileSummary', { pages: profile.pageCount, keys: profile.keyCount })}
                     </span>
                   </button>
                 ))}

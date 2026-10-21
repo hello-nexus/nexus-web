@@ -62,3 +62,13 @@
   white-space: normal;
   user-select: none;
 }
+
+.emoji {
+  color: var(--text);
+}
+
+.action {
+  display: flex;
+  width: fit-content;
+  margin-top: 0.5rem;
+}

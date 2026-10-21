@@ -1,10 +1,11 @@
 import { GaugeValue } from './GaugeValue';
 import { GAUGE_FIGURE_OUTER } from './types';
+import { RING_STROKE } from './squareRingGeometry';
 import type { GaugeProps } from './types';
 import { ArcSegments, type ArcGeometry } from './ArcSegments';
 import styles from './CaterpillarGauge.module.scss';
 
-const STROKE = 9;
+const STROKE = RING_STROKE;
 // Centre line of a stroke whose outer edge lands on the shared figure edge.
 const RADIUS = GAUGE_FIGURE_OUTER - STROKE / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;

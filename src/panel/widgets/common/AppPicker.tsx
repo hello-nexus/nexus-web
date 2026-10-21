@@ -258,7 +258,7 @@ function AppRow({ app, selected, unavailable, title, onSelect }: {
       loadedRef.current = true;
       void withIconSlot(async () => {
         if (cancelled) return;
-        const blob = await fetchServiceBlob(app.iconPath);
+        const blob = await fetchServiceBlob(app.iconPath, { mayBeCached: true });
         if (!cancelled && blob && blob.size > 0) {
           const url = URL.createObjectURL(blob);
           revoke = url;
@@ -329,7 +329,7 @@ export function useAppIcon(appId: string | undefined): string | null {
     const attempt = async () => {
       const retry = await withIconSlot(async () => {
         if (cancelled) return false;
-        const { blob, status } = await fetchServiceBlobWithStatus(`/shortcuts/icon?targetId=${encodeURIComponent(appId)}`);
+        const { blob, status } = await fetchServiceBlobWithStatus(`/shortcuts/icon?targetId=${encodeURIComponent(appId)}`, { mayBeCached: true });
         if (cancelled) return false;
         if (blob && blob.size > 0) {
           const url = URL.createObjectURL(blob);

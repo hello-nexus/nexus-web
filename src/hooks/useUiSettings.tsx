@@ -27,6 +27,7 @@ import {
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { sanitizeAppOrder, sanitizePinnedTail } from '../app/sidebarApps';
+import { withSidebarHidden } from '../lib/sidebarVisibility';
 
 /**
  * Unified user-settings hook.
@@ -118,6 +119,9 @@ export interface UiSettingsValue {
   // pages keep separate answers.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Sidebar DEVICES row keys the user hid; a row is omitted only while its
+  // Nexus Control is also off. Server-mirrored under ui.hiddenSidebarDevices.
+  hiddenSidebarDevices: string[];
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -128,6 +132,8 @@ export interface UiSettingsValue {
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
+  // Machine-level, server-mirrored under the preferences top-level readRamTemperatures field.
+  readRamTemperatures: boolean;
   // Global feature switches (default on), server-mirrored under the
   // preferences `features` block. See {@link useFeatureFlags} for the
   // read-only accessor gated surfaces should use instead of this hook.
@@ -250,11 +256,13 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     coolingDashboardMode: src.general.coolingDashboardMode,
     showUncontrolledLightingDevices: src.general.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: src.general.showUncontrolledCoolingDevices,
+    hiddenSidebarDevices: src.general.hiddenSidebarDevices,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
     dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
+    readRamTemperatures: src.general.readRamTemperatures,
     featureLightingEnabled: src.general.featureLightingEnabled,
     featureCoolingEnabled: src.general.featureCoolingEnabled,
     featureMonitoringEnabled: src.general.featureMonitoringEnabled,
@@ -318,11 +326,13 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       coolingDashboardMode: src.coolingDashboardMode,
       showUncontrolledLightingDevices: src.showUncontrolledLightingDevices,
       showUncontrolledCoolingDevices: src.showUncontrolledCoolingDevices,
+      hiddenSidebarDevices: src.hiddenSidebarDevices,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
       dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
+      readRamTemperatures: src.readRamTemperatures,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
       featureMonitoringEnabled: src.featureMonitoringEnabled,
@@ -363,10 +373,9 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; hiddenSidebarDevices: string[] }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
-  if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
   if (patch.notifyConflictLaunches !== undefined) ui.notifyConflictLaunches = patch.notifyConflictLaunches;
   if (patch.endConflictsOnLaunch !== undefined) ui.endConflictsOnLaunch = patch.endConflictsOnLaunch;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
@@ -377,6 +386,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
   if (patch.showUncontrolledLightingDevices !== undefined) ui.showUncontrolledLightingDevices = patch.showUncontrolledLightingDevices;
   if (patch.showUncontrolledCoolingDevices !== undefined) ui.showUncontrolledCoolingDevices = patch.showUncontrolledCoolingDevices;
+  if (patch.hiddenSidebarDevices !== undefined) ui.hiddenSidebarDevices = patch.hiddenSidebarDevices;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -393,6 +403,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (Object.keys(units).length > 0) out.units = units;
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
+  if (patch.readRamTemperatures !== undefined) out.readRamTemperatures = patch.readRamTemperatures;
   // features block
   const features: FeaturesPrefs = {};
   if (patch.featureLightingEnabled !== undefined) features.lighting = patch.featureLightingEnabled;
@@ -483,6 +494,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: server.ui?.showUncontrolledCoolingDevices
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledCoolingDevices,
+    hiddenSidebarDevices: server.ui?.hiddenSidebarDevices ?? base.hiddenSidebarDevices,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,
@@ -518,6 +530,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     dateFormat: server.units?.dateFormat === undefined ? base.dateFormat
       : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
+    readRamTemperatures: server.readRamTemperatures ?? base.readRamTemperatures,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
     featureCoolingEnabled: server.features?.cooling ?? base.featureCoolingEnabled,
     featureMonitoringEnabled: server.features?.monitoring ?? base.featureMonitoringEnabled,
@@ -615,7 +628,8 @@ export function UiSettingsProvider({
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
-      || serverPatch.startupDelaySeconds !== undefined;
+      || serverPatch.startupDelaySeconds !== undefined
+      || serverPatch.readRamTemperatures !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Merge into (not replace) the still-pending patch so fields from separate
@@ -923,6 +937,24 @@ export function useFeatureFlags(): FeatureFlags {
     monitoring: ctx.settings.featureMonitoringEnabled,
     diagnostics: ctx.settings.featureDiagnosticsEnabled,
   };
+}
+
+const NO_HIDDEN_DEVICES: readonly string[] = [];
+
+/**
+ * The sidebar's hidden-device keys plus a setter that adds or removes one.
+ * Empty and inert outside a UiSettingsProvider, same pattern as
+ * {@link useFeatureFlags}.
+ */
+export function useSidebarHiddenDevices(): { hidden: readonly string[]; setHidden: (key: string, hide: boolean) => void } {
+  const ctx = useContext(UiSettingsContext);
+  const hidden = ctx ? ctx.settings.hiddenSidebarDevices : NO_HIDDEN_DEVICES;
+  const update = ctx?.update;
+  const setHidden = useCallback((key: string, hide: boolean) => {
+    const next = withSidebarHidden(hidden, key, hide);
+    if (next !== hidden) update?.({ hiddenSidebarDevices: [...next] });
+  }, [hidden, update]);
+  return { hidden, setHidden };
 }
 
 const NO_CONFLICT_EXCLUSIONS: string[] = [];

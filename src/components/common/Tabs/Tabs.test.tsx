@@ -87,4 +87,30 @@ describe('Tabs', () => {
     const tabButton = screen.getByRole('tab', { name: 'One' });
     expect(tabButton.parentElement).toHaveAttribute('role', 'tablist');
   });
+
+  it('shows a hover tooltip only on a tab that carries one', () => {
+    render(
+      <Tabs
+        tabs={[{ key: 'one', label: 'One', tooltip: 'About one' }, { key: 'two', label: 'Two' }]}
+        activeKey="two"
+        onChange={() => {}}
+      />,
+    );
+    fireEvent.focus(screen.getByRole('tab', { name: 'Two' }));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    fireEvent.focus(screen.getByRole('tab', { name: 'One' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('About one');
+  });
+
+  it('shows the tooltip on a tab that also has a trailing control', () => {
+    render(
+      <Tabs
+        tabs={[{ key: 'one', label: 'One', tooltip: 'About one', trailing: <span>x</span> }]}
+        activeKey="one"
+        onChange={() => {}}
+      />,
+    );
+    fireEvent.focus(screen.getByRole('tab', { name: 'One' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('About one');
+  });
 });

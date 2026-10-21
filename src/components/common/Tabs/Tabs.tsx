@@ -1,5 +1,6 @@
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react';
 import classNames from 'classnames';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './Tabs.module.scss';
 
 export interface TabDef {
@@ -21,6 +22,8 @@ export interface TabDef {
    *  tab that drops a popup announces itself as one (the lighting / cooling
    *  mode tab). Omit for a plain tab. */
   readonly expanded?: boolean;
+  /** Hover tooltip body for the tab's button. Omit for no tooltip. */
+  readonly tooltip?: string;
   /** Optional trailing control, right-aligned after the label (e.g. a per-tab
    *  pause toggle). Rendered as a DOM sibling of the tab's own `<button>`,
    *  inside a shared visual pill - never a descendant of it. A focusable
@@ -48,6 +51,10 @@ export interface TabsProps {
   onHover?: (key: string | null) => void;
 }
 
+function withTooltip(tab: TabDef, button: ReactElement): ReactElement {
+  return tab.tooltip ? <HoverTooltip key={tab.key} body={tab.tooltip} side="bottom">{button}</HoverTooltip> : button;
+}
+
 /**
  * Horizontal tab bar - the canonical tab affordance across the app. Flat at
  * rest; the active tab carries the --bg pill (overridable per surface through
@@ -67,7 +74,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
         // No trailing control: the button alone is the flex item, byte-for-byte
         // the same markup every existing caller already renders.
         if (!tab.trailing) {
-          return (
+          return withTooltip(tab, (
             <button
               key={tab.key}
               type="button"
@@ -86,7 +93,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
                 <span className={styles.tabLabel}>{tab.label}</span>
               </span>
             </button>
-          );
+          ));
         }
         // With a trailing control, the tab becomes a flex-item group: the
         // button and the trailing control are siblings sharing one pill, not
@@ -94,7 +101,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
         // focus target instead of a descendant of the tab's own button.
         return (
           <span key={tab.key} role="presentation" className={classNames(styles.tabGroup, { [styles.active]: isActive })}>
-            <button
+            {withTooltip(tab, <button
               type="button"
               role="tab"
               aria-selected={isActive}
@@ -110,7 +117,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
                 {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}
                 <span className={styles.tabLabel}>{tab.label}</span>
               </span>
-            </button>
+            </button>)}
             <span className={styles.tabTrailing}>
               {tab.trailing}
             </span>

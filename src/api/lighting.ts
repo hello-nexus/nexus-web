@@ -4,11 +4,18 @@ import { fetchService, postService, deleteService, putService, authFetchWithStat
 import { lianLiHubQuery } from './lianli';
 import { type DeviceGroup } from '../lib/deviceGroups';
 import { type DeviceStack } from '../lib/stackSlots';
+import { visibleLightingCards } from '../lib/lightingVisibility';
 import { parseShaderParams, type ShaderParamSpec } from '../lib/shaderParams';
+import { parseSensorUniforms, type SensorBinding, type SensorUniform } from '../lib/sensorBinding';
 import type { EffectState } from '../types/lighting';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
+}
+
+/** Live capture of the selected mirror monitor, in the lighting output frame layout. */
+export async function screenPreviewUrl(): Promise<string> {
+  return resolveAuthWs('/lighting/screen/preview');
 }
 
 // --- Effect thumbnails ---
@@ -34,8 +41,9 @@ export const effectThumbnailPath = (key: string, slot: number, version: string, 
 export type { ShaderParamSpec };
 
 /** `params` is parsed client-side from the frag's `hint_range` annotations
- *  (see parseShaderParams) - the service never sends a separate params field. */
-export interface ShaderSource { frag: string; params: ShaderParamSpec[]; }
+ *  (see parseShaderParams) - the service never sends a separate params field.
+ *  `sensors` is the same for the `// sensor {json}` annotations (parseSensorUniforms). */
+export interface ShaderSource { frag: string; params: ShaderParamSpec[]; sensors: SensorUniform[]; }
 
 const shaderCache = new Map<string, ShaderSource>();
 
@@ -46,7 +54,7 @@ const shaderCache = new Map<string, ShaderSource>();
  * network for that effect.
  */
 export function primeShaderSource(name: string, frag: string): void {
-  shaderCache.set(name, { frag, params: parseShaderParams(frag) });
+  shaderCache.set(name, { frag, params: parseShaderParams(frag), sensors: parseSensorUniforms(frag) });
 }
 
 /** Drops a primed entry; a later fetch for the name goes to the service. */
@@ -75,9 +83,13 @@ export function peekShaderSource(name: string): ShaderSource | undefined {
 export async function fetchShaderSource(name: string): Promise<ShaderSource | null> {
   const cached = shaderCache.get(name);
   if (cached) return cached;
-  const res = await fetchService<{ frag: string }>(`/lighting/shaders/${encodeURIComponent(name)}`);
+  const res = await fetchService<{ frag: string; sensors?: { uniform: string; binding: SensorBinding }[] }>(`/lighting/shaders/${encodeURIComponent(name)}`);
   if (!res) return null;
-  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag) };
+  // The service's own reading of the annotations wins; a service that predates the field leaves the frag to parse.
+  const sensors = Array.isArray(res.sensors)
+    ? res.sensors.map(s => ({ name: s.uniform, binding: s.binding }))
+    : parseSensorUniforms(res.frag);
+  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag), sensors };
   shaderCache.set(name, src);
   return src;
 }
@@ -103,6 +115,8 @@ export const fetchLightingStatus = () =>
 export interface CurrentSyncResponse {
   sync: string;
   paused: boolean;
+  /** True on installs upgraded from a version that shipped Game Sync. */
+  gameSyncRemovedNotice?: boolean;
 }
 
 export const fetchCurrentSync = () =>
@@ -127,6 +141,8 @@ export interface AnimateEffectState {
   saturation: number;
   contrast: number;
   params: Record<string, number>;
+  /** The user's sensor picks per sensor uniform; absent means the shader's defaults. */
+  sensors?: Record<string, SensorBinding>;
 }
 
 export interface AnimateEffectTemplateBundle {
@@ -207,12 +223,15 @@ export const startAnimate = (
   // False during live slider drag to skip the settings-disk write; default
   // true for mode switches / restart replay.
   persist = true,
+  // Sent only when the user changed a sensor pick, so a service that predates the field sees an unchanged body.
+  sensors?: Record<string, SensorBinding>,
 ) =>
   postService('/lighting/animate/headless-start', {
     effect, speed, noise: 0, filter: 'none', intensity, scheme: [], hue, sat: 0,
     colorize, saturation, contrast,
     params: params ? Object.entries(params).map(([name, value]) => ({ name, value })) : [],
     persist,
+    ...(sensors && Object.keys(sensors).length > 0 ? { sensors } : {}),
   });
 
 export interface StudioLiveResponse {
@@ -239,6 +258,7 @@ export const startStudioLive = (frag: string, s: EffectState, sessionId?: string
   postService<StudioLiveResponse>('/lighting/studio-live', {
     frag, speed: s.speed, intensity: s.intensity, hue: s.hue, colorize: s.colorize,
     saturation: s.saturation, contrast: s.contrast, params: s.params,
+    ...(s.sensors && Object.keys(s.sensors).length > 0 ? { sensors: s.sensors } : {}),
     ...(sessionId ? { sessionId } : {}),
   });
 
@@ -327,17 +347,22 @@ export const setMediaEffect = (v: PostProcessSettings, persist = true) =>
     persist,
   });
 
-// --- Render GPU (which card runs the lighting shaders) ---
+// --- Rendering device (which GPU, or the CPU, runs the lighting shaders) ---
 // Machine-specific (the GPU model name), so it lives in the service config, not
 // the cloud-synced UI prefs. Restart-to-apply: setRenderGpu persists + writes
 // the OS preference; restartService applies it.
-export interface RenderGpuState { value: string; }
+export interface RenderGpuState {
+  value: string;
+  /** CPU rendering can be chosen on this PC; absent on older services. */
+  softwareRenderingAvailable?: boolean;
+}
 
 export const fetchRenderGpu = () =>
   fetchService<RenderGpuState>('/lighting/render-gpu');
 
+/** Null when the service refused (e.g. software rendering unavailable). */
 export const setRenderGpu = (value: string) =>
-  postService('/lighting/render-gpu', { value });
+  postService<{ error?: boolean }>('/lighting/render-gpu', { value });
 
 export const restartService = () =>
   postService('/service/restart', {});
@@ -377,9 +402,11 @@ export const fetchMusicReactive = () =>
 export const setMusicReactive = (enabled: boolean) =>
   postService('/lighting/music-reactive', { enabled });
 
-/** Output the Windows capture listens to; an empty id follows the system default. */
+/** Device the Windows capture listens to; an empty id follows the system default of its direction. */
 export interface AudioOutputPick {
   deviceId: string;
+  /** Absent or empty from an older service means output. */
+  direction?: 'output' | 'input';
   /** Captured with the pick, shown while the device is unplugged. */
   deviceName: string;
 }
@@ -413,6 +440,9 @@ export const setLockBlackout = (enabled: boolean) =>
 
 // --- Device list ---
 
+export const SAMPLING_MODES = ['led', 'nearest', 'rows', 'columns'] as const;
+export type SamplingMode = (typeof SAMPLING_MODES)[number];
+
 export interface LightingDevice {
   id: string;
   /** What the UI shows: the user's custom name once the card is renamed, the hardware name otherwise. */
@@ -436,6 +466,14 @@ export interface LightingDevice {
   hue?: number;
   /** Current saturation, 0..1. Set only for color-capable smart lights. */
   saturation?: number;
+  /** True when the device offers a frame-rate cap (slow-bus hardware). */
+  rateCapSupported?: boolean;
+  /** The user's frame-rate cap in FPS; null = Off. */
+  maxRateHz?: number | null;
+  /** How each LED reads the effect: its own spot, or the nearest area split as cells, rows or columns. */
+  sampling?: SamplingMode;
+  /** One polygon per card LED, [u0, v0, u1, v1, ...] in the frame's unrotated 0..1 space (v down), covering the frame with no overlap. Empty for a disabled LED. Present only when sampling is not 'led'. */
+  areaCells?: number[][];
   ledCount: number;
   /** The byte the lighting output frame tags this device's LEDs with. Absent on
    *  an older service, or when the device has no engine frame. */
@@ -477,6 +515,10 @@ export interface LightingDevicesResponse {
   groups?: DeviceGroup[];
   /** Cards stacked to one canvas frame and one selection, each with how the frame is shared. Absent on older services. */
   stacks?: DeviceStack[];
+  /** Set by fetchLightingDevices: every card the service listed, OpenRGB ones included, for ids that must outlive a hidden card. */
+  allDevices?: LightingDevice[];
+  /** Set by fetchLightingDevices: the daemon state `devices` was filtered by. */
+  rgbRunning?: boolean;
 }
 
 /** Whole-list replace; the page owns group order and membership. */
@@ -487,8 +529,20 @@ export const saveLightingGroups = (groups: DeviceGroup[]) =>
 export const saveLightingStacks = (stacks: DeviceStack[]) =>
   putService<{ stacks: DeviceStack[] }>('/devices/lighting-devices/stacks', { stacks });
 
-export const fetchLightingDevices = () =>
-  fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
+// Kept across calls so a failed status read leaves the cards as they were; unknown until the first success counts as off.
+let lastRgbRunning = false;
+
+/** The device list every surface shares, with OpenRGB cards hidden while OpenRGB is not running. */
+export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | null> => {
+  const [res, status] = await Promise.all([
+    fetchService<LightingDevicesResponse>('/devices/lighting-devices/all'),
+    fetchLightingStatus().catch(() => null),
+  ]);
+  if (!res) return res;
+  if (status) lastRgbRunning = status.rgbRunning === true;
+  const all = res.devices ?? [];
+  return { ...res, devices: visibleLightingCards(all, lastRgbRunning), allDevices: all, rgbRunning: lastRgbRunning };
+};
 
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
@@ -699,6 +753,14 @@ export type LightingColorAdjustPatch = Partial<LightingColorAdjust> & { brightne
 export const setLightingColorAdjust = (ids: string[], patch: LightingColorAdjustPatch) =>
   postService('/devices/lighting-devices/color-adjust', { ids, ...patch });
 
+// Per-device frame-rate cap for slow hardware. null turns the cap off.
+export const setLightingMaxRate = (id: string, maxRateHz: number | null) =>
+  postService<ApiEnvelope>('/devices/lighting-devices/max-rate', { id, maxRateHz });
+
+// Per-device sampling mode.
+export const setLightingSampling = (id: string, mode: SamplingMode) =>
+  postService<ApiEnvelope>('/devices/lighting-devices/sampling', { id, mode });
+
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.
 export const fetchGlobalBrightness = () =>
@@ -715,11 +777,46 @@ export const setGlobalBrightness = (value: number) =>
 export interface BrightnessSchedulePoint { hour: number; brightness: number }
 export interface BrightnessSchedule { enabled: boolean; points: BrightnessSchedulePoint[] }
 
-export const fetchBrightnessSchedule = () =>
-  fetchService<BrightnessSchedule & { defaults: BrightnessSchedulePoint[] }>('/lighting/brightness-schedule');
+// Daylight sync: the morning and evening ramps follow today's sunrise and
+// sunset at a place. A null location is Auto (the service's IP lookup).
+export interface BrightnessScheduleLocation { lat: number; lon: number; label: string; cc: string }
+export type SunStatus = 'ok' | 'polar-day' | 'polar-night' | 'no-location';
+export interface BrightnessScheduleSun {
+  status: SunStatus;
+  /** Local date the times are for, YYYY-MM-DD. */
+  date: string;
+  /** PC-local minutes since midnight; null unless status is 'ok'. */
+  sunriseMin: number | null;
+  sunsetMin: number | null;
+  /** Today's generated curve, sorted; empty unless status is 'ok'. */
+  sunPoints: { min: number; brightness: number }[];
+  /** The place the sun times are for (the chosen one, or the IP lookup for Auto). */
+  resolvedLocation: BrightnessScheduleLocation | null;
+  /** The IP-resolved place, whatever the choice is; what "Auto" would use. */
+  autoLocation: BrightnessScheduleLocation | null;
+}
+export interface BrightnessScheduleResponse extends BrightnessSchedule {
+  defaults: BrightnessSchedulePoint[];
+  sunShift: boolean;
+  /** Levels (0..100) of the generated curve; night <= day. */
+  sunNight: number;
+  sunDay: number;
+  location: BrightnessScheduleLocation | null;
+  sun: BrightnessScheduleSun;
+}
+// A field left out keeps its stored value; location null selects Auto.
+export interface BrightnessScheduleUpdate extends BrightnessSchedule {
+  sunShift?: boolean;
+  location?: BrightnessScheduleLocation | null;
+  sunNight?: number;
+  sunDay?: number;
+}
 
-export const setBrightnessSchedule = (schedule: BrightnessSchedule) =>
-  postService('/lighting/brightness-schedule', schedule);
+export const fetchBrightnessSchedule = () =>
+  fetchService<BrightnessScheduleResponse>('/lighting/brightness-schedule');
+
+export const setBrightnessSchedule = (schedule: BrightnessScheduleUpdate) =>
+  postService<BrightnessScheduleResponse | ApiEnvelope>('/lighting/brightness-schedule', schedule);
 
 // Resize a motherboard ARGB zone's LED count. Persisted + applied live via
 // OpenRGB's RESIZEZONE opcode. Only valid for split zone ids ("openrgb-N-Z").
@@ -815,8 +912,9 @@ export const testLedPattern = (id: string, pattern: string) =>
 export const clearLedEditor = (id: string) =>
   deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-editor`);
 
+/** areaCells: the cells recomputed from the posted draft, present when the card is area sampled. */
 export const postLedPreviewLayout = (id: string, ledCount: number, leds: { index: number; u: number; v: number; disabled: boolean }[]) =>
-  postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-preview-layout`, { ledCount, leds });
+  postService<ApiEnvelope & { areaCells?: number[][] }>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-preview-layout`, { ledCount, leds });
 
 // --- Device structure & zones (device-scoped LED map editor) ---
 
@@ -1169,114 +1267,6 @@ export interface ChainPreviewResponse {
  */
 export const previewDeviceChain = (deviceId: string, entries: ChainEntryBody[]) =>
   postService<ChainPreviewResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/mappings/chain/preview`, { entries });
-
-// --- Game Sync ---
-
-export interface GameSyncDevice {
-  name: string;
-  archetype: string;
-  ledCount: number;
-}
-
-export interface GameSyncStateResponse {
-  active: boolean;
-  /** Every Nexus shim DLL is in place in System32/SysWOW64. */
-  providerInstalled: boolean;
-  /**
-   * A real vendor DLL (Razer Synapse's Chroma SDK, most often) already holds
-   * one of the shim slots. Nexus never overwrites it, so games on that
-   * interface light the vendor's software instead of Nexus.
-   */
-  synapseConflict: boolean;
-  devices: GameSyncDevice[];
-  lastFrameAt?: number | null;
-  activeApp?: string | null;
-}
-
-export const startGameSync = () =>
-  postService('/lighting/game-sync/start', {});
-
-export const fetchGameSyncState = () =>
-  fetchService<GameSyncStateResponse>('/lighting/game-sync/state');
-
-export interface GameSyncGame {
-  name: string;
-  store: string;
-  emitsChroma: boolean;
-  /** Steam appid; empty string for non-Steam games. */
-  appId: string;
-  /** True when the game emits GSI frames (e.g. CS2 appid 730). */
-  emitsGsi: boolean;
-  scannedFiles: number;
-  skippedFiles: number;
-}
-
-export type SteamArtworkKind = 'header' | 'capsule_231x87';
-
-/**
- * Cloudflare Steam CDN artwork URL. Returns null for non-numeric or empty appIds
- * (non-Steam games have appId="" and must fall through to the icon placeholder).
- */
-export function steamArtworkUrl(appId: string, kind: SteamArtworkKind): string | null {
-  if (!appId || !/^\d+$/.test(appId)) return null;
-  const file = kind === 'header' ? 'header.jpg' : 'capsule_231x87.jpg';
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/${file}`;
-}
-
-export interface GameSyncGamesResponse {
-  scanning: boolean;
-  scannedAt: number | null;
-  games: GameSyncGame[];
-}
-
-export const fetchGameSyncGames = (refresh = false) =>
-  fetchService<GameSyncGamesResponse>(`/lighting/game-sync/games${refresh ? '?refresh=true' : ''}`);
-
-export const triggerGameSyncScan = () =>
-  postService('/lighting/game-sync/games/scan', {});
-
-/**
- * GSI title -> Steam appId aliases. GSI reports a display name that may differ
- * from the Steam library entry (e.g. CS2 GSI sends "Counter-Strike 2" but the
- * Steam library entry is "Counter-Strike Global Offensive", appId 730).
- */
-const GSI_APPID_ALIASES: Record<string, string> = {
-  'counter-strike 2': '730',
-  'cs2': '730',
-};
-
-/**
- * Resolves an activeApp name to a detected game, tolerating known GSI title
- * mismatches. Match order: (1) exact case-insensitive, (2) substring, (3)
- * GSI alias table mapped to appId.
- */
-export function resolveActiveGame(activeApp: string, games: GameSyncGame[]): GameSyncGame | null {
-  if (!activeApp) return null;
-  const needle = activeApp.toLowerCase().trim();
-
-  // 1. Exact match.
-  const exact = games.find(g => g.name.toLowerCase().trim() === needle);
-  if (exact) return exact;
-
-  // 2. Substring match (either name contains the other).
-  const sub = games.find(g => {
-    const hay = g.name.toLowerCase().trim();
-    return hay.includes(needle) || needle.includes(hay);
-  });
-  if (sub) return sub;
-
-  // 3. Known alias -> appId, then match by appId.
-  const aliasAppId = GSI_APPID_ALIASES[needle];
-  if (aliasAppId) {
-    const byId = games.find(g => g.appId === aliasAppId);
-    if (byId) return byId;
-    // appId known but game not in library yet: synthesize a stub so artwork
-    // can still render when the game isn't in the detected list.
-    return { name: activeApp, store: 'Steam', emitsChroma: false, emitsGsi: true, appId: aliasAppId, scannedFiles: 0, skippedFiles: 0 };
-  }
-
-  return null;
-}
 
 // --- Manually registered OpenRGB devices ---
 // Two device classes the bundled daemon cannot detect on its own: QMK-OpenRGB

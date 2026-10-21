@@ -2,11 +2,11 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import {
-  fetchAnimateSettings, fetchCurrentSync, setMusicReactive, setScreenEffect, startAnimate, startGameSync,
+  fetchAnimateSettings, fetchCurrentSync, setMusicReactive, setScreenEffect, startAnimate,
   startScreenMirror, startStatic, stopLighting,
 } from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
-import { fetchServiceBlob, pingService } from '../../../api/service';
+import { fetchServiceBlob } from '../../../api/service';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
@@ -23,7 +23,6 @@ vi.mock('../../../api/lighting', () => ({
   setMusicReactive: vi.fn(() => Promise.resolve()),
   setScreenEffect: vi.fn(() => Promise.resolve()),
   startAnimate: vi.fn(() => Promise.resolve()),
-  startGameSync: vi.fn(() => Promise.resolve()),
   startScreenMirror: vi.fn(() => Promise.resolve()),
   stopLighting: vi.fn(() => Promise.resolve()),
 }));
@@ -46,7 +45,6 @@ vi.mock('./LightingShaderPreview', () => ({
 
 vi.mock('../../../api/service', () => ({
   fetchServiceBlob: vi.fn(() => Promise.resolve(null)),
-  pingService: vi.fn(() => Promise.resolve({ service: 'nexus', platform: 'windows' })),
 }));
 
 // Captured so a test can fire the lighting broadcast the service sends after
@@ -72,7 +70,6 @@ vi.mock('../../../lib/i18n', () => ({
       'lighting.mode.animate': 'Animation',
       'lighting.mode.gif': 'Media',
       'lighting.mode.screen': 'Mirror',
-      'lighting.mode.gamesync': 'Game Sync',
       'lighting.panel.prev': 'Previous',
       'lighting.panel.next': 'Next',
       'lighting.panel.screenActive': 'Mirror is active',
@@ -126,7 +123,7 @@ describe('LightingWidget', () => {
     expect(fetchMediaLibrary).not.toHaveBeenCalled();
   });
 
-  it('renders 4x2 with all five icon mode buttons (Off / Animation / Media / Mirror / Game Sync) and no arrows', async () => {
+  it('renders 4x2 with all four icon mode buttons (Off / Animation / Media / Mirror) and no arrows', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
@@ -134,8 +131,6 @@ describe('LightingWidget', () => {
     expect(screen.getByRole('button', { name: 'Off' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Media' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mirror' })).toBeInTheDocument();
-    // Game Sync appears once the ping resolves platform=windows.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Game Sync' })).toBeInTheDocument());
 
     expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
@@ -166,25 +161,6 @@ describe('LightingWidget', () => {
       expect(animateBtn.getAttribute('data-active')).toBe('true');
     });
     expect(screen.getByRole('button', { name: 'Mirror' })).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  it('shows the Game Sync label and marks its button active when the active sync is gamesync', async () => {
-    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'gamesync' });
-    render(<LightingWidget widget={lightingWidget('4x2')} />);
-
-    await waitFor(() => expect(screen.getByText('Game Sync')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Animation' })).toHaveAttribute('aria-pressed', 'false');
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Game Sync' }).getAttribute('data-active')).toBe('true');
-    });
-  });
-
-  it('hides the Game Sync button on a non-Windows service', async () => {
-    vi.mocked(pingService).mockResolvedValueOnce({ service: 'nexus', platform: 'macos' } as never);
-    render(<LightingWidget widget={lightingWidget('4x2')} />);
-
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: 'Game Sync' })).not.toBeInTheDocument();
   });
 
   it('does not flash on initial hydration', async () => {
@@ -315,7 +291,7 @@ describe('LightingWidget', () => {
     // they must not jump into the animation list.
     // The arrows switch mode and nothing else: what plays inside a mode is
     // chosen on the lighting page. MODES order is off, static, animate, gif,
-    // screen, gamesync (the last only on Windows, which pingService reports).
+    // screen.
     it('steps to the next mode instead of into the effect list', async () => {
       vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
       vi.mocked(startStatic).mockClear();
@@ -350,7 +326,7 @@ describe('LightingWidget', () => {
       render(<LightingWidget widget={lightingWidget('4x2')} />);
       await waitFor(() => expect(screen.getByText('lighting.controls.nebula')).toBeInTheDocument());
 
-      // MODES order: off, static, animate, gif, screen, gamesync.
+      // MODES order: off, static, animate, gif, screen.
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
       await waitFor(() => expect(startStatic).toHaveBeenCalled());
 
@@ -416,12 +392,12 @@ describe('LightingWidget', () => {
 
     it('wraps off the start of the mode list', async () => {
       vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'none' });
-      vi.mocked(startGameSync).mockClear();
+      vi.mocked(startScreenMirror).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
       await waitFor(() => expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument());
 
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
-      await waitFor(() => expect(startGameSync).toHaveBeenCalled());
+      await waitFor(() => expect(startScreenMirror).toHaveBeenCalled());
     });
 
     const mediaItem = (id: string, name: string): MediaItem => ({
@@ -473,13 +449,11 @@ describe('LightingWidget', () => {
 
     it('renders the disabled shell and fetches nothing', async () => {
       vi.mocked(fetchCurrentSync).mockClear();
-      vi.mocked(pingService).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
 
       expect(screen.getByText('featureDisabled.widget.lighting')).toBeInTheDocument();
       await new Promise(r => setTimeout(r, 0));
       expect(fetchCurrentSync).not.toHaveBeenCalled();
-      expect(pingService).not.toHaveBeenCalled();
     });
 
     it('calls onSectionNavigate with lighting when the action button is clicked', () => {

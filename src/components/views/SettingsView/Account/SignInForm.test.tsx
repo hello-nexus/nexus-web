@@ -54,3 +54,36 @@ describe('SignInForm errors', () => {
     expect(await screen.findByText('account.error.loginLocked')).toBeTruthy();
   });
 });
+
+describe('SignInForm unverified state', () => {
+  it('offers resend when signing in with an email address', async () => {
+    const login = vi.fn().mockResolvedValue({ status: 403, body: { error: true, msg: 'email_unverified' } });
+    render(<SignInForm backend={{ login, resendVerification: vi.fn() } as never} onSuccess={vi.fn()} />);
+
+    fillAndSubmit('alice@example.com', 'pw');
+
+    const resend = await screen.findByRole('button', { name: 'account.verify.resend' });
+    expect((resend as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('hides resend when the identifier is a username, which the api cannot resolve', async () => {
+    const login = vi.fn().mockResolvedValue({ status: 403, body: { error: true, msg: 'email_unverified' } });
+    render(<SignInForm backend={{ login, resendVerification: vi.fn() } as never} onSuccess={vi.fn()} />);
+
+    fillAndSubmit('alice', 'pw');
+
+    await screen.findByText('account.verify.pendingMessage');
+    expect(screen.queryByRole('button', { name: /account\.verify\.resend/ })).toBeNull();
+  });
+
+  it('offers resend for a username sign-in when the api returns the email', async () => {
+    const login = vi.fn().mockResolvedValue({ status: 403, body: { error: true, msg: 'email_unverified', email: 'alice@example.com' } });
+    const resendVerification = vi.fn().mockResolvedValue('ok');
+    render(<SignInForm backend={{ login, resendVerification } as never} onSuccess={vi.fn()} />);
+
+    fillAndSubmit('alice', 'pw');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'account.verify.resend' }));
+    await waitFor(() => expect(resendVerification).toHaveBeenCalledWith('alice@example.com'));
+  });
+});

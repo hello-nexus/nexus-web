@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Ban, CheckCheck, Lightbulb, PanelsTopLeft, RotateCw, SquareDashed } from 'lucide-react';
-import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
+import { Ban, CheckCheck, Lightbulb, PanelsTopLeft, RotateCw, SquareDashed } from 'lucide-react';
+import { OnboardingHeader } from '../OnboardingHeader/OnboardingHeader';
+import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
@@ -19,7 +20,9 @@ import { paletteColor, paletteKey } from '../../../types/lightingPalette';
 import { SIMPLE_ANIMATION_KEYS, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
-import { useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
+import { appendNewCards } from '../../../lib/lightingVisibility';
+import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
+import { useZoneSizeDeviceIds } from '../../../hooks/useZoneSizeDeviceIds';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
 
@@ -54,6 +57,8 @@ const MODE_CHOICES = [
 const RAINBOW = SIMPLE_ANIMATION_KEYS[0];
 const RAINBOW_SWATCH = 'conic-gradient(#ff2d2d, #ffd21e, #2fd45a, #22d3ee, #2f6bff, #a855f7, #ff2d2d)';
 
+const RGB_WAIT_MS = 30_000;
+
 // Simple mode's own palette colours, so a pick here is the swatch the simple
 // page marks active afterwards.
 const TEST_COLORS: { id: string; labelKey: string }[] = [
@@ -81,6 +86,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   const { t } = useTranslation();
   const [devices, setDevices] = useState<LightingDevice[] | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [rgbUp, setRgbUp] = useState(false);
+  // Bounds the wait for OpenRGB so a box that never starts it still settles.
+  const [rgbWaitOver, setRgbWaitOver] = useState(false);
+  const lightingOn = useFeatureFlags().lighting;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   // RAINBOW or a palette id: what the lights are wearing, and what Finish keeps.
@@ -89,6 +98,8 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // at all. Simple drives everything, so there is nothing here to choose.
   const [mode, setMode] = useState<'simple' | 'advanced'>('simple');
   const updateUiSettings = useUiSettingsUpdateSafe();
+  const zoneSizeDeviceIds = useZoneSizeDeviceIds(open, devices);
+  const awaitingRgbRef = useRef(false);
   const devicesRef = useRef<LightingDevice[] | null>(null);
   devicesRef.current = devices;
   // What the user asked for per device, held until the service reports it.
@@ -142,12 +153,16 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
           if ((d.controlled !== false) === want) { intents.delete(d.id); return d; }
           return { ...d, controlled: want };
         });
-        setDevices(fresh);
+        // While OpenRGB is still starting, listed cards keep their order and only new ones are appended.
+        // The poll that sees it running replaces the list outright.
+        const holdOrder = awaitingRgbRef.current && status?.rgbRunning !== true;
+        setDevices(prev => (holdOrder && prev && prev.length > 0 ? appendNewCards(prev, fresh) : fresh));
       }
       // isInit=false with the RGB subprocess up means the bridge is still
       // coming online: treat it as scanning so a fresh boot shows progress,
       // not "no devices". With the subprocess down (lighting off entirely)
       // no devices can ever arrive, so that is the real empty state.
+      setRgbUp(status?.rgbRunning === true);
       setScanning(status?.scanning === true || (data?.isInit === false && status?.rgbRunning === true));
     } finally {
       pollInFlightRef.current = false;
@@ -157,7 +172,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // Polls only until a scan has settled with devices in hand. Left running it
   // keeps rebuilding the list underneath the user, which reorders the cards
   // and makes a click land on a card object that no longer exists.
-  const settled = devices !== null && devices.length > 0 && !scanning;
+  const awaitingRgb = lightingOn && !rgbUp && !rgbWaitOver;
+  awaitingRgbRef.current = awaitingRgb;
+  const settled = devices !== null && devices.length > 0 && !scanning && !awaitingRgb;
+  useEffect(() => {
+    if (!open || !awaitingRgb) return;
+    const timer = setTimeout(() => setRgbWaitOver(true), RGB_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [open, awaitingRgb]);
   useEffect(() => {
     if (!open || settled) return;
     void refresh();
@@ -239,15 +261,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     setSubmitting(true);
     setError(false);
     try {
-      // Simple drives every device, so anything switched off here goes back on
-      // rather than sitting dark on a page with no control to explain it.
-      if (mode === 'simple') {
-        const off = (devicesRef.current ?? []).filter(d => d.controlled === false);
-        if (off.length > 0) {
-          intentRef.current.clear();
-          await Promise.allSettled(off.map(d => setLightingDeviceControlled(d.id, true)));
-        }
-      }
       // A device detected after the color was picked follows the global color.
       await pickChainRef.current;
       updateUiSettings({ lightingDashboardMode: mode });
@@ -276,14 +289,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
-      <div className={styles.topBar}>
-        {onBack ? (
-          <Button tone="ghost" size="sm" icon={<ArrowLeft />} disabled={submitting} onClick={onBack}>
-            {t('nav.back')}
-          </Button>
-        ) : <span />}
-        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} /> : <span />}
-      </div>
+      <OnboardingHeader onBack={onBack} onSkip={onSkipOnboarding} backDisabled={submitting} />
       <div className={styles.hero}>
         <span className={styles.heroIcon} aria-hidden>
           <Lightbulb size={40} />
@@ -354,6 +360,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
                   onTogglePower={noop}
                   onToggleControlled={mode === 'advanced' ? () => handleToggle(raw) : undefined}
                   onOpenSettings={noop}
+                  needsLedCounts={zoneSizeDeviceIds.has(raw.id)}
                 />
               ))}
             </div>
@@ -409,22 +416,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
         </div>
       )}
 
-      <OnboardingNote>{t('lightingOnboarding.hint')}</OnboardingNote>
-
-      {error && <p className={styles.error}>{t('welcome.error')}</p>}
-
-      <div className={styles.footerRow}>
-        <Button
-          tone="accent"
-          size="lg"
-          onClick={handleContinue}
-          loading={submitting}
-          loadingHidesLabel
-          className={styles.continueButton}
-        >
-          {t('onboarding.finish')}
-        </Button>
-      </div>
+      <OnboardingFooter
+        label={t('onboarding.finish')}
+        onContinue={handleContinue}
+        loading={submitting}
+        error={error ? t('welcome.error') : undefined}
+      >
+        <OnboardingNote>{t('lightingOnboarding.hint')}</OnboardingNote>
+      </OnboardingFooter>
     </Overlay>
   );
 }

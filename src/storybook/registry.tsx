@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, HardDriveDownload, Heart, Link2Off, Pause, Pointer, Power, Cpu, Gauge, MemoryStick } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, HardDriveDownload, Heart, Link2Off, Pause, Pin, Pointer, Power, Cpu, Gauge, MemoryStick } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -82,6 +82,8 @@ import { ConflictAllClear } from '../components/common/ConflictAllClear/Conflict
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
 import { OnboardingNote } from '../components/common/OnboardingNote/OnboardingNote';
 import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
+import { OnboardingHeader } from '../components/common/OnboardingHeader/OnboardingHeader';
+import { OnboardingFooter } from '../components/common/OnboardingFooter/OnboardingFooter';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -154,6 +156,7 @@ import { TextInput } from '../components/common/TextInput/TextInput';
 import { Ring as StorybookRing } from '../components/common/Ring/Ring';
 import { Gauge as StorybookGauge } from '../components/common/Gauge/Gauge';
 import { CanvasNoticeBar } from '../components/common/CanvasNoticeBar';
+import { AreaCells } from '../components/common/AreaCells/AreaCells';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent - PanelDevicePage imports the same sheet.
@@ -296,6 +299,10 @@ function PreviewInfoTooltip() {
         <span>Devices</span>
         <InfoTooltip message="Every USB device Nexus can see. Browse the supported-hardware catalogue or inspect the raw USB table." side="top" />
       </div>
+      <div className={styles.previewHoverCard}>
+        <span>With action</span>
+        <InfoTooltip message="This feature was removed." side="right" action={{ label: 'Remove', onClick: () => {} }} />
+      </div>
     </div>
   );
 }
@@ -368,6 +375,7 @@ function PreviewDeviceWarningIcon() {
       <div className={styles.previewHoverCard}>
         <span>Chip (Devices list)</span>
         <DeviceWarningIcon code="usb-disconnected" chip />
+        <DeviceWarningIcon code="access-denied" chip />
         <DeviceWarningIcon code="some-future-code" chip />
       </div>
     </div>
@@ -596,10 +604,10 @@ function PreviewTabs() {
   const [paused, setPaused] = useState(false);
   return <Tabs
     tabs={[
-      { key: 'day', label: 'Day' },
-      { key: 'week', label: 'Week' },
+      { key: 'day', label: 'Day', tooltip: 'Hourly view' },
+      { key: 'week', label: 'Week', tooltip: 'Daily view' },
       {
-        key: 'month', label: 'Month',
+        key: 'month', label: 'Month', tooltip: 'Weekly view',
         // Trailing control demo: only shown on the active tab, mirroring the
         // Lighting page's per-tab pause toggle. Tabs renders this as a
         // sibling of the tab's own button (not nested inside it), so its
@@ -1346,6 +1354,24 @@ function PreviewOnboardingNote() {
   );
 }
 
+function PreviewOnboardingHeader() {
+  return (
+    <div className={styles.previewStack}>
+      <OnboardingHeader onBack={() => { /* preview only */ }} onSkip={() => { /* preview only */ }} />
+    </div>
+  );
+}
+
+function PreviewOnboardingFooter() {
+  return (
+    <div className={styles.previewStack}>
+      <OnboardingFooter label="Continue" onContinue={() => { /* preview only */ }}>
+        <OnboardingNote>You can change these settings any time.</OnboardingNote>
+      </OnboardingFooter>
+    </div>
+  );
+}
+
 function PreviewEndTaskButton() {
   // Swallowed in capture phase so the click never reaches EndTaskButton's own
   // handler - it calls the real /conflicts/kill endpoint with no override prop.
@@ -1475,6 +1501,9 @@ function PreviewSelect() {
         { value: 'custom', label: 'Custom...', icon: '⚙️' },
       ]}
       ariaLabel="Profile"
+      // leadingAction: a real button drawn inside the box, left of the value, as a
+      // sibling of the trigger. Pressing it never opens the list.
+      leadingAction={<button type="button" aria-label="Unpin" onClick={() => setV('balanced')} style={{ display: 'inline-flex', padding: 0, border: 'none', background: 'none', color: 'inherit', cursor: 'pointer' }}><Pin size={12} aria-hidden="true" /></button>}
     />
   );
 }
@@ -1703,6 +1732,7 @@ function PreviewMicroBars() {
       <MicroBar label="CPU TOTAL" formatted="42 %" fillPercent={42} />
       <MicroBar label="TEMP" formatted="68 C" fillPercent={68} />
       <MicroBar label="POWER" formatted="92 W" fillPercent={61} />
+      <MicroBar label="TEMP" formatted="68 C" fillPercent={68} design="simple" />
     </div>
   );
 }
@@ -1745,7 +1775,7 @@ function PreviewSectionHeader() {
     <div className="panel-root" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Widgets</SectionHeader>
-        <div style={{ color: 'var(--text)', fontSize: 13 }}>Widget labels · blur · opacity</div>
+        <div style={{ color: 'var(--text)', fontSize: 13 }}>Widget labels - blur - opacity</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionHeader>Theme</SectionHeader>
@@ -2421,6 +2451,17 @@ function PreviewCanvasNoticeBar() {
   );
 }
 
+function PreviewAreaCells() {
+  return (
+    <div style={{ position: 'relative', width: '100%', height: 96, background: '#222', borderRadius: 6 }}>
+      <AreaCells
+        cells={[[0, 0, 0.5, 0, 0.4, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.4, 1]]}
+        style={{ left: 0, top: 0, width: '100%', height: '100%' }}
+      />
+    </div>
+  );
+}
+
 function PreviewStepper() {
   const [v, setV] = useState(12);
   return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
@@ -2680,7 +2721,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Select', category: 'inputs',
     filePath: 'src/components/common/Select/Select.tsx',
-    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). On a keyboard/pointer desktop (not touch), a list of 8+ entries grows an auto-focused in-menu search field that substring-filters the options while the arrow keys still walk the filtered results. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
+    description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). On a keyboard/pointer desktop (not touch), a list of 8+ entries grows an auto-focused in-menu search field that substring-filters the options while the arrow keys still walk the filtered results. An optional `leadingAction` ReactNode is drawn inside the box left of the value as a sibling of the trigger (so it can be a real button that does not open the list); the cooling fan card uses it for its pin. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
     notes: 'One size and one box across the app - a surface that needs its own palette (deck inspector, monitoring settings, cooling fan / curve rows) sets --select-bg / --select-border / --select-border-hover / --select-text on the wrapper rather than framing the trigger a second time. triggerIconOnly collapses the trigger to just the selected option icon (no label or chevron; the label moves to the trigger title) for compact icon controls like a header language flag - the open menu keeps the full icon + label rows. Long lists (8+) get an in-menu search on keyboard/pointer devices; the preview here is below that threshold.',
   },
   {
@@ -2718,7 +2759,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EndTaskButton', category: 'inputs',
     filePath: 'src/components/common/EndTaskButton/EndTaskButton.tsx',
-    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row and it unmounts; resets on failure, and when the app comes back under a new pid - an Automatic service the SCM restarts keeps the row and its React key, so without that the spinner would never clear. `busy` spins it while another control runs the same kill; `onKilled` + `terminated` hand the ended state to a surface that keeps the row listed, where it renders a green Terminated marker. Used by ConflictAppCard, so by ConflictWarningModal, ConflictOnboardingScreen and the device-page NexusControlOff gate.',
+    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row and it unmounts; resets on failure, and when the app comes back under a new pid - an Automatic service the SCM restarts keeps the row and its React key, so without that the spinner would never clear. `busy` spins it while another control runs the same kill; `onKilled` + `terminated` hand the ended state to a surface that keeps the row listed, where it renders a green Terminated marker. Used by ConflictAppCard, so by the device-page NexusControlOff gate and its guarded-enable prompt.',
     Preview: PreviewEndTaskButton,
   },
   {
@@ -2732,6 +2773,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/OnboardingNote/OnboardingNote.tsx',
     description: 'The closing "you can change this any time" line of an onboarding page, centered and muted at the bottom below the content. Onboarding-only: a settings section explains itself with its description prop instead.',
     Preview: PreviewOnboardingNote,
+  },
+  {
+    name: 'OnboardingHeader', category: 'inputs',
+    filePath: 'src/components/common/OnboardingHeader/OnboardingHeader.tsx',
+    description: 'Top bar shared by every onboarding screen after the welcome step: Back in the left corner when a handler is given, the Skip escape hatch in the right. Spans the surface edges; an absent side keeps its slot so the other stays put.',
+    Preview: PreviewOnboardingHeader,
+  },
+  {
+    name: 'OnboardingFooter', category: 'inputs',
+    filePath: 'src/components/common/OnboardingFooter/OnboardingFooter.tsx',
+    description: 'Bottom block shared by every onboarding screen: an optional closing note (children), an optional error line, then the large accent primary action with an optional secondary action beside it. Content-column width with fixed-width actions.',
+    Preview: PreviewOnboardingFooter,
   },
 
   {
@@ -2762,7 +2815,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'InfoTooltip', category: 'status',
     filePath: 'src/components/common/InfoTooltip/InfoTooltip.tsx',
-    description: 'Subtle info affordance rendered next to section titles. Hover (pointer) or click (touch) reveals a one-sentence explanation in an elevated-surface tooltip matching the app chrome. Used by ViewHeader (via titleTooltip prop) and inline next to Cooling section h3s.', Preview: PreviewInfoTooltip,
+    description: 'Subtle info affordance rendered next to section titles. Hover (pointer) or click (touch) reveals a one-sentence explanation in an elevated-surface tooltip matching the app chrome. An optional action prop adds a button under the message; the bubble stays open while the pointer or focus is inside it and Tab from the icon reaches the button. Used by ViewHeader (via titleTooltip prop) and inline next to Cooling section h3s.', Preview: PreviewInfoTooltip,
     notes: 'Hover, or Tab into the icon, or click to toggle. Esc closes. Auto-positions via the `side` prop (top/bottom/left/right).',
   },
   {
@@ -2966,13 +3019,13 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeviceCanvas', category: 'cards',
     filePath: 'src/components/common/DeviceCanvas/DeviceCanvas.tsx',
-    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu. Device names render in a layer above every frame, de-collided vertically so they never overlap; clicking a name selects (and drags) that device whatever the frame stacking.',
+    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu (a menu row may carry a `description`, a dim second line under its label). Device names render in a layer above every frame, de-collided vertically so they never overlap; clicking a name selects (and drags) that device whatever the frame stacking.',
     notes: 'No live preview - needs live device geometry, LED maps, and shader state.',
   },
   {
     name: 'ConflictAppCard', category: 'cards',
     filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
-    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now and an ExperimentalBadge after the name of any device whose support is experimental, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. With `autostart` (from useConflictAutostart) a "Disable auto start" button sits under End task, over a line naming each Windows startup entry or service it will turn off - only for the apps the service holds a hand-verified recipe for, and only while one is still armed; ending the task does not stop the next boot, so a terminated row keeps it. A partial or failed disable leaves the button up under a warning. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
+    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now and an ExperimentalBadge after the name of any device whose support is experimental, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. With `autostart` (from useConflictAutostart) a "Disable auto start" button sits under End task, over a line naming each Windows startup entry or service it will turn off - only for the apps the service holds a hand-verified recipe for, and only while one is still armed; ending the task does not stop the next boot, so a terminated row keeps it. A partial or failed disable leaves the button up under a warning. Used by the device-page NexusControlOff gate and NexusControlConflictModal; the conflict warning and onboarding screens use ConflictOutcomePanel.',
     Preview: PreviewConflictAppCard,
   },
 
@@ -3098,6 +3151,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - Continue posts real /preferences and /onboarding/features-complete requests (and /onboarding/lighting-complete when Lighting is switched off), so opening it here would mutate the running install\'s feature switches.',
   },
   {
+    name: 'HyteOnboardingScreen', category: 'modals',
+    filePath: 'src/components/common/HyteOnboardingScreen/HyteOnboardingScreen.tsx',
+    description: 'Informational onboarding step between WelcomeScreen and FeaturesOnboardingScreen, shown only while HYTE Nexus 2 is installed: HYTE plus Nexus marks, a thank-you with two intro paragraphs, a What\'s new list of four static rows, and a Continue button. No controls besides Back, Skip onboarding and Continue.',
+    notes: 'No live preview - it mounts as a full-viewport non-dismissable overlay that would cover the Storybook modal.',
+  },
+  {
     name: 'Nexus2ImportSection', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportSection.tsx',
     description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Hosted by ImportCenter, which the onboarding gate and the Settings entry both open.',
@@ -3131,8 +3190,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictOnboardingScreen', category: 'modals',
     filePath: 'src/components/common/ConflictOnboardingScreen/ConflictOnboardingScreen.tsx',
-    description: 'The last onboarding gate: apps already driving the lighting, fans or peripherals Nexus is taking over. A full screen like the gates before it, not the sidebar badge\'s ConflictWarningModal. Lists one ConflictAppCard per detected app, each with End task. Continuing ends nothing; the action is per-app and explicit.',
-    notes: 'No live preview - the cards post real /conflicts/kill requests, so a click here would end a running app.',
+    description: 'The last onboarding gate: apps already driving the lighting, fans or peripherals Nexus is taking over. A full screen like the gates before it, not the sidebar badge\'s ConflictWarningModal. Hosts ConflictOutcomePanel: nothing is applied until a footer button is pressed.',
+    notes: 'No live preview - the footer buttons post real /conflicts/kill requests, so a click here would end a running app.',
+  },
+  {
+    name: 'ConflictOutcomePanel', category: 'cards',
+    filePath: 'src/components/common/ConflictOutcomePanel/ConflictOutcomePanel.tsx',
+    description: 'Shared body of ConflictOnboardingScreen and ConflictWarningModal: one selectable Card per detected app whose click toggles Will terminate against Keeps running, with the device owner switch coupled to the card (until the switch is clicked by hand), a Remove from startup checkbox, and a Keep all running / terminate footer. The onboarding variant adds a HYTE Nexus 2 uninstall card. Nothing is applied until a footer button is pressed.',
+    notes: 'No live preview - it reads the conflict hooks and the footer posts real /conflicts requests.',
   },
   {
     name: 'FanControlImportSection', category: 'modals',
@@ -3286,7 +3351,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Tabs', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Segmented tab group, flat at rest - the active tab carries the --bg pill (the immersive editors override it through --tab-active-bg). Supports optional leading icons through TabDef.icon, per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
+    description: 'Segmented tab group, flat at rest - the active tab carries the --bg pill (the immersive editors override it through --tab-active-bg). Supports optional leading icons through TabDef.icon, an optional hover tooltip through TabDef.tooltip (also on a tab with a trailing control), per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
   },
   {
@@ -3399,6 +3464,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Bottom-docked translucent notice bar overlaid on a preview canvas. Click-through except for the optional action button. tone="wait" is the self-resolving state (GPU still initializing); the default fault tone warns that a shader effect previews in the browser but won\'t run on the service.',
     Preview: PreviewCanvasNoticeBar,
   },
+  {
+    name: 'AreaCells', category: 'status',
+    filePath: 'src/components/common/AreaCells/AreaCells.tsx',
+    description: 'Outlines of the cells Area sampling gives each LED, as one SVG over the unit square of the box it fills. Fixed-width stroke in the LED mark color; a locked LED outline wears its color. Non-interactive.',
+    Preview: PreviewAreaCells,
+  },
 
   // ── Panel kit ─────────────────────────────────────────────────────────
   {
@@ -3410,7 +3481,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'MicroBar', category: 'panel-kit',
     filePath: 'src/panel/widgets/monitoring/MicroBar.tsx',
-    description: 'Single horizontal-progress row used by the Micro monitoring layout (count = 3 on 2x2 / 4x2). Label-left, value-right above a thin progress track. Stack 3 of these + a centered category/model label to compose the Micro tile.',
+    description: 'Single horizontal-progress row used by the Micro monitoring layout (count = 3 on 2x2 / 4x2). Label-left, value-right above a thin progress track. Stack 3 of these + a centered category/model label to compose the Micro tile. The simple design drops the track for a label over a value, aligned left, center, or right.',
     Preview: PreviewMicroBars,
   },
   {

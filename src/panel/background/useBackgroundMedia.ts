@@ -49,7 +49,7 @@ export function useBackgroundMedia(deviceId: string) {
     (async () => {
       for (const item of items) {
         if (thumbsRef.current[item.id]) continue;
-        const blob = await fetchServiceBlob(backgroundMediaThumbnailPath(deviceId, item.id));
+        const blob = await fetchServiceBlob(backgroundMediaThumbnailPath(deviceId, item.id), { mayBeCached: true });
         if (cancelled) return;
         if (blob) {
           const url = URL.createObjectURL(blob);

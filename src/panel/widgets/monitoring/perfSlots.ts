@@ -50,8 +50,25 @@ export const MICRO_WIDE_COUNTS = [6, 8] as const;
 // style: Progress Bar (caption over a thin fill track), Fill (value fill
 // sweeping the whole row behind the caption), and Backdrop (dim filled history
 // graph behind the caption). Rendered by MicroBar, not the tile GaugeComponents.
-export const MICRO_DESIGN_KEYS: GaugeDesignKey[] = ['bar', 'fill', 'backdrop'];
-export const DEFAULT_MICRO_DESIGN: GaugeDesignKey = 'bar';
+// 'simple' is Micro-only: label above value, no track, fill, or graph.
+export type MicroDesignKey = Extract<GaugeDesignKey, 'bar' | 'fill' | 'backdrop'> | 'simple';
+export const MICRO_DESIGN_KEYS: MicroDesignKey[] = ['bar', 'fill', 'backdrop', 'simple'];
+export const DEFAULT_MICRO_DESIGN: MicroDesignKey = 'bar';
+
+export function microDesignOf(config: Record<string, PanelConfigValue> | undefined): MicroDesignKey {
+  const raw = config?.micro_design;
+  return (MICRO_DESIGN_KEYS as unknown[]).includes(raw) ? (raw as MicroDesignKey) : DEFAULT_MICRO_DESIGN;
+}
+
+// Text alignment of the 'simple' design's label and value (`micro_align`).
+export type MicroAlign = 'left' | 'center' | 'right';
+export const MICRO_ALIGN_KEYS: MicroAlign[] = ['left', 'center', 'right'];
+export const DEFAULT_MICRO_ALIGN: MicroAlign = 'left';
+
+export function microAlignOf(config: Record<string, PanelConfigValue> | undefined): MicroAlign {
+  const raw = config?.micro_align;
+  return (MICRO_ALIGN_KEYS as unknown[]).includes(raw) ? (raw as MicroAlign) : DEFAULT_MICRO_ALIGN;
+}
 
 // Multi-device Micro: each row picks its own device (`micro_device{N}`, falling
 // back to the shared `micro_device`) and the bottom device caption is dropped.
@@ -335,8 +352,7 @@ export function resolveSlotDesign(
 }
 
 // Whether this design on this size fills the round glass edge to edge, so the
-// tile drops its padding and scales the figure by the reciprocal of the card's
-// fit. Shared by the live tile and the catalog preview.
+// tile scales as one unit to the rim. Shared by the live tile and the catalog preview.
 export function designFillsRoundFrame(size: PanelWidgetSize, design: GaugeDesignKey): boolean {
   return size === '2x2round' && FRAME_FILLING_DESIGNS.has(design);
 }

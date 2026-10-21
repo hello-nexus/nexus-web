@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
-  SlidersHorizontal, UserRound, FlaskConical, Gamepad2, FolderOpen, Info, MessageCircle, RefreshCw,
+  SlidersHorizontal, UserRound, FlaskConical, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
   ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
 } from 'lucide-react';
@@ -14,9 +14,9 @@ import { hostSupportsGlass } from '../app/windowActions';
 import { applyProfile } from '../api/cooling';
 import { setPanelRemoteControlEnabled, setPanelRelay, setPanelPairBroadcast } from '../api/panel';
 import {
-  startAnimate, stopLighting, startScreenMirror, startGameSync,
+  startAnimate, stopLighting, startScreenMirror,
   setMusicReactive, setGlobalBrightness, setLightingDevicePower, identifyLightingDevice,
-  rescanLightingDevices, reselectScreen, triggerGameSyncScan,
+  rescanLightingDevices, reselectScreen,
 } from '../api/lighting';
 import { setBrandEnabled, setSmartLightEnabled } from '../api/smartLights';
 import { setTrackingEnabled } from '../hooks/useScreenTimeBrowse';
@@ -165,6 +165,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'systemd', 'login', 'autostart', 'auto start', 'launch', 'start with windows'], platforms: ['windows', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.startupDelay.label',  anchor: 'set-startup-delay', keywords: ['startup', 'delay', 'boot', 'autostart', 'auto start', 'launch delay', 'wait'], platforms: ['windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.fastStartup.label', anchor: 'set-fast-startup', keywords: ['fast startup', 'hybrid', 'shutdown', 'hibernate', 'boot', 'usb', 'reset'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.rememberLastPage.label', anchor: 'set-remember-page', keywords: ['remember', 'last page', 'restore', 'reopen', 'resume', 'startup', 'tray'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        anchor: 'set-alerts',     keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.conflictApps.manage.label', anchor: 'set-conflict-apps', keywords: ['conflict', 'conflicting', 'apps', 'applications', 'shut down', 'shutdown', 'close', 'startup'] },
@@ -186,7 +187,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.cooling.label',  anchor: 'set-feature-cooling',  keywords: ['cooling', 'fans', 'on', 'off', 'switch', 'feature'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.schedule.row.label', anchor: 'set-brightness-schedule', keywords: ['schedule', 'brightness', 'dim', 'night', 'evening', 'time', 'timer', 'clock', 'curve', 'leds', 'lights', 'idle', 'inactive', 'screensaver', 'screen off', 'away'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
-  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.audioOutput.label',   anchor: 'set-audio-output', keywords: ['audio', 'output', 'speakers', 'headphones', 'sound', 'music', 'reactive', 'visualizer'], platforms: ['windows'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.audioOutput.label',   anchor: 'set-audio-output', keywords: ['audio', 'output', 'input', 'mic', 'microphone', 'line in', 'speakers', 'headphones', 'sound', 'music', 'reactive', 'visualizer'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.sleepBlackout.label', anchor: 'set-sleep-blackout', keywords: ['sleep', 'suspend', 'standby', 'shutdown', 'power off', 'fade', 'leds', 'lights', 'off', 'ram', 'memory'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.lockBlackout.label', anchor: 'set-lock-blackout', keywords: ['lock', 'locked', 'lock screen', 'away', 'afk', 'fade', 'dim', 'leds', 'lights', 'off'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
@@ -202,6 +203,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.diagnostics.label', anchor: 'set-feature-diagnostics', keywords: ['diagnostics', 'health', 'alerts', 'on', 'off', 'switch', 'feature'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.defaultLabel',  sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-default',   keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'ssd', 'hdd', 'health', 'polling', 'interval', 'spin down', 'sleep'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.perDriveLabel', sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-per-drive', keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'each drive', 'per drive', 'polling', 'interval'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.ramTemperatures.label', anchor: 'set-read-ram-temperatures', keywords: ['ram', 'memory', 'dimm', 'temperature', 'sensor', 'spd', 'restart', 'boot'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data', 'clear'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.localDataStore.fps.label', anchor: 'set-fps-tracking', keywords: ['fps', 'frame rate', 'tracking', 'games', 'data', 'clear'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.localDataStore.monitoringHistory.label', anchor: 'set-monitoring-history-purge', keywords: ['monitoring', 'history', 'graphs', 'purge', 'clear', 'delete', 'data'] },
@@ -240,7 +242,7 @@ const ACCENT_NAMES: Record<string, string> = {
 const LANG_EN: Record<string, string> = {
   en: 'English', 'zh-TW': 'Chinese Traditional', 'zh-CN': 'Chinese Simplified', ja: 'Japanese', ko: 'Korean',
   de: 'German', nl: 'Dutch', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese', 'pt-BR': 'Portuguese Brazil',
-  ru: 'Russian', tr: 'Turkish', pl: 'Polish', fur: 'Friulian',
+  ru: 'Russian', tr: 'Turkish', pl: 'Polish', cs: 'Czech', fur: 'Friulian',
 };
 
 // Lighting modes, keyed by the canonical MODES. `apply` present → runs now;
@@ -252,7 +254,6 @@ const MODE_POLICY: Record<LightingMode, { icon: ReactNode; keywords: string[]; a
   gif:      { icon: <Film size={18} />,      keywords: ['media', 'gif', 'video', 'image'] },
   static:   { icon: <Palette size={18} />,   keywords: ['static', 'solid', 'color', 'colour', 'fill', 'still', 'frozen'] },
   animate:  { icon: <Sparkles size={18} />,  keywords: ['animation', 'animate', 'effects'] },
-  gamesync: { icon: <Gamepad2 size={18} />,  keywords: ['game', 'sync', 'chroma', 'razer', 'rgb'],   apply: () => { void startGameSync().catch(() => {}); } },
 };
 
 // Cooling presets that need the page rather than a blind apply (custom = your
@@ -405,7 +406,7 @@ const devices: SearchSource = (ctx) =>
 const cooling: SearchSource = (ctx) => {
   if (!ctx.online) return [];
   return COOLING_MODES.map(({ key, i18nKey, Icon }) => {
-    const opts = { title: `${ctx.t('cooling.title')} · ${ctx.t(i18nKey)}`, icon: <Icon size={18} />, keywords: ['cooling', 'fan', 'fans', 'preset', 'profile', 'mode', key] };
+    const opts = { title: `${ctx.t('cooling.title')} - ${ctx.t(i18nKey)}`, icon: <Icon size={18} />, keywords: ['cooling', 'fan', 'fans', 'preset', 'profile', 'mode', key] };
     return COOLING_NAVIGATE.has(key)
       ? go(`cooling:${key}`, { ...opts, to: () => ctx.host.goView('cooling') })
       : act(`cooling:${key}`, { ...opts, run: () => { void applyProfile(key).catch(() => {}); } });
@@ -416,7 +417,7 @@ const lightingModes: SearchSource = (ctx) => {
   if (!ctx.online) return [];
   return MODES.map((m) => {
     const p = MODE_POLICY[m.key];
-    const opts = { title: `${ctx.t('lighting.title')} · ${ctx.t(m.labelKey)}`, icon: p.icon, keywords: ['lighting', 'rgb', 'led', m.key, ...p.keywords] };
+    const opts = { title: `${ctx.t('lighting.title')} - ${ctx.t(m.labelKey)}`, icon: p.icon, keywords: ['lighting', 'rgb', 'led', m.key, ...p.keywords] };
     return p.apply
       ? act(`lighting-mode:${m.key}`, { ...opts, run: p.apply })
       : go(`lighting-mode:${m.key}`, { ...opts, to: () => ctx.host.goView('lighting') });
@@ -441,18 +442,18 @@ const lightingEffects: SearchSource = (ctx) => {
 };
 
 // Live appearance toggles. Titles compose from existing localized keys so an
-// Italian user sees "Tema · Scuro"; English keywords stay for cross-language match.
+// Italian user sees "Tema - Scuro"; English keywords stay for cross-language match.
 const appearance: SearchSource = (ctx) => {
   const active = ctx.t('search.hint.active');
   const out = THEMES.map(({ mode, labelKey, icon, words }) => act(`appearance:theme-${mode}`, {
-    title: `${ctx.t('settings.theme')} · ${ctx.t(labelKey)}`, icon, keywords: ['theme', 'mode', 'appearance', ...words],
+    title: `${ctx.t('settings.theme')} - ${ctx.t(labelKey)}`, icon, keywords: ['theme', 'mode', 'appearance', ...words],
     hint: ctx.settings.themeMode === mode ? active : undefined,
     run: () => ctx.updateSettings({ themeMode: mode }),
   }));
   for (const hex of PRESET_ACCENTS) {
     const name = ACCENT_NAMES[hex] ?? hex;
     out.push(act(`appearance:accent-${hex}`, {
-      title: `${ctx.t('settings.accent')} · ${name}`,
+      title: `${ctx.t('settings.accent')} - ${name}`,
       icon: <span className={styles.accentDot} style={{ background: hex }} aria-hidden />,
       keywords: ['accent', 'color', 'colour', 'theme', name],
       hint: ctx.settings.accentColor.toLowerCase() === hex.toLowerCase() ? active : undefined,
@@ -463,7 +464,7 @@ const appearance: SearchSource = (ctx) => {
   }
   for (const lang of LANGUAGES) {
     out.push(act(`appearance:lang-${lang}`, {
-      title: `${ctx.t('settings.language')} · ${LANGUAGE_LABELS[lang]}`,
+      title: `${ctx.t('settings.language')} - ${LANGUAGE_LABELS[lang]}`,
       icon: <Palette size={18} className={styles.langGlyph} />,
       keywords: ['language', 'locale', 'translation', LANG_EN[lang] ?? lang, LANGUAGE_LABELS[lang]],
       hint: ctx.settings.language === lang ? active : undefined,
@@ -477,7 +478,7 @@ const appearance: SearchSource = (ctx) => {
     : BACKGROUND_MODES.filter((m) => m !== 'glass');
   for (const mode of backgroundModes) {
     out.push(act(`appearance:background-${mode}`, {
-      title: `${ctx.t('settings.background')} · ${ctx.t(`settings.background.${mode}`)}`,
+      title: `${ctx.t('settings.background')} - ${ctx.t(`settings.background.${mode}`)}`,
       icon: <Monitor size={18} />,
       keywords: ['background', 'appearance', 'style', mode, 'glass', 'transparency'],
       hint: ctx.settings.backgroundMode === mode ? active : undefined,
@@ -539,7 +540,7 @@ const settingsToggles: SearchSource = (ctx) =>
 const profilesSource: SearchSource = (ctx) => {
   if (!ctx.online) return [];
   return ctx.profiles.map((p) => act(`profile:${p.id}`, {
-    title: `${ctx.t('settings.tab.profiles')} · ${p.name}`,
+    title: `${ctx.t('settings.tab.profiles')} - ${p.name}`,
     icon: <UserRound size={18} />,
     keywords: ['profile', 'preset', 'switch', p.name],
     hint: p.id === ctx.activeProfileId ? ctx.t('search.hint.active') : undefined,
@@ -561,7 +562,7 @@ const profilesExtra: SearchSource = (ctx) => {
   const activeProfile = ctx.profiles.find((p) => p.id === ctx.activeProfileId);
   if (ctx.online && activeProfile) {
     out.push(act('profiles:export', {
-      title: `${ctx.t('profile.export')} · ${activeProfile.name}`,
+      title: `${ctx.t('profile.export')} - ${activeProfile.name}`,
       subtitle: ctx.t('settings.tab.profiles'), icon: <Upload size={18} />,
       keywords: ['profile', 'export', 'backup', 'save', 'json'],
       run: () => { void exportProfile(activeProfile.id, activeProfile.name); },
@@ -618,14 +619,14 @@ const updatePrefs: SearchSource = (ctx) => {
   const active = ctx.t('search.hint.active');
   return [
     ...UPDATE_MODES.map((mode) => act(`update-mode:${mode}`, {
-      title: `${ctx.t('settings.updates.mode.label')} · ${ctx.t(`settings.updates.mode.${mode}`)}`,
+      title: `${ctx.t('settings.updates.mode.label')} - ${ctx.t(`settings.updates.mode.${mode}`)}`,
       icon: <Download size={18} />,
       keywords: ['update', 'updates', 'automatic', 'mode', mode],
       hint: ctx.settings.updateMode === mode ? active : undefined,
       run: () => ctx.updateSettings({ updateMode: mode }),
     })),
     ...(canSwitchChannel() ? UPDATE_CHANNELS : []).map((ch) => act(`update-channel:${ch}`, {
-      title: `${ctx.t('settings.updates.channel.label')} · ${ctx.t(`settings.updates.channel.${ch}`)}`,
+      title: `${ctx.t('settings.updates.channel.label')} - ${ctx.t(`settings.updates.channel.${ch}`)}`,
       icon: <Download size={18} />,
       keywords: ['update', 'updates', 'channel', ch],
       hint: ctx.settings.updateChannel === ch ? active : undefined,
@@ -671,7 +672,7 @@ const lightingExtras: SearchSource = (ctx) => {
   const current = ctx.live.globalBrightness;
   for (const pct of BRIGHTNESS_STEPS) {
     out.push(act(`brightness:${pct}`, {
-      title: `${ctx.t('lighting.devices.brightness')} · ${pct}%`,
+      title: `${ctx.t('lighting.devices.brightness')} - ${pct}%`,
       subtitle: ctx.t('lighting.title'), icon: <Sun size={18} />,
       keywords: ['brightness', 'bright', 'dim', 'lighting', 'rgb', String(pct)],
       hint: current !== null && Math.round(current * 100) === pct ? active : undefined,
@@ -704,7 +705,7 @@ const lightingDeviceActions: SearchSource = (ctx) => {
       isOn: d.ledsOn, set: (en) => { void setLightingDevicePower(d.id, en).catch(() => {}); },
     }),
     act(`light-identify:${d.id}`, {
-      title: `${ctx.t('lighting.devices.identify')} · ${d.name}`,
+      title: `${ctx.t('lighting.devices.identify')} - ${d.name}`,
       subtitle: ctx.t('lighting.title'), icon: <Crosshair size={18} />,
       keywords: ['identify', 'find', 'locate', 'blink', 'flash', d.name],
       run: () => { void identifyLightingDevice(d.id).catch(() => {}); },
@@ -719,7 +720,7 @@ const smartLightsSource: SearchSource = (ctx) => {
   for (const [brand, enabled] of Object.entries(ctx.live.smartLights.brandEnabled ?? {})) {
     const name = brand.charAt(0).toUpperCase() + brand.slice(1);
     out.push(toggleEntry(`smart-brand:${brand}`, {
-      label: `${ctx.t('smartLights.title')} · ${name}`, icon: <Lightbulb size={18} />,
+      label: `${ctx.t('smartLights.title')} - ${name}`, icon: <Lightbulb size={18} />,
       keywords: ['smart', 'lights', 'brand', brand, 'bulb'],
       isOn: enabled, set: (en) => { void setBrandEnabled(brand, en).catch(() => {}); },
     }));
@@ -734,17 +735,6 @@ const smartLightsSource: SearchSource = (ctx) => {
   return out;
 };
 
-// Game Sync's installed-games rescan; the mode itself is in lightingModes.
-const gameSyncScan: SearchSource = (ctx) => {
-  if (!ctx.online || ctx.platform !== 'windows') return [];
-  return [act('gamesync:scan', {
-    title: `${ctx.t('lighting.mode.gamesync')} · ${ctx.t('lighting.gameSync.games.rescan')}`,
-    icon: <Gamepad2 size={18} />,
-    keywords: ['game', 'sync', 'scan', 'rescan', 'games', 'detect', 'steam'],
-    run: () => { void triggerGameSyncScan().catch(() => {}); },
-  })];
-};
-
 // OBS + Discord live controls, present only while the integration reports a
 // state to flip (OBS connected; Discord in a voice channel).
 const integrations: SearchSource = (ctx) => {
@@ -752,12 +742,12 @@ const integrations: SearchSource = (ctx) => {
   const obs = ctx.live.obs;
   if (obs?.connected) {
     out.push(toggleEntry('obs:recording', {
-      label: `OBS · ${ctx.t('panel.widget.obs.record')}`, icon: <Disc size={18} />,
+      label: `OBS - ${ctx.t('panel.widget.obs.record')}`, icon: <Disc size={18} />,
       keywords: ['obs', 'record', 'recording', 'capture'],
       isOn: obs.recording, set: () => { void toggleObsRecording().catch(() => {}); },
     }));
     out.push(toggleEntry('obs:streaming', {
-      label: `OBS · ${ctx.t('panel.widget.obs.stream')}`, icon: <Radio size={18} />,
+      label: `OBS - ${ctx.t('panel.widget.obs.stream')}`, icon: <Radio size={18} />,
       keywords: ['obs', 'stream', 'streaming', 'live', 'broadcast'],
       isOn: obs.streaming, set: () => { void toggleObsStreaming().catch(() => {}); },
     }));
@@ -765,12 +755,12 @@ const integrations: SearchSource = (ctx) => {
   const discord = ctx.live.discord;
   if (discord?.connected && discord.voiceState) {
     out.push(toggleEntry('discord:mute', {
-      label: `Discord · ${ctx.t('discord.mute')}`, icon: <Mic size={18} />,
+      label: `Discord - ${ctx.t('discord.mute')}`, icon: <Mic size={18} />,
       keywords: ['discord', 'mute', 'microphone', 'mic', 'voice'],
       isOn: discord.voiceState.selfMute, set: (en) => { void setDiscordMute(en).catch(() => {}); },
     }));
     out.push(toggleEntry('discord:deafen', {
-      label: `Discord · ${ctx.t('discord.deafen')}`, icon: <Headphones size={18} />,
+      label: `Discord - ${ctx.t('discord.deafen')}`, icon: <Headphones size={18} />,
       keywords: ['discord', 'deafen', 'deaf', 'audio', 'voice'],
       isOn: discord.voiceState.selfDeaf, set: (en) => { void setDiscordDeaf(en).catch(() => {}); },
     }));
@@ -870,7 +860,11 @@ const diagnostics: SearchSource = (ctx) => [
     subtitle: ctx.t('settings.diagnostics.title'),
     icon: <FolderOpen size={18} />,
     keywords: ['folder', 'data', 'files', 'programdata', 'app data', 'settings.json', 'diagnostics'],
-    run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
+    run: () => {
+      void postService('/diagnostics/open-logs', {})
+        .then(res => { if (!res) ctx.notify(ctx.t('common.openFolderFailed')); })
+        .catch(() => ctx.notify(ctx.t('common.openFolderFailed')));
+    },
   }),
   ...(ctx.online ? [
     act('diag:download-report', {
@@ -906,7 +900,7 @@ export const SOURCES: SearchSource[] = [
   navigation, navDisplays, navSubtabs, settingsTabs, settingsItems, standalonePages,
   pageOnlyApps, installedApps, widgetApps, devices, profilesSource, profilesExtra,
   cooling, lightingModes, lightingEffects, lightingExtras, lightingDeviceActions,
-  smartLightsSource, gameSyncScan, appearance, updatePrefs,
+  smartLightsSource, appearance, updatePrefs,
   actions, quickOpens, remoteAccess, settingsToggles, privacyToggles,
   integrations, systemMedia, accountExtra, diagnostics,
 ];

@@ -314,9 +314,18 @@ describe('LightingTouch remembered selection', () => {
   });
 
   it('desktop: reads the selection storage holds on a fresh mount, as after a restart', async () => {
-    localStorage.setItem('nexus.lighting.pinSelection', JSON.stringify(['dev-b']));
+    localStorage.setItem('nexus.lighting.pinSelection.immersive', JSON.stringify(['dev-b']));
     render(<LightingTouch widget={widget} />);
     await waitFor(() => expect(selected()).toEqual(['dev-b']));
+  });
+
+  it.each([null, 'panel-a'])('never shares its selection with the desktop Lighting page (panel %s)', async panelId => {
+    localStorage.setItem('nexus.lighting.pinSelection', JSON.stringify(['dev-b']));
+    render(inPanel(panelId, <LightingTouch widget={widget} />));
+    await waitFor(() => expect(selectProps.current).not.toBeNull());
+    expect(selected()).toEqual([]);
+    await select(['dev-a', 'dev-b']);
+    expect(JSON.parse(localStorage.getItem('nexus.lighting.pinSelection')!)).toEqual(['dev-b']);
   });
 
   it('keeps each panel its own selection, restored from the service on reopen', async () => {
@@ -338,11 +347,25 @@ describe('LightingTouch remembered selection', () => {
     expect(panelRecords.current['panel-b']?.lightingSelection).toEqual(['dev-b']);
   });
 
-  it('drops a remembered device that is no longer present and keeps the rest', async () => {
+  it('hides a remembered device that is not listed without forgetting it', async () => {
     panelRecords.current['panel-a'] = { lightingSelection: ['dev-a', 'gone'] };
     render(inPanel('panel-a', <LightingTouch widget={widget} />));
     await waitFor(() => expect(selected()).toEqual(['dev-a']));
-    await waitFor(() => expect(panelRecords.current['panel-a'].lightingSelection).toEqual(['dev-a']));
+    expect(panelRecords.current['panel-a'].lightingSelection).toEqual(['dev-a', 'gone']);
+  });
+
+  it('keeps the whole remembered selection when the device list is still filling in', async () => {
+    panelRecords.current['panel-a'] = { lightingSelection: ['dev-a', 'dev-b'] };
+    vi.mocked(fetchLightingDevices).mockImplementation(() => Promise.resolve({ devices: [lightDevice('dev-a')] }) as never);
+    const first = render(inPanel('panel-a', <LightingTouch widget={widget} />));
+    await waitFor(() => expect(selected()).toEqual(['dev-a']));
+    first.unmount();
+    selectProps.current = null;
+
+    vi.mocked(fetchLightingDevices).mockImplementation(() => Promise.resolve({ devices: [lightDevice('dev-a'), lightDevice('dev-b')] }) as never);
+    render(inPanel('panel-a', <LightingTouch widget={widget} />));
+    await waitFor(() => expect(selected()).toEqual(['dev-a', 'dev-b']));
+    expect(panelRecords.current['panel-a'].lightingSelection).toEqual(['dev-a', 'dev-b']);
   });
 });
 

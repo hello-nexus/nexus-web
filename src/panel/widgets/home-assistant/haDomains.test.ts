@@ -47,7 +47,7 @@ describe('haDomains', () => {
     expect(stateLabel(entity({ on: true, supportsBrightness: true, brightnessPct: 40 }), t, 'en')).toBe('40%');
     expect(stateLabel(entity({ domain: 'script', state: 'on' }), t, 'en')).toBe('homeAssistant.state.running');
     expect(stateLabel(entity({ domain: 'scene', state: '2026-01-01T00:00:00Z' }), t, 'en')).toBe('homeAssistant.action.activate');
-    expect(stateLabel(entity({ domain: 'cover', state: 'open', positionPct: 60 }), t, 'en')).toBe('homeAssistant.state.open · 60%');
+    expect(stateLabel(entity({ domain: 'cover', state: 'open', positionPct: 60 }), t, 'en')).toBe('homeAssistant.state.open - 60%');
     expect(stateLabel(entity({ domain: 'cover', state: 'closed', positionPct: 0 }), t, 'en')).toBe('homeAssistant.state.closed');
     expect(stateLabel(entity({ domain: 'lock', state: 'jammed' }), t, 'en')).toBe('homeAssistant.state.jammed');
     expect(stateLabel(entity({ domain: 'binary_sensor', deviceClass: 'door', on: true }), t, 'en')).toBe('homeAssistant.state.open');

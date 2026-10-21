@@ -17,6 +17,7 @@ import {
 } from '../../../../api/mediaLibrary';
 import { stageKlipy, type KlipyGif } from '../../../../api/klipy';
 import { useTranslation } from '../../../../lib/i18n';
+import { useToastSafe } from '../../../../components/common/Toast/Toast';
 import type { LightingMode } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
@@ -53,7 +54,6 @@ export const ModeControls = memo(function ModeControls({ mode, screenPP, onScree
     case 'screen': return <ScreenControls screenPP={screenPP} onScreenPPChange={onScreenPPChange} keepMode={keepMode} onSelectionPick={onSelectionPick} onBlockedPick={onBlockedPick} />;
     case 'gif': return <MediaControls keepMode={keepMode} onSelectionPick={onSelectionPick} onBlockedPick={onBlockedPick} />;
     case 'none': return <OffControls />;
-    case 'gamesync': return null;
   }
 });
 
@@ -175,6 +175,7 @@ const LIGHTING_CROP_ASPECT = 160 / 90;
 
 function MediaControls({ keepMode, onSelectionPick, onBlockedPick }: { keepMode: boolean; onSelectionPick?: () => void; onBlockedPick?: () => void }) {
   const { t } = useTranslation();
+  const { push } = useToastSafe();
   const { items, activeId, thumbs, refresh, play: playShared, removeLocal } = useMediaLibrary();
   const play = useCallback(async (id: string) => {
     if (onBlockedPick) { onBlockedPick(); return; }
@@ -272,7 +273,7 @@ function MediaControls({ keepMode, onSelectionPick, onBlockedPick }: { keepMode:
   }, [t]);
 
   const handleOpenFolder = async () => {
-    await openMediaFolder();
+    if (!await openMediaFolder()) push({ title: t('common.openFolderFailed') });
   };
 
   const handleDelete = async (id: string) => {

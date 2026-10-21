@@ -100,7 +100,7 @@ const hazard = {
 };
 
 async function triggerSave() {
-  localStorage.setItem('nexus.cooling.selectedFans', JSON.stringify(['fan-case']));
+  localStorage.setItem('nexus.cooling.selectedFans.immersive', JSON.stringify(['fan-case']));
   render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
   fireEvent.click(await screen.findByRole('button', { name: 'My Graph Curve' }));
 }

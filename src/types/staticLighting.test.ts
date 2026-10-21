@@ -11,7 +11,7 @@ import {
 
 describe('static mode catalog', () => {
   it('sits between off and animation in the mode row', () => {
-    expect(MODES.map(m => m.key)).toEqual(['none', 'static', 'animate', 'gif', 'screen', 'gamesync']);
+    expect(MODES.map(m => m.key)).toEqual(['none', 'static', 'animate', 'gif', 'screen']);
   });
 
   it('gives the solid fills to static only', () => {
@@ -70,7 +70,6 @@ describe('normalizeSync', () => {
     expect(normalizeSync('')).toBe('none');
     expect(normalizeSync('screen')).toBe('screen');
     expect(normalizeSync('gif')).toBe('gif');
-    expect(normalizeSync('gamesync')).toBe('gamesync');
   });
 });
 

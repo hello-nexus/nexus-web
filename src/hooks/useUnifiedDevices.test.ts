@@ -378,6 +378,18 @@ describe('useUnifiedDevices - cooler LCD rows', () => {
     expect(result.current.unified.find(d => d.curatedId === 'lianli-hydroshift2')?.warning).toBeUndefined();
   });
 
+  it('drops the access-denied warning while Nexus Control is off', () => {
+    mockUseDevices.mockReturnValue({ devices: [lcd({ nexusControlEnabled: false, warning: 'access-denied' })], controlDevice: vi.fn() });
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'lianli-hydroshift2')?.warning).toBeUndefined();
+  });
+
+  it('keeps the access-denied warning while Nexus Control is on', () => {
+    mockUseDevices.mockReturnValue({ devices: [lcd({ warning: 'access-denied' })], controlDevice: vi.fn() });
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'lianli-hydroshift2')?.warning).toBe('access-denied');
+  });
+
   it('keeps the pipe-unavailable warning while Nexus Control is on', () => {
     mockUseDevices.mockReturnValue({ devices: [lcd()], controlDevice: vi.fn() });
     const { result } = renderHook(() => useUnifiedDevices(true));
@@ -598,5 +610,51 @@ describe('deviceTitle', () => {
     expect(deviceTitle(list, 'curated-corsair')).toBe('Corsair iCUE LINK Hub');
     expect(deviceTitle(list, 'streamdeck:SN1')).toBe('Streaming Deck');
     expect(deviceTitle(list, 'missing')).toBeUndefined();
+  });
+});
+
+describe('useUnifiedDevices - simulator beside a real Y70', () => {
+  const panel = (over: Partial<PanelDevice>): PanelDevice => ({
+    id: 'device:y70',
+    name: 'HYTE Y70 Touch',
+    subtitle: '',
+    status: 'online',
+    statusLabel: 'Online',
+    connectionKind: 'attached-monitor',
+    managementMode: 'managed',
+    surfaceProfileKey: 'y70-portrait',
+    runtimeSurface: 'y70',
+    sourceId: 'y70',
+    iconSrc: '/y70.svg',
+    capabilities: { layout: true, theme: true, displayControls: true, launchClose: true, pairing: false, presence: false, touch: true },
+    ...over,
+  });
+
+  it('keeps two separately addressable rows; only the real one is backed by the curated Y70', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ id: 'y70', name: 'HYTE Y70 Touch', category: 'display', connected: true, nexusControlEnabled: false })],
+      controlDevice: vi.fn(),
+    });
+    mockUsePanelDevices.mockReturnValue({
+      devices: [
+        panel({}),
+        panel({ id: 'simulated:y70', name: 'HYTE Y70 Touch 2.5K', connectionKind: 'simulated', managementMode: 'managed-test', surfaceProfileKey: 'simulated-y70' }),
+      ],
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const rows = result.current.unified;
+
+    expect(rows.map(r => r.key)).not.toContain('curated-y70');
+    expect(rows).toHaveLength(2);
+    expect(new Set(rows.map(r => r.key)).size).toBe(2);
+    const [real, simulated] = rows;
+    expect(real.curatedId).toBe('y70');
+    expect(real.nexusControlEnabled).toBe(false);
+    expect(simulated.curatedId).toBeUndefined();
+    expect(simulated.nexusControlEnabled).toBe(true);
+    expect(simulated.supportsNexusControl).toBe(false);
+    expect(simulated.panelDevice?.sourceId).toBe('y70');
   });
 });

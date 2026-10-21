@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { DeviceCanvas } from './DeviceCanvas';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
+import { clearLedFrame } from '../../../lib/ledFrameStore';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
@@ -25,7 +26,12 @@ function dragDevice(id: string, name: string): LightingDevice {
   } as unknown as LightingDevice;
 }
 
+const LEFT = [0, 0, 0.5, 0, 0.5, 1, 0, 1];
+const RIGHT = [0.5, 0, 1, 0, 1, 1, 0.5, 1];
+
 describe('DeviceCanvas', () => {
+  afterEach(() => { clearLedFrame(); });
+
   it('reports a gesture over when the frames hide mid-drag', () => {
     const onDragActiveChange = vi.fn();
     const props = {
@@ -56,6 +62,69 @@ describe('DeviceCanvas', () => {
     expect(frames.map(f => f.classList.contains(styles.foreign))).toEqual([false, true]);
     expect(frames.map(f => f.querySelectorAll(`.${styles.ledDot}`).length)).toEqual([1, 0]);
     expect(frames[1].querySelector(`.${styles.foreignCaption}`)?.textContent).toBe('Static');
+  });
+
+  it('outlines each LED cell for an area-sampling device, skips empty cells, and draws dots otherwise', () => {
+    const leds = { a: [{ index: 0, u: 0.5, v: 0.5 }], b: [{ index: 0, u: 0.5, v: 0.5 }] } as never;
+    const a = { ...dragDevice('a', 'A'), sampling: 'nearest', areaCells: [LEFT, [], RIGHT] } as LightingDevice;
+    const { container } = render(
+      <DeviceCanvas
+        devices={[a, dragDevice('b', 'B')]}
+        selectedIds={new Set(['a', 'b'])}
+        selectedDeviceLeds={leds}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const frames = [...container.querySelectorAll<HTMLElement>(`.${styles.device}`)];
+    expect(frames.map(f => f.querySelectorAll('polygon').length)).toEqual([2, 0]);
+    expect(frames.map(f => f.querySelectorAll(`.${styles.ledDot}`).length)).toEqual([0, 1]);
+    expect(frames[0].querySelector('polygon')!.getAttribute('points')).toBe('0,0 0.5,0 0.5,1 0,1');
+  });
+
+  it('shows no sibling dots beside an area-sampled card unless the sibling is the selected slot', () => {
+    const keys = { ...dragDevice('keys', 'Keys'), sampling: 'nearest', areaCells: [LEFT, RIGHT] } as LightingDevice;
+    const under = dragDevice('under', 'Under');
+    const leds = { keys: [{ index: 0, u: 0.5, v: 0.5 }], under: [{ index: 0, u: 0.1, v: 0.1 }] } as never;
+    const mount = (primary: string) => render(
+      <DeviceCanvas
+        devices={[keys, under]}
+        selectedIds={new Set(['keys', 'under'])}
+        selectedDeviceLeds={leds}
+        primaryDeviceId={primary}
+        stacks={[{ id: 's', name: '', members: ['keys', 'under'] }]}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const first = mount('keys');
+    expect(first.container.querySelectorAll('polygon').length).toBe(2);
+    expect(first.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(0);
+    first.unmount();
+    const second = mount('under');
+    expect(second.container.querySelectorAll('polygon').length).toBe(2);
+    expect(second.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(1);
+  });
+
+  it('a locked LED cell outline wears its color', () => {
+    const a = {
+      ...dragDevice('a', 'A'),
+      sampling: 'nearest', areaCells: [LEFT, RIGHT],
+      ledColors: [{ index: 1, color: '#ff0000' }],
+    } as unknown as LightingDevice;
+    const { container } = render(
+      <DeviceCanvas
+        devices={[a]}
+        selectedIds={new Set(['a'])}
+        selectedDeviceLeds={{ a: [] }}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const polys = [...container.querySelectorAll<SVGElement>('polygon')];
+    expect(polys.map(p => p.style.stroke)).toEqual(['', 'rgb(255, 0, 0)']);
   });
 
   it('draws no frames or names when asked to hide them', () => {
@@ -728,5 +797,54 @@ describe('DeviceCanvas stacks', () => {
     fireEvent.contextMenu(screen.getByText('Loose'));
     fireEvent.click(screen.getByText('lighting.devices.stackCount.one'));
     expect(stack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('minimizeInto grid slots', () => {
+  // The origin/main rule, one slot per device, kept here as the reference.
+  function referenceSlot(index: number, n: number) {
+    const GRID_PAD = 12, MIN_W = 140, MIN_H = 120, STAGGER = 24;
+    const availW = 1000 - 2 * GRID_PAD, availH = 600 - 2 * GRID_PAD;
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n * (availW / availH))));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const cellW = availW / cols, cellH = availH / rows;
+    const fit = Math.min(Math.min(MIN_W, cellW * 0.92) / MIN_W, Math.min(MIN_H, cellH * 0.7) / MIN_H);
+    const w = MIN_W * fit, h = MIN_H * fit;
+    const total = cols * rows;
+    const sl = ((index % total) + total) % total;
+    const col = sl % cols, row = Math.floor(sl / cols);
+    const slack = (cellH - h) * 0.5;
+    const stagger = Math.min(STAGGER, slack);
+    let x = GRID_PAD + col * cellW + (cellW - w) * 0.5;
+    let y = GRID_PAD + row * cellH + slack + (col % 2 === 0 ? -stagger : stagger);
+    if (x > 1000 - GRID_PAD - w) x = 1000 - GRID_PAD - w;
+    if (y > 600 - GRID_PAD - h) y = 600 - GRID_PAD - h;
+    if (x < GRID_PAD) x = GRID_PAD;
+    if (y < GRID_PAD) y = GRID_PAD;
+    return { canvasX: x, canvasY: y, canvasW: w, canvasH: h };
+  }
+  const rect = (d: LightingDevice) => ({ canvasX: d.canvasX, canvasY: d.canvasY, canvasW: d.canvasW, canvasH: d.canvasH });
+  const make = (ids: string[]) => ids.map(id => dragDevice(id, id));
+
+  it('matches the one-slot-per-device rule when no device is a Flex zone', () => {
+    for (const n of [1, 2, 3, 5, 8, 13]) {
+      const devices = make(Array.from({ length: n }, (_, i) => `rgb:${i}`));
+      minimizeInto(devices, devices);
+      devices.forEach((d, i) => expect(rect(d)).toEqual(referenceSlot(i, n)));
+    }
+  });
+
+  it('puts the zones of one Flex fan into one shared rect', () => {
+    const devices = make(['lianli-flex:AA11:up', 'lianli-flex:AA11:down']);
+    minimizeInto(devices, devices);
+    expect(rect(devices[0])).toEqual(rect(devices[1]));
+    expect(rect(devices[0])).toEqual(referenceSlot(0, 1));
+  });
+
+  it('numbers slots like the service: a slot per non-Flex device and per fan, in list order', () => {
+    const devices = make(['rgb:a', 'lianli-flex:AA11:up', 'lianli-flex:AA11:down', 'rgb:b', 'lianli-flex:BB22:center', 'lianli-flex:AA11:extra', 'lianli-flex:CC33']);
+    minimizeInto(devices, devices);
+    const slots = [0, 1, 1, 2, 3, 1, 4];
+    devices.forEach((d, i) => expect(rect(d)).toEqual(referenceSlot(slots[i], 5)));
   });
 });

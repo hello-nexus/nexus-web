@@ -7,6 +7,10 @@ export interface LianLiWirelessFan {
   /** Bound master MAC, or empty when unbound. */
   masterMac: string;
   boundToUs: boolean;
+  /** A live LCD Flex chain on this PC's radio, the ones with built-in wireless themes. */
+  flexLcdEligible?: boolean;
+  /** Bound LCD Flex chain regardless of a stale blip. */
+  flexLcdChain?: boolean;
   channel: number;
   /** rx_type slot (1..14); 0 or 0xFE means unbound. */
   slot: number;
@@ -26,6 +30,26 @@ export interface LianLiWirelessFan {
   pwmCableConnected?: boolean;
   /** A HydroShift II that is also on USB, whose screen has its own panel page. */
   usbConnected?: boolean;
+  /** Wired LCD Flex units only: "tlFlex" or "slInfFlex". */
+  family?: string;
+  /** Wired LCD Flex units only: serial of the paired screen, empty when none. */
+  screenSerial?: string;
+  /** Wired LCD Flex units only: the screen is mid restart. */
+  lcdRestarting?: boolean;
+  /** Wired LCD Flex units only: bound to a wireless master elsewhere, so Nexus lighting and cooling are off. */
+  receiverBound?: boolean;
+  /** Wired LCD Flex units only: screen firmware, empty until read. */
+  lcdFirmware?: string;
+  /** Wired LCD Flex units only: position in the light sequence. */
+  sortIndex?: number;
+  /** Wired LCD Flex units only: the unit is flashing for Identify. */
+  identifying?: boolean;
+  /** A Flex unit that the wired LCD Flex page owns, so it is not offered for RF binding here. */
+  wiredOwned?: boolean;
+  /** A Flex unit plugged in over USB and bound to this PC's radio, which drives its lighting and fan speed. */
+  radioDrivesUsb?: boolean;
+  /** Wired LCD Flex units only: bound to this PC's radio. */
+  radioBound?: boolean;
 }
 
 /** Why the link is down, for the device page. Absent on a service older than the field. */
@@ -45,8 +69,13 @@ export interface LianLiWirelessState {
   masterMac: string;
   channel: number;
   txFirmwareVersion: number;
+  /** Re-bind owned chains that drop or get bound elsewhere. Absent on an older service, which has no lock. */
+  lockBoundDevices?: boolean;
   fans: LianLiWirelessFan[];
 }
+
+/** What the Devices, Cooling and Lighting tabs read: the wireless state, or the subset a wired unit reports. */
+export type LianLiFansState = Pick<LianLiWirelessState, 'isConnected' | 'fans'> & Partial<LianLiWirelessState>;
 
 export function getLianLiWirelessState(): Promise<LianLiWirelessState | null> {
   return fetchService<LianLiWirelessState>('/devices/lianli-wireless/state');
@@ -69,6 +98,10 @@ export async function unbindLianLiWirelessFan(mac: string): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/unbind', { mac }));
 }
 
+export async function setLianLiWirelessLockBound(enabled: boolean): Promise<boolean> {
+  return isOk(await putService<OkResponse>('/devices/lianli-wireless/lock', { enabled }));
+}
+
 export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/identify', { mac }));
 }
@@ -81,6 +114,8 @@ export interface LianLiWirelessLightingEffect {
   colorsMax: number;
   /** Has a variant that runs across every fan of the chain. Absent on an older service. */
   mergeable?: boolean;
+  /** Palette the effect plays when no colors are chosen, as #RRGGBB. Absent on a service that has none. */
+  defaultColors?: string[];
 }
 
 export interface LianLiWirelessLane {
@@ -123,15 +158,46 @@ export interface LianLiWirelessChainLighting {
   argbCableConnected?: boolean;
   /** The chain reports it is playing its motherboard input. */
   playingMotherboardArgb?: boolean;
+  /** Wired LCD Flex only: the fan has zones that can each play their own effect (mode 'perZone'). */
+  supportsZones?: boolean;
+  zones?: LianLiFlexZone[];
+  /** Wired TL Flex only: the two halves are exchanged. Null or absent when the fan has no such switch. */
+  upDownSwap?: boolean | null;
+  /** Wired LCD Flex only: position in the light sequence. */
+  sortIndex?: number;
+}
+
+/** One independently lit part of a wired LCD Flex fan, with its own effect. */
+export interface LianLiFlexZone {
+  id: 'up' | 'down' | 'center' | 'inner' | 'outer';
+  ledCount: number;
+  mode: string;
+  speed: number;
+  direction: number;
+  brightness: number;
+  colors: string[];
 }
 
 export interface LianLiWirelessLighting {
+  /** The unit whose look a merged group plays, as the service decided; null when no unit leads. Absent on an older service. */
+  mergeLeaderMac?: string | null;
   laneModes: string[];
   chains: LianLiWirelessChainLighting[];
 }
 
+export type LianLiFlexZonePatch = Partial<Omit<LianLiFlexZone, 'ledCount'>> & Pick<LianLiFlexZone, 'id'>;
+
 export type LianLiWirelessChainPatch = Partial<Pick<LianLiWirelessChainLighting,
-  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings' | 'motherboardArgb'>>;
+  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings' | 'motherboardArgb'
+  | 'upDownSwap' | 'sortIndex'>> & { zones?: LianLiFlexZonePatch[] };
+
+/** The lighting endpoints of one Lian Li fan family; the Lighting tab is written against this. */
+export interface LianLiChainLightingApi {
+  get: () => Promise<LianLiWirelessLighting | null>;
+  set: (mac: string, patch: LianLiWirelessChainPatch) => Promise<boolean>;
+  /** Wired LCD Flex only: restores the default look of one fan. */
+  reset?: (mac: string) => Promise<boolean>;
+}
 
 export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | null> {
   return fetchService<LianLiWirelessLighting>('/devices/lianli-wireless/lighting');
@@ -172,6 +238,56 @@ export function getLianLiAioScreen(mac: string): Promise<LianLiAioScreen | null>
 
 export async function setLianLiAioScreen(mac: string, patch: LianLiAioScreenPatch): Promise<boolean> {
   return isOk(await putService<OkResponse>(`/devices/lianli-wireless/aio-screen/${encodeURIComponent(mac)}`, patch));
+}
+
+export interface LianLiFlexLcdTheme {
+  index: number;
+  /** Editable colors of the theme: 5 = two graph and three text colors, 4 = one graph and three text, 3 = text only, 0 = none. */
+  colorCount: number;
+  defaults: string[];
+}
+
+export interface LianLiFlexLcdFan {
+  theme: number;
+  /** Index into the 25 data sources of L-Connect's wireless themes. */
+  source: number;
+  /** One "#RRGGBB" per editable color of the theme; null for the theme's defaults. */
+  colors: string[] | null;
+}
+
+export interface LianLiFlexLcdChain {
+  mac: string;
+  /** TL chains only. */
+  upDownSwap?: boolean | null;
+  family: 'tlFlex' | 'slInfFlex';
+  fanCount: number;
+  enabled: boolean;
+  brightness: number;
+  rotation: number;
+  fans: LianLiFlexLcdFan[];
+}
+
+export interface LianLiFlexLcd {
+  sourceCount: number;
+  themes: LianLiFlexLcdTheme[];
+  chains: LianLiFlexLcdChain[];
+}
+
+export interface LianLiFlexLcdPatch {
+  upDownSwap?: boolean;
+  enabled?: boolean;
+  brightness?: number;
+  rotation?: number;
+  fans?: { index: number; theme?: number; source?: number; colors?: string[] }[];
+}
+
+/** TL / SL-INF LCD Flex fans on this PC's radio and their built-in wireless themes. */
+export function getLianLiFlexLcd(): Promise<LianLiFlexLcd | null> {
+  return fetchService<LianLiFlexLcd>('/devices/lianli-wireless/flex-lcd');
+}
+
+export async function setLianLiFlexLcd(mac: string, patch: LianLiFlexLcdPatch): Promise<boolean> {
+  return isOk(await putService<OkResponse>(`/devices/lianli-wireless/flex-lcd/${encodeURIComponent(mac)}`, patch));
 }
 
 export type LianLiWirelessScreenContentType =

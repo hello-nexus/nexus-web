@@ -146,6 +146,17 @@ describe('useConflictDevices.setOwner', () => {
     expect(mockSetConflictWhitelisted).toHaveBeenCalledWith('icue', true);
   });
 
+  it('writes hidden OpenRGB cards while OpenRGB is off, though the list shows none', async () => {
+    mockFetchLightingDevices.mockResolvedValue({ isInit: true, devices: [...hubCards], allDevices: [...hubCards, ram], rgbRunning: false });
+    const { result } = renderHook(() => useConflictDevices([icue], true));
+    await waitFor(() => expect(result.current.devicesByApp.get('icue')).toHaveLength(1));
+    expect(result.current.devicesByApp.get('icue')?.some(d => d.key.startsWith('lighting:'))).toBe(false);
+
+    await act(async () => { await result.current.setOwner('icue', 'app'); });
+
+    expect(mockSetLightingDeviceControlled.mock.calls).toEqual([['openrgb-s-RAM1', false]]);
+  });
+
   it('reports a whitelist write the service rejected or never answered', async () => {
     const { result } = renderHook(() => useConflictDevices([icue], true));
     await waitFor(() => expect(result.current.devicesByApp.get('icue')).toHaveLength(2));

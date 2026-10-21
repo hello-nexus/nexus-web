@@ -1,35 +1,41 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { Button } from '../../common/Button/Button';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { LightingPageSwitch } from './LightingPageSwitch';
 import {
   getLianLiWirelessLighting,
   setLianLiWirelessChainLighting,
+  type LianLiChainLightingApi,
+  type LianLiFlexZone,
   type LianLiWirelessChainLighting,
   type LianLiWirelessChainPatch,
   type LianLiWirelessLane,
   type LianLiWirelessLighting,
 } from '../../../api/lianli-wireless';
 import { fanTypeKey } from './LianLiWirelessFansTab';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { LIANLI_DEFAULT_COLORS as DEFAULT_COLORS, LianLiChainEffectControls, effectLabel } from './LianLiChainEffectControls';
+import { applyChainPatch, canMerge, mergeLeaderMac, moveInSequence, numberDuplicateTitles, patchAffectsLeader, sortBySequence } from './lianliChainUtils';
 import { useTranslation } from '../../../lib/i18n';
-import { localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
-const PERCENT_PER_LEVEL = 25;
+const WIRELESS_LIGHTING_API: LianLiChainLightingApi = {
+  get: () => getLianLiWirelessLighting(),
+  set: (mac, patch) => setLianLiWirelessChainLighting(mac, patch),
+};
+
+// The longest a write in flight keeps reads from applying.
+const WRITE_HOLD_MS = 10000;
+
 const MODE_CUSTOM = 'custom';
 const MODE_PER_LANE = 'perLane';
+const MODE_PER_ZONE = 'perZone';
 const DEFAULT_LANE_MODE = 'rainbow';
 const DEFAULT_EFFECT = 'rainbow';
-// The palette the service renders with when a chain has no user colours.
-const DEFAULT_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
 
 type Translate = ReturnType<typeof useTranslation>['t'];
-
-function effectLabel(t: Translate, key: string): string {
-  return t(`devices.lianliEffect.${key}` as Parameters<Translate>[0]);
-}
 
 function chainTitle(t: Translate, chain: LianLiWirelessChainLighting): string {
   return chain.kind === 'strimer'
@@ -45,19 +51,88 @@ function lanesOf(chain: LianLiWirelessChainLighting): LianLiWirelessLane[] {
   });
 }
 
+const ZONE_LABEL_KEYS: Record<LianLiFlexZone['id'], string> = {
+  up: 'devices.lianli-flex.zoneUp',
+  down: 'devices.lianli-flex.zoneDown',
+  center: 'devices.lianli-flex.zoneCenter',
+  inner: 'devices.lianli-flex.zoneInner',
+  outer: 'devices.lianli-flex.zoneOuter',
+};
+
 interface LianLiWirelessLightingTabProps {
   onSectionNavigate?: (section: string) => void;
+  /** The lighting endpoints of the device family; the wireless ones by default. */
+  api?: LianLiChainLightingApi;
+  /** Rendered above the chains, for example a group control; it receives the chains as last read and each unit's name on this page. */
+  header?: (chains: readonly LianLiWirelessChainLighting[], names: ReadonlyMap<string, string>) => ReactNode;
+  /** The wired fans are synced as a group, so their own look controls do nothing. */
+  syncOn?: boolean;
+  /** Runs once every write in flight has settled and the units are read back, accepted or not, for views that mirror them. */
+  onSettled?: () => void;
+  /** A change here re-reads the chains, after a write made outside this tab. */
+  reloadSignal?: number;
+  /** Runs when a move changes the light sequence, with the new order of the chains' MACs. */
+  onSequence?: (macs: string[]) => void;
 }
 
 /** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
-export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessLightingTabProps) {
+export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false, onSettled, reloadSignal, onSequence }: LianLiWirelessLightingTabProps) {
+  const { t } = useTranslation();
   const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
 
+  // Send order of reads: a response is applied only if no later-sent one was.
+  const sentRef = useRef(0);
+  // Writes still awaiting the service; a read answered meanwhile predates their previews, so it is dropped.
+  // A write the service never answers counts as settled after WRITE_HOLD_MS, so it cannot block reads for good.
+  const inFlightRef = useRef(0);
+  const holdTimersRef = useRef(new Set<number>());
+
   const refresh = useCallback(async () => {
-    const d = await getLianLiWirelessLighting();
-    if (aliveRef.current && d) setData(d);
-  }, []);
+    const seq = ++sentRef.current;
+    let d: LianLiWirelessLighting | null = null;
+    try {
+      d = await api.get();
+    } catch {
+      // A failed read leaves the screen as it is.
+    }
+    if (aliveRef.current && d && seq === sentRef.current && inFlightRef.current === 0) setData(d);
+  }, [api]);
+
+  // The service may change more than the patch (a merge or Lighting-page switch moves other units), so read it back.
+  const settleRead = useCallback(async () => {
+    try {
+      await refresh();
+    } finally {
+      onSettled?.();
+    }
+  }, [refresh, onSettled]);
+
+  // Returns the call that ends the write. One read follows the last write to settle, so a half-applied batch
+  // (a move sends one write per unit) never replaces a preview.
+  const beginWrite = useCallback(() => {
+    inFlightRef.current += 1;
+    let state: 'open' | 'expired' | 'done' = 'open';
+    const timer = window.setTimeout(() => {
+      holdTimersRef.current.delete(timer);
+      if (state !== 'open') return;
+      state = 'expired';
+      inFlightRef.current -= 1;
+      if (inFlightRef.current === 0) void settleRead();
+    }, WRITE_HOLD_MS);
+    holdTimersRef.current.add(timer);
+    return async () => {
+      window.clearTimeout(timer);
+      holdTimersRef.current.delete(timer);
+      const expired = state === 'expired';
+      state = 'done';
+      // An expired write already left the count, so it only asks for one more read.
+      if (!expired) inFlightRef.current -= 1;
+      // While another write is in flight, that batch's own settle covers the read and the report.
+      if (inFlightRef.current > 0) return;
+      await settleRead();
+    };
+  }, [settleRead]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -70,29 +145,89 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
     };
   }, [refresh]);
 
+  useEffect(() => {
+    const timers = holdTimersRef.current;
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
+
+  const firstSignalRef = useRef(true);
+  useEffect(() => {
+    if (firstSignalRef.current) { firstSignalRef.current = false; return; }
+    void refresh();
+  }, [reloadSignal, refresh]);
+
   const preview = useCallback((mac: string, patch: LianLiWirelessChainPatch) => {
     setData(prev => prev && {
       ...prev,
-      chains: prev.chains.map(c => (c.mac === mac ? { ...c, ...patch } : c)),
+      // A named leader may no longer hold once the merge, the effect or the order changes.
+      mergeLeaderMac: patchAffectsLeader(patch) ? undefined : prev.mergeLeaderMac,
+      chains: prev.chains.map(c => (c.mac === mac ? applyChainPatch(c, patch) : c)),
     });
   }, []);
 
   const commit = useCallback(async (mac: string, patch: LianLiWirelessChainPatch) => {
     preview(mac, patch);
-    // effectMode is derived by the service; it only feeds the preview.
-    if (!await setLianLiWirelessChainLighting(mac, { ...patch, effectMode: undefined })) void refresh();
-  }, [preview, refresh]);
+    const endWrite = beginWrite();
+    try {
+      // effectMode is derived by the service; it only feeds the preview.
+      await api.set(mac, { ...patch, effectMode: undefined });
+    } catch {
+      // The read after the write shows what the service kept.
+    } finally {
+      await endWrite();
+    }
+  }, [api, preview, beginWrite]);
+
+  const reset = useCallback(async (mac: string) => {
+    const endWrite = beginWrite();
+    try {
+      return (await api.reset?.(mac)) ?? false;
+    } catch {
+      return false;
+    } finally {
+      await endWrite();
+    }
+  }, [api, beginWrite]);
+
+  const move = useCallback((mac: string, delta: -1 | 1) => {
+    if (!data) return;
+    const moves = moveInSequence(data.chains, mac, delta);
+    if (moves.length > 0) {
+      const next = data.chains.map(c => ({ ...c, sortIndex: moves.find(m => m.mac === c.mac)?.sortIndex ?? c.sortIndex }));
+      onSequence?.(sortBySequence(next).map(c => c.mac));
+    }
+    for (const { mac: m, sortIndex } of moves) void commit(m, { sortIndex });
+  }, [data, commit, onSequence]);
 
   if (!data) return null;
+  const chains = sortBySequence(data.chains);
+  // The service names the leader when it can; otherwise the same rule applies here.
+  const leaderMac = data.mergeLeaderMac !== undefined ? data.mergeLeaderMac : mergeLeaderMac(chains);
+  const leader = chains.find(c => c.mac === leaderMac);
+  // Units of one model read the same, so repeated titles are numbered in sequence order.
+  const titles = numberDuplicateTitles(chains.map(c => chainTitle(t, c)));
+  const names = new Map(chains.map((c, i) => [c.mac, titles[i]]));
+  const leaderTitle = leader && titles[chains.indexOf(leader)];
   return (
     <>
-      {data.chains.map(chain => (
+      {header?.(chains, names)}
+      {chains.map((chain, i) => (
         <ChainSection
           key={chain.mac}
           chain={chain}
+          title={titles[i]}
           laneModes={data.laneModes}
           onPreview={patch => preview(chain.mac, patch)}
           onCommit={patch => { void commit(chain.mac, patch); }}
+          followsTitle={leader && leader.mac !== chain.mac ? leaderTitle : undefined}
+          onReset={api.reset ? () => reset(chain.mac) : undefined}
+          onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
+          first={i === 0}
+          synced={syncOn && chain.supportsZones === true}
+          last={i === chains.length - 1}
           onSectionNavigate={onSectionNavigate}
         />
       ))}
@@ -102,15 +237,28 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
 
 interface ChainSectionProps {
   chain: LianLiWirelessChainLighting;
+  /** The unit's name on this page, numbered when several share a model. */
+  title: string;
   laneModes: string[];
   onPreview: (patch: LianLiWirelessChainPatch) => void;
   onCommit: (patch: LianLiWirelessChainPatch) => void;
+  /** Present when the family can restore a fan's default look. */
+  onReset?: () => Promise<boolean>;
+  /** Title of the unit whose look this one follows while merged, when it is not the leader. */
+  followsTitle?: string;
+  /** Present when the fans have an order to set. */
+  onMove?: (delta: -1 | 1) => void;
+  first: boolean;
+  last: boolean;
+  /** The group sync drives this fan's look. */
+  synced: boolean;
   onSectionNavigate?: (section: string) => void;
 }
 
-function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate }: ChainSectionProps) {
+function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, synced, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetFailed, setResetFailed] = useState(false);
   const lightingPage = chain.mode === MODE_CUSTOM;
   // With no saved choice the switch shows what the chain reports it is doing.
   const argbOn = chain.motherboardArgb ?? chain.playingMotherboardArgb === true;
@@ -118,26 +266,23 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
   const locked = lightingPage || argbOn;
   // The animation the chain plays when the Lighting page is not driving it.
   const effectKey = lightingPage ? chain.effectMode ?? DEFAULT_EFFECT : chain.mode;
-  const effect = chain.modes.find(e => e.key === effectKey) ?? null;
+  // A merged unit that is not the leader plays the leader's look, so its own look fields do nothing.
+  const follower = !synced && chain.merge === true && canMerge(chain) && followsTitle !== undefined;
+  const lookLocked = locked || follower || synced;
   const perLane = chain.supportsPerLane && effectKey === MODE_PER_LANE;
+  const perZone = chain.supportsZones === true && effectKey === MODE_PER_ZONE;
 
+  const effectOptions = chain.modes.map(e => ({ value: e.key, label: effectLabel(t, e.key) }));
+  // The choices that are not effects come first, set apart from the effect list.
   const modeOptions = [
-    ...chain.modes.map(e => ({ value: e.key, label: effectLabel(t, e.key) })),
+    ...(chain.supportsZones ? [{ value: MODE_PER_ZONE, label: t('devices.lianli-flex.modePerZone') }, { value: '', label: '', divider: true }] : []),
+    ...effectOptions,
     ...(chain.supportsPerLane ? [{ value: MODE_PER_LANE, label: t('devices.lianli-wireless.strimerModePerLane') }] : []),
   ];
   const directionOptions = [
     { value: '0', label: t('devices.lianli.directionLtr') },
     { value: '1', label: t('devices.lianli.directionRtl') },
   ];
-  const percent = (v: number) => localizeNumbers(`${v}%`, numberFormat);
-
-  // The palette is a fixed set of slots; an effect reads its first colorsMax.
-  const palette = DEFAULT_COLORS.map((fallback, i) => chain.colors[i] ?? fallback);
-  const setColor = (i: number, hex: string, commit: boolean) => {
-    const next = [...palette];
-    next[i] = hex;
-    (commit ? onCommit : onPreview)({ colors: next });
-  };
 
   const lanes = lanesOf(chain);
   const setLane = (i: number, lane: Partial<LianLiWirelessLane>, commit: boolean) => {
@@ -146,7 +291,8 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
   };
 
   return (
-    <SettingsSection title={chainTitle(t, chain)} boxClassName={styles.sectionBox}>
+    <>
+    <SettingsSection title={title} boxClassName={styles.sectionBox}>
       {(chain.argbCableConnected || argbOn) && (
         <SettingToggle
           label={t('devices.motherboardArgb.label')}
@@ -157,92 +303,91 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
       )}
       <LightingPageSwitch
         on={lightingPage}
-        disabled={argbOn}
+        disabled={argbOn || synced}
         onChange={on => onCommit(on ? { mode: MODE_CUSTOM } : { mode: effectKey, effectMode: effectKey })}
         onSectionNavigate={onSectionNavigate}
       />
 
-      <SettingSelect
-        label={t('devices.lianli.lightingMode')}
-        value={effectKey}
-        onChange={v => onCommit({ mode: v, effectMode: v })}
-        options={modeOptions}
-        disabled={locked}
-      />
+      <LianLiChainEffectControls
+        modes={chain.modes}
+        value={{ mode: effectKey, speed: chain.speed, direction: chain.direction, brightness: chain.brightness, colors: chain.colors }}
+        modeOptions={modeOptions}
+        modeValue={effectKey}
+        disabled={lookLocked}
+        paletteDimmed={lightingPage || follower || synced}
+        trimPalette={chain.supportsZones === true}
+        hideBrightness={perZone}
+        forceSpeed={perLane}
+        onModeChange={v => onCommit({ mode: v, effectMode: v })}
+        onPreview={onPreview}
+        onCommit={onCommit}
+      >
+        {synced && <SettingRow label={t('devices.lianli-flex.followsSync')} />}
+        {follower && <SettingRow label={t('devices.lianli-flex.followsLeader', { leader: followsTitle })} />}
+        {perZone && (chain.zones ?? []).map(zone => (
+          <Fragment key={zone.id}>
+            <p className={styles.zoneHeading} data-settings-aside="true">
+              {t(ZONE_LABEL_KEYS[zone.id] as Parameters<Translate>[0])}
+            </p>
+            <LianLiChainEffectControls
+              modes={chain.modes}
+              value={zone}
+              modeOptions={effectOptions}
+              modeValue={zone.mode}
+              disabled={locked || synced}
+              paletteDimmed={lightingPage || synced}
+              trimPalette
+              onModeChange={v => onCommit({ zones: [{ id: zone.id, mode: v }] })}
+              onPreview={patch => onPreview({ zones: [{ id: zone.id, ...patch }] })}
+              onCommit={patch => onCommit({ zones: [{ id: zone.id, ...patch }] })}
+            />
+          </Fragment>
+        ))}
+        {(canMerge(chain) || chain.supportsZones) && (
+          <SettingToggle
+            label={t('devices.lianli-wireless.merge')}
+            description={canMerge(chain) || !chain.supportsZones
+              ? t(chain.supportsZones ? 'devices.lianli-flex.mergeHint' : 'devices.lianli-wireless.mergeHint')
+              : t('devices.lianli-flex.mergeNeedsEffect')}
+            checked={chain.merge ?? false}
+            onChange={on => onCommit({ merge: on })}
+            disabled={locked || synced || (chain.supportsZones === true && !canMerge(chain))}
+          />
+        )}
+      </LianLiChainEffectControls>
 
-      {effect?.mergeable && (
+      {chain.upDownSwap != null && (
         <SettingToggle
-          label={t('devices.lianli-wireless.merge')}
-          description={t('devices.lianli-wireless.mergeHint')}
-          checked={chain.merge ?? false}
-          onChange={on => onCommit({ merge: on })}
-          disabled={locked}
+          label={t('devices.lianli-flex.upDownSwap')}
+          description={t('devices.lianli-flex.upDownSwapHint')}
+          checked={chain.upDownSwap}
+          onChange={on => onCommit({ upDownSwap: on })}
+          disabled={argbOn}
         />
       )}
 
-      <SettingSlider
-        editable
-        trackFill
-        label={t('devices.lianli.lightingBrightness')}
-        value={chain.brightness * PERCENT_PER_LEVEL}
-        min={0}
-        max={100}
-        step={PERCENT_PER_LEVEL}
-        formatValue={percent}
-        ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-        disabled={locked}
-        onChange={(v: number, commit?: boolean) => {
-          const level = Math.round(v / PERCENT_PER_LEVEL);
-          (commit ? onCommit : onPreview)({ brightness: level });
-        }}
-        onCommit={(v: number) => onCommit({ brightness: Math.round(v / PERCENT_PER_LEVEL) })}
-      />
-
-      {(perLane || effect?.hasSpeed) && (
-        <SettingSlider
-          editable
-          trackFill
-          label={t('devices.lianli.lightingSpeed')}
-          value={chain.speed * PERCENT_PER_LEVEL}
-          min={0}
-          max={100}
-          step={PERCENT_PER_LEVEL}
-          formatValue={percent}
-          ariaLabel={t('devices.lianli.lightingSpeedAria')}
-          disabled={locked}
-          onChange={(v: number, commit?: boolean) => {
-            const level = Math.round(v / PERCENT_PER_LEVEL);
-            (commit ? onCommit : onPreview)({ speed: level });
-          }}
-          onCommit={(v: number) => onCommit({ speed: Math.round(v / PERCENT_PER_LEVEL) })}
-        />
+      {onMove && (
+        <SettingRow label={t('devices.lianli-flex.lightSequence')} description={t('devices.lianli-flex.lightSequenceHint')}>
+          <Button size="sm" tone="neutral" disabled={first} onClick={() => onMove(-1)}>
+            {t('devices.lianli-wireless.orderMoveLeft')}
+          </Button>
+          <Button size="sm" tone="neutral" disabled={last} onClick={() => onMove(1)}>
+            {t('devices.lianli-wireless.orderMoveRight')}
+          </Button>
+        </SettingRow>
       )}
 
-      {effect?.hasDirection && (
-        <SettingSelect
-          label={t('devices.lianli.lightingDirection')}
-          value={String(chain.direction)}
-          onChange={v => onCommit({ direction: Number(v) })}
-          options={directionOptions}
-          disabled={locked}
-        />
+      {onReset && (
+        <SettingRow label={t('devices.lianli-flex.resetLighting')} description={t('devices.lianli-flex.resetLightingHint')}>
+          <Button size="sm" tone="neutral" onClick={() => { setResetFailed(false); setConfirmReset(true); }}>
+            {t('devices.lianli-flex.resetLightingButton')}
+          </Button>
+        </SettingRow>
       )}
-
-      {effect && effect.colorsMax > 0 && (
-        <div className={`${styles.colorBlock} ${lightingPage ? styles.rowDisabled : ''}`} data-settings-aside="true">
-          <div className={styles.colorPairRow}>
-            {palette.slice(0, effect.colorsMax).map((color, i) => (
-              <div key={i} className={styles.colorEntry}>
-                <span className={styles.colorLabel}>{t('devices.lianli.colorN', { n: i + 1 })}</span>
-                <HsvPicker
-                  value={color}
-                  onPreview={(hex: string) => setColor(i, hex, false)}
-                  onCommit={(hex: string) => setColor(i, hex, true)}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+      {resetFailed && (
+        <p className={styles.customNote} role="alert" data-settings-aside="true">
+          {t('devices.lianli-flex.resetFailed')}
+        </p>
       )}
 
       {perLane && lanes.map((lane, i) => (
@@ -269,5 +414,16 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
         </div>
       ))}
     </SettingsSection>
+
+    <ConfirmModal
+      open={confirmReset}
+      title={t('devices.lianli-flex.resetConfirmTitle')}
+      message={t(lightingPage ? 'devices.lianli-flex.resetConfirmMessageLightingPage' : 'devices.lianli-flex.resetConfirmMessage')}
+      destructive={false}
+      confirmLabel={t('devices.lianli-flex.resetLighting')}
+      onCancel={() => setConfirmReset(false)}
+      onConfirm={() => { setConfirmReset(false); void onReset?.().then(ok => setResetFailed(!ok)); }}
+    />
+    </>
   );
 }

@@ -84,6 +84,15 @@ function RingIcon(p: P) {
   );
 }
 
+function SquareRingIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="3" opacity="0.2" />
+      <path d="M12 4 H16 A4 4 0 0 1 20 8 V12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function ThermometerIcon(p: P) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
@@ -244,11 +253,23 @@ function FillIcon(p: P) {
   );
 }
 
+function SimpleIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <rect x="4" y="3.5" width="6" height="2.5" rx="1.25" fill="currentColor" opacity="0.45" />
+      <text x="4" y="12.5" fontFamily="sans-serif" fontWeight="800" fontSize="8" fill="currentColor">42</text>
+      <rect x="4" y="14.5" width="6" height="2.5" rx="1.25" fill="currentColor" opacity="0.45" />
+      <text x="4" y="22" fontFamily="sans-serif" fontWeight="800" fontSize="8" fill="currentColor">68</text>
+    </svg>
+  );
+}
+
 export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   sparkline: AreaIcon,
   text: ValueIcon,
   waterLevel: LiquidFillIcon,
   caterpillar: RingIcon,
+  squareRing: SquareRingIcon,
   thermo: ThermometerIcon,
   arc270: Arc270Icon,
   wedge: WedgeIcon,
@@ -267,4 +288,5 @@ export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   tickring: TickRingIcon,
   backdrop: BackdropIcon,
   fill: FillIcon,
+  simple: SimpleIcon,
 };

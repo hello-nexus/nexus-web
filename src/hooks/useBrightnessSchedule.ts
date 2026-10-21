@@ -1,10 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchBrightnessSchedule, setBrightnessSchedule,
-  type BrightnessSchedule, type BrightnessSchedulePoint,
+  type BrightnessSchedule, type BrightnessScheduleLocation, type BrightnessSchedulePoint,
+  type BrightnessScheduleResponse, type BrightnessScheduleSun,
 } from '../api/lighting';
-import { minuteOfDay, scheduledBrightness } from '../lib/brightnessSchedule';
+import {
+  localDateKey, minuteOfDay, scheduledBrightness, SUN_DEFAULT_DAY, SUN_DEFAULT_NIGHT, sunCurve,
+  type SunLevels,
+} from '../lib/brightnessSchedule';
 import { useTopicCallback } from './useMultiplexSocket';
+
+// Longest a write may stay unanswered before refetches stop waiting for it.
+const WRITE_TIMEOUT_MS = 10_000;
+
+export interface SunPatch {
+  sunShift?: boolean;
+  location?: BrightnessScheduleLocation | null;
+  sunNight?: number;
+  sunDay?: number;
+}
 
 export interface BrightnessScheduleState {
   /** Null until the first fetch resolves. */
@@ -17,6 +31,19 @@ export interface BrightnessScheduleState {
   /** Minute of the local day the readout was evaluated at; the editor's
    *  "now" marker. Ticks with `current`. */
   minute: number;
+  /** Move the ramps with today's sunrise and sunset. */
+  sunShift: boolean;
+  /** Where the sun times are for; null is Auto (the service's IP lookup). */
+  location: BrightnessScheduleLocation | null;
+  /** Today's sun times as the service resolved them. */
+  sun: BrightnessScheduleSun | null;
+  /** Today's generated curve, which replaces the user's points while the
+   *  shift is on; null when the user's curve plays (shift off or no sun). */
+  sunPoints: BrightnessSchedulePoint[] | null;
+  /** Night and day levels of the generated curve. */
+  sunLevels: SunLevels;
+  /** Change Daylight sync, its location or its levels; the schedule itself is kept. */
+  saveSun: (patch: SunPatch) => Promise<void>;
   /** Persist a new schedule. Optimistic: the state updates before the POST
    *  answers, and the `lighting` topic push re-syncs it either way. */
   save: (next: BrightnessSchedule) => Promise<void>;
@@ -30,16 +57,41 @@ export interface BrightnessScheduleState {
 export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState {
   const [schedule, setSchedule] = useState<BrightnessSchedule | null>(null);
   const [defaults, setDefaults] = useState<BrightnessSchedulePoint[]>([]);
+  const [sunShift, setSunShift] = useState(true);
+  const [location, setLocation] = useState<BrightnessScheduleLocation | null>(null);
+  const [sun, setSun] = useState<BrightnessScheduleSun | null>(null);
+  const [sunLevels, setSunLevels] = useState<SunLevels>({ night: SUN_DEFAULT_NIGHT, day: SUN_DEFAULT_DAY });
+  // The levels the service generated `sun.sunPoints` with; a local edit differs
+  // from them until the service answers.
+  const [servedLevels, setServedLevels] = useState<SunLevels>({ night: SUN_DEFAULT_NIGHT, day: SUN_DEFAULT_DAY });
   const [minute, setMinute] = useState(() => minuteOfDay());
 
-  const refresh = useCallback(() => {
-    fetchBrightnessSchedule().then(data => {
-      if (!data) return;
-      // A hand-edited settings.json can hold an explicit null here.
-      setSchedule({ enabled: data.enabled, points: data.points ?? [] });
-      setDefaults(data.defaults ?? []);
-    }).catch(() => { /* best-effort */ });
+  // A GET that began before a local write, or that lands while one is still
+  // in flight, may carry the old state; it is dropped, and the write's own
+  // answer (or a refetch after it) supplies the truth. A write that never
+  // answers is given up on after WRITE_TIMEOUT_MS so it cannot block refetches.
+  const writeSeqRef = useRef(0);
+  const pendingWritesRef = useRef(0);
+
+  const apply = useCallback((data: BrightnessScheduleResponse) => {
+    // A hand-edited settings.json can hold an explicit null here.
+    setSchedule({ enabled: data.enabled, points: data.points ?? [] });
+    setDefaults(data.defaults ?? []);
+    setSunShift(data.sunShift !== false);
+    setLocation(data.location ?? null);
+    setSun(data.sun ?? null);
+    const levels = { night: data.sunNight ?? SUN_DEFAULT_NIGHT, day: data.sunDay ?? SUN_DEFAULT_DAY };
+    setSunLevels(levels);
+    setServedLevels(levels);
   }, []);
+
+  const refresh = useCallback(() => {
+    const seq = writeSeqRef.current;
+    fetchBrightnessSchedule().then(data => {
+      if (!data || pendingWritesRef.current > 0 || seq !== writeSeqRef.current) return;
+      apply(data);
+    }).catch(() => { /* best-effort */ });
+  }, [apply]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -55,18 +107,69 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
     const arm = () => {
       const now = new Date();
       const untilNextMinute = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds());
-      timer = window.setTimeout(() => { setMinute(minuteOfDay()); arm(); }, untilNextMinute);
+      timer = window.setTimeout(() => {
+        setMinute(minuteOfDay());
+        arm();
+      }, untilNextMinute);
     };
     setMinute(minuteOfDay());
     arm();
     return () => window.clearTimeout(timer);
   }, [enabled]);
 
-  const save = useCallback(async (next: BrightnessSchedule) => {
-    setSchedule(next);
-    await setBrightnessSchedule(next);
-  }, []);
+  // The generated curve is for one date, so a new day needs a fresh one; an
+  // Auto location the service could not place yet is retried too. Keyed on the
+  // minute only, so a service that keeps disagreeing costs one fetch a minute
+  // rather than a loop.
+  const staleRef = useRef(false);
+  staleRef.current = (sun !== null && sun.date !== localDateKey())
+    || (schedule?.enabled === true && sunShift && location === null && sun?.status === 'no-location');
+  useEffect(() => {
+    if (enabled && staleRef.current) refresh();
+  }, [enabled, minute, refresh]);
 
-  const current = schedule?.enabled ? Math.round(scheduledBrightness(schedule.points, minute)) : null;
-  return { schedule, defaults, current, minute, save };
+  // Optimistic write: the answer carries the full state and is adopted; a bare
+  // envelope (an older service, or a refusal) is followed by a refetch.
+  const write = useCallback(async (optimistic: () => void, body: Parameters<typeof setBrightnessSchedule>[0]) => {
+    optimistic();
+    const mine = ++writeSeqRef.current;
+    pendingWritesRef.current += 1;
+    let answer: Awaited<ReturnType<typeof setBrightnessSchedule>> = null;
+    let timer = 0;
+    try {
+      const giveUp = new Promise<null>(resolve => { timer = window.setTimeout(() => resolve(null), WRITE_TIMEOUT_MS); });
+      answer = await Promise.race([setBrightnessSchedule(body), giveUp]);
+    } catch {
+      // The refetch below restores whatever the service holds.
+    } finally {
+      window.clearTimeout(timer);
+      pendingWritesRef.current -= 1;
+    }
+    // Only the newest write's answer is current; an older one is replaced by
+    // a fresh read.
+    if (mine === writeSeqRef.current && answer && 'sun' in answer) apply(answer);
+    else refresh();
+  }, [apply, refresh]);
+
+  const save = useCallback((next: BrightnessSchedule) => write(() => setSchedule(next), next), [write]);
+
+  // The service takes the schedule with every write, so a sun change sends the
+  // current one along; the sun fields it leaves out stay as stored.
+  const saveSun = useCallback(async (patch: SunPatch) => {
+    if (!schedule) return;
+    await write(() => {
+      if (patch.sunShift !== undefined) setSunShift(patch.sunShift);
+      if (patch.location !== undefined) setLocation(patch.location);
+      if (patch.sunNight !== undefined || patch.sunDay !== undefined) {
+        setSunLevels(prev => ({ night: patch.sunNight ?? prev.night, day: patch.sunDay ?? prev.day }));
+      }
+    }, { enabled: schedule.enabled, points: schedule.points, ...patch });
+  }, [schedule, write]);
+
+  const sunPoints = useMemo(() => {
+    const edited = sunLevels.night !== servedLevels.night || sunLevels.day !== servedLevels.day;
+    return sunCurve(sunShift, sun, edited ? sunLevels : undefined);
+  }, [sunShift, sun, sunLevels, servedLevels]);
+  const current = schedule?.enabled ? Math.round(scheduledBrightness(sunPoints ?? schedule.points, minute)) : null;
+  return { schedule, defaults, current, minute, sunShift, location, sun, sunPoints, sunLevels, saveSun, save };
 }

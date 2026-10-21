@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { useShaderRenderer } from '../../hooks/useShaderRenderer';
+import { useShaderParams } from '../../hooks/useShaderParams';
+import { SensorSignalProvider } from '../../hooks/SensorSignalProvider';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSurface } from '../types';
 import {
@@ -28,7 +30,19 @@ interface PanelBackgroundShaderProps {
   covered?: boolean;
 }
 
-export function PanelBackgroundShader({ effect, template, opacity, effectState, surface, fullRes, covered = false }: PanelBackgroundShaderProps) {
+// The provider stays mounted and is toggled through `enabled`: useShaderRenderer
+// keeps the sensor signal it saw at compile time, so a provider that appeared
+// later would never reach an already-compiled effect.
+export function PanelBackgroundShader(props: PanelBackgroundShaderProps) {
+  const usesSensors = useShaderParams(normalizePanelBackgroundEffect(props.effect)).sensors.length > 0;
+  return (
+    <SensorSignalProvider enabled={usesSensors}>
+      <PanelBackgroundShaderLayer {...props} />
+    </SensorSignalProvider>
+  );
+}
+
+function PanelBackgroundShaderLayer({ effect, template, opacity, effectState, surface, fullRes, covered = false }: PanelBackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const normalizedEffect = normalizePanelBackgroundEffect(effect);
   const normalizedTemplate = normalizePanelBackgroundTemplate(template);

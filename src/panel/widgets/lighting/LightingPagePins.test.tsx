@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchLightingDevices, fetchPins, fetchStaticSettings, saveAnimateTemplates, setPins, startAnimate, startStatic, type Pin } from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
@@ -119,6 +119,7 @@ vi.mock('./page/DevicePanel', () => ({
 }));
 vi.mock('./page/LedMapEditor', () => ({ LedMapEditor: () => null }));
 vi.mock('./page/MediaBackdrop', () => ({ MediaBackdrop: () => <div data-testid="media-backdrop" /> }));
+vi.mock('./page/MirrorBackdrop', () => ({ MirrorBackdrop: () => <div data-testid="mirror-backdrop" /> }));
 vi.mock('./page/RightPaneTabs', () => ({ RightPaneTabs: () => null }));
 // A typed slider edit is onChange(v, true) followed synchronously by onCommit.
 vi.mock('./page/EffectTab', () => ({
@@ -443,16 +444,6 @@ describe('LightingPage pins', () => {
       expect(targets()).toBe('b');
       fireEvent.click(screen.getByText('tab:screen'));
       expect(lastPinsCall()).toEqual([['b'], { kind: 'mirror' }]);
-    });
-
-    it('outlines every lit card on Game Sync, pinned or selected', async () => {
-      withDevices('a', 'b');
-      vi.mocked(fetchPins).mockImplementation(() => Promise.resolve({ a: { kind: 'mirror' } }));
-      renderPage('windows');
-      await waitFor(() => expect(screen.getByTestId('rail')).toBeTruthy());
-      fireEvent.click(screen.getByText('select-a'));
-      fireEvent.mouseEnter(tab('gamesync'));
-      expect(targets()).toBe('a,b');
     });
 
     it('clears on a press, which may remount the tab before its pointerleave', async () => {
@@ -994,6 +985,30 @@ describe('LightingPage pins', () => {
       await waitFor(() => expect(screen.getByTestId('media-backdrop')).toBeTruthy());
     });
 
+    it('draws no mirror preview while Mirror is the global mode', async () => {
+      syncState.mode = 'screen';
+      syncState.rawSync = 'screen';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('tabs').dataset.active).toBe('screen'));
+      // Mirror is global: the output stream already is the capture.
+      expect(screen.queryByTestId('mirror-backdrop')).toBeNull();
+    });
+
+    it('draws the live mirror preview on the Mirror tab opened for a selection while another mode runs, and keeps it once deselected', async () => {
+      syncState.mode = 'animate';
+      syncState.rawSync = 'fire';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('tabs').dataset.active).toBe('animate'));
+      expect(screen.queryByTestId('mirror-backdrop')).toBeNull();
+      fireEvent.click(screen.getByText('select-a'));
+      fireEvent.click(screen.getByText('tab:screen'));
+      await waitFor(() => expect(screen.getByTestId('mirror-backdrop')).toBeTruthy());
+      fireEvent.click(screen.getByText('clear-selection'));
+      expect(screen.getByTestId('mirror-backdrop')).toBeTruthy();
+      fireEvent.click(screen.getByText('tab:animate'));
+      await waitFor(() => expect(screen.queryByTestId('mirror-backdrop')).toBeNull());
+    });
+
     it('keeps the Mirror dock editable for a mixed selection', async () => {
       localStorage.setItem('nexus.lighting.effectDockCollapsed', 'false');
       withDevices('a', 'b');
@@ -1046,6 +1061,63 @@ describe('LightingPage pins', () => {
     expect(vi.mocked(startAnimate).mock.calls.at(-1)?.[2]).toBe(0.3);
     const saved = vi.mocked(saveAnimateTemplates).mock.calls.at(-1)?.[0] as Record<string, { selected: number; slots: { intensity: number }[] }>;
     expect(saved.fire.slots[saved.fire.selected].intensity).toBe(0.3);
+  });
+
+  describe('resuming lighting from Off', () => {
+    beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: true }); });
+    // The throttle's trailing timer outlives an unmounted page, so drain it before the next test.
+    afterEach(async () => {
+      cleanup();
+      await act(() => vi.runOnlyPendingTimersAsync());
+      vi.useRealTimers();
+    });
+
+    it('an Animation tab press with a selection starts the mode globally instead of pinning', async () => {
+      syncState.mode = 'none';
+      syncState.rawSync = 'none';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('rail')).toBeTruthy());
+      fireEvent.click(screen.getByText('select-a'));
+      vi.mocked(setPins).mockClear();
+      fireEvent.click(screen.getByText('tab:animate'));
+      await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+      expect(setPins).not.toHaveBeenCalled();
+    });
+
+    it('previews every card on a tab hover, not just the selection', async () => {
+      withDevices('a', 'b');
+      syncState.mode = 'none';
+      syncState.rawSync = 'none';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('rail')).toBeTruthy());
+      fireEvent.click(screen.getByText('select-a'));
+      fireEvent.mouseEnter(screen.getByText('tab:animate'));
+      expect(screen.getByTestId('rail').dataset.targets).toBe('a,b');
+    });
+
+    it('a Static tab press with a selection starts Static globally', async () => {
+      syncState.mode = 'none';
+      syncState.rawSync = 'none';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('rail')).toBeTruthy());
+      fireEvent.click(screen.getByText('select-a'));
+      vi.mocked(setPins).mockClear();
+      fireEvent.click(screen.getByText('tab:static'));
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+      expect(setPins).not.toHaveBeenCalled();
+    });
+
+    it('with lighting on, the same press with a selection still only pins', async () => {
+      syncState.mode = 'static';
+      syncState.rawSync = 'static';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('rail')).toBeTruthy());
+      fireEvent.click(screen.getByText('select-a'));
+      vi.mocked(startAnimate).mockClear();
+      fireEvent.click(screen.getByText('tab:animate'));
+      await waitFor(() => expect(setPins).toHaveBeenCalled());
+      expect(startAnimate).not.toHaveBeenCalled();
+    });
   });
 });
 

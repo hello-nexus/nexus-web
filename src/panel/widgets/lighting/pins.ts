@@ -153,7 +153,7 @@ export const isPickTarget = (d: { id: string } & Reach, pins: Pins, selectedIds:
 
 /**
  * The lit, controlled cards a press or pick changes: the selection, or with none
- * every unpinned one. Game Sync and Off override pins, so they reach them all.
+ * every unpinned one. Off overrides pins, so it reaches them all.
  */
 export function pressReach(
   devices: readonly ({ id: string } & Reach)[],
@@ -167,9 +167,9 @@ export function pressReach(
   return new Set(lit.filter(d => !(d.id in pins)).map(d => d.id));
 }
 
-/** A press on the tab already showing changes no card with nothing selected, on Game Sync, or when the selection already wears that mode's pin. */
+/** A press on the tab already showing changes no card with nothing selected, or when the selection already wears that mode's pin. */
 export const tabPressChangesNothing = (key: string, activeKey: string | undefined, selectedCount: number, selectionPinned: boolean): boolean =>
-  key === activeKey && (selectedCount === 0 || key === 'gamesync' || selectionPinned);
+  key === activeKey && (selectedCount === 0 || selectionPinned);
 
 /**
  * The Static picker's marks, on the color each device wears (an unpinned one

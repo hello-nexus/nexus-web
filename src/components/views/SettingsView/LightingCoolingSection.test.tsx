@@ -5,7 +5,7 @@ import type { TempUnit } from '../../../lib/units';
 
 // Mutable so a test can flip the unit and re-render, mimicking the C/F chip on
 // the same settings page writing through useUiSettings.
-const prefs = vi.hoisted(() => ({ monitoringTempUnit: 'c' as TempUnit, lighting: true, cooling: true, gpus: [] as { id: string; name: string; integrated: boolean }[] }));
+const prefs = vi.hoisted(() => ({ monitoringTempUnit: 'c' as TempUnit, lighting: true, cooling: true, cpuModel: 'AMD Ryzen 7 9800X3D', gpus: [] as { id: string; name: string; integrated: boolean }[] }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
@@ -35,10 +35,13 @@ vi.mock('../../../hooks/useSensors', () => ({
     cpu: [tempSensor('cpu/temp/pkg', 'CPU Package', 45), tempSensor('cpu/temp/core0', 'CPU Core 0', 50)],
     gpu: [tempSensor('gpu/0/temp', 'GPU Core', 60)],
     gpuComponents: prefs.gpus,
+    cpuModel: prefs.cpuModel,
   }),
 }));
 
 const lightingApi = vi.hoisted(() => ({
+  fetchRenderGpu: vi.fn().mockResolvedValue(null),
+  setRenderGpu: vi.fn().mockResolvedValue({ error: false }),
   // Resolved by default: the sensor-picker tests below mount the same component
   // and would otherwise trip over an undefined return inside its effect.
   fetchSleepBlackout: vi.fn().mockResolvedValue({ enabled: true }),
@@ -58,8 +61,8 @@ const lightingApi = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../api/lighting', () => ({
-  fetchRenderGpu: vi.fn().mockResolvedValue(null),
-  setRenderGpu: vi.fn().mockResolvedValue(null),
+  fetchRenderGpu: lightingApi.fetchRenderGpu,
+  setRenderGpu: lightingApi.setRenderGpu,
   restartService: vi.fn().mockResolvedValue(null),
   fetchSleepBlackout: lightingApi.fetchSleepBlackout,
   setSleepBlackout: lightingApi.setSleepBlackout,
@@ -73,10 +76,15 @@ vi.mock('../../../api/lighting', () => ({
   setAudioOutput: lightingApi.setAudioOutput,
 }));
 
+// Mutable so a test can swap the input list the mocked hook returns.
+const mockInputs = vi.hoisted(() => ({ list: null as null | { id: string; name: string; isDefault: boolean; direction: string }[] }));
+
 vi.mock('../../../hooks/useAudioDevices', () => {
   const speakers = { id: 'out-speakers', name: 'Speakers', isDefault: true, direction: 'output' };
   const headset = { id: 'out-headset', name: 'Arctis Nova Pro', isDefault: false, direction: 'output' };
-  return { useAudioDevices: () => ({ outputs: [speakers, headset], activeOutput: speakers }) };
+  const mic = { id: 'in-mic', name: 'Yeti Nano', isDefault: true, direction: 'input' };
+  const line = { id: 'in-line', name: 'Line In', isDefault: false, direction: 'input' };
+  return { useAudioDevices: () => ({ outputs: [speakers, headset], inputs: mockInputs.list ?? [mic, line], activeOutput: speakers, activeInput: mic }) };
 });
 
 // No socket in tests: topic subscribers are collected so a test can play a push.
@@ -94,7 +102,7 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 describe('LightingCoolingSection section split', () => {
-  afterEach(() => { prefs.lighting = true; prefs.cooling = true; prefs.gpus = []; });
+  afterEach(() => { prefs.lighting = true; prefs.cooling = true; prefs.gpus = []; prefs.cpuModel = 'AMD Ryzen 7 9800X3D'; });
 
   it('groups sleep blackout under Lighting and the sensor pickers under Cooling', () => {
     render(<LightingCoolingSection serviceOnline platform="windows" />);
@@ -133,7 +141,7 @@ describe('LightingCoolingSection section split', () => {
     expect(screen.queryByRole('switch', { name: 'lighting.schedule.enable.label' })).toBeNull();
   });
 
-  it('closes the render GPU restart confirm when Lighting turns off while it is open', async () => {
+  it('closes the rendering device restart confirm when Lighting turns off while it is open', async () => {
     prefs.gpus = [{ id: 'a', name: 'Integrated GPU', integrated: true }, { id: 'b', name: 'Discrete GPU', integrated: false }];
     const view = render(<LightingCoolingSection serviceOnline platform="windows" />);
     fireEvent.click(screen.getByRole('button', { name: 'lighting.renderGpu.label' }));
@@ -144,6 +152,44 @@ describe('LightingCoolingSection section split', () => {
     view.rerender(<LightingCoolingSection serviceOnline platform="windows" />);
 
     expect(screen.queryByText('lighting.renderGpu.confirmTitle')).toBeNull();
+  });
+
+  it('offers CPU rendering with a caveat line only when the service reports it available', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Only GPU', integrated: false }];
+    lightingApi.fetchRenderGpu.mockResolvedValueOnce({ value: 'auto', softwareRenderingAvailable: true });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'lighting.renderGpu.label' }));
+    const list = screen.getByRole('listbox');
+    expect(within(list).getByText('lighting.renderGpu.softwareNamed')).toBeInTheDocument();
+    expect(within(list).getByText('lighting.renderGpu.softwareDescription')).toBeInTheDocument();
+  });
+
+  it('reverts the pick and skips the restart confirm when the service refuses', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Integrated GPU', integrated: true }, { id: 'b', name: 'Discrete GPU', integrated: false }];
+    lightingApi.setRenderGpu.mockResolvedValueOnce(null);
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.renderGpu.label' }));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Discrete GPU'));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByText('lighting.renderGpu.confirmTitle')).toBeNull();
+    expect(screen.getByRole('button', { name: 'lighting.renderGpu.label' })).not.toHaveTextContent('Discrete GPU');
+  });
+
+  it('falls back to the generic label while the CPU name is a placeholder', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Only GPU', integrated: false }];
+    prefs.cpuModel = 'Unknown';
+    lightingApi.fetchRenderGpu.mockResolvedValueOnce({ value: 'auto', softwareRenderingAvailable: true });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'lighting.renderGpu.label' }));
+    expect(within(screen.getByRole('listbox')).getByText('lighting.renderGpu.softwareFallback')).toBeInTheDocument();
+  });
+
+  it('hides the picker with one GPU and no software option', async () => {
+    prefs.gpus = [{ id: 'a', name: 'Only GPU', integrated: false }];
+    lightingApi.fetchRenderGpu.mockResolvedValueOnce({ value: 'auto' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole('button', { name: 'lighting.renderGpu.label' })).toBeNull();
   });
 
   it('keeps the Lighting section for the schedule row before the platform resolves', () => {
@@ -217,8 +263,14 @@ describe('LightingCoolingSection brightness schedule', () => {
   });
 
   it('saves one point per hour, mapping the right edge onto the last hour', async () => {
+    // The graph is only editable while the schedule is on.
+    lightingApi.fetchBrightnessSchedule.mockResolvedValue({
+      enabled: true,
+      points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+      defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+    });
     render(<LightingCoolingSection serviceOnline platform="windows" />);
-    await screen.findByText('lighting.schedule.row.off');
+    await screen.findByText('lighting.schedule.row.on');
     fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
 
     // jsdom has no layout, so drive the graph's commit through a real drag on
@@ -235,7 +287,7 @@ describe('LightingCoolingSection brightness schedule', () => {
     fireEvent.pointerUp(noon, { pointerId: 1 });
 
     expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
-      enabled: false,
+      enabled: true,
       points: [{ hour: 0, brightness: 20 }, { hour: 23, brightness: 100 }],
     });
 
@@ -247,7 +299,7 @@ describe('LightingCoolingSection brightness schedule', () => {
     fireEvent.pointerMove(first, { pointerId: 2, clientX: 600, clientY: 70 });
     fireEvent.pointerUp(first, { pointerId: 2 });
     expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
-      enabled: false,
+      enabled: true,
       points: [{ hour: 23, brightness: 100 }],
     });
   });
@@ -391,9 +443,10 @@ describe('LightingCoolingSection audio-reactive output', () => {
   const trigger = () => screen.getByRole('button', { name: 'lighting.audioOutput.label' });
 
   beforeEach(() => {
-    lightingApi.fetchAudioOutput.mockReset().mockResolvedValue({ deviceId: '', deviceName: '' });
+    lightingApi.fetchAudioOutput.mockReset().mockResolvedValue({ deviceId: '', deviceName: '', direction: 'output' });
     lightingApi.setAudioOutput.mockReset().mockResolvedValue({ error: false });
     topicListeners.clear();
+    mockInputs.list = null;
   });
 
   it('persists the picked output with its name', async () => {
@@ -403,8 +456,83 @@ describe('LightingCoolingSection audio-reactive output', () => {
     fireEvent.click(trigger());
     fireEvent.click(within(screen.getByRole('listbox')).getByText('Arctis Nova Pro'));
 
-    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro' });
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro', direction: 'output' });
     expect(trigger()).toHaveTextContent('Arctis Nova Pro');
+  });
+
+  it('lists inputs under an Input header after the outputs', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    const listbox = screen.getByRole('listbox');
+    expect(listbox.textContent).toMatch(/panel\.widget\.mixer\.output.*Arctis Nova Pro.*panel\.widget\.mixer\.input.*Yeti Nano.*Line In/);
+    expect(within(listbox).getAllByRole('option').map(o => o.textContent)).toEqual([
+      'lighting.audioOutput.systemDefaultNamed', 'Speakers', 'Arctis Nova Pro',
+      'lighting.audioOutput.defaultInputNamed', 'Yeti Nano', 'Line In',
+    ]);
+  });
+
+  it('persists a picked input with its name and direction', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Line In'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: 'in-line', deviceName: 'Line In', direction: 'input' });
+    expect(trigger()).toHaveTextContent('Line In');
+  });
+
+  it('posts an empty id with the input direction for the default microphone', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('lighting.audioOutput.defaultInputNamed'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: '', deviceName: '', direction: 'input' });
+    expect(trigger()).toHaveTextContent('lighting.audioOutput.defaultInputNamed');
+  });
+
+  it('shows an unplugged input pick in the Input group', async () => {
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'in-gone', deviceName: 'Old Mic', direction: 'input' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.disconnected'));
+    fireEvent.click(trigger());
+    const options = within(screen.getByRole('listbox')).getAllByRole('option');
+    expect(options[options.length - 1]).toHaveTextContent('lighting.audioOutput.disconnected');
+    expect(options).toHaveLength(7);
+  });
+
+  it('flags an unplugged input pick even when no inputs are listed', async () => {
+    mockInputs.list = [];
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'in-gone', deviceName: 'Old Mic', direction: 'input' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.disconnected'));
+  });
+
+  it('round-trips a device id containing a colon', async () => {
+    mockInputs.list = [{ id: '{0.0.1}:mic:1', name: 'Colon Mic', isDefault: false, direction: 'input' }];
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Colon Mic'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: '{0.0.1}:mic:1', deviceName: 'Colon Mic', direction: 'input' });
+  });
+
+  it('treats a response without a direction as an output', async () => {
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('Arctis Nova Pro'));
+    fireEvent.click(trigger());
+    const selected = within(screen.getByRole('listbox')).getAllByRole('option').filter(o => o.getAttribute('aria-selected') === 'true');
+    expect(selected.map(o => o.textContent)).toEqual(['Arctis Nova Pro']);
   });
 
   it('reverts the pick when the service does not take the write', async () => {

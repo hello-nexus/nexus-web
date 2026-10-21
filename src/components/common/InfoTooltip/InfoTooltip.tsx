@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
+import { Button } from '../Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { tooltipOpenDelay, notifyTooltipOpen, notifyTooltipClose } from '../tooltipDelay';
 import { isRestoringModalFocus, onModalOpen } from '../Overlay/modalStack';
@@ -18,9 +19,28 @@ interface InfoTooltipProps {
   icon?: ReactNode;
   /** Colours the glyph for a warning or critical flag; absent keeps the neutral info look. */
   tone?: 'warning' | 'critical';
+  /** A button under the message. The bubble stays open while the pointer or focus is inside it, and Tab from the icon reaches the button. */
+  action?: { label: string; onClick: () => void };
 }
 
 const OFFSET = 8;
+
+const EMOJI_RUN = /\p{Regional_Indicator}{2}|[#*0-9]\uFE0F?\u20E3|(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}\uFE0F)\p{Emoji_Modifier}?(?:\u200D(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}\uFE0F?)\p{Emoji_Modifier}?)*/gu;
+
+// Chromium draws a color emoji with the text color's alpha, so the dimmed
+// message color would wash it out; each emoji run gets an opaque color.
+function withOpaqueEmoji(message: string): ReactNode {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  for (const m of message.matchAll(EMOJI_RUN)) {
+    parts.push(message.slice(last, m.index));
+    parts.push(<span key={m.index} className={styles.emoji}>{m[0]}</span>);
+    last = m.index + m[0].length;
+  }
+  if (parts.length === 0) return message;
+  parts.push(message.slice(last));
+  return parts;
+}
 // Minimum gap kept between the tooltip box and the viewport edge when clamping.
 const VIEWPORT_MARGIN = 8;
 
@@ -32,13 +52,15 @@ const VIEWPORT_MARGIN = 8;
  * Rendered into a portal on document.body so ancestor `overflow: auto`
  * containers (e.g. App's scrollable content column) can't clip it.
  */
-export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, icon, tone }: InfoTooltipProps) {
+export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, icon, tone, action }: InfoTooltipProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const rootRef = useRef<HTMLSpanElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
+  const refocusingRef = useRef(false);
   const closeTimerRef = useRef<number | null>(null);
   const openTimerRef = useRef<number | null>(null);
   // Whether this tooltip actually became visible - so the shared scan-mode
@@ -84,13 +106,24 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
     }, 120);
   };
 
-  // A modal opening takes over the screen; nothing under it keeps a tooltip.
-  useEffect(() => onModalOpen(() => {
+  // Closing with focus inside the bubble would drop it to the body, so the
+  // trigger takes it back; refocusingRef keeps that focus from reopening the bubble.
+  const closeNow = (restoreFocus: boolean) => {
     cancelPendingOpen();
     cancelPendingClose();
+    if (restoreFocus && tooltipRef.current?.contains(document.activeElement)) {
+      refocusingRef.current = true;
+      triggerRef.current?.focus();
+      refocusingRef.current = false;
+    }
     setOpen(false);
     if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
-  }), []);
+  };
+
+  // A modal opening takes over the screen; nothing under it keeps a tooltip.
+  // closeNow reads refs / stable setters only.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => onModalOpen(() => closeNow(false)), []);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -143,8 +176,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
       // register their own Esc handlers on window).
       if (e.key === 'Escape') {
         e.stopPropagation();
-        setOpen(false);
-        if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+        closeNow(true);
       }
     };
     document.addEventListener('mousedown', onDocPointer);
@@ -153,6 +185,8 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
       document.removeEventListener('mousedown', onDocPointer);
       window.removeEventListener('keydown', onKey);
     };
+    // closeNow reads refs / stable setters only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Clear coords whenever it closes so the next open re-measures from scratch
@@ -168,6 +202,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
   }, []);
 
   const label = ariaLabel ?? t('infoTooltip.ariaLabel');
+
 
   return (
     <span ref={rootRef} className={`${styles.root} ${open ? styles.open : ''} ${className ?? ''}`}>
@@ -189,10 +224,17 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
         }}
         onPointerEnter={(e) => { if (e.pointerType !== 'touch') { cancelPendingClose(); scheduleOpen(); } }}
         onPointerLeave={(e) => { if (e.pointerType !== 'touch') scheduleClose(); }}
+        onKeyDown={action ? (e) => {
+          // The bubble is portaled to the end of the body, so Tab would skip it.
+          if (e.key === 'Tab' && !e.shiftKey && open && actionRef.current) {
+            e.preventDefault();
+            actionRef.current.focus();
+          }
+        } : undefined}
         onFocus={() => {
           // Focus a closing modal hands back is not the user arriving here.
           if (isRestoringModalFocus()) return;
-          if (pointerPressRef.current) return;
+          if (pointerPressRef.current || refocusingRef.current) return;
           cancelPendingClose(); cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen();
         }}
         onBlur={() => { pointerPressRef.current = false; scheduleClose(); }}>
@@ -201,7 +243,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
       {open && createPortal(
         // Rendered as soon as it opens (hidden until the layout effect measures
         // + clamps it) so getBoundingClientRect has a real box to size against.
-        <span role="tooltip" id={tooltipId}
+        <span role={action ? undefined : 'tooltip'} id={action ? undefined : tooltipId}
           ref={tooltipRef}
           className={styles.tooltip}
           style={{
@@ -210,8 +252,26 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
             visibility: coords ? 'visible' : 'hidden',
           }}
           onPointerEnter={cancelPendingClose}
-          onPointerLeave={scheduleClose}>
-          {message}
+          onPointerLeave={scheduleClose}
+          onFocus={action ? cancelPendingClose : undefined}
+          onBlur={action ? scheduleClose : undefined}>
+          {action ? <span id={tooltipId}>{withOpaqueEmoji(message)}</span> : withOpaqueEmoji(message)}
+          {action && (
+            <Button
+              ref={actionRef}
+              size="sm"
+              className={styles.action}
+              onClick={() => { closeNow(true); action.onClick(); }}
+              onKeyDown={(e) => {
+                if (e.key !== 'Tab') return;
+                // Back to the icon; a forward Tab then continues from there.
+                if (e.shiftKey) e.preventDefault();
+                triggerRef.current?.focus();
+              }}
+            >
+              {action.label}
+            </Button>
+          )}
         </span>,
         document.body,
       )}

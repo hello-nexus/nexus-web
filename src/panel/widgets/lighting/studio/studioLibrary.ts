@@ -4,9 +4,10 @@ import {
   customEffectKey, deleteCustomEffect, getCustomEffects, putCustomEffect, refreshCustomEffects, useCustomEffects,
   type CustomEffectEntry,
 } from '../../../../api/customEffects';
+import { isSensorBinding } from '../../../../lib/sensorBinding';
 import { STUDIO_COST_BUDGET, STUDIO_STAGES, STUDIO_STAGE_LIMIT, studioBlock } from './studioBlocks';
 import {
-  MOD_GATE, MOD_RATE, STUDIO_MOD_SOURCES, blockParams, compileStudio, isMusicSource, recipeCost, stageCount,
+  MOD_GATE, MOD_RATE, STUDIO_MOD_SOURCES, blockParams, compileStudio, isMusicSource, isSensorSource, recipeCost, stageCount,
   type StudioBlock, type StudioMod, type StudioRecipe,
 } from './studioCompiler';
 
@@ -26,9 +27,12 @@ export interface SavedEffect {
 const isNum = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const isObj = (o: unknown): o is Record<string, unknown> => !!o && typeof o === 'object' && !Array.isArray(o);
 
-// The same rules the Marketplace API applies: a rate only on a wave, a gate only on music.
+// The same rules the Marketplace API applies: a rate only on a wave, a gate only on music,
+// a sensor binding only on (and required by) the sensor source.
 function isMod(m: StudioMod): boolean {
   if (!isObj(m) || !STUDIO_MOD_SOURCES.includes(m.source) || !isNum(m.amount)) return false;
+  if (isSensorSource(m.source)) return m.rate === undefined && m.gate === undefined && isSensorBinding(m.sensor);
+  if (m.sensor !== undefined) return false;
   const music = isMusicSource(m.source);
   if (m.rate !== undefined && (music || !isNum(m.rate) || m.rate < MOD_RATE.min || m.rate > MOD_RATE.max)) return false;
   return m.gate === undefined || (music && isNum(m.gate) && m.gate >= MOD_GATE.min && m.gate <= MOD_GATE.max);
@@ -46,6 +50,7 @@ export function isRecipe(x: unknown): x is StudioRecipe {
   const r = x as unknown as StudioRecipe;
   if (r.v !== 1 || !Array.isArray(r.blocks) || !r.blocks.every(isBlock)) return false;
   if (![r.speed, r.hue, r.saturation, r.contrast].every(isNum)) return false;
+  if (r.colorize !== undefined && !isNum(r.colorize)) return false;
   if (r.knobs !== undefined && !(Array.isArray(r.knobs) && r.knobs.every(k => isObj(k) && typeof k.uid === 'string' && typeof k.key === 'string'))) return false;
   return stageCount(r, 'pattern') >= 1 && stageCount(r, 'color') === 1;
 }
@@ -73,6 +78,7 @@ export function parseMarketRecipe(x: unknown): StudioRecipe | null {
     hue: clamp(x.hue, 0, 1),
     saturation: clamp(x.saturation, 0, 2),
     contrast: clamp(x.contrast, 0, 2),
+    ...(x.colorize === undefined ? {} : { colorize: clamp(x.colorize, 0, 1) }),
     knobs: x.knobs?.filter(k => keys.get(k.uid)?.has(k.key)),
   };
 }

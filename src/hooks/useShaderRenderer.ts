@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { fetchShaderSource, onShaderSourceInvalidated } from '../api/lighting';
 import { createDisplayDivider, createFramePacer, panelDisplayHz, streamFrameCap } from '../lib/framePacer';
 import { BASE_UNIFORM_NAMES, clampToSpec, resolveParamUniforms, type ShaderParamSpec } from '../lib/shaderParams';
+import { effectiveBinding, sensorSweep, smoothSensor, type SensorSignal, type SensorUniform } from '../lib/sensorBinding';
 import type { EffectState } from '../types/lighting';
 import type { AudioSnapshot } from './useAudioState';
+import { SensorSignalContext } from './SensorSignalContext';
 
 // rAF timestamp of each canvas's latest draw. Paced frames skip the draw and read back cleared.
 const drawnFrameTs = new WeakMap<HTMLCanvasElement, number>();
@@ -52,12 +54,18 @@ export function useShaderRenderer(
     visibleRef?: React.RefObject<boolean>;
     paletteRef?: React.RefObject<Float32Array | null>;
     audioTime?: boolean;
+    // Live 0..1 readings for the shader's sensor uniforms; a sensor that does not resolve reads 0, as on the LEDs.
+    sensorRef?: React.RefObject<SensorSignal | null>;
+    // Swing a sensor that does not resolve slowly instead, so an authoring preview moves without the hardware.
+    sensorSweep?: boolean;
   },
   // When true, u_time is held at the value it had the instant this flipped
   // true, so the preview freezes on the same frame the server-side lighting
   // engine freezes at instead of blanking or drifting.
   paused = false,
 ): { ready: boolean; loading: boolean; error: string | null } {
+  const contextSensors = useContext(SensorSignalContext);
+  const sensorSignal = options?.sensorRef ?? contextSensors;
   const glRef = useRef<WebGL2RenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const vaoRef = useRef<WebGLVertexArrayObject | null>(null);
@@ -186,6 +194,8 @@ export function useShaderRenderer(
 
       const specByName = new Map(src.params.map(p => [p.name, p]));
       specByNameRef.current = specByName;
+      const sensorUniforms: SensorUniform[] = src.sensors;
+      const sensorLevels = new Map<string, number>();
       resolvedRef.current = { params: undefined, entries: [] };
 
       const names = [
@@ -202,6 +212,7 @@ export function useShaderRenderer(
       for (const spec of specByName.values()) {
         if (!BASE_UNIFORM_NAMES.has(spec.name)) cache[spec.name] = gl.getUniformLocation(prog, spec.name);
       }
+      for (const su of sensorUniforms) cache[su.name] = gl.getUniformLocation(prog, su.name);
       const s = stateRef.current;
       if (s?.params) {
         for (const key of Object.keys(s.params)) if (!(key in cache)) cache[key] = gl.getUniformLocation(prog, key);
@@ -336,6 +347,16 @@ export function useShaderRenderer(
         if (u.u_midPeak)   g.uniform1f(u.u_midPeak,   midPeakRef.current);
         if (u.u_highPeak)  g.uniform1f(u.u_highPeak,  highPeakRef.current);
 
+        for (const su of sensorUniforms) {
+          const loc = u[su.name];
+          if (!loc) continue;
+          const live = sensorSignal?.current?.(effectiveBinding(su, st.sensors)) ?? null;
+          const target = live ?? (options?.sensorSweep ? sensorSweep(t) : 0);
+          const level = sensorLevels.has(su.name) ? smoothSensor(sensorLevels.get(su.name)!, target, dt) : target;
+          sensorLevels.set(su.name, level);
+          g.uniform1f(loc, level);
+        }
+
         // Resolved once per params identity, not per frame: the panel runs
         // several of these canvases at 60fps on the Q-series.
         if (resolvedRef.current.params !== st.params) {
@@ -360,7 +381,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, sourceRev, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, options?.paletteRef, options?.audioTime, audioRef]);
+  }, [effect, sourceRev, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, options?.paletteRef, options?.audioTime, sensorSignal, options?.sensorSweep, audioRef]);
 
   return { ready, loading, error };
 }

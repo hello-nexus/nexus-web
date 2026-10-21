@@ -207,29 +207,38 @@ describe('CoolingTouch', () => {
     await waitFor(() => expect(selectAll).toBeDisabled());
     expect(selectNone).toBeEnabled();
     // The unresponsive header is not listed, so it never joins the selection.
-    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]').sort())
+    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans.immersive') ?? '[]').sort())
       .toEqual(['fan-case', 'fan-cpu']);
 
     fireEvent.click(selectNone);
     await waitFor(() => expect(selectNone).toBeDisabled());
-    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]')).toEqual([]);
+    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans.immersive') ?? '[]')).toEqual([]);
   });
 
-  // The selection is shared with the desktop rail, as the lighting one is.
-  it('restores a stored selection and drops fans that are gone', async () => {
-    localStorage.setItem('nexus.cooling.selectedFans', JSON.stringify(['fan-cpu', 'ghost-fan']));
+  it('shows only the fans that are listed without forgetting a stored one', async () => {
+    localStorage.setItem('nexus.cooling.selectedFans.immersive', JSON.stringify(['fan-cpu', 'ghost-fan']));
     renderTouch();
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
-    await waitFor(() => expect(
-      JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]'),
-    ).toEqual(['fan-cpu']));
+    expect(await screen.findByRole('button', { name: /lighting.ledMap.selectNone/ })).toBeEnabled();
+    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans.immersive') ?? '[]')).toEqual(['fan-cpu', 'ghost-fan']);
+  });
+
+  it.each([null, 'panel-a'])('never shares its selection with the desktop Cooling page (panel %s)', async panelId => {
+    localStorage.setItem('nexus.cooling.selectedFans', JSON.stringify(['fan-cpu']));
+    renderTouch(panelId);
+    fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
+    const selectAll = await screen.findByRole('button', { name: /lighting.ledMap.selectAll/ });
+    expect(screen.getByRole('button', { name: /lighting.ledMap.selectNone/ })).toBeDisabled();
+    fireEvent.click(selectAll);
+    await waitFor(() => expect(selectAll).toBeDisabled());
+    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]')).toEqual(['fan-cpu']);
   });
 
   it('desktop: reopening the view restores the selection', async () => {
     const first = renderTouch();
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
     fireEvent.click(await screen.findByRole('button', { name: /lighting.ledMap.selectAll/ }));
-    await waitFor(() => expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]').sort()).toEqual(['fan-case', 'fan-cpu']));
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans.immersive') ?? '[]').sort()).toEqual(['fan-case', 'fan-cpu']));
     first.unmount();
 
     renderTouch();
@@ -251,6 +260,7 @@ describe('CoolingTouch', () => {
     expect(panelRecords.current['panel-b']).toBeUndefined();
     b.unmount();
     expect(localStorage.getItem('nexus.cooling.selectedFans')).toBeNull();
+    expect(localStorage.getItem('nexus.cooling.selectedFans.immersive')).toBeNull();
 
     localStorage.clear();
     renderTouch('panel-a');
@@ -258,11 +268,12 @@ describe('CoolingTouch', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /lighting.ledMap.selectNone/ })).toBeEnabled());
   });
 
-  it('a panel drops a remembered fan that is gone', async () => {
+  it('a panel hides a remembered fan that is gone and keeps it on the record', async () => {
     panelRecords.current['panel-a'] = { coolingSelection: ['fan-cpu', 'ghost-fan'] };
     renderTouch('panel-a');
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
-    await waitFor(() => expect(panelRecords.current['panel-a'].coolingSelection).toEqual(['fan-cpu']));
+    expect(await screen.findByRole('button', { name: /lighting.ledMap.selectNone/ })).toBeEnabled();
+    expect(panelRecords.current['panel-a'].coolingSelection).toEqual(['fan-cpu', 'ghost-fan']);
   });
 
   // A hub's cooling mode is one byte for the whole hub, and a curve cannot
@@ -282,7 +293,7 @@ describe('CoolingTouch', () => {
           classification: 'Controllable', calibrated: true, deviceId: 'np50:AB12', deviceName: 'HYTE NP50' },
       ],
     });
-    localStorage.setItem('nexus.cooling.selectedFans', JSON.stringify(['hub-1', 'hub-2']));
+    localStorage.setItem('nexus.cooling.selectedFans.immersive', JSON.stringify(['hub-1', 'hub-2']));
     renderTouch();
 
     fireEvent.click(await screen.findByRole('button', { name: 'My Graph Curve' }));

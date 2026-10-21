@@ -153,6 +153,7 @@ export function PanelTouchCell({
   cellPointers,
   onSimulatorClick,
   editHint = false,
+  resizeSelected = false,
   immersiveOnLoad = false,
   previewLayout = null,
   onSectionNavigate,
@@ -191,6 +192,8 @@ export function PanelTouchCell({
   };
   onSimulatorClick?: () => void;
   editHint?: boolean;
+  // The tile in resize mode: its drag starts on distance, not a hold.
+  resizeSelected?: boolean;
   // Device-page preview: this is the widget the panel opens immersive on load.
   // Hovering the cell frames it and names the mark.
   immersiveOnLoad?: boolean;
@@ -395,6 +398,7 @@ export function PanelTouchCell({
       data-cell-state={editorDockMotion ? 'docked' : undefined}
       data-clickthrough={clickthrough && !editorDockMotion ? 'true' : undefined}
       data-edit-hint={editHint ? 'true' : undefined}
+      data-resize-selected={resizeSelected ? 'true' : undefined}
       data-immersive-on-load={immersiveOnLoad ? 'true' : undefined}
       className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
       style={{

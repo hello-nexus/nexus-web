@@ -284,8 +284,8 @@ interface ImmersiveAnimateController {
 }
 
 /**
- * The lighting devices plus the selection the lighting page keeps, so a static
- * pick made here targets exactly what that page shows selected.
+ * The lighting devices plus this view's own remembered selection, which is
+ * never the desktop lighting page's.
  */
 function useImmersiveDevices(enabled: boolean) {
   useState(clearLegacyLightingKeys);
@@ -436,7 +436,7 @@ function useImmersiveAnimateState(): {
       setGlobalColor('', startStatic(key, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true));
       return;
     }
-    void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
+    void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true, s.sensors);
   }, [active, applyPins, mode, pinnedKey, selection, selectionIds, setGlobalColor]);
 
   const versionForSlot = useCallback((key: string, slot: number) => {

@@ -368,7 +368,7 @@ function GameDetail({
                     <span className={styles.sessionMain}>
                       <span>{formatSessionDate(s.startedUtcMs, dateFormat, timeFormat)}</span>
                       <span className={styles.sessionMeta}>
-                        {`${formatResolution(`${s.dispW}x${s.dispH}`)} @ ${s.refreshHz} Hz · ${formatDurationMinutes(s.focusedSec)}`}
+                        {`${formatResolution(`${s.dispW}x${s.dispH}`)} @ ${s.refreshHz} Hz - ${formatDurationMinutes(s.focusedSec)}`}
                       </span>
                     </span>
                     <span className={styles.sessionStats}>
@@ -663,7 +663,7 @@ function DiscoverGameCard({ game, requestedRes }: { game: FpsTableGameItem; requ
           <ConfidenceMark confidence={game.confidence} />
           <span className={styles.discoverBasisText}>
             {t(`frames.discover.level.${game.level}`)}
-            {fellBack && ` · ${t('frames.discover.resBasis', { res: formatResolution(requestedRes) })}`}
+            {fellBack && ` - ${t('frames.discover.resBasis', { res: formatResolution(requestedRes) })}`}
           </span>
         </div>
       </div>

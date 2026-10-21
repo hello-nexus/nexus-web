@@ -24,6 +24,7 @@ import {
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
 import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
+import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { AnimateGrid } from '../widgets/lighting/page/AnimateGrid';
 import { EffectControls } from '../widgets/lighting/page/EffectControls';
 import { BackgroundMediaPicker } from '../background/BackgroundMediaPicker';
@@ -159,6 +160,8 @@ export interface PanelThemeSettingsProps {
    * screens, so non-touch displays hide it. */
   showImmersiveBackdrop?: boolean;
   sections?: PanelThemeSettingsSection;
+  /** Show a search field above the background animation grid. Desktop dashboard only. */
+  showEffectSearch?: boolean;
   /** Name of the focus mode holding this panel on a plain background right now, if any. */
   backgroundHeldBy?: string | null;
 }
@@ -204,6 +207,7 @@ export function PanelThemeSettings({
   hideWidgetLabelsToggle = false,
   hideWidgetChromeControls = false,
   showBackdropSelector = false,
+  showEffectSearch = false,
   showImmersiveBackdrop = true,
   sections = 'all',
   backgroundHeldBy = null,
@@ -258,6 +262,7 @@ export function PanelThemeSettings({
   // EffectEditor shell) so the preview + tab bars + chips can sit in one
   // sticky dock while the grid / controls scroll with the page.
   const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
+  const [effectQuery, setEffectQuery] = useState('');
 
   // The same Options | Effect editing surface as the immersive lighting view,
   // here targeting this panel's per-device background effect (animate-only).
@@ -562,12 +567,21 @@ export function PanelThemeSettings({
                     onChange={key => setEditorTab(key as 'options' | 'effect')}
                     ariaLabel={t('lighting.rightPane.label')}
                   />
+                  {showEffectSearch && editorTab === 'options' && (
+                    <SearchInput
+                      value={effectQuery}
+                      onChange={setEffectQuery}
+                      placeholder={t('lighting.effects.search')}
+                      ariaLabel={t('lighting.effects.search')}
+                    />
+                  )}
                 </div>
                 {editorTab === 'options' ? (
                   <AnimateGrid
                     effect={backgroundEffect}
                     onSelect={onBackgroundEffectCommit}
                     effects={PANEL_BACKGROUND_EFFECTS}
+                    query={showEffectSearch ? effectQuery : undefined}
                     slotFor={backgroundController.slotFor}
                     versionFor={backgroundController.versionFor}
                     rgbActiveEffect={backgroundController.rgbActiveEffect}

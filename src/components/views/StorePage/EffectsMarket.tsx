@@ -17,16 +17,18 @@ import { forgetShaderSource, primeShaderSource } from '../../../api/lighting';
 import { customEffectDef, customEffectKey } from '../../../api/customEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useAudioState } from '../../../hooks/useAudioState';
+import { SensorSignalProvider } from '../../../hooks/SensorSignalProvider';
 import type { EffectState } from '../../../types/lighting';
 import { baselineTemplates, slotMatchesDefault } from '../../../types/lightingTemplates';
 import { EffectControls } from '../../../panel/widgets/lighting/page/EffectControls';
 import { StudioPreview } from '../../../panel/widgets/lighting/studio/StudioPreview';
 import { attachRecipePreview } from '../../../panel/widgets/lighting/studio/recipePreview';
+import { PreviewSensorFeed } from '../../../panel/widgets/lighting/studio/PreviewSensorFeed';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatNumber } from '../../../lib/units';
 import { copyName, isDownloaded, isMarketCopy, newEffectId, parseMarketRecipe, saveEffect, unlinkEffect, useSavedEffects } from '../../../panel/widgets/lighting/studio/studioLibrary';
-import { compileStudio, type StudioRecipe } from '../../../panel/widgets/lighting/studio/studioCompiler';
+import { compileStudio, recipeUsesSensors, type StudioRecipe } from '../../../panel/widgets/lighting/studio/studioCompiler';
 import storeStyles from './StorePage.module.scss';
 import styles from './EffectsMarket.module.scss';
 
@@ -47,7 +49,12 @@ function recipeOf(listing: EffectListing): StudioRecipe | null {
 function RecipeCanvas({ recipe, className }: { recipe: StudioRecipe; className: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => (ref.current ? attachRecipePreview(ref.current, recipe) : undefined), [recipe]);
-  return <canvas ref={ref} className={className} aria-hidden={true} />;
+  return (
+    <>
+      {recipeUsesSensors(recipe) && <PreviewSensorFeed />}
+      <canvas ref={ref} className={className} aria-hidden={true} />
+    </>
+  );
 }
 
 function useDownloadsLabel() {
@@ -253,6 +260,7 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
   useLayoutEffect(() => { stateRef.current = state; }, [state]);
   const audioRef = useAudioState(listing.audio);
   return (
+    <SensorSignalProvider enabled={recipeUsesSensors(recipe)}>
     <div className={styles.playground}>
       <div className={styles.main}>
         <StudioPreview effectKey={compiled.key} stateRef={stateRef} audioRef={audioRef} className={styles.detailPreview} />
@@ -273,6 +281,7 @@ function EffectPlayground({ listing, recipe, children }: { listing: EffectListin
         />
       </Card>
     </div>
+    </SensorSignalProvider>
   );
 }
 

@@ -1,4 +1,5 @@
 import type { LightingMode } from '../hooks/useLightingSync';
+import type { SensorBinding } from '../lib/sensorBinding';
 
 export type { LightingMode };
 
@@ -14,6 +15,11 @@ export interface EffectState {
   saturation: number;    // 0 = grayscale, 1 = unchanged, 2 = oversaturated
   contrast: number;      // 0 = flat, 1 = unchanged, 2 = hard contrast
   params: Record<string, number>;
+  /**
+   * The user's sensor picks, keyed by sensor uniform name. A missing key means
+   * the shader's own default binding; only uniforms the user changed are here.
+   */
+  sensors?: Record<string, SensorBinding>;
 }
 
 /**
@@ -27,6 +33,10 @@ export interface EffectParamDef {
   labelKey?: string; // i18n key; when present the UI calls t(labelKey) instead of using label directly
   /** When present the control renders as a segmented choice; value is still a float. */
   options?: { value: number; labelKey: string }[];
+  /** An on/off parameter (0 or 1), shown as the app's switch instead of a two-option select. */
+  toggle?: boolean;
+  /** Shown right under the color wheel instead of in the parameter list. */
+  underWheel?: boolean;
   /** Render the slider with a centre zero tick (bipolar look, like Speed). */
   zeroMarker?: boolean;
 }
@@ -40,13 +50,14 @@ export type EffectCategory =
   | 'cosmic'
   | 'organic'
   | 'geometric'
-  | 'pattern';
+  | 'pattern'
+  | 'sensor';
 
 // Section order for the effect listing: simple fills first, then organic and
 // pattern, then the rest, with the audio-reactive set last.
 export const EFFECT_CATEGORIES: EffectCategory[] = [
   'simple', 'gradient', 'twotone', 'spectrum',
-  'organic', 'pattern', 'cosmic', 'geometric', 'audio',
+  'organic', 'pattern', 'cosmic', 'geometric', 'audio', 'sensor',
 ];
 
 // The "simple" family: one cheap solid-fill shader (simple.frag) reused for
@@ -72,6 +83,13 @@ export interface EffectColorSlot {
   range?: boolean;
 }
 
+/** Names a sensor uniform for the effect controls; the uniform itself comes from the shader's annotation. */
+export interface EffectSensorDef {
+  name: string;
+  label: string;
+  labelKey?: string;
+}
+
 export interface EffectDef {
   key: string;
   labelKey: string;
@@ -80,6 +98,8 @@ export interface EffectDef {
   /** Computed via {@link categoryOf} - the EFFECT_CATEGORY map below is the source of truth. */
   category?: EffectCategory;
   params: EffectParamDef[];
+  /** Labels for the effect's sensor uniforms; an unlisted one shows under the generic sensor label. */
+  sensors?: EffectSensorDef[];
   showIntensity?: boolean;
   audio?: boolean;
   /** When true, the Speed slider is hidden for this effect. */
@@ -140,6 +160,9 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   tide: 'pattern', ridgeline: 'pattern', chevron: 'pattern', terrace: 'pattern',
   sharplines: 'pattern', synthwave: 'pattern', retropetals: 'pattern',
   breathing: 'pattern', clockfill: 'pattern',
+  // Sensor-driven fills and color shifts: a hardware reading moves them.
+  sensorbar: 'sensor', sensorclock: 'sensor', sensorsegments: 'sensor', sensorliquid: 'sensor',
+  sensorcenter: 'sensor', sensorshift: 'sensor', sensorheat: 'sensor',
 };
 
 export const BASE_DEFAULTS: Omit<EffectState, 'params'> = {
@@ -152,7 +175,6 @@ export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'animate', labelKey: 'lighting.mode.animate' },
   { key: 'gif', labelKey: 'lighting.mode.gif' },
   { key: 'screen', labelKey: 'lighting.mode.screen' },
-  { key: 'gamesync', labelKey: 'lighting.mode.gamesync' },
 ];
 
 // Simple fills expose a bipolar hue nudge and a colour-temperature (warmth)
@@ -166,6 +188,10 @@ const SIMPLE_COLOR_PARAMS: EffectParamDef[] = [
 const SIMPLE_WHITE_PARAMS: EffectParamDef[] = [
   { name: 'u_warmth', label: 'Warmth', labelKey: 'lighting.controls.param.warmth', zeroMarker: true },
 ];
+
+const SENSOR_LEVEL_SENSORS: EffectSensorDef[] = [{ name: 'u_fill_level_s', label: 'Fill level', labelKey: 'lighting.sensor.level' }];
+const SENSOR_SHIFT_SENSORS: EffectSensorDef[] = [{ name: 'u_hot_level_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
+const SENSOR_HEAT_SENSORS: EffectSensorDef[] = [{ name: 'u_col_low_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
 
 export const EFFECTS: EffectDef[] = [
   // Simple solid-colour fills lead the list. A flat swatch with a slight
@@ -735,6 +761,44 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_melt',       label: 'Melt', labelKey: 'lighting.controls.param.melt' },
       { name: 'u_glow',       label: 'Glow', labelKey: 'lighting.controls.param.glow' },
       { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity' },
+  ]},
+// ── Sensor ─────────────────────────────────────────────────────────────────
+// Baked Shader Studio recipes (studioSensorPremades.ts): block uids are fixed, so the
+// uniform names below are stable. The sensor uniform (`_s`) comes from the shader's own
+// annotation; `sensors` only names it. Angle and flip turn and reverse the fill.
+  { key: 'sensorbar', labelKey: 'lighting.controls.sensorbar', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+    { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+    { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
+  ]},
+  { key: 'sensorclock', labelKey: 'lighting.controls.sensorclock', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+    { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+    { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
+  ]},
+  { key: 'sensorsegments', labelKey: 'lighting.controls.sensorsegments', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+    { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+    { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
+    { name: 'u_fill_count', label: 'Count', labelKey: 'lighting.controls.param.count' },
+  ]},
+  { key: 'sensorliquid', labelKey: 'lighting.controls.sensorliquid', sensors: SENSOR_LEVEL_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+    { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+    { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
+    { name: 'u_fill_wave', label: 'Waves', labelKey: 'lighting.controls.param.waves' },
+  ]},
+  { key: 'sensorcenter', labelKey: 'lighting.controls.sensorcenter', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+    { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+    { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
+  ]},
+  { key: 'sensorshift', labelKey: 'lighting.controls.sensorshift', hideSpeed: true, sensors: SENSOR_SHIFT_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+  ]},
+  { key: 'sensorheat', labelKey: 'lighting.controls.sensorheat', hideSpeed: true, sensors: SENSOR_HEAT_SENSORS, params: [
+    { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
+    { name: 'u_grad_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
   ]},
 ];
 

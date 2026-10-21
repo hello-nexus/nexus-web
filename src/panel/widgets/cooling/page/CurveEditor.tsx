@@ -155,6 +155,13 @@ const TEMP_MIN = 20, TEMP_MAX = 100;
 // the SVG, so they can never clip into the chart bars/lines.
 const PAD = { left: 8, right: 8, top: 8, bottom: 8 };
 const GRAPH_H = 140;
+// Clearance from the live dot within which an axis label would sit under its
+// readout, used until the readout is measured (it is rem-sized and its text
+// varies): half the readout plus room for the label itself.
+const LIVE_Y_BADGE_CLEARANCE = 14;
+const LIVE_X_BADGE_CLEARANCE = 44;
+const LIVE_X_LABEL_ROOM = 12;
+const LIVE_Y_LABEL_ROOM = 8;
 // Hero graph on the desktop cooling page.
 const PINNED_GRAPH_H = 190;
 // °C step for read-only curve sampling (Fixed / Linear / Mix lines).
@@ -177,6 +184,22 @@ export interface CurveGraphAxis {
   /** The axis is circular (hours of a day): past the outermost points the line
    *  continues from the last point back to the first across the edge. */
   wrap?: boolean;
+}
+
+/** A labelled vertical line at an x value, e.g. sunrise on the brightness schedule. */
+export interface CurveGraphMarker {
+  x: number;
+  label: string;
+  icon?: ReactNode;
+}
+
+/** Drag rules for a curve whose x positions are fixed: only the vertical
+ *  position of a point moves, `apply` returns the whole new point set for a
+ *  dragged point (so one drag can move a group), and points can be neither
+ *  added nor removed. Locked points are drawn as inert dots. */
+export interface CurveGraphVerticalDrag {
+  isLocked: (point: CurvePoint, index: number) => boolean;
+  apply: (points: CurvePoint[], index: number, speed: number) => CurvePoint[];
 }
 
 // Samples across the chart width for a drawn curve; one every few pixels at
@@ -217,7 +240,7 @@ function sampleCurveShape(
 // piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear',
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers, readOnly = false, verticalDrag,
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -233,6 +256,12 @@ export function CurveGraph({
   limitPercent?: number;
   axis?: CurveGraphAxis;
   easing?: CurveEasing;
+  /** Vertical lines with a label (and optional icon) at x values in the axis span. */
+  markers?: CurveGraphMarker[];
+  /** Points are drawn as small inert dots instead of handles. */
+  readOnly?: boolean;
+  /** Fixed-x editing: see CurveGraphVerticalDrag. Ignored unless `editable`. */
+  verticalDrag?: CurveGraphVerticalDrag;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -354,7 +383,7 @@ export function CurveGraph({
     };
   };
   const onHandleDown = (idx: number, e: React.PointerEvent) => {
-    if (!editable) return;
+    if (!editable || (verticalDrag && verticalDrag.isLocked(sorted[idx], idx))) return;
     e.preventDefault(); e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
     dragIdxRef.current = idx;
@@ -364,6 +393,12 @@ export function CurveGraph({
     const i = dragIdxRef.current;
     if (i === null) return;
     const base = (dragPoints ?? sorted).slice().sort((a, b) => a.temp - b.temp);
+    if (verticalDrag) {
+      const next = verticalDrag.apply(base, i, Math.round(Math.max(0, Math.min(100, pointerToData(e).speed))));
+      setDragPoints(next);
+      onPreview?.(next);
+      return;
+    }
     const lo = i > 0 ? base[i - 1].temp : tempMin;
     const hi = i < base.length - 1 ? base[i + 1].temp : tempMax;
     const { temp, speed } = pointerToData(e);
@@ -393,7 +428,7 @@ export function CurveGraph({
   // land in 0-100 / tempMin-tempMax. Removal floors at 2 points. Both abandon
   // any in-flight drag so a stale dragIdx can't write into the new point set.
   const onAddPoint = (e: React.MouseEvent) => {
-    if (!editable || !onChange) return;
+    if (!editable || !onChange || verticalDrag) return;
     const { temp, speed } = pointerToData(e);
     dragIdxRef.current = null; setDragPoints(null); setHoverIdx(null);
     onChange([...sorted, {
@@ -404,7 +439,7 @@ export function CurveGraph({
   const onRemovePoint = (idx: number, e: React.MouseEvent) => {
     if (!editable || !onChange) return;
     e.preventDefault();
-    if (sorted.length <= 2) return;
+    if (verticalDrag || sorted.length <= 2) return;
     dragIdxRef.current = null; setDragPoints(null); setHoverIdx(null);
     onChange(sorted.filter((_, i) => i !== idx));
   };
@@ -416,6 +451,18 @@ export function CurveGraph({
   const dotSpeed = hasDot ? speedAtTemp(currentTemp!) : 0;
   const dotX = hasDot ? tempToX(currentTemp!) : 0;
   const dotY = hasDot ? speedToY(dotSpeed) : 0;
+  const liveXText = hasDot ? formatLiveX(currentTemp!) : '';
+  const liveXRef = useRef<HTMLSpanElement>(null);
+  const liveYRef = useRef<HTMLSpanElement>(null);
+  const [liveXClear, setLiveXClear] = useState(LIVE_X_BADGE_CLEARANCE);
+  const [liveYClear, setLiveYClear] = useState(LIVE_Y_BADGE_CLEARANCE);
+  // offsetWidth ignores the centering transform, which is all that is needed here.
+  useLayoutEffect(() => {
+    const w = liveXRef.current?.offsetWidth;
+    const h = liveYRef.current?.offsetHeight;
+    if (w) setLiveXClear(w / 2 + LIVE_X_LABEL_ROOM);
+    if (h) setLiveYClear(h / 2 + LIVE_Y_LABEL_ROOM);
+  }, [hasDot, liveXText, dotSpeed]);
   const dotLeftPct = hasDot ? ((currentTemp! - tempMin) / (tempMax - tempMin)) * 100 : 0;
 
   return (
@@ -424,7 +471,7 @@ export function CurveGraph({
         <div className={styles.curveChartArea}>
           <div ref={chartAreaRef} className={styles.curveSvgWrap}>
           <svg ref={svgRef} className={styles.curveGraph} style={{ height, touchAction: editable ? 'none' : undefined }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
-            onDoubleClick={editable ? onAddPoint : undefined}>
+            onDoubleClick={editable && !verticalDrag ? onAddPoint : undefined}>
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
             {vLines.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
             <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
@@ -435,6 +482,9 @@ export function CurveGraph({
                 x2={width - PAD.right} y2={speedToY(Math.max(0, Math.min(100, limitPercent)))}
                 className={styles.curveLimitLine} />
             )}
+            {markers?.map((m, i) => (
+              <line key={`m${i}`} x1={tempToX(m.x)} y1={PAD.top} x2={tempToX(m.x)} y2={height - PAD.bottom} className={styles.curveMarkerLine} />
+            ))}
             {hasDot && (
               <g className={styles.curveTempIndicator}>
                 {/* Guide lines meet at the dot: one up from the bottom temp
@@ -444,17 +494,34 @@ export function CurveGraph({
                 <circle cx={dotX} cy={dotY} r={4} className={styles.tempDot} />
               </g>
             )}
-            {showPoints && sorted.map((p, i) => (
-              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={editable ? 7 : 6} className={styles.curvePoint}
-                style={editable ? { cursor: 'grab' } : undefined}
+            {showPoints && sorted.map((p, i) => {
+              const locked = readOnly || (editable && !!verticalDrag?.isLocked(p, i));
+              return (
+              <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={locked ? 3 : editable ? 7 : 6}
+                className={locked ? styles.curvePointStatic : styles.curvePoint}
+                style={editable && !locked ? { cursor: verticalDrag ? 'ns-resize' : 'grab' } : undefined}
                 onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
                 onPointerMove={editable ? onHandleMove : undefined}
                 onPointerUp={editable ? onHandleUp : undefined}
                 onPointerEnter={editable ? () => setHoverIdx(i) : undefined}
                 onPointerLeave={editable ? () => setHoverIdx(null) : undefined}
                 onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined} />
-            ))}
+              );
+            })}
           </svg>
+          {markers && markers.length > 0 && (
+            <div className={styles.curveMarkers} aria-hidden="true">
+              {markers.map((m, i) => {
+                const f = (m.x - tempMin) / (tempMax - tempMin);
+                return (
+                  <span key={i} className={styles.curveMarker} data-edge={f < 0.15 ? 'start' : f > 0.85 ? 'end' : undefined}
+                    style={{ left: `calc(${PAD.left}px + (100% - ${PAD.left + PAD.right}px) * ${f})` }}>
+                    {m.icon}{m.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           {readoutPt && (
             <ChartHoverTooltip ref={tooltipRef}>
               <ChartTooltipRow color="var(--accent)" name={xName}>
@@ -472,13 +539,16 @@ export function CurveGraph({
             <div className={styles.curveXAxisInner}>
               {vLines.map(v => (
                 <span key={v} className={styles.curveAxisLabel}
-                  style={{ left: `${((v - tempMin) / (tempMax - tempMin)) * 100}%` }}>
+                  style={{
+                    left: `${((v - tempMin) / (tempMax - tempMin)) * 100}%`,
+                    visibility: hasDot && Math.abs(tempToX(v) - dotX) < liveXClear ? 'hidden' : undefined,
+                  }}>
                   {formatX(v)}
                 </span>
               ))}
               {hasDot && (
-                <span className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
-                  {formatLiveX(currentTemp!)}
+                <span ref={liveXRef} className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
+                  {liveXText}
                 </span>
               )}
             </div>
@@ -488,10 +558,13 @@ export function CurveGraph({
             right-edge guide line points straight at the live value. */}
         <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
           {[...H_LINES].reverse().map(s => (
-            <span key={s} className={styles.curveAxisLabel}>{s}%</span>
+            <span key={s} className={styles.curveAxisLabel}
+              style={hasDot && Math.abs(speedToY(s) - dotY) < liveYClear ? { visibility: 'hidden' } : undefined}>
+              {s}%
+            </span>
           ))}
           {hasDot && (
-            <span className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
+            <span ref={liveYRef} className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
               {localizeNumbers(`${dotSpeed.toFixed(0)}%`, numberFormat)}
             </span>
           )}

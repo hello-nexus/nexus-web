@@ -113,7 +113,7 @@ describe('ShaderStudio simulated music', () => {
     render(<ShaderStudio open effectId={null} onClose={() => {}} />);
     const pick = (id: string) => {
       fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.starters' }));
-      fireEvent.click(screen.getByRole('option', { name: `lighting.studio.starter.${id}` }));
+      fireEvent.click(screen.getByRole('button', { name: `lighting.studio.starter.${id}` }));
     };
     pick('larsonScanner');
     expect(screen.queryByText('lighting.studio.simulateMusic')).toBeNull();

@@ -16,6 +16,8 @@ export interface StudioParam {
   options?: readonly string[];
   /** A count the shader reads as an integer; audio modulation rounds it. */
   whole?: boolean;
+  /** An on/off param (0 or 1) the block card shows as a switch rather than a two-option select. */
+  toggle?: boolean;
 }
 
 export interface StudioColor {
@@ -38,6 +40,12 @@ export interface StudioBlockDef {
   helpers?: readonly StudioHelper[];
   audio?: readonly StudioAudioInput[];
   /**
+   * Takes part in `fieldPos`, a 0 to 1 position along a design's gradient kept apart from the field's
+   * brightness, so a soft edge dims a pixel without moving its color: a fill writes it, a wheel color reads it.
+   * Only the last pattern block's position counts, so a fill followed by another pattern colors from the field.
+   */
+  fieldPos?: 'writes' | 'reads';
+  /**
    * GLSL statements. `$key` reads a param (or a color as vec3). Space blocks
    * rewrite `vec2 p`, pattern blocks assign `float f`, tone blocks rewrite
    * `float v`, color blocks assign `vec3 col` from `v`, finish blocks rewrite
@@ -59,6 +67,8 @@ export const PATTERN_BLEND_PARAMS: readonly StudioParam[] = [
   { key: 'blend', min: 0, max: 5, step: 1, def: 0, options: BLEND_OPTIONS },
   { key: 'mix', min: 0, max: 1, step: 0.01, def: 1 },
 ];
+
+const FLIP_OPTIONS = ['lighting.studio.flip.normal', 'lighting.studio.flip.flipped'] as const;
 
 export const PALETTE_OPTIONS = [
   'lighting.studio.palette.rainbow', 'lighting.studio.palette.sunset', 'lighting.studio.palette.ocean',
@@ -459,6 +469,131 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
       'f = (1.0 - smoothstep(0.0, $width, abs(d - rk))) * step(0.0, rk) * pow(0.6, k) * (1.0 - pr) * mix(1.0, 0.45, idle);',
     ].join('\n'),
   },
+  // ---- fill meters: each lights up to `level` (0 to 1), so a sensor mod on level makes a gauge of the hardware ----
+  {
+    // A bar filling bottom to top at angle 0; the angle turns it and flip reverses the direction.
+    type: 'fillbar', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    params: [
+      { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
+      { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
+      { key: 'softness', min: 0.01, max: 0.5, step: 0.01, def: 0.06 },
+    ],
+    code: [
+      'float ar = u_resolution.x / u_resolution.y; float ra = radians($angle); vec2 dir = vec2(sin(ra), -cos(ra));',
+      'float x = dot(p, dir) / (2.0 * (abs(dir.x) * ar + abs(dir.y))) + 0.5;',
+      'if ($flip > 0.5) x = 1.0 - x;',
+      'float lv = $level * (1.0 + $softness);',
+      'float lit = 1.0 - smoothstep(lv - $softness, lv, x);',
+      'fieldPos = clamp(x, 0.0, 1.0);',
+      'f = lit * (0.55 + 0.45 * fieldPos);',
+    ].join('\n'),
+  },
+  {
+    // A sweep filling clockwise from 12 o'clock at angle 0, for fans and rings.
+    type: 'fillclock', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    params: [
+      { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
+      { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
+      { key: 'softness', min: 0.01, max: 0.5, step: 0.01, def: 0.04 },
+    ],
+    code: [
+      'float ang = fract(atan(p.y, p.x) / 6.2831853 + 0.25 - $angle / 360.0);',
+      'if ($flip > 0.5) ang = 1.0 - ang;',
+      'float lv = $level * (1.0 + $softness);',
+      'float lit = 1.0 - smoothstep(lv - $softness, lv, ang);',
+      'fieldPos = clamp(ang, 0.0, 1.0);',
+      'f = lit * (0.55 + 0.45 * fieldPos);',
+    ].join('\n'),
+  },
+  {
+    // Evenly spaced segments lighting up one by one; the last one fades in as the level crosses it.
+    type: 'fillsegments', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    params: [
+      { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
+      { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
+      { key: 'count', min: 3, max: 40, step: 1, def: 10, whole: true },
+      { key: 'size', min: 0.2, max: 1, step: 0.01, def: 0.8 },
+    ],
+    code: [
+      'float ar = u_resolution.x / u_resolution.y; float ra = radians($angle); vec2 dir = vec2(sin(ra), -cos(ra));',
+      'float x = dot(p, dir) / (2.0 * (abs(dir.x) * ar + abs(dir.y))) + 0.5;',
+      'if ($flip > 0.5) x = 1.0 - x;',
+      'float n = floor($count + 0.5); float xc = clamp(x, 0.0, 0.9999); float seg = floor(xc * n); float cell = fract(xc * n);',
+      'float lit = clamp($level * n - seg, 0.0, 1.0);',
+      'fieldPos = (seg + 0.5) / n;',
+      'f = lit * (1.0 - smoothstep($size * 0.5 - 0.04, $size * 0.5, abs(cell - 0.5))) * (0.45 + 0.55 * (seg + 1.0) / n);',
+    ].join('\n'),
+  },
+  {
+    // A tank with a wavy surface; waves die out at empty and full so the ends stay clean.
+    type: 'fillliquid', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    params: [
+      { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
+      { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
+      { key: 'wave', min: 0, max: 1, step: 0.01, def: 0.6 },
+      { key: 'speed', min: 0, max: 3, step: 0.01, def: 1 },
+      { key: 'softness', min: 0.01, max: 0.3, step: 0.01, def: 0.05 },
+    ],
+    code: [
+      'float ar = u_resolution.x / u_resolution.y; float ra = radians($angle); vec2 dir = vec2(sin(ra), -cos(ra));',
+      'float x = dot(p, dir) / (2.0 * (abs(dir.x) * ar + abs(dir.y))) + 0.5;',
+      'if ($flip > 0.5) x = 1.0 - x;',
+      'float along = dot(p, vec2(cos(ra), sin(ra)));',
+      'float lvl = clamp($level, 0.0, 1.0);',
+      'float amp = $wave * 0.07 * sin(lvl * PI);',
+      'float surf = lvl * (1.0 + $softness) + amp * (sin(along * 3.0 + t * $speed * 2.0) + 0.5 * sin(along * 5.3 - t * $speed * 1.3));',
+      'float d = surf - x;',
+      'fieldPos = clamp(x, 0.0, 1.0);',
+      'f = smoothstep(0.0, $softness, d) * mix(1.0, 0.5, clamp(d * 2.0, 0.0, 1.0));',
+    ].join('\n'),
+  },
+  {
+    // Fills outward from the middle along the axis; flip fills inward from both ends.
+    type: 'fillcenter', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    params: [
+      { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
+      { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
+      { key: 'softness', min: 0.01, max: 0.5, step: 0.01, def: 0.06 },
+    ],
+    code: [
+      'float ar = u_resolution.x / u_resolution.y; float ra = radians($angle); vec2 dir = vec2(sin(ra), -cos(ra));',
+      'float x = abs(dot(p, dir)) / (abs(dir.x) * ar + abs(dir.y));',
+      'if ($flip > 0.5) x = 1.0 - x;',
+      'float lv = $level * (1.0 + $softness);',
+      'float lit = 1.0 - smoothstep(lv - $softness, lv, x);',
+      'fieldPos = clamp(x, 0.0, 1.0);',
+      'f = lit * (0.55 + 0.45 * fieldPos);',
+    ].join('\n'),
+  },
+  {
+    // A speedometer arc, open at the bottom at angle 0, over a dim track.
+    type: 'fillgauge', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    params: [
+      { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
+      { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
+      { key: 'flip', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
+      { key: 'span', min: 90, max: 360, step: 1, def: 240 },
+      { key: 'radius', min: 0.2, max: 1.2, step: 0.01, def: 0.65 },
+      { key: 'width', min: 0.1, max: 1.2, step: 0.01, def: 0.4 },
+      { key: 'track', min: 0, max: 0.5, step: 0.01, def: 0.1 },
+    ],
+    code: [
+      'float da = mod(degrees(atan(p.x, -p.y)) - $angle + 180.0, 360.0) - 180.0;',
+      'float g = (da + $span * 0.5) / $span;',
+      'if ($flip > 0.5) g = 1.0 - g;',
+      'float r = length(p); float lo = $radius - $width * 0.5; float hi = $radius + $width * 0.5;',
+      'float band = smoothstep(lo - 0.03, lo, r) * (1.0 - smoothstep(hi, hi + 0.03, r));',
+      'float inArc = smoothstep(0.0, 0.02, g) * (1.0 - smoothstep(0.98, 1.0, g));',
+      'float lit = 1.0 - smoothstep($level * 1.03 - 0.03, $level * 1.03, g);',
+      'fieldPos = clamp(g, 0.0, 1.0);',
+      'f = band * inArc * mix($track, 0.55 + 0.45 * fieldPos, lit);',
+    ].join('\n'),
+  },
   // ---- tone ----
   {
     type: 'bands', stage: 'tone', cost: 1,
@@ -516,6 +651,25 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
       { key: 'c3', def: [0, 0.9, 0.8] },
     ],
     code: 'col = grad3(v * $spread + hue + t * $cycle * 0.1, $c1, $c2, $c3) * mix(1.0, v, $shade);',
+  },
+  {
+    // Colors a field with the Lighting page's color wheel instead of colors of its own: the wheel's hue is the
+    // middle of the range, its width the span (a single color when collapsed), and the field runs from the
+    // range's high hue at `low` down to its low hue at 1, cool to hot on the usual wheel. `low` is read only when
+    // the last pattern block is not a fill meter; a fill colors from its own position instead (see `fieldPos`).
+    type: 'wheelcolor', stage: 'color', cost: 1, fieldPos: 'reads',
+    params: [
+      { key: 'low', min: 0, max: 0.95, step: 0.01, def: 0 },
+      { key: 'shade', min: 0, max: 1, step: 0.01, def: 1 },
+      { key: 'reverse', min: 0, max: 1, step: 1, def: 0, options: FLIP_OPTIONS, toggle: true },
+    ],
+    code: [
+      // A fill's own position keeps its color through the soft edge; any other field is read as brightness from `low`.
+      'float k = fieldPos >= 0.0 ? clamp(fieldPos, 0.0, 1.0) : clamp((v - $low) / (1.0 - $low), 0.0, 1.0);',
+      'if ($reverse > 0.5) k = 1.0 - k;',
+      'float span = 1.0 - clamp(u_colorize + S_COLORIZE, 0.0, 1.0);',
+      'col = hsv2rgb(vec3(hue + (0.5 - k) * span, 1.0, 1.0)) * mix(1.0, v, $shade);',
+    ].join('\n'),
   },
   // ---- finish ----
   {

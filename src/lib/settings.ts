@@ -9,7 +9,7 @@ import {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'nl', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl', 'fur'] as const;
+export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'nl', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl', 'cs', 'fur'] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -28,6 +28,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ru: 'Русский',
   tr: 'Türkçe',
   pl: 'Polski',
+  cs: 'Čeština',
   fur: 'Furlan',
 };
 
@@ -47,6 +48,7 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
   ru: '\u{1F1F7}\u{1F1FA}',
   tr: '\u{1F1F9}\u{1F1F7}',
   pl: '\u{1F1F5}\u{1F1F1}',
+  cs: '\u{1F1E8}\u{1F1FF}',
   // Friûl has no Unicode flag emoji. Required by the exhaustive Record type;
   // the value is unused - GeneralTab special-cases fur and renders its flag
   // from an image asset instead.
@@ -179,6 +181,8 @@ export interface GeneralSettings {
   // each seeded from the single pre-split ui.showUncontrolledDevices.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Sidebar DEVICES row keys the user hid. Server-mirrored under ui.hiddenSidebarDevices.
+  hiddenSidebarDevices: string[];
   // Display-unit choices. Server-mirrored under the preferences `units` block
   // so they follow the profile. See lib/units.ts for their meaning. The
   // monitoring temperature unit governs in-app hardware temps only; outdoor
@@ -193,6 +197,8 @@ export interface GeneralSettings {
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
+  // Machine-level; server-mirrored under the preferences top-level readRamTemperatures field.
+  readRamTemperatures: boolean;
   // Global feature switches (default on). Server-mirrored under the
   // preferences `features` block; the localStorage boot mirror is what lets a
   // reload of an already-disabled page render the FeatureDisabled shell on
@@ -247,11 +253,13 @@ export function getDefaultSettings(): NexusSettings {
       coolingDashboardMode: 'simple',
       showUncontrolledLightingDevices: true,
       showUncontrolledCoolingDevices: true,
+      hiddenSidebarDevices: [],
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
       dateFormat: DEFAULT_DATE_FORMAT,
       startupDelaySeconds: 0,
+      readRamTemperatures: true,
       featureLightingEnabled: true,
       featureCoolingEnabled: true,
       featureMonitoringEnabled: true,

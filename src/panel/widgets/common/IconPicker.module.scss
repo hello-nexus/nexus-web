@@ -64,6 +64,12 @@
   gap: 8px;
 }
 
+.uploadRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .customPreview {
   width: 64px;
   height: 64px;

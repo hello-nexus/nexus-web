@@ -272,3 +272,36 @@ describe('buildPanelDevices streamed panels', () => {
     })).toHaveLength(0);
   });
 });
+
+describe('buildPanelDevices simulator beside a real Y70', () => {
+  const realY70 = { id: 'y70', name: 'HYTE Y70 Touch', category: 'display', connected: true, firmwareVersion: '' };
+  const sim = { id: 'y70', name: 'HYTE Y70 Touch 2.5K', surface: 'y70' as const, width: 682, height: 2560, dpi: 337 };
+
+  it('lists both, under distinct ids, with the simulator keeping its own source id', () => {
+    const devices = buildPanelDevices({
+      curatedDevices: [realY70],
+      phoneSessions: [],
+      records: [],
+      status: null,
+      simulatedPanels: [sim],
+      labels: LABELS,
+    });
+
+    expect(devices.map(d => d.id)).toEqual(['device:y70', 'simulated:y70']);
+    expect(devices[1]).toMatchObject({ connectionKind: 'simulated', sourceId: 'y70', runtimeSurface: 'y70' });
+    expect(devices[0].connectionKind).not.toBe('simulated');
+  });
+
+  it('gives the simulator no hardware controls, so it cannot write to the real Y70', () => {
+    const [, simulated] = buildPanelDevices({
+      curatedDevices: [realY70],
+      phoneSessions: [],
+      records: [],
+      status: null,
+      simulatedPanels: [sim],
+      labels: LABELS,
+    });
+
+    expect(simulated.capabilities).toMatchObject({ displayControls: false, launchClose: false, layout: true, touch: true });
+  });
+});

@@ -19,6 +19,8 @@ import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { DeviceNotice } from './DeviceNotice';
+import { ControlledByStrip } from './ControlledByStrip';
+import type { CardAppStrip } from './controlledBy';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -76,12 +78,15 @@ export interface BulkSelection {
   /** Takes the selection apart; present when it is exactly one stack. */
   unstack?: () => void;
   /** Members a Pin row can pin: following the global mode. Zero where
-   *  nothing can be pinned (Game Sync, Off). */
+   *  nothing can be pinned (Off). */
   pinCount?: number;
   /** Members currently pinned, which an Unpin row releases. */
   unpinCount?: number;
   setPinned?: (pinned: boolean) => void;
 }
+
+/** Hint id of the one-time coachmark on the first pin; the id is also the `data-coachmark` value. */
+export const LIGHTING_PIN_HINT_ID = 'lighting-pin';
 
 /**
  * The card's pin. A card either follows the global mode or is pinned to a
@@ -95,9 +100,11 @@ export interface DevicePin {
   targetName?: string;
   /** What the card is pinned to; the button wears that mode's tab icon. */
   kind?: PinKind;
-  /** Why this card cannot be pinned right now (Game Sync, Off). */
+  /** Why this card cannot be pinned right now (Off). */
   disabledReason?: string;
   setPinned: (pinned: boolean) => void;
+  /** Marks this card's pin button as the target of the first-pin coachmark. */
+  hint?: boolean;
 }
 
 /** Where a card sits under a {@link ZoneCardStack} header: every member seams
@@ -292,6 +299,8 @@ export function ZoneCard({
   firmwareControlled,
   onTakeControl,
   onOpenDevicePage,
+  onOpenZoneSizes,
+  needsLedCounts,
   groupMove,
   inStack,
   colorTuned,
@@ -306,6 +315,8 @@ export function ZoneCard({
   pin,
   target = false,
   pulseSeq,
+  appStrip,
+  onOpenAppStrip,
 }: {
   device: LightingDevice;
   /** Deep-link anchor the card answers to; see CollapsibleSection's searchAnchor. */
@@ -356,6 +367,10 @@ export function ZoneCard({
   onTakeControl?: () => void;
   /** Opens the device page, where a firmware-owned card's own effect is set. */
   onOpenDevicePage?: () => void;
+  /** Opens the Devices page, where an unsized OpenRGB header gets its LED count. Present only on a zero-LED card waiting for one. */
+  onOpenZoneSizes?: () => void;
+  /** A zero-LED card waiting for its LED counts on a surface that cannot open the Devices page, such as onboarding. */
+  needsLedCounts?: boolean;
   /** Group placement for this card's rail row: the card, or the stack it is a
    *  zone of. */
   groupMove?: GroupMove;
@@ -394,6 +409,10 @@ export function ZoneCard({
   target?: boolean;
   /** Set when a press or pick changed this card; each new value plays the pulse once. */
   pulseSeq?: number;
+  /** Running apps that compete for this device; the footer strip names them. */
+  appStrip?: CardAppStrip;
+  /** Strip press: opens the conflict dialog for those apps. */
+  onOpenAppStrip?: () => void;
 }) {
   const { t, language } = useTranslation();
   const unpinHintId = useId();
@@ -452,6 +471,7 @@ export function ZoneCard({
   // nothing behind those to act on. A pick-only surface carries no menu, so
   // there it keeps the old rule - a tap would commit a look the device cannot
   // show, and its own select-all skips those cards.
+  const showAppStrip = !!appStrip && !!onOpenAppStrip && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
   const clickable = !unavailable && !firmwareControlled
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
@@ -561,13 +581,13 @@ export function ZoneCard({
       const setPinned = (pinned: boolean) => bulk ? bulk.setPinned?.(pinned) : pin.setPinned(pinned);
       if (pinCount > 0) {
         toggles.push({
-          key: 'pin', icon: <Pin size={14} />, onSelect: () => setPinned(true),
+          key: 'pin', icon: <Pin size={14} />, description: t('lighting.pin.pinDesc'), onSelect: () => setPinned(true),
           label: bulkMenuLabel(t, language, bulk && { count: pinCount }, 'lighting.devices.pin', 'lighting.devices.pinCount'),
         });
       }
       if (unpinCount > 0) {
         toggles.push({
-          key: 'unpin', icon: <PinOff size={14} />, onSelect: () => setPinned(false),
+          key: 'unpin', icon: <PinOff size={14} />, description: t('lighting.pin.unpinDesc'), onSelect: () => setPinned(false),
           label: bulkMenuLabel(t, language, bulk && { count: unpinCount }, 'lighting.devices.unpin', 'lighting.devices.unpinCount'),
         });
       }
@@ -630,6 +650,7 @@ export function ZoneCard({
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
+        showAppStrip ? styles.deviceCardWithStrip : '',
         stacked ? styles.deviceCardStacked : '',
         stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
@@ -701,6 +722,14 @@ export function ZoneCard({
               <Badge label={t('lighting.devices.hardwareControlBadge')} icon={<Cpu size={11} />} compact uppercase color="var(--text-dim)" />
             </span>
           </HoverTooltip>
+        ) : unavailable && onOpenZoneSizes ? (
+          <button type="button" className={styles.deviceMetaLink} onClick={e => { e.stopPropagation(); onOpenZoneSizes(); }}>
+            {t('lighting.devices.setLedCounts')}
+          </button>
+        ) : unavailable && needsLedCounts ? (
+          <span className={styles.deviceMetaUnavailable}>
+            {t('lighting.devices.setLedCountsAfterSetup')}
+          </span>
         ) : unavailable ? (
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}
@@ -730,13 +759,14 @@ export function ZoneCard({
             shows PinOff and a press unpins. Pinning a following card is the
             menu's Pin, or a pick with it selected. */}
         {pin?.pinned && !toggleMode && !unavailable && !firmwareControlled && (
-          <HoverTooltip title={t('lighting.pin.pinnedTo', { name: pin.targetName ?? '' })} body={t('lighting.pin.clickToUnpin')} side="top">
+          <HoverTooltip title={t('lighting.pin.pinnedTo', { name: pin.targetName ?? '' })} body={t('lighting.pin.tooltipBody')} side="top">
             <button
               type="button"
               className={`${styles.deviceSettingsBtn} ${styles.deviceBadgeBtn} ${styles.devicePinBtn}`}
               aria-label={t('lighting.pin.pinnedTo', { name: pin.targetName ?? '' })}
               aria-describedby={unpinHintId}
               data-no-dnd
+              data-coachmark={pin.hint ? LIGHTING_PIN_HINT_ID : undefined}
               onClick={e => {
                 e.stopPropagation();
                 pin.setPinned(false);
@@ -800,6 +830,7 @@ export function ZoneCard({
         )}
       </div>
       </div>
+      {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
       {menuEnabled && (
         <MenuArrowButton
           variant="card"
@@ -816,11 +847,11 @@ export function ZoneCard({
       )}
     </div>
   );
-  // Only failed/zero-LED zones get an explanatory tooltip; configurable zones
-  // are interactive and need no hover label.
+  // Only a card whose detector failed gets the explanatory tooltip; a card
+  // waiting for its LED counts says so in its label.
   return (
     <>
-      {unavailable
+      {unavailable && !onOpenZoneSizes && !needsLedCounts
         ? <HoverTooltip body={t('lighting.devices.detectionFailedTooltip')} side="top">{card}</HoverTooltip>
         : card}
       {menuAt && (

@@ -197,7 +197,6 @@ describe('pressReach', () => {
     expect(tabPressChangesNothing('static', 'static', 0, false)).toBe(true);
     expect(tabPressChangesNothing('static', 'static', 1, false)).toBe(false);
     expect(tabPressChangesNothing('static', 'static', 1, true)).toBe(true);
-    expect(tabPressChangesNothing('gamesync', 'gamesync', 1, false)).toBe(true);
     expect(tabPressChangesNothing('animate', 'static', 0, false)).toBe(false);
   });
 });

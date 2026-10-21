@@ -1,0 +1,147 @@
+@use '../../../styles/text' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  min-height: 0;
+}
+
+.heading {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// The one shrinkable child: it scrolls, the heading and footer stay put.
+.scroll {
+  width: min(52rem, 100%);
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.cardRow {
+  display: grid;
+  grid-template-columns: 1fr 14rem;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.name {
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.devices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--separator);
+}
+
+.devicesLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.warn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--type-small);
+  color: var(--warn);
+}
+
+.outcome {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-left: 1px solid var(--separator);
+  padding-left: 1.25rem;
+}
+
+.outcomeIcon {
+  flex: none;
+  color: var(--text);
+}
+
+.outcomeLabel {
+  @include text-caption;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+// Beats the icon's and the label's own color; the keep-running tone.
+.outcomeDim {
+  color: var(--text-dim);
+}
+
+.outcomeText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.primary {
+  min-width: 20rem;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .cardRow {
+    grid-template-columns: 1fr;
+  }
+
+  .outcome {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--separator);
+    padding-top: 0.75rem;
+  }
+}

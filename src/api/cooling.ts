@@ -34,6 +34,8 @@ export interface FanChannel {
   role?: FanRole;
   /** Enumerated from a GPU hardware node. Motherboard-header fans are the deviceId-less channels where this is false. */
   isGpu?: boolean;
+  /** Channel of an all-in-one liquid cooler, read from the hardware. AIO channels are pinned by default. */
+  isAio?: boolean;
   /** Duty points added to whatever drives this fan, in [-100,100]. 0 when it has none. */
   offset?: number;
   seriesId?: string; // sanitized id; "fan:" + seriesId is the monitoring series id
@@ -202,14 +204,20 @@ export const fetchTemperatureSources = () =>
 export const fetchProfiles = () =>
   fetchService<ProfilesResponse>('/cooling/profiles');
 
-export const setFanSpeed = (id: string, speed: number) =>
-  postService(`/cooling/fan/${encodeURIComponent(id)}/speed`, { speed });
+/** What a non-user fan write is: a seed taking a fan from BIOS to `target`, or an undo replay. */
+export type FanSpeedIntent =
+  | { source: 'seed'; target: 'manual' | 'curve' }
+  | { source: 'undo' };
+
+export const setFanSpeed = (id: string, speed: number, intent?: FanSpeedIntent) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/speed`, { speed, ...intent });
 
 export const releaseFanAuto = (id: string) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/auto`, {});
 
-export const applyProfile = (name: string) =>
-  postService(`/cooling/profile/${encodeURIComponent(name)}`, {});
+/** `source` marks an automatic apply ("exit-off", "undo"); omitted = a user pick. */
+export const applyProfile = (name: string, source?: 'exit-off' | 'undo') =>
+  postService(`/cooling/profile/${encodeURIComponent(name)}${source ? `?source=${source}` : ''}`, {});
 
 export const resetPresetCurve = (name: string) =>
   postService(`/cooling/profile/${encodeURIComponent(name)}/reset`, {});

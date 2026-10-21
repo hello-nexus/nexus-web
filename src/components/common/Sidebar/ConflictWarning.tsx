@@ -1,18 +1,12 @@
 import { useMemo } from 'react';
-import { AlertTriangle, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
-import { Button } from '../Button/Button';
-import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
-import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
+import { ConflictOutcomePanel } from '../ConflictOutcomePanel/ConflictOutcomePanel';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
-import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
-import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import { alwaysAlerts, useConflictOverlap } from '../../../hooks/useConflictOverlap';
-import { useConflictResolveAll } from '../../../hooks/useConflictResolveAll';
-import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import styles from './ConflictWarning.module.scss';
 
 interface ConflictWarningProps {
@@ -23,15 +17,6 @@ interface ConflictWarningProps {
   suppressed: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /**
-   * Persist the "don't show conflict warnings" preference. Driven by the
-   * in-modal checkbox, which mirrors `suppressed` and toggles both ways.
-   * The parent owns the preference (it lives in NexusSettings.Ui), so the
-   * badge stays purely presentational.
-   */
-  onSuppressedChange: (suppressed: boolean) => void;
-  /** Open Settings' Manage conflicting applications modal. */
-  onManageApps: () => void;
 }
 
 /**
@@ -43,7 +28,7 @@ interface ConflictWarningProps {
  * listed as terminated, and the "all clear" state shows only for a modal
  * opened with nothing detected.
  */
-export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange, onSuppressedChange, onManageApps }: ConflictWarningProps) {
+export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange }: ConflictWarningProps) {
   const { t } = useTranslation();
   const exclusions = useConflictAutoKillExclusions();
   // Nexus 2 is never whitelisted: the service ends it whatever the list says.
@@ -76,11 +61,8 @@ export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpe
         open={open}
         conflicts={conflicts}
         ready={ready}
-        suppressed={suppressed}
         whitelisted={whitelisted}
         onClose={() => onOpenChange(false)}
-        onSuppressedChange={onSuppressedChange}
-        onManageApps={() => { onOpenChange(false); onManageApps(); }}
       />
     </>
   );
@@ -90,93 +72,37 @@ interface ConflictWarningModalProps {
   open: boolean;
   conflicts: readonly DetectedConflict[];
   ready: boolean;
-  suppressed: boolean;
   whitelisted: ReadonlySet<string>;
   onClose: () => void;
-  onSuppressedChange: (suppressed: boolean) => void;
-  onManageApps: () => void;
 }
 
 export function ConflictWarningModal({
-  open, conflicts, ready, suppressed, whitelisted, onClose, onSuppressedChange, onManageApps,
+  open, conflicts, ready, whitelisted, onClose,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
-  // Rows are sticky for as long as the modal stays open: an app ended from
-  // here keeps its place, marked terminated, instead of vanishing mid-read.
-  const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
-  const { devicesByApp, setOwner } = useConflictDevices(roster, open);
-  const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
-  const { pending, resolving, autostartDisabledIds, resolveAll } =
-    useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart, whitelisted);
 
   if (!open) return null;
-
-  const hasConflicts = entries.length > 0;
 
   return (
     <DeviceModal
       open={open}
       onClose={onClose}
       title={t('conflicts.modal.title')}
-      medium
+      large
       // DeviceModal tints its icon slot with --accent; conflicts are a warning
       // everywhere else they appear (the badge, the onboarding screen).
       icon={<span className={styles.warnIcon}><AlertTriangle size={18} /></span>}
     >
       <div className={styles.modal}>
-        <p className={styles.intro}>{t('conflicts.modal.intro')}</p>
-
-        {hasConflicts ? (
-          <ul className={styles.list}>
-            {entries.map(entry => (
-              <li key={entry.conflict.id}>
-                <ConflictAppCard
-                  conflict={entry.conflict}
-                  devices={devicesByApp.get(entry.conflict.id)}
-                  onSetOwner={entry.conflict.id === HYTE_NEXUS2_CONFLICT_ID
-                    ? undefined
-                    : owner => setOwner(entry.conflict.id, owner)}
-                  whitelisted={whitelisted.has(entry.conflict.id)}
-                  terminated={entry.terminated}
-                  onTerminated={() => markTerminated(entry.conflict.id)}
-                  autostart={autostartByApp.get(entry.conflict.id)}
-                  onDisableAutostart={() => disableAutostart(entry.conflict.id)}
-                  autostartDisabled={autostartDisabledIds.has(entry.conflict.id)}
-                />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <ConflictAllClear />
-        )}
-
-        <div className={styles.actionRow}>
-          <Button tone="neutral" size="sm" icon={<SlidersHorizontal />} onClick={onManageApps}>
-            {t('conflicts.modal.manageApps')}
-          </Button>
-          {hasConflicts && (
-            <Button
-              tone="accent"
-              size="sm"
-              icon={<ShieldCheck />}
-              loading={resolving}
-              loadingHidesLabel
-              disabled={!pending}
-              onClick={() => { void resolveAll(); }}
-            >
-              {t('conflicts.modal.resolveAll')}
-            </Button>
-          )}
-        </div>
-
-        <label className={styles.dismissRow}>
-          <input
-            type="checkbox"
-            checked={suppressed}
-            onChange={() => onSuppressedChange(!suppressed)}
-          />
-          <span>{t('conflicts.modal.dontShowAgain')}</span>
-        </label>
+        <ConflictOutcomePanel
+          conflicts={conflicts}
+          ready={ready}
+          active={open}
+          whitelisted={whitelisted}
+          variant="modal"
+          heading={<p className={styles.intro}>{t('conflicts.modal.intro')}</p>}
+          onDone={onClose}
+        />
       </div>
     </DeviceModal>
   );

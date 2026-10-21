@@ -10,6 +10,8 @@ export const whiteboardApp: AppManifest = {
     icon: PenLine,
     sizes: ['2x2', '4x2', '4x4'],
     defaultSize: '4x4',
+    // The board is a fit-to-box thumbnail with ink kept in canvas space, so any span works.
+    freeform: true,
     // Ink lives in canvas space, so neither orientation loses or reflows a
     // drawing - both get the full board.
     supportsImmersive: { portrait: true, landscape: true },

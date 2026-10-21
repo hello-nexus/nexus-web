@@ -20,6 +20,8 @@ const sameJson = (a: Pin | undefined, b: Pin | undefined) => JSON.stringify(a) =
  */
 export function usePins(): {
   pins: Pins;
+  /** True once the service's pins have landed at least once. */
+  loaded: boolean;
   pinsRef: { readonly current: Pins };
   refresh: () => Promise<void>;
   /** Pins `ids` to `pin`, or unpins them for null. `record` false leaves the local copy to the caller. */
@@ -28,6 +30,7 @@ export function usePins(): {
   recordPins: (ids: readonly string[], pin: Pin | null) => void;
 } {
   const [pins, setLocal] = useState<Pins>({});
+  const [loaded, setLoaded] = useState(false);
   const pinsRef = useRef(pins);
   pinsRef.current = pins;
   const pendingRef = useRef(new Map<string, number>());
@@ -44,6 +47,7 @@ export function usePins(): {
     const fetched = await fetchPins();
     if (!fetched || mine !== refreshSeqRef.current || epoch !== writeEpochRef.current) return;
     confirmedRef.current = fetched;
+    setLoaded(true);
     setLocal(prev => {
       const next: Record<string, Pin> = { ...fetched };
       for (const id of pendingRef.current.keys()) {
@@ -99,5 +103,5 @@ export function usePins(): {
     return ok;
   }, []);
 
-  return { pins, pinsRef, refresh, applyPins, recordPins };
+  return { pins, loaded, pinsRef, refresh, applyPins, recordPins };
 }

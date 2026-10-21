@@ -5,7 +5,10 @@ import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: (id?: string) => (id === 'has-icon' ? 'blob:mock-app-icon' : null) }));
-vi.mock('./useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? 'blob:mock-image' : null) }));
+const deckImageMock = vi.hoisted(() => ({ isVideo: false }));
+vi.mock('./useDeckImage', () => ({
+  useDeckImage: (id?: string) => (id ? { url: 'blob:mock-image', isVideo: deckImageMock.isVideo } : { url: null, isVideo: false }),
+}));
 vi.mock('./useSiteIcon', () => ({ useSiteIcon: (url?: string) => (url === 'https://has-icon.example' ? 'blob:mock-site-icon' : null) }));
 
 describe('DeckGrid backCell (physical folder views)', () => {
@@ -279,6 +282,26 @@ describe('DeckGrid selection ring - zero layout shift', () => {
 });
 
 describe('DeckGrid custom image icon', () => {
+  it('renders a looping muted video, not an img, when the stored image is a video', () => {
+    deckImageMock.isVideo = true;
+    try {
+      const slots: DeckSlot[] = [{ icon: { kind: 'image', value: 'abc123' } }];
+      const { container } = render(
+        <DeckGrid slots={slots} cols={1} rows={1} selectable={false} onCell={() => {}} />,
+      );
+      const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+      const video = cell.querySelector(`video.${styles.customImage}`) as HTMLVideoElement | null;
+      expect(video).not.toBeNull();
+      expect(video?.getAttribute('src')).toBe('blob:mock-image');
+      expect(video?.loop).toBe(true);
+      expect(video?.muted).toBe(true);
+      expect(video?.autoplay).toBe(true);
+      expect(cell.querySelector(`img.${styles.customImage}`)).toBeNull();
+    } finally {
+      deckImageMock.isVideo = false;
+    }
+  });
+
   it('renders an img with the blob URL for a slot whose icon kind is image', () => {
     const slots: DeckSlot[] = [{ icon: { kind: 'image', value: 'abc123' } }];
     const { container } = render(
