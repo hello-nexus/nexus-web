@@ -32,13 +32,10 @@ const MODE_KEYS: Record<GlacialMode, string> = {
   panel: 'devices.asus-glacial-lcd.modePanel',
 };
 const SLOT_COUNTS = [1, 2, 3] as const;
-const SENSOR_CATEGORIES = ['cpu', 'gpu', 'motherboard'] as const;
-// The display shows only these two units.
-const SENSOR_TYPES = ['Temperature', 'Voltage'] as const;
 // The service starts this animation when the display is turned on before any mode was chosen.
 const FIRST_RUN_ANIMATION = 1;
 const truncateUtf8ToLabelLimit = (v: string) => truncateUtf8(v, GLACIAL_LABEL_MAX_BYTES);
-const DEFAULT_CATEGORY = SENSOR_CATEGORIES[0];
+const DEFAULT_CATEGORY = 'cpu';
 
 /** The Glacial display controls, shared by its own page and the streamed panel page. */
 export function AsusGlacialLcdControls() {
@@ -138,8 +135,6 @@ export function AsusGlacialLcdControls() {
         onChange={on => edit({ stayOnWhileAsleep: on }, { stayOnWhileAsleep: on })}
       />
       <Slider
-        // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-        orientation="stacked"
         editable
         trackFill
         label={t('devices.asus-glacial-lcd.brightness')}
@@ -196,8 +191,6 @@ export function AsusGlacialLcdControls() {
                 lookup={lookup}
                 category={(slot.sensor ? slot.category : slot.resolvedCategory) || DEFAULT_CATEGORY}
                 sensor={slot.sensor || slot.resolvedSensor}
-                categories={SENSOR_CATEGORIES}
-                sensorTypes={SENSOR_TYPES}
                 disabled={!ready}
                 onChange={sel => setSlot(i, sel.category, sel.sensor)}
               />
