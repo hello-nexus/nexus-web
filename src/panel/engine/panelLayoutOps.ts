@@ -2,6 +2,7 @@ import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../ty
 import { firstFreeRect, rectsOverlap, type PaginateCapacity } from './paginate';
 import { sizeToSpan, snapStride, strideScanSteps } from './grid';
 import { createUuid } from '../../lib/uuid';
+import { clampFreeformSize } from './freeformResize';
 
 interface WidgetRect { col: number; row: number; colSpan: number; rowSpan: number; }
 
@@ -534,7 +535,8 @@ export function tryResizeWidget(
   if (!source) return layout;
   if (source.size === newSize && (!at || (at.col === source.col && at.row === source.row))) return layout;
 
-  const newSpan = sizeToSpan(newSize);
+  // A freeform size taller or wider than this grid is placed at the span it renders at; the stored size string is kept.
+  const newSpan = sizeToSpan(clampFreeformSize(newSize, { cols, rows }));
   const newColSpan = Math.max(1, Math.min(newSpan.cols, cols));
   const newRowSpan = Math.max(1, newSpan.rows);
   // Hard refusal: the size itself doesn't fit on any page.
@@ -612,7 +614,7 @@ export function tryResizeWidget(
   };
 
   for (const w of sorted) {
-    const span = sizeToSpan(w.size);
+    const span = sizeToSpan(clampFreeformSize(w.size, { cols, rows }));
     const colSpan = Math.max(1, Math.min(span.cols, cols));
     const rowSpan = Math.max(1, span.rows);
     if (rowSpan > rows) return null; // physically can't fit anywhere

@@ -82,9 +82,11 @@ describe('tryResizeWidget with an explicit origin (freeform)', () => {
     expectNoOverlap(next);
   });
 
-  it('rejects a span taller than the page', () => {
-    const l = layout([[widget('a', '4x4', 0, 0)]]);
-    expect(tryResizeWidget(l, 'a', '4x10', CAPACITY, MAX_PAGES, { col: 0, row: 0 })).toBeNull();
+  it('rejects a fixed size taller than the page but places a freeform one at its clamped span', () => {
+    const l = layout([[widget('a', '2x2', 0, 0)]]);
+    expect(tryResizeWidget(l, 'a', '4x4', { gridCols: 8, pageRows: 2 }, MAX_PAGES, { col: 0, row: 0 })).toBeNull();
+    const placed = tryResizeWidget(l, 'a', '4x10', CAPACITY, MAX_PAGES, { col: 0, row: 0 })!;
+    expect(find(placed, 'a').widget).toMatchObject({ size: '4x10', row: 0 });
   });
 
   it('rejects when pushed widgets have nowhere to go on a one page panel', () => {
