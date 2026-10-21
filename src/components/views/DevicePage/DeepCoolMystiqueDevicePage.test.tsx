@@ -24,7 +24,11 @@ vi.mock('../../../api/deepcool-mystique', () => ({
 }));
 
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({
-  sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => (category === 'motherboard' ? [{ type: 'Fan' }] : []),
+  sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => {
+    if (category === 'motherboard') return [{ type: 'Fan' }, { type: 'Temperature' }];
+    if (category === 'cpu') return [{ type: 'Temperature' }, { type: 'Clock' }, { type: 'Load' }];
+    return [];
+  },
 }));
 
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
@@ -60,6 +64,10 @@ const base = {
   brightness: 70,
   gyroscope: true,
   rgbSync: false,
+  cpuTemperature: { category: '', sensor: '', resolvedCategory: 'quick', resolvedSensor: 'summary/cpu-temp' },
+  cpuFrequency: { category: '', sensor: '', resolvedCategory: 'cpu', resolvedSensor: 'cpu/clock/core-max' },
+  cpuUsage: { category: '', sensor: '', resolvedCategory: 'quick', resolvedSensor: 'summary/cpu-usage' },
+  ramUsage: { category: '', sensor: '', resolvedCategory: 'quick', resolvedSensor: 'summary/memory-usage' },
   cpuFan: { category: '', sensor: '', resolvedCategory: 'motherboard', resolvedSensor: 'fan/cpu' },
   pump: { category: '', sensor: '', resolvedCategory: 'motherboard', resolvedSensor: 'fan/opt' },
 };
@@ -115,7 +123,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
   it('picking a fan sensor sends the pick', async () => {
     await mount();
     await act(async () => {
-      fireEvent.click(screen.getAllByTestId('sensor-picker')[0]);
+      fireEvent.click(screen.getAllByTestId('sensor-picker')[4]);
     });
     expect(mockSet).toHaveBeenCalledWith({ cpuFan: { category: 'motherboard', sensor: 'fan/chassis' } });
   });
@@ -169,7 +177,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
 
   it('a picked fan sensor can be returned to the automatic choice', async () => {
     await mount({ ...base, cpuFan: { category: 'motherboard', sensor: 'fan/chassis', resolvedCategory: 'motherboard', resolvedSensor: 'fan/chassis' } });
-    const option = screen.getAllByTestId('automatic-option')[0];
+    const option = screen.getAllByTestId('automatic-option')[4];
     expect(option.getAttribute('data-active')).toBe('false');
     await act(async () => {
       fireEvent.click(option);
@@ -179,12 +187,15 @@ describe('DeepCoolMystiqueDevicePage', () => {
 
   it('marks the automatic option active while a readout is automatic', async () => {
     await mount();
-    expect(screen.getAllByTestId('automatic-option')[0].getAttribute('data-active')).toBe('true');
+    expect(screen.getAllByTestId('automatic-option')).toHaveLength(6);
+    expect(screen.getAllByTestId('automatic-option')[4].getAttribute('data-active')).toBe('true');
   });
 
   it('offers only categories that list a fan reading', async () => {
     await mount();
-    expect(screen.getAllByTestId('automatic-option')[0].getAttribute('data-categories')).toBe('motherboard');
+    const options = screen.getAllByTestId('automatic-option');
+    expect(options[4].getAttribute('data-categories')).toBe('motherboard');
+    expect(options[1].getAttribute('data-categories')).toBe('cpu');
   });
 
   it('a right-click on the brightness slider neither holds off polling nor writes', async () => {
@@ -237,5 +248,25 @@ describe('DeepCoolMystiqueDevicePage', () => {
   it('recording mode notes that the toggles are not set yet', async () => {
     await mount({ ...base, mode: 'recording', recordingChosen: false });
     expect(screen.getByText('devices.deepcool-mystique.recordingUnsetHint')).toBeTruthy();
+  });
+
+  it('picking the CPU frequency or RAM usage sensor sends that pick', async () => {
+    await mount();
+    await act(async () => {
+      fireEvent.click(screen.getAllByTestId('sensor-picker')[1]);
+    });
+    expect(mockSet).toHaveBeenCalledWith({ cpuFrequency: { category: 'motherboard', sensor: 'fan/chassis' } });
+    await act(async () => {
+      fireEvent.click(screen.getAllByTestId('sensor-picker')[3]);
+    });
+    expect(mockSet).toHaveBeenCalledWith({ ramUsage: { category: 'motherboard', sensor: 'fan/chassis' } });
+  });
+
+  it('the usage readouts return to automatic like the others', async () => {
+    await mount({ ...base, ramUsage: { category: 'memory', sensor: 'm/l', resolvedCategory: 'memory', resolvedSensor: 'm/l' } });
+    await act(async () => {
+      fireEvent.click(screen.getAllByTestId('automatic-option')[3]);
+    });
+    expect(mockSet).toHaveBeenCalledWith({ ramUsage: { category: '', sensor: '' } });
   });
 });

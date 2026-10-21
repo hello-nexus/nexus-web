@@ -13,7 +13,6 @@ import {
   setMystiqueSettings,
   type MystiqueMode,
   type MystiqueReadout,
-  type MystiqueSensorState,
   type MystiqueSettingsPatch,
   type MystiqueState,
 } from '../../../api/deepcool-mystique';
@@ -40,7 +39,16 @@ const READOUT_KEYS: Record<MystiqueReadout, string> = {
   fanPump: 'devices.deepcool-mystique.readoutFanPump',
 };
 const DEFAULT_CATEGORY = 'motherboard';
-const FAN_TYPES = ['Fan'] as const;
+type PickKey = 'cpuTemperature' | 'cpuFrequency' | 'cpuUsage' | 'ramUsage' | 'cpuFan' | 'pump';
+// Each readout takes one sensor type, so a picker offers only the categories that list one.
+const PICKS: readonly { key: PickKey; type: string; label: string }[] = [
+  { key: 'cpuTemperature', type: 'Temperature', label: 'devices.deepcool-mystique.cpuTemperature' },
+  { key: 'cpuFrequency', type: 'Clock', label: 'devices.deepcool-mystique.cpuFrequency' },
+  { key: 'cpuUsage', type: 'Load', label: 'devices.deepcool-mystique.cpuUsage' },
+  { key: 'ramUsage', type: 'Load', label: 'devices.deepcool-mystique.ramUsage' },
+  { key: 'cpuFan', type: 'Fan', label: 'devices.deepcool-mystique.cpuFan' },
+  { key: 'pump', type: 'Fan', label: 'devices.deepcool-mystique.pump' },
+];
 
 export function DeepCoolMystiqueDevicePage() {
   const { t } = useTranslation();
@@ -110,24 +118,33 @@ export function DeepCoolMystiqueDevicePage() {
   const chosen = state?.modeChosen === true;
   const mode = state?.mode ?? 'monitor';
 
-  // Only categories that list a fan reading: another one would send a pick the service treats as automatic.
-  const fanCategories = useMemo(
-    () => DECK_MONITORING_CATEGORIES.filter(c => sensorsForDevice(lookup.sensors, lookup.networkSensors, lookup.extras, c).some(o => o.type === 'Fan')),
-    [lookup.sensors, lookup.networkSensors, lookup.extras],
-  );
+  const categoriesByType = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const type of new Set(PICKS.map(p => p.type))) {
+      out[type] = DECK_MONITORING_CATEGORIES.filter(c => sensorsForDevice(lookup.sensors, lookup.networkSensors, lookup.extras, c).some(o => o.type === type));
+    }
+    return out;
+  }, [lookup.sensors, lookup.networkSensors, lookup.extras]);
 
-  const picker = (slot: MystiqueSensorState | undefined, onPick: (category: string, sensor: string) => void) => (
-    <SensorPicker
-      lookup={lookup}
-      category={(slot?.sensor ? slot.category : slot?.resolvedCategory) || DEFAULT_CATEGORY}
-      sensor={slot?.sensor || slot?.resolvedSensor || ''}
-      disabled={!ready}
-      categories={fanCategories}
-      sensorTypes={FAN_TYPES}
-      automatic={{ label: t('devices.deepcool-mystique.automatic'), active: !slot?.sensor, onSelect: () => onPick('', '') }}
-      onChange={sel => onPick(sel.category, sel.sensor)}
-    />
-  );
+  const picker = (key: PickKey, type: string) => {
+    const slot = state?.[key];
+    const onPick = (category: string, sensor: string) => {
+      if (!state) return;
+      edit({ [key]: { ...state[key], category, sensor } }, { [key]: { category, sensor } });
+    };
+    return (
+      <SensorPicker
+        lookup={lookup}
+        category={(slot?.sensor ? slot.category : slot?.resolvedCategory) || DEFAULT_CATEGORY}
+        sensor={slot?.sensor || slot?.resolvedSensor || ''}
+        disabled={!ready}
+        categories={categoriesByType[type]}
+        sensorTypes={[type]}
+        automatic={{ label: t('devices.deepcool-mystique.automatic'), active: !slot?.sensor, onSelect: () => onPick('', '') }}
+        onChange={sel => onPick(sel.category, sel.sensor)}
+      />
+    );
+  };
 
   return (
     <div className={styles.page}>
@@ -226,18 +243,11 @@ export function DeepCoolMystiqueDevicePage() {
         </SettingsSection>
 
         <SettingsSection title={t('devices.deepcool-mystique.inputsSection')} boxClassName={styles.sectionBox}>
-          <SettingRow label={t('devices.deepcool-mystique.cpuFan')} description={t('devices.deepcool-mystique.inputsHint')}>
-            {picker(state?.cpuFan, (category, sensor) => {
-              if (!state) return;
-              edit({ cpuFan: { ...state.cpuFan, category, sensor } }, { cpuFan: { category, sensor } });
-            })}
-          </SettingRow>
-          <SettingRow label={t('devices.deepcool-mystique.pump')}>
-            {picker(state?.pump, (category, sensor) => {
-              if (!state) return;
-              edit({ pump: { ...state.pump, category, sensor } }, { pump: { category, sensor } });
-            })}
-          </SettingRow>
+          {PICKS.map(({ key, type, label }, i) => (
+            <SettingRow key={key} label={t(label)} description={i === 0 ? t('devices.deepcool-mystique.inputsHint') : undefined}>
+              {picker(key, type)}
+            </SettingRow>
+          ))}
         </SettingsSection>
       </div>
     </div>

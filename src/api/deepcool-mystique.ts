@@ -10,7 +10,7 @@ export interface MystiqueSensorPick {
 }
 
 export interface MystiqueSensorState extends MystiqueSensorPick {
-  /** The sensor the readout reads; an unpicked one reports the header the service guessed. */
+  /** The sensor the readout reads; an unpicked one reports what the automatic choice resolves to, empty when nothing does. */
   resolvedCategory: string;
   resolvedSensor: string;
 }
@@ -32,6 +32,10 @@ export interface MystiqueState {
   brightness: number;
   gyroscope: boolean;
   rgbSync: boolean;
+  cpuTemperature: MystiqueSensorState;
+  cpuFrequency: MystiqueSensorState;
+  cpuUsage: MystiqueSensorState;
+  ramUsage: MystiqueSensorState;
   cpuFan: MystiqueSensorState;
   pump: MystiqueSensorState;
 }
@@ -44,6 +48,10 @@ export interface MystiqueSettingsPatch {
   brightness?: number;
   gyroscope?: boolean;
   rgbSync?: boolean;
+  cpuTemperature?: MystiqueSensorPick;
+  cpuFrequency?: MystiqueSensorPick;
+  cpuUsage?: MystiqueSensorPick;
+  ramUsage?: MystiqueSensorPick;
   cpuFan?: MystiqueSensorPick;
   pump?: MystiqueSensorPick;
 }
@@ -52,7 +60,7 @@ const BASE = '/devices/deepcool-mystique';
 
 export async function getMystiqueState(): Promise<MystiqueState | null> {
   const body = await fetchService<MystiqueState>(`${BASE}/state`);
-  return body && body.cpuFan && body.pump ? body : null;
+  return body && body.cpuFan && body.pump && body.cpuTemperature && body.cpuFrequency && body.cpuUsage && body.ramUsage ? body : null;
 }
 
 /** Resolves true when the service accepted the change. */
