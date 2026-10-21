@@ -14,6 +14,7 @@ export interface SensorOption {
   value: string;
   label: string;
   sensorName?: string;
+  type?: string;
 }
 
 // Picker order: the Tryx-shared categories (SENSOR_CATEGORIES, quick through
@@ -77,6 +78,7 @@ export function sensorsForDevice(
         value: s.id,
         label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
         sensorName: s.name,
+        type: s.type,
       }));
       break;
     case 'fan':
