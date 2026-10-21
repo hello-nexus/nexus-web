@@ -46,6 +46,20 @@
 
 .inline .label {
   min-width: 50px;
+  // The label owns the left side and wraps; the track and value sit at the right edge.
+  flex: 0 1 auto;
+  margin-right: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+// Track and value together take a share of the block (--slider-inline-width, global.scss).
+.inline .track {
+  flex: 0 0 calc(var(--slider-inline-width) - var(--slider-inline-value-width) - 0.5rem);
+}
+
+.inline.inlineFill .track {
+  flex: 1 1 0;
 }
 
 .value {

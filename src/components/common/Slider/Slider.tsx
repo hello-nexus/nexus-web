@@ -186,7 +186,7 @@ export function Slider({
   // is never overlapped.
   const reserveCh = Math.max(fmt(min).length, fmt(max).length) + 1;
   const inlineValueNode = (
-    <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
+    <span className={styles.inlineValue} style={{ minWidth: `max(${reserveCh}ch, var(--slider-inline-value-width))` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
           onCommit={handleEditCommit} format={formatValue} ariaLabel={accessibleName} className={valueClass} disabled={disabled}
@@ -302,12 +302,14 @@ export function Slider({
     );
   }
 
+  // A labelled inline slider takes the shared width at the right of its block; one without a label
+  // fills the slot its container sized (a settings row's control slot, a grid cell).
   // A div, not a label: a label forwards a click on the value to its first
   // labelable descendant (the range input) and focuses it, which in the inline
   // order (range before value) steals focus from the just-opened edit input and
   // reverts it. The range carries its own aria-label, so no label is needed.
   return (
-    <div className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
+    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`}>
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
       <div className={styles.track}>
         {range}

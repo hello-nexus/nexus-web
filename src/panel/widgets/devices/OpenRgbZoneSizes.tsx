@@ -85,7 +85,6 @@ export function OpenRgbZoneSizes({
               >
               <Slider
                 orientation="inline"
-                className={styles.zoneSizeSlider}
                 editable
                 trackFill
                 label={zone.name}
