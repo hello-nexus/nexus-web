@@ -131,7 +131,7 @@ function CityCard({
           )}
         </span>
       }
-      subtitle={`${city.country} · ${offset}`}
+      subtitle={`${city.country} - ${offset}`}
       actions={
         <span className={styles.cityCardActions}>
           <span className={styles.cityCardTime}>{time}</span>
@@ -185,7 +185,7 @@ function AddCityPicker({
               interactive
               onClick={() => onAdd(city.id)}
               title={city.name}
-              subtitle={`${city.country} · ${formatUtcOffset(now, city.tz)}`}
+              subtitle={`${city.country} - ${formatUtcOffset(now, city.tz)}`}
               actions={
                 <span className={styles.addResultAction}>
                   <span className={styles.cityCardTime}>{formatLocalLong(now, city.tz, hour12)}</span>

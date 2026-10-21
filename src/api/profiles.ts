@@ -6,7 +6,7 @@ import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
 import type { TempUnit, TimeFormat, NumberFormat, DateFormat } from '../lib/units';
 
-export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard', 'device'] as const;
+export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'panels', 'theme', 'dashboard', 'device'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
 
 export interface ProfileEntry {

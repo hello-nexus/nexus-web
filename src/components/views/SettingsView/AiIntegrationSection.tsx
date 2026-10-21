@@ -510,7 +510,7 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                                 )}
                               </span>
                               <span className={styles.modelMeta}>
-                                {formatBytes(model.downloadBytes, numberFormat)} · {model.ramHint}
+                                {formatBytes(model.downloadBytes, numberFormat)} - {model.ramHint}
                               </span>
                               {isPulling && (
                                 <div className={styles.modelProgress}>

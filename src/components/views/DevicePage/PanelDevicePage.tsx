@@ -1611,6 +1611,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           <PanelThemeSettings
                             theme={theme}
                             deviceId={editingDeviceId}
+                            showEffectSearch
                             resolvedThemeMode={resolvedPanelThemeMode}
                             onThemeSyncCommit={panelTheme.commitThemeSync}
                             onThemeModeCommit={panelTheme.commitThemeMode}
@@ -2328,6 +2329,27 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
             const span = sizeToSpan(widget.size);
             const previewW = span.cols * 90 + (span.cols - 1) * 6;
             const previewH = span.rows * 90 + (span.rows - 1) * 6;
+            // The round fit scale sits on a wrapper, as on the canvas .cellScaler,
+            // so the widget root keeps its own transform.
+            const previewBody = (
+              <ErrorBoundary label={widget.type}>
+                <Comp
+                  widget={widget}
+                  // The preview mirrors the target surface's interactivity.
+                  surface={surface}
+                  deviceTouch={deviceTouch}
+                  selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+                  onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+                  editView={usesSlotSelection ? deckEditView : undefined}
+                  onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
+                  // Same semantics as the canvas tile: this preview shows the
+                  // same nav arrows, so pressing one has to mean the same
+                  // thing rather than moving a throwaway view.
+                  onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
+                  editorPreview={def.meta.persistsFromTile ? true : undefined}
+                />
+              </ErrorBoundary>
+            );
             return (
               <div
                 className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
@@ -2335,23 +2357,9 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
                 style={{ ...themeStyle, width: previewW, height: previewH }}
               >
                 <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
-                  <ErrorBoundary label={widget.type}>
-                    <Comp
-                      widget={widget}
-                      // The preview mirrors the target surface's interactivity.
-                      surface={surface}
-                      deviceTouch={deviceTouch}
-                      selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
-                      onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
-                      editView={usesSlotSelection ? deckEditView : undefined}
-                      onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
-                      // Same semantics as the canvas tile: this preview shows the
-                      // same nav arrows, so pressing one has to mean the same
-                      // thing rather than moving a throwaway view.
-                      onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
-                      editorPreview={def.meta.persistsFromTile ? true : undefined}
-                    />
-                  </ErrorBoundary>
+                  {widget.size === '2x2round'
+                    ? <div className={styles.inlineSettingsPreviewFit}>{previewBody}</div>
+                    : previewBody}
                 </div>
               </div>
             );

@@ -67,13 +67,13 @@ export function MonitoringEventsModal({
                   <span className={styles.rowLabel}>{event.label}</span>
                   <span className={styles.rowMeta}>
                     {eventKindLabel(t, event.kind)}
-                    {event.detail ? ` · ${event.detail}` : ''}
+                    {event.detail ? ` - ${event.detail}` : ''}
                   </span>
                 </span>
                 <span className={styles.rowTime}>
                   {formatEventTime(event.t, timeFormat)}
                   {event.endT !== null || event.kind.startsWith('privacy-')
-                    ? ` · ${formatPrivacyDuration(t, event.t, event.endT)}`
+                    ? ` - ${formatPrivacyDuration(t, event.t, event.endT)}`
                     : ''}
                 </span>
                 <span className={styles.rowActions}>
