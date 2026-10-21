@@ -57,22 +57,37 @@ describe('squareRing geometry', () => {
     expect(scss).toContain(`stroke-width: ${RING_STROKE};`);
   });
 
-  it('closes a complete graded stroke without end caps', () => {
+  it.each([10, 50, 97, 99])('draws the graded mask as the ungraded dash at %i%%', (percent) => {
+    const gradient = { id: 'd', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
+    const graded = render(<SquareRingGauge {...props} value={percent} gradient={gradient} />).container;
+    const plain = render(<SquareRingGauge {...props} value={percent} />).container;
+    const mask = graded.querySelector('mask#d-square path')!;
+    expect(mask.getAttribute('stroke-dasharray')).toBe(plain.querySelector('path[class*="fillRing"]')!.getAttribute('stroke-dasharray'));
+    expect(mask.getAttribute('stroke-dashoffset')).toBeNull();
+    expect(mask.getAttribute('stroke-linecap')).toBe('round');
+    expect(mask.getAttribute('stroke-width')).toBe(String(RING_STROKE));
+  });
+
+  it('closes a complete graded stroke as the whole path', () => {
     const gradient = { id: 'c', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
     const { container } = render(<SquareRingGauge {...props} value={100} gradient={gradient} />);
     const mask = container.querySelector('mask#c-square path')!;
     expect(mask.getAttribute('stroke-linecap')).toBe('butt');
     expect(mask.getAttribute('stroke-dasharray')).toBeNull();
-    expect(Number(mask.getAttribute('stroke-dashoffset'))).toBeCloseTo(0, 6);
   });
 
-  it('underlays the start seam only when the graded stroke is complete', () => {
+  it('colors the start cap with the first color until the caps meet, then underlays the seam', () => {
     const gradient = { id: 's', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
-    const full = render(<SquareRingGauge {...props} value={100} gradient={gradient} />);
-    const patch = full.container.querySelector('path[data-seam]')!;
-    expect(patch.getAttribute('stroke')).toBe(full.container.querySelectorAll('g[mask] path')[40].getAttribute('stroke'));
-    const partial = render(<SquareRingGauge {...props} value={99} gradient={gradient} />);
-    expect(partial.container.querySelector('path[data-seam]')).toBeNull();
+    const segmentColors = (c: HTMLElement) => Array.from(c.querySelectorAll('g[mask] path:not([data-seam]):not([data-start-cap])')).map(p => p.getAttribute('stroke'));
+    const early = render(<SquareRingGauge {...props} value={10} gradient={gradient} />).container;
+    expect(early.querySelector('path[data-seam]')).toBeNull();
+    expect(early.querySelector('path[data-start-cap]')!.getAttribute('stroke')).toBe(segmentColors(early)[0]);
+    for (const value of [98, 99, 100]) {
+      const late = render(<SquareRingGauge {...props} value={value} gradient={gradient} />).container;
+      const colors = segmentColors(late);
+      expect(late.querySelector('path[data-start-cap]')).toBeNull();
+      expect(late.querySelector('path[data-seam]')!.getAttribute('stroke')).toBe(colors[colors.length - 1]);
+    }
   });
 
   it('reveals a graded stroke through a dash mask over the segments', () => {
@@ -81,12 +96,11 @@ describe('squareRing geometry', () => {
     const mask = container.querySelector('mask#g-square path')!;
     const [dash, gap] = mask.getAttribute('stroke-dasharray')!.split(' ').map(Number);
     const offset = Number(mask.getAttribute('stroke-dashoffset'));
-    const capPercent = (RING_STROKE / 2 / squareRingShape().perimeter) * PATH_LENGTH;
     expect(mask.getAttribute('stroke-width')).toBe(String(RING_STROKE));
-    expect(offset).toBeCloseTo(-capPercent, 6);
-    expect(dash).toBeCloseTo(50 - 2 * capPercent, 6);
-    expect(gap).toBe(PATH_LENGTH);
-    const segments = container.querySelectorAll('g[mask] path');
+    expect(offset).toBe(0);
+    expect(dash).toBe(50);
+    expect(gap).toBe(50);
+    const segments = container.querySelectorAll('g[mask] path:not([data-start-cap])');
     expect(segments).toHaveLength(40);
     segments.forEach(seg => expect(Number(seg.getAttribute('stroke-width'))).toBeGreaterThan(RING_STROKE));
     expect(container.querySelector('path[class*="fillRing"]')).toBeNull();
@@ -131,13 +145,15 @@ describe('squareRing geometry', () => {
       const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200);
       const height = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100);
       const gradient = { id: 'm', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
-      const { container } = render(<SquareRingGauge {...props} value={50} gradient={gradient} />);
+      const { container } = render(<SquareRingGauge {...props} value={98} gradient={gradient} />);
       width.mockRestore();
       height.mockRestore();
       expect(container.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 200 100');
-      const mask = container.querySelector('mask#m-square path')!;
-      const capPercent = (RING_STROKE / 2 / squareRingShape(200, 100).perimeter) * PATH_LENGTH;
-      expect(Number(mask.getAttribute('stroke-dashoffset'))).toBeCloseTo(-capPercent, 6);
+      // Closing starts one stroke short of the end: later on the longer
+      // perimeter, so 98% still has its start cap patch there but not on a square.
+      expect(container.querySelector('path[data-start-cap]')).not.toBeNull();
+      const square = render(<SquareRingGauge {...props} value={98} gradient={{ ...gradient, id: 'q' }} />).container;
+      expect(square.querySelector('path[data-start-cap]')).toBeNull();
     });
   });
 });

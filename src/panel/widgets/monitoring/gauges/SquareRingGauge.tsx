@@ -3,7 +3,8 @@ import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
 import { useElementSize } from '../../common/useElementSize';
 import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
-import { PATH_LENGTH, RING_STROKE, progressDash, squareRingShape } from './squareRingGeometry';
+import { gradedRingClosure } from './gradedRingClosure';
+import { PATH_LENGTH, RING_STROKE, progressDash, squareRingShape, startSeamPath } from './squareRingGeometry';
 import styles from './CaterpillarGauge.module.scss';
 
 // A graded stroke is drawn as solid dashes of the same path and revealed by a
@@ -11,6 +12,9 @@ import styles from './CaterpillarGauge.module.scss';
 const SEGMENTS = 40;
 const OVERLAP = 0.6;
 const SEGMENT_BLEED = 4;
+// Patch reach past the cap radius behind the start, and ahead of it, in viewBox units.
+const START_PATCH_MARGIN = 1;
+const START_PATCH_FORWARD = 3;
 
 export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
@@ -19,11 +23,11 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
     () => squareRingShape(size?.width, size?.height),
     [size?.width, size?.height],
   );
-  // The mask starts one cap radius in so its round cap lands on the start and
-  // nothing pokes backward past it. A complete ring drops the inset and caps,
-  // or two caps would leave a notch where the ends meet.
-  const complete = clamped >= 100;
-  const capPercent = complete ? 0 : ((RING_STROKE / 2) / perimeter) * PATH_LENGTH;
+  // The mask is the ungraded stroke: same start, same dash, round caps. Its
+  // start cap reaches behind the start, where the hot end color would show, so
+  // a first-color patch covers that half cap until the two caps meet.
+  const capUnits = RING_STROKE / 2;
+  const { complete, closing } = gradedRingClosure(clamped, PATH_LENGTH, (RING_STROKE / perimeter) * PATH_LENGTH);
   const segments = useMemo(() => {
     if (!gradient) return [];
     const step = PATH_LENGTH / SEGMENTS;
@@ -49,13 +53,12 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
                 stroke="#fff"
                 strokeWidth={RING_STROKE}
                 strokeLinecap={complete ? 'butt' : 'round'}
-                strokeDasharray={complete ? undefined : `${Math.max(0, clamped - 2 * capPercent)} ${PATH_LENGTH}`}
-                strokeDashoffset={-capPercent}
+                strokeDasharray={complete ? undefined : progressDash(clamped)}
               />
             </mask>
             <g mask={`url(#${maskId})`}>
-              {complete && (
-                // The first and last segment meet end to end at the start, so
+              {closing && (
+                // The last and first segment meet end to end at the start, so
                 // their antialiased edges leave a hairline of background. A
                 // closed stroke of the end color underneath covers it.
                 <path
@@ -79,6 +82,15 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
                   strokeDashoffset={-seg.start}
                 />
               ))}
+              {!closing && (
+                <path
+                  data-start-cap=""
+                  d={startSeamPath(width, capUnits + START_PATCH_MARGIN, START_PATCH_FORWARD)}
+                  fill="none"
+                  stroke={segments[0].color}
+                  strokeWidth={RING_STROKE + SEGMENT_BLEED}
+                />
+              )}
             </g>
           </>
         ) : (

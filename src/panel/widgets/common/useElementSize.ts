@@ -2,11 +2,10 @@ import { useLayoutEffect, useState } from 'react';
 
 export interface ElementSize { width: number; height: number }
 
-/// Layout size of an HTML element, kept current by a ResizeObserver. Observe a
-/// div, not an svg: older Chromium measures svg by bounding box and can miss
-/// resizes. A callback ref,
-/// so a remounted node is observed again. Transforms do not feed back:
-/// clientWidth and clientHeight ignore them.
+/// Layout size of an HTML element, kept current by a ResizeObserver. A callback
+/// ref, so a remounted node is observed again. Observe a div rather than an
+/// svg: a div reports its CSS box through clientWidth and clientHeight. Those
+/// ignore transforms, so scaling the content does not feed back.
 export function useElementSize() {
   const [node, setNode] = useState<HTMLElement | null>(null);
   const [size, setSize] = useState<ElementSize | null>(null);

@@ -68,3 +68,9 @@ export function progressDash(percent: number): string {
   const clamped = Math.max(0, Math.min(100, percent));
   return `${clamped} ${PATH_LENGTH - clamped}`;
 }
+
+/** Straight stretch of the top edge across the start, `back` before it and `forward` after. */
+export function startSeamPath(width: number, back: number, forward: number): string {
+  const y = CENTER - HALF_SIDE;
+  return `M ${width / 2 - back} ${y} H ${width / 2 + forward}`;
+}
