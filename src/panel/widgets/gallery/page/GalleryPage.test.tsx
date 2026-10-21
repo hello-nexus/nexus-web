@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryPage } from './GalleryPage';
+import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { fetchServiceBlob } from '../../../../api/service';
 
 const mockState = vi.hoisted(() => ({
@@ -79,11 +80,15 @@ beforeEach(() => {
   mockState.bridgeAvailable = false;
   mockState.truncated = false;
   vi.clearAllMocks();
+  vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(null));
   let n = 0;
-  vi.stubGlobal('URL', Object.assign(URL, {
-    createObjectURL: vi.fn(() => `blob:t${n++}`),
-    revokeObjectURL: vi.fn(),
-  }));
+  URL.createObjectURL = vi.fn(() => `blob:t${n++}`);
+  URL.revokeObjectURL = vi.fn();
+});
+
+afterEach(() => {
+  delete (URL as Partial<typeof URL>).createObjectURL;
+  delete (URL as Partial<typeof URL>).revokeObjectURL;
 });
 
 describe('GalleryPage', () => {
@@ -430,7 +435,8 @@ describe('GalleryPage paging', () => {
     vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
     const { container } = render(<GalleryPage />);
     await waitFor(() => expect(container.querySelectorAll('figure')).toHaveLength(100));
-    await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100));
+    await waitFor(() => expect(container.querySelectorAll('figure img')).toHaveLength(100));
+    expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100);
     expect(screen.getByText('common.pager.pageOf:n=1:total=3')).toBeTruthy();
   });
 
@@ -438,15 +444,52 @@ describe('GalleryPage paging', () => {
     mockState.sources = [folderSource('Pictures')];
     mockState.items = many(450);
     vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
-    render(<GalleryPage />);
+    const { container } = render(<GalleryPage />);
     await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100));
 
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByLabelText('common.pager.next'));
       await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100 * (i + 2)));
     }
-    // Pages 1 and 2 left the window when page 4 opened.
-    await waitFor(() => expect(vi.mocked(URL.revokeObjectURL)).toHaveBeenCalledTimes(200));
+    // Pages 1 and 2 left the window when page 4 opened; the first item stays as the library cover.
+    await waitFor(() => expect(vi.mocked(URL.revokeObjectURL)).toHaveBeenCalledTimes(199));
+    const revoked = new Set(vi.mocked(URL.revokeObjectURL).mock.calls.map(c => c[0]));
+    const shown = Array.from(container.querySelectorAll('figure img')).map(img => img.getAttribute('src'));
+    expect(shown.length).toBeGreaterThan(0);
+    for (const src of shown) expect(revoked.has(src!)).toBe(false);
+  });
+
+  it('keeps a playlist cover cached while its first member is off the page', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(450);
+    mockState.playlists = [{ id: 'pl1', name: 'Mine', createdAtUnixMs: 1, sourceIds: ['Pictures'], itemIds: [], excludedIds: [] }];
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    const { container } = render(<GalleryPage />);
+    await waitFor(() => expect(vi.mocked(fetchServiceBlob)).toHaveBeenCalledTimes(100));
+    const coverOf = () => container.querySelector('button[aria-pressed] img')?.getAttribute('src');
+    await waitFor(() => expect(coverOf()).toBeTruthy());
+    const cover = coverOf();
+
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByLabelText('common.pager.next'));
+    await waitFor(() => expect(container.querySelectorAll('figure img')).toHaveLength(50));
+    expect(vi.mocked(URL.revokeObjectURL).mock.calls.some(c => c[0] === cover)).toBe(false);
+    expect(coverOf()).toBe(cover);
+  });
+
+  it('clamps the page back when the library shrinks', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = many(250);
+    render(<GalleryPage />);
+    await screen.findByText('common.pager.pageOf:n=1:total=3');
+    fireEvent.click(screen.getByLabelText('common.pager.next'));
+    fireEvent.click(screen.getByLabelText('common.pager.next'));
+    await screen.findByText('common.pager.pageOf:n=3:total=3');
+    mockState.items = many(120);
+    const refetch = vi.mocked(useTopicCallback).mock.calls[0][2] as () => Promise<void>;
+    await act(async () => {
+      await refetch();
+    });
+    expect(await screen.findByText('common.pager.pageOf:n=2:total=2')).toBeTruthy();
   });
 
   it('shows the truncation notice only when the service flags it', async () => {

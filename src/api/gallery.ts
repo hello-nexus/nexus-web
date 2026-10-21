@@ -50,9 +50,6 @@ export interface GalleryPlaylist {
 export const GALLERY_PLAYLIST_NAME_MAX = 48;
 export const GALLERY_PLAYLISTS_MAX = 50;
 
-// Keep in lockstep with the service's global item cap.
-export const GALLERY_ITEMS_MAX = 5000;
-
 export function isGalleryPlaylistMember(playlist: GalleryPlaylist, item: GalleryItem): boolean {
   if (playlist.sourceIds.includes(item.sourceId)) return !playlist.excludedIds.includes(item.id);
   return playlist.itemIds.includes(item.id);
