@@ -141,7 +141,6 @@ export function GalleryPage() {
   }, [refresh]);
   useTopicCallback('gallery', true, refresh);
 
-  // A playlist deleted elsewhere drops the page back to the library.
   const selectedPlaylist = playlists.find(p => p.id === selectedPlaylistId) ?? null;
   const members = useMemo(
     () => (selectedPlaylist ? galleryPlaylistItems(items, selectedPlaylist) : items),
@@ -173,8 +172,9 @@ export function GalleryPage() {
   }, [page, currentPage, selectedPlaylistId, selectedPlaylist]);
 
   // Preview blob cache (panel auth is token-based, <img> can't hit the route
-  // directly). Grid-sized derivatives for the current page and playlist covers;
-  // ids outside the current and adjacent pages are revoked. For a video the
+  // directly). Grid-sized derivatives for the current page; ids outside the
+  // current and adjacent pages are revoked, except each playlist's first member
+  // (its cover). For a video the
   // derivative is its poster frame (the service 404s rather than send the clip
   // when it cannot make one). null marks an unreadable file so the grid shows
   // a placeholder; it is retried once evicted and revisited.
@@ -347,6 +347,8 @@ export function GalleryPage() {
   const createPlaylist = async (name: string) => {
     const res = await createGalleryPlaylist(name);
     if (!res?.playlist || res.error) return playlistError(res);
+    // Invalidates a refresh already in flight, whose playlists predate this one.
+    editGenerationRef.current++;
     setCreatingPlaylist(false);
     setPlaylists(ps => [...ps, res.playlist!]);
     setSelectedPlaylistId(res.playlist.id);
@@ -397,10 +399,10 @@ export function GalleryPage() {
     });
   };
 
-  // First member's thumbnail as the playlist card's cover.
+  // First member with a cached thumbnail; the first member itself is exempt from eviction.
   const coverFor = (playlistItems: GalleryItem[]) => {
-    const first = playlistItems[0];
-    return first ? thumbs[first.id] ?? null : null;
+    const first = playlistItems.find(i => thumbs[i.id]);
+    return first ? thumbs[first.id] : null;
   };
 
   // Whole-page drop target. dragenter/leave fire for every child crossed,
