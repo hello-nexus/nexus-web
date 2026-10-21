@@ -188,9 +188,9 @@
 // A slider row: the control slot takes the shared inline slider width as a share
 // of the row (flex-basis percentages resolve against the row, not the slot). The
 // label-less Slider inside fills the slot. A basis percentage cannot resolve in a
-// shrink-to-fit ancestor, so a definite min-width (clamped to most of the row) keeps the
+// shrink-to-fit ancestor, so a definite min-width keeps the
 // slot from collapsing to the input's intrinsic width there.
 .row.sliderRow .control {
   flex: 0 1 var(--slider-inline-width);
-  min-width: min(var(--slider-inline-min), 70%);
+  min-width: var(--slider-inline-slot-min);
 }

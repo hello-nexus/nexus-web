@@ -444,6 +444,8 @@ input[type="range"][data-fill] {
   --slider-inline-share: 30%;
   --slider-inline-min: 18rem;
   --slider-inline-max: 75%;
+  // Definite floor of a settings-row slider slot: percentages cannot resolve in a shrink-to-fit parent.
+  --slider-inline-slot-min: 8rem;
   --slider-inline-width: min(max(var(--slider-inline-share), var(--slider-inline-min)), var(--slider-inline-max));
 }
 

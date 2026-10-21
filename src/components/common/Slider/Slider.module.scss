@@ -96,6 +96,17 @@ $inline-gap: 0.5rem;
   white-space: nowrap;
 }
 
+// The edit field takes the value column as it is, so opening edit mode shifts nothing:
+// it adds no width of its own (width 0, filled out to the column by min-width) and drops
+// the negative margins and wide padding the standalone field uses.
+.inline .inlineValue > input {
+  width: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.05rem 0.15rem;
+  box-sizing: border-box;
+}
+
 .head {
   display: flex;
   align-items: baseline;

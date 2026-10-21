@@ -184,7 +184,8 @@ export function Slider({
   // track's right edge doesn't shift as the value's width changes. The value
   // is the sole, right-aligned child of the reserver, so its click/hit area
   // is never overlapped.
-  const reserveCh = Math.max(fmt(min).length, fmt(max).length) + 1;
+  // A mixed label counts too, so the column does not grow when the state turns mixed.
+  const reserveCh = Math.max(fmt(min).length, fmt(max).length, mixedLabel?.length ?? 0) + 1;
   const inlineValueNode = (
     <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
