@@ -8,6 +8,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
+import { areaBoxRects } from '../../../lib/areaBoxes';
 import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
@@ -949,6 +950,23 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                 const slot = stackSlotOf(stacks, id);
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
                 const locked = ledColorsById.get(id);
+                const boxes = devices.find(d => d.id === id);
+                if (boxes?.areaSampling && boxes.areaBoxes?.length) {
+                  return areaBoxRects(boxes.areaBoxes).map(({ index, u0, v0, u1, v1 }) => {
+                    const color = locked?.get(index);
+                    return (
+                      <div
+                        key={`${id}:box:${index}`}
+                        className={styles.ledBox}
+                        style={{
+                          left: `${(part.x + u0 * part.w) * 100}%`, top: `${(part.y + v0 * part.h) * 100}%`,
+                          width: `${(u1 - u0) * part.w * 100}%`, height: `${(v1 - v0) * part.h * 100}%`,
+                          ...(color ? { background: color } : {}),
+                        }}
+                      />
+                    );
+                  });
+                }
                 return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => {
                   const color = locked?.get(led.index);
                   return (

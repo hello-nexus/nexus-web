@@ -58,6 +58,27 @@ describe('DeviceCanvas', () => {
     expect(frames[1].querySelector(`.${styles.foreignCaption}`)?.textContent).toBe('Static');
   });
 
+  it('draws each LED as its box for an area-sampling device and dots otherwise', () => {
+    const leds = { a: [{ index: 0, u: 0.5, v: 0.5 }], b: [{ index: 0, u: 0.5, v: 0.5 }] } as never;
+    const a = { ...dragDevice('a', 'A'), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0, 0, 0, 0, 0.5, 0, 1, 1] } as LightingDevice;
+    const { container } = render(
+      <DeviceCanvas
+        devices={[a, dragDevice('b', 'B')]}
+        selectedIds={new Set(['a', 'b'])}
+        selectedDeviceLeds={leds}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const frames = [...container.querySelectorAll<HTMLElement>(`.${styles.device}`)];
+    expect(frames.map(f => f.querySelectorAll(`.${styles.ledBox}`).length)).toEqual([2, 0]);
+    expect(frames.map(f => f.querySelectorAll(`.${styles.ledDot}`).length)).toEqual([0, 1]);
+    const box = frames[0].querySelector<HTMLElement>(`.${styles.ledBox}`)!;
+    expect(box.style.width).toBe('50%');
+    expect(box.style.height).toBe('100%');
+  });
+
   it('draws no frames or names when asked to hide them', () => {
     const drawn = (hideFrames: boolean) => {
       const { container, unmount } = render(

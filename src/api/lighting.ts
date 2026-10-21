@@ -467,6 +467,10 @@ export interface LightingDevice {
   rateCapSupported?: boolean;
   /** The user's frame-rate cap in FPS; null = Off. */
   maxRateHz?: number | null;
+  /** Each LED shows the average of a box around it instead of a spot. */
+  areaSampling?: boolean;
+  /** Flat [u0, v0, u1, v1] per card-local LED, in the frame's unrotated 0..1 space (v down). A disabled LED is all zeros. Null or absent when off. */
+  areaBoxes?: number[] | null;
   ledCount: number;
   /** The byte the lighting output frame tags this device's LEDs with. Absent on
    *  an older service, or when the device has no engine frame. */
@@ -749,6 +753,10 @@ export const setLightingColorAdjust = (ids: string[], patch: LightingColorAdjust
 // Per-device frame-rate cap for slow hardware. null turns the cap off.
 export const setLightingMaxRate = (id: string, maxRateHz: number | null) =>
   postService<ApiEnvelope>('/devices/lighting-devices/max-rate', { id, maxRateHz });
+
+// Per-device Area sampling: each LED averages a box around it.
+export const setLightingAreaSampling = (id: string, enabled: boolean) =>
+  postService<ApiEnvelope>('/devices/lighting-devices/area-sampling', { id, enabled });
 
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.

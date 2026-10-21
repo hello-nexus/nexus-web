@@ -226,6 +226,17 @@
   z-index: 1;
 }
 
+// One LED under Area sampling: the box it averages. The outline keeps
+// neighbouring boxes distinguishable.
+.ledBox {
+  position: absolute;
+  box-sizing: border-box;
+  background: rgb(255 255 255 / var(--alpha-medium));
+  border: 1px solid rgb(0 0 0 / var(--alpha-medium));
+  pointer-events: none;
+  z-index: 1;
+}
+
 // Held on a colour by the LED map: the dot wears it, shadowed to read on any frame.
 .ledDotLocked {
   box-shadow: var(--shadow-sm);

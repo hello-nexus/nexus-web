@@ -27,6 +27,7 @@ import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import { LedColorLockSection } from './LedColorLockSection';
 import { RateCapSelect } from './RateCapSelect';
+import { AreaSamplingToggle } from './AreaSamplingToggle';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
@@ -2814,6 +2815,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </button>
             ) : <span />}
             <div className={styles.saveGroup}>
+              {zoneCard && zoneCard.ledCount > 0 && (
+                <AreaSamplingToggle
+                  id={zoneCard.id}
+                  value={zoneCard.areaSampling ?? false}
+                  onFail={() => push({ title: t('lighting.ledMap.areaSamplingFailed') })}
+                  onSaved={onRateCapChanged}
+                />
+              )}
               {zoneCard?.rateCapSupported && (
                 <RateCapSelect
                   id={zoneCard.id}
