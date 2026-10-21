@@ -12,10 +12,12 @@
   min-width: 0;
 }
 
+$inline-gap: 0.5rem;
+
 .inline {
   flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: $inline-gap;
 }
 
 .stacked {
@@ -46,20 +48,30 @@
 
 .inline .label {
   min-width: 50px;
-  // The label owns the left side and wraps; the track and value sit at the right edge.
-  flex: 0 1 auto;
-  margin-right: auto;
+  // The label takes what the control box leaves on the left and wraps first when the row is tight.
+  flex: 1 1 0;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-// Track and value together take a share of the block (--slider-inline-width, global.scss).
-.inline .track {
-  flex: 0 0 calc(var(--slider-inline-width) - var(--slider-inline-value-width) - 0.5rem);
+.inline .inlineControl {
+  // Track and value together take the shared width (--slider-inline-width, global.scss) when the
+  // container allows it, and shrink with it otherwise, so the row never overflows.
+  flex: 0 1 var(--slider-inline-width);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $inline-gap;
 }
 
-.inline.inlineFill .track {
+.inline.inlineFill .inlineControl {
   flex: 1 1 0;
+}
+
+// The track is whatever the value column leaves of the control box.
+.inline .track {
+  flex: 1 1 0;
+  min-width: 3rem;
 }
 
 .value {
@@ -74,6 +86,9 @@
    value keeps a full, un-overlapped click/hit area. Font matches the value so
    the ch-based min-width is measured in the value's own type. */
 .inline .inlineValue {
+  // A fixed column (it grows only for a value wider than it), so tracks start at
+  // the same x across rows whose values differ in length.
+  flex: 0 0 var(--slider-inline-value-width);
   display: inline-flex;
   justify-content: flex-end;
   font-size: var(--type-small);

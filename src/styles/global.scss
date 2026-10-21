@@ -445,8 +445,8 @@ input[type="range"][data-fill] {
   --slider-inline-min: 18rem;
   --slider-inline-max: 75%;
   --slider-inline-width: min(max(var(--slider-inline-share), var(--slider-inline-min)), var(--slider-inline-max));
-  // Floor of the inline value column, so tracks line up across rows whose values differ in length.
-  --slider-inline-value-width: 3.5rem;
+  // Width of the inline value column, so tracks line up across rows whose values differ in length.
+  --slider-inline-value-width: 4.5rem;
 }
 
 // The shared "mixed" look: the controlled targets disagree. Slider track, Toggle

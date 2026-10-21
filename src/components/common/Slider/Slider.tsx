@@ -87,7 +87,7 @@ export function Slider({
 }: SliderProps) {
   const rangeId = useId();
   // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
-  const accessibleName = ariaLabel ?? (orientation === 'inline' && label && typeof label === 'string' ? label : undefined);
+  const accessibleName = ariaLabel ?? (orientation === 'inline' && label ? label : undefined);
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -186,7 +186,7 @@ export function Slider({
   // is never overlapped.
   const reserveCh = Math.max(fmt(min).length, fmt(max).length) + 1;
   const inlineValueNode = (
-    <span className={styles.inlineValue} style={{ minWidth: `max(${reserveCh}ch, var(--slider-inline-value-width))` }}>
+    <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
           onCommit={handleEditCommit} format={formatValue} ariaLabel={accessibleName} className={valueClass} disabled={disabled}
@@ -311,13 +311,15 @@ export function Slider({
   return (
     <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`}>
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
-      <div className={styles.track}>
-        {range}
-        {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-        {bandNode}
-        {markerNode}
+      <div className={styles.inlineControl}>
+        <div className={styles.track}>
+          {range}
+          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+          {bandNode}
+          {markerNode}
+        </div>
+        {inlineValueNode}
       </div>
-      {inlineValueNode}
     </div>
   );
 }
