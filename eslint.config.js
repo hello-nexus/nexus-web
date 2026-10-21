@@ -32,6 +32,23 @@ const NON_UI_JSX_ATTRIBUTES = [
   'translationPrefix', 'resetLabelKey', 'resetConfirmKey', 'importLabelKey',
 ]
 
+// One width for every inline slider: styles/global.scss (--slider-inline-*) is the
+// single source and Slider / SettingRow consume it. A call site never sets it.
+const SLIDER_WIDTH_BAN = [
+  {
+    selector: "JSXAttribute[name.name='controlWidth']",
+    message: 'Inline slider width comes from --slider-inline-* in styles/global.scss; there is no per-site width prop.',
+  },
+  {
+    selector: "JSXOpeningElement[name.name=/^(Slider|SettingSlider)$/] > JSXAttribute[name.name='style']",
+    message: 'A Slider or SettingSlider takes no style: its width comes from --slider-inline-* in styles/global.scss.',
+  },
+  {
+    selector: "Property[key.value=/^--slider-inline/]",
+    message: 'Only styles/global.scss defines --slider-inline-*.',
+  },
+]
+
 export default defineConfig([
   // Build artifacts. The sandbox harness bundle is generated from harness/app.tsx
   // by the SDK build and gitignored; linting it reports rules its own inlined
@@ -79,6 +96,11 @@ export default defineConfig([
       // issue in production.
       'react-refresh/only-export-components': 'off',
     },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/components/common/Slider/Slider.tsx', 'src/components/common/SettingRow/SettingRow.tsx'],
+    rules: { 'no-restricted-syntax': ['error', ...SLIDER_WIDTH_BAN] },
   },
   {
     // Internal / developer-only surfaces that never ship as end-user UI: test

@@ -439,16 +439,21 @@ input[type="range"][data-fill] {
   }
 }
 
+:root {
+  // Single source for the width of every inline slider (track plus value); nothing else sets it.
+  --slider-inline-share: 30%;
+  --slider-inline-min: 18rem;
+  --slider-inline-max: 75%;
+  --slider-inline-width: min(max(var(--slider-inline-share), var(--slider-inline-min)), var(--slider-inline-max));
+  // Floor of the inline value column, so tracks line up across rows whose values differ in length.
+  --slider-inline-value-width: 3.5rem;
+}
+
 // The shared "mixed" look: the controlled targets disagree. Slider track, Toggle
 // track and ChipGroup partial chips take --mixed-fill (the soft accent tint); Slider
 // thumb and Toggle knob take the ghosted gray --mixed-knob. No color-mix(): the
 // Q60 panel WebView is Chromium 83.
-// Inline slider width (track plus value) as a share of its setting block: a third
-// at most, with a floor that keeps the track usable and wins in a very narrow block.
 :root {
-  --slider-inline-width: max(11rem, 30%);
-  // Floor of the inline value column, so tracks line up across rows whose values differ in length.
-  --slider-inline-value-width: 3.5rem;
   --mixed-fill: var(--accent-soft);
   --mixed-knob: var(--text);
   --mixed-knob-opacity: 0.4;
