@@ -1,6 +1,6 @@
 // The frame-rate cap selector renders only for cards that report support.
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LedMapEditor } from './LedMapEditor';
 import type { LightingDevice } from '../../../../api/lighting';
 
@@ -21,6 +21,7 @@ const api = vi.hoisted(() => ({
   fetchLedColors: vi.fn().mockResolvedValue({ leds: [] }),
   setLedColors: vi.fn(),
   clearLedColors: vi.fn(),
+  postLedPreviewLayout: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('../../../../api/lighting', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../../api/lighting')>();
@@ -50,7 +51,7 @@ vi.mock('../../../../api/lighting', async importOriginal => {
     highlightLeds: vi.fn(),
     testLedPattern: vi.fn(),
     clearLedEditor: vi.fn(),
-    postLedPreviewLayout: vi.fn().mockResolvedValue(null),
+    postLedPreviewLayout: api.postLedPreviewLayout,
     setLightingDeviceBrightness: vi.fn(),
     fetchGlobalBrightness: vi.fn().mockResolvedValue(null),
   };
@@ -85,3 +86,63 @@ describe('LedMapEditor frame-rate cap', () => {
     await waitFor(() => expect(select.textContent).toContain('lighting.ledMap.rateCapOff'));
   });
 });
+
+describe('LedMapEditor area sampling boxes', () => {
+  afterEach(() => { api.postLedPreviewLayout.mockResolvedValue(null); });
+  it('underlays a cell per enabled LED for an area-sampled card', async () => {
+    render(
+      <LedMapEditor
+        deviceId={ZONE_B}
+        initialZoneId={ZONE_B}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'nearest', areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
+        zoneCustomizable={false}
+        onClose={() => {}}
+      />,
+    );
+    await screen.findByLabelText('lighting.ledMap.selectAll');
+    await waitFor(() => expect(document.querySelectorAll('polygon').length).toBe(2));
+  });
+  it('follows the cells the service returns for the draft layout', async () => {
+    api.postLedPreviewLayout.mockResolvedValue({ error: false, msg: '', areaCells: [[0, 0, 0.3, 0, 0.3, 1, 0, 1], [0.3, 0, 0.6, 0, 0.6, 1, 0.3, 1], [0.6, 0, 1, 0, 1, 1, 0.6, 1]] });
+    render(
+      <LedMapEditor
+        deviceId={ZONE_B}
+        initialZoneId={ZONE_B}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'nearest', areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
+        zoneCustomizable={false}
+        onClose={() => {}}
+      />,
+    );
+    await waitFor(() => expect(document.querySelectorAll('polygon').length).toBe(3));
+  });
+  it('posts the selected zone\'s draft with card-local indices so its boxes come back usable', async () => {
+    render(
+      <LedMapEditor
+        deviceId={ZONE_B}
+        initialZoneId={ZONE_B}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'nearest', areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
+        zoneCustomizable={false}
+        onClose={() => {}}
+      />,
+    );
+    await waitFor(() => expect(api.postLedPreviewLayout).toHaveBeenCalled());
+    const [id, count, leds] = api.postLedPreviewLayout.mock.calls.at(-1)!;
+    expect(id).toBe(ZONE_B);
+    expect(count).toBe(5);
+    expect((leds as { index: number }[]).map(l => l.index)).toEqual([0, 1, 2, 3, 4]);
+  });
+  it('draws none when the mode is off', async () => {
+    render(
+      <LedMapEditor
+        deviceId={ZONE_B}
+        initialZoneId={ZONE_B}
+        devices={[card(ZONE_A), { ...card(ZONE_B), sampling: 'led', areaCells: undefined }]}
+        zoneCustomizable={false}
+        onClose={() => {}}
+      />,
+    );
+    await screen.findByLabelText('lighting.ledMap.selectAll');
+    expect(document.querySelectorAll('polygon').length).toBe(0);
+  });
+});
+

@@ -156,6 +156,7 @@ import { TextInput } from '../components/common/TextInput/TextInput';
 import { Ring as StorybookRing } from '../components/common/Ring/Ring';
 import { Gauge as StorybookGauge } from '../components/common/Gauge/Gauge';
 import { CanvasNoticeBar } from '../components/common/CanvasNoticeBar';
+import { AreaCells } from '../components/common/AreaCells/AreaCells';
 // Side-effect: pulls the global `.panel-root { --panel-*: … }` token rules into
 // the Storybook bundle so the panel-scoped preview below resolves its vars.
 // Idempotent - PanelDevicePage imports the same sheet.
@@ -2449,6 +2450,17 @@ function PreviewCanvasNoticeBar() {
   );
 }
 
+function PreviewAreaCells() {
+  return (
+    <div style={{ position: 'relative', width: '100%', height: 96, background: '#222', borderRadius: 6 }}>
+      <AreaCells
+        cells={[[0, 0, 0.5, 0, 0.4, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.4, 1]]}
+        style={{ left: 0, top: 0, width: '100%', height: '100%' }}
+      />
+    </div>
+  );
+}
+
 function PreviewStepper() {
   const [v, setV] = useState(12);
   return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
@@ -3450,6 +3462,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/CanvasNoticeBar/CanvasNoticeBar.tsx',
     description: 'Bottom-docked translucent notice bar overlaid on a preview canvas. Click-through except for the optional action button. tone="wait" is the self-resolving state (GPU still initializing); the default fault tone warns that a shader effect previews in the browser but won\'t run on the service.',
     Preview: PreviewCanvasNoticeBar,
+  },
+  {
+    name: 'AreaCells', category: 'status',
+    filePath: 'src/components/common/AreaCells/AreaCells.tsx',
+    description: 'Outlines of the cells Area sampling gives each LED, as one SVG over the unit square of the box it fills. Fixed-width stroke in the LED mark color; a locked LED outline wears its color. Non-interactive.',
+    Preview: PreviewAreaCells,
   },
 
   // ── Panel kit ─────────────────────────────────────────────────────────
