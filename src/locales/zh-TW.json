@@ -2507,6 +2507,7 @@
   "lighting.controls.bb.opt.rainbow": "彩虹",
   "lighting.controls.bb.opt.smooth": "平滑",
   "lighting.controls.bb.opt.solid": "純色",
+  "lighting.controls.bb.stereo": "立體聲分離",
   "lighting.controls.bb.topHeight": "頂部高度",
   "lighting.controls.bb.topMeters": "頂部儀表",
   "lighting.controls.beatbuilder": "Beat Builder",

@@ -670,6 +670,7 @@ export const EFFECTS: EffectDef[] = [
           { value: 1, labelKey: 'lighting.controls.bb.opt.on' },
         ] },
       { name: 'u_bottomScale', labelKey: 'lighting.controls.bb.bottomScale', label: 'Bottom Height' },
+      { name: 'u_stereo', labelKey: 'lighting.controls.bb.stereo', label: 'Stereo split', toggle: true },
       { name: 'u_bgLevel',    labelKey: 'lighting.controls.bb.bgLevel',    label: 'Background' },
       { name: 'u_beatColor',  labelKey: 'lighting.controls.bb.beatColor',  label: 'Beat Color' },
       { name: 'u_flash',      labelKey: 'lighting.controls.bb.flash',      label: 'Beat Flash' },

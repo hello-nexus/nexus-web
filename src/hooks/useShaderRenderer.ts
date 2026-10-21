@@ -203,7 +203,7 @@ export function useShaderRenderer(
         'u_hue', 'u_colorize', 'u_saturation', 'u_contrast',
         'u_audioLevel', 'u_audioBass', 'u_audioMid', 'u_audioHigh',
         'u_audioBeat', 'u_audioBoost', 'u_spectrum',
-        'u_spectrum64', 'u_specHist',
+        'u_spectrum64', 'u_spectrumL64', 'u_spectrumR64', 'u_specHist',
         'u_levelPeak', 'u_bassPeak', 'u_midPeak', 'u_highPeak',
         'u_palette', 'u_paletteMix',
       ];
@@ -341,6 +341,8 @@ export function useShaderRenderer(
         }
         if (u.u_spectrum) g.uniform1fv(u.u_spectrum, audio?.spectrum ?? new Float32Array(16));
         if (u.u_spectrum64) g.uniform1fv(u.u_spectrum64, audio?.spectrum64 ?? new Float32Array(64));
+        if (u.u_spectrumL64) g.uniform1fv(u.u_spectrumL64, audio?.spectrumLeft64 ?? audio?.spectrum64 ?? new Float32Array(64));
+        if (u.u_spectrumR64) g.uniform1fv(u.u_spectrumR64, audio?.spectrumRight64 ?? audio?.spectrum64 ?? new Float32Array(64));
         if (u.u_specHist) g.uniform4fv(u.u_specHist, histRingRef.current);
         if (u.u_levelPeak) g.uniform1f(u.u_levelPeak, levelPeakRef.current);
         if (u.u_bassPeak)  g.uniform1f(u.u_bassPeak,  bassPeakRef.current);

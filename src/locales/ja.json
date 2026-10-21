@@ -2507,6 +2507,7 @@
   "lighting.controls.bb.opt.rainbow": "レインボー",
   "lighting.controls.bb.opt.smooth": "スムーズ",
   "lighting.controls.bb.opt.solid": "単色",
+  "lighting.controls.bb.stereo": "ステレオ分割",
   "lighting.controls.bb.topHeight": "上部の高さ",
   "lighting.controls.bb.topMeters": "上部メーター",
   "lighting.controls.beatbuilder": "Beat Builder",

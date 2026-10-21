@@ -2522,6 +2522,7 @@
   "lighting.controls.bb.opt.rainbow": "Tęcza",
   "lighting.controls.bb.opt.smooth": "Gładki",
   "lighting.controls.bb.opt.solid": "Jednolity",
+  "lighting.controls.bb.stereo": "Podział stereo",
   "lighting.controls.bb.topHeight": "Górna wysokość",
   "lighting.controls.bb.topMeters": "Górne mierniki",
   "lighting.controls.beatbuilder": "Beat Builder",

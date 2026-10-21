@@ -2507,6 +2507,7 @@
   "lighting.controls.bb.opt.rainbow": "Regenbogen",
   "lighting.controls.bb.opt.smooth": "Weich",
   "lighting.controls.bb.opt.solid": "Einfarbig",
+  "lighting.controls.bb.stereo": "Stereo-Aufteilung",
   "lighting.controls.bb.topHeight": "Obere Höhe",
   "lighting.controls.bb.topMeters": "Obere Meter",
   "lighting.controls.beatbuilder": "Beat Builder",

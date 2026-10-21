@@ -2507,6 +2507,7 @@
   "lighting.controls.bb.opt.rainbow": "Gökkuşağı",
   "lighting.controls.bb.opt.smooth": "Yumuşak",
   "lighting.controls.bb.opt.solid": "Düz",
+  "lighting.controls.bb.stereo": "Stereo bölme",
   "lighting.controls.bb.topHeight": "Üst Yükseklik",
   "lighting.controls.bb.topMeters": "Üst Ölçerler",
   "lighting.controls.beatbuilder": "Beat Builder",

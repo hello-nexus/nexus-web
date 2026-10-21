@@ -2507,6 +2507,7 @@
   "lighting.controls.bb.opt.rainbow": "Arco-íris",
   "lighting.controls.bb.opt.smooth": "Suave",
   "lighting.controls.bb.opt.solid": "Sólido",
+  "lighting.controls.bb.stereo": "Divisão estéreo",
   "lighting.controls.bb.topHeight": "Altura superior",
   "lighting.controls.bb.topMeters": "Medidores superiores",
   "lighting.controls.beatbuilder": "Beat Builder",
