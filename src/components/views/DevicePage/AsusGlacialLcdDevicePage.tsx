@@ -1,10 +1,9 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { TextInput } from '../../common/TextInput/TextInput';
-import { Slider } from '../../common/Slider/Slider';
 import { useToast } from '../../common/Toast/Toast';
 import { SensorPicker, useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
 import {
@@ -135,7 +134,7 @@ export function AsusGlacialLcdControls() {
         disabled={!ready}
         onChange={on => edit({ stayOnWhileAsleep: on }, { stayOnWhileAsleep: on })}
       />
-      <Slider
+      <SettingSlider
         editable
         trackFill
         label={t('devices.asus-glacial-lcd.brightness')}
@@ -146,7 +145,7 @@ export function AsusGlacialLcdControls() {
         step={1}
         formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
         disabled={!ready}
-        onChange={v => setState(prev => prev && { ...prev, brightness: v })}
+        onChange={(v: number) => setState(prev => prev && { ...prev, brightness: v })}
         onCommit={v => { void commit({ brightness: v }); }}
       />
     </SettingsSection>
