@@ -57,7 +57,7 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
   const device = category as DeckMonitoringCategory;
   // FPS has no reading the lighting service can resolve, so it is not offered.
   const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)
-    .filter(c => c !== 'fps' && (!categories || categories.includes(c)))
+    .filter(c => c !== 'fps' && (!categories || c === device || categories.includes(c)))
     .map(c => ({ value: c, label: t(CATEGORY_LABEL_KEYS[c]) }));
   const optionsFor = (d: DeckMonitoringCategory) => {
     const all = sensorsForDevice(sensors, networkSensors, extras, d);
