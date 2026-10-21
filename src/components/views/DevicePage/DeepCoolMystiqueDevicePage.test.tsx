@@ -269,4 +269,11 @@ describe('DeepCoolMystiqueDevicePage', () => {
     });
     expect(mockSet).toHaveBeenCalledWith({ ramUsage: { category: '', sensor: '' } });
   });
+
+  it('an automatic readout that resolves to nothing shows a sensible default category per readout', async () => {
+    const none = { category: '', sensor: '', resolvedCategory: '', resolvedSensor: '' };
+    await mount({ ...base, cpuTemperature: none, cpuFrequency: none, cpuUsage: none, ramUsage: none, cpuFan: none, pump: none });
+    const shown = screen.getAllByTestId('sensor-picker').map(b => b.textContent);
+    expect(shown).toEqual(['cpu/', 'cpu/', 'cpu/', 'memory/', 'motherboard/', 'motherboard/']);
+  });
 });
