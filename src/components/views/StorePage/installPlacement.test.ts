@@ -15,6 +15,7 @@ const fetchPanelDevices = vi.fn();
 const patchPanelDevice = vi.fn();
 const allocatePanelDevice = vi.fn();
 const broadcastLayoutChanged = vi.fn();
+const ensureSimulatedPanelRecord = vi.fn();
 
 vi.mock('../../../api/profiles', () => ({
   fetchPreferences: () => fetchPreferences(),
@@ -25,6 +26,10 @@ vi.mock('../../../api/panel', () => ({
   fetchPanelDevices: () => fetchPanelDevices(),
   patchPanelDevice: (id: string, patch: unknown) => patchPanelDevice(id, patch),
   allocatePanelDevice: (...args: unknown[]) => allocatePanelDevice(...args),
+}));
+vi.mock('../../../lib/panelSimulation', async () => ({
+  ...(await vi.importActual<typeof import('../../../lib/panelSimulation')>('../../../lib/panelSimulation')),
+  ensureSimulatedPanelRecord: (id: string) => ensureSimulatedPanelRecord(id),
 }));
 vi.mock('../../../panel/engine/panelSync', () => ({
   broadcastLayoutChanged: () => broadcastLayoutChanged(),
@@ -257,6 +262,30 @@ describe('commitPlacement', () => {
     expect(await commitPlacement(q60, TYPE, meta, 6)).toBe(true);
 
     expect(patchPanelDevice).toHaveBeenCalledWith('rec-q60', expect.objectContaining({ layout: expect.any(Object) }));
+  });
+
+  it('writes a simulator target only into the record that simulator owns, never a real one of the surface', async () => {
+    const real = { id: 'real-q60', displayName: 'Q60', firstSeenAt: 0, lastSeenAt: 0, capabilities: { surface: 'q60' } };
+    fetchPanelDevices.mockResolvedValue({ devices: [real] });
+    ensureSimulatedPanelRecord.mockResolvedValue('sim-rec');
+    fetchPanelDevice.mockResolvedValue({ id: 'sim-rec', displayName: 'sim', firstSeenAt: 0, lastSeenAt: 0 });
+    const sim: PlacementTarget = { ...q60, key: 'sim-q60', simulatorId: 'q60' };
+
+    expect(await commitPlacement(sim, TYPE, meta, 6)).toBe(true);
+
+    expect(ensureSimulatedPanelRecord).toHaveBeenCalledWith('q60');
+    expect(patchPanelDevice).toHaveBeenCalledTimes(1);
+    expect(patchPanelDevice).toHaveBeenCalledWith('sim-rec', expect.anything());
+    expect(allocatePanelDevice).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing for a simulator whose record cannot be resolved', async () => {
+    fetchPanelDevices.mockResolvedValue({ devices: [] });
+    ensureSimulatedPanelRecord.mockResolvedValue(undefined);
+
+    expect(await commitPlacement({ ...q60, simulatorId: 'q60' }, TYPE, meta, 6)).toBe(false);
+    expect(patchPanelDevice).not.toHaveBeenCalled();
+    expect(allocatePanelDevice).not.toHaveBeenCalled();
   });
 
   it('allocates a record for a surface that never connected', async () => {

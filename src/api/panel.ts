@@ -273,6 +273,9 @@ export async function allocatePanelDeviceWithStatus(
 export const fetchPanelDevice = (id: string) =>
   fetchService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`);
 
+export const deletePanelDevice = (id: string) =>
+  deleteService<{ error: boolean; msg: string }>(`/panel/devices/${encodeURIComponent(id)}`);
+
 export const fetchPanelDevices = () =>
   fetchService<{ devices: PanelDeviceRecord[] }>('/panel/devices');
 
