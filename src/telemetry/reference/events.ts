@@ -233,7 +233,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'App installed',
     status: 'live',
     source: 'service',
-    description: 'An SDK app was installed from the Marketplace or copied in from a bundled app. Not emitted when the same version is reinstalled over itself.',
+    description: 'An SDK app was installed from the Marketplace or copied in from a bundled app. Not emitted when the same version is installed over itself.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'Installed app id, e.g. com.ibuypower.control.' },
       { name: 'app_version', type: 'string', required: true, description: 'Version that was installed.' },
@@ -270,10 +270,10 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'App placed',
     status: 'live',
     source: 'service',
-    description: 'An app widget instance appeared in a panel layout. Derived from the layout save, so a save that keeps the same widgets emits nothing.',
+    description: 'An app widget instance appeared in a layout (a panel device layout or the desktop dashboard). Derived from the layout save, so a save that keeps the same widgets emits nothing; the first save of a layout that never existed reports its app widgets as placed.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'App id of the widget.' },
-      { name: 'surface', type: 'string', required: true, description: 'Layout surface the widget was added to.' },
+      { name: 'surface', type: 'string', required: true, description: 'Surface it was added to: desktop for the desktop dashboard, otherwise the device layout's surface (e.g. y70).' },
     ],
   },
   {
@@ -281,10 +281,10 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'App removed from layout',
     status: 'live',
     source: 'service',
-    description: 'An app widget instance left a panel layout. Derived from the layout save, like app_placed.',
+    description: 'An app widget instance left a layout. Derived from the layout save, like app_placed. Uninstalling through removeAppEverywhere saves each layout that held the app, so it also emits one app_removed per placement.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'App id of the widget.' },
-      { name: 'surface', type: 'string', required: true, description: 'Layout surface the widget was removed from.' },
+      { name: 'surface', type: 'string', required: true, description: 'Surface it was removed from, named as for app_placed.' },
     ],
   },
   {
