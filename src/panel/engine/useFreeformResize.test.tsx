@@ -93,7 +93,23 @@ describe('useFreeformResize move and cancel', () => {
 describe('useFreeformResize stale gestures and clamped moves', () => {
   it('commits nothing when the layout changed mid-drag and the gesture then ends', () => {
     const onCommit = vi.fn();
+    const onReject = vi.fn();
     let current = layout(tile('a', '4x4', 0, 0), tile('b', '4x2', 4, 0));
+    const { result, rerender } = renderHook(() => useFreeformResize({
+      widgetId: 'a', layout: current, capacity: CAPACITY, snapSpans: SPANS, maxPages: 1, onCommit, onReject,
+    }));
+    act(() => { result.current.begin(); });
+    act(() => { result.current.update('br', 2, 0); });
+    current = layout(tile('a', '4x4', 0, 0));
+    rerender();
+    act(() => { result.current.end(); });
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onReject).toHaveBeenCalledTimes(1);
+  });
+
+  it('still commits when the layout is replaced by a same-content object mid-drag', () => {
+    const onCommit = vi.fn();
+    let current = layout(tile('a', '4x4', 0, 0));
     const { result, rerender } = renderHook(() => useFreeformResize({
       widgetId: 'a', layout: current, capacity: CAPACITY, snapSpans: SPANS, maxPages: 1, onCommit, onReject: vi.fn(),
     }));
@@ -102,7 +118,8 @@ describe('useFreeformResize stale gestures and clamped moves', () => {
     current = layout(tile('a', '4x4', 0, 0));
     rerender();
     act(() => { result.current.end(); });
-    expect(onCommit).not.toHaveBeenCalled();
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit.mock.calls[0][0].pages[0].widgets[0].size).toBe('6x4');
   });
 
   it('commits nothing when the grid changed mid-drag', () => {

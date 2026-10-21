@@ -197,7 +197,7 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
   };
 }
 
-function canonicalJson(v: unknown): string {
+export function canonicalJson(v: unknown): string {
   const walk = (x: unknown): unknown => {
     if (Array.isArray(x)) return x.map(walk);
     if (x && typeof x === 'object') {

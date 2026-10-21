@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
+import { canonicalJson } from './usePanelLayout';
 import { findWidgetById } from './panelLayoutHelpers';
 import { sizeToSpan, type GridSpan } from './grid';
 import { tryResizeWidget } from './panelLayoutOps';
@@ -18,7 +19,7 @@ import {
 export type FreeformGesture = 'move' | FreeformCorner;
 
 // `size` is the stored size: a move keeps it even when the rendered span is clamped to the grid.
-interface Session { base: PanelLayout; cols: number; rows: number; start: FreeformRect; size: PanelWidgetSize; }
+interface Session { base: PanelLayout; baseKey: string; cols: number; rows: number; start: FreeformRect; size: PanelWidgetSize; }
 
 /** Every update re-derives the draft from the layout the gesture began on, so dragging back restores pushed widgets; `end` commits. */
 export function useFreeformResize({
@@ -56,7 +57,7 @@ export function useFreeformResize({
     if (!widget) return false;
     const span = sizeToSpan(clampFreeformSize(widget.size, { cols: boundCols, rows: boundRows }));
     rejectArmedRef.current = true;
-    sessionRef.current = { base: layout, cols: boundCols, rows: boundRows, size: widget.size, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
+    sessionRef.current = { base: layout, baseKey: canonicalJson(layout), cols: boundCols, rows: boundRows, size: widget.size, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
     return true;
   }, [layout, widgetId, boundCols, boundRows]);
 
@@ -99,15 +100,21 @@ export function useFreeformResize({
     applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }), false);
   }, [applyTarget, boundCols, boundRows, snapSpans]);
 
-  // A layout or grid that changed mid-gesture (a sync, a rotation) leaves the draft built on a stale base, so it is dropped.
+  // A layout or grid that really changed mid-gesture (a sync, a rotation) leaves the draft on a stale base, so it is dropped with a flash;
+  // a same-content record refetch (an echo of our own save) is not a change.
   const end = useCallback(() => {
     const next = draftRef.current;
     const session = sessionRef.current;
     sessionRef.current = null;
     setBoth(null);
-    const stale = !session || session.base !== layout || session.cols !== boundCols || session.rows !== boundRows;
-    if (next && !stale) onCommit(next);
-  }, [onCommit, setBoth, layout, boundCols, boundRows]);
+    const stale = !session || session.cols !== boundCols || session.rows !== boundRows || session.baseKey !== canonicalJson(layout);
+    if (!next) return;
+    if (stale) {
+      if (widgetId) onReject(widgetId);
+      return;
+    }
+    onCommit(next);
+  }, [onCommit, onReject, setBoth, layout, boundCols, boundRows, widgetId]);
 
   // Drops the gesture without committing, for a frame that goes away while the layout moved on.
   const cancel = useCallback(() => {
