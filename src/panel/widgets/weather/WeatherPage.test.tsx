@@ -153,6 +153,10 @@ describe('WeatherPage', () => {
     expect(screen.getByText(longText)).toBeInTheDocument();
     expect(screen.getAllByText(shortText)).toHaveLength(3);
     expect(screen.queryByText('2-day forecast')).toBeNull();
+    const detail = screen.getByText(longText).closest('section') as HTMLElement;
+    expect(within(detail).queryByText('--', { exact: false })).toBeNull();
+    const rows = within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option');
+    for (const row of rows) expect(within(row).queryByText('--')).toBeNull();
   });
 
   it('keeps the last reading and adds a stale line when the refresh failed', async () => {

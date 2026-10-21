@@ -74,7 +74,7 @@ export function WeatherPage() {
           />
         </aside>
         <section className={styles.detail} data-panel-scrollable="true">
-          <WeatherErrorNotice snap={snap} loaded={loaded} error={error} />
+          <WeatherErrorNotice snap={snap} loaded={loaded} error={error} nowMs={now} />
           {!noData && (
             <>
               <WeatherHero

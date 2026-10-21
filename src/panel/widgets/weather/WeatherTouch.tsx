@@ -30,7 +30,7 @@ export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
 
   const cells: ReactNode[] = [
     <div key="hero" className={styles.cell}>
-      <WeatherErrorNotice snap={snap} loaded={loaded} error={error} />
+      <WeatherErrorNotice snap={snap} loaded={loaded} error={error} nowMs={now} />
       {!noData && (
         <>
           <div className={styles.grow}>

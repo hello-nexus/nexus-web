@@ -136,7 +136,7 @@ function WeatherPlaceRow({
           </div>
         </div>
         <div className={styles.rowSide}>
-          <div className={styles.rowTemp}>{formatTemp(currentTemp(snap, unit), loaded ? '--' : '…')}</div>
+          {!noData && <div className={styles.rowTemp}>{formatTemp(currentTemp(snap, unit), loaded ? '--' : '…')}</div>}
           {hi !== null && hi !== undefined && lo !== null && lo !== undefined && (
             <div className={styles.rowHiLo}>{t('panel.widget.weather.hiLo', { hi: Math.round(hi), lo: Math.round(lo) })}</div>
           )}

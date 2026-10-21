@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WeatherSnapshot } from '../../../api/weather';
-import { resetWeatherSnapshotCache, useWeatherSnapshot, WEATHER_RETRY_MS } from './useWeatherSnapshot';
+import { resetWeatherSnapshotCache, useWeatherSnapshot, WEATHER_REFRESH_MS, WEATHER_RETRY_MS } from './useWeatherSnapshot';
 
 const api = vi.hoisted(() => ({ fetchWeather: vi.fn() }));
 
@@ -38,7 +38,9 @@ describe('useWeatherSnapshot errors', () => {
     api.fetchWeather
       .mockResolvedValueOnce(reading({ error: 'timeout' }))
       .mockResolvedValueOnce(reading({ error: 'timeout' }))
-      .mockResolvedValue(reading({ temperatureC: 21 }));
+      .mockResolvedValueOnce(reading({ temperatureC: 21 }))
+      .mockResolvedValueOnce(reading({ error: 'timeout' }))
+      .mockResolvedValue(reading({ temperatureC: 22 }));
     const { result } = renderHook(() => useWeatherSnapshot(null));
     await advance(0);
     expect(result.current.error).toBe('timeout');
@@ -48,10 +50,17 @@ describe('useWeatherSnapshot errors', () => {
     await advance(WEATHER_RETRY_MS * 2);
     expect(result.current.error).toBeNull();
     expect(result.current.snap?.temperatureC).toBe(21);
-    const calls = api.fetchWeather.mock.calls.length;
-    // Backoff reset: no retry chain left, the next fetch is the 15 minute refresh.
-    await advance(WEATHER_RETRY_MS * 4);
-    expect(api.fetchWeather.mock.calls.length).toBe(calls);
+    expect(api.fetchWeather).toHaveBeenCalledTimes(3);
+    // Run to the next scheduled refresh; it fails.
+    await advance(WEATHER_REFRESH_MS - WEATHER_RETRY_MS * 3);
+    expect(api.fetchWeather).toHaveBeenCalledTimes(4);
+    expect(result.current.error).toBe('timeout');
+    // Backoff exponent was reset by the fresh reading, so the retry is one base step away.
+    await advance(WEATHER_RETRY_MS - 1);
+    expect(api.fetchWeather).toHaveBeenCalledTimes(4);
+    await advance(1);
+    expect(api.fetchWeather).toHaveBeenCalledTimes(5);
+    expect(result.current.error).toBeNull();
   });
 
   it('keeps the previous reading and sets the error when a refresh comes back empty', async () => {
@@ -61,8 +70,7 @@ describe('useWeatherSnapshot errors', () => {
     const { result } = renderHook(() => useWeatherSnapshot(null));
     await advance(0);
     expect(result.current.error).toBeNull();
-    // Forced refresh happens on the 15 minute interval.
-    await advance(15 * 60 * 1000);
+    await advance(WEATHER_REFRESH_MS);
     expect(result.current.snap?.asOf).toBe('2026-09-12T12:00:00Z');
     expect(result.current.error).toBe('unreachable');
   });
@@ -76,6 +84,6 @@ describe('useWeatherSnapshot errors', () => {
     // No cache hit: the second mount starts unloaded and fetches itself.
     expect(second.result.current.loaded).toBe(false);
     await advance(0);
-    expect(api.fetchWeather.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(api.fetchWeather).toHaveBeenCalledTimes(2);
   });
 });
