@@ -116,7 +116,7 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
   const microScale = multiDevice ? DEFAULT_SCALE_MODE : (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
   const microMin = widget.config?.micro_min as number | undefined;
   const microMax = widget.config?.micro_max as number | undefined;
-  // Row style (Bars / Fill / Backdrop / Label + Value) shared by every row; a 6/8-slot Micro on the wide 4x2 splits the
+  // Row style shared by every row; a 6/8-slot Micro on the wide 4x2 splits the
   // rows into two columns (3+3, 4+4) under the one shared caption. The tall 2x4
   // keeps all rows in one column.
   const microDesign = microDesignOf(widget.config);

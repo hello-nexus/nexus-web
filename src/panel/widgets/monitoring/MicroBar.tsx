@@ -6,7 +6,7 @@ import { GaugeTrack } from './gauges/GaugeTrack';
 import type { GaugeGradient } from './valueColor';
 import { GAUGE_LINE_THICKNESS } from './gauges/types';
 import type { MicroAlign, MicroDesignKey } from './perfSlots';
-import { useFitHeight } from './useFitHeight';
+import { useFitWidth } from '../common/useFitWidth';
 import styles from './MicroBar.module.scss';
 
 interface MicroBarProps {
@@ -29,7 +29,7 @@ interface MicroBarProps {
 }
 
 function SimpleRow({ label, formatted, align, style }: { label: string; formatted: string; align: MicroAlign; style?: CSSProperties }) {
-  const { boxRef, contentRef, scale } = useFitHeight();
+  const { boxRef, contentRef, scale } = useFitWidth(1, true);
   return (
     <div ref={boxRef} className={styles.rowSimple} style={style}>
       <div ref={contentRef} className={`${styles.simpleContent} ${styles[`align_${align}`]}`} style={{ transform: `scale(${scale})` }}>

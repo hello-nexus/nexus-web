@@ -105,7 +105,7 @@
 }
 
 // Simple: label over value, no figure; rows share the column height evenly and
-// the content scales down (useFitHeight) when its row is shorter than it.
+// the content scales down (useFitWidth) when its row is shorter than it.
 .rowSimple {
   flex: 1;
   display: flex;

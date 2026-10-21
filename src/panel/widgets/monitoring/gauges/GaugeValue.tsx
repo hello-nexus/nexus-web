@@ -40,7 +40,7 @@ export function GaugeValue({ formatted, className, clipTopPercent, textFill, ali
         className={styles.line}
         style={{
           transform: `scale(${scale})`,
-          transformOrigin: align ? align : undefined,
+          transformOrigin: align,
           clipPath: clipTopPercent === undefined ? undefined : `inset(${clipTopPercent}% 0 0 0)`,
           ...(textFill ? { backgroundImage: textFill, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : undefined),
         }}

@@ -1,5 +1,5 @@
 import { render, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { hasGaugeReading } from '../../../__tests__/panel/visibleText';
 import { MicroBar } from './MicroBar';
 
@@ -55,5 +55,39 @@ describe('MicroBar designs', () => {
   it('defaults to the bar design when none is given', () => {
     const { container } = render(<MicroBar label="CPU" formatted="50%" fillPercent={50} />);
     expect(container.querySelector('svg')).toBeNull();
+  });
+});
+
+describe('MicroBar simple row fit', () => {
+  const proto = HTMLElement.prototype;
+  const saved = ['clientHeight', 'scrollHeight', 'clientWidth', 'scrollWidth'].map(k => [k, Object.getOwnPropertyDescriptor(proto, k)] as const);
+  afterEach(() => {
+    for (const [k, d] of saved) {
+      if (d) Object.defineProperty(proto, k, d);
+      else delete (proto as unknown as Record<string, unknown>)[k];
+    }
+  });
+
+  function stubLayout(rowHeight: number, contentHeight: number) {
+    const get = (pick: (el: HTMLElement) => number) => ({ configurable: true, get(this: HTMLElement) { return pick(this); } });
+    const cls = (el: HTMLElement) => el.className;
+    Object.defineProperty(proto, 'clientHeight', get(el => (cls(el).includes('rowSimple') ? rowHeight : 0)));
+    Object.defineProperty(proto, 'scrollHeight', get(el => (cls(el).includes('simpleContent') ? contentHeight : 0)));
+    Object.defineProperty(proto, 'clientWidth', get(() => 100));
+    Object.defineProperty(proto, 'scrollWidth', get(() => 100));
+  }
+
+  it('scales the content down to the row height when the row is shorter', () => {
+    stubLayout(20, 40);
+    const { container } = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" />);
+    const content = container.querySelector<HTMLElement>('[class*="simpleContent"]');
+    expect(content?.style.transform).toBe('scale(0.5)');
+  });
+
+  it('never scales the content up', () => {
+    stubLayout(80, 40);
+    const { container } = render(<MicroBar label="CPU" formatted="40" fillPercent={40} design="simple" />);
+    const content = container.querySelector<HTMLElement>('[class*="simpleContent"]');
+    expect(content?.style.transform).toBe('scale(1)');
   });
 });

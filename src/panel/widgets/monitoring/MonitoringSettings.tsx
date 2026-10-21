@@ -425,7 +425,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
     const microCanType = canEditFreeText(surface, desktopEditor);
-    // Row style shared by every row (Bars / Fill / Backdrop / Label + Value).
+    // Row style shared by every row.
     const microDesign = microDesignOf(widget.config);
     const microAlign = microAlignOf(widget.config);
     const microDesignLabel = (k: MicroDesignKey) => (k === 'simple' ? t('monitoring.settings.designSimple') : GAUGE_DESIGN_LABELS[k]);
