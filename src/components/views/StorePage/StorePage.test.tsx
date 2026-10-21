@@ -285,7 +285,7 @@ describe('StorePage app page layout', () => {
     });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    expect(await screen.findByText('2x2 · 4x2')).toBeInTheDocument();
+    expect(await screen.findByText('2x2, 4x2')).toBeInTheDocument();
     expect(screen.queryByText(/2x2round/)).not.toBeInTheDocument();
   });
 

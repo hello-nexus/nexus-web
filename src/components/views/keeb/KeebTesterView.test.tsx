@@ -41,7 +41,7 @@ describe('KeebTesterView - local-mode key capture', () => {
     fireEvent.keyDown(window, { key: 'a', code: 'KeyA', repeat: true });
     // Should be exactly one captured 'A' entry (latest + history row both
     // show it, but the history list itself only has one row for it).
-    const rowsWithA = screen.getAllByText(/^A · KeyA$/);
+    const rowsWithA = screen.getAllByText(/^A - KeyA$/);
     expect(rowsWithA.length).toBe(1);
   });
 

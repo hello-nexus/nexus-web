@@ -207,7 +207,7 @@ export function ManualRgbDevicesSection({ serviceOnline, lightingOff }: ManualRg
             <li key={`${d.ip}:${d.startUniverse}`} className={styles.item}>
               <span className={styles.itemName}>{d.name || t('settings.manualRgb.unnamed')}</span>
               <span className={styles.itemMeta}>
-                {d.ip} · {t('settings.manualRgb.e131.ledCount', { count: d.numLeds })}
+                {d.ip} - {t('settings.manualRgb.e131.ledCount', { count: d.numLeds })}
               </span>
               <button
                 type="button"

@@ -384,7 +384,7 @@ function EntryView({
                 <li key={item.gid} className={styles.newsRow}>
                   <a className={styles.newsLink} href={item.url} target="_blank" rel="noopener noreferrer">
                     <div className={styles.newsTitle}>{item.title}</div>
-                    <div className={styles.newsMeta}>{item.feedLabel || item.feedName} · {formatSteamDate(item.date, dateFormat)}</div>
+                    <div className={styles.newsMeta}>{item.feedLabel || item.feedName} - {formatSteamDate(item.date, dateFormat)}</div>
                   </a>
                 </li>
               ))}
@@ -763,7 +763,7 @@ function DrillView({
             <div className={styles.drillMeta}>
               {details.developers.length > 0 && <span>{details.developers.join(', ')}</span>}
               {details.releaseDate && <span>{details.releaseDate}</span>}
-              {details.genres.length > 0 && <span>{details.genres.join(' · ')}</span>}
+              {details.genres.length > 0 && <span>{details.genres.join(' - ')}</span>}
               {typeof details.metacriticScore === 'number' && (
                 <span className={styles.metacritic}>{t('steam.drill.metacritic', { score: details.metacriticScore })}</span>
               )}
@@ -865,7 +865,7 @@ function DrillView({
                   <li key={item.gid}>
                     <a className={styles.drillNewsItem} href={item.url} target="_blank" rel="noopener noreferrer">
                       <div className={styles.drillNewsTitle}>{item.title}</div>
-                      <div className={styles.drillNewsMeta}>{item.feedLabel || item.feedName} · {formatSteamDate(item.date, dateFormat)}</div>
+                      <div className={styles.drillNewsMeta}>{item.feedLabel || item.feedName} - {formatSteamDate(item.date, dateFormat)}</div>
                     </a>
                   </li>
                 ))}

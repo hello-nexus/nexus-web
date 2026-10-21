@@ -115,8 +115,9 @@ export const fetchGallerySources = () =>
 
 // Playlists ride on the items read so every surface (a relayed phone too)
 // resolves a widget's playlist without a second request.
+// truncated is present only when the service cap dropped items.
 export const fetchGalleryItems = () =>
-  fetchService<{ items: GalleryItem[]; playlists?: GalleryPlaylist[] }>('/gallery/items');
+  fetchService<{ items: GalleryItem[]; playlists?: GalleryPlaylist[]; truncated?: boolean }>('/gallery/items');
 
 export interface GalleryPlaylistMutation {
   playlist: GalleryPlaylist | null;

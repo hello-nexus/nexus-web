@@ -133,6 +133,7 @@ const LAYOUT_3PAGES: PanelLayout = {
 const DEVICE: PanelDevice = {
   id: 'dev1',
   name: 'Y70',
+  sourceId: 'y70',
   connectionKind: 'simulated',
   surfaceProfileKey: 'y70',
   runtimeSurface: 'y70',
@@ -140,6 +141,7 @@ const DEVICE: PanelDevice = {
 } as PanelDevice;
 
 beforeEach(() => {
+  localStorage.setItem('nexus_simulated_panel_records', JSON.stringify({ y70: 'dev1' }));
   fetchPanelDevicesMock.mockReset();
   patchPanelDeviceMock.mockReset().mockResolvedValue({ ok: true });
   fetchPanelDevicesMock.mockResolvedValue({

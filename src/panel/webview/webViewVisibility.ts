@@ -58,3 +58,19 @@ export function computeVisible(i: VisibilityInput): boolean {
   if (!i.supported || !i.documentVisible || i.suppressed || !i.connected || i.loadFailed) return false;
   return isTopmost(i.el, i.rect, i.hit);
 }
+
+export interface WebViewSuppressors {
+  sheet: boolean;
+  tray: boolean;
+  controlCenter: boolean;
+  contextMenu: boolean;
+  rearranging: boolean;
+  dragging: boolean;
+  /** Corner-drag resize mode: the frame and its hit areas must not sit under a native window. */
+  resizing: boolean;
+}
+
+/** Any state that moves or covers tiles hides every native web view. */
+export function webViewSuppressedBy(state: WebViewSuppressors): boolean {
+  return Object.values(state).some(Boolean);
+}

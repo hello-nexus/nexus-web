@@ -94,6 +94,20 @@ describe('strokeBounds', () => {
 });
 
 describe('fitView', () => {
+  it('keeps the ink aspect in wide and tall boxes of a stretched tile', () => {
+    const strokes = [stroke([[0, 0], [600, 300]], 0)];
+    for (const [w, h] of [[540, 366], [366, 744], [738, 744]]) {
+      const fitted = fitView(strokes, w, h, 8);
+      const a = canvasToScreen({ x: 0, y: 0 }, fitted);
+      const b = canvasToScreen({ x: 600, y: 300 }, fitted);
+      expect((b.x - a.x) / (b.y - a.y)).toBeCloseTo(2, 6);
+      expect(a.x).toBeGreaterThanOrEqual(8 - 1e-6);
+      expect(b.x).toBeLessThanOrEqual(w - 8 + 1e-6);
+      expect(a.y).toBeGreaterThanOrEqual(8 - 1e-6);
+      expect(b.y).toBeLessThanOrEqual(h - 8 + 1e-6);
+    }
+  });
+
   it('centres the viewport on the origin when there is no ink', () => {
     expect(fitView([], 200, 100)).toEqual({ scale: 1, panX: 100, panY: 50 });
   });

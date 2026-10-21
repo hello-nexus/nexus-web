@@ -128,7 +128,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-// "N excluded · Restore" - accent-tinted so a trimmed folder stands out;
+// "N excluded - Restore" - accent-tinted so a trimmed folder stands out;
 // one click puts everything back.
 .excludedChip {
   display: flex;
@@ -467,4 +467,12 @@
   .tileToggle:focus-visible & {
     opacity: 1;
   }
+}
+
+.truncatedNotice {
+  margin-bottom: 0.75rem;
+}
+
+.pager {
+  margin-top: 0.75rem;
 }

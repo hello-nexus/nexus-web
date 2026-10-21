@@ -28,6 +28,12 @@ vi.mock('../../../api/lighting', () => ({
   setLightingDeviceControlled: (...a: unknown[]) => setControlled(...(a as [])),
 }));
 
+let zoneDevices: unknown[] = [];
+vi.mock('../../../api/openRgbZones', () => ({
+  fetchOpenRgbZones: () => Promise.resolve({ error: false, msg: '', devices: zoneDevices }),
+  setOpenRgbZoneSize: vi.fn(() => Promise.resolve({ error: false, msg: '' })),
+}));
+
 import { DevicesPage } from './DevicesPage';
 
 const card = (over: Partial<LightingDevice>) => ({ id: 'c', name: 'Board', ledsOn: true, ledCount: 1, ...over }) as LightingDevice;
@@ -42,6 +48,7 @@ describe('DevicesPage OpenRGB section', () => {
     flags.lighting = true;
     rgbRunning = true;
     cards = [];
+    zoneDevices = [];
     setControlled.mockClear();
   });
 
@@ -92,5 +99,16 @@ describe('DevicesPage OpenRGB section', () => {
     flags.lighting = false;
     renderPage();
     expect(await screen.findByText('devices.openrgb.lightingOff')).toBeTruthy();
+  });
+
+  it('prompts for the LED count of an unsized header under the device card', async () => {
+    cards = [card({ id: 'a1', deviceId: 'openrgb-d', name: 'Commander Core', ledCount: 0 })];
+    zoneDevices = [{
+      deviceId: 'openrgb-d', name: 'Commander Core',
+      zones: [{ index: 1, name: 'Fan 1', ledCount: 0, ledsMin: 0, ledsMax: 34, resizable: true, needsSize: true }],
+    }];
+    renderPage();
+    expect(await screen.findByText('devices.openrgb.zoneSizePrompt')).toBeTruthy();
+    expect(screen.getByText('Fan 1')).toBeTruthy();
   });
 });

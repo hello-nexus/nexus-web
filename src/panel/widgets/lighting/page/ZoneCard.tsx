@@ -299,6 +299,8 @@ export function ZoneCard({
   firmwareControlled,
   onTakeControl,
   onOpenDevicePage,
+  onOpenZoneSizes,
+  needsLedCounts,
   groupMove,
   inStack,
   colorTuned,
@@ -365,6 +367,10 @@ export function ZoneCard({
   onTakeControl?: () => void;
   /** Opens the device page, where a firmware-owned card's own effect is set. */
   onOpenDevicePage?: () => void;
+  /** Opens the Devices page, where an unsized OpenRGB header gets its LED count. Present only on a zero-LED card waiting for one. */
+  onOpenZoneSizes?: () => void;
+  /** A zero-LED card waiting for its LED counts on a surface that cannot open the Devices page, such as onboarding. */
+  needsLedCounts?: boolean;
   /** Group placement for this card's rail row: the card, or the stack it is a
    *  zone of. */
   groupMove?: GroupMove;
@@ -716,6 +722,14 @@ export function ZoneCard({
               <Badge label={t('lighting.devices.hardwareControlBadge')} icon={<Cpu size={11} />} compact uppercase color="var(--text-dim)" />
             </span>
           </HoverTooltip>
+        ) : unavailable && onOpenZoneSizes ? (
+          <button type="button" className={styles.deviceMetaLink} onClick={e => { e.stopPropagation(); onOpenZoneSizes(); }}>
+            {t('lighting.devices.setLedCounts')}
+          </button>
+        ) : unavailable && needsLedCounts ? (
+          <span className={styles.deviceMetaUnavailable}>
+            {t('lighting.devices.setLedCountsAfterSetup')}
+          </span>
         ) : unavailable ? (
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}
@@ -833,11 +847,11 @@ export function ZoneCard({
       )}
     </div>
   );
-  // Only failed/zero-LED zones get an explanatory tooltip; configurable zones
-  // are interactive and need no hover label.
+  // Only a card whose detector failed gets the explanatory tooltip; a card
+  // waiting for its LED counts says so in its label.
   return (
     <>
-      {unavailable
+      {unavailable && !onOpenZoneSizes && !needsLedCounts
         ? <HoverTooltip body={t('lighting.devices.detectionFailedTooltip')} side="top">{card}</HoverTooltip>
         : card}
       {menuAt && (

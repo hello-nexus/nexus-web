@@ -8,7 +8,7 @@ import {
 } from '../../../api/panel';
 import { fetchPreferences, savePreferences } from '../../../api/profiles';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
-import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
+import { ensureSimulatedPanelRecord, getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { createUuid } from '../../../lib/uuid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
 import { defaultLayoutForDashboard, defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
@@ -39,6 +39,10 @@ export interface PlacementTarget {
   iconSrc: string | null;
   surface: PanelSurface;
   panelRecordId?: string;
+  /** Simulator preset id; the target edits the record that simulator owns, never one found by surface. */
+  simulatorId?: string;
+  /** capabilities.family of the device a simulator stands in for. */
+  family?: string;
   deviceTouch?: boolean;
   /** Screen size from the device profile; a record's own canvas wins. */
   screen?: { width: number; height: number };
@@ -78,6 +82,7 @@ export function placementTargets(dashboardName: string, devices: readonly Unifie
       iconSrc: device.iconSrc,
       surface: panel.runtimeSurface,
       panelRecordId: panel.panelRecordId,
+      ...(panel.connectionKind === 'simulated' ? { simulatorId: panel.sourceId, family: panel.family } : {}),
       deviceTouch: panel.capabilities.touch,
       screen: panel.previewSize,
       screenDpi: panel.previewDpi,
@@ -105,10 +110,10 @@ function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boo
 // The surface the panel lays out as once its record is known, with the glass's own input.
 function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean; shortSideSlots?: number; forcedGrid?: ForcedGrid } {
   const touch = deviceTouchOf(target, record);
-  const surface = panelLayoutSurface(target.surface, record?.capabilities?.family, record?.widgetSize);
+  const surface = panelLayoutSurface(target.surface, record?.capabilities?.family ?? target.family, record?.widgetSize);
   const screen = screenOf(target, record);
   const shortSideSlots = panelShortSideSlots(
-    target.surface, record?.capabilities?.family, record?.widgetSize,
+    target.surface, record?.capabilities?.family ?? target.family, record?.widgetSize,
     screen ? densityShortSideSlots(screen.width, screen.height, screen.dpr, dpiOf(target, record)) : undefined,
   );
   return {
@@ -127,7 +132,7 @@ function screenOf(target: PlacementTarget, record?: PanelDeviceRecord): { width:
 }
 
 function dpiOf(target: PlacementTarget, record?: PanelDeviceRecord): number {
-  return panelLayoutDpi(target.surface, record?.capabilities?.family, record?.widgetSize, record?.capabilities?.dpi, DEFAULT_SURFACE_DPI)
+  return panelLayoutDpi(target.surface, record?.capabilities?.family ?? target.family, record?.widgetSize, record?.capabilities?.dpi, DEFAULT_SURFACE_DPI)
     ?? target.screenDpi ?? DEFAULT_SURFACE_DPI[target.surface];
 }
 
@@ -209,7 +214,12 @@ export async function loadTarget(target: PlacementTarget): Promise<LoadedTarget 
     return { layout: layout.pages.length > 1 ? { ...layout, pages: [layout.pages[0]] } : layout };
   }
   let record: PanelDeviceRecord | undefined;
-  if (target.panelRecordId) {
+  if (target.simulatorId) {
+    const id = await ensureSimulatedPanelRecord(target.simulatorId);
+    const found = id ? await fetchPanelDevice(id) : null;
+    if (!found) return null;
+    record = found;
+  } else if (target.panelRecordId) {
     const found = await fetchPanelDevice(target.panelRecordId);
     if (!found) return null;
     record = found;
@@ -247,8 +257,9 @@ export async function commitPlacement(
     return true;
   }
   // A surface that never connected has no record yet; PanelDevicePage allocates the same way.
+  // A simulator always arrives with its own record (loadTarget), so this never allocates one for it.
   const id = loaded.record?.id
-    ?? (await allocatePanelDevice({ surface: target.surface }, `${target.surface} panel`))?.id;
+    ?? (target.simulatorId ? undefined : await allocatePanelDevice({ surface: target.surface }, `${target.surface} panel`))?.id;
   if (!id) return false;
   const saved = await patchPanelDevice(id, { layout: plan.layout });
   if (!saved) return false;

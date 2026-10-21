@@ -4,8 +4,11 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useOpenRgbDevices } from '../../../hooks/useOpenRgbDevices';
+import { useOpenRgbZones } from '../../../hooks/useOpenRgbZones';
 import { useFeatureFlags } from '../../../hooks/useUiSettings';
 import { groupOpenRgbDevices, openRgbNoticeShown, type OpenRgbDevice } from './openRgbDevices';
+import { zoneDeviceFor } from './zoneSizeUtils';
+import { OpenRgbZoneSizes } from './OpenRgbZoneSizes';
 import { DeviceGroupIcon } from '../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useConflictGuardedEnable } from '../../../hooks/useConflictGuardedEnable';
@@ -121,6 +124,8 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   const { lighting: lightingFeatureOn } = useFeatureFlags();
   const openRgb = useOpenRgbDevices(serviceOnline && availableActive);
   const setOpenRgbControlled = openRgb.setControlled;
+  const openRgbZones = useOpenRgbZones(serviceOnline && availableActive);
+  const setOpenRgbZoneSize = openRgbZones.setSize;
   const openRgbOff = openRgbNoticeShown(lightingFeatureOn, openRgb.daemonUp);
   // No rows while OpenRGB is off: held-off snapshots would invite toggles that kill a competing app.
   const openRgbDevices = useMemo(() => (openRgbOff ? [] : groupOpenRgbDevices(openRgb.cards)), [openRgbOff, openRgb.cards]);
@@ -133,21 +138,24 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
       connected: true, kind: 'app-device', navigable: false, nexusControlEnabled: o.controlled,
       supportsNexusControl: true, experimental: false, requiresBeta: false, conflictAppId: runningConflict?.id,
     };
+    const zoneDevice = zoneDeviceFor(openRgbZones.devices, o.deviceId);
     return (
-      <DeviceCard
-        key={o.key}
-        device={device}
-        icon={<DeviceGroupIcon id={o.deviceId} iconType={o.iconType} className={styles.rowGlyph} />}
-        runningConflict={runningConflict}
-        onClick={() => undefined}
-        onToggleControl={next => {
-          const apply = () => void setOpenRgbControlled(o.cardIds, next);
-          if (next) void requestEnable(device, apply);
-          else apply();
-        }}
-      />
+      <div key={o.key} className={styles.openRgbEntry}>
+        <DeviceCard
+          device={device}
+          icon={<DeviceGroupIcon id={o.deviceId} iconType={o.iconType} className={styles.rowGlyph} />}
+          runningConflict={runningConflict}
+          onClick={() => undefined}
+          onToggleControl={next => {
+            const apply = () => void setOpenRgbControlled(o.cardIds, next);
+            if (next) void requestEnable(device, apply);
+            else apply();
+          }}
+        />
+        {zoneDevice && <OpenRgbZoneSizes device={zoneDevice} onSetSize={setOpenRgbZoneSize} onFailed={() => push({ title: t('devices.openrgb.zoneSizeFailed') })} />}
+      </div>
     );
-  }, [conflicts, setOpenRgbControlled, requestEnable]);
+  }, [conflicts, setOpenRgbControlled, requestEnable, openRgbZones.devices, setOpenRgbZoneSize, push, t]);
   const headersShown = smbusDevices.length > 0;
 
   const renderDeviceCard = useCallback((d: UnifiedDevice) => {

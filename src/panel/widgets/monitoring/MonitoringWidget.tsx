@@ -252,7 +252,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     : count === 2 && (layout.split === 'rows' || widget.size === '4x4' || widget.size === '2x4') ? styles.grid2row
     : count === 2 ? styles.grid2col
     : styles.solo;
-  // A frame-filling design on the round glass scales its figure to the rim.
+  // A frame-filling design on the round display scales the whole tile to the rim.
   const fullBleed = isFullBleedRound(widget.size, widget.config);
 
   return (

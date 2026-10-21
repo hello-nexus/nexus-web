@@ -37,7 +37,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenZoneSizes, zoneSizeDeviceIds, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -123,6 +123,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   onFirmwareTakeControl?: (deviceId: string) => void;
   /** Opens a device page by its sidebar key. */
   onOpenDevicePage?: (deviceKey: string) => void;
+  /** Ids of OpenRGB devices with a header still waiting for its LED count. */
+  zoneSizeDeviceIds?: ReadonlySet<string>;
+  /** Opens the Devices page block that sets those counts. */
+  onOpenZoneSizes?: () => void;
   /** Renders a dashed "add smart lights" entry at the bottom of the list. */
   onOpenSmartLights?: () => void;
   /** Tail card explaining a short list; absent once a mode is running. */
@@ -483,6 +487,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
       firmwareControlled={fwOf(d)}
       onTakeControl={takeControlFor(d)}
       onOpenDevicePage={openDevicePageFor(d)}
+      onOpenZoneSizes={zoneSizeDeviceIds?.has(d.id) ? onOpenZoneSizes : undefined}
       // Grouped members carry the notice on their group header instead.
       notice={indent ? undefined : noticeFor(d)}
       bulk={bulkFor(d)}

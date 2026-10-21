@@ -6,6 +6,7 @@ import { DeviceContextMenu, type DeviceMenuItem } from '../../../components/comm
 import { useAppIcon } from '../common/AppPicker';
 import { useSiteIcon } from './useSiteIcon';
 import { useDeckImage } from './useDeckImage';
+import { DeckImageMedia } from './DeckImageMedia';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor, slotAppId, slotSiteUrl } from './deckIcons';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
 import { DeckMonitoringCell } from './DeckMonitoringCell';
@@ -43,7 +44,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   const appId = slotAppId(icon, action);
   const appIconUrl = useAppIcon(appId); // unconditional (null for undefined appId)
   const siteIconUrl = useSiteIcon(slotSiteUrl(action)); // unconditional (null for a non-url action)
-  const imageIconUrl = useDeckImage(icon?.kind === 'image' ? icon.value : undefined); // unconditional
+  const { url: imageIconUrl, isVideo: imageIconIsVideo } = useDeckImage(icon?.kind === 'image' ? icon.value : undefined); // unconditional
   // A slot with an explicit icon isn't "empty" even before an action is chosen,
   // so a picked icon renders immediately (not only after picking an action).
   const empty = !action && !isFolder && !icon;
@@ -86,7 +87,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
     iconEl = <span className={styles.icon}>{renderLucide(icon.value)}</span>;
   } else if (icon?.kind === 'image') {
     faceFills = !!imageIconUrl;
-    iconEl = imageIconUrl ? <img src={imageIconUrl} className={styles.customImage} alt="" /> : null;
+    iconEl = imageIconUrl ? <DeckImageMedia url={imageIconUrl} isVideo={imageIconIsVideo} className={styles.customImage} /> : null;
   } else if (appId) {
     if (appIconUrl) {
       // Every /shortcuts/icon source: launchApp, an explicit app icon, an openFile exe.

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
+import { useShaderParams } from '../../../../hooks/useShaderParams';
+import { SensorSignalProvider } from '../../../../hooks/SensorSignalProvider';
 import type { EffectState } from '../../../../types/lighting';
 import {
   normalizePanelBackgroundEffect,
@@ -17,11 +19,23 @@ const RENDER_OPTIONS = { maxDevicePixelRatio: 1 };
  * tweaks read back immediately. Background opacity is intentionally NOT applied
  * here - the preview shows the effect at full strength.
  */
-export function BackgroundEffectPreview({ effect, template, effectState }: {
+export function BackgroundEffectPreview(props: BackgroundEffectPreviewProps) {
+  const usesSensors = useShaderParams(normalizePanelBackgroundEffect(props.effect)).sensors.length > 0;
+  // Always mounted, toggled via `enabled`: the renderer keeps the sensor signal it saw at compile time.
+  return (
+    <SensorSignalProvider enabled={usesSensors}>
+      <BackgroundEffectPreviewCanvas {...props} />
+    </SensorSignalProvider>
+  );
+}
+
+interface BackgroundEffectPreviewProps {
   effect: string;
   template: number;
   effectState?: EffectState;
-}) {
+}
+
+function BackgroundEffectPreviewCanvas({ effect, template, effectState }: BackgroundEffectPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fx = normalizePanelBackgroundEffect(effect);
   const tpl = normalizePanelBackgroundTemplate(template);

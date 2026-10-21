@@ -1,6 +1,6 @@
 import type { CollisionDetection } from '@dnd-kit/core';
 import type { SettingsTabKey } from '../../components/views/SettingsView/SettingsView';
-import { snapStride } from './grid';
+import { snapDropCell } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
 import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
@@ -206,8 +206,6 @@ export function buildPanelCollisionDetection(
     const activeRowSpan = Math.max(1,
       Number.parseInt(sourceCell?.getAttribute('data-panel-cell-row-span') ?? '1', 10) || 1,
     );
-    const activeColStep = snapStride(activeColSpan);
-    const activeRowStep = snapStride(activeRowSpan);
     const totalColsRaw = Number.parseFloat(rootStyle.getPropertyValue('--panel-columns'));
     const totalRowsRaw = Number.parseFloat(rootStyle.getPropertyValue('--panel-rows'));
     const totalCols = Number.isFinite(totalColsRaw) && totalColsRaw > 0 ? totalColsRaw : 4;
@@ -234,14 +232,13 @@ export function buildPanelCollisionDetection(
     const localY = translated.top - pageRect.top - padTop;
     const continuousCol = localX / stride;
     const continuousRow = localY / rowStride;
-    const snappedCol = Math.round(continuousCol / activeColStep) * activeColStep;
-    const snappedRow = Math.round(continuousRow / activeRowStep) * activeRowStep;
-    // Clamp into the grid so the highlight stays visible past an edge. Max
-    // snap is the largest stride multiple that keeps the rect inside the grid.
-    const maxCol = Math.max(0, Math.floor((totalCols - activeColSpan) / activeColStep) * activeColStep);
-    const maxRow = Math.max(0, Math.floor((totalRows - activeRowSpan) / activeRowStep) * activeRowStep);
-    const col = Math.min(Math.max(0, snappedCol), maxCol);
-    const row = Math.min(Math.max(0, snappedRow), maxRow);
+    // Clamped into the grid so the highlight stays visible past an edge.
+    const { col, row } = snapDropCell(
+      continuousCol,
+      continuousRow,
+      { cols: activeColSpan, rows: activeRowSpan },
+      { cols: totalCols, rows: totalRows },
+    );
 
     const pageId = pageEl.dataset.panelPageId;
     if (!pageId) return [];

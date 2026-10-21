@@ -1,0 +1,181 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { FreeformResizeFrame } from './FreeformResizeFrame';
+import type { PanelWidget } from '../types';
+
+vi.mock('../../lib/i18n', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
+vi.mock('../engine/panelLayoutHelpers', () => ({
+  readCellMetrics: () => ({ cellSize: 90, rowSize: 40, gap: 10 }),
+}));
+
+const onCancelProp = vi.fn();
+const ROOM = { tl: true, tr: false, bl: true, br: false };
+const widget: PanelWidget = { id: 'w1', type: 'web-view', size: '6x4', col: 1, row: 2 };
+
+beforeAll(() => {
+  Element.prototype.setPointerCapture = vi.fn();
+});
+
+function setup() {
+  const onBegin = vi.fn(() => true);
+  const onUpdate = vi.fn();
+  const onStep = vi.fn();
+  const onEnd = vi.fn();
+  const onExit = vi.fn();
+  const { container } = render(
+    <div data-surface="y70">
+      <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} onBegin={onBegin} onUpdate={onUpdate} onStep={onStep} onEnd={onEnd} onCancel={onCancelProp} onExit={onExit} />
+    </div>,
+  );
+  return { onBegin, onUpdate, onStep, onEnd, onExit, container };
+}
+
+const press = (el: Element, x: number, y: number) => fireEvent.pointerDown(el, { clientX: x, clientY: y, pointerId: 1, button: 0, pointerType: 'mouse' });
+const move = (el: Element, x: number, y: number) => fireEvent.pointerMove(el, { clientX: x, clientY: y, pointerId: 1 });
+const release = (el: Element, x: number, y: number) => fireEvent.pointerUp(el, { clientX: x, clientY: y, pointerId: 1 });
+
+describe('FreeformResizeFrame', () => {
+  it('places the frame on the widget rect and exposes four labelled handles', () => {
+    const { container } = setup();
+    const frame = container.querySelector<HTMLElement>('[data-freeform-frame]')!;
+    expect(frame.style.gridColumn).toBe('2 / span 6');
+    expect(frame.style.gridRow).toBe('3 / span 4');
+    for (const key of ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']) {
+      expect(screen.getByRole('button', { name: `panel.freeform.handle.${key}` })).toBeInTheDocument();
+    }
+  });
+
+  it('marks corners that reach no other span and takes no drag from them', () => {
+    const { onBegin, onUpdate } = setup();
+    const tr = screen.getByRole('button', { name: 'panel.freeform.handle.topRight' });
+    expect(tr).toHaveAttribute('data-room', 'false');
+    expect(screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' })).toHaveAttribute('data-room', 'true');
+    press(tr, 0, 0);
+    move(tr, -100, 50);
+    expect(onBegin).not.toHaveBeenCalled();
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('flags a touch frame so its grab areas grow', () => {
+    const { container } = render(
+      <div data-surface="y70">
+        <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} touch onBegin={vi.fn(() => true)} onUpdate={vi.fn()} onStep={vi.fn()} onEnd={vi.fn()} onCancel={onCancelProp} onExit={vi.fn()} />
+      </div>,
+    );
+    expect(container.querySelector('[data-freeform-frame]')).toHaveAttribute('data-touch', 'true');
+  });
+
+  it('reports a corner drag with the corner and the cell delta', () => {
+    const { onUpdate, onEnd, onExit } = setup();
+    const handle = screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' });
+    press(handle, 50, 50);
+    move(handle, 50 - 100, 50 + 50);
+    release(handle, -50, 100);
+    expect(onUpdate).toHaveBeenLastCalledWith('tl', -1, 1);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  it('does not start a gesture when the widget is gone', () => {
+    const onBegin = vi.fn(() => false);
+    const onUpdate = vi.fn();
+    render(
+      <div data-surface="y70">
+        <FreeformResizeFrame widget={widget} label="Web View" room={ROOM} onBegin={onBegin} onUpdate={onUpdate} onStep={vi.fn()} onEnd={vi.fn()} onCancel={onCancelProp} onExit={vi.fn()} />
+      </div>,
+    );
+    const handle = screen.getByRole('button', { name: 'panel.freeform.handle.bottomRight' });
+    press(handle, 0, 0);
+    move(handle, 100, 100);
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('steps a corner by one cell with the arrow keys', () => {
+    const { onBegin, onStep, onEnd } = setup();
+    const handle = screen.getByRole('button', { name: 'panel.freeform.handle.bottomRight' });
+    fireEvent.keyDown(handle, { key: 'ArrowRight' });
+    expect(onBegin).toHaveBeenCalledTimes(1);
+    expect(onStep).toHaveBeenCalledWith('br', 1, 0);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('exits from a corner with Escape', () => {
+    const { onExit } = setup();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' }), { key: 'Escape' });
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders only the corners, so every other press falls through to the tile', () => {
+    const { container } = setup();
+    expect(screen.queryByRole('button', { name: 'panel.freeform.body' })).toBeNull();
+    expect(container.querySelectorAll('[data-freeform-frame] button')).toHaveLength(4);
+  });
+});
+
+describe('FreeformResizeFrame hover corners', () => {
+  function setupHover() {
+    const onBegin = vi.fn(() => true);
+    const onUpdate = vi.fn();
+    const onStep = vi.fn();
+    const onEnd = vi.fn();
+    const onParentClick = vi.fn();
+    const onParentDown = vi.fn();
+    const { container } = render(
+      <div data-surface="y70" onClick={onParentClick} onPointerDown={onParentDown}>
+        <FreeformResizeFrame widget={widget} label="Web View" room={{ tl: true, tr: true, bl: true, br: true }} hover onBegin={onBegin} onUpdate={onUpdate} onStep={onStep} onEnd={onEnd} onCancel={onCancelProp} onExit={vi.fn()} />
+      </div>,
+    );
+    return { onBegin, onUpdate, onEnd, onParentClick, onParentDown, container };
+  }
+
+  it('renders only the four corners, with no body to catch other presses', () => {
+    const { container } = setupHover();
+    expect(container.querySelector('[data-freeform-frame]')).toHaveAttribute('data-hover', 'true');
+    expect(screen.queryByRole('button', { name: 'panel.freeform.body' })).toBeNull();
+    expect(container.querySelectorAll('button[data-corner]')).toHaveLength(4);
+  });
+
+  it('resizes from a corner press without any press or click reaching the panel behind', () => {
+    const { onUpdate, onEnd, onParentClick, onParentDown } = setupHover();
+    const handle = screen.getByRole('button', { name: 'panel.freeform.handle.bottomRight' });
+    press(handle, 0, 0);
+    move(handle, 100, 100);
+    release(handle, 100, 100);
+    fireEvent.click(handle);
+    expect(onUpdate).toHaveBeenLastCalledWith('br', 1, 2);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onParentDown).not.toHaveBeenCalled();
+    expect(onParentClick).not.toHaveBeenCalled();
+  });
+});
+
+describe('FreeformResizeFrame unmount', () => {
+  function mount(onEnd: () => void, onCancel: () => void) {
+    return render(
+      <div data-surface="y70">
+        <FreeformResizeFrame widget={widget} label="Web View" room={{ tl: true, tr: true, bl: true, br: true }} onBegin={() => true} onUpdate={vi.fn()} onStep={vi.fn()} onEnd={onEnd} onCancel={onCancel} onExit={vi.fn()} />
+      </div>,
+    );
+  }
+
+  it('cancels, without committing, an active press when it unmounts mid-gesture', () => {
+    const onEnd = vi.fn();
+    const onCancel = vi.fn();
+    const { unmount } = mount(onEnd, onCancel);
+    press(screen.getByRole('button', { name: 'panel.freeform.handle.bottomRight' }), 0, 0);
+    unmount();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('does nothing on unmount when no press is active', () => {
+    const onEnd = vi.fn();
+    const onCancel = vi.fn();
+    mount(onEnd, onCancel).unmount();
+    expect(onEnd).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+});

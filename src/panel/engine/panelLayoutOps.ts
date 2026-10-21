@@ -2,6 +2,7 @@ import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../ty
 import { firstFreeRect, rectsOverlap, type PaginateCapacity } from './paginate';
 import { sizeToSpan, snapStride, strideScanSteps } from './grid';
 import { createUuid } from '../../lib/uuid';
+import { clampFreeformSize } from './freeformResize';
 
 interface WidgetRect { col: number; row: number; colSpan: number; rowSpan: number; }
 
@@ -510,7 +511,11 @@ function shiftPreview(
  * rejection: do NOT mutate state, surface feedback to the user.
  *
  * Cascade order: source page first (so a shrink stays put), then later
- * pages in order, then earlier pages, then a new trailing page.
+ * pages in order, then earlier pages, then a new trailing page. `at`
+ * places the widget at an explicit origin instead of sliding it in place,
+ * which is how freeform resize moves a top or left edge and moves a widget.
+ * `samePage` confines every displaced widget to the resized widget's page: no
+ * spill onto another page and no new page, so the resize is refused instead.
  */
 export function tryResizeWidget(
   layout: PanelLayout,
@@ -518,6 +523,8 @@ export function tryResizeWidget(
   newSize: PanelWidgetSize,
   capacity: PaginateCapacity,
   maxPages: number,
+  at?: { col: number; row: number },
+  options?: { samePage?: boolean },
 ): PanelLayout | null {
   const cols = Math.max(1, capacity.gridCols);
   const rows = Math.max(1, capacity.pageRows);
@@ -529,9 +536,10 @@ export function tryResizeWidget(
     if (found) { source = found; sourcePageIdx = i; break; }
   }
   if (!source) return layout;
-  if (source.size === newSize) return layout;
+  if (source.size === newSize && (!at || (at.col === source.col && at.row === source.row))) return layout;
 
-  const newSpan = sizeToSpan(newSize);
+  // A freeform size taller or wider than this grid is placed at the span it renders at; the stored size string is kept.
+  const newSpan = sizeToSpan(clampFreeformSize(newSize, { cols, rows }));
   const newColSpan = Math.max(1, Math.min(newSpan.cols, cols));
   const newRowSpan = Math.max(1, newSpan.rows);
   // Hard refusal: the size itself doesn't fit on any page.
@@ -541,8 +549,8 @@ export function tryResizeWidget(
   // returns the widget to the coarser grid the larger size snaps to.
   const fromRowStrip = source.size === '4x1';
   const snapDown = (value: number, span: number) => fromRowStrip ? value - (value % snapStride(span)) : value;
-  const placedCol = Math.max(0, Math.min(snapDown(source.col, newColSpan), cols - newColSpan));
-  const placedRow = Math.max(0, Math.min(snapDown(source.row, newRowSpan), rows - newRowSpan));
+  const placedCol = Math.max(0, Math.min(at ? at.col : snapDown(source.col, newColSpan), cols - newColSpan));
+  const placedRow = Math.max(0, Math.min(at ? at.row : snapDown(source.row, newRowSpan), rows - newRowSpan));
   const placed: PanelWidget = { ...source, size: newSize, col: placedCol, row: placedRow };
   const placedRect: WidgetRect = { col: placedCol, row: placedRow, colSpan: newColSpan, rowSpan: newRowSpan };
 
@@ -609,7 +617,7 @@ export function tryResizeWidget(
   };
 
   for (const w of sorted) {
-    const span = sizeToSpan(w.size);
+    const span = sizeToSpan(clampFreeformSize(w.size, { cols, rows }));
     const colSpan = Math.max(1, Math.min(span.cols, cols));
     const rowSpan = Math.max(1, span.rows);
     if (rowSpan > rows) return null; // physically can't fit anywhere
@@ -617,7 +625,7 @@ export function tryResizeWidget(
     let landing: { pageIdx: number; col: number; row: number } | null = null;
     // Source page first (so resizing in place doesn't shuffle siblings to
     // page 2 unnecessarily), then later pages, then earlier pages.
-    const pageOrder: number[] = [
+    const pageOrder: number[] = options?.samePage ? [sourcePageIdx] : [
       sourcePageIdx,
       ...working.map((_, i) => i).filter(i => i > sourcePageIdx),
       ...working.map((_, i) => i).filter(i => i >= 0 && i < sourcePageIdx),
@@ -631,7 +639,7 @@ export function tryResizeWidget(
     }
 
     // No existing page fits - spawn a new trailing page if we have room.
-    if (!landing && working.length < maxPages) {
+    if (!landing && !options?.samePage && working.length < maxPages) {
       working.push({
         id: createUuid(),
         widgets: [],

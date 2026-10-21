@@ -127,7 +127,7 @@ export function stateLabel(e: HaEntity, t: Translate, locale: string): string {
       return t('homeAssistant.action.press');
     case 'cover': {
       const label = STATE_KEYS[e.state] ? t(STATE_KEYS[e.state]) : e.state;
-      return e.state === 'open' && e.positionPct >= 0 && e.positionPct < 100 ? `${label} · ${e.positionPct}%` : label;
+      return e.state === 'open' && e.positionPct >= 0 && e.positionPct < 100 ? `${label} - ${e.positionPct}%` : label;
     }
     case 'lock':
       return STATE_KEYS[e.state] ? t(STATE_KEYS[e.state]) : e.state;

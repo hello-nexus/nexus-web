@@ -4,7 +4,10 @@
 // '2x2round' occupies a 2x2 cell block but is masked to a circle. It exists for
 // round glass (the Kraken LCD) and is reserved to those surfaces.
 export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x1', '4x2', '4x4', '2x2round'] as const;
-export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];
+export type PanelBaseWidgetSize = typeof PANEL_WIDGET_SIZES[number];
+// A freeform widget span stored as '<cols>x<rows>' beyond the fixed enum. Only widgets whose manifest opts in (`freeform`) may carry one.
+export type FreeformWidgetSize = `${number}x${number}`;
+export type PanelWidgetSize = PanelBaseWidgetSize | FreeformWidgetSize;
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
 // (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
 // 'lcd-round' / 'lcd-square' / 'lcd-wide' = a cooler LCD fed pushed JPEG frames. Unlike
@@ -295,10 +298,27 @@ export const SINGLE_WIDGET_SIZES: ReadonlySet<PanelWidgetSize> = new Set(
   ),
 );
 
+// Largest side a stored freeform span may claim; keeps a corrupt string from
+// producing an absurd grid track.
+const FREEFORM_MAX_SIDE = 32;
+
+/** The span a '<cols>x<rows>' string names, or null when it is not one. */
+export function parseWidgetSizeSpan(size: string | null | undefined): { cols: number; rows: number } | null {
+  const match = /^([1-9]\d?)x([1-9]\d?)$/.exec(size ?? '');
+  if (!match) return null;
+  const cols = Number(match[1]);
+  const rows = Number(match[2]);
+  return cols <= FREEFORM_MAX_SIDE && rows <= FREEFORM_MAX_SIDE ? { cols, rows } : null;
+}
+
+/** A '<cols>x<rows>' span outside the fixed enum. */
+export function isFreeformWidgetSize(size: string | null | undefined): size is FreeformWidgetSize {
+  return parseWidgetSizeSpan(size) !== null && !PANEL_WIDGET_SIZES.includes(size as PanelBaseWidgetSize);
+}
+
 export function normalizePanelWidgetSize(size: string | null | undefined): PanelWidgetSize {
-  return PANEL_WIDGET_SIZES.includes(size as PanelWidgetSize)
-    ? size as PanelWidgetSize
-    : '4x4';
+  if (PANEL_WIDGET_SIZES.includes(size as PanelBaseWidgetSize)) return size as PanelWidgetSize;
+  return isFreeformWidgetSize(size) ? size : '4x4';
 }
 
 export function normalizePanelWidgetSizeForSurface(

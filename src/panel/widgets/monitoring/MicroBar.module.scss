@@ -103,3 +103,65 @@
   align-items: center;
   padding: 0 8px;
 }
+
+// Simple: label over value, no figure; rows share the column height evenly and
+// the content scales down (useFitWidth) when its row is shorter than it.
+.rowSimple {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.simpleContent {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.align_left {
+  align-items: flex-start;
+  text-align: left;
+  transform-origin: left center;
+}
+
+.align_center {
+  align-items: center;
+  text-align: center;
+  transform-origin: center;
+}
+
+.align_right {
+  align-items: flex-end;
+  text-align: right;
+  transform-origin: right center;
+}
+
+.simpleLabel {
+  @include text-caption;
+
+  flex: 0 0 auto;
+  max-width: 100%;
+  color: var(--panel-accent);
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simpleValue {
+  @include text-numeric;
+
+  flex: 0 0 auto;
+  font-size: var(--type-body);
+  color: var(--text);
+  white-space: nowrap;
+
+  :global(.panel-gauge-unit) {
+    font-size: var(--type-tiny);
+  }
+}

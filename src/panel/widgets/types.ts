@@ -122,6 +122,11 @@ export interface AppMetadata {
   defaultSize: PanelWidgetSize;
   /** The sizes offered on panels that hold several widgets, when fewer than `sizes`; a single-widget panel keeps its own. */
   gridSizes?: PanelWidgetSize[];
+  /**
+   * Opts the widget into freeform resizing in the panel editor: beyond `sizes` it may take
+   * any even span from the freeform minimum side up that the device grid holds. Its content must lay out at any span.
+   */
+  freeform?: boolean;
   // When false, the app is hidden from the Add-a-Widget picker: it can't be
   // newly added, but already-placed instances keep rendering (lookupApp and the
   // layout reconciler ignore this flag). Defaults to listed. SDK apps derive it

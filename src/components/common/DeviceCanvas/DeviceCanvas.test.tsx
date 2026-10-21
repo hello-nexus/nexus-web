@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
+import { clearLedFrame } from '../../../lib/ledFrameStore';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
@@ -25,7 +26,12 @@ function dragDevice(id: string, name: string): LightingDevice {
   } as unknown as LightingDevice;
 }
 
+const LEFT = [0, 0, 0.5, 0, 0.5, 1, 0, 1];
+const RIGHT = [0.5, 0, 1, 0, 1, 1, 0.5, 1];
+
 describe('DeviceCanvas', () => {
+  afterEach(() => { clearLedFrame(); });
+
   it('reports a gesture over when the frames hide mid-drag', () => {
     const onDragActiveChange = vi.fn();
     const props = {
@@ -56,6 +62,69 @@ describe('DeviceCanvas', () => {
     expect(frames.map(f => f.classList.contains(styles.foreign))).toEqual([false, true]);
     expect(frames.map(f => f.querySelectorAll(`.${styles.ledDot}`).length)).toEqual([1, 0]);
     expect(frames[1].querySelector(`.${styles.foreignCaption}`)?.textContent).toBe('Static');
+  });
+
+  it('outlines each LED cell for an area-sampling device, skips empty cells, and draws dots otherwise', () => {
+    const leds = { a: [{ index: 0, u: 0.5, v: 0.5 }], b: [{ index: 0, u: 0.5, v: 0.5 }] } as never;
+    const a = { ...dragDevice('a', 'A'), sampling: 'nearest', areaCells: [LEFT, [], RIGHT] } as LightingDevice;
+    const { container } = render(
+      <DeviceCanvas
+        devices={[a, dragDevice('b', 'B')]}
+        selectedIds={new Set(['a', 'b'])}
+        selectedDeviceLeds={leds}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const frames = [...container.querySelectorAll<HTMLElement>(`.${styles.device}`)];
+    expect(frames.map(f => f.querySelectorAll('polygon').length)).toEqual([2, 0]);
+    expect(frames.map(f => f.querySelectorAll(`.${styles.ledDot}`).length)).toEqual([0, 1]);
+    expect(frames[0].querySelector('polygon')!.getAttribute('points')).toBe('0,0 0.5,0 0.5,1 0,1');
+  });
+
+  it('shows no sibling dots beside an area-sampled card unless the sibling is the selected slot', () => {
+    const keys = { ...dragDevice('keys', 'Keys'), sampling: 'nearest', areaCells: [LEFT, RIGHT] } as LightingDevice;
+    const under = dragDevice('under', 'Under');
+    const leds = { keys: [{ index: 0, u: 0.5, v: 0.5 }], under: [{ index: 0, u: 0.1, v: 0.1 }] } as never;
+    const mount = (primary: string) => render(
+      <DeviceCanvas
+        devices={[keys, under]}
+        selectedIds={new Set(['keys', 'under'])}
+        selectedDeviceLeds={leds}
+        primaryDeviceId={primary}
+        stacks={[{ id: 's', name: '', members: ['keys', 'under'] }]}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const first = mount('keys');
+    expect(first.container.querySelectorAll('polygon').length).toBe(2);
+    expect(first.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(0);
+    first.unmount();
+    const second = mount('under');
+    expect(second.container.querySelectorAll('polygon').length).toBe(2);
+    expect(second.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(1);
+  });
+
+  it('a locked LED cell outline wears its color', () => {
+    const a = {
+      ...dragDevice('a', 'A'),
+      sampling: 'nearest', areaCells: [LEFT, RIGHT],
+      ledColors: [{ index: 1, color: '#ff0000' }],
+    } as unknown as LightingDevice;
+    const { container } = render(
+      <DeviceCanvas
+        devices={[a]}
+        selectedIds={new Set(['a'])}
+        selectedDeviceLeds={{ a: [] }}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const polys = [...container.querySelectorAll<SVGElement>('polygon')];
+    expect(polys.map(p => p.style.stroke)).toEqual(['', 'rgb(255, 0, 0)']);
   });
 
   it('draws no frames or names when asked to hide them', () => {
