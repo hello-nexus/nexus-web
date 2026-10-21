@@ -84,6 +84,8 @@ export function Slider({
   disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel,
 }: SliderProps) {
   const rangeId = useId();
+  // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
+  const accessibleName = ariaLabel ?? (orientation === 'inline' && label && typeof label === 'string' ? label : undefined);
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -185,7 +187,7 @@ export function Slider({
     <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
-          onCommit={handleEditCommit} format={formatValue} ariaLabel={ariaLabel} className={valueClass} disabled={disabled}
+          onCommit={handleEditCommit} format={formatValue} ariaLabel={accessibleName} className={valueClass} disabled={disabled}
           mixed={mixed} mixedLabel={mixedLabel} />
       ) : (
         <span className={valueClass}>{mixed ? mixedLabel : fmt(value)}</span>
@@ -237,7 +239,7 @@ export function Slider({
     <input type="range" min={min} max={max} step={step} value={value}
       id={rangeId}
       disabled={disabled}
-      aria-label={ariaLabel}
+      aria-label={accessibleName}
       data-fill=""
       data-mixed={mixed ? 'true' : undefined}
       aria-valuetext={mixed ? mixedLabel : undefined}

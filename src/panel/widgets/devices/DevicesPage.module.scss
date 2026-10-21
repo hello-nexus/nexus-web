@@ -97,7 +97,7 @@
 // track aligned, and a long zone name wraps inside its column.
 .zoneSizeSlider {
   display: grid;
-  grid-template-columns: clamp(5rem, 30%, 12rem) minmax(0, 1fr) 6rem;
+  grid-template-columns: clamp(5rem, 30%, 12rem) minmax(0, 1fr) max-content;
   align-items: center;
   gap: 0.75rem;
 
