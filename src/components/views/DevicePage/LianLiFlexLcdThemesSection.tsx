@@ -99,6 +99,14 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
             checked={chain.enabled}
             onChange={() => { void commit(chain.mac, { enabled: !chain.enabled }, c => ({ ...c, enabled: !c.enabled })); }}
           />
+          {chain.upDownSwap != null && (
+            <SettingToggle
+              label={t('devices.lianli-flex.upDownSwap')}
+              description={t('devices.lianli-flex.upDownSwapHint')}
+              checked={chain.upDownSwap}
+              onChange={on => { void commit(chain.mac, { upDownSwap: on }, c => ({ ...c, upDownSwap: on })); }}
+            />
+          )}
           {chain.enabled && (<>
             <SettingSlider
               editable

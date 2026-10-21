@@ -9,6 +9,8 @@ export interface LianLiWirelessFan {
   boundToUs: boolean;
   /** A live LCD Flex chain on this PC's radio, the ones with built-in wireless themes. */
   flexLcdEligible?: boolean;
+  /** Bound LCD Flex chain regardless of a stale blip. */
+  flexLcdChain?: boolean;
   channel: number;
   /** rx_type slot (1..14); 0 or 0xFE means unbound. */
   slot: number;
@@ -255,6 +257,8 @@ export interface LianLiFlexLcdFan {
 
 export interface LianLiFlexLcdChain {
   mac: string;
+  /** TL chains only. */
+  upDownSwap?: boolean | null;
   family: 'tlFlex' | 'slInfFlex';
   fanCount: number;
   enabled: boolean;
@@ -270,6 +274,7 @@ export interface LianLiFlexLcd {
 }
 
 export interface LianLiFlexLcdPatch {
+  upDownSwap?: boolean;
   enabled?: boolean;
   brightness?: number;
   rotation?: number;

@@ -230,7 +230,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
       || (a.sortIndex ?? 0) - (b.sortIndex ?? 0) || a.mac.localeCompare(b.mac))
     .map(f => f.screenSerial as string);
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
-  const flexLcdKey = (state?.fans ?? []).filter(f => f.flexLcdEligible).map(f => `${f.mac}:${f.fanCount}`).join(',');
+  const flexLcdKey = (state?.fans ?? []).filter(f => f.flexLcdChain).map(f => `${f.mac}:${f.fanCount}`).join(',');
   const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
   const usbMacs = (state?.fans ?? []).filter(f => f.usbConnected).map(f => f.mac);
   const tabs = [
