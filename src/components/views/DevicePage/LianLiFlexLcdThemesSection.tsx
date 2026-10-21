@@ -166,8 +166,7 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
                   {roles.map((role, colorIndex) => {
                     const current = fan.colors?.[colorIndex] ?? theme?.defaults[colorIndex] ?? '#FFFFFF';
                     return (
-                      <div key={`${fan.theme}-${role}`} className={styles.colorSetting}>
-                        <SettingRow label={roleLabel(role)} />
+                      <SettingRow key={`${fan.theme}-${role}`} label={roleLabel(role)} wrapControl stackOnNarrow>
                         <ColorPickerWithPresets
                           value={current}
                           presets={TEXT_COLOR_PRESETS}
@@ -180,7 +179,7 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
                             }));
                           }}
                         />
-                      </div>
+                      </SettingRow>
                     );
                   })}
                 </div>
