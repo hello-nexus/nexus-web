@@ -74,6 +74,31 @@ describe('rendererBootScript', () => {
     expect(calls).toEqual(['data:text/plain;base64,AA==']);
   });
 
+  it('is not fooled by replacing URL, Request or Request.prototype.url before fetch', async () => {
+    const urlDesc = Object.getOwnPropertyDescriptor(Request.prototype, 'url')!;
+    try {
+      const g1 = bootedGlobal(rendererBootScript());
+      probe(g1, 'self.URL = function () { return { protocol: "blob:" }; };');
+      await expect(probe(g1, 'fetch("https://example.com/a")')).rejects.toBeInstanceOf(TypeError);
+
+      const g2 = bootedGlobal(rendererBootScript());
+      probe(g2, 'Object.defineProperty(Request.prototype, "url", { configurable: true, get() { return "blob:x"; } });');
+      await expect(probe(g2, 'fetch("https://example.com/a")')).rejects.toBeInstanceOf(TypeError);
+      Object.defineProperty(Request.prototype, 'url', urlDesc);
+
+      const g3 = bootedGlobal(rendererBootScript());
+      probe(g3, 'self.Request = class extends Request { get url() { return "blob:x"; } };');
+      await expect(probe(g3, 'fetch("https://example.com/a")')).rejects.toBeInstanceOf(TypeError);
+
+      const g4 = bootedGlobal(rendererBootScript());
+      probe(g4, 'Function.prototype.call = () => 1; String.prototype.slice = () => "blob:"; String.prototype.toLowerCase = () => "blob:";');
+      await expect(probe(g4, 'fetch("https://example.com/a")')).rejects.toBeInstanceOf(TypeError);
+      expect((g1.__calls as string[]).length + (g2.__calls as string[]).length + (g3.__calls as string[]).length + (g4.__calls as string[]).length).toBe(0);
+    } finally {
+      Object.defineProperty(Request.prototype, 'url', urlDesc);
+    }
+  });
+
   it('does not let the guard be replaced', () => {
     const g = bootedGlobal(rendererBootScript());
     expect(() => probe(g, '"use strict"; self.fetch = () => 1')).toThrow();

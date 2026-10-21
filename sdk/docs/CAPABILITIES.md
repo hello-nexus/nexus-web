@@ -59,7 +59,7 @@ The TS shape lives in `src/widgets/types.ts`.
   // Packing is the job of the shared app-publish workflow, which must add every
   // listed entry to the .nexus-app archive; the CLI only builds the files. The
   // host does not check this list at runtime. `__NEXUS_APP_ENV_*__` placeholders
-  // are filled in widget.mjs only for now, not in renderer modules.
+  // are filled in widget.mjs only, not in renderer modules.
   "renderers": ["renderer.mjs"],
 
   "capabilities": {
@@ -1042,7 +1042,7 @@ Widget side (`@hello-nexus/sdk/ui`):
 | Prop | Type | Notes |
 |---|---|---|
 | `renderer` | `string` | bundle-relative path of the renderer module, e.g. `"renderer.mjs"`; list it in the manifest `renderers` |
-| `props` | `object` | structured-clone data (no functions) handed to the renderer on start and on every change |
+| `props` | `object` | JSON-serializable data handed to the renderer on start and on every change (it crosses the widget worker boundary and changes are detected by serializing) |
 | `share` | `string` | mounts of this app with the same `renderer` and `share` key share ONE worker and canvas (tile and immersive), moved to the newest mount; omit for one renderer per mount |
 | `interactive` | `boolean` | forward pointer and wheel input, only while this mount holds the canvas; when the Canvas sits inside a `Layer`, input is also held back while one of that layer's `Manipulable` gestures is live |
 | `onMessage` | `(data: unknown) => void` | structured-clone data the renderer posts |

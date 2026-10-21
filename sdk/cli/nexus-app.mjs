@@ -20,7 +20,7 @@
 
 import { build, context } from 'esbuild';
 import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, resolve, isAbsolute } from 'node:path';
+import { join, dirname, resolve, isAbsolute, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // sdk/cli
@@ -141,6 +141,13 @@ function appFirstResolvePlugin(dir) {
     setup(b) {
       b.onResolve({ filter: /^[^./\\][^:]*$/ }, async (args) => {
         if (args.pluginData?.nexusAppFirst) return undefined;
+        // Only source files outside the app dir are redirected. A package inside
+        // any node_modules keeps its own resolution, so a nested dependency
+        // version it relies on is not replaced by the app's copy.
+        const importer = args.importer || '';
+        if (!importer || /[\\/]node_modules[\\/]/.test(importer)) return undefined;
+        const rel = relative(dir, importer);
+        if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) return undefined;
         const r = await b.resolve(args.path, { resolveDir: dir, kind: args.kind, pluginData: { nexusAppFirst: true } });
         return r.errors.length === 0 ? { path: r.path, namespace: r.namespace, sideEffects: r.sideEffects } : undefined;
       });

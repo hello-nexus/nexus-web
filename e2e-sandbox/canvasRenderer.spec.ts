@@ -7,7 +7,7 @@ import { rendererBootScript, workerBootScript } from '../src/sandbox/workerBoot'
 
 const PROBE = `
 ;(async function () {
-  const out = { types: {}, webgl: null, blobFetch: null, dataFetch: null, httpFetch: null, pathFetch: null, spoofObject: null, spoofRequest: null };
+  const out = { types: {}, webgl: null, blobFetch: null, dataFetch: null, httpFetch: null, pathFetch: null, spoofObject: null, spoofRequest: null, tamper: null };
   ['OffscreenCanvas', 'createImageBitmap', 'WebAssembly', 'requestAnimationFrame', 'fetch', 'WebSocket', 'XMLHttpRequest', 'Worker', 'indexedDB']
     .forEach(function (k) { out.types[k] = typeof self[k]; });
   try {
@@ -33,6 +33,16 @@ const PROBE = `
     out.spoofObject = await attempt({ url: blobUrl, toString: () => 'http://127.0.0.1:1/a' });
     class Sneaky extends Request { get url() { return blobUrl; } }
     out.spoofRequest = await attempt(new Sneaky('http://127.0.0.1:1/a'));
+    // Last, because it damages the globals: the guard must not read them live.
+    const target = 'http://127.0.0.1:1/a';
+    const tamper = {};
+    self.URL = function () { return { protocol: 'blob:' }; };
+    tamper.url = await attempt(target);
+    Object.defineProperty(Request.prototype, 'url', { configurable: true, get() { return 'blob:x'; } });
+    tamper.getter = await attempt(target);
+    self.Request = class extends Request { get url() { return 'blob:x'; } };
+    tamper.request = await attempt(target);
+    out.tamper = tamper;
   }
   self.postMessage(out);
 })();
@@ -42,6 +52,7 @@ type Report = {
   types: Record<string, string>; webgl: number[] | string | null;
   blobFetch: string | null; dataFetch: string | null; httpFetch: string | null; pathFetch: string | null;
   spoofObject: string | null; spoofRequest: string | null;
+  tamper: { url: string; getter: string; request: string } | null;
 };
 
 async function run(page: import('@playwright/test').Page, boot: string): Promise<Report> {
@@ -77,6 +88,7 @@ test('a renderer worker keeps network and channel globals closed and fetch blob-
   // The check and the sent request must be the same object: spoofed strings and url getters fail.
   expect(r.spoofObject).toBe('TypeError');
   expect(r.spoofRequest).toBe('TypeError');
+  expect(r.tamper).toEqual({ url: 'TypeError', getter: 'TypeError', request: 'TypeError' });
 });
 
 test('the widget worker surface is unchanged: no fetch, no decode, no wasm', async ({ page }) => {

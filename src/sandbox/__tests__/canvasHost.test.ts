@@ -352,6 +352,20 @@ describe('pointer lifecycle', () => {
     expect(types(worker)).toHaveLength(2);
   });
 
+  it('does not carry a pointer of a dead worker over to its replacement', async () => {
+    const { session, worker } = await readySession({ interactive: true });
+    const canvas = session.element.firstElementChild as HTMLElement;
+    canvas.dispatchEvent(ptr('pointerdown'));
+    worker.fault();
+    await flush();
+    const next = FakeWorker.all[1];
+    next.emit({ type: 'booted' });
+    next.emit({ type: 'ready' });
+    const fresh = session.element.firstElementChild as HTMLElement;
+    fresh.dispatchEvent(ptr('pointerup'));
+    expect(types(next)).toEqual([]);
+  });
+
   it('a normal release does not add a cancel', async () => {
     const { session, worker } = await readySession({ interactive: true });
     const canvas = session.element.firstElementChild as HTMLElement;

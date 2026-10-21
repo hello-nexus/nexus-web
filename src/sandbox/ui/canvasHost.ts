@@ -385,6 +385,9 @@ export class CanvasSession {
     const worker = this.worker;
     this.worker = null;
     this.booted = false;
+    // Pointers of the dead worker must not reach a new renderer without their down.
+    this.forwarded.clear();
+    this.withheld.clear();
     try { worker?.terminate(); } catch { /* already gone */ }
     this.revokeUrls();
   }
@@ -452,7 +455,8 @@ export class CanvasSession {
     // A pointer whose down reached the renderer always gets the rest of its
     // events, whatever the gates say now, so the renderer never keeps a stuck pointer.
     if (!tracked) {
-      if (wasWithheld || !this.pointerAllowed()) return;
+      // An up or cancel without a forwarded down has nothing to end.
+      if (wasWithheld || type === 'up' || type === 'cancel' || !this.pointerAllowed()) return;
       if (this.layerGestureLive()) {
         if (type === 'down') this.withheld.add(e.pointerId);
         return;

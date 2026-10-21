@@ -218,7 +218,7 @@ export interface ClockFaceProps {
 export interface CanvasProps {
   /** Bundle-relative path of the renderer module, e.g. "renderer.mjs". */
   renderer: string;
-  /** Structured-clone object handed to the renderer on start and on every change. */
+  /** JSON-serializable object handed to the renderer on start and on every change. */
   props?: Record<string, unknown>;
   /**
    * Mounts of this app with the same \`renderer\` and \`share\` key share ONE

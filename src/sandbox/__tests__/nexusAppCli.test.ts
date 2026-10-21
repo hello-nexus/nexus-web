@@ -71,6 +71,28 @@ describe.skipIf(!canRun)('nexus-app build with a renderer', () => {
     expect(out).not.toContain('TWIN-OUTER-COPY');
   });
 
+  it('leaves a dependency inside node_modules on its own nested version', () => {
+    const nest = join(root, 'nest');
+    const lib = (rel: string, tag: string, main = '') => {
+      const d = join(nest, ...rel.split('/'));
+      mkdirSync(d, { recursive: true });
+      writeFileSync(join(d, 'index.js'), `${main}export const TAG = "${tag}";\n`);
+      writeFileSync(join(d, 'package.json'), `{"name":"${rel.split('/').pop()}","type":"module","main":"index.js"}\n`);
+    };
+    lib('node_modules/foo', 'FOO-V1');
+    lib('node_modules/bar/node_modules/foo', 'FOO-V2');
+    lib('node_modules/bar', 'BAR', "import { TAG as FOO } from 'foo';\nexport const FOO_SEEN = FOO;\n");
+    writeFileSync(join(nest, 'index.tsx'), "import { mount } from '@hello-nexus/sdk';\nmount(() => null);\n");
+    writeFileSync(join(nest, 'renderer.ts'),
+      "import { defineRenderer } from '@hello-nexus/sdk/renderer';\nimport { TAG as FOO } from 'foo';\nimport { FOO_SEEN } from 'bar';\n" +
+      'defineRenderer((ctx) => { ctx.post([FOO, FOO_SEEN]); });\n');
+    const r = run('build', nest);
+    expect(r.status, r.stderr).toBe(0);
+    const out = readFileSync(join(nest, 'renderer.mjs'), 'utf8');
+    expect(out).toContain('FOO-V1');
+    expect(out).toContain('FOO-V2');
+  });
+
   it('leaves the widget bundle on the runtime shim', () => {
     const widget = readFileSync(join(app, 'widget.mjs'), 'utf8');
     expect(widget).toContain('__nexusRuntime');
