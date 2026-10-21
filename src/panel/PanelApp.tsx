@@ -178,7 +178,7 @@ import {
 } from './dnd/PanelDragCells';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
-import { cornerRoom, freeformSnapSpans } from './engine/freeformResize';
+import { clampFreeformSize, cornerRoom, freeformSnapSpans } from './engine/freeformResize';
 import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
@@ -188,7 +188,6 @@ import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
 const NO_SPANS: readonly GridSpan[] = [];
-const CLICK_AFTER_RELEASE_MS = 100;
 
 export interface PanelLayoutState {
   layout: PanelLayout;
@@ -863,7 +862,7 @@ export function PanelContent({
   const [hoverResizeId, setHoverResizeId] = useState<string | null>(null);
   const resizeGestureRef = useRef(false);
   const freeformWidget = freeformId ? findWidgetById(paginatedLayout, freeformId) : undefined;
-  const resizeBounds = { cols: capacity.gridCols, rows: capacity.pageRows };
+  const resizeBounds = { cols: Math.max(1, capacity.gridCols), rows: Math.max(1, capacity.pageRows) };
   // Corners snap to the widget's declared sizes that fit; opted-in widgets also get the even spans past 4x4.
   const resizeSpansFor = (type: string): GridSpan[] => {
     const meta = lookupApp(type)?.meta;
@@ -906,13 +905,28 @@ export function PanelContent({
     if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
     e.stopPropagation();
     if (e.type !== 'pointerdown') return;
-    // The release and click completing this press would otherwise reach the widget under it.
+    // The release and click completing this press would otherwise reach the widget under it;
+    // the guard lasts until that click, or the next press when no click follows.
     const stop = (ev: Event) => ev.stopPropagation();
-    document.addEventListener('pointerup', ev => {
+    const clearGuards = () => {
+      document.removeEventListener('pointerup', onUp, true);
+      document.removeEventListener('pointercancel', onCancel, true);
+      document.removeEventListener('click', onClick, true);
+      document.removeEventListener('pointerdown', clearGuards, true);
+    };
+    function onUp(ev: Event) {
       ev.stopPropagation();
-      document.addEventListener('click', stop, { capture: true, once: true });
-      window.setTimeout(() => document.removeEventListener('click', stop, { capture: true }), CLICK_AFTER_RELEASE_MS);
-    }, { capture: true, once: true });
+      document.removeEventListener('pointercancel', onCancel, true);
+      document.addEventListener('click', onClick, true);
+      document.addEventListener('pointerdown', clearGuards, true);
+    }
+    function onCancel() { clearGuards(); }
+    function onClick(ev: Event) {
+      stop(ev);
+      clearGuards();
+    }
+    document.addEventListener('pointerup', onUp, true);
+    document.addEventListener('pointercancel', onCancel, true);
     exitFreeform();
   }, [exitFreeform]);
   useEffect(() => {
@@ -1021,9 +1035,15 @@ export function PanelContent({
     const pages = shownPlaylistWidget
       ? [{ id: dragLayout.pages[0]?.id ?? '', widgets: [shownPlaylistWidget] }]
       : dragLayout.pages;
+    const fitBounds = { cols: Math.max(1, capacity.gridCols), rows: Math.max(1, capacity.pageRows) };
     const filtered = pages.map(page => ({
       id: page.id,
       widgets: page.widgets
+        // A freeform span wider than this grid renders clamped; the stored size is untouched.
+        .map(w => {
+          const size = clampFreeformSize(w.size, fitBounds);
+          return size === w.size ? w : { ...w, size };
+        })
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
@@ -1038,7 +1058,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, surface, glassSurface, deviceTouch, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, deviceTouch, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2068,6 +2088,7 @@ export function PanelContent({
                             room={freeformRoom(page.widgets.find(w => w.id === cornerTarget.id) ?? cornerTarget)}
                             onBegin={beginResize}
                             onUpdate={freeform.update}
+                            onStep={freeform.step}
                             onEnd={endResize}
                             onExit={exitFreeform}
                           />

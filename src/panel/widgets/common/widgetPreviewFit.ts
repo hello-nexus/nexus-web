@@ -5,7 +5,7 @@ const PREVIEW_MAX_CELLS = 4;
 
 export interface PreviewFit { width: number; height: number; scale: number; }
 
-/** Full-size preview box for a span, plus the uniform scale that keeps it inside a 4x4 footprint. */
+/** Full-size preview box for a span, plus the uniform scale that keeps it inside the footprint of PREVIEW_MAX_CELLS cells per side. */
 export function previewFit(cols: number, rows: number): PreviewFit {
   const width = cols * PREVIEW_CELL_PX + (cols - 1) * PREVIEW_GAP_PX;
   const height = rows * PREVIEW_CELL_PX + (rows - 1) * PREVIEW_GAP_PX;

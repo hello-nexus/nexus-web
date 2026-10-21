@@ -112,11 +112,14 @@ describe('freeform sizes in a stored layout', () => {
     expect(['2x2', '4x2', '4x4']).toContain(size);
   });
 
-  it('shrink to a smaller grid when repaginated', () => {
+  it('keep their stored size on a smaller grid, render clamped, and render in full again when capacity returns', () => {
     const l = layout([[widget('w', '8x4', 0, 0, 'web-view')]]);
-    const result = repaginatePanelLayout(l, { gridCols: 4, pageRows: 8 });
-    expect(result.pages[0].widgets[0]).toMatchObject({ size: '4x4', col: 0 });
-    expect(clampFreeformSize('8x4', { cols: 4, rows: 8 })).toBe('4x4');
+    const narrow = repaginatePanelLayout(l, { gridCols: 4, pageRows: 8 });
+    expect(narrow.pages[0].widgets[0]).toMatchObject({ size: '8x4', col: 0 });
+    expect(clampFreeformSize(narrow.pages[0].widgets[0].size, { cols: 4, rows: 8 })).toBe('4x4');
+    const wide = repaginatePanelLayout(narrow, { gridCols: 8, pageRows: 8 });
+    expect(wide.pages[0].widgets[0].size).toBe('8x4');
+    expect(clampFreeformSize(wide.pages[0].widgets[0].size, { cols: 8, rows: 8 })).toBe('8x4');
   });
 
   it('are left alone when the grid holds them', () => {

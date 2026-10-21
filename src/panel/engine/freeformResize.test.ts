@@ -6,6 +6,7 @@ import {
   freeformSnapSpans,
   moveRect,
   resizeRectFromCorner,
+  stepRectFromCorner,
   spanToSize,
   type FreeformRect,
 } from './freeformResize';
@@ -184,5 +185,27 @@ describe('cornerRoom', () => {
   it('dims everything when no other span is offered', () => {
     expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, [{ cols: 4, rows: 4 }], bounds)).toEqual(none);
     expect(cornerRoom({ col: 0, row: 0, cols: 4, rows: 4 }, [], bounds)).toEqual(none);
+  });
+});
+
+describe('stepRectFromCorner', () => {
+  const bounds = { cols: 8, rows: 8 };
+  const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds);
+  const at = (cols: number, rows: number) => ({ col: 0, row: 0, cols, rows });
+
+  it('steps a corner outward to the next span on the stepped axis', () => {
+    expect(stepRectFromCorner(at(4, 4), 'br', 1, 0, snap, bounds)).toEqual(at(6, 4));
+    expect(stepRectFromCorner(at(2, 2), 'br', 1, 0, snap, bounds)).toEqual(at(4, 2));
+    expect(stepRectFromCorner(at(4, 2), 'br', 0, 1, snap, bounds)).toEqual(at(4, 4));
+  });
+
+  it('steps inward to shrink and moves the origin for a left or top corner', () => {
+    expect(stepRectFromCorner(at(4, 4), 'br', -1, 0, snap, bounds)).toEqual(at(2, 2));
+    const moved = stepRectFromCorner({ col: 2, row: 2, cols: 4, rows: 4 }, 'tl', -1, 0, snap, bounds);
+    expect(moved).toEqual({ col: 0, row: 2, cols: 6, rows: 4 });
+  });
+
+  it('stays put when no span lies that way', () => {
+    expect(stepRectFromCorner({ col: 4, row: 0, cols: 4, rows: 4 }, 'br', 1, 0, snap, bounds)).toEqual({ col: 4, row: 0, cols: 4, rows: 4 });
   });
 });

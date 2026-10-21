@@ -1,6 +1,5 @@
 import type { PanelLayout, PanelPage, PanelWidget } from '../types';
 import { sizeToSpan, strideScanSteps } from './grid';
-import { clampFreeformSize } from './freeformResize';
 import { createUuid } from '../../lib/uuid';
 
 export interface PaginateCapacity {
@@ -277,11 +276,7 @@ export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCap
   const cols = Math.max(1, Math.floor(capacity.gridCols));
   const rows = Math.max(1, Math.floor(capacity.pageRows));
   let changed = false;
-  const pages: PanelPage[] = layout.pages.map(sourcePage => {
-    const page = { ...sourcePage, widgets: sourcePage.widgets.map(w => {
-      const size = clampFreeformSize(w.size, { cols, rows });
-      return size === w.size ? w : { ...w, size };
-    }) };
+  const pages: PanelPage[] = layout.pages.map(page => {
     const clamped = page.widgets.map(w => {
       const span = sizeToSpan(w.size);
       const colSpan = Math.max(1, Math.min(span.cols, cols));
@@ -302,9 +297,8 @@ export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCap
       if (pageFitsGrid(repacked, cols, rows)) widgets = repacked;
     }
     const pageChanged = widgets.some((w, i) =>
-      w.col !== sourcePage.widgets[i].col || w.row !== sourcePage.widgets[i].row
-      || w.size !== sourcePage.widgets[i].size);
-    if (!pageChanged) return sourcePage;
+      w.col !== page.widgets[i].col || w.row !== page.widgets[i].row);
+    if (!pageChanged) return page;
     changed = true;
     return { ...page, widgets };
   });

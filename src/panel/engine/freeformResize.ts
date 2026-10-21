@@ -16,7 +16,7 @@ export function spanToSize(span: GridSpan): PanelWidgetSize {
   return `${span.cols}x${span.rows}`;
 }
 
-/** Declared sizes, plus (withEvenSpans) every span with both sides even and at least 4, capped by the grid; the round mask is not a span. */
+/** Declared sizes, plus (withEvenSpans) every span with both sides even and at least FREEFORM_MIN_SIDE, capped by the grid; the round mask is not a span. */
 export function freeformSnapSpans(
   declared: readonly PanelWidgetSize[],
   bounds: FreeformBounds,
@@ -69,6 +69,42 @@ export function resizeRectFromCorner(
       best = { col, row, cols: span.cols, rows: span.rows };
       bestScore = score;
       bestArea = area;
+    }
+  }
+  return best ?? start;
+}
+
+/** One keyboard step: the nearest snap span past the current one on the stepped axis (outward grows, inward shrinks), kept inside the grid. */
+export function stepRectFromCorner(
+  start: FreeformRect,
+  corner: FreeformCorner,
+  stepCols: number,
+  stepRows: number,
+  snapSpans: readonly GridSpan[],
+  bounds: FreeformBounds,
+): FreeformRect {
+  const fromLeft = corner === 'tl' || corner === 'bl';
+  const fromTop = corner === 'tl' || corner === 'tr';
+  const right = start.col + start.cols;
+  const bottom = start.row + start.rows;
+  // Outward on an axis grows the span, inward shrinks it.
+  const growCols = stepCols === 0 ? 0 : (fromLeft ? -stepCols : stepCols);
+  const growRows = stepRows === 0 ? 0 : (fromTop ? -stepRows : stepRows);
+  let best: FreeformRect | null = null;
+  let bestScore = Infinity;
+  for (const span of snapSpans) {
+    const dCols = span.cols - start.cols;
+    const dRows = span.rows - start.rows;
+    if (growCols !== 0 && Math.sign(dCols) !== Math.sign(growCols)) continue;
+    if (growRows !== 0 && Math.sign(dRows) !== Math.sign(growRows)) continue;
+    const col = fromLeft ? right - span.cols : start.col;
+    const row = fromTop ? bottom - span.rows : start.row;
+    if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
+    // Nearest on the stepped axis first, then least change on the other.
+    const score = (growCols !== 0 ? Math.abs(dCols) : Math.abs(dRows)) * 1000 + (growCols !== 0 ? Math.abs(dRows) : Math.abs(dCols));
+    if (score < bestScore) {
+      best = { col, row, cols: span.cols, rows: span.rows };
+      bestScore = score;
     }
   }
   return best ?? start;

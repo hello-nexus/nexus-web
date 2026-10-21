@@ -9,6 +9,8 @@ import {
   resizeRectFromCorner,
   sameRect,
   spanToSize,
+  stepRectFromCorner,
+  clampFreeformSize,
   type FreeformCorner,
   type FreeformRect,
 } from './freeformResize';
@@ -38,6 +40,8 @@ export function useFreeformResize({
   const [draft, setDraft] = useState<PanelLayout | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const draftRef = useRef<PanelLayout | null>(null);
+  // A rejected target flashes once; the next accepted target or gesture re-arms it.
+  const rejectArmedRef = useRef(true);
   const boundCols = Math.max(1, capacity.gridCols);
   const boundRows = Math.max(1, capacity.pageRows);
 
@@ -49,19 +53,16 @@ export function useFreeformResize({
   const begin = useCallback((): boolean => {
     const widget: PanelWidget | undefined = widgetId ? findWidgetById(layout, widgetId) : undefined;
     if (!widget) return false;
-    const span = sizeToSpan(widget.size);
+    const span = sizeToSpan(clampFreeformSize(widget.size, { cols: boundCols, rows: boundRows }));
+    rejectArmedRef.current = true;
     sessionRef.current = { base: layout, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
     return true;
-  }, [layout, widgetId]);
+  }, [layout, widgetId, boundCols, boundRows]);
 
-  const update = useCallback((gesture: FreeformGesture, dCols: number, dRows: number) => {
-    const session = sessionRef.current;
-    if (!session || !widgetId) return;
-    const bounds = { cols: boundCols, rows: boundRows };
-    const target: FreeformRect = gesture === 'move'
-      ? moveRect(session.start, dCols, dRows, bounds)
-      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds);
+  const applyTarget = useCallback((session: Session, target: FreeformRect) => {
+    if (!widgetId) return;
     if (sameRect(target, session.start)) {
+      rejectArmedRef.current = true;
       setBoth(null);
       return;
     }
@@ -73,9 +74,29 @@ export function useFreeformResize({
       maxPages,
       { col: target.col, row: target.row },
     );
-    if (next) setBoth(next === session.base ? null : next);
-    else onReject(widgetId);
-  }, [boundCols, boundRows, capacity, snapSpans, maxPages, onReject, setBoth, widgetId]);
+    if (next) {
+      rejectArmedRef.current = true;
+      setBoth(next === session.base ? null : next);
+    } else if (rejectArmedRef.current) {
+      rejectArmedRef.current = false;
+      onReject(widgetId);
+    }
+  }, [capacity, maxPages, onReject, setBoth, widgetId]);
+
+  const update = useCallback((gesture: FreeformGesture, dCols: number, dRows: number) => {
+    const session = sessionRef.current;
+    if (!session) return;
+    const bounds = { cols: boundCols, rows: boundRows };
+    applyTarget(session, gesture === 'move'
+      ? moveRect(session.start, dCols, dRows, bounds)
+      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds));
+  }, [applyTarget, boundCols, boundRows, snapSpans]);
+
+  const step = useCallback((corner: FreeformCorner, stepCols: number, stepRows: number) => {
+    const session = sessionRef.current;
+    if (!session) return;
+    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }));
+  }, [applyTarget, boundCols, boundRows, snapSpans]);
 
   const end = useCallback(() => {
     const next = draftRef.current;
@@ -84,5 +105,5 @@ export function useFreeformResize({
     if (next) onCommit(next);
   }, [onCommit, setBoth]);
 
-  return { draft, begin, update, end };
+  return { draft, begin, update, step, end };
 }

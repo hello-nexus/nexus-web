@@ -5,8 +5,7 @@
 // round glass (the Kraken LCD) and is reserved to those surfaces.
 export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x1', '4x2', '4x4', '2x2round'] as const;
 export type PanelBaseWidgetSize = typeof PANEL_WIDGET_SIZES[number];
-// A freeform widget span stored as '<cols>x<rows>' (e.g. '6x4') beyond the fixed
-// enum. Only widgets whose manifest opts in (`freeform`) may carry one.
+// A freeform widget span stored as '<cols>x<rows>' beyond the fixed enum. Only widgets whose manifest opts in (`freeform`) may carry one.
 export type FreeformWidgetSize = `${number}x${number}`;
 export type PanelWidgetSize = PanelBaseWidgetSize | FreeformWidgetSize;
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk

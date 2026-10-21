@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { sizeToSpan } from '../engine/grid';
 import { readCellMetrics } from '../engine/panelLayoutHelpers';
@@ -35,6 +35,7 @@ export function FreeformResizeFrame({
   hover = false,
   onBegin,
   onUpdate,
+  onStep,
   onEnd,
   onExit,
 }: {
@@ -48,12 +49,24 @@ export function FreeformResizeFrame({
   room: Record<FreeformCorner, boolean>;
   onBegin: () => boolean;
   onUpdate: (gesture: FreeformGesture, dCols: number, dRows: number) => void;
+  // One keyboard step of a corner to the next snap span.
+  onStep: (corner: FreeformCorner, stepCols: number, stepRows: number) => void;
   onEnd: () => void;
   onExit: () => void;
 }) {
   const { t } = useTranslation();
   const pressRef = useRef<Press | null>(null);
   const span = sizeToSpan(widget.size);
+
+  // A frame unmounted mid-gesture still ends it, so the draft and the host's gesture flag never go stale.
+  const onEndRef = useRef(onEnd);
+  useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
+  useEffect(() => () => {
+    if (pressRef.current) {
+      pressRef.current = null;
+      onEndRef.current();
+    }
+  }, []);
 
   const startPress = (gesture: FreeformGesture) => (event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -102,7 +115,8 @@ export function FreeformResizeFrame({
     event.preventDefault();
     event.stopPropagation();
     if (!onBegin()) return;
-    onUpdate(gesture, step[0], step[1]);
+    if (gesture === 'move') onUpdate(gesture, step[0], step[1]);
+    else onStep(gesture, step[0], step[1]);
     onEnd();
   };
 
