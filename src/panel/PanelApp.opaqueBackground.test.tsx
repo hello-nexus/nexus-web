@@ -120,3 +120,11 @@ describe('PanelApp background under an opaque tile', () => {
     expect(shaderCovered.every(c => !c)).toBe(true);
   });
 });
+
+describe('PanelApp Media background with nothing to show', () => {
+  it('paints the solid background color rather than the bare backdrop', async () => {
+    fetchMock.mockResolvedValue({ found: true, record: { ...recordWith('lcd-round', '2x2round'), backgroundMode: 'media' } });
+    await mountKiosk();
+    await waitFor(() => expect(document.querySelector('[data-panel-bg-layer]')?.className).toMatch(/backgroundSolid/));
+  });
+});

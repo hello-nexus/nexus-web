@@ -114,6 +114,7 @@ import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
+import { PanelBackgroundSolid } from './background/PanelBackgroundSolid';
 import { PanelBackgroundSlideshow } from './background/PanelBackgroundSlideshow';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
 import { customTextVars, DEFAULT_CUSTOM_TEXT_COLOR, useAutoTextColor } from './theme/textColor';
@@ -765,6 +766,8 @@ export function PanelContent({
   const backgroundFrost = (showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid'))
     ? effectiveTheme.backgroundFrost
     : 0;
+  // A media background that cannot load shows the solid color instead of the bare backdrop.
+  const [failedMediaId, setFailedMediaId] = useState<string | null>(null);
   const panelSolidColor = useMemo(
     () => showPanelBackground
       ? resolvePanelBackground(
@@ -2068,7 +2071,7 @@ export function PanelContent({
               opacity={effectiveTheme.backgroundOpacity}
               covered={backgroundCovered}
             />
-          ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
+          ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && failedMediaId !== effectiveTheme.backgroundMediaId ? (
             <PanelBackgroundMedia
               id={effectiveTheme.backgroundMediaId}
               deviceId={deviceId}
@@ -2076,16 +2079,12 @@ export function PanelContent({
               alpha={effectiveTheme.backgroundMediaAlpha}
               opacity={effectiveTheme.backgroundOpacity}
               covered={backgroundCovered}
+              onFailed={() => setFailedMediaId(effectiveTheme.backgroundMediaId ?? null)}
             />
-          ) : null
+          ) : <PanelBackgroundSolid opacity={effectiveTheme.backgroundOpacity} />
         )}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'solid' && (
-          <div
-            className={styles.backgroundSolid}
-            data-panel-bg-layer
-            style={{ '--panel-background-opacity': effectiveTheme.backgroundOpacity } as CSSProperties}
-            aria-hidden
-          />
+          <PanelBackgroundSolid opacity={effectiveTheme.backgroundOpacity} />
         )}
         {backgroundFrost > 0 && (
           <div
