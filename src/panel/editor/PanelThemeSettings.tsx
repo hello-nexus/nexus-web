@@ -140,7 +140,7 @@ export interface PanelThemeSettingsProps {
   showMediaTab?: boolean;
   /** Device aspect ratio (W/H) forwarded to the media cropper. */
   deviceAspect?: number;
-  /** Round glass: media tiles are drawn as circles, as the preview shows the panel. */
+  /** Round display: media tiles are drawn as circles, as the preview shows the panel. */
   roundDisplay?: boolean;
   /** Device native pixel width for the import conversion. */
   deviceW?: number;

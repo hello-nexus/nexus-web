@@ -67,7 +67,7 @@ export function BackgroundMediaPicker({
   deviceId: string;
   activeId: string | null;
   deviceAspect: number;
-  /** Round glass: the tiles are circles. */
+  /** Round display: the tiles are circles. */
   round?: boolean;
   deviceW: number;
   deviceH: number;

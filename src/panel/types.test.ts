@@ -136,7 +136,7 @@ describe('surfaceAllowsPages', () => {
 });
 
 describe('surfaceDisplayShape', () => {
-  it('is round only on round glass', () => {
+  it('is round only on round displays', () => {
     expect(surfaceDisplayShape('kraken')).toBe('round');
     expect(surfaceDisplayShape('lcd-round')).toBe('round');
     for (const surface of ['lcd-square', 'lcd-wide', 'q60', 'y70', 'monitor', 'phone', 'desktop'] as const) {

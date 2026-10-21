@@ -31,11 +31,14 @@ describe('EffectCard', () => {
   });
 
   it('clips the thumbnail to a circle only when asked', () => {
-    const round = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} thumbRound onClick={() => {}} />);
+    const round = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} thumbRound onDelete={() => {}} onClick={() => {}} />);
     const img = round.container.querySelector('img')!;
     expect(img.style.borderRadius).toBe('50%');
-    expect((img.parentElement as HTMLElement).style.borderRadius).toBe('50%');
-    expect((img.parentElement as HTMLElement).style.overflow).toBe('hidden');
+    // The box itself is not clipped: the delete button in its corner must stay clickable.
+    const box = img.parentElement as HTMLElement;
+    expect(box.style.borderRadius).toBe('');
+    expect(box.style.overflow).toBe('');
+    expect(box.querySelector('button[aria-label]')).not.toBeNull();
     round.unmount();
     const square = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} onClick={() => {}} />);
     expect(square.container.querySelector('img')!.style.borderRadius).toBe('');

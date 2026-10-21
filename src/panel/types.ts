@@ -109,7 +109,7 @@ export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, P
   'lcd-wide': '4x2',
 };
 
-/** The shape of a surface's display: round glass carries one circular tile, every other surface is rectangular. */
+/** The shape of a surface's display: a round display carries one circular tile, every other surface is rectangular. */
 export function surfaceDisplayShape(surface: PanelSurface): 'rect' | 'round' {
   const size = singleWidgetSurfaceSize(surface);
   return size ? widgetDisplayShape(size) : 'rect';

@@ -50,7 +50,8 @@ interface EffectCardBaseProps {
    * frame. Omit for the default 16/9 cropped behavior.
    */
   thumbAspect?: number;
-  /** Clip the thumbnail to a circle (round glass). Pair with a square thumbAspect. */
+  /** Draw the thumbnail as a circle (round display). Pair with a square thumbAspect. The box stays square so
+   *  its corner badges and delete button are not clipped. */
   thumbRound?: boolean;
   /** Overlay mode only: suppress the on-thumbnail caption (the aria-label still
    *  carries the name). Used by the simple colour swatches, which need no text. */
@@ -79,7 +80,7 @@ export function EffectCard({
   const showImg = !!thumbUrl && thumbUrl !== failedUrl;
   const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''}`;
   const thumbBoxStyle = thumbAspect !== undefined
-    ? { aspectRatio: String(thumbAspect), maxHeight: '360px', ...(thumbRound ? { borderRadius: '50%', overflow: 'hidden' } : null) }
+    ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
     : undefined;
   const thumbImgStyle = thumbAspect !== undefined
     ? { objectFit: 'cover' as const, height: '100%', ...(thumbRound ? { borderRadius: '50%' } : null) }
