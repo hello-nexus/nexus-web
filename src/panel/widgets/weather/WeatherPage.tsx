@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
-import { Notice } from '../../../components/common/Notice/Notice';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { resolveHour12 } from '../../../lib/units';
 import type { WeatherUnitPref } from '../../../api/weather';
 import { WeatherDailyList } from './WeatherDailyList';
 import { WeatherDetailTiles } from './WeatherDetailTiles';
@@ -15,8 +12,9 @@ import { AUTO_PLACE_KEY, buildPlaces, WeatherLocationList } from './WeatherLocat
 import { useWallClock } from './useWallClock';
 import { useWeatherPrefs } from './useWeatherPrefs';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
-import { staleReadingClock, weatherErrorKey, weatherHasNoData } from './weatherError';
-import { formatClock, resolveUnit } from './weatherFormat';
+import { WeatherErrorNotice } from './WeatherErrorNotice';
+import { weatherHasNoData } from './weatherError';
+import { resolveUnit } from './weatherFormat';
 import styles from './WeatherPage.module.scss';
 
 const UNIT_KEYS: WeatherUnitPref[] = ['auto', 'C', 'F'];
@@ -33,9 +31,7 @@ export function WeatherPage() {
   const [selectedKey, setSelectedKey] = useState(AUTO_PLACE_KEY);
   const selected = places.find(p => p.key === selectedKey) ?? places[0];
   const { snap, loaded, error } = useWeatherSnapshot(selected.location);
-  const { timeFormat } = useUnitPrefs();
   const noData = weatherHasNoData(snap, loaded);
-  const staleClock = !noData && error ? staleReadingClock(snap?.asOf) : null;
   const unit = resolveUnit(prefs.unit, selected.location?.cc ?? snap?.countryCode);
   const now = useWallClock();
 
@@ -78,14 +74,7 @@ export function WeatherPage() {
           />
         </aside>
         <section className={styles.detail} data-panel-scrollable="true">
-          {noData && <Notice tone="warning" role="status">{t(weatherErrorKey(error))}</Notice>}
-          {staleClock && (
-            <Notice tone="warning" role="status">
-              {t('panel.widget.weather.error.stale', {
-                time: formatClock(staleClock.hour, staleClock.minute, resolveHour12(timeFormat), t('panel.widget.weather.am'), t('panel.widget.weather.pm')),
-              })}
-            </Notice>
-          )}
+          <WeatherErrorNotice snap={snap} loaded={loaded} error={error} />
           {!noData && (
             <>
               <WeatherHero

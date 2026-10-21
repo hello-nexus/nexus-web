@@ -259,6 +259,29 @@ describe('WeatherTouch', () => {
     expect(api.fetchWeatherPrefs).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['timeout', 'Timeout long'],
+    ['unreachable', 'Unreachable long'],
+    ['http', 'Response long'],
+    ['invalid', 'Response long'],
+    [undefined, 'Unreachable long'],
+  ])('explains an empty snapshot (error %s) instead of showing placeholders', async (error, text) => {
+    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('x', 0), asOf: '', error });
+    render(<WeatherTouch widget={widget({ location: TOKYO })} surface="y70" immersiveGrid={{ columns: 4, rows: 12 }} />);
+    await flush();
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByText('Hourly forecast')).toBeNull();
+    expect(screen.queryByText('--', { exact: false })).toBeNull();
+  });
+
+  it('keeps the reading and adds the stale line when the refresh failed', async () => {
+    api.fetchWeather.mockReset().mockResolvedValue({ ...snapshot('Tokyo, JP', 26), error: 'http' });
+    render(<WeatherTouch widget={widget({ location: TOKYO })} surface="y70" immersiveGrid={{ columns: 4, rows: 12 }} />);
+    await flush();
+    expect(screen.getByText(/^Stale from \d{1,2}:\d{2}/)).toBeInTheDocument();
+    expect(screen.getByText('Hourly forecast')).toBeInTheDocument();
+  });
+
   it('falls back to the auto place and its resolved label without a configured location', async () => {
     render(<WeatherTouch widget={widget()} surface="phone" immersiveGrid={{ columns: 4, rows: 8 }} />);
     await flush();

@@ -5,11 +5,13 @@ import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import type { WidgetProps } from '../types';
 import { WeatherDailyList } from './WeatherDailyList';
 import { useWeatherDetailTiles, WeatherDetailTileCell } from './WeatherDetailTiles';
+import { WeatherErrorNotice } from './WeatherErrorNotice';
 import { WeatherHero } from './WeatherHero';
 import { WeatherHourlyStrip } from './WeatherHourlyStrip';
 import { useWallClock } from './useWallClock';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
 import { WeatherSky } from './sky/WeatherSky';
+import { weatherHasNoData } from './weatherError';
 import { resolveUnit } from './weatherFormat';
 import styles from './WeatherTouch.module.scss';
 
@@ -19,16 +21,22 @@ import styles from './WeatherTouch.module.scss';
 export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
   const location = (widget.config?.location as WeatherLocation | null | undefined) ?? null;
-  const { snap, loaded } = useWeatherSnapshot(location);
+  const { snap, loaded, error } = useWeatherSnapshot(location);
   const unit = resolveUnit(widget.config?.unit as string | undefined, location?.cc ?? snap?.countryCode);
+  const noData = weatherHasNoData(snap, loaded);
   const now = useWallClock();
   const tiles = useWeatherDetailTiles(snap, unit, now).filter(tile => tile.key !== 'feels');
   const label = location ? location.label : (snap?.locationLabel || t('panel.widget.weather.myLocation'));
 
   const cells: ReactNode[] = [
     <div key="hero" className={`${styles.cell} ${styles.grow}`}>
-      <WeatherHero snap={snap} loaded={loaded} unit={unit} label={label} immersive />
-      <WeatherHourlyStrip snap={snap} unit={unit} immersive />
+      <WeatherErrorNotice snap={snap} loaded={loaded} error={error} />
+      {!noData && (
+        <>
+          <WeatherHero snap={snap} loaded={loaded} unit={unit} label={label} immersive />
+          <WeatherHourlyStrip snap={snap} unit={unit} immersive />
+        </>
+      )}
     </div>,
     <div key="daily" className={`${styles.cell} ${styles.fill}`}>
       <WeatherDailyList snap={snap} unit={unit} immersive />
