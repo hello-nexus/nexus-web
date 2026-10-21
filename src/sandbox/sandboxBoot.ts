@@ -4,7 +4,7 @@
 // imports the author bundle. The SDK UI channel rides that dedicated port; the
 // nexus.* data channel stays on the worker's main message port.
 
-import { workerBootScript } from './workerBoot';
+import { rendererBootScript, workerBootScript } from './workerBoot';
 
 // Captured before the author bundle runs so mount() can await the port even if
 // the bundle finishes importing before the host's port message is delivered.
@@ -35,6 +35,23 @@ ${SDK_BOOT_SUFFIX}
     await import(${JSON.stringify(entryUrl)});
   } catch (err) {
     self.postMessage({ type: 'nexus.error', message: String((err && err.message) || err) });
+  }
+})();
+`;
+}
+
+/**
+ * Source of a Canvas renderer worker: the renderer lock set, then the app's
+ * renderer module (a blob URL of its host-fetched bytes). The module's
+ * defineRenderer call announces the worker to the host.
+ */
+export function composeRendererWorkerSource(rendererUrl: string): string {
+  return `${rendererBootScript()}
+(async function () {
+  try {
+    await import(${JSON.stringify(rendererUrl)});
+  } catch (err) {
+    self.postMessage({ type: 'error', message: String((err && err.message) || err) });
   }
 })();
 `;

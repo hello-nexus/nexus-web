@@ -54,6 +54,11 @@ The TS shape lives in `src/widgets/types.ts`.
   // inside device-page chrome (the same chrome as Cooling, Lighting, etc.).
   "category": "device",
 
+  // Optional: renderer modules the app ships for <Canvas> (built from
+  // renderer.ts by `nexus-app build`). `nexus-app validate` checks each exists;
+  // the publish pipeline packs the listed files.
+  "renderers": ["renderer.mjs"],
+
   "capabilities": {
     // Sensor families the app may read via useSensor / sensors.read.
     // Supported patterns: "cpu.*", "gpu.*", "memory.*",
@@ -1022,25 +1027,64 @@ The full day/night world map + scrollable city cards. Self-ticking.
 |---|---|
 | `highlightTz` | `string` (IANA tz to highlight on the map) |
 
-#### `Avatar`
-A first-party 3D character (three.js) rendered host-side from a pack the app
-ships. In a tile it is inert; a tap opens the panel's fullscreen immersive
-view, where pointer orbit/zoom lives. Everything around the character (a
-controls bar, a stream, stickers) is the app's to build from the primitives
-below; the composite carries only the character.
+#### `Canvas`
+A GPU canvas drawn by a renderer module the app ships. The host runs the module
+in its own worker, hands it an `OffscreenCanvas`, and shows the result inside the
+widget. The widget keeps all logic and state; the renderer only draws. Nexus
+carries no engine: three.js or any WebGL code is bundled into the app's own
+`renderer.mjs`.
+
+Widget side (`@hello-nexus/sdk/ui`):
 
 | Prop | Type | Notes |
 |---|---|---|
-| `pack` | `string` | URL to a pack directory or an encrypted `.nxpack` container (app-asset route) |
-| `dance` / `listening` | `boolean` | signal levels forwarded to the pack's bridge |
-| `energy` | `number` | 0..1 |
-| `reaction` | `string` | one-shot `"Trigger#seq"`; bump `seq` to re-fire |
-| `intro` | `boolean` | walk-in + camera push-in once on mount |
-| `interactive` | `boolean` | orbit/zoom in the immersive view (default true) |
-| `demo` | `boolean` | loops the authored reaction showcase |
-| `zoom` | `number` | camera depth as 0..1 of the deepest closeup; omit to leave the camera to its own gestures |
-| `onZoom` | `(fraction: number) => void` | the depth after a wheel or pinch on the canvas, so a control can track it |
-| `onInteraction` | `() => void` | throttled, on any pointer or wheel activity on the stage (idle timers) |
+| `renderer` | `string` | bundle-relative path of the renderer module, e.g. `"renderer.mjs"`; list it in the manifest `renderers` |
+| `props` | `object` | JSON handed to the renderer on start and on every change |
+| `share` | `string` | mounts of this app with the same `renderer` and `share` key share ONE worker and canvas (tile and immersive), moved to the newest mount; omit for one renderer per mount |
+| `interactive` | `boolean` | forward pointer and wheel input, only while this mount holds the canvas and no `Layer`/`Manipulable` gesture is live |
+| `onMessage` | `(data: unknown) => void` | JSON the renderer posts |
+
+Renderer side (`@hello-nexus/sdk/renderer`, inlined into `renderer.mjs`):
+
+```ts
+import { defineRenderer } from '@hello-nexus/sdk/renderer';
+
+defineRenderer((ctx) => {
+  const gl = ctx.canvas.getContext('webgl')!;
+  ctx.onFrame(() => { gl.clear(gl.COLOR_BUFFER_BIT); });
+  ctx.ready();
+});
+```
+
+```ts
+interface RendererContext {
+  canvas: OffscreenCanvas;
+  size: { width: number; height: number; pixelRatio: number }; // CSS px + capped ratio
+  props: Record<string, unknown>;      // latest props of the mount holding the canvas
+  readAsset(path: string): Promise<ArrayBuffer>; // bundle files only; optional ?query kept
+  post(data: unknown): void;           // to the holding mount's onMessage
+  onProps(cb: (props) => void): void;
+  onResize(cb: (size) => void): void;  // backing store already resized
+  onPointer(cb: (e: CanvasPointerEvent) => void): void;
+  onFrame(cb: (dt: number, now: number) => void): void; // only while visible; dt capped
+  onVisibility(cb: (visible: boolean) => void): void;
+  ready(): void;                       // first frame drawn: the host reveals the canvas
+}
+interface CanvasPointerEvent {
+  type: 'down' | 'move' | 'up' | 'cancel' | 'wheel'; pointerId: number; pointerType: string;
+  x: number; y: number; buttons: number; deltaY?: number; deltaMode?: number; // x/y canvas-relative CSS px
+}
+```
+
+The renderer worker has `OffscreenCanvas`, WebGL, `createImageBitmap`,
+`WebAssembly` and `requestAnimationFrame`. It has no network: `fetch` serves
+only `blob:` and `data:` URLs (so engines can decode embedded images) and
+rejects everything else; `readAsset` is the way to load bundle files and is
+scoped to this app. The canvas resizes after a `resize` message; the renderer
+must redraw in `onResize`, since a hidden renderer gets no frames. On a worker
+fault the host respawns the renderer once, then shows a load error. Build with
+`nexus-app build`, which bundles `renderer.ts` or `renderer.tsx` next to
+`index.tsx` into `renderer.mjs` (self-contained, no react).
 
 #### `Manipulable`
 A freely placed, transformable child of a `Layer`. With the layer's

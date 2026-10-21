@@ -109,9 +109,15 @@ Closes the positioning half of **E** and gives **D**'s "no canvas" a bounded ans
 - **No text input / textarea** → blocks calculator entry, search, notes, manual city entry.
 - **No line / area / curve / multi-series chart** (only Ring/Bar/Range/Gauge/Sparkline; Sparkline
   is a bare single-series polyline) → blocks the cooling curve editor, monitoring history graphs.
-- **No canvas / WebGL / SVG passthrough / custom paths** → blocks the lighting LED-map and the
-  ~16 bespoke monitoring gauge designs. (By design - a sandboxed canvas breaks the consistency
-  guarantee. Out of scope, or add curated parameterized gauges.)
+- **No SVG passthrough / custom paths** → blocks the ~16 bespoke monitoring gauge designs.
+  (By design - it breaks the consistency guarantee. Out of scope, or add curated parameterized gauges.)
+- **Canvas / WebGL: renderer-worker model.** `Canvas` hands an app-supplied renderer module a GPU
+  `OffscreenCanvas` in its own worker; the widget worker still has no canvas. Limits: the renderer
+  reaches no network (its `fetch` serves only `blob:` and `data:` URLs) and reads bundle files only
+  through `readAsset`; the renderer is app code, so a bundle over the relay body cap cannot load for a
+  remote panel; a worker has no DOM, so a renderer must work against `OffscreenCanvas`; context loss
+  is the renderer's to handle; WebGL only, no WebGPU. Drawing the LED-map editor or monitoring
+  gauges with it is possible but not a reason to skip the curated components.
 - **No video, no map, no rich/inline-styled text** (`Text` is single-run - can't mix a bold +
   colored word in one line). *To fix inline text:* let `ui-text` accept nested `ui-text` runs.
 - `Gauge` is a **Ring alias** (stub); `Stepper` overflows narrow cells.

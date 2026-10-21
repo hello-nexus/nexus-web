@@ -58,7 +58,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `Scroll`, `Layer`; content - `Text`, `Icon`, `Image`, `Sprite`, `Badge`, `Empty`, `Section`, `Card`; data viz -
   `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider` (see `trackFill` /
   `orientation` below), `Button`, `Stepper`, `Input`, `Toggle`, `Segmented`, `Color` (native HSV
-  picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `Avatar` (host-rendered 3D character), `ClockFace`,
+  picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `Canvas` (a GPU canvas drawn by your own renderer module), `ClockFace`,
   `WorldClock`, `ViewHeader` (real native tab bar), `MediaImport` (host-mediated file pick +
   crop + upload). Props are semantic (`tone`/`size`/`weight`/`variant`) and theme through panel
   tokens. No `style`/`className` - that is deliberate (consistency). `Button`/`Card` also take
@@ -133,6 +133,7 @@ node sdk/cli/nexus-app.mjs new my-app     # scaffold nexus.app/1: index.tsx + ma
 node sdk/cli/nexus-app.mjs build my-app   # -> my-app/widget.mjs  (--dev, --sourcemap)
 node sdk/cli/nexus-app.mjs dev my-app     # rebuild widget.mjs on change (unminified)
 node sdk/cli/nexus-app.mjs validate my-app # check manifest + entry against the nexus.app/1 schema
+#   build also bundles renderer.ts[x] -> renderer.mjs when present (see `Canvas`)
 ```
 
 The shim re-exports exactly what the runtime exports (probed). Runtime source: the installed

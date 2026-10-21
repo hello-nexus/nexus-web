@@ -52,11 +52,35 @@ export function useSdkRuntime(): { runtimeUrl: string | null; failed: boolean } 
 // the URL is part of a worker's identity, and a second one would respawn it.
 const pendingBundles = new Map<string, Promise<string | null>>();
 
-async function resolveBundle(listingId: string, key: string): Promise<string | null> {
-  const session = await postService<CodeSession>(
+// One code-session per app version, shared by the widget bundle and any file a
+// host component reads from the same bundle (a Canvas renderer module).
+// The service expires a session after an hour; reuse stops well before that.
+const CODE_SESSION_REUSE_MS = 45 * 60 * 1000;
+const codeSessions = new Map<string, { at: number; session: Promise<CodeSession | null> }>();
+
+function codeSessionFor(listingId: string, key: string): Promise<CodeSession | null> {
+  const cached = codeSessions.get(key);
+  if (cached && Date.now() - cached.at < CODE_SESSION_REUSE_MS) return cached.session;
+  const session = postService<CodeSession>(
     `/apps-api/installed/${encodeURIComponent(listingId)}/code-session`, {},
-  );
-  if (!session?.baseUrl) return null;
+  ).then((s) => (s?.baseUrl ? s : null), () => null);
+  void session.then((s) => { if (!s && codeSessions.get(key)?.session === session) codeSessions.delete(key); });
+  codeSessions.set(key, { at: Date.now(), session });
+  return session;
+}
+
+/** Reads one file of an installed app's bundle through the code route, relay-aware. */
+export async function fetchBundleFile(listingId: string, relPath: string): Promise<Blob | null> {
+  const version = getMarketplaceListing(listingId)?.version ?? null;
+  if (version === null) return null;
+  const session = await codeSessionFor(listingId, `${listingId}@${version}`);
+  if (!session) return null;
+  return fetchServiceBlob(`${session.baseUrl}/${relPath}`);
+}
+
+async function resolveBundle(listingId: string, key: string): Promise<string | null> {
+  const session = await codeSessionFor(listingId, key);
+  if (!session) return null;
   const blob = await fetchServiceBlob(`${session.baseUrl}/widget.mjs`);
   if (!blob) return null;
   const url = URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));

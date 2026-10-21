@@ -14,5 +14,5 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable", "WebWorker"],
     "types": []
   },
-  "include": ["../runtime/sdk.ts", "../runtime/ui.tsx", "../../src/sandbox/contract/elements.ts"]
+  "include": ["../runtime/sdk.ts", "../runtime/ui.tsx", "../runtime/renderer.ts", "../../src/sandbox/contract/elements.ts"]
 }

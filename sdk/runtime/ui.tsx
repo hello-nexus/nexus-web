@@ -214,32 +214,25 @@ export interface ClockFaceProps {
   // split the time into lines (analog). Defaults to 'horizontal'.
   layout?: 'horizontal' | 'stacked';
 }
-/** First-party 3D avatar (three.js), rendered host-side. */
-export interface AvatarProps {
-  /** URL to a pack directory or an encrypted .nxpack container. */
-  pack: string;
-  dance?: boolean;
-  listening?: boolean;
-  /** 0..1. */
-  energy?: number;
-  /** One-shot "TriggerName#seq"; increment seq so a repeat re-fires. */
-  reaction?: string;
-  /** Plays the walk-in + camera push-in once on mount. Default false. */
-  intro?: boolean;
+/** A GPU canvas drawn by an app-supplied renderer module (see \`@hello-nexus/sdk/renderer\`). */
+export interface CanvasProps {
+  /** Bundle-relative path of the renderer module, e.g. "renderer.mjs". */
+  renderer: string;
+  /** JSON object handed to the renderer on start and on every change. */
+  props?: Record<string, unknown>;
   /**
-   * Pointer orbit/zoom (the wheel rides full body to head closeup). Default
-   * true. Applies only in the panel's fullscreen immersive view; a widget
-   * tile is always inert (tapping it opens fullscreen).
+   * Mounts of this app with the same \`renderer\` and \`share\` key share ONE
+   * renderer worker and canvas, which moves to the newest mount. Omit for one
+   * renderer per mount.
+   */
+  share?: string;
+  /**
+   * Forward pointer and wheel input to the renderer. Applies only while this
+   * mount holds the canvas and no Layer/Manipulable gesture is live.
    */
   interactive?: boolean;
-  /** Loops the authored reaction showcase (wave/cheer/dance/...). Default false. */
-  demo?: boolean;
-  /** Camera depth as 0..1 of the deepest closeup. Omit to leave the camera to its own gestures. */
-  zoom?: number;
-  /** Fires with the depth after a wheel or pinch on the canvas, so a control can track it. */
-  onZoom?: (fraction: number) => void;
-  /** Fires, throttled, on any pointer or wheel activity on the stage. */
-  onInteraction?: () => void;
+  /** Fires with the JSON the renderer posts. */
+  onMessage?: (data: unknown) => void;
 }
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }
 export interface ViewHeaderProps {
@@ -389,7 +382,7 @@ export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-in
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
-export const Avatar = eventComponent<AvatarProps>('ui-avatar', ELEMENT_CTORS['ui-avatar'], [['onZoom', 'zoom'], ['onInteraction', 'interaction']]);
+export const Canvas = eventComponent<CanvasProps>('ui-canvas', ELEMENT_CTORS['ui-canvas'], [['onMessage', 'message']]);
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);
