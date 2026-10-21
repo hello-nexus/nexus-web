@@ -909,8 +909,9 @@ export const testLedPattern = (id: string, pattern: string) =>
 export const clearLedEditor = (id: string) =>
   deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-editor`);
 
+/** areaBoxes: the boxes recomputed from the posted draft, present when the card is area sampled and the service returns them. */
 export const postLedPreviewLayout = (id: string, ledCount: number, leds: { index: number; u: number; v: number; disabled: boolean }[]) =>
-  postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-preview-layout`, { ledCount, leds });
+  postService<ApiEnvelope & { areaBoxes?: number[] | null }>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-preview-layout`, { ledCount, leds });
 
 // --- Device structure & zones (device-scoped LED map editor) ---
 

@@ -1446,6 +1446,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // ── Live preview push ─────────────────────────────────────────────────
 
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Area boxes the service recomputed from the draft layout, with the card they belong to.
+  const [draftBoxes, setDraftBoxes] = useState<{ id: string; boxes: number[] } | null>(null);
+  const draftBoxesSeq = useRef(0);
 
   useEffect(() => {
     if (loading || saving) return;
@@ -1458,11 +1461,16 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     clearTimeout(previewTimerRef.current);
     previewTimerRef.current = setTimeout(() => {
       if (isStagedZoneId(selectedZoneIdRef.current)) return;
+      const sentFor = selectedZoneIdRef.current;
+      const mine = ++draftBoxesSeq.current;
       postLedPreviewLayout(
-        selectedZoneIdRef.current,
+        sentFor,
         ledCount,
         zoneLeds.map(l => ({ index: l.index, u: l.u, v: l.v, disabled: l.disabled })),
-      ).catch(() => { /* best-effort */ });
+      ).then(r => {
+        // Newest response wins; the boxes follow the draft the service just read.
+        if (mine === draftBoxesSeq.current && r && !r.error && r.areaBoxes) setDraftBoxes({ id: sentFor, boxes: r.areaBoxes });
+      }).catch(() => { /* best-effort */ });
     }, 80);
     return () => clearTimeout(previewTimerRef.current);
   }, [leds, selectedZoneId, loading, saving, zoneScoped]);
@@ -2458,12 +2466,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             >
             </div>
 
-            {/* Area sampling: the box each LED averages, under the dots. Follows the service's latest boxes for this card. */}
-            {zoneCard?.areaSampling && zoneCard.areaBoxes?.length ? (() => {
+            {/* Area sampling: the box each LED averages, under the dots. Follows the boxes the service returns for the draft layout, else the card's latest. */}
+            {zoneCard?.areaSampling && (draftBoxes?.id === zoneCard.id ? draftBoxes.boxes : zoneCard.areaBoxes)?.length ? (() => {
               const pad = getPadPercent();
               const innerW = devRect.w - 2 * pad.px;
               const innerH = devRect.h - 2 * pad.py;
-              return areaBoxRects(zoneCard.areaBoxes).map(b => (
+              const boxes = draftBoxes?.id === zoneCard.id ? draftBoxes.boxes : zoneCard.areaBoxes!;
+              return areaBoxRects(boxes).map(b => (
                 <div
                   key={`box:${b.index}`}
                   className={styles.areaBox}
