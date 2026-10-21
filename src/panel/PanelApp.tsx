@@ -863,7 +863,7 @@ export function PanelContent({
   const resizeGestureRef = useRef(false);
   const freeformWidget = freeformId ? findWidgetById(paginatedLayout, freeformId) : undefined;
   const resizeBounds = { cols: Math.max(1, capacity.gridCols), rows: Math.max(1, capacity.pageRows) };
-  // Corners snap to the widget's declared sizes that fit; opted-in widgets also get the even spans past 4x4.
+  // Corners snap to the widget's declared sizes that fit; opted-in widgets also get the even spans beyond the declared sizes.
   const resizeSpansFor = (type: string): GridSpan[] => {
     const meta = lookupApp(type)?.meta;
     if (!meta || isSingleWidgetSurface(surface)) return [];
@@ -899,30 +899,40 @@ export function PanelContent({
     resizeGestureRef.current = false;
     freeform.end();
   }, [freeform]);
-  const exitFreeform = useCallback(() => setFreeformId(null), []);
+  const cancelResize = useCallback(() => {
+    resizeGestureRef.current = false;
+    freeform.cancel();
+  }, [freeform]);
+  // Leaving mid-drag keeps what the drag produced.
+  const exitFreeform = useCallback(() => {
+    if (resizeGestureRef.current) endResize();
+    setFreeformId(null);
+  }, [endResize]);
   // A press outside the frame ends the mode and goes no further.
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
     if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
     e.stopPropagation();
     if (e.type !== 'pointerdown') return;
     // The release and click completing this press would otherwise reach the widget under it;
-    // the guard lasts until that click, or the next press when no click follows.
-    const stop = (ev: Event) => ev.stopPropagation();
+    // the guard lasts until that pointer click, or until the next press or key when none follows.
     const clearGuards = () => {
       document.removeEventListener('pointerup', onUp, true);
       document.removeEventListener('pointercancel', onCancel, true);
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerdown', clearGuards, true);
+      document.removeEventListener('keydown', clearGuards, true);
     };
     function onUp(ev: Event) {
       ev.stopPropagation();
       document.removeEventListener('pointercancel', onCancel, true);
       document.addEventListener('click', onClick, true);
       document.addEventListener('pointerdown', clearGuards, true);
+      document.addEventListener('keydown', clearGuards, true);
     }
     function onCancel() { clearGuards(); }
-    function onClick(ev: Event) {
-      stop(ev);
+    function onClick(ev: MouseEvent) {
+      // A keyboard or programmatic click carries no pointer detail and passes through.
+      if (ev.detail > 0) ev.stopPropagation();
       clearGuards();
     }
     document.addEventListener('pointerup', onUp, true);
@@ -2090,6 +2100,7 @@ export function PanelContent({
                             onUpdate={freeform.update}
                             onStep={freeform.step}
                             onEnd={endResize}
+                            onCancel={cancelResize}
                             onExit={exitFreeform}
                           />
                         ) : null}

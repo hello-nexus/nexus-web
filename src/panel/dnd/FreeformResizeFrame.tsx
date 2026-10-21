@@ -37,6 +37,7 @@ export function FreeformResizeFrame({
   onUpdate,
   onStep,
   onEnd,
+  onCancel,
   onExit,
 }: {
   widget: PanelWidget;
@@ -52,19 +53,20 @@ export function FreeformResizeFrame({
   // One keyboard step of a corner to the next snap span.
   onStep: (corner: FreeformCorner, stepCols: number, stepRows: number) => void;
   onEnd: () => void;
+  // The frame unmounted mid-gesture: drop it without committing a draft built on a stale layout.
+  onCancel: () => void;
   onExit: () => void;
 }) {
   const { t } = useTranslation();
   const pressRef = useRef<Press | null>(null);
   const span = sizeToSpan(widget.size);
 
-  // A frame unmounted mid-gesture still ends it, so the draft and the host's gesture flag never go stale.
-  const onEndRef = useRef(onEnd);
-  useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
+  const onCancelRef = useRef(onCancel);
+  useEffect(() => { onCancelRef.current = onCancel; }, [onCancel]);
   useEffect(() => () => {
     if (pressRef.current) {
       pressRef.current = null;
-      onEndRef.current();
+      onCancelRef.current();
     }
   }, []);
 

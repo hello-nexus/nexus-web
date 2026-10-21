@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { PanelLayout, PanelWidget } from '../types';
+import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 import { findWidgetById } from './panelLayoutHelpers';
 import { sizeToSpan, type GridSpan } from './grid';
 import { tryResizeWidget } from './panelLayoutOps';
@@ -17,7 +17,8 @@ import {
 
 export type FreeformGesture = 'move' | FreeformCorner;
 
-interface Session { base: PanelLayout; start: FreeformRect; }
+// `size` is the stored size: a move keeps it even when the rendered span is clamped to the grid.
+interface Session { base: PanelLayout; start: FreeformRect; size: PanelWidgetSize; }
 
 /** Every update re-derives the draft from the layout the gesture began on, so dragging back restores pushed widgets; `end` commits. */
 export function useFreeformResize({
@@ -55,11 +56,11 @@ export function useFreeformResize({
     if (!widget) return false;
     const span = sizeToSpan(clampFreeformSize(widget.size, { cols: boundCols, rows: boundRows }));
     rejectArmedRef.current = true;
-    sessionRef.current = { base: layout, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
+    sessionRef.current = { base: layout, size: widget.size, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
     return true;
   }, [layout, widgetId, boundCols, boundRows]);
 
-  const applyTarget = useCallback((session: Session, target: FreeformRect) => {
+  const applyTarget = useCallback((session: Session, target: FreeformRect, moving: boolean) => {
     if (!widgetId) return;
     if (sameRect(target, session.start)) {
       rejectArmedRef.current = true;
@@ -69,7 +70,7 @@ export function useFreeformResize({
     const next = tryResizeWidget(
       session.base,
       widgetId,
-      spanToSize(target),
+      moving ? session.size : spanToSize(target),
       capacity,
       maxPages,
       { col: target.col, row: target.row },
@@ -89,13 +90,13 @@ export function useFreeformResize({
     const bounds = { cols: boundCols, rows: boundRows };
     applyTarget(session, gesture === 'move'
       ? moveRect(session.start, dCols, dRows, bounds)
-      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds));
+      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds), gesture === 'move');
   }, [applyTarget, boundCols, boundRows, snapSpans]);
 
   const step = useCallback((corner: FreeformCorner, stepCols: number, stepRows: number) => {
     const session = sessionRef.current;
     if (!session) return;
-    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }));
+    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }), false);
   }, [applyTarget, boundCols, boundRows, snapSpans]);
 
   const end = useCallback(() => {
@@ -105,5 +106,11 @@ export function useFreeformResize({
     if (next) onCommit(next);
   }, [onCommit, setBoth]);
 
-  return { draft, begin, update, step, end };
+  // Drops the gesture without committing, for a frame that goes away while the layout moved on.
+  const cancel = useCallback(() => {
+    sessionRef.current = null;
+    setBoth(null);
+  }, [setBoth]);
+
+  return { draft, begin, update, step, end, cancel };
 }

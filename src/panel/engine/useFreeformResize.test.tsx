@@ -49,3 +49,43 @@ describe('useFreeformResize rejection feedback', () => {
     expect(h.onReject).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('useFreeformResize move and cancel', () => {
+  it('keeps the stored size when a tile rendered clamped on a narrow grid is moved', () => {
+    const l = layout(tile('a', '8x4', 0, 0));
+    const onCommit = vi.fn();
+    const { result } = renderHook(() => useFreeformResize({
+      widgetId: 'a', layout: l, capacity: { gridCols: 4, pageRows: 8 }, snapSpans: SPANS, maxPages: 1, onCommit, onReject: vi.fn(),
+    }));
+    act(() => { result.current.begin(); });
+    act(() => { result.current.update('move', 0, 1); });
+    act(() => { result.current.end(); });
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit.mock.calls[0][0].pages[0].widgets[0]).toMatchObject({ size: '8x4', col: 0, row: 1 });
+  });
+
+  it('still writes the resized span for a corner drag', () => {
+    const h = setup(layout(tile('a', '4x4', 0, 0)));
+    act(() => { h.result.current.begin(); });
+    act(() => { h.result.current.update('br', 2, 0); });
+    act(() => { h.result.current.end(); });
+    expect(h.onCommit.mock.calls[0][0].pages[0].widgets[0].size).toBe('6x4');
+  });
+
+  it('commits nothing when cancelled after the layout was replaced mid-drag', () => {
+    const onCommit = vi.fn();
+    let current = layout(tile('a', '4x4', 0, 0), tile('b', '4x2', 4, 0));
+    const { result, rerender } = renderHook(() => useFreeformResize({
+      widgetId: 'a', layout: current, capacity: CAPACITY, snapSpans: SPANS, maxPages: 1, onCommit, onReject: vi.fn(),
+    }));
+    act(() => { result.current.begin(); });
+    act(() => { result.current.update('br', 2, 0); });
+    expect(result.current.draft).not.toBeNull();
+    current = layout(tile('a', '4x4', 0, 0));
+    rerender();
+    act(() => { result.current.cancel(); });
+    act(() => { result.current.end(); });
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(result.current.draft).toBeNull();
+  });
+});
