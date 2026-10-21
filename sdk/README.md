@@ -133,7 +133,7 @@ node sdk/cli/nexus-app.mjs new my-app     # scaffold nexus.app/1: index.tsx + ma
 node sdk/cli/nexus-app.mjs build my-app   # -> my-app/widget.mjs  (--dev, --sourcemap)
 node sdk/cli/nexus-app.mjs dev my-app     # rebuild widget.mjs on change (unminified)
 node sdk/cli/nexus-app.mjs validate my-app # check manifest + entry against the nexus.app/1 schema
-#   build also bundles renderer.ts[x] -> renderer.mjs when present (see `Canvas`)
+#   build also bundles renderer.ts -> renderer.mjs when present (see `Canvas`)
 ```
 
 The shim re-exports exactly what the runtime exports (probed). Runtime source: the installed

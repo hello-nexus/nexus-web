@@ -24,7 +24,7 @@ class FakeWorker {
   sent(type: string) { return this.posted.filter((p) => p.data.type === type).map((p) => p.data); }
 }
 
-const spec: CanvasSpec = { appId: 'com.test.app', renderer: 'renderer.mjs' };
+const spec: CanvasSpec = { appId: 'com.test.app', renderer: 'renderer.mjs', version: '1.0.0' };
 const flush = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
 
 function makeWrap(width = 300, height = 150): HTMLDivElement {
@@ -104,7 +104,7 @@ describe('CanvasSession protocol', () => {
     vi.stubGlobal('devicePixelRatio', 2);
     const session = acquireCanvas(freshKey(), spec, wrap, claimOf({ props: { hello: 'x' } }));
     await flush();
-    expect(fetchBundleFile).toHaveBeenCalledWith('com.test.app', 'renderer.mjs');
+    expect(fetchBundleFile).toHaveBeenCalledWith('com.test.app', 'renderer.mjs', '1.0.0');
     const worker = FakeWorker.all[0];
     expect(worker.options).toMatchObject({ type: 'module' });
     expect(worker.posted).toHaveLength(0);
@@ -145,6 +145,36 @@ describe('CanvasSession protocol', () => {
     expect(worker.sent('resize')).toHaveLength(1);
     session.resize(makeWrap());
     expect(worker.sent('resize')).toHaveLength(1);
+  });
+
+  it('revokes both blob URLs once the renderer has booted', async () => {
+    const revoked: string[] = [];
+    URL.revokeObjectURL = (u) => { revoked.push(u); };
+    const session = acquireCanvas(freshKey(), spec, makeWrap(), claimOf());
+    await flush();
+    expect(revoked).toHaveLength(0);
+    FakeWorker.all[0].emit({ type: 'booted' });
+    expect(revoked).toHaveLength(2);
+    void session;
+  });
+
+  it('keeps sessions of different listing versions apart', () => {
+    expect(canvasKey(spec, 's:stage')).not.toBe(canvasKey({ ...spec, version: '2.0.0' }, 's:stage'));
+  });
+
+  it('re-sends the size when the pixel ratio changes at the same CSS size', async () => {
+    let onChange: (() => void) | null = null;
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      media: q, matches: false,
+      addEventListener: (_t: string, cb: () => void) => { onChange = cb; },
+      removeEventListener: () => {},
+    }));
+    vi.stubGlobal('devicePixelRatio', 1);
+    const { worker } = await readySession();
+    expect(onChange).not.toBeNull();
+    vi.stubGlobal('devicePixelRatio', 2);
+    onChange!();
+    expect(worker.sent('resize').pop()).toEqual({ type: 'resize', size: { width: 300, height: 150, pixelRatio: 1.5 } });
   });
 
   it('forwards visibility changes of the holder', async () => {
@@ -275,6 +305,60 @@ describe('pointer forwarding', () => {
     fire(session, on);
     expect(on.defaultPrevented).toBe(true);
     expect(worker.sent('pointer')[0].event).toMatchObject({ type: 'wheel', deltaY: 120, deltaMode: 0 });
+  });
+});
+
+describe('pointer lifecycle', () => {
+  function ptr(type: string, init: Record<string, unknown> = {}) {
+    const ev = new Event(type, { bubbles: true, cancelable: true }) as Event & Record<string, unknown>;
+    Object.assign(ev, { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10, buttons: 1, ...init });
+    return ev;
+  }
+  const types = (w: FakeWorker) => w.sent('pointer').map((m) => (m.event as { type: string }).type);
+
+  it('keeps forwarding a forwarded pointer after a layer gesture goes live or input is switched off', async () => {
+    const { session, worker, wrap } = await readySession({ interactive: true });
+    const canvas = session.element.firstElementChild as HTMLElement;
+    const layer = document.createElement('div');
+    document.body.appendChild(layer);
+    layer.appendChild(session.element);
+    canvas.dispatchEvent(ptr('pointerdown'));
+    layer.setAttribute('data-layer-gesture-live', 'true');
+    canvas.dispatchEvent(ptr('pointermove'));
+    session.update(wrap, { interactive: false });
+    canvas.dispatchEvent(ptr('pointerup'));
+    expect(types(worker)).toEqual(['down', 'move', 'up']);
+    canvas.dispatchEvent(ptr('pointermove'));
+    expect(types(worker)).toHaveLength(3);
+  });
+
+  it('cancels forwarded pointers when the canvas moves to another holder', async () => {
+    const { key, session, worker } = await readySession({ interactive: true });
+    const canvas = session.element.firstElementChild as HTMLElement;
+    canvas.dispatchEvent(ptr('pointerdown', { pointerId: 3 }));
+    acquireCanvas(key, spec, makeWrap(), claimOf());
+    expect(worker.sent('pointer').pop()?.event).toMatchObject({ type: 'cancel', pointerId: 3 });
+    canvas.dispatchEvent(ptr('pointerup', { pointerId: 3 }));
+    expect(types(worker)).toEqual(['down', 'cancel']);
+  });
+
+  it('cancels a forwarded pointer whose capture is lost', async () => {
+    const { session, worker } = await readySession({ interactive: true });
+    const canvas = session.element.firstElementChild as HTMLElement;
+    canvas.dispatchEvent(ptr('pointerdown', { pointerId: 5 }));
+    canvas.dispatchEvent(ptr('lostpointercapture', { pointerId: 5 }));
+    expect(types(worker)).toEqual(['down', 'cancel']);
+    canvas.dispatchEvent(ptr('lostpointercapture', { pointerId: 5 }));
+    expect(types(worker)).toHaveLength(2);
+  });
+
+  it('a normal release does not add a cancel', async () => {
+    const { session, worker } = await readySession({ interactive: true });
+    const canvas = session.element.firstElementChild as HTMLElement;
+    canvas.dispatchEvent(ptr('pointerdown'));
+    canvas.dispatchEvent(ptr('pointerup'));
+    canvas.dispatchEvent(ptr('lostpointercapture'));
+    expect(types(worker)).toEqual(['down', 'up']);
   });
 });
 

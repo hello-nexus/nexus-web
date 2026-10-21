@@ -218,7 +218,7 @@ export interface ClockFaceProps {
 export interface CanvasProps {
   /** Bundle-relative path of the renderer module, e.g. "renderer.mjs". */
   renderer: string;
-  /** JSON object handed to the renderer on start and on every change. */
+  /** Structured-clone object handed to the renderer on start and on every change. */
   props?: Record<string, unknown>;
   /**
    * Mounts of this app with the same \`renderer\` and \`share\` key share ONE
@@ -228,10 +228,11 @@ export interface CanvasProps {
   share?: string;
   /**
    * Forward pointer and wheel input to the renderer. Applies only while this
-   * mount holds the canvas and no Layer/Manipulable gesture is live.
+   * mount holds the canvas; inside a Layer it is also held back while one of
+   * the layer's Manipulable gestures is live.
    */
   interactive?: boolean;
-  /** Fires with the JSON the renderer posts. */
+  /** Fires with the structured-clone data the renderer posts. */
   onMessage?: (data: unknown) => void;
 }
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }

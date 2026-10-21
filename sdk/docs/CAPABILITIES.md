@@ -55,8 +55,11 @@ The TS shape lives in `src/widgets/types.ts`.
   "category": "device",
 
   // Optional: renderer modules the app ships for <Canvas> (built from
-  // renderer.ts by `nexus-app build`). `nexus-app validate` checks each exists;
-  // the publish pipeline packs the listed files.
+  // renderer.ts by `nexus-app build`). `nexus-app validate` checks each exists.
+  // Packing is the job of the shared app-publish workflow, which must add every
+  // listed entry to the .nexus-app archive; the CLI only builds the files. The
+  // host does not check this list at runtime. `__NEXUS_APP_ENV_*__` placeholders
+  // are filled in widget.mjs only for now, not in renderer modules.
   "renderers": ["renderer.mjs"],
 
   "capabilities": {
@@ -1039,10 +1042,10 @@ Widget side (`@hello-nexus/sdk/ui`):
 | Prop | Type | Notes |
 |---|---|---|
 | `renderer` | `string` | bundle-relative path of the renderer module, e.g. `"renderer.mjs"`; list it in the manifest `renderers` |
-| `props` | `object` | JSON handed to the renderer on start and on every change |
+| `props` | `object` | structured-clone data (no functions) handed to the renderer on start and on every change |
 | `share` | `string` | mounts of this app with the same `renderer` and `share` key share ONE worker and canvas (tile and immersive), moved to the newest mount; omit for one renderer per mount |
-| `interactive` | `boolean` | forward pointer and wheel input, only while this mount holds the canvas and no `Layer`/`Manipulable` gesture is live |
-| `onMessage` | `(data: unknown) => void` | JSON the renderer posts |
+| `interactive` | `boolean` | forward pointer and wheel input, only while this mount holds the canvas; when the Canvas sits inside a `Layer`, input is also held back while one of that layer's `Manipulable` gestures is live |
+| `onMessage` | `(data: unknown) => void` | structured-clone data the renderer posts |
 
 Renderer side (`@hello-nexus/sdk/renderer`, inlined into `renderer.mjs`):
 
@@ -1061,8 +1064,8 @@ interface RendererContext {
   canvas: OffscreenCanvas;
   size: { width: number; height: number; pixelRatio: number }; // CSS px + capped ratio
   props: Record<string, unknown>;      // latest props of the mount holding the canvas
-  readAsset(path: string): Promise<ArrayBuffer>; // bundle files only; optional ?query kept
-  post(data: unknown): void;           // to the holding mount's onMessage
+  readAsset(path: string): Promise<ArrayBuffer>; // bundle files of an allowed type only; optional ?query kept
+  post(data: unknown): void;           // structured-clone data, to the holding mount's onMessage
   onProps(cb: (props) => void): void;
   onResize(cb: (size) => void): void;  // backing store already resized
   onPointer(cb: (e: CanvasPointerEvent) => void): void;
@@ -1080,10 +1083,13 @@ The renderer worker has `OffscreenCanvas`, WebGL, `createImageBitmap`,
 `WebAssembly` and `requestAnimationFrame`. It has no network: `fetch` serves
 only `blob:` and `data:` URLs (so engines can decode embedded images) and
 rejects everything else; `readAsset` is the way to load bundle files and is
-scoped to this app. The canvas resizes after a `resize` message; the renderer
+scoped to this app. It goes through the app asset route, which serves only
+`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.ico`, `.svg`, `.nxpack` and `.key`
+files; any other extension (a `.json`, `.glb` or `.bin`) is refused, so ship
+data inside a `.nxpack` or one of the image types. The canvas resizes after a `resize` message; the renderer
 must redraw in `onResize`, since a hidden renderer gets no frames. On a worker
 fault the host respawns the renderer once, then shows a load error. Build with
-`nexus-app build`, which bundles `renderer.ts` or `renderer.tsx` next to
+`nexus-app build`, which bundles `renderer.ts` next to
 `index.tsx` into `renderer.mjs` (self-contained, no react).
 
 #### `Manipulable`

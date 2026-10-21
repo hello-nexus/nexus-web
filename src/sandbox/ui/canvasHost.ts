@@ -1,8 +1,10 @@
 // Host side of `ui-canvas`: owns one renderer worker plus the canvas it draws
 // to, and speaks the renderer protocol (see sdk/runtime/rendererCore.ts). The
-// session survives React unmounts so a panel-grid drag remount or the immersive
-// overlay reuses the same live renderer: the element holding the canvas is
-// reparented to the newest claimant, and disposal waits out a grace window.
+// session outlives a React unmount for a grace window. Mounts that pass the
+// same `share` key reuse one live renderer, so a panel-grid drag remount or the
+// immersive overlay keeps it: the element holding the canvas is reparented to
+// the newest claimant. A mount without `share` has its own session, which a
+// remount does not find again.
 
 import type {
   CanvasPointerEvent, HostToRenderer, RendererSize, RendererToHost,
@@ -82,6 +84,8 @@ export interface CanvasClaim {
 export interface CanvasSpec {
   appId: string;
   renderer: string;
+  /** Listing version; part of the identity so an update never reuses an old renderer. */
+  version: string;
 }
 
 export class CanvasSession {
@@ -94,6 +98,10 @@ export class CanvasSession {
   private canvas: HTMLCanvasElement;
   private worker: Worker | null = null;
   private rendererUrl: string | null = null;
+  private bootUrl: string | null = null;
+  private stopResolutionWatch: (() => void) | null = null;
+  /** Forwarded pointers still down, with their last canvas position. */
+  private readonly forwarded = new Map<number, { pointerType: string; x: number; y: number }>();
   private bootTimer: ReturnType<typeof setTimeout> | null = null;
   private booted = false;
   private respawns = 0;
@@ -116,7 +124,9 @@ export class CanvasSession {
     for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'] as const) {
       this.element.addEventListener(t, this.onPointer as EventListener);
     }
+    this.element.addEventListener('lostpointercapture', this.onLostCapture as EventListener);
     this.element.addEventListener('wheel', this.onWheel, { passive: false });
+    this.watchResolution();
     void this.start();
   }
 
@@ -169,6 +179,8 @@ export class CanvasSession {
     if (this.disposed) return;
     this.disposed = true;
     this.teardownWorker();
+    this.stopResolutionWatch?.();
+    this.stopResolutionWatch = null;
     this.element.remove();
     this.listeners.clear();
     this.claims.clear();
@@ -188,6 +200,9 @@ export class CanvasSession {
   }
 
   private attach(wrap: HTMLElement): void {
+    // Moving the element drops pointer capture, so pointers the renderer still
+    // sees as down are cancelled first.
+    this.cancelForwarded();
     wrap.appendChild(this.element);
     this.holder = wrap;
     const claim = this.claims.get(wrap);
@@ -201,6 +216,30 @@ export class CanvasSession {
   private applyInteractive(claim: CanvasClaim): void {
     this.canvas.style.pointerEvents = claim.interactive ? 'auto' : 'none';
     this.canvas.style.touchAction = claim.interactive ? 'none' : '';
+  }
+
+  /** Re-sends the size when the device pixel ratio changes at an unchanged CSS size. */
+  private watchResolution(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    let stop: (() => void) | null = null;
+    const arm = () => {
+      const mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+      const onChange = () => {
+        if (this.holder) this.sendSize(this.holder);
+        arm();
+      };
+      mql.addEventListener?.('change', onChange, { once: true });
+      stop = () => mql.removeEventListener?.('change', onChange);
+    };
+    arm();
+    this.stopResolutionWatch = () => stop?.();
+  }
+
+  private cancelForwarded(): void {
+    for (const [pointerId, p] of this.forwarded) {
+      this.send({ type: 'pointer', event: { type: 'cancel', pointerId, pointerType: p.pointerType, x: p.x, y: p.y, buttons: 0 } });
+    }
+    this.forwarded.clear();
   }
 
   private currentSize(wrap: HTMLElement): RendererSize | null {
@@ -246,21 +285,20 @@ export class CanvasSession {
     const ref = normaliseAssetPath(this.spec.renderer);
     if (!ref || ref.query !== '') { this.fail('invalid renderer path'); return; }
     let blob: Blob | null = null;
-    try { blob = await fetchBundleFile(this.spec.appId, ref.path); } catch { blob = null; }
+    try { blob = await fetchBundleFile(this.spec.appId, ref.path, this.spec.version); } catch { blob = null; }
     if (this.disposed || generation !== this.generation) return;
     if (!blob) { this.fail('renderer module could not be fetched'); return; }
     this.rendererUrl = URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
     const source = composeRendererWorkerSource(this.rendererUrl);
     const bootUrl = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+    this.bootUrl = bootUrl;
     let worker: Worker;
     try {
       worker = new Worker(bootUrl, { type: 'module', name: `canvas:${this.spec.appId}` });
     } catch (e) {
-      URL.revokeObjectURL(bootUrl);
       this.fail(e);
       return;
     }
-    setTimeout(() => URL.revokeObjectURL(bootUrl), 2000);
     this.worker = worker;
     this.booted = false;
     worker.addEventListener('message', (ev: MessageEvent) => this.onWorkerMessage(worker, ev.data as RendererToHost));
@@ -282,6 +320,7 @@ export class CanvasSession {
       case 'booted': {
         if (this.booted) return;
         this.booted = true;
+        this.revokeUrls();
         if (this.bootTimer) { clearTimeout(this.bootTimer); this.bootTimer = null; }
         this.init(worker);
         return;
@@ -347,7 +386,13 @@ export class CanvasSession {
     this.worker = null;
     this.booted = false;
     try { worker?.terminate(); } catch { /* already gone */ }
+    this.revokeUrls();
+  }
+
+  /** Both blob URLs are spent once the worker has run its boot script and imported the module. */
+  private revokeUrls(): void {
     if (this.rendererUrl) { URL.revokeObjectURL(this.rendererUrl); this.rendererUrl = null; }
+    if (this.bootUrl) { URL.revokeObjectURL(this.bootUrl); this.bootUrl = null; }
   }
 
   /** One respawn on a worker fault, then the error state. */
@@ -392,21 +437,34 @@ export class CanvasSession {
     return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
   }
 
+  private readonly onLostCapture = (e: PointerEvent): void => {
+    const p = this.forwarded.get(e.pointerId);
+    if (!p) return;
+    this.forwarded.delete(e.pointerId);
+    this.send({ type: 'pointer', event: { type: 'cancel', pointerId: e.pointerId, pointerType: p.pointerType, x: p.x, y: p.y, buttons: 0 } });
+  };
+
   private readonly onPointer = (e: PointerEvent): void => {
-    if (!this.pointerAllowed()) return;
     const type = e.type.slice('pointer'.length) as CanvasPointerEvent['type'];
-    if (this.withheld.has(e.pointerId)) {
-      if (type === 'up' || type === 'cancel') this.withheld.delete(e.pointerId);
-      return;
-    }
-    if (this.layerGestureLive()) {
-      if (type === 'down') this.withheld.add(e.pointerId);
-      return;
+    const tracked = this.forwarded.has(e.pointerId);
+    const wasWithheld = this.withheld.has(e.pointerId);
+    if (wasWithheld && (type === 'up' || type === 'cancel')) this.withheld.delete(e.pointerId);
+    // A pointer whose down reached the renderer always gets the rest of its
+    // events, whatever the gates say now, so the renderer never keeps a stuck pointer.
+    if (!tracked) {
+      if (wasWithheld || !this.pointerAllowed()) return;
+      if (this.layerGestureLive()) {
+        if (type === 'down') this.withheld.add(e.pointerId);
+        return;
+      }
     }
     if (type === 'down') {
       try { this.canvas.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     }
     const { x, y } = this.local(e);
+    if (type === 'down') this.forwarded.set(e.pointerId, { pointerType: e.pointerType, x, y });
+    else if (type === 'up' || type === 'cancel') this.forwarded.delete(e.pointerId);
+    else if (tracked) this.forwarded.set(e.pointerId, { pointerType: e.pointerType, x, y });
     this.send({
       type: 'pointer',
       event: { type, pointerId: e.pointerId, pointerType: e.pointerType, x, y, buttons: e.buttons },
@@ -432,7 +490,7 @@ const sessions = new Map<string, CacheEntry>();
 
 /** Cache key: shared mounts agree on `share`; an unshared mount passes its own id. */
 export function canvasKey(spec: CanvasSpec, shareOrMount: string): string {
-  return JSON.stringify([spec.appId, spec.renderer, shareOrMount]);
+  return JSON.stringify([spec.appId, spec.version, spec.renderer, shareOrMount]);
 }
 
 export function acquireCanvas(key: string, spec: CanvasSpec, wrap: HTMLElement, claim: CanvasClaim): CanvasSession {

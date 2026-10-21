@@ -183,7 +183,7 @@ export const UI_ELEMENTS = {
   },
   // Generic GPU canvas driven by an app-supplied renderer module. `renderer` is
   // the bundle-relative path of a module the host runs in its own worker with an
-  // OffscreenCanvas; `props` is a JSON object handed to it on start and on every
+  // OffscreenCanvas; `props` is a structured-clone object handed to it on start and on every
   // change; mounts of the same app with the same `renderer` and `share` key share
   // one worker and canvas, moved to the newest mount. `interactive` forwards
   // pointer and wheel input to the renderer while this mount holds the canvas.

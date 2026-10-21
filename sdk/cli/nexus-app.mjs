@@ -5,7 +5,7 @@
 //
 //   nexus-app new <dir>        scaffold a starter app (index.tsx + manifest.json + config)
 //   nexus-app build [dir]      bundle index.tsx -> widget.mjs (LIGHT; the host provides the runtime),
-//                              and renderer.ts[x] -> renderer.mjs (self-contained) when present
+//                              and renderer.ts -> renderer.mjs (self-contained) when present
 //   nexus-app validate [dir]   check the manifest + entry are well-formed
 //
 // `build` externalises react / react/jsx-runtime / @hello-nexus/sdk / @hello-nexus/sdk/ui
@@ -116,11 +116,14 @@ async function buildSpec(appDir, opts) {
 
 // The renderer module runs in the host's renderer worker, which has no SDK runtime
 // and no react: it is bundled with everything inlined (the engine, three, and the
-// renderer end of the SDK). nodePaths adds the app's own node_modules so sources
-// outside the app dir (shared engine code) resolve their packages from the app's
-// installed dependencies; normal resolution still applies first.
+// renderer end of the SDK). Bare package imports from ANY source file, including
+// shared code outside the app dir, resolve from the app's own node_modules first
+// (the CI build only installs there, and one copy of a package keeps singleton
+// libraries such as three from registering twice); normal resolution is only the
+// fallback for a package the app has not installed.
 function rendererEntry(dir) {
-  return ['renderer.ts', 'renderer.tsx'].map((f) => join(dir, f)).find(existsSync) ?? null;
+  const entry = join(dir, 'renderer.ts');
+  return existsSync(entry) ? entry : null;
 }
 
 function rendererSdkPlugin(rendererSdk) {
@@ -128,6 +131,19 @@ function rendererSdkPlugin(rendererSdk) {
     name: 'nexus-renderer-sdk',
     setup(b) {
       b.onResolve({ filter: /^@hello-nexus\/sdk\/renderer$/ }, () => (rendererSdk ? { path: rendererSdk } : undefined));
+    },
+  };
+}
+
+function appFirstResolvePlugin(dir) {
+  return {
+    name: 'nexus-app-first-resolve',
+    setup(b) {
+      b.onResolve({ filter: /^[^./\\][^:]*$/ }, async (args) => {
+        if (args.pluginData?.nexusAppFirst) return undefined;
+        const r = await b.resolve(args.path, { resolveDir: dir, kind: args.kind, pluginData: { nexusAppFirst: true } });
+        return r.errors.length === 0 ? { path: r.path, namespace: r.namespace, sideEffects: r.sideEffects } : undefined;
+      });
     },
   };
 }
@@ -143,7 +159,7 @@ function rendererSpec(appDir, opts, rt) {
       bundle: true, format: 'esm', platform: 'browser', target: 'es2019',
       minify: !opts.dev, sourcemap: !!opts.sourcemap,
       nodePaths: [join(dir, 'node_modules')],
-      plugins: [rendererSdkPlugin(rt.renderer)],
+      plugins: [rendererSdkPlugin(rt.renderer), appFirstResolvePlugin(dir)],
       define: { 'process.env.NODE_ENV': opts.dev ? '"development"' : '"production"' },
       metafile: true, logLevel: 'warning',
     },
@@ -246,7 +262,7 @@ function cmdValidate(appDir) {
       if (m.renderers != null) {
         if (!Array.isArray(m.renderers) || m.renderers.some((x) => typeof x !== 'string')) errors.push('manifest.renderers must be a string array');
         else for (const x of m.renderers) {
-          // Built from renderer.ts[x] by `build`, so a built file or its source both satisfy this.
+          // Built from renderer.ts by `build`, so a built file or its source both satisfy this.
           const rel = x.replace(/\\/g, '/');
           if (rel.startsWith('/') || rel.split('/').includes('..')) errors.push(`manifest.renderers entry "${x}" must be a path inside the app`);
           else if (!existsSync(join(dir, rel)) && !(rel === 'renderer.mjs' && rendererEntry(dir))) errors.push(`manifest.renderers entry "${x}" does not exist (run \`nexus-app build\`)`);

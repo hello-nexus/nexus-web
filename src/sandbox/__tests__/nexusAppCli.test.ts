@@ -50,6 +50,27 @@ describe.skipIf(!canRun)('nexus-app build with a renderer', () => {
     expect(out).toContain('booted');
   });
 
+  it('resolves a package installed in both places to the app copy, once', () => {
+    const dup = join(root, 'dup');
+    mkdirSync(join(dup, 'node_modules', 'twin'), { recursive: true });
+    mkdirSync(join(root, 'node_modules', 'twin'), { recursive: true });
+    mkdirSync(join(root, 'shared2'), { recursive: true });
+    for (const [base, tag] of [[join(dup, 'node_modules', 'twin'), 'TWIN-APP-COPY'], [join(root, 'node_modules', 'twin'), 'TWIN-OUTER-COPY']] as const) {
+      writeFileSync(join(base, 'index.js'), `export const TAG = "${tag}";\n`);
+      writeFileSync(join(base, 'package.json'), '{"name":"twin","type":"module","main":"index.js"}\n');
+    }
+    writeFileSync(join(root, 'shared2', 'engine.ts'), "import { TAG } from 'twin';\nexport const engine = () => TAG;\n");
+    writeFileSync(join(dup, 'index.tsx'), "import { mount } from '@hello-nexus/sdk';\nmount(() => null);\n");
+    writeFileSync(join(dup, 'renderer.ts'),
+      "import { defineRenderer } from '@hello-nexus/sdk/renderer';\nimport { TAG } from 'twin';\nimport { engine } from '../shared2/engine';\n" +
+      'defineRenderer((ctx) => { ctx.post([TAG, engine()]); });\n');
+    const r = run('build', dup);
+    expect(r.status, r.stderr).toBe(0);
+    const out = readFileSync(join(dup, 'renderer.mjs'), 'utf8');
+    expect(out.match(/TWIN-APP-COPY/g)).toHaveLength(1);
+    expect(out).not.toContain('TWIN-OUTER-COPY');
+  });
+
   it('leaves the widget bundle on the runtime shim', () => {
     const widget = readFileSync(join(app, 'widget.mjs'), 'utf8');
     expect(widget).toContain('__nexusRuntime');

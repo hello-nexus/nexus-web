@@ -8,8 +8,8 @@ import { rendererBootScript, workerBootScript } from '../workerBoot';
 function bootedGlobal(script: string): Record<string, unknown> & { self: Record<string, unknown> } {
   const calls: string[] = [];
   const sandbox: Record<string, unknown> = {
-    URL, Promise, TypeError,
-    fetch: (input: unknown) => { calls.push(String(input)); return Promise.resolve({ ok: true }); },
+    URL, Promise, TypeError, Request, Object,
+    fetch: (input: unknown) => { calls.push((input as { url?: string }).url ?? String(input)); return Promise.resolve({ ok: true }); },
     createImageBitmap: () => 1,
     WebAssembly: {},
     OffscreenCanvas: class {},
@@ -58,6 +58,20 @@ describe('rendererBootScript', () => {
     }
     await expect(probe(g, 'fetch({ url: "https://example.com/a" })')).rejects.toBeInstanceOf(TypeError);
     expect(calls).toHaveLength(2);
+  });
+
+  it('checks the request that is actually sent, not a spoofable string', async () => {
+    const g = bootedGlobal(rendererBootScript());
+    const calls = g.__calls as string[];
+    await expect(probe(g, 'fetch({ url: "blob:https://nexus.local/1", toString() { return "https://example.com/a"; } })'))
+      .rejects.toBeInstanceOf(TypeError);
+    await expect(probe(g, `(() => {
+      class Sneaky extends Request { get url() { return "blob:https://nexus.local/1"; } }
+      return fetch(new Sneaky("https://example.com/a"));
+    })()`)).rejects.toBeInstanceOf(TypeError);
+    expect(calls).toHaveLength(0);
+    await expect(probe(g, 'fetch(new Request("data:text/plain;base64,AA=="))')).resolves.toBeTruthy();
+    expect(calls).toEqual(['data:text/plain;base64,AA==']);
   });
 
   it('does not let the guard be replaced', () => {

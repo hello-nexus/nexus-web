@@ -30,7 +30,7 @@ export interface RendererContext {
   props: Record<string, unknown>;
   /** Reads a file of the app bundle through the host. */
   readAsset(path: string): Promise<ArrayBuffer>;
-  /** Sends JSON to the holding mount's onMessage. */
+  /** Sends structured-clone data to the holding mount's onMessage. */
   post(data: unknown): void;
   onProps(cb: (props: Record<string, unknown>) => void): void;
   /** Fires after the canvas backing store was resized to the new size. */

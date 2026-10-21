@@ -53,14 +53,16 @@ const KILLED_NAVIGATOR = [
 const FETCH_GUARD = `
 const _realFetch = self.fetch;
 function _guardedFetch(input, init) {
-  let ok = false;
+  // The request is built once and checked, then handed to the real fetch as
+  // that same object, so a spoofed toString or url getter cannot differ between
+  // the check and the request.
+  let req;
   try {
-    const raw = typeof input === "string" ? input : (input && typeof input.url === "string" ? input.url : String(input));
-    const proto = new URL(raw, "about:blank").protocol;
-    ok = proto === "blob:" || proto === "data:";
-  } catch (_) { ok = false; }
-  if (!ok) return Promise.reject(new TypeError("Failed to fetch"));
-  return _realFetch.call(self, input, init);
+    req = new Request(input, init);
+    const proto = new URL(req.url).protocol;
+    if (proto !== "blob:" && proto !== "data:") throw new TypeError("blocked");
+  } catch (_) { return Promise.reject(new TypeError("Failed to fetch")); }
+  return _realFetch.call(self, req);
 }
 _lock(self, ["fetch"], _guardedFetch);
 `;

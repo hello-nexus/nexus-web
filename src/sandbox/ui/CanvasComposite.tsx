@@ -6,13 +6,14 @@
 // usePanelPreview() is a null-safe context read (defaults false with no
 // provider), so this never throws outside the catalog's PanelPreviewProvider.
 
-import { type CSSProperties, useContext, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Box } from 'lucide-react';
 import type { HostProps } from './components';
 import { usePanelPreview } from '../../panel/widgets/common/PanelPreviewContext';
 import { useTranslation } from '../../lib/i18n';
 import { Spinner } from '../../components/common/Spinner/Spinner';
 import { SdkAppIdContext } from '../appIdContext';
+import { getMarketplaceListing, subscribeMarketplaceRegistry } from '../../widgets/marketplaceRegistry';
 import {
   acquireCanvas, canvasKey, inViewFromEntries, releaseCanvas, type CanvasClaim, type CanvasPhase, type CanvasSession,
 } from './canvasHost';
@@ -61,21 +62,27 @@ export function CanvasComposite(p: HostProps) {
   const sessionRef = useRef<CanvasSession | null>(null);
   const [phase, setPhase] = useState<CanvasPhase>('loading');
 
-  const live = !preview && appId !== undefined && renderer !== '';
-  const key = live ? canvasKey({ appId, renderer }, sharedPart) : null;
+  // The listing version is part of the session identity, so an app update never
+  // reattaches a worker that runs the previous renderer module.
+  const version = useSyncExternalStore(
+    subscribeMarketplaceRegistry,
+    () => (appId === undefined ? null : getMarketplaceListing(appId)?.version ?? null),
+  );
+  const live = !preview && appId !== undefined && renderer !== '' && version !== null;
+  const key = live ? canvasKey({ appId, renderer, version }, sharedPart) : null;
 
   // Acquires (or re-acquires after a grid-drag remount) the cached session and
   // reparents its canvas into this mount's wrapper.
   useEffect(() => {
     const wrap = wrapRef.current;
-    if (!wrap || key === null || appId === undefined) return;
+    if (!wrap || key === null || appId === undefined || version === null) return;
     const claim: CanvasClaim = {
       interactive: interactiveRef.current,
       props: propsRef.current,
       visible: typeof document === 'undefined' || !document.hidden,
       onMessage: (data) => eventsRef.current?.message?.(data),
     };
-    const session = acquireCanvas(key, { appId, renderer }, wrap, claim);
+    const session = acquireCanvas(key, { appId, renderer, version }, wrap, claim);
     sessionRef.current = session;
     setPhase(session.phase);
     const unsubscribe = session.subscribe(() => setPhase(session.phase));
@@ -84,7 +91,7 @@ export function CanvasComposite(p: HostProps) {
       sessionRef.current = null;
       releaseCanvas(key, session, wrap);
     };
-  }, [key, appId, renderer]);
+  }, [key, appId, renderer, version]);
 
   useEffect(() => {
     const wrap = wrapRef.current;

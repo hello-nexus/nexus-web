@@ -7,7 +7,7 @@ import { rendererBootScript, workerBootScript } from '../src/sandbox/workerBoot'
 
 const PROBE = `
 ;(async function () {
-  const out = { types: {}, webgl: null, blobFetch: null, dataFetch: null, httpFetch: null, pathFetch: null };
+  const out = { types: {}, webgl: null, blobFetch: null, dataFetch: null, httpFetch: null, pathFetch: null, spoofObject: null, spoofRequest: null };
   ['OffscreenCanvas', 'createImageBitmap', 'WebAssembly', 'requestAnimationFrame', 'fetch', 'WebSocket', 'XMLHttpRequest', 'Worker', 'indexedDB']
     .forEach(function (k) { out.types[k] = typeof self[k]; });
   try {
@@ -29,6 +29,10 @@ const PROBE = `
     out.dataFetch = await attempt('data:text/plain;base64,eA==');
     out.httpFetch = await attempt('http://127.0.0.1:1/a');
     out.pathFetch = await attempt('/sdk-runtime.mjs');
+    const blobUrl = URL.createObjectURL(new Blob(['x']));
+    out.spoofObject = await attempt({ url: blobUrl, toString: () => 'http://127.0.0.1:1/a' });
+    class Sneaky extends Request { get url() { return blobUrl; } }
+    out.spoofRequest = await attempt(new Sneaky('http://127.0.0.1:1/a'));
   }
   self.postMessage(out);
 })();
@@ -37,6 +41,7 @@ const PROBE = `
 type Report = {
   types: Record<string, string>; webgl: number[] | string | null;
   blobFetch: string | null; dataFetch: string | null; httpFetch: string | null; pathFetch: string | null;
+  spoofObject: string | null; spoofRequest: string | null;
 };
 
 async function run(page: import('@playwright/test').Page, boot: string): Promise<Report> {
@@ -69,6 +74,9 @@ test('a renderer worker keeps network and channel globals closed and fetch blob-
   expect(r.dataFetch).toBe('ok');
   expect(r.httpFetch).toBe('TypeError');
   expect(r.pathFetch).toBe('TypeError');
+  // The check and the sent request must be the same object: spoofed strings and url getters fail.
+  expect(r.spoofObject).toBe('TypeError');
+  expect(r.spoofRequest).toBe('TypeError');
 });
 
 test('the widget worker surface is unchanged: no fetch, no decode, no wasm', async ({ page }) => {

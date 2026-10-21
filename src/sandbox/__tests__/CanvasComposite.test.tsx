@@ -5,6 +5,11 @@ import { ROOT_ID, NODE_TYPE_ELEMENT, MUTATION_TYPE_INSERT_CHILD } from '@remote-
 
 const fetchBundleFile = vi.fn();
 vi.mock('../../panel/widgets/marketplace/useSdkBundle', () => ({ fetchBundleFile: (...a: unknown[]) => fetchBundleFile(...a) }));
+const listingVersion: string | undefined = '1.0.0';
+vi.mock('../../widgets/marketplaceRegistry', () => ({
+  getMarketplaceListing: () => ({ version: listingVersion }),
+  subscribeMarketplaceRegistry: () => () => {},
+}));
 vi.mock('../../api/service', () => ({ fetchServiceBlob: vi.fn() }));
 
 import { RemoteTree } from '../RemoteTree';
