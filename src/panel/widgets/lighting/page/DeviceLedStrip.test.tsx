@@ -63,6 +63,17 @@ describe('DeviceLedStrip', () => {
     expect(ctx.fillStyle).toBe('#0000ff');
   });
 
+  it('reads each cell as its area box mean when Area sampling is on', () => {
+    // Top row white, bottom row black; one box per row.
+    const px = new Uint8Array(3 * 4);
+    px.fill(255, 0, 6);
+    publishLedFrame(px, 2, 2);
+    const area: LightingDevice = { ...device, ledCount: 2, areaSampling: true, areaBoxes: [0, 0, 1, 0.5, 0, 0.5, 1, 1] };
+    render(<DeviceLedStrip device={area} />);
+    const out = ctx.putImageData.mock.calls.at(-1)![0].data as Uint8ClampedArray;
+    expect([...out]).toEqual([255, 255, 255, 255, 0, 0, 0, 255]);
+  });
+
   describe('real device bytes', () => {
     const withIndex: LightingDevice = { ...device, frameIndex: 7 };
     // 4 LEDs: red, green, blue, white.

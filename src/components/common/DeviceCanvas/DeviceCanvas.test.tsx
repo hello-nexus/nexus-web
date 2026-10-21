@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
+import { publishLedFrame, clearLedFrame } from '../../../lib/ledFrameStore';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
@@ -77,6 +78,33 @@ describe('DeviceCanvas', () => {
     const box = frames[0].querySelector<HTMLElement>(`.${styles.ledBox}`)!;
     expect(box.style.width).toBe('50%');
     expect(box.style.height).toBe('100%');
+    // No frame yet: boxes sit black until the stream paints them.
+    expect(box.style.background).toBe('rgb(0, 0, 0)');
+  });
+
+  it('colors boxes from the live frame, with a locked color winning', () => {
+    const w = 100, h = 60;
+    const pixels = new Uint8Array(w * h * 3);
+    pixels.fill(255, 0, w * (h / 2) * 3);
+    publishLedFrame(pixels, w, h);
+    const a = {
+      ...dragDevice('a', 'A'), canvasX: 0, canvasY: 0, canvasW: 1000, canvasH: 600, canvasRotation: 0,
+      areaSampling: true, areaBoxes: [0, 0, 1, 0.4, 0, 0.6, 1, 1, 0, 0, 1, 0.4],
+      ledColors: [{ index: 2, color: '#ff0000' }],
+    } as unknown as LightingDevice;
+    const { container } = render(
+      <DeviceCanvas
+        devices={[a]}
+        selectedIds={new Set(['a'])}
+        selectedDeviceLeds={{ a: [] }}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const boxes = [...container.querySelectorAll<HTMLElement>(`.${styles.ledBox}`)];
+    expect(boxes.map(b => b.style.background)).toEqual(['rgb(255, 255, 255)', 'rgb(0, 0, 0)', 'rgb(255, 0, 0)']);
+    clearLedFrame();
   });
 
   it('draws no frames or names when asked to hide them', () => {

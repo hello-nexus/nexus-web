@@ -2815,10 +2815,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </button>
             ) : <span />}
             <div className={styles.saveGroup}>
-              {zoneCard && zoneCard.ledCount > 0 && (
+              {zoneCard && zoneCard.areaSampling !== undefined && (
                 <AreaSamplingToggle
                   id={zoneCard.id}
-                  value={zoneCard.areaSampling ?? false}
+                  value={zoneCard.areaSampling}
                   onFail={() => push({ title: t('lighting.ledMap.areaSamplingFailed') })}
                   onSaved={onRateCapChanged}
                 />

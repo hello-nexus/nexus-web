@@ -8,14 +8,14 @@ import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
-import { areaBoxRects } from '../../../lib/areaBoxes';
-import { subscribeLedFrame } from '../../../lib/ledFrameStore';
+import { areaBoxRects, sampleAreaBox } from '../../../lib/areaBoxes';
+import { subscribeLedFrame, type LedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
 import { DeviceContextMenu, menuSections, type DeviceMenuItem } from './DeviceContextMenu';
 import { stackMenuItems, type StackActions } from './groupMenuItems';
-import { sliceStackSlot, stackSlotOf, type DeviceStack } from '../../../lib/stackSlots';
+import { sliceStackSlot, stackSlotOf, type DeviceStack, type StackSlot } from '../../../lib/stackSlots';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 
@@ -318,6 +318,47 @@ function layoutLabels(
   }
   return out;
 }
+
+/** One Area-sampling device's boxes, each filled with the live mean of its patch of the effect canvas. Painted from the frame store, so a frame never re-renders the page. */
+const AreaBoxLayer = memo(function AreaBoxLayer({ frame, boxes, slot, part, locked }: {
+  frame: LightingDevice; boxes: number[]; slot: StackSlot | null; part: { x: number; y: number; w: number; h: number }; locked?: Map<number, string>;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const rects = useMemo(() => areaBoxRects(boxes), [boxes]);
+  const latest = useRef<LedFrame | null>(null);
+  const paintRef = useRef<() => void>(() => {});
+  paintRef.current = () => {
+    const root = ref.current;
+    const f = latest.current;
+    if (!root) return;
+    rects.forEach((box, i) => {
+      const el = root.children[i] as HTMLElement | undefined;
+      if (!el) return;
+      const lock = locked?.get(box.index);
+      if (lock) { el.style.background = lock; return; }
+      if (!f?.pixels || f.w === 0) { el.style.background = '#000'; return; }
+      const [r, g, b] = sampleAreaBox({ pixels: f.pixels, w: f.w, h: f.h }, frame, box, slot);
+      el.style.background = `rgb(${r} ${g} ${b})`;
+    });
+  };
+  useEffect(() => subscribeLedFrame(f => { latest.current = f; paintRef.current(); }), []);
+  // The frame rect moves during a drag and colors lock between frames.
+  useEffect(() => { paintRef.current(); });
+  return (
+    <div ref={ref} className={styles.ledBoxLayer}>
+      {rects.map(({ index, u0, v0, u1, v1 }) => (
+        <div
+          key={index}
+          className={styles.ledBox}
+          style={{
+            left: `${(part.x + u0 * part.w) * 100}%`, top: `${(part.y + v0 * part.h) * 100}%`,
+            width: `${(u1 - u0) * part.w * 100}%`, height: `${(v1 - v0) * part.h * 100}%`,
+          }}
+        />
+      ))}
+    </div>
+  );
+});
 
 // Paints from ledFrameStore: a pixels prop would re-render the lighting page per frame.
 export const CanvasBackground = memo(function CanvasBackground() {
@@ -950,22 +991,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                 const slot = stackSlotOf(stacks, id);
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
                 const locked = ledColorsById.get(id);
-                const boxes = devices.find(d => d.id === id);
-                if (boxes?.areaSampling && boxes.areaBoxes?.length) {
-                  return areaBoxRects(boxes.areaBoxes).map(({ index, u0, v0, u1, v1 }) => {
-                    const color = locked?.get(index);
-                    return (
-                      <div
-                        key={`${id}:box:${index}`}
-                        className={styles.ledBox}
-                        style={{
-                          left: `${(part.x + u0 * part.w) * 100}%`, top: `${(part.y + v0 * part.h) * 100}%`,
-                          width: `${(u1 - u0) * part.w * 100}%`, height: `${(v1 - v0) * part.h * 100}%`,
-                          ...(color ? { background: color } : {}),
-                        }}
-                      />
-                    );
-                  });
+                const member = devices.find(d => d.id === id);
+                if (member?.areaSampling && member.areaBoxes?.length) {
+                  return [<AreaBoxLayer key={`${id}:boxes`} frame={dev} boxes={member.areaBoxes} slot={slot} part={part} locked={locked} />];
                 }
                 return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => {
                   const color = locked?.get(led.index);
