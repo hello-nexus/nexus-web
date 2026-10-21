@@ -108,9 +108,22 @@ describe('resize mode on the resized tile', () => {
     cell('a').addEventListener('click', clicked);
     fireEvent.pointerDown(cell('a'), { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true, clientX: 40, clientY: 40 });
     fireEvent.pointerUp(cell('a'), { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true, clientX: 40, clientY: 40 });
-    fireEvent.click(inner);
+    fireEvent.click(inner, { detail: 1 });
     expect(clicked).not.toHaveBeenCalled();
     await waitFor(() => expect(frame()).toBeNull());
+  });
+
+  it('lets a keyboard click through to a control and keeps the mode', async () => {
+    await enterResizeMode('a');
+    const inner = cell('a').querySelector('button, [role="button"], div')!;
+    const clicked = vi.fn();
+    cell('a').addEventListener('click', clicked);
+    fireEvent.pointerDown(cell('a'), { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true, clientX: 40, clientY: 40 });
+    fireEvent.pointerUp(cell('a'), { pointerId: 1, pointerType: 'mouse', button: 0, isPrimary: true, clientX: 40, clientY: 40 });
+    fireEvent.keyDown(document, { key: 'Enter' });
+    fireEvent.click(inner, { detail: 0 });
+    expect(clicked).toHaveBeenCalledTimes(1);
+    expect(frame()).not.toBeNull();
   });
 
   it('hides the frame while a drag of the tile is active, on the regular drag path', async () => {

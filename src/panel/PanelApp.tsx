@@ -209,7 +209,8 @@ const FREEFORM_TAP_SLOP_PX = 4;
 const FREEFORM_TAP_MAX_MS = PANEL_CONTEXT_MENU_TRIGGER_MS;
 const DRAG_DISTANCE_PX = 6;
 
-// A press on the tile in resize mode (marked by PanelTouchCell) belongs to the distance sensor, every other one to the hold sensor.
+// Both drag sensors register on every cell and dnd-kit lets the last-registered activator take a press, which in resize mode is this one.
+// Presses on any other tile never reach it: the capture-phase swallow ends the mode first.
 const onResizeTile = (event: Event) => event.target instanceof Element && event.target.closest('[data-resize-selected="true"]') !== null;
 const pointerActivator = (accept: (event: PointerEvent) => boolean) => [{
   eventName: 'onPointerDown' as const,
@@ -219,9 +220,6 @@ const pointerActivator = (accept: (event: PointerEvent) => boolean) => [{
     return true;
   },
 }];
-class HoldPointerSensor extends PointerSensor {
-  static activators = pointerActivator(event => !onResizeTile(event));
-}
 class ResizeTilePointerSensor extends PointerSensor {
   static activators = pointerActivator(onResizeTile);
 }
@@ -953,7 +951,7 @@ export function PanelContent({
   }, [endResize]);
   // Resize mode ends on a tap of the resized tile, a press anywhere else, or Escape.
   const freeformTapRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  // A tap ends the mode on its click, so the click can be swallowed before it reaches a control in the tile.
+  // Exit waits for the tap's click: that click must still be swallowed while the mode is active, or it would fire a control in the tile.
   const freeformTapPendingRef = useRef(false);
   const freeformTapPointers = useMemo(() => ({
     onPointerDown: (e: React.PointerEvent) => {
@@ -972,13 +970,13 @@ export function PanelContent({
   const swallowOutsideFreeform = useCallback((e: React.SyntheticEvent) => {
     if (e.target instanceof Element && e.target.closest('[data-freeform-frame]')) return;
     if (e.target instanceof Element && freeformId && e.target.closest(`[data-panel-widget-id="${CSS.escape(freeformId)}"]`)) {
-      // The tile's own presses run its drag and tap; its controls must not also fire on a click.
+      // The tile's own presses run its drag and tap; a pointer click must not also fire its controls.
+      // A keyboard or programmatic click (no pointer detail) passes through.
       if (e.type === 'click') {
-        e.stopPropagation();
-        if (freeformTapPendingRef.current) {
-          freeformTapPendingRef.current = false;
-          exitFreeform();
-        }
+        const pointerClick = (e.nativeEvent as MouseEvent).detail > 0;
+        if (pointerClick) e.stopPropagation();
+        if (pointerClick && freeformTapPendingRef.current) exitFreeform();
+        freeformTapPendingRef.current = false;
       }
       return;
     }
@@ -1012,7 +1010,10 @@ export function PanelContent({
   }, [exitFreeform, freeformId]);
   useEffect(() => {
     if (!freeformActive) return undefined;
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') exitFreeform(); };
+    const onKeyDown = (e: KeyboardEvent) => {
+      freeformTapPendingRef.current = false;
+      if (e.key === 'Escape') exitFreeform();
+    };
     document.addEventListener('keydown', onKeyDown);
     // In the preview a press on the page around the iframe takes focus out of it.
     if (simulator) window.addEventListener('blur', exitFreeform);
@@ -1720,7 +1721,7 @@ export function PanelContent({
   // long-press first; tap still opens settings (no movement).
   const desktopActivation = surface === 'desktop' || simulator;
   const pointerSensor = useSensor(
-    desktopActivation ? PointerSensor : HoldPointerSensor,
+    PointerSensor,
     desktopActivation
       ? { activationConstraint: { distance: DRAG_DISTANCE_PX } }
       : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
