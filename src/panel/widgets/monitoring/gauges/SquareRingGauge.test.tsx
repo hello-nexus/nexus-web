@@ -150,10 +150,25 @@ describe('squareRing geometry', () => {
       height.mockRestore();
       expect(container.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 200 100');
       // Closing starts one stroke short of the end: later on the longer
-      // perimeter, so 98% still has its start cap patch there but not on a square.
+      // perimeter, so the same value still has its start cap patch there but not on a square.
       expect(container.querySelector('path[data-start-cap]')).not.toBeNull();
       const square = render(<SquareRingGauge {...props} value={98} gradient={{ ...gradient, id: 'q' }} />).container;
       expect(square.querySelector('path[data-start-cap]')).toBeNull();
     });
+  });
+
+  it('keeps the start patch behind the end cap tip so the tip stays hot', () => {
+    const gradient = { id: 'tip', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
+    const { perimeter } = squareRingShape();
+    const capUnits = RING_STROKE / 2;
+    const closeAt = 100 - (RING_STROKE / perimeter) * 100;
+    // Inside the window where the tip is within the patch's default reach.
+    const value = closeAt - 0.05;
+    const { container } = render(<SquareRingGauge {...props} value={value} gradient={gradient} />);
+    const d = container.querySelector('path[data-start-cap]')!.getAttribute('d')!;
+    const back = 50 - Number(d.split(' ')[1]);
+    const tipToStart = ((100 - value) / 100) * perimeter - capUnits;
+    expect(back).toBeLessThanOrEqual(tipToStart + 1e-6);
+    expect(back).toBeGreaterThan(0);
   });
 });

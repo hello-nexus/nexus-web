@@ -27,6 +27,10 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
   // start cap reaches behind the start, where the hot end color would show, so
   // a first-color patch covers that half cap until the two caps meet.
   const capUnits = RING_STROKE / 2;
+  // The patch never reaches back past the end cap's tip, or the tip shows the
+  // first color instead of the hot one.
+  const tipToStart = ((PATH_LENGTH - clamped) / PATH_LENGTH) * perimeter - capUnits;
+  const patchBack = Math.min(capUnits + START_PATCH_MARGIN, tipToStart);
   const { complete, closing } = gradedRingClosure(clamped, PATH_LENGTH, (RING_STROKE / perimeter) * PATH_LENGTH);
   const segments = useMemo(() => {
     if (!gradient) return [];
@@ -85,7 +89,7 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
               {!closing && (
                 <path
                   data-start-cap=""
-                  d={startSeamPath(width, capUnits + START_PATCH_MARGIN, START_PATCH_FORWARD)}
+                  d={startSeamPath(width, patchBack, START_PATCH_FORWARD)}
                   fill="none"
                   stroke={segments[0].color}
                   strokeWidth={RING_STROKE + SEGMENT_BLEED}

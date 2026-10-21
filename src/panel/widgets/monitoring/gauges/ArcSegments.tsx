@@ -62,6 +62,7 @@ export function ArcSegments({ geometry, gradient, fillPercent }: {
   const full = geometry.sweepDeg >= 360;
   const { complete, closing } = gradedRingClosure(reveal, arcLength, geometry.strokeWidth);
   const seamDeg = (geometry.strokeWidth / 2 / geometry.radius) * (180 / Math.PI);
+  const endCapTipDeg = geometry.startDeg + (reveal / arcLength) * geometry.sweepDeg + seamDeg;
 
   const segments = useMemo(() => {
     const step = geometry.sweepDeg / SEGMENTS;
@@ -120,7 +121,9 @@ export function ArcSegments({ geometry, gradient, fillPercent }: {
         {full && !closing && (
           <path
             data-start-cap=""
-            d={arcPath(geometry, sweepEnd - seamDeg - SEAM_BACK_MARGIN_DEG, sweepEnd + SEAM_FORWARD_DEG)}
+            // Never reaches back past the end cap's tip, or the tip shows the
+            // first color instead of the hot one.
+            d={arcPath(geometry, Math.max(sweepEnd - seamDeg - SEAM_BACK_MARGIN_DEG, endCapTipDeg), sweepEnd + SEAM_FORWARD_DEG)}
             fill="none"
             stroke={first}
             strokeWidth={band}

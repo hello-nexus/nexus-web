@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ArcSegments, type ArcGeometry } from './ArcSegments';
+import { CaterpillarGauge } from './CaterpillarGauge';
 
 const gradient = { id: 'arc', stops: [{ at: 0, color: '#33cc88' }, { at: 1, color: '#ee4444' }] };
 const ring: ArcGeometry = { cx: 50, cy: 50, radius: 43.5, startDeg: -90, sweepDeg: 360, strokeWidth: 9 };
@@ -28,12 +29,16 @@ describe('ArcSegments', () => {
   });
 
   it.each([10, 50, 97, 99])('draws the closed ring mask as the ungraded dash at %i%%', (percent) => {
-    const { mask } = parts(ring, percent);
-    const [dash, gap] = mask.getAttribute('stroke-dasharray')!.split(' ').map(Number);
-    expect(dash).toBeCloseTo((percent / 100) * circumference, 2);
-    expect(gap).toBeCloseTo(circumference, 2);
-    expect(mask.getAttribute('stroke-linecap')).toBe('round');
-    expect(mask.getAttribute('d')!.startsWith('M 50.000 6.500')).toBe(true);
+    const common = { value: percent, rawValue: percent, formatted: '', label: '', history: [], maxValue: 100, historyDomain: [0, 100] as [number, number] };
+    const plain = render(<CaterpillarGauge {...common} />).container.querySelector('circle[class*="fillRing"]')!;
+    const graded = render(<CaterpillarGauge {...common} gradient={{ ...gradient, id: 'cmp' }} />).container.querySelector('mask path')!;
+    const [plainDash, plainGap] = plain.getAttribute('stroke-dasharray')!.split(' ').map(Number);
+    const [dash, gap] = graded.getAttribute('stroke-dasharray')!.split(' ').map(Number);
+    expect(dash).toBeCloseTo(plainDash, 2);
+    // The plain stroke's gap is the remainder; the mask's is the whole length. Both leave one dash.
+    expect(gap).toBeCloseTo(plainDash + plainGap, 2);
+    expect(graded.getAttribute('stroke-linecap')).toBe('round');
+    expect(graded.getAttribute('d')!.startsWith('M 50.000 6.500')).toBe(true);
   });
 
   it('draws a complete closed ring as the whole closed path', () => {
@@ -62,7 +67,7 @@ describe('ArcSegments', () => {
       const { seam, startCap, segments } = parts(ring, percent);
       expect(startCap).toBeNull();
       expect(seam!.getAttribute('stroke')).toBe(segments[segments.length - 1].getAttribute('stroke'));
-      // One arc from before the start (top center, x just left of 50) to after it.
+      // One arc from before the start (top center) to after it.
       const d = seam!.getAttribute('d')!;
       expect(d.match(/M/g)).toHaveLength(1);
       expect(Number(d.split(' ')[1])).toBeLessThan(50);
@@ -74,5 +79,16 @@ describe('ArcSegments', () => {
     const { seam, startCap } = parts(open, 50);
     expect(seam).toBeNull();
     expect(startCap).toBeNull();
+  });
+
+  it('keeps the start patch behind the end cap tip so the tip stays hot', () => {
+    // Just short of where the caps meet, the end cap tip is inside the patch's default reach.
+    const percent = 96.5;
+    const { startCap } = parts(ring, percent);
+    const [x, y] = startCap!.getAttribute('d')!.split(' ').slice(1, 3).map(Number);
+    const patchDeg = ((Math.atan2(y - ring.cy, x - ring.cx) * 180) / Math.PI + 360) % 360;
+    const tipDeg = (ring.startDeg + (percent / 100) * 360 + (ring.strokeWidth / 2 / ring.radius) * (180 / Math.PI) + 360) % 360;
+    expect(patchDeg).toBeGreaterThanOrEqual(tipDeg - 0.05);
+    expect(patchDeg).toBeLessThan(270);
   });
 });
