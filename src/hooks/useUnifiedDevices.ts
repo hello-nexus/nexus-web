@@ -194,6 +194,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   // display; the row is the whole cooler.
   'nzxt-kraken': 'NZXT Kraken',
   'asiahorse-umbra': 'Asiahorse Umbra V2',
+  'deepcool-mystique': 'DeepCool Mystique',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';
