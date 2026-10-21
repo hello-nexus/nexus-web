@@ -1,4 +1,4 @@
-import { act, cleanup, render, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelLayout, PanelSurface, PanelWidgetSize } from './types';
 
@@ -118,5 +118,48 @@ describe('PanelApp background under an opaque tile', () => {
     await waitFor(() => expect(document.querySelector('img')).not.toBeNull());
     expect(shaderCovered.length).toBeGreaterThan(0);
     expect(shaderCovered.every(c => !c)).toBe(true);
+  });
+});
+
+describe('PanelApp Media background with nothing to show', () => {
+  it('paints the solid background color rather than the bare backdrop', async () => {
+    fetchMock.mockResolvedValue({ found: true, record: { ...recordWith('lcd-round', '2x2round'), backgroundMode: 'media' } });
+    await mountKiosk();
+    await waitFor(() => expect(document.querySelector('[data-panel-bg-layer]')?.className).toMatch(/backgroundSolid/));
+  });
+
+  const withMedia = () => ({
+    ...recordWith('lcd-round', '2x2round'),
+    backgroundMode: 'media',
+    backgroundMediaId: 'm1',
+    backgroundMediaType: 'static',
+    backgroundFrostLevel: 50,
+  });
+  const bgImage = () => document.querySelector('img[class*="backgroundMediaContent"]');
+  const solidLayer = () => [...document.querySelectorAll('[data-panel-bg-layer]')].find(el => /backgroundSolid/.test(el.className));
+
+  it('shows the solid color without frost when the media fails to load, then retries on a growing delay', async () => {
+    fetchMock.mockResolvedValue({ found: true, record: withMedia() });
+    await mountKiosk();
+    await waitFor(() => expect(bgImage()).not.toBeNull());
+    expect(solidLayer()).toBeUndefined();
+    expect(document.querySelector('[data-panel-frost]')).not.toBeNull();
+
+    await act(async () => { fireEvent.error(bgImage()!); });
+    expect(bgImage()).toBeNull();
+    expect(solidLayer()).toBeDefined();
+    expect(document.querySelector('[data-panel-frost]')).toBeNull();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_900); });
+    expect(bgImage()).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(bgImage()).not.toBeNull();
+
+    // A second failure waits longer before the next attempt.
+    await act(async () => { fireEvent.error(bgImage()!); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(14_000); });
+    expect(bgImage()).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_200); });
+    expect(bgImage()).not.toBeNull();
   });
 });

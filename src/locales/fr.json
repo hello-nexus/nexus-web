@@ -5021,7 +5021,7 @@
   "screentime.weekAverage": "Moyenne quotidienne",
   "screentime.weekTitle": "7 derniers jours",
   "screentime.weekTotal": "Total semaine",
-  "sdk.avatar.loadError": "Impossible de charger ce personnage.",
+  "sdk.canvas.loadError": "Impossible de charger ce canevas.",
   "sdk.copybutton.copied": "Copié dans le presse-papiers",
   "sdk.copybutton.copy": "Copier dans le presse-papiers",
   "sdk.manipulable.remove": "Retirer",

@@ -114,6 +114,7 @@ import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
+import { PanelBackgroundSolid } from './background/PanelBackgroundSolid';
 import { PanelBackgroundSlideshow } from './background/PanelBackgroundSlideshow';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
 import { customTextVars, DEFAULT_CUSTOM_TEXT_COLOR, useAutoTextColor } from './theme/textColor';
@@ -208,6 +209,8 @@ function resizeSpansForType(
 const FREEFORM_TAP_SLOP_PX = 4;
 const FREEFORM_TAP_MAX_MS = PANEL_CONTEXT_MENU_TRIGGER_MS;
 const DRAG_DISTANCE_PX = 6;
+// Waits before a failed background media is tried again; the last step repeats.
+const MEDIA_RETRY_MS = [5_000, 15_000, 60_000] as const;
 
 // Both drag sensors register on every cell and dnd-kit lets the last-registered activator take a press, which in resize mode is this one.
 // Presses on any other tile never reach it: the capture-phase swallow ends the mode first.
@@ -759,10 +762,26 @@ export function PanelContent({
     [effectiveTheme.textColorMode, effectiveTheme.textColor],
   );
   const showBackgroundLayers = showPanelBackground && backdrop === 'theme';
+  // A media background that cannot load shows the solid color instead of the bare backdrop,
+  // and retries on a growing delay so a transient error (service not ready, restart) heals.
+  const [failedMediaId, setFailedMediaId] = useState<string | null>(null);
+  const mediaRetryRef = useRef(0);
+  useEffect(() => {
+    if (failedMediaId === null) return;
+    const delay = MEDIA_RETRY_MS[Math.min(mediaRetryRef.current, MEDIA_RETRY_MS.length - 1)];
+    mediaRetryRef.current += 1;
+    const timer = window.setTimeout(() => setFailedMediaId(null), delay);
+    return () => window.clearTimeout(timer);
+  }, [failedMediaId]);
+  const mediaShowsSolid = showBackgroundLayers
+    && effectiveTheme.backgroundMode === 'media'
+    && !effectiveTheme.backgroundSlideshow
+    && (!effectiveTheme.backgroundMediaId || !effectiveTheme.backgroundMediaType
+      || failedMediaId === effectiveTheme.backgroundMediaId);
   // Frosted glass blurs what the page itself painted. Solid mode renders no
   // frost pass (a blurred solid colour is the colour), and see-through has
   // nothing in-page to sample.
-  const backgroundFrost = (showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid'))
+  const backgroundFrost = (showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid' && !mediaShowsSolid))
     ? effectiveTheme.backgroundFrost
     : 0;
   const panelSolidColor = useMemo(
@@ -2068,7 +2087,7 @@ export function PanelContent({
               opacity={effectiveTheme.backgroundOpacity}
               covered={backgroundCovered}
             />
-          ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
+          ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && failedMediaId !== effectiveTheme.backgroundMediaId ? (
             <PanelBackgroundMedia
               id={effectiveTheme.backgroundMediaId}
               deviceId={deviceId}
@@ -2076,16 +2095,13 @@ export function PanelContent({
               alpha={effectiveTheme.backgroundMediaAlpha}
               opacity={effectiveTheme.backgroundOpacity}
               covered={backgroundCovered}
+              onLoaded={() => { mediaRetryRef.current = 0; }}
+              onFailed={() => setFailedMediaId(effectiveTheme.backgroundMediaId ?? null)}
             />
-          ) : null
+          ) : <PanelBackgroundSolid opacity={effectiveTheme.backgroundOpacity} />
         )}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'solid' && (
-          <div
-            className={styles.backgroundSolid}
-            data-panel-bg-layer
-            style={{ '--panel-background-opacity': effectiveTheme.backgroundOpacity } as CSSProperties}
-            aria-hidden
-          />
+          <PanelBackgroundSolid opacity={effectiveTheme.backgroundOpacity} />
         )}
         {backgroundFrost > 0 && (
           <div

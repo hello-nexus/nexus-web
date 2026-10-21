@@ -19,4 +19,28 @@ describe('EffectCard', () => {
     rerender(<EffectCard label="vid.mp4" onClick={() => {}} />);
     expect(getByText('vid.mp4').className).not.toMatch(/labelAsIs/);
   });
+
+  // An extreme aspect (a tall Y70 or portrait panel) is clamped by the box's max height, and the
+  // image fills that box and crops, so it never spills out of the card. jsdom drops aspect-ratio itself.
+  it.each([1, 720 / 1280, 734 / 2560, 1600 / 720])('clamps the thumbnail box and crops the image at aspect %s', aspect => {
+    const { container } = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={aspect} onClick={() => {}} />);
+    const img = container.querySelector('img')!;
+    expect(img.style.objectFit).toBe('cover');
+    expect(img.style.height).toBe('100%');
+    expect((img.parentElement as HTMLElement).style.maxHeight).toBe('360px');
+  });
+
+  it('clips the thumbnail to a circle only when asked', () => {
+    const round = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} thumbRound onDelete={() => {}} onClick={() => {}} />);
+    const img = round.container.querySelector('img')!;
+    expect(img.style.borderRadius).toBe('50%');
+    // The box itself is not clipped: the delete button in its corner must stay clickable.
+    const box = img.parentElement as HTMLElement;
+    expect(box.style.borderRadius).toBe('');
+    expect(box.style.overflow).toBe('');
+    expect(box.querySelector('button[aria-label]')).not.toBeNull();
+    round.unmount();
+    const square = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} onClick={() => {}} />);
+    expect(square.container.querySelector('img')!.style.borderRadius).toBe('');
+  });
 });

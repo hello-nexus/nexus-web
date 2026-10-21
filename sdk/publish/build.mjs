@@ -1,6 +1,7 @@
 // Builds the publishable @hello-nexus/sdk package from the in-tree SDK source.
-// Two entries - `.` (sdk.ts: mount + hooks + format) and `./ui` (ui.tsx: the
-// component set) - with code-splitting so the shared element registration
+// Three entries - `.` (sdk.ts: mount + hooks + format), `./ui` (ui.tsx: the
+// component set) and `./renderer` (renderer.ts: the Canvas renderer worker end,
+// which has no react or runtime dependency) - with code-splitting so the shared element registration
 // (elements.ts) + the contract become ONE shared chunk (a single
 // customElements registration, never doubled). react / react-dom / @remote-dom
 // / @quilted are externalized (the host runtime provides them; an app bundle
@@ -28,7 +29,7 @@ const external = [
 
 // --- 1. JS bundles (no deps needed: everything non-relative is external) ---
 const r = await build({
-  entryPoints: { index: join(runtime, 'sdk.ts'), ui: join(runtime, 'ui.tsx') },
+  entryPoints: { index: join(runtime, 'sdk.ts'), ui: join(runtime, 'ui.tsx'), renderer: join(runtime, 'renderer.ts') },
   outdir: outDir,
   bundle: true,
   format: 'esm',
