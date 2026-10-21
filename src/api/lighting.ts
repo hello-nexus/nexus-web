@@ -467,10 +467,10 @@ export interface LightingDevice {
   rateCapSupported?: boolean;
   /** The user's frame-rate cap in FPS; null = Off. */
   maxRateHz?: number | null;
-  /** Each LED shows the average of a box around it instead of a spot. */
+  /** Each LED shows the average of the area around it instead of a spot. */
   areaSampling?: boolean;
-  /** Flat [u0, v0, u1, v1] per card-local LED, in the frame's unrotated 0..1 space (v down). A disabled LED is all zeros. Null or absent when off. */
-  areaBoxes?: number[] | null;
+  /** One polygon per card LED, [u0, v0, u1, v1, ...] in the frame's unrotated 0..1 space (v down), covering the frame with no overlap. Empty for a disabled LED. Absent when off. */
+  areaCells?: number[][];
   ledCount: number;
   /** The byte the lighting output frame tags this device's LEDs with. Absent on
    *  an older service, or when the device has no engine frame. */
@@ -909,9 +909,9 @@ export const testLedPattern = (id: string, pattern: string) =>
 export const clearLedEditor = (id: string) =>
   deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-editor`);
 
-/** areaBoxes: the boxes recomputed from the posted draft, present when the card is area sampled and the service returns them. */
+/** areaCells: the cells recomputed from the posted draft, present when the card is area sampled. */
 export const postLedPreviewLayout = (id: string, ledCount: number, leds: { index: number; u: number; v: number; disabled: boolean }[]) =>
-  postService<ApiEnvelope & { areaBoxes?: number[] | null }>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-preview-layout`, { ledCount, leds });
+  postService<ApiEnvelope & { areaCells?: number[][] }>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-preview-layout`, { ledCount, leds });
 
 // --- Device structure & zones (device-scoped LED map editor) ---
 

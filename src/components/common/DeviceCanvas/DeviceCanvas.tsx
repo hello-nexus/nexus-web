@@ -8,7 +8,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
-import { areaBoxRects } from '../../../lib/areaBoxes';
+import { AreaCells } from '../AreaCells/AreaCells';
 import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
@@ -318,31 +318,6 @@ function layoutLabels(
   }
   return out;
 }
-
-/** One Area-sampling device's boxes as outlines, so the effect stays visible under them. A locked LED's outline wears its color, as a locked dot does. */
-const AreaBoxLayer = memo(function AreaBoxLayer({ boxes, partX, partY, partW, partH, locked }: {
-  boxes: number[]; partX: number; partY: number; partW: number; partH: number; locked?: Map<number, string>;
-}) {
-  const rects = useMemo(() => areaBoxRects(boxes), [boxes]);
-  return (
-    <div className={styles.ledBoxLayer}>
-      {rects.map(({ index, u0, v0, u1, v1 }) => {
-        const lock = locked?.get(index);
-        return (
-          <div
-            key={index}
-            className={styles.ledBox}
-            style={{
-              left: `${(partX + u0 * partW) * 100}%`, top: `${(partY + v0 * partH) * 100}%`,
-              width: `${(u1 - u0) * partW * 100}%`, height: `${(v1 - v0) * partH * 100}%`,
-              ...(lock ? { borderColor: lock } : {}),
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-});
 
 // Paints from ledFrameStore: a pixels prop would re-render the lighting page per frame.
 export const CanvasBackground = memo(function CanvasBackground() {
@@ -951,7 +926,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
         const frameHasBoxes = shownMembers.some(m => {
           if (foreignFrames?.has(m)) return false;
           const d = devices.find(x => x.id === m);
-          return !!(d?.areaSampling && d.areaBoxes?.length);
+          return !!(d?.areaSampling && d.areaCells?.length);
         });
         const foreign = !!foreignFrames && shownMembers.length > 0 && shownMembers.every(id => foreignFrames.has(id));
         // The canvas is held at the unit space's 5:3, so a turn in units is a
@@ -983,13 +958,13 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
                 const locked = ledColorsById.get(id);
                 const member = devices.find(d => d.id === id);
-                if (member?.areaSampling && member.areaBoxes?.length) {
+                if (member?.areaSampling && member.areaCells?.length) {
                   return [(
-                    <AreaBoxLayer
-                      key={`${id}:boxes`}
-                      boxes={member.areaBoxes}
-                      partX={part.x} partY={part.y} partW={part.w} partH={part.h}
+                    <AreaCells
+                      key={`${id}:cells`}
+                      cells={member.areaCells}
                       locked={locked}
+                      style={{ left: `${part.x * 100}%`, top: `${part.y * 100}%`, width: `${part.w * 100}%`, height: `${part.h * 100}%` }}
                     />
                   )];
                 }

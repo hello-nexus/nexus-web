@@ -2,7 +2,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LedMapEditor } from './LedMapEditor';
-import styles from './LedMapEditor.module.scss';
 import type { LightingDevice } from '../../../../api/lighting';
 
 vi.mock('../../../../lib/i18n', () => ({
@@ -90,38 +89,38 @@ describe('LedMapEditor frame-rate cap', () => {
 
 describe('LedMapEditor area sampling boxes', () => {
   afterEach(() => { api.postLedPreviewLayout.mockResolvedValue(null); });
-  it('underlays a box per enabled LED for an area-sampled card', async () => {
+  it('underlays a cell per enabled LED for an area-sampled card', async () => {
     render(
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0, 0, 0, 0, 0.5, 0, 1, 1] }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,
     );
     await screen.findByLabelText('lighting.ledMap.selectAll');
-    await waitFor(() => expect(document.querySelectorAll(`.${styles.areaBox}`).length).toBe(2));
+    await waitFor(() => expect(document.querySelectorAll('polygon').length).toBe(2));
   });
-  it('follows the boxes the service returns for the draft layout', async () => {
-    api.postLedPreviewLayout.mockResolvedValue({ error: false, msg: '', areaBoxes: [0, 0, 0.3, 1, 0.3, 0, 0.6, 1, 0.6, 0, 1, 1] });
+  it('follows the cells the service returns for the draft layout', async () => {
+    api.postLedPreviewLayout.mockResolvedValue({ error: false, msg: '', areaCells: [[0, 0, 0.3, 0, 0.3, 1, 0, 1], [0.3, 0, 0.6, 0, 0.6, 1, 0.3, 1], [0.6, 0, 1, 0, 1, 1, 0.6, 1]] });
     render(
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0.5, 0, 1, 1] }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,
     );
-    await waitFor(() => expect(document.querySelectorAll(`.${styles.areaBox}`).length).toBe(3));
+    await waitFor(() => expect(document.querySelectorAll('polygon').length).toBe(3));
   });
   it('posts the selected zone\'s draft with card-local indices so its boxes come back usable', async () => {
     render(
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0.5, 0, 1, 1] }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: true, areaCells: [[0, 0, 0.5, 0, 0.5, 1, 0, 1], [0.5, 0, 1, 0, 1, 1, 0.5, 1]] }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,
@@ -137,13 +136,13 @@ describe('LedMapEditor area sampling boxes', () => {
       <LedMapEditor
         deviceId={ZONE_B}
         initialZoneId={ZONE_B}
-        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: false, areaBoxes: null }]}
+        devices={[card(ZONE_A), { ...card(ZONE_B), areaSampling: false, areaCells: undefined }]}
         zoneCustomizable={false}
         onClose={() => {}}
       />,
     );
     await screen.findByLabelText('lighting.ledMap.selectAll');
-    expect(document.querySelectorAll(`.${styles.areaBox}`).length).toBe(0);
+    expect(document.querySelectorAll('polygon').length).toBe(0);
   });
 });
 

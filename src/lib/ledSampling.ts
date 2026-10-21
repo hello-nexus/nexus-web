@@ -121,34 +121,3 @@ export function sampleBox(f: SampleFrame, s: LedSample): [number, number, number
   const iy1 = clamp(Math.ceil(s.sy + s.halfH) - 1, iy0, f.h - 1);
   return meanRect(f, ix0, iy0, ix1, iy1);
 }
-
-const SRGB_TO_LINEAR = (() => {
-  const t = new Float32Array(256);
-  for (let i = 0; i < 256; i++) {
-    const c = i / 255;
-    t[i] = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  }
-  return t;
-})();
-
-const linearToSrgb = (l: number) => {
-  const c = l <= 0.0031308 ? l * 12.92 : 1.055 * l ** (1 / 2.4) - 0.055;
-  return Math.round(clamp(c, 0, 1) * 255);
-};
-
-/** The cell's mean in linear light, black included: what Area sampling reads per LED. */
-export function sampleBoxLinear(f: SampleFrame, s: LedSample): [number, number, number] {
-  const ix0 = clamp(Math.floor(s.sx - s.halfW), 0, f.w - 1);
-  const iy0 = clamp(Math.floor(s.sy - s.halfH), 0, f.h - 1);
-  const ix1 = clamp(Math.ceil(s.sx + s.halfW) - 1, ix0, f.w - 1);
-  const iy1 = clamp(Math.ceil(s.sy + s.halfH) - 1, iy0, f.h - 1);
-  let r = 0, g = 0, b = 0, n = 0;
-  for (let y = iy0; y <= iy1; y++) {
-    for (let x = ix0; x <= ix1; x++) {
-      const p = (y * f.w + x) * 3;
-      r += SRGB_TO_LINEAR[f.pixels[p]]; g += SRGB_TO_LINEAR[f.pixels[p + 1]]; b += SRGB_TO_LINEAR[f.pixels[p + 2]];
-      n++;
-    }
-  }
-  return n === 0 ? [0, 0, 0] : [linearToSrgb(r / n), linearToSrgb(g / n), linearToSrgb(b / n)];
-}

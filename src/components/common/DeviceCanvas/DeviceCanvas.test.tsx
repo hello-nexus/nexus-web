@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
-import { publishLedFrame, clearLedFrame } from '../../../lib/ledFrameStore';
+import { clearLedFrame } from '../../../lib/ledFrameStore';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
@@ -25,6 +25,9 @@ function dragDevice(id: string, name: string): LightingDevice {
     canvasX: 100, canvasY: 100, canvasW: 200, canvasH: 100, canvasRotation: 0,
   } as unknown as LightingDevice;
 }
+
+const LEFT = [0, 0, 0.5, 0, 0.5, 1, 0, 1];
+const RIGHT = [0.5, 0, 1, 0, 1, 1, 0.5, 1];
 
 describe('DeviceCanvas', () => {
   afterEach(() => { clearLedFrame(); });
@@ -61,9 +64,9 @@ describe('DeviceCanvas', () => {
     expect(frames[1].querySelector(`.${styles.foreignCaption}`)?.textContent).toBe('Static');
   });
 
-  it('draws each LED as its box for an area-sampling device and dots otherwise', () => {
+  it('outlines each LED cell for an area-sampling device, skips empty cells, and draws dots otherwise', () => {
     const leds = { a: [{ index: 0, u: 0.5, v: 0.5 }], b: [{ index: 0, u: 0.5, v: 0.5 }] } as never;
-    const a = { ...dragDevice('a', 'A'), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0, 0, 0, 0, 0.5, 0, 1, 1] } as LightingDevice;
+    const a = { ...dragDevice('a', 'A'), areaSampling: true, areaCells: [LEFT, [], RIGHT] } as LightingDevice;
     const { container } = render(
       <DeviceCanvas
         devices={[a, dragDevice('b', 'B')]}
@@ -75,17 +78,13 @@ describe('DeviceCanvas', () => {
       />,
     );
     const frames = [...container.querySelectorAll<HTMLElement>(`.${styles.device}`)];
-    expect(frames.map(f => f.querySelectorAll(`.${styles.ledBox}`).length)).toEqual([2, 0]);
+    expect(frames.map(f => f.querySelectorAll('polygon').length)).toEqual([2, 0]);
     expect(frames.map(f => f.querySelectorAll(`.${styles.ledDot}`).length)).toEqual([0, 1]);
-    const box = frames[0].querySelector<HTMLElement>(`.${styles.ledBox}`)!;
-    expect(box.style.width).toBe('50%');
-    expect(box.style.height).toBe('100%');
-    // Outlines only: the effect stays visible under a box.
-    expect(box.style.background).toBe('');
+    expect(frames[0].querySelector('polygon')!.getAttribute('points')).toBe('0,0 0.5,0 0.5,1 0,1');
   });
 
   it('shows no sibling dots beside an area-sampled card unless the sibling is the selected slot', () => {
-    const keys = { ...dragDevice('keys', 'Keys'), areaSampling: true, areaBoxes: [0, 0, 0.5, 1, 0.5, 0, 1, 1] } as LightingDevice;
+    const keys = { ...dragDevice('keys', 'Keys'), areaSampling: true, areaCells: [LEFT, RIGHT] } as LightingDevice;
     const under = dragDevice('under', 'Under');
     const leds = { keys: [{ index: 0, u: 0.5, v: 0.5 }], under: [{ index: 0, u: 0.1, v: 0.1 }] } as never;
     const mount = (primary: string) => render(
@@ -100,19 +99,18 @@ describe('DeviceCanvas', () => {
       />,
     );
     const first = mount('keys');
-    expect(first.container.querySelectorAll(`.${styles.ledBox}`).length).toBe(2);
+    expect(first.container.querySelectorAll('polygon').length).toBe(2);
     expect(first.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(0);
     first.unmount();
     const second = mount('under');
-    expect(second.container.querySelectorAll(`.${styles.ledBox}`).length).toBe(2);
+    expect(second.container.querySelectorAll('polygon').length).toBe(2);
     expect(second.container.querySelectorAll(`.${styles.ledDot}`).length).toBe(1);
   });
 
-  it('outlines boxes without filling them, a locked LED outline wearing its color', () => {
-    publishLedFrame(new Uint8Array(100 * 60 * 3).fill(255), 100, 60);
+  it('a locked LED cell outline wears its color', () => {
     const a = {
       ...dragDevice('a', 'A'),
-      areaSampling: true, areaBoxes: [0, 0, 1, 0.4, 0, 0.6, 1, 1],
+      areaSampling: true, areaCells: [LEFT, RIGHT],
       ledColors: [{ index: 1, color: '#ff0000' }],
     } as unknown as LightingDevice;
     const { container } = render(
@@ -125,9 +123,8 @@ describe('DeviceCanvas', () => {
         onSetSelection={vi.fn()}
       />,
     );
-    const boxes = [...container.querySelectorAll<HTMLElement>(`.${styles.ledBox}`)];
-    expect(boxes.map(b => b.style.background)).toEqual(['', '']);
-    expect(boxes.map(b => b.style.borderColor)).toEqual(['', 'rgb(255, 0, 0)']);
+    const polys = [...container.querySelectorAll<SVGElement>('polygon')];
+    expect(polys.map(p => p.style.stroke)).toEqual(['', 'rgb(255, 0, 0)']);
   });
 
   it('draws no frames or names when asked to hide them', () => {

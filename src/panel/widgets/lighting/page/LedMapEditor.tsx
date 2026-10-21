@@ -28,7 +28,7 @@ import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import { LedColorLockSection } from './LedColorLockSection';
 import { RateCapSelect } from './RateCapSelect';
 import { AreaSamplingToggle } from './AreaSamplingToggle';
-import { areaBoxRects } from '../../../../lib/areaBoxes';
+import { AreaCells } from '../../../../components/common/AreaCells/AreaCells';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
@@ -1446,8 +1446,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // ── Live preview push ─────────────────────────────────────────────────
 
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // Area boxes the service recomputed from the draft layout, with the card they belong to.
-  const [draftBoxes, setDraftBoxes] = useState<{ id: string; boxes: number[] } | null>(null);
+  // Area cells the service recomputed from the draft layout, with the card they belong to.
+  const [draftBoxes, setDraftBoxes] = useState<{ id: string; cells: number[][] } | null>(null);
   const draftBoxesSeq = useRef(0);
   // Toggling the mode makes any held draft boxes stale.
   const areaOn = devices.find(d => d.id === selectedZoneId)?.areaSampling;
@@ -1473,7 +1473,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         [...zoneLeds].sort((a, b) => a.index - b.index).map((l, i) => ({ index: zoneScoped ? i : l.index, u: l.u, v: l.v, disabled: l.disabled })),
       ).then(r => {
         // Newest response wins; the boxes follow the draft the service just read.
-        if (mine === draftBoxesSeq.current) setDraftBoxes(r && !r.error && r.areaBoxes ? { id: sentFor, boxes: r.areaBoxes } : null);
+        if (mine === draftBoxesSeq.current) setDraftBoxes(r && !r.error && r.areaCells ? { id: sentFor, cells: r.areaCells } : null);
       }).catch(() => { /* best-effort */ });
     }, 80);
     return () => clearTimeout(previewTimerRef.current);
@@ -2470,24 +2470,21 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             >
             </div>
 
-            {/* Area sampling: the box each LED averages, under the dots. Follows the boxes the service returns for the draft layout, else the card's latest. */}
-            {zoneCard?.areaSampling && (draftBoxes?.id === zoneCard.id ? draftBoxes.boxes : zoneCard.areaBoxes)?.length ? (() => {
+            {/* Area sampling: the box each LED averages, under the dots. Follows the cells the service returns for the draft layout, else the card's latest. */}
+            {zoneCard?.areaSampling && (draftBoxes?.id === zoneCard.id ? draftBoxes.cells : zoneCard.areaCells)?.length ? (() => {
               const pad = getPadPercent();
-              const innerW = devRect.w - 2 * pad.px;
-              const innerH = devRect.h - 2 * pad.py;
-              const boxes = draftBoxes?.id === zoneCard.id ? draftBoxes.boxes : zoneCard.areaBoxes!;
-              return areaBoxRects(boxes).map(b => (
-                <div
-                  key={`box:${b.index}`}
-                  className={styles.areaBox}
+              return (
+                <AreaCells
+                  cells={draftBoxes?.id === zoneCard.id ? draftBoxes.cells : zoneCard.areaCells!}
                   style={{
-                    left: `${devRect.x + pad.px + b.u0 * innerW}%`,
-                    top: `${devRect.y + pad.py + b.v0 * innerH}%`,
-                    width: `${(b.u1 - b.u0) * innerW}%`,
-                    height: `${(b.v1 - b.v0) * innerH}%`,
+                    left: `${devRect.x + pad.px}%`,
+                    top: `${devRect.y + pad.py}%`,
+                    width: `${devRect.w - 2 * pad.px}%`,
+                    height: `${devRect.h - 2 * pad.py}%`,
+                    zIndex: 0,
                   }}
                 />
-              ));
+              );
             })() : null}
 
             {(() => {

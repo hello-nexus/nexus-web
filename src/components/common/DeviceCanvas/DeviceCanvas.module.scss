@@ -226,23 +226,6 @@
   z-index: 1;
 }
 
-.ledBoxLayer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-// One LED under Area sampling: the box it averages, outlined so the effect stays visible. Drawn in the dots' own
-// stroke (mark color, thickness and shadow); neighboring boxes stay distinguishable.
-.ledBox {
-  position: absolute;
-  box-sizing: border-box;
-  border: 2px solid var(--led-mark);
-  box-shadow: var(--shadow-sm);
-  pointer-events: none;
-  z-index: 1;
-}
-
 // Held on a colour by the LED map: the dot wears it, shadowed to read on any frame.
 .ledDotLocked {
   box-shadow: var(--shadow-sm);
