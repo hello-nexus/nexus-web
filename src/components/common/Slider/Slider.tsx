@@ -75,15 +75,19 @@ export interface SliderProps {
   mixed?: boolean;
   /** Visible text and spoken value while `mixed`. */
   mixedLabel?: string;
+  /** Spoken value (aria-valuetext) when it should say more than the visible text. */
+  valueText?: string;
 }
 
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel,
+  disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
+  // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
+  const accessibleName = ariaLabel ?? (orientation === 'inline' && label ? label : undefined);
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -180,12 +184,13 @@ export function Slider({
   // track's right edge doesn't shift as the value's width changes. The value
   // is the sole, right-aligned child of the reserver, so its click/hit area
   // is never overlapped.
-  const reserveCh = Math.max(fmt(min).length, fmt(max).length) + 1;
+  // A mixed label counts too, so the column does not grow when the state turns mixed.
+  const reserveCh = Math.max(fmt(min).length, fmt(max).length, mixedLabel?.length ?? 0) + 1;
   const inlineValueNode = (
     <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
-          onCommit={handleEditCommit} format={formatValue} ariaLabel={ariaLabel} className={valueClass} disabled={disabled}
+          onCommit={handleEditCommit} format={formatValue} ariaLabel={accessibleName} className={valueClass} disabled={disabled}
           mixed={mixed} mixedLabel={mixedLabel} />
       ) : (
         <span className={valueClass}>{mixed ? mixedLabel : fmt(value)}</span>
@@ -237,10 +242,10 @@ export function Slider({
     <input type="range" min={min} max={max} step={step} value={value}
       id={rangeId}
       disabled={disabled}
-      aria-label={ariaLabel}
+      aria-label={accessibleName}
       data-fill=""
       data-mixed={mixed ? 'true' : undefined}
-      aria-valuetext={mixed ? mixedLabel : undefined}
+      aria-valuetext={valueText ?? (mixed ? mixedLabel : undefined)}
       style={trackStyle}
       onChange={e => handleChange(Number(e.target.value), false)}
       onPointerDown={e => {
@@ -298,20 +303,24 @@ export function Slider({
     );
   }
 
+  // A labelled inline slider takes the shared width at the right of its block; one without a label
+  // fills the slot its container sized (a settings row's control slot, a grid cell).
   // A div, not a label: a label forwards a click on the value to its first
   // labelable descendant (the range input) and focuses it, which in the inline
   // order (range before value) steals focus from the just-opened edit input and
   // reverts it. The range carries its own aria-label, so no label is needed.
   return (
-    <div className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
+    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`}>
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
-      <div className={styles.track}>
-        {range}
-        {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-        {bandNode}
-        {markerNode}
+      <div className={styles.inlineControl}>
+        <div className={styles.track}>
+          {range}
+          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+          {bandNode}
+          {markerNode}
+        </div>
+        {inlineValueNode}
       </div>
-      {inlineValueNode}
     </div>
   );
 }

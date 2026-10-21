@@ -55,6 +55,7 @@ export function SettingRow({
   align,
   wrapControl,
   stackOnNarrow,
+  sliderRow,
   descriptionBelow,
   selected,
 }: {
@@ -93,6 +94,8 @@ export function SettingRow({
   // description is long enough to wrap hard against a wide control (e.g. the
   // account username/password/privacy rows).
   stackOnNarrow?: boolean;
+  // The control slot takes the shared inline slider width, a share of the row (global.scss). SettingSlider sets it.
+  sliderRow?: boolean;
   // Opt-in: render the description on its own full-width line under the
   // label+control line instead of beside the control. For rows whose
   // description changes with the control's value - inline, its height drives
@@ -108,6 +111,7 @@ export function SettingRow({
     align === 'start' && styles.alignStart,
     wrapControl && styles.wrapControl,
     stackOnNarrow && styles.stackNarrow,
+    sliderRow && styles.sliderRow,
     descriptionBelow && styles.descBelow,
     descriptionBelow === 'tight' && styles.descBelowTight,
     icon && iconLeading && styles.hasLeadingIcon,
@@ -249,7 +253,6 @@ export function SettingSlider({
   iconLeading,
   anchorId,
   ariaLabel,
-  controlWidth,
   mixed,
   mixedLabel,
 }: {
@@ -273,8 +276,6 @@ export function SettingSlider({
   disabled?: boolean;
   anchorId?: string;
   ariaLabel?: string;
-  // Overrides the default control width (min(12rem, 45vw)); pass a CSS length.
-  controlWidth?: string;
   // The controlled targets hold different values; see Slider.
   mixed?: boolean;
   mixedLabel?: string;
@@ -291,24 +292,23 @@ export function SettingSlider({
       iconLeading={iconLeading}
       disabled={disabled}
       anchorId={anchorId}
+      sliderRow
     >
-      <div className={styles.sliderControl} style={controlWidth ? { width: controlWidth } : undefined}>
-        <Slider
-          value={value}
-          min={min}
-          max={max}
-          step={step}
-          formatValue={formatValue}
-          onChange={onChange}
-          onCommit={onCommit}
-          editable={editable}
-          trackFill={trackFill}
-          disabled={disabled}
-          ariaLabel={ariaLabel ?? label}
-          mixed={mixed}
-          mixedLabel={mixedLabel}
-        />
-      </div>
+      <Slider
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        formatValue={formatValue}
+        onChange={onChange}
+        onCommit={onCommit}
+        editable={editable}
+        trackFill={trackFill}
+        disabled={disabled}
+        ariaLabel={ariaLabel ?? label}
+        mixed={mixed}
+        mixedLabel={mixedLabel}
+      />
     </SettingRow>
   );
 }

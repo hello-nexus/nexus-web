@@ -185,9 +185,12 @@
   flex: none;
 }
 
-// Width holder so an inline Slider (width:100%) forms a right-aligned bar in
-// the control slot instead of collapsing. Shrinks on narrow (mobile /
-// panel-editor) viewports so the bar doesn't crowd the label.
-.sliderControl {
-  width: min(12rem, 45vw);
+// A slider row: the control slot takes the shared inline slider width as a share
+// of the row (flex-basis percentages resolve against the row, not the slot). The
+// label-less Slider inside fills the slot. A basis percentage cannot resolve in a
+// shrink-to-fit ancestor, so a definite min-width keeps the
+// slot from collapsing to the input's intrinsic width there.
+.row.sliderRow .control {
+  flex: 0 1 var(--slider-inline-width);
+  min-width: var(--slider-inline-slot-min);
 }
