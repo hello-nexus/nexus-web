@@ -132,7 +132,7 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  */
 export function LianLiWirelessScreenTab({
   aioMacs = [], usbMacs = [], panelOpener, api = WIRELESS_SCREEN_API,
-  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart, screenLabels, defaultOrder,
+  supportsBrightness = true, supportsSleepWhenLocked = true, onOpenScreenPanel, lcdRestart, defaultOrder,
 }: {
   aioMacs?: string[];
   /** AIOs whose USB cable is connected, by MAC. */
@@ -152,8 +152,6 @@ export function LianLiWirelessScreenTab({
     isRestarting: (serial: string) => boolean;
     onRestart: (serial: string) => void;
   };
-  /** Short names by screen serial, used only when the service sends no label. */
-  screenLabels?: Readonly<Record<string, string>>;
   /** Serials in the order screens without a saved order are listed. */
   defaultOrder?: readonly string[];
 }) {
@@ -521,7 +519,7 @@ export function LianLiWirelessScreenTab({
                       {contentTypeIcon(s.contentType)}
                     </span>
                     <span className={styles.screenPreviewLabel}>
-                      {s.label || screenLabels?.[s.serial] || t('devices.lianli-wireless.fanN', { n: i + 1 })}
+                      {s.label || t('devices.lianli-wireless.fanN', { n: i + 1 })}
                     </span>
                   </button>
                 );

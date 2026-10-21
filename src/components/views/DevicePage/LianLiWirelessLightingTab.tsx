@@ -73,10 +73,12 @@ interface LianLiWirelessLightingTabProps {
   reloadSignal?: number;
   /** Runs when a move changes the light sequence, with the new order of the chains' MACs. */
   onSequence?: (macs: string[]) => void;
+  /** The service's name per unit MAC (Flex); a unit without one is numbered by sequence. */
+  unitNames?: ReadonlyMap<string, string>;
 }
 
 /** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
-export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false, onSettled, reloadSignal, onSequence }: LianLiWirelessLightingTabProps) {
+export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LIGHTING_API, header, syncOn = false, onSettled, reloadSignal, onSequence, unitNames }: LianLiWirelessLightingTabProps) {
   const { t } = useTranslation();
   const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
@@ -208,7 +210,8 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   const leaderMac = data.mergeLeaderMac !== undefined ? data.mergeLeaderMac : mergeLeaderMac(chains);
   const leader = chains.find(c => c.mac === leaderMac);
   // Units of one model read the same, so repeated titles are numbered in sequence order.
-  const titles = numberDuplicateTitles(chains.map(c => chainTitle(t, c)));
+  const numbered = numberDuplicateTitles(chains.map(c => chainTitle(t, c)));
+  const titles = chains.map((c, i) => unitNames?.get(c.mac) ?? numbered[i]);
   const names = new Map(chains.map((c, i) => [c.mac, titles[i]]));
   const leaderTitle = leader && titles[chains.indexOf(leader)];
   return (

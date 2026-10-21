@@ -37,22 +37,13 @@ beforeEach(() => {
 });
 
 describe('Flex screens tile names and order', () => {
-  it('names tiles from the page labels when the service sends none and lists them in the page order', async () => {
-    mockGetScreens.mockResolvedValue([{ ...screen1, label: '' }, { ...screen2, label: '' }]);
-    await act(async () => {
-      render(<LianLiWirelessScreenTab api={api} screenLabels={{ S1: 'SL-INF Flex', S2: 'TL Flex' }} defaultOrder={['S2', 'S1']} />);
-    });
-    const tiles = within(screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' })).getAllByRole('button');
-    expect(tiles.map(b => b.textContent)).toEqual(['TL Flex', 'SL-INF Flex']);
-  });
-
-  it('shows the service label over the page label so two screens of a family stay distinct', async () => {
+  it('names tiles from the service labels and lists them in the page order', async () => {
     mockGetScreens.mockResolvedValue([{ ...screen1, label: 'TL Flex 1' }, { ...screen2, label: 'TL Flex 2' }]);
     await act(async () => {
-      render(<LianLiWirelessScreenTab api={api} screenLabels={{ S1: 'TL Flex', S2: 'TL Flex' }} />);
+      render(<LianLiWirelessScreenTab api={api} defaultOrder={['S2', 'S1']} />);
     });
     const tiles = within(screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' })).getAllByRole('button');
-    expect(tiles.map(b => b.textContent)).toEqual(['TL Flex 1', 'TL Flex 2']);
+    expect(tiles.map(b => b.textContent)).toEqual(['TL Flex 2', 'TL Flex 1']);
   });
 
   it('keeps a saved order over the page order', async () => {
