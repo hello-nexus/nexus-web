@@ -7,6 +7,15 @@ import type { EffectState } from '../types/lighting';
 import type { AudioSnapshot } from './useAudioState';
 import { SensorSignalContext } from './SensorSignalContext';
 
+const specLScratch = new Float32Array(64);
+const specRScratch = new Float32Array(64);
+
+/** Copies src into the 64-float scratch, padding with zeros or truncating, so uniform4fv always gets 16 vec4s. */
+function fill64(scratch: Float32Array, src: ArrayLike<number> | null | undefined): Float32Array {
+  for (let i = 0; i < 64; i++) scratch[i] = src?.[i] ?? 0;
+  return scratch;
+}
+
 // rAF timestamp of each canvas's latest draw. Paced frames skip the draw and read back cleared.
 const drawnFrameTs = new WeakMap<HTMLCanvasElement, number>();
 
@@ -341,8 +350,8 @@ export function useShaderRenderer(
         }
         if (u.u_spectrum) g.uniform1fv(u.u_spectrum, audio?.spectrum ?? new Float32Array(16));
         if (u.u_spectrum64) g.uniform1fv(u.u_spectrum64, audio?.spectrum64 ?? new Float32Array(64));
-        if (u.u_spectrumL64) g.uniform1fv(u.u_spectrumL64, audio?.spectrumLeft64 ?? audio?.spectrum64 ?? new Float32Array(64));
-        if (u.u_spectrumR64) g.uniform1fv(u.u_spectrumR64, audio?.spectrumRight64 ?? audio?.spectrum64 ?? new Float32Array(64));
+        if (u.u_spectrumL64) g.uniform4fv(u.u_spectrumL64, fill64(specLScratch, audio?.spectrumLeft64 ?? audio?.spectrum64));
+        if (u.u_spectrumR64) g.uniform4fv(u.u_spectrumR64, fill64(specRScratch, audio?.spectrumRight64 ?? audio?.spectrum64));
         if (u.u_specHist) g.uniform4fv(u.u_specHist, histRingRef.current);
         if (u.u_levelPeak) g.uniform1f(u.u_levelPeak, levelPeakRef.current);
         if (u.u_bassPeak)  g.uniform1f(u.u_bassPeak,  bassPeakRef.current);
