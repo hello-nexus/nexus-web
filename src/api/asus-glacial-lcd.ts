@@ -1,4 +1,4 @@
-import { fetchService, putService } from './service';
+import { fetchService, postService, putService } from './service';
 
 export type GlacialMode = 'static' | 'animated' | 'monitor' | 'panel';
 
@@ -61,4 +61,64 @@ export async function getGlacialState(): Promise<GlacialState | null> {
 export async function setGlacialSettings(patch: GlacialSettingsPatch): Promise<boolean> {
   const res = await putService<{ error: boolean; msg: string }>(`${BASE}/settings`, patch);
   return res !== null && !res.error;
+}
+
+export type GlacialScaleMode = 'send' | 'upscale';
+
+export interface GlacialTuningSettings {
+  /** 0.2..30. */
+  maxFps: number;
+  /** 0..100; 100 is the vendor timing. */
+  pacePercent: number;
+  replyDriven: boolean;
+  /** 25..100. */
+  scalePercent: number;
+  scaleMode: GlacialScaleMode;
+  /** 30..95. */
+  jpegQuality: number;
+  /** 1..16. */
+  chunkKb: number;
+  doubleBuffer: boolean;
+}
+
+export interface GlacialTuningStats {
+  uploadsOk: number;
+  uploadsFailed: number;
+  lastUploadMs: number;
+  uploadsPerSec: number;
+  lastFrameBytes: number;
+  lastEncodeMs: number;
+  lastError: string | null;
+  /** ISO timestamp. */
+  lastErrorAt: string | null;
+  stalled: boolean;
+}
+
+export interface GlacialTuning {
+  settings: GlacialTuningSettings;
+  stats: GlacialTuningStats;
+}
+
+function isTuning(body: GlacialTuning | null): body is GlacialTuning {
+  return body !== null && typeof body.settings === 'object' && body.settings !== null
+    && typeof body.stats === 'object' && body.stats !== null;
+}
+
+export async function getGlacialTuning(): Promise<GlacialTuning | null> {
+  const body = await fetchService<GlacialTuning>(`${BASE}/tuning`);
+  return isTuning(body) ? body : null;
+}
+
+/** Resolves the fresh tuning, or null when the service refused the change. */
+export async function setGlacialTuning(patch: Partial<GlacialTuningSettings>): Promise<GlacialTuning | null> {
+  const body = await putService<GlacialTuning>(`${BASE}/tuning`, patch);
+  return isTuning(body) ? body : null;
+}
+
+export async function resetGlacialTuningStats(): Promise<boolean> {
+  return (await postService<unknown>(`${BASE}/tuning/reset-stats`, {})) !== null;
+}
+
+export async function resumeGlacialTuning(): Promise<boolean> {
+  return (await postService<unknown>(`${BASE}/tuning/resume`, {})) !== null;
 }

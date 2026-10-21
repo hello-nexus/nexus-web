@@ -82,6 +82,10 @@ vi.mock('../../../api/asus-glacial-lcd', () => ({
   getGlacialState: () => mockGlacialGet(),
   setGlacialSettings: (patch: unknown) => mockGlacialSet(patch),
   GLACIAL_STATE_CHANGED_EVENT: 'nexus:glacial-state-changed',
+  getGlacialTuning: () => Promise.resolve(null),
+  setGlacialTuning: () => Promise.resolve(null),
+  resetGlacialTuningStats: () => Promise.resolve(true),
+  resumeGlacialTuning: () => Promise.resolve(true),
 }));
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
   useSensorLookup: () => ({ resolve: () => undefined }),

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AsusGlacialLcdDevicePage } from './AsusGlacialLcdDevicePage';
 
@@ -20,6 +20,10 @@ vi.mock('../../../api/asus-glacial-lcd', () => ({
   getGlacialState: () => mockGet(),
   setGlacialSettings: (patch: unknown) => mockSet(patch),
   GLACIAL_STATE_CHANGED_EVENT: 'nexus:glacial-state-changed',
+  getGlacialTuning: () => Promise.resolve(null),
+  setGlacialTuning: () => Promise.resolve(null),
+  resetGlacialTuningStats: () => Promise.resolve(true),
+  resumeGlacialTuning: () => Promise.resolve(true),
 }));
 
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
@@ -174,6 +178,19 @@ describe('AsusGlacialLcdDevicePage', () => {
     expect(screen.queryByText('devices.asus-glacial-lcd.picture')).toBeNull();
     expect(screen.queryByText('devices.asus-glacial-lcd.animation')).toBeNull();
     expect(screen.queryByText('devices.asus-glacial-lcd.widgetCount')).toBeNull();
+  });
+
+  it('shows the tuning card only in Nexus panel mode when panel mode is offered', async () => {
+    await mount({ ...base, mode: 'panel', panelModeAvailable: true });
+    expect(screen.getByText('devices.asus-glacial-lcd.tuning.section')).toBeInTheDocument();
+  });
+
+  it('keeps the tuning card away in native modes and when panel mode is not offered', async () => {
+    await mount({ ...base, mode: 'animated', panelModeAvailable: true });
+    expect(screen.queryByText('devices.asus-glacial-lcd.tuning.section')).toBeNull();
+    cleanup();
+    await mount({ ...base, mode: 'panel', panelModeAvailable: false });
+    expect(screen.queryByText('devices.asus-glacial-lcd.tuning.section')).toBeNull();
   });
 
   it('hides the Nexus panel chip and keeps the native modes when panel mode is not offered', async () => {

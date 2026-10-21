@@ -19,6 +19,7 @@ import {
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
+import { AsusGlacialPanelTuning } from './AsusGlacialPanelTuning';
 import { useReportDeviceWaiting } from './deviceDetecting';
 import { GLACIAL_LABEL_MAX_BYTES, truncateUtf8 } from './asusGlacialLcdUtils';
 import styles from './LianLiDevicePage.module.scss';
@@ -211,6 +212,7 @@ export function AsusGlacialLcdControls() {
         </>
       )}
     </SettingsSection>
+    {chosen && mode === 'panel' && state?.panelModeAvailable === true && <AsusGlacialPanelTuning />}
     </>
   );
 }
