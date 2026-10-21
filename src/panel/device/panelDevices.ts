@@ -38,6 +38,8 @@ export interface PanelDevice {
   runtimeSurface?: PanelSurface;
   previewSize?: { width: number; height: number };
   previewDpi?: number;
+  // capabilities.family of the real device a simulator stands in for.
+  family?: string;
   // Device DPR paired with a CSS-px previewSize (hosted-monitor records), so
   // physical-size math can reconstruct native px before liveCanvas loads.
   previewDpr?: number;

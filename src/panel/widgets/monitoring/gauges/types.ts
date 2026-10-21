@@ -25,6 +25,7 @@ export type GaugeDesignKey =
   | 'text'
   | 'waterLevel'
   | 'caterpillar'
+  | 'squareRing'
   | 'bar'
   | 'microbars'
   | 'hbar'

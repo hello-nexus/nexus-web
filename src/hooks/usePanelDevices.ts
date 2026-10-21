@@ -84,7 +84,8 @@ const STREAMED_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
 // Simulated presets whose real counterpart is not an ordinary widget panel.
 // Anything absent falls back to WIDGET_PANEL_CAPABILITIES.
 const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCapabilities>> = {
-  y70: Y70_CAPABILITIES,
+  // No hardware behind it: brightness, rotation and kiosk controls would write to a real Y70 beside it.
+  y70: { ...Y70_CAPABILITIES, displayControls: false, launchClose: false },
   kraken: STREAMED_PANEL_CAPABILITIES,
   'lcd-round': STREAMED_PANEL_CAPABILITIES,
   'lcd-wide': STREAMED_PANEL_CAPABILITIES,
@@ -137,6 +138,12 @@ const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: str
   'xeneon-edge': { name: 'Corsair Xeneon Edge', icon: '/assets/devices/corsair.svg', defaultNames: ['crx ed00', 'xeneon edge'] },
   'icue-link-lcd5': { name: 'Corsair iCUE LINK 5" LCD', icon: '/assets/devices/corsair.svg', defaultNames: ['xmd 00ea', "icue link 5''"], experimental: true },
 };
+
+export function simulatedPanelIcon(panel: Pick<SimulatedPanelDefinition, 'id' | 'family'>): string {
+  const family = panel.family;
+  return (family ? STREAMED_FAMILY_ICONS[family] ?? PROMOTED_FAMILY_BRANDING[family]?.icon : undefined)
+    ?? panelIconForSource(panel.id);
+}
 
 // The 5" LCD is a TITAN II's screen when that pump is on the LINK hub; sold on its own
 // it can sit on another cooler. The hub reports no radiator size, so neither does this.
@@ -316,7 +323,6 @@ export function buildPanelDevices({
   }
 
   for (const panel of simulatedDefinitions) {
-    if (connectedWidgetPanels.some(d => d.id === panel.id)) continue;
     const capacity = getSimulatedPanelGridCapacity(panel);
     const physical = getSimulatedPanelPhysicalSize(panel);
     devices.push({
@@ -335,10 +341,14 @@ export function buildPanelDevices({
       runtimeSurface: panel.surface,
       previewSize: { width: panel.width, height: panel.height },
       previewDpi: panel.dpi,
-      iconSrc: panelIconForSource(panel.id),
-      // A simulated panel claims the capabilities its real counterpart has:
-      // the Kraken's round glass is driven host-side with no digitizer.
-      capabilities: SIMULATED_SURFACE_CAPABILITIES[panel.surface] ?? WIDGET_PANEL_CAPABILITIES,
+      iconSrc: simulatedPanelIcon(panel),
+      family: panel.family,
+      // Input and layout follow the real counterpart (the Kraken's round glass has no
+      // digitizer); display controls and kiosk launch stay off, there is no hardware.
+      capabilities: {
+        ...(SIMULATED_SURFACE_CAPABILITIES[panel.surface] ?? WIDGET_PANEL_CAPABILITIES),
+        ...(panel.touch === undefined ? {} : { touch: panel.touch }),
+      },
       modalKind: panel.surface === 'y70' ? 'y70-compat' : 'panel-editor',
     });
   }

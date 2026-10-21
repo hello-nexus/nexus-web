@@ -442,20 +442,24 @@
 }
 
 // The round card's own rules (panel/styles/tokens.scss) make the preview a
-// circle like the canvas. The widget lays out at its 2x2 size and is scaled by
-// the card's fit, as the canvas .cellScaler does (PanelApp.module.scss), so the
-// two crop alike; gallery and SDK apps take the full diameter there too.
+// circle like the canvas. The widget lays out at its 2x2 size and the card's
+// fit scales it on a wrapper, as the canvas .cellScaler does
+// (PanelApp.module.scss), so the preview and the canvas crop alike. Gallery
+// and SDK apps take the full diameter in both places.
 :global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'] {
   padding: 0;
 
-  > * {
+  .inlineSettingsPreviewFit {
+    display: flex;
+    width: 100%;
+    height: 100%;
     transform: scale(var(--panel-round-fit, 0.85));
   }
 }
 
-:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type='gallery'] > *,
-:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type^='app:'] > *,
-:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type^='marketplace:'] > * {
+:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type='gallery'] > .inlineSettingsPreviewFit,
+:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type^='app:'] > .inlineSettingsPreviewFit,
+:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type^='marketplace:'] > .inlineSettingsPreviewFit {
   transform: none;
 }
 

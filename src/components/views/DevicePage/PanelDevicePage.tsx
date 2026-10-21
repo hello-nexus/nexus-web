@@ -40,7 +40,7 @@ import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
 import { fitLayoutToPages, fitLayoutToSinglePage, repaginatePanelLayout, type PaginateCapacity } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
-import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
+import { ensureSimulatedPanelRecord, getPanelGridSizingSettings, getSimulatedPanelRecordId } from '../../../lib/panelSimulation';
 import {
   canMarkImmersiveOnLoad,
   isImmersiveOnLoadWidget,
@@ -286,12 +286,15 @@ const XENEON_EDGE_CONTROLS: { key: XeneonEdgeControlKey; labelKey: string; min: 
 // lastSeenAt desc). Display-bound records are excluded from the surface match:
 // they are per-physical-monitor and only their own row (panelRecordId) may edit
 // them - a simulated monitor otherwise binds a real display's record, PATCHes
-// its layout, and inherits its canvas instead of the preset's.
+// its layout, and inherits its canvas instead of the preset's. A simulator binds
+// only the record it allocated for itself, never one found by surface.
 function matchPanelRecord(
   records: PanelDeviceRecord[] | undefined,
   panelRecordId: string | undefined,
   surface: PanelSurface,
+  simulated = false,
 ): PanelDeviceRecord | undefined {
+  if (simulated) return panelRecordId ? records?.find(d => d.id === panelRecordId) : undefined;
   return panelRecordId
     ? records?.find(d => d.id === panelRecordId)
     : records?.find(d => d.capabilities?.surface === surface && !d.displayId);
@@ -299,7 +302,8 @@ function matchPanelRecord(
 
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t, language } = useTranslation();
-  const isQSeries = device?.runtimeSurface === 'q60';
+  // A simulated Q60 has no cooler or panel behind it, so no /qseries hardware read or write may fire for it.
+  const isQSeries = device?.runtimeSurface === 'q60' && device.connectionKind !== 'simulated';
   const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
   const [brightness, setBrightness] = useState(50);
@@ -390,7 +394,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
   // Curated display family (capabilities.family, e.g. 'xeneon-edge') off the
   // matched record - drives which promoted-monitor-only settings apply.
-  const [recordFamily, setRecordFamily] = useState<string | undefined>(undefined);
+  const [matchedFamily, setMatchedFamily] = useState<string | undefined>(undefined);
+  // A simulator has no matched record family, so it takes the one of the device it stands in for.
+  const recordFamily = matchedFamily ?? device?.family;
   const [recordWidgetSize, setRecordWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
   const [pendingWidgetSize, setPendingWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
   // The glass drives hardware settings and record matching; `surface` is the one whose
@@ -400,6 +406,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const widgetSizeOptions = panelWidgetSizeOptions(glassSurface, recordFamily);
   const widgetSizeMode = resolvePanelWidgetSize(glassSurface, recordFamily, recordWidgetSize);
   const isSimulated = device?.connectionKind === 'simulated';
+  const simulatorId = isSimulated ? device?.sourceId : undefined;
+  const boundRecordId = useCallback(
+    () => (isSimulated
+      ? (simulatorId ? getSimulatedPanelRecordId(simulatorId) : undefined)
+      : device?.panelRecordId),
+    [isSimulated, simulatorId, device?.panelRecordId],
+  );
   // Simulated panels render a preview that never takes the focus hold.
   const backgroundHeldBy = useFocusStaticBackground(glassSurface, !isSimulated);
   const supportsDisplayControls = device?.capabilities.displayControls ?? glassSurface === 'y70';
@@ -437,10 +450,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // layout before the record's widget size reaches state.
   const layoutSurfaceOf = useCallback((record: PanelDeviceRecord | null | undefined, touch: boolean | undefined) => {
     const caps = record?.capabilities;
-    const laidOut = panelLayoutSurface(glassSurface, caps?.family, record?.widgetSize);
+    const family = caps?.family ?? device?.family;
+    const laidOut = panelLayoutSurface(glassSurface, family, record?.widgetSize);
     // Same canvas the editor grid reads: the record's own, else the device entry's.
     const canvas = caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight } : device?.previewSize;
-    const dpi = panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI)
+    const dpi = panelLayoutDpi(glassSurface, family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI)
       ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
     const canvasDensitySlots = canvas
       ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (caps?.cssWidth ? caps.dpr : device?.previewDpr) || 1, dpi)
@@ -449,11 +463,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       surface: laidOut,
       touch: laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
-        panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize, canvasDensitySlots),
+        panelShortSideSlots(glassSurface, family, record?.widgetSize, canvasDensitySlots),
         isLandscapeCanvas(canvas),
       ),
     };
-  }, [glassSurface, device?.previewSize, device?.previewDpi, device?.previewDpr]);
+  }, [glassSurface, device?.family, device?.previewSize, device?.previewDpi, device?.previewDpr]);
   // Promoted monitors with a DDC/CI-capable display get a brightness-only
   // settings tab wired to the generic /displays brightness endpoint.
   const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);
@@ -569,7 +583,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // family, so it must not depend on ddcSupported/monitorRotation.
     || isXeneonEdgePanel
     // Q60 carries an AIO cooler, so its settings tab hosts the cooler firmware options.
-    || glassSurface === 'q60'
+    || (glassSurface === 'q60' && !isSimulated)
     // Same for the Kraken: the glass is a panel, the cooler around it is the
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
@@ -583,9 +597,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || isSecondaryMonitorCapablePanel
     || isRenderScalablePanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
-  // Simulator and real hardware share one code path: theme, layout,
-  // brightness, orientation, screen-on, and auto-launch all read/write the
-  // service's persisted state.
+  // Theme and layout read and write the panel record for simulators and hardware alike;
+  // a simulator has no display or cooler, so its hardware controls are off.
   const panelRecord = usePanelRecord(editingDeviceId);
   const panelTheme = usePanelTheme(panelRecord, editingDeviceId);
   const theme = panelTheme.theme;
@@ -648,7 +661,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
-      const match = matchPanelRecord(devices?.devices, device?.panelRecordId, glassSurface);
+      const match = matchPanelRecord(devices?.devices, boundRecordId(), glassSurface, isSimulated);
       setEditingDeviceId(match?.id ?? null);
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
@@ -671,7 +684,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
-      setRecordFamily(match?.capabilities?.family);
+      setMatchedFamily(match?.capabilities?.family);
       setRecordWidgetSize(match?.widgetSize ?? null);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       setRecordTouch(match?.capabilities?.touch);
@@ -689,7 +702,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       if (!isXeneonEdgePanel) setResettingHardware(false);
     }).catch(() => { if (!cancelled) { setLoaded(true); setResettingHardware(false); } });
     return () => { cancelled = true; };
-  }, [glassSurface, layoutSurfaceOf, supportsDisplayControls, isQSeries, isXeneonEdgePanel, device?.panelRecordId, device?.capabilities.touch, settingsRefreshNonce]);
+  }, [glassSurface, layoutSurfaceOf, supportsDisplayControls, isQSeries, isXeneonEdgePanel, boundRecordId, isSimulated, device?.capabilities.touch, settingsRefreshNonce]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);
@@ -896,13 +909,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       return;
     }
     allocatingRef.current = true;
-    void allocatePanelDevice({ surface: glassSurface }, `${glassSurface} panel`).then(record => {
+    const allocated = simulatorId
+      ? ensureSimulatedPanelRecord(simulatorId).then(id => (id ? { id } : null))
+      : allocatePanelDevice({ surface: glassSurface }, `${glassSurface} panel`);
+    void allocated.then(record => {
       if (record?.id) {
         setEditingDeviceId(record.id);
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, surface, glassSurface, deviceTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, deviceTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -919,11 +935,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     if (!editingDeviceId) {
       if (allocatingRef.current) return;
       void fetchPanelDevices().then(list => {
-        const match = matchPanelRecord(list?.devices, device?.panelRecordId, glassSurface);
+        const match = matchPanelRecord(list?.devices, boundRecordId(), glassSurface, isSimulated);
         if (!match) return;
         setEditingDeviceId(match.id);
         // A capability, not a user edit: a family-less page offers the plain-monitor Widget size.
-        setRecordFamily(match.capabilities?.family);
+        setMatchedFamily(match.capabilities?.family);
         const since = rebootRequestedAtRef.current;
         if (since !== null && (match.lastSeenAt ?? 0) > since) {
           rebootRequestedAtRef.current = null;
@@ -1387,7 +1403,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const showQseriesNeedsHostReboot = showDisconnected
     && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && qseriesLinkState.hostRebootPending;
 
-  const showPreviewTroubleshoot = isQSeries;
+  const showPreviewTroubleshoot = device?.runtimeSurface === 'q60';
   const qseriesTroubleshootLink = (label: string) => (
     <a
       className={styles.troubleshootLink}
@@ -1759,7 +1775,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       variant={device?.firmwareType !== device?.sourceId ? device?.firmwareType : undefined}
                     />
                   )}
-                  {activeTab === 'settings' && glassSurface === 'q60' && (
+                  {activeTab === 'settings' && glassSurface === 'q60' && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <MonitorSettingsPanel
                         brightness={qSeriesBrightness}
@@ -2315,6 +2331,27 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
             const fit = previewFit(span.cols, span.rows);
             const previewW = fit.width;
             const previewH = fit.height;
+            // The round fit scale sits on a wrapper, as on the canvas .cellScaler,
+            // so the widget root keeps its own transform.
+            const previewBody = (
+              <ErrorBoundary label={widget.type}>
+                <Comp
+                  widget={widget}
+                  // The preview mirrors the target surface's interactivity.
+                  surface={surface}
+                  deviceTouch={deviceTouch}
+                  selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+                  onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+                  editView={usesSlotSelection ? deckEditView : undefined}
+                  onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
+                  // Same semantics as the canvas tile: this preview shows the
+                  // same nav arrows, so pressing one has to mean the same
+                  // thing rather than moving a throwaway view.
+                  onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
+                  editorPreview={def.meta.persistsFromTile ? true : undefined}
+                />
+              </ErrorBoundary>
+            );
             const root = (
               <div
                 className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
@@ -2322,23 +2359,9 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
                 style={{ ...themeStyle, width: previewW, height: previewH, ...(fit.scale < 1 ? { transform: `scale(${fit.scale})`, transformOrigin: 'top left' } : {}) }}
               >
                 <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
-                  <ErrorBoundary label={widget.type}>
-                    <Comp
-                      widget={widget}
-                      // The preview mirrors the target surface's interactivity.
-                      surface={surface}
-                      deviceTouch={deviceTouch}
-                      selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
-                      onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
-                      editView={usesSlotSelection ? deckEditView : undefined}
-                      onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
-                      // Same semantics as the canvas tile: this preview shows the
-                      // same nav arrows, so pressing one has to mean the same
-                      // thing rather than moving a throwaway view.
-                      onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
-                      editorPreview={def.meta.persistsFromTile ? true : undefined}
-                    />
-                  </ErrorBoundary>
+                  {widget.size === '2x2round'
+                    ? <div className={styles.inlineSettingsPreviewFit}>{previewBody}</div>
+                    : previewBody}
                 </div>
               </div>
             );
