@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ColorPickerWithPresets } from '../../common/ColorPickerWithPresets/ColorPickerWithPresets';
@@ -87,9 +87,21 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
     {data.chains.map(chain => {
       const typeLabel = t(chain.family === 'slInfFlex' ? 'devices.lianli-wireless.fanTypeSlInfFlex' : 'devices.lianli-wireless.fanTypeTlFlex');
       const multiple = data.chains.filter(c => c.family === chain.family).length > 1;
-      return (
+      return (<Fragment key={chain.mac}>
+        {chain.upDownSwap != null && (
+          <SettingsSection
+            title={`${multiple ? `${typeLabel} ${chain.mac.slice(-4)}` : typeLabel} - ${t('devices.lianli-flex.upDownSwap')}`}
+            boxClassName={styles.sectionBox}
+          >
+            <SettingToggle
+              label={t('devices.lianli-flex.upDownSwap')}
+              description={t('devices.lianli-flex.upDownSwapHint')}
+              checked={chain.upDownSwap}
+              onChange={on => { void commit(chain.mac, { upDownSwap: on }, c => ({ ...c, upDownSwap: on })); }}
+            />
+          </SettingsSection>
+        )}
         <SettingsSection
-          key={chain.mac}
           title={t('devices.lianli-wireless.flexLcd.title', { type: multiple ? `${typeLabel} ${chain.mac.slice(-4)}` : typeLabel })}
           boxClassName={styles.sectionBox}
         >
@@ -99,14 +111,6 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
             checked={chain.enabled}
             onChange={() => { void commit(chain.mac, { enabled: !chain.enabled }, c => ({ ...c, enabled: !c.enabled })); }}
           />
-          {chain.upDownSwap != null && (
-            <SettingToggle
-              label={t('devices.lianli-flex.upDownSwap')}
-              description={t('devices.lianli-flex.upDownSwapHint')}
-              checked={chain.upDownSwap}
-              onChange={on => { void commit(chain.mac, { upDownSwap: on }, c => ({ ...c, upDownSwap: on })); }}
-            />
-          )}
           {chain.enabled && (<>
             <SettingSlider
               editable
@@ -184,7 +188,7 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
             })}
           </>)}
         </SettingsSection>
-      );
+      </Fragment>);
     })}
   </>);
 }
