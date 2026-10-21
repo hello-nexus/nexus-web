@@ -281,7 +281,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'App removed from layout',
     status: 'live',
     source: 'service',
-    description: 'An app widget instance left a layout. Derived from the layout save, like app_placed. Uninstalling through removeAppEverywhere saves each layout that held the app, so it also emits one app_removed per placement.',
+    description: 'An app widget instance left a layout. Derived from the layout save, like app_placed. Uninstalling through removeAppEverywhere saves each layout that held the app, so it also emits one app_removed per placement. The service uninstall route and a Marketplace yank strip placements through RemoveWidgetType instead, and emit no app_removed.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'App id of the widget.' },
       { name: 'surface', type: 'string', required: true, description: 'Surface it was removed from, named as for app_placed.' },
