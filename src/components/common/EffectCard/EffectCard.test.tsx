@@ -29,4 +29,15 @@ describe('EffectCard', () => {
     expect(img.style.height).toBe('100%');
     expect((img.parentElement as HTMLElement).style.maxHeight).toBe('360px');
   });
+
+  it('clips the thumbnail to a circle only when asked', () => {
+    const round = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} thumbRound onClick={() => {}} />);
+    const img = round.container.querySelector('img')!;
+    expect(img.style.borderRadius).toBe('50%');
+    expect((img.parentElement as HTMLElement).style.borderRadius).toBe('50%');
+    expect((img.parentElement as HTMLElement).style.overflow).toBe('hidden');
+    round.unmount();
+    const square = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} onClick={() => {}} />);
+    expect(square.container.querySelector('img')!.style.borderRadius).toBe('');
+  });
 });

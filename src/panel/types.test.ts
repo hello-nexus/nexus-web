@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isStreamedPanelSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  surfaceInputMode, widgetDisplayShape, type PanelSurface,
+  surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
 describe('surfaceInputMode', () => {
@@ -132,5 +132,15 @@ describe('surfaceAllowsPages', () => {
     expect(surfaceAllowsPages('monitor', false)).toBe(false);
     expect(surfaceAllowsPages('monitor')).toBe(false);
     expect(surfaceAllowsPages('q60')).toBe(false);
+  });
+});
+
+describe('surfaceDisplayShape', () => {
+  it('is round only on round glass', () => {
+    expect(surfaceDisplayShape('kraken')).toBe('round');
+    expect(surfaceDisplayShape('lcd-round')).toBe('round');
+    for (const surface of ['lcd-square', 'lcd-wide', 'q60', 'y70', 'monitor', 'phone', 'desktop'] as const) {
+      expect(surfaceDisplayShape(surface)).toBe('rect');
+    }
   });
 });

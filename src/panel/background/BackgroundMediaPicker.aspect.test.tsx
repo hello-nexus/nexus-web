@@ -25,8 +25,8 @@ vi.mock('./useBackgroundMedia', () => ({
 }));
 // jsdom drops the aspect-ratio property, so the cards report the prop they were given instead.
 vi.mock('../../components/common/EffectCard/EffectCard', () => ({
-  EffectCard: ({ label, thumbAspect }: { label: string; thumbAspect?: number }) => (
-    <div data-testid="card" data-aspect={String(thumbAspect)}>{label}</div>
+  EffectCard: ({ label, thumbAspect, thumbRound }: { label: string; thumbAspect?: number; thumbRound?: boolean }) => (
+    <div data-testid="card" data-aspect={String(thumbAspect)} data-round={thumbRound ? 'yes' : 'no'}>{label}</div>
   ),
 }));
 vi.mock('../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key, language: 'en' }) }));
@@ -50,5 +50,16 @@ describe('BackgroundMediaPicker tile aspect', () => {
     const cards = getAllByTestId('card');
     expect(cards).toHaveLength(2);
     for (const el of cards) expect(Number(el.dataset.aspect)).toBeCloseTo(aspect, 5);
+  });
+
+  it.each([
+    ['round panel', true, 'yes'],
+    ['rectangular panel', false, 'no'],
+  ])('draws the tiles %s as expected', (_name, round, expected) => {
+    api.library = [item('a')];
+    const { container } = render(
+      <BackgroundMediaPicker deviceId="dev1" activeId={null} deviceAspect={1} round={round} deviceW={720} deviceH={720} onSelect={vi.fn()} />,
+    );
+    for (const el of within(container).getAllByTestId('card')) expect(el.dataset.round).toBe(expected);
   });
 });

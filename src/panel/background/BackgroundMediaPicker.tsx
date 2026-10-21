@@ -55,6 +55,7 @@ export function BackgroundMediaPicker({
   deviceId,
   activeId,
   deviceAspect,
+  round = false,
   deviceW,
   deviceH,
   onSelect,
@@ -66,6 +67,8 @@ export function BackgroundMediaPicker({
   deviceId: string;
   activeId: string | null;
   deviceAspect: number;
+  /** Round glass: the tiles are circles. */
+  round?: boolean;
   deviceW: number;
   deviceH: number;
   onSelect: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
@@ -425,6 +428,7 @@ export function BackgroundMediaPicker({
           onDelete={requestDelete}
           deleteAriaLabel={t('lighting.controls.mediaDelete')}
           thumbAspect={deviceAspect}
+          thumbRound={round}
           onReorder={onOrderChange}
           prepend={importingName ? (
             <EffectCard
@@ -437,6 +441,7 @@ export function BackgroundMediaPicker({
               thumbOverlay={<span className={styles.mediaSpinner} role="status" aria-label={importingLabel} />}
               ariaLabel={importingName}
               thumbAspect={deviceAspect}
+              thumbRound={round}
             />
           ) : undefined}
         />
