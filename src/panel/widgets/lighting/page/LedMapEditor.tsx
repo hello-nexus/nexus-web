@@ -1449,6 +1449,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Area boxes the service recomputed from the draft layout, with the card they belong to.
   const [draftBoxes, setDraftBoxes] = useState<{ id: string; boxes: number[] } | null>(null);
   const draftBoxesSeq = useRef(0);
+  // Toggling the mode makes any held draft boxes stale.
+  const areaOn = devices.find(d => d.id === selectedZoneId)?.areaSampling;
+  useEffect(() => { draftBoxesSeq.current += 1; setDraftBoxes(null); }, [areaOn, selectedZoneId]);
 
   useEffect(() => {
     if (loading || saving) return;
@@ -1469,7 +1472,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         zoneLeds.map(l => ({ index: l.index, u: l.u, v: l.v, disabled: l.disabled })),
       ).then(r => {
         // Newest response wins; the boxes follow the draft the service just read.
-        if (mine === draftBoxesSeq.current && r && !r.error && r.areaBoxes) setDraftBoxes({ id: sentFor, boxes: r.areaBoxes });
+        if (mine === draftBoxesSeq.current) setDraftBoxes(r && !r.error && r.areaBoxes ? { id: sentFor, boxes: r.areaBoxes } : null);
       }).catch(() => { /* best-effort */ });
     }, 80);
     return () => clearTimeout(previewTimerRef.current);

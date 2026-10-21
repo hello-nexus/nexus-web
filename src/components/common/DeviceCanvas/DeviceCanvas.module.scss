@@ -7,8 +7,6 @@
   --frame-line-dim: rgb(255 255 255 / var(--alpha-medium));
   --frame-halo: rgb(0 0 0 / var(--alpha-strong));
   --frame-scrim: rgb(0 0 0 / var(--alpha-strong));
-  // The LED mark: the dot's fill and the area box's line, one color so the two stay in sync.
-  --led-mark: rgb(255 255 255 / var(--alpha-medium));
   position: relative;
   // Always the unit canvas's own aspect, so a unit is the same length on both
   // screen axes: a turned frame is then a plain rotation of the div and its

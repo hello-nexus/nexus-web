@@ -1,6 +1,6 @@
 // The frame-rate cap selector renders only for cards that report support.
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LedMapEditor } from './LedMapEditor';
 import styles from './LedMapEditor.module.scss';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -89,6 +89,7 @@ describe('LedMapEditor frame-rate cap', () => {
 });
 
 describe('LedMapEditor area sampling boxes', () => {
+  afterEach(() => { api.postLedPreviewLayout.mockResolvedValue(null); });
   it('underlays a box per enabled LED for an area-sampled card', async () => {
     render(
       <LedMapEditor
@@ -114,7 +115,6 @@ describe('LedMapEditor area sampling boxes', () => {
       />,
     );
     await waitFor(() => expect(document.querySelectorAll(`.${styles.areaBox}`).length).toBe(3));
-    api.postLedPreviewLayout.mockResolvedValue(null);
   });
   it('draws none when the mode is off', async () => {
     render(

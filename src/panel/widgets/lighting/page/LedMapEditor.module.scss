@@ -93,7 +93,7 @@
 .areaBox {
   position: absolute;
   box-sizing: border-box;
-  border: 2px solid rgb(255 255 255 / var(--alpha-medium));
+  border: 2px solid var(--led-mark);
   box-shadow: var(--shadow-sm);
   pointer-events: none;
   z-index: 0;
