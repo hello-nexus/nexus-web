@@ -16,6 +16,7 @@ import { DeviceContextMenu, menuSections, type DeviceMenuItem } from './DeviceCo
 import { stackMenuItems, type StackActions } from './groupMenuItems';
 import { sliceStackSlot, stackSlotOf, type DeviceStack } from '../../../lib/stackSlots';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
+import { lockedFrameSize } from '../../../lib/aspectResize';
 import styles from './DeviceCanvas.module.scss';
 
 interface DeviceCanvasProps {
@@ -641,15 +642,25 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
     } else {
       const rad = radOf(dev);
       if (rad === 0) {
-        dev.canvasW = Math.max(60, Math.min(CW - PAD - dev.canvasX, drag.origW + dx));
-        dev.canvasH = Math.max(60, Math.min(CH - PAD - dev.canvasY, drag.origH + dy));
+        const maxW = CW - PAD - dev.canvasX, maxH = CH - PAD - dev.canvasY;
+        if (e.shiftKey) {
+          const locked = lockedFrameSize(drag.origW, drag.origH, drag.origW + dx, drag.origH + dy, 60, maxW, maxH);
+          dev.canvasW = locked.w;
+          dev.canvasH = locked.h;
+        } else {
+          dev.canvasW = Math.max(60, Math.min(maxW, drag.origW + dx));
+          dev.canvasH = Math.max(60, Math.min(maxH, drag.origH + dy));
+        }
       } else {
         // The grip drags the frame's own bottom-right corner: the pointer delta
         // is read along the frame's axes and the opposite corner stays put, so
         // the centre the frame turns about moves with the resize.
         const c = Math.cos(rad), sn = Math.sin(rad);
-        const w = Math.max(60, drag.origW + dx * c + dy * sn);
-        const h = Math.max(60, drag.origH - dx * sn + dy * c);
+        const rawW = drag.origW + dx * c + dy * sn;
+        const rawH = drag.origH - dx * sn + dy * c;
+        const { w, h } = e.shiftKey
+          ? lockedFrameSize(drag.origW, drag.origH, rawW, rawH, 60, Infinity, Infinity)
+          : { w: Math.max(60, rawW), h: Math.max(60, rawH) };
         const ocx = drag.origX + drag.origW / 2, ocy = drag.origY + drag.origH / 2;
         const cornerX = ocx - (drag.origW / 2) * c + (drag.origH / 2) * sn;
         const cornerY = ocy - (drag.origW / 2) * sn - (drag.origH / 2) * c;
