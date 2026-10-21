@@ -272,6 +272,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
               panelOpener={panelOpener}
               wired={flex}
               onOpenWiredPage={onSectionNavigate ? () => onSectionNavigate('device', { deviceKey: 'curated-lianli-flex' }) : undefined}
+              onOpenRadioPage={onSectionNavigate ? () => onSectionNavigate('device', { deviceKey: 'curated-lianli-wireless' }) : undefined}
               identify={flex ? identifyLianLiFlexFan : undefined}
             />
           )}

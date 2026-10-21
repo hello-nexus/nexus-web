@@ -396,22 +396,47 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
     expect(open).toHaveBeenCalled();
   });
 
-  it('offers only Unbind, with the hint, for a wired unit still bound to this radio, and unbinds after the confirm', async () => {
+  it('treats a USB-connected unit bound to this radio as an ordinary bound row with the hint, Identify and Unbind', async () => {
     await act(async () => {
       render(<LianLiWirelessFansTab
-        state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: true, boundToUs: true, slot: 1 }] }}
+        state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: false, radioDrivesUsb: true, boundToUs: true, slot: 1 }] }}
         refresh={vi.fn()}
         onOpenWiredPage={vi.fn()}
       />);
     });
     expect(screen.getByText('devices.lianli-flex.usbBoundHint')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-flex.connectedByUsb')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.identify' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.lianli-flex.openWiredPage' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' }));
     expect(mockUnbindLianLiWirelessFan).not.toHaveBeenCalled();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbindConfirmLabel' })); });
     expect(mockUnbindLianLiWirelessFan).toHaveBeenCalledWith(flexFan.mac);
+  });
+
+  it('says on the Flex page that a unit bound to this radio is driven by it, with a link to the radio page', async () => {
+    const openRadio = vi.fn();
+    await act(async () => {
+      render(<LianLiWirelessFansTab
+        wired
+        state={{ ...wirelessState, fans: [{ ...flexFan, boundToUs: false, receiverBound: true, radioBound: true }] }}
+        refresh={vi.fn()}
+        onOpenRadioPage={openRadio}
+      />);
+    });
+    expect(screen.getByText('devices.lianli-flex.drivenByRadio')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-flex.boundElsewhere')).not.toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-flex.radioBoundHint')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.openRadioPage' }));
+    expect(openRadio).toHaveBeenCalled();
+  });
+
+  it('still calls a unit bound to another controller elsewhere on the Flex page', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab wired state={{ ...wirelessState, fans: [{ ...flexFan, boundToUs: false, receiverBound: true }] }} refresh={vi.fn()} />);
+    });
+    expect(screen.getByText('devices.lianli-flex.boundElsewhere')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-flex.radioBoundHint')).not.toBeInTheDocument();
   });
 
   it('keeps a wired unit that is not bound to this radio free of actions apart from the page link', async () => {
