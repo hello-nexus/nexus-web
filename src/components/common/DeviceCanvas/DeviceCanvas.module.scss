@@ -237,8 +237,8 @@
 .ledBox {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid rgb(255 255 255 / var(--alpha-strong));
-  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-medium));
+  border: 1px solid var(--frame-line);
+  box-shadow: 0 0 0 1px var(--frame-halo);
   pointer-events: none;
   z-index: 1;
 }
