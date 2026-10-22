@@ -831,6 +831,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Alle afbeeldingen en GIF's worden van het scherm gewist. Dit kan niet ongedaan worden gemaakt.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Alle afbeeldingen en GIF's verwijderen?",
   "devices.deepcool-mystique.removeAllHint": "Wist alle afbeeldingen en GIF's van het scherm.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Gebruik eenmaal Alles verwijderen zodat het scherm de GIF afspeelt die je kiest.",
   "devices.deepcool-mystique.removeConfirmBody": "Het blijft op het scherm totdat een ander item de plaats inneemt of Alles verwijderen wordt gebruikt.",
   "devices.deepcool-mystique.removeConfirmTitle": "{name} verwijderen?",
   "devices.deepcool-mystique.removeFailedBody": "Het item kon niet worden verwijderd.",

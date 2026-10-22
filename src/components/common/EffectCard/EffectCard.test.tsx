@@ -43,4 +43,15 @@ describe('EffectCard', () => {
     const square = render(<EffectCard label="a" thumbUrl="blob:x" thumbAspect={1} onClick={() => {}} />);
     expect(square.container.querySelector('img')!.style.borderRadius).toBe('');
   });
+
+  it('a disabled card ignores clicks and keys, as a button or a div', () => {
+    const onClick = vi.fn();
+    const { getByRole, rerender } = render(<EffectCard label="Glitch Garden" thumbUrl={null} active={false} disabled onClick={onClick} />);
+    fireEvent.click(getByRole('button'));
+    rerender(<EffectCard label="Glitch Garden" thumbUrl={null} active={false} disabled asDiv onClick={onClick} />);
+    fireEvent.click(getByRole('button'));
+    fireEvent.keyDown(getByRole('button'), { key: 'Enter' });
+    expect(getByRole('button').getAttribute('aria-disabled')).toBe('true');
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });

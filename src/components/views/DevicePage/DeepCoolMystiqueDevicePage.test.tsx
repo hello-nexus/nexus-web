@@ -484,7 +484,9 @@ describe('DeepCoolMystiqueDevicePage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
     });
     expect(mockShow).toHaveBeenCalledWith(GIF_A);
-    expect(screen.getByText('devices.deepcool-mystique.progressSending (40%)')).toBeTruthy();
+    expect(screen.getByRole('status', { name: 'devices.deepcool-mystique.progressSending' }).textContent).toBe('40%');
+    const pictureTile = screen.getByRole('button', { name: 'devices.deepcool-mystique.selectItem:{"name":"spider"}' });
+    expect(pictureTile.getAttribute('aria-disabled')).toBe('true');
     mockGet.mockResolvedValue({
       ...base,
       mode: 'media',
@@ -495,7 +497,8 @@ describe('DeepCoolMystiqueDevicePage', () => {
     await act(async () => {
       finish({ ok: true, needsEdit: false });
     });
-    expect(screen.queryByText('devices.deepcool-mystique.progressSending (40%)')).toBeNull();
+    expect(screen.queryByRole('status', { name: 'devices.deepcool-mystique.progressSending' })).toBeNull();
+    expect(pictureTile.getAttribute('aria-disabled')).toBeNull();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
     });
@@ -504,6 +507,16 @@ describe('DeepCoolMystiqueDevicePage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.selectItem:{"name":"spider"}' }));
     });
     expect(mockSet).toHaveBeenCalledWith({ mediaSource: 'images' });
+  });
+
+  it('advises Remove all once while the screen may hold older GIFs', async () => {
+    await mount({ ...base, mode: 'media', gifSlotUnsure: true, media: [{ kind: 'gif', id: GIF_A, name: 'logo' }] });
+    expect(screen.getByText('devices.deepcool-mystique.removeAllOnceNotice')).toBeTruthy();
+  });
+
+  it('gives no Remove all advice once the slot is known', async () => {
+    await mount({ ...base, mode: 'media', gifSlotUnsure: false, media: [{ kind: 'gif', id: GIF_A, name: 'logo' }] });
+    expect(screen.queryByText('devices.deepcool-mystique.removeAllOnceNotice')).toBeNull();
   });
 
   it('a GIF whose frames were not kept opens the cropper to send it again, and a refused one raises a toast', async () => {

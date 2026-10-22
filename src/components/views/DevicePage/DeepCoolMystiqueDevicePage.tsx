@@ -4,7 +4,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
-import { FlashProgress } from '../../common/FlashProgress/FlashProgress';
+import { Notice } from '../../common/Notice/Notice';
 import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
 import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -182,16 +182,18 @@ export function DeepCoolMystiqueDevicePage() {
       return;
     }
     let live = true;
+    let timer: number | undefined;
+    // The next poll is scheduled once a response lands, so polls never overlap.
     const poll = async () => {
       const next = await getMystiqueProgress();
-      if (!live || !next) return;
-      setProgress(prev => (next.phase === '' ? null : prev?.phase === next.phase && prev.percent === next.percent ? prev : next));
+      if (!live) return;
+      if (next) setProgress(prev => (next.phase === '' ? null : prev?.phase === next.phase && prev.percent === next.percent ? prev : next));
+      timer = window.setTimeout(() => { void poll(); }, PROGRESS_POLL_MS);
     };
     void poll();
-    const id = window.setInterval(() => { void poll(); }, PROGRESS_POLL_MS);
     return () => {
       live = false;
-      window.clearInterval(id);
+      window.clearTimeout(timer);
     };
   }, [transferring]);
 
@@ -419,6 +421,7 @@ export function DeepCoolMystiqueDevicePage() {
         thumbAspect={SCREEN_ASPECT}
         thumbOverlay={<span className={styles.mediaOverlay}><Plus size={28} aria-hidden /></span>}
         active={false}
+        disabled={!ready || mediaBusy}
         onClick={() => addMedia(kind, items.length)}
       />
       {items.map(item => (
@@ -430,6 +433,12 @@ export function DeepCoolMystiqueDevicePage() {
           thumbUrl={mystiqueThumbUrl(item.id, thumbVersion)}
           thumbStatic
           thumbAspect={SCREEN_ASPECT}
+          thumbOverlay={showing === item.id ? (
+            <span className={styles.mediaOverlay} role="status" aria-label={progressStatus?.message ?? t('devices.deepcool-mystique.progressSending')}>
+              {localizeNumbers(`${progressStatus?.percent ?? 0}%`, numberFormat)}
+            </span>
+          ) : undefined}
+          disabled={(!ready || mediaBusy) && showing !== item.id}
           active={selectedId(kind) === item.id}
           ariaLabel={t(kind === 'gif' ? 'devices.deepcool-mystique.showGif' : 'devices.deepcool-mystique.selectItem', { name: item.name })}
           onClick={() => selectMedia(item)}
@@ -603,12 +612,10 @@ export function DeepCoolMystiqueDevicePage() {
                 </Button>
                 {editButton('gif')}
               </SettingRow>
-              {mediaGrid('gif', gifs)}
-              {showing !== null && (
-                <p className={styles.customNote} aria-live="polite">
-                  <FlashProgress status={progressStatus ?? { percent: 0, message: t('devices.deepcool-mystique.progressSending') }} />
-                </p>
+              {state.gifSlotUnsure && gifs.length > 0 && (
+                <Notice tone="info">{t('devices.deepcool-mystique.removeAllOnceNotice')}</Notice>
               )}
+              {mediaGrid('gif', gifs)}
               <p className={styles.customNote} data-settings-aside="true">{t('devices.deepcool-mystique.playbackHint')}</p>
               <SettingRow label={t('devices.deepcool-mystique.removeAll')} description={t('devices.deepcool-mystique.removeAllHint')}>
                 <Button

@@ -831,6 +831,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Dutis lis imagjins e lis GIF a vignaran scancelâdis dal visôr. No si pues tornâ indaûr.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Gjavâ dutis lis imagjins e lis GIF?",
   "devices.deepcool-mystique.removeAllHint": "Al scancele dutis lis imagjins e lis GIF dal visôr.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Dopre Gjave dut une volte par che il visôr al riprodusi la GIF che tu sielzis.",
   "devices.deepcool-mystique.removeConfirmBody": "Al reste sul visôr fintremai che un altri element nol cjape il so puest o che no si dopre Gjave dut.",
   "devices.deepcool-mystique.removeConfirmTitle": "Gjavâ {name}?",
   "devices.deepcool-mystique.removeFailedBody": "No si à podût gjavâ l'element.",

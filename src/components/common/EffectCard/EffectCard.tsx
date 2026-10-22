@@ -58,6 +58,8 @@ interface EffectCardBaseProps {
   hideLabel?: boolean;
   /** Subtitle in the body font instead of monospace, for prose such as a creator's name. */
   metaSans?: boolean;
+  /** Greys the card out and ignores clicks, for a choice that waits on work in progress. */
+  disabled?: boolean;
 }
 
 // Interactive cards require onClick; nonInteractive cards (plain div, no
@@ -72,13 +74,13 @@ type EffectCardProps = EffectCardBaseProps & (
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive,
+  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive, disabled,
 }: EffectCardProps) {
   const { t } = useTranslation();
   // An image that fails to load leaves the plain tile until a new one arrives, never a broken-image glyph.
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showImg = !!thumbUrl && thumbUrl !== failedUrl;
-  const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''}`;
+  const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''} ${disabled ? styles.cardDisabled : ''}`;
   const thumbBoxStyle = thumbAspect !== undefined
     ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
     : undefined;
@@ -126,11 +128,12 @@ export function EffectCard({
     return (
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
         className={className}
-        onClick={onClick}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+        onClick={disabled ? undefined : onClick}
+        onKeyDown={e => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick?.(); } }}
         aria-pressed={active}
+        aria-disabled={disabled || undefined}
         aria-label={ariaLabel ?? label}
         data-effect-key={dataEffectKey}
       >
@@ -144,6 +147,7 @@ export function EffectCard({
       type="button"
       className={className}
       onClick={onClick}
+      disabled={disabled}
       aria-label={ariaLabel ?? label}
       data-effect-key={dataEffectKey}
     >

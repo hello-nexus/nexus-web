@@ -831,6 +831,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Se borrarán todas las imágenes y GIF de la pantalla. No se puede deshacer.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "¿Quitar todas las imágenes y GIF?",
   "devices.deepcool-mystique.removeAllHint": "Borra todas las imágenes y GIF de la pantalla.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Usa Quitar todo una vez para que la pantalla reproduzca el GIF que elijas.",
   "devices.deepcool-mystique.removeConfirmBody": "Permanece en la pantalla hasta que otro elemento ocupe su lugar o se use Quitar todo.",
   "devices.deepcool-mystique.removeConfirmTitle": "¿Quitar {name}?",
   "devices.deepcool-mystique.removeFailedBody": "No se pudo quitar el elemento.",

@@ -831,6 +831,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Ekrandaki tüm resimler ve GIF'ler silinecek. Bu işlem geri alınamaz.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Tüm resimler ve GIF'ler kaldırılsın mı?",
   "devices.deepcool-mystique.removeAllHint": "Ekrandaki tüm resimleri ve GIF'leri siler.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Ekranın seçtiğiniz GIF'i oynatması için bir kez Tümünü kaldır'ı kullanın.",
   "devices.deepcool-mystique.removeConfirmBody": "Başka bir öğe yerini alana veya Tümünü kaldır kullanılana kadar ekranda kalır.",
   "devices.deepcool-mystique.removeConfirmTitle": "{name} kaldırılsın mı?",
   "devices.deepcool-mystique.removeFailedBody": "Öğe kaldırılamadı.",

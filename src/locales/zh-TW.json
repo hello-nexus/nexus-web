@@ -831,6 +831,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "螢幕上的所有圖片和 GIF 都將被清除。此操作無法復原。",
   "devices.deepcool-mystique.removeAllConfirmTitle": "移除所有圖片和 GIF？",
   "devices.deepcool-mystique.removeAllHint": "清除螢幕上的所有圖片和 GIF。",
+  "devices.deepcool-mystique.removeAllOnceNotice": "請使用一次「全部移除」，讓螢幕播放你選取的 GIF。",
   "devices.deepcool-mystique.removeConfirmBody": "在其他項目取代它或使用「全部移除」之前，它會一直留在螢幕上。",
   "devices.deepcool-mystique.removeConfirmTitle": "移除 {name}？",
   "devices.deepcool-mystique.removeFailedBody": "無法移除此項目。",

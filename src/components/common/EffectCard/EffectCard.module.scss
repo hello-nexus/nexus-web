@@ -103,6 +103,15 @@
   }
 }
 
+.cardDisabled {
+  @include disabled;
+
+  &:hover {
+    border-color: transparent;
+    transform: none;
+  }
+}
+
 // Caption in the lower third: white fill, dark outline, drop shadow so it
 // stays legible over any screenshot.
 .labelOverlay {

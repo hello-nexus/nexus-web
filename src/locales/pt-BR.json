@@ -831,6 +831,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Todas as imagens e GIFs serão apagados da tela. Não é possível desfazer.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Remover todas as imagens e GIFs?",
   "devices.deepcool-mystique.removeAllHint": "Apaga todas as imagens e GIFs da tela.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Use Remover tudo uma vez para que a tela reproduza o GIF que você escolher.",
   "devices.deepcool-mystique.removeConfirmBody": "Ele permanece na tela até que outro item ocupe seu lugar ou Remover tudo seja usado.",
   "devices.deepcool-mystique.removeConfirmTitle": "Remover {name}?",
   "devices.deepcool-mystique.removeFailedBody": "Não foi possível remover o item.",
