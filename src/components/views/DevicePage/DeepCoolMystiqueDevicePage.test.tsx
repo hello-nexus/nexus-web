@@ -149,7 +149,7 @@ beforeEach(() => {
   mockSet.mockResolvedValue(true);
   mockUpload.mockResolvedValue({ ok: true, msg: '' });
   mockDelete.mockResolvedValue(true);
-  mockShow.mockResolvedValue({ ok: true, needsEdit: false });
+  mockShow.mockResolvedValue({ ok: true, notKept: false });
   mockProgress.mockResolvedValue({ phase: '', percent: 0 });
   mockCancelStage.mockResolvedValue(undefined);
   URL.createObjectURL = vi.fn(() => 'blob:pick');
@@ -471,7 +471,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
   });
 
   it('a GIF click sends it to the screen with its progress, and a picture click plays the pictures', async () => {
-    let finish: (r: { ok: boolean; needsEdit: boolean }) => void = () => {};
+    let finish: (r: { ok: boolean; notKept: boolean }) => void = () => {};
     mockShow.mockReturnValue(new Promise(resolve => { finish = resolve; }));
     mockProgress.mockResolvedValue({ phase: 'sending', percent: 40 });
     await mount({
@@ -484,7 +484,8 @@ describe('DeepCoolMystiqueDevicePage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
     });
     expect(mockShow).toHaveBeenCalledWith(GIF_A);
-    expect(screen.getByRole('status', { name: 'devices.deepcool-mystique.progressSending' }).textContent).toBe('40%');
+    expect(screen.getByText('40%').getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getByText('devices.deepcool-mystique.progressSending 40%').getAttribute('aria-live')).toBe('polite');
     const pictureTile = screen.getByRole('button', { name: 'devices.deepcool-mystique.selectItem:{"name":"spider"}' });
     expect(pictureTile.getAttribute('aria-disabled')).toBe('true');
     mockGet.mockResolvedValue({
@@ -495,9 +496,10 @@ describe('DeepCoolMystiqueDevicePage', () => {
       media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }, { kind: 'gif', id: GIF_A, name: 'logo' }],
     });
     await act(async () => {
-      finish({ ok: true, needsEdit: false });
+      finish({ ok: true, notKept: false });
     });
-    expect(screen.queryByRole('status', { name: 'devices.deepcool-mystique.progressSending' })).toBeNull();
+    expect(screen.queryByText('40%')).toBeNull();
+    expect(screen.queryByText('devices.deepcool-mystique.progressSending 40%')).toBeNull();
     expect(pictureTile.getAttribute('aria-disabled')).toBeNull();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
@@ -519,20 +521,16 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(screen.queryByText('devices.deepcool-mystique.removeAllOnceNotice')).toBeNull();
   });
 
-  it('a GIF whose frames were not kept opens the cropper to send it again, and a refused one raises a toast', async () => {
-    mockShow.mockResolvedValue({ ok: false, needsEdit: true });
-    await mount({ ...base, mode: 'media', media: [{ kind: 'gif', id: GIF_A, name: 'logo', ext: '.gif', editable: true }] });
+  it('a GIF whose original is not kept raises its own toast, and a refused one the failure toast', async () => {
+    mockShow.mockResolvedValue({ ok: false, notKept: true });
+    await mount({ ...base, mode: 'media', media: [{ kind: 'gif', id: GIF_A, name: 'logo', ext: '.gif', editable: false }] });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
     });
-    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.deepcool-mystique.needsEditTitle', body: 'devices.deepcool-mystique.needsEditBody' });
-    expect(screen.getByTestId('crop-confirm')).toBeTruthy();
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('crop-confirm'));
-    });
-    expect(mockUpload).toHaveBeenCalledWith(expect.anything(), 'gif', { x: 0, y: 0, w: 1, h: 1 }, GIF_A);
+    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.deepcool-mystique.notKeptTitle', body: 'devices.deepcool-mystique.notKeptBody' });
+    expect(screen.queryByTestId('crop-confirm')).toBeNull();
 
-    mockShow.mockResolvedValue({ ok: false, needsEdit: false });
+    mockShow.mockResolvedValue({ ok: false, notKept: false });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
     });
