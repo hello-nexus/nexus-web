@@ -482,7 +482,7 @@ export function DeepCoolMystiqueDevicePage() {
                 <ChipGroup
                   ariaLabel={t('devices.deepcool-mystique.play')}
                   activeKey={state.sourceChosen ? state.mediaSource : ''}
-                  options={SOURCES.map(v => ({ key: v, label: t(SOURCE_KEYS[v]), disabled: !ready }))}
+                  options={SOURCES.map(v => ({ key: v, label: t(SOURCE_KEYS[v]), disabled: !ready || mediaBusy }))}
                   onChange={key => edit({ mediaSource: key as MystiqueMediaSource, sourceChosen: true }, { mediaSource: key as MystiqueMediaSource })}
                 />
               </SettingRow>
@@ -500,7 +500,7 @@ export function DeepCoolMystiqueDevicePage() {
                   options={SWITCH_SECONDS.map(v => ({
                     key: String(v),
                     label: localizeNumbers(t('devices.deepcool-mystique.seconds', { value: v }), numberFormat),
-                    disabled: !ready,
+                    disabled: !ready || mediaBusy,
                   }))}
                   onChange={key => edit({ switchSeconds: Number(key), mediaChosen: true }, { switchSeconds: Number(key) })}
                 />
@@ -509,7 +509,7 @@ export function DeepCoolMystiqueDevicePage() {
                 <ChipGroup
                   ariaLabel={t('devices.deepcool-mystique.animation')}
                   activeKey={state.mediaChosen ? state.animation : ''}
-                  options={ANIMATIONS.map(v => ({ key: v, label: t(ANIMATION_KEYS[v]), disabled: !ready }))}
+                  options={ANIMATIONS.map(v => ({ key: v, label: t(ANIMATION_KEYS[v]), disabled: !ready || mediaBusy }))}
                   onChange={key => edit({ animation: key as MystiqueAnimation, mediaChosen: true }, { animation: key as MystiqueAnimation })}
                 />
               </SettingRow>
@@ -526,6 +526,7 @@ export function DeepCoolMystiqueDevicePage() {
                 {editButton('gif')}
               </SettingRow>
               {mediaGrid('gif', gifs)}
+              <p className={styles.customNote}>{t('devices.deepcool-mystique.playbackHint')}</p>
               <SettingRow label={t('devices.deepcool-mystique.removeAll')} description={t('devices.deepcool-mystique.removeAllHint')}>
                 <Button
                   size="sm"
