@@ -173,7 +173,7 @@ const CURATED_ICONS: Record<string, string> = {
 };
 
 /** The service names the handler for P28 V2 when every unit is one; otherwise the LCD Flex label stands. */
-export const flexShortName = (serviceName: string): string => (serviceName.includes('P28') ? serviceName : 'Lian Li LCD Flex');
+export const flexShortName = (serviceName: string): string => (serviceName === 'Lian Li P28 V2' ? serviceName : 'Lian Li LCD Flex');
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
   // y70 and qseries omitted: the service reports the connected variant's

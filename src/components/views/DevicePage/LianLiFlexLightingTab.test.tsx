@@ -634,6 +634,17 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
       expect(screen.queryByText('devices.lianli-flex.modePerZone')).not.toBeInTheDocument();
     });
 
+    it('is keyed on the family, so a P28 reporting fan type 0 is still one', async () => {
+      await renderTab([{ ...p28Unit, fanType: 0, family: 'p28v2' }]);
+      expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('switch', { name: 'devices.lightingPage.use' })).not.toBeInTheDocument();
+    });
+
+    it('is not a P28 when the family says otherwise', async () => {
+      await renderTab([{ ...p28Unit, family: 'tlFlex' }]);
+      expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toBeInTheDocument();
+    });
+
     it('is not marked synced when the group sync is on', async () => {
       mockGet.mockResolvedValue({ laneModes: [], chains: [p28Unit] });
       await act(async () => { render(<LianLiWirelessLightingTab api={api} syncOn />); });

@@ -130,6 +130,8 @@ export interface LianLiWirelessLane {
 /** A bound wireless chain that can play an uploaded animation: a Strimer cable or a fan chain. */
 export interface LianLiWirelessChainLighting {
   mac: string;
+  /** Wired Flex chains only: "tlFlex", "slInfFlex" or "p28v2". */
+  family?: string;
   kind: 'strimer' | 'fans';
   devType: number;
   /** Strimer model name; empty for a fan chain, which is named from fanType. */

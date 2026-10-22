@@ -44,7 +44,8 @@ function chainTitle(t: Translate, chain: LianLiWirelessChainLighting): string {
 }
 
 /** The P28 V2 receiver: always driven by the Lighting page, with no stored effects, merge or motherboard ARGB. */
-export const isP28Chain = (chain: LianLiWirelessChainLighting): boolean => fanTypeKey(chain.fanType) === 'fanTypeP28v2';
+export const isP28Chain = (chain: LianLiWirelessChainLighting, flex: boolean): boolean =>
+  flex && (chain.family ? chain.family === 'p28v2' : fanTypeKey(chain.fanType) === 'fanTypeP28v2');
 
 function lanesOf(chain: LianLiWirelessChainLighting): LianLiWirelessLane[] {
   return Array.from({ length: chain.lanes }, (_, i) => chain.laneSettings[i] ?? {
@@ -211,6 +212,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   const chains = sortBySequence(data.chains);
   // The service names the leader when it can; otherwise the same rule applies here.
   const leaderMac = data.mergeLeaderMac !== undefined ? data.mergeLeaderMac : mergeLeaderMac(chains);
+  const flex = api !== WIRELESS_LIGHTING_API;
   const leader = chains.find(c => c.mac === leaderMac);
   // Units of one model read the same, so repeated titles are numbered in sequence order.
   const numbered = numberDuplicateTitles(chains.map(c => chainTitle(t, c)));
@@ -232,7 +234,8 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
           onReset={api.reset ? () => reset(chain.mac) : undefined}
           onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
           first={i === 0}
-          synced={syncOn && chain.supportsZones === true && !isP28Chain(chain)}
+          flex={flex}
+          synced={syncOn && chain.supportsZones === true && !isP28Chain(chain, flex)}
           last={i === chains.length - 1}
           onSectionNavigate={onSectionNavigate}
         />
@@ -256,16 +259,18 @@ interface ChainSectionProps {
   onMove?: (delta: -1 | 1) => void;
   first: boolean;
   last: boolean;
+  /** The chain is a wired Flex unit, not an RF wireless one. */
+  flex: boolean;
   /** The group sync drives this fan's look. */
   synced: boolean;
   onSectionNavigate?: (section: string) => void;
 }
 
-function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, synced, onSectionNavigate }: ChainSectionProps) {
+function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, flex, synced, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetFailed, setResetFailed] = useState(false);
-  const p28 = isP28Chain(chain);
+  const p28 = isP28Chain(chain, flex);
   const lightingPage = chain.mode === MODE_CUSTOM;
   // With no saved choice the switch shows what the chain reports it is doing.
   const argbOn = !p28 && (chain.motherboardArgb ?? chain.playingMotherboardArgb === true);

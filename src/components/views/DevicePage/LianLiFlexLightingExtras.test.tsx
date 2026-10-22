@@ -230,6 +230,7 @@ describe('syncReplacesState', () => {
 
   it('ignores a P28 V2 unit, which always reports the Lighting page mode', () => {
     expect(syncReplacesState([chain(63, 'custom')])).toBe(false);
+    expect(syncReplacesState([{ fanType: 0, mode: 'custom', family: 'p28v2' } as LianLiWirelessChainLighting])).toBe(false);
     expect(syncReplacesState([chain(51, 'rainbow'), chain(63, 'custom')])).toBe(false);
     expect(syncReplacesState([chain(51, 'custom'), chain(63, 'custom')])).toBe(true);
   });
