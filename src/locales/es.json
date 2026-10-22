@@ -786,7 +786,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Hasta {count} GIF o vídeos. Cada uno se reproduce como un bucle corto tomado de todo el clip, o de sus primeros {seconds} segundos si es más largo.",
   "devices.deepcool-mystique.gyroscope": "Permitir la rotación por giroscopio",
-  "devices.deepcool-mystique.gyroscopeHint": "Permite que el giroscopio de la pantalla gire la imagen.",
+  "devices.deepcool-mystique.gyroscopeHint": "Permite que el giroscopio de la pantalla gire la imagen. Las imágenes y los GIF que ya están en la pantalla mantienen su orientación hasta que se editen o se vuelvan a añadir.",
   "devices.deepcool-mystique.inputsHint": "Los sensores cuyos valores muestra la pantalla. Automático sigue los valores predeterminados de Nexus.",
   "devices.deepcool-mystique.inputsSection": "Sensores",
   "devices.deepcool-mystique.mediaFullBody": "Quita uno primero, o selecciona uno y edítalo.",
