@@ -142,10 +142,10 @@ export async function uploadMystiqueMedia(
 }
 
 /**
- * Sends a GIF to the screen, which plays one GIF at a time. `notKept` means neither its frames nor its original are
- * kept, so it cannot be sent again. Null on a transport failure.
+ * Shows a picture or GIF on the screen. `notKept` means neither its frames nor its original are kept, so it cannot be
+ * sent again. Null on a transport failure.
  */
-export async function showMystiqueGif(id: string): Promise<{ ok: boolean; notKept: boolean } | null> {
+export async function showMystiqueItem(id: string): Promise<{ ok: boolean; notKept: boolean } | null> {
   try {
     const res = await postService<{ error: boolean; notKept?: boolean }>(`${BASE}/media/${encodeURIComponent(id)}/show`, {});
     return res === null ? null : { ok: !res.error, notKept: res.notKept === true };
