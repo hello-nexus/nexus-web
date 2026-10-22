@@ -26,9 +26,6 @@ export const MYSTIQUE_MAX_GIFS = 9;
 /** The longest span of a video a GIF slot samples, as the service's MaxGifSpanMs cuts it. */
 export const MYSTIQUE_MAX_GIF_SECONDS = 10;
 
-/** The most frames a GIF slot plays, as the service's MaxGifFrames caps it. */
-export const MYSTIQUE_MAX_GIF_FRAMES = 149;
-
 export interface MystiqueMediaItem {
   kind: MystiqueMediaKind;
   /** The id the screen stores the item under. */
