@@ -521,14 +521,59 @@ describe('DeepCoolMystiqueDevicePage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showItem:{"name":"logo"}' }));
     });
-    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.deepcool-mystique.notKeptTitle', body: 'devices.deepcool-mystique.notKeptBody' });
+    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.deepcool-mystique.notKeptTitle:{"name":"logo"}', body: 'devices.deepcool-mystique.notKeptBody' });
     expect(screen.queryByTestId('crop-confirm')).toBeNull();
 
     mockShow.mockResolvedValue({ ok: false, notKept: false });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showItem:{"name":"logo"}' }));
     });
-    expect(mockPush).toHaveBeenLastCalledWith({ title: 'devices.deepcool-mystique.showFailedTitle', body: 'devices.deepcool-mystique.showFailedBody' });
+    expect(mockPush).toHaveBeenLastCalledWith({ title: 'devices.deepcool-mystique.showFailedTitle:{"name":"logo"}', body: 'devices.deepcool-mystique.showFailedBody' });
+  });
+
+  const pictureTile = (name: string) => screen.getByRole('button', { name: `devices.deepcool-mystique.showItem:{"name":"${name}"}` });
+  const twoPictures = [{ kind: 'picture', id: PICTURE_A, name: 'spider' }, { kind: 'picture', id: GIF_A, name: 'web' }];
+
+  it('the picture the screen starts from reads as shown, and clicking it again sends nothing', async () => {
+    await mount({ ...base, mode: 'media', mediaSource: 'images', shownPicture: PICTURE_A, media: twoPictures });
+    expect(pictureTile('spider').getAttribute('aria-pressed')).toBe('true');
+    expect(pictureTile('web').getAttribute('aria-pressed')).toBe('false');
+    await act(async () => {
+      fireEvent.click(pictureTile('spider'));
+    });
+    expect(mockShow).not.toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalled();
+  });
+
+  it('the first picture while a GIF plays only switches the source, with no progress', async () => {
+    mockProgress.mockResolvedValue({ phase: 'sending', percent: 40 });
+    await mount({ ...base, mode: 'media', mediaSource: 'gif', shownPicture: PICTURE_A, media: twoPictures });
+    expect(pictureTile('spider').getAttribute('aria-pressed')).toBe('false');
+    await act(async () => {
+      fireEvent.click(pictureTile('spider'));
+    });
+    expect(mockShow).not.toHaveBeenCalled();
+    expect(mockSet).toHaveBeenCalledWith({ mediaSource: 'images' });
+    expect(screen.queryByText('40%')).toBeNull();
+  });
+
+  it('the first picture is sent again while a picture copy is unsent', async () => {
+    await mount({ ...base, mode: 'media', mediaSource: 'images', shownPicture: PICTURE_A, picturesUnsent: true, media: twoPictures });
+    await act(async () => {
+      fireEvent.click(pictureTile('spider'));
+    });
+    expect(mockShow).toHaveBeenCalledWith(PICTURE_A);
+  });
+
+  it('a refused picture show drops the click and falls back to the picture the screen starts from', async () => {
+    mockShow.mockResolvedValue({ ok: false, notKept: false });
+    await mount({ ...base, mode: 'media', mediaSource: 'images', shownPicture: PICTURE_A, media: twoPictures });
+    await act(async () => {
+      fireEvent.click(pictureTile('web'));
+    });
+    expect(mockShow).toHaveBeenCalledWith(GIF_A);
+    expect(pictureTile('web').getAttribute('aria-pressed')).toBe('false');
+    expect(pictureTile('spider').getAttribute('aria-pressed')).toBe('true');
   });
 
   it('a GIF or video picked from disk uploads as the GIF and a refusal raises a toast', async () => {
