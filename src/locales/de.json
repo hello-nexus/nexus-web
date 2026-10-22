@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Von einem Clip werden nur die ersten {seconds} Sekunden abgespielt.",
   "devices.deepcool-mystique.gyroscope": "Drehung per Gyroskop zulassen",
-  "devices.deepcool-mystique.gyroscopeHint": "Bilder und GIFs, die schon auf dem Bildschirm sind, behalten ihre Ausrichtung, bis sie bearbeitet oder neu hinzugefügt werden.",
+  "devices.deepcool-mystique.gyroscopeHint": "Eine Änderung dreht Bilder und GIFs, die schon auf dem Display sind, erst, wenn sie bearbeitet oder neu hinzugefügt werden.",
   "devices.deepcool-mystique.inputsSection": "Sensoren",
   "devices.deepcool-mystique.mediaFullBody": "Entferne zuerst eines oder wähle eines aus und bearbeite es.",
   "devices.deepcool-mystique.mediaFullTitle": "Alle Plätze sind belegt",

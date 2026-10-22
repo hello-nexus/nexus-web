@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "클립은 처음 {seconds}초만 재생됩니다.",
   "devices.deepcool-mystique.gyroscope": "자이로스코프 회전 허용",
-  "devices.deepcool-mystique.gyroscopeHint": "화면에 이미 있는 이미지와 GIF는 편집하거나 다시 추가할 때까지 방향이 유지됩니다.",
+  "devices.deepcool-mystique.gyroscopeHint": "이 설정을 바꿔도 화면에 이미 있는 이미지와 GIF는 편집하거나 다시 추가할 때까지 회전하지 않습니다.",
   "devices.deepcool-mystique.inputsSection": "센서",
   "devices.deepcool-mystique.mediaFullBody": "먼저 하나를 제거하거나, 하나를 선택해 편집하세요.",
   "devices.deepcool-mystique.mediaFullTitle": "모든 자리가 사용 중입니다",

@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "クリップは最初の {seconds} 秒だけ再生されます。",
   "devices.deepcool-mystique.gyroscope": "ジャイロスコープによる回転を許可",
-  "devices.deepcool-mystique.gyroscopeHint": "画面にある画像と GIF は、編集するか追加し直すまで向きが変わりません。",
+  "devices.deepcool-mystique.gyroscopeHint": "変更しても、画面にある画像と GIF は編集するか追加し直すまで回転しません。",
   "devices.deepcool-mystique.inputsSection": "センサー",
   "devices.deepcool-mystique.mediaFullBody": "先に 1 つ削除するか、1 つ選択して編集してください。",
   "devices.deepcool-mystique.mediaFullTitle": "すべての枠が使用中です",
