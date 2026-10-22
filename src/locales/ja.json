@@ -765,7 +765,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "GIF または動画は {count} 個まで。それぞれクリップ全体から抜き出した短いループとして再生され、長いものは最初の {seconds} 秒から抜き出します。",
   "devices.deepcool-mystique.gyroscope": "ジャイロスコープによる回転を許可",
-  "devices.deepcool-mystique.gyroscopeHint": "画面のジャイロスコープで映像を回転させます。",
+  "devices.deepcool-mystique.gyroscopeHint": "画面のジャイロスコープで映像を回転させます。画面にある画像と GIF は、編集するか追加し直すまで向きが変わりません。",
   "devices.deepcool-mystique.inputsHint": "画面に値が表示されるセンサーです。自動はNexusの既定の選択に従います。",
   "devices.deepcool-mystique.inputsSection": "センサー",
   "devices.deepcool-mystique.mediaFullBody": "先に 1 つ削除するか、1 つ選択して編集してください。",
