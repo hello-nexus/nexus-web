@@ -43,6 +43,9 @@ function chainTitle(t: Translate, chain: LianLiWirelessChainLighting): string {
     : t(`devices.lianli-wireless.${fanTypeKey(chain.fanType)}` as Parameters<Translate>[0]);
 }
 
+/** The P28 V2 receiver: always driven by the Lighting page, with no stored effects, merge or motherboard ARGB. */
+export const isP28Chain = (chain: LianLiWirelessChainLighting): boolean => fanTypeKey(chain.fanType) === 'fanTypeP28v2';
+
 function lanesOf(chain: LianLiWirelessChainLighting): LianLiWirelessLane[] {
   return Array.from({ length: chain.lanes }, (_, i) => chain.laneSettings[i] ?? {
     mode: DEFAULT_LANE_MODE,
@@ -229,7 +232,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
           onReset={api.reset ? () => reset(chain.mac) : undefined}
           onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
           first={i === 0}
-          synced={syncOn && chain.supportsZones === true}
+          synced={syncOn && chain.supportsZones === true && !isP28Chain(chain)}
           last={i === chains.length - 1}
           onSectionNavigate={onSectionNavigate}
         />
@@ -262,9 +265,10 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
   const { t } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetFailed, setResetFailed] = useState(false);
+  const p28 = isP28Chain(chain);
   const lightingPage = chain.mode === MODE_CUSTOM;
   // With no saved choice the switch shows what the chain reports it is doing.
-  const argbOn = chain.motherboardArgb ?? chain.playingMotherboardArgb === true;
+  const argbOn = !p28 && (chain.motherboardArgb ?? chain.playingMotherboardArgb === true);
   // Effect controls do nothing while the chain plays its motherboard input.
   const locked = lightingPage || argbOn;
   // The animation the chain plays when the Lighting page is not driving it.
@@ -273,12 +277,12 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
   const follower = !synced && chain.merge === true && canMerge(chain) && followsTitle !== undefined;
   const lookLocked = locked || follower || synced;
   const perLane = chain.supportsPerLane && effectKey === MODE_PER_LANE;
-  const perZone = chain.supportsZones === true && effectKey === MODE_PER_ZONE;
+  const perZone = chain.supportsZones === true && !p28 && effectKey === MODE_PER_ZONE;
 
   const effectOptions = chain.modes.map(e => ({ value: e.key, label: effectLabel(t, e.key) }));
   // The choices that are not effects come first, set apart from the effect list.
   const modeOptions = [
-    ...(chain.supportsZones ? [{ value: MODE_PER_ZONE, label: t('devices.lianli-flex.modePerZone') }, { value: '', label: '', divider: true }] : []),
+    ...(chain.supportsZones && !p28 ? [{ value: MODE_PER_ZONE, label: t('devices.lianli-flex.modePerZone') }, { value: '', label: '', divider: true }] : []),
     ...effectOptions,
     ...(chain.supportsPerLane ? [{ value: MODE_PER_LANE, label: t('devices.lianli-wireless.strimerModePerLane') }] : []),
   ];
@@ -296,7 +300,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
   return (
     <>
     <SettingsSection title={title} boxClassName={styles.sectionBox}>
-      {(chain.argbCableConnected || argbOn) && (
+      {!p28 && (chain.argbCableConnected || argbOn) && (
         <SettingToggle
           label={t('devices.motherboardArgb.label')}
           description={t('devices.motherboardArgb.hint')}
@@ -304,12 +308,12 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
           onChange={on => onCommit({ motherboardArgb: on })}
         />
       )}
-      <LightingPageSwitch
+      {!p28 && <LightingPageSwitch
         on={lightingPage}
         disabled={argbOn || synced}
         onChange={on => onCommit(on ? { mode: MODE_CUSTOM } : { mode: effectKey, effectMode: effectKey })}
         onSectionNavigate={onSectionNavigate}
-      />
+      />}
 
       <LianLiChainEffectControls
         modes={chain.modes}
@@ -346,7 +350,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
             />
           </Fragment>
         ))}
-        {(canMerge(chain) || chain.supportsZones) && (
+        {!p28 && (canMerge(chain) || chain.supportsZones) && (
           <SettingToggle
             label={t('devices.lianli-wireless.merge')}
             description={canMerge(chain) || !chain.supportsZones
