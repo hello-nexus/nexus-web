@@ -299,6 +299,16 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     ],
   },
   {
+    name: 'page_viewed',
+    title: 'Page viewed',
+    status: 'live',
+    source: 'service',
+    description: 'A top-level dashboard page was opened (POST /telemetry/page-viewed/{page}), including the page shown on load. App pages are reported by app_page_opened instead. At most once per page per install per UTC day.',
+    params: [
+      { name: 'page', type: 'string', required: true, description: 'Page slug: dashboard, monitoring, screentime, benchmark, lighting, smart-lights, home-assistant, cooling, devices, device (any device page), diagnostics, frames, store, build, clock, weather, steam, gallery, settings, profiles, account.' },
+    ],
+  },
+  {
     name: 'app_page_opened',
     title: 'App page opened',
     status: 'live',

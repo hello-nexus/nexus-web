@@ -65,6 +65,7 @@ import { importStepOffered } from './importStep';
 import { usePillarsLatch } from './usePillarsLatch';
 import { deriveEarlyGates, deriveOnboardingGates, featuresBackTarget, hyteBackTarget, shouldReopenHyte } from './onboardingGates';
 import { useConsumeSkippedOffers } from './useConsumeSkippedOffers';
+import { usePageViewed } from './pageViewed';
 import { useNexus2NonCoolingContent } from './useNexus2NonCoolingContent';
 import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally, loadSettings } from '../lib/settings';
@@ -672,6 +673,7 @@ export function Dashboard() {
 
   // Active view within the system section
   const activeView = view || 'dashboard';
+  usePageViewed(section === 'system' ? activeView : '');
 
   // A Start benchmark request belongs to the navigation that made it: a route
   // that settles anywhere but Benchmark drops it, so a later visit never starts a run.
