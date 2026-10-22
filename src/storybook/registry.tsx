@@ -1705,7 +1705,7 @@ function PreviewThermalGuardSetting() {
 
 function PreviewFlashProgress() {
   return (
-    <FlashProgress status={{ active: true, deviceType: 'q60', version: '1.0.0', phase: 'downloading', percent: 42, message: 'Downloading', success: false, error: '' }} />
+    <FlashProgress status={{ percent: 42, message: 'Downloading' }} />
   );
 }
 

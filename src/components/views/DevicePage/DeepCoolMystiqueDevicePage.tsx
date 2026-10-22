@@ -4,6 +4,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
+import { FlashProgress } from '../../common/FlashProgress/FlashProgress';
 import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
 import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -16,10 +17,12 @@ import { DECK_MONITORING_CATEGORIES } from '../../../panel/widgets/deck/deckMoni
 import { sensorsForDevice } from '../../../panel/widgets/monitoring/sensorPicker';
 import {
   deleteMystiqueMedia,
+  getMystiqueProgress,
   getMystiqueState,
   mystiqueSourceUrl,
   mystiqueThumbUrl,
   setMystiqueSettings,
+  showMystiqueGif,
   uploadMystiqueMedia,
   MYSTIQUE_HEIGHT,
   MYSTIQUE_MAX_GIF_FRAMES,
@@ -33,6 +36,7 @@ import {
   type MystiqueMediaKind,
   type MystiqueMediaSource,
   type MystiqueMode,
+  type MystiqueProgressPhase,
   type MystiqueReadout,
   type MystiqueSettingsPatch,
   type MystiqueState,
@@ -47,6 +51,7 @@ import { useReportDeviceWaiting } from './deviceDetecting';
 import styles from './LianLiDevicePage.module.scss';
 
 const POLL_MS = 3000;
+const PROGRESS_POLL_MS = 500;
 const MODES: readonly MystiqueMode[] = ['monitor', 'media', 'recording'];
 const MODE_KEYS: Record<MystiqueMode, string> = {
   monitor: 'devices.deepcool-mystique.modeMonitor',
@@ -140,6 +145,9 @@ export function DeepCoolMystiqueDevicePage() {
   const [cropState, setCropState] = useState<CropState | null>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  // The GIF being sent to the screen by a tile click.
+  const [showing, setShowing] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ phase: MystiqueProgressPhase; percent: number } | null>(null);
   // Bumped after each upload so a replaced item's thumbnail reloads under the same id.
   const [thumbVersion, setThumbVersion] = useState(0);
   const [klipyOpen, setKlipyOpen] = useState(false);
@@ -166,6 +174,26 @@ export function DeepCoolMystiqueDevicePage() {
       window.removeEventListener('focus', refresh);
     };
   }, [refresh]);
+
+  const transferring = uploading || showing !== null;
+  useEffect(() => {
+    if (!transferring) {
+      setProgress(null);
+      return;
+    }
+    let live = true;
+    const poll = async () => {
+      const next = await getMystiqueProgress();
+      if (!live || !next) return;
+      setProgress(prev => (next.phase === '' ? null : prev?.phase === next.phase && prev.percent === next.percent ? prev : next));
+    };
+    void poll();
+    const id = window.setInterval(() => { void poll(); }, PROGRESS_POLL_MS);
+    return () => {
+      live = false;
+      window.clearInterval(id);
+    };
+  }, [transferring]);
 
   const commit = useCallback(async (patch: MystiqueSettingsPatch) => {
     busyRef.current += 1;
@@ -255,6 +283,39 @@ export function DeepCoolMystiqueDevicePage() {
     }
   };
 
+  // The screen plays one GIF, so a click sends the chosen one; an item whose frames were never kept is cropped again instead.
+  const showGif = async (item: MystiqueMediaItem) => {
+    setShowing(item.id);
+    let needsEdit = false;
+    try {
+      busyRef.current += 1;
+      writeGenRef.current += 1;
+      let res: Awaited<ReturnType<typeof showMystiqueGif>> = null;
+      try {
+        res = await showMystiqueGif(item.id);
+      } finally {
+        busyRef.current -= 1;
+        writeGenRef.current += 1;
+      }
+      if (!aliveRef.current) return;
+      needsEdit = res?.needsEdit === true && item.editable && CROPPABLE_EXTS.has(item.ext);
+      if (needsEdit) {
+        push({ title: t('devices.deepcool-mystique.needsEditTitle'), body: t('devices.deepcool-mystique.needsEditBody') });
+      } else if (!res?.ok) {
+        push({ title: t('devices.deepcool-mystique.showFailedTitle'), body: t('devices.deepcool-mystique.showFailedBody') });
+      }
+      const gen = writeGenRef.current;
+      const next = await getMystiqueState();
+      if (aliveRef.current && next !== null && busyRef.current === 0 && !draggingRef.current && gen === writeGenRef.current) {
+        brightnessRef.current = next.brightness;
+        setState(next);
+      }
+    } finally {
+      if (aliveRef.current) setShowing(null);
+    }
+    if (needsEdit && aliveRef.current) editMedia(item);
+  };
+
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
     if (!cropState) return;
     const { file, src, name, stageId, rawUrl, target, replace } = cropState;
@@ -326,12 +387,29 @@ export function DeepCoolMystiqueDevicePage() {
 
   const ready = state !== null && state.isConnected;
   // An upload or a removal is talking to the screen, so the other media actions wait.
-  const mediaBusy = uploading || removing;
+  const mediaBusy = uploading || removing || showing !== null;
+  const progressStatus = progress && {
+    percent: progress.percent,
+    message: t(progress.phase === 'sending' ? 'devices.deepcool-mystique.progressSending' : 'devices.deepcool-mystique.progressConverting'),
+  };
   const pictures = state?.media.filter(m => m.kind === 'picture') ?? [];
   const gifs = state?.media.filter(m => m.kind === 'gif') ?? [];
-  const selectedItem = (kind: MystiqueMediaKind) => state?.media.find(m => m.kind === kind && m.id === selected[kind]);
+  // Until a GIF is clicked, the one the screen plays is the selection.
+  const selectedId = (kind: MystiqueMediaKind) => selected[kind] ?? (kind === 'gif' ? state?.shownGif || null : null);
+  const selectedItem = (kind: MystiqueMediaKind) => state?.media.find(m => m.kind === kind && m.id === selectedId(kind));
 
-  // The add tile first, then the items; a click selects an item for the edit action.
+  // A picture click plays the pictures and a GIF click sends that GIF, as in the screen's own software; either picks the item to edit.
+  const selectMedia = (item: MystiqueMediaItem) => {
+    if (!ready || mediaBusy || !state) return;
+    setSelected(prev => ({ ...prev, [item.kind]: item.id }));
+    if (item.kind === 'gif') {
+      if (item.id !== state.shownGif || !state.sourceChosen || state.mediaSource !== 'gif') void showGif(item);
+    } else if (!state.sourceChosen || state.mediaSource !== 'images') {
+      edit({ mediaSource: 'images', sourceChosen: true }, { mediaSource: 'images' });
+    }
+  };
+
+  // The add tile first, then the items.
   const mediaGrid = (kind: MystiqueMediaKind, items: MystiqueMediaItem[]) => (
     <div className={`${styles.mediaGrid} ${styles.mediaGridCompact}`}>
       <EffectCard
@@ -352,9 +430,9 @@ export function DeepCoolMystiqueDevicePage() {
           thumbUrl={mystiqueThumbUrl(item.id, thumbVersion)}
           thumbStatic
           thumbAspect={SCREEN_ASPECT}
-          active={selected[kind] === item.id}
-          ariaLabel={t('devices.deepcool-mystique.selectItem', { name: item.name })}
-          onClick={() => setSelected(prev => ({ ...prev, [kind]: item.id }))}
+          active={selectedId(kind) === item.id}
+          ariaLabel={t(kind === 'gif' ? 'devices.deepcool-mystique.showGif' : 'devices.deepcool-mystique.selectItem', { name: item.name })}
+          onClick={() => selectMedia(item)}
           onDelete={ready && !mediaBusy ? () => setPendingRemove(item) : undefined}
           deleteAriaLabel={t('devices.deepcool-mystique.removeItem', { name: item.name })}
         />
@@ -526,6 +604,11 @@ export function DeepCoolMystiqueDevicePage() {
                 {editButton('gif')}
               </SettingRow>
               {mediaGrid('gif', gifs)}
+              {showing !== null && (
+                <p className={styles.customNote} aria-live="polite">
+                  <FlashProgress status={progressStatus ?? { percent: 0, message: t('devices.deepcool-mystique.progressSending') }} />
+                </p>
+              )}
               <p className={styles.customNote} data-settings-aside="true">{t('devices.deepcool-mystique.playbackHint')}</p>
               <SettingRow label={t('devices.deepcool-mystique.removeAll')} description={t('devices.deepcool-mystique.removeAllHint')}>
                 <Button
@@ -632,6 +715,7 @@ export function DeepCoolMystiqueDevicePage() {
           fallbackSrc={cropState.fallbackSrc}
           aspect={SCREEN_ASPECT}
           busy={uploading}
+          busyProgress={progressStatus}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />
