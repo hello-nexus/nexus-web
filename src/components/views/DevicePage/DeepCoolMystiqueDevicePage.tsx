@@ -22,6 +22,7 @@ import {
   setMystiqueSettings,
   uploadMystiqueMedia,
   MYSTIQUE_HEIGHT,
+  MYSTIQUE_MAX_GIF_FRAMES,
   MYSTIQUE_MAX_GIF_SECONDS,
   MYSTIQUE_MAX_GIFS,
   MYSTIQUE_MAX_PICTURES,
@@ -512,7 +513,7 @@ export function DeepCoolMystiqueDevicePage() {
                   onChange={key => edit({ animation: key as MystiqueAnimation, mediaChosen: true }, { animation: key as MystiqueAnimation })}
                 />
               </SettingRow>
-              <SettingRow label={t('devices.deepcool-mystique.gif')} description={localizeNumbers(t('devices.deepcool-mystique.gifHint', { count: MYSTIQUE_MAX_GIFS, seconds: MYSTIQUE_MAX_GIF_SECONDS }), numberFormat)}>
+              <SettingRow label={t('devices.deepcool-mystique.gif')} description={localizeNumbers(t('devices.deepcool-mystique.gifHint', { count: MYSTIQUE_MAX_GIFS, seconds: MYSTIQUE_MAX_GIF_SECONDS, frames: MYSTIQUE_MAX_GIF_FRAMES }), numberFormat)}>
                 <Button
                   size="sm"
                   tone="neutral"

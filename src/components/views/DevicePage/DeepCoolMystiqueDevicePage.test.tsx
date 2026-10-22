@@ -32,6 +32,7 @@ vi.mock('../../../api/deepcool-mystique', () => ({
   MYSTIQUE_MAX_PICTURES: 9,
   MYSTIQUE_MAX_GIFS: 9,
   MYSTIQUE_MAX_GIF_SECONDS: 10,
+  MYSTIQUE_MAX_GIF_FRAMES: 149,
 }));
 
 const mockStage = vi.fn();
@@ -407,7 +408,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
     mockDelete.mockReturnValue(new Promise<boolean>(resolve => { finish = resolve; }));
     await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
     expect(screen.getByText('devices.deepcool-mystique.picturesHint:{"count":9}')).toBeTruthy();
-    expect(screen.getByText('devices.deepcool-mystique.gifHint:{"count":9,"seconds":10}')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.gifHint:{"count":9,"seconds":10,"frames":149}')).toBeTruthy();
     const removeAll = () => screen.getByRole('button', { name: 'devices.deepcool-mystique.removeAllButton' }) as HTMLButtonElement;
     await act(async () => {
       fireEvent.click(removeAll());
