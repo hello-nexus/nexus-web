@@ -101,4 +101,18 @@ describe('useHotkeys', () => {
     act(() => a.result.current.apply({ ...empty, suspended: true }));
     expect(b.result.current.state?.suspended).toBe(true);
   });
+
+  it('ignores a mutation result that lands after its consumer left, so the next mount still does its GET', async () => {
+    vi.mocked(fetchService).mockResolvedValue(empty);
+    const first = renderHook(() => useHotkeys(true));
+    await vi.waitFor(() => expect(first.result.current.loaded).toBe(true));
+    const staleApply = first.result.current.apply;
+    first.unmount();
+    vi.mocked(fetchService).mockClear();
+    vi.mocked(fetchService).mockResolvedValue({ ...empty, platform: 'linux' });
+    const second = renderHook(() => useHotkeys(true));
+    act(() => staleApply({ ...empty, platform: 'windows' }));
+    await vi.waitFor(() => expect(second.result.current.state?.platform).toBe('linux'));
+    expect(vi.mocked(fetchService)).toHaveBeenCalledTimes(1);
+  });
 });

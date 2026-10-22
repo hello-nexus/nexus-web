@@ -20,7 +20,12 @@ const store = {
   epoch: 0,
   namesInflight: false,
   instancesInflight: false,
+  // A frame that said something changed while a GET was in flight: read again once it settles.
+  namesDirty: false,
+  instancesDirty: false,
   configsPending: new Set<string>(),
+  // The newest config a `preset` frame carried for a config whose GET had not landed yet.
+  configFrames: {} as Record<string, DeckConfig>,
 };
 const listeners = new Set<() => void>();
 
@@ -34,27 +39,41 @@ function bump(): void {
   listeners.forEach(l => l());
 }
 
+function setNames(list: readonly { id: string; name: string }[]): void {
+  store.names = Object.fromEntries(list.map(p => [p.id, p.name]));
+  bump();
+}
+
 function refreshNames(): void {
-  if (store.namesInflight) return;
+  if (store.namesInflight) {
+    store.namesDirty = true;
+    return;
+  }
   const epoch = store.epoch;
   store.namesInflight = true;
+  store.namesDirty = false;
   void getDeckPresets().then(list => {
     if (epoch !== store.epoch) return;
     store.namesInflight = false;
-    store.names = Object.fromEntries(list.map(p => [p.id, p.name]));
-    bump();
+    setNames(list);
+    if (store.namesDirty) refreshNames();
   });
 }
 
 function refreshInstances(): void {
-  if (store.instancesInflight) return;
+  if (store.instancesInflight) {
+    store.instancesDirty = true;
+    return;
+  }
   const epoch = store.epoch;
   store.instancesInflight = true;
+  store.instancesDirty = false;
   void getDeckInstances().then(map => {
     if (epoch !== store.epoch) return;
     store.instancesInflight = false;
     store.instances = Object.entries(map).map(([id, inst]) => ({ id, presetId: inst.activePresetId }));
     bump();
+    if (store.instancesDirty) refreshInstances();
   });
 }
 
@@ -66,20 +85,25 @@ function ensureConfigs(ids: readonly string[]): void {
     void getDeckPreset(id).then(preset => {
       if (epoch !== store.epoch) return;
       store.configsPending.delete(id);
-      if (preset) {
-        store.configs = { ...store.configs, [id]: preset.deck };
+      // A frame that arrived during the GET is newer than the GET.
+      const deck = store.configFrames[id] ?? preset?.deck;
+      delete store.configFrames[id];
+      if (deck) {
+        store.configs = { ...store.configs, [id]: deck };
         bump();
       }
     });
   }
 }
 
-interface DeckFrame { kind?: string; presetId?: string; summary?: DeckPresetSummary; deck?: DeckConfig }
+interface DeckFrame { kind?: string; presetId?: string; summary?: DeckPresetSummary; deck?: DeckConfig; presets?: DeckPresetSummary[] }
 
 function handleDeckFrame(data: unknown): void {
   const frame = data as DeckFrame;
   if (frame.kind === 'presets') {
-    refreshNames();
+    // The frame carries the whole list, so no GET is needed.
+    if (frame.presets) setNames(frame.presets);
+    else refreshNames();
   } else if (frame.kind === 'preset' && frame.presetId) {
     let changed = false;
     if (frame.summary && store.names[frame.presetId] !== frame.summary.name) {
@@ -89,6 +113,8 @@ function handleDeckFrame(data: unknown): void {
     if (frame.deck && store.configs[frame.presetId]) {
       store.configs = { ...store.configs, [frame.presetId]: frame.deck };
       changed = true;
+    } else if (frame.deck && store.configsPending.has(frame.presetId)) {
+      store.configFrames[frame.presetId] = frame.deck;
     }
     if (changed) bump();
   } else if (frame.kind === 'active') {
@@ -132,8 +158,11 @@ export function useHotkeyDeckInfo(
       if (store.users === 0) {
         store.epoch += 1;
         Object.assign(store, {
-          names: {}, configs: {}, instances: [], namesInflight: false, instancesInflight: false, configsPending: new Set<string>(),
+          names: {}, configs: {}, instances: [], namesInflight: false, instancesInflight: false,
+          namesDirty: false, instancesDirty: false, configsPending: new Set<string>(), configFrames: {},
         });
+        // A mounted but disabled consumer must not keep reading the old maps.
+        bump();
       }
     };
   }, [enabled]);

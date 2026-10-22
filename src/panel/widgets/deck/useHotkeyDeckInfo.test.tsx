@@ -49,4 +49,45 @@ describe('useHotkeyDeckInfo', () => {
     rerender({ serials: [] });
     expect(result.current.serialByPreset).toEqual({});
   });
+
+  it('takes the preset list from a presets frame without a GET', async () => {
+    const { result } = renderHook(() => useHotkeyDeckInfo(true, [], opts));
+    await vi.waitFor(() => expect(result.current.presetNames.p1).toBe('One'));
+    vi.mocked(deckApi.getDeckPresets).mockClear();
+    act(() => deckFrame({ kind: 'presets', presets: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }] }));
+    expect(result.current.presetNames).toEqual({ p1: 'A', p2: 'B' });
+    expect(deckApi.getDeckPresets).not.toHaveBeenCalled();
+  });
+
+  it('reads instances once more when an active frame arrives during a GET', async () => {
+    let release: (v: Record<string, unknown>) => void = () => {};
+    vi.mocked(deckApi.getDeckInstances).mockReset();
+    vi.mocked(deckApi.getDeckInstances).mockImplementationOnce(() => new Promise(r => { release = r as typeof release; }));
+    vi.mocked(deckApi.getDeckInstances).mockResolvedValue({ 'streamdeck:S1': { mode: 'custom', activePresetId: 'p2' } } as never);
+    const { result } = renderHook(() => useHotkeyDeckInfo(true, [], opts));
+    act(() => deckFrame({ kind: 'active', instanceId: 'streamdeck:S1' }));
+    await act(async () => { release({ 'streamdeck:S1': { mode: 'custom', activePresetId: 'p1' } }); });
+    await vi.waitFor(() => expect(result.current.serialByPreset.p2).toBe('S1'));
+    expect(deckApi.getDeckInstances).toHaveBeenCalledTimes(2);
+  });
+
+  it('applies a preset frame that arrived while that config was still loading', async () => {
+    let release: (v: unknown) => void = () => {};
+    vi.mocked(deckApi.getDeckPreset).mockImplementationOnce(() => new Promise(r => { release = r; }));
+    const binding = { id: 'b', combo: null, enabled: true, status: 'active', target: { kind: 'deck', presetId: 'p1', tag: 'b' } } as never;
+    const { result } = renderHook(() => useHotkeyDeckInfo(true, [binding], { configs: true, deckSerials: [] }));
+    await vi.waitFor(() => expect(deckApi.getDeckPreset).toHaveBeenCalled());
+    const newer = { pages: [{ slots: [{ hotkeyTag: 'b' }] }] };
+    act(() => deckFrame({ kind: 'preset', presetId: 'p1', summary: { id: 'p1', name: 'One' }, deck: newer }));
+    await act(async () => { release({ id: 'p1', deck: { pages: [] } }); });
+    await vi.waitFor(() => expect(result.current.configs.p1).toEqual(newer));
+  });
+
+  it('clears the maps of a mounted but disabled consumer when the last enabled one leaves', async () => {
+    const active = renderHook(() => useHotkeyDeckInfo(true, [], opts));
+    const idle = renderHook(() => useHotkeyDeckInfo(false, [], opts));
+    await vi.waitFor(() => expect(idle.result.current.presetNames.p1).toBe('One'));
+    active.unmount();
+    expect(idle.result.current.presetNames).toEqual({});
+  });
 });

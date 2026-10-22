@@ -144,12 +144,6 @@ function findSlotTag(slots: readonly DeckSlot[], tag: string, page: number, pref
   return null;
 }
 
-/** Every hotkey tag a dial carries, across its stack entries. */
-export function dialTags(dial: DeckDial): string[] {
-  const entries = (dial.stack?.length ?? 0) >= 2 ? dial.stack! : [dial];
-  return entries.flatMap(e => (e.action?.type === 'custom' ? Object.values(e.action.hotkeyTags ?? {}) : []));
-}
-
 /** Where `tag` sits in `deck`: a key, or one event of a dial entry. Null when nothing carries it. */
 export function findTag(deck: DeckConfig, tag: string): TagLocation | null {
   for (let page = 0; page < deck.pages.length; page++) {

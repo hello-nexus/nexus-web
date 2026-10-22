@@ -102,7 +102,7 @@ describe('DeckKeyInspector global hotkey field (recording)', () => {
     expect(saved.pages[0].slots[0].action).toEqual({ type: 'hotkey', keys: 'ctrl+c' });
   });
 
-  it('deleting a tagged key also deletes its binding', () => {
+  it('deleting a tagged key never deletes a binding, so an undo finds it again and a copied tag cannot hurt another preset', () => {
     const tagged: DeckPresetFull = { ...preset, deck: { pages: [{ slots: [{ hotkeyTag: 'custom:t1', action: { type: 'hotkey', keys: 'ctrl+c' } }, {}] }] } };
     const target = makePresetDeckTarget(tagged, { cols: 2, rows: 1 }, 'physical', vi.fn());
     const onDeleteSlot = vi.fn();
@@ -111,6 +111,6 @@ describe('DeckKeyInspector global hotkey field (recording)', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
     expect(onDeleteSlot).toHaveBeenCalled();
-    expect(vi.mocked(hotkeysApi.deleteHotkey)).toHaveBeenCalledWith('custom:t1');
+    expect(vi.mocked(hotkeysApi.deleteHotkey)).not.toHaveBeenCalled();
   });
 });

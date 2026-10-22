@@ -16,8 +16,6 @@ import {
   defaultActionFor,
 } from './DeckKeyInspector';
 import { DeckHotkeyField } from './DeckHotkeyField';
-import { deleteHotkey } from '../../../api/hotkeys';
-import { dialTags } from './hotkeyCombo';
 import { DECK_ICONS } from './deckIcons';
 import {
   DIAL_PICKER_CATEGORIES, MAX_DIAL_STACK, assignDialAction, dialAutoIconName, dialEntryAt, isDialStack, stackAddEntry,
@@ -206,9 +204,6 @@ function CustomDialFields({ action, onChange, target, surface, desktopEditor, ho
     if (next) copy[slot] = next;
     else {
       delete copy[slot];
-      // The event is gone, so its binding must not keep holding the combo.
-      const gone = action.hotkeyTags?.[slot];
-      if (hotkeys && gone) void deleteHotkey(gone);
       setTag(slot, undefined, copy);
       return;
     }
@@ -332,7 +327,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
   const writeDial = (next: DeckDial) => target.updateDial(page, folderPath, index, next);
   const writeEntry = (next: DeckDial) => writeDial(writeDialEntry(dial, entryAt, next));
 
-  const hotkeys = canBindGlobalHotkey(surface, desktopEditor);
+  const hotkeys = canBindGlobalHotkey(surface, desktopEditor) && !!target.presetId;
 
   if (part === 'picker') {
     return (
@@ -346,10 +341,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
                     key={type}
                     type={type}
                     active={entry.action?.type === type}
-                    onPick={picked => {
-                      if (hotkeys && picked !== 'custom') dialTags(dialEntryAt(dial, entryAt)).forEach(id => void deleteHotkey(id));
-                      writeDial(assignDialAction(dial, entryAt, picked));
-                    }}
+                    onPick={picked => writeDial(assignDialAction(dial, entryAt, picked))}
                   />
                 ))}
               </div>
@@ -375,7 +367,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
               </button>
               <Button type="button" tone="ghost" size="sm" icon={<ArrowUp size={14} aria-hidden />} disabled={i === 0} aria-label={t('panel.settings.deck.dial.stack.moveUp')} onClick={() => { writeDial(stackMoveEntry(dial, i, -1)); onEntryIndexChange(followMove(entryAt, i, -1)); }} />
               <Button type="button" tone="ghost" size="sm" icon={<ArrowDown size={14} aria-hidden />} disabled={i === dial.stack!.length - 1} aria-label={t('panel.settings.deck.dial.stack.moveDown')} onClick={() => { writeDial(stackMoveEntry(dial, i, 1)); onEntryIndexChange(followMove(entryAt, i, 1)); }} />
-              <Button type="button" tone="ghost" size="sm" icon={<Trash2 size={14} aria-hidden />} aria-label={t('panel.settings.deck.dial.stack.remove')} onClick={() => { if (hotkeys) dialTags(dial.stack![i]).forEach(id => void deleteHotkey(id)); writeDial(stackRemoveEntry(dial, i)); onEntryIndexChange(followRemove(entryAt, i, dial.stack!.length)); }} />
+              <Button type="button" tone="ghost" size="sm" icon={<Trash2 size={14} aria-hidden />} aria-label={t('panel.settings.deck.dial.stack.remove')} onClick={() => { writeDial(stackRemoveEntry(dial, i)); onEntryIndexChange(followRemove(entryAt, i, dial.stack!.length)); }} />
             </div>
           ))}
         </div>
@@ -431,10 +423,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
         </SettingsRow>
       </SettingsSection>
 
-      <Button type="button" tone="danger" className={keyStyles.deleteBtn} icon={<Trash2 size={14} aria-hidden />} onClick={() => {
-        if (hotkeys) dialTags(dial).forEach(id => void deleteHotkey(id));
-        writeDial({});
-      }}>
+      <Button type="button" tone="danger" className={keyStyles.deleteBtn} icon={<Trash2 size={14} aria-hidden />} onClick={() => writeDial({})}>
         {t('panel.settings.deck.dial.clear')}
       </Button>
     </div>

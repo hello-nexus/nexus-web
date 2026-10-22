@@ -1,6 +1,6 @@
 // Client for the global hotkey routes. Desktop token only. The `hotkeys` multiplex
 // topic carries the same shape as GET /hotkeys on every change.
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { authFetchWithStatus, fetchService } from './service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import type { DeckAction } from '../panel/widgets/deck/types';
@@ -135,9 +135,12 @@ export function useHotkeys(enabled: boolean): UseHotkeysResult {
   const state = useSyncExternalStore(subscribe, () => store.state);
   const loaded = useSyncExternalStore(subscribe, () => store.loaded);
 
+  // The store generation this consumer joined; a mutation result that lands after it left is stale.
+  const joinedEpoch = useRef(-1);
   useEffect(() => {
     if (!enabled) return;
     store.users += 1;
+    joinedEpoch.current = store.epoch;
     if (!store.state && !store.inflight) load();
     return () => {
       store.users -= 1;
@@ -153,5 +156,9 @@ export function useHotkeys(enabled: boolean): UseHotkeysResult {
   }, []);
   useTopicCallback(HOTKEYS_TOPIC, enabled, onFrame);
 
-  return { state: enabled ? state : null, loaded: enabled && loaded, apply: publish };
+  const apply = useCallback((next: HotkeysState) => {
+    if (store.users === 0 || store.epoch !== joinedEpoch.current) return;
+    publish(next);
+  }, []);
+  return { state: enabled ? state : null, loaded: enabled && loaded, apply };
 }
