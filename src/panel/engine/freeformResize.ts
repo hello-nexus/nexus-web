@@ -3,6 +3,7 @@ import {
   type PanelWidgetSize,
 } from '../types';
 import { sizeToSpan, snapStride, type GridSpan } from './grid';
+import { dominantScale } from '../../lib/aspectResize';
 
 // Spans are cols x rows, as in grid.ts.
 
@@ -49,7 +50,12 @@ function distance(a: GridSpan, cols: number, rows: number): number {
   return Math.hypot(a.cols - cols, a.rows - rows);
 }
 
-/** Drags one corner by (dCols, dRows) cells with the opposite corner fixed; picks the nearest snap span that fits the grid, smaller on a tie. */
+/** Cells a ratio-locked drag must travel before the size may change. */
+const LOCK_DEAD_ZONE = 0.25;
+
+/** Drags one corner by (dCols, dRows) cells with the opposite corner fixed; picks the nearest snap span that fits the grid, smaller on a tie.
+ *  With lockRatio the drag becomes one uniform scale of the start span, capped to the room the anchored corner has. A drag within LOCK_DEAD_ZONE cells of the start keeps it;
+ *  otherwise the nearest span keeping the start ratio wins, and when none qualifies the nearest span of any ratio does, least ratio error breaking ties. */
 export function resizeRectFromCorner(
   start: FreeformRect,
   corner: FreeformCorner,
@@ -58,32 +64,53 @@ export function resizeRectFromCorner(
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
   canPlace?: PlaceCheck,
+  lockRatio = false,
 ): FreeformRect {
   const fromLeft = corner === 'tl' || corner === 'bl';
   const fromTop = corner === 'tl' || corner === 'tr';
   const right = start.col + start.cols;
   const bottom = start.row + start.rows;
-  const rawCols = fromLeft ? start.cols - dCols : start.cols + dCols;
-  const rawRows = fromTop ? start.rows - dRows : start.rows + dRows;
-
-  let best: FreeformRect | null = null;
-  let bestScore = Infinity;
-  let bestArea = Infinity;
-  for (const span of snapSpans) {
-    const col = fromLeft ? right - span.cols : start.col;
-    const row = fromTop ? bottom - span.rows : start.row;
-    if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
-    if (!originOnStride(start, col, row, span)) continue;
-    const score = distance(span, rawCols, rawRows);
-    const area = span.cols * span.rows;
-    if (!(score < bestScore || (score === bestScore && area < bestArea))) continue;
-    const rect = { col, row, cols: span.cols, rows: span.rows };
-    if (canPlace && !canPlace(rect)) continue;
-    best = rect;
-    bestScore = score;
-    bestArea = area;
+  let rawCols = fromLeft ? start.cols - dCols : start.cols + dCols;
+  let rawRows = fromTop ? start.rows - dRows : start.rows + dRows;
+  if (lockRatio) {
+    const kMax = Math.min((fromLeft ? right : bounds.cols - start.col) / start.cols, (fromTop ? bottom : bounds.rows - start.row) / start.rows);
+    const k = Math.max(0, Math.min(kMax, dominantScale(rawCols / start.cols, rawRows / start.rows)));
+    rawCols = start.cols * k;
+    rawRows = start.rows * k;
   }
-  return best ?? start;
+
+  const search = (accept: (span: GridSpan) => boolean, scoreOf: (span: GridSpan) => number): FreeformRect | null => {
+    let best: FreeformRect | null = null;
+    let bestScore = Infinity;
+    let bestArea = Infinity;
+    for (const span of snapSpans) {
+      if (!accept(span)) continue;
+      const col = fromLeft ? right - span.cols : start.col;
+      const row = fromTop ? bottom - span.rows : start.row;
+      if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
+      if (!originOnStride(start, col, row, span)) continue;
+      const score = scoreOf(span);
+      const area = span.cols * span.rows;
+      if (!(score < bestScore || (score === bestScore && area < bestArea))) continue;
+      const rect = { col, row, cols: span.cols, rows: span.rows };
+      if (canPlace && !canPlace(rect)) continue;
+      best = rect;
+      bestScore = score;
+      bestArea = area;
+    }
+    return best;
+  };
+  const byDistance = (span: GridSpan) => distance(span, rawCols, rawRows);
+
+  if (!lockRatio) return search(() => true, byDistance) ?? start;
+
+  if (distance(start, rawCols, rawRows) < LOCK_DEAD_ZONE) return start;
+  const matches = (span: GridSpan) => span.cols * start.rows === span.rows * start.cols;
+  const matched = search(matches, byDistance);
+  if (matched) return matched;
+  const startRatio = start.cols / start.rows;
+  const ratioError = (span: GridSpan) => Math.abs(Math.log(span.cols / span.rows / startRatio));
+  return search(() => true, span => byDistance(span) + ratioError(span) * 1e-6) ?? start;
 }
 
 /** One keyboard step: the nearest snap span past the current one on the stepped axis (outward grows, inward shrinks), kept inside the grid. */

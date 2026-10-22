@@ -65,6 +65,7 @@ import { importStepOffered } from './importStep';
 import { usePillarsLatch } from './usePillarsLatch';
 import { deriveEarlyGates, deriveOnboardingGates, featuresBackTarget, hyteBackTarget, shouldReopenHyte } from './onboardingGates';
 import { useConsumeSkippedOffers } from './useConsumeSkippedOffers';
+import { usePageViewed } from './pageViewed';
 import { useNexus2NonCoolingContent } from './useNexus2NonCoolingContent';
 import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally, loadSettings } from '../lib/settings';
@@ -707,13 +708,16 @@ export function Dashboard() {
   const restoreFullscreen = useCallback(() => setFullscreen(true), []);
   // Reopening the window lands where it was left, fullscreen included; a
   // service start clears it.
-  useLastRoute(
+  const restoreSettled = useLastRoute(
     view ? `/${section}/${view}${subtab ? `/${subtab}` : ''}` : '',
     navigate,
     online,
     fullscreenActive,
     restoreFullscreen,
   );
+  // Reported only once the service is reachable and the last-page restore has
+  // settled, so the first report is the page the user actually lands on.
+  usePageViewed(online && restoreSettled ? activeView : '');
 
   // Page name shown in the top-bar search pill. Portal sections use their
   // nav.section label; inside /system the active view resolves through the

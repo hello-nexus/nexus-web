@@ -42,6 +42,7 @@ import {
 } from './zoneUtils';
 import { shouldConsumeEditorEscape } from './ledMapEscape';
 import { SettingsBlock } from '../../../../components/common/SettingsSection/SettingsSection';
+import { capScaleToBounds, dominantScale } from '../../../../lib/aspectResize';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = isApplePlatform();
@@ -1170,8 +1171,15 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       // Avoid divide-by-zero when the selection started as a single LED
       // (origW or origH == 0). Fall back to a no-op in that axis so the
       // other axis still stretches if there's width/height there.
-      const sx = Math.abs(origW) > 0.001 ? newW / origW : 1;
-      const sy = Math.abs(origH) > 0.001 ? newH / origH : 1;
+      let sx = Math.abs(origW) > 0.001 ? newW / origW : 1;
+      let sy = Math.abs(origH) > 0.001 ? newH / origH : 1;
+      if (e.shiftKey) {
+        const flatX = Math.abs(origW) <= 0.001, flatY = Math.abs(origH) <= 0.001;
+        const raw = flatX ? sy : flatY ? sx : dominantScale(sx, sy);
+        const s = capScaleToBounds(raw, { u: anchorU, v: anchorV }, initialLeds.values());
+        sx = s;
+        sy = s;
+      }
       setLeds(prev => prev.map(l => {
         const init = initialLeds.get(l.index);
         if (!init) return l;
