@@ -200,20 +200,20 @@ export function DeepCoolMystiqueDevicePage() {
     const { file, src, name, stageId, rawUrl, target, replace } = cropState;
     // The cropper stays mounted and busy until the encode and the transfer to the screen finish.
     setUploading(true);
-    busyRef.current += 1;
-    writeGenRef.current += 1;
     try {
-      const upload = file ?? (rawUrl ? await fetchStagedFile(rawUrl, name) : null);
-      const result = upload ? await uploadMystiqueMedia(upload, target, crop, replace) : null;
-      if (!result?.ok) {
-        push({ title: t('devices.deepcool-mystique.uploadFailedTitle'), body: t('devices.deepcool-mystique.uploadFailedBody') });
-      }
-      setThumbVersion(v => v + 1);
-    } finally {
-      busyRef.current -= 1;
+      busyRef.current += 1;
       writeGenRef.current += 1;
-    }
-    try {
+      try {
+        const upload = file ?? (rawUrl ? await fetchStagedFile(rawUrl, name) : null);
+        const result = upload ? await uploadMystiqueMedia(upload, target, crop, replace) : null;
+        if (!result?.ok) {
+          push({ title: t('devices.deepcool-mystique.uploadFailedTitle'), body: t('devices.deepcool-mystique.uploadFailedBody') });
+        }
+        setThumbVersion(v => v + 1);
+      } finally {
+        busyRef.current -= 1;
+        writeGenRef.current += 1;
+      }
       const gen = writeGenRef.current;
       const next = await getMystiqueState();
       if (aliveRef.current && next !== null && busyRef.current === 0 && !draggingRef.current && gen === writeGenRef.current) {
