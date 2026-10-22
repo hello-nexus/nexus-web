@@ -36,7 +36,6 @@ vi.mock('../../../api/deepcool-mystique', () => ({
   MYSTIQUE_MAX_PICTURES: 9,
   MYSTIQUE_MAX_GIFS: 9,
   MYSTIQUE_MAX_GIF_SECONDS: 10,
-  MYSTIQUE_MAX_GIF_FRAMES: 149,
 }));
 
 const mockStage = vi.fn();
@@ -316,23 +315,15 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(mockSet).toHaveBeenCalledTimes(1);
   });
 
-  it('marks the readout, recording and system groups as not set until the user changes them', async () => {
+  it('marks the readout as not set until the user changes it', async () => {
     await mount({ ...base, readoutChosen: false, recordingChosen: false, deviceChosen: false });
-    expect(screen.getByText('devices.deepcool-mystique.deviceUnsetHint')).toBeTruthy();
     expect(screen.getAllByText('devices.deepcool-mystique.notSet').length).toBeGreaterThan(0);
-  });
-
-  it('shows no unset note once the system group has been chosen', async () => {
-    await mount();
-    expect(screen.queryByText('devices.deepcool-mystique.deviceUnsetHint')).toBeNull();
-    expect(screen.getByText('devices.deepcool-mystique.deviceSetHint')).toBeTruthy();
   });
 
   it('monitor mode offers the style and the auxiliary display area with the readout', async () => {
     await mount();
     expect(screen.getByText('devices.deepcool-mystique.style')).toBeTruthy();
     expect(screen.getByText('devices.deepcool-mystique.auxArea')).toBeTruthy();
-    expect(screen.getByText('devices.deepcool-mystique.readoutSetHint')).toBeTruthy();
   });
 
   it('media mode sends switch time, animation and source at once', async () => {
@@ -357,7 +348,6 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(screen.getByText('logo')).toBeTruthy();
     expect(screen.getAllByText('devices.deepcool-mystique.addPicture').length).toBe(1);
     expect(screen.getByText('devices.deepcool-mystique.addGif')).toBeTruthy();
-    expect(screen.getByText('devices.deepcool-mystique.mediaSetHint')).toBeTruthy();
   });
 
   it('editing waits for a selection, then re-crops the kept source and uploads it under the same id', async () => {
@@ -421,12 +411,11 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(mockDelete).toHaveBeenLastCalledWith(undefined);
   });
 
-  it('media actions wait while a removal runs, and the hints carry the slot counts', async () => {
+  it('media actions wait while a removal runs, and the GIF hint carries the clip length', async () => {
     let finish: (ok: boolean) => void = () => {};
     mockDelete.mockReturnValue(new Promise<boolean>(resolve => { finish = resolve; }));
     await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
-    expect(screen.getByText('devices.deepcool-mystique.picturesHint:{"count":9}')).toBeTruthy();
-    expect(screen.getByText('devices.deepcool-mystique.gifHint:{"count":9,"seconds":10,"frames":149}')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.gifHint:{"seconds":10}')).toBeTruthy();
     const removeAll = () => screen.getByRole('button', { name: 'devices.deepcool-mystique.removeAllButton' }) as HTMLButtonElement;
     await act(async () => {
       fireEvent.click(removeAll());
@@ -443,11 +432,10 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(screen.queryByText('spider')).toBeNull();
   });
 
-  it('source, switch time and animation wait while an upload runs, and the grids note how the screen plays', async () => {
+  it('source, switch time and animation wait while an upload runs', async () => {
     let finish: (r: { ok: boolean }) => void = () => {};
     mockUpload.mockReturnValue(new Promise(resolve => { finish = resolve; }));
     await mount({ ...base, mode: 'media' });
-    expect(screen.getByText('devices.deepcool-mystique.playbackHint')).toBeTruthy();
     const chips = () => [
       screen.getByRole('radio', { name: 'devices.deepcool-mystique.playGif' }),
       screen.getByRole('radio', { name: 'devices.deepcool-mystique.seconds:{"value":5}' }),
@@ -571,9 +559,10 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(mockCancelStage).toHaveBeenCalledWith('s1');
   });
 
-  it('recording mode notes that the toggles are not set yet', async () => {
+  it('recording mode offers both graph toggles', async () => {
     await mount({ ...base, mode: 'recording', recordingChosen: false });
-    expect(screen.getByText('devices.deepcool-mystique.recordingUnsetHint')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.recordFrequency')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.recordTemperature')).toBeTruthy();
   });
 
   it('picking the CPU frequency or RAM usage sensor sends that pick', async () => {

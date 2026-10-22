@@ -25,7 +25,6 @@ import {
   showMystiqueGif,
   uploadMystiqueMedia,
   MYSTIQUE_HEIGHT,
-  MYSTIQUE_MAX_GIF_FRAMES,
   MYSTIQUE_MAX_GIF_SECONDS,
   MYSTIQUE_MAX_GIFS,
   MYSTIQUE_MAX_PICTURES,
@@ -532,7 +531,6 @@ export function DeepCoolMystiqueDevicePage() {
           />
           <SettingToggle
             label={t('devices.deepcool-mystique.rgbSync')}
-            description={t('devices.deepcool-mystique.rgbSyncHint')}
             checked={state?.rgbSync ?? false}
             disabled={!ready}
             onChange={on => edit({ rgbSync: on, deviceChosen: true }, { rgbSync: on })}
@@ -543,10 +541,6 @@ export function DeepCoolMystiqueDevicePage() {
             checked={state?.edgePicking ?? false}
             disabled={!ready}
             onChange={on => edit({ edgePicking: on, deviceChosen: true }, { edgePicking: on })}
-          />
-          <SettingRow
-            label={t('devices.deepcool-mystique.sentTogether')}
-            description={t(state?.deviceChosen ? 'devices.deepcool-mystique.deviceSetHint' : 'devices.deepcool-mystique.deviceUnsetHint')}
           />
         </SettingsSection>
 
@@ -570,17 +564,14 @@ export function DeepCoolMystiqueDevicePage() {
                   onChange={key => edit({ mediaSource: key as MystiqueMediaSource, sourceChosen: true }, { mediaSource: key as MystiqueMediaSource })}
                 />
               </SettingRow>
-              <SettingRow label={t('devices.deepcool-mystique.pictures')} description={localizeNumbers(t('devices.deepcool-mystique.picturesHint', { count: MYSTIQUE_MAX_PICTURES }), numberFormat)}>
+              <SettingRow label={t('devices.deepcool-mystique.pictures')}>
                 {editButton('picture')}
               </SettingRow>
               <div className={styles.visuallyHidden} aria-live="polite">
                 {showing !== null && progressStatus ? localizeNumbers(`${progressStatus.message} ${progressStatus.percent}%`, numberFormat) : ''}
               </div>
               {mediaGrid('picture', pictures)}
-              <SettingRow
-                label={t('devices.deepcool-mystique.switchTime')}
-                description={t(state.mediaChosen ? 'devices.deepcool-mystique.mediaSetHint' : 'devices.deepcool-mystique.mediaUnsetHint')}
-              >
+              <SettingRow label={t('devices.deepcool-mystique.switchTime')}>
                 <ChipGroup
                   ariaLabel={t('devices.deepcool-mystique.switchTime')}
                   activeKey={state.mediaChosen ? String(state.switchSeconds) : ''}
@@ -600,7 +591,7 @@ export function DeepCoolMystiqueDevicePage() {
                   onChange={key => edit({ animation: key as MystiqueAnimation, mediaChosen: true }, { animation: key as MystiqueAnimation })}
                 />
               </SettingRow>
-              <SettingRow label={t('devices.deepcool-mystique.gif')} description={localizeNumbers(t('devices.deepcool-mystique.gifHint', { count: MYSTIQUE_MAX_GIFS, seconds: MYSTIQUE_MAX_GIF_SECONDS, frames: MYSTIQUE_MAX_GIF_FRAMES }), numberFormat)}>
+              <SettingRow label={t('devices.deepcool-mystique.gif')} description={localizeNumbers(t('devices.deepcool-mystique.gifHint', { seconds: MYSTIQUE_MAX_GIF_SECONDS }), numberFormat)}>
                 <Button
                   size="sm"
                   tone="neutral"
@@ -616,8 +607,7 @@ export function DeepCoolMystiqueDevicePage() {
                 <Notice tone="info">{t('devices.deepcool-mystique.removeAllOnceNotice')}</Notice>
               )}
               {mediaGrid('gif', gifs)}
-              <p className={styles.customNote} data-settings-aside="true">{t('devices.deepcool-mystique.playbackHint')}</p>
-              <SettingRow label={t('devices.deepcool-mystique.removeAll')} description={t('devices.deepcool-mystique.removeAllHint')}>
+              <SettingRow label={t('devices.deepcool-mystique.removeAll')}>
                 <Button
                   size="sm"
                   tone="danger"
@@ -637,7 +627,6 @@ export function DeepCoolMystiqueDevicePage() {
             <>
               <SettingSelect
                 label={t('devices.deepcool-mystique.readout')}
-                description={t(state.readoutChosen ? 'devices.deepcool-mystique.readoutSetHint' : 'devices.deepcool-mystique.readoutUnsetHint')}
                 value={state.readoutChosen ? state.readout : ''}
                 placeholder={t('devices.deepcool-mystique.notSet')}
                 options={READOUTS.map(r => ({ value: r, label: t(READOUT_KEYS[r]) }))}
@@ -667,7 +656,6 @@ export function DeepCoolMystiqueDevicePage() {
             <>
               <SettingToggle
                 label={t('devices.deepcool-mystique.recordFrequency')}
-                description={t(state.recordingChosen ? 'devices.deepcool-mystique.recordingSetHint' : 'devices.deepcool-mystique.recordingUnsetHint')}
                 checked={state.recordFrequency}
                 disabled={!ready}
                 onChange={on => edit({ recordFrequency: on, recordingChosen: true }, { recordFrequency: on })}
@@ -683,8 +671,8 @@ export function DeepCoolMystiqueDevicePage() {
         </SettingsSection>
 
         <SettingsSection title={t('devices.deepcool-mystique.inputsSection')} boxClassName={styles.sectionBox}>
-          {PICKS.map(({ key, type, label, fallback }, i) => (
-            <SettingRow key={key} label={t(label)} description={i === 0 ? t('devices.deepcool-mystique.inputsHint') : undefined}>
+          {PICKS.map(({ key, type, label, fallback }) => (
+            <SettingRow key={key} label={t(label)}>
               {picker(key, type, fallback)}
             </SettingRow>
           ))}
