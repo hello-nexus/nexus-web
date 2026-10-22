@@ -782,7 +782,7 @@
   "devices.deepcool-mystique.play": "Gösterilen",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Resimler",
-  "devices.deepcool-mystique.playbackHint": "Ekran kayıtlı her resmi geçiş süresinde sırayla gösterir ve kayıtlı GIF'leri oynatır.",
+  "devices.deepcool-mystique.playbackHint": "Resimler seçiliyken ekran kayıtlı her resmi geçiş süresinde sırayla gösterir. GIF seçiliyken kayıtlı GIF'leri oynatır.",
   "devices.deepcool-mystique.pump": "Pompa",
   "devices.deepcool-mystique.ramUsage": "RAM kullanımı",
   "devices.deepcool-mystique.readout": "Ana ekran alanı",

@@ -782,7 +782,7 @@
   "devices.deepcool-mystique.play": "Muestra",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Imágenes",
-  "devices.deepcool-mystique.playbackHint": "La pantalla muestra por turnos cada imagen guardada según el tiempo de cambio y reproduce los GIF guardados.",
+  "devices.deepcool-mystique.playbackHint": "Con Imágenes, la pantalla muestra por turnos cada imagen guardada según el tiempo de cambio. Con GIF, reproduce los GIF guardados.",
   "devices.deepcool-mystique.pump": "Bomba",
   "devices.deepcool-mystique.ramUsage": "Uso de la RAM",
   "devices.deepcool-mystique.readout": "Área principal de la pantalla",

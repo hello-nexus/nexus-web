@@ -782,7 +782,7 @@
   "devices.deepcool-mystique.play": "顯示內容",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "圖片",
-  "devices.deepcool-mystique.playbackHint": "螢幕會依切換時間輪流顯示每張已存圖片，並播放已存的 GIF。",
+  "devices.deepcool-mystique.playbackHint": "選擇「圖片」時，螢幕依切換時間輪流顯示每張已存圖片。選擇「GIF」時，播放已存的 GIF。",
   "devices.deepcool-mystique.pump": "水泵",
   "devices.deepcool-mystique.ramUsage": "RAM 使用率",
   "devices.deepcool-mystique.readout": "主要顯示區域",
