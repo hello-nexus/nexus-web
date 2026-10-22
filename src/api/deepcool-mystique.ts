@@ -145,13 +145,13 @@ export async function uploadMystiqueMedia(
 }
 
 /**
- * Sends a GIF to the screen, which plays one GIF at a time. `needsEdit` means its encoded frames are not kept, so
- * an edit has to encode it again. Null on a transport failure.
+ * Sends a GIF to the screen, which plays one GIF at a time. `notKept` means neither its frames nor its original are
+ * kept, so it cannot be sent again. Null on a transport failure.
  */
-export async function showMystiqueGif(id: string): Promise<{ ok: boolean; needsEdit: boolean } | null> {
+export async function showMystiqueGif(id: string): Promise<{ ok: boolean; notKept: boolean } | null> {
   try {
-    const res = await postService<{ error: boolean; needsEdit?: boolean }>(`${BASE}/media/${encodeURIComponent(id)}/show`, {});
-    return res === null ? null : { ok: !res.error, needsEdit: res.needsEdit === true };
+    const res = await postService<{ error: boolean; notKept?: boolean }>(`${BASE}/media/${encodeURIComponent(id)}/show`, {});
+    return res === null ? null : { ok: !res.error, notKept: res.notKept === true };
   } catch {
     return null;
   }

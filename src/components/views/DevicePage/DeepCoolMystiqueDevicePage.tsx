@@ -285,10 +285,9 @@ export function DeepCoolMystiqueDevicePage() {
     }
   };
 
-  // The screen plays one GIF, so a click sends the chosen one; an item whose frames were never kept is cropped again instead.
+  // The screen plays one GIF, so a click sends the chosen one.
   const showGif = async (item: MystiqueMediaItem) => {
     setShowing(item.id);
-    let needsEdit = false;
     try {
       busyRef.current += 1;
       writeGenRef.current += 1;
@@ -300,9 +299,8 @@ export function DeepCoolMystiqueDevicePage() {
         writeGenRef.current += 1;
       }
       if (!aliveRef.current) return;
-      needsEdit = res?.needsEdit === true && item.editable && CROPPABLE_EXTS.has(item.ext);
-      if (needsEdit) {
-        push({ title: t('devices.deepcool-mystique.needsEditTitle'), body: t('devices.deepcool-mystique.needsEditBody') });
+      if (res?.notKept) {
+        push({ title: t('devices.deepcool-mystique.notKeptTitle'), body: t('devices.deepcool-mystique.notKeptBody') });
       } else if (!res?.ok) {
         push({ title: t('devices.deepcool-mystique.showFailedTitle'), body: t('devices.deepcool-mystique.showFailedBody') });
       }
@@ -315,7 +313,6 @@ export function DeepCoolMystiqueDevicePage() {
     } finally {
       if (aliveRef.current) setShowing(null);
     }
-    if (needsEdit && aliveRef.current) editMedia(item);
   };
 
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
@@ -434,7 +431,7 @@ export function DeepCoolMystiqueDevicePage() {
           thumbStatic
           thumbAspect={SCREEN_ASPECT}
           thumbOverlay={showing === item.id ? (
-            <span className={styles.mediaOverlay} role="status" aria-label={progressStatus?.message ?? t('devices.deepcool-mystique.progressSending')}>
+            <span className={styles.mediaOverlay} aria-hidden>
               {localizeNumbers(`${progressStatus?.percent ?? 0}%`, numberFormat)}
             </span>
           ) : undefined}
@@ -576,6 +573,9 @@ export function DeepCoolMystiqueDevicePage() {
               <SettingRow label={t('devices.deepcool-mystique.pictures')} description={localizeNumbers(t('devices.deepcool-mystique.picturesHint', { count: MYSTIQUE_MAX_PICTURES }), numberFormat)}>
                 {editButton('picture')}
               </SettingRow>
+              <div className={styles.visuallyHidden} aria-live="polite">
+                {showing !== null && progressStatus ? localizeNumbers(`${progressStatus.message} ${progressStatus.percent}%`, numberFormat) : ''}
+              </div>
               {mediaGrid('picture', pictures)}
               <SettingRow
                 label={t('devices.deepcool-mystique.switchTime')}
