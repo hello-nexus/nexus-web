@@ -788,7 +788,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Maximaal {count} GIF's of video's. Elk wordt afgespeeld als een korte lus, genomen uit de hele clip, of uit de eerste {seconds} seconden als die langer is.",
   "devices.deepcool-mystique.gyroscope": "Rotatie via gyroscoop toestaan",
-  "devices.deepcool-mystique.gyroscopeHint": "Laat de gyroscoop van het scherm het beeld draaien.",
+  "devices.deepcool-mystique.gyroscopeHint": "Laat de gyroscoop van het scherm het beeld draaien. Afbeeldingen en GIF's die al op het scherm staan, houden hun richting tot ze worden bewerkt of opnieuw toegevoegd.",
   "devices.deepcool-mystique.inputsHint": "De sensoren waarvan het scherm de waarden toont. Automatisch volgt de standaardkeuzes van Nexus.",
   "devices.deepcool-mystique.inputsSection": "Sensoren",
   "devices.deepcool-mystique.mediaFullBody": "Verwijder er eerst een, of selecteer er een en bewerk die.",

@@ -788,7 +788,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Bis zu {count} GIFs oder Videos. Jedes läuft als kurze Schleife, die aus dem ganzen Clip entnommen wird, bei längeren aus den ersten {seconds} Sekunden.",
   "devices.deepcool-mystique.gyroscope": "Drehung per Gyroskop zulassen",
-  "devices.deepcool-mystique.gyroscopeHint": "Lässt das Gyroskop des Bildschirms das Bild drehen.",
+  "devices.deepcool-mystique.gyroscopeHint": "Lässt das Gyroskop des Bildschirms das Bild drehen. Bilder und GIFs, die schon auf dem Bildschirm sind, behalten ihre Ausrichtung, bis sie bearbeitet oder neu hinzugefügt werden.",
   "devices.deepcool-mystique.inputsHint": "Die Sensoren, deren Werte der Bildschirm anzeigt. Automatisch folgt den Nexus-Standardwerten.",
   "devices.deepcool-mystique.inputsSection": "Sensoren",
   "devices.deepcool-mystique.mediaFullBody": "Entferne zuerst eines oder wähle eines aus und bearbeite es.",
