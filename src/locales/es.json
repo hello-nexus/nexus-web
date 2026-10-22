@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.failedBody": "No se pudo aplicar el cambio de la pantalla.",
   "devices.deepcool-mystique.failedTitle": "Error al aplicar el cambio",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Hasta {count} GIF o vídeos. Cada uno se reproduce como un bucle corto tomado de todo el clip, o de sus primeros {seconds} segundos si es más largo.",
+  "devices.deepcool-mystique.gifHint": "Hasta {count} GIF o vídeos. Cada uno reproduce todos los fotogramas del clip, o de sus primeros {seconds} segundos si es más largo, y conserva {frames} repartidos de forma uniforme si tiene más.",
   "devices.deepcool-mystique.gyroscope": "Permitir la rotación por giroscopio",
   "devices.deepcool-mystique.gyroscopeHint": "Permite que el giroscopio de la pantalla gire la imagen. Las imágenes y los GIF que ya están en la pantalla mantienen su orientación hasta que se editen o se vuelvan a añadir.",
   "devices.deepcool-mystique.inputsHint": "Los sensores cuyos valores muestra la pantalla. Automático sigue los valores predeterminados de Nexus.",
