@@ -805,7 +805,7 @@
   "devices.deepcool-mystique.play": "表示内容",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "画像",
-  "devices.deepcool-mystique.playbackHint": "画面は保存された画像を切り替え時間ごとに順番に表示し、保存された GIF を再生します。",
+  "devices.deepcool-mystique.playbackHint": "「画像」では、保存された画像を切り替え時間ごとに順番に表示します。「GIF」では、保存された GIF を再生します。",
   "devices.deepcool-mystique.pump": "ポンプ",
   "devices.deepcool-mystique.ramUsage": "RAM使用率",
   "devices.deepcool-mystique.readout": "メイン表示エリア",

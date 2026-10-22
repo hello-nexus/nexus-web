@@ -812,7 +812,7 @@
   "devices.deepcool-mystique.play": "Zobrazuje",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Obrázky",
-  "devices.deepcool-mystique.playbackHint": "Displej postupně ukazuje všechny uložené obrázky podle doby přepínání a přehrává uložené GIFy.",
+  "devices.deepcool-mystique.playbackHint": "S volbou Obrázky displej postupně ukazuje každý uložený obrázek podle doby přepínání. S volbou GIF přehrává uložené GIFy.",
   "devices.deepcool-mystique.pump": "Čerpadlo",
   "devices.deepcool-mystique.ramUsage": "Využití paměti RAM",
   "devices.deepcool-mystique.readout": "Hlavní oblast displeje",

@@ -526,7 +526,7 @@ export function DeepCoolMystiqueDevicePage() {
                 {editButton('gif')}
               </SettingRow>
               {mediaGrid('gif', gifs)}
-              <p className={styles.customNote}>{t('devices.deepcool-mystique.playbackHint')}</p>
+              <p className={styles.customNote} data-settings-aside="true">{t('devices.deepcool-mystique.playbackHint')}</p>
               <SettingRow label={t('devices.deepcool-mystique.removeAll')} description={t('devices.deepcool-mystique.removeAllHint')}>
                 <Button
                   size="sm"

@@ -812,7 +812,7 @@
   "devices.deepcool-mystique.play": "Показывает",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Изображения",
-  "devices.deepcool-mystique.playbackHint": "Экран по очереди показывает каждое сохранённое изображение с заданным временем смены и воспроизводит сохранённые GIF.",
+  "devices.deepcool-mystique.playbackHint": "При выборе «Изображения» экран по очереди показывает каждое сохранённое изображение с заданным временем смены. При выборе «GIF» он воспроизводит сохранённые GIF.",
   "devices.deepcool-mystique.pump": "Помпа",
   "devices.deepcool-mystique.ramUsage": "Использование ОЗУ",
   "devices.deepcool-mystique.readout": "Основная область экрана",

@@ -805,7 +805,7 @@
   "devices.deepcool-mystique.play": "显示内容",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "图片",
-  "devices.deepcool-mystique.playbackHint": "屏幕会按切换时间轮流显示每张已存图片，并播放已存的 GIF。",
+  "devices.deepcool-mystique.playbackHint": "选择“图片”时，屏幕按切换时间轮流显示每张已存图片。选择“GIF”时，播放已存的 GIF。",
   "devices.deepcool-mystique.pump": "水泵",
   "devices.deepcool-mystique.ramUsage": "RAM 使用率",
   "devices.deepcool-mystique.readout": "主显示区域",

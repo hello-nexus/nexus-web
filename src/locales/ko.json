@@ -805,7 +805,7 @@
   "devices.deepcool-mystique.play": "표시 항목",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "사진",
-  "devices.deepcool-mystique.playbackHint": "화면은 저장된 사진을 전환 시간마다 차례로 표시하고 저장된 GIF를 재생합니다.",
+  "devices.deepcool-mystique.playbackHint": "사진을 선택하면 저장된 사진을 전환 시간마다 차례로 표시합니다. GIF를 선택하면 저장된 GIF를 재생합니다.",
   "devices.deepcool-mystique.pump": "펌프",
   "devices.deepcool-mystique.ramUsage": "RAM 사용률",
   "devices.deepcool-mystique.readout": "주 표시 영역",
