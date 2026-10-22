@@ -15,6 +15,8 @@ const mockSet = vi.fn();
 const mockPush = vi.fn();
 const mockUpload = vi.fn();
 const mockDelete = vi.fn();
+const mockShow = vi.fn();
+const mockProgress = vi.fn();
 
 vi.mock('../../common/Toast/Toast', () => ({
   useToast: () => ({ push: mockPush }),
@@ -25,6 +27,8 @@ vi.mock('../../../api/deepcool-mystique', () => ({
   setMystiqueSettings: (patch: unknown) => mockSet(patch),
   uploadMystiqueMedia: (...args: unknown[]) => mockUpload(...args),
   deleteMystiqueMedia: (id?: string) => mockDelete(id),
+  showMystiqueGif: (id: string) => mockShow(id),
+  getMystiqueProgress: () => mockProgress(),
   mystiqueThumbUrl: (id: string, version: number) => `thumb/${id}/${version}`,
   mystiqueSourceUrl: (id: string) => `source/${id}`,
   MYSTIQUE_WIDTH: 480,
@@ -58,8 +62,20 @@ vi.mock('../../common/KlipyPicker/KlipyPicker', () => ({
 }));
 
 vi.mock('../../common/MediaCropper/MediaCropper', () => ({
-  MediaCropper: ({ onConfirm, aspect }: { onConfirm: (crop: unknown) => void; aspect: number }) => (
-    <button type="button" data-testid="crop-confirm" data-aspect={aspect} onClick={() => onConfirm({ x: 0, y: 0, w: 1, h: 1 })}>crop</button>
+  MediaCropper: ({ onConfirm, aspect, busyProgress }: {
+    onConfirm: (crop: unknown) => void;
+    aspect: number;
+    busyProgress?: { percent: number; message: string } | null;
+  }) => (
+    <button
+      type="button"
+      data-testid="crop-confirm"
+      data-aspect={aspect}
+      data-progress={busyProgress ? `${busyProgress.message} ${busyProgress.percent}` : ''}
+      onClick={() => onConfirm({ x: 0, y: 0, w: 1, h: 1 })}
+    >
+      crop
+    </button>
   ),
 }));
 
@@ -133,6 +149,8 @@ beforeEach(() => {
   mockSet.mockResolvedValue(true);
   mockUpload.mockResolvedValue({ ok: true, msg: '' });
   mockDelete.mockResolvedValue(true);
+  mockShow.mockResolvedValue({ ok: true, needsEdit: false });
+  mockProgress.mockResolvedValue({ phase: '', percent: 0 });
   mockCancelStage.mockResolvedValue(undefined);
   URL.createObjectURL = vi.fn(() => 'blob:pick');
   URL.revokeObjectURL = vi.fn();
@@ -437,6 +455,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
     ] as HTMLButtonElement[];
     expect(chips().every(c => !c.disabled)).toBe(true);
     const input = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement;
+    mockProgress.mockResolvedValue({ phase: 'converting', percent: 30 });
     await act(async () => {
       fireEvent.change(input, { target: { files: [new File([new Uint8Array([1])], 'a.png', { type: 'image/png' })] } });
     });
@@ -444,10 +463,67 @@ describe('DeepCoolMystiqueDevicePage', () => {
       fireEvent.click(screen.getByTestId('crop-confirm'));
     });
     expect(chips().every(c => c.disabled)).toBe(true);
+    expect(screen.getByTestId('crop-confirm').getAttribute('data-progress')).toBe('devices.deepcool-mystique.progressConverting 30');
     await act(async () => {
       finish({ ok: true });
     });
     expect(chips().every(c => !c.disabled)).toBe(true);
+  });
+
+  it('a GIF click sends it to the screen with its progress, and a picture click plays the pictures', async () => {
+    let finish: (r: { ok: boolean; needsEdit: boolean }) => void = () => {};
+    mockShow.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    mockProgress.mockResolvedValue({ phase: 'sending', percent: 40 });
+    await mount({
+      ...base,
+      mode: 'media',
+      mediaSource: 'gif',
+      media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }, { kind: 'gif', id: GIF_A, name: 'logo' }],
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
+    });
+    expect(mockShow).toHaveBeenCalledWith(GIF_A);
+    expect(screen.getByText('devices.deepcool-mystique.progressSending (40%)')).toBeTruthy();
+    mockGet.mockResolvedValue({
+      ...base,
+      mode: 'media',
+      mediaSource: 'gif',
+      shownGif: GIF_A,
+      media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }, { kind: 'gif', id: GIF_A, name: 'logo' }],
+    });
+    await act(async () => {
+      finish({ ok: true, needsEdit: false });
+    });
+    expect(screen.queryByText('devices.deepcool-mystique.progressSending (40%)')).toBeNull();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
+    });
+    expect(mockShow).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.selectItem:{"name":"spider"}' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ mediaSource: 'images' });
+  });
+
+  it('a GIF whose frames were not kept opens the cropper to send it again, and a refused one raises a toast', async () => {
+    mockShow.mockResolvedValue({ ok: false, needsEdit: true });
+    await mount({ ...base, mode: 'media', media: [{ kind: 'gif', id: GIF_A, name: 'logo', ext: '.gif', editable: true }] });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
+    });
+    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.deepcool-mystique.needsEditTitle', body: 'devices.deepcool-mystique.needsEditBody' });
+    expect(screen.getByTestId('crop-confirm')).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('crop-confirm'));
+    });
+    expect(mockUpload).toHaveBeenCalledWith(expect.anything(), 'gif', { x: 0, y: 0, w: 1, h: 1 }, GIF_A);
+
+    mockShow.mockResolvedValue({ ok: false, needsEdit: false });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.showGif:{"name":"logo"}' }));
+    });
+    expect(mockPush).toHaveBeenLastCalledWith({ title: 'devices.deepcool-mystique.showFailedTitle', body: 'devices.deepcool-mystique.showFailedBody' });
   });
 
   it('a GIF or video picked from disk uploads as the GIF and a refusal raises a toast', async () => {

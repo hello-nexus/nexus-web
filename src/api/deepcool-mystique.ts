@@ -1,5 +1,5 @@
 import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
-import { deleteService, fetchService, postServiceFormResult, putService, resolveHttp, tokenParam } from './service';
+import { deleteService, fetchService, postService, postServiceFormResult, putService, resolveHttp, tokenParam } from './service';
 
 export type MystiqueMode = 'monitor' | 'media' | 'recording';
 
@@ -74,6 +74,8 @@ export interface MystiqueState {
   edgePicking: boolean;
   /** What this PC has put on the screen; the screen cannot be read back. */
   media: MystiqueMediaItem[];
+  /** Id of the GIF the screen plays, empty when unknown. */
+  shownGif?: string;
   recordFrequency: boolean;
   recordTemperature: boolean;
   /** 0-100. */
@@ -138,6 +140,26 @@ export async function uploadMystiqueMedia(
   const res = await postServiceFormResult<{ error: boolean; msg: string; id?: string }>(`${BASE}/media`, form);
   if (res === null) return null;
   return res.error ? { ok: false, msg: res.msg } : { ok: true, msg: res.msg, id: res.id };
+}
+
+/**
+ * Sends a GIF to the screen, which plays one GIF at a time. `needsEdit` means its encoded frames are not kept, so
+ * an edit has to encode it again. Null on a transport failure.
+ */
+export async function showMystiqueGif(id: string): Promise<{ ok: boolean; needsEdit: boolean } | null> {
+  try {
+    const res = await postService<{ error: boolean; needsEdit?: boolean }>(`${BASE}/media/${encodeURIComponent(id)}/show`, {});
+    return res === null ? null : { ok: !res.error, needsEdit: res.needsEdit === true };
+  } catch {
+    return null;
+  }
+}
+
+export type MystiqueProgressPhase = '' | 'converting' | 'sending';
+
+/** What the upload in hand is doing; an empty phase when none runs. */
+export async function getMystiqueProgress(): Promise<{ phase: MystiqueProgressPhase; percent: number } | null> {
+  return fetchService<{ phase: MystiqueProgressPhase; percent: number }>(`${BASE}/media/progress`);
 }
 
 /** Without an id, erases every item on the screen; with one, drops it from Nexus only and the screen keeps it until an upload reuses its place. */
