@@ -786,7 +786,7 @@
   "devices.deepcool-mystique.failedBody": "Não foi possível aplicar a alteração do ecrã.",
   "devices.deepcool-mystique.failedTitle": "Falha na alteração",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Até {count} GIFs ou vídeos. Cada um é reproduzido como um ciclo curto extraído do clip inteiro, ou dos primeiros {seconds} segundos se for mais longo.",
+  "devices.deepcool-mystique.gifHint": "Até {count} GIFs ou vídeos. Cada um reproduz todas as imagens do clip, ou dos primeiros {seconds} segundos se for mais longo, e mantém {frames} imagens distribuídas por igual quando houver mais.",
   "devices.deepcool-mystique.gyroscope": "Permitir rotação pelo giroscópio",
   "devices.deepcool-mystique.gyroscopeHint": "Permite que o giroscópio do ecrã rode a imagem. As imagens e os GIF que já estão no ecrã mantêm a orientação até serem editados ou adicionados de novo.",
   "devices.deepcool-mystique.inputsHint": "Os sensores cujos valores o ecrã mostra. Automático segue as predefinições do Nexus.",

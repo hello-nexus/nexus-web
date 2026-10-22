@@ -793,7 +793,7 @@
   "devices.deepcool-mystique.failedBody": "Nie udało się zastosować zmiany ekranu.",
   "devices.deepcool-mystique.failedTitle": "Zmiana nie powiodła się",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Maksymalnie {count} GIF-ów lub filmów. Każdy jest odtwarzany jako krótka pętla wybrana z całego klipu, a z dłuższego z pierwszych {seconds} sekund.",
+  "devices.deepcool-mystique.gifHint": "Maksymalnie {count} GIF-ów lub filmów. Każdy odtwarza wszystkie klatki klipu, a dłuższego z pierwszych {seconds} sekund, a przy większej liczbie klatek zachowuje {frames} równomiernie rozłożonych.",
   "devices.deepcool-mystique.gyroscope": "Zezwalaj na obrót według żyroskopu",
   "devices.deepcool-mystique.gyroscopeHint": "Pozwala żyroskopowi ekranu obracać obraz. Obrazy i GIF-y, które są już na ekranie, zachowują orientację, dopóki nie zostaną edytowane lub dodane ponownie.",
   "devices.deepcool-mystique.inputsHint": "Czujniki, których wartości pokazuje ekran. Automatycznie stosuje domyślne wybory Nexus.",
