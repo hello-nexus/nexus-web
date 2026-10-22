@@ -57,6 +57,8 @@ export interface DeckTarget {
   authoredPageCount: number;
   /** Deck-wide default title style seeded onto newly bound keys. */
   setTitleDefault(next: DeckTitleStyle | undefined): void;
+  /** The preset being edited; set by makePresetDeckTarget. */
+  presetId?: string;
 }
 
 /**
@@ -203,6 +205,7 @@ export function makePresetDeckTarget(
     setTitleDefault(next) {
       save({ ...preset.deck, defaultTitleStyle: next });
     },
+    presetId: preset.id,
   };
 }
 

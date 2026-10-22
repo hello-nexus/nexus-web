@@ -51,6 +51,12 @@ interface DeckInstanceResponse {
   instance: DeckInstance;
 }
 
+/** Every deck instance by id: `streamdeck:<serial>` for a device, `widget:<id>` for a Deck widget. */
+export async function getDeckInstances(): Promise<Record<string, DeckInstance>> {
+  const res = await fetchService<{ instances?: Record<string, DeckInstance> }>('/deck/instances');
+  return res?.instances ?? {};
+}
+
 export async function getDeckPresets(): Promise<DeckPresetSummary[]> {
   const res = await fetchService<DeckPresetsListResponse>('/deck/presets');
   return res?.presets ?? [];
