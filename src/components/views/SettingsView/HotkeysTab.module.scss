@@ -1,0 +1,37 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.recorder {
+  width: 12rem;
+  min-width: 0;
+}
+
+.recorderOff {
+  opacity: 0.55;
+}
+
+.rowError {
+  display: block;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}

@@ -140,7 +140,7 @@ const navSubtabs: SearchSource = (ctx) =>
     to: () => ctx.host.goView(s.view, s.sub),
   }));
 
-// Settings is 5 top tabs; these all deep-link to the Settings page and select
+// Settings is 6 top tabs; these all deep-link to the Settings page and select
 // the owning tab (the `to:` handler below passes `tab` as the subtab).
 // Profiles and Dev tools moved to their own pages - see `standalonePages`.
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
@@ -148,6 +148,7 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
   { tab: 'appearance',       labelKey: 'settings.tab.appearance',        keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format'] },
   { tab: 'lighting-cooling', labelKey: 'settings.lightingCooling.title', keywords: ['lighting', 'cooling', 'rgb', 'led', 'fans', 'render gpu', 'sleep blackout'] },
   { tab: 'monitoring',       labelKey: 'settings.tab.monitoringDiagnostics', keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors', 'diagnostics', 'health'] },
+  { tab: 'hotkeys',          labelKey: 'settings.tab.hotkeys',           keywords: ['hotkey', 'shortcut', 'keyboard', 'global', 'keybind', 'key combo', 'deck'] },
   { tab: 'privacy',          labelKey: 'settings.tab.privacyData',       keywords: ['telemetry', 'screen time', 'data', 'ai'] },
 ];
 

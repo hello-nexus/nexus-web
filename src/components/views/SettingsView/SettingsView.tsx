@@ -1,5 +1,5 @@
 import { useCallback, useMemo, type ReactNode } from 'react';
-import { Activity, Lightbulb, Palette, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Activity, Keyboard, Lightbulb, Palette, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { ServiceRequired } from '../ServiceRequired';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -11,6 +11,8 @@ import { AppearanceTab } from './AppearanceTab';
 import { LightingCoolingTab } from './LightingCoolingTab';
 import { MonitoringTab } from './MonitoringTab';
 import { PrivacyTab } from './PrivacyTab';
+import { HotkeysTab } from './HotkeysTab';
+import type { DeckEditorTarget } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import styles from './SettingsView.module.scss';
 
 interface SettingsViewProps {
@@ -19,9 +21,11 @@ interface SettingsViewProps {
   platform: string;
   tab: string | null;
   onTabChange: (tab: string) => void;
+  // Opens a deck's editor on a key or dial, from a Hotkeys row.
+  onOpenDeckEditor?: (target: DeckEditorTarget) => void;
 }
 
-export type SettingsTabKey = 'general' | 'appearance' | 'lighting-cooling' | 'monitoring' | 'privacy';
+export type SettingsTabKey = 'general' | 'appearance' | 'lighting-cooling' | 'monitoring' | 'hotkeys' | 'privacy';
 
 // Single source of truth for the settings tab strip - key, translated label,
 // icon, and tab validity (isValidTab below) all derive from this list so they
@@ -32,6 +36,7 @@ const TAB_DEFS: readonly { key: SettingsTabKey; labelKey: string; icon: ReactNod
   { key: 'appearance', labelKey: 'settings.tab.appearance', icon: <Palette size={14} /> },
   { key: 'lighting-cooling', labelKey: 'settings.lightingCooling.title', icon: <Lightbulb size={14} /> },
   { key: 'monitoring', labelKey: 'settings.tab.monitoringDiagnostics', icon: <Activity size={14} /> },
+  { key: 'hotkeys', labelKey: 'settings.tab.hotkeys', icon: <Keyboard size={14} /> },
   { key: 'privacy', labelKey: 'settings.tab.privacyData', icon: <ShieldCheck size={14} /> },
 ];
 
@@ -41,7 +46,7 @@ function isValidTab(key: string): key is SettingsTabKey {
 
 // Profiles live on their own page (the top-bar profile menu) and the developer
 // Dev Tools page hangs off the top-bar "..." menu; neither is a Settings tab.
-export function SettingsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange }: SettingsViewProps) {
+export function SettingsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange, onOpenDeckEditor }: SettingsViewProps) {
   const { t } = useTranslation();
   // All server persistence + local mirror + theme/accent application goes
   // through this hook. No fetchPreferences/savePreferences in this file.
@@ -125,6 +130,8 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
         return <LightingCoolingTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;
       case 'monitoring':
         return <MonitoringTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} />;
+      case 'hotkeys':
+        return <HotkeysTab serviceOnline={serviceOnline} onOpenDeckEditor={onOpenDeckEditor} />;
       case 'privacy':
         return <PrivacyTab settings={settings} serviceOnline={serviceOnline} />;
       case 'general':
