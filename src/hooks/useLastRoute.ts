@@ -16,12 +16,12 @@ const RESTORE_WAIT_MS = 3000;
  * window close, not a service start" expressible at all.
  *
  * Gated on the client-only `rememberLastPage` setting (Settings > General >
- * Startup & tray, default on).
- *
- * @returns true once the restore has resolved, or after a bounded wait if the
- * read stalls. Saving still waits on the read itself. Read from localStorage rather than
+ * Startup & tray, default on). Read from localStorage rather than
  * useUiSettings: this runs in Dashboard's own body, which sits outside the
  * UiSettingsProvider it renders.
+ *
+ * @returns true once the restore has resolved, or after a bounded wait if the
+ * read stalls. Saving still waits on the read itself.
  */
 export function useLastRoute(
   path: string,
