@@ -784,7 +784,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Só os primeiros {seconds} segundos de um clip são reproduzidos.",
   "devices.deepcool-mystique.gyroscope": "Permitir rotação pelo giroscópio",
-  "devices.deepcool-mystique.gyroscopeHint": "As imagens e os GIF que já estão no ecrã mantêm a orientação até serem editados ou adicionados de novo.",
+  "devices.deepcool-mystique.gyroscopeHint": "Alterar esta opção não roda as imagens e os GIF que já estão no ecrã até serem editados ou adicionados de novo.",
   "devices.deepcool-mystique.inputsSection": "Sensores",
   "devices.deepcool-mystique.mediaFullBody": "Remova primeiro um, ou selecione um e edite-o.",
   "devices.deepcool-mystique.mediaFullTitle": "Todos os espaços estão ocupados",

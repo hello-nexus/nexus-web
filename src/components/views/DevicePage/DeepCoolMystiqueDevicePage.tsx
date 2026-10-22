@@ -518,7 +518,6 @@ export function DeepCoolMystiqueDevicePage() {
               draggingRef.current = false;
               if (v === brightnessRef.current) return;
               brightnessRef.current = v;
-              setState(prev => prev && { ...prev, deviceChosen: true });
               void commit({ brightness: v });
             }}
           />
@@ -527,20 +526,20 @@ export function DeepCoolMystiqueDevicePage() {
             description={t('devices.deepcool-mystique.gyroscopeHint')}
             checked={state?.gyroscope ?? false}
             disabled={!ready}
-            onChange={on => edit({ gyroscope: on, deviceChosen: true }, { gyroscope: on })}
+            onChange={on => edit({ gyroscope: on }, { gyroscope: on })}
           />
           <SettingToggle
             label={t('devices.deepcool-mystique.rgbSync')}
             checked={state?.rgbSync ?? false}
             disabled={!ready}
-            onChange={on => edit({ rgbSync: on, deviceChosen: true }, { rgbSync: on })}
+            onChange={on => edit({ rgbSync: on }, { rgbSync: on })}
           />
           <SettingToggle
             label={t('devices.deepcool-mystique.edgePicking')}
             description={t('devices.deepcool-mystique.edgePickingHint')}
             checked={state?.edgePicking ?? false}
             disabled={!ready}
-            onChange={on => edit({ edgePicking: on, deviceChosen: true }, { edgePicking: on })}
+            onChange={on => edit({ edgePicking: on }, { edgePicking: on })}
           />
         </SettingsSection>
 
@@ -658,13 +657,13 @@ export function DeepCoolMystiqueDevicePage() {
                 label={t('devices.deepcool-mystique.recordFrequency')}
                 checked={state.recordFrequency}
                 disabled={!ready}
-                onChange={on => edit({ recordFrequency: on, recordingChosen: true }, { recordFrequency: on })}
+                onChange={on => edit({ recordFrequency: on }, { recordFrequency: on })}
               />
               <SettingToggle
                 label={t('devices.deepcool-mystique.recordTemperature')}
                 checked={state.recordTemperature}
                 disabled={!ready}
-                onChange={on => edit({ recordTemperature: on, recordingChosen: true }, { recordTemperature: on })}
+                onChange={on => edit({ recordTemperature: on }, { recordTemperature: on })}
               />
             </>
           )}

@@ -784,7 +784,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Only the first {seconds} seconds of a clip play.",
   "devices.deepcool-mystique.gyroscope": "Allow gyroscope rotation",
-  "devices.deepcool-mystique.gyroscopeHint": "Pictures and GIFs already on the screen keep their orientation until they are edited or added again.",
+  "devices.deepcool-mystique.gyroscopeHint": "Changing this does not turn pictures and GIFs already on the screen until they are edited or added again.",
   "devices.deepcool-mystique.inputsSection": "Sensors",
   "devices.deepcool-mystique.mediaFullBody": "Remove one first, or select one and edit it.",
   "devices.deepcool-mystique.mediaFullTitle": "All places are in use",

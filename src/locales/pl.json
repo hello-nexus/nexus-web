@@ -791,7 +791,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Odtwarzane jest tylko pierwsze {seconds} sekund klipu.",
   "devices.deepcool-mystique.gyroscope": "Zezwalaj na obrót według żyroskopu",
-  "devices.deepcool-mystique.gyroscopeHint": "Obrazy i GIF-y, które są już na ekranie, zachowują orientację, dopóki nie zostaną edytowane lub dodane ponownie.",
+  "devices.deepcool-mystique.gyroscopeHint": "Zmiana nie obraca obrazów i GIF-ów, które są już na ekranie, dopóki nie zostaną edytowane lub dodane ponownie.",
   "devices.deepcool-mystique.inputsSection": "Czujniki",
   "devices.deepcool-mystique.mediaFullBody": "Najpierw usuń jeden albo wybierz jeden i go edytuj.",
   "devices.deepcool-mystique.mediaFullTitle": "Wszystkie miejsca są zajęte",

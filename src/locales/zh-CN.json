@@ -784,7 +784,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "片段只播放前 {seconds} 秒。",
   "devices.deepcool-mystique.gyroscope": "允许陀螺仪旋转",
-  "devices.deepcool-mystique.gyroscopeHint": "屏幕上已有的图片和 GIF 会保持原方向，直到被编辑或重新添加。",
+  "devices.deepcool-mystique.gyroscopeHint": "更改此项不会旋转屏幕上已有的图片和 GIF，直到它们被编辑或重新添加。",
   "devices.deepcool-mystique.inputsSection": "传感器",
   "devices.deepcool-mystique.mediaFullBody": "请先移除一个，或选择一个进行编辑。",
   "devices.deepcool-mystique.mediaFullTitle": "所有位置都已占用",
