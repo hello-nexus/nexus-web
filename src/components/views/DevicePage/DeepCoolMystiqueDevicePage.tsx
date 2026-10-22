@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { Plus, Sparkles } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import { Button } from '../../common/Button/Button';
+import { EffectCard } from '../../common/EffectCard/EffectCard';
+import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
+import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
@@ -10,12 +15,24 @@ import { DECK_MONITORING_CATEGORIES } from '../../../panel/widgets/deck/deckMoni
 import { sensorsForDevice } from '../../../panel/widgets/monitoring/sensorPicker';
 import {
   getMystiqueState,
+  mystiqueThumbUrl,
   setMystiqueSettings,
+  uploadMystiqueMedia,
+  MYSTIQUE_HEIGHT,
+  MYSTIQUE_MAX_PICTURES,
+  MYSTIQUE_WIDTH,
+  type MystiqueAnimation,
+  type MystiqueAuxArea,
+  type MystiqueMediaKind,
+  type MystiqueMediaSource,
   type MystiqueMode,
   type MystiqueReadout,
   type MystiqueSettingsPatch,
   type MystiqueState,
+  type MystiqueStyle,
 } from '../../../api/deepcool-mystique';
+import { stageKlipy, type KlipyGif } from '../../../api/klipy';
+import { cancelMediaStage, fetchStagedFile, mediaStagePreviewUrl, mediaStageRawUrl, stagePreviewFor } from '../../../api/mediaLibrary';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -38,6 +55,45 @@ const READOUT_KEYS: Record<MystiqueReadout, string> = {
   fan: 'devices.deepcool-mystique.readoutFan',
   fanPump: 'devices.deepcool-mystique.readoutFanPump',
 };
+const STYLES: readonly MystiqueStyle[] = ['normal', 'ring', 'stopwatch'];
+const STYLE_KEYS: Record<MystiqueStyle, string> = {
+  normal: 'devices.deepcool-mystique.styleNormal',
+  ring: 'devices.deepcool-mystique.styleRing',
+  stopwatch: 'devices.deepcool-mystique.styleStopwatch',
+};
+const AUX_AREAS: readonly MystiqueAuxArea[] = ['voltage', 'systemMonitor', 'coreData'];
+const AUX_KEYS: Record<MystiqueAuxArea, string> = {
+  voltage: 'devices.deepcool-mystique.auxVoltage',
+  systemMonitor: 'devices.deepcool-mystique.auxSystemMonitor',
+  coreData: 'devices.deepcool-mystique.auxCoreData',
+};
+const SOURCES: readonly MystiqueMediaSource[] = ['images', 'gif'];
+const SOURCE_KEYS: Record<MystiqueMediaSource, string> = {
+  images: 'devices.deepcool-mystique.playPictures',
+  gif: 'devices.deepcool-mystique.playGif',
+};
+const SWITCH_SECONDS: readonly number[] = [3, 5, 7];
+const ANIMATIONS: readonly MystiqueAnimation[] = ['split', 'scroll', 'fade'];
+const ANIMATION_KEYS: Record<MystiqueAnimation, string> = {
+  split: 'devices.deepcool-mystique.animationSplit',
+  scroll: 'devices.deepcool-mystique.animationScroll',
+  fade: 'devices.deepcool-mystique.animationFade',
+};
+const SCREEN_ASPECT = MYSTIQUE_WIDTH / MYSTIQUE_HEIGHT;
+
+// A local pick carries its File; a Klipy pick is staged in the service and fetched from rawUrl on confirm.
+interface CropState {
+  src: string;
+  kind: 'video' | 'image';
+  fallbackSrc?: string;
+  name: string;
+  target: MystiqueMediaKind;
+  replace?: string;
+  file?: File;
+  stageId?: string;
+  rawUrl?: string;
+}
+
 type PickKey = 'cpuTemperature' | 'cpuFrequency' | 'cpuUsage' | 'ramUsage' | 'cpuFan' | 'pump';
 // Each readout takes one sensor type, so a picker offers only the categories that list one.
 // `fallback` is the category shown while an automatic readout resolves to nothing.
@@ -66,6 +122,17 @@ export function DeepCoolMystiqueDevicePage() {
   const draggingRef = useRef(false);
   // The brightness the service last reported or accepted, so a commit that changes nothing sends nothing.
   const brightnessRef = useRef<number | null>(null);
+  const pictureInputRef = useRef<HTMLInputElement>(null);
+  const gifInputRef = useRef<HTMLInputElement>(null);
+  // The picture a file pick replaces, set when its slot is clicked.
+  const replaceRef = useRef<string | undefined>(undefined);
+  const [cropState, setCropState] = useState<CropState | null>(null);
+  const [uploading, setUploading] = useState(false);
+  // Bumped after each upload so a replaced item's thumbnail reloads under the same id.
+  const [thumbVersion, setThumbVersion] = useState(0);
+  const [klipyOpen, setKlipyOpen] = useState(false);
+  const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
+  const [klipyError, setKlipyError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (busyRef.current > 0 || draggingRef.current) return;
@@ -114,7 +181,83 @@ export function DeepCoolMystiqueDevicePage() {
     void commit(patch);
   }, [commit]);
 
+  const pickFile = (target: MystiqueMediaKind) => (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setCropState({
+      src: URL.createObjectURL(file),
+      kind: file.type.startsWith('video/') ? 'video' : 'image',
+      name: file.name,
+      target,
+      replace: target === 'picture' ? replaceRef.current : undefined,
+      file,
+    });
+  };
+
+  const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
+    if (!cropState) return;
+    const { file, src, name, stageId, rawUrl, target, replace } = cropState;
+    // The cropper stays mounted and busy until the encode and the transfer to the screen finish.
+    setUploading(true);
+    try {
+      const upload = file ?? (rawUrl ? await fetchStagedFile(rawUrl, name) : null);
+      const result = upload ? await uploadMystiqueMedia(upload, target, crop, replace) : null;
+      if (!result?.ok) {
+        push({ title: t('devices.deepcool-mystique.uploadFailedTitle'), body: t('devices.deepcool-mystique.uploadFailedBody') });
+      }
+      setThumbVersion(v => v + 1);
+      writeGenRef.current += 1;
+      const next = await getMystiqueState();
+      if (aliveRef.current && next !== null) {
+        brightnessRef.current = next.brightness;
+        setState(next);
+      }
+    } finally {
+      if (file) URL.revokeObjectURL(src);
+      if (stageId) cancelMediaStage(stageId).catch(() => {});
+      if (aliveRef.current) {
+        setUploading(false);
+        setCropState(null);
+      }
+    }
+  }, [cropState, push, t]);
+
+  const handleCropCancel = useCallback(() => {
+    if (cropState?.file) URL.revokeObjectURL(cropState.src);
+    if (cropState?.stageId) cancelMediaStage(cropState.stageId).catch(() => {});
+    setCropState(null);
+  }, [cropState]);
+
+  // A pick is staged like the other Klipy surfaces and lands in the same cropper as a file.
+  const handleKlipyPick = useCallback(async (gif: KlipyGif) => {
+    setKlipyBusy(gif.slug);
+    setKlipyError(null);
+    const staged = await stageKlipy(gif.slug);
+    if (!aliveRef.current) return;
+    setKlipyBusy(null);
+    if (!staged) {
+      setKlipyError(t('lighting.controls.importNetworkError'));
+      return;
+    }
+    if (staged.error || !staged.stageId) {
+      setKlipyError(t('lighting.controls.klipyPickFailed'));
+      return;
+    }
+    setKlipyOpen(false);
+    const rawUrl = mediaStageRawUrl(staged.stageId);
+    setCropState({
+      ...stagePreviewFor(staged.mediaKind, rawUrl, mediaStagePreviewUrl(staged.stageId)),
+      name: `${gif.slug}.${staged.mediaKind === 'gif' ? 'gif' : 'mp4'}`,
+      target: 'gif',
+      stageId: staged.stageId,
+      rawUrl,
+    });
+  }, [t]);
+
   const ready = state !== null && state.isConnected;
+  const pictures = state?.media.filter(m => m.kind === 'picture') ?? [];
+  const gif = state?.media.find(m => m.kind === 'gif');
   const chosen = state?.modeChosen === true;
   const mode = state?.mode ?? 'monitor';
 
@@ -208,19 +351,127 @@ export function DeepCoolMystiqueDevicePage() {
             />
           </SettingRow>
 
-          {chosen && mode === 'media' && (
-            <SettingRow label={t('devices.deepcool-mystique.modeMedia')} description={t('devices.deepcool-mystique.mediaHint')} />
+          {chosen && mode === 'media' && state && (
+            <>
+              <SettingRow label={t('devices.deepcool-mystique.play')}>
+                <ChipGroup
+                  ariaLabel={t('devices.deepcool-mystique.play')}
+                  activeKey={state.sourceChosen ? state.mediaSource : ''}
+                  options={SOURCES.map(v => ({ key: v, label: t(SOURCE_KEYS[v]), disabled: !ready }))}
+                  onChange={key => edit({ mediaSource: key as MystiqueMediaSource, sourceChosen: true }, { mediaSource: key as MystiqueMediaSource })}
+                />
+              </SettingRow>
+              <SettingRow label={t('devices.deepcool-mystique.pictures')} description={t('devices.deepcool-mystique.picturesHint')} />
+              <div className={styles.mediaGrid}>
+                {Array.from({ length: MYSTIQUE_MAX_PICTURES }, (_, i) => pictures[i]).map((item, i) => (
+                  <EffectCard
+                    key={item?.id ?? `empty-${i}`}
+                    label={item ? item.name : t('devices.deepcool-mystique.addPicture')}
+                    keepCase={!!item}
+                    thumbUrl={item ? mystiqueThumbUrl(item.id, thumbVersion) : null}
+                    thumbStatic
+                    thumbAspect={SCREEN_ASPECT}
+                    thumbOverlay={item ? undefined : <span className={styles.mediaOverlay}><Plus size={28} aria-hidden /></span>}
+                    active={false}
+                    ariaLabel={item ? t('devices.deepcool-mystique.replacePicture', { name: item.name }) : t('devices.deepcool-mystique.addPicture')}
+                    onClick={() => {
+                      if (!ready || uploading) return;
+                      replaceRef.current = item?.id;
+                      pictureInputRef.current?.click();
+                    }}
+                  />
+                ))}
+              </div>
+              <SettingRow
+                label={t('devices.deepcool-mystique.switchTime')}
+                description={t(state.mediaChosen ? 'devices.deepcool-mystique.mediaSetHint' : 'devices.deepcool-mystique.mediaUnsetHint')}
+              >
+                <ChipGroup
+                  ariaLabel={t('devices.deepcool-mystique.switchTime')}
+                  activeKey={state.mediaChosen ? String(state.switchSeconds) : ''}
+                  options={SWITCH_SECONDS.map(v => ({
+                    key: String(v),
+                    label: localizeNumbers(t('devices.deepcool-mystique.seconds', { value: v }), numberFormat),
+                    disabled: !ready,
+                  }))}
+                  onChange={key => edit({ switchSeconds: Number(key), mediaChosen: true }, { switchSeconds: Number(key) })}
+                />
+              </SettingRow>
+              <SettingRow label={t('devices.deepcool-mystique.animation')}>
+                <ChipGroup
+                  ariaLabel={t('devices.deepcool-mystique.animation')}
+                  activeKey={state.mediaChosen ? state.animation : ''}
+                  options={ANIMATIONS.map(v => ({ key: v, label: t(ANIMATION_KEYS[v]), disabled: !ready }))}
+                  onChange={key => edit({ animation: key as MystiqueAnimation, mediaChosen: true }, { animation: key as MystiqueAnimation })}
+                />
+              </SettingRow>
+              <SettingRow label={t('devices.deepcool-mystique.gif')} description={t('devices.deepcool-mystique.gifHint')}>
+                <Button
+                  size="sm"
+                  tone="neutral"
+                  icon={<Sparkles size={16} aria-hidden />}
+                  disabled={!ready || uploading}
+                  onClick={() => setKlipyOpen(true)}
+                >
+                  {t('lighting.controls.klipyBrowse')}
+                </Button>
+              </SettingRow>
+              <div className={styles.mediaGrid}>
+                <EffectCard
+                  label={gif ? gif.name : t('devices.deepcool-mystique.addGif')}
+                  keepCase={!!gif}
+                  thumbUrl={gif ? mystiqueThumbUrl(gif.id, thumbVersion) : null}
+                  thumbStatic
+                  thumbAspect={SCREEN_ASPECT}
+                  thumbOverlay={gif ? undefined : <span className={styles.mediaOverlay}><Plus size={28} aria-hidden /></span>}
+                  active={false}
+                  ariaLabel={gif ? t('devices.deepcool-mystique.replaceGif', { name: gif.name }) : t('devices.deepcool-mystique.addGif')}
+                  onClick={() => {
+                    if (!ready || uploading) return;
+                    gifInputRef.current?.click();
+                  }}
+                />
+              </div>
+              <SettingToggle
+                label={t('devices.deepcool-mystique.edgePicking')}
+                description={t('devices.deepcool-mystique.edgePickingHint')}
+                checked={state.edgePicking}
+                disabled={!ready}
+                onChange={on => edit({ edgePicking: on, deviceChosen: true }, { edgePicking: on })}
+              />
+              <input ref={pictureInputRef} type="file" accept="image/*" className={styles.hiddenInput} onChange={pickFile('picture')} />
+              <input ref={gifInputRef} type="file" accept="image/gif,video/*" className={styles.hiddenInput} onChange={pickFile('gif')} />
+            </>
           )}
 
           {chosen && mode === 'monitor' && state && (
-            <SettingSelect
-              label={t('devices.deepcool-mystique.readout')}
-              value={state.readoutChosen ? state.readout : ''}
-              placeholder={t('devices.deepcool-mystique.notSet')}
-              options={READOUTS.map(r => ({ value: r, label: t(READOUT_KEYS[r]) }))}
-              disabled={!ready}
-              onChange={v => edit({ readout: v as MystiqueReadout, readoutChosen: true }, { readout: v as MystiqueReadout })}
-            />
+            <>
+              <SettingSelect
+                label={t('devices.deepcool-mystique.readout')}
+                description={t(state.readoutChosen ? 'devices.deepcool-mystique.readoutSetHint' : 'devices.deepcool-mystique.readoutUnsetHint')}
+                value={state.readoutChosen ? state.readout : ''}
+                placeholder={t('devices.deepcool-mystique.notSet')}
+                options={READOUTS.map(r => ({ value: r, label: t(READOUT_KEYS[r]) }))}
+                disabled={!ready}
+                onChange={v => edit({ readout: v as MystiqueReadout, readoutChosen: true }, { readout: v as MystiqueReadout })}
+              />
+              <SettingSelect
+                label={t('devices.deepcool-mystique.style')}
+                value={state.readoutChosen ? state.readoutStyle : ''}
+                placeholder={t('devices.deepcool-mystique.notSet')}
+                options={STYLES.map(v => ({ value: v, label: t(STYLE_KEYS[v]) }))}
+                disabled={!ready}
+                onChange={v => edit({ readoutStyle: v as MystiqueStyle, readoutChosen: true }, { style: v as MystiqueStyle })}
+              />
+              <SettingSelect
+                label={t('devices.deepcool-mystique.auxArea')}
+                value={state.readoutChosen ? state.auxArea : ''}
+                placeholder={t('devices.deepcool-mystique.notSet')}
+                options={AUX_AREAS.map(v => ({ value: v, label: t(AUX_KEYS[v]) }))}
+                disabled={!ready}
+                onChange={v => edit({ auxArea: v as MystiqueAuxArea, readoutChosen: true }, { auxArea: v as MystiqueAuxArea })}
+              />
+            </>
           )}
 
           {chosen && mode === 'recording' && state && (
@@ -250,6 +501,27 @@ export function DeepCoolMystiqueDevicePage() {
           ))}
         </SettingsSection>
       </div>
+
+      <KlipyPicker
+        open={klipyOpen}
+        busySlug={klipyBusy}
+        importError={klipyOpen ? klipyError : null}
+        thumbAspect={SCREEN_ASPECT}
+        onPick={pick => { void handleKlipyPick(pick); }}
+        onClose={() => { setKlipyOpen(false); setKlipyError(null); }}
+      />
+
+      {cropState && (
+        <MediaCropper
+          src={cropState.src}
+          kind={cropState.kind}
+          fallbackSrc={cropState.fallbackSrc}
+          aspect={SCREEN_ASPECT}
+          busy={uploading}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }
