@@ -9,10 +9,6 @@ export function weatherErrorGroup(reason: WeatherErrorReason | null | undefined)
   return 'unreachable';
 }
 
-export function weatherErrorKey(reason: WeatherErrorReason | null | undefined): string {
-  return `panel.widget.weather.error.${weatherErrorGroup(reason)}`;
-}
-
 export function weatherErrorShortKey(reason: WeatherErrorReason | null | undefined): string {
   return `panel.widget.weather.error.${weatherErrorGroup(reason)}.short`;
 }

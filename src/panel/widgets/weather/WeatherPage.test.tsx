@@ -48,11 +48,8 @@ vi.mock('../../../lib/i18n', () => {
     'datepicker.today': 'Today',
     'panel.widget.weather.am': 'AM',
     'panel.widget.weather.pm': 'PM',
-    'panel.widget.weather.error.timeout': 'Timeout long',
     'panel.widget.weather.error.timeout.short': 'Timeout short',
-    'panel.widget.weather.error.unreachable': 'Unreachable long',
     'panel.widget.weather.error.unreachable.short': 'Unreachable short',
-    'panel.widget.weather.error.response': 'Response long',
     'panel.widget.weather.error.response.short': 'Response short',
     'panel.widget.weather.error.stale': 'Stale from {time}',
     'panel.widget.weather.error.staleDate': 'Stale from {date}, {time}',
@@ -141,19 +138,19 @@ describe('WeatherPage', () => {
   });
 
   it.each([
-    ['timeout', 'Timeout long', 'Timeout short'],
-    ['unreachable', 'Unreachable long', 'Unreachable short'],
-    ['http', 'Response long', 'Response short'],
-    ['invalid', 'Response long', 'Response short'],
-    [undefined, 'Unreachable long', 'Unreachable short'],
-  ])('explains an empty snapshot (error %s) in the detail pane and the rows', async (error, longText, shortText) => {
+    ['timeout', 'Timeout short'],
+    ['unreachable', 'Unreachable short'],
+    ['http', 'Response short'],
+    ['invalid', 'Response short'],
+    [undefined, 'Unreachable short'],
+  ])('explains an empty snapshot (error %s) in the detail pane and the rows', async (error, shortText) => {
     api.fetchWeather.mockReset().mockResolvedValue(emptySnapshot(error));
     render(<WeatherPage />);
     await flush();
-    expect(screen.getByText(longText)).toBeInTheDocument();
-    expect(screen.getAllByText(shortText)).toHaveLength(3);
+    expect(screen.getAllByText(shortText)).toHaveLength(4);
     expect(screen.queryByText('2-day forecast')).toBeNull();
-    const detail = screen.getByText(longText).closest('section') as HTMLElement;
+    const detail = document.querySelector('section') as HTMLElement;
+    expect(within(detail).getByText(shortText)).toBeInTheDocument();
     expect(within(detail).queryByText('--', { exact: false })).toBeNull();
     const rows = within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option');
     for (const row of rows) expect(within(row).queryByText('--')).toBeNull();
@@ -165,7 +162,7 @@ describe('WeatherPage', () => {
     await flush();
     expect(screen.getByText(/^Stale from \d{1,2}:\d{2}/)).toBeInTheDocument();
     expect(screen.getByText('2-day forecast')).toBeInTheDocument();
-    expect(screen.queryByText('Timeout long')).toBeNull();
+    expect(screen.queryByText('Timeout short')).toBeNull();
   });
 
   it('adds the date when the stale reading is not from today', async () => {
@@ -279,11 +276,11 @@ describe('WeatherTouch', () => {
   });
 
   it.each([
-    ['timeout', 'Timeout long'],
-    ['unreachable', 'Unreachable long'],
-    ['http', 'Response long'],
-    ['invalid', 'Response long'],
-    [undefined, 'Unreachable long'],
+    ['timeout', 'Timeout short'],
+    ['unreachable', 'Unreachable short'],
+    ['http', 'Response short'],
+    ['invalid', 'Response short'],
+    [undefined, 'Unreachable short'],
   ])('explains an empty snapshot (error %s) instead of showing placeholders', async (error, text) => {
     api.fetchWeather.mockReset().mockResolvedValue(emptySnapshot(error));
     render(<WeatherTouch widget={widget({ location: TOKYO })} surface="y70" immersiveGrid={{ columns: 4, rows: 12 }} />);

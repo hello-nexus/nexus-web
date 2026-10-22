@@ -12,7 +12,7 @@ import { AUTO_PLACE_KEY, buildPlaces, WeatherLocationList } from './WeatherLocat
 import { useWallClock } from './useWallClock';
 import { useWeatherPrefs } from './useWeatherPrefs';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
-import { WeatherErrorNotice } from './WeatherErrorNotice';
+import { WeatherNoData, WeatherStaleLine } from './WeatherErrorState';
 import { weatherHasNoData } from './weatherError';
 import { resolveUnit } from './weatherFormat';
 import styles from './WeatherPage.module.scss';
@@ -74,7 +74,8 @@ export function WeatherPage() {
           />
         </aside>
         <section className={styles.detail} data-panel-scrollable="true">
-          <WeatherErrorNotice snap={snap} loaded={loaded} error={error} nowMs={now} />
+          <WeatherNoData snap={snap} loaded={loaded} error={error} />
+          <WeatherStaleLine snap={snap} loaded={loaded} error={error} nowMs={now} />
           {!noData && (
             <>
               <WeatherHero

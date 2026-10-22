@@ -5,7 +5,7 @@ import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import type { WidgetProps } from '../types';
 import { WeatherDailyList } from './WeatherDailyList';
 import { useWeatherDetailTiles, WeatherDetailTileCell } from './WeatherDetailTiles';
-import { WeatherErrorNotice } from './WeatherErrorNotice';
+import { WeatherNoData, WeatherStaleLine } from './WeatherErrorState';
 import { WeatherHero } from './WeatherHero';
 import { WeatherHourlyStrip } from './WeatherHourlyStrip';
 import { useWallClock } from './useWallClock';
@@ -30,7 +30,8 @@ export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
 
   const cells: ReactNode[] = [
     <div key="hero" className={styles.cell}>
-      <WeatherErrorNotice snap={snap} loaded={loaded} error={error} nowMs={now} />
+      <WeatherNoData snap={snap} loaded={loaded} error={error} />
+      <WeatherStaleLine snap={snap} loaded={loaded} error={error} nowMs={now} />
       {!noData && (
         <>
           <div className={styles.grow}>

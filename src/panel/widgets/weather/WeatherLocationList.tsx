@@ -6,9 +6,9 @@ import { CardDeleteButton } from '../../../components/common/CardDeleteButton/Ca
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { geocodeResultToLocation, weatherLocationKey, type WeatherGeocodeResult, type WeatherLocation, type WeatherUnitPref } from '../../../api/weather';
-import { CloudOff } from 'lucide-react';
+import { WifiOff } from 'lucide-react';
 import { weatherConditionKey } from './weatherConditions';
-import { weatherErrorKey, weatherErrorShortKey, weatherHasNoData } from './weatherError';
+import { weatherErrorShortKey, weatherHasNoData } from './weatherError';
 import { WeatherIcon } from './WeatherIcon';
 import { WeatherLocationSearch } from './WeatherLocationSearch';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
@@ -128,9 +128,9 @@ function WeatherPlaceRow({
           </div>
           <div className={styles.rowCondition}>
             {noData
-              ? <CloudOff className={styles.rowIcon} strokeWidth={1.6} aria-hidden />
+              ? <WifiOff className={styles.rowIcon} strokeWidth={1.6} aria-hidden />
               : <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.rowIcon} strokeWidth={1.6} />}
-            <span title={noData ? t(weatherErrorKey(error)) : undefined}>
+            <span>
               {noData ? t(weatherErrorShortKey(error)) : conditionText}
             </span>
           </div>

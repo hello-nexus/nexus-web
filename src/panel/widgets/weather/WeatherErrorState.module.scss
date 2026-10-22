@@ -1,0 +1,14 @@
+@use '../../../styles/text' as *;
+
+.noData {
+  flex: 1 1 auto;
+  min-height: 12rem;
+  width: 100%;
+  display: flex;
+}
+
+.stale {
+  @include text-caption;
+  color: var(--text-dim);
+  text-align: center;
+}

@@ -1,21 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import type { WeatherSnapshot } from '../../../api/weather';
-import { staleReadingStamp, weatherErrorKey, weatherErrorShortKey, weatherHasNoData } from './weatherError';
+import { staleReadingStamp, weatherErrorShortKey, weatherHasNoData } from './weatherError';
 
 const base = { temperatureC: 1, temperatureF: 34, weatherCode: 0, condition: '', humidityPct: null, windKph: null, locationLabel: 'X' };
 
 describe('weatherError', () => {
-  it('maps each reason to its message group', () => {
-    expect(weatherErrorKey('timeout')).toBe('panel.widget.weather.error.timeout');
-    expect(weatherErrorKey('unreachable')).toBe('panel.widget.weather.error.unreachable');
-    expect(weatherErrorKey('http')).toBe('panel.widget.weather.error.response');
-    expect(weatherErrorKey('invalid')).toBe('panel.widget.weather.error.response');
+  it('maps each reason to its short message', () => {
+    expect(weatherErrorShortKey('timeout')).toBe('panel.widget.weather.error.timeout.short');
+    expect(weatherErrorShortKey('unreachable')).toBe('panel.widget.weather.error.unreachable.short');
     expect(weatherErrorShortKey('http')).toBe('panel.widget.weather.error.response.short');
+    expect(weatherErrorShortKey('invalid')).toBe('panel.widget.weather.error.response.short');
   });
 
   it('treats a missing reason as unreachable', () => {
-    expect(weatherErrorKey(null)).toBe('panel.widget.weather.error.unreachable');
-    expect(weatherErrorKey(undefined)).toBe('panel.widget.weather.error.unreachable');
+    expect(weatherErrorShortKey(null)).toBe('panel.widget.weather.error.unreachable.short');
+    expect(weatherErrorShortKey(undefined)).toBe('panel.widget.weather.error.unreachable.short');
   });
 
   it('detects the no-data state', () => {
