@@ -793,7 +793,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Přehraje se jen prvních {seconds} sekund klipu.",
   "devices.deepcool-mystique.gyroscope": "Povolit otáčení podle gyroskopu",
-  "devices.deepcool-mystique.gyroscopeHint": "Obrázky a GIFy, které už jsou na obrazovce, si ponechají orientaci, dokud je neupravíte nebo nepřidáte znovu.",
+  "devices.deepcool-mystique.gyroscopeHint": "Změna neotočí obrázky a GIFy, které už jsou na displeji, dokud je neupravíte nebo nepřidáte znovu.",
   "devices.deepcool-mystique.inputsSection": "Senzory",
   "devices.deepcool-mystique.mediaFullBody": "Nejdřív jeden odeberte, nebo jeden vyberte a upravte.",
   "devices.deepcool-mystique.mediaFullTitle": "Všechna místa jsou obsazená",

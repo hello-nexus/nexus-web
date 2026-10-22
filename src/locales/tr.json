@@ -786,7 +786,7 @@
   "devices.deepcool-mystique.gif": "GIF",
   "devices.deepcool-mystique.gifHint": "Bir klibin yalnızca ilk {seconds} saniyesi oynatılır.",
   "devices.deepcool-mystique.gyroscope": "Jiroskopla döndürmeye izin ver",
-  "devices.deepcool-mystique.gyroscopeHint": "Ekranda zaten bulunan resimler ve GIF'ler, düzenlenene veya yeniden eklenene kadar yönlerini korur.",
+  "devices.deepcool-mystique.gyroscopeHint": "Bunu değiştirmek, ekranda zaten bulunan resimleri ve GIF'leri düzenlenene veya yeniden eklenene kadar döndürmez.",
   "devices.deepcool-mystique.inputsSection": "Sensörler",
   "devices.deepcool-mystique.mediaFullBody": "Önce birini kaldırın veya birini seçip düzenleyin.",
   "devices.deepcool-mystique.mediaFullTitle": "Tüm yerler dolu",
