@@ -22,7 +22,7 @@ import {
   mystiqueSourceUrl,
   mystiqueThumbUrl,
   setMystiqueSettings,
-  showMystiqueGif,
+  showMystiqueItem,
   uploadMystiqueMedia,
   MYSTIQUE_HEIGHT,
   MYSTIQUE_MAX_GIF_SECONDS,
@@ -284,15 +284,15 @@ export function DeepCoolMystiqueDevicePage() {
     }
   };
 
-  // The screen plays one GIF, so a click sends the chosen one.
-  const showGif = async (item: MystiqueMediaItem) => {
+  // The screen has no select command: a click sends the chosen GIF, or moves the chosen picture to where the pictures start.
+  const showItem = async (item: MystiqueMediaItem) => {
     setShowing(item.id);
     try {
       busyRef.current += 1;
       writeGenRef.current += 1;
-      let res: Awaited<ReturnType<typeof showMystiqueGif>> = null;
+      let res: Awaited<ReturnType<typeof showMystiqueItem>> = null;
       try {
-        res = await showMystiqueGif(item.id);
+        res = await showMystiqueItem(item.id);
       } finally {
         busyRef.current -= 1;
         writeGenRef.current += 1;
@@ -396,15 +396,11 @@ export function DeepCoolMystiqueDevicePage() {
   const selectedId = (kind: MystiqueMediaKind) => selected[kind] ?? (kind === 'gif' ? state?.shownGif || null : null);
   const selectedItem = (kind: MystiqueMediaKind) => state?.media.find(m => m.kind === kind && m.id === selectedId(kind));
 
-  // A picture click plays the pictures and a GIF click sends that GIF, as in the screen's own software; either picks the item to edit.
+  // A click shows the item on the screen and picks it to edit.
   const selectMedia = (item: MystiqueMediaItem) => {
     if (!ready || mediaBusy || !state) return;
     setSelected(prev => ({ ...prev, [item.kind]: item.id }));
-    if (item.kind === 'gif') {
-      if (item.id !== state.shownGif || !state.sourceChosen || state.mediaSource !== 'gif') void showGif(item);
-    } else if (!state.sourceChosen || state.mediaSource !== 'images') {
-      edit({ mediaSource: 'images', sourceChosen: true }, { mediaSource: 'images' });
-    }
+    if (item.kind === 'picture' || item.id !== state.shownGif || !state.sourceChosen || state.mediaSource !== 'gif') void showItem(item);
   };
 
   // The add tile first, then the items.
@@ -436,7 +432,7 @@ export function DeepCoolMystiqueDevicePage() {
           ) : undefined}
           disabled={(!ready || mediaBusy) && showing !== item.id}
           active={selectedId(kind) === item.id}
-          ariaLabel={t(kind === 'gif' ? 'devices.deepcool-mystique.showGif' : 'devices.deepcool-mystique.selectItem', { name: item.name })}
+          ariaLabel={t('devices.deepcool-mystique.showItem', { name: item.name })}
           onClick={() => selectMedia(item)}
           onDelete={ready && !mediaBusy ? () => setPendingRemove(item) : undefined}
           deleteAriaLabel={t('devices.deepcool-mystique.removeItem', { name: item.name })}
@@ -563,6 +559,9 @@ export function DeepCoolMystiqueDevicePage() {
                   onChange={key => edit({ mediaSource: key as MystiqueMediaSource, sourceChosen: true }, { mediaSource: key as MystiqueMediaSource })}
                 />
               </SettingRow>
+              {state.gifSlotUnsure && state.media.length > 0 && (
+                <Notice tone="info">{t('devices.deepcool-mystique.removeAllOnceNotice')}</Notice>
+              )}
               <SettingRow label={t('devices.deepcool-mystique.pictures')}>
                 {editButton('picture')}
               </SettingRow>
@@ -602,9 +601,6 @@ export function DeepCoolMystiqueDevicePage() {
                 </Button>
                 {editButton('gif')}
               </SettingRow>
-              {state.gifSlotUnsure && gifs.length > 0 && (
-                <Notice tone="info">{t('devices.deepcool-mystique.removeAllOnceNotice')}</Notice>
-              )}
               {mediaGrid('gif', gifs)}
               <SettingRow label={t('devices.deepcool-mystique.removeAll')}>
                 <Button
