@@ -6,6 +6,9 @@ import type { Section } from './useRoute';
 /** How long one save may hold back the next; a request can stall without ever settling. */
 const SAVE_TURN_MS = 5000;
 
+/** How long the returned flag waits on the restore read before giving up on it. */
+const RESTORE_WAIT_MS = 3000;
+
 /**
  * Restores the route a reopened window was last on, and whether it was in
  * fullscreen, and records every change of either so the next reopen has one. The value lives in the service's process
@@ -13,7 +16,10 @@ const SAVE_TURN_MS = 5000;
  * window close, not a service start" expressible at all.
  *
  * Gated on the client-only `rememberLastPage` setting (Settings > General >
- * Startup & tray, default on). Read from localStorage rather than
+ * Startup & tray, default on).
+ *
+ * @returns true once the restore has resolved, or after a bounded wait if the
+ * read stalls. Saving still waits on the read itself. Read from localStorage rather than
  * useUiSettings: this runs in Dashboard's own body, which sits outside the
  * UiSettingsProvider it renders.
  */
@@ -40,6 +46,7 @@ export function useLastRoute(
     return path === '/' || path === '' ? 'bare' : 'path';
   });
   const restoredRef = useRef(false);
+  const [waitedOut, setWaitedOut] = useState(false);
   // Saving before the restore read has answered would overwrite the stored
   // route with the default one the window opened on, and the two requests are
   // served concurrently.
@@ -104,6 +111,12 @@ export function useLastRoute(
   }, [enabled, landing, navigate, restoreFullscreen]);
 
   useEffect(() => {
+    if (!enabled || restoreSettled) return;
+    const id = setTimeout(() => setWaitedOut(true), RESTORE_WAIT_MS);
+    return () => clearTimeout(id);
+  }, [enabled, restoreSettled]);
+
+  useEffect(() => {
     // Re-read per navigation rather than once at mount, so switching the
     // setting off stops the recording without a reload.
     if (!enabled || !restoreSettled || !path || !rememberLastPage()) return;
@@ -116,8 +129,7 @@ export function useLastRoute(
       .catch(() => {});
   }, [enabled, restoreSettled, path, fullscreen]);
 
-  /** True once the last-page restore has resolved, restored or not. */
-  return restoreSettled;
+  return restoreSettled || waitedOut;
 }
 
 function rememberLastPage(): boolean {

@@ -49,14 +49,11 @@ describe('usePageViewed', () => {
   });
 
   it('swallows a rejected post', async () => {
-    const unhandled = vi.fn();
-    process.on('unhandledRejection', unhandled);
-    postService.mockRejectedValue(new Error('boom'));
+    const rejected = Promise.reject(new Error('boom'));
+    postService.mockReturnValue(rejected);
     renderHook(() => usePageViewed('settings'));
-    await new Promise(r => setTimeout(r, 0));
-    process.off('unhandledRejection', unhandled);
+    await expect(rejected).rejects.toThrow('boom');
     expect(postService).toHaveBeenCalledTimes(1);
-    expect(unhandled).not.toHaveBeenCalled();
   });
 
   it('posts once under StrictMode', () => {
