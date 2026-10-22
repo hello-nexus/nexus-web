@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.failedBody": "Die Änderung am Bildschirm konnte nicht angewendet werden.",
   "devices.deepcool-mystique.failedTitle": "Änderung fehlgeschlagen",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Bis zu {count} GIFs oder Videos. Jedes spielt alle Bilder des Clips ab, bei längeren die der ersten {seconds} Sekunden, und behält bei mehr Bildern {frames} gleichmäßig verteilte.",
+  "devices.deepcool-mystique.gifHint": "Bis zu {count} GIFs oder Videos. Jedes spielt alle Einzelbilder des Clips ab, bei längeren die der ersten {seconds} Sekunden, und behält bei mehr Einzelbildern {frames} gleichmäßig verteilte.",
   "devices.deepcool-mystique.gyroscope": "Drehung per Gyroskop zulassen",
   "devices.deepcool-mystique.gyroscopeHint": "Lässt das Gyroskop des Bildschirms das Bild drehen. Bilder und GIFs, die schon auf dem Bildschirm sind, behalten ihre Ausrichtung, bis sie bearbeitet oder neu hinzugefügt werden.",
   "devices.deepcool-mystique.inputsHint": "Die Sensoren, deren Werte der Bildschirm anzeigt. Automatisch folgt den Nexus-Standardwerten.",
