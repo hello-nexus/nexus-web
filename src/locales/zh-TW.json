@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.failedBody": "無法套用螢幕變更。",
   "devices.deepcool-mystique.failedTitle": "變更失敗",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "最多{count}個 GIF 或影片。螢幕會完整循環播放每一個；較長的影片使用前 10 秒。",
+  "devices.deepcool-mystique.gifHint": "最多{count}個 GIF 或影片。每個都會以從整段片段中取樣的短循環播放，較長的則取自前 {seconds} 秒。",
   "devices.deepcool-mystique.gyroscope": "允許陀螺儀旋轉",
   "devices.deepcool-mystique.gyroscopeHint": "允許螢幕的陀螺儀旋轉畫面。",
   "devices.deepcool-mystique.inputsHint": "螢幕顯示其數值的感測器。自動將依照 Nexus 的預設選擇。",

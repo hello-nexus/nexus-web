@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.failedBody": "无法应用屏幕更改。",
   "devices.deepcool-mystique.failedTitle": "更改失败",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "最多{count}个 GIF 或视频。屏幕会完整循环播放每一个；较长的视频使用前 10 秒。",
+  "devices.deepcool-mystique.gifHint": "最多{count}个 GIF 或视频。每个都会以从整个片段中取样的短循环播放，较长的则取自前 {seconds} 秒。",
   "devices.deepcool-mystique.gyroscope": "允许陀螺仪旋转",
   "devices.deepcool-mystique.gyroscopeHint": "允许屏幕的陀螺仪旋转画面。",
   "devices.deepcool-mystique.inputsHint": "屏幕显示其数值的传感器。自动将遵循 Nexus 的默认选择。",

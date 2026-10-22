@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.failedBody": "The screen change could not be applied.",
   "devices.deepcool-mystique.failedTitle": "Change failed",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Up to {count} GIFs or videos. The screen loops each one from start to finish; a longer video uses its first 10 seconds.",
+  "devices.deepcool-mystique.gifHint": "Up to {count} GIFs or videos. Each plays as a short loop sampled from the whole clip, or from its first {seconds} seconds when it runs longer.",
   "devices.deepcool-mystique.gyroscope": "Allow gyroscope rotation",
   "devices.deepcool-mystique.gyroscopeHint": "Lets the screen's gyroscope rotate the picture.",
   "devices.deepcool-mystique.inputsHint": "The sensors whose values the screen shows. Automatic follows the Nexus defaults.",
