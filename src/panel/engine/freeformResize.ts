@@ -3,6 +3,7 @@ import {
   type PanelWidgetSize,
 } from '../types';
 import { sizeToSpan, type GridSpan } from './grid';
+import { dominantScale } from '../../lib/aspectResize';
 
 // Spans are cols x rows, as in grid.ts.
 
@@ -40,7 +41,7 @@ function distance(a: GridSpan, cols: number, rows: number): number {
   return Math.hypot(a.cols - cols, a.rows - rows);
 }
 
-/** Drags one corner by (dCols, dRows) cells with the opposite corner fixed; picks the nearest snap span that fits the grid, smaller on a tie. */
+/** Drags one corner by (dCols, dRows) cells with the opposite corner fixed; picks the nearest snap span that fits the grid, smaller on a tie. With lockRatio the drag is first reduced to one uniform scale of the start span, so the snap targets the ratio-kept size. */
 export function resizeRectFromCorner(
   start: FreeformRect,
   corner: FreeformCorner,
@@ -48,13 +49,19 @@ export function resizeRectFromCorner(
   dRows: number,
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
+  lockRatio = false,
 ): FreeformRect {
   const fromLeft = corner === 'tl' || corner === 'bl';
   const fromTop = corner === 'tl' || corner === 'tr';
   const right = start.col + start.cols;
   const bottom = start.row + start.rows;
-  const rawCols = fromLeft ? start.cols - dCols : start.cols + dCols;
-  const rawRows = fromTop ? start.rows - dRows : start.rows + dRows;
+  let rawCols = fromLeft ? start.cols - dCols : start.cols + dCols;
+  let rawRows = fromTop ? start.rows - dRows : start.rows + dRows;
+  if (lockRatio) {
+    const k = Math.max(0, dominantScale(rawCols / start.cols, rawRows / start.rows));
+    rawCols = start.cols * k;
+    rawRows = start.rows * k;
+  }
 
   let best: FreeformRect | null = null;
   let bestScore = Infinity;

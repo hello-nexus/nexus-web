@@ -64,6 +64,20 @@ describe('freeformSnapSpans without the even spans', () => {
     expect(resizeRectFromCorner({ col: 0, row: 0, cols: 2, rows: 2 }, 'br', 2, 2, snap, { cols: 8, rows: 8 })).toEqual({ col: 0, row: 0, cols: 4, rows: 4 });
     expect(resizeRectFromCorner({ col: 4, row: 4, cols: 4, rows: 4 }, 'tl', 2, 2, snap, { cols: 8, rows: 8 })).toEqual({ col: 6, row: 6, cols: 2, rows: 2 });
   });
+
+  it('keeps the start ratio when locked, following the axis that moved further', () => {
+    const snap = freeformSnapSpans(['2x2', '4x2', '4x4', '8x4'], { cols: 8, rows: 8 }, false);
+    const b = { cols: 8, rows: 8 };
+    const start = { col: 0, row: 0, cols: 4, rows: 2 };
+    expect(resizeRectFromCorner(start, 'br', 4, 0, snap, b, true)).toEqual({ col: 0, row: 0, cols: 8, rows: 4 });
+    expect(resizeRectFromCorner(start, 'br', 0, 0, snap, b, true)).toEqual(start);
+  });
+
+  it('shrinks a locked corner from the far edge and anchors the opposite corner', () => {
+    const snap = freeformSnapSpans(['2x2', '4x2', '4x4', '8x4'], { cols: 8, rows: 8 }, false);
+    const r = resizeRectFromCorner({ col: 0, row: 0, cols: 8, rows: 4 }, 'tl', 4, 0, snap, { cols: 8, rows: 8 }, true);
+    expect(r).toEqual({ col: 4, row: 2, cols: 4, rows: 2 });
+  });
 });
 
 describe('resizeRectFromCorner', () => {

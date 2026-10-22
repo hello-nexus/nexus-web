@@ -85,13 +85,13 @@ export function useFreeformResize({
     }
   }, [capacity, maxPages, onReject, setBoth, widgetId]);
 
-  const update = useCallback((gesture: FreeformGesture, dCols: number, dRows: number) => {
+  const update = useCallback((gesture: FreeformGesture, dCols: number, dRows: number, lockRatio = false) => {
     const session = sessionRef.current;
     if (!session) return;
     const bounds = { cols: boundCols, rows: boundRows };
     applyTarget(session, gesture === 'move'
       ? moveRect(session.start, dCols, dRows, bounds)
-      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds), gesture === 'move');
+      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds, lockRatio), gesture === 'move');
   }, [applyTarget, boundCols, boundRows, snapSpans]);
 
   const step = useCallback((corner: FreeformCorner, stepCols: number, stepRows: number) => {

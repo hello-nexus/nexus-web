@@ -49,7 +49,7 @@ export function FreeformResizeFrame({
   // Corners that can reach another span; the others take no drag.
   room: Record<FreeformCorner, boolean>;
   onBegin: () => boolean;
-  onUpdate: (gesture: FreeformGesture, dCols: number, dRows: number) => void;
+  onUpdate: (gesture: FreeformGesture, dCols: number, dRows: number, lockRatio?: boolean) => void;
   // One keyboard step of a corner to the next snap span.
   onStep: (corner: FreeformCorner, stepCols: number, stepRows: number) => void;
   onEnd: () => void;
@@ -88,7 +88,7 @@ export function FreeformResizeFrame({
     press.moved = true;
     const metrics = readCellMetrics(event.currentTarget.closest<HTMLElement>('[data-surface]'));
     if (!metrics) return;
-    onUpdate(press.gesture, dx / (metrics.cellSize + metrics.gap), dy / (metrics.rowSize + metrics.gap));
+    onUpdate(press.gesture, dx / (metrics.cellSize + metrics.gap), dy / (metrics.rowSize + metrics.gap), event.shiftKey);
   };
 
   const endPress = (event: ReactPointerEvent<HTMLElement>) => {
