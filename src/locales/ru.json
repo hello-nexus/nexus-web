@@ -770,7 +770,7 @@
   "devices.deepcool-mystique.failedBody": "Не удалось применить изменение экрана.",
   "devices.deepcool-mystique.failedTitle": "Не удалось изменить",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "До {count} GIF или видео. Экран воспроизводит первую секунду каждого по кругу.",
+  "devices.deepcool-mystique.gifHint": "До {count} GIF или видео. Экран воспроизводит каждый целиком по кругу; из более длинного видео берутся первые 10 секунд.",
   "devices.deepcool-mystique.gyroscope": "Разрешить поворот по гироскопу",
   "devices.deepcool-mystique.gyroscopeHint": "Позволяет гироскопу экрана поворачивать изображение.",
   "devices.deepcool-mystique.inputsHint": "Датчики, значения которых показывает экран. Автоматически использует выбор Nexus по умолчанию.",

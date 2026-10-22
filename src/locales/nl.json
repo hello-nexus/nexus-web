@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.failedBody": "De schermwijziging kon niet worden toegepast.",
   "devices.deepcool-mystique.failedTitle": "Wijziging mislukt",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Maximaal {count} GIF's of video's. Het scherm speelt van elk de eerste seconde in een lus af.",
+  "devices.deepcool-mystique.gifHint": "Maximaal {count} GIF's of video's. Het scherm speelt elk geheel in een lus af; van een langere video de eerste 10 seconden.",
   "devices.deepcool-mystique.gyroscope": "Rotatie via gyroscoop toestaan",
   "devices.deepcool-mystique.gyroscopeHint": "Laat de gyroscoop van het scherm het beeld draaien.",
   "devices.deepcool-mystique.inputsHint": "De sensoren waarvan het scherm de waarden toont. Automatisch volgt de standaardkeuzes van Nexus.",

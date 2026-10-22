@@ -763,7 +763,7 @@
   "devices.deepcool-mystique.failedBody": "Il cambiament dal visôr nol è stât aplicât.",
   "devices.deepcool-mystique.failedTitle": "Cambiament falît",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Fin a {count} GIF o videos. Il visôr al riprodûs in cicli il prin secont di ognidun.",
+  "devices.deepcool-mystique.gifHint": "Fin a {count} GIF o videos. Il visôr al riprodûs in cicli ognidun dut intîr; di un video plui lunc al dopre i prins 10 seconts.",
   "devices.deepcool-mystique.gyroscope": "Permet la rotazion cul giroscopi",
   "devices.deepcool-mystique.gyroscopeHint": "Al lasse che il giroscopi dal visôr al zire la imagjin.",
   "devices.deepcool-mystique.inputsHint": "I sensôrs che i lôr valôrs a vegnin mostrâts dal visôr. Automatic al segue i valôrs predefinîts di Nexus.",
