@@ -401,6 +401,28 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(mockDelete).toHaveBeenLastCalledWith(undefined);
   });
 
+  it('media actions wait while a removal runs, and the hints carry the slot counts', async () => {
+    let finish: (ok: boolean) => void = () => {};
+    mockDelete.mockReturnValue(new Promise<boolean>(resolve => { finish = resolve; }));
+    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
+    expect(screen.getByText('devices.deepcool-mystique.picturesHint:{"count":9}')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.gifHint:{"count":9}')).toBeTruthy();
+    const removeAll = () => screen.getByRole('button', { name: 'devices.deepcool-mystique.removeAllButton' }) as HTMLButtonElement;
+    await act(async () => {
+      fireEvent.click(removeAll());
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.remove' }));
+    });
+    expect(removeAll().disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'devices.deepcool-mystique.removeItem:{"name":"spider"}' })).toBeNull();
+    mockGet.mockResolvedValue({ ...base, mode: 'media', media: [] });
+    await act(async () => {
+      finish(true);
+    });
+    expect(screen.queryByText('spider')).toBeNull();
+  });
+
   it('a GIF or video picked from disk uploads as the GIF and a refusal raises a toast', async () => {
     mockUpload.mockResolvedValue({ ok: false, msg: 'refused' });
     await mount({ ...base, mode: 'media' });
