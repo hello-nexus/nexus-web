@@ -784,7 +784,7 @@
   "devices.deepcool-mystique.failedBody": "画面の変更を適用できませんでした。",
   "devices.deepcool-mystique.failedTitle": "変更に失敗しました",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "GIF または動画は {count} 個まで。画面はそれぞれ最初の 1 秒をループ再生します。",
+  "devices.deepcool-mystique.gifHint": "GIF または動画は {count} 個まで。画面はそれぞれを最初から最後までループ再生します。長い動画は最初の 10 秒を使います。",
   "devices.deepcool-mystique.gyroscope": "ジャイロスコープによる回転を許可",
   "devices.deepcool-mystique.gyroscopeHint": "画面のジャイロスコープで映像を回転させます。",
   "devices.deepcool-mystique.inputsHint": "画面に値が表示されるセンサーです。自動はNexusの既定の選択に従います。",

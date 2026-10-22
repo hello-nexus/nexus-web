@@ -784,7 +784,7 @@
   "devices.deepcool-mystique.failedBody": "화면 변경 사항을 적용하지 못했습니다.",
   "devices.deepcool-mystique.failedTitle": "변경 실패",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "GIF 또는 동영상은 최대 {count}개입니다. 화면은 각각 처음 1초를 반복 재생합니다.",
+  "devices.deepcool-mystique.gifHint": "GIF 또는 동영상은 최대 {count}개입니다. 화면은 각각을 처음부터 끝까지 반복 재생하며, 긴 동영상은 처음 10초를 사용합니다.",
   "devices.deepcool-mystique.gyroscope": "자이로스코프 회전 허용",
   "devices.deepcool-mystique.gyroscopeHint": "화면의 자이로스코프로 화면을 회전합니다.",
   "devices.deepcool-mystique.inputsHint": "화면에 값이 표시되는 센서입니다. 자동은 Nexus 기본값을 따릅니다.",
