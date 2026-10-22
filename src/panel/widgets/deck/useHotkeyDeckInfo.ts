@@ -44,6 +44,11 @@ function setNames(list: readonly { id: string; name: string }[]): void {
   bump();
 }
 
+// A frame newer than an in-flight GET: the GET result would overwrite it, so read again after.
+function markNamesFromFrame(): void {
+  if (store.namesInflight) store.namesDirty = true;
+}
+
 function refreshNames(): void {
   if (store.namesInflight) {
     store.namesDirty = true;
@@ -57,6 +62,8 @@ function refreshNames(): void {
     store.namesInflight = false;
     setNames(list);
     if (store.namesDirty) refreshNames();
+  }, () => {
+    if (epoch === store.epoch) store.namesInflight = false;
   });
 }
 
@@ -74,6 +81,8 @@ function refreshInstances(): void {
     store.instances = Object.entries(map).map(([id, inst]) => ({ id, presetId: inst.activePresetId }));
     bump();
     if (store.instancesDirty) refreshInstances();
+  }, () => {
+    if (epoch === store.epoch) store.instancesInflight = false;
   });
 }
 
@@ -92,6 +101,8 @@ function ensureConfigs(ids: readonly string[]): void {
         store.configs = { ...store.configs, [id]: deck };
         bump();
       }
+    }, () => {
+      if (epoch === store.epoch) store.configsPending.delete(id);
     });
   }
 }
@@ -102,11 +113,14 @@ function handleDeckFrame(data: unknown): void {
   const frame = data as DeckFrame;
   if (frame.kind === 'presets') {
     // The frame carries the whole list, so no GET is needed.
-    if (frame.presets) setNames(frame.presets);
-    else refreshNames();
+    if (frame.presets) {
+      markNamesFromFrame();
+      setNames(frame.presets);
+    } else refreshNames();
   } else if (frame.kind === 'preset' && frame.presetId) {
     let changed = false;
     if (frame.summary && store.names[frame.presetId] !== frame.summary.name) {
+      markNamesFromFrame();
       store.names = { ...store.names, [frame.presetId]: frame.summary.name };
       changed = true;
     }
