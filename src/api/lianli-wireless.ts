@@ -30,7 +30,7 @@ export interface LianLiWirelessFan {
   pwmCableConnected?: boolean;
   /** A HydroShift II that is also on USB, whose screen has its own panel page. */
   usbConnected?: boolean;
-  /** Wired LCD Flex units only: "tlFlex" or "slInfFlex". */
+  /** Wired Flex units only: "tlFlex", "slInfFlex" or "p28v2" (no screen, no stored effects). */
   family?: string;
   /** Wired LCD Flex units only: serial of the paired screen, empty when none. */
   screenSerial?: string;
@@ -261,7 +261,7 @@ export interface LianLiFlexLcdChain {
   mac: string;
   /** TL chains only. */
   upDownSwap?: boolean | null;
-  family: 'tlFlex' | 'slInfFlex';
+  family: 'tlFlex' | 'slInfFlex' | 'p28v2';
   fanCount: number;
   enabled: boolean;
   brightness: number;
