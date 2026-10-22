@@ -784,7 +784,7 @@
   "devices.deepcool-mystique.failedBody": "Impossibile applicare la modifica allo schermo.",
   "devices.deepcool-mystique.failedTitle": "Modifica non riuscita",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Fino a {count} GIF o video. Lo schermo riproduce in loop ciascuno per intero; di un video più lungo usa i primi 10 secondi.",
+  "devices.deepcool-mystique.gifHint": "Fino a {count} GIF o video. Ognuno viene riprodotto come un breve loop campionato dall'intera clip, o dai primi {seconds} secondi se è più lunga.",
   "devices.deepcool-mystique.gyroscope": "Consenti la rotazione tramite giroscopio",
   "devices.deepcool-mystique.gyroscopeHint": "Consente al giroscopio dello schermo di ruotare l'immagine.",
   "devices.deepcool-mystique.inputsHint": "I sensori i cui valori vengono mostrati dallo schermo. Automatico segue le impostazioni predefinite di Nexus.",

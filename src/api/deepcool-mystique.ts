@@ -23,6 +23,9 @@ export const MYSTIQUE_HEIGHT = 640;
 export const MYSTIQUE_MAX_PICTURES = 9;
 export const MYSTIQUE_MAX_GIFS = 9;
 
+/** The longest span of a video a GIF slot samples, as the service's MaxGifSpanMs cuts it. */
+export const MYSTIQUE_MAX_GIF_SECONDS = 10;
+
 export interface MystiqueMediaItem {
   kind: MystiqueMediaKind;
   /** The id the screen stores the item under. */

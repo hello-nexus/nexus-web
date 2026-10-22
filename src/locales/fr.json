@@ -784,7 +784,7 @@
   "devices.deepcool-mystique.failedBody": "Impossible d'appliquer la modification de l'écran.",
   "devices.deepcool-mystique.failedTitle": "Échec de la modification",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Jusqu'à {count} GIF ou vidéos. L'écran lit chacun en entier en boucle, et les 10 premières secondes d'une vidéo plus longue.",
+  "devices.deepcool-mystique.gifHint": "Jusqu'à {count} GIF ou vidéos. Chacun est lu en courte boucle échantillonnée sur tout le clip, ou sur ses {seconds} premières secondes s'il est plus long.",
   "devices.deepcool-mystique.gyroscope": "Autoriser la rotation par gyroscope",
   "devices.deepcool-mystique.gyroscopeHint": "Laisse le gyroscope de l'écran faire pivoter l'image.",
   "devices.deepcool-mystique.inputsHint": "Les capteurs dont l'écran affiche les valeurs. Automatique suit les choix par défaut de Nexus.",
