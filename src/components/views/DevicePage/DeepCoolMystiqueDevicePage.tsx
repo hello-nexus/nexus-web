@@ -298,10 +298,13 @@ export function DeepCoolMystiqueDevicePage() {
         writeGenRef.current += 1;
       }
       if (!aliveRef.current) return;
+      if (!res?.ok) {
+        setSelected(prev => ({ ...prev, [item.kind]: null }));
+      }
       if (res?.notKept) {
-        push({ title: t('devices.deepcool-mystique.notKeptTitle'), body: t('devices.deepcool-mystique.notKeptBody') });
+        push({ title: t('devices.deepcool-mystique.notKeptTitle', { name: item.name }), body: t('devices.deepcool-mystique.notKeptBody') });
       } else if (!res?.ok) {
-        push({ title: t('devices.deepcool-mystique.showFailedTitle'), body: t('devices.deepcool-mystique.showFailedBody') });
+        push({ title: t('devices.deepcool-mystique.showFailedTitle', { name: item.name }), body: t('devices.deepcool-mystique.showFailedBody') });
       }
       const gen = writeGenRef.current;
       const next = await getMystiqueState();
@@ -392,15 +395,21 @@ export function DeepCoolMystiqueDevicePage() {
   };
   const pictures = state?.media.filter(m => m.kind === 'picture') ?? [];
   const gifs = state?.media.filter(m => m.kind === 'gif') ?? [];
-  // Until a GIF is clicked, the one the screen plays is the selection.
-  const selectedId = (kind: MystiqueMediaKind) => selected[kind] ?? (kind === 'gif' ? state?.shownGif || null : null);
+  const sourceOf = (kind: MystiqueMediaKind): MystiqueMediaSource => (kind === 'gif' ? 'gif' : 'images');
+  const kindShown = (kind: MystiqueMediaKind) => !!state?.sourceChosen && state.mediaSource === sourceOf(kind);
+  const shownId = (kind: MystiqueMediaKind) => (kind === 'gif' ? state?.shownGif : state?.shownPicture) || null;
+  // Until an item is clicked, the one the screen shows is the selection.
+  const selectedId = (kind: MystiqueMediaKind) => selected[kind] ?? (kindShown(kind) ? shownId(kind) : null);
   const selectedItem = (kind: MystiqueMediaKind) => state?.media.find(m => m.kind === kind && m.id === selectedId(kind));
 
-  // A click shows the item on the screen and picks it to edit.
   const selectMedia = (item: MystiqueMediaItem) => {
     if (!ready || mediaBusy || !state) return;
-    setSelected(prev => ({ ...prev, [item.kind]: item.id }));
-    if (item.kind === 'picture' || item.id !== state.shownGif || !state.sourceChosen || state.mediaSource !== 'gif') void showItem(item);
+    setSelected({ picture: null, gif: null, [item.kind]: item.id });
+    if (item.id !== shownId(item.kind) || (item.kind === 'picture' && state.picturesUnsent)) {
+      void showItem(item);
+    } else if (!kindShown(item.kind)) {
+      edit({ mediaSource: sourceOf(item.kind), sourceChosen: true }, { mediaSource: sourceOf(item.kind) });
+    }
   };
 
   // The add tile first, then the items.
@@ -431,7 +440,7 @@ export function DeepCoolMystiqueDevicePage() {
             </span>
           ) : undefined}
           disabled={(!ready || mediaBusy) && showing !== item.id}
-          active={selectedId(kind) === item.id}
+          active={kindShown(kind) && selectedId(kind) === item.id}
           ariaLabel={t('devices.deepcool-mystique.showItem', { name: item.name })}
           onClick={() => selectMedia(item)}
           onDelete={ready && !mediaBusy ? () => setPendingRemove(item) : undefined}
