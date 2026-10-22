@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "Pagina {page}, toets {key}",
   "hotkeys.deck.keyInFolder": "Pagina {page}, map {folder}, toets {key}",
   "hotkeys.deck.open": "Openen in deck-editor",
+  "hotkeys.deck.openFailed": "De deck-editor kon niet worden geopend.",
   "hotkeys.deck.unknownPreset": "Onbekende voorinstelling",
   "hotkeys.deck.widget": "Deck-widget",
   "hotkeys.delete": "Sneltoets verwijderen",

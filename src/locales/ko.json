@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "페이지 {page}, 키 {key}",
   "hotkeys.deck.keyInFolder": "페이지 {page}, 폴더 {folder}, 키 {key}",
   "hotkeys.deck.open": "덱 편집기에서 열기",
+  "hotkeys.deck.openFailed": "덱 편집기를 열 수 없습니다.",
   "hotkeys.deck.unknownPreset": "알 수 없는 프리셋",
   "hotkeys.deck.widget": "덱 위젯",
   "hotkeys.delete": "단축키 삭제",

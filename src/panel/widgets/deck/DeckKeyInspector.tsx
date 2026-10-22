@@ -46,6 +46,7 @@ import type {
   DeckMonitoringStyle, DeckNexusAction, DeckNexusOp, DeckSlot, DeckTitleStyle,
 } from './types';
 import { DeckHotkeyField } from './DeckHotkeyField';
+import { deleteHotkey } from '../../../api/hotkeys';
 import styles from './DeckKeyInspector.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -1569,7 +1570,11 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
           </SettingsSection>
 
           {onDeleteSlot && (
-            <Button type="button" tone="danger" className={styles.deleteBtn} icon={<Trash2 size={14} aria-hidden />} onClick={onDeleteSlot}>
+            <Button type="button" tone="danger" className={styles.deleteBtn} icon={<Trash2 size={14} aria-hidden />} onClick={() => {
+              // The slot's tag goes with it, so its binding must not outlive it holding the combo.
+              if (keyHotkey && slot.hotkeyTag) void deleteHotkey(slot.hotkeyTag);
+              onDeleteSlot();
+            }}>
               {t('panel.settings.deck.deleteKey')}
             </Button>
           )}

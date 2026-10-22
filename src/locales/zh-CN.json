@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "第 {page} 页，按键 {key}",
   "hotkeys.deck.keyInFolder": "第 {page} 页，文件夹 {folder}，按键 {key}",
   "hotkeys.deck.open": "在 Deck 编辑器中打开",
+  "hotkeys.deck.openFailed": "无法打开 Deck 编辑器。",
   "hotkeys.deck.unknownPreset": "未知预设",
   "hotkeys.deck.widget": "Deck 小组件",
   "hotkeys.delete": "删除快捷键",

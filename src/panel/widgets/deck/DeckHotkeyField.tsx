@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { InlineError } from '../../../components/common/InlineError/InlineError';
@@ -34,6 +34,9 @@ export function DeckHotkeyField({ presetId, tag, onTagChange, layout }: DeckHotk
   const { state, apply } = useHotkeys(true);
   const { presetNames } = useHotkeyDeckInfo(true, state?.bindings ?? [], { configs: false, deckSerials: [] });
   const [error, setError] = useState('');
+  // An async rollback must see the editor as it is by then, not as it was when the PUT started.
+  const latest = useRef({ tag, onTagChange });
+  useEffect(() => { latest.current = { tag, onTagChange }; });
 
   if (!state?.supported) return null;
   const binding = tag ? state.bindings.find(b => b.id === tag && b.target.kind === 'deck' && b.target.presetId === presetId) : undefined;
@@ -58,9 +61,13 @@ export function DeckHotkeyField({ presetId, tag, onTagChange, layout }: DeckHotk
       setError(t('hotkeys.duplicate', { combo: formatCombo(keys, state.platform, t), name: bindingName(dup, t, presetNames) }));
       return;
     }
-    const id = binding?.id ?? tag ?? newHotkeyId();
+    // A tag copied in with another preset (import, preset copy) names that preset's binding: mint a new one.
+    const taken = tag ? state.bindings.find(b => b.id === tag) : undefined;
+    const foreign = !!taken && !binding;
+    const id = binding?.id ?? (tag && !foreign ? tag : newHotkeyId());
+    const previous = tag;
     // The tag goes onto the slot first, so the preset save that carries it is not behind the binding.
-    if (!tag) onTagChange(id);
+    if (id !== tag) onTagChange(id);
     const res = await putHotkey({
       id,
       combo: keys,
@@ -68,7 +75,8 @@ export function DeckHotkeyField({ presetId, tag, onTagChange, layout }: DeckHotk
       label: binding?.label,
       target: { kind: 'deck', presetId, tag: id },
     });
-    if (!res.ok && !tag) onTagChange(undefined);
+    // Undo only the tag, and only if it is still the one set here, so edits made meanwhile survive.
+    if (!res.ok && id !== previous && latest.current.tag === id) latest.current.onTagChange(previous);
     settle(res);
   };
 

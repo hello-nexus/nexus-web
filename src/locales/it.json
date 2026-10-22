@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "Pagina {page}, tasto {key}",
   "hotkeys.deck.keyInFolder": "Pagina {page}, cartella {folder}, tasto {key}",
   "hotkeys.deck.open": "Apri nell'editor del deck",
+  "hotkeys.deck.openFailed": "Impossibile aprire l'editor del deck.",
   "hotkeys.deck.unknownPreset": "Preset sconosciuto",
   "hotkeys.deck.widget": "Widget Deck",
   "hotkeys.delete": "Elimina hotkey",

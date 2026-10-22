@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeckHotkeyField } from './DeckHotkeyField';
 import * as api from '../../../api/hotkeys';
@@ -55,13 +56,6 @@ describe('DeckHotkeyField', () => {
     // The slot is tagged with the same id the binding carries.
     expect(onTagChange).toHaveBeenCalledWith(sent.id);
     expect(apply).toHaveBeenCalled();
-  });
-
-  it('takes the tag back off the slot when the service refuses the new binding', async () => {
-    vi.mocked(api.putHotkey).mockResolvedValue({ ok: false, msg: 'invalid combo' });
-    render(<DeckHotkeyField presetId="p1" tag={tag} onTagChange={onTagChange} layout="section" />);
-    record({ code: 'KeyK', metaKey: true });
-    await waitFor(() => expect(onTagChange).toHaveBeenLastCalledWith(undefined));
   });
 
   it('updates the existing binding in place instead of adding another', async () => {
@@ -134,5 +128,65 @@ describe('DeckHotkeyField', () => {
     current = state([], false);
     const { container } = render(<DeckHotkeyField presetId="p1" tag={tag} onTagChange={onTagChange} layout="section" />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  // A parent that owns the slot like the inspectors do: tag plus another field.
+  function Harness({ initialTag, onSlot }: { initialTag?: string; onSlot: (slot: { tag?: string; label: string }) => void }) {
+    const [slot, setSlot] = useState<{ tag?: string; label: string }>({ tag: initialTag, label: 'start' });
+    onSlot(slot);
+    return (
+      <>
+        <button onClick={() => setSlot(s => ({ ...s, label: 'edited meanwhile' }))}>edit label</button>
+        <DeckHotkeyField
+          presetId="p1"
+          tag={slot.tag}
+          onTagChange={t => setSlot({ ...slot, tag: t })}
+          layout="section"
+        />
+      </>
+    );
+  }
+
+  it('takes the tag back off when the service refuses, without undoing edits made meanwhile', async () => {
+    let release: (v: { ok: false; msg: string }) => void = () => {};
+    vi.mocked(api.putHotkey).mockReturnValue(new Promise(r => { release = r as typeof release; }));
+    let latest: { tag?: string; label: string } = { label: '' };
+    render(<Harness onSlot={s => { latest = s; }} />);
+    record({ code: 'KeyK', metaKey: true, altKey: true });
+    await waitFor(() => expect(latest.tag).toMatch(/^custom:/));
+    fireEvent.click(screen.getByText('edit label'));
+    await act(async () => { release({ ok: false, msg: 'invalid combo' }); });
+    await waitFor(() => expect(latest.tag).toBeUndefined());
+    expect(latest.label).toBe('edited meanwhile');
+  });
+
+  it('mints a new binding when the tag came from another preset (a copied preset), leaving the original alone', async () => {
+    current = state([{ ...deckBinding, id: 'custom:abc', target: { kind: 'deck', presetId: 'other', tag: 'custom:abc' } }]);
+    vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current });
+    let latest: { tag?: string; label: string } = { label: '' };
+    render(<Harness initialTag="custom:abc" onSlot={s => { latest = s; }} />);
+    record({ code: 'KeyJ', metaKey: true, altKey: true });
+    await waitFor(() => expect(api.putHotkey).toHaveBeenCalled());
+    const sent = vi.mocked(api.putHotkey).mock.calls[0][0];
+    expect(sent.id).not.toBe('custom:abc');
+    expect(sent.target).toEqual({ kind: 'deck', presetId: 'p1', tag: sent.id });
+    await waitFor(() => expect(latest.tag).toBe(sent.id));
+  });
+
+  it('clear, then record the same combo again, is not a duplicate of the cleared binding', async () => {
+    const holder = { ...deckBinding };
+    current = state([holder]);
+    vi.mocked(api.deleteHotkey).mockImplementation(async () => {
+      current = state([]);
+      return { ok: true, state: current };
+    });
+    vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current });
+    const view = render(<Harness initialTag="custom:abc" onSlot={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'hotkeys.clear' }));
+    await waitFor(() => expect(api.deleteHotkey).toHaveBeenCalledWith('custom:abc'));
+    view.rerender(<Harness initialTag="custom:abc" onSlot={() => {}} />);
+    record({ code: 'KeyK', metaKey: true, altKey: true });
+    await waitFor(() => expect(api.putHotkey).toHaveBeenCalled());
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

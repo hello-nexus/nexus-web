@@ -2240,6 +2240,7 @@
   "hotkeys.deck.key": "Stránka {page}, tlačítko {key}",
   "hotkeys.deck.keyInFolder": "Stránka {page}, složka {folder}, tlačítko {key}",
   "hotkeys.deck.open": "Otevřít v editoru decku",
+  "hotkeys.deck.openFailed": "Editor decku se nepodařilo otevřít.",
   "hotkeys.deck.unknownPreset": "Neznámá předvolba",
   "hotkeys.deck.widget": "Widget decku",
   "hotkeys.delete": "Smazat zkratku",

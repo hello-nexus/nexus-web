@@ -2240,6 +2240,7 @@
   "hotkeys.deck.key": "Strona {page}, klawisz {key}",
   "hotkeys.deck.keyInFolder": "Strona {page}, folder {folder}, klawisz {key}",
   "hotkeys.deck.open": "Otwórz w edytorze decka",
+  "hotkeys.deck.openFailed": "Nie udało się otworzyć edytora decka.",
   "hotkeys.deck.unknownPreset": "Nieznane ustawienie wstępne",
   "hotkeys.deck.widget": "Widżet decka",
   "hotkeys.delete": "Usuń skrót",

@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "Page {page}, touche {key}",
   "hotkeys.deck.keyInFolder": "Page {page}, dossier {folder}, touche {key}",
   "hotkeys.deck.open": "Ouvrir dans l'éditeur de deck",
+  "hotkeys.deck.openFailed": "L'éditeur de deck n'a pas pu être ouvert.",
   "hotkeys.deck.unknownPreset": "Préréglage inconnu",
   "hotkeys.deck.widget": "Widget Deck",
   "hotkeys.delete": "Supprimer le raccourci",

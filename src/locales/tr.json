@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "Sayfa {page}, tuş {key}",
   "hotkeys.deck.keyInFolder": "Sayfa {page}, klasör {folder}, tuş {key}",
   "hotkeys.deck.open": "Deck düzenleyicisinde aç",
+  "hotkeys.deck.openFailed": "Deck düzenleyicisi açılamadı.",
   "hotkeys.deck.unknownPreset": "Bilinmeyen hazır ayar",
   "hotkeys.deck.widget": "Deck widget'ı",
   "hotkeys.delete": "Kısayol tuşunu sil",

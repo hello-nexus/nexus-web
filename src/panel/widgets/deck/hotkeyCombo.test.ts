@@ -68,6 +68,10 @@ describe('findDuplicate', () => {
     expect(findDuplicate(list, 'alt+ctrl+N')?.id).toBe('a');
   });
 
+  it('ignores an orphaned binding, which the service does not count either', () => {
+    expect(findDuplicate([binding({ id: 'o', combo: 'Ctrl+Alt+k', status: 'orphaned' })], 'ctrl+alt+k')).toBeUndefined();
+  });
+
   it('ignores the binding being edited, disabled bindings and unbound ones', () => {
     expect(findDuplicate(list, 'ctrl+alt+n', 'a')).toBeUndefined();
     expect(findDuplicate(list, 'ctrl+alt+l')).toBeUndefined();

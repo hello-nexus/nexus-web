@@ -90,4 +90,15 @@ describe('useHotkeys', () => {
     const { result } = renderHook(() => useHotkeys(true));
     await vi.waitFor(() => expect(result.current.state?.platform).toBe('windows'));
   });
+
+  it('shares one GET and one state between every mounted consumer', async () => {
+    vi.mocked(fetchService).mockResolvedValue({ ...empty, platform: 'windows' });
+    const a = renderHook(() => useHotkeys(true));
+    const b = renderHook(() => useHotkeys(true));
+    await vi.waitFor(() => expect(a.result.current.state?.platform).toBe('windows'));
+    expect(b.result.current.state?.platform).toBe('windows');
+    expect(vi.mocked(fetchService)).toHaveBeenCalledTimes(1);
+    act(() => a.result.current.apply({ ...empty, suspended: true }));
+    expect(b.result.current.state?.suspended).toBe(true);
+  });
 });

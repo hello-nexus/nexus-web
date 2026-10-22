@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "ページ {page}、キー {key}",
   "hotkeys.deck.keyInFolder": "ページ {page}、フォルダー {folder}、キー {key}",
   "hotkeys.deck.open": "デッキエディターで開く",
+  "hotkeys.deck.openFailed": "デッキエディターを開けませんでした。",
   "hotkeys.deck.unknownPreset": "不明なプリセット",
   "hotkeys.deck.widget": "デッキウィジェット",
   "hotkeys.delete": "ホットキーを削除",

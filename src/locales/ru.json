@@ -2240,6 +2240,7 @@
   "hotkeys.deck.key": "Страница {page}, кнопка {key}",
   "hotkeys.deck.keyInFolder": "Страница {page}, папка {folder}, кнопка {key}",
   "hotkeys.deck.open": "Открыть в редакторе дека",
+  "hotkeys.deck.openFailed": "Не удалось открыть редактор дека.",
   "hotkeys.deck.unknownPreset": "Неизвестный пресет",
   "hotkeys.deck.widget": "Виджет дека",
   "hotkeys.delete": "Удалить горячую клавишу",

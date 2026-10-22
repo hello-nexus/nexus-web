@@ -74,7 +74,7 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
       setError(null);
       return true;
     }
-    setError({ id, msg: hotkeyErrorText(t, res.msg) });
+    setError({ id, msg: hotkeyErrorText(t, res.msg, res.code) });
     return false;
   };
 
@@ -111,11 +111,16 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
     const serial = serialByPreset[presetId];
     const deck = decks.find(d => d.serial === serial);
     const preset = await getDeckPreset(presetId);
-    if (!serial || !deck || !preset) return;
-    const where = findTag(preset.deck, tag);
-    if (!where) return;
-    const at = editorTargetFor(where, { cols: preset.cols, rows: preset.rows, deck: preset.deck }, { cols: deck.cols, rows: deck.rows, kind: 'physical' });
-    if (at) onOpenDeckEditor({ serial, ...at });
+    const where = preset ? findTag(preset.deck, tag) : null;
+    const at = serial && deck && preset && where
+      ? editorTargetFor(where, { cols: preset.cols, rows: preset.rows, deck: preset.deck }, { cols: deck.cols, rows: deck.rows, kind: 'physical' })
+      : null;
+    if (!at || !serial) {
+      setError({ id: b.id, msg: t('hotkeys.deck.openFailed') });
+      return;
+    }
+    setError(null);
+    onOpenDeckEditor({ serial, ...at });
   };
 
   if (!state) {
@@ -146,7 +151,7 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
     const description = where || rowError ? (
       <>
         {where && `${b.label ? `${presetNames[deck!.presetId] ?? t('hotkeys.deck.unknownPreset')}: ` : ''}${describeSlot(where, t)}`}
-        {deckNames.length > 0 && <span className={styles.rowError}>{t('hotkeys.deck.holder', { deck: deckNames.join(', ') })}</span>}
+        {deckNames.length > 0 && <span className={styles.holder}>{t('hotkeys.deck.holder', { deck: deckNames.join(', ') })}</span>}
         {rowError && <InlineError className={styles.rowError}>{rowError}</InlineError>}
       </>
     ) : undefined;

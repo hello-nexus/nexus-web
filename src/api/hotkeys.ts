@@ -1,6 +1,6 @@
 // Client for the global hotkey routes. Desktop token only. The `hotkeys` multiplex
 // topic carries the same shape as GET /hotkeys on every change.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { authFetchWithStatus, fetchService } from './service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import type { DeckAction } from '../panel/widgets/deck/types';
@@ -99,44 +99,59 @@ export interface UseHotkeysResult {
   apply: (next: HotkeysState) => void;
 }
 
-/** GET /hotkeys on mount, then every `hotkeys` topic frame replaces the state. */
+// One copy of the state for every mounted consumer, so each deck hotkey field
+// does not run its own GET. It is cleared when the last consumer unmounts, so a
+// later mount starts from a fresh GET.
+const store = { state: null as HotkeysState | null, loaded: false, fresh: false, users: 0, inflight: false, epoch: 0 };
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+// A topic frame or mutation result is newer than a GET still in flight.
+function publish(next: HotkeysState): void {
+  store.fresh = true;
+  if (store.state === next) return;
+  store.state = next;
+  listeners.forEach(l => l());
+}
+
+function load(): void {
+  const epoch = store.epoch;
+  store.inflight = true;
+  void getHotkeys().then(res => {
+    if (epoch !== store.epoch) return;
+    store.inflight = false;
+    if (res && !store.fresh) store.state = res;
+    store.loaded = true;
+    listeners.forEach(l => l());
+  });
+}
+
+/** GET /hotkeys once for all consumers, then every `hotkeys` topic frame replaces the state. */
 export function useHotkeys(enabled: boolean): UseHotkeysResult {
-  const [state, setState] = useState<HotkeysState | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const aliveRef = useRef(true);
-  // A topic frame or mutation result is newer than a GET still in flight.
-  const freshRef = useRef(false);
-  useEffect(() => {
-    aliveRef.current = true;
-    return () => { aliveRef.current = false; };
-  }, []);
+  const state = useSyncExternalStore(subscribe, () => store.state);
+  const loaded = useSyncExternalStore(subscribe, () => store.loaded);
 
   useEffect(() => {
-    if (!enabled) {
-      // A later enable starts from a fresh GET again.
-      freshRef.current = false;
-      return;
-    }
-    let cancelled = false;
-    getHotkeys().then(res => {
-      if (cancelled) return;
-      if (res && !freshRef.current) setState(res);
-      setLoaded(true);
-    });
-    return () => { cancelled = true; };
+    if (!enabled) return;
+    store.users += 1;
+    if (!store.state && !store.inflight) load();
+    return () => {
+      store.users -= 1;
+      if (store.users === 0) {
+        store.epoch += 1;
+        Object.assign(store, { state: null, loaded: false, fresh: false, inflight: false });
+      }
+    };
   }, [enabled]);
 
   const onFrame = useCallback((data: unknown) => {
-    if (isHotkeysState(data) && aliveRef.current) {
-      freshRef.current = true;
-      setState(data);
-    }
+    if (isHotkeysState(data)) publish(data);
   }, []);
   useTopicCallback(HOTKEYS_TOPIC, enabled, onFrame);
 
-  const apply = useCallback((next: HotkeysState) => {
-    freshRef.current = true;
-    setState(next);
-  }, []);
-  return { state, loaded, apply };
+  return { state: enabled ? state : null, loaded: enabled && loaded, apply: publish };
 }

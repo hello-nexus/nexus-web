@@ -140,7 +140,7 @@ const navSubtabs: SearchSource = (ctx) =>
     to: () => ctx.host.goView(s.view, s.sub),
   }));
 
-// Settings is 6 top tabs; these all deep-link to the Settings page and select
+// Settings tabs; these all deep-link to the Settings page and select
 // the owning tab (the `to:` handler below passes `tab` as the subtab).
 // Profiles and Dev tools moved to their own pages - see `standalonePages`.
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [

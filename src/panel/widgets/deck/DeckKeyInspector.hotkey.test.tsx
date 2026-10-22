@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DeckKeyInspector, canBindGlobalHotkey } from './DeckKeyInspector';
+import * as hotkeysApi from '../../../api/hotkeys';
 import { makePresetDeckTarget } from './deckTarget';
 import type { DeckPresetFull } from '../../../api/deck';
 import type { DeckConfig } from './types';
@@ -17,6 +18,7 @@ vi.mock('../../../api/service', () => ({
 }));
 vi.mock('../../../api/hotkeys', async importActual => ({
   ...(await importActual<typeof import('../../../api/hotkeys')>()),
+  deleteHotkey: vi.fn().mockResolvedValue({ ok: true, state: { supported: true, platform: 'macos', suspended: false, bindings: [] } }),
   putHotkey: vi.fn().mockResolvedValue({ ok: true, state: { supported: true, platform: 'macos', suspended: false, bindings: [] } }),
   setHotkeysSuspended: vi.fn().mockResolvedValue({ ok: false, msg: '' }),
   useHotkeys: () => ({
@@ -98,5 +100,17 @@ describe('DeckKeyInspector global hotkey field (recording)', () => {
     const saved = save.mock.calls[0][0] as DeckConfig;
     expect(saved.pages[0].slots[0].hotkeyTag).toMatch(/^custom:/);
     expect(saved.pages[0].slots[0].action).toEqual({ type: 'hotkey', keys: 'ctrl+c' });
+  });
+
+  it('deleting a tagged key also deletes its binding', () => {
+    const tagged: DeckPresetFull = { ...preset, deck: { pages: [{ slots: [{ hotkeyTag: 'custom:t1', action: { type: 'hotkey', keys: 'ctrl+c' } }, {}] }] } };
+    const target = makePresetDeckTarget(tagged, { cols: 2, rows: 1 }, 'physical', vi.fn());
+    const onDeleteSlot = vi.fn();
+    render(
+      <DeckKeyInspector target={target} page={0} folderPath={[]} onFolderPathChange={vi.fn()} selectedSlot={0} desktopEditor part="editor" onDeleteSlot={onDeleteSlot} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
+    expect(onDeleteSlot).toHaveBeenCalled();
+    expect(vi.mocked(hotkeysApi.deleteHotkey)).toHaveBeenCalledWith('custom:t1');
   });
 });

@@ -236,6 +236,20 @@ describe('HotkeysTab', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('says so inline when the deck editor cannot be opened for a row', async () => {
+    current = state([{ ...deckKey, target: { kind: 'deck', presetId: 'p1', tag: 'custom:d1' } }]);
+    const getDeckPreset = vi.mocked((await import('../../../api/deck')).getDeckPreset);
+    const original = getDeckPreset.getMockImplementation()!;
+    getDeckPreset.mockResolvedValue(null as never);
+    try {
+      render(<HotkeysTab serviceOnline onOpenDeckEditor={vi.fn()} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'hotkeys.deck.open' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('hotkeys.deck.openFailed');
+    } finally {
+      getDeckPreset.mockImplementation(original);
+    }
+  });
+
   it('shows the shared empty state when there are no deck hotkeys', () => {
     current = state([win()]);
     render(<HotkeysTab serviceOnline />);

@@ -87,11 +87,11 @@ export function hotkeyErrorText(t: Translate, msg: string, code?: string): strin
   return t(hotkeyErrorKey(msg, code));
 }
 
-/** Another enabled binding already holding `combo` (the service would flag both as conflicts). */
+/** Another live binding already holding `combo`; like the service, only enabled, non-orphaned bindings count. */
 export function findDuplicate(bindings: readonly HotkeyBinding[], combo: string | null, ignoreId?: string): HotkeyBinding | undefined {
   const norm = normalizeCombo(combo);
   if (!norm) return undefined;
-  return bindings.find(b => b.id !== ignoreId && b.enabled && normalizeCombo(b.combo) === norm);
+  return bindings.find(b => b.id !== ignoreId && b.enabled && b.status !== 'orphaned' && normalizeCombo(b.combo) === norm);
 }
 
 /** One-line name of an action target: the nexus op, or the action kind. */
@@ -142,6 +142,12 @@ function findSlotTag(slots: readonly DeckSlot[], tag: string, page: number, pref
     if (inside) return inside;
   }
   return null;
+}
+
+/** Every hotkey tag a dial carries, across its stack entries. */
+export function dialTags(dial: DeckDial): string[] {
+  const entries = (dial.stack?.length ?? 0) >= 2 ? dial.stack! : [dial];
+  return entries.flatMap(e => (e.action?.type === 'custom' ? Object.values(e.action.hotkeyTags ?? {}) : []));
 }
 
 /** Where `tag` sits in `deck`: a key, or one event of a dial entry. Null when nothing carries it. */

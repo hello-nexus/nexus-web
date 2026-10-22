@@ -2227,6 +2227,7 @@
   "hotkeys.deck.key": "Pagjine {page}, tast {key}",
   "hotkeys.deck.keyInFolder": "Pagjine {page}, cartele {folder}, tast {key}",
   "hotkeys.deck.open": "Vierç tal editôr dal deck",
+  "hotkeys.deck.openFailed": "No si à podût vierzi l'editôr dal deck.",
   "hotkeys.deck.unknownPreset": "Preset no cognossût",
   "hotkeys.deck.widget": "Widget deck",
   "hotkeys.delete": "Elimine la scurte",

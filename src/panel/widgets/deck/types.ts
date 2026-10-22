@@ -35,7 +35,7 @@ export type DeckNexusOp =
   | 'rgbEffect' | 'lightingBrightness' | 'lightingPreset'
   | 'fanProfile' | 'coolingPreset'
   | 'y70Power' | 'y70Brightness' | 'y70Rotation'
-  // Global hotkey targets, offered only by the Hotkeys page (see GLOBAL_ONLY_NEXUS_OPS).
+  // Global hotkey ops; toggleWindow is service-only (see SERVICE_ONLY_NEXUS_OPS).
   | 'toggleWindow' | 'lightingPowerToggle' | 'lightingBrightnessStep';
 
 /** rgbEffect targets one of the lighting page's three live modes. */
