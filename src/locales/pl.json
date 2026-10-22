@@ -810,7 +810,7 @@
   "devices.deepcool-mystique.play": "Wyświetla",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Obrazy",
-  "devices.deepcool-mystique.playbackHint": "Ekran pokazuje po kolei każdy zapisany obraz zgodnie z czasem zmiany i odtwarza zapisane GIF-y.",
+  "devices.deepcool-mystique.playbackHint": "Przy opcji Obrazy ekran pokazuje po kolei każdy zapisany obraz zgodnie z czasem zmiany. Przy opcji GIF odtwarza zapisane GIF-y.",
   "devices.deepcool-mystique.pump": "Pompa",
   "devices.deepcool-mystique.ramUsage": "Użycie pamięci RAM",
   "devices.deepcool-mystique.readout": "Główny obszar wyświetlania",

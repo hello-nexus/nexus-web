@@ -803,7 +803,7 @@
   "devices.deepcool-mystique.play": "Shows",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Pictures",
-  "devices.deepcool-mystique.playbackHint": "The screen shows every stored picture in turn at the switch time and plays the stored GIFs.",
+  "devices.deepcool-mystique.playbackHint": "With Pictures, the screen shows each stored picture in turn at the switch time. With GIF, it plays the stored GIFs.",
   "devices.deepcool-mystique.pump": "Pump",
   "devices.deepcool-mystique.ramUsage": "RAM usage",
   "devices.deepcool-mystique.readout": "Main display area",

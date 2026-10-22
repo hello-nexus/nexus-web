@@ -803,7 +803,7 @@
   "devices.deepcool-mystique.play": "Affiche",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Images",
-  "devices.deepcool-mystique.playbackHint": "L'écran affiche tour à tour chaque image enregistrée selon la durée de changement et lit les GIF enregistrés.",
+  "devices.deepcool-mystique.playbackHint": "Avec Images, l'écran affiche tour à tour chaque image enregistrée selon la durée de changement. Avec GIF, il lit les GIF enregistrés.",
   "devices.deepcool-mystique.pump": "Pompe",
   "devices.deepcool-mystique.ramUsage": "Utilisation de la RAM",
   "devices.deepcool-mystique.readout": "Zone d'affichage principale",

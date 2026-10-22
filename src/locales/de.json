@@ -803,7 +803,7 @@
   "devices.deepcool-mystique.play": "Zeigt",
   "devices.deepcool-mystique.playGif": "GIF",
   "devices.deepcool-mystique.playPictures": "Bilder",
-  "devices.deepcool-mystique.playbackHint": "Das Display zeigt alle gespeicherten Bilder nacheinander im Takt der Bildwechselzeit und spielt die gespeicherten GIFs ab.",
+  "devices.deepcool-mystique.playbackHint": "Mit Bilder zeigt das Display jedes gespeicherte Bild nacheinander im Takt der Bildwechselzeit. Mit GIF spielt es die gespeicherten GIFs ab.",
   "devices.deepcool-mystique.pump": "Pumpe",
   "devices.deepcool-mystique.ramUsage": "RAM-Auslastung",
   "devices.deepcool-mystique.readout": "Hauptanzeigebereich",
