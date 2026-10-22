@@ -12,9 +12,10 @@ import { IconPicker } from '../common/IconPicker';
 import { canEditFreeText } from '../../types';
 import type { PanelSurface } from '../../types';
 import {
-  ActionEditor, DeckEditContext, Field, NESTED_KINDS, SelectField, SwatchRow, kindsForTarget, useDisplayOptions, useMonitoringPicker, useServiceOptions,
+  ActionEditor, DeckEditContext, canBindGlobalHotkey, Field, NESTED_KINDS, SelectField, SwatchRow, kindsForTarget, useDisplayOptions, useMonitoringPicker, useServiceOptions,
   defaultActionFor,
 } from './DeckKeyInspector';
+import { DeckHotkeyField } from './DeckHotkeyField';
 import { DECK_ICONS } from './deckIcons';
 import {
   DIAL_PICKER_CATEGORIES, MAX_DIAL_STACK, assignDialAction, dialAutoIconName, dialEntryAt, isDialStack, stackAddEntry,
@@ -191,15 +192,30 @@ function MonitoringDialFields({ action, onChange, surface, desktopEditor, inheri
   );
 }
 
-function CustomDialFields({ action, onChange, target, surface, desktopEditor }: {
+function CustomDialFields({ action, onChange, target, surface, desktopEditor, hotkeys }: {
   action: Extract<DeckDialAction, { type: 'custom' }>; onChange: (a: DeckDialAction) => void; target: DeckTarget; surface?: PanelSurface; desktopEditor?: boolean;
+  /** Whether this editor can bind global hotkeys to the dial's events. */
+  hotkeys: boolean;
 }) {
   const { t } = useTranslation();
   const allowed = kindsForTarget(NESTED_KINDS, target.kind);
   const set = (slot: typeof CUSTOM_SLOTS[number], next: DeckAction | undefined) => {
     const copy = { ...action };
-    if (next) copy[slot] = next; else delete copy[slot];
+    if (next) copy[slot] = next;
+    else {
+      delete copy[slot];
+      setTag(slot, undefined, copy);
+      return;
+    }
     onChange(copy);
+  };
+  // The tag lives on the dial action beside the event it runs, so it moves with the dial.
+  const setTag = (slot: typeof CUSTOM_SLOTS[number], tag: string | undefined, base: typeof action = action) => {
+    const tags = { ...base.hotkeyTags };
+    if (tag) tags[slot] = tag; else delete tags[slot];
+    const next = { ...base };
+    if (Object.keys(tags).length > 0) next.hotkeyTags = tags; else delete next.hotkeyTags;
+    onChange(next);
   };
   return (
     <>
@@ -211,6 +227,14 @@ function CustomDialFields({ action, onChange, target, surface, desktopEditor }: 
             {bound ? (
               <>
                 <ActionEditor action={bound} onChange={a => set(slot, a)} showType allowed={allowed} surface={surface} desktopEditor={desktopEditor} />
+                {hotkeys && target.presetId && (
+                  <DeckHotkeyField
+                    presetId={target.presetId}
+                    tag={action.hotkeyTags?.[slot]}
+                    onTagChange={tag => setTag(slot, tag)}
+                    layout="field"
+                  />
+                )}
                 <Button type="button" size="sm" tone="neutral" icon={<X size={14} aria-hidden />} onClick={() => set(slot, undefined)}>
                   {t('panel.settings.deck.dial.custom.clear')}
                 </Button>
@@ -227,8 +251,9 @@ function CustomDialFields({ action, onChange, target, surface, desktopEditor }: 
   );
 }
 
-function DialActionFields({ action, onChange, target, surface, desktopEditor, inherited }: {
+function DialActionFields({ action, onChange, target, surface, desktopEditor, inherited, hotkeys }: {
   action: DeckDialAction; onChange: (a: DeckDialAction) => void; target: DeckTarget; surface?: PanelSurface; desktopEditor?: boolean; inherited: boolean;
+  hotkeys: boolean;
 }) {
   const { t } = useTranslation();
   switch (action.type) {
@@ -249,7 +274,7 @@ function DialActionFields({ action, onChange, target, surface, desktopEditor, in
     case 'monitoring':
       return <MonitoringDialFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} inherited={inherited} />;
     case 'custom':
-      return <CustomDialFields action={action} onChange={onChange} target={target} surface={surface} desktopEditor={desktopEditor} />;
+      return <CustomDialFields action={action} onChange={onChange} target={target} surface={surface} desktopEditor={desktopEditor} hotkeys={hotkeys} />;
   }
 }
 
@@ -301,6 +326,8 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
 
   const writeDial = (next: DeckDial) => target.updateDial(page, folderPath, index, next);
   const writeEntry = (next: DeckDial) => writeDial(writeDialEntry(dial, entryAt, next));
+
+  const hotkeys = canBindGlobalHotkey(surface, desktopEditor) && !!target.presetId;
 
   if (part === 'picker') {
     return (
@@ -360,14 +387,14 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
 
   const action = entry.action;
   return (
-    <DeckEditContext.Provider value={{ freezeSeed: inherited }}>
+    <DeckEditContext.Provider value={{ freezeSeed: inherited, serviceOps: target.kind === 'physical' }}>
     <div className={keyStyles.root}>
       {stackSection}
 
       {action && (
         <SettingsSection title={t(`panel.settings.deck.dial.action.${action.type}`)}>
           <div className={keyStyles.fieldStack}>
-            <DialActionFields action={action} onChange={a => writeEntry({ ...entry, action: a })} target={target} surface={surface} desktopEditor={desktopEditor} inherited={inherited} />
+            <DialActionFields action={action} onChange={a => writeEntry({ ...entry, action: a })} target={target} surface={surface} desktopEditor={desktopEditor} inherited={inherited} hotkeys={hotkeys} />
           </div>
         </SettingsSection>
       )}

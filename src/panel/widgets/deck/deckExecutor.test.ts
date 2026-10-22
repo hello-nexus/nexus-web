@@ -98,6 +98,31 @@ describe('executeDeckAction → REST', () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'lightingBrightness', value: 0.4 } });
     expect(postService).toHaveBeenCalledWith('/lighting/global-brightness', { value: 0.4 });
   });
+  it('nexus brightness step moves the master brightness by the signed step and clamps', async () => {
+    fetchService.mockResolvedValueOnce({ value: 0.5 });
+    await executeDeckAction({ type: 'nexus', action: { op: 'lightingBrightnessStep', value: -0.1 } });
+    expect(postService).toHaveBeenCalledWith('/lighting/global-brightness', { value: 0.4 });
+    postService.mockClear();
+    fetchService.mockResolvedValueOnce({ value: 0.95 });
+    await executeDeckAction({ type: 'nexus', action: { op: 'lightingBrightnessStep', value: 0.1 } });
+    expect(postService).toHaveBeenCalledWith('/lighting/global-brightness', { value: 1 });
+  });
+  it('lighting power toggle turns every controlled device off when any is on, else on', async () => {
+    const devices = (on: boolean[]) => ({ devices: on.map((ledsOn, i) => ({ id: `d${i}`, name: 'x', ledsOn })) });
+    fetchService.mockResolvedValueOnce(devices([true, false]));
+    await executeDeckAction({ type: 'nexus', action: { op: 'lightingPowerToggle' } });
+    expect(postService).toHaveBeenCalledWith('/devices/lighting-devices/power', { id: 'd0', on: false });
+    expect(postService).toHaveBeenCalledWith('/devices/lighting-devices/power', { id: 'd1', on: false });
+    postService.mockClear();
+    fetchService.mockResolvedValueOnce(devices([false, false]));
+    await executeDeckAction({ type: 'nexus', action: { op: 'lightingPowerToggle' } });
+    expect(postService).toHaveBeenCalledWith('/devices/lighting-devices/power', { id: 'd0', on: true });
+  });
+  it('toggling the Nexus window has no route from a touch widget', async () => {
+    postService.mockClear();
+    await executeDeckAction({ type: 'nexus', action: { op: 'toggleWindow' } });
+    expect(postService).not.toHaveBeenCalled();
+  });
   it('nexus lighting effect, Animation mode, starts the named effect', async () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'rgbEffect', mode: 'animate', effect: 'rainbow' } });
     expect(postService).toHaveBeenCalledWith('/lighting/animate/headless-start', expect.objectContaining({ effect: 'rainbow' }));

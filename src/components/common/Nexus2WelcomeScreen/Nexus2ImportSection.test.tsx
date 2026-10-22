@@ -306,6 +306,8 @@ describe('Nexus2ImportSection - fan curves', () => {
     renderSection({ handleRef, showAction: false });
     expect(handleRef.current?.fanCurvesNeedReview()).toBe(false);
     await screen.findByRole('switch', { name: FAN_NAME });
+    // Without an IntersectionObserver a passive effect marks the list seen, after the switch renders.
+    await waitFor(() => expect(handleRef.current?.fanListSeen()).toBe(true));
     expect(handleRef.current?.fanCurvesNeedReview()).toBe(false);
     // A press that preceded the preview never counts, even though the list shows now.
     expect(handleRef.current?.fanCurvesNeedReview(true)).toBe(true);
@@ -345,9 +347,13 @@ describe('Nexus2ImportSection - fan curves', () => {
       });
     });
     afterEach(() => { vi.unstubAllGlobals(); });
-    const enterViewport = () => act(() => {
-      for (const o of observers) if (!o.disconnected && o.target) o.cb([{ target: o.target, isIntersecting: true }]);
-    });
+    // The observer is registered by a passive effect that can run after the switch appears.
+    const enterViewport = async () => {
+      await waitFor(() => expect(observers.some(o => !o.disconnected && o.target)).toBe(true));
+      act(() => {
+        for (const o of observers) if (!o.disconnected && o.target) o.cb([{ target: o.target, isIntersecting: true }]);
+      });
+    };
 
     it('counts the list as seen only once it enters the viewport', async () => {
       vi.mocked(previewNexus2Import).mockResolvedValue({ available: true, profileName: null, categories: [FAN_CATEGORY] });
@@ -356,7 +362,7 @@ describe('Nexus2ImportSection - fan curves', () => {
       await screen.findByRole('switch', { name: FAN_NAME });
       expect(handleRef.current?.fanListSeen()).toBe(false);
       expect(handleRef.current?.fanCurvesNeedReview()).toBe(true);
-      enterViewport();
+      await enterViewport();
       expect(handleRef.current?.fanListSeen()).toBe(true);
       expect(handleRef.current?.fanCurvesNeedReview()).toBe(false);
     });
@@ -366,7 +372,7 @@ describe('Nexus2ImportSection - fan curves', () => {
       const handleRef = { current: null as Nexus2ImportHandle | null };
       const view = render(<Nexus2ImportSection open showAction={false} handleRef={handleRef} />);
       await screen.findByRole('switch', { name: FAN_NAME });
-      enterViewport();
+      await enterViewport();
       expect(handleRef.current?.fanListSeen()).toBe(true);
       view.rerender(<Nexus2ImportSection open={false} showAction={false} handleRef={handleRef} />);
       view.rerender(<Nexus2ImportSection open showAction={false} handleRef={handleRef} />);

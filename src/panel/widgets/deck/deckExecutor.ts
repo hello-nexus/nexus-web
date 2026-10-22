@@ -1,5 +1,5 @@
 import { fetchService, postService } from '../../../api/service';
-import { startAnimate, startScreenMirror, setGlobalBrightness, activateLayoutPreset } from '../../../api/lighting';
+import { startAnimate, startScreenMirror, setGlobalBrightness, fetchGlobalBrightness, activateLayoutPreset, fetchLightingDevices, setLightingDevicePower } from '../../../api/lighting';
 import { applyProfile, activateCoolingPreset } from '../../../api/cooling';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { controlMedia } from '../../../hooks/useMedia';
@@ -266,6 +266,22 @@ async function runNexus(a: DeckNexusAction): Promise<void> {
       }
     case 'lightingBrightness':
       await setGlobalBrightness(clamp(a.value ?? 1, 0, 1));
+      return;
+    case 'lightingBrightnessStep': {
+      const cur = await fetchGlobalBrightness();
+      if (cur) await setGlobalBrightness(clamp(cur.value + (a.value ?? 0), 0, 1));
+      return;
+    }
+    case 'lightingPowerToggle': {
+      // Same rule the service applies: any controlled device on turns all off, else all on.
+      const list = await fetchLightingDevices();
+      const controlled = (list?.devices ?? []).filter(d => d.controlled !== false);
+      const turnOn = !controlled.some(d => d.ledsOn);
+      await Promise.all(controlled.map(d => setLightingDevicePower(d.id, turnOn)));
+      return;
+    }
+    // The Nexus window belongs to the desktop; a touch widget has no route to it.
+    case 'toggleWindow':
       return;
     case 'lightingPreset':
       if (a.presetId) await activateLayoutPreset(a.presetId);

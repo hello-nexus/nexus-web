@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { Select, type SelectOption } from '../../../components/common/Select/Select';
 import { HOTKEY_PRESET_CATEGORIES, findHotkeyPreset, hotkeyPresetId } from './hotkeyPresets';
@@ -8,6 +8,14 @@ interface HotkeyInputProps {
   value: string;
   onChange: (keys: string) => void;
   disabled?: boolean;
+  /** Text shown for `value` while not capturing, e.g. platform glyphs; defaults to the raw value. */
+  display?: string;
+  /** Drops the deck preset dropdown, for callers that only want a recorded chord. */
+  hidePresets?: boolean;
+  /** Fires when recording starts and ends (including blur), so a caller can pause what the chord would trigger. */
+  onCaptureChange?: (capturing: boolean) => void;
+  /** A bare Esc while recording abandons it, keeping the old value, instead of being recorded. */
+  cancelOnEscape?: boolean;
 }
 
 const MOD_CODES = new Set([
@@ -45,12 +53,24 @@ function codeToToken(code: string): string {
  * categorized preset list (mirrors Stream Deck's own hotkey picker) without
  * requiring a capture at all.
  */
-export function HotkeyInput({ value, onChange, disabled = false }: HotkeyInputProps) {
+export function HotkeyInput({ value, onChange, disabled = false, display, hidePresets = false, onCaptureChange, cancelOnEscape = false }: HotkeyInputProps) {
   const { t } = useTranslation();
   const [capturing, setCapturing] = useState(false);
+  const captureCb = useRef(onCaptureChange);
+  useEffect(() => { captureCb.current = onCaptureChange; }, [onCaptureChange]);
+  const wasCapturing = useRef(false);
+  useEffect(() => {
+    if (wasCapturing.current === capturing) return;
+    wasCapturing.current = capturing;
+    captureCb.current?.(capturing);
+  }, [capturing]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    if (cancelOnEscape && e.code === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+      setCapturing(false);
+      return;
+    }
     if (MOD_CODES.has(e.code)) return; // wait for a non-modifier key
     const token = codeToToken(e.code);
     if (!token) return;
@@ -83,6 +103,7 @@ export function HotkeyInput({ value, onChange, disabled = false }: HotkeyInputPr
 
   return (
     <div className={styles.root}>
+      {!hidePresets && (
       <Select
         className={styles.presetSelect}
         value=""
@@ -92,6 +113,7 @@ export function HotkeyInput({ value, onChange, disabled = false }: HotkeyInputPr
         ariaLabel={t('panel.settings.deck.hotkeyPreset.placeholder')}
         disabled={disabled}
       />
+      )}
       <button
         type="button"
         className={styles.field}
@@ -100,7 +122,12 @@ export function HotkeyInput({ value, onChange, disabled = false }: HotkeyInputPr
         onBlur={() => setCapturing(false)}
         onKeyDown={capturing ? onKeyDown : undefined}
       >
-        {capturing ? t('panel.settings.deck.hotkeyCapture') : (value || t('panel.settings.deck.hotkeySet'))}
+        {capturing ? (
+          <>
+            {t('panel.settings.deck.hotkeyCapture')}
+            {cancelOnEscape && <span className={styles.hint}>{t('hotkeys.cancelHint')}</span>}
+          </>
+        ) : (display || value || t('panel.settings.deck.hotkeySet'))}
       </button>
     </div>
   );
