@@ -1,5 +1,5 @@
 import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
-import { fetchService, postServiceFormResult, putService, resolveHttp, tokenParam } from './service';
+import { deleteService, fetchService, postServiceFormResult, putService, resolveHttp, tokenParam } from './service';
 
 export type MystiqueMode = 'monitor' | 'media' | 'recording';
 
@@ -19,14 +19,19 @@ export type MystiqueMediaKind = 'picture' | 'gif';
 export const MYSTIQUE_WIDTH = 480;
 export const MYSTIQUE_HEIGHT = 640;
 
-/** The screen has held this many pictures at once; the service refuses more. */
-export const MYSTIQUE_MAX_PICTURES = 2;
+/** Slots per kind, as the screen's own software offers; the service refuses more. */
+export const MYSTIQUE_MAX_PICTURES = 9;
+export const MYSTIQUE_MAX_GIFS = 9;
 
 export interface MystiqueMediaItem {
   kind: MystiqueMediaKind;
   /** The id the screen stores the item under. */
   id: string;
   name: string;
+  /** Extension of the source the service kept for re-cropping. */
+  ext: string;
+  /** The source is kept, so the item can be re-cropped under its id. */
+  editable: boolean;
 }
 
 export interface MystiqueSensorPick {
@@ -112,13 +117,13 @@ export async function setMystiqueSettings(patch: MystiqueSettingsPatch): Promise
   return res !== null && !res.error;
 }
 
-/** Encodes the file for the screen and sends it; `replace` is the id of the picture it takes the place of. Null on a transport failure. */
+/** Encodes the file for the screen and sends it; `replace` is the id of the item it takes the place of. Null on a transport failure. */
 export async function uploadMystiqueMedia(
   file: File,
   kind: MystiqueMediaKind,
   crop: NormalizedCrop,
   replace?: string,
-): Promise<{ ok: boolean; msg: string } | null> {
+): Promise<{ ok: boolean; msg: string; id?: string } | null> {
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('kind', kind);
@@ -126,7 +131,20 @@ export async function uploadMystiqueMedia(
   if (replace) form.append('replace', replace);
   const res = await postServiceFormResult<{ error: boolean; msg: string; id?: string }>(`${BASE}/media`, form);
   if (res === null) return null;
-  return { ok: !res.error, msg: res.msg };
+  return res.error ? { ok: false, msg: res.msg } : { ok: true, msg: res.msg, id: res.id };
+}
+
+/** Without an id, erases every item on the screen; with one, drops it from Nexus only and the screen keeps it until an upload reuses its place. */
+export async function deleteMystiqueMedia(id?: string): Promise<boolean> {
+  const res = await deleteService<{ error: boolean }>(id ? `${BASE}/media/${encodeURIComponent(id)}` : `${BASE}/media`);
+  return res !== null && !res.error;
+}
+
+/** The kept source of an item, for re-cropping it. */
+export function mystiqueSourceUrl(id: string): string {
+  const base = resolveHttp(`${BASE}/media/${encodeURIComponent(id)}/source`);
+  const tok = tokenParam();
+  return tok ? `${base}?${tok}` : base;
 }
 
 /** Thumbnail of an uploaded item; `version` changes the URL after an upload replaces the item. */

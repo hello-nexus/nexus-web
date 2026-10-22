@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, Trash2, Wrench } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { Button } from '../../common/Button/Button';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
 import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
 import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
@@ -14,15 +15,19 @@ import { SensorPicker, useSensorLookup } from '../../../panel/widgets/monitoring
 import { DECK_MONITORING_CATEGORIES } from '../../../panel/widgets/deck/deckMonitoring';
 import { sensorsForDevice } from '../../../panel/widgets/monitoring/sensorPicker';
 import {
+  deleteMystiqueMedia,
   getMystiqueState,
+  mystiqueSourceUrl,
   mystiqueThumbUrl,
   setMystiqueSettings,
   uploadMystiqueMedia,
   MYSTIQUE_HEIGHT,
+  MYSTIQUE_MAX_GIFS,
   MYSTIQUE_MAX_PICTURES,
   MYSTIQUE_WIDTH,
   type MystiqueAnimation,
   type MystiqueAuxArea,
+  type MystiqueMediaItem,
   type MystiqueMediaKind,
   type MystiqueMediaSource,
   type MystiqueMode,
@@ -80,6 +85,9 @@ const ANIMATION_KEYS: Record<MystiqueAnimation, string> = {
   fade: 'devices.deepcool-mystique.animationFade',
 };
 const SCREEN_ASPECT = MYSTIQUE_WIDTH / MYSTIQUE_HEIGHT;
+// Kept sources the cropper can show; a browser cannot render the other accepted formats.
+const VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov', '.m4v']);
+const CROPPABLE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', ...VIDEO_EXTS]);
 
 // A local pick carries its File; a Klipy pick is staged in the service and fetched from rawUrl on confirm.
 interface CropState {
@@ -124,8 +132,9 @@ export function DeepCoolMystiqueDevicePage() {
   const brightnessRef = useRef<number | null>(null);
   const pictureInputRef = useRef<HTMLInputElement>(null);
   const gifInputRef = useRef<HTMLInputElement>(null);
-  // The picture a file pick replaces, set when its slot is clicked.
-  const replaceRef = useRef<string | undefined>(undefined);
+  const [selected, setSelected] = useState<Record<MystiqueMediaKind, string | null>>({ picture: null, gif: null });
+  // An item awaiting confirmation of its removal; 'all' for every item.
+  const [pendingRemove, setPendingRemove] = useState<MystiqueMediaItem | 'all' | null>(null);
   const [cropState, setCropState] = useState<CropState | null>(null);
   const [uploading, setUploading] = useState(false);
   // Bumped after each upload so a replaced item's thumbnail reloads under the same id.
@@ -190,9 +199,38 @@ export function DeepCoolMystiqueDevicePage() {
       kind: file.type.startsWith('video/') ? 'video' : 'image',
       name: file.name,
       target,
-      replace: target === 'picture' ? replaceRef.current : undefined,
       file,
     });
+  };
+
+  const addMedia = (kind: MystiqueMediaKind, count: number) => {
+    if (!ready || uploading) return;
+    if (count >= (kind === 'gif' ? MYSTIQUE_MAX_GIFS : MYSTIQUE_MAX_PICTURES)) {
+      push({ title: t('devices.deepcool-mystique.mediaFullTitle'), body: t('devices.deepcool-mystique.mediaFullBody') });
+      return;
+    }
+    (kind === 'gif' ? gifInputRef : pictureInputRef).current?.click();
+  };
+
+  // Re-crops the kept source and uploads it under the same id, which the screen replaces in place.
+  const editMedia = (item: MystiqueMediaItem) => {
+    const src = mystiqueSourceUrl(item.id);
+    setCropState({
+      src,
+      kind: VIDEO_EXTS.has(item.ext) ? 'video' : 'image',
+      name: `${item.name}${item.ext}`,
+      target: item.kind,
+      replace: item.id,
+      rawUrl: src,
+    });
+  };
+
+  const removeMedia = async (target: MystiqueMediaItem | 'all') => {
+    const ok = await deleteMystiqueMedia(target === 'all' ? undefined : target.id);
+    if (!aliveRef.current) return;
+    if (!ok) push({ title: t('devices.deepcool-mystique.removeFailedTitle'), body: t('devices.deepcool-mystique.removeFailedBody') });
+    const next = await getMystiqueState();
+    if (aliveRef.current && next !== null) setState(prev => prev && { ...prev, media: next.media });
   };
 
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
@@ -208,6 +246,8 @@ export function DeepCoolMystiqueDevicePage() {
         const result = upload ? await uploadMystiqueMedia(upload, target, crop, replace) : null;
         if (!result?.ok) {
           push({ title: t('devices.deepcool-mystique.uploadFailedTitle'), body: t('devices.deepcool-mystique.uploadFailedBody') });
+        } else if (result.id && aliveRef.current) {
+          setSelected(prev => ({ ...prev, [target]: result.id }));
         }
         setThumbVersion(v => v + 1);
       } finally {
@@ -264,7 +304,54 @@ export function DeepCoolMystiqueDevicePage() {
 
   const ready = state !== null && state.isConnected;
   const pictures = state?.media.filter(m => m.kind === 'picture') ?? [];
-  const gif = state?.media.find(m => m.kind === 'gif');
+  const gifs = state?.media.filter(m => m.kind === 'gif') ?? [];
+  const selectedItem = (kind: MystiqueMediaKind) => state?.media.find(m => m.kind === kind && m.id === selected[kind]);
+
+  // The add tile first, then the items; a click selects an item for the edit action.
+  const mediaGrid = (kind: MystiqueMediaKind, items: MystiqueMediaItem[]) => (
+    <div className={styles.mediaGrid}>
+      <EffectCard
+        label={t(kind === 'gif' ? 'devices.deepcool-mystique.addGif' : 'devices.deepcool-mystique.addPicture')}
+        thumbUrl={null}
+        thumbStatic
+        thumbAspect={SCREEN_ASPECT}
+        thumbOverlay={<span className={styles.mediaOverlay}><Plus size={28} aria-hidden /></span>}
+        active={false}
+        onClick={() => addMedia(kind, items.length)}
+      />
+      {items.map(item => (
+        <EffectCard
+          key={item.id}
+          asDiv
+          label={item.name}
+          keepCase
+          thumbUrl={mystiqueThumbUrl(item.id, thumbVersion)}
+          thumbStatic
+          thumbAspect={SCREEN_ASPECT}
+          active={selected[kind] === item.id}
+          ariaLabel={t('devices.deepcool-mystique.selectItem', { name: item.name })}
+          onClick={() => setSelected(prev => ({ ...prev, [kind]: item.id }))}
+          onDelete={ready && !uploading ? () => setPendingRemove(item) : undefined}
+          deleteAriaLabel={t('devices.deepcool-mystique.removeItem', { name: item.name })}
+        />
+      ))}
+    </div>
+  );
+
+  const editButton = (kind: MystiqueMediaKind) => {
+    const item = selectedItem(kind);
+    return (
+      <Button
+        size="sm"
+        tone="neutral"
+        icon={<Wrench size={16} aria-hidden />}
+        disabled={!ready || uploading || !item || !item.editable || !CROPPABLE_EXTS.has(item.ext)}
+        onClick={() => { if (item) editMedia(item); }}
+      >
+        {t('devices.deepcool-mystique.editSelected')}
+      </Button>
+    );
+  };
   const chosen = state?.modeChosen === true;
   const mode = state?.mode ?? 'monitor';
 
@@ -375,27 +462,10 @@ export function DeepCoolMystiqueDevicePage() {
                   onChange={key => edit({ mediaSource: key as MystiqueMediaSource, sourceChosen: true }, { mediaSource: key as MystiqueMediaSource })}
                 />
               </SettingRow>
-              <SettingRow label={t('devices.deepcool-mystique.pictures')} description={t('devices.deepcool-mystique.picturesHint')} />
-              <div className={styles.mediaGrid}>
-                {Array.from({ length: MYSTIQUE_MAX_PICTURES }, (_, i) => pictures[i]).map((item, i) => (
-                  <EffectCard
-                    key={item?.id ?? `empty-${i}`}
-                    label={item ? item.name : t('devices.deepcool-mystique.addPicture')}
-                    keepCase={!!item}
-                    thumbUrl={item ? mystiqueThumbUrl(item.id, thumbVersion) : null}
-                    thumbStatic
-                    thumbAspect={SCREEN_ASPECT}
-                    thumbOverlay={item ? undefined : <span className={styles.mediaOverlay}><Plus size={28} aria-hidden /></span>}
-                    active={false}
-                    ariaLabel={item ? t('devices.deepcool-mystique.replacePicture', { name: item.name }) : t('devices.deepcool-mystique.addPicture')}
-                    onClick={() => {
-                      if (!ready || uploading) return;
-                      replaceRef.current = item?.id;
-                      pictureInputRef.current?.click();
-                    }}
-                  />
-                ))}
-              </div>
+              <SettingRow label={t('devices.deepcool-mystique.pictures')} description={t('devices.deepcool-mystique.picturesHint')}>
+                {editButton('picture')}
+              </SettingRow>
+              {mediaGrid('picture', pictures)}
               <SettingRow
                 label={t('devices.deepcool-mystique.switchTime')}
                 description={t(state.mediaChosen ? 'devices.deepcool-mystique.mediaSetHint' : 'devices.deepcool-mystique.mediaUnsetHint')}
@@ -424,28 +494,25 @@ export function DeepCoolMystiqueDevicePage() {
                   size="sm"
                   tone="neutral"
                   icon={<Sparkles size={16} aria-hidden />}
-                  disabled={!ready || uploading}
+                  disabled={!ready || uploading || gifs.length >= MYSTIQUE_MAX_GIFS}
                   onClick={() => setKlipyOpen(true)}
                 >
                   {t('lighting.controls.klipyBrowse')}
                 </Button>
+                {editButton('gif')}
               </SettingRow>
-              <div className={styles.mediaGrid}>
-                <EffectCard
-                  label={gif ? gif.name : t('devices.deepcool-mystique.addGif')}
-                  keepCase={!!gif}
-                  thumbUrl={gif ? mystiqueThumbUrl(gif.id, thumbVersion) : null}
-                  thumbStatic
-                  thumbAspect={SCREEN_ASPECT}
-                  thumbOverlay={gif ? undefined : <span className={styles.mediaOverlay}><Plus size={28} aria-hidden /></span>}
-                  active={false}
-                  ariaLabel={gif ? t('devices.deepcool-mystique.replaceGif', { name: gif.name }) : t('devices.deepcool-mystique.addGif')}
-                  onClick={() => {
-                    if (!ready || uploading) return;
-                    gifInputRef.current?.click();
-                  }}
-                />
-              </div>
+              {mediaGrid('gif', gifs)}
+              <SettingRow label={t('devices.deepcool-mystique.removeAll')} description={t('devices.deepcool-mystique.removeAllHint')}>
+                <Button
+                  size="sm"
+                  tone="danger"
+                  icon={<Trash2 size={16} aria-hidden />}
+                  disabled={!ready || uploading || state.media.length === 0}
+                  onClick={() => setPendingRemove('all')}
+                >
+                  {t('devices.deepcool-mystique.removeAllButton')}
+                </Button>
+              </SettingRow>
               <input ref={pictureInputRef} type="file" accept="image/*" className={styles.hiddenInput} onChange={pickFile('picture')} />
               <input ref={gifInputRef} type="file" accept="image/gif,video/*" className={styles.hiddenInput} onChange={pickFile('gif')} />
             </>
@@ -516,6 +583,21 @@ export function DeepCoolMystiqueDevicePage() {
         thumbAspect={SCREEN_ASPECT}
         onPick={pick => { void handleKlipyPick(pick); }}
         onClose={() => { setKlipyOpen(false); setKlipyError(null); }}
+      />
+
+      <ConfirmModal
+        open={pendingRemove !== null}
+        title={pendingRemove === 'all'
+          ? t('devices.deepcool-mystique.removeAllConfirmTitle')
+          : t('devices.deepcool-mystique.removeConfirmTitle', { name: pendingRemove?.name ?? '' })}
+        message={t(pendingRemove === 'all' ? 'devices.deepcool-mystique.removeAllConfirmBody' : 'devices.deepcool-mystique.removeConfirmBody')}
+        confirmLabel={t('devices.deepcool-mystique.remove')}
+        onCancel={() => setPendingRemove(null)}
+        onConfirm={() => {
+          const target = pendingRemove;
+          setPendingRemove(null);
+          if (target) void removeMedia(target);
+        }}
       />
 
       {cropState && (
