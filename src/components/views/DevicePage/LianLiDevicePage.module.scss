@@ -147,3 +147,8 @@
   background: rgba(0, 0, 0, 0.42);
   pointer-events: none;
 }
+
+// Five across, as the screen's own software lays out its slots.
+.mediaGridCompact {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
