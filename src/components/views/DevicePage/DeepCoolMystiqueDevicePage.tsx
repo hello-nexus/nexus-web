@@ -137,6 +137,7 @@ export function DeepCoolMystiqueDevicePage() {
   const [pendingRemove, setPendingRemove] = useState<MystiqueMediaItem | 'all' | null>(null);
   const [cropState, setCropState] = useState<CropState | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   // Bumped after each upload so a replaced item's thumbnail reloads under the same id.
   const [thumbVersion, setThumbVersion] = useState(0);
   const [klipyOpen, setKlipyOpen] = useState(false);
@@ -204,7 +205,7 @@ export function DeepCoolMystiqueDevicePage() {
   };
 
   const addMedia = (kind: MystiqueMediaKind, count: number) => {
-    if (!ready || uploading) return;
+    if (!ready || mediaBusy) return;
     if (count >= (kind === 'gif' ? MYSTIQUE_MAX_GIFS : MYSTIQUE_MAX_PICTURES)) {
       push({ title: t('devices.deepcool-mystique.mediaFullTitle'), body: t('devices.deepcool-mystique.mediaFullBody') });
       return;
@@ -226,11 +227,30 @@ export function DeepCoolMystiqueDevicePage() {
   };
 
   const removeMedia = async (target: MystiqueMediaItem | 'all') => {
-    const ok = await deleteMystiqueMedia(target === 'all' ? undefined : target.id);
-    if (!aliveRef.current) return;
-    if (!ok) push({ title: t('devices.deepcool-mystique.removeFailedTitle'), body: t('devices.deepcool-mystique.removeFailedBody') });
-    const next = await getMystiqueState();
-    if (aliveRef.current && next !== null) setState(prev => prev && { ...prev, media: next.media });
+    setRemoving(true);
+    try {
+      busyRef.current += 1;
+      writeGenRef.current += 1;
+      let ok = false;
+      try {
+        ok = await deleteMystiqueMedia(target === 'all' ? undefined : target.id);
+      } catch {
+        ok = false;
+      } finally {
+        busyRef.current -= 1;
+        writeGenRef.current += 1;
+      }
+      if (!aliveRef.current) return;
+      if (!ok) push({ title: t('devices.deepcool-mystique.removeFailedTitle'), body: t('devices.deepcool-mystique.removeFailedBody') });
+      const gen = writeGenRef.current;
+      const next = await getMystiqueState();
+      if (aliveRef.current && next !== null && busyRef.current === 0 && !draggingRef.current && gen === writeGenRef.current) {
+        brightnessRef.current = next.brightness;
+        setState(next);
+      }
+    } finally {
+      if (aliveRef.current) setRemoving(false);
+    }
   };
 
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
@@ -303,13 +323,15 @@ export function DeepCoolMystiqueDevicePage() {
   }, [t]);
 
   const ready = state !== null && state.isConnected;
+  // An upload or a removal is talking to the screen, so the other media actions wait.
+  const mediaBusy = uploading || removing;
   const pictures = state?.media.filter(m => m.kind === 'picture') ?? [];
   const gifs = state?.media.filter(m => m.kind === 'gif') ?? [];
   const selectedItem = (kind: MystiqueMediaKind) => state?.media.find(m => m.kind === kind && m.id === selected[kind]);
 
   // The add tile first, then the items; a click selects an item for the edit action.
   const mediaGrid = (kind: MystiqueMediaKind, items: MystiqueMediaItem[]) => (
-    <div className={styles.mediaGrid}>
+    <div className={`${styles.mediaGrid} ${styles.mediaGridCompact}`}>
       <EffectCard
         label={t(kind === 'gif' ? 'devices.deepcool-mystique.addGif' : 'devices.deepcool-mystique.addPicture')}
         thumbUrl={null}
@@ -331,7 +353,7 @@ export function DeepCoolMystiqueDevicePage() {
           active={selected[kind] === item.id}
           ariaLabel={t('devices.deepcool-mystique.selectItem', { name: item.name })}
           onClick={() => setSelected(prev => ({ ...prev, [kind]: item.id }))}
-          onDelete={ready && !uploading ? () => setPendingRemove(item) : undefined}
+          onDelete={ready && !mediaBusy ? () => setPendingRemove(item) : undefined}
           deleteAriaLabel={t('devices.deepcool-mystique.removeItem', { name: item.name })}
         />
       ))}
@@ -345,7 +367,7 @@ export function DeepCoolMystiqueDevicePage() {
         size="sm"
         tone="neutral"
         icon={<Wrench size={16} aria-hidden />}
-        disabled={!ready || uploading || !item || !item.editable || !CROPPABLE_EXTS.has(item.ext)}
+        disabled={!ready || mediaBusy || !item || !item.editable || !CROPPABLE_EXTS.has(item.ext)}
         onClick={() => { if (item) editMedia(item); }}
       >
         {t('devices.deepcool-mystique.editSelected')}
@@ -462,7 +484,7 @@ export function DeepCoolMystiqueDevicePage() {
                   onChange={key => edit({ mediaSource: key as MystiqueMediaSource, sourceChosen: true }, { mediaSource: key as MystiqueMediaSource })}
                 />
               </SettingRow>
-              <SettingRow label={t('devices.deepcool-mystique.pictures')} description={t('devices.deepcool-mystique.picturesHint')}>
+              <SettingRow label={t('devices.deepcool-mystique.pictures')} description={localizeNumbers(t('devices.deepcool-mystique.picturesHint', { count: MYSTIQUE_MAX_PICTURES }), numberFormat)}>
                 {editButton('picture')}
               </SettingRow>
               {mediaGrid('picture', pictures)}
@@ -489,12 +511,12 @@ export function DeepCoolMystiqueDevicePage() {
                   onChange={key => edit({ animation: key as MystiqueAnimation, mediaChosen: true }, { animation: key as MystiqueAnimation })}
                 />
               </SettingRow>
-              <SettingRow label={t('devices.deepcool-mystique.gif')} description={t('devices.deepcool-mystique.gifHint')}>
+              <SettingRow label={t('devices.deepcool-mystique.gif')} description={localizeNumbers(t('devices.deepcool-mystique.gifHint', { count: MYSTIQUE_MAX_GIFS }), numberFormat)}>
                 <Button
                   size="sm"
                   tone="neutral"
                   icon={<Sparkles size={16} aria-hidden />}
-                  disabled={!ready || uploading || gifs.length >= MYSTIQUE_MAX_GIFS}
+                  disabled={!ready || mediaBusy || gifs.length >= MYSTIQUE_MAX_GIFS}
                   onClick={() => setKlipyOpen(true)}
                 >
                   {t('lighting.controls.klipyBrowse')}
@@ -507,7 +529,7 @@ export function DeepCoolMystiqueDevicePage() {
                   size="sm"
                   tone="danger"
                   icon={<Trash2 size={16} aria-hidden />}
-                  disabled={!ready || uploading || state.media.length === 0}
+                  disabled={!ready || mediaBusy || state.media.length === 0}
                   onClick={() => setPendingRemove('all')}
                 >
                   {t('devices.deepcool-mystique.removeAllButton')}
