@@ -572,7 +572,8 @@
 // reference overflows the card height and the glass clips the bottom. Same
 // per-axis fix as q60/y70 above.
 .panelRoot[data-surface='lcd-square'] .cellScaler,
-.panelRoot[data-surface='lcd-wide'] .cellScaler {
+.panelRoot[data-surface='lcd-wide'] .cellScaler,
+.glassTile .cellScaler {
   --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }

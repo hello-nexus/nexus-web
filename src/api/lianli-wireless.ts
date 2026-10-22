@@ -7,6 +7,10 @@ export interface LianLiWirelessFan {
   /** Bound master MAC, or empty when unbound. */
   masterMac: string;
   boundToUs: boolean;
+  /** A live LCD Flex chain on this PC's radio, the ones with built-in wireless themes. */
+  flexLcdEligible?: boolean;
+  /** Bound LCD Flex chain regardless of a stale blip. */
+  flexLcdChain?: boolean;
   channel: number;
   /** rx_type slot (1..14); 0 or 0xFE means unbound. */
   slot: number;
@@ -38,10 +42,16 @@ export interface LianLiWirelessFan {
   lcdFirmware?: string;
   /** Wired LCD Flex units only: position in the light sequence. */
   sortIndex?: number;
+  /** Wired LCD Flex units only: the service's name for the unit, shared by Cooling, Lighting and Screens. */
+  name?: string;
   /** Wired LCD Flex units only: the unit is flashing for Identify. */
   identifying?: boolean;
   /** A Flex unit that the wired LCD Flex page owns, so it is not offered for RF binding here. */
   wiredOwned?: boolean;
+  /** A Flex unit plugged in over USB and bound to this PC's radio, which drives its lighting and fan speed. */
+  radioDrivesUsb?: boolean;
+  /** Wired LCD Flex units only: bound to this PC's radio. */
+  radioBound?: boolean;
 }
 
 /** Why the link is down, for the device page. Absent on a service older than the field. */
@@ -230,6 +240,56 @@ export function getLianLiAioScreen(mac: string): Promise<LianLiAioScreen | null>
 
 export async function setLianLiAioScreen(mac: string, patch: LianLiAioScreenPatch): Promise<boolean> {
   return isOk(await putService<OkResponse>(`/devices/lianli-wireless/aio-screen/${encodeURIComponent(mac)}`, patch));
+}
+
+export interface LianLiFlexLcdTheme {
+  index: number;
+  /** Editable colors of the theme: 5 = two graph and three text colors, 4 = one graph and three text, 3 = text only, 0 = none. */
+  colorCount: number;
+  defaults: string[];
+}
+
+export interface LianLiFlexLcdFan {
+  theme: number;
+  /** Index into the 25 data sources of L-Connect's wireless themes. */
+  source: number;
+  /** One "#RRGGBB" per editable color of the theme; null for the theme's defaults. */
+  colors: string[] | null;
+}
+
+export interface LianLiFlexLcdChain {
+  mac: string;
+  /** TL chains only. */
+  upDownSwap?: boolean | null;
+  family: 'tlFlex' | 'slInfFlex';
+  fanCount: number;
+  enabled: boolean;
+  brightness: number;
+  rotation: number;
+  fans: LianLiFlexLcdFan[];
+}
+
+export interface LianLiFlexLcd {
+  sourceCount: number;
+  themes: LianLiFlexLcdTheme[];
+  chains: LianLiFlexLcdChain[];
+}
+
+export interface LianLiFlexLcdPatch {
+  upDownSwap?: boolean;
+  enabled?: boolean;
+  brightness?: number;
+  rotation?: number;
+  fans?: { index: number; theme?: number; source?: number; colors?: string[] }[];
+}
+
+/** TL / SL-INF LCD Flex fans on this PC's radio and their built-in wireless themes. */
+export function getLianLiFlexLcd(): Promise<LianLiFlexLcd | null> {
+  return fetchService<LianLiFlexLcd>('/devices/lianli-wireless/flex-lcd');
+}
+
+export async function setLianLiFlexLcd(mac: string, patch: LianLiFlexLcdPatch): Promise<boolean> {
+  return isOk(await putService<OkResponse>(`/devices/lianli-wireless/flex-lcd/${encodeURIComponent(mac)}`, patch));
 }
 
 export type LianLiWirelessScreenContentType =

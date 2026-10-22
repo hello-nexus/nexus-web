@@ -68,31 +68,6 @@ describe('FreeformResizeFrame', () => {
     expect(container.querySelector('[data-freeform-frame]')).toHaveAttribute('data-touch', 'true');
   });
 
-  it('exits on a body tap and not on a body drag', () => {
-    const { onBegin, onUpdate, onEnd, onExit } = setup();
-    const body = screen.getByRole('button', { name: 'panel.freeform.body' });
-
-    press(body, 100, 100);
-    release(body, 101, 100);
-    expect(onBegin).toHaveBeenCalledTimes(1);
-    expect(onUpdate).not.toHaveBeenCalled();
-    expect(onEnd).toHaveBeenCalledTimes(1);
-    expect(onExit).toHaveBeenCalledTimes(1);
-
-    press(body, 100, 100);
-    move(body, 200, 160);
-    release(body, 200, 160);
-    expect(onExit).toHaveBeenCalledTimes(1);
-  });
-
-  it('reports a body drag as a move in cells', () => {
-    const { onUpdate } = setup();
-    const body = screen.getByRole('button', { name: 'panel.freeform.body' });
-    press(body, 0, 0);
-    move(body, 200, 100);
-    expect(onUpdate).toHaveBeenLastCalledWith('move', 2, 2, false);
-  });
-
   it('reports a corner drag with the corner and the cell delta', () => {
     const { onUpdate, onEnd, onExit } = setup();
     const handle = screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' });
@@ -135,14 +110,16 @@ describe('FreeformResizeFrame', () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('exits from the keyboard', () => {
+  it('exits from a corner with Escape', () => {
     const { onExit } = setup();
-    const body = screen.getByRole('button', { name: 'panel.freeform.body' });
-    expect(body).toHaveAttribute('tabindex', '0');
-    fireEvent.keyDown(body, { key: 'Enter' });
-    fireEvent.keyDown(body, { key: ' ' });
-    fireEvent.keyDown(body, { key: 'Escape' });
-    expect(onExit).toHaveBeenCalledTimes(3);
+    fireEvent.keyDown(screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' }), { key: 'Escape' });
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders only the corners, so every other press falls through to the tile', () => {
+    const { container } = setup();
+    expect(screen.queryByRole('button', { name: 'panel.freeform.body' })).toBeNull();
+    expect(container.querySelectorAll('[data-freeform-frame] button')).toHaveLength(4);
   });
 });
 

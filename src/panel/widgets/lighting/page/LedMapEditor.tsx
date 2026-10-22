@@ -27,6 +27,8 @@ import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import { LedColorLockSection } from './LedColorLockSection';
 import { RateCapSelect } from './RateCapSelect';
+import { SamplingModeSelect } from './SamplingModeSelect';
+import { AreaCells } from '../../../../components/common/AreaCells/AreaCells';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
@@ -1452,6 +1454,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // ── Live preview push ─────────────────────────────────────────────────
 
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Area cells the service recomputed from the draft layout, with the card they belong to.
+  const [draftCells, setDraftCells] = useState<{ id: string; cells: number[][] } | null>(null);
+  const draftCellsSeq = useRef(0);
+  // Toggling the mode makes any held draft cells stale.
+  const samplingMode = devices.find(d => d.id === selectedZoneId)?.sampling;
+  useEffect(() => { draftCellsSeq.current += 1; setDraftCells(null); }, [samplingMode, selectedZoneId]);
 
   useEffect(() => {
     if (loading || saving) return;
@@ -1464,11 +1472,17 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     clearTimeout(previewTimerRef.current);
     previewTimerRef.current = setTimeout(() => {
       if (isStagedZoneId(selectedZoneIdRef.current)) return;
+      const sentFor = selectedZoneIdRef.current;
+      const mine = ++draftCellsSeq.current;
       postLedPreviewLayout(
-        selectedZoneIdRef.current,
+        sentFor,
         ledCount,
-        zoneLeds.map(l => ({ index: l.index, u: l.u, v: l.v, disabled: l.disabled })),
-      ).catch(() => { /* best-effort */ });
+        // The service indexes a card's preview layout from 0, while a zone's LEDs carry device-level indices.
+        [...zoneLeds].sort((a, b) => a.index - b.index).map((l, i) => ({ index: zoneScoped ? i : l.index, u: l.u, v: l.v, disabled: l.disabled })),
+      ).then(r => {
+        // Newest response wins; the cells follow the draft the service just read.
+        if (mine === draftCellsSeq.current) setDraftCells(r && !r.error && r.areaCells ? { id: sentFor, cells: r.areaCells } : null);
+      }).catch(() => { /* best-effort */ });
     }, 80);
     return () => clearTimeout(previewTimerRef.current);
   }, [leds, selectedZoneId, loading, saving, zoneScoped]);
@@ -2464,6 +2478,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             >
             </div>
 
+            {/* Sampling modes other than LED: the cell each LED reads, under the dots. Follows the cells the service returns for the draft layout, else the card's latest. */}
+            {zoneCard?.sampling && zoneCard.sampling !== 'led' && (draftCells?.id === zoneCard.id ? draftCells.cells : zoneCard.areaCells)?.length ? (() => {
+              const pad = getPadPercent();
+              return (
+                <AreaCells
+                  cells={draftCells?.id === zoneCard.id ? draftCells.cells : zoneCard.areaCells!}
+                  style={{
+                    left: `${devRect.x + pad.px}%`,
+                    top: `${devRect.y + pad.py}%`,
+                    width: `${devRect.w - 2 * pad.px}%`,
+                    height: `${devRect.h - 2 * pad.py}%`,
+                    zIndex: 0,
+                  }}
+                />
+              );
+            })() : null}
+
             {(() => {
               const rendered = new Set<number>();
               const elements: React.ReactElement[] = [];
@@ -2822,6 +2853,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </button>
             ) : <span />}
             <div className={styles.saveGroup}>
+              {zoneCard && zoneCard.sampling !== undefined && (
+                <SamplingModeSelect
+                  id={zoneCard.id}
+                  value={zoneCard.sampling}
+                  onFail={() => push({ title: t('lighting.ledMap.samplingFailed') })}
+                  onSaved={onRateCapChanged}
+                />
+              )}
               {zoneCard?.rateCapSupported && (
                 <RateCapSelect
                   id={zoneCard.id}

@@ -2,12 +2,15 @@ import {
   isFreeformWidgetSize,
   type PanelWidgetSize,
 } from '../types';
-import { sizeToSpan, type GridSpan } from './grid';
+import { sizeToSpan, snapStride, type GridSpan } from './grid';
 import { dominantScale } from '../../lib/aspectResize';
 
 // Spans are cols x rows, as in grid.ts.
 
 export interface FreeformRect { col: number; row: number; cols: number; rows: number; }
+/** Whether a rect can really be placed (pushed widgets all have room on the page); candidates it refuses are skipped. */
+export type PlaceCheck = (rect: FreeformRect) => boolean;
+
 export interface FreeformBounds { cols: number; rows: number; }
 export type FreeformCorner = 'tl' | 'tr' | 'bl' | 'br';
 
@@ -15,6 +18,12 @@ const FREEFORM_MIN_SIDE = 4;
 
 export function spanToSize(span: GridSpan): PanelWidgetSize {
   return `${span.cols}x${span.rows}`;
+}
+
+// A moved origin must land on the regular drag's stride grid; an origin that does not move is left as it is.
+function originOnStride(start: FreeformRect, col: number, row: number, span: GridSpan): boolean {
+  return (col === start.col || col % snapStride(span.cols) === 0)
+    && (row === start.row || row % snapStride(span.rows) === 0);
 }
 
 /** Declared sizes, plus (withEvenSpans) every span with both sides even and at least FREEFORM_MIN_SIDE, capped by the grid; the round mask is not a span. */
@@ -41,7 +50,9 @@ function distance(a: GridSpan, cols: number, rows: number): number {
   return Math.hypot(a.cols - cols, a.rows - rows);
 }
 
-/** Drags one corner by (dCols, dRows) cells with the opposite corner fixed; picks the nearest snap span that fits the grid, smaller on a tie. With lockRatio the drag is first reduced to one uniform scale of the start span, so the snap targets the ratio-kept size. */
+/** Drags one corner by (dCols, dRows) cells with the opposite corner fixed; picks the nearest snap span that fits the grid, smaller on a tie.
+ *  With lockRatio the drag becomes one uniform scale of the start span, capped to the room the anchored corner has, and only spans keeping the start ratio are considered;
+ *  when none but the start qualifies the start is kept, and the least ratio error is used only if the start size itself is not a snap span. */
 export function resizeRectFromCorner(
   start: FreeformRect,
   corner: FreeformCorner,
@@ -49,6 +60,7 @@ export function resizeRectFromCorner(
   dRows: number,
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
+  canPlace?: PlaceCheck,
   lockRatio = false,
 ): FreeformRect {
   const fromLeft = corner === 'tl' || corner === 'bl';
@@ -58,27 +70,43 @@ export function resizeRectFromCorner(
   let rawCols = fromLeft ? start.cols - dCols : start.cols + dCols;
   let rawRows = fromTop ? start.rows - dRows : start.rows + dRows;
   if (lockRatio) {
-    const k = Math.max(0, dominantScale(rawCols / start.cols, rawRows / start.rows));
+    const kMax = Math.min((fromLeft ? right : bounds.cols - start.col) / start.cols, (fromTop ? bottom : bounds.rows - start.row) / start.rows);
+    const k = Math.max(0, Math.min(kMax, dominantScale(rawCols / start.cols, rawRows / start.rows)));
     rawCols = start.cols * k;
     rawRows = start.rows * k;
   }
 
-  let best: FreeformRect | null = null;
-  let bestScore = Infinity;
-  let bestArea = Infinity;
-  for (const span of snapSpans) {
-    const col = fromLeft ? right - span.cols : start.col;
-    const row = fromTop ? bottom - span.rows : start.row;
-    if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
-    const score = distance(span, rawCols, rawRows);
-    const area = span.cols * span.rows;
-    if (score < bestScore || (score === bestScore && area < bestArea)) {
-      best = { col, row, cols: span.cols, rows: span.rows };
+  const search = (accept: (span: GridSpan) => boolean, scoreOf: (span: GridSpan) => number): FreeformRect | null => {
+    let best: FreeformRect | null = null;
+    let bestScore = Infinity;
+    let bestArea = Infinity;
+    for (const span of snapSpans) {
+      if (!accept(span)) continue;
+      const col = fromLeft ? right - span.cols : start.col;
+      const row = fromTop ? bottom - span.rows : start.row;
+      if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
+      if (!originOnStride(start, col, row, span)) continue;
+      const score = scoreOf(span);
+      const area = span.cols * span.rows;
+      if (!(score < bestScore || (score === bestScore && area < bestArea))) continue;
+      const rect = { col, row, cols: span.cols, rows: span.rows };
+      if (canPlace && !canPlace(rect)) continue;
+      best = rect;
       bestScore = score;
       bestArea = area;
     }
-  }
-  return best ?? start;
+    return best;
+  };
+  const byDistance = (span: GridSpan) => distance(span, rawCols, rawRows);
+
+  if (!lockRatio) return search(() => true, byDistance) ?? start;
+
+  const matches = (span: GridSpan) => span.cols * start.rows === span.rows * start.cols;
+  const matched = search(matches, byDistance);
+  if (matched) return matched;
+  if (snapSpans.some(span => span.cols === start.cols && span.rows === start.rows)) return start;
+  const startRatio = start.cols / start.rows;
+  return search(() => true, span => Math.abs(Math.log(span.cols / span.rows / startRatio))) ?? start;
 }
 
 /** One keyboard step: the nearest snap span past the current one on the stepped axis (outward grows, inward shrinks), kept inside the grid. */
@@ -89,6 +117,7 @@ export function stepRectFromCorner(
   stepRows: number,
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
+  canPlace?: PlaceCheck,
 ): FreeformRect {
   const fromLeft = corner === 'tl' || corner === 'bl';
   const fromTop = corner === 'tl' || corner === 'tr';
@@ -107,21 +136,24 @@ export function stepRectFromCorner(
     const col = fromLeft ? right - span.cols : start.col;
     const row = fromTop ? bottom - span.rows : start.row;
     if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) continue;
+    if (!originOnStride(start, col, row, span)) continue;
     // Nearest on the stepped axis first, then least change on the other.
     const score = (growCols !== 0 ? Math.abs(dCols) : Math.abs(dRows)) * 1000 + (growCols !== 0 ? Math.abs(dRows) : Math.abs(dCols));
-    if (score < bestScore) {
-      best = { col, row, cols: span.cols, rows: span.rows };
-      bestScore = score;
-    }
+    if (score >= bestScore) continue;
+    const rect = { col, row, cols: span.cols, rows: span.rows };
+    if (canPlace && !canPlace(rect)) continue;
+    best = rect;
+    bestScore = score;
   }
   return best ?? start;
 }
 
-/** Whether dragging each corner can reach any other snap span that fits the grid with the opposite corner fixed. */
+/** Whether dragging each corner can reach any other snap span that fits the grid, and can be placed, with the opposite corner fixed. */
 export function cornerRoom(
   rect: FreeformRect,
   snapSpans: readonly GridSpan[],
   bounds: FreeformBounds,
+  canPlace?: PlaceCheck,
 ): Record<FreeformCorner, boolean> {
   const right = rect.col + rect.cols;
   const bottom = rect.row + rect.rows;
@@ -129,21 +161,11 @@ export function cornerRoom(
     if (span.cols === rect.cols && span.rows === rect.rows) return false;
     const col = fromLeft ? right - span.cols : rect.col;
     const row = fromTop ? bottom - span.rows : rect.row;
-    return col >= 0 && row >= 0 && col + span.cols <= bounds.cols && row + span.rows <= bounds.rows;
+    if (col < 0 || row < 0 || col + span.cols > bounds.cols || row + span.rows > bounds.rows) return false;
+    if (!originOnStride(rect, col, row, span)) return false;
+    return !canPlace || canPlace({ col, row, cols: span.cols, rows: span.rows });
   });
   return { tl: room(true, true), tr: room(false, true), bl: room(true, false), br: room(false, false) };
-}
-
-/** Moves a rect by (dCols, dRows) cells, rounded to whole cells and kept inside the grid. */
-export function moveRect(
-  start: FreeformRect,
-  dCols: number,
-  dRows: number,
-  bounds: FreeformBounds,
-): FreeformRect {
-  const col = Math.max(0, Math.min(Math.round(start.col + dCols), bounds.cols - start.cols));
-  const row = Math.max(0, Math.min(Math.round(start.row + dRows), bounds.rows - start.rows));
-  return { ...start, col, row };
 }
 
 export function sameRect(a: FreeformRect, b: FreeformRect): boolean {

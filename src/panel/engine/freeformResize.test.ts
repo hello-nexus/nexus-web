@@ -4,7 +4,6 @@ import {
   clampFreeformSize,
   cornerRoom,
   freeformSnapSpans,
-  moveRect,
   resizeRectFromCorner,
   stepRectFromCorner,
   spanToSize,
@@ -65,19 +64,44 @@ describe('freeformSnapSpans without the even spans', () => {
     expect(resizeRectFromCorner({ col: 4, row: 4, cols: 4, rows: 4 }, 'tl', 2, 2, snap, { cols: 8, rows: 8 })).toEqual({ col: 6, row: 6, cols: 2, rows: 2 });
   });
 
-  it('keeps the start ratio when locked, following the axis that moved further', () => {
-    const snap = freeformSnapSpans(['2x2', '4x2', '4x4', '8x4'], { cols: 8, rows: 8 }, false);
-    const b = { cols: 8, rows: 8 };
-    const start = { col: 0, row: 0, cols: 4, rows: 2 };
-    expect(resizeRectFromCorner(start, 'br', 4, 0, snap, b, true)).toEqual({ col: 0, row: 0, cols: 8, rows: 4 });
-    expect(resizeRectFromCorner(start, 'br', 0, 0, snap, b, true)).toEqual(start);
+  describe('ratio lock', () => {
+    const noCheck = undefined;
+    it('follows the axis that moved further and keeps the ratio', () => {
+      const snap = freeformSnapSpans(['2x2', '4x2', '4x4', '8x4'], { cols: 8, rows: 8 }, false);
+      const b = { cols: 8, rows: 8 };
+      const start = { col: 0, row: 0, cols: 4, rows: 2 };
+      expect(resizeRectFromCorner(start, 'br', 4, 0, snap, b, noCheck, true)).toEqual({ col: 0, row: 0, cols: 8, rows: 4 });
+      expect(resizeRectFromCorner(start, 'br', 0, 0, snap, b, noCheck, true)).toEqual(start);
+    });
+
+    it('shrinks from the far edge with the opposite corner anchored', () => {
+      const snap = freeformSnapSpans(['2x2', '4x2', '4x4', '8x4'], { cols: 8, rows: 8 }, false);
+      const r = resizeRectFromCorner({ col: 0, row: 0, cols: 8, rows: 4 }, 'tl', 4, 0, snap, { cols: 8, rows: 8 }, noCheck, true);
+      expect(r).toEqual({ col: 4, row: 2, cols: 4, rows: 2 });
+    });
+
+    it('caps the scale to the room at the grid edge instead of distorting', () => {
+      const snap = freeformSnapSpans(['4x4'], { cols: 8, rows: 8 }, true);
+      const r = resizeRectFromCorner({ col: 4, row: 0, cols: 4, rows: 4 }, 'br', 0, 2, snap, { cols: 8, rows: 8 }, noCheck, true);
+      expect(r).toEqual({ col: 4, row: 0, cols: 4, rows: 4 });
+    });
+
+    it('keeps the ratio with even spans where plain snapping would not', () => {
+      const bounds = { cols: 12, rows: 8 };
+      const snap = freeformSnapSpans([], bounds, true);
+      const start = { col: 0, row: 0, cols: 6, rows: 4 };
+      expect(resizeRectFromCorner(start, 'br', 2, 4 / 3, snap, bounds, noCheck, false)).toEqual({ col: 0, row: 0, cols: 8, rows: 6 });
+      expect(resizeRectFromCorner(start, 'br', 2, 4 / 3, snap, bounds, noCheck, true)).toEqual(start);
+      expect(resizeRectFromCorner(start, 'br', 6, 0, snap, bounds, noCheck, true)).toEqual({ col: 0, row: 0, cols: 12, rows: 8 });
+    });
+
+    it('falls back to the least ratio error when the start size is not a snap span', () => {
+      const snap = freeformSnapSpans(['4x4', '8x4'], { cols: 8, rows: 8 }, false);
+      const r = resizeRectFromCorner({ col: 0, row: 0, cols: 6, rows: 4 }, 'br', 2, 0, snap, { cols: 8, rows: 8 }, noCheck, true);
+      expect(r).toEqual({ col: 0, row: 0, cols: 8, rows: 4 });
+    });
   });
 
-  it('shrinks a locked corner from the far edge and anchors the opposite corner', () => {
-    const snap = freeformSnapSpans(['2x2', '4x2', '4x4', '8x4'], { cols: 8, rows: 8 }, false);
-    const r = resizeRectFromCorner({ col: 0, row: 0, cols: 8, rows: 4 }, 'tl', 4, 0, snap, { cols: 8, rows: 8 }, true);
-    expect(r).toEqual({ col: 4, row: 2, cols: 4, rows: 2 });
-  });
 });
 
 describe('resizeRectFromCorner', () => {
@@ -120,20 +144,6 @@ describe('resizeRectFromCorner', () => {
   it('prefers the smaller span on a tie', () => {
     const tied = resizeRectFromCorner({ col: 0, row: 0, cols: 4, rows: 4 }, 'br', 1, 0, snap, bounds);
     expect(tied).toEqual({ col: 0, row: 0, cols: 4, rows: 4 });
-  });
-});
-
-describe('moveRect', () => {
-  const bounds = { cols: 8, rows: 8 };
-  const start: FreeformRect = { col: 2, row: 2, cols: 4, rows: 4 };
-
-  it('moves in whole cells', () => {
-    expect(moveRect(start, 1.4, -0.6, bounds)).toEqual({ col: 3, row: 1, cols: 4, rows: 4 });
-  });
-
-  it('stops at the grid edges', () => {
-    expect(moveRect(start, 9, 9, bounds)).toEqual({ col: 4, row: 4, cols: 4, rows: 4 });
-    expect(moveRect(start, -9, -9, bounds)).toEqual({ col: 0, row: 0, cols: 4, rows: 4 });
   });
 });
 
@@ -182,7 +192,7 @@ describe('cornerRoom', () => {
   });
 
   it('keeps the smallest size enabled where it has room to grow', () => {
-    expect(cornerRoom({ col: 3, row: 3, cols: 2, rows: 2 }, declared, bounds)).toEqual(all);
+    expect(cornerRoom({ col: 2, row: 2, cols: 2, rows: 2 }, declared, bounds)).toEqual(all);
     const corner = cornerRoom({ col: 0, row: 0, cols: 2, rows: 2 }, declared, bounds);
     expect(corner.br).toBe(true);
   });
@@ -221,5 +231,41 @@ describe('stepRectFromCorner', () => {
 
   it('stays put when no span lies that way', () => {
     expect(stepRectFromCorner({ col: 4, row: 0, cols: 4, rows: 4 }, 'br', 1, 0, snap, bounds)).toEqual({ col: 4, row: 0, cols: 4, rows: 4 });
+  });
+});
+
+describe('cornerRoom with a placement check', () => {
+  const bounds = { cols: 8, rows: 8 };
+  const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
+
+  it('dims a corner when every span it reaches is refused', () => {
+    const start = { col: 0, row: 0, cols: 4, rows: 4 };
+    const none = cornerRoom(start, snap, bounds, () => false);
+    expect(none).toEqual({ tl: false, tr: false, bl: false, br: false });
+    const some = cornerRoom(start, snap, bounds, rect => rect.cols <= 2);
+    expect(some.br).toBe(true);
+  });
+
+  it('keeps the drag from picking a refused span and takes the largest one allowed', () => {
+    const start = { col: 0, row: 0, cols: 2, rows: 2 };
+    const refuse44 = (rect: { cols: number; rows: number }) => !(rect.cols === 4 && rect.rows === 4);
+    expect(resizeRectFromCorner(start, 'br', 4, 4, snap, bounds, refuse44)).toEqual({ col: 0, row: 0, cols: 4, rows: 2 });
+    expect(stepRectFromCorner(start, 'br', 1, 1, snap, bounds, refuse44)).toEqual(start);
+  });
+});
+
+describe('corner origin stride rules shared with the regular drag', () => {
+  const bounds = { cols: 8, rows: 8 };
+  const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
+
+  it('leaves a tile whose origin is off the stride grid where it is rather than moving the origin off-grid', () => {
+    // Growing from the top left of a 2x2 at col 3 would put the origin at col 1.
+    const start = { col: 3, row: 2, cols: 2, rows: 2 };
+    expect(resizeRectFromCorner(start, 'tl', -2, -2, snap, bounds)).toEqual(start);
+  });
+
+  it('moves the origin to a stride aligned cell for an aligned tile', () => {
+    expect(resizeRectFromCorner({ col: 4, row: 4, cols: 2, rows: 2 }, 'tl', -2, -2, snap, bounds))
+      .toEqual({ col: 2, row: 2, cols: 4, rows: 4 });
   });
 });

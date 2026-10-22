@@ -145,4 +145,17 @@ describe('PanelBackgroundSlideshow', () => {
     await tick(10_000);
     expect(shown()).toEqual(['a']);
   });
+
+  it('falls back to the solid background color when the library is empty or every slide fails', async () => {
+    const { container, unmount } = await renderShow(null);
+    expect(screen.queryAllByTestId('slide')).toHaveLength(0);
+    expect(container.querySelector('[data-panel-bg-layer]')?.className).toMatch(/backgroundSolid/);
+    unmount();
+
+    api.items = [item('a', 2)];
+    api.broken.add('a');
+    const broken = await renderShow(null);
+    await tick(0);
+    expect(broken.container.querySelector('[data-panel-bg-layer]')?.className).toMatch(/backgroundSolid/);
+  });
 });

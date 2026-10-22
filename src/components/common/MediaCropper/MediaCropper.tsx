@@ -45,13 +45,15 @@ function orientedDims(w: number, h: number, rotate: number): { w: number; h: num
   return rotate === 90 || rotate === 270 ? { w: h, h: w } : { w, h };
 }
 
-export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, initialCrop, busy, allowTransparency, allowFit, onConfirm, onCancel }: {
+export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, initialCrop, busy, allowTransparency, allowFit, onConfirm, onCancel }: {
   src: string;
   /** 'video' renders a <video> frame to crop against; 'image' (default) an <img>. */
   kind?: 'image' | 'video';
   /** Still to crop against when `src` fails to decode (a codec the browser lacks). */
   fallbackSrc?: string;
   aspect: number;
+  /** Round display: a circle guide inside the square crop shows what the display shows. The crop stays the square. */
+  round?: boolean;
   initialCrop?: NormalizedCrop;
   busy?: boolean;
   /** Offer the "keep transparency" choice. Only pass it for a source that has alpha to keep. */
@@ -328,6 +330,11 @@ export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, initial
             role="presentation"
             onPointerDown={fitWhole ? undefined : e => handlePointerDown(e, 'pan')}
           >
+            {round && !fitWhole && (
+              <div className={styles.roundGuideClip} data-testid="round-crop-guide" aria-hidden="true">
+                <div className={styles.roundGuide} />
+              </div>
+            )}
             {!fitWhole && (
               <>
                 <div className={`${styles.handle} ${styles.handleTL}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'tl')} />

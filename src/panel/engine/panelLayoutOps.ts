@@ -514,6 +514,8 @@ function shiftPreview(
  * pages in order, then earlier pages, then a new trailing page. `at`
  * places the widget at an explicit origin instead of sliding it in place,
  * which is how freeform resize moves a top or left edge and moves a widget.
+ * `samePage` confines every displaced widget to the resized widget's page: no
+ * spill onto another page and no new page, so the resize is refused instead.
  */
 export function tryResizeWidget(
   layout: PanelLayout,
@@ -522,6 +524,7 @@ export function tryResizeWidget(
   capacity: PaginateCapacity,
   maxPages: number,
   at?: { col: number; row: number },
+  options?: { samePage?: boolean },
 ): PanelLayout | null {
   const cols = Math.max(1, capacity.gridCols);
   const rows = Math.max(1, capacity.pageRows);
@@ -622,7 +625,7 @@ export function tryResizeWidget(
     let landing: { pageIdx: number; col: number; row: number } | null = null;
     // Source page first (so resizing in place doesn't shuffle siblings to
     // page 2 unnecessarily), then later pages, then earlier pages.
-    const pageOrder: number[] = [
+    const pageOrder: number[] = options?.samePage ? [sourcePageIdx] : [
       sourcePageIdx,
       ...working.map((_, i) => i).filter(i => i > sourcePageIdx),
       ...working.map((_, i) => i).filter(i => i >= 0 && i < sourcePageIdx),
@@ -636,7 +639,7 @@ export function tryResizeWidget(
     }
 
     // No existing page fits - spawn a new trailing page if we have room.
-    if (!landing && working.length < maxPages) {
+    if (!landing && !options?.samePage && working.length < maxPages) {
       working.push({
         id: createUuid(),
         widgets: [],

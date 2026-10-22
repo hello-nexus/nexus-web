@@ -46,7 +46,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -104,6 +104,7 @@ import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { HydroShift2RingSettings } from './HydroShift2RingSettings';
 import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
 import { HydroShift2CurveSettings } from './HydroShift2CurveSettings';
+import { AsusGlacialLcdControls } from './AsusGlacialLcdDevicePage';
 import { useHydroShift2CurveScreen } from './useHydroShift2CurveScreen';
 import { hydroShift2CurveMediaPreviewUrl } from '../../../api/hydroshift2Curve';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -229,6 +230,8 @@ function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
     ? (status as TouchRepairErrorStatus)
     : 'failed';
 }
+
+const WRITE_FAIL_TOAST_GAP_MS = 4000;
 
 type Tab = 'widgets' | 'theme' | 'background' | 'settings';
 
@@ -511,6 +514,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
   const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;
+  const isGlacialLcdPanel = recordFamily === 'asus-glacial-lcd' && !isSimulated;
   const curveScreen = useHydroShift2CurveScreen(isHydroShift2CurvePanel);
   // Cooler LCDs whose firmware takes a backlight command. The service decides
   // which those are and stamps the capability on the record, so a new dimmable
@@ -595,7 +599,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
-    || isRenderScalablePanel;
+    || isRenderScalablePanel
+    || isGlacialLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Theme and layout read and write the panel record for simulators and hardware alike;
   // a simulator has no display or cooler, so its hardware controls are off.
@@ -874,12 +879,24 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   // A write of ours in flight defers broadcast refetches, or the echo reverts a
   // controlled field mid-edit; the last write to settle runs the deferred read.
+  // One toast per failure burst: a failing service makes every write fail.
+  const lastWriteFailToastRef = useRef(0);
+  const reportWriteFailed = useCallback(() => {
+    const now = Date.now();
+    if (now - lastWriteFailToastRef.current < WRITE_FAIL_TOAST_GAP_MS) return;
+    lastWriteFailToastRef.current = now;
+    pushToast({ title: t('devices.panels.saveFailedTitle'), body: t('devices.panels.saveFailedBody') });
+  }, [pushToast, t]);
+
   const writeRecordPatch = useCallback((id: string, patch: PanelDevicePatch) => {
     pendingWritesRef.current += 1;
     writeSeqRef.current += 1;
     return patchPanelDevice(id, patch)
-      .then(() => broadcastLayoutChanged())
-      .catch(() => {})
+      .then(saved => {
+        broadcastLayoutChanged();
+        if (saved === null) reportWriteFailed();
+      })
+      .catch(reportWriteFailed)
       .finally(() => {
         pendingWritesRef.current -= 1;
         if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
@@ -887,7 +904,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           refetchDeviceRecord();
         }
       });
-  }, [refetchDeviceRecord]);
+  }, [refetchDeviceRecord, reportWriteFailed]);
 
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
@@ -1566,6 +1583,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           surface={surface}
                           deviceTouch={deviceTouch}
                           forcedGrid={forcedGrid}
+                          glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}
                           canAddSize={canAddSize}
                           onEditWidget={setConfiguringWidgetId}
@@ -1648,6 +1666,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             showMediaTab={surface !== 'desktop'}
                             backgroundHeldBy={backgroundHeldBy}
                             deviceAspect={devAspect}
+                            roundDisplay={surfaceDisplayShape(surface) === 'round'}
                             deviceW={nativeW}
                             deviceH={nativeH}
                             hideWidgetLabelsToggle={singleWidget}
@@ -1962,6 +1981,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     <div className={styles.settingsContent}>
                       <HydroShift2CurveHeadSettings />
                       <HydroShift2CurveSettings screen={curveScreen} />
+                    </div>
+                  )}
+                  {activeTab === 'settings' && isGlacialLcdPanel && (
+                    <div className={styles.settingsContent}>
+                      <AsusGlacialLcdControls />
                     </div>
                   )}
                   {activeTab === 'settings' && glassSurface === 'kraken' && !isSimulated && (

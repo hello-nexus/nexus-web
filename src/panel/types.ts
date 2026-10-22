@@ -109,6 +109,12 @@ export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, P
   'lcd-wide': '4x2',
 };
 
+/** The shape of a surface's display: a round display carries one circular tile, every other surface is rectangular. */
+export function surfaceDisplayShape(surface: PanelSurface): 'rect' | 'round' {
+  const size = singleWidgetSurfaceSize(surface);
+  return size ? widgetDisplayShape(size) : 'rect';
+}
+
 export function singleWidgetSurfaceSize(surface: PanelSurface): PanelWidgetSize | undefined {
   return SINGLE_WIDGET_SURFACE_SIZE[surface];
 }
@@ -156,6 +162,7 @@ export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
 export const HYDROSHIFT2_CURVE_FAMILY = 'lianli-hydroshift2-curve';
 export const LIANLI_SCREEN88_FAMILY = 'lianli-screen88';
+export const ASUS_GLACIAL_LCD_FAMILY = 'asus-glacial-lcd';
 
 export interface PanelWidgetSizeOptions {
   default: PanelWidgetSizeMode;
@@ -179,6 +186,10 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   // sized by the glass's physical density at its rendered resolution.
   if (surface === 'lcd-wide' && family === HYDROSHIFT2_CURVE_FAMILY) {
     return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, dpi: 379 };
+  }
+  // ASUS Glacial LCD: Large is its one full-glass tile, Small a monitor grid sized by density.
+  if (surface === 'lcd-square' && family === ASUS_GLACIAL_LCD_FAMILY) {
+    return { default: 'large', layoutSurface: { large: 'lcd-square', small: 'monitor' } };
   }
   // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {

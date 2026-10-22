@@ -175,6 +175,13 @@ function paintLook(
     return;
   }
 
+  // An area-sampled device is fed boxes' means the web cannot reproduce, so without the device's own bytes
+  // (older service, relay connection, lighting off) the readout shows nothing rather than a wrong spot read.
+  if (device.sampling && device.sampling !== 'led') {
+    ctx.clearRect(0, 0, cells, 1);
+    return;
+  }
+
   // Static assigns per device, so there is no shared canvas to fall back to:
   // a device with no assignment of its own is showing nothing in particular,
   // and sampling the effect frame would state a colour it is not wearing.

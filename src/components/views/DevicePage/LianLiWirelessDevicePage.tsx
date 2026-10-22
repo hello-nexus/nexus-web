@@ -4,18 +4,19 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import {
   getLianLiWirelessState,
-  type LianLiFansState,
   type LianLiWirelessLinkStatus,
 } from '../../../api/lianli-wireless';
 import {
   LIANLI_FLEX_CHANNEL_PREFIX,
   getLianLiFlexState,
+  type LianLiFlexState,
   identifyLianLiFlexFan,
   lianLiFlexLightingApi,
   lianLiFlexScreenApi,
   restartLianLiFlexLcd,
 } from '../../../api/lianli-flex';
 import { WIRELESS_CHANNEL_PREFIX } from './lianliWirelessCoolingUtils';
+import { LianLiFlexLcdThemesSection } from './LianLiFlexLcdThemesSection';
 import { LianLiFlexSyncSection, isSyncOn, useLianLiFlexSync } from './LianLiFlexSyncSection';
 import { reconcileRestarts, type RestartPending } from './lianliFlexRestart';
 import { fetchPanelDevices } from '../../../api/panel';
@@ -80,7 +81,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
   const getState = flex ? getLianLiFlexState : getLianLiWirelessState;
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
-  const [state, setState] = useState<LianLiFansState | null>(null);
+  const [state, setState] = useState<LianLiFlexState | null>(null);
   // Send order of state GETs: a response is applied only if no later-sent one already was.
   const sentSeqRef = useRef(0);
   const appliedSeqRef = useRef(0);
@@ -218,24 +219,22 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
   // A wired unit with its control on always can.
   const hasLighting = flex ? hasFans : hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
     && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
-  // Screens carry the service's long model names; the tiles use the short ones, TL before SL-INF.
+  // The service names each Flex screen and unit; the tiles use those, TL before SL-INF.
   const screenFans = (state?.fans ?? []).filter(f => f.screenSerial);
-  const screenLabels = Object.fromEntries(screenFans.map(f => [
-    f.screenSerial as string,
-    t(`devices.lianli-wireless.${fanTypeKey(f.fanType)}` as Parameters<typeof t>[0]),
-  ]));
+  const unitNames = flex ? new Map((state?.fans ?? []).filter(f => f.name).map(f => [f.mac, f.name as string])) : undefined;
   const screenOrder = [...screenFans]
     .sort((a, b) => Number(a.family === 'slInfFlex') - Number(b.family === 'slInfFlex')
       || (a.sortIndex ?? 0) - (b.sortIndex ?? 0) || a.mac.localeCompare(b.mac))
     .map(f => f.screenSerial as string);
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
+  const flexLcdKey = (state?.fans ?? []).filter(f => f.flexLcdChain).map(f => `${f.mac}:${f.fanCount}`).join(',');
   const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
   const usbMacs = (state?.fans ?? []).filter(f => f.usbConnected).map(f => f.mac);
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <RadioReceiver size={14} /> },
     ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
     ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> }] : []),
-    ...(!flex || state?.fans.some(f => f.screenSerial) ? [{ key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <CircleEqual size={14} /> }] : []),
+    ...(!flex || state?.fans.some(f => f.screenSerial) || !!state?.screenOnlySerials?.length ? [{ key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <CircleEqual size={14} /> }] : []),
   ];
   // A tab that disappears (its chain unbound or out of range) falls back to Devices.
   const tab: LianLiWirelessTab = tabs.some(x => x.key === activeTab) ? activeTab : 'fans';
@@ -272,6 +271,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
               panelOpener={panelOpener}
               wired={flex}
               onOpenWiredPage={onSectionNavigate ? () => onSectionNavigate('device', { deviceKey: 'curated-lianli-flex' }) : undefined}
+              onOpenRadioPage={onSectionNavigate ? () => onSectionNavigate('device', { deviceKey: 'curated-lianli-wireless' }) : undefined}
               identify={flex ? identifyLianLiFlexFan : undefined}
             />
           )}
@@ -279,6 +279,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
             <LianLiWirelessLightingTab
               onSectionNavigate={onSectionNavigate}
               api={flex ? lianLiFlexLightingApi : undefined}
+              unitNames={unitNames}
               header={flex ? (chains, names) => <LianLiFlexSyncSection sync={flexSync} chains={chains} names={names} /> : undefined}
               syncOn={flex && isSyncOn(flexSync)}
               onSettled={flex ? flexSync.refresh : undefined}
@@ -292,10 +293,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
               channelPrefix={flex ? LIANLI_FLEX_CHANNEL_PREFIX : WIRELESS_CHANNEL_PREFIX}
             />
           )}
+          {tab === 'screen' && !flex && <LianLiFlexLcdThemesSection reloadKey={flexLcdKey} />}
           {tab === 'screen' && (
             <LianLiWirelessScreenTab
               api={flex ? lianLiFlexScreenApi : undefined}
-              screenLabels={flex ? screenLabels : undefined}
               defaultOrder={flex ? screenOrder : undefined}
               lcdRestart={lcdRestart}
               aioMacs={aioMacs}

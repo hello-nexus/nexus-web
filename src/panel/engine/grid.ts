@@ -114,6 +114,24 @@ export function snapStride(span: number): number {
   return span <= 1 ? 1 : 2;
 }
 
+// Where a dragged widget drops: the top-left cell index rounded to the widget's own
+// per-axis stride and clamped so the rect stays inside the grid.
+export function snapDropCell(
+  continuousCol: number,
+  continuousRow: number,
+  span: GridSpan,
+  grid: { cols: number; rows: number },
+): { col: number; row: number } {
+  const colStep = snapStride(span.cols);
+  const rowStep = snapStride(span.rows);
+  const maxCol = Math.max(0, Math.floor((grid.cols - span.cols) / colStep) * colStep);
+  const maxRow = Math.max(0, Math.floor((grid.rows - span.rows) / rowStep) * rowStep);
+  return {
+    col: Math.min(Math.max(0, Math.round(continuousCol / colStep) * colStep), maxCol),
+    row: Math.min(Math.max(0, Math.round(continuousRow / rowStep) * rowStep), maxRow),
+  };
+}
+
 // Scan passes for placement searches: stride-aligned first (snap
 // aesthetics), then every cell so off-stride free space (left by 1x1
 // neighbours or a tight repack) still accepts the widget instead of

@@ -35,7 +35,7 @@ export function useSensorLookup() {
  * receives the resolved sensor (undefined while it has no reading) so a caller
  * can derive a default range.
  */
-export function SensorPicker({ lookup, category, sensor, onChange, disabled, className }: {
+export function SensorPicker({ lookup, category, sensor, onChange, disabled, className, categories, sensorTypes }: {
   /** The caller's own useSensorLookup, so a row subscribes to the sensors once. */
   lookup: ReturnType<typeof useSensorLookup>;
   category: string;
@@ -43,20 +43,28 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
   onChange: (selection: SensorSelection, resolved: HardwareSensor | undefined) => void;
   disabled?: boolean;
   className?: string;
+  /** Restricts the offered categories. */
+  categories?: readonly string[];
+  /** Restricts the offered sensors to these sensor types. */
+  sensorTypes?: readonly string[];
 }) {
   const { t } = useTranslation();
   const { sensors, extras, networkSensors, resolve } = lookup;
   const device = category as DeckMonitoringCategory;
   // FPS has no reading the lighting service can resolve, so it is not offered.
   const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)
-    .filter(c => c !== 'fps')
+    .filter(c => c !== 'fps' && (!categories || categories.includes(c)))
     .map(c => ({ value: c, label: t(CATEGORY_LABEL_KEYS[c]) }));
-  const sensorOptions = sensorsForDevice(sensors, networkSensors, extras, device);
+  const optionsFor = (d: DeckMonitoringCategory) => {
+    const all = sensorsForDevice(sensors, networkSensors, extras, d);
+    return sensorTypes ? all.filter(o => o.type !== undefined && sensorTypes.includes(o.type)) : all;
+  };
+  const sensorOptions = optionsFor(device);
   const listed = sensorOptions.some(o => o.value === sensor || o.sensorName === sensor);
   const sensorValue = listed ? selectedSensorValue(sensorOptions, sensor) : '';
 
   const pickCategory = (next: string) => {
-    const options = sensorsForDevice(sensors, networkSensors, extras, next as DeckMonitoringCategory);
+    const options = optionsFor(next as DeckMonitoringCategory);
     const first = selectedSensorValue(options, '');
     onChange({ category: next, sensor: first }, resolve(next, first));
   };

@@ -89,6 +89,7 @@ export interface LianLiWirelessFansTabProps {
   panelOpener?: (mac: string) => (() => void) | undefined;
   /** Opens the wired LCD Flex page, for a unit it owns. */
   onOpenWiredPage?: () => void;
+  onOpenRadioPage?: () => void;
 }
 
 /**
@@ -96,7 +97,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = false, identify = identifyLianLiWirelessFan, onOpenWiredPage }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = false, identify = identifyLianLiWirelessFan, onOpenWiredPage, onOpenRadioPage }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -306,6 +307,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
               wired={wired}
               wiredOwned={!wired && (fan.wiredOwned === true)}
               onOpenWiredPage={onOpenWiredPage}
+              onOpenRadioPage={onOpenRadioPage}
               pairingLocked={pairingBlocked}
               lockHintId={lockSupported ? lockHintId : undefined}
               onBind={handleBind}
@@ -336,6 +338,7 @@ function DeviceRow({
   wired,
   wiredOwned,
   onOpenWiredPage,
+  onOpenRadioPage,
   pairingLocked,
   lockHintId,
   onBind,
@@ -350,6 +353,7 @@ function DeviceRow({
   /** A wireless-page row for a unit the wired LCD Flex page owns. */
   wiredOwned: boolean;
   onOpenWiredPage?: () => void;
+  onOpenRadioPage?: () => void;
   pairingLocked: boolean;
   lockHintId: string | undefined;
   onBind: (mac: string) => void;
@@ -369,14 +373,17 @@ function DeviceRow({
     : t('devices.lianli-wireless.unbind');
   const usbState: SettingState = { label: t('devices.lianli-flex.connectedByUsb'), tone: 'accent' };
   const bindState: SettingState | undefined = wired
-    ? (fan.receiverBound ? { label: t('devices.lianli-flex.boundElsewhere'), tone: 'warn' } : usbState)
+    ? (fan.receiverBound
+      ? (fan.radioBound ? { label: t('devices.lianli-flex.drivenByRadio'), tone: 'accent' } : { label: t('devices.lianli-flex.boundElsewhere'), tone: 'warn' })
+      : usbState)
     : wiredOwned
     ? usbState
     : fan.boundToUs
     ? { label: `${t('devices.lianli-wireless.bound')} - ${t('devices.lianli-wireless.slot', { n: fan.slot })}`, tone: 'accent' }
     : { label: t('devices.lianli-wireless.unbound') };
   const lines = [
-    wiredOwned && fan.boundToUs ? t('devices.lianli-flex.usbBoundHint') : null,
+    !wired && fan.radioDrivesUsb ? t('devices.lianli-flex.usbBoundHint') : null,
+    wired && fan.radioBound ? t('devices.lianli-flex.radioBoundHint') : null,
     fan.firmwareVersion ? t('devices.lianli-wireless.firmwareVersion', { v: fan.firmwareVersion }) : null,
     wired && fan.lcdFirmware ? t('devices.lianli-flex.lcdFirmware', { v: fan.lcdFirmware }) : null,
     fan.boundToUs && !isStrimerDevice(fan.devType) && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
@@ -397,7 +404,11 @@ function DeviceRow({
         </Button>
       )}
     >
-      {wired ? null : wiredOwned ? (
+      {wired ? (fan.radioBound && onOpenRadioPage ? (
+        <Button size="sm" tone="neutral" onClick={onOpenRadioPage}>
+          {t('devices.lianli-flex.openRadioPage')}
+        </Button>
+      ) : null) : wiredOwned ? (
         <>
           <Button size="sm" tone="neutral" onClick={onOpenWiredPage}>
             {t('devices.lianli-flex.openWiredPage')}

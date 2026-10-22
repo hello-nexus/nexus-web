@@ -439,6 +439,16 @@ input[type="range"][data-fill] {
   }
 }
 
+:root {
+  // Single source for the width of every inline slider (track plus value); nothing else sets it.
+  --slider-inline-share: 30%;
+  --slider-inline-min: 18rem;
+  --slider-inline-max: 75%;
+  // Definite floor of a settings-row slider slot: percentages cannot resolve in a shrink-to-fit parent.
+  --slider-inline-slot-min: 8rem;
+  --slider-inline-width: min(max(var(--slider-inline-share), var(--slider-inline-min)), var(--slider-inline-max));
+}
+
 // The shared "mixed" look: the controlled targets disagree. Slider track, Toggle
 // track and ChipGroup partial chips take --mixed-fill (the soft accent tint); Slider
 // thumb and Toggle knob take the ghosted gray --mixed-knob. No color-mix(): the

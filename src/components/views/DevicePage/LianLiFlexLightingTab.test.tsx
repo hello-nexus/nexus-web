@@ -316,6 +316,16 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     expect(within(second).getByText('devices.lianli-flex.followsLeader:{"leader":"devices.lianli-wireless.fanTypeTlFlex"}')).toBeInTheDocument();
   });
 
+  it('uses the service unit names so Lighting agrees with Cooling and Screens', async () => {
+    const a = { ...tlUnit, mac: 'AA11', sortIndex: 0, merge: true };
+    const b = { ...tlUnit, mac: 'CC33', sortIndex: 1, merge: true };
+    mockGet.mockResolvedValue({ laneModes: [], chains: [a, b], mergeLeaderMac: 'AA11' });
+    const names = new Map([['AA11', 'TL Flex 1'], ['CC33', 'TL Flex 2']]);
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} unitNames={names} />); });
+    expect(screen.getByText('TL Flex 1')).toBeInTheDocument();
+    expect(screen.getByText('TL Flex 2')).toBeInTheDocument();
+  });
+
   it('reads the units back after every write, accepted or not, and tells the caller', async () => {
     const written = vi.fn();
     mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit] });

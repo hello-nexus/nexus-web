@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import { fetchBackgroundMediaLibrary, type BackgroundMediaItem } from '../../api/panelBackgroundMedia';
 import { PanelBackgroundMedia } from './PanelBackgroundMedia';
+import { PanelBackgroundSolid } from './PanelBackgroundSolid';
 import { orderBackgroundMedia, slideshowLap } from './slideshowOrder';
 import styles from '../PanelApp.module.scss';
 
@@ -262,7 +263,7 @@ export function PanelBackgroundSlideshow({
     if (videoPaced) armCeiling(durationMs === Infinity ? 0 : durationMs);
   }, [covered, videoPaced, intervalMs, advance, armCeiling]);
 
-  if (!current) return null;
+  if (!current) return <PanelBackgroundSolid opacity={opacity} />;
   // The stack carries the background opacity so two overlapping layers never
   // composite denser than one.
   return (

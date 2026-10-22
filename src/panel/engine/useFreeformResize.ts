@@ -1,12 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
-import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
+import type { PanelLayout, PanelWidget } from '../types';
 import { canonicalJson } from './usePanelLayout';
 import { findWidgetById } from './panelLayoutHelpers';
 import { sizeToSpan, type GridSpan } from './grid';
 import { tryResizeWidget } from './panelLayoutOps';
 import type { PaginateCapacity } from './paginate';
 import {
-  moveRect,
   resizeRectFromCorner,
   sameRect,
   spanToSize,
@@ -16,10 +15,7 @@ import {
   type FreeformRect,
 } from './freeformResize';
 
-export type FreeformGesture = 'move' | FreeformCorner;
-
-// `size` is the stored size: a move keeps it even when the rendered span is clamped to the grid.
-interface Session { base: PanelLayout; baseKey: string; cols: number; rows: number; start: FreeformRect; size: PanelWidgetSize; }
+interface Session { base: PanelLayout; baseKey: string; cols: number; rows: number; start: FreeformRect; }
 
 /** Every update re-derives the draft from the layout the gesture began on, so dragging back restores pushed widgets; `end` commits. */
 export function useFreeformResize({
@@ -27,7 +23,6 @@ export function useFreeformResize({
   layout,
   capacity,
   snapSpans,
-  maxPages,
   onCommit,
   onReject,
 }: {
@@ -35,15 +30,12 @@ export function useFreeformResize({
   layout: PanelLayout;
   capacity: PaginateCapacity;
   snapSpans: readonly GridSpan[];
-  maxPages: number;
   onCommit: (next: PanelLayout) => void;
   onReject: (widgetId: string) => void;
 }) {
   const [draft, setDraft] = useState<PanelLayout | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const draftRef = useRef<PanelLayout | null>(null);
-  // A rejected target flashes once; the next accepted target or gesture re-arms it.
-  const rejectArmedRef = useRef(true);
   const boundCols = Math.max(1, capacity.gridCols);
   const boundRows = Math.max(1, capacity.pageRows);
 
@@ -56,49 +48,38 @@ export function useFreeformResize({
     const widget: PanelWidget | undefined = widgetId ? findWidgetById(layout, widgetId) : undefined;
     if (!widget) return false;
     const span = sizeToSpan(clampFreeformSize(widget.size, { cols: boundCols, rows: boundRows }));
-    rejectArmedRef.current = true;
-    sessionRef.current = { base: layout, baseKey: canonicalJson(layout), cols: boundCols, rows: boundRows, size: widget.size, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
+    sessionRef.current = { base: layout, baseKey: canonicalJson(layout), cols: boundCols, rows: boundRows, start: { col: widget.col, row: widget.row, cols: span.cols, rows: span.rows } };
     return true;
   }, [layout, widgetId, boundCols, boundRows]);
 
-  const applyTarget = useCallback((session: Session, target: FreeformRect, moving: boolean) => {
+  // A target is placeable only when every pushed widget still fits on this page.
+  const placeable = useCallback((session: Session) => (rect: FreeformRect) => !widgetId || tryResizeWidget(
+    session.base, widgetId, spanToSize(rect), capacity, 1, { col: rect.col, row: rect.row }, { samePage: true },
+  ) !== null, [capacity, widgetId]);
+
+  const applyTarget = useCallback((session: Session, target: FreeformRect) => {
     if (!widgetId) return;
     if (sameRect(target, session.start)) {
-      rejectArmedRef.current = true;
       setBoth(null);
       return;
     }
-    const next = tryResizeWidget(
-      session.base,
-      widgetId,
-      moving ? session.size : spanToSize(target),
-      capacity,
-      maxPages,
-      { col: target.col, row: target.row },
-    );
-    if (next) {
-      rejectArmedRef.current = true;
-      setBoth(next === session.base ? null : next);
-    } else if (rejectArmedRef.current) {
-      rejectArmedRef.current = false;
-      onReject(widgetId);
-    }
-  }, [capacity, maxPages, onReject, setBoth, widgetId]);
+    const next = tryResizeWidget(session.base, widgetId, spanToSize(target), capacity, 1, { col: target.col, row: target.row }, { samePage: true });
+    // The target was vetted against this same base; only a widget that vanished from it gives null.
+    if (next) setBoth(next === session.base ? null : next);
+  }, [capacity, setBoth, widgetId]);
 
-  const update = useCallback((gesture: FreeformGesture, dCols: number, dRows: number, lockRatio = false) => {
+  const update = useCallback((corner: FreeformCorner, dCols: number, dRows: number, lockRatio = false) => {
     const session = sessionRef.current;
     if (!session) return;
     const bounds = { cols: boundCols, rows: boundRows };
-    applyTarget(session, gesture === 'move'
-      ? moveRect(session.start, dCols, dRows, bounds)
-      : resizeRectFromCorner(session.start, gesture, dCols, dRows, snapSpans, bounds, lockRatio), gesture === 'move');
-  }, [applyTarget, boundCols, boundRows, snapSpans]);
+    applyTarget(session, resizeRectFromCorner(session.start, corner, dCols, dRows, snapSpans, bounds, placeable(session), lockRatio));
+  }, [applyTarget, boundCols, boundRows, snapSpans, placeable]);
 
   const step = useCallback((corner: FreeformCorner, stepCols: number, stepRows: number) => {
     const session = sessionRef.current;
     if (!session) return;
-    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }), false);
-  }, [applyTarget, boundCols, boundRows, snapSpans]);
+    applyTarget(session, stepRectFromCorner(session.start, corner, stepCols, stepRows, snapSpans, { cols: boundCols, rows: boundRows }, placeable(session)));
+  }, [applyTarget, boundCols, boundRows, snapSpans, placeable]);
 
   // A layout or grid that really changed mid-gesture (a sync, a rotation) leaves the draft on a stale base, so it is dropped with a flash;
   // a same-content record refetch (an echo of our own save) is not a change.

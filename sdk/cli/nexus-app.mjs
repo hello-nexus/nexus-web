@@ -4,7 +4,8 @@
 // published @hello-nexus/sdk package:
 //
 //   nexus-app new <dir>        scaffold a starter app (index.tsx + manifest.json + config)
-//   nexus-app build [dir]      bundle index.tsx -> widget.mjs (LIGHT; the host provides the runtime)
+//   nexus-app build [dir]      bundle index.tsx -> widget.mjs (LIGHT; the host provides the runtime),
+//                              and renderer.ts -> renderer.mjs (self-contained) when present
 //   nexus-app validate [dir]   check the manifest + entry are well-formed
 //
 // `build` externalises react / react/jsx-runtime / @hello-nexus/sdk / @hello-nexus/sdk/ui
@@ -19,7 +20,7 @@
 
 import { build, context } from 'esbuild';
 import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, resolve, isAbsolute } from 'node:path';
+import { join, dirname, resolve, isAbsolute, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // sdk/cli
@@ -43,15 +44,17 @@ function resolveRuntime(appDir) {
     const d = abs(process.env.NEXUS_SDK_RUNTIME);
     const sdk = ['sdk.ts', 'index.js'].map((f) => join(d, f)).find(existsSync);
     const ui = ['ui.tsx', 'ui.js'].map((f) => join(d, f)).find(existsSync);
-    if (sdk && ui) return { sdk, ui, where: d };
+    const renderer = ['renderer.ts', 'renderer.js'].map((f) => join(d, f)).find(existsSync);
+    if (sdk && ui) return { sdk, ui, renderer, where: d };
   }
   // Installed package (third-party author).
   const pkg = join(appDir, 'node_modules', '@hello-nexus', 'sdk');
   if (existsSync(pkg)) {
     const sdk = join(pkg, 'dist', 'index.js'), ui = join(pkg, 'dist', 'ui.js');
-    if (existsSync(sdk) && existsSync(ui)) return { sdk, ui, where: pkg };
+    const renderer = join(pkg, 'dist', 'renderer.js');
+    if (existsSync(sdk) && existsSync(ui)) return { sdk, ui, renderer: existsSync(renderer) ? renderer : undefined, where: pkg };
   }
-  return { sdk: join(IN_TREE_RUNTIME, 'sdk.ts'), ui: join(IN_TREE_RUNTIME, 'ui.tsx'), where: IN_TREE_RUNTIME };
+  return { sdk: join(IN_TREE_RUNTIME, 'sdk.ts'), ui: join(IN_TREE_RUNTIME, 'ui.tsx'), renderer: join(IN_TREE_RUNTIME, 'renderer.ts'), where: IN_TREE_RUNTIME };
 }
 
 async function probeExports(entry) {
@@ -111,11 +114,76 @@ async function buildSpec(appDir, opts) {
   };
 }
 
+// The renderer module runs in the host's renderer worker, which has no SDK runtime
+// and no react: it is bundled with everything inlined (the engine, three, and the
+// renderer end of the SDK). Bare package imports from ANY source file, including
+// shared code outside the app dir, resolve from the app's own node_modules first
+// (the CI build only installs there, and one copy of a package keeps singleton
+// libraries such as three from registering twice); normal resolution is only the
+// fallback for a package the app has not installed.
+function rendererEntry(dir) {
+  const entry = join(dir, 'renderer.ts');
+  return existsSync(entry) ? entry : null;
+}
+
+function rendererSdkPlugin(rendererSdk) {
+  return {
+    name: 'nexus-renderer-sdk',
+    setup(b) {
+      b.onResolve({ filter: /^@hello-nexus\/sdk\/renderer$/ }, () => (rendererSdk ? { path: rendererSdk } : undefined));
+    },
+  };
+}
+
+function appFirstResolvePlugin(dir) {
+  return {
+    name: 'nexus-app-first-resolve',
+    setup(b) {
+      b.onResolve({ filter: /^[^./\\][^:]*$/ }, async (args) => {
+        if (args.pluginData?.nexusAppFirst) return undefined;
+        // Only source files outside the app dir are redirected. A package inside
+        // any node_modules keeps its own resolution, so a nested dependency
+        // version it relies on is not replaced by the app's copy.
+        const importer = args.importer || '';
+        if (!importer || /[\\/]node_modules[\\/]/.test(importer)) return undefined;
+        const rel = relative(dir, importer);
+        if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) return undefined;
+        const r = await b.resolve(args.path, { resolveDir: dir, kind: args.kind, pluginData: { nexusAppFirst: true } });
+        return r.errors.length === 0 ? { path: r.path, namespace: r.namespace, sideEffects: r.sideEffects } : undefined;
+      });
+    },
+  };
+}
+
+function rendererSpec(appDir, opts, rt) {
+  const dir = abs(appDir);
+  const entry = rendererEntry(dir);
+  if (!entry) return null;
+  return {
+    entry,
+    options: {
+      entryPoints: [entry], outfile: join(dir, 'renderer.mjs'),
+      bundle: true, format: 'esm', platform: 'browser', target: 'es2019',
+      minify: !opts.dev, sourcemap: !!opts.sourcemap,
+      nodePaths: [join(dir, 'node_modules')],
+      plugins: [rendererSdkPlugin(rt.renderer), appFirstResolvePlugin(dir)],
+      define: { 'process.env.NODE_ENV': opts.dev ? '"development"' : '"production"' },
+      metafile: true, logLevel: 'warning',
+    },
+  };
+}
+
+const outKb = (r) => Math.round((Object.values(r.metafile.outputs).find((o) => o.entryPoint)?.bytes ?? 0) / 1024 * 10) / 10;
+
 async function cmdBuild(appDir, opts) {
   const { rt, options } = await buildSpec(appDir, opts);
   const r = await build(options);
-  const kb = Math.round((Object.values(r.metafile.outputs).find((o) => o.entryPoint)?.bytes ?? 0) / 1024 * 10) / 10;
-  console.log(`built ${appDir}/widget.mjs (${kb} KB)  [runtime: ${rt.where}]`);
+  console.log(`built ${appDir}/widget.mjs (${outKb(r)} KB)  [runtime: ${rt.where}]`);
+  const rs = rendererSpec(appDir, opts, rt);
+  if (rs) {
+    const rr = await build(rs.options);
+    console.log(`built ${appDir}/renderer.mjs (${outKb(rr)} KB)`);
+  }
 }
 
 async function cmdDev(appDir, opts) {
@@ -123,7 +191,13 @@ async function cmdDev(appDir, opts) {
   const ctx = await context(options);
   await ctx.rebuild();
   await ctx.watch();
-  console.log(`watching ${appDir}/index.tsx -> widget.mjs (dev, unminified)  [runtime: ${rt.where}]\nCtrl-C to stop.`);
+  const rs = rendererSpec(appDir, { ...opts, dev: true }, rt);
+  if (rs) {
+    const rctx = await context(rs.options);
+    await rctx.rebuild();
+    await rctx.watch();
+  }
+  console.log(`watching ${appDir}/index.tsx -> widget.mjs${rs ? ' and renderer -> renderer.mjs' : ''} (dev, unminified)  [runtime: ${rt.where}]\nCtrl-C to stop.`);
   await new Promise(() => {}); // keep alive until interrupted
 }
 
@@ -191,6 +265,15 @@ function cmdValidate(appDir) {
           if (typeof entry.type !== 'string' || !entry.type) errors.push(`settings[${i}].type is required`);
           if (typeof entry.label !== 'string' || !entry.label) warns.push(`settings[${i}].label is missing`);
         });
+      }
+      if (m.renderers != null) {
+        if (!Array.isArray(m.renderers) || m.renderers.some((x) => typeof x !== 'string')) errors.push('manifest.renderers must be a string array');
+        else for (const x of m.renderers) {
+          // Built from renderer.ts by `build`, so a built file or its source both satisfy this.
+          const rel = x.replace(/\\/g, '/');
+          if (rel.startsWith('/') || rel.split('/').includes('..')) errors.push(`manifest.renderers entry "${x}" must be a path inside the app`);
+          else if (!existsSync(join(dir, rel)) && !(rel === 'renderer.mjs' && rendererEntry(dir))) errors.push(`manifest.renderers entry "${x}" does not exist (run \`nexus-app build\`)`);
+        }
       }
       if (m.listed != null && typeof m.listed !== 'boolean') errors.push('manifest.listed must be a boolean');
       if (m.capabilities != null) {

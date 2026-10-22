@@ -30,4 +30,22 @@ describe('GaugeValue', () => {
     expect(line).not.toBeNull();
     expect(line!.querySelector('.panel-gauge-unit')).not.toBeNull();
   });
+
+  it('pins the line to the aligned edge and scales from that edge', () => {
+    for (const [align, justify] of [['left', 'flex-start'], ['center', 'center'], ['right', 'flex-end']] as const) {
+      const { container, unmount } = render(<GaugeValue formatted="2300 RPM" align={align} />);
+      const box = container.firstElementChild as HTMLElement;
+      const line = box.firstElementChild as HTMLElement;
+      expect(box.style.justifyContent).toBe(justify);
+      expect(line.style.transformOrigin).toBe(align);
+      unmount();
+    }
+  });
+
+  it('sets neither justify-content nor transform-origin without align', () => {
+    const { container } = render(<GaugeValue formatted="2300 RPM" />);
+    const box = container.firstElementChild as HTMLElement;
+    expect(box.style.justifyContent).toBe('');
+    expect((box.firstElementChild as HTMLElement).style.transformOrigin).toBe('');
+  });
 });
