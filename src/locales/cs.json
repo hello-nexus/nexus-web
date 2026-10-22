@@ -793,7 +793,7 @@
   "devices.deepcool-mystique.failedBody": "Změnu obrazovky se nepodařilo použít.",
   "devices.deepcool-mystique.failedTitle": "Změna se nezdařila",
   "devices.deepcool-mystique.gif": "GIF",
-  "devices.deepcool-mystique.gifHint": "Až {count} GIFů nebo videí. Displej každý přehrává ve smyčce celý od začátku do konce; z delšího videa použije prvních 10 sekund.",
+  "devices.deepcool-mystique.gifHint": "Až {count} GIFů nebo videí. Každý se přehrává jako krátká smyčka vybraná z celého klipu, u delšího z jeho prvních {seconds} sekund.",
   "devices.deepcool-mystique.gyroscope": "Povolit otáčení podle gyroskopu",
   "devices.deepcool-mystique.gyroscopeHint": "Umožní gyroskopu obrazovky otáčet obraz.",
   "devices.deepcool-mystique.inputsHint": "Senzory, jejichž hodnoty obrazovka zobrazuje. Automaticky používá výchozí volby Nexus.",
