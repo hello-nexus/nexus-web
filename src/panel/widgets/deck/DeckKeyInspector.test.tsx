@@ -88,7 +88,7 @@ describe('Nexus picker entries - Lighting / Cooling / Y70 stand alone', () => {
     expect(cooling).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('option', { name: /panel.settings.deck.action.lighting/ })).toHaveAttribute('aria-selected', 'false');
     // The old single entry is gone.
-    expect(screen.queryByRole('option', { name: /panel.settings.deck.action.nexus/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /panel\.settings\.deck\.action\.nexus(?!App)/ })).not.toBeInTheDocument();
   });
 
   it('a y70 op highlights the Y70 entry', async () => {

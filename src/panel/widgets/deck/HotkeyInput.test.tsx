@@ -116,4 +116,14 @@ describe('HotkeyInput preset dropdown', () => {
     fireEvent.click(header);
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it('records a bare Esc for the deck hotkey action input (no cancel there)', () => {
+    const onChange = vi.fn();
+    render(<HotkeyInput value="" onChange={onChange} />);
+    const field = screen.getByText('panel.settings.deck.hotkeySet');
+    fireEvent.click(field);
+    expect(screen.queryByText('hotkeys.cancelHint')).toBeNull();
+    fireEvent.keyDown(field, { code: 'Escape' });
+    expect(onChange).toHaveBeenCalledWith('escape');
+  });
 });

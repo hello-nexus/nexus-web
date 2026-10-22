@@ -4,6 +4,7 @@ import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
   addPage, removePage, pageHasContent, countBoundSlots, countConfiguredSlots,
   resolveViewDials, updateDialAt, swapDialsAt, padDials, dialsInherited, countBoundFolder,
+  authoredToFitted, authoredPageToFitted,
 } from './deckLayout';
 import type { DeckConfig } from './types';
 
@@ -380,5 +381,55 @@ describe('dials', () => {
     expect(pageHasContent({ slots: [{ folder: { slots: [], dials: [{ stack: [{}, { label: 'x' }] }] } }] })).toBe(true);
     expect(countBoundFolder({ slots: [{ label: 'a', action: { type: 'page', op: 'next' } }], dials: [{ label: 'd' }, {}] })).toBe(2);
     expect(countConfiguredSlots([{ folder: { slots: [], dials: [{ label: 'd' }] } }])).toBe(2);
+  });
+});
+
+describe('hotkey tags on dials', () => {
+  const tagged = { type: 'custom', push: { type: 'hotkey', keys: 'a' }, hotkeyTags: { push: 'mine' } } as const;
+  const deck: DeckConfig = {
+    pages: [{ slots: [{ folder: { slots: [] } }], dials: [{ action: tagged }, { stack: [{ action: tagged }, {}] }] }],
+  };
+
+  it('a folder copying the page dials on its first write does not share their tags', () => {
+    const next = updateDialAt(deck, 0, [0], 1, { label: 'edited' }, 2);
+    const folderDials = next.pages[0].slots[0].folder!.dials!;
+    expect(folderDials[0].action).toEqual({ type: 'custom', push: { type: 'hotkey', keys: 'a' } });
+    expect(folderDials[1].label).toBe('edited');
+    // The page level keeps its tag.
+    expect((next.pages[0].dials![0].action as { hotkeyTags?: unknown }).hotkeyTags).toEqual({ push: 'mine' });
+  });
+
+  it('strips tags from stacked entries of the copy too', () => {
+    const next = updateDialAt(deck, 0, [0], 0, { label: 'x' }, 2);
+    const stackEntry = next.pages[0].slots[0].folder!.dials![1].stack![0];
+    expect((stackEntry.action as { hotkeyTags?: unknown }).hotkeyTags).toBeUndefined();
+  });
+
+  it('a folder that already has its own dials keeps its tags', () => {
+    const own: DeckConfig = { pages: [{ slots: [{ folder: { slots: [], dials: [{ action: tagged }] } }] }] };
+    const next = updateDialAt(own, 0, [0], 1, { label: 'y' }, 2);
+    expect((next.pages[0].slots[0].folder!.dials![0].action as { hotkeyTags?: unknown }).hotkeyTags).toEqual({ push: 'mine' });
+  });
+});
+
+describe('authored to fitted positions', () => {
+  const slots = Array.from({ length: 6 }, (_, i) => ({ label: String(i) }));
+  const preset = { cols: 3, rows: 2, deck: { pages: [{ slots }, { slots: [{ label: 'p2' }] }] } };
+  const grid = { cols: 2, rows: 2, kind: 'physical' as const };
+
+  it('finds an overflowed key on a later fitted page at a shifted index', () => {
+    const at = authoredToFitted(preset, grid, 0, 5);
+    expect(at).not.toBeNull();
+    expect(at!.page).toBeGreaterThan(0);
+  });
+
+  it('keeps a key that fits where it was on the first page', () => {
+    expect(authoredToFitted(preset, grid, 0, 0)).toEqual({ page: 0, index: 0 });
+  });
+
+  it('maps an authored page to the first fitted page it starts on', () => {
+    const second = authoredPageToFitted(preset, grid, 1);
+    expect(second).toBeGreaterThan(0);
+    expect(authoredPageToFitted(preset, grid, 9)).toBeNull();
   });
 });

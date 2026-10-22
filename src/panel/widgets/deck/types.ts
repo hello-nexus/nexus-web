@@ -34,7 +34,9 @@ export interface DeckSystemAction {
 export type DeckNexusOp =
   | 'rgbEffect' | 'lightingBrightness' | 'lightingPreset'
   | 'fanProfile' | 'coolingPreset'
-  | 'y70Power' | 'y70Brightness' | 'y70Rotation';
+  | 'y70Power' | 'y70Brightness' | 'y70Rotation'
+  // Global hotkey ops; toggleWindow is service-only (see SERVICE_ONLY_NEXUS_OPS).
+  | 'toggleWindow' | 'lightingPowerToggle' | 'lightingBrightnessStep';
 
 /** rgbEffect targets one of the lighting page's three live modes. */
 export type DeckLightingMode = 'animate' | 'gif' | 'screen';
@@ -45,7 +47,7 @@ export interface DeckNexusAction {
   effect?: string;        // rgbEffect, mode 'animate'
   presetId?: string;      // lightingPreset, coolingPreset
   profile?: string;       // fanProfile: off | silent | balanced | turbo | max | custom
-  value?: number;         // lightingBrightness (0..1), y70Brightness (0..100)
+  value?: number;         // lightingBrightness (0..1), y70Brightness (0..100), lightingBrightnessStep (signed fraction)
   on?: boolean;           // y70Power
   orientation?: string;   // y70Rotation
 }
@@ -173,6 +175,8 @@ export interface DeckSlot {
   color?: string;      // unset → auto color by action category; else override token/hex or 'transparent'
   title?: DeckTitleStyle; // styling for `label`; unset → deckTitleStyle.ts defaults
   action?: DeckAction; // a slot is an action OR a folder OR empty
+  // Names the global hotkey binding that runs this key (the binding id); the tag travels with the slot through every edit.
+  hotkeyTag?: string;
   folder?: DeckFolder;
   // Set only on a page-nav key synthesized by fitToGrid to chunk an authored
   // page across a smaller target grid; never present on an authored preset
@@ -205,7 +209,11 @@ export type DeckDialAction =
   | { type: 'y70Brightness'; step?: number }
   | { type: 'page' }
   | { type: 'monitoring'; category: DeckMonitoringCategory; sensor: string; press?: DeckMonitoringPress; labelText?: string }
-  | { type: 'custom'; turnRight?: DeckAction; turnLeft?: DeckAction; push?: DeckAction; touch?: DeckAction };
+  | {
+      type: 'custom'; turnRight?: DeckAction; turnLeft?: DeckAction; push?: DeckAction; touch?: DeckAction;
+      // Binding id of the global hotkey that runs each event, same idea as DeckSlot.hotkeyTag.
+      hotkeyTags?: Partial<Record<'turnRight' | 'turnLeft' | 'push' | 'touch', string>>;
+    };
 
 export type DeckDialActionType = DeckDialAction['type'];
 

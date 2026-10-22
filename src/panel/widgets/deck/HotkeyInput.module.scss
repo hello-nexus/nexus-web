@@ -30,3 +30,8 @@
     border-color: var(--panel-accent, var(--accent));
   }
 }
+
+.hint {
+  margin-left: 0.6rem;
+  color: var(--text-dim);
+}
