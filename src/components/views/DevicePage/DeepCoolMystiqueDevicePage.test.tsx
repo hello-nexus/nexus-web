@@ -13,6 +13,7 @@ vi.mock('../../../lib/i18n', () => ({
 const mockGet = vi.fn();
 const mockSet = vi.fn();
 const mockPush = vi.fn();
+const mockUpload = vi.fn();
 
 vi.mock('../../common/Toast/Toast', () => ({
   useToast: () => ({ push: mockPush }),
@@ -21,6 +22,39 @@ vi.mock('../../common/Toast/Toast', () => ({
 vi.mock('../../../api/deepcool-mystique', () => ({
   getMystiqueState: () => mockGet(),
   setMystiqueSettings: (patch: unknown) => mockSet(patch),
+  uploadMystiqueMedia: (...args: unknown[]) => mockUpload(...args),
+  mystiqueThumbUrl: (id: string, version: number) => `thumb/${id}/${version}`,
+  MYSTIQUE_WIDTH: 480,
+  MYSTIQUE_HEIGHT: 640,
+  MYSTIQUE_MAX_PICTURES: 2,
+}));
+
+const mockStage = vi.fn();
+const mockFetchStaged = vi.fn();
+const mockCancelStage = vi.fn();
+
+vi.mock('../../../api/klipy', () => ({
+  stageKlipy: (slug: string) => mockStage(slug),
+}));
+
+vi.mock('../../../api/mediaLibrary', () => ({
+  cancelMediaStage: (id: string) => mockCancelStage(id),
+  fetchStagedFile: (url: string, name: string) => mockFetchStaged(url, name),
+  mediaStagePreviewUrl: (id: string) => `preview/${id}`,
+  mediaStageRawUrl: (id: string) => `raw/${id}`,
+  stagePreviewFor: (kind: string, rawUrl: string, previewUrl: string) => ({ src: rawUrl, kind: kind === 'video' ? 'video' : 'image', fallbackSrc: previewUrl }),
+}));
+
+vi.mock('../../common/KlipyPicker/KlipyPicker', () => ({
+  KlipyPicker: ({ open, onPick }: { open: boolean; onPick: (gif: { slug: string; title: string; width: number; height: number }) => void }) => (
+    open ? <button type="button" data-testid="klipy-pick" onClick={() => onPick({ slug: 'cat', title: 'cat', width: 200, height: 200 })}>pick</button> : null
+  ),
+}));
+
+vi.mock('../../common/MediaCropper/MediaCropper', () => ({
+  MediaCropper: ({ onConfirm, aspect }: { onConfirm: (crop: unknown) => void; aspect: number }) => (
+    <button type="button" data-testid="crop-confirm" data-aspect={aspect} onClick={() => onConfirm({ x: 0, y: 0, w: 1, h: 1 })}>crop</button>
+  ),
 }));
 
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({
@@ -64,6 +98,15 @@ const base = {
   brightness: 70,
   gyroscope: true,
   rgbSync: false,
+  mediaChosen: true,
+  sourceChosen: true,
+  readoutStyle: 'normal',
+  auxArea: 'coreData',
+  switchSeconds: 3,
+  animation: 'split',
+  mediaSource: 'images',
+  edgePicking: false,
+  media: [] as { kind: string; id: string; name: string }[],
   cpuTemperature: { category: '', sensor: '', resolvedCategory: 'quick', resolvedSensor: 'summary/cpu-temp' },
   cpuFrequency: { category: '', sensor: '', resolvedCategory: 'cpu', resolvedSensor: 'cpu/clock/core-max' },
   cpuUsage: { category: '', sensor: '', resolvedCategory: 'quick', resolvedSensor: 'summary/cpu-usage' },
@@ -82,7 +125,13 @@ async function mount(state = base) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockSet.mockResolvedValue(true);
+  mockUpload.mockResolvedValue({ ok: true, msg: '' });
+  mockCancelStage.mockResolvedValue(undefined);
+  URL.createObjectURL = vi.fn(() => 'blob:pick');
+  URL.revokeObjectURL = vi.fn();
 });
+
+const PICTURE_A = '2101b6e6277841daa821e8d79a5c528b';
 
 describe('DeepCoolMystiqueDevicePage', () => {
   it('monitor mode shows the main readout select and no recording toggles', async () => {
@@ -243,6 +292,93 @@ describe('DeepCoolMystiqueDevicePage', () => {
     await mount();
     expect(screen.queryByText('devices.deepcool-mystique.deviceUnsetHint')).toBeNull();
     expect(screen.getByText('devices.deepcool-mystique.deviceSetHint')).toBeTruthy();
+  });
+
+  it('monitor mode offers the style and the auxiliary display area with the readout', async () => {
+    await mount();
+    expect(screen.getByText('devices.deepcool-mystique.style')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.auxArea')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.readoutSetHint')).toBeTruthy();
+  });
+
+  it('media mode sends switch time, animation, source and edge picking at once', async () => {
+    await mount({ ...base, mode: 'media' });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.deepcool-mystique.seconds:{"value":5}' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ switchSeconds: 5 });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.deepcool-mystique.animationFade' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ animation: 'fade' });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.deepcool-mystique.playGif' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ mediaSource: 'gif' });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.deepcool-mystique.edgePicking' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ edgePicking: true });
+  });
+
+  it('media mode shows a slot per picture the screen can hold and one for the GIF', async () => {
+    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
+    expect(screen.getByText('spider')).toBeTruthy();
+    expect(screen.getAllByText('devices.deepcool-mystique.addPicture').length).toBe(1);
+    expect(screen.getByText('devices.deepcool-mystique.addGif')).toBeTruthy();
+    expect(screen.getByText('devices.deepcool-mystique.mediaSetHint')).toBeTruthy();
+  });
+
+  it('a picture picked for a filled slot goes through the cropper and replaces that picture', async () => {
+    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.replacePicture:{"name":"spider"}' }));
+    });
+    const file = new File([new Uint8Array([1, 2, 3])], 'bike.png', { type: 'image/png' });
+    const input = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
+    expect(screen.getByTestId('crop-confirm').getAttribute('data-aspect')).toBe(String(480 / 640));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('crop-confirm'));
+    });
+    expect(mockUpload).toHaveBeenCalledWith(file, 'picture', { x: 0, y: 0, w: 1, h: 1 }, PICTURE_A);
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('a GIF or video picked from disk uploads as the GIF and a refusal raises a toast', async () => {
+    mockUpload.mockResolvedValue({ ok: false, msg: 'refused' });
+    await mount({ ...base, mode: 'media' });
+    const file = new File([new Uint8Array([1])], 'loop.mp4', { type: 'video/mp4' });
+    const input = document.querySelector('input[type="file"][accept="image/gif,video/*"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('crop-confirm'));
+    });
+    expect(mockUpload).toHaveBeenCalledWith(file, 'gif', { x: 0, y: 0, w: 1, h: 1 }, undefined);
+    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.deepcool-mystique.uploadFailedTitle', body: 'devices.deepcool-mystique.uploadFailedBody' });
+  });
+
+  it('a Klipy pick is staged, cropped and uploaded as the GIF', async () => {
+    const staged = new File([new Uint8Array([9])], 'cat.mp4', { type: 'video/mp4' });
+    mockStage.mockResolvedValue({ stageId: 's1', mediaKind: 'video' });
+    mockFetchStaged.mockResolvedValue(staged);
+    await mount({ ...base, mode: 'media' });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('klipy-pick'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('crop-confirm'));
+    });
+    expect(mockFetchStaged).toHaveBeenCalledWith('raw/s1', 'cat.mp4');
+    expect(mockUpload).toHaveBeenCalledWith(staged, 'gif', { x: 0, y: 0, w: 1, h: 1 }, undefined);
+    expect(mockCancelStage).toHaveBeenCalledWith('s1');
   });
 
   it('recording mode notes that the toggles are not set yet', async () => {
