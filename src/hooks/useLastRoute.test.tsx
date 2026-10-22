@@ -10,8 +10,10 @@ vi.mock('../api/session', () => ({
   saveLastRoute: (path: string, fullscreen?: boolean) => mockSave(path, fullscreen),
 }));
 
+const settledLog: boolean[] = [];
+
 function Harness({ path, enabled = true, fullscreen = false }: { path: string; enabled?: boolean; fullscreen?: boolean }) {
-  useLastRoute(path, navigate, enabled, fullscreen, restoreFullscreen);
+  settledLog.push(useLastRoute(path, navigate, enabled, fullscreen, restoreFullscreen));
   return null;
 }
 
@@ -46,6 +48,16 @@ afterEach(() => {
 });
 
 describe('useLastRoute', () => {
+  it('reports the restore as settled only after the read answers', async () => {
+    settledLog.length = 0;
+    let resolve!: (v: unknown) => void;
+    mockFetch.mockReturnValue(new Promise(r => { resolve = r; }));
+    render(<Harness path="/system/dashboard" />);
+    expect(settledLog.every(v => v === false)).toBe(true);
+    await act(async () => { resolve(stored('/system/lighting')); });
+    expect(settledLog[settledLog.length - 1]).toBe(true);
+  });
+
   it('restores the stored route when the window opened bare', async () => {
     mockFetch.mockResolvedValue(stored('/system/monitoring/cpu'));
 

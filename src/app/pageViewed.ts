@@ -4,7 +4,7 @@ import { postService } from '../api/service';
 // Top-level dashboard views reported as page_viewed. The slug is the view id.
 // Marketplace app pages (app_page_opened) and the dev-only tools view are not
 // listed, so they are never reported here.
-const REPORTED_VIEWS: ReadonlySet<string> = new Set([
+export const REPORTED_VIEWS: ReadonlySet<string> = new Set([
   'dashboard',
   'monitoring',
   'screentime',
@@ -33,12 +33,12 @@ export function pageViewSlug(view: string): string | null {
   return REPORTED_VIEWS.has(view) ? view : null;
 }
 
-/** Fire-and-forget; an older service without the route answers 404, which is swallowed. */
+/** Fire-and-forget; the service helper resolves to null on a non-ok answer (an older service has no route), and a rejection is swallowed. */
 export function reportPageViewed(slug: string): void {
   postService<unknown>(`/telemetry/page-viewed/${encodeURIComponent(slug)}`, {}).catch(() => {});
 }
 
-/** Posts once each time the active view changes to a different reported page. */
+/** Posts once each time the active view changes to a different reported page. An empty view means not ready to report. */
 export function usePageViewed(view: string): void {
   const last = useRef<string | null>(null);
   const slug = pageViewSlug(view);

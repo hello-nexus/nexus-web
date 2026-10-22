@@ -23,7 +23,7 @@ export function useLastRoute(
   enabled: boolean,
   fullscreen: boolean,
   restoreFullscreen: () => void,
-) {
+): boolean {
   // The window's own address, captured before useRoute's redirect rewrites it.
   // A window opened on an explicit deep link (a tray balloon, /settings) must
   // keep it, so only a bare landing restores the route. A bare path landing
@@ -66,6 +66,7 @@ export function useLastRoute(
     if (landing === 'deepLink' || !rememberLastPage()) { setRestoreSettled(true); return; }
     let cancelled = false;
     let settled = false;
+    let settledWithNavigate = false;
     void (async () => {
       try {
         const stored = await fetchLastRoute();
@@ -82,15 +83,19 @@ export function useLastRoute(
         // One transition with the navigate, so fullscreen lands in the same
         // render as the restored page. Set any earlier, Dashboard clears it
         // for sitting on a page that cannot be fullscreen.
+        settledWithNavigate = true;
         startTransition(() => {
           navigate('system', parts[1], parts[2] ?? null);
+          // Same transition, so a consumer of the flag never sees it set while
+          // the page is still the landing one.
+          setRestoreSettled(true);
           if (stored.fullscreen) restoreFullscreen();
         });
       } catch {
         // A failed read restores nothing; saving still resumes below.
       } finally {
         settled = true;
-        if (!cancelled) setRestoreSettled(true);
+        if (!cancelled && !settledWithNavigate) setRestoreSettled(true);
       }
     })();
     // Tearing down before the read answers releases the claim, so StrictMode's
@@ -110,6 +115,9 @@ export function useLastRoute(
       .then(() => Promise.race([saveLastRoute(path, fullscreen), new Promise(r => setTimeout(r, SAVE_TURN_MS))]))
       .catch(() => {});
   }, [enabled, restoreSettled, path, fullscreen]);
+
+  /** True once the last-page restore has resolved, restored or not. */
+  return restoreSettled;
 }
 
 function rememberLastPage(): boolean {

@@ -673,7 +673,6 @@ export function Dashboard() {
 
   // Active view within the system section
   const activeView = view || 'dashboard';
-  usePageViewed(section === 'system' ? activeView : '');
 
   // A Start benchmark request belongs to the navigation that made it: a route
   // that settles anywhere but Benchmark drops it, so a later visit never starts a run.
@@ -709,13 +708,16 @@ export function Dashboard() {
   const restoreFullscreen = useCallback(() => setFullscreen(true), []);
   // Reopening the window lands where it was left, fullscreen included; a
   // service start clears it.
-  useLastRoute(
+  const restoreSettled = useLastRoute(
     view ? `/${section}/${view}${subtab ? `/${subtab}` : ''}` : '',
     navigate,
     online,
     fullscreenActive,
     restoreFullscreen,
   );
+  // Reported only once the service is reachable and the last-page restore has
+  // settled, so the first report is the page the user actually lands on.
+  usePageViewed(online && restoreSettled ? activeView : '');
 
   // Page name shown in the top-bar search pill. Portal sections use their
   // nav.section label; inside /system the active view resolves through the
