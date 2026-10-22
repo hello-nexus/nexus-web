@@ -95,13 +95,42 @@ describe('freeformSnapSpans without the even spans', () => {
       expect(resizeRectFromCorner(start, 'br', 6, 0, snap, bounds, noCheck, true)).toEqual({ col: 0, row: 0, cols: 12, rows: 8 });
     });
 
-    it('falls back to the least ratio error when the start size is not a snap span', () => {
-      const snap = freeformSnapSpans(['4x4', '8x4'], { cols: 8, rows: 8 }, false);
-      const r = resizeRectFromCorner({ col: 0, row: 0, cols: 6, rows: 4 }, 'br', 2, 0, snap, { cols: 8, rows: 8 }, noCheck, true);
-      expect(r).toEqual({ col: 0, row: 0, cols: 8, rows: 4 });
+    describe('when the start size is not a snap span', () => {
+      const start = { col: 0, row: 0, cols: 6, rows: 4 };
+      const b = { cols: 8, rows: 8 };
+
+      it('shrinks toward the nearest span on a shrink drag', () => {
+        const snap = freeformSnapSpans(['4x4', '8x4'], b, false);
+        expect(resizeRectFromCorner(start, 'br', -2, 0, snap, b, noCheck, true)).toEqual({ col: 0, row: 0, cols: 4, rows: 4 });
+      });
+
+      it('grows toward the nearest span on a grow drag', () => {
+        const snap = freeformSnapSpans(['4x2', '8x4', '4x4'], b, false);
+        expect(resizeRectFromCorner(start, 'br', 2, 0, snap, b, noCheck, true)).toEqual({ col: 0, row: 0, cols: 8, rows: 4 });
+      });
+
+      it('keeps the start for a drag inside the dead zone', () => {
+        const snap = freeformSnapSpans(['4x4', '8x4'], b, false);
+        expect(resizeRectFromCorner(start, 'br', 0.01, 0, snap, b, noCheck, true)).toEqual(start);
+      });
+    });
+
+    it('skips a ratio-matched span the placement check refuses', () => {
+      const bounds = { cols: 8, rows: 8 };
+      const snap = freeformSnapSpans(['2x2', '4x4', '8x8'], bounds, false);
+      const start = { col: 0, row: 0, cols: 2, rows: 2 };
+      const refuse8 = (r: { cols: number }) => r.cols !== 8;
+      expect(resizeRectFromCorner(start, 'br', 6, 6, snap, bounds, refuse8, true)).toEqual({ col: 0, row: 0, cols: 4, rows: 4 });
+    });
+
+    it('anchors the opposite corner for tr and bl under the lock', () => {
+      const bounds = { cols: 8, rows: 8 };
+      const snap = freeformSnapSpans(['2x2', '4x4'], bounds, false);
+      const start = { col: 2, row: 2, cols: 2, rows: 2 };
+      expect(resizeRectFromCorner(start, 'tr', 2, -2, snap, bounds, noCheck, true)).toEqual({ col: 2, row: 0, cols: 4, rows: 4 });
+      expect(resizeRectFromCorner(start, 'bl', -2, 2, snap, bounds, noCheck, true)).toEqual({ col: 0, row: 2, cols: 4, rows: 4 });
     });
   });
-
 });
 
 describe('resizeRectFromCorner', () => {

@@ -50,9 +50,12 @@ function distance(a: GridSpan, cols: number, rows: number): number {
   return Math.hypot(a.cols - cols, a.rows - rows);
 }
 
+/** Cells a ratio-locked drag must travel before the size may change. */
+const LOCK_DEAD_ZONE = 0.25;
+
 /** Drags one corner by (dCols, dRows) cells with the opposite corner fixed; picks the nearest snap span that fits the grid, smaller on a tie.
- *  With lockRatio the drag becomes one uniform scale of the start span, capped to the room the anchored corner has, and only spans keeping the start ratio are considered;
- *  when none but the start qualifies the start is kept, and the least ratio error is used only if the start size itself is not a snap span. */
+ *  With lockRatio the drag becomes one uniform scale of the start span, capped to the room the anchored corner has. A drag within LOCK_DEAD_ZONE cells of the start keeps it;
+ *  otherwise the nearest span keeping the start ratio wins, and when none qualifies the nearest span of any ratio does, least ratio error breaking ties. */
 export function resizeRectFromCorner(
   start: FreeformRect,
   corner: FreeformCorner,
@@ -101,12 +104,13 @@ export function resizeRectFromCorner(
 
   if (!lockRatio) return search(() => true, byDistance) ?? start;
 
+  if (distance(start, rawCols, rawRows) < LOCK_DEAD_ZONE) return start;
   const matches = (span: GridSpan) => span.cols * start.rows === span.rows * start.cols;
   const matched = search(matches, byDistance);
   if (matched) return matched;
-  if (snapSpans.some(span => span.cols === start.cols && span.rows === start.rows)) return start;
   const startRatio = start.cols / start.rows;
-  return search(() => true, span => Math.abs(Math.log(span.cols / span.rows / startRatio))) ?? start;
+  const ratioError = (span: GridSpan) => Math.abs(Math.log(span.cols / span.rows / startRatio));
+  return search(() => true, span => byDistance(span) + ratioError(span) * 1e-6) ?? start;
 }
 
 /** One keyboard step: the nearest snap span past the current one on the stepped axis (outward grows, inward shrinks), kept inside the grid. */
