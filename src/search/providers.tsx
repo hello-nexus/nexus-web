@@ -348,7 +348,8 @@ const APP_KEYWORDS: Record<string, string[]> = {
 };
 
 const pageOnlyApps: SearchSource = (ctx) =>
-  Object.entries(PAGE_ONLY_APPS).map(([key, app]) => {
+  // Settings has its own nav entry (the settings nav view), so skip its page-only row.
+  Object.entries(PAGE_ONLY_APPS).filter(([key]) => key !== 'settings').map(([key, app]) => {
     const Icon = app.icon;
     return go(`app:${key}`, {
       title: ctx.t(app.i18nKey),

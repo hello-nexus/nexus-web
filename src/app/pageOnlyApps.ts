@@ -6,7 +6,7 @@
 // Only the store is pinned by default (see sidebarAppKeys); the rest are
 // reachable from the sidebar's Show more list and global search until pinned.
 
-import { Film, Hammer, Store } from 'lucide-react';
+import { Film, Hammer, Settings, Store } from 'lucide-react';
 import type { AppIcon } from '../panel/widgets/types';
 
 export interface PageOnlyApp {
@@ -19,6 +19,7 @@ export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
   // directly, so nothing under panel/widgets/frames registers a tile.
   frames: { i18nKey: 'panel.widget.frames', icon: Film },
   store: { i18nKey: 'apps.tabs.store', icon: Store },
+  settings: { i18nKey: 'settings.title', icon: Settings },
   build: { i18nKey: 'panel.widget.build', icon: Hammer },
 };
 
