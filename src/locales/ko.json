@@ -2501,8 +2501,6 @@
   "lighting.controls.bb.flash": "비트 플래시",
   "lighting.controls.bb.opt.bars": "바",
   "lighting.controls.bb.opt.dots": "점",
-  "lighting.controls.bb.opt.off": "끄기",
-  "lighting.controls.bb.opt.on": "켜기",
   "lighting.controls.bb.opt.radial": "방사형",
   "lighting.controls.bb.opt.rainbow": "무지개",
   "lighting.controls.bb.opt.smooth": "부드럽게",

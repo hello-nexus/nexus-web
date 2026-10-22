@@ -2501,8 +2501,6 @@
   "lighting.controls.bb.flash": "Beat Flash",
   "lighting.controls.bb.opt.bars": "Bars",
   "lighting.controls.bb.opt.dots": "Dots",
-  "lighting.controls.bb.opt.off": "Off",
-  "lighting.controls.bb.opt.on": "On",
   "lighting.controls.bb.opt.radial": "Radial",
   "lighting.controls.bb.opt.rainbow": "Rainbow",
   "lighting.controls.bb.opt.smooth": "Smooth",

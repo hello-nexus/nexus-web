@@ -2516,8 +2516,6 @@
   "lighting.controls.bb.flash": "Вспышка на бит",
   "lighting.controls.bb.opt.bars": "Столбцы",
   "lighting.controls.bb.opt.dots": "Точки",
-  "lighting.controls.bb.opt.off": "Выкл.",
-  "lighting.controls.bb.opt.on": "Вкл.",
   "lighting.controls.bb.opt.radial": "Радиальный",
   "lighting.controls.bb.opt.rainbow": "Радуга",
   "lighting.controls.bb.opt.smooth": "Плавно",

@@ -2501,8 +2501,6 @@
   "lighting.controls.bb.flash": "Flash do beat",
   "lighting.controls.bb.opt.bars": "Barras",
   "lighting.controls.bb.opt.dots": "Pontos",
-  "lighting.controls.bb.opt.off": "Desligado",
-  "lighting.controls.bb.opt.on": "Ligado",
   "lighting.controls.bb.opt.radial": "Radial",
   "lighting.controls.bb.opt.rainbow": "Arco-íris",
   "lighting.controls.bb.opt.smooth": "Suave",
