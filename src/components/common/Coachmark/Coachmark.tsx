@@ -151,6 +151,10 @@ function resolveBoundary(boundary: CoachmarkBoundary | undefined, viewport: Boun
  * control inside the bubble; Escape deliberately does nothing here, since it
  * belongs to whatever else is open.
  */
+// Frames the target must hold still, and the longest a follow may run.
+const FOLLOW_STILL_FRAMES = 6;
+const FOLLOW_MAX_MS = 1500;
+
 export function Coachmark({ hintId, target, title, body, dismissLabel, onDismiss, placement = 'bottom', boundary }: CoachmarkProps) {
   const bubbleRef = useRef<HTMLDivElement | null>(null);
   const [placed, setPlaced] = useState<Placed | null>(null);
@@ -213,14 +217,43 @@ export function Coachmark({ hintId, target, title, body, dismissLabel, onDismiss
       reposition();
     };
     sync();
-    const dom = new MutationObserver(sync);
-    dom.observe(document.body, { childList: true, subtree: true });
+    // A class toggle can move the target without resizing it or the body (the
+    // sidebar collapsing shifts the page), so attribute changes and transition
+    // events start a short follow loop. It re-measures each frame and stops
+    // once the target has held still for a few frames or a cap is reached, so
+    // nothing polls while idle and no end event is needed.
+    let raf = 0;
+    const follow = () => {
+      if (raf) cancelAnimationFrame(raf);
+      const startedAt = performance.now();
+      let last = '';
+      let still = 0;
+      const tick = () => {
+        reposition();
+        const r = resolveTarget(target)?.getBoundingClientRect();
+        const key = r ? `${r.left},${r.top},${r.width},${r.height}` : '';
+        still = key === last ? still + 1 : 0;
+        last = key;
+        raf = still < FOLLOW_STILL_FRAMES && performance.now() - startedAt < FOLLOW_MAX_MS ? requestAnimationFrame(tick) : 0;
+      };
+      raf = requestAnimationFrame(tick);
+    };
+    const dom = new MutationObserver(records => {
+      if (records.some(r => r.type === 'childList')) sync();
+      else follow();
+    });
+    dom.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('transitionrun', follow, true);
+    document.addEventListener('transitionend', follow, true);
     window.addEventListener('resize', reposition);
     window.addEventListener('scroll', reposition, true);
     return () => {
       ro.disconnect();
       io?.disconnect();
       dom.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      document.removeEventListener('transitionrun', follow, true);
+      document.removeEventListener('transitionend', follow, true);
       window.removeEventListener('resize', reposition);
       window.removeEventListener('scroll', reposition, true);
     };

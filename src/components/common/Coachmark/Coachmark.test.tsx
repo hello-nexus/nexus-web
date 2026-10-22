@@ -196,6 +196,41 @@ describe('Coachmark', () => {
     expect(ioObserved).toContain(b);
   });
 
+  it('follows the target when a class change moves it without any resize', async () => {
+    const el = mountTarget();
+    let left = 100;
+    el.getBoundingClientRect = () => rect(left, 100, 30, 30);
+    render(<Coachmark {...props} />);
+    await act(async () => { await Promise.resolve(); });
+    const before = region().style.left;
+    left = 400;
+    await act(async () => { el.classList.add('shifted'); await new Promise(r => setTimeout(r, 50)); });
+    expect(region().style.left).not.toBe(before);
+  });
+
+  it('follows a moving target frame by frame after a class change and then stops', async () => {
+    const el = mountTarget();
+    let left = 100;
+    el.getBoundingClientRect = () => rect(left, 100, 30, 30);
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { frames.push(cb); return frames.length; });
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    render(<Coachmark {...props} />);
+    await act(async () => { await Promise.resolve(); });
+    const start = region().style.left;
+    await act(async () => { el.classList.add('shifted'); await Promise.resolve(); });
+    left = 300;
+    await act(async () => { frames.shift()?.(0); });
+    const mid = region().style.left;
+    expect(mid).not.toBe(start);
+    left = 500;
+    await act(async () => { frames.shift()?.(0); });
+    expect(region().style.left).not.toBe(mid);
+    // Once the target holds still, the loop ends instead of polling forever.
+    for (let i = 0; i < 20 && frames.length; i++) await act(async () => { frames.shift()?.(0); });
+    expect(frames).toHaveLength(0);
+  });
+
   it('hides the bubble and the ring when the target is outside the boundary', () => {
     mountTarget();
     const { container } = render(<Coachmark {...props} boundary={() => rect(0, 200, 1000, 600)} />);
