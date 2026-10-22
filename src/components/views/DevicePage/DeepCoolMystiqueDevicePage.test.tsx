@@ -14,6 +14,7 @@ const mockGet = vi.fn();
 const mockSet = vi.fn();
 const mockPush = vi.fn();
 const mockUpload = vi.fn();
+const mockDelete = vi.fn();
 
 vi.mock('../../common/Toast/Toast', () => ({
   useToast: () => ({ push: mockPush }),
@@ -23,10 +24,13 @@ vi.mock('../../../api/deepcool-mystique', () => ({
   getMystiqueState: () => mockGet(),
   setMystiqueSettings: (patch: unknown) => mockSet(patch),
   uploadMystiqueMedia: (...args: unknown[]) => mockUpload(...args),
+  deleteMystiqueMedia: (id?: string) => mockDelete(id),
   mystiqueThumbUrl: (id: string, version: number) => `thumb/${id}/${version}`,
+  mystiqueSourceUrl: (id: string) => `source/${id}`,
   MYSTIQUE_WIDTH: 480,
   MYSTIQUE_HEIGHT: 640,
-  MYSTIQUE_MAX_PICTURES: 2,
+  MYSTIQUE_MAX_PICTURES: 9,
+  MYSTIQUE_MAX_GIFS: 9,
 }));
 
 const mockStage = vi.fn();
@@ -106,7 +110,7 @@ const base = {
   animation: 'split',
   mediaSource: 'images',
   edgePicking: false,
-  media: [] as { kind: string; id: string; name: string }[],
+  media: [] as { kind: string; id: string; name: string; ext?: string; editable?: boolean }[],
   cpuTemperature: { category: '', sensor: '', resolvedCategory: 'quick', resolvedSensor: 'summary/cpu-temp' },
   cpuFrequency: { category: '', sensor: '', resolvedCategory: 'cpu', resolvedSensor: 'cpu/clock/core-max' },
   cpuUsage: { category: '', sensor: '', resolvedCategory: 'quick', resolvedSensor: 'summary/cpu-usage' },
@@ -126,12 +130,14 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockSet.mockResolvedValue(true);
   mockUpload.mockResolvedValue({ ok: true, msg: '' });
+  mockDelete.mockResolvedValue(true);
   mockCancelStage.mockResolvedValue(undefined);
   URL.createObjectURL = vi.fn(() => 'blob:pick');
   URL.revokeObjectURL = vi.fn();
 });
 
 const PICTURE_A = '2101b6e6277841daa821e8d79a5c528b';
+const GIF_A = 'acd9325521f3493c86bfc0b0aa85658d';
 
 describe('DeepCoolMystiqueDevicePage', () => {
   it('monitor mode shows the main readout select and no recording toggles', async () => {
@@ -325,30 +331,74 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(mockSet).toHaveBeenCalledWith({ mediaSource: 'gif' });
   });
 
-  it('media mode shows a slot per picture the screen can hold and one for the GIF', async () => {
-    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
+  it('media mode leads each grid with an add tile and lists every item', async () => {
+    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }, { kind: 'gif', id: GIF_A, name: 'logo' }] });
     expect(screen.getByText('spider')).toBeTruthy();
+    expect(screen.getByText('logo')).toBeTruthy();
     expect(screen.getAllByText('devices.deepcool-mystique.addPicture').length).toBe(1);
     expect(screen.getByText('devices.deepcool-mystique.addGif')).toBeTruthy();
     expect(screen.getByText('devices.deepcool-mystique.mediaSetHint')).toBeTruthy();
   });
 
-  it('a picture picked for a filled slot goes through the cropper and replaces that picture', async () => {
-    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
+  it('editing waits for a selection, then re-crops the kept source and uploads it under the same id', async () => {
+    const source = new File([new Uint8Array([1, 2, 3])], 'spider.png', { type: 'image/png' });
+    mockFetchStaged.mockResolvedValue(source);
+    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider', ext: '.png', editable: true }] });
+    const edit = () => screen.getAllByRole('button', { name: 'devices.deepcool-mystique.editSelected' })[0] as HTMLButtonElement;
+    expect(edit().disabled).toBe(true);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.replacePicture:{"name":"spider"}' }));
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.selectItem:{"name":"spider"}' }));
     });
-    const file = new File([new Uint8Array([1, 2, 3])], 'bike.png', { type: 'image/png' });
-    const input = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement;
+    expect(edit().disabled).toBe(false);
     await act(async () => {
-      fireEvent.change(input, { target: { files: [file] } });
+      fireEvent.click(edit());
     });
     expect(screen.getByTestId('crop-confirm').getAttribute('data-aspect')).toBe(String(480 / 640));
     await act(async () => {
       fireEvent.click(screen.getByTestId('crop-confirm'));
     });
-    expect(mockUpload).toHaveBeenCalledWith(file, 'picture', { x: 0, y: 0, w: 1, h: 1 }, PICTURE_A);
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockFetchStaged).toHaveBeenCalledWith(`source/${PICTURE_A}`, 'spider.png');
+    expect(mockUpload).toHaveBeenCalledWith(source, 'picture', { x: 0, y: 0, w: 1, h: 1 }, PICTURE_A);
+    expect(mockCancelStage).not.toHaveBeenCalled();
+  });
+
+  it('an item whose source was not kept cannot be edited', async () => {
+    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider', ext: '', editable: false }] });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.selectItem:{"name":"spider"}' }));
+    });
+    expect((screen.getAllByRole('button', { name: 'devices.deepcool-mystique.editSelected' })[0] as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('the add tile of a full grid explains why instead of opening a picker', async () => {
+    const media = Array.from({ length: 9 }, (_, i) => ({ kind: 'picture', id: `${i}`.repeat(32), name: `p${i}` }));
+    await mount({ ...base, mode: 'media', media });
+    const input = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement;
+    const click = vi.spyOn(input, 'click');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.addPicture' }));
+    });
+    expect(click).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith({ title: 'devices.deepcool-mystique.mediaFullTitle', body: 'devices.deepcool-mystique.mediaFullBody' });
+  });
+
+  it('removing one item or all of them asks first, then refreshes the list', async () => {
+    await mount({ ...base, mode: 'media', media: [{ kind: 'picture', id: PICTURE_A, name: 'spider' }] });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.removeItem:{"name":"spider"}' }));
+    });
+    expect(mockDelete).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.remove' }));
+    });
+    expect(mockDelete).toHaveBeenCalledWith(PICTURE_A);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.removeAllButton' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.deepcool-mystique.remove' }));
+    });
+    expect(mockDelete).toHaveBeenLastCalledWith(undefined);
   });
 
   it('a GIF or video picked from disk uploads as the GIF and a refusal raises a toast', async () => {
