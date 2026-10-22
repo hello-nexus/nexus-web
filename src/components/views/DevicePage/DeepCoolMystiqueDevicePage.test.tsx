@@ -425,6 +425,31 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(screen.queryByText('spider')).toBeNull();
   });
 
+  it('source, switch time and animation wait while an upload runs, and the grids note how the screen plays', async () => {
+    let finish: (r: { ok: boolean }) => void = () => {};
+    mockUpload.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    await mount({ ...base, mode: 'media' });
+    expect(screen.getByText('devices.deepcool-mystique.playbackHint')).toBeTruthy();
+    const chips = () => [
+      screen.getByRole('radio', { name: 'devices.deepcool-mystique.playGif' }),
+      screen.getByRole('radio', { name: 'devices.deepcool-mystique.seconds:{"value":5}' }),
+      screen.getByRole('radio', { name: 'devices.deepcool-mystique.animationFade' }),
+    ] as HTMLButtonElement[];
+    expect(chips().every(c => !c.disabled)).toBe(true);
+    const input = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [new File([new Uint8Array([1])], 'a.png', { type: 'image/png' })] } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('crop-confirm'));
+    });
+    expect(chips().every(c => c.disabled)).toBe(true);
+    await act(async () => {
+      finish({ ok: true });
+    });
+    expect(chips().every(c => !c.disabled)).toBe(true);
+  });
+
   it('a GIF or video picked from disk uploads as the GIF and a refusal raises a toast', async () => {
     mockUpload.mockResolvedValue({ ok: false, msg: 'refused' });
     await mount({ ...base, mode: 'media' });
