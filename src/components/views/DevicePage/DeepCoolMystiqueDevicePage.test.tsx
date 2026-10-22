@@ -169,6 +169,14 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(mockSet).toHaveBeenCalledWith({ rgbSync: true });
   });
 
+  it('edge picking sits with the display settings it is sent with, in every mode', async () => {
+    await mount();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.deepcool-mystique.edgePicking' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ edgePicking: true });
+  });
+
   it('picking a fan sensor sends the pick', async () => {
     await mount();
     await act(async () => {
@@ -301,7 +309,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(screen.getByText('devices.deepcool-mystique.readoutSetHint')).toBeTruthy();
   });
 
-  it('media mode sends switch time, animation, source and edge picking at once', async () => {
+  it('media mode sends switch time, animation and source at once', async () => {
     await mount({ ...base, mode: 'media' });
     await act(async () => {
       fireEvent.click(screen.getByRole('radio', { name: 'devices.deepcool-mystique.seconds:{"value":5}' }));
@@ -315,10 +323,6 @@ describe('DeepCoolMystiqueDevicePage', () => {
       fireEvent.click(screen.getByRole('radio', { name: 'devices.deepcool-mystique.playGif' }));
     });
     expect(mockSet).toHaveBeenCalledWith({ mediaSource: 'gif' });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('switch', { name: 'devices.deepcool-mystique.edgePicking' }));
-    });
-    expect(mockSet).toHaveBeenCalledWith({ edgePicking: true });
   });
 
   it('media mode shows a slot per picture the screen can hold and one for the GIF', async () => {

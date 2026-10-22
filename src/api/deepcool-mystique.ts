@@ -56,7 +56,7 @@ export interface MystiqueState {
   readout: MystiqueReadout;
   readoutStyle: MystiqueStyle;
   auxArea: MystiqueAuxArea;
-  /** 3, 5 or 7. */
+  /** Seconds each picture shows, one of the screen's switch times. */
   switchSeconds: number;
   animation: MystiqueAnimation;
   mediaSource: MystiqueMediaSource;

@@ -200,6 +200,8 @@ export function DeepCoolMystiqueDevicePage() {
     const { file, src, name, stageId, rawUrl, target, replace } = cropState;
     // The cropper stays mounted and busy until the encode and the transfer to the screen finish.
     setUploading(true);
+    busyRef.current += 1;
+    writeGenRef.current += 1;
     try {
       const upload = file ?? (rawUrl ? await fetchStagedFile(rawUrl, name) : null);
       const result = upload ? await uploadMystiqueMedia(upload, target, crop, replace) : null;
@@ -207,9 +209,14 @@ export function DeepCoolMystiqueDevicePage() {
         push({ title: t('devices.deepcool-mystique.uploadFailedTitle'), body: t('devices.deepcool-mystique.uploadFailedBody') });
       }
       setThumbVersion(v => v + 1);
+    } finally {
+      busyRef.current -= 1;
       writeGenRef.current += 1;
+    }
+    try {
+      const gen = writeGenRef.current;
       const next = await getMystiqueState();
-      if (aliveRef.current && next !== null) {
+      if (aliveRef.current && next !== null && busyRef.current === 0 && !draggingRef.current && gen === writeGenRef.current) {
         brightnessRef.current = next.brightness;
         setState(next);
       }
@@ -335,6 +342,13 @@ export function DeepCoolMystiqueDevicePage() {
             disabled={!ready}
             onChange={on => edit({ rgbSync: on, deviceChosen: true }, { rgbSync: on })}
           />
+          <SettingToggle
+            label={t('devices.deepcool-mystique.edgePicking')}
+            description={t('devices.deepcool-mystique.edgePickingHint')}
+            checked={state?.edgePicking ?? false}
+            disabled={!ready}
+            onChange={on => edit({ edgePicking: on, deviceChosen: true }, { edgePicking: on })}
+          />
           <SettingRow
             label={t('devices.deepcool-mystique.sentTogether')}
             description={t(state?.deviceChosen ? 'devices.deepcool-mystique.deviceSetHint' : 'devices.deepcool-mystique.deviceUnsetHint')}
@@ -432,13 +446,6 @@ export function DeepCoolMystiqueDevicePage() {
                   }}
                 />
               </div>
-              <SettingToggle
-                label={t('devices.deepcool-mystique.edgePicking')}
-                description={t('devices.deepcool-mystique.edgePickingHint')}
-                checked={state.edgePicking}
-                disabled={!ready}
-                onChange={on => edit({ edgePicking: on, deviceChosen: true }, { edgePicking: on })}
-              />
               <input ref={pictureInputRef} type="file" accept="image/*" className={styles.hiddenInput} onChange={pickFile('picture')} />
               <input ref={gifInputRef} type="file" accept="image/gif,video/*" className={styles.hiddenInput} onChange={pickFile('gif')} />
             </>
