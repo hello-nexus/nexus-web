@@ -829,6 +829,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Toutes les images et tous les GIF seront effacés de l'écran. Cette action est irréversible.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Retirer toutes les images et tous les GIF ?",
   "devices.deepcool-mystique.removeAllHint": "Efface toutes les images et tous les GIF de l'écran.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Utilisez Tout retirer une fois pour que l'écran lise le GIF que vous choisissez.",
   "devices.deepcool-mystique.removeConfirmBody": "Il reste sur l'écran jusqu'à ce qu'un autre élément prenne sa place ou que Tout retirer soit utilisé.",
   "devices.deepcool-mystique.removeConfirmTitle": "Retirer {name} ?",
   "devices.deepcool-mystique.removeFailedBody": "L'élément n'a pas pu être retiré.",

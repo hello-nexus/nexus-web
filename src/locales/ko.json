@@ -829,6 +829,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "화면에서 모든 사진과 GIF가 지워집니다. 되돌릴 수 없습니다.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "사진과 GIF를 모두 제거할까요?",
   "devices.deepcool-mystique.removeAllHint": "화면에서 모든 사진과 GIF를 지웁니다.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "선택한 GIF가 화면에서 재생되도록 모두 제거를 한 번 사용하세요.",
   "devices.deepcool-mystique.removeConfirmBody": "다른 항목이 그 자리를 대신하거나 모두 제거를 사용할 때까지 화면에 남아 있습니다.",
   "devices.deepcool-mystique.removeConfirmTitle": "{name}을(를) 제거할까요?",
   "devices.deepcool-mystique.removeFailedBody": "항목을 제거하지 못했습니다.",

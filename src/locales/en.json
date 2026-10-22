@@ -829,6 +829,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Every picture and GIF is erased from the screen. This cannot be undone.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Remove all pictures and GIFs?",
   "devices.deepcool-mystique.removeAllHint": "Erases every picture and GIF from the screen.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Use Remove all once so the screen plays the GIF you pick.",
   "devices.deepcool-mystique.removeConfirmBody": "It stays on the screen until another item takes its place or Remove all is used.",
   "devices.deepcool-mystique.removeConfirmTitle": "Remove {name}?",
   "devices.deepcool-mystique.removeFailedBody": "The item could not be removed.",

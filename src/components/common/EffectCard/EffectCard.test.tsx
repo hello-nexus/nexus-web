@@ -19,4 +19,15 @@ describe('EffectCard', () => {
     rerender(<EffectCard label="vid.mp4" onClick={() => {}} />);
     expect(getByText('vid.mp4').className).not.toMatch(/labelAsIs/);
   });
+
+  it('a disabled card ignores clicks and keys, as a button or a div', () => {
+    const onClick = vi.fn();
+    const { getByRole, rerender } = render(<EffectCard label="Glitch Garden" thumbUrl={null} active={false} disabled onClick={onClick} />);
+    fireEvent.click(getByRole('button'));
+    rerender(<EffectCard label="Glitch Garden" thumbUrl={null} active={false} disabled asDiv onClick={onClick} />);
+    fireEvent.click(getByRole('button'));
+    fireEvent.keyDown(getByRole('button'), { key: 'Enter' });
+    expect(getByRole('button').getAttribute('aria-disabled')).toBe('true');
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });
