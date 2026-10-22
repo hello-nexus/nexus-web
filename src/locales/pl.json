@@ -815,6 +815,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Wszystkie obrazy i GIF-y zostaną usunięte z ekranu. Tej operacji nie można cofnąć.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Usunąć wszystkie obrazy i GIF-y?",
   "devices.deepcool-mystique.removeAllHint": "Usuwa z ekranu wszystkie obrazy i GIF-y.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Użyj raz Usuń wszystko, aby ekran odtwarzał wybrany GIF.",
   "devices.deepcool-mystique.removeConfirmBody": "Pozostaje na ekranie, dopóki jego miejsca nie zajmie inny element lub nie zostanie użyte Usuń wszystko.",
   "devices.deepcool-mystique.removeConfirmTitle": "Usunąć {name}?",
   "devices.deepcool-mystique.removeFailedBody": "Nie udało się usunąć elementu.",

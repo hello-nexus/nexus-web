@@ -815,6 +815,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Все изображения и GIF будут стёрты с экрана. Это действие нельзя отменить.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Удалить все изображения и GIF?",
   "devices.deepcool-mystique.removeAllHint": "Стирает с экрана все изображения и GIF.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Один раз используйте «Удалить все», чтобы экран воспроизводил выбранный вами GIF.",
   "devices.deepcool-mystique.removeConfirmBody": "Оно остаётся на экране, пока его место не займёт другой элемент или не будет использовано «Удалить все».",
   "devices.deepcool-mystique.removeConfirmTitle": "Удалить {name}?",
   "devices.deepcool-mystique.removeFailedBody": "Не удалось удалить элемент.",

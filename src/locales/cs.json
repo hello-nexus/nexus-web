@@ -815,6 +815,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "Všechny obrázky a GIFy budou z displeje smazány. Tuto akci nelze vrátit.",
   "devices.deepcool-mystique.removeAllConfirmTitle": "Odebrat všechny obrázky a GIFy?",
   "devices.deepcool-mystique.removeAllHint": "Smaže z displeje všechny obrázky a GIFy.",
+  "devices.deepcool-mystique.removeAllOnceNotice": "Jednou použijte Odebrat vše, aby displej přehrával GIF, který vyberete.",
   "devices.deepcool-mystique.removeConfirmBody": "Na displeji zůstane, dokud jeho místo nezaujme jiná položka nebo nepoužijete Odebrat vše.",
   "devices.deepcool-mystique.removeConfirmTitle": "Odebrat {name}?",
   "devices.deepcool-mystique.removeFailedBody": "Položku se nepodařilo odebrat.",

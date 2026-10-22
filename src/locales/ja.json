@@ -808,6 +808,7 @@
   "devices.deepcool-mystique.removeAllConfirmBody": "画面からすべての画像と GIF が消去されます。元に戻すことはできません。",
   "devices.deepcool-mystique.removeAllConfirmTitle": "画像と GIF をすべて削除しますか？",
   "devices.deepcool-mystique.removeAllHint": "画面からすべての画像と GIF を消去します。",
+  "devices.deepcool-mystique.removeAllOnceNotice": "選んだ GIF が画面で再生されるように、「すべて削除」を一度使ってください。",
   "devices.deepcool-mystique.removeConfirmBody": "別の項目に置き換わるか、「すべて削除」を使うまで画面に残ります。",
   "devices.deepcool-mystique.removeConfirmTitle": "{name} を削除しますか？",
   "devices.deepcool-mystique.removeFailedBody": "項目を削除できませんでした。",
