@@ -304,6 +304,8 @@
   "common.pager.next": "下一頁",
   "common.pager.pageOf": "第 {n} 頁，共 {total} 頁",
   "common.pager.prev": "上一頁",
+  "common.tabs.scrollLeft": "向左捲動分頁",
+  "common.tabs.scrollRight": "向右捲動分頁",
   "confirm.cancel": "取消",
   "confirm.ok": "確定",
   "conflicts.badge.text": "應用程式衝突",

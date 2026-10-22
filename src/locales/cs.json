@@ -304,6 +304,8 @@
   "common.pager.next": "Další stránka",
   "common.pager.pageOf": "Stránka {n} z {total}",
   "common.pager.prev": "Předchozí stránka",
+  "common.tabs.scrollLeft": "Posunout karty doleva",
+  "common.tabs.scrollRight": "Posunout karty doprava",
   "confirm.cancel": "Zrušit",
   "confirm.ok": "OK",
   "conflicts.badge.text": "Konflikt aplikací",

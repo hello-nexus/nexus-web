@@ -304,6 +304,8 @@
   "common.pager.next": "다음 페이지",
   "common.pager.pageOf": "{total}페이지 중 {n}페이지",
   "common.pager.prev": "이전 페이지",
+  "common.tabs.scrollLeft": "탭을 왼쪽으로 스크롤",
+  "common.tabs.scrollRight": "탭을 오른쪽으로 스크롤",
   "confirm.cancel": "취소",
   "confirm.ok": "확인",
   "conflicts.badge.text": "앱 충돌",

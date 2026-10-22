@@ -304,6 +304,8 @@
   "common.pager.next": "Next page",
   "common.pager.pageOf": "Page {n} of {total}",
   "common.pager.prev": "Previous page",
+  "common.tabs.scrollLeft": "Scroll tabs left",
+  "common.tabs.scrollRight": "Scroll tabs right",
   "confirm.cancel": "Cancel",
   "confirm.ok": "OK",
   "conflicts.badge.text": "App conflict",

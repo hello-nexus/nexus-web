@@ -304,6 +304,8 @@
   "common.pager.next": "次のページ",
   "common.pager.pageOf": "{total}ページ中{n}ページ",
   "common.pager.prev": "前のページ",
+  "common.tabs.scrollLeft": "タブを左にスクロール",
+  "common.tabs.scrollRight": "タブを右にスクロール",
   "confirm.cancel": "キャンセル",
   "confirm.ok": "OK",
   "conflicts.badge.text": "アプリの競合",

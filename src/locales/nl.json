@@ -304,6 +304,8 @@
   "common.pager.next": "Volgende pagina",
   "common.pager.pageOf": "Pagina {n} van {total}",
   "common.pager.prev": "Vorige pagina",
+  "common.tabs.scrollLeft": "Tabbladen naar links scrollen",
+  "common.tabs.scrollRight": "Tabbladen naar rechts scrollen",
   "confirm.cancel": "Annuleren",
   "confirm.ok": "OK",
   "conflicts.badge.text": "App-conflict",

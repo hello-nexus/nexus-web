@@ -304,6 +304,8 @@
   "common.pager.next": "Следующая страница",
   "common.pager.pageOf": "Страница {n} из {total}",
   "common.pager.prev": "Предыдущая страница",
+  "common.tabs.scrollLeft": "Прокрутить вкладки влево",
+  "common.tabs.scrollRight": "Прокрутить вкладки вправо",
   "confirm.cancel": "Отмена",
   "confirm.ok": "ОК",
   "conflicts.badge.text": "Конфликт приложений",

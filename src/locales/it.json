@@ -304,6 +304,8 @@
   "common.pager.next": "Pagina successiva",
   "common.pager.pageOf": "Pagina {n} di {total}",
   "common.pager.prev": "Pagina precedente",
+  "common.tabs.scrollLeft": "Scorri le schede a sinistra",
+  "common.tabs.scrollRight": "Scorri le schede a destra",
   "confirm.cancel": "Annulla",
   "confirm.ok": "OK",
   "conflicts.badge.text": "Conflitto app",

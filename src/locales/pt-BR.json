@@ -304,6 +304,8 @@
   "common.pager.next": "Próxima página",
   "common.pager.pageOf": "Página {n} de {total}",
   "common.pager.prev": "Página anterior",
+  "common.tabs.scrollLeft": "Rolar abas para a esquerda",
+  "common.tabs.scrollRight": "Rolar abas para a direita",
   "confirm.cancel": "Cancelar",
   "confirm.ok": "OK",
   "conflicts.badge.text": "Conflito de app",

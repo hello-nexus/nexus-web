@@ -304,6 +304,8 @@
   "common.pager.next": "Página seguinte",
   "common.pager.pageOf": "Página {n} de {total}",
   "common.pager.prev": "Página anterior",
+  "common.tabs.scrollLeft": "Deslocar separadores para a esquerda",
+  "common.tabs.scrollRight": "Deslocar separadores para a direita",
   "confirm.cancel": "Cancelar",
   "confirm.ok": "OK",
   "conflicts.badge.text": "Conflito de aplicação",

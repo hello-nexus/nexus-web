@@ -304,6 +304,8 @@
   "common.pager.next": "Sonraki sayfa",
   "common.pager.pageOf": "Sayfa {n} / {total}",
   "common.pager.prev": "Önceki sayfa",
+  "common.tabs.scrollLeft": "Sekmeleri sola kaydır",
+  "common.tabs.scrollRight": "Sekmeleri sağa kaydır",
   "confirm.cancel": "İptal",
   "confirm.ok": "Tamam",
   "conflicts.badge.text": "Uygulama çakışması",

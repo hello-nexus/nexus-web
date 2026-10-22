@@ -304,6 +304,8 @@
   "common.pager.next": "Następna strona",
   "common.pager.pageOf": "Strona {n} z {total}",
   "common.pager.prev": "Poprzednia strona",
+  "common.tabs.scrollLeft": "Przewiń karty w lewo",
+  "common.tabs.scrollRight": "Przewiń karty w prawo",
   "confirm.cancel": "Anuluj",
   "confirm.ok": "OK",
   "conflicts.badge.text": "Konflikt aplikacji",

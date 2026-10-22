@@ -304,6 +304,8 @@
   "common.pager.next": "Pagjine prossime",
   "common.pager.pageOf": "Pagjine {n} di {total}",
   "common.pager.prev": "Pagjine precedente",
+  "common.tabs.scrollLeft": "Sgrole lis schedis a çampe",
+  "common.tabs.scrollRight": "Sgrole lis schedis a diestre",
   "confirm.cancel": "Anule",
   "confirm.ok": "OK",
   "conflicts.badge.text": "Conflit di aplicazion",

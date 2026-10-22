@@ -304,6 +304,8 @@
   "common.pager.next": "Página siguiente",
   "common.pager.pageOf": "Página {n} de {total}",
   "common.pager.prev": "Página anterior",
+  "common.tabs.scrollLeft": "Desplazar pestañas a la izquierda",
+  "common.tabs.scrollRight": "Desplazar pestañas a la derecha",
   "confirm.cancel": "Cancelar",
   "confirm.ok": "Aceptar",
   "conflicts.badge.text": "Conflicto de aplicación",

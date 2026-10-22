@@ -304,6 +304,8 @@
   "common.pager.next": "下一页",
   "common.pager.pageOf": "第 {n} 页，共 {total} 页",
   "common.pager.prev": "上一页",
+  "common.tabs.scrollLeft": "向左滚动标签页",
+  "common.tabs.scrollRight": "向右滚动标签页",
   "confirm.cancel": "取消",
   "confirm.ok": "确定",
   "conflicts.badge.text": "应用冲突",
