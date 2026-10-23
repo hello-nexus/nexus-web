@@ -91,11 +91,6 @@ describe('HotkeysTab', () => {
     expect(screen.queryByRole('switch')).toBeNull();
   });
 
-  it('has no on/off switch on any row', () => {
-    render(<HotkeysTab serviceOnline />);
-    expect(screen.queryByRole('switch')).toBeNull();
-  });
-
   it('rebinding sends the binding as enabled, without a status field', async () => {
     vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current! });
     render(<HotkeysTab serviceOnline />);
@@ -118,14 +113,27 @@ describe('HotkeysTab', () => {
     expect(row.lastElementChild).toBe(screen.getAllByRole('button', { name: 'hotkeys.delete' })[0]);
   });
 
-  it('switches a bound binding saved disabled by an earlier build back on, once', async () => {
+  it('clears the combo of a bound binding stored disabled, once, and keeps it enabled', async () => {
     current = state([win({ enabled: false, status: 'disabled' })]);
     vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current });
     const { rerender } = render(<HotkeysTab serviceOnline />);
     await waitFor(() => expect(api.putHotkey).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(api.putHotkey).mock.calls[0][0]).toMatchObject({ id: 'builtin:toggle-window', enabled: true });
+    expect(vi.mocked(api.putHotkey).mock.calls[0][0]).toMatchObject({ id: 'builtin:toggle-window', combo: null, enabled: true });
     rerender(<HotkeysTab serviceOnline />);
     expect(api.putHotkey).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a rejected clear of a disabled binding', async () => {
+    current = state([win({ enabled: false, status: 'disabled' })]);
+    vi.mocked(api.putHotkey).mockResolvedValue({ ok: false, msg: 'nope' });
+    render(<HotkeysTab serviceOnline />);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('sends no request for a disabled binding when the platform is unsupported', () => {
+    current = state([win({ enabled: false, status: 'disabled' })], { supported: false });
+    render(<HotkeysTab serviceOnline />);
+    expect(api.putHotkey).not.toHaveBeenCalled();
   });
 
   it('rebinds through the recorder, suspending OS hotkeys while it records', async () => {

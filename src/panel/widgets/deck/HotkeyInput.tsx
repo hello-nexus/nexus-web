@@ -61,6 +61,7 @@ export function HotkeyInput({ value, onChange, disabled = false, display, hidePr
   const [capturing, setCapturing] = useState(false);
   const captureCb = useRef(onCaptureChange);
   useEffect(() => { captureCb.current = onCaptureChange; }, [onCaptureChange]);
+  const fieldRef = useRef<HTMLButtonElement>(null);
   const wasCapturing = useRef(false);
   useEffect(() => {
     if (wasCapturing.current === capturing) return;
@@ -119,6 +120,7 @@ export function HotkeyInput({ value, onChange, disabled = false, display, hidePr
       )}
       <div className={styles.fieldWrap}>
         <button
+          ref={fieldRef}
           type="button"
           className={`${styles.field} ${onClear ? styles.fieldClearable : ''}`}
           disabled={disabled}
@@ -137,7 +139,7 @@ export function HotkeyInput({ value, onChange, disabled = false, display, hidePr
           <button
             type="button"
             className={styles.clear}
-            onClick={onClear}
+            onClick={() => { onClear(); fieldRef.current?.focus(); }}
             aria-label={t('hotkeys.clear')}
             title={t('hotkeys.clear')}
           >

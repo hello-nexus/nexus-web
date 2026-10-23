@@ -78,14 +78,14 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
   };
 
   // Refuses what the service would, so the reason shows next to the row before any request.
-  const guard = (id: string, b: HotkeyBinding, combo: string | null, enabled: boolean): boolean => {
+  const guard = (id: string, b: HotkeyBinding, combo: string | null): boolean => {
     if (combo) {
       const check = checkCombo(combo);
       if (check !== 'ok') {
         setError({ id, msg: t(check === 'needsModifier' ? 'hotkeys.error.needsModifier' : 'hotkeys.error.invalidCombo') });
         return false;
       }
-      const dup = enabled ? findDuplicate(bindings, combo, b.id) : undefined;
+      const dup = findDuplicate(bindings, combo, b.id);
       if (dup) {
         setError({ id, msg: t('hotkeys.duplicate', { combo: formatCombo(combo, platform, t), name: nameOf(dup) }) });
         return false;
@@ -95,20 +95,29 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
   };
 
   const setCombo = async (b: HotkeyBinding, combo: string | null) => {
-    if (!guard(b.id, b, combo, true)) return;
+    if (!guard(b.id, b, combo)) return;
+    touched.current.add(b.id);
     settle(b.id, await putHotkey({ ...toInput(b), combo, enabled: true }));
   };
 
-  // There is no on/off control: a binding is live whenever it has a combo. A binding saved
-  // disabled by an earlier build is switched on once so it cannot stay stuck off.
-  const healed = useRef(new Set<string>());
+  // A binding is live whenever it has a combo, so a stored disabled one is shown unbound: its combo
+  // is cleared once. Rows the user already edited this session are left alone.
+  const touched = useRef(new Set<string>());
+  const latestBindings = useRef(bindings);
+  latestBindings.current = bindings;
+  const supported = !!state?.supported;
   useEffect(() => {
+    if (!supported) return;
     for (const b of bindings) {
-      if (!b.combo || b.enabled || healed.current.has(b.id)) continue;
-      healed.current.add(b.id);
-      void putHotkey({ ...toInput(b), enabled: true }).then(res => { if (res.ok) apply(res.state); });
+      if (!b.combo || b.enabled || touched.current.has(b.id)) continue;
+      touched.current.add(b.id);
+      const latest = latestBindings.current.find(x => x.id === b.id);
+      if (!latest?.combo || latest.enabled) continue;
+      void putHotkey({ ...toInput(latest), combo: null, enabled: true }).then(res => settle(latest.id, res));
     }
-  }, [bindings, apply]);
+    // settle only reads stable setters and the apply callback
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bindings, supported]);
 
   const openEditor = async (b: HotkeyBinding) => {
     if (b.target.kind !== 'deck' || !onOpenDeckEditor) return;
