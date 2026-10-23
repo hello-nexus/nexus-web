@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PANEL_SURFACES, type PanelSurface } from '../types';
 import { isLoopbackHost, panelAudioReactiveAllowed } from './panelAudio';
 
-const ALLOWED: PanelSurface[] = ['lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70'];
+const ALLOWED: PanelSurface[] = ['kraken', 'lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70'];
 
 describe('panelAudioReactiveAllowed', () => {
   it.each(ALLOWED)('allows %s on a local client', surface => {
