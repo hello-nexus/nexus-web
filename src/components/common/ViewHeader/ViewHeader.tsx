@@ -46,8 +46,7 @@ function ScrollableTabs({ children, activeTab, tabCount }: { children: ReactNode
 
   useLayoutEffect(() => { measure(); }, [measure, tabCount, children]);
 
-  // Keeps the active tab inside the strip; also re-run when the strip resizes,
-  // since the first measure can precede the final layout (sidebar, fonts).
+  // Re-runs on resize: the first pass can precede final layout (sidebar, fonts).
   const revealActive = useCallback(() => {
     const el = scrollerRef.current;
     const tab = el?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
