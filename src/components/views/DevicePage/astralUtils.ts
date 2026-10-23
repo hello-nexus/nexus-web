@@ -35,10 +35,62 @@ export function levelStatus(card: AstralCard): LevelStatus {
   return card.level.available ? 'ready' : 'none';
 }
 
-/** Translation key suffix for a tilt reading, `still` below the noise floor. */
+/** Past this many degrees either way a reading is over the limit. */
+export const WARN_DEG = 0.5;
+
+/** -1, 0 or 1: which way a reading points once it is past the noise. */
+export function tiltDirection(v: number | undefined): -1 | 0 | 1 {
+  if (v === undefined || Math.abs(v) < STILL_DEG) return 0;
+  return v > 0 ? 1 : -1;
+}
+
+/** Translation key suffix for a tilt reading: unchanged below the noise, mild up to the limit, firm past it. */
 export function tiltWord(value: number | undefined, plus: string, minus: string): string {
-  if (value === undefined || Math.abs(value) < STILL_DEG) return 'still';
-  return value > 0 ? plus : minus;
+  const dir = tiltDirection(value);
+  if (dir === 0 || value === undefined) return 'unchanged';
+  const firm = Math.abs(value) > WARN_DEG ? '' : 'Slight';
+  return `${dir > 0 ? plus : minus}${firm}`;
+}
+
+export type PinTone = 'green' | 'yellow' | 'red';
+
+/** The connector drawing has three tones: caution and warning are yellow, any fault is red. */
+export function pinTone(state: AstralPinState): PinTone {
+  if (state === 'ok') return 'green';
+  return state === 'caution' || state === 'warning' ? 'yellow' : 'red';
+}
+
+/** The connector as a whole: red once any pin is red, yellow while one is yellow. */
+export function connectorTone(tones: readonly PinTone[]): PinTone {
+  if (tones.includes('red')) return 'red';
+  return tones.includes('yellow') ? 'yellow' : 'green';
+}
+
+export interface StageExtent {
+  /** Where the drawing sits in its view box, in view units. */
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+  /** Half the side of the square view box, centered on the pivot. */
+  half: number;
+  pivot: readonly [number, number];
+}
+
+/**
+ * The square box (its side as a fraction of the stage height) and its center
+ * (fractions of the stage) that fit a drawing in a stage of the given aspect, its
+ * content centered, with the pivot at the box center so the card turns about it.
+ */
+export function fitStage(extent: StageExtent, aspect: number): { size: number; x: number; y: number } {
+  const span = 2 * extent.half;
+  const w = extent.x1 - extent.x0;
+  const h = extent.y1 - extent.y0;
+  const size = Math.min((0.9 * aspect * span) / w, (0.86 * span) / h);
+  const px = size / span;
+  const cx = (extent.x0 + extent.x1) / 2 - extent.pivot[0];
+  const cy = (extent.y0 + extent.y1) / 2 - extent.pivot[1];
+  return { size, x: 0.5 - (cx * px) / aspect, y: 0.5 - cy * px };
 }
 
 /** Signed degrees with an ASCII minus. */

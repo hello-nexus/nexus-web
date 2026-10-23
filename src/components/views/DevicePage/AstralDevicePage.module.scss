@@ -12,7 +12,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-md);
   padding: 0.25rem 0 1.25rem;
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -22,75 +22,177 @@
   gap: 0.75rem;
 }
 
-.pair {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 0.75rem;
-}
-
-.reading {
+.tab {
   display: flex;
   flex-direction: column;
+  gap: var(--space-md);
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: center;
+  gap: var(--space-md);
 }
 
-.value {
-  @include text-heading;
-  font-variant-numeric: tabular-nums;
-}
-
-.dim {
+.status {
   font-size: var(--type-small);
   color: var(--text-dim);
 }
 
-.art {
-  width: 100%;
-  max-width: 22rem;
+.accent {
+  color: var(--accent);
+}
+
+.bad {
+  color: var(--bad);
+}
+
+.centeredHint {
+  margin: 0;
+  text-align: center;
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
-.level {
-  stroke: var(--border);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
-
-.tilt {
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .tilt {
-    transition: transform 0.4s ease-out;
-  }
-}
-
-.pins {
+// Two panels side by side, one above the other when narrow.
+.panels {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+  gap: var(--space-xl);
+  align-items: start;
 }
 
-.pin {
+.panel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.5rem;
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  font-variant-numeric: tabular-nums;
+  gap: var(--space-xs);
+  min-width: 0;
 }
 
-.ok { border-color: var(--good); }
-.caution,
-.warning { border-color: var(--warn); }
-.overcurrent,
-.critical,
-.dead { border-color: var(--bad); }
+.panelTitle {
+  margin: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+  color: var(--text-dim);
+}
 
-.cardPower {
+// The drawing's box keeps the stage's shape through padding-top, set inline.
+.stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.layer {
+  position: absolute;
+  transform: translate(-50%, -50%);
+
+  > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .turning {
+    transition: transform var(--ease-slow) ease-out;
+  }
+}
+
+.levelLine,
+.uprightLine {
+  position: absolute;
+  pointer-events: none;
+  border: 0 dashed rgb(156 163 175 / var(--alpha-medium));
+}
+
+.levelLine {
+  left: 0;
+  right: 0;
+  border-top-width: 1px;
+}
+
+.uprightLine {
+  top: 0;
+  bottom: 0;
+  border-left-width: 1px;
+}
+
+.reading {
+  font-size: var(--type-display);
+  font-weight: var(--weight-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+
+  &.bad {
+    color: var(--bad);
+  }
+}
+
+.words {
+  font-size: var(--type-body);
+  font-weight: var(--weight-body);
+  color: var(--text-dim);
+
+  &.bad {
+    color: var(--bad);
+  }
+}
+
+.hint,
+.legend {
+  margin: 0;
+  align-self: center;
+  max-width: 28rem;
+  text-align: center;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.legend {
+  font-weight: var(--weight-strong);
+}
+
+// Power detector: the connector beside the settings, one above the other when narrow.
+.powerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.powerColumn {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+
+  > svg {
+    width: 100%;
+    max-width: 26rem;
+    height: auto;
+  }
+}
+
+.total {
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
 }

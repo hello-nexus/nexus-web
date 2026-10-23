@@ -46,6 +46,7 @@ async function mount(state: AstralState) {
   await act(async () => { render(<AstralDevicePage />); });
 }
 
+const openPower = () => fireEvent.click(screen.getByText('devices.astral.tab.power'));
 const openLevel = () => fireEvent.click(screen.getByText('devices.astral.tab.level'));
 
 describe('AstralDevicePage', () => {
@@ -60,17 +61,18 @@ describe('AstralDevicePage', () => {
     s.cards[0].pins[2] = { amps: 13, state: 'overcurrent' };
     s.cards[0].state = 'overcurrent';
     await mount(s);
+    openPower();
     expect(screen.getByText('13.0 A')).toBeInTheDocument();
     expect(screen.queryByText('99.0 A')).toBeNull();
     const pin3 = screen.getByRole('group', { name: /devices.astral.pinLabel:\{"n":3/ });
-    expect(pin3.className).toMatch(/overcurrent/);
-    expect(pin3).toHaveTextContent('devices.astral.state.overcurrent');
-    expect(screen.getByRole('group', { name: /"n":1,/ }).className).toMatch(/ok/);
+    expect(pin3.getAttribute('aria-label')).toContain('devices.astral.state.overcurrent');
+    expect(screen.getByRole('group', { name: /"n":1,/ }).getAttribute('aria-label')).toContain('devices.astral.state.ok');
     expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.alert.overcurrent:{"pins":"3"}');
   });
 
   it('shows no alert at rest', async () => {
     await mount(base());
+    openPower();
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByRole('status')).toBeNull();
   });
@@ -78,6 +80,7 @@ describe('AstralDevicePage', () => {
   it('renders the countdown from state and cancels it', async () => {
     api.cancelAstralShutdown.mockResolvedValue(base());
     await mount(base({ countdown: { reason: 'overcurrent', endsAtMs: Date.now() + 42_000 } }));
+    openPower();
     expect(screen.getByText(/devices.astral.countdown.overcurrent:\{"left":"0:4\d"\}/)).toBeInTheDocument();
     await act(async () => { fireEvent.click(screen.getByText('devices.astral.cancelShutdown')); });
     expect(api.cancelAstralShutdown).toHaveBeenCalled();
@@ -85,6 +88,7 @@ describe('AstralDevicePage', () => {
 
   it('asks before shutting down now', async () => {
     await mount(base({ countdown: { reason: 'critical', endsAtMs: Date.now() + 5000 } }));
+    openPower();
     fireEvent.click(screen.getByText('devices.astral.shutdownNow'));
     expect(api.shutdownAstralNow).not.toHaveBeenCalled();
     api.shutdownAstralNow.mockResolvedValue(base());
@@ -95,6 +99,7 @@ describe('AstralDevicePage', () => {
 
   it('says held off while a canceled countdown holds', async () => {
     await mount(base({ heldOff: true }));
+    openPower();
     expect(screen.getByText('devices.astral.heldOff')).toBeInTheDocument();
   });
 
@@ -103,6 +108,7 @@ describe('AstralDevicePage', () => {
     const s = base();
     s.settings.alerts = true;
     await mount(s);
+    openPower();
     const toggles = screen.getAllByRole('switch');
     await act(async () => { fireEvent.click(toggles[0]); });
     expect(api.saveAstralSettings).toHaveBeenCalledWith({ alerts: false });
@@ -149,6 +155,7 @@ describe('AstralDevicePage', () => {
     vi.useFakeTimers();
     await act(async () => { render(<AstralDevicePage />); });
     await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    openPower();
     await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
     await act(async () => { releasePoll(base()); });
     vi.useRealTimers();
@@ -163,14 +170,16 @@ describe('AstralDevicePage', () => {
     api.fetchAstral.mockResolvedValue(base());
     await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
     vi.useRealTimers();
+    openPower();
     expect(screen.queryByText('devices.astral.loadFailed')).toBeNull();
-    expect(screen.getByText('devices.astral.connector')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'devices.astral.connector' })).toBeInTheDocument();
   });
 
   it('renders every card', async () => {
     const s = base();
     s.cards.push({ ...s.cards[0], gpuId: 'gpu1', name: 'Second' });
     await mount(s);
+    openPower();
     expect(screen.getAllByRole('group', { name: /pinLabel/ })).toHaveLength(12);
     openLevel();
     expect(screen.getByText('Second')).toBeInTheDocument();

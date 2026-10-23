@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Activity, Zap } from 'lucide-react';
+import { Rotate3d, Zap } from 'lucide-react';
 import {
   calibrateAstral, cancelAstralShutdown, fetchAstral, saveAstralSettings, shutdownAstralNow,
   type AstralCard, type AstralSettings, type AstralState,
 } from '../../../api/astral';
 import { useSensors } from '../../../hooks/useSensors';
 import { useTranslation } from '../../../lib/i18n';
+import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
-import { Card } from '../../common/Card/Card';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
 import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { AstralArt } from './AstralArt';
 import {
-  CRITICAL_SECONDS, LIMITS, TIME_CHOICES, alertTone, clock, finite, levelStatus, pollDelayMs, secondsLeft, sensorId,
-  signedDegrees, tiltWord, withCurrent, worstPins,
+  AstralArcArrow, AstralConnector, AstralEndView, AstralSideView, AstralTiltLabels,
+  SAG_EXTENT, SAG_PIVOT, SAG_VIEW, TILT_EXTENT, TILT_PIVOT, TILT_VIEW,
+} from './AstralArt';
+import {
+  CRITICAL_SECONDS, LIMITS, TIME_CHOICES, WARN_DEG, alertTone, clock, finite, fitStage, levelStatus, pinTone, pollDelayMs,
+  secondsLeft, sensorId, signedDegrees, tiltDirection, tiltWord, withCurrent, worstPins, type StageExtent,
 } from './astralUtils';
 import styles from './AstralDevicePage.module.scss';
 
@@ -26,10 +29,69 @@ interface Confirm { kind: ConfirmKind; gpuId?: string }
 
 const P = 'devices.astral.';
 const TABS: readonly { key: Tab; icon: ReactNode }[] = [
+  { key: 'level', icon: <Rotate3d size={14} /> },
   { key: 'power', icon: <Zap size={14} /> },
-  { key: 'level', icon: <Activity size={14} /> },
 ];
-const ART_VIEW = { sag: 'side', lean: 'end' } as const;
+// Both views share one shape so the two panels line up.
+const STAGE_ASPECT = 1.9;
+// The card turns by the reading, never more than this far.
+const MAX_TURN = 25;
+const turn = (v: number | undefined) => Math.min(MAX_TURN, Math.max(-MAX_TURN, v ?? 0));
+
+interface StageProps {
+  extent: StageExtent;
+  upright?: boolean;
+  art: ReactNode;
+  rotation: number;
+  arrow: ReactNode;
+  labels?: ReactNode;
+  alt: string;
+}
+
+// One view: the reference line through the pivot (level for sag, upright for tilt), the card
+// turned by the reading about its pivot, and the arrow and labels that hold still.
+function Stage({ extent, upright, art, rotation, arrow, labels, alt }: StageProps) {
+  const fit = fitStage(extent, STAGE_ASPECT);
+  const box = {
+    left: `${fit.x * 100}%`,
+    top: `${fit.y * 100}%`,
+    width: `${(fit.size / STAGE_ASPECT) * 100}%`,
+    height: `${fit.size * 100}%`,
+  };
+  return (
+    <div className={styles.stage} style={{ paddingTop: `${100 / STAGE_ASPECT}%` }} role="img" aria-label={alt}>
+      <div className={upright ? styles.uprightLine : styles.levelLine} style={upright ? { left: box.left } : { top: box.top }} />
+      <div className={`${styles.layer} ${styles.turning}`} style={{ ...box, transform: `translate(-50%, -50%) rotate(${rotation}deg)` }}>{art}</div>
+      <div className={styles.layer} style={box}>{arrow}</div>
+      {labels && <div className={styles.layer} style={box}>{labels}</div>}
+    </div>
+  );
+}
+
+interface PanelProps {
+  title: string;
+  stage: ReactNode;
+  value: number | undefined;
+  over: boolean;
+  words: string;
+  hint: string;
+  legend: string;
+}
+
+// One reading: its title, the drawing, the signed number, the direction in words, what it
+// means and what + and - stand for.
+function Panel({ title, stage, value, over, words, hint, legend }: PanelProps) {
+  return (
+    <section className={styles.panel} aria-label={title}>
+      <h3 className={styles.panelTitle}>{title}</h3>
+      {stage}
+      <div className={`${styles.reading} ${over ? styles.bad : ''}`}>{value === undefined ? '--' : signedDegrees(value)}</div>
+      <div className={`${styles.words} ${over ? styles.bad : ''}`}>{words}</div>
+      <p className={styles.hint}>{hint}</p>
+      <p className={styles.legend}>{legend}</p>
+    </section>
+  );
+}
 
 /** The ROG Astral page: Level Sense (sag and lean) and the Power detector (12V-2x6 pins). */
 export function AstralDevicePage() {
@@ -37,9 +99,9 @@ export function AstralDevicePage() {
   const sensors = useSensors(true);
   const [state, setState] = useState<AstralState | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [tab, setTab] = useState<Tab>('power');
+  const [tab, setTab] = useState<Tab>('level');
   const [confirm, setConfirm] = useState<Confirm | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const alive = useRef(true);
   // Bumped when a write starts and when it lands; a poll that began before either is stale.
@@ -82,7 +144,7 @@ export function AstralDevicePage() {
   }, [sensors.gpuComponents]);
 
   // Every write answers with the full state; a failed one says so and leaves the controls as they were.
-  const run = useCallback(async (send: () => Promise<AstralState | null>) => {
+  const run = useCallback(async (send: () => Promise<AstralState | null>, failKey = 'failed') => {
     writeSeq.current += 1;
     writing.current += 1;
     let next: AstralState | null = null;
@@ -93,7 +155,7 @@ export function AstralDevicePage() {
       writeSeq.current += 1;
     }
     if (!alive.current) return;
-    setFailed(!next);
+    setFailed(next ? null : failKey);
     if (next) setState(next);
   }, []);
 
@@ -122,51 +184,92 @@ export function AstralDevicePage() {
   const multi = state.cards.length > 1;
 
   const confirmActions: Record<ConfirmKind, { onConfirm: () => void; destructive: boolean; action: string }> = {
-    calibrate: { onConfirm: () => { if (confirm?.gpuId) { const id = confirm.gpuId; void run(() => calibrateAstral(id)); } }, destructive: false, action: 'calibrate' },
+    calibrate: { onConfirm: () => { if (confirm?.gpuId) { const id = confirm.gpuId; void run(() => calibrateAstral(id), 'calibrateFailed'); } }, destructive: false, action: 'calibrate' },
     equalizer: { onConfirm: () => set({ equalizer: true }), destructive: true, action: 'turnOn' },
     shutdown: { onConfirm: () => set({ overcurrentShutdown: true }), destructive: false, action: 'turnOn' },
     now: { onConfirm: () => { void run(shutdownAstralNow); }, destructive: true, action: 'shutdownNow' },
   };
   const pending = confirm ? confirmActions[confirm.kind] : null;
 
-  const readingCard = (key: 'sag' | 'lean', value: number | undefined, plus: string, minus: string) => (
-    <Card title={t(`${P}${key}.title`)}>
-      <div className={styles.reading}>
-        <AstralArt view={ART_VIEW[key]} degrees={value ?? 0} label={t(`${P}${key}.view`)} />
-        <span className={styles.value}>{value === undefined ? '--' : signedDegrees(value)}</span>
-        <span className={styles.dim}>{t(`${P}${key}.${tiltWord(value, plus, minus)}`)}</span>
-      </div>
-    </Card>
-  );
-
   const levelView = (card: AstralCard) => {
     const level = levelStatus(card);
     const sag = finite(live.get(sensorId(card.gpuId, 'level/sag')));
     const lean = finite(live.get(sensorId(card.gpuId, 'level/lean')));
     const calibratedAt = card.level.calibratedAtMs;
+    const overSag = sag !== undefined && Math.abs(sag) > WARN_DEG;
+    const overLean = lean !== undefined && Math.abs(lean) > WARN_DEG;
+    const over = overSag || overLean;
+    const word = (key: 'sag' | 'lean', value: number | undefined, plus: string, minus: string) => {
+      const w = tiltWord(value, plus, minus);
+      return t(w === 'unchanged' ? `${P}unchanged` : `${P}${key}.${w}`);
+    };
     return (
-      <SettingsSection key={card.gpuId} title={multi ? card.name : t(`${P}tab.level`)} boxClassName={styles.sectionBox}>
+      <div key={card.gpuId} className={styles.tab}>
+        {multi && <h3 className={styles.panelTitle}>{card.name}</h3>}
         {level === 'none' && <Notice tone="info" role="status">{t(`${P}noSensor`)}</Notice>}
-        {level === 'calibrating' && <Notice tone="info" role="status">{t(`${P}calibrating`)}</Notice>}
         {level !== 'none' && (
           <>
-            <div className={styles.pair}>
-              {readingCard('sag', sag, 'down', 'up')}
-              {readingCard('lean', lean, 'fans', 'back')}
-            </div>
-            <span className={styles.dim}>
-              {calibratedAt == null
-                ? t(`${P}notCalibrated`)
-                : t(`${P}calibrated`, { when: new Date(calibratedAt).toLocaleString() })}
-            </span>
-            <div>
-              <Button size="sm" disabled={level === 'calibrating'} onClick={() => setConfirm({ kind: 'calibrate', gpuId: card.gpuId })}>
+            <div className={styles.statusRow}>
+              <Badge label={over ? t(`${P}over`, { limit: WARN_DEG.toFixed(2) }) : t(`${P}ok`)} color={over ? 'var(--bad)' : 'var(--good)'} />
+              <span className={`${styles.status} ${level === 'calibrating' ? styles.accent : ''}`} role="status">
+                {level === 'calibrating'
+                  ? t(`${P}calibrating`)
+                  : calibratedAt == null
+                    ? t(`${P}notCalibrated`)
+                    : t(`${P}calibrated`, { when: new Date(calibratedAt).toLocaleString() })}
+              </span>
+              <Button size="sm" tone="accent" disabled={level === 'calibrating'} onClick={() => setConfirm({ kind: 'calibrate', gpuId: card.gpuId })}>
                 {t(`${P}calibrate`)}
               </Button>
             </div>
+            <p className={styles.centeredHint}>{t(`${P}calibrateHint`)}</p>
+            <div className={styles.panels}>
+              <Panel
+                title={t(`${P}sag.title`)}
+                stage={(
+                  <Stage
+                    extent={SAG_EXTENT}
+                    art={<AstralSideView warn={overSag} />}
+                    rotation={turn(sag)}
+                    arrow={(
+                      <AstralArcArrow viewBox={SAG_VIEW} cx={SAG_PIVOT[0]} cy={SAG_PIVOT[1]} r={372} a0={-9} a1={9}
+                        color="#f59e0b" on={tiltDirection(sag)} warn={overSag} signGap={26} />
+                    )}
+                    alt={t(`${P}sag.view`)}
+                  />
+                )}
+                value={sag}
+                over={overSag}
+                words={word('sag', sag, 'down', 'up')}
+                hint={t(`${P}sag.hint`)}
+                legend={t(`${P}sag.legend`)}
+              />
+              <Panel
+                title={t(`${P}lean.title`)}
+                stage={(
+                  <Stage
+                    extent={TILT_EXTENT}
+                    upright
+                    art={<AstralEndView warn={overLean} />}
+                    rotation={turn(lean === undefined ? 0 : -lean)}
+                    arrow={(
+                      <AstralArcArrow viewBox={TILT_VIEW} cx={TILT_PIVOT[0]} cy={TILT_PIVOT[1]} r={222} a0={-76} a1={-104}
+                        color="#22d3ee" on={tiltDirection(lean)} warn={overLean} signGap={26} />
+                    )}
+                    labels={<AstralTiltLabels fans={t(`${P}fans`)} backplate={t(`${P}backplate`)} />}
+                    alt={t(`${P}lean.view`)}
+                  />
+                )}
+                value={lean}
+                over={overLean}
+                words={word('lean', lean, 'fans', 'back')}
+                hint={t(`${P}lean.hint`)}
+                legend={t(`${P}lean.legend`)}
+              />
+            </div>
           </>
         )}
-      </SettingsSection>
+      </div>
     );
   };
 
@@ -175,24 +278,18 @@ export function AstralDevicePage() {
     const tone = alertTone(card.state);
     const total = card.pins.reduce((sum, p) => sum + p.amps, 0);
     return (
-      <div key={card.gpuId} className={styles.cardPower}>
+      <div key={card.gpuId} className={styles.powerColumn}>
         {tone && (
           <Notice tone={tone} role={tone === 'critical' ? 'alert' : 'status'}>
             {t(`${P}alert.${card.state}`, { pins: worstPins(card) })}
             {card.state === 'overcurrent' && !eq && <NoticeSecondary>{t(`${P}alert.equalizerHint`)}</NoticeSecondary>}
           </Notice>
         )}
-        <Card title={multi ? `${card.name}, ${t(`${P}connector`)}` : t(`${P}connector`)} subtitle={t(`${P}total`, { value: total.toFixed(1) })}>
-          <div className={styles.pins}>
-            {card.pins.map((p, i) => (
-              <div key={i} className={`${styles.pin} ${styles[p.state]}`} role="group" aria-label={t(`${P}pinLabel`, { n: i + 1, state: t(`${P}state.${p.state}`) })}>
-                <span className={styles.dim}>{t(`${P}pin`, { n: i + 1 })}</span>
-                <span>{`${p.amps.toFixed(1)} A`}</span>
-                <span className={styles.dim}>{t(`${P}state.${p.state}`)}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <div className={styles.connector}>
+          <AstralConnector pins={card.pins.map((p, i) => ({ amps: p.amps, tone: pinTone(p.state), label: t(`${P}pinLabel`, { n: i + 1, state: t(`${P}state.${p.state}`) }) }))} label={multi ? `${card.name}, ${t(`${P}connector`)}` : t(`${P}connector`)} />
+          <span className={styles.total}>{t(`${P}total`, { value: total.toFixed(1) })}</span>
+        </div>
+        <p className={styles.hint}>{t(`${P}watchHint`)}</p>
       </div>
     );
   };
@@ -207,74 +304,76 @@ export function AstralDevicePage() {
         onTabChange={key => setTab(key as Tab)}
       />
       <div className={styles.body}>
-        {failed && <Notice tone="critical" role="alert">{t(`${P}failed`)}</Notice>}
+        {failed && <Notice tone="critical" role="alert">{t(`${P}${failed}`)}</Notice>}
         {loadFailed && <Notice tone="critical" role="alert">{t(`${P}loadFailed`)}</Notice>}
 
         {tab === 'level' && state.cards.map(levelView)}
 
         {tab === 'power' && (
-          <>
-            {state.countdown && (
-              <Notice
-                tone="critical"
-                role="alert"
-                actions={(
-                  <>
-                    <Button size="sm" onClick={() => { void run(cancelAstralShutdown); }}>{t(`${P}cancelShutdown`)}</Button>
-                    <Button size="sm" tone="danger" onClick={() => setConfirm({ kind: 'now' })}>{t(`${P}shutdownNow`)}</Button>
-                  </>
-                )}
-              >
-                {t(`${P}countdown.${state.countdown.reason}`, { left: clock(secondsLeft(state.countdown.endsAtMs, now)) })}
-              </Notice>
-            )}
-            {state.heldOff && <Notice tone="info" role="status">{t(`${P}heldOff`)}</Notice>}
+          <div className={styles.powerGrid}>
+            <div className={styles.powerColumn}>
+              {state.countdown && (
+                <Notice
+                  tone="critical"
+                  role="alert"
+                  actions={(
+                    <>
+                      <Button size="sm" tone="accent" onClick={() => { void run(cancelAstralShutdown); }}>{t(`${P}cancelShutdown`)}</Button>
+                      <Button size="sm" tone="danger" onClick={() => setConfirm({ kind: 'now' })}>{t(`${P}shutdownNow`)}</Button>
+                    </>
+                  )}
+                >
+                  {t(`${P}countdown.${state.countdown.reason}`, { left: clock(secondsLeft(state.countdown.endsAtMs, now)) })}
+                </Notice>
+              )}
+              {state.heldOff && <Notice tone="info" role="status">{t(`${P}heldOff`)}</Notice>}
+              {state.cards.map(powerView)}
+            </div>
+            <div className={styles.powerColumn}>
+              <SettingsSection title={t(`${P}alertsTitle`)} boxClassName={styles.sectionBox}>
+                <SettingToggle label={t(`${P}alerts`)} description={t(`${P}alertsHint`)} checked={s.alerts} onChange={on => set({ alerts: on })} />
+              </SettingsSection>
 
-            {state.cards.map(powerView)}
+              <SettingsSection title={t(`${P}equalizerTitle`)} boxClassName={styles.sectionBox}>
+                <Notice tone="warning">{t(`${P}equalizerWarning`)}</Notice>
+                <SettingToggle
+                  label={t(`${P}equalizer`)}
+                  description={t(`${P}equalizerHint`, { over: LIMITS.overcurrent.equalizer, crit: LIMITS.critical.equalizer })}
+                  checked={eq}
+                  onChange={on => (on ? setConfirm({ kind: 'equalizer' }) : set({ equalizer: false }))}
+                />
+              </SettingsSection>
 
-            <SettingsSection title={t(`${P}alertsTitle`)} boxClassName={styles.sectionBox}>
-              <SettingToggle label={t(`${P}alerts`)} description={t(`${P}alertsHint`)} checked={s.alerts} onChange={on => set({ alerts: on })} />
-            </SettingsSection>
-
-            <SettingsSection title={t(`${P}equalizerTitle`)} boxClassName={styles.sectionBox}>
-              <Notice tone="warning">{t(`${P}equalizerWarning`)}</Notice>
-              <SettingToggle
-                label={t(`${P}equalizer`)}
-                description={t(`${P}equalizerHint`, { over: LIMITS.overcurrent.equalizer, crit: LIMITS.critical.equalizer })}
-                checked={eq}
-                onChange={on => (on ? setConfirm({ kind: 'equalizer' }) : set({ equalizer: false }))}
-              />
-            </SettingsSection>
-
-            <SettingsSection title={t(`${P}autoTitle`)} boxClassName={styles.sectionBox}>
-              <SettingToggle
-                label={t(`${P}overShutdown`)}
-                description={t(`${P}overShutdownHint`, { limit: limits.over })}
-                checked={s.overcurrentShutdown}
-                onChange={on => (on ? setConfirm({ kind: 'shutdown' }) : set({ overcurrentShutdown: false }))}
-              />
-              <SettingSelect
-                label={t(`${P}overFor`)}
-                value={String(s.overcurrentSeconds)}
-                options={times(s.overcurrentSeconds)}
-                disabled={!s.overcurrentShutdown}
-                onChange={v => set({ overcurrentSeconds: Number(v) })}
-              />
-              <SettingSelect
-                label={t(`${P}countdownFor`)}
-                value={String(s.countdownSeconds)}
-                options={times(s.countdownSeconds)}
-                disabled={!s.overcurrentShutdown}
-                onChange={v => set({ countdownSeconds: Number(v) })}
-              />
-              <SettingToggle
-                label={t(`${P}critShutdown`)}
-                description={t(`${P}critShutdownHint`, { limit: limits.crit, seconds: CRITICAL_SECONDS })}
-                checked={s.criticalShutdown}
-                onChange={on => set({ criticalShutdown: on })}
-              />
-            </SettingsSection>
-          </>
+              <SettingsSection title={t(`${P}autoTitle`)} boxClassName={styles.sectionBox}>
+                <SettingToggle
+                  label={t(`${P}overShutdown`)}
+                  description={t(`${P}overShutdownHint`, { limit: limits.over })}
+                  checked={s.overcurrentShutdown}
+                  onChange={on => (on ? setConfirm({ kind: 'shutdown' }) : set({ overcurrentShutdown: false }))}
+                />
+                <SettingSelect
+                  label={t(`${P}overFor`)}
+                  value={String(s.overcurrentSeconds)}
+                  options={times(s.overcurrentSeconds)}
+                  disabled={!s.overcurrentShutdown}
+                  onChange={v => set({ overcurrentSeconds: Number(v) })}
+                />
+                <SettingSelect
+                  label={t(`${P}countdownFor`)}
+                  value={String(s.countdownSeconds)}
+                  options={times(s.countdownSeconds)}
+                  disabled={!s.overcurrentShutdown}
+                  onChange={v => set({ countdownSeconds: Number(v) })}
+                />
+                <SettingToggle
+                  label={t(`${P}critShutdown`)}
+                  description={t(`${P}critShutdownHint`, { limit: limits.crit, seconds: CRITICAL_SECONDS })}
+                  checked={s.criticalShutdown}
+                  onChange={on => set({ criticalShutdown: on })}
+                />
+              </SettingsSection>
+            </div>
+          </div>
         )}
       </div>
 

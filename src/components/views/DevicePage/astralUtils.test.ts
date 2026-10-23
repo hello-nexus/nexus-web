@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AstralCard, AstralState } from '../../../api/astral';
 import {
-  alertTone, clock, levelStatus, pollDelayMs, secondsLeft, signedDegrees, tiltWord, withCurrent, worstPins,
+  alertTone, clock, connectorTone, fitStage, levelStatus, pinTone, pollDelayMs, secondsLeft, signedDegrees, tiltWord, withCurrent, worstPins,
 } from './astralUtils';
 
 const card = (over: Partial<AstralCard> = {}): AstralCard => ({
@@ -44,13 +44,33 @@ describe('levelStatus', () => {
 });
 
 describe('tiltWord', () => {
-  it('is still under the noise floor or without a reading', () => {
-    expect(tiltWord(0.05, 'down', 'up')).toBe('still');
-    expect(tiltWord(undefined, 'down', 'up')).toBe('still');
+  it('is unchanged under the noise floor or without a reading', () => {
+    expect(tiltWord(0.05, 'down', 'up')).toBe('unchanged');
+    expect(tiltWord(undefined, 'down', 'up')).toBe('unchanged');
   });
-  it('follows the sign past it', () => {
-    expect(tiltWord(0.3, 'down', 'up')).toBe('down');
-    expect(tiltWord(-0.3, 'down', 'up')).toBe('up');
+  it('is mild up to the limit and firm past it, by sign', () => {
+    expect(tiltWord(0.3, 'down', 'up')).toBe('downSlight');
+    expect(tiltWord(-0.3, 'down', 'up')).toBe('upSlight');
+    expect(tiltWord(0.9, 'down', 'up')).toBe('down');
+    expect(tiltWord(-0.9, 'down', 'up')).toBe('up');
+  });
+});
+
+describe('pin tones', () => {
+  it('maps states to the three drawing tones', () => {
+    expect(pinTone('ok')).toBe('green');
+    expect(pinTone('warning')).toBe('yellow');
+    expect(pinTone('dead')).toBe('red');
+    expect(connectorTone(['green', 'yellow'])).toBe('yellow');
+    expect(connectorTone(['yellow', 'red'])).toBe('red');
+  });
+});
+
+describe('fitStage', () => {
+  it('centers the drawing in the stage', () => {
+    const fit = fitStage({ x0: 0, x1: 100, y0: 0, y1: 100, half: 100, pivot: [50, 50] }, 2);
+    expect(fit.x).toBeCloseTo(0.5);
+    expect(fit.y).toBeCloseTo(0.5);
   });
 });
 
