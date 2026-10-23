@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Tijd boven de limiet",
   "devices.astral.overShutdown": "Afsluiten bij overstroom",
   "devices.astral.overShutdownHint": "Start een afteltijd wanneer een pin de hieronder ingestelde tijd boven {limit} A blijft.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "Het uiteinde van de kaart is gezakt",
   "devices.astral.sag.downSlight": "Uiteinde van de kaart iets lager",

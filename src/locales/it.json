@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Tempo oltre il limite",
   "devices.astral.overShutdown": "Spegnimento per sovracorrente",
   "devices.astral.overShutdownHint": "Avvia un conto alla rovescia quando un pin resta oltre {limit} A per il tempo indicato sotto.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "L'estremità della scheda si è abbassata",
   "devices.astral.sag.downSlight": "Estremità della scheda un po' più bassa",

@@ -742,7 +742,6 @@
   "devices.astral.overFor": "超出上限的時間",
   "devices.astral.overShutdown": "過流時關機",
   "devices.astral.overShutdownHint": "當接腳超過 {limit} A 的時間達到下方設定值時，開始倒數。",
-  "devices.astral.pin": "接腳 {n}",
   "devices.astral.pinLabel": "接腳 {n}，{state}",
   "devices.astral.sag.down": "顯示卡末端已下垂",
   "devices.astral.sag.downSlight": "顯示卡末端略低",

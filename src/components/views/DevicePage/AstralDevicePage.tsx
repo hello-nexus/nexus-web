@@ -203,6 +203,7 @@ export function AstralDevicePage() {
     const over = overSag || overLean;
     const word = (key: 'sag' | 'lean', value: number | undefined, plus: string, minus: string) => {
       const w = tiltWord(value, plus, minus);
+      if (w === '') return '';
       return t(w === 'unchanged' ? `${P}unchanged` : `${P}${key}.${w}`);
     };
     return (
@@ -277,16 +278,9 @@ export function AstralDevicePage() {
 
   // Amps and state both come from the same polled snapshot, so a pin never shows a newer reading beside an older verdict.
   const powerView = (card: AstralCard) => {
-    const tone = alertTone(card.state);
     const total = card.pins.reduce((sum, p) => sum + p.amps, 0);
     return (
       <div key={card.gpuId} className={styles.powerColumn}>
-        {tone && (
-          <Notice tone={tone} role={tone === 'critical' ? 'alert' : 'status'}>
-            {t(`${P}alert.${card.state}`, { pins: worstPins(card) })}
-            {card.state === 'overcurrent' && !eq && <NoticeSecondary>{t(`${P}alert.equalizerHint`)}</NoticeSecondary>}
-          </Notice>
-        )}
         <div className={styles.connector}>
           <AstralConnector pins={card.pins.map((p, i) => ({ amps: p.amps, tone: pinTone(p.state), label: t(`${P}pinLabel`, { n: i + 1, state: t(`${P}state.${p.state}`) }) }))} label={multi ? `${card.name}, ${t(`${P}connector`)}` : t(`${P}connector`)} />
           <span className={styles.total}>{t(`${P}total`, { value: total.toFixed(1) })}</span>
@@ -309,26 +303,36 @@ export function AstralDevicePage() {
         {failed && <Notice tone="critical" role="alert">{t(`${P}${failed}`)}</Notice>}
         {loadFailed && <Notice tone="critical" role="alert">{t(`${P}loadFailed`)}</Notice>}
 
+        {state.cards.map(card => {
+          const tone = alertTone(card.state);
+          return tone && (
+            <Notice key={card.gpuId} tone={tone} role={tone === 'critical' ? 'alert' : 'status'}>
+              {multi ? `${card.name}: ` : ''}{t(`${P}alert.${card.state}`, { pins: worstPins(card) })}
+              {card.state === 'overcurrent' && !eq && <NoticeSecondary>{t(`${P}alert.equalizerHint`)}</NoticeSecondary>}
+            </Notice>
+          );
+        })}
+        {state.countdown && (
+          <Notice
+            tone="critical"
+            role="alert"
+            actions={(
+              <>
+                <Button size="sm" tone="accent" onClick={() => { void run(cancelAstralShutdown); }}>{t(`${P}cancelShutdown`)}</Button>
+                <Button size="sm" tone="danger" onClick={() => setConfirm({ kind: 'now' })}>{t(`${P}shutdownNow`)}</Button>
+              </>
+            )}
+          >
+            {t(`${P}countdown.${state.countdown.reason}`, { left: clock(secondsLeft(state.countdown.endsAtMs, now)) })}
+          </Notice>
+        )}
+        {state.heldOff && <Notice tone="info" role="status">{t(`${P}heldOff`)}</Notice>}
+
         {tab === 'level' && state.cards.map(levelView)}
 
         {tab === 'power' && (
           <div className={styles.powerGrid}>
             <div className={styles.powerColumn}>
-              {state.countdown && (
-                <Notice
-                  tone="critical"
-                  role="alert"
-                  actions={(
-                    <>
-                      <Button size="sm" tone="accent" onClick={() => { void run(cancelAstralShutdown); }}>{t(`${P}cancelShutdown`)}</Button>
-                      <Button size="sm" tone="danger" onClick={() => setConfirm({ kind: 'now' })}>{t(`${P}shutdownNow`)}</Button>
-                    </>
-                  )}
-                >
-                  {t(`${P}countdown.${state.countdown.reason}`, { left: clock(secondsLeft(state.countdown.endsAtMs, now)) })}
-                </Notice>
-              )}
-              {state.heldOff && <Notice tone="info" role="status">{t(`${P}heldOff`)}</Notice>}
               {state.cards.map(powerView)}
             </div>
             <div className={styles.powerColumn}>

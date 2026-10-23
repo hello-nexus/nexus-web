@@ -749,7 +749,6 @@
   "devices.astral.overFor": "Время превышения предела",
   "devices.astral.overShutdown": "Выключение при перегрузке по току",
   "devices.astral.overShutdownHint": "Запускает обратный отсчет, когда контакт превышает {limit} А в течение времени, заданного ниже.",
-  "devices.astral.pin": "Контакт {n}",
   "devices.astral.pinLabel": "Контакт {n}, {state}",
   "devices.astral.sag.down": "Край карты опустился",
   "devices.astral.sag.downSlight": "Конец карты чуть ниже",

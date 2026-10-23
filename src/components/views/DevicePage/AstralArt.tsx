@@ -1,7 +1,7 @@
 // Flat drawings of a ROG Astral card for its device page, plain SVG: the card from
 // the side and from its end (Level Sense turns them), the curved arrows that light up
 // the way the card moved, and the card's 12V-2x6 power connector with each pin's
-// current in GPU Tweak III's colors (Power detector).
+// current colored by its state (Power detector).
 import { useId, type ReactNode } from 'react';
 import { connectorTone, type PinTone, type StageExtent } from './astralUtils';
 
@@ -15,8 +15,8 @@ const FONT = 'Segoe UI, Arial, sans-serif';
 
 // ── Level Sense ─────────────────────────────────────────────────────────────────
 
-// Real card proportions, flat shapes: the body spans x 30..478 and y 40..227. The side
-// view turns about the bracket, so it is shown through a square centered there.
+// Real card proportions, flat shapes, all measured from this body box. The side view
+// turns about the bracket, so it is shown through a square centered there.
 const BODY = { l: 30, t: 40, r: 478, b: 227, cy: 133 };
 export const SAG_PIVOT = [22, BODY.cy] as const;
 const SAG_HALF = 540;
@@ -29,7 +29,9 @@ export const TILT_PIVOT = [147, BODY.b] as const;
 const TILT_HALF = 300;
 export const TILT_VIEW = `${TILT_PIVOT[0] - TILT_HALF} ${TILT_PIVOT[1] - TILT_HALF} ${2 * TILT_HALF} ${2 * TILT_HALF}`;
 /** Symmetric about the slot, so the upright line runs through the middle of the card. */
-export const TILT_EXTENT: StageExtent = { x0: 147 - 165, x1: 147 + 165, y0: -50, y1: 233, half: TILT_HALF, pivot: TILT_PIVOT };
+export const TILT_EXTENT: StageExtent = {
+  x0: TILT_PIVOT[0] - 165, x1: TILT_PIVOT[0] + 165, y0: BODY.t - 90, y1: BODY.b + 6, half: TILT_HALF, pivot: TILT_PIVOT,
+};
 
 const FRAME = '#23272d';
 const EDGE = '#4b525c';
@@ -109,15 +111,14 @@ interface ArcArrowProps {
   on: -1 | 0 | 1;
   /** Sizes everything drawn here (heads, markers, strokes) so both views show it the same size on screen. */
   k?: number;
-  signGap?: number;
+  signGap: number;
 }
 
 /** A curved double arrow on a circle around (cx, cy). The end the card moved toward fills with the color and grows a little. */
-export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap = 30 }: ArcArrowProps) {
+export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap }: ArcArrowProps) {
   const rad = (d: number) => (d * Math.PI) / 180;
   const at = (a: number, rr = r): [number, number] => [cx + rr * Math.cos(rad(a)), cy + rr * Math.sin(rad(a))];
   const n = (v: number) => v.toFixed(1);
-  const lit = LIT;
   const head = 18 * k;
   // Leave room for the heads at both ends; the heads point along the arc.
   const span = a1 - a0;
@@ -137,7 +138,7 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap 
     const w = size * 0.62;
     const d = `M${n(tip[0])} ${n(tip[1])} L${n(base[0] - ty * w)} ${n(base[1] + tx * w)} `
       + `Q${n(base[0] + tx * size * 0.25)} ${n(base[1] + ty * size * 0.25)} ${n(base[0] + ty * w)} ${n(base[1] - tx * w)} Z`;
-    return <path d={d} fill={active ? lit : '#6b7280'} />;
+    return <path d={d} fill={active ? LIT : '#6b7280'} />;
   };
   const sign = (a: number, text: string, active: boolean): ReactNode => {
     const p = at(a, r + signGap * k);
@@ -163,7 +164,7 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap 
 
 // ── Power detector ──────────────────────────────────────────────────────────────
 
-// GPU Tweak III's own colors for its pin dots and warning sign.
+// The pin and warning colors: green for fine, amber for a heads-up, red for a fault.
 const GT_GREEN = '#03FC84';
 const GT_YELLOW = '#FBB03B';
 const GT_RED = '#FF0000';
@@ -179,8 +180,7 @@ interface ConnectorProps {
 }
 
 /**
- * The card's 12V-2x6 connector seen from the front, headed by its state as GPU Tweak
- * shows it: the latch on top over the six 12V pins (with their reading), the six
+ * The card's 12V-2x6 connector seen from the front, headed by its state: the latch on top over the six 12V pins (with their reading), the six
  * ground pins under them, the four sense pins at the bottom and the pin numbers below.
  */
 export function AstralConnector({ pins, label }: ConnectorProps) {

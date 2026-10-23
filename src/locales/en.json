@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Time over the limit",
   "devices.astral.overShutdown": "Overcurrent shutdown",
   "devices.astral.overShutdownHint": "Starts a countdown when a pin stays over {limit} A for the time below.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "Card end has dropped",
   "devices.astral.sag.downSlight": "Card end slightly lower",

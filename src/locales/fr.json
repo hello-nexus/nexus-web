@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Durée au-dessus de la limite",
   "devices.astral.overShutdown": "Arrêt en cas de surintensité",
   "devices.astral.overShutdownHint": "Lance un compte à rebours lorsqu'une broche reste au-dessus de {limit} A pendant la durée définie ci-dessous.",
-  "devices.astral.pin": "Broche {n}",
   "devices.astral.pinLabel": "Broche {n}, {state}",
   "devices.astral.sag.down": "L'extrémité de la carte a baissé",
   "devices.astral.sag.downSlight": "Bout de la carte un peu plus bas",

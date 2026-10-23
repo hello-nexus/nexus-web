@@ -749,7 +749,6 @@
   "devices.astral.overFor": "Doba nad limitem",
   "devices.astral.overShutdown": "Vypnutí při nadproudu",
   "devices.astral.overShutdownHint": "Spustí odpočet, když pin zůstane nad {limit} A po dobu uvedenou níže.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "Konec karty klesl",
   "devices.astral.sag.downSlight": "Konec karty mírně níž",

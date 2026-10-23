@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Zeit über dem Grenzwert",
   "devices.astral.overShutdown": "Herunterfahren bei Überstrom",
   "devices.astral.overShutdownHint": "Startet einen Countdown, wenn ein Pin die unten eingestellte Zeit über {limit} A bleibt.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "Das Kartenende hat sich gesenkt",
   "devices.astral.sag.downSlight": "Kartenende etwas tiefer",

@@ -44,12 +44,12 @@ export function tiltDirection(v: number | undefined): -1 | 0 | 1 {
   return v > 0 ? 1 : -1;
 }
 
-/** Translation key suffix for a tilt reading: unchanged below the noise, mild up to the limit, firm past it. */
+/** Translation key suffix for a tilt reading: unchanged below the noise, mild up to the limit, firm past it; empty without a reading. */
 export function tiltWord(value: number | undefined, plus: string, minus: string): string {
+  if (value === undefined) return '';
   const dir = tiltDirection(value);
-  if (dir === 0 || value === undefined) return 'unchanged';
-  const firm = Math.abs(value) > WARN_DEG ? '' : 'Slight';
-  return `${dir > 0 ? plus : minus}${firm}`;
+  if (dir === 0) return 'unchanged';
+  return `${dir > 0 ? plus : minus}${Math.abs(value) > WARN_DEG ? '' : 'Slight'}`;
 }
 
 export type PinTone = 'green' | 'yellow' | 'red';

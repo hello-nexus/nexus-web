@@ -97,6 +97,26 @@ describe('AstralDevicePage', () => {
     expect(api.shutdownAstralNow).toHaveBeenCalled();
   });
 
+  it('shows the countdown, held-off and pin alert on the default tab', async () => {
+    const s = base({ heldOff: true, countdown: { reason: 'critical', endsAtMs: Date.now() + 9000 } });
+    s.cards[0].pins[0] = { amps: 18, state: 'critical' };
+    s.cards[0].state = 'critical';
+    await mount(s);
+    expect(screen.getByText(/devices.astral.countdown.critical/)).toBeInTheDocument();
+    expect(screen.getByText('devices.astral.cancelShutdown')).toBeInTheDocument();
+    expect(screen.getByText('devices.astral.heldOff')).toBeInTheDocument();
+    expect(screen.getByText(/devices.astral.alert.critical/)).toBeInTheDocument();
+  });
+
+  it('names the card in the alert when there are several', async () => {
+    const s = base();
+    s.cards.push({ ...s.cards[0], gpuId: 'gpu1', name: 'Second' });
+    s.cards[1].state = 'dead';
+    s.cards[1].pins[0] = { amps: 0, state: 'dead' };
+    await mount(s);
+    expect(screen.getByRole('alert')).toHaveTextContent('Second: devices.astral.alert.dead');
+  });
+
   it('says held off while a canceled countdown holds', async () => {
     await mount(base({ heldOff: true }));
     openPower();

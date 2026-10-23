@@ -749,7 +749,6 @@
   "devices.astral.overFor": "Czas powyżej limitu",
   "devices.astral.overShutdown": "Wyłączenie przy prądzie nadmiarowym",
   "devices.astral.overShutdownHint": "Rozpoczyna odliczanie, gdy pin przez czas ustawiony poniżej pozostaje powyżej {limit} A.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "Koniec karty opadł",
   "devices.astral.sag.downSlight": "Koniec karty nieco niżej",

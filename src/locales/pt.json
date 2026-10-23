@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Tempo acima do limite",
   "devices.astral.overShutdown": "Encerramento por sobrecorrente",
   "devices.astral.overShutdownHint": "Inicia uma contagem decrescente quando um pino fica acima de {limit} A durante o tempo definido abaixo.",
-  "devices.astral.pin": "Pino {n}",
   "devices.astral.pinLabel": "Pino {n}, {state}",
   "devices.astral.sag.down": "A ponta da placa desceu",
   "devices.astral.sag.downSlight": "Ponta da placa um pouco mais baixa",

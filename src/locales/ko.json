@@ -742,7 +742,6 @@
   "devices.astral.overFor": "한계 초과 시간",
   "devices.astral.overShutdown": "과전류 시 종료",
   "devices.astral.overShutdownHint": "핀이 아래에서 설정한 시간 동안 {limit}A를 넘은 상태로 유지되면 카운트다운을 시작합니다.",
-  "devices.astral.pin": "핀 {n}",
   "devices.astral.pinLabel": "핀 {n}, {state}",
   "devices.astral.sag.down": "카드 끝이 처졌습니다",
   "devices.astral.sag.downSlight": "카드 끝이 약간 낮음",

@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Sınırın üzerinde kalma süresi",
   "devices.astral.overShutdown": "Aşırı akımda kapat",
   "devices.astral.overShutdownHint": "Bir pin aşağıda ayarlanan süre boyunca {limit} A üzerinde kalırsa geri sayımı başlatır.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "Kartın ucu aşağı sarkmış",
   "devices.astral.sag.downSlight": "Kartın ucu biraz daha aşağıda",

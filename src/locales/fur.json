@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Timp parsore dal limit",
   "devices.astral.overShutdown": "Distudament pe sorecorent",
   "devices.astral.overShutdownHint": "Al scomence un cont a la ruvierse cuant che un pin al reste parsore di {limit} A pal timp ca sot.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "Il cjâf de schede al è calât",
   "devices.astral.sag.downSlight": "Ponte de schede un pôc plui basse",

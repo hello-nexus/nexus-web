@@ -44,9 +44,9 @@ describe('levelStatus', () => {
 });
 
 describe('tiltWord', () => {
-  it('is unchanged under the noise floor or without a reading', () => {
+  it('is unchanged under the noise floor and empty without a reading', () => {
     expect(tiltWord(0.05, 'down', 'up')).toBe('unchanged');
-    expect(tiltWord(undefined, 'down', 'up')).toBe('unchanged');
+    expect(tiltWord(undefined, 'down', 'up')).toBe('');
   });
   it('is mild up to the limit and firm past it, by sign', () => {
     expect(tiltWord(0.3, 'down', 'up')).toBe('downSlight');

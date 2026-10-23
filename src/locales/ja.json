@@ -742,7 +742,6 @@
   "devices.astral.overFor": "上限を超えている時間",
   "devices.astral.overShutdown": "過電流でシャットダウン",
   "devices.astral.overShutdownHint": "ピンが下で設定した時間 {limit} A を超え続けると、カウントダウンを開始します。",
-  "devices.astral.pin": "ピン {n}",
   "devices.astral.pinLabel": "ピン {n}、{state}",
   "devices.astral.sag.down": "カードの端が下がっています",
   "devices.astral.sag.downSlight": "カードの先端がわずかに低い",

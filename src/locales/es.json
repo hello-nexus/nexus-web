@@ -742,7 +742,6 @@
   "devices.astral.overFor": "Tiempo por encima del límite",
   "devices.astral.overShutdown": "Apagado por sobrecorriente",
   "devices.astral.overShutdownHint": "Inicia una cuenta atrás cuando un pin se mantiene por encima de {limit} A durante el tiempo indicado abajo.",
-  "devices.astral.pin": "Pin {n}",
   "devices.astral.pinLabel": "Pin {n}, {state}",
   "devices.astral.sag.down": "El extremo de la tarjeta ha bajado",
   "devices.astral.sag.downSlight": "Extremo de la tarjeta un poco más bajo",
