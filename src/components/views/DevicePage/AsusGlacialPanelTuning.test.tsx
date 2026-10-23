@@ -31,7 +31,7 @@ const tuning = (over: { settings?: object; stats?: object } = {}) => ({
   stats: {
     uploadsOk: 10, uploadsFailed: 1, lastUploadMs: 900, uploadsPerSec: 1.1, lastFrameBytes: 20480,
     lastEncodeMs: 12, lastError: null, lastErrorAt: null, stalled: false,
-    ackReplies: 40, ackTimeouts: 2, lastUploadAckWaitMs: 350, lastCommitWaitMs: 800, rawFramesOk: 7, rawFramesFailed: 1, rawActive: false, ...over.stats,
+    ackReplies: 40, ackTimeouts: 2, lastUploadAckWaitMs: 350, lastCommitWaitMs: 800, rawFramesOk: 7, rawFramesFailed: 0, rawActive: false, ...over.stats,
   },
 });
 
@@ -85,12 +85,17 @@ describe('AsusGlacialPanelTuning', () => {
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.ackRepliesValue:{"ok":"40","missed":"2"}')).toBeInTheDocument();
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.unitMs:{"n":"350"}')).toBeInTheDocument();
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.unitMs:{"n":"800"}')).toBeInTheDocument();
-    expect(screen.queryByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"1"}')).toBeNull();
+    expect(screen.queryByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"0"}')).toBeNull();
+  });
+
+  it('keeps the raw frame counts after the service switched raw streaming off by itself', async () => {
+    await mount(tuning({ stats: { rawFramesFailed: 3 } }));
+    expect(screen.getByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"3"}')).toBeInTheDocument();
   });
 
   it('shows the raw frame counts while raw streaming is on', async () => {
     await mount(tuning({ settings: { rawStream: true } }));
-    expect(screen.getByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"1"}')).toBeInTheDocument();
+    expect(screen.getByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"0"}')).toBeInTheDocument();
   });
 
   it('applies the scale mode chip at once', async () => {

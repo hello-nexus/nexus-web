@@ -311,7 +311,7 @@ export function AsusGlacialPanelTuning() {
       <SettingRow label={t('devices.asus-glacial-lcd.tuning.lastCommitWait')}>
         <span>{stats ? t('devices.asus-glacial-lcd.tuning.unitMs', { n: num(stats.lastCommitWaitMs) }) : ''}</span>
       </SettingRow>
-      {s?.rawStream && (
+      {(s?.rawStream || stats?.rawActive || (stats?.rawFramesFailed ?? 0) > 0) && (
         <SettingRow label={t('devices.asus-glacial-lcd.tuning.rawFrames')}>
           <span>{stats ? t('devices.asus-glacial-lcd.tuning.rawFramesValue', { ok: num(stats.rawFramesOk), failed: num(stats.rawFramesFailed) }) : ''}</span>
         </SettingRow>
