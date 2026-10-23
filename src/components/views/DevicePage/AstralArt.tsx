@@ -152,9 +152,9 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, value, signGap 
     const p = at(a, r + signGap);
     return (
       <g>
-        <circle cx={n(p[0])} cy={n(p[1])} r="15" fill={active ? lit : '#2a2e35'} stroke={active ? lit : '#4b525c'} strokeWidth="1.5" />
+        <circle cx={n(p[0])} cy={n(p[1])} r="15" fill={active ? 'var(--accent)' : '#2a2e35'} stroke={active ? 'var(--accent)' : '#4b525c'} strokeWidth="1.5" />
         <text x={n(p[0])} y={n(p[1] + 6.5)} textAnchor="middle" fontFamily={FONT} fontSize="20" fontWeight="700"
-          fill={active ? '#0b0c0f' : '#cbd2db'}>{text}</text>
+          fill={active ? 'var(--accent-text)' : '#cbd2db'}>{text}</text>
       </g>
     );
   };
