@@ -232,7 +232,7 @@ export function AstralDevicePage() {
                     art={<AstralSideView />}
                     rotation={turn(sag)}
                     arrow={(
-                      <AstralArcArrow viewBox={SAG_VIEW} cx={SAG_PIVOT[0]} cy={SAG_PIVOT[1]} r={372} a0={-9} a1={9}
+                      <AstralArcArrow viewBox={SAG_VIEW} cx={SAG_PIVOT[0]} cy={SAG_PIVOT[1]} r={486} a0={-6.6} a1={6.6}
                         on={tiltDirection(sag)} value={sag ?? 0} signGap={26} />
                     )}
                     alt={t(`${P}sag.view`)}

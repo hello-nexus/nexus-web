@@ -15,88 +15,69 @@ const FONT = 'Segoe UI, Arial, sans-serif';
 
 // ── Level Sense ─────────────────────────────────────────────────────────────────
 
-// The side view is drawn in a fixed frame and shown through a square centred on
-// the bracket, so the card turns about the bracket the way a sagging card does.
-export const SAG_PIVOT = [28, 205] as const;
-const SAG_HALF = 440;
+// Real card proportions, flat shapes: the body spans x 30..478 and y 40..227. The side
+// view turns about the bracket, so it is shown through a square centered there.
+const BODY = { l: 30, t: 40, r: 478, b: 227, cy: 133 };
+export const SAG_PIVOT = [22, BODY.cy] as const;
+const SAG_HALF = 540;
 export const SAG_VIEW = `${SAG_PIVOT[0] - SAG_HALF} ${SAG_PIVOT[1] - SAG_HALF} ${2 * SAG_HALF} ${2 * SAG_HALF}`;
 /** The side view plus its arrow, in view units. */
-export const SAG_EXTENT: StageExtent = { x0: 20, x1: 441, y0: 108, y1: 302, half: SAG_HALF, pivot: SAG_PIVOT };
+export const SAG_EXTENT: StageExtent = { x0: 14, x1: 548, y0: 40, y1: 243, half: SAG_HALF, pivot: SAG_PIVOT };
 
-// The end view is shown through a square centred on the bottom edge, where the card
-// sits in its PCIe slot, so it leans about the slot.
-export const TILT_PIVOT = [198, 294] as const;
+// The end view leans about the bottom edge, where the card sits in its PCIe slot.
+export const TILT_PIVOT = [147, BODY.b] as const;
 const TILT_HALF = 300;
 export const TILT_VIEW = `${TILT_PIVOT[0] - TILT_HALF} ${TILT_PIVOT[1] - TILT_HALF} ${2 * TILT_HALF} ${2 * TILT_HALF}`;
 /** Symmetric about the slot, so the upright line runs through the middle of the card. */
-export const TILT_EXTENT: StageExtent = { x0: 33, x1: 363, y0: 31, y1: 296, half: TILT_HALF, pivot: TILT_PIVOT };
+export const TILT_EXTENT: StageExtent = { x0: 147 - 165, x1: 147 + 165, y0: -50, y1: 233, half: TILT_HALF, pivot: TILT_PIVOT };
 
-// One fan, drawn once as a symbol: metal frame, swept blades joined by an outer ring, and the hub.
+const FRAME = '#23272d';
+const EDGE = '#4b525c';
+const PLATE = '#8b929c';
+const DARK = '#0d0f12';
+const METAL = '#9aa1ab';
+
+// One fan, drawn once as a symbol: frame ring, swept blades and the hub.
 const BLADES = Array.from({ length: 11 }, (_, i) => (i * 360) / 11);
 const BLADE = 'M0 -12 C11 -19 15 -31 9 -41 L-1 -41 C3 -31 -1 -21 -9 -10 Z';
 
-function FanSymbol({ id }: { id: (name: string) => string }) {
-  return (
-    <>
-      <path id={id('blade-path')} d={BLADE} fill="#2a2e35" stroke="#11141a" strokeWidth="0.8" />
-      <symbol id={id('fan')} viewBox="-47 -47 94 94">
-        <circle r="47" fill="#3a4048" />
-        <circle r="43.5" fill="#090b0e" />
-        {BLADES.map(a => <use key={a} href={`#${id('blade-path')}`} transform={`rotate(${a.toFixed(2)})`} />)}
-        <circle r="41" fill="none" stroke="#2c3138" strokeWidth="2.5" />
-        <circle r="12.5" fill="#3a3f47" stroke="#0c0e11" />
-        <circle r="5" fill="#15181d" stroke="#5d646e" />
-      </symbol>
-    </>
-  );
-}
-
-/** Fan side of a triple-fan card: bracket on the left, backplate along the top, fins and PCIe fingers below. */
+/** Fan side of a triple-fan card: bracket on the left, plate behind the fans, PCIe fingers below. */
 export function AstralSideView() {
   const id = useSvgIds();
   return (
     <svg viewBox={SAG_VIEW} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <pattern id={id('fins')} width="4" height="20" patternUnits="userSpaceOnUse">
-          <rect width="4" height="20" fill="#121418" /><rect width="1.6" height="20" fill="#3a3f47" />
-        </pattern>
-        <FanSymbol id={id} />
+        <path id={id('blade')} d={BLADE} fill="#3a3f47" stroke="#11141a" strokeWidth="0.8" />
+        <symbol id={id('fan')} viewBox="-47 -47 94 94">
+          <circle r="46" fill={DARK} stroke="#3a4048" strokeWidth="2" />
+          {BLADES.map(a => <use key={a} href={`#${id('blade')}`} transform={`rotate(${a.toFixed(2)})`} />)}
+          <circle r="12.5" fill="#5a616b" stroke={DARK} />
+        </symbol>
       </defs>
-      {/* PCIe bracket with its top tab and vents */}
-      <path d="M20 108 H36 V302 H26 V296 H20 Z" fill="#9aa1ab" />
-      {[136, 168, 200, 232].map(y => <rect key={y} x="26" y={y} width="5" height="22" rx="2" fill="#5b616b" />)}
-      {/* PCIe fingers */}
-      <path d="M94 270 H236 V283 H124 V279 H120 V283 H94 Z" fill="#c9a227" />
-      {/* fin stack along the bottom */}
-      <rect x="40" y="250" width="344" height="22" fill={`url(#${id('fins')})`} />
-      {/* backplate edge along the top */}
-      <rect x="38" y="122" width="348" height="10" rx="2" fill="#4a5058" />
-      {/* shroud with chamfered corners and a lighter facet on the left */}
-      <path d="M44 140 H380 V242 L366 256 H214 L204 248 H62 L44 232 Z" fill="#262a30" stroke="#4b525c" strokeWidth="1.5" />
-      <path d="M44 140 H176 L146 248 H62 L44 232 Z" fill="#ffffff" opacity="0.045" />
-      <path d="M262 140 L240 172 M372 150 L352 178 M206 248 L214 240 H366" stroke="#8b93a0" strokeOpacity="0.35" strokeWidth="1.2" fill="none" />
-      {[126, 226, 326].map(x => <use key={x} href={`#${id('fan')}`} x={x - 47} y="148" width="94" height="94" />)}
+      <path d="M14 70 H30 V252 H20 V246 H14 Z" fill={METAL} />
+      {/* PCIe edge connector with its key notch */}
+      <path d="M95 227 H215 V243 H124 V237 H118 V243 H95 Z" fill="#cbd2db" />
+      <rect x={BODY.l} y={BODY.t} width={BODY.r - BODY.l} height={BODY.b - BODY.t} rx="9" fill={FRAME} stroke={EDGE} strokeWidth="1.5" />
+      <path d="M38 52 H290 L338 98 V215 H38 Z" fill={PLATE} strokeLinejoin="round" />
+      {[104, 251, 400].map(x => <use key={x} href={`#${id('fan')}`} x={x - 74} y={BODY.cy - 74} width="148" height="148" />)}
     </svg>
   );
 }
 
-/** The card seen from its free end: the fan shroud, the fin stack, the PCB and the backplate. */
+/** The card seen from its free end: the fan shroud, the fin stack and the backplate. */
 export function AstralEndView() {
   const id = useSvgIds();
-  const edge = '#4b525c';
+  const x = 100;
   return (
     <svg viewBox={TILT_VIEW} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <pattern id={id('fins')} width="20" height="5" patternUnits="userSpaceOnUse">
-          <rect width="20" height="5" fill="#121418" /><rect width="20" height="1.8" fill="#3a3f47" />
+          <rect width="20" height="5" fill={DARK} /><rect width="20" height="1.6" fill="#3a3f47" />
         </pattern>
       </defs>
-      <rect x="150" y="106" width="14" height="188" rx="4" fill="#30353d" stroke={edge} strokeWidth="1.5" />
-      <rect x="146" y="128" width="6" height="56" rx="2" fill="#1c1f24" />
-      <rect x="146" y="214" width="6" height="56" rx="2" fill="#1c1f24" />
-      <rect x="164" y="110" width="58" height="180" fill={`url(#${id('fins')})`} stroke="#2a2e35" strokeWidth="1" />
-      <rect x="222" y="106" width="7" height="188" fill="#1f3b2c" />
-      <rect x="229" y="106" width="21" height="188" rx="3" fill="#75808a" stroke={edge} strokeWidth="1.5" />
+      <rect x={x} y={BODY.t} width="95" height={BODY.b - BODY.t} rx="5" fill={FRAME} stroke={EDGE} strokeWidth="1.5" />
+      <rect x={x + 26} y={BODY.t + 8} width="57" height={BODY.b - BODY.t - 16} fill={`url(#${id('fins')})`} stroke={EDGE} />
+      <rect x={x + 84} y={BODY.t} width="11" height={BODY.b - BODY.t} rx="3" fill={PLATE} />
     </svg>
   );
 }
@@ -105,8 +86,8 @@ export function AstralEndView() {
 export function AstralTiltLabels({ fans, backplate }: { fans: string; backplate: string }) {
   return (
     <svg viewBox={TILT_VIEW} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <text x={TILT_PIVOT[0] - 70} y="207" textAnchor="end" fontFamily={FONT} fontSize="19" fill="#9ca3af">{fans}</text>
-      <text x={TILT_PIVOT[0] + 70} y="207" textAnchor="start" fontFamily={FONT} fontSize="19" fill="#9ca3af">{backplate}</text>
+      <text x={TILT_PIVOT[0] - 70} y="150" textAnchor="end" fontFamily={FONT} fontSize="19" fill="#9ca3af">{fans}</text>
+      <text x={TILT_PIVOT[0] + 70} y="150" textAnchor="start" fontFamily={FONT} fontSize="19" fill="#9ca3af">{backplate}</text>
     </svg>
   );
 }
