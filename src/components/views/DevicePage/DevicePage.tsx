@@ -19,6 +19,7 @@ import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { AsiahorseUmbraDevicePage } from './AsiahorseUmbraDevicePage';
 import { AsusGlacialLcdDevicePage } from './AsusGlacialLcdDevicePage';
+import { AstralDevicePage } from './AstralDevicePage';
 import { GlacialPanelRoute } from './GlacialPanelRoute';
 import { KrakenDevicePage } from './KrakenDevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
@@ -276,6 +277,10 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
 
   if (device.curatedId === 'asus-glacial-lcd') {
     return <AsusGlacialLcdDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'asus-astral') {
+    return <AstralDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'nzxt-kraken') {

@@ -1,0 +1,98 @@
+@use '../../../styles/text' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.25rem 0 1.25rem;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.sectionBox {
+  gap: 0.75rem;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+}
+
+.reading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.value {
+  @include text-heading;
+  font-variant-numeric: tabular-nums;
+}
+
+.dim {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.art {
+  width: 100%;
+  max-width: 14rem;
+  color: var(--text-dim);
+}
+
+.shell,
+.fan {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.level {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.tilt {
+  transform-origin: 60px 30px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tilt {
+    transition: transform 0.4s ease-out;
+  }
+}
+
+.pins {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-variant-numeric: tabular-nums;
+}
+
+.ok { border-color: var(--good); }
+.caution,
+.warning { border-color: var(--warn); }
+.overcurrent,
+.critical,
+.dead { border-color: var(--bad); }
