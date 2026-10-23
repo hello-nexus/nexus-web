@@ -1,7 +1,7 @@
 import { getToken, handleUnauthorized } from './auth';
 import { authFetchWithStatus, deleteService, fetchService, isForceLanMode, isLocalhostUnreachable, isTunnelActive, isRemoteOrigin, loopbackFetchInit, postService, putService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
-import type { PanelLayout, PanelSurface, PanelWidgetSizeMode } from '../panel/types';
+import { KRAKEN_PANEL_DPI, LEGACY_KRAKEN_SURFACE, NZXT_KRAKEN_FAMILY, type PanelLayout, type PanelSurface, type PanelWidgetSizeMode } from '../panel/types';
 import type { PresetApp, PresetAppConflict, SetPresetAppsResult } from './lighting';
 
 // Init for the direct localhost fetches below. The phone-session cookie only
@@ -228,8 +228,25 @@ export interface PanelDevicePatch {
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 
+// A record stored before the Kraken folded into 'lcd-round' (an unattached cooler, a
+// restored backup, an older service) reads as lcd-round with the Kraken's family and
+// density, so every consumer sees one shape. Nothing is written back from here.
+export function canonicalPanelRecord<T extends PanelDeviceRecord | null | undefined>(record: T): T {
+  const caps = record?.capabilities;
+  if (!record || !caps || (caps.surface as string | undefined) !== LEGACY_KRAKEN_SURFACE) return record;
+  return {
+    ...record,
+    capabilities: {
+      ...caps,
+      surface: 'lcd-round',
+      family: caps.family ?? NZXT_KRAKEN_FAMILY,
+      dpi: caps.dpi ?? KRAKEN_PANEL_DPI,
+    },
+  };
+}
+
 export const allocatePanelDevice = (capabilities?: PanelDeviceCapabilitiesDto, displayName?: string) =>
-  postService<PanelDeviceRecord>('/panel/devices', { displayName, capabilities });
+  postService<PanelDeviceRecord>('/panel/devices', { displayName, capabilities }).then(canonicalPanelRecord);
 
 export type PanelAllocResult =
   | { ok: true; record: PanelDeviceRecord }
@@ -248,7 +265,7 @@ export async function allocatePanelDeviceWithStatus(
     const { response, status } = await relayRequestWithStatus(
       'POST', '/panel/devices', { displayName, capabilities }, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (!response || !response.ok) return { ok: false, status };
-    return { ok: true, record: (await response.json()) as PanelDeviceRecord };
+    return { ok: true, record: canonicalPanelRecord((await response.json()) as PanelDeviceRecord) };
   }
   // Remote origin without a usable relay yet ⇒ never hit http://localhost.
   if (isLocalhostUnreachable()) return { ok: false, status: 0 };
@@ -263,7 +280,7 @@ export async function allocatePanelDeviceWithStatus(
       body: JSON.stringify({ displayName, capabilities }),
     });
     if (!res.ok) return { ok: false, status: res.status };
-    const record = (await res.json()) as PanelDeviceRecord;
+    const record = canonicalPanelRecord((await res.json()) as PanelDeviceRecord);
     return { ok: true, record };
   } catch {
     return { ok: false, status: 0 };
@@ -271,21 +288,22 @@ export async function allocatePanelDeviceWithStatus(
 }
 
 export const fetchPanelDevice = (id: string) =>
-  fetchService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`);
+  fetchService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`).then(canonicalPanelRecord);
 
 export const deletePanelDevice = (id: string) =>
   deleteService<{ error: boolean; msg: string }>(`/panel/devices/${encodeURIComponent(id)}`);
 
 export const fetchPanelDevices = () =>
-  fetchService<{ devices: PanelDeviceRecord[] }>('/panel/devices');
+  fetchService<{ devices: PanelDeviceRecord[] }>('/panel/devices')
+    .then(list => (list ? { ...list, devices: list.devices.map(canonicalPanelRecord) } : list));
 
 export const patchPanelDevice = (id: string, patch: PanelDevicePatch) =>
-  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`, patch);
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`, patch).then(canonicalPanelRecord);
 
 // Personalization reset: clears the record's layout/theme/widget state
 // (defaults reseed on the next read) and deletes its uploaded media.
 export const resetPanelDevice = (id: string) =>
-  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset`, {});
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset`, {}).then(canonicalPanelRecord);
 
 /** A named snapshot of one panel's layout, theme, background and widget
  *  styling. Loading one first saves the live state into the preset it leaves. */
@@ -338,7 +356,7 @@ export async function setPanelPresetApps(id: string, presetId: string, apps: Pre
 // them to the hardware (brightness/orientation/screen, Xeneon DDC picture
 // values, monitor behavior). Personalization is untouched.
 export const resetPanelDeviceHardware = (id: string) =>
-  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset-hardware`, {});
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset-hardware`, {}).then(canonicalPanelRecord);
 
 /**
  * Factory reset (Q-series only): restores the panel's personalization AND its
@@ -365,7 +383,7 @@ export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDevic
     // still holding cannot overwrite the stored one.
     const { response, status } = await relayRequestWithStatus(
       'GET', `/panel/devices/${encodeURIComponent(id)}`, undefined, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
-    if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
+    if (response && response.ok) return { found: true, record: canonicalPanelRecord((await response.json()) as PanelDeviceRecord) };
     return { found: false, status };
   }
   if (isLocalhostUnreachable()) return { found: false, status: 0 };
@@ -387,7 +405,7 @@ export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDevic
     }
     if (res.status === 404) return { found: false, status: 404 };
     if (!res.ok) return { found: false, status: res.status };
-    return { found: true, record: (await res.json()) as PanelDeviceRecord };
+    return { found: true, record: canonicalPanelRecord((await res.json()) as PanelDeviceRecord) };
   } catch {
     return { found: false, status: 0 };
   }
@@ -414,7 +432,7 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
     const { response, status } = await relayRequestWithStatus(
       'POST', `/panel/devices/${encodeURIComponent(id)}`, patch, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (!response || !response.ok) return { ok: false, status, msg: await readErrorMsg(response) };
-    return { ok: true, record: (await response.json()) as PanelDeviceRecord };
+    return { ok: true, record: canonicalPanelRecord((await response.json()) as PanelDeviceRecord) };
   }
   if (isLocalhostUnreachable()) return { ok: false, status: 0 };
   try {
@@ -434,7 +452,7 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
       }
     }
     if (!res.ok) return { ok: false, status: res.status, msg: await readErrorMsg(res) };
-    return { ok: true, record: (await res.json()) as PanelDeviceRecord };
+    return { ok: true, record: canonicalPanelRecord((await res.json()) as PanelDeviceRecord) };
   } catch {
     return { ok: false, status: 0 };
   }

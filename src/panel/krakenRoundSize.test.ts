@@ -20,8 +20,8 @@ describe('kraken round widget size', () => {
   });
 
   it('is the kraken surface fixed size, and the kraken is single-widget', () => {
-    expect(singleWidgetSurfaceSize('kraken')).toBe('2x2round');
-    expect(isSingleWidgetSurface('kraken')).toBe(true);
+    expect(singleWidgetSurfaceSize('lcd-round')).toBe('2x2round');
+    expect(isSingleWidgetSurface('lcd-round')).toBe(true);
   });
 
   it('is reserved to single-widget surfaces so other panels never offer it', () => {
@@ -32,19 +32,19 @@ describe('kraken round widget size', () => {
   });
 
   it('offers clock and monitoring on the kraken, collapsed to the round size', () => {
-    expect(sizesForSurface(clockApp.meta, 'kraken')).toEqual(['2x2round']);
-    expect(sizesForSurface(monitoringApp.meta, 'kraken')).toEqual(['2x2round']);
+    expect(sizesForSurface(clockApp.meta, 'lcd-round')).toEqual(['2x2round']);
+    expect(sizesForSurface(monitoringApp.meta, 'lcd-round')).toEqual(['2x2round']);
   });
 
   it('snaps any persisted size to the round one on the kraken', () => {
     for (const size of ['1x1', '4x4', '2x4', 'nonsense']) {
-      expect(normalizePanelWidgetSizeForSurface(size, 'kraken')).toBe('2x2round');
+      expect(normalizePanelWidgetSizeForSurface(size, 'lcd-round')).toBe('2x2round');
     }
   });
 
   it('treats the glass as display-only', () => {
     // The cooler exposes no input path at all: HID control plus a bulk OUT pipe.
-    expect(surfaceSupportsTouch('kraken')).toBe(false);
-    expect(surfaceSupportsTextInput('kraken')).toBe(false);
+    expect(surfaceSupportsTouch('lcd-round')).toBe(false);
+    expect(surfaceSupportsTextInput('lcd-round')).toBe(false);
   });
 });

@@ -388,8 +388,8 @@ describe('marketplace listing derives from the preinstalled + page signal', () =
     const meta = lookupApp(typeForMarketplace('com.hellonexus.aquarium'))!.meta;
     expect(meta.sizes).toEqual(['2x2round']);
     // kraken and lcd-round both lock to the round tile.
-    expect(appAvailableForSurface(meta, 'kraken')).toBe(true);
-    expect(sizesForSurface(meta, 'kraken')).toEqual(['2x2round']);
+    expect(appAvailableForSurface(meta, 'lcd-round')).toBe(true);
+    expect(sizesForSurface(meta, 'lcd-round')).toEqual(['2x2round']);
     expect(appAvailableForSurface(meta, 'lcd-round')).toBe(true);
     expect(sizesForSurface(meta, 'lcd-round')).toEqual(['2x2round']);
     // 2x2round is reserved off every multi-widget surface, same as q60's 2x4.

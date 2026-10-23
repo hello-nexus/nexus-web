@@ -123,6 +123,7 @@ import { useDeckInstance, DeckInstanceProvider } from '../../../panel/widgets/de
 import { innerGridForSize } from '../../../panel/widgets/deck/deckLayout';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
+  NZXT_KRAKEN_FAMILY,
   type PanelLayout,
   type PanelSurface,
   type PanelWidget,
@@ -511,6 +512,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const isXeneonEdgePanel = isMonitorPanel && recordFamily === 'xeneon-edge';
   // The iCUE LINK cooler's LCD: its screen module's own controls live in this tab, the
   // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
+  // The record's family arrives after the first paint; the streamed row claims the cooler's
+  // device id, which is known at once, so the Kraken's tab never waits on the record.
+  const isKrakenPanel = recordFamily === NZXT_KRAKEN_FAMILY || device?.sourceId === NZXT_KRAKEN_FAMILY;
+  const supportsMountOrientation = surfaceSupportsMountOrientation(glassSurface, recordFamily) && !isKrakenPanel;
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
   const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;
@@ -591,10 +596,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // Same for the Kraken: the glass is a panel, the cooler around it is the
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
-    || (glassSurface === 'kraken' && !isSimulated)
+    || (isKrakenPanel && !isSimulated)
     // Cooler glass fed pushed frames, or any panel that mounts either way up:
     // the tab hosts its mount orientation.
-    || ((surfaceSupportsMountOrientation(glassSurface) || recordSupportsPortrait) && !isSimulated)
+    || ((supportsMountOrientation || recordSupportsPortrait) && !isSimulated)
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
@@ -1904,7 +1909,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
                       (its own section below), so the software flip would double-apply. */}
-                  {activeTab === 'settings' && (surfaceSupportsMountOrientation(glassSurface) || recordSupportsPortrait)
+                  {activeTab === 'settings' && (supportsMountOrientation || recordSupportsPortrait)
                     && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
@@ -1988,7 +1993,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <AsusGlacialLcdControls />
                     </div>
                   )}
-                  {activeTab === 'settings' && glassSurface === 'kraken' && !isSimulated && (
+                  {activeTab === 'settings' && isKrakenPanel && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} screenStreamed />
                     </div>
