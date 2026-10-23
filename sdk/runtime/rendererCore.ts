@@ -27,7 +27,7 @@ export interface RendererSize {
 
 /** Draw-rate limits of the page holding the canvas; with neither, every animation frame draws. */
 export interface FramePacing {
-  /** Capture rate of a streamed panel (`?streamFps=`), held exactly; wins over displayHz. Or null. */
+  /** Most draws a second the page takes, held exactly; wins over displayHz. Or null. */
   maxFps: number | null;
   /** Refresh rate of the panel the page is shown on (`?displayHz=`): ticks are divided down to the slowest even rate at or above it. Or null. */
   displayHz: number | null;

@@ -20,6 +20,10 @@ const DISPOSE_GRACE_MS = 5000;
 const BOOT_TIMEOUT_MS = 20_000;
 const MAX_RESPAWNS = 1;
 const MAX_PIXEL_RATIO = 1.5;
+/** Draw ceiling for a renderer on any page; a slower stream or panel lowers it. */
+const MAX_RENDERER_FPS = 60;
+/** Margin over the panel's reported refresh, which is a whole number under the true rate of a fractional mode. */
+const PANEL_HZ_HEADROOM = 1;
 /** Set by a Layer while one of its Manipulable gestures is live. */
 const LAYER_GESTURE_ATTR = 'data-layer-gesture-live';
 
@@ -29,9 +33,11 @@ export function cappedPixelRatio(): number {
   return Math.min(Math.max(dpr, 1), MAX_PIXEL_RATIO);
 }
 
-/** Draw-rate limits for a renderer on the page with this query, read the same way the background shader reads them. */
+/** Draw-rate limits for a renderer on the page with this query: the ceiling, lowered by the stream's rate or the panel's refresh. */
 export function framePacing(search: string): FramePacing {
-  return { maxFps: streamFrameCap(search), displayHz: panelDisplayHz(search) };
+  const displayHz = panelDisplayHz(search);
+  const panelCap = displayHz === null ? Infinity : displayHz + PANEL_HZ_HEADROOM;
+  return { maxFps: Math.min(MAX_RENDERER_FPS, streamFrameCap(search) ?? Infinity, panelCap), displayHz };
 }
 
 /**

@@ -1088,10 +1088,9 @@ scoped to this app. It goes through the app asset route, which serves only
 files; any other extension (a `.json`, `.glb` or `.bin`) is refused, so ship
 data inside a `.nxpack` or one of the image types. The canvas resizes after a `resize` message; the renderer
 must redraw in `onResize`, since a hidden renderer gets no frames. `onFrame`
-is paced to the panel: on a panel slower than the host's main display it runs
-on every n-th tick, the slowest even rate that is still at or above the panel's
-refresh, and on a streamed panel it holds the stream's frame rate. `dt` spans
-the skipped ticks. On a worker
+runs at most 60 times a second, and at about the panel's refresh or exactly a
+streamed panel's frame rate when either is lower; `dt` spans the skipped
+ticks. On a worker
 fault the host respawns the renderer once, then shows a load error. Build with
 `nexus-app build`, which bundles `renderer.ts` next to
 `index.tsx` into `renderer.mjs` (self-contained, no react).

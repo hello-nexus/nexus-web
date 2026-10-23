@@ -93,9 +93,12 @@ describe('helpers', () => {
     expect(cappedPixelRatio()).toBe(1);
   });
   it('reads the page draw-rate limits from its query', () => {
-    expect(framePacing('?displayHz=60')).toEqual({ maxFps: null, displayHz: 60 });
+    expect(framePacing('')).toEqual({ maxFps: 60, displayHz: null });
+    expect(framePacing('?displayHz=144')).toEqual({ maxFps: 60, displayHz: 144 });
+    expect(framePacing('?displayHz=59')).toEqual({ maxFps: 60, displayHz: 59 });
+    expect(framePacing('?displayHz=50')).toEqual({ maxFps: 51, displayHz: 50 });
+    expect(framePacing('?streamFps=90&displayHz=144')).toEqual({ maxFps: 60, displayHz: 144 });
     expect(framePacing('?streamFps=30&displayHz=60')).toEqual({ maxFps: 30, displayHz: 60 });
-    expect(framePacing('')).toEqual({ maxFps: null, displayHz: null });
   });
 
   it('reads the newest intersection record', () => {
@@ -121,7 +124,7 @@ describe('CanvasSession protocol', () => {
     const init = worker.posted[0];
     expect(init.data).toMatchObject({
       type: 'init', size: { width: 320, height: 180, pixelRatio: 1.5 }, props: { hello: 'x' }, visible: true,
-      pacing: { maxFps: null, displayHz: null },
+      pacing: { maxFps: 60, displayHz: null },
     });
     expect(init.transfer).toEqual([{ offscreen: true }]);
 
