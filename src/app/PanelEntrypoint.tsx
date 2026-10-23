@@ -211,9 +211,9 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       // with it, manual delete) and trusting the cache would mount the panel
       // against a dead id - usePanelLayout would then 404 and fall back to a
       // default layout that's empty when /defaults hasn't loaded yet. Use the
-      // patch as a touch + verify in one round-trip, carrying current
-      // viewport hints when we have them.
-      const patch = viewportCapabilities ? { capabilities: viewportCapabilities } : {};
+      // patch as a touch + verify in one round-trip. An unhinted load carries its
+      // viewport; a hinted one sends none, as a patched surface would relabel a stale record.
+      const patch = !surfaceHint && viewportCapabilities ? { capabilities: viewportCapabilities } : {};
       const result = await patchPanelDeviceWithStatus(cached, patch);
       if (cancelled) return;
       if (!result.ok && result.status === 404) {
@@ -221,13 +221,28 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
         await allocate();
         return;
       }
+      // A hinted load drops a cached record of another surface and adopts one with none.
+      if (result.ok && surfaceHint) {
+        const recordSurface = result.record.capabilities?.surface;
+        if (recordSurface && recordSurface !== surfaceHint) {
+          forgetCachedPanelDeviceId(cached);
+          await allocate();
+          return;
+        }
+        if (!recordSurface) {
+          const stamped = await patchPanelDeviceWithStatus(cached, { capabilities: { surface: surfaceHint } });
+          if (cancelled) return;
+          finish(cached, stamped.ok);
+          return;
+        }
+      }
       // ok || non-404 failure (network, transient 401): trust the cache. A
       // blip shouldn't burn the device record and force a fresh allocate. An
       // unverified id may belong to another PC, so it is not cached for this one.
       finish(cached, result.ok);
     })();
     return () => { cancelled = true; };
-  }, [state, inferredSurface, viewportCapabilities, allocAttempt, t, needsPhoneClaim]);
+  }, [state, inferredSurface, surfaceHint, viewportCapabilities, allocAttempt, t, needsPhoneClaim]);
 
   const retry = useCallback(() => {
     setFailureDetail('');

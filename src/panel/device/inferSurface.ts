@@ -1,4 +1,13 @@
-import type { PanelSurface } from '../types';
+import { PANEL_SURFACES, type PanelSurface } from '../types';
+
+// Only the service creates these records; a hinted allocate would adopt and overwrite one.
+const SERVICE_OWNED_SURFACES: ReadonlySet<string> = new Set(['monitor', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide']);
+
+// The launcher that identified the display declares the surface; the viewport guess is the unhinted fallback.
+export function panelSurfaceHint(value: string | null): PanelSurface | null {
+  if (!value || SERVICE_OWNED_SURFACES.has(value)) return null;
+  return (PANEL_SURFACES as readonly string[]).includes(value) ? value as PanelSurface : null;
+}
 
 // A Y70 is a uniquely tall, narrow strip: the 2.5K is 682x2560 (3.75:1) and the
 // 4K is 1100x3840 (3.5:1). No phone or tablet is anywhere near that tall, so the
