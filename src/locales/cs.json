@@ -711,7 +711,7 @@
   "devices.astral.calibrated": "Zkalibrováno {when}",
   "devices.astral.calibrating": "Probíhá kalibrace. Nehýbejte s počítačem.",
   "devices.astral.cancelShutdown": "Zrušit vypnutí",
-  "devices.astral.confirm.calibrate.message": "Nexus bere aktuální polohu karty jako vodorovnou. Zhruba 5 sekund s počítačem nehýbejte.",
+  "devices.astral.confirm.calibrate.message": "Nexus bere aktuální polohu karty jako vodorovnou. Nehýbejte s počítačem {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Kalibrovat Level Sense?",
   "devices.astral.confirm.equalizer.message": "Limity se zvýší na {over} A a {crit} A. Zapněte jen tehdy, když je kabel ROG Equalizer bezpečně připojen.",
   "devices.astral.confirm.equalizer.title": "Zapnout režim Equalizer?",

@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "{when}에 보정됨",
   "devices.astral.calibrating": "보정 중입니다. PC를 움직이지 마세요.",
   "devices.astral.cancelShutdown": "종료 취소",
-  "devices.astral.confirm.calibrate.message": "Nexus가 카드의 현재 위치를 수평으로 기록합니다. 약 5초 동안 PC를 움직이지 마세요.",
+  "devices.astral.confirm.calibrate.message": "Nexus가 카드의 현재 위치를 수평으로 기록합니다. {seconds}초 동안 PC를 움직이지 마세요.",
   "devices.astral.confirm.calibrate.title": "Level Sense를 보정할까요?",
   "devices.astral.confirm.equalizer.message": "한계가 {over}A와 {crit}A로 높아집니다. ROG Equalizer 케이블이 단단히 연결된 경우에만 켜세요.",
   "devices.astral.confirm.equalizer.title": "Equalizer 모드를 켤까요?",

@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "Calibrato {when}",
   "devices.astral.calibrating": "Calibrazione in corso. Tieni fermo il PC.",
   "devices.astral.cancelShutdown": "Annulla spegnimento",
-  "devices.astral.confirm.calibrate.message": "Nexus considera la posizione attuale della scheda come livellata. Tieni fermo il PC per circa 5 secondi.",
+  "devices.astral.confirm.calibrate.message": "Nexus considera la posizione attuale della scheda come livellata. Non spostare il PC per {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Calibrare Level Sense?",
   "devices.astral.confirm.equalizer.message": "I limiti salgono a {over} A e {crit} A. Attivalo solo se un cavo ROG Equalizer è collegato saldamente.",
   "devices.astral.confirm.equalizer.title": "Attivare la modalità Equalizer?",

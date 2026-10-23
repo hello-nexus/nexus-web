@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "Calibrated {when}",
   "devices.astral.calibrating": "Calibrating. Keep the PC still.",
   "devices.astral.cancelShutdown": "Cancel shutdown",
-  "devices.astral.confirm.calibrate.message": "Nexus takes the card's current position as level. Keep the PC still for about 5 seconds.",
+  "devices.astral.confirm.calibrate.message": "Nexus takes the card's current position as level. Don't move the PC for {seconds} sec.",
   "devices.astral.confirm.calibrate.title": "Calibrate Level Sense?",
   "devices.astral.confirm.equalizer.message": "The limits rise to {over} A and {crit} A. Only turn this on when a ROG Equalizer cable is securely connected.",
   "devices.astral.confirm.equalizer.title": "Turn on Equalizer mode?",

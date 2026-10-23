@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "Kalibriert {when}",
   "devices.astral.calibrating": "Kalibrierung läuft. Halten Sie den PC ruhig.",
   "devices.astral.cancelShutdown": "Herunterfahren abbrechen",
-  "devices.astral.confirm.calibrate.message": "Nexus übernimmt die aktuelle Lage der Karte als waagerecht. Halten Sie den PC etwa 5 Sekunden ruhig.",
+  "devices.astral.confirm.calibrate.message": "Nexus übernimmt die aktuelle Lage der Karte als waagerecht. Bewegen Sie den PC {seconds} Sek. lang nicht.",
   "devices.astral.confirm.calibrate.title": "Level Sense kalibrieren?",
   "devices.astral.confirm.equalizer.message": "Die Grenzwerte steigen auf {over} A und {crit} A. Aktivieren Sie dies nur, wenn ein ROG-Equalizer-Kabel sicher angeschlossen ist.",
   "devices.astral.confirm.equalizer.title": "Equalizer-Modus aktivieren?",

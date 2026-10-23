@@ -711,7 +711,7 @@
   "devices.astral.calibrated": "Откалибровано {when}",
   "devices.astral.calibrating": "Идет калибровка. Не двигайте ПК.",
   "devices.astral.cancelShutdown": "Отменить выключение",
-  "devices.astral.confirm.calibrate.message": "Nexus примет текущее положение карты за горизонтальное. Не двигайте ПК около 5 секунд.",
+  "devices.astral.confirm.calibrate.message": "Nexus примет текущее положение карты за горизонтальное. Не двигайте ПК в течение {seconds} с.",
   "devices.astral.confirm.calibrate.title": "Откалибровать Level Sense?",
   "devices.astral.confirm.equalizer.message": "Пределы повысятся до {over} А и {crit} А. Включайте только при надежно подключенном кабеле ROG Equalizer.",
   "devices.astral.confirm.equalizer.title": "Включить режим Equalizer?",

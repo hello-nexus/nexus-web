@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "Calibrât {when}",
   "devices.astral.calibrating": "Calibrazion in cors. Tegni il PC fer.",
   "devices.astral.cancelShutdown": "Anule distudament",
-  "devices.astral.confirm.calibrate.message": "Nexus al ten la posizion atuâl de schede come orizontâl. Tegni il PC fer par cirche 5 seconts.",
+  "devices.astral.confirm.calibrate.message": "Nexus al ten la posizion atuâl de schede come orizontâl. No movi il PC par {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Calibrâ Level Sense?",
   "devices.astral.confirm.equalizer.message": "I limits a van sù a {over} A e {crit} A. Ative dome se un cavo ROG Equalizer al è tacât ben.",
   "devices.astral.confirm.equalizer.title": "Ativâ la modalitât Equalizer?",

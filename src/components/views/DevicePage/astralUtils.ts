@@ -116,6 +116,9 @@ export function withCurrent(times: readonly number[], current: number): number[]
 export const SLOW_POLL_MS = 5000;
 export const FAST_POLL_MS = 1000;
 
+/** How long a calibration takes, in seconds. */
+export const CALIBRATE_SECONDS = 5;
+
 /** The seconds the service waits after a critical reading before shutting down. */
 export const CRITICAL_SECONDS = 10;
 

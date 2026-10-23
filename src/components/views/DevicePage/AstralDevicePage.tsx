@@ -18,7 +18,7 @@ import {
   SAG_EXTENT, SAG_PIVOT, SAG_VIEW, TILT_EXTENT, TILT_PIVOT, TILT_VIEW,
 } from './AstralArt';
 import {
-  CRITICAL_SECONDS, LIMITS, TIME_CHOICES, WARN_DEG, alertTone, clock, finite, fitStage, levelStatus, pinTone, pollDelayMs,
+  CALIBRATE_SECONDS, CRITICAL_SECONDS, LIMITS, TIME_CHOICES, WARN_DEG, alertTone, clock, finite, fitStage, levelStatus, pinTone, pollDelayMs,
   secondsLeft, sensorId, signedDegrees, tiltDirection, tiltWord, withCurrent, worstPins, type StageExtent,
 } from './astralUtils';
 import styles from './AstralDevicePage.module.scss';
@@ -229,11 +229,11 @@ export function AstralDevicePage() {
                 stage={(
                   <Stage
                     extent={SAG_EXTENT}
-                    art={<AstralSideView warn={overSag} />}
+                    art={<AstralSideView />}
                     rotation={turn(sag)}
                     arrow={(
                       <AstralArcArrow viewBox={SAG_VIEW} cx={SAG_PIVOT[0]} cy={SAG_PIVOT[1]} r={372} a0={-9} a1={9}
-                        color="#f59e0b" on={tiltDirection(sag)} warn={overSag} signGap={26} />
+                        on={tiltDirection(sag)} value={sag ?? 0} signGap={26} />
                     )}
                     alt={t(`${P}sag.view`)}
                   />
@@ -250,11 +250,11 @@ export function AstralDevicePage() {
                   <Stage
                     extent={TILT_EXTENT}
                     upright
-                    art={<AstralEndView warn={overLean} />}
+                    art={<AstralEndView />}
                     rotation={turn(lean === undefined ? 0 : -lean)}
                     arrow={(
                       <AstralArcArrow viewBox={TILT_VIEW} cx={TILT_PIVOT[0]} cy={TILT_PIVOT[1]} r={222} a0={-76} a1={-104}
-                        color="#22d3ee" on={tiltDirection(lean)} warn={overLean} signGap={26} />
+                        on={tiltDirection(lean)} value={lean ?? 0} signGap={26} />
                     )}
                     labels={<AstralTiltLabels fans={t(`${P}fans`)} backplate={t(`${P}backplate`)} />}
                     alt={t(`${P}lean.view`)}
@@ -380,7 +380,7 @@ export function AstralDevicePage() {
       <ConfirmModal
         open={confirm !== null}
         title={confirm ? t(`${P}confirm.${confirm.kind}.title`) : ''}
-        message={confirm ? t(`${P}confirm.${confirm.kind}.message`, { over: LIMITS.overcurrent.equalizer, crit: LIMITS.critical.equalizer }) : ''}
+        message={confirm ? t(`${P}confirm.${confirm.kind}.message`, { over: LIMITS.overcurrent.equalizer, crit: LIMITS.critical.equalizer, seconds: CALIBRATE_SECONDS }) : ''}
         confirmLabel={t(`${P}${pending?.action ?? 'turnOn'}`)}
         destructive={pending?.destructive ?? false}
         onConfirm={() => { pending?.onConfirm(); setConfirm(null); }}

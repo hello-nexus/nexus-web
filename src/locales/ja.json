@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "{when} にキャリブレーション済み",
   "devices.astral.calibrating": "キャリブレーション中です。PC を動かさないでください。",
   "devices.astral.cancelShutdown": "シャットダウンを取り消す",
-  "devices.astral.confirm.calibrate.message": "Nexus はカードの現在の位置を水平として記録します。約 5 秒間、PC を動かさないでください。",
+  "devices.astral.confirm.calibrate.message": "Nexus はカードの現在の位置を水平として記録します。{seconds} 秒間、PC を動かさないでください。",
   "devices.astral.confirm.calibrate.title": "Level Sense をキャリブレーションしますか？",
   "devices.astral.confirm.equalizer.message": "上限が {over} A と {crit} A に引き上げられます。ROG Equalizer ケーブルがしっかり接続されている場合のみオンにしてください。",
   "devices.astral.confirm.equalizer.title": "Equalizer モードをオンにしますか？",

@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "Kalibrasyon: {when}",
   "devices.astral.calibrating": "Kalibre ediliyor. Bilgisayarı sabit tutun.",
   "devices.astral.cancelShutdown": "Kapatmayı iptal et",
-  "devices.astral.confirm.calibrate.message": "Nexus, kartın mevcut konumunu düz kabul eder. Bilgisayarı yaklaşık 5 saniye sabit tutun.",
+  "devices.astral.confirm.calibrate.message": "Nexus, kartın mevcut konumunu düz kabul eder. Bilgisayarı {seconds} sn boyunca hareket ettirmeyin.",
   "devices.astral.confirm.calibrate.title": "Level Sense kalibre edilsin mi?",
   "devices.astral.confirm.equalizer.message": "Sınırlar {over} A ve {crit} A seviyesine yükselir. Bunu yalnızca ROG Equalizer kablosu sağlam şekilde bağlıyken açın.",
   "devices.astral.confirm.equalizer.title": "Equalizer modu açılsın mı?",

@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "Gekalibreerd op {when}",
   "devices.astral.calibrating": "Bezig met kalibreren. Houd de pc stil.",
   "devices.astral.cancelShutdown": "Afsluiten annuleren",
-  "devices.astral.confirm.calibrate.message": "Nexus neemt de huidige stand van de kaart als waterpas. Houd de pc ongeveer 5 seconden stil.",
+  "devices.astral.confirm.calibrate.message": "Nexus neemt de huidige stand van de kaart als waterpas. Verplaats de pc {seconds} sec. niet.",
   "devices.astral.confirm.calibrate.title": "Level Sense kalibreren?",
   "devices.astral.confirm.equalizer.message": "De limieten gaan omhoog naar {over} A en {crit} A. Schakel dit alleen in als een ROG Equalizer-kabel goed is aangesloten.",
   "devices.astral.confirm.equalizer.title": "Equalizer-modus inschakelen?",

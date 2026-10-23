@@ -38,65 +38,41 @@ const BLADE = 'M0 -12 C11 -19 15 -31 9 -41 L-1 -41 C3 -31 -1 -21 -9 -10 Z';
 function FanSymbol({ id }: { id: (name: string) => string }) {
   return (
     <>
-      <path id={id('blade-path')} d={BLADE} fill={`url(#${id('blade')})`} stroke="#11141a" strokeWidth="0.8" />
+      <path id={id('blade-path')} d={BLADE} fill="#2a2e35" stroke="#11141a" strokeWidth="0.8" />
       <symbol id={id('fan')} viewBox="-47 -47 94 94">
-        <circle r="47" fill={`url(#${id('frame')})`} />
+        <circle r="47" fill="#3a4048" />
         <circle r="43.5" fill="#090b0e" />
         {BLADES.map(a => <use key={a} href={`#${id('blade-path')}`} transform={`rotate(${a.toFixed(2)})`} />)}
         <circle r="41" fill="none" stroke="#2c3138" strokeWidth="2.5" />
-        <circle r="12.5" fill={`url(#${id('hub')})`} stroke="#0c0e11" />
+        <circle r="12.5" fill="#3a3f47" stroke="#0c0e11" />
         <circle r="5" fill="#15181d" stroke="#5d646e" />
       </symbol>
     </>
   );
 }
 
-/** Fan side of a triple-fan card: bracket on the left, backplate and light bar along the top, fins and PCIe fingers below. */
-export function AstralSideView({ warn }: { warn: boolean }) {
+/** Fan side of a triple-fan card: bracket on the left, backplate along the top, fins and PCIe fingers below. */
+export function AstralSideView() {
   const id = useSvgIds();
-  const [bandFrom, bandTo] = warn ? ['#ff4d4d', '#ff8a3d'] : ['#ff3fd2', '#29c5ff'];
   return (
     <svg viewBox={SAG_VIEW} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <linearGradient id={id('shroud')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#3d424b" /><stop offset="0.55" stopColor="#262a30" /><stop offset="1" stopColor="#1a1d22" />
-        </linearGradient>
-        <linearGradient id={id('metal')} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#d7dbe1" /><stop offset="0.5" stopColor="#9aa1ab" /><stop offset="1" stopColor="#6d747e" />
-        </linearGradient>
-        <linearGradient id={id('back')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#6b727c" /><stop offset="1" stopColor="#2b2f35" />
-        </linearGradient>
-        <linearGradient id={id('band')} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor={bandFrom} /><stop offset="1" stopColor={bandTo} />
-        </linearGradient>
-        <linearGradient id={id('frame')} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#565d67" /><stop offset="1" stopColor="#1f2328" />
-        </linearGradient>
-        <linearGradient id={id('blade')} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#363b43" /><stop offset="1" stopColor="#1c1f24" />
-        </linearGradient>
-        <radialGradient id={id('hub')} cx="0.4" cy="0.35" r="0.7">
-          <stop offset="0" stopColor="#5a616b" /><stop offset="1" stopColor="#22262c" />
-        </radialGradient>
         <pattern id={id('fins')} width="4" height="20" patternUnits="userSpaceOnUse">
           <rect width="4" height="20" fill="#121418" /><rect width="1.6" height="20" fill="#3a3f47" />
         </pattern>
         <FanSymbol id={id} />
       </defs>
       {/* PCIe bracket with its top tab and vents */}
-      <path d="M20 108 H36 V302 H26 V296 H20 Z" fill={`url(#${id('metal')})`} />
+      <path d="M20 108 H36 V302 H26 V296 H20 Z" fill="#9aa1ab" />
       {[136, 168, 200, 232].map(y => <rect key={y} x="26" y={y} width="5" height="22" rx="2" fill="#5b616b" />)}
       {/* PCIe fingers */}
       <path d="M94 270 H236 V283 H124 V279 H120 V283 H94 Z" fill="#c9a227" />
       {/* fin stack along the bottom */}
       <rect x="40" y="250" width="344" height="22" fill={`url(#${id('fins')})`} />
-      {/* backplate edge and the light bar along the top */}
-      <rect x="38" y="122" width="348" height="10" rx="2" fill={`url(#${id('back')})`} />
-      <rect x="44" y="130" width="334" height="12" rx="6" fill={`url(#${id('band')})`} opacity="0.3" />
-      <rect x="46" y="133" width="330" height="6" rx="3" fill={`url(#${id('band')})`} />
+      {/* backplate edge along the top */}
+      <rect x="38" y="122" width="348" height="10" rx="2" fill="#4a5058" />
       {/* shroud with chamfered corners and a lighter facet on the left */}
-      <path d="M44 140 H380 V242 L366 256 H214 L204 248 H62 L44 232 Z" fill={`url(#${id('shroud')})`} stroke="#4b525c" strokeWidth="1.5" />
+      <path d="M44 140 H380 V242 L366 256 H214 L204 248 H62 L44 232 Z" fill="#262a30" stroke="#4b525c" strokeWidth="1.5" />
       <path d="M44 140 H176 L146 248 H62 L44 232 Z" fill="#ffffff" opacity="0.045" />
       <path d="M262 140 L240 172 M372 150 L352 178 M206 248 L214 240 H366" stroke="#8b93a0" strokeOpacity="0.35" strokeWidth="1.2" fill="none" />
       {[126, 226, 326].map(x => <use key={x} href={`#${id('fan')}`} x={x - 47} y="148" width="94" height="94" />)}
@@ -104,16 +80,13 @@ export function AstralSideView({ warn }: { warn: boolean }) {
   );
 }
 
-/** The card seen from its free end: the fan shroud, the fin stack, the PCB and the backplate. Its edges turn red past the limit. */
-export function AstralEndView({ warn }: { warn: boolean }) {
+/** The card seen from its free end: the fan shroud, the fin stack, the PCB and the backplate. */
+export function AstralEndView() {
   const id = useSvgIds();
-  const edge = warn ? '#ef4444' : '#4b525c';
+  const edge = '#4b525c';
   return (
     <svg viewBox={TILT_VIEW} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <linearGradient id={id('plate')} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#8a919b" /><stop offset="1" stopColor="#5d646e" />
-        </linearGradient>
         <pattern id={id('fins')} width="20" height="5" patternUnits="userSpaceOnUse">
           <rect width="20" height="5" fill="#121418" /><rect width="20" height="1.8" fill="#3a3f47" />
         </pattern>
@@ -123,7 +96,7 @@ export function AstralEndView({ warn }: { warn: boolean }) {
       <rect x="146" y="214" width="6" height="56" rx="2" fill="#1c1f24" />
       <rect x="164" y="110" width="58" height="180" fill={`url(#${id('fins')})`} stroke="#2a2e35" strokeWidth="1" />
       <rect x="222" y="106" width="7" height="188" fill="#1f3b2c" />
-      <rect x="229" y="106" width="21" height="188" rx="3" fill={`url(#${id('plate')})`} stroke={edge} strokeWidth="1.5" />
+      <rect x="229" y="106" width="21" height="188" rx="3" fill="#75808a" stroke={edge} strokeWidth="1.5" />
     </svg>
   );
 }
@@ -138,6 +111,12 @@ export function AstralTiltLabels({ fans, backplate }: { fans: string; backplate:
   );
 }
 
+// Neutral tones: the track, the lit end and the reading arc never carry a state color.
+const LIT = '#cbd2db';
+const TRACK = '#9ca3af';
+/** The reading, in degrees, at which the reading arc reaches its end. */
+const ARC_FULL_DEG = 1;
+
 const PLUS = '+';
 const MINUS = '-';
 
@@ -149,19 +128,19 @@ interface ArcArrowProps {
   /** From a0 to a1 in degrees, screen convention (0 = right, +90 = down); the + end is at a1. */
   a0: number;
   a1: number;
-  color: string;
   /** Which end lights up: 1 the + end, -1 the - end, 0 neither. */
   on: -1 | 0 | 1;
-  warn: boolean;
+  /** The reading in degrees; an arc from the middle of the track toward the matching end grows with it. */
+  value: number;
   signGap?: number;
 }
 
 /** A curved double arrow on a circle around (cx, cy). The end the card moved toward fills with the color and grows a little. */
-export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, color, on, warn, signGap = 30 }: ArcArrowProps) {
+export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, value, signGap = 30 }: ArcArrowProps) {
   const rad = (d: number) => (d * Math.PI) / 180;
   const at = (a: number, rr = r): [number, number] => [cx + rr * Math.cos(rad(a)), cy + rr * Math.sin(rad(a))];
   const n = (v: number) => v.toFixed(1);
-  const lit = warn ? '#ef4444' : color;
+  const lit = LIT;
   const head = 18;
   // Leave room for the heads at both ends; the heads point along the arc.
   const span = a1 - a0;
@@ -171,6 +150,12 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, color, on, warn, si
   const large = Math.abs(span - 2 * trim) > 180 ? 1 : 0;
   const sweep = span > 0 ? 1 : 0;
   const arc = `M${n(s0[0])} ${n(s0[1])} A${r} ${r} 0 ${large} ${sweep} ${n(s1[0])} ${n(s1[1])}`;
+  // The reading arc starts at the middle of the track and runs toward the end the card moved to.
+  const mid = (a0 + a1) / 2;
+  const frac = Math.min(1, Math.abs(value) / ARC_FULL_DEG);
+  const end = mid + (value > 0 ? a1 - mid : a0 - mid) * frac;
+  const [m0, m1] = [at(mid), at(end)];
+  const reading = on === 0 ? null : `M${n(m0[0])} ${n(m0[1])} A${r} ${r} 0 0 ${end > mid ? 1 : 0} ${n(m1[0])} ${n(m1[1])}`;
   const arrowHead = (a: number, dir: number, active: boolean) => {
     // The tangent of an increasing angle is (-sin, cos); the + end points along it, the - end against.
     const tx = -Math.sin(rad(a)) * dir;
@@ -195,8 +180,9 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, color, on, warn, si
   };
   return (
     <svg viewBox={viewBox} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d={arc} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" strokeOpacity="0.18" />
-      <path d={arc} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeOpacity="0.75" />
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth="12" strokeLinecap="round" strokeOpacity="0.18" />
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth="5" strokeLinecap="round" strokeOpacity="0.5" />
+      {reading && <path d={reading} fill="none" stroke="var(--accent)" strokeWidth="9" strokeLinecap="round" />}
       {arrowHead(a1, Math.sign(span), on > 0)}
       {arrowHead(a0, -Math.sign(span), on < 0)}
       {sign(a1, PLUS, on > 0)}

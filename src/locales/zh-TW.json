@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "校準於 {when}",
   "devices.astral.calibrating": "正在校準，請保持電腦靜止。",
   "devices.astral.cancelShutdown": "取消關機",
-  "devices.astral.confirm.calibrate.message": "Nexus 會將顯示卡目前的位置記為水平。請保持電腦靜止約 5 秒。",
+  "devices.astral.confirm.calibrate.message": "Nexus 會將顯示卡目前的位置記為水平。請在 {seconds} 秒內不要移動電腦。",
   "devices.astral.confirm.calibrate.title": "要校準 Level Sense 嗎？",
   "devices.astral.confirm.equalizer.message": "上限將提高到 {over} A 和 {crit} A。僅在 ROG Equalizer 線材已牢固連接時才開啟。",
   "devices.astral.confirm.equalizer.title": "要開啟 Equalizer 模式嗎？",

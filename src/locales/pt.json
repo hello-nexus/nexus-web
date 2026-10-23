@@ -704,7 +704,7 @@
   "devices.astral.calibrated": "Calibrado em {when}",
   "devices.astral.calibrating": "A calibrar. Mantenha o PC imóvel.",
   "devices.astral.cancelShutdown": "Cancelar encerramento",
-  "devices.astral.confirm.calibrate.message": "O Nexus assume a posição atual da placa como nivelada. Mantenha o PC imóvel durante cerca de 5 segundos.",
+  "devices.astral.confirm.calibrate.message": "O Nexus assume a posição atual da placa como nivelada. Não mova o PC durante {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Calibrar o Level Sense?",
   "devices.astral.confirm.equalizer.message": "Os limites sobem para {over} A e {crit} A. Ative apenas com um cabo ROG Equalizer bem ligado.",
   "devices.astral.confirm.equalizer.title": "Ativar o modo Equalizer?",
