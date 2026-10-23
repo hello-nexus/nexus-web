@@ -41,12 +41,14 @@ const MAX_FPS_NO_CAP = 30;
 export const GLACIAL_TUNING_DEFAULTS: GlacialTuningSettings = {
   maxFps: MAX_FPS_NO_CAP,
   pacePercent: 19,
-  replyDriven: false,
+  replyDriven: true,
   scalePercent: 100,
   scaleMode: 'send',
   jpegQuality: 65,
   chunkKb: 4,
   doubleBuffer: false,
+  closeWriteMode: true,
+  rawStream: false,
 };
 
 /** The Nexus panel streaming controls: apply at once, with a live view of what the uploads are doing. */
@@ -241,7 +243,7 @@ export function AsusGlacialPanelTuning() {
       <SettingToggle
         label={t('devices.asus-glacial-lcd.tuning.replyDriven')}
         description={t('devices.asus-glacial-lcd.tuning.replyDrivenHint')}
-        checked={s?.replyDriven ?? false}
+        checked={s?.replyDriven ?? true}
         disabled={!ready}
         onChange={on => edit({ replyDriven: on })}
       />
@@ -270,6 +272,20 @@ export function AsusGlacialPanelTuning() {
         disabled={!ready}
         onChange={on => edit({ doubleBuffer: on })}
       />
+      <SettingToggle
+        label={t('devices.asus-glacial-lcd.tuning.closeWriteMode')}
+        description={t('devices.asus-glacial-lcd.tuning.closeWriteModeHint')}
+        checked={s?.closeWriteMode ?? true}
+        disabled={!ready}
+        onChange={on => edit({ closeWriteMode: on })}
+      />
+      <SettingToggle
+        label={t('devices.asus-glacial-lcd.tuning.rawStream')}
+        description={t('devices.asus-glacial-lcd.tuning.rawStreamHint')}
+        checked={s?.rawStream ?? false}
+        disabled={!ready}
+        onChange={on => edit({ rawStream: on })}
+      />
 
       <SettingRow label={t('devices.asus-glacial-lcd.tuning.rate')}>
         <span>{stats ? t('devices.asus-glacial-lcd.tuning.unitPerSec', { n: num(stats.uploadsPerSec, 2) }) : ''}</span>
@@ -286,6 +302,20 @@ export function AsusGlacialPanelTuning() {
       <SettingRow label={t('devices.asus-glacial-lcd.tuning.uploads')}>
         <span>{stats ? t('devices.asus-glacial-lcd.tuning.uploadsValue', { ok: num(stats.uploadsOk), failed: num(stats.uploadsFailed) }) : ''}</span>
       </SettingRow>
+      <SettingRow label={t('devices.asus-glacial-lcd.tuning.ackReplies')}>
+        <span>{stats ? t('devices.asus-glacial-lcd.tuning.ackRepliesValue', { ok: num(stats.ackReplies), missed: num(stats.ackTimeouts) }) : ''}</span>
+      </SettingRow>
+      <SettingRow label={t('devices.asus-glacial-lcd.tuning.lastAckWait')}>
+        <span>{stats ? t('devices.asus-glacial-lcd.tuning.unitMs', { n: num(stats.lastUploadAckWaitMs) }) : ''}</span>
+      </SettingRow>
+      <SettingRow label={t('devices.asus-glacial-lcd.tuning.lastCommitWait')}>
+        <span>{stats ? t('devices.asus-glacial-lcd.tuning.unitMs', { n: num(stats.lastCommitWaitMs) }) : ''}</span>
+      </SettingRow>
+      {s?.rawStream && (
+        <SettingRow label={t('devices.asus-glacial-lcd.tuning.rawFrames')}>
+          <span>{stats ? t('devices.asus-glacial-lcd.tuning.rawFramesValue', { ok: num(stats.rawFramesOk), failed: num(stats.rawFramesFailed) }) : ''}</span>
+        </SettingRow>
+      )}
       {stats?.lastError && (
         <SettingRow label={t('devices.asus-glacial-lcd.tuning.lastError')}>
           <span>{stats.lastError}</span>

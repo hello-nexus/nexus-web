@@ -79,6 +79,10 @@ export interface GlacialTuningSettings {
   /** 1..16. */
   chunkKb: number;
   doubleBuffer: boolean;
+  /** Sends the write-mode close report before the picture is shown. */
+  closeWriteMode: boolean;
+  /** Experimental: uncompressed frames instead of stored pictures. */
+  rawStream: boolean;
 }
 
 export interface GlacialTuningStats {
@@ -92,6 +96,13 @@ export interface GlacialTuningStats {
   /** ISO timestamp. */
   lastErrorAt: string | null;
   stalled: boolean;
+  ackReplies: number;
+  ackTimeouts: number;
+  lastUploadAckWaitMs: number;
+  lastCommitWaitMs: number;
+  rawFramesOk: number;
+  rawFramesFailed: number;
+  rawActive: boolean;
 }
 
 export interface GlacialTuning {
