@@ -263,6 +263,51 @@ describe('PanelEntrypoint allocate-or-recover', () => {
     await waitFor(() => expect(allocateMock).toHaveBeenCalledTimes(1));
     expect(allocateMock).toHaveBeenCalledWith({ surface: 'y70' });
   });
+
+  it('drops a cached non-y70 record on a y70-hinted load and allocates', async () => {
+    localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
+    patchMock.mockResolvedValueOnce({ ok: true, record: { id: STALE_ID, capabilities: { surface: 'phone' } } });
+    allocateMock.mockResolvedValueOnce({ ok: true, record: { id: FRESH_ID } });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+        surfaceHint="y70"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(FRESH_ID),
+    );
+    expect(patchMock).toHaveBeenCalledWith(STALE_ID, {});
+    expect(allocateMock).toHaveBeenCalledWith({ surface: 'y70' });
+    expect(localStorage.getItem(PANEL_DEVICE_ID_KEY)).toBe(FRESH_ID);
+  });
+
+  it('keeps a cached y70 record on a y70-hinted load', async () => {
+    localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
+    patchMock.mockResolvedValueOnce({ ok: true, record: { id: STALE_ID, capabilities: { surface: 'y70' } } });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+        surfaceHint="y70"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(STALE_ID),
+    );
+    expect(allocateMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('PanelEntrypoint failure gate', () => {

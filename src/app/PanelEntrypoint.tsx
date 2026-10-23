@@ -213,10 +213,21 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       // default layout that's empty when /defaults hasn't loaded yet. Use the
       // patch as a touch + verify in one round-trip, carrying current
       // viewport hints when we have them.
-      const patch = viewportCapabilities ? { capabilities: viewportCapabilities } : {};
+      // A hinted host sends no capabilities here: the service rewrites a
+      // non-y70 record's surface from a patch, which would relabel a stale
+      // phone record instead of leaving it behind.
+      const patch = !surfaceHint && viewportCapabilities ? { capabilities: viewportCapabilities } : {};
       const result = await patchPanelDeviceWithStatus(cached, patch);
       if (cancelled) return;
       if (!result.ok && result.status === 404) {
+        forgetCachedPanelDeviceId(cached);
+        await allocate();
+        return;
+      }
+      // A hinted host knows which panel it opened. A cached record of another
+      // surface (a kiosk that once registered by viewport) is dropped so
+      // allocation reuses the newest record of the hinted surface.
+      if (result.ok && surfaceHint && result.record.capabilities?.surface !== surfaceHint) {
         forgetCachedPanelDeviceId(cached);
         await allocate();
         return;
@@ -227,7 +238,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       finish(cached, result.ok);
     })();
     return () => { cancelled = true; };
-  }, [state, inferredSurface, viewportCapabilities, allocAttempt, t, needsPhoneClaim]);
+  }, [state, inferredSurface, surfaceHint, viewportCapabilities, allocAttempt, t, needsPhoneClaim]);
 
   const retry = useCallback(() => {
     setFailureDetail('');
