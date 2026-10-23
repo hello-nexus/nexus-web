@@ -47,15 +47,8 @@
 
 .art {
   width: 100%;
-  max-width: 14rem;
+  max-width: 22rem;
   color: var(--text-dim);
-}
-
-.shell,
-.fan {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
 }
 
 .level {
@@ -65,7 +58,6 @@
 }
 
 .tilt {
-  transform-origin: 60px 30px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
