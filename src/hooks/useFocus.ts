@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createFocusMode, deleteFocusMode, getFocus, reorderFocusModes,
   resetFocusModes, setFocusActive, updateFocusMode,
-  type FocusMode, type FocusStatus, type FocusTrigger,
+  type FocusMode, type FocusStatus, type FocusUpdateResult, type FocusTrigger,
 } from '../api/focus';
 import { useTopicCallback } from './useMultiplexSocket';
 
@@ -11,8 +11,8 @@ export interface UseFocusResult {
   activate: (modeId: string) => Promise<void>;
   turnOff: () => Promise<void>;
   addMode: (body: { name: string; icon: string; trigger: FocusTrigger }) => Promise<void>;
-  /** Resolves true once the service accepted the patch, false when it did not land. */
-  updateMode: (id: string, patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>) => Promise<boolean>;
+  /** Says whether the service accepted the patch, and why not when it refused an app pick. */
+  updateMode: (id: string, patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>) => Promise<FocusUpdateResult>;
   removeMode: (id: string) => Promise<void>;
   reorder: (modeIds: string[]) => Promise<void>;
   resetModes: () => Promise<void>;
@@ -60,9 +60,9 @@ export function useFocus(enabled: boolean): UseFocusResult {
     turnOff: useCallback(async () => apply(await setFocusActive(null)), [apply]),
     addMode: useCallback(async body => apply(await createFocusMode(body)), [apply]),
     updateMode: useCallback(async (id, patch) => {
-      const next = await updateFocusMode(id, patch);
-      apply(next);
-      return next !== null;
+      const result = await updateFocusMode(id, patch);
+      if (result.ok) apply(result.status);
+      return result;
     }, [apply]),
     removeMode: useCallback(async (id: string) => apply(await deleteFocusMode(id)), [apply]),
     reorder: useCallback(async (ids: string[]) => apply(await reorderFocusModes(ids)), [apply]),

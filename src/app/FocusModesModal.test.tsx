@@ -1,25 +1,32 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FocusMode, FocusStatus } from '../api/focus';
+import type { FocusMode, FocusStatus, FocusUpdateResult } from '../api/focus';
 import type { PresetApp } from '../api/lighting';
 
 vi.mock('../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string, vars?: Record<string, string>) => (vars?.name ? `${key}:${vars.name}` : key) }),
+  useTranslation: () => ({
+    t: (key: string, vars?: Record<string, string>) => (vars ? `${key}:${Object.values(vars).join(',')}` : key),
+  }),
 }));
 
 // The picker needs the service's shortcut list and a live processes topic.
 vi.mock('../panel/widgets/common/AppPicker', () => ({
-  AppPicker: ({ onSelect }: { onSelect: (app: PresetApp) => void }) => (
-    <button
+  AppPicker: ({ onSelect, selectedIds }: { onSelect: (app: PresetApp) => void; selectedIds?: string[] }) => (
+    <>
+      <span data-testid="seeded">{(selectedIds ?? []).join(',')}</span>
+      <button
       type="button"
       onClick={() => onSelect({ id: 'proc:chrome', name: 'chrome', processName: 'chrome' })}
     >
       pick-chrome
-    </button>
+      </button>
+    </>
   ),
 }));
 
-const updateMode = vi.fn<(id: string, patch: unknown) => Promise<boolean>>();
+const OK: FocusUpdateResult = { ok: true, status: {} as FocusStatus };
+const FAILED: FocusUpdateResult = { ok: false, unresolved: null };
+const updateMode = vi.fn<(id: string, patch: unknown) => Promise<FocusUpdateResult>>();
 let status: FocusStatus | null = null;
 
 vi.mock('../hooks/useFocus', () => ({
@@ -62,7 +69,7 @@ function open() {
 }
 
 describe('FocusModesModal app trigger', () => {
-  beforeEach(() => { updateMode.mockReset(); updateMode.mockResolvedValue(true); });
+  beforeEach(() => { updateMode.mockReset(); updateMode.mockResolvedValue(OK); });
 
   it('offers the app trigger only when the service reports it', () => {
     setStatus(mode({ trigger: 'manual' }), ['manual', 'game']);
@@ -120,7 +127,7 @@ describe('FocusModesModal app trigger', () => {
   });
 
   it('keeps the picker open with a notice when the save does not land', async () => {
-    updateMode.mockResolvedValue(false);
+    updateMode.mockResolvedValue(FAILED);
     setStatus(mode(), ['manual', 'app']);
     open();
     fireEvent.click(screen.getByText('focus.mode.apps.choose'));
@@ -131,8 +138,8 @@ describe('FocusModesModal app trigger', () => {
   });
 
   it('builds a second rapid removal on the first, ending with both apps gone', async () => {
-    const resolvers: Array<(ok: boolean) => void> = [];
-    updateMode.mockImplementation(() => new Promise<boolean>(r => { resolvers.push(r); }));
+    const resolvers: Array<(r: FocusUpdateResult) => void> = [];
+    updateMode.mockImplementation(() => new Promise<FocusUpdateResult>(r => { resolvers.push(r); }));
     setStatus(mode({
       apps: [
         { id: 'proc:chrome', name: 'chrome', processName: 'chrome' },
@@ -142,8 +149,8 @@ describe('FocusModesModal app trigger', () => {
     open();
     await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:chrome')); });
     await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:code')); });
-    await act(async () => { resolvers[0](true); });
-    await act(async () => { resolvers[1](true); });
+    await act(async () => { resolvers[0](OK); });
+    await act(async () => { resolvers[1](OK); });
     expect(updateMode).toHaveBeenNthCalledWith(1, 'work', {
       apps: [{ id: 'proc:code', name: 'code', processName: 'code' }],
     });
@@ -151,10 +158,49 @@ describe('FocusModesModal app trigger', () => {
   });
 
   it('surfaces a failed chip removal', async () => {
-    updateMode.mockResolvedValue(false);
+    updateMode.mockResolvedValue(FAILED);
     setStatus(mode({ apps: [{ id: 'proc:chrome', name: 'chrome', processName: 'chrome' }] }), ['manual', 'app']);
     open();
     await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:chrome')); });
     expect(screen.getByRole('alert').textContent).toBe('focus.mode.apps.saveFailed');
+  });
+
+  it('seeds the picker from pending removals, not the stale server list', async () => {
+    updateMode.mockImplementation(() => new Promise<FocusUpdateResult>(() => {}));
+    setStatus(mode({
+      apps: [
+        { id: 'proc:chrome', name: 'chrome', processName: 'chrome' },
+        { id: 'proc:code', name: 'code', processName: 'code' },
+      ],
+    }), ['manual', 'app']);
+    open();
+    await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:chrome')); });
+    fireEvent.click(screen.getByText('focus.mode.apps.choose'));
+    expect(screen.getByTestId('seeded').textContent).toBe('proc:code');
+  });
+
+  it('names the apps the service could not identify instead of blaming the connection', async () => {
+    updateMode.mockResolvedValue({ ok: false, unresolved: ['Discord', 'Slack'] });
+    setStatus(mode(), ['manual', 'app']);
+    open();
+    fireEvent.click(screen.getByText('focus.mode.apps.choose'));
+    fireEvent.click(screen.getByText('pick-chrome'));
+    await act(async () => { fireEvent.click(screen.getByText('focus.mode.apps.save')); });
+    expect(screen.getByRole('alert').textContent).toBe('focus.mode.apps.unresolved:Discord, Slack');
+  });
+
+  it('clears the error once a later queued save lands', async () => {
+    updateMode.mockResolvedValueOnce(FAILED).mockResolvedValueOnce(OK);
+    setStatus(mode({
+      apps: [
+        { id: 'proc:chrome', name: 'chrome', processName: 'chrome' },
+        { id: 'proc:code', name: 'code', processName: 'code' },
+      ],
+    }), ['manual', 'app']);
+    open();
+    await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:chrome')); });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:code')); });
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "Kaydet",
   "focus.mode.apps.saveFailed": "Kaydedilemedi. Nexus'un çalıştığını kontrol edip tekrar deneyin.",
   "focus.mode.apps.title": "\"{name}\" için uygulamalar",
+  "focus.mode.apps.unresolved": "{apps} tanımlanamadı. Uygulama açıkken \"Şu anda çalışan\" bölümünden seçin.",
   "focus.mode.icon": "Simge",
   "focus.mode.moveDown": "Aşağı taşı",
   "focus.mode.moveUp": "Yukarı taşı",

@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "Salvar",
   "focus.mode.apps.saveFailed": "Não foi possível salvar. Verifique se o Nexus está em execução e tente novamente.",
   "focus.mode.apps.title": "Aplicativos para \"{name}\"",
+  "focus.mode.apps.unresolved": "Não foi possível identificar {apps}. Escolha o aplicativo em \"Em execução\" enquanto ele estiver aberto.",
   "focus.mode.icon": "Ícone",
   "focus.mode.moveDown": "Descer",
   "focus.mode.moveUp": "Subir",

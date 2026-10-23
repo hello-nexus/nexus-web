@@ -1,6 +1,6 @@
 // Thin client for the local service's focus-mode routes. Envelope-free plain
 // JSON, like fps/screentime.
-import { deleteService, fetchService, patchService, postService } from './service';
+import { authFetchWithStatus, deleteService, fetchService, postService } from './service';
 
 /** Trigger ids the service can actually detect. */
 export type FocusTrigger = 'manual' | 'game' | 'obs' | 'app';
@@ -55,8 +55,40 @@ export const setFocusActive = (modeId: string | null) =>
 export const createFocusMode = (body: { name: string; icon: string; trigger: FocusTrigger }) =>
   postService<FocusStatus>('/api/focus/modes', body);
 
-export const updateFocusMode = (id: string, patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>) =>
-  patchService<FocusStatus>(`/api/focus/modes/${encodeURIComponent(id)}`, patch);
+/** `unresolved` lists app names the service could not identify (a 400); null for any other failure. */
+export type FocusUpdateResult =
+  | { ok: true; status: FocusStatus }
+  | { ok: false; unresolved: string[] | null };
+
+const RESOLVE_PREFIX = 'could not resolve:';
+
+/** Status-aware so a refused app pick reads differently from an offline service. */
+export async function updateFocusMode(
+  id: string,
+  patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>,
+): Promise<FocusUpdateResult> {
+  const { response, status } = await authFetchWithStatus(
+    `/api/focus/modes/${encodeURIComponent(id)}`,
+    { method: 'PATCH', body: patch },
+  );
+  if (response && response.ok) {
+    try {
+      return { ok: true, status: (await response.json()) as FocusStatus };
+    } catch {
+      return { ok: false, unresolved: null };
+    }
+  }
+  if (response && status === 400) {
+    try {
+      const msg = ((await response.json()) as { msg?: string }).msg ?? '';
+      if (msg.startsWith(RESOLVE_PREFIX)) {
+        const names = msg.slice(RESOLVE_PREFIX.length).split(',').map(n => n.trim()).filter(Boolean);
+        if (names.length > 0) return { ok: false, unresolved: names };
+      }
+    } catch { /* not JSON: a plain failure */ }
+  }
+  return { ok: false, unresolved: null };
+}
 
 export const deleteFocusMode = (id: string) =>
   deleteService<FocusStatus>(`/api/focus/modes/${encodeURIComponent(id)}`);

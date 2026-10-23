@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "Enregistrer",
   "focus.mode.apps.saveFailed": "Échec de l'enregistrement. Vérifiez que Nexus est en cours d'exécution et réessayez.",
   "focus.mode.apps.title": "Applications pour « {name} »",
+  "focus.mode.apps.unresolved": "Impossible d'identifier {apps}. Choisissez-la dans « En cours » tant qu'elle est ouverte.",
   "focus.mode.icon": "Icône",
   "focus.mode.moveDown": "Descendre",
   "focus.mode.moveUp": "Monter",

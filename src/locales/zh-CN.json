@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "保存",
   "focus.mode.apps.saveFailed": "无法保存。请确认 Nexus 正在运行，然后重试。",
   "focus.mode.apps.title": "“{name}”的应用",
+  "focus.mode.apps.unresolved": "无法识别 {apps}。请在应用打开时从“正在运行”中选择。",
   "focus.mode.icon": "图标",
   "focus.mode.moveDown": "下移",
   "focus.mode.moveUp": "上移",

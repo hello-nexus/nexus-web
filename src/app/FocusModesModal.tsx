@@ -12,7 +12,7 @@ import { AppChipRow } from '../panel/widgets/common/AppChipRow';
 import { PresetAppsModal } from '../panel/widgets/lighting/page/PresetAppsModal';
 import { useFocus } from '../hooks/useFocus';
 import { useTranslation } from '../lib/i18n';
-import type { FocusApp, FocusMode, FocusTrigger } from '../api/focus';
+import type { FocusApp, FocusMode, FocusTrigger, FocusUpdateResult } from '../api/focus';
 import styles from './FocusModesModal.module.scss';
 
 // Matches FocusRoutes.MaxNameLength: the name rides the top bar chip.
@@ -34,7 +34,8 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<FocusMode | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
-  const [appsFor, setAppsFor] = useState<FocusMode | null>(null);
+  // The picker seeds once, so it gets the list the row shows, pending removals included.
+  const [appsFor, setAppsFor] = useState<{ mode: FocusMode; apps: FocusApp[] } | null>(null);
   // The field is a draft until it is committed: a PATCH per keystroke writes
   // settings.json on every letter, and the service ignores an empty name, so a
   // controlled field could never be cleared to retype.
@@ -57,29 +58,44 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   const pendingRef = useRef<Record<string, FocusApp[]>>({});
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
   const inflightRef = useRef(0);
-  const [appsError, setAppsError] = useState(false);
+  // Null when the last save landed; `unresolved` names apps the service could not identify.
+  const [appsError, setAppsError] = useState<{ unresolved: string[] | null } | null>(null);
 
-  const saveApps = (mode: FocusMode, apps: ReadonlyArray<{ id: string; name: string; processName?: string }>) =>
-    updateMode(mode.id, {
-      apps: apps.map(a => ({ id: a.id, name: a.name, processName: a.processName ?? '' })),
-    });
+  const failureMessage = (failure: { unresolved: string[] | null }) =>
+    failure.unresolved
+      ? t('focus.mode.apps.unresolved', { apps: failure.unresolved.join(', ') })
+      : t('focus.mode.apps.saveFailed');
 
-  const removeApp = (mode: FocusMode, appId: string) => {
-    const next = (pendingRef.current[mode.id] ?? mode.apps).filter(a => a.id !== appId);
+  // Every apps write, chip removal or picker save, goes through this queue so
+  // a later PATCH always builds on the earlier one instead of racing it.
+  const enqueueApps = (
+    mode: FocusMode,
+    apps: ReadonlyArray<{ id: string; name: string; processName?: string }>,
+    reportInRow: boolean,
+  ): Promise<FocusUpdateResult> => {
+    const next = apps.map(a => ({ id: a.id, name: a.name, processName: a.processName ?? '' }));
     pendingRef.current = { ...pendingRef.current, [mode.id]: next };
     setPendingApps(pendingRef.current);
-    setAppsError(false);
+    if (reportInRow) setAppsError(null);
     inflightRef.current++;
-    queueRef.current = queueRef.current
-      .then(() => saveApps(mode, next))
-      .catch(() => false)
-      .then(ok => {
-        if (!ok) setAppsError(true);
+    const run = queueRef.current
+      .then(() => updateMode(mode.id, { apps: next }))
+      .catch((): FocusUpdateResult => ({ ok: false, unresolved: null }))
+      .then(result => {
+        if (reportInRow) setAppsError(result.ok ? null : { unresolved: result.unresolved });
         if (--inflightRef.current === 0) {
           pendingRef.current = {};
           setPendingApps({});
         }
+        return result;
       });
+    queueRef.current = run;
+    return run;
+  };
+
+  const removeApp = (mode: FocusMode, appId: string) => {
+    const next = (pendingRef.current[mode.id] ?? mode.apps).filter(a => a.id !== appId);
+    void enqueueApps(mode, next, true);
   };
 
   const move = (index: number, delta: number) => {
@@ -190,13 +206,13 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
                     onRemove={id => removeApp(mode, id)}
                   />
                 )}
-                {appsError && <Notice tone="critical" role="alert">{t('focus.mode.apps.saveFailed')}</Notice>}
+                {appsError && <Notice tone="critical" role="alert">{failureMessage(appsError)}</Notice>}
                 <Button
                   size="sm"
                   tone="neutral"
                   icon={<AppWindow size={14} />}
                   disabled={disabled}
-                  onClick={() => setAppsFor(mode)}
+                  onClick={() => setAppsFor({ mode, apps: pendingRef.current[mode.id] ?? mode.apps })}
                 >
                   {t('focus.mode.apps.choose')}
                 </Button>
@@ -269,18 +285,21 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
 
       {appsFor && (
         <PresetAppsModal
-          presetName={appsFor.name}
-          title={t('focus.mode.apps.title', { name: appsFor.name })}
+          presetName={appsFor.mode.name}
+          title={t('focus.mode.apps.title', { name: appsFor.mode.name })}
           hint={t('focus.mode.apps.hint')}
-          apps={appsFor.apps.map(a => ({ id: a.id, name: a.name, processName: a.processName }))}
+          apps={appsFor.apps}
           removeLabel={name => t('focus.mode.apps.remove', { name })}
           clearLabel={t('focus.mode.apps.clear')}
           saveLabel={t('focus.mode.apps.save')}
           onSave={async apps => {
             // Stay open on a write that did not land so the edit is not lost.
-            if (!(await saveApps(appsFor, apps))) {
-              return { message: t('focus.mode.apps.saveFailed'), failed: true };
+            const result = await enqueueApps(appsFor.mode, apps, false);
+            if (!result.ok) {
+              // An unresolvable app is a refusal to fix by picking differently, not a transport failure.
+              return { message: failureMessage(result), failed: result.unresolved === null };
             }
+            setAppsError(null);
             setAppsFor(null);
             return null;
           }}

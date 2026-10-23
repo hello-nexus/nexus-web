@@ -1975,6 +1975,7 @@
   "focus.mode.apps.save": "Сохранить",
   "focus.mode.apps.saveFailed": "Не удалось сохранить. Проверьте, что Nexus запущен, и повторите попытку.",
   "focus.mode.apps.title": "Приложения для «{name}»",
+  "focus.mode.apps.unresolved": "Не удалось определить: {apps}. Выберите приложение в разделе «Запущено», пока оно открыто.",
   "focus.mode.icon": "Значок",
   "focus.mode.moveDown": "Вниз",
   "focus.mode.moveUp": "Вверх",

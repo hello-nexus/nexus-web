@@ -1975,6 +1975,7 @@
   "focus.mode.apps.save": "Uložit",
   "focus.mode.apps.saveFailed": "Uložení se nezdařilo. Zkontrolujte, zda Nexus běží, a zkuste to znovu.",
   "focus.mode.apps.title": "Aplikace pro „{name}“",
+  "focus.mode.apps.unresolved": "Nepodařilo se rozpoznat: {apps}. Vyberte aplikaci ze skupiny „Právě běží“, dokud je otevřená.",
   "focus.mode.icon": "Ikona",
   "focus.mode.moveDown": "Posunout dolů",
   "focus.mode.moveUp": "Posunout nahoru",

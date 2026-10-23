@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "保存",
   "focus.mode.apps.saveFailed": "保存できませんでした。Nexus が実行中か確認して、もう一度お試しください。",
   "focus.mode.apps.title": "「{name}」のアプリ",
+  "focus.mode.apps.unresolved": "{apps} を特定できませんでした。アプリを開いたまま「実行中」から選んでください。",
   "focus.mode.icon": "アイコン",
   "focus.mode.moveDown": "下へ",
   "focus.mode.moveUp": "上へ",

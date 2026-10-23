@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "Salve",
   "focus.mode.apps.saveFailed": "Impussibil salvâ. Controle che Nexus al sedi in esecuzion e prove di gnûf.",
   "focus.mode.apps.title": "Aplicazions par \"{name}\"",
+  "focus.mode.apps.unresolved": "Impussibil ricognossi {apps}. Sielç l'aplicazion di \"In esecuzion\" fin che e je vierte.",
   "focus.mode.icon": "Icone",
   "focus.mode.moveDown": "Jù",
   "focus.mode.moveUp": "Sù",

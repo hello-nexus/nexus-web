@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "Speichern",
   "focus.mode.apps.saveFailed": "Speichern fehlgeschlagen. Prüfen Sie, ob Nexus läuft, und versuchen Sie es erneut.",
   "focus.mode.apps.title": "Apps für „{name}“",
+  "focus.mode.apps.unresolved": "{apps} konnte nicht erkannt werden. Wählen Sie die App unter „Laufend“ aus, solange sie geöffnet ist.",
   "focus.mode.icon": "Symbol",
   "focus.mode.moveDown": "Nach unten",
   "focus.mode.moveUp": "Nach oben",

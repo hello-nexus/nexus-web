@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "Opslaan",
   "focus.mode.apps.saveFailed": "Opslaan mislukt. Controleer of Nexus actief is en probeer het opnieuw.",
   "focus.mode.apps.title": "Apps voor \"{name}\"",
+  "focus.mode.apps.unresolved": "{apps} kon niet worden herkend. Kies de app onder \"Nu actief\" zolang die open is.",
   "focus.mode.icon": "Pictogram",
   "focus.mode.moveDown": "Omlaag",
   "focus.mode.moveUp": "Omhoog",

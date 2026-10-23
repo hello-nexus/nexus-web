@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "저장",
   "focus.mode.apps.saveFailed": "저장하지 못했습니다. Nexus가 실행 중인지 확인한 후 다시 시도하세요.",
   "focus.mode.apps.title": "\"{name}\"의 앱",
+  "focus.mode.apps.unresolved": "{apps}을(를) 확인하지 못했습니다. 앱이 열려 있는 동안 \"실행 중\"에서 선택하세요.",
   "focus.mode.icon": "아이콘",
   "focus.mode.moveDown": "아래로",
   "focus.mode.moveUp": "위로",

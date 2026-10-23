@@ -1963,6 +1963,7 @@
   "focus.mode.apps.save": "Save",
   "focus.mode.apps.saveFailed": "Couldn't save. Check that Nexus is running and try again.",
   "focus.mode.apps.title": "Apps for \"{name}\"",
+  "focus.mode.apps.unresolved": "Couldn't identify {apps}. Pick it from Running now while it's open.",
   "focus.mode.icon": "Icon",
   "focus.mode.moveDown": "Move down",
   "focus.mode.moveUp": "Move up",
