@@ -226,11 +226,21 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       }
       // A hinted host knows which panel it opened. A cached record of another
       // surface (a kiosk that once registered by viewport) is dropped so
-      // allocation reuses the newest record of the hinted surface.
-      if (result.ok && surfaceHint && result.record.capabilities?.surface !== surfaceHint) {
-        forgetCachedPanelDeviceId(cached);
-        await allocate();
-        return;
+      // allocation reuses the newest record of the hinted surface. A record
+      // with no surface yet is adopted and stamped, not orphaned.
+      if (result.ok && surfaceHint) {
+        const recordSurface = result.record.capabilities?.surface;
+        if (recordSurface && recordSurface !== surfaceHint) {
+          forgetCachedPanelDeviceId(cached);
+          await allocate();
+          return;
+        }
+        if (!recordSurface) {
+          const stamped = await patchPanelDeviceWithStatus(cached, { capabilities: { surface: surfaceHint } });
+          if (cancelled) return;
+          finish(cached, stamped.ok);
+          return;
+        }
       }
       // ok || non-404 failure (network, transient 401): trust the cache. A
       // blip shouldn't burn the device record and force a fresh allocate. An

@@ -308,6 +308,68 @@ describe('PanelEntrypoint allocate-or-recover', () => {
     );
     expect(allocateMock).not.toHaveBeenCalled();
   });
+
+  it('adopts and stamps a cached record with no surface on a y70-hinted load', async () => {
+    localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
+    patchMock.mockResolvedValueOnce({ ok: true, record: { id: STALE_ID } });
+    patchMock.mockResolvedValueOnce({ ok: true, record: { id: STALE_ID } });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+        surfaceHint="y70"
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(STALE_ID),
+    );
+    expect(patchMock).toHaveBeenNthCalledWith(1, STALE_ID, {});
+    expect(patchMock).toHaveBeenNthCalledWith(2, STALE_ID, { capabilities: { surface: 'y70' } });
+    expect(allocateMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the cache on a y70-hinted load when verify fails non-404', async () => {
+    localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
+    patchMock.mockResolvedValueOnce({ ok: false, status: 500 });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+        surfaceHint="y70"
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(STALE_ID),
+    );
+    expect(allocateMock).not.toHaveBeenCalled();
+  });
+
+  it('sends viewport capabilities in the verify patch on an unhinted load', async () => {
+    localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
+    patchMock.mockResolvedValueOnce({ ok: true, record: { id: STALE_ID } });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+      />,
+    );
+    await waitFor(() => expect(patchMock).toHaveBeenCalledTimes(1));
+    const sent = patchMock.mock.calls[0][1] as { capabilities?: { surface?: string; cssWidth?: number } };
+    expect(sent.capabilities?.surface).toBeDefined();
+    expect(sent.capabilities?.cssWidth).toBeGreaterThan(0);
+  });
 });
 
 describe('PanelEntrypoint failure gate', () => {
