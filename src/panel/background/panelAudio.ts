@@ -1,5 +1,6 @@
 import { usePanelGlassSurface } from '../widgets/common/PanelGlassSurfaceContext';
 import type { PanelSurface } from '../types';
+import { isQSeriesViewport } from '../device/inferSurface';
 
 // Displays this PC renders and drives itself. Q-series is left out for latency,
 // 'desktop' until decided; every surface not listed here counts as remote.
@@ -22,11 +23,6 @@ export function isLoopbackHost(hostname: string): boolean {
 
 export function isLocalPanelClient(): boolean {
   return typeof window !== 'undefined' && isLoopbackHost(window.location.hostname);
-}
-
-// The Q-series native portrait size, the same identity inferSurface uses.
-export function isQSeriesViewport(width: number, height: number): boolean {
-  return width === 720 && height === 1280;
 }
 
 export function panelAudioReactiveAllowed(

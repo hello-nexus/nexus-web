@@ -1,7 +1,8 @@
 import { renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { PANEL_SURFACES, type PanelSurface } from '../types';
-import { isLoopbackHost, isQSeriesViewport, panelAudioReactiveAllowed, usePanelAudioReactive } from './panelAudio';
+import { isQSeriesViewport } from '../device/inferSurface';
+import { isLoopbackHost, panelAudioReactiveAllowed, usePanelAudioReactive } from './panelAudio';
 
 const ALLOWED: PanelSurface[] = ['kraken', 'lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70'];
 

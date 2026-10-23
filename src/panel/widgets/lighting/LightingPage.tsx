@@ -5,7 +5,7 @@ import {
   fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
-  fetchMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
+  setLightingDevicePower, setLightingDeviceControlled,
   renameLightingDevice, saveLightingGroups, saveLightingStacks, saveDeviceLayout,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings,
@@ -621,7 +621,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [canvasFocusIds, deviceStacks, editorTarget, activeProfileId]);
 
-  const { enabled: musicReactive, toggle: handleMusicReactiveToggle, setLocal: setMusicReactiveState } = useMusicReactive(true);
+  const { enabled: musicReactive, toggle: handleMusicReactiveToggle } = useMusicReactive(serviceOnline);
 
   // Optimistic local mirror of useLightingSync().paused, reconciled whenever
   // the server value changes (multiplex refetch, mode switch resetting it).
@@ -775,13 +775,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     Promise.all([
       safe(fetchCurrentSync()),
       safe(fetchAnimateSettings()),
-      safe(fetchMusicReactive()),
       safe(fetchScreenEffect()),
       safe(fetchMediaEffect()),
     ]).then(async ([
       currentSync,
       animateSettings,
-      musicSettings,
       screenEffect,
       mediaEffect,
     ]) => {
@@ -797,9 +795,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         await hydrateAnimateSettings(animateSettings, normalizeSync(sync) === 'static');
         if (cancelled) return;
       }
-      if (musicSettings) {
-        setMusicReactiveState(!!musicSettings.enabled);
-      }
       if (screenEffect) {
         setScreenPP(normalizePP(screenEffect));
       }
@@ -810,7 +805,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
 
     return () => { cancelled = true; };
-  }, [serviceOnline, activeProfileKey, setMode, setRawSync, hydrateAnimateSettings, setMusicReactiveState]);
+  }, [serviceOnline, activeProfileKey, setMode, setRawSync, hydrateAnimateSettings]);
 
   // Seeded on mount, not just when static is active: entering the mode from
   // another one has to land on the key the service remembers.
@@ -851,9 +846,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         if (cancelled || !data) return;
         hydrateAnimateSettings(data);
       });
-      fetchMusicReactive().then(data => {
-        if (!cancelled && data) setMusicReactiveState(!!data.enabled);
-      });
     } else if (rawSync === 'screen') {
       fetchScreenEffect().then(data => {
         if (!cancelled && data) setScreenPP(normalizePP(data));
@@ -865,7 +857,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
 
     return () => { cancelled = true; };
-  }, [serviceOnline, rawSync, hydrateAnimateSettings, readGlobalColor, setMusicReactiveState]);
+  }, [serviceOnline, rawSync, hydrateAnimateSettings, readGlobalColor]);
 
   // Animate-mode templates: same shape - one fetch on entry, multiplex push
   // for the rest. Local edits still ignore pushes for the
