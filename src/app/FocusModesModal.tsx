@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, BellOff, Cloud, ImageIcon, MonitorOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { AppWindow, ArrowDown, ArrowUp, BellOff, Cloud, ImageIcon, MonitorOff, Plus, RotateCcw, Trash2, X } from 'lucide-react';
 import { Button } from '../components/common/Button/Button';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { SettingSelect, SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
 import { TextInput } from '../components/common/TextInput/TextInput';
 import { FOCUS_ICON_KEYS, focusIcon } from './focusIcons';
+import { PresetAppsModal } from '../panel/widgets/lighting/page/PresetAppsModal';
 import { useFocus } from '../hooks/useFocus';
 import { useTranslation } from '../lib/i18n';
+import type { PresetApp } from '../api/lighting';
 import type { FocusMode, FocusTrigger } from '../api/focus';
 import styles from './FocusModesModal.module.scss';
 
@@ -31,6 +34,7 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<FocusMode | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [appsFor, setAppsFor] = useState<FocusMode | null>(null);
   // The field is a draft until it is committed: a PATCH per keystroke writes
   // settings.json on every letter, and the service ignores an empty name, so a
   // controlled field could never be cleared to retype.
@@ -45,6 +49,11 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
     setNameDraft(null);
     if (draft && draft !== mode.name) void updateMode(mode.id, { name: draft });
   };
+
+  const saveApps = (mode: FocusMode, apps: PresetApp[]) =>
+    updateMode(mode.id, {
+      apps: apps.map(a => ({ id: a.id, name: a.name, processName: a.processName ?? '' })),
+    });
 
   const move = (index: number, delta: number) => {
     const next = modes.map(m => m.id);
@@ -139,6 +148,46 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
             onChange={value => void updateMode(mode.id, { trigger: value as FocusTrigger })}
             disabled={disabled}
           />
+          {mode.trigger === 'app' && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>{t('focus.mode.apps')}</span>
+              <div className={styles.appsPicker}>
+                {mode.apps.length === 0 ? (
+                  <span className={styles.appsEmpty}>{t('focus.mode.apps.empty')}</span>
+                ) : (
+                  <ChipGroup
+                    wrap
+                    multiSelect
+                    ariaLabel={t('focus.mode.apps')}
+                    activeKeys={new Set(mode.apps.map(a => a.id))}
+                    options={mode.apps.map(app => ({
+                      key: app.id,
+                      ariaLabel: t('lighting.layoutPresets.appsRemove', { name: app.name }),
+                      label: (
+                        <span className={styles.chipLabel}>
+                          {app.name}
+                          <X size={12} aria-hidden />
+                        </span>
+                      ),
+                    }))}
+                    onToggleKey={key => {
+                      if (disabled) return;
+                      void saveApps(mode, mode.apps.filter(a => a.id !== key));
+                    }}
+                  />
+                )}
+                <Button
+                  size="sm"
+                  tone="neutral"
+                  icon={<AppWindow size={14} />}
+                  disabled={disabled}
+                  onClick={() => setAppsFor(mode)}
+                >
+                  {t('focus.mode.apps.choose')}
+                </Button>
+              </div>
+            </div>
+          )}
           <SettingToggle
             label={t('focus.holdNotifications.label')}
             icon={<BellOff />}
@@ -202,6 +251,21 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
           {t('focus.mode.add')}
         </Button>
       </div>
+
+      {appsFor && (
+        <PresetAppsModal
+          presetName={appsFor.name}
+          title={t('focus.mode.apps.title', { name: appsFor.name })}
+          hint={t('focus.mode.apps.hint')}
+          apps={appsFor.apps.map(a => ({ id: a.id, name: a.name, processName: a.processName }))}
+          onSave={async apps => {
+            await saveApps(appsFor, apps);
+            setAppsFor(null);
+            return null;
+          }}
+          onClose={() => setAppsFor(null)}
+        />
+      )}
 
       <ConfirmModal
         open={!!pendingDelete}

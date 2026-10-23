@@ -3,13 +3,19 @@
 import { deleteService, fetchService, patchService, postService } from './service';
 
 /** Trigger ids the service can actually detect. */
-export type FocusTrigger = 'manual' | 'game' | 'obs';
+export type FocusTrigger = 'manual' | 'game' | 'obs' | 'app';
 
 export interface FocusGame {
   key: string;
   name: string;
   pid: number;
   sinceMs: number;
+}
+
+export interface FocusApp {
+  id: string;
+  name: string;
+  processName: string;
 }
 
 export interface FocusMode {
@@ -20,6 +26,8 @@ export interface FocusMode {
   /** Built-in modes can be renamed and retuned, never deleted. */
   builtIn: boolean;
   trigger: FocusTrigger;
+  /** Apps that activate the mode under the 'app' trigger. */
+  apps: FocusApp[];
   holdNotifications: boolean;
   holdBackgroundTraffic: boolean;
   turnPanelDisplaysOff: boolean;

@@ -11,10 +11,13 @@ import styles from './PresetAppsModal.module.scss';
 
 interface PresetAppsModalProps {
   presetName: string;
+  /** Overrides the lighting-preset title and hint, for callers that bind apps to something else. */
+  title?: string;
+  hint?: string;
   apps: PresetApp[];
   /** Apps other presets already trigger, keyed by id and by resolved process
    *  name, valued with the owning preset's name. */
-  taken: Record<string, string>;
+  taken?: Record<string, string>;
   /** Resolves to why the save did not land, or null once it did. */
   onSave: (apps: PresetApp[]) => Promise<PresetAppsSaveError | null> | PresetAppsSaveError | null;
   onClose: () => void;
@@ -32,8 +35,9 @@ export interface PresetAppsSaveError {
   failed: boolean;
 }
 
-export function PresetAppsModal({ presetName, apps, taken, onSave, onClose }: PresetAppsModalProps) {
+export function PresetAppsModal({ presetName, title, hint, apps, taken = {}, onSave, onClose }: PresetAppsModalProps) {
   const { t } = useTranslation();
+  const heading = title ?? t('lighting.layoutPresets.appsTitle', { name: presetName });
   const [selected, setSelected] = useState<PresetApp[]>(apps);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState<{ message: string; tone: 'warning' | 'critical' } | null>(null);
@@ -61,11 +65,11 @@ export function PresetAppsModal({ presetName, apps, taken, onSave, onClose }: Pr
     <DeviceModal
       open
       onClose={onClose}
-      title={t('lighting.layoutPresets.appsTitle', { name: presetName })}
+      title={heading}
       medium
     >
       <div className={styles.body}>
-        <p className={styles.hint}>{t('lighting.layoutPresets.appsHint')}</p>
+        <p className={styles.hint}>{hint ?? t('lighting.layoutPresets.appsHint')}</p>
         {alert && <Notice tone={alert.tone} role="alert">{alert.message}</Notice>}
         {selected.length > 0 && (
           <div className={styles.chipRow}>
@@ -73,7 +77,7 @@ export function PresetAppsModal({ presetName, apps, taken, onSave, onClose }: Pr
             <ChipGroup
               wrap
               multiSelect
-              ariaLabel={t('lighting.layoutPresets.appsTitle', { name: presetName })}
+              ariaLabel={heading}
               activeKeys={new Set(selected.map(a => a.id))}
               options={selected.map(app => ({
                 key: app.id,

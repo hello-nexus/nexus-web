@@ -32,6 +32,7 @@ function mode(overrides: Partial<FocusMode> = {}): FocusMode {
     icon: 'gamepad',
     builtIn: true,
     trigger: 'game',
+    apps: [],
     holdNotifications: true,
     holdBackgroundTraffic: true,
     turnPanelDisplaysOff: false,
