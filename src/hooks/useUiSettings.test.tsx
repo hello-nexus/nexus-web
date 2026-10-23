@@ -651,3 +651,43 @@ describe('UiSettingsProvider - readRamTemperatures', () => {
     expect(h.savePreferences).toHaveBeenCalledWith({ readRamTemperatures: false });
   });
 });
+
+describe('UiSettingsProvider - amdGpuLighting', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const mount = async () => {
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+  };
+  const base = { theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' }, ui: {} };
+
+  it('is off and not applicable when the server omits the fields', async () => {
+    h.fetchPreferences.mockResolvedValue(base);
+    await mount();
+    expect(captured.ctx!.settings.amdGpuLighting).toBe(false);
+    expect(captured.ctx!.settings.amdGpuLightingApplicable).toBe(false);
+  });
+
+  it('hydrates both fields from the root preferences', async () => {
+    h.fetchPreferences.mockResolvedValue({ ...base, amdGpuLighting: true, amdGpuLightingApplicable: true });
+    await mount();
+    expect(captured.ctx!.settings.amdGpuLighting).toBe(true);
+    expect(captured.ctx!.settings.amdGpuLightingApplicable).toBe(true);
+  });
+
+  it('posts the change as a root field', async () => {
+    h.fetchPreferences.mockResolvedValue(base);
+    h.savePreferences.mockResolvedValue(undefined);
+    await mount();
+    vi.useFakeTimers();
+    await act(async () => { captured.ctx!.update({ amdGpuLighting: true }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(h.savePreferences).toHaveBeenCalledTimes(1);
+    expect(h.savePreferences).toHaveBeenCalledWith({ amdGpuLighting: true });
+  });
+});

@@ -199,6 +199,8 @@ export interface GeneralSettings {
   startupDelaySeconds: number;
   // Machine-level; server-mirrored under the preferences top-level readRamTemperatures field.
   readRamTemperatures: boolean;
+  // Linux-only; server-mirrored under the preferences top-level amdGpuLighting field.
+  amdGpuLighting: boolean;
   // Global feature switches (default on). Server-mirrored under the
   // preferences `features` block; the localStorage boot mirror is what lets a
   // reload of an already-disabled page render the FeatureDisabled shell on
@@ -260,6 +262,7 @@ export function getDefaultSettings(): NexusSettings {
       dateFormat: DEFAULT_DATE_FORMAT,
       startupDelaySeconds: 0,
       readRamTemperatures: true,
+      amdGpuLighting: false,
       featureLightingEnabled: true,
       featureCoolingEnabled: true,
       featureMonitoringEnabled: true,
