@@ -1,7 +1,7 @@
 import { PANEL_SURFACES, type PanelSurface } from '../types';
 
 // Only the service creates these records; a hinted allocate would adopt and overwrite one.
-const SERVICE_OWNED_SURFACES: ReadonlySet<string> = new Set(['monitor', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide']);
+const SERVICE_OWNED_SURFACES: ReadonlySet<string> = new Set(['monitor', 'lcd-round', 'lcd-square', 'lcd-wide']);
 
 // The launcher that identified the display declares the surface; the viewport guess is the unhinted fallback.
 export function panelSurfaceHint(value: string | null): PanelSurface | null {

@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '../../../components/common/Button/Button';
 import { InlineError } from '../../../components/common/InlineError/InlineError';
 import { SettingsSection } from '../../../components/common/SettingsSection/SettingsSection';
 import { Field } from './DeckKeyInspector';
@@ -71,7 +69,7 @@ export function DeckHotkeyField({ presetId, tag, onTagChange, layout }: DeckHotk
     const res = await putHotkey({
       id,
       combo: keys,
-      enabled: binding?.enabled ?? true,
+      enabled: true,
       label: binding?.label,
       target: { kind: 'deck', presetId, tag: id },
     });
@@ -89,26 +87,21 @@ export function DeckHotkeyField({ presetId, tag, onTagChange, layout }: DeckHotk
     ? t(`hotkeys.status.${binding.status}`)
     : '';
 
+  // A disabled binding never fires, so it reads as unbound here.
+  const live = binding?.enabled ? binding : undefined;
+
   const body = (
     <div className={styles.field}>
       <div className={styles.row}>
         <div className={styles.recorder}>
           <HotkeyRecorder
-            value={binding?.combo ?? ''}
-            display={binding?.combo ? formatCombo(binding.combo, state.platform, t) : undefined}
+            value={live?.combo ?? ''}
+            display={live?.combo ? formatCombo(live.combo, state.platform, t) : undefined}
             onChange={keys => void onRecord(keys)}
+            onClear={() => void onClear()}
+            showClear={!!tag}
           />
         </div>
-        {tag && (
-          <Button
-            type="button"
-            size="sm"
-            tone="ghost"
-            icon={<X size={14} aria-hidden />}
-            aria-label={t('hotkeys.clear')}
-            onClick={() => void onClear()}
-          />
-        )}
       </div>
       {(error || warn) && <InlineError>{error || warn}</InlineError>}
     </div>

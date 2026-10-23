@@ -699,7 +699,7 @@
   // .cellScaler, and a declaration on the element beats an inherited value, so
   // the scaler must keep its own copy or those three surfaces regress. The two
   // therefore agree only where no per-surface override applies - true for every
-  // surface that renders a round tile, which is kraken alone (krakenRoundSize
+  // surface that renders a round tile, which is lcd-round alone (krakenRoundSize
   // .test.ts pins that). Widen those overrides to .cellWrap before allowing
   // 2x2round anywhere else.
   --_content: var(--panel-content-scale, var(--panel-cell-size, 172px));

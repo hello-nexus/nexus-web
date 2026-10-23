@@ -50,7 +50,7 @@ describe('SDK app grid sizes', () => {
     const meta = lookupApp('app:com.example.grid')!.meta;
     for (const s of ['desktop', 'phone', 'y70', 'monitor'] as const) expect(sizesForSurface(meta, s, true), s).toEqual(['4x4']);
     expect(sizesForSurface(meta, 'q60')).toEqual(['2x4']);
-    expect(sizesForSurface(meta, 'kraken')).toEqual(['2x2round']);
+    expect(sizesForSurface(meta, 'lcd-round')).toEqual(['2x2round']);
     expect(sizesForSurface(meta, 'lcd-round')).toEqual(['2x2round']);
     expect(sizesForSurface(meta, 'lcd-square')).toEqual(['2x2']);
     expect(sizesForSurface(meta, 'lcd-wide')).toEqual(['4x2']);

@@ -10,6 +10,8 @@ interface HotkeyRecorderProps {
   display?: string;
   onChange: (keys: string) => void;
   disabled?: boolean;
+  onClear?: () => void;
+  showClear?: boolean;
 }
 
 /**
@@ -17,7 +19,7 @@ interface HotkeyRecorderProps {
  * unregistered so the chord being pressed reaches the page instead of firing
  * its current owner. Always resumes when recording ends or the field unmounts.
  */
-export function HotkeyRecorder({ value, display, onChange, disabled }: HotkeyRecorderProps) {
+export function HotkeyRecorder({ value, display, onChange, disabled, onClear, showClear }: HotkeyRecorderProps) {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const suspended = useRef(false);
 
@@ -50,6 +52,8 @@ export function HotkeyRecorder({ value, display, onChange, disabled }: HotkeyRec
       disabled={disabled}
       hidePresets
       cancelOnEscape
+      onClear={onClear}
+      showClear={showClear}
       onCaptureChange={onCaptureChange}
     />
   );

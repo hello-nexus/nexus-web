@@ -208,6 +208,7 @@ const BOOL_CAPS = new Set(['rgb.read', 'rgb.write', 'config', 'appData', 'teleme
 // Mirrors PANEL_SURFACES / PANEL_WIDGET_SIZES in nexus-web/src/panel/types.ts.
 // A surface outside this set only warns, so a manifest naming one this CLI has
 // not learned yet still publishes.
+// 'kraken' is the NZXT Kraken round LCD, now laid out as 'lcd-round'; manifests naming it stay valid.
 const KNOWN_SURFACES = new Set([
   'y70', 'q60', 'phone', 'desktop', 'monitor', 'kraken',
   'lcd-round', 'lcd-square', 'lcd-wide',

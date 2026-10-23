@@ -86,7 +86,6 @@ const STREAMED_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
 const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCapabilities>> = {
   // No hardware behind it: brightness, rotation and kiosk controls would write to a real Y70 beside it.
   y70: { ...Y70_CAPABILITIES, displayControls: false, launchClose: false },
-  kraken: STREAMED_PANEL_CAPABILITIES,
   'lcd-round': STREAMED_PANEL_CAPABILITIES,
   'lcd-wide': STREAMED_PANEL_CAPABILITIES,
   'lcd-square': STREAMED_PANEL_CAPABILITIES,

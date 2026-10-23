@@ -1,8 +1,9 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { CircuitBoard, Clock, Cpu, Lock, Moon, RotateCcw, Speaker, Zap } from 'lucide-react';
+import { CircuitBoard, Clock, Cpu, Lightbulb, Lock, Moon, RotateCcw, Speaker, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToastSafe } from '../../common/Toast/Toast';
+import { Notice } from '../../common/Notice/Notice';
 import { Select } from '../../common/Select/Select';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -27,7 +28,7 @@ import {
   type NumberFormat, type TempUnit,
 } from '../../../lib/units';
 
-export const LIGHTING_ANCHORS = ['set-render-gpu', 'set-audio-output', 'set-sleep-blackout', 'set-lock-blackout', 'set-brightness-schedule'] as const;
+export const LIGHTING_ANCHORS = ['set-render-gpu', 'set-audio-output', 'set-sleep-blackout', 'set-lock-blackout', 'set-amd-gpu-lighting', 'set-brightness-schedule'] as const;
 
 interface LightingCoolingSectionProps {
   serviceOnline: boolean;
@@ -252,6 +253,21 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
             onChange={handleLockBlackoutChange}
             disabled={!serviceOnline}
           />
+        )}
+        {settings.amdGpuLightingApplicable && (
+          <>
+            <SettingToggle
+              label={t('settings.amdGpuLighting.label')}
+              icon={<Lightbulb />}
+              iconLeading="subtle"
+              anchorId="set-amd-gpu-lighting"
+              description={t('settings.amdGpuLighting.description')}
+              checked={settings.amdGpuLighting}
+              onChange={v => update({ amdGpuLighting: v })}
+              disabled={!serviceOnline}
+            />
+            <Notice tone="warning" role="status">{t('settings.amdGpuLighting.warning')}</Notice>
+          </>
         )}
         <SettingRow
           label={t('lighting.schedule.row.label')}

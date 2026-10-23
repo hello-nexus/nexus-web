@@ -93,6 +93,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       dateFormat: ui.dateFormat,
       startupDelaySeconds: ui.startupDelaySeconds,
       readRamTemperatures: ui.readRamTemperatures,
+      amdGpuLighting: ui.amdGpuLighting,
       featureLightingEnabled: ui.featureLightingEnabled,
       featureCoolingEnabled: ui.featureCoolingEnabled,
       featureMonitoringEnabled: ui.featureMonitoringEnabled,

@@ -5,7 +5,7 @@ import type { TempUnit } from '../../../lib/units';
 
 // Mutable so a test can flip the unit and re-render, mimicking the C/F chip on
 // the same settings page writing through useUiSettings.
-const prefs = vi.hoisted(() => ({ monitoringTempUnit: 'c' as TempUnit, lighting: true, cooling: true, cpuModel: 'AMD Ryzen 7 9800X3D', gpus: [] as { id: string; name: string; integrated: boolean }[] }));
+const prefs = vi.hoisted(() => ({ monitoringTempUnit: 'c' as TempUnit, lighting: true, cooling: true, cpuModel: 'AMD Ryzen 7 9800X3D', gpus: [] as { id: string; name: string; integrated: boolean }[], amdApplicable: undefined as boolean | undefined, amdOn: false, update: vi.fn() }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
@@ -16,8 +16,10 @@ vi.mock('../../../hooks/useUiSettings', () => ({
       // Pinned, not 'system': localizeNumbers would otherwise resolve
       // separators from the runtime locale and break on a comma-decimal box.
       numberFormat: 'dot',
+      amdGpuLighting: prefs.amdOn,
+      amdGpuLightingApplicable: prefs.amdApplicable,
     },
-    update: vi.fn(),
+    update: prefs.update,
     reload: vi.fn(),
   }),
   useUnitPrefs: () => ({ monitoringTempUnit: prefs.monitoringTempUnit, timeFormat: '24h', numberFormat: 'dot' }),
@@ -102,7 +104,27 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 describe('LightingCoolingSection section split', () => {
-  afterEach(() => { prefs.lighting = true; prefs.cooling = true; prefs.gpus = []; prefs.cpuModel = 'AMD Ryzen 7 9800X3D'; });
+  afterEach(() => { prefs.lighting = true; prefs.cooling = true; prefs.gpus = []; prefs.cpuModel = 'AMD Ryzen 7 9800X3D'; prefs.amdApplicable = undefined; prefs.amdOn = false; prefs.update.mockClear(); });
+
+  it('omits the AMD graphics card lighting row when the service omits the applicable flag', () => {
+    render(<LightingCoolingSection serviceOnline platform="linux" />);
+    expect(screen.queryByText('settings.amdGpuLighting.label')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.amdGpuLighting.warning')).not.toBeInTheDocument();
+  });
+
+  it('omits the AMD graphics card lighting row when it does not apply', () => {
+    prefs.amdApplicable = false;
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    expect(screen.queryByText('settings.amdGpuLighting.label')).not.toBeInTheDocument();
+  });
+
+  it('shows the AMD graphics card lighting row with its warning and posts the toggle', () => {
+    prefs.amdApplicable = true;
+    render(<LightingCoolingSection serviceOnline platform="linux" />);
+    expect(screen.getByText('settings.amdGpuLighting.warning')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: /settings.amdGpuLighting.label/ }));
+    expect(prefs.update).toHaveBeenCalledWith({ amdGpuLighting: true });
+  });
 
   it('groups sleep blackout under Lighting and the sensor pickers under Cooling', () => {
     render(<LightingCoolingSection serviceOnline platform="windows" />);
