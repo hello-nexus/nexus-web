@@ -1,7 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MultiplexContext, type MultiplexContextValue } from '../../../../hooks/useMultiplexSocket';
+import { useLightingAudioOutput } from '../../../../hooks/useLightingAudioOutput';
 import { AudioSourceSelect } from './AudioSourceSelect';
+
+function Picker() {
+  return <AudioSourceSelect output={useLightingAudioOutput(true)} />;
+}
 
 // The service-side setting, shared by every picker the way the real endpoint is.
 const service = { deviceId: '' };
@@ -34,8 +39,8 @@ describe('AudioSourceSelect', () => {
   it('shows a pick made in the other mounted picker, and one made by another client', async () => {
     render(
       <MultiplexContext.Provider value={mux}>
-        <div data-testid="a"><AudioSourceSelect /></div>
-        <div data-testid="b"><AudioSourceSelect /></div>
+        <div data-testid="a"><Picker /></div>
+        <div data-testid="b"><Picker /></div>
       </MultiplexContext.Provider>,
     );
     const triggerOf = (id: string) => screen.getByTestId(id).querySelector('button') as HTMLElement;

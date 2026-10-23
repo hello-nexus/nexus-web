@@ -5,6 +5,7 @@ import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
   normalizePanelBackgroundEffect,
   panelBackgroundEffects,
+  resolveBackgroundDrawing,
   resolveBackgroundEffectForSurface,
   BG_PRESETS_DARK,
   BG_PRESETS_LIGHT,
@@ -148,5 +149,21 @@ describe('audio-reactive panel backgrounds', () => {
     expect(resolveBackgroundEffectForSurface('spectrumbars', false)).toBe(DEFAULT_PANEL_BACKGROUND_EFFECT);
     expect(resolveBackgroundEffectForSurface('spectrumbars', true)).toBe('spectrumbars');
     expect(resolveBackgroundEffectForSurface('plasma', false)).toBe('plasma');
+  });
+});
+
+describe('resolveBackgroundDrawing', () => {
+  const stored = { speed: 7, hue: 0.3, colorize: false, params: { u_stored: 1 } };
+
+  it('drops the stored template and state when the effect is substituted', () => {
+    expect(resolveBackgroundDrawing('spectrumbars', 2, stored, false))
+      .toEqual({ effect: 'plasma', template: 0, effectState: undefined });
+  });
+
+  it('passes everything through when the effect is drawn as stored', () => {
+    expect(resolveBackgroundDrawing('spectrumbars', 2, stored, true))
+      .toEqual({ effect: 'spectrumbars', template: 2, effectState: stored });
+    expect(resolveBackgroundDrawing('plasma', 2, stored, false))
+      .toEqual({ effect: 'plasma', template: 2, effectState: stored });
   });
 });

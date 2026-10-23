@@ -3,14 +3,17 @@ import type { PanelSurface } from '../types';
 
 // Displays this PC renders and drives itself. Q-series is left out for latency,
 // 'desktop' until decided; every surface not listed here counts as remote.
+// 'kraken' stays while PanelSurface still has it; the branch that folds it into
+// 'lcd-round' drops this entry when it lands.
 const AUDIO_REACTIVE_SURFACES: ReadonlySet<PanelSurface> = new Set<PanelSurface>([
   'kraken', 'lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70',
 ]);
 
 // 'y70' is inferred from viewport aspect, so surface alone cannot prove the
-// client is on this PC; the page must also have loaded from the local service.
-// Same host set api/service uses for isRemotePaired, read here so this gate
-// does not depend on that module's load-time state.
+// client is on this PC; the page must also have loaded from a loopback host.
+// Loopback does not separate local from tunnelled: Q-series panels load
+// localhost through adb reverse, so they are denied by identity below.
+// Unlike api/service isRemotePaired, an empty hostname does not count as local.
 const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
 export function isLoopbackHost(hostname: string): boolean {
@@ -19,6 +22,11 @@ export function isLoopbackHost(hostname: string): boolean {
 
 export function isLocalPanelClient(): boolean {
   return typeof window !== 'undefined' && isLoopbackHost(window.location.hostname);
+}
+
+// The Q-series native portrait size, the same identity inferSurface uses.
+export function isQSeriesViewport(width: number, height: number): boolean {
+  return width === 720 && height === 1280;
 }
 
 export function panelAudioReactiveAllowed(
@@ -30,5 +38,8 @@ export function panelAudioReactiveAllowed(
 
 /** Audio-reactive backgrounds for the glass this panel renders on. */
 export function usePanelAudioReactive(surface: PanelSurface | undefined): boolean {
-  return panelAudioReactiveAllowed(usePanelGlassSurface(surface), isLocalPanelClient());
+  const glass = usePanelGlassSurface(surface);
+  const qSeries = surface === 'q60'
+    || (typeof window !== 'undefined' && isQSeriesViewport(window.innerWidth, window.innerHeight));
+  return !qSeries && panelAudioReactiveAllowed(glass, isLocalPanelClient());
 }

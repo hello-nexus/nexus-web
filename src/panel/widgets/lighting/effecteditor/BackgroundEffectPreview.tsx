@@ -9,9 +9,12 @@ import {
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundTemplate,
   panelBackgroundState,
+  resolveBackgroundDrawing,
   resolveBackgroundEffectForSurface,
 } from '../../../background/panelBackground';
-import { detectOS } from '../../../../lib/platform';
+import { useServicePlatform } from '../../../../hooks/useServicePlatform';
+import { useMusicReactive } from '../../../../hooks/useMusicReactive';
+import { useLightingAudioOutput } from '../../../../hooks/useLightingAudioOutput';
 import { MusicReactiveControl } from '../page/MusicReactiveControl';
 import styles from './BackgroundEffectPreview.module.scss';
 
@@ -44,20 +47,32 @@ interface BackgroundEffectPreviewProps {
 
 function BackgroundEffectPreviewCanvas({ effect, template, effectState, audioReactive = false }: BackgroundEffectPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fx = resolveBackgroundEffectForSurface(normalizePanelBackgroundEffect(effect), audioReactive);
-  const tpl = normalizePanelBackgroundTemplate(template);
-  const stateRef = useRef(effectState ?? panelBackgroundState(fx, tpl));
+  const drawing = resolveBackgroundDrawing(
+    normalizePanelBackgroundEffect(effect),
+    normalizePanelBackgroundTemplate(template),
+    effectState,
+    audioReactive,
+  );
+  const fx = drawing.effect;
+  const tpl = drawing.template;
+  const drawnState = drawing.effectState;
+  const stateRef = useRef(drawnState ?? panelBackgroundState(fx, tpl));
   useEffect(() => {
-    stateRef.current = effectState ?? panelBackgroundState(fx, tpl);
-  }, [fx, tpl, effectState]);
-  const audioRef = useAudioState(audioReactive && isAudioBackgroundEffect(fx));
+    stateRef.current = drawnState ?? panelBackgroundState(fx, tpl);
+  }, [fx, tpl, drawnState]);
+  const audioShown = audioReactive && isAudioBackgroundEffect(fx);
+  const music = useMusicReactive(audioShown);
+  const audioRef = useAudioState(audioShown && music.enabled);
+  const platform = useServicePlatform(audioShown);
+  const showSource = platform === 'windows' && music.enabled;
+  const audioOutput = useLightingAudioOutput(audioShown && showSource);
   const { ready, error } = useShaderRenderer(canvasRef, fx, stateRef, audioRef, RENDER_OPTIONS);
 
   return (
     <div className={styles.preview} data-ready={ready && !error ? 'true' : 'false'}>
       <canvas ref={canvasRef} className={styles.canvas} />
-      {audioReactive && isAudioBackgroundEffect(fx) && (
-        <MusicReactiveControl active showSource={detectOS() === 'windows'} />
+      {audioShown && (
+        <MusicReactiveControl active={music.enabled} onToggle={music.toggle} output={showSource ? audioOutput : undefined} />
       )}
     </div>
   );

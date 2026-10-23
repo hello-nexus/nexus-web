@@ -5,7 +5,7 @@ import {
   fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
-  fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
+  fetchMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
   renameLightingDevice, saveLightingGroups, saveLightingStacks, saveDeviceLayout,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings,
@@ -125,6 +125,8 @@ import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
 import { MusicReactiveControl } from './page/MusicReactiveControl';
+import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
+import { useMusicReactive } from '../../../hooks/useMusicReactive';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -619,7 +621,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [canvasFocusIds, deviceStacks, editorTarget, activeProfileId]);
 
-  const [musicReactive, setMusicReactiveState] = useState(false);
+  const { enabled: musicReactive, toggle: handleMusicReactiveToggle, setLocal: setMusicReactiveState } = useMusicReactive(true);
 
   // Optimistic local mirror of useLightingSync().paused, reconciled whenever
   // the server value changes (multiplex refetch, mode switch resetting it).
@@ -808,7 +810,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
 
     return () => { cancelled = true; };
-  }, [serviceOnline, activeProfileKey, setMode, setRawSync, hydrateAnimateSettings]);
+  }, [serviceOnline, activeProfileKey, setMode, setRawSync, hydrateAnimateSettings, setMusicReactiveState]);
 
   // Seeded on mount, not just when static is active: entering the mode from
   // another one has to land on the key the service remembers.
@@ -863,7 +865,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
 
     return () => { cancelled = true; };
-  }, [serviceOnline, rawSync, hydrateAnimateSettings, readGlobalColor]);
+  }, [serviceOnline, rawSync, hydrateAnimateSettings, readGlobalColor, setMusicReactiveState]);
 
   // Animate-mode templates: same shape - one fetch on entry, multiplex push
   // for the rest. Local edits still ignore pushes for the
@@ -916,16 +918,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       });
     }
   });
-
-  const handleMusicReactiveToggle = useCallback(async () => {
-    const next = !musicReactive;
-    setMusicReactiveState(next);
-    try {
-      await setMusicReactive(next);
-    } catch {
-      setMusicReactiveState(!next);
-    }
-  }, [musicReactive]);
 
   // The Marketplace's "Open in Lighting" effect, taken on mount so it never fires on a later visit.
   // Kept when StrictMode's second mount finds nothing left to take.
@@ -2533,6 +2525,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Windows only: the macOS capture takes the whole system mix, so there is no
   // source to name or switch.
   const showAudioOutput = musicReactive && isWindows && showMusicButton;
+  const audioOutput = useLightingAudioOutput(showAudioOutput);
   // The device list is the canvas filter: the canvas draws exactly what the
   // list has selected. Which of those frames is focused is the canvas's own
   // state (`canvasFocusIds`), so a canvas click never removes a frame.
@@ -3025,7 +3018,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             {shaderMode && dockEffect && dockState && !mixedSelection && (
               <>
                 {showMusicButton && (
-                  <MusicReactiveControl active={musicReactive} onToggle={handleMusicReactiveToggle} showSource={showAudioOutput} />
+                  <MusicReactiveControl active={musicReactive} onToggle={handleMusicReactiveToggle} output={showAudioOutput ? audioOutput : undefined} />
                 )}
                 <HoverTooltip body={t('lighting.fullscreen')} side="left">
                   <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>

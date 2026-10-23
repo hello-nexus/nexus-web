@@ -3,6 +3,7 @@ import { useShaderRenderer } from '../../hooks/useShaderRenderer';
 import { useShaderParams } from '../../hooks/useShaderParams';
 import { SensorSignalProvider } from '../../hooks/SensorSignalProvider';
 import { useAudioState } from '../../hooks/useAudioState';
+import { useMusicReactive } from '../../hooks/useMusicReactive';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSurface } from '../types';
 import {
@@ -11,6 +12,7 @@ import {
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
   panelBackgroundState,
+  resolveBackgroundDrawing,
   resolveBackgroundEffectForSurface,
 } from './panelBackground';
 import { usePanelAudioReactive } from './panelAudio';
@@ -52,15 +54,22 @@ export function PanelBackgroundShader(props: PanelBackgroundShaderProps) {
 function PanelBackgroundShaderLayer({ effect, template, opacity, effectState, surface, fullRes, covered = false }: PanelBackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioAllowed = usePanelAudioReactive(surface);
-  const normalizedEffect = resolveBackgroundEffectForSurface(normalizePanelBackgroundEffect(effect), audioAllowed);
-  const normalizedTemplate = normalizePanelBackgroundTemplate(template);
+  const drawing = resolveBackgroundDrawing(
+    normalizePanelBackgroundEffect(effect),
+    normalizePanelBackgroundTemplate(template),
+    effectState,
+    audioAllowed,
+  );
+  const normalizedEffect = drawing.effect;
+  const normalizedTemplate = drawing.template;
+  const drawnState = drawing.effectState;
   // The render loop reads stateRef.current each frame, so an effect push is
   // picked up next frame. Initialize with the same normalized inputs so the
   // first frame doesn't render stale state.
-  const stateRef = useRef(effectState ?? panelBackgroundState(normalizedEffect, normalizedTemplate));
+  const stateRef = useRef(drawnState ?? panelBackgroundState(normalizedEffect, normalizedTemplate));
   useEffect(() => {
-    stateRef.current = effectState ?? panelBackgroundState(normalizedEffect, normalizedTemplate);
-  }, [normalizedEffect, normalizedTemplate, effectState]);
+    stateRef.current = drawnState ?? panelBackgroundState(normalizedEffect, normalizedTemplate);
+  }, [normalizedEffect, normalizedTemplate, drawnState]);
   // The Q-series AIO panel GPU can't hold frame rate on heavy shaders at native
   // res, so cap its backing store to half DPR. q60 is the only Q-series surface
   // (Q60 + Q80 share the LCD and both infer to it). fullRes lifts the cap for
@@ -73,7 +82,10 @@ function PanelBackgroundShaderLayer({ effect, template, opacity, effectState, su
   ), [glass, fullRes]);
   // Subscribing is what makes the service capture audio, so only an audio
   // effect that is on screen holds the subscription.
-  const audioRef = useAudioState(audioAllowed && isAudioBackgroundEffect(normalizedEffect) && !covered);
+  // Music Reactive off keeps the effect on screen but silent, with no subscription.
+  const audioShown = audioAllowed && isAudioBackgroundEffect(normalizedEffect);
+  const music = useMusicReactive(audioShown);
+  const audioRef = useAudioState(audioShown && music.enabled && !covered);
   const { ready, error } = useShaderRenderer(
     canvasRef,
     normalizedEffect,

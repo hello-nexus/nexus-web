@@ -1,19 +1,19 @@
 import { Music } from 'lucide-react';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import type { LightingAudioOutput } from '../../../../hooks/useLightingAudioOutput';
 import { useTranslation } from '../../../../lib/i18n';
 import { AudioSourceSelect } from './AudioSourceSelect';
 import styles from './MusicReactiveControl.module.scss';
 
 interface MusicReactiveControlProps {
   active: boolean;
-  /** Absent: the icon only reports the state and does not toggle. */
-  onToggle?: () => void;
-  /** Windows only: the macOS capture takes the whole system mix, so there is no source to name. */
-  showSource: boolean;
+  onToggle: () => void;
+  /** Absent hides the source picker (macOS capture takes the whole system mix). */
+  output?: LightingAudioOutput;
 }
 
 /** The music-note button and capture source picker pinned to the top left of an effect preview. */
-export function MusicReactiveControl({ active, onToggle, showSource }: MusicReactiveControlProps) {
+export function MusicReactiveControl({ active, onToggle, output }: MusicReactiveControlProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.root}>
@@ -22,14 +22,13 @@ export function MusicReactiveControl({ active, onToggle, showSource }: MusicReac
           type="button"
           className={`${styles.btn} ${active ? styles.btnOn : ''}`}
           onClick={onToggle}
-          disabled={!onToggle}
+          aria-pressed={active}
           aria-label={t('lighting.musicReactive')}
-          aria-pressed={onToggle ? active : undefined}
         >
           <Music size={14} strokeWidth={1.5} />
         </button>
       </HoverTooltip>
-      {showSource && <AudioSourceSelect className={styles.source} />}
+      {output && <AudioSourceSelect output={output} className={styles.source} />}
     </div>
   );
 }

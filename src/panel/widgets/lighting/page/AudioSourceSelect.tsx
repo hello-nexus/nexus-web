@@ -1,17 +1,16 @@
 import { Select } from '../../../../components/common/Select/Select';
-import { useLightingAudioOutput } from '../../../../hooks/useLightingAudioOutput';
+import type { LightingAudioOutput } from '../../../../hooks/useLightingAudioOutput';
 import { useTranslation } from '../../../../lib/i18n';
 
-/** The service-wide capture source for audio-reactive effects. Every mounted copy reads and writes the same setting and follows the service's lighting topic. */
-export function AudioSourceSelect({ className }: { className?: string }) {
+/** The service-wide capture source for audio-reactive effects. The owner keeps the hook mounted so a pick survives this picker coming and going. */
+export function AudioSourceSelect({ output, className }: { output: LightingAudioOutput; className?: string }) {
   const { t } = useTranslation();
-  const audioOutput = useLightingAudioOutput(true);
   return (
     <Select
       className={className}
-      value={audioOutput.value}
-      options={audioOutput.options}
-      onChange={audioOutput.select}
+      value={output.value}
+      options={output.options}
+      onChange={output.select}
       ariaLabel={t('lighting.audioOutput.label')}
       height={26}
     />
