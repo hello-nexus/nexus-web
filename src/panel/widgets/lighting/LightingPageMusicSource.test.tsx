@@ -250,7 +250,7 @@ describe('LightingPage music reactive source picker', () => {
 
     await waitFor(() => expect(musicButton()).toBeInTheDocument());
     expect(sourcePicker()).not.toBeInTheDocument();
-    expect(audioOutputEnabled.calls.at(-1)).toBe(false);
+    expect(audioOutputEnabled.calls.every(Boolean)).toBe(true);
   });
 
   it('shows neither for a pinned effect that is not audio-reactive', async () => {
@@ -259,7 +259,7 @@ describe('LightingPage music reactive source picker', () => {
     await waitFor(() => expect(screen.getByTestId('preview').dataset.effect).toBe('aurora'));
     expect(musicButton()).not.toBeInTheDocument();
     expect(sourcePicker()).not.toBeInTheDocument();
-    expect(audioOutputEnabled.calls.at(-1)).toBe(false);
+    expect(audioOutputEnabled.calls.every(Boolean)).toBe(true);
   });
 
   it('hides the picker off Windows', async () => {

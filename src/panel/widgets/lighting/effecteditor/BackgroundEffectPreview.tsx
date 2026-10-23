@@ -11,6 +11,8 @@ import {
   panelBackgroundState,
   resolveBackgroundEffectForSurface,
 } from '../../../background/panelBackground';
+import { detectOS } from '../../../../lib/platform';
+import { MusicReactiveControl } from '../page/MusicReactiveControl';
 import styles from './BackgroundEffectPreview.module.scss';
 
 const RENDER_OPTIONS = { maxDevicePixelRatio: 1 };
@@ -54,6 +56,9 @@ function BackgroundEffectPreviewCanvas({ effect, template, effectState, audioRea
   return (
     <div className={styles.preview} data-ready={ready && !error ? 'true' : 'false'}>
       <canvas ref={canvasRef} className={styles.canvas} />
+      {audioReactive && isAudioBackgroundEffect(fx) && (
+        <MusicReactiveControl active showSource={detectOS() === 'windows'} />
+      )}
     </div>
   );
 }
