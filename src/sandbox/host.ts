@@ -39,8 +39,10 @@ export function sensorGlobMatch(pattern: string, id: string): boolean {
 }
 
 export const PING_INTERVAL_MS = 5000;
-/** Consecutive unanswered pings after which an armed watchdog fires. */
+/** Consecutive unanswered pings after which the watchdog fires. */
 export const MAX_MISSED_PINGS = 3;
+/** A slow first load may take this long to answer its first ping before misses count. */
+export const FIRST_PONG_GRACE_MS = 30_000;
 
 export interface SandboxContext {
   instanceId: string;
@@ -73,7 +75,7 @@ export interface SandboxContext {
   /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). The host
    *  delivers only readings matching a granted pattern. Empty = no sensors. */
   sensorsRead?: string[];
-  /** Called once when the worker answered pings, then stopped (see PING_INTERVAL_MS). */
+  /** Called each time the worker misses MAX_MISSED_PINGS pings in a row; the watchdog keeps running until dispose, so a declined restart is retried. */
   onUnresponsive?(): void;
   /** False while no mount shows this worker; the watchdog idles then. */
   isActive?(): boolean;
@@ -171,15 +173,17 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   const onFrame = () => fanoutSensors();
   monitoringStore.subscribe(onFrame);
 
-  // Armed by the first pong, so a worker that never answers (an older boot) is never restarted.
-  let armed = false;
+  // Misses count from spawn, but only once the first pong has arrived or the grace for a slow first load has passed.
+  const graceEnd = Date.now() + FIRST_PONG_GRACE_MS;
+  let heardPong = false;
   let pingPending = false;
   let missed = 0;
   const watchdog = setInterval(() => {
-    // Hidden documents throttle timers and pause workers; unmounted widgets are idle by design.
+    // Chromium throttles main-thread timers in a hidden page, which would stall the ping cadence; unmounted widgets are idle by design.
     if (document.visibilityState === 'hidden' || context.isActive?.() === false) { pingPending = false; missed = 0; return; }
-    if (pingPending && armed && ++missed >= MAX_MISSED_PINGS) {
-      clearInterval(watchdog);
+    if (pingPending && (heardPong || Date.now() >= graceEnd) && ++missed >= MAX_MISSED_PINGS) {
+      missed = 0;
+      pingPending = false;
       context.onUnresponsive?.();
       return;
     }
@@ -189,7 +193,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
 
   worker.addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { type?: string; id?: number; message?: string; payload?: unknown } | null;
-    if (d?.type === 'nexus.pong') { armed = true; pingPending = false; missed = 0; return; }
+    if (d?.type === 'nexus.pong') { heardPong = true; pingPending = false; missed = 0; return; }
     if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); reportAppError(context.widgetId, 'boot-error', d.message ?? 'worker boot failed'); return; }
     if (d?.type === 'nexus.log') {
       console.warn(`[sdk:${context.widgetId}]`, d.payload);

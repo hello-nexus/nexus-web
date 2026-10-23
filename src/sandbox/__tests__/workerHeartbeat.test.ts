@@ -56,13 +56,16 @@ describe('SDK worker heartbeat', () => {
   it('fires after three unanswered pings once armed', async () => {
     const { worker, onUnresponsive, tick } = await spawn();
     tick(); worker.pong();
-    // The first unanswered ping goes out on the next tick; the third miss lands 15s later.
+    // The first unanswered ping goes out on the next tick; the third miss lands three ticks after it.
     tick(3);
     expect(onUnresponsive).not.toHaveBeenCalled();
     tick();
     expect(onUnresponsive).toHaveBeenCalledTimes(1);
-    tick(10);
+    // The watchdog keeps running, so a declined restart is retried.
+    tick(3);
     expect(onUnresponsive).toHaveBeenCalledTimes(1);
+    tick();
+    expect(onUnresponsive).toHaveBeenCalledTimes(2);
   });
 
   it('a late pong resets the miss count', async () => {
@@ -73,10 +76,16 @@ describe('SDK worker heartbeat', () => {
     expect(onUnresponsive).not.toHaveBeenCalled();
   });
 
-  it('never fires for a worker that never answers', async () => {
+  it('tolerates a slow first load, then treats a silent worker like any other', async () => {
+    const { FIRST_PONG_GRACE_MS, PING_INTERVAL_MS } = await import('../host');
     const { onUnresponsive, tick } = await spawn();
-    tick(50);
+    tick(FIRST_PONG_GRACE_MS / PING_INTERVAL_MS - 1); // last tick before the grace ends
     expect(onUnresponsive).not.toHaveBeenCalled();
+    // Misses start counting on the first tick at or past the grace.
+    tick(2);
+    expect(onUnresponsive).not.toHaveBeenCalled();
+    tick();
+    expect(onUnresponsive).toHaveBeenCalledTimes(1);
   });
 
   it('does not count misses while the document is hidden', async () => {

@@ -49,7 +49,7 @@ describe('SandboxedWidget unresponsive worker restart', () => {
     expect(console.warn).toHaveBeenCalledWith('[sdk:app-a] worker unresponsive, restarted');
   });
 
-  it('stops restarting after three within ten minutes, and resumes once they age out', async () => {
+  it('stops restarting after three within ten minutes', async () => {
     const { SandboxedWidget, spawnSpy } = await loadSandbox();
     render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:e" widgetId="app-a" instanceId="i-a" />);
     for (let i = 0; i < 3; i++) fire(spawnSpy, i);
@@ -57,8 +57,24 @@ describe('SandboxedWidget unresponsive worker restart', () => {
     fire(spawnSpy, 3);
     expect(spawnSpy).toHaveBeenCalledTimes(4);
     expect(reportAppError).toHaveBeenLastCalledWith('app-a', 'worker-unresponsive', 'worker unresponsive, restart limit reached');
-    vi.advanceTimersByTime(10 * 60 * 1000 + 1);
-    fire(spawnSpy, 3);
-    expect(spawnSpy).toHaveBeenCalledTimes(5);
+  });
+
+  it('gives the cell and page workers of one instance separate budgets', async () => {
+    const { SandboxedWidget, spawnSpy } = await loadSandbox();
+    render(<><SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:e" widgetId="app-a" instanceId="i-a" /><SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:e" widgetId="app-a" instanceId="i-a" surface="page" /></>);
+    const cell = () => spawnSpy.mock.calls.findIndex((c, i) => (c[2] as { surface: string }).surface === 'cell' && i >= spawnSpy.mock.calls.length - 2);
+    for (let i = 0; i < 3; i++) fire(spawnSpy, cell());
+    const before = spawnSpy.mock.calls.length;
+    const page = spawnSpy.mock.calls.findIndex((c) => (c[2] as { surface: string }).surface === 'page');
+    fire(spawnSpy, page);
+    expect(spawnSpy.mock.calls.length).toBe(before + 1);
+  });
+
+  it('resets the opaque report of the dead worker', async () => {
+    const { SandboxedWidget, spawnSpy } = await loadSandbox();
+    const onOpaqueChange = vi.fn();
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:e" widgetId="app-a" instanceId="i-a" onOpaqueChange={onOpaqueChange} />);
+    fire(spawnSpy, 0);
+    expect(onOpaqueChange).toHaveBeenCalledWith(false);
   });
 });

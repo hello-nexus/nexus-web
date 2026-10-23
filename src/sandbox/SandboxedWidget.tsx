@@ -156,19 +156,25 @@ const SOLO_AFTER_PRESS_MS = 10_000;
 const MAX_RESTARTS = 3;
 const RESTART_WINDOW_MS = 10 * 60 * 1000;
 const restartLog = new Map<string, number[]>();
+const capReportedAt = new Map<string, number>();
 
 /** Replaces a dead worker the way a fresh mount would: drop its cache entry and re-run every mount's spawn effect. */
-function restartUnresponsive(key: string, widgetId: string, instanceId: string): void {
+function restartUnresponsive(key: string, widgetId: string): void {
   const e = liveWidgets.get(key);
   if (!e) return;
   const now = Date.now();
-  const recent = (restartLog.get(`${widgetId}:${instanceId}`) ?? []).filter((t) => now - t < RESTART_WINDOW_MS);
+  const recent = (restartLog.get(key) ?? []).filter((t) => now - t < RESTART_WINDOW_MS);
   if (recent.length >= MAX_RESTARTS) {
-    console.warn(`[sdk:${widgetId}] worker unresponsive, restart limit reached`);
-    reportAppError(widgetId, 'worker-unresponsive', 'worker unresponsive, restart limit reached');
+    // The worker's watchdog keeps firing, so this is retried until the oldest restart ages out.
+    const reported = capReportedAt.get(key);
+    if (reported === undefined || now - reported >= RESTART_WINDOW_MS) {
+      capReportedAt.set(key, now);
+      console.warn(`[sdk:${widgetId}] worker unresponsive, restart limit reached`);
+      reportAppError(widgetId, 'worker-unresponsive', 'worker unresponsive, restart limit reached');
+    }
     return;
   }
-  restartLog.set(`${widgetId}:${instanceId}`, [...recent, now]);
+  restartLog.set(key, [...recent, now]);
   console.warn(`[sdk:${widgetId}] worker unresponsive, restarted`);
   reportAppError(widgetId, 'worker-unresponsive', 'worker unresponsive, restarted');
   if (e.disposeTimer) clearTimeout(e.disposeTimer);
@@ -176,7 +182,8 @@ function restartUnresponsive(key: string, widgetId: string, instanceId: string):
   e.handle.dispose();
   e.audioEngine?.dispose();
   liveWidgets.delete(key);
-  for (const m of [...e.mounts]) m.respawn();
+  // The cleanup of the old effect finds no entry, so the opaque report is reset here.
+  for (const m of [...e.mounts]) { m.setOpaque(false); m.respawn(); }
 }
 
 /** Validates and records a key the worker just read or wrote, then wakes the
@@ -298,7 +305,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         netFetch: netFetch ?? [],
         sensorsRead: sensorsRead ?? [],
         isActive: () => (liveWidgets.get(key)?.mounts.length ?? 0) > 0,
-        onUnresponsive: () => restartUnresponsive(key, widgetId, instanceId),
+        onUnresponsive: () => restartUnresponsive(key, widgetId),
         api: {
           persistLocal: preview
             ? () => { /* preview: no localStorage writes */ }
