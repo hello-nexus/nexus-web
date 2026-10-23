@@ -129,7 +129,7 @@ describe('AstralDevicePage', () => {
     s.cards[0].level = { available: false, calibrating: true };
     await mount(s);
     openLevel();
-    expect(screen.getByText('devices.astral.calibrating')).toBeInTheDocument();
+    expect(screen.getByText(/^devices.astral.calibrating:/)).toBeInTheDocument();
     expect(screen.queryByText('devices.astral.noSensor')).toBeNull();
     expect(screen.getByText('+0.18°')).toBeInTheDocument();
     expect(screen.getByText('-0.62°')).toBeInTheDocument();

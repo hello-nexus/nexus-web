@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "Kalibreren is mislukt. Probeer het opnieuw.",
   "devices.astral.calibrateHint": "Druk op Kalibreren wanneer de kaart zit zoals het hoort. Nexus onthoudt het.",
   "devices.astral.calibrated": "Gekalibreerd op {when}",
-  "devices.astral.calibrating": "Bezig met kalibreren. Houd de pc stil.",
+  "devices.astral.calibrating": "Bezig met kalibreren. Verplaats de pc {seconds} sec. niet.",
   "devices.astral.cancelShutdown": "Afsluiten annuleren",
   "devices.astral.confirm.calibrate.message": "Nexus neemt de huidige stand van de kaart als waterpas. Verplaats de pc {seconds} sec. niet.",
   "devices.astral.confirm.calibrate.title": "Level Sense kalibreren?",

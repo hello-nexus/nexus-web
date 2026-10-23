@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "Impossible de calibrer. Réessayez.",
   "devices.astral.calibrateHint": "Appuyez sur Calibrer quand la carte est installée comme il faut. Nexus s'en souvient.",
   "devices.astral.calibrated": "Calibré {when}",
-  "devices.astral.calibrating": "Calibrage en cours. Ne bougez pas le PC.",
+  "devices.astral.calibrating": "Calibrage en cours. Ne bougez pas le PC pendant {seconds} s.",
   "devices.astral.cancelShutdown": "Annuler l'arrêt",
   "devices.astral.confirm.calibrate.message": "Nexus prend la position actuelle de la carte comme référence horizontale. Ne bougez pas le PC pendant {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Calibrer Level Sense ?",

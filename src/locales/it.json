@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "Impossibile calibrare. Riprova.",
   "devices.astral.calibrateHint": "Premi Calibra quando la scheda è montata come deve. Nexus se lo ricorda.",
   "devices.astral.calibrated": "Calibrato {when}",
-  "devices.astral.calibrating": "Calibrazione in corso. Tieni fermo il PC.",
+  "devices.astral.calibrating": "Calibrazione in corso. Non spostare il PC per {seconds} s.",
   "devices.astral.cancelShutdown": "Annulla spegnimento",
   "devices.astral.confirm.calibrate.message": "Nexus considera la posizione attuale della scheda come livellata. Non spostare il PC per {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Calibrare Level Sense?",

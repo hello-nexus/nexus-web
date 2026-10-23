@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "No si à rivât a calibrâ. Torne a provâ.",
   "devices.astral.calibrateHint": "Frache Calibre cuant che la schede e je metude come che e à di jessi. Nexus si lu ricuarde.",
   "devices.astral.calibrated": "Calibrât {when}",
-  "devices.astral.calibrating": "Calibrazion in cors. Tegni il PC fer.",
+  "devices.astral.calibrating": "Calibrazion in cors. No movi il PC par {seconds} s.",
   "devices.astral.cancelShutdown": "Anule distudament",
   "devices.astral.confirm.calibrate.message": "Nexus al ten la posizion atuâl de schede come orizontâl. No movi il PC par {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Calibrâ Level Sense?",

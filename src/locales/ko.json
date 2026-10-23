@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "보정하지 못했습니다. 다시 시도하세요.",
   "devices.astral.calibrateHint": "카드가 제자리에 있을 때 보정을 누르세요. Nexus가 기억합니다.",
   "devices.astral.calibrated": "{when}에 보정됨",
-  "devices.astral.calibrating": "보정 중입니다. PC를 움직이지 마세요.",
+  "devices.astral.calibrating": "보정 중입니다. {seconds}초 동안 PC를 움직이지 마세요.",
   "devices.astral.cancelShutdown": "종료 취소",
   "devices.astral.confirm.calibrate.message": "Nexus가 카드의 현재 위치를 수평으로 기록합니다. {seconds}초 동안 PC를 움직이지 마세요.",
   "devices.astral.confirm.calibrate.title": "Level Sense를 보정할까요?",

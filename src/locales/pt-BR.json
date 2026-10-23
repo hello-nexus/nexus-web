@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "Não foi possível calibrar. Tente de novo.",
   "devices.astral.calibrateHint": "Clique em Calibrar quando a placa estiver encaixada do jeito certo. O Nexus guarda isso.",
   "devices.astral.calibrated": "Calibrado em {when}",
-  "devices.astral.calibrating": "Calibrando. Mantenha o PC parado.",
+  "devices.astral.calibrating": "Calibrando. Não mova o PC por {seconds} s.",
   "devices.astral.cancelShutdown": "Cancelar desligamento",
   "devices.astral.confirm.calibrate.message": "O Nexus assume a posição atual da placa como nivelada. Não mova o PC por {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Calibrar o Level Sense?",

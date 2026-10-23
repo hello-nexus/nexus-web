@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "無法校正。請再試一次。",
   "devices.astral.calibrateHint": "顯示卡安裝到位時按「校正」。Nexus 會記住它。",
   "devices.astral.calibrated": "校準於 {when}",
-  "devices.astral.calibrating": "正在校準，請保持電腦靜止。",
+  "devices.astral.calibrating": "正在校準。請在 {seconds} 秒內不要移動電腦。",
   "devices.astral.cancelShutdown": "取消關機",
   "devices.astral.confirm.calibrate.message": "Nexus 會將顯示卡目前的位置記為水平。請在 {seconds} 秒內不要移動電腦。",
   "devices.astral.confirm.calibrate.title": "要校準 Level Sense 嗎？",

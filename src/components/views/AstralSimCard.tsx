@@ -7,7 +7,7 @@ import { InlineError } from '../common/InlineError/InlineError';
 import { SettingRow, SettingToggle } from '../common/SettingRow/SettingRow';
 import { SettingsSection } from '../common/SettingsSection/SettingsSection';
 import { Slider } from '../common/Slider/Slider';
-import { ASTRAL_PRESETS, matchingPreset } from './astralSimPresets';
+import { ASTRAL_PRESETS, SIM_TILT_MAX, matchingPreset } from './astralSimPresets';
 import styles from './ToolsView.module.scss';
 
 /** Dev-tools-only card on the Tools page: a simulated ROG Astral driving the real page, alerts and countdown. */
@@ -60,8 +60,8 @@ export function AstralSimCard() {
             orientation="stacked"
             label={t(`tools.simAstral.${key}`)}
             value={sim?.[key] ?? 0}
-            min={-2}
-            max={2}
+            min={-SIM_TILT_MAX}
+            max={SIM_TILT_MAX}
             step={0.05}
             disabled={!active}
             formatValue={v => `${v.toFixed(2)}°`}

@@ -1,3 +1,6 @@
+/** The sag and lean sliders reach this many degrees either way. */
+export const SIM_TILT_MAX = 10;
+
 const PIN_COUNT = 6;
 const NORMAL = 7.5;
 const withPin = (index: number, amps: number, rest = NORMAL) =>

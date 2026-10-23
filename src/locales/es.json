@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "No se pudo calibrar. Inténtalo de nuevo.",
   "devices.astral.calibrateHint": "Pulsa Calibrar cuando la tarjeta esté colocada como debe. Nexus lo recuerda.",
   "devices.astral.calibrated": "Calibrado {when}",
-  "devices.astral.calibrating": "Calibrando. Mantén el PC quieto.",
+  "devices.astral.calibrating": "Calibrando. No muevas el PC durante {seconds} s.",
   "devices.astral.cancelShutdown": "Cancelar apagado",
   "devices.astral.confirm.calibrate.message": "Nexus toma la posición actual de la tarjeta como nivelada. No muevas el PC durante {seconds} s.",
   "devices.astral.confirm.calibrate.title": "¿Calibrar Level Sense?",

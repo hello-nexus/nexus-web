@@ -709,7 +709,7 @@
   "devices.astral.calibrateFailed": "Kalibrace se nezdařila. Zkuste to znovu.",
   "devices.astral.calibrateHint": "Stiskněte Kalibrovat, když karta sedí tak, jak má. Nexus si to zapamatuje.",
   "devices.astral.calibrated": "Zkalibrováno {when}",
-  "devices.astral.calibrating": "Probíhá kalibrace. Nehýbejte s počítačem.",
+  "devices.astral.calibrating": "Probíhá kalibrace. Nehýbejte s počítačem {seconds} s.",
   "devices.astral.cancelShutdown": "Zrušit vypnutí",
   "devices.astral.confirm.calibrate.message": "Nexus bere aktuální polohu karty jako vodorovnou. Nehýbejte s počítačem {seconds} s.",
   "devices.astral.confirm.calibrate.title": "Kalibrovat Level Sense?",

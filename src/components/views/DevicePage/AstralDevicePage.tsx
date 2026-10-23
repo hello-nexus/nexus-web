@@ -213,7 +213,7 @@ export function AstralDevicePage() {
               <Badge label={over ? t(`${P}over`, { limit: WARN_DEG.toFixed(2) }) : t(`${P}ok`)} color={over ? 'var(--bad)' : 'var(--good)'} />
               <span className={`${styles.status} ${level === 'calibrating' ? styles.accent : ''}`} role="status">
                 {level === 'calibrating'
-                  ? t(`${P}calibrating`)
+                  ? t(`${P}calibrating`, { seconds: CALIBRATE_SECONDS })
                   : calibratedAt == null
                     ? t(`${P}notCalibrated`)
                     : t(`${P}calibrated`, { when: new Date(calibratedAt).toLocaleString() })}

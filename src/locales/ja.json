@@ -702,7 +702,7 @@
   "devices.astral.calibrateFailed": "キャリブレーションできませんでした。もう一度お試しください。",
   "devices.astral.calibrateHint": "カードが正しい位置にあるときにキャリブレーションを押してください。Nexus が記憶します。",
   "devices.astral.calibrated": "{when} にキャリブレーション済み",
-  "devices.astral.calibrating": "キャリブレーション中です。PC を動かさないでください。",
+  "devices.astral.calibrating": "キャリブレーション中です。{seconds} 秒間、PC を動かさないでください。",
   "devices.astral.cancelShutdown": "シャットダウンを取り消す",
   "devices.astral.confirm.calibrate.message": "Nexus はカードの現在の位置を水平として記録します。{seconds} 秒間、PC を動かさないでください。",
   "devices.astral.confirm.calibrate.title": "Level Sense をキャリブレーションしますか？",

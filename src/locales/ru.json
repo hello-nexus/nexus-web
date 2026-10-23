@@ -709,7 +709,7 @@
   "devices.astral.calibrateFailed": "Не удалось откалибровать. Попробуйте ещё раз.",
   "devices.astral.calibrateHint": "Нажмите «Откалибровать», когда карта стоит так, как должна. Nexus это запомнит.",
   "devices.astral.calibrated": "Откалибровано {when}",
-  "devices.astral.calibrating": "Идет калибровка. Не двигайте ПК.",
+  "devices.astral.calibrating": "Идет калибровка. Не двигайте ПК в течение {seconds} с.",
   "devices.astral.cancelShutdown": "Отменить выключение",
   "devices.astral.confirm.calibrate.message": "Nexus примет текущее положение карты за горизонтальное. Не двигайте ПК в течение {seconds} с.",
   "devices.astral.confirm.calibrate.title": "Откалибровать Level Sense?",
