@@ -80,15 +80,54 @@ describe('useSdkBundle', () => {
   it('retries the bundle after a transient failure instead of latching', async () => {
     const useSdkBundle = await loadHook();
     versions.set('com.x.app', '1.0.0');
-    fetchServiceBlob.mockReset().mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValue(new Blob(['export default 1;']));
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
     vi.useFakeTimers();
     try {
       const { result } = renderHook(() => useSdkBundle('com.x.app'));
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
       expect(result.current.failed).toBe(true);
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
       expect(result.current.failed).toBe(false);
       expect(result.current.entryUrl).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
+  it('backs off between retries of a permanent bundle failure', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.useFakeTimers();
+    try {
+      renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      const afterFirstRetry = postService.mock.calls.length;
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(postService.mock.calls.length).toBe(afterFirstRetry);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(postService.mock.calls.length).toBeGreaterThan(afterFirstRetry);
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
+  it('stops retrying once the widget unmounts', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.useFakeTimers();
+    try {
+      const { unmount } = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      unmount();
+      const calls = postService.mock.calls.length;
+      await act(async () => { await vi.advanceTimersByTimeAsync(120_000); });
+      expect(postService.mock.calls.length).toBe(calls);
     } finally {
       vi.useRealTimers();
       fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));

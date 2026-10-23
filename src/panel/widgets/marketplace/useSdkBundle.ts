@@ -9,7 +9,7 @@
 // instances + remounts), so a transient remount reuses it instead of re-minting,
 // and an app updated on disk resolves to a new URL.
 
-import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { postService, fetchServiceBlob, isRemoteOrigin, isForceLanMode } from '../../../api/service';
 import { getMarketplaceListing, subscribeMarketplaceRegistry } from '../../../widgets/marketplaceRegistry';
 
@@ -24,6 +24,7 @@ const RUNTIME_PATH = '/sdk-runtime.mjs';
 let runtimePromise: Promise<string | null> | null = null;
 // A failed load (service restarting) is retried while a widget shows the failure.
 const RETRY_MS = 5000;
+const RETRY_MAX_MS = 60_000;
 
 async function resolveRuntime(): Promise<string | null> {
   // The service serves static files without CORS headers, so a desktop page on
@@ -41,6 +42,7 @@ export function useSdkRuntime(): { runtimeUrl: string | null; failed: boolean } 
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let delay = RETRY_MS;
     const attempt = () => {
       // Only a success stays cached; a null result is dropped so the next attempt refetches.
       runtimePromise ??= resolveRuntime().catch(() => null).then((u) => {
@@ -49,7 +51,7 @@ export function useSdkRuntime(): { runtimeUrl: string | null; failed: boolean } 
       });
       void runtimePromise.then((u) => {
         if (!alive) return;
-        if (u) { setRuntimeUrl(u); setFailed(false); } else { setFailed(true); timer = setTimeout(attempt, RETRY_MS); }
+        if (u) { setRuntimeUrl(u); setFailed(false); } else { setFailed(true); timer = setTimeout(attempt, delay); delay = Math.min(delay * 2, RETRY_MAX_MS); }
       });
     };
     attempt();
@@ -119,6 +121,7 @@ export function useSdkBundle(listingId: string): { entryUrl: string | null; fail
   const [, resolved] = useReducer((n: number) => n + 1, 0);
   const [failedKey, setFailedKey] = useState<string | null>(null);
   const [retryTick, retry] = useReducer((n: number) => n + 1, 0);
+  const retryDelay = useRef(RETRY_MS);
 
   useEffect(() => {
     if (!listingId || key === null || bundleCache.has(key)) return;
@@ -131,7 +134,11 @@ export function useSdkBundle(listingId: string): { entryUrl: string | null; fail
     }
     void pending.then((url) => {
       if (!alive) return;
-      if (url) resolved(); else { setFailedKey(key); timer = setTimeout(retry, RETRY_MS); }
+      if (url) { retryDelay.current = RETRY_MS; resolved(); } else {
+        setFailedKey(key);
+        timer = setTimeout(retry, retryDelay.current);
+        retryDelay.current = Math.min(retryDelay.current * 2, RETRY_MAX_MS);
+      }
     });
     return () => { alive = false; clearTimeout(timer); };
   }, [listingId, key, retryTick]);
