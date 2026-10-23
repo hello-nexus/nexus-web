@@ -2,14 +2,18 @@ import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { useShaderRenderer } from '../../hooks/useShaderRenderer';
 import { useShaderParams } from '../../hooks/useShaderParams';
 import { SensorSignalProvider } from '../../hooks/SensorSignalProvider';
+import { useAudioState } from '../../hooks/useAudioState';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSurface } from '../types';
 import {
+  isAudioBackgroundEffect,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
   panelBackgroundState,
+  resolveBackgroundEffectForSurface,
 } from './panelBackground';
+import { usePanelAudioReactive } from './panelAudio';
 import styles from '../PanelApp.module.scss';
 import { usePanelGlassSurface } from '../widgets/common/PanelGlassSurfaceContext';
 
@@ -34,7 +38,10 @@ interface PanelBackgroundShaderProps {
 // keeps the sensor signal it saw at compile time, so a provider that appeared
 // later would never reach an already-compiled effect.
 export function PanelBackgroundShader(props: PanelBackgroundShaderProps) {
-  const usesSensors = useShaderParams(normalizePanelBackgroundEffect(props.effect)).sensors.length > 0;
+  const audioAllowed = usePanelAudioReactive(props.surface);
+  const usesSensors = useShaderParams(
+    resolveBackgroundEffectForSurface(normalizePanelBackgroundEffect(props.effect), audioAllowed),
+  ).sensors.length > 0;
   return (
     <SensorSignalProvider enabled={usesSensors}>
       <PanelBackgroundShaderLayer {...props} />
@@ -44,7 +51,8 @@ export function PanelBackgroundShader(props: PanelBackgroundShaderProps) {
 
 function PanelBackgroundShaderLayer({ effect, template, opacity, effectState, surface, fullRes, covered = false }: PanelBackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const normalizedEffect = normalizePanelBackgroundEffect(effect);
+  const audioAllowed = usePanelAudioReactive(surface);
+  const normalizedEffect = resolveBackgroundEffectForSurface(normalizePanelBackgroundEffect(effect), audioAllowed);
   const normalizedTemplate = normalizePanelBackgroundTemplate(template);
   // The render loop reads stateRef.current each frame, so an effect push is
   // picked up next frame. Initialize with the same normalized inputs so the
@@ -63,11 +71,14 @@ function PanelBackgroundShaderLayer({ effect, template, opacity, effectState, su
   const renderOptions = useMemo(() => (
     { maxDevicePixelRatio: glass === 'q60' && !fullRes ? 0.5 : 1, visibleRef }
   ), [glass, fullRes]);
+  // Subscribing is what makes the service capture audio, so only an audio
+  // effect that is on screen holds the subscription.
+  const audioRef = useAudioState(audioAllowed && isAudioBackgroundEffect(normalizedEffect) && !covered);
   const { ready, error } = useShaderRenderer(
     canvasRef,
     normalizedEffect,
     stateRef,
-    undefined,
+    audioRef,
     renderOptions,
   );
   const style = {

@@ -62,17 +62,36 @@ const PANEL_BACKGROUND_HIDDEN_CATEGORIES: ReadonlySet<EffectCategory> =
 
 /** Browse pool for the background Animations tab: gradients plus every
  *  animated category. Audio-reactive effects are gated on the flag rather than
- *  the category so an effect with no category entry cannot slip into the pool
- *  and then be rejected as unrenderable. */
-export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(
-  effect => !effect.audio && !PANEL_BACKGROUND_HIDDEN_CATEGORIES.has(categoryOf(effect.key)),
-);
+ *  the category so an effect with no category entry cannot slip into the pool.
+ *  `audioAllowed` is panelAudioReactiveAllowed for the surface being edited. */
+export function panelBackgroundEffects(audioAllowed: boolean): EffectDef[] {
+  return EFFECTS.filter(
+    effect => (audioAllowed || !effect.audio) && !PANEL_BACKGROUND_HIDDEN_CATEGORIES.has(categoryOf(effect.key)),
+  );
+}
+
+export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = panelBackgroundEffects(false);
+export const PANEL_BACKGROUND_EFFECTS_WITH_AUDIO: EffectDef[] = panelBackgroundEffects(true);
 
 // Renderable is wider than browsable: a panel that already stores a hidden
 // effect keeps rendering it rather than jumping to the default behind the
-// user's back. Only the audio set is genuinely unrenderable here.
+// user's back. Whether an audio effect actually draws is a per-surface call,
+// see resolveBackgroundEffectForSurface.
 const PANEL_BACKGROUND_RENDERABLE: ReadonlySet<string> =
-  new Set(EFFECTS.filter(effect => !effect.audio).map(effect => effect.key));
+  new Set(EFFECTS.map(effect => effect.key));
+const PANEL_BACKGROUND_AUDIO_KEYS: ReadonlySet<string> =
+  new Set(EFFECTS.filter(effect => effect.audio).map(effect => effect.key));
+
+export function isAudioBackgroundEffect(key: string): boolean {
+  return PANEL_BACKGROUND_AUDIO_KEYS.has(key);
+}
+
+/** The effect a surface draws. The stored value is never rewritten: a layout
+ *  shared with a surface that cannot take audio shows the default there while
+ *  the audio effect stays selected on the surface that can. */
+export function resolveBackgroundEffectForSurface(effect: string, audioAllowed: boolean): string {
+  return !audioAllowed && isAudioBackgroundEffect(effect) ? DEFAULT_PANEL_BACKGROUND_EFFECT : effect;
+}
 
 // Paired preset sets: index i in DARK is the dark counterpart of index i in
 // LIGHT. Two rows of ten hue families (violet, purple, pink, red, orange,

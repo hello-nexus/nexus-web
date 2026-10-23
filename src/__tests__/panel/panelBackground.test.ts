@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
+  PANEL_BACKGROUND_EFFECTS,
+  DEFAULT_PANEL_BACKGROUND_EFFECT,
+  normalizePanelBackgroundEffect,
+  panelBackgroundEffects,
+  resolveBackgroundEffectForSurface,
   BG_PRESETS_DARK,
   BG_PRESETS_LIGHT,
   DEFAULT_PANEL_BG_DARK,
@@ -125,5 +130,23 @@ describe('normalizePanelWidgetPadding', () => {
     expect(normalizePanelWidgetPadding(-20)).toBe(0);
     expect(normalizePanelWidgetPadding(150)).toBe(100);
     expect(normalizePanelWidgetPadding(75)).toBe(75);
+  });
+});
+
+describe('audio-reactive panel backgrounds', () => {
+  it('offers audio effects in the pool only when allowed', () => {
+    expect(panelBackgroundEffects(false).some(e => e.audio)).toBe(false);
+    expect(panelBackgroundEffects(true).some(e => e.audio)).toBe(true);
+    expect(PANEL_BACKGROUND_EFFECTS.some(e => e.audio)).toBe(false);
+  });
+
+  it('keeps a stored audio effect through normalize', () => {
+    expect(normalizePanelBackgroundEffect('spectrumbars')).toBe('spectrumbars');
+  });
+
+  it('falls back to the default for an audio effect when audio is not allowed', () => {
+    expect(resolveBackgroundEffectForSurface('spectrumbars', false)).toBe(DEFAULT_PANEL_BACKGROUND_EFFECT);
+    expect(resolveBackgroundEffectForSurface('spectrumbars', true)).toBe('spectrumbars');
+    expect(resolveBackgroundEffectForSurface('plasma', false)).toBe('plasma');
   });
 });
