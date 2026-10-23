@@ -482,11 +482,19 @@ describe('failure handling', () => {
     expect(reportAppError).toHaveBeenLastCalledWith('com.test.app', 'canvas-error', 'draw threw');
   });
 
-  it('reports a renderer that cannot be fetched', async () => {
+  it('does not blame the app when the renderer module cannot be fetched', async () => {
     fetchBundleFile.mockResolvedValue(null);
     acquireCanvas(freshKey(), spec, makeWrap(), claimOf());
     await flush();
-    expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'canvas-error', 'renderer module could not be fetched');
+    expect(reportAppError).not.toHaveBeenCalled();
+  });
+
+  it('reports an unhandled rejection forwarded by the renderer worker without respawning', async () => {
+    const { worker, session } = await readySession();
+    worker.emit({ type: 'rejection', message: 'late' });
+    expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'unhandled-rejection', 'late');
+    expect(session.phase).toBe('ready');
+    expect(FakeWorker.all).toHaveLength(1);
   });
 
   it('errors when the worker never boots', async () => {
@@ -495,5 +503,6 @@ describe('failure handling', () => {
     await vi.advanceTimersByTimeAsync(21_000);
     await vi.advanceTimersByTimeAsync(21_000);
     expect(session.phase).toBe('error');
+    expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'boot-timeout', 'renderer did not boot in time');
   });
 });

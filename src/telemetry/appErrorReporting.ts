@@ -8,6 +8,8 @@ export type AppErrorPath =
   | 'render-failed'
   | 'canvas-error'
   | 'boundary'
+  | 'callback-error'
+  | 'boot-timeout'
   | 'log-error';
 
 const COOLDOWN_MS = 10 * 60 * 1000;
@@ -54,7 +56,7 @@ function admit(appId: string, fingerprint: string, now: number): boolean {
   return true;
 }
 
-/** Reports an error raised by an SDK app (worker, renderer or host-side render) as kind 'app', tagged with the app id, listing version and surface. */
+/** Reports an error raised by an SDK app (worker, renderer or host-side render) as kind 'app'; an author's own nexus.log('error') text is kind 'app-log', which the service logs locally and never uploads. Both carry the app id, listing version and surface. */
 export function reportAppError(appId: string, path: AppErrorPath, error: unknown): void {
   try {
     const err = toError(error);
@@ -62,7 +64,7 @@ export function reportAppError(appId: string, path: AppErrorPath, error: unknown
     const version = getMarketplaceListing(appId)?.version ?? 'unknown';
     const surface = surfaceOf();
     const tag = `${appId}@${version} ${surface} ${path}`;
-    reportError(err, 'app', `app=${appId}@${version} surface=${surface} path=${path}`, true, { id: appId, tag });
+    reportError(err, path === 'log-error' ? 'app-log' : 'app', `app=${appId}@${version} surface=${surface} path=${path}`, true, { id: appId, tag });
   } catch {
     return;
   }

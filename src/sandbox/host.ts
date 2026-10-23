@@ -168,8 +168,12 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
     if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); reportAppError(context.widgetId, 'boot-error', d.message ?? 'worker boot failed'); return; }
     if (d?.type === 'nexus.log') {
       console.warn(`[sdk:${context.widgetId}]`, d.payload);
-      const log = d.payload as { level?: unknown; message?: unknown; rejection?: unknown } | null;
-      if (log?.level === 'error') reportAppError(context.widgetId, log.rejection === true ? 'unhandled-rejection' : 'log-error', String(log.message ?? 'error'));
+      const log = d.payload as { level?: unknown; message?: unknown; rejection?: unknown; thrown?: unknown } | null;
+      if (log?.level === 'error') {
+        // Only a thrown error or rejection is uploaded; an author's own log text stays in the local service log.
+        const path = log.rejection === true ? 'unhandled-rejection' : log.thrown === true ? 'callback-error' : 'log-error';
+        reportAppError(context.widgetId, path, String(log.message ?? 'error'));
+      }
       return;
     }
     if (d?.type === 'nexus.sensors.read' && typeof d.id === 'number') {

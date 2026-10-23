@@ -70,13 +70,16 @@ describe('SDK app error routing in the sandbox host', () => {
     expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'boot-error', 'import failed');
   });
 
-  it('reports nexus.log at level error only', async () => {
+  it('routes nexus.log at level error by origin and ignores other levels', async () => {
     const w = await spawn();
-    w.emit('message', { data: { type: 'nexus.log', payload: { level: 'error', message: 'cb threw' } } });
+    w.emit('message', { data: { type: 'nexus.log', payload: { level: 'error', message: 'author text' } } });
+    w.emit('message', { data: { type: 'nexus.log', payload: { level: 'error', thrown: true, message: 'cb threw' } } });
     w.emit('message', { data: { type: 'nexus.log', payload: { level: 'warn', message: 'just a warning' } } });
     w.emit('message', { data: { type: 'nexus.log', payload: { level: 'info', message: 'fyi' } } });
-    expect(reportAppError).toHaveBeenCalledTimes(1);
-    expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'log-error', 'cb threw');
+    expect(reportAppError.mock.calls).toEqual([
+      ['com.test.app', 'log-error', 'author text'],
+      ['com.test.app', 'callback-error', 'cb threw'],
+    ]);
   });
 
   it('reports an unhandled rejection forwarded by the worker boot', async () => {
@@ -87,11 +90,28 @@ describe('SDK app error routing in the sandbox host', () => {
   });
 });
 
-describe('worker boot', () => {
-  it('forwards unhandled rejections as error logs flagged as rejections', async () => {
-    const { workerBootScript } = await import('../workerBoot');
-    const script = workerBootScript();
-    expect(script).toContain('addEventListener("unhandledrejection"');
-    expect(script).toContain('rejection: true');
+describe('unhandled rejection listener', () => {
+  async function install(post: (m: string) => void) {
+    const { unhandledRejectionListener } = await import('../workerBoot');
+    let handler: ((ev: { reason: unknown }) => void) | null = null;
+    const fakeSelf = { addEventListener: (type: string, cb: typeof handler) => { if (type === 'unhandledrejection') handler = cb; } };
+    new Function('self', 'post', unhandledRejectionListener('post(m);'))(fakeSelf, post);
+    return handler as unknown as (ev: { reason: unknown }) => void;
+  }
+
+  it('posts the reason text, including for a null-prototype reason', async () => {
+    const post = vi.fn();
+    const handler = await install(post);
+    handler({ reason: new Error('nobody caught me') });
+    handler({ reason: Object.create(null) });
+    expect(post.mock.calls).toEqual([['nobody caught me'], ['unhandled rejection']]);
+  });
+
+  it('is part of both the widget and the renderer boot scripts', async () => {
+    const { workerBootScript, rendererBootScript } = await import('../workerBoot');
+    expect(workerBootScript()).toContain('addEventListener("unhandledrejection"');
+    expect(workerBootScript()).toContain('rejection: true');
+    expect(rendererBootScript()).toContain('addEventListener("unhandledrejection"');
+    expect(rendererBootScript()).toContain('type: "rejection"');
   });
 });

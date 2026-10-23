@@ -324,7 +324,9 @@ export class CanvasSession {
       this.workerFailed();
     });
     this.bootTimer = setTimeout(() => {
-      if (worker === this.worker && !this.booted) this.workerFailed();
+      if (worker !== this.worker || this.booted) return;
+      reportAppError(this.spec.appId, 'boot-timeout', 'renderer did not boot in time');
+      this.workerFailed();
     }, BOOT_TIMEOUT_MS);
   }
 
@@ -347,6 +349,10 @@ export class CanvasSession {
         return;
       case 'read-asset':
         void this.serveAsset(worker, m.id, m.path);
+        return;
+      case 'rejection':
+        console.error(`[canvas:${this.spec.appId}] unhandled rejection`, m.message);
+        reportAppError(this.spec.appId, 'unhandled-rejection', m.message);
         return;
       case 'error':
         console.error(`[canvas:${this.spec.appId}] renderer error`, m.message);
@@ -434,8 +440,7 @@ export class CanvasSession {
 
   private fail(reason: unknown): void {
     console.error(`[canvas:${this.spec.appId}] renderer failed`, reason);
-    // The worker fault behind a respawn-exhausted failure was already reported.
-    if (reason !== 'renderer worker failed') reportAppError(this.spec.appId, 'canvas-error', reason);
+    // Not reported as an app error: a missing module or a failed transfer is the host or network, and worker faults are reported where they arrive.
     this.teardownWorker();
     this.setPhase('error');
   }

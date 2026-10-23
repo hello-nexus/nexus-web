@@ -9,7 +9,7 @@ vi.mock('../widgets/marketplaceRegistry', () => ({
   getMarketplaceListing: (id: string) => (id === 'com.test.app' ? { id, version: '2.3.4' } : undefined),
 }));
 
-import { installGlobalErrorReporting, resetErrorReportingForTests } from './errorReporting';
+import { installGlobalErrorReporting, reportError, resetErrorReportingForTests } from './errorReporting';
 import { reportAppError, resetAppErrorReportingForTests, type AppErrorPath } from './appErrorReporting';
 
 type Item = Record<string, unknown>;
@@ -31,15 +31,15 @@ afterEach(() => {
 const flush = () => vi.advanceTimersByTimeAsync(6000);
 
 describe('reportAppError', () => {
-  const paths: AppErrorPath[] = ['worker-error', 'boot-error', 'unhandled-rejection', 'render-failed', 'canvas-error', 'boundary', 'log-error'];
+  const paths: AppErrorPath[] = ['worker-error', 'boot-error', 'unhandled-rejection', 'render-failed', 'canvas-error', 'boundary', 'callback-error', 'boot-timeout', 'log-error'];
 
-  it.each(paths)('reports a %s once as kind app with the app id, version and surface', async (path) => {
+  it.each(paths)('reports a %s once with the app id, version and surface', async (path) => {
     reportAppError('com.test.app', path, new TypeError('x is undefined'));
     await flush();
     const sent = items();
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({
-      kind: 'app',
+      kind: path === 'log-error' ? 'app-log' : 'app',
       type: 'com.test.app:TypeError',
       message: 'x is undefined',
       app: `com.test.app@2.3.4 desktop ${path}`,
@@ -80,12 +80,28 @@ describe('reportAppError', () => {
     expect(items()).toHaveLength(2);
   });
 
-  it('caps the distinct reports per app per window', async () => {
-    for (let i = 0; i < 60; i++) reportAppError('com.test.app', 'log-error', `distinct failure ${'x'.repeat(i + 1)}`);
+  it('caps the distinct reports per app per window at exactly 20', async () => {
+    for (let i = 0; i < 60; i++) {
+      reportAppError('com.test.app', 'callback-error', `distinct failure ${'x'.repeat(i + 1)}`);
+      await vi.advanceTimersByTimeAsync(300);
+    }
     await flush();
-    await vi.advanceTimersByTimeAsync(6000);
-    expect(items().length).toBeLessThanOrEqual(20);
-    expect(items().length).toBeGreaterThan(0);
+    expect(items()).toHaveLength(20);
+  });
+
+  it('never lets app reports crowd out the host reports', async () => {
+    for (let i = 0; i < 200; i++) reportAppError(`com.app.n${'x'.repeat(i + 1)}`, 'worker-error', `failure ${'y'.repeat(i + 1)}`);
+    reportError(new Error('host render broke'), 'render');
+    await flush();
+    await flush();
+    expect(items().some((i) => i.kind === 'render' && i.message === 'host render broke')).toBe(true);
+  });
+
+  it('keeps the message within 500 characters after causes are appended', async () => {
+    const err = new Error('a'.repeat(400), { cause: new Error('b'.repeat(400)) });
+    reportAppError('com.test.app', 'boundary', err);
+    await flush();
+    expect(String(items()[0].message).length).toBeLessThanOrEqual(500);
   });
 
   it('truncates long messages', async () => {

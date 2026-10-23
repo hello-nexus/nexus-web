@@ -17,6 +17,20 @@
 // Authors can use sibling ESM imports because the browser resolves them
 // against the entry URL, which already carries the per-session token.
 
+/**
+ * Worker-global listener for a rejected promise nobody awaited, which never reaches the page's worker error
+ * event. `post` is a statement that reports the string `m`; reading the reason is guarded because String() of
+ * a null-prototype object throws.
+ */
+export function unhandledRejectionListener(post: string): string {
+  return `
+self.addEventListener("unhandledrejection", (ev) => {
+  let m;
+  try { const r = ev.reason; m = String(r && r.message || r); } catch (_) { m = "unhandled rejection"; }
+  ${post}
+});`;
+}
+
 export function workerBootScript(): string {
   return WORKER_BOOT;
 }
@@ -137,11 +151,8 @@ const _sensorSubs = new Map();
 let _lastEveryCb = null;
 
 function _post(type, payload) { self.postMessage({ type, payload }); }
-// A rejected promise nobody awaited never reaches the page's worker error event.
-self.addEventListener("unhandledrejection", (ev) => {
-  const r = ev.reason;
-  _post("nexus.log", { level: "error", rejection: true, message: String(r && r.message || r) });
-});
+function _errText(e) { try { return String(e && e.message || e); } catch (_) { return "error"; } }
+${unhandledRejectionListener('_post("nexus.log", { level: "error", rejection: true, message: m });')}
 function _rpc(type, payload) {
   return new Promise((resolve, reject) => {
     const id = _rpcId++;
@@ -169,7 +180,7 @@ self.addEventListener("message", (ev) => {
     }
     case "nexus.refresh": {
       // Host asked us to re-run the most recent every() body once.
-      if (typeof _lastEveryCb === "function") { try { _lastEveryCb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); } }
+      if (typeof _lastEveryCb === "function") { try { _lastEveryCb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); } }
       break;
     }
     case "nexus.sensors.reading": {
@@ -274,16 +285,16 @@ const nexus = {
       if (typeof cb !== "function") return () => {};
       const ms = _parseCadence(cadence);
       _lastEveryCb = cb;
-      try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
+      try { cb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); }
       const handle = setInterval(() => {
-        try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
+        try { cb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); }
       }, ms);
       return () => { clearInterval(handle); _lastEveryCb = null; };
     },
     timeout(ms, cb) {
       if (typeof cb !== "function") return () => {};
       const handle = setTimeout(() => {
-        try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
+        try { cb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); }
       }, Math.max(0, ms | 0));
       return () => clearTimeout(handle);
     },
@@ -301,5 +312,5 @@ const WORKER_BOOT = lockPrelude([...KILLED_COMMON, ...KILLED_WIDGET], false) + W
  * stay, and fetch survives as a guard that serves only blob: and data: URLs.
  */
 export function rendererBootScript(): string {
-  return lockPrelude(KILLED_COMMON, true);
+  return lockPrelude(KILLED_COMMON, true) + unhandledRejectionListener('self.postMessage({ type: "rejection", message: m });');
 }
