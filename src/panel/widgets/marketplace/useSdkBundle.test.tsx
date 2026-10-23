@@ -77,6 +77,24 @@ describe('useSdkBundle', () => {
     expect(postService).toHaveBeenCalledTimes(1);
   });
 
+  it('retries the bundle after a transient failure instead of latching', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValue(new Blob(['export default 1;']));
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(result.current.failed).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(result.current.failed).toBe(false);
+      expect(result.current.entryUrl).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
   it('fetches nothing until the registry lists the app', async () => {
     const useSdkBundle = await loadHook();
     const { result } = renderHook(() => useSdkBundle('com.x.unknown'));
@@ -114,6 +132,25 @@ describe('useSdkRuntime', () => {
     await waitFor(() => expect(result.current.runtimeUrl).not.toBeNull());
     expect(fetchServiceBlob).toHaveBeenCalledTimes(1);
     expect(pageFetch).not.toHaveBeenCalled();
+  });
+
+  it('retries the runtime after a transient failure instead of latching', async () => {
+    remoteOrigin = false;
+    forceLan = false;
+    fetchServiceBlob.mockReset().mockResolvedValueOnce(null).mockResolvedValue(new Blob(['export {};']));
+    vi.resetModules();
+    vi.useFakeTimers();
+    try {
+      const { useSdkRuntime } = await import('./useSdkBundle');
+      const { result } = renderHook(() => useSdkRuntime());
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(result.current.failed).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(result.current.failed).toBe(false);
+      expect(result.current.runtimeUrl).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   describe('fetchBundleFile', () => {
