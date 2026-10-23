@@ -20,6 +20,11 @@ const SDK_BOOT_SUFFIX = `
       if (globalThis.__nexus_resolve_ui_port) globalThis.__nexus_resolve_ui_port(ev.ports[0]);
     }
   });
+  // Liveness probe answered on this worker's own event loop, so a wedged loop misses it.
+  var post = self.postMessage.bind(self);
+  self.addEventListener('message', function (ev) {
+    if (ev && ev.data && ev.data.type === 'nexus.ping') post({ type: 'nexus.pong' });
+  });
 })();
 `;
 

@@ -31,7 +31,7 @@ afterEach(() => {
 const flush = () => vi.advanceTimersByTimeAsync(6000);
 
 describe('reportAppError', () => {
-  const paths: AppErrorPath[] = ['worker-error', 'boot-error', 'unhandled-rejection', 'render-failed', 'canvas-error', 'boundary', 'callback-error', 'boot-timeout', 'log-error'];
+  const paths: AppErrorPath[] = ['worker-error', 'boot-error', 'unhandled-rejection', 'render-failed', 'canvas-error', 'boundary', 'callback-error', 'boot-timeout', 'worker-unresponsive', 'log-error'];
 
   it.each(paths)('reports a %s once with the app id, version and surface', async (path) => {
     reportAppError('com.test.app', path, new TypeError('x is undefined'));

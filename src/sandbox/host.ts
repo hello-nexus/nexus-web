@@ -38,6 +38,10 @@ export function sensorGlobMatch(pattern: string, id: string): boolean {
   return pi === p.length;
 }
 
+export const PING_INTERVAL_MS = 5000;
+/** Consecutive unanswered pings after which an armed watchdog fires. */
+export const MAX_MISSED_PINGS = 3;
+
 export interface SandboxContext {
   instanceId: string;
   widgetId: string;
@@ -69,6 +73,10 @@ export interface SandboxContext {
   /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). The host
    *  delivers only readings matching a granted pattern. Empty = no sensors. */
   sensorsRead?: string[];
+  /** Called once when the worker answered pings, then stopped (see PING_INTERVAL_MS). */
+  onUnresponsive?(): void;
+  /** False while no mount shows this worker; the watchdog idles then. */
+  isActive?(): boolean;
   api: {
     persistLocal(next: Record<string, unknown>): void;
     /** Host-brokered action: POSTs /apps-api/dispatch (relay-aware), returns
@@ -163,8 +171,25 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   const onFrame = () => fanoutSensors();
   monitoringStore.subscribe(onFrame);
 
+  // Armed by the first pong, so a worker that never answers (an older boot) is never restarted.
+  let armed = false;
+  let pingPending = false;
+  let missed = 0;
+  const watchdog = setInterval(() => {
+    // Hidden documents throttle timers and pause workers; unmounted widgets are idle by design.
+    if (document.visibilityState === 'hidden' || context.isActive?.() === false) { pingPending = false; missed = 0; return; }
+    if (pingPending && armed && ++missed >= MAX_MISSED_PINGS) {
+      clearInterval(watchdog);
+      context.onUnresponsive?.();
+      return;
+    }
+    pingPending = true;
+    worker.postMessage({ type: 'nexus.ping' });
+  }, PING_INTERVAL_MS);
+
   worker.addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { type?: string; id?: number; message?: string; payload?: unknown } | null;
+    if (d?.type === 'nexus.pong') { armed = true; pingPending = false; missed = 0; return; }
     if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); reportAppError(context.widgetId, 'boot-error', d.message ?? 'worker boot failed'); return; }
     if (d?.type === 'nexus.log') {
       console.warn(`[sdk:${context.widgetId}]`, d.payload);
@@ -232,6 +257,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
     dispose: () => {
       if (disposed) return;
       disposed = true;
+      clearInterval(watchdog);
       monitoringStore.unsubscribe(onFrame);
       sensorSubs.clear();
       try { worker.terminate(); } catch { /* ignore */ }

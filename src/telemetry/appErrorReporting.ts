@@ -10,6 +10,7 @@ export type AppErrorPath =
   | 'boundary'
   | 'callback-error'
   | 'boot-timeout'
+  | 'worker-unresponsive'
   | 'log-error';
 
 const COOLDOWN_MS = 10 * 60 * 1000;
