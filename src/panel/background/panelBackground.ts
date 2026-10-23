@@ -93,6 +93,18 @@ export function resolveBackgroundEffectForSurface(effect: string, audioAllowed: 
   return !audioAllowed && isAudioBackgroundEffect(effect) ? DEFAULT_PANEL_BACKGROUND_EFFECT : effect;
 }
 
+/** What a surface draws for a stored background: when the effect is substituted, the stored template and render state belong to the original effect and are dropped. */
+export function resolveBackgroundDrawing(
+  effect: string,
+  template: number,
+  effectState: EffectState | undefined,
+  audioAllowed: boolean,
+): { effect: string; template: number; effectState: EffectState | undefined } {
+  const drawn = resolveBackgroundEffectForSurface(effect, audioAllowed);
+  if (drawn === effect) return { effect, template, effectState };
+  return { effect: drawn, template: DEFAULT_PANEL_BACKGROUND_TEMPLATE, effectState: undefined };
+}
+
 // Paired preset sets: index i in DARK is the dark counterpart of index i in
 // LIGHT. Two rows of ten hue families (violet, purple, pink, red, orange,
 // amber, green, teal, cyan, blue). Row 1 is a tinted shade; row 2 is more

@@ -17,7 +17,9 @@ import {
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundTemplate,
   panelBackgroundDefault,
+  panelBackgroundState,
   panelBackgroundPresets,
+  resolveBackgroundDrawing,
   resolvePanelBackground,
   type PanelBackdrop,
   type PanelBackgroundMode,
@@ -100,6 +102,8 @@ export interface PanelThemeSettingsState {
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
+
+const OPTIONS_TAB = 'options';
 
 export interface PanelThemeSettingsProps {
   theme: PanelThemeSettingsState;
@@ -227,8 +231,19 @@ export function PanelThemeSettings({
     return value === key ? fallback : value;
   };
   const syncWithDesktopLabel = t('panel.settings.syncWithDesktop') || 'Sync with desktop';
-  const backgroundEffect = normalizePanelBackgroundEffect(theme.backgroundEffect);
-  const backgroundTemplate = normalizePanelBackgroundTemplate(theme.backgroundTemplate);
+  // What this surface draws. A stored audio effect it cannot play shows the
+  // default, and the options below edit that, never the stored effect's template.
+  const storedBackgroundEffect = normalizePanelBackgroundEffect(theme.backgroundEffect);
+  const drawnBackground = resolveBackgroundDrawing(
+    storedBackgroundEffect,
+    normalizePanelBackgroundTemplate(theme.backgroundTemplate),
+    theme.backgroundEffectState,
+    audioReactive,
+  );
+  const backgroundEffect = drawnBackground.effect;
+  const backgroundTemplate = drawnBackground.template;
+  const backgroundEffectState = drawnBackground.effectState ?? panelBackgroundState(backgroundEffect, backgroundTemplate);
+  const backgroundSubstituted = backgroundEffect !== storedBackgroundEffect;
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
@@ -270,6 +285,7 @@ export function PanelThemeSettings({
   // sticky dock while the grid / controls scroll with the page.
   const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
   const [effectQuery, setEffectQuery] = useState('');
+  const visibleEditorTab = backgroundSubstituted ? OPTIONS_TAB : editorTab;
 
   // The same Options | Effect editing surface as the immersive lighting view,
   // here targeting this panel's per-device background effect (animate-only).
@@ -277,7 +293,7 @@ export function PanelThemeSettings({
     effect: backgroundEffect,
     template: backgroundTemplate,
     templatesByEffect: theme.backgroundTemplates,
-    effectState: theme.backgroundEffectState,
+    effectState: backgroundEffectState,
     onSelectEffect: onBackgroundEffectCommit,
     onTemplateSelect: onBackgroundTemplateCommit,
     onPreview: onBackgroundEffectStatePreview,
@@ -561,7 +577,7 @@ export function PanelThemeSettings({
                   <BackgroundEffectPreview
                     effect={backgroundEffect}
                     template={backgroundTemplate}
-                    effectState={theme.backgroundEffectState}
+                    effectState={backgroundEffectState}
                     audioReactive={audioReactive}
                   />
                   <ChipGroup
@@ -570,13 +586,13 @@ export function PanelThemeSettings({
                       // eslint-disable-next-line i18next/no-literal-string -- editor tab id
                       { key: 'options', label: t('lighting.editor.options') },
                       // eslint-disable-next-line i18next/no-literal-string -- editor tab id
-                      { key: 'effect', label: t('lighting.rightPane.effect') },
+                      ...(backgroundSubstituted ? [] : [{ key: 'effect', label: t('lighting.rightPane.effect') }]),
                     ]}
-                    activeKey={editorTab}
+                    activeKey={visibleEditorTab}
                     onChange={key => setEditorTab(key as 'options' | 'effect')}
                     ariaLabel={t('lighting.rightPane.label')}
                   />
-                  {showEffectSearch && editorTab === 'options' && (
+                  {showEffectSearch && (backgroundSubstituted || editorTab === 'options') && (
                     <SearchInput
                       value={effectQuery}
                       onChange={setEffectQuery}
@@ -585,7 +601,7 @@ export function PanelThemeSettings({
                     />
                   )}
                 </div>
-                {editorTab === 'options' ? (
+                {backgroundSubstituted || editorTab === 'options' ? (
                   <AnimateGrid
                     effect={backgroundEffect}
                     onSelect={onBackgroundEffectCommit}
