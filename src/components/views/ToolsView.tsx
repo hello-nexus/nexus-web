@@ -21,6 +21,7 @@ import { FontDebugCard } from './FontDebugCard';
 import { AppTelemetryCard } from './AppTelemetryCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
 import { DevSimEventsCard } from './DevSimEventsCard';
+import { AstralSimCard } from './AstralSimCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import { DEV_TOOLS } from '../../lib/devTools';
@@ -67,6 +68,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <PawnIoCard />
             <PanelSimulatorCard />
             {DEV_TOOLS && <DevSimEventsCard />}
+            {DEV_TOOLS && <AstralSimCard />}
             <FontDebugCard />
             <HelloGreetingCard />
           </div>
