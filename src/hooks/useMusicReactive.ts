@@ -2,16 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchMusicReactive, setMusicReactive } from '../api/lighting';
 import { useTopicCallback } from './useMultiplexSocket';
 
-// Every mounted hook re-reads on a lighting frame; reads in flight together share one request.
-let inflight: ReturnType<typeof fetchMusicReactive> | null = null;
-function readShared() {
-  inflight ??= fetchMusicReactive().finally(() => { inflight = null; });
-  return inflight;
-}
-
 export interface MusicReactiveState {
   enabled: boolean;
   toggle: () => void;
+  /** Re-reads the flag through the same stale-read guard; for a caller that knows it may have changed. */
+  refresh: () => void;
 }
 
 /**
@@ -29,7 +24,7 @@ export function useMusicReactive(active: boolean): MusicReactiveState {
 
   const load = useCallback(() => {
     const seq = writeSeq.current;
-    readShared()
+    fetchMusicReactive()
       .then(r => {
         if (!r || seq !== writeSeq.current || pendingWrites.current > 0) return;
         setEnabled(!!r.enabled);
@@ -55,5 +50,5 @@ export function useMusicReactive(active: boolean): MusicReactiveState {
       });
   }, [load]);
 
-  return { enabled, toggle };
+  return { enabled, toggle, refresh: load };
 }

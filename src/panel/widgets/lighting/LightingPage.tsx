@@ -621,7 +621,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [canvasFocusIds, deviceStacks, editorTarget, activeProfileId]);
 
-  const { enabled: musicReactive, toggle: handleMusicReactiveToggle } = useMusicReactive(serviceOnline);
+  const { enabled: musicReactive, toggle: handleMusicReactiveToggle, refresh: refreshMusicReactive } = useMusicReactive(serviceOnline);
 
   // Optimistic local mirror of useLightingSync().paused, reconciled whenever
   // the server value changes (multiplex refetch, mode switch resetting it).
@@ -675,6 +675,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const activeProfileKey = activeProfileId ?? 'default';
   const activeProfileKeyRef = useRef(activeProfileKey);
   activeProfileKeyRef.current = activeProfileKey;
+  // Applying a profile can change Music Reactive, and the topic frame that would
+  // say so does not exist without a multiplex connection.
+  const musicProfileKeyRef = useRef(activeProfileKey);
+  useEffect(() => {
+    if (musicProfileKeyRef.current === activeProfileKey) return;
+    musicProfileKeyRef.current = activeProfileKey;
+    if (serviceOnline) refreshMusicReactive();
+  }, [activeProfileKey, serviceOnline, refreshMusicReactive]);
   const [loadedProfileLighting, setLoadedProfileLighting] = useState<{ profileKey: string; sync: string } | null>(null);
 
   const effectTemplatesRef = useRef(effectTemplates);
