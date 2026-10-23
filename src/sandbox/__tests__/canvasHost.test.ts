@@ -6,7 +6,7 @@ vi.mock('../../panel/widgets/marketplace/useSdkBundle', () => ({ fetchBundleFile
 vi.mock('../../api/service', () => ({ fetchServiceBlob: (...a: unknown[]) => fetchServiceBlob(...a) }));
 
 import {
-  acquireCanvas, canvasKey, cappedPixelRatio, inViewFromEntries, normaliseAssetPath, releaseCanvas,
+  acquireCanvas, canvasKey, cappedPixelRatio, framePacing, inViewFromEntries, normaliseAssetPath, releaseCanvas,
   type CanvasClaim, type CanvasSpec,
 } from '../ui/canvasHost';
 
@@ -92,6 +92,12 @@ describe('helpers', () => {
     vi.stubGlobal('devicePixelRatio', 0.5);
     expect(cappedPixelRatio()).toBe(1);
   });
+  it('reads the page draw-rate limits from its query', () => {
+    expect(framePacing('?displayHz=60')).toEqual({ maxFps: null, displayHz: 60 });
+    expect(framePacing('?streamFps=30&displayHz=60')).toEqual({ maxFps: 30, displayHz: 60 });
+    expect(framePacing('')).toEqual({ maxFps: null, displayHz: null });
+  });
+
   it('reads the newest intersection record', () => {
     expect(inViewFromEntries([{ isIntersecting: false }, { isIntersecting: true }], false)).toBe(true);
     expect(inViewFromEntries([], true)).toBe(true);
@@ -113,7 +119,10 @@ describe('CanvasSession protocol', () => {
 
     worker.emit({ type: 'booted' });
     const init = worker.posted[0];
-    expect(init.data).toMatchObject({ type: 'init', size: { width: 320, height: 180, pixelRatio: 1.5 }, props: { hello: 'x' }, visible: true });
+    expect(init.data).toMatchObject({
+      type: 'init', size: { width: 320, height: 180, pixelRatio: 1.5 }, props: { hello: 'x' }, visible: true,
+      pacing: { maxFps: null, displayHz: null },
+    });
     expect(init.transfer).toEqual([{ offscreen: true }]);
 
     worker.emit({ type: 'ready' });

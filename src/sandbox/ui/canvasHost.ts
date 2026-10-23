@@ -7,8 +7,9 @@
 // remount does not find again.
 
 import type {
-  CanvasPointerEvent, HostToRenderer, RendererSize, RendererToHost,
+  CanvasPointerEvent, FramePacing, HostToRenderer, RendererSize, RendererToHost,
 } from '../../../sdk/runtime/rendererCore';
+import { panelDisplayHz, streamFrameCap } from '../../lib/framePacer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
@@ -26,6 +27,11 @@ const LAYER_GESTURE_ATTR = 'data-layer-gesture-live';
 export function cappedPixelRatio(): number {
   const dpr = typeof window !== 'undefined' && Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1;
   return Math.min(Math.max(dpr, 1), MAX_PIXEL_RATIO);
+}
+
+/** Draw-rate limits for a renderer on the page with this query, read the same way the background shader reads them. */
+export function framePacing(search: string): FramePacing {
+  return { maxFps: streamFrameCap(search), displayHz: panelDisplayHz(search) };
 }
 
 /**
@@ -356,6 +362,7 @@ export class CanvasSession {
     this.lastVisible = claim?.visible ?? true;
     const init: HostToRenderer = {
       type: 'init', canvas: offscreen, size, props: claim?.props ?? {}, visible: this.lastVisible,
+      pacing: framePacing(window.location.search),
     };
     worker.postMessage(init, [offscreen]);
   }

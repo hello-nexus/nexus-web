@@ -1,6 +1,6 @@
 {
   "name": "@hello-nexus/sdk",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Author-facing SDK for building sandboxed Nexus apps - @hello-nexus/sdk (mount + hooks), @hello-nexus/sdk/ui (the blessed component set) and @hello-nexus/sdk/renderer (the Canvas renderer worker end). The host runtime is provided at load; an app bundle externalizes these to it.",
   "license": "MIT",
   "private": false,
