@@ -1,6 +1,6 @@
 import styles from './BuildWidget.module.scss';
 
-// Side of a dual-chamber case: main chamber plus a side chamber with three fans. Fixed 2px strokes at any tile size.
+// Side of a dual-chamber case: main chamber plus a side chamber with three fans. Strokes stay fixed width at any tile size.
 export function BuildCaseSilhouette() {
   return (
     <svg

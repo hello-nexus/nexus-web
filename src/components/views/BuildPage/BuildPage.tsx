@@ -114,7 +114,7 @@ interface BuildPageProps {
  * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
 export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: BuildPageProps) {
-  const canSavePreview = !isRemoteOrigin && (DEV_TOOLS || (platform !== 'macos' && !isMacAppShell()));
+  const canSavePreview = !isRemoteOrigin && (DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);
@@ -314,7 +314,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
-      // The preview lands in this machine's service and only the dashboard tile shows it, so neither web nor macOS offers it.
+      // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.
       ...(canSavePreview ? { canSavePreview: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
