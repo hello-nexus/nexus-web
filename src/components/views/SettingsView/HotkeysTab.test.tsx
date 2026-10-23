@@ -91,14 +91,41 @@ describe('HotkeysTab', () => {
     expect(screen.queryByRole('switch')).toBeNull();
   });
 
-  it('puts the toggled enabled flag without a status field', async () => {
+  it('has no on/off switch on any row', () => {
+    render(<HotkeysTab serviceOnline />);
+    expect(screen.queryByRole('switch')).toBeNull();
+  });
+
+  it('rebinding sends the binding as enabled, without a status field', async () => {
     vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current! });
     render(<HotkeysTab serviceOnline />);
-    fireEvent.click(screen.getAllByRole('switch')[0]);
+    const field = screen.getByText('⌥⌘N');
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'KeyJ', ctrlKey: true, altKey: true });
     await waitFor(() => expect(api.putHotkey).toHaveBeenCalledTimes(1));
     const sent = vi.mocked(api.putHotkey).mock.calls[0][0];
-    expect(sent).toMatchObject({ id: 'builtin:toggle-window', combo: 'Meta+Alt+n', enabled: false });
+    expect(sent).toMatchObject({ id: 'builtin:toggle-window', enabled: true });
     expect(sent).not.toHaveProperty('status');
+  });
+
+  it('shows the clear x inside the field only for a bound row, and the delete is last in the row', () => {
+    current = state([win(), brightness, win({ id: 'custom:u', combo: null, status: 'unbound', label: 'Unbound' })]);
+    render(<HotkeysTab serviceOnline />);
+    const clears = screen.getAllByRole('button', { name: 'hotkeys.clear' });
+    expect(clears).toHaveLength(2);
+    for (const c of clears) expect(c.parentElement?.querySelector('[class*="field"]')).not.toBeNull();
+    const row = screen.getAllByRole('button', { name: 'hotkeys.delete' })[0].parentElement!;
+    expect(row.lastElementChild).toBe(screen.getAllByRole('button', { name: 'hotkeys.delete' })[0]);
+  });
+
+  it('switches a bound binding saved disabled by an earlier build back on, once', async () => {
+    current = state([win({ enabled: false, status: 'disabled' })]);
+    vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current });
+    const { rerender } = render(<HotkeysTab serviceOnline />);
+    await waitFor(() => expect(api.putHotkey).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(api.putHotkey).mock.calls[0][0]).toMatchObject({ id: 'builtin:toggle-window', enabled: true });
+    rerender(<HotkeysTab serviceOnline />);
+    expect(api.putHotkey).toHaveBeenCalledTimes(1);
   });
 
   it('rebinds through the recorder, suspending OS hotkeys while it records', async () => {
@@ -157,28 +184,6 @@ describe('HotkeysTab', () => {
   it('names the decks showing the preset: the device and a deck widget', async () => {
     render(<HotkeysTab serviceOnline />);
     expect(await screen.findByText('hotkeys.deck.holder')).toBeInTheDocument();
-  });
-
-  it('keeps a turned-off hotkey fully operable: it can be turned back on, re-recorded and deleted', async () => {
-    current = state([win({ enabled: false })]);
-    vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current });
-    const { container } = render(<HotkeysTab serviceOnline />);
-    const toggle = screen.getByRole('switch');
-    // SettingRow's disabled class sets pointer-events: none on the whole row.
-    expect(toggle.closest('[class*="disabled"]')).toBeNull();
-    expect(container.querySelector('[class*="disabled"]')).toBeNull();
-    fireEvent.click(toggle);
-    await waitFor(() => expect(api.putHotkey).toHaveBeenCalled());
-    expect(vi.mocked(api.putHotkey).mock.calls[0][0]).toMatchObject({ enabled: true });
-    expect(screen.getByRole('button', { name: 'hotkeys.delete' })).toBeEnabled();
-  });
-
-  it('runs the duplicate check when a hotkey is turned back on', async () => {
-    current = state([win(), win({ id: 'custom:2', combo: 'Meta+Alt+n', enabled: false, label: 'Second' })]);
-    render(<HotkeysTab serviceOnline />);
-    fireEvent.click(screen.getAllByRole('switch')[1]);
-    expect(await screen.findByRole('alert')).toHaveTextContent('hotkeys.duplicate');
-    expect(api.putHotkey).not.toHaveBeenCalled();
   });
 
   it('refuses a combo without Ctrl, Alt or Meta in the row', async () => {

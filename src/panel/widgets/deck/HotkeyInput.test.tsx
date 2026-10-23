@@ -127,3 +127,14 @@ describe('HotkeyInput preset dropdown', () => {
     expect(onChange).toHaveBeenCalledWith('escape');
   });
 });
+
+describe('HotkeyInput clear and dim', () => {
+  it('renders the clear x only when a value is set and calls onClear', () => {
+    const onClear = vi.fn();
+    const { rerender } = render(<HotkeyInput value="ctrl+k" onChange={vi.fn()} hidePresets onClear={onClear} />);
+    fireEvent.click(screen.getByRole('button', { name: 'hotkeys.clear' }));
+    expect(onClear).toHaveBeenCalledTimes(1);
+    rerender(<HotkeyInput value="" onChange={vi.fn()} hidePresets onClear={onClear} />);
+    expect(screen.queryByRole('button', { name: 'hotkeys.clear' })).toBeNull();
+  });
+});

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ExternalLink, Keyboard, Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ExternalLink, Keyboard, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -8,7 +8,6 @@ import { Notice } from '../../common/Notice/Notice';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { TextInput } from '../../common/TextInput/TextInput';
-import { Toggle } from '../../common/Toggle/Toggle';
 import { useTranslation } from '../../../lib/i18n';
 import {
   deleteHotkey, newHotkeyId, putHotkey, resetHotkeyDefaults, useHotkeys,
@@ -96,14 +95,20 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
   };
 
   const setCombo = async (b: HotkeyBinding, combo: string | null) => {
-    if (!guard(b.id, b, combo, b.enabled)) return;
-    settle(b.id, await putHotkey({ ...toInput(b), combo }));
+    if (!guard(b.id, b, combo, true)) return;
+    settle(b.id, await putHotkey({ ...toInput(b), combo, enabled: true }));
   };
 
-  const setEnabled = async (b: HotkeyBinding, enabled: boolean) => {
-    if (!guard(b.id, b, b.combo, enabled)) return;
-    settle(b.id, await putHotkey({ ...toInput(b), enabled }));
-  };
+  // There is no on/off control: a binding is live whenever it has a combo. A binding saved
+  // disabled by an earlier build is switched on once so it cannot stay stuck off.
+  const healed = useRef(new Set<string>());
+  useEffect(() => {
+    for (const b of bindings) {
+      if (!b.combo || b.enabled || healed.current.has(b.id)) continue;
+      healed.current.add(b.id);
+      void putHotkey({ ...toInput(b), enabled: true }).then(res => { if (res.ok) apply(res.state); });
+    }
+  }, [bindings, apply]);
 
   const openEditor = async (b: HotkeyBinding) => {
     if (b.target.kind !== 'deck' || !onOpenDeckEditor) return;
@@ -163,11 +168,12 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
         state={WARN_STATUSES.has(b.status) ? { label: t(`hotkeys.status.${b.status}`), tone: WARN_TONE } : undefined}
       >
         <div className={styles.controls}>
-          <div className={`${styles.recorder} ${b.enabled ? '' : styles.recorderOff}`}>
+          <div className={styles.recorder}>
             <HotkeyRecorder
               value={b.combo ?? ''}
               display={b.combo ? formatCombo(b.combo, platform, t) : undefined}
               onChange={keys => void setCombo(b, keys)}
+              onClear={() => void setCombo(b, null)}
             />
           </div>
           {hasEditor && (
@@ -185,25 +191,10 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
             type="button"
             size="sm"
             tone="ghost"
-            icon={<X size={14} aria-hidden />}
-            aria-label={t('hotkeys.clear')}
-            title={t('hotkeys.clear')}
-            disabled={!b.combo}
-            onClick={() => void setCombo(b, null)}
-          />
-          <Button
-            type="button"
-            size="sm"
-            tone="ghost"
             icon={<Trash2 size={14} aria-hidden />}
             aria-label={t('hotkeys.delete')}
             title={t('hotkeys.delete')}
             onClick={() => setConfirmDelete(b)}
-          />
-          <Toggle
-            checked={b.enabled}
-            ariaLabel={t('hotkeys.enable', { name: nameOf(b) })}
-            onChange={enabled => void setEnabled(b, enabled)}
           />
         </div>
       </SettingRow>
@@ -315,7 +306,12 @@ function NewHotkeyForm({ bindings, platform, error, nameOf, onCancel, onSave }: 
       </SettingRow>
       <SettingRow label={t('hotkeys.new.shortcut')}>
         <div className={styles.recorder}>
-          <HotkeyRecorder value={combo} display={combo ? formatCombo(combo, platform, t) : undefined} onChange={setCombo} />
+          <HotkeyRecorder
+            value={combo}
+            display={combo ? formatCombo(combo, platform, t) : undefined}
+            onChange={setCombo}
+            onClear={() => setCombo('')}
+          />
         </div>
       </SettingRow>
       {problem && <InlineError>{problem}</InlineError>}

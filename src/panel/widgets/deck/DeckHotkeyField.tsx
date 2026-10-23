@@ -71,7 +71,7 @@ export function DeckHotkeyField({ presetId, tag, onTagChange, layout }: DeckHotk
     const res = await putHotkey({
       id,
       combo: keys,
-      enabled: binding?.enabled ?? true,
+      enabled: true,
       label: binding?.label,
       target: { kind: 'deck', presetId, tag: id },
     });
