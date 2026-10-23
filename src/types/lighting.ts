@@ -351,7 +351,7 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_curtains', label: 'Curtains', labelKey: 'lighting.controls.param.curtains' },
       { name: 'u_height',   label: 'Height', labelKey: 'lighting.controls.param.height' },
       { name: 'u_shimmer',  label: 'Shimmer', labelKey: 'lighting.controls.param.shimmer' },
-      { name: 'u_jagged',   label: 'Jaggedness', labelKey: 'lighting.controls.param.jaggedness' },
+      { name: 'u_rays',     label: 'Rays', labelKey: 'lighting.controls.param.rays' },
       { name: 'u_spread',   label: 'Color Spread', labelKey: 'lighting.controls.param.colorSpread' },
       { name: 'u_bgLevel',  label: 'Background Brightness', labelKey: 'lighting.controls.param.backgroundBrightness' },
   ]},
