@@ -1,0 +1,35 @@
+@use '../../../styles/interactions' as *;
+
+// Same pencil-over-scrim look as the panel editor's cell edit hint.
+.root {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(0 0 0 / var(--alpha-medium));
+  color: #fff;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ease-fast) ease, background var(--ease-fast) ease;
+
+  &:hover { background: rgb(0 0 0 / var(--alpha-strong)); }
+  &:focus-visible {
+    @include focus-ring;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// Touch and other coarse or hover-less pointers never get the button; the
+// parent's :hover / :focus-within rule re-enables opacity and pointer-events.
+@media (hover: hover) and (pointer: fine) {
+  .root {
+    display: inline-flex;
+  }
+}

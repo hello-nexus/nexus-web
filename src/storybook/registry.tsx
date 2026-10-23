@@ -25,6 +25,7 @@ import { EffectTemplateSelector } from '../components/common/EffectTemplateSelec
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { Slideout } from '../components/common/Slideout/Slideout';
 import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
+import { CardEditButton } from '../components/common/CardEditButton/CardEditButton';
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../components/common/ChartHoverTooltip/ChartHoverTooltip';
@@ -491,6 +492,18 @@ function PreviewCardDeleteButton() {
         </div>
       ))}
       {items.length === 0 && <span>All removed</span>}
+    </div>
+  );
+}
+
+function PreviewCardEditButton() {
+  const [edits, setEdits] = useState(0);
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard}>
+        <span>{`Effect (edited ${edits}x)`}</span>
+        <CardEditButton onEdit={() => setEdits(n => n + 1)} ariaLabel="Edit effect" />
+      </div>
     </div>
   );
 }
@@ -2887,6 +2900,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/CardDeleteButton/CardDeleteButton.tsx',
     description: 'Shared circular X overlay for "delete this card" actions. Hover-reveal by default via a data-attribute the parent container opts into (`:hover [data-card-delete="hover"] { opacity: 1 }`). Used by lighting effect cards and media library thumbnails. Cooling curve cards now use a bottom-anchored "Remove curve" affordance instead so the top-right slot can hold the live output % chip + wire nub.', Preview: PreviewCardDeleteButton,
     notes: 'Hover the item row to reveal the X. Keyboard focus also reveals it. Set revealOnHover={false} for always-visible variants.',
+  },
+  {
+    name: 'CardEditButton', category: 'inputs',
+    filePath: 'src/components/common/CardEditButton/CardEditButton.tsx',
+    description: 'Shared circular pencil overlay for "edit this card" actions, the hover-revealed counterpart of CardDeleteButton. Reveal is opted into by the parent via a data-attribute (`:hover [data-card-edit] { opacity: 1 }`) and only exists on hover-capable fine pointers. Used by the selected lighting effect tile to open the effect editor.', Preview: PreviewCardEditButton,
+    notes: 'Hover the row to reveal the pencil (desktop pointers only). Keyboard focus also reveals it.',
   },
   {
     name: 'HsvPicker', category: 'editable',

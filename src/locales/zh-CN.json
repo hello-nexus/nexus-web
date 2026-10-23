@@ -2947,6 +2947,7 @@
   "lighting.editor.options": "选项",
   "lighting.effectDock.collapse": "折叠效果编辑器",
   "lighting.effectDock.expand": "展开效果编辑器",
+  "lighting.effects.edit": "编辑效果",
   "lighting.effects.noMatches": "没有与搜索匹配的效果。",
   "lighting.effects.search": "搜索效果",
   "lighting.filter.passthrough": "直通",

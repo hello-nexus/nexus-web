@@ -180,3 +180,65 @@ describe('AnimateGrid pin badge', () => {
     expect(screen.getByTestId('effect-pin-badge').textContent).toBe('1');
   });
 });
+
+describe('AnimateGrid edit pencil', () => {
+  const renderGrid = (props: { effect: string; onEdit?: () => void; onSelect?: (k: string) => void }) => render(
+    <AnimateGrid
+      effect={props.effect}
+      onSelect={props.onSelect ?? (() => {})}
+      onEdit={props.onEdit}
+      slotFor={() => 0}
+      versionFor={() => '0'}
+    />,
+  );
+
+  it('shows the pencil only on the selected tile while the editor is closed', () => {
+    const { container } = renderGrid({ effect: 'plasma', onEdit: () => {} });
+    const pencils = container.querySelectorAll('[data-card-edit]');
+    expect(pencils.length).toBe(1);
+    expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe('plasma');
+  });
+
+  it('shows no pencil once the editor is open (no onEdit)', () => {
+    const { container } = renderGrid({ effect: 'plasma' });
+    expect(container.querySelectorAll('[data-card-edit]').length).toBe(0);
+  });
+
+  it('opens the editor from the pencil without re-selecting', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    renderGrid({ effect: 'plasma', onEdit, onSelect });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.effects.edit' }));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('opens the editor when the selected tile itself is clicked', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
+    fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('selects, not edits, when a different tile is clicked', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
+    const other = Array.from(container.querySelectorAll('[data-effect-key]')).find(el => el.getAttribute('data-effect-key') !== 'plasma')!;
+    fireEvent.click(other);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('puts the pencil on a tile the moment it becomes selected, with no re-hover', () => {
+    const onEdit = vi.fn();
+    const { container, rerender } = renderGrid({ effect: 'plasma', onEdit });
+    const next = Array.from(container.querySelectorAll('[data-effect-key]')).map(el => el.getAttribute('data-effect-key')!).find(k => k !== 'plasma')!;
+    rerender(<AnimateGrid effect={next} onSelect={() => {}} onEdit={onEdit} slotFor={() => 0} versionFor={() => '0'} />);
+    const pencils = container.querySelectorAll('[data-card-edit]');
+    expect(pencils.length).toBe(1);
+    expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe(next);
+  });
+});

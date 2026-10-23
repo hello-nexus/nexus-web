@@ -2947,6 +2947,7 @@
   "lighting.editor.options": "選項",
   "lighting.effectDock.collapse": "摺疊效果編輯器",
   "lighting.effectDock.expand": "展開效果編輯器",
+  "lighting.effects.edit": "編輯效果",
   "lighting.effects.noMatches": "沒有符合搜尋的效果。",
   "lighting.effects.search": "搜尋效果",
   "lighting.filter.passthrough": "直通",

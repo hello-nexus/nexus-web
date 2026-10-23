@@ -211,6 +211,22 @@
   right: 0.3rem;
 }
 
+.editBtnSlot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+// The pencil only exists on the selected card, so :hover on the card shows it
+// the moment the pointer is already over it when the selection lands.
+.card:hover [data-card-edit],
+.card:focus-within [data-card-edit] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .card:hover [data-card-delete='hover'],
 .card:focus-within [data-card-delete='hover'] {
   opacity: 1;

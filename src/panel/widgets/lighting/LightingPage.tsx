@@ -3051,6 +3051,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <AnimateGrid
               effect={gridEffect}
               onSelect={handleEffectPick}
+              onEdit={dockCollapsed ? () => setDockCollapsed(false) : undefined}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}
               frozen={viewMode === 'static'}

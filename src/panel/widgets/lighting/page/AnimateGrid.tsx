@@ -12,7 +12,7 @@ import { EffectCard } from '../../../../components/common/EffectCard/EffectCard'
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import styles from '../LightingPage.module.scss';
 
-function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, label, hideLabel, gpuAvailable, frozen, onSelect }: {
+function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, label, hideLabel, gpuAvailable, frozen, onSelect, onEdit }: {
   fx: EffectDef;
   slot: number;
   version: string;
@@ -28,6 +28,8 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
   /** Render the tile at speed 0, matching what Static mode puts on the LEDs. */
   frozen?: boolean;
   onSelect: () => void;
+  /** Present while the editor is closed: the selected tile then opens it instead of re-selecting. */
+  onEdit?: () => void;
 }) {
   const { t } = useTranslation();
   const noGpu = gpuAvailable === false;
@@ -42,7 +44,10 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
       thumbUrl={url}
       thumbStatic={noGpu}
       active={active}
-      onClick={onSelect}
+      onClick={active && onEdit ? onEdit : onSelect}
+      // The pencil is a nested button, so a grid that can edit renders its tiles as divs.
+      asDiv={!!onEdit}
+      onEdit={active ? onEdit : undefined}
       audio={fx.audio}
       cornerBadge={hints.length || pinnedNames?.length ? (
         <span className={styles.cellBadges}>
@@ -78,9 +83,14 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
  * hardware gets a bulb. Effects are listed in pre-expanded category groups
  * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', slotFor, versionFor, rgbActiveEffect, panelEffects, pinnedDevices, gpuAvailable, frozen, leading, leadingMatches }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', slotFor, versionFor, rgbActiveEffect, panelEffects, pinnedDevices, gpuAvailable, frozen, leading, leadingMatches, onEdit }: {
   effect: string;
   onSelect: (key: string) => void;
+  /**
+   * Opens the effect editor. Pass it only while the editor is closed: the
+   * selected tile then shows a hover pencil and a click on it opens the editor.
+   */
+  onEdit?: () => void;
   /** Rendered above the category groups, inside the same scroll container. */
   leading?: ReactNode;
   /** `leading` shows a search match, so no-matches stays hidden. */
@@ -169,6 +179,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', s
               gpuAvailable={gpuAvailable}
               frozen={frozen}
               onSelect={() => onSelect(fx.key)}
+              onEdit={onEdit}
             />
           ));
           return (

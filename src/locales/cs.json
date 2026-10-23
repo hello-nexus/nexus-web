@@ -2978,6 +2978,7 @@
   "lighting.editor.options": "Možnosti",
   "lighting.effectDock.collapse": "Sbalit editor efektů",
   "lighting.effectDock.expand": "Rozbalit editor efektů",
+  "lighting.effects.edit": "Upravit efekt",
   "lighting.effects.noMatches": "Hledání neodpovídají žádné efekty.",
   "lighting.effects.search": "Hledat efekty",
   "lighting.filter.passthrough": "Průchozí",

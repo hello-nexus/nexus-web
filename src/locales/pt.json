@@ -2947,6 +2947,7 @@
   "lighting.editor.options": "Opcoes",
   "lighting.effectDock.collapse": "Recolher editor de efeito",
   "lighting.effectDock.expand": "Expandir editor de efeito",
+  "lighting.effects.edit": "Editar efeito",
   "lighting.effects.noMatches": "Nenhum efeito corresponde à sua pesquisa.",
   "lighting.effects.search": "Pesquisar efeitos",
   "lighting.filter.passthrough": "Passagem",

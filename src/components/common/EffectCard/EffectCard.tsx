@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Music } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { CardDeleteButton } from '../CardDeleteButton/CardDeleteButton';
+import { CardEditButton } from '../CardEditButton/CardEditButton';
 import styles from './EffectCard.module.scss';
 
 interface EffectCardBaseProps {
@@ -18,6 +19,12 @@ interface EffectCardBaseProps {
   /** Optional delete action. Rendered as a hover-revealed X on the thumbnail. */
   onDelete?: () => void;
   deleteAriaLabel?: string;
+  /**
+   * Optional edit action. Rendered as a pencil centered on the thumbnail,
+   * revealed on hover for hover-capable pointers. Needs `asDiv` (no nested buttons).
+   */
+  onEdit?: () => void;
+  editAriaLabel?: string;
   /**
    * When true, render as a div with role=button instead of a real <button>.
    * Required when the card contains nested interactive elements (CardDeleteButton),
@@ -71,7 +78,7 @@ type EffectCardProps = EffectCardBaseProps & (
 
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
-  audio, meta, onDelete, deleteAriaLabel,
+  audio, meta, onDelete, deleteAriaLabel, onEdit, editAriaLabel,
   asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive,
 }: EffectCardProps) {
   const { t } = useTranslation();
@@ -105,6 +112,13 @@ export function EffectCard({
             className={styles.deleteBtnSlot}
             onDelete={onDelete}
             ariaLabel={deleteAriaLabel ?? t('common.delete')}
+          />
+        )}
+        {onEdit && (
+          <CardEditButton
+            className={styles.editBtnSlot}
+            onEdit={onEdit}
+            ariaLabel={editAriaLabel ?? t('lighting.effects.edit')}
           />
         )}
         {overlay && !hideLabel && <span className={styles.labelOverlay}>{label}</span>}

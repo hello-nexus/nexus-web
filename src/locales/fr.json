@@ -2947,6 +2947,7 @@
   "lighting.editor.options": "Options",
   "lighting.effectDock.collapse": "Reduire l'editeur d'effet",
   "lighting.effectDock.expand": "Developper l'editeur d'effet",
+  "lighting.effects.edit": "Modifier l'effet",
   "lighting.effects.noMatches": "Aucun effet ne correspond à votre recherche.",
   "lighting.effects.search": "Rechercher des effets",
   "lighting.filter.passthrough": "Transparent",
