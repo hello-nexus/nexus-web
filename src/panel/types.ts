@@ -11,8 +11,8 @@ export type PanelWidgetSize = PanelBaseWidgetSize | FreeformWidgetSize;
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
 // (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
 // 'lcd-round' / 'lcd-square' / 'lcd-wide' = a cooler LCD fed pushed frames. These are not
-// one model's resolution: the panel record carries the real pixel size, so a 480x480
-// Galahad II LCD, a Kraken and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
+// one model's resolution: the panel record carries the real pixel size, so a Galahad II
+// LCD, a Kraken and an ID-Cooling FX-LCD share 'lcd-round'.
 // The three differ only in the shape of the one tile they carry, which the surface picks.
 export const PANEL_SURFACES = [
   'y70', 'q60', 'phone', 'desktop', 'monitor',
@@ -20,8 +20,9 @@ export const PANEL_SURFACES = [
 ] as const;
 export type PanelSurface = typeof PANEL_SURFACES[number];
 
-// What records, layouts and profile files written before the Kraken folded into
-// 'lcd-round' carry. Read it through canonicalPanelRecord (src/api/panel.ts); never stamp it.
+// What the service still persists on every Kraken record (and in profile files), so older
+// builds find it. Records read as 'lcd-round' through canonicalPanelRecord (src/api/panel.ts);
+// the web never stamps it.
 export const LEGACY_KRAKEN_SURFACE = 'kraken';
 export const NZXT_KRAKEN_FAMILY = 'nzxt-kraken';
 // The Kraken's grid density, stamped on its record because 'lcd-round' estimates another.

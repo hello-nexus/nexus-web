@@ -201,7 +201,8 @@ function makeMarketplaceAppManifest(
 ): AppManifest {
   // A manifest that names panel surfaces ("y70") is limited to them; the
   // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
-  // A manifest written before the Kraken folded into lcd-round names it 'kraken'.
+  // A manifest may still name the retired 'kraken' surface; it means round glass. This is a
+  // separate path from canonicalPanelRecord, which only handles device records.
   const surfaces = (manifestSurfaces ?? [])
     .map(s => (s === LEGACY_KRAKEN_SURFACE ? 'lcd-round' : s))
     .filter((s): s is PanelSurface => (PANEL_SURFACES as readonly string[]).includes(s));

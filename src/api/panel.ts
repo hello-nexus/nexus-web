@@ -228,9 +228,9 @@ export interface PanelDevicePatch {
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 
-// A record stored before the Kraken folded into 'lcd-round' (an unattached cooler, a
-// restored backup, an older service) reads as lcd-round with the Kraken's family and
-// density, so every consumer sees one shape. Nothing is written back from here.
+// The service persists every Kraken record under the legacy 'kraken' surface; here it
+// reads as lcd-round with the Kraken's family and density (filled when a stored record
+// lacks them), so every consumer sees one shape. Nothing is written back from here.
 export function canonicalPanelRecord<T extends PanelDeviceRecord | null | undefined>(record: T): T {
   const caps = record?.capabilities;
   if (!record || !caps || (caps.surface as string | undefined) !== LEGACY_KRAKEN_SURFACE) return record;
