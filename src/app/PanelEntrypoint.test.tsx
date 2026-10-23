@@ -129,30 +129,6 @@ describe('PanelEntrypoint allocate-or-recover', () => {
     }
   });
 
-  it('carries the surface hint into the device URL', async () => {
-    window.history.pushState(null, '', '/panel?surface=y70&displayHz=60');
-    try {
-      allocateMock.mockResolvedValueOnce({ ok: true, record: { id: FRESH_ID } });
-      render(
-        <PanelEntrypoint
-          initialDeviceId={null}
-          isPhonePair={false}
-          pairToken={null}
-          pairDeviceId={null}
-          pairSpki={null}
-          surfaceHint="y70"
-        />,
-      );
-      await waitFor(() => expect(window.history.replaceState).toHaveBeenCalledWith(
-        null,
-        '',
-        expect.stringMatching(new RegExp(`/panel/${FRESH_ID}\\?displayHz=60&surface=y70$`)),
-      ));
-    } finally {
-      window.history.pushState(null, '', '/');
-    }
-  });
-
   it('keeps the cached device id when the patch verify succeeds', async () => {
     localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
     patchMock.mockResolvedValueOnce({

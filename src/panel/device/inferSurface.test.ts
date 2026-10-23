@@ -47,10 +47,16 @@ describe('inferSurfaceFromViewport', () => {
 });
 
 describe('panelSurfaceHint', () => {
-  it('accepts any panel surface a launcher declares', () => {
+  it('accepts a self-registering surface a launcher declares', () => {
     expect(panelSurfaceHint('y70')).toBe('y70');
     expect(panelSurfaceHint('q60')).toBe('q60');
-    expect(panelSurfaceHint('monitor')).toBe('monitor');
+    expect(panelSurfaceHint('phone')).toBe('phone');
+  });
+
+  it('ignores surfaces whose records only the service creates', () => {
+    for (const s of ['monitor', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide']) {
+      expect(panelSurfaceHint(s)).toBeNull();
+    }
   });
 
   it('ignores a missing or unknown value', () => {

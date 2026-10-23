@@ -170,11 +170,8 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       if (cancelled) return;
       if (persist) writeCachedPanelDeviceId(id);
       setDeviceId(id);
-      // The kiosk host's frame-pacing and surface hints must survive the move to the device URL.
-      const kept = new URLSearchParams(framePacingQuery(window.location.search));
-      if (surfaceHint) kept.set('surface', surfaceHint);
-      const query = kept.toString();
-      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}${query ? `?${query}` : ''}`;
+      // The kiosk host's frame-pacing hint must survive the move to the device URL.
+      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}${framePacingQuery(window.location.search)}`;
       window.history.replaceState(null, '', target);
       setState('ready');
     };
@@ -214,11 +211,8 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       // with it, manual delete) and trusting the cache would mount the panel
       // against a dead id - usePanelLayout would then 404 and fall back to a
       // default layout that's empty when /defaults hasn't loaded yet. Use the
-      // patch as a touch + verify in one round-trip, carrying current
-      // viewport hints when we have them.
-      // A hinted host sends no capabilities here: the service rewrites a
-      // non-y70 record's surface from a patch, which would relabel a stale
-      // phone record instead of leaving it behind.
+      // patch as a touch + verify in one round-trip. An unhinted load carries its
+      // viewport; a hinted one sends none, as a patched surface would relabel a stale record.
       const patch = !surfaceHint && viewportCapabilities ? { capabilities: viewportCapabilities } : {};
       const result = await patchPanelDeviceWithStatus(cached, patch);
       if (cancelled) return;
@@ -227,10 +221,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
         await allocate();
         return;
       }
-      // A hinted host knows which panel it opened. A cached record of another
-      // surface (a kiosk that once registered by viewport) is dropped so
-      // allocation reuses the newest record of the hinted surface. A record
-      // with no surface yet is adopted and stamped, not orphaned.
+      // A hinted load drops a cached record of another surface and adopts one with none.
       if (result.ok && surfaceHint) {
         const recordSurface = result.record.capabilities?.surface;
         if (recordSurface && recordSurface !== surfaceHint) {

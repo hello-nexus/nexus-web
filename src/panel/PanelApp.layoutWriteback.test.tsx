@@ -181,26 +181,3 @@ describe('kiosk layout write-back', () => {
     expect(renderedPlacements()).toBe(STORED_PORTRAIT);
   });
 });
-
-describe('kiosk viewport facts', () => {
-  afterEach(() => {
-    cleanup();
-    window.history.pushState(null, '', '/');
-  });
-
-  it('reports a y70-hinted kiosk at a non-native resolution', async () => {
-    window.history.pushState(null, '', '/panel/y70-1?surface=y70');
-    setViewport(1080, 1920);
-    await mountKiosk();
-    expect(patchCapsMock).toHaveBeenCalledWith('y70-1', {
-      capabilities: expect.objectContaining({ surface: 'y70', cssWidth: 1080, cssHeight: 1920 }),
-    });
-  });
-
-  it('does not report an unhinted tab whose viewport does not read as the Y70', async () => {
-    window.history.pushState(null, '', '/panel/y70-1');
-    setViewport(1080, 1920);
-    await mountKiosk();
-    expect(patchCapsMock).not.toHaveBeenCalled();
-  });
-});
