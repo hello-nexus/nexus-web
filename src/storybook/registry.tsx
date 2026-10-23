@@ -3516,6 +3516,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - needs the local service /shortcuts response.',
   },
   {
+    name: 'AppChipRow', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/AppChipRow.tsx',
+    description: 'Wrapping row of chips for a chosen set of apps; every chip reads active and clicking one removes it. Shared by the lighting preset app modal and the Focus modes app row. Callers pass the remove label so each surface keeps its own translated copy; `disabled` greys the chips while the service is offline.',
+    notes: 'No live preview - callers feed it the service app list.',
+  },
+  {
     name: 'SettingsRow / SettingsToggle / SettingsSelect / SettingsSection', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/SettingsRow/SettingsRow.tsx',
     description: 'Form-row primitives every panel widget settings pane composes. SettingsToggle wraps the canonical Toggle; SettingsSelect wraps Select. Section titles and a base SettingsRow handle layout.',
@@ -3704,7 +3710,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PresetAppsModal', category: 'panel-kit',
     filePath: 'src/panel/widgets/lighting/page/PresetAppsModal.tsx',
-    description: 'Picks which apps auto-activate a lighting preset when they take focus. Composes DeviceModal + ChipGroup (wrap variant, one removable chip per bound app, plus Clear all) + AppPicker (multi-select, running-apps group); selection is local until Save. An app triggers exactly one preset: rows another preset already claims are dimmed, and picking one shows an inline alert naming the owner instead of stealing it (the service refuses the save with a 409 as the backstop).',
+    description: 'Picks which apps auto-activate a lighting preset when they take focus. Composes DeviceModal + AppChipRow (one removable chip per bound app, plus Clear all) + AppPicker (multi-select, running-apps group); selection is local until Save. An app triggers exactly one preset: rows another preset already claims are dimmed, and picking one shows an inline alert naming the owner instead of stealing it (the service refuses the save with a 409 as the backstop).',
     notes: 'No live preview -- needs the local service /shortcuts response and a saved layout preset.',
   },
   {

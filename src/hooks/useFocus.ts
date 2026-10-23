@@ -11,7 +11,8 @@ export interface UseFocusResult {
   activate: (modeId: string) => Promise<void>;
   turnOff: () => Promise<void>;
   addMode: (body: { name: string; icon: string; trigger: FocusTrigger }) => Promise<void>;
-  updateMode: (id: string, patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>) => Promise<void>;
+  /** Resolves true once the service accepted the patch, false when it did not land. */
+  updateMode: (id: string, patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>) => Promise<boolean>;
   removeMode: (id: string) => Promise<void>;
   reorder: (modeIds: string[]) => Promise<void>;
   resetModes: () => Promise<void>;
@@ -58,7 +59,11 @@ export function useFocus(enabled: boolean): UseFocusResult {
     activate: useCallback(async (modeId: string) => apply(await setFocusActive(modeId)), [apply]),
     turnOff: useCallback(async () => apply(await setFocusActive(null)), [apply]),
     addMode: useCallback(async body => apply(await createFocusMode(body)), [apply]),
-    updateMode: useCallback(async (id, patch) => apply(await updateFocusMode(id, patch)), [apply]),
+    updateMode: useCallback(async (id, patch) => {
+      const next = await updateFocusMode(id, patch);
+      apply(next);
+      return next !== null;
+    }, [apply]),
     removeMode: useCallback(async (id: string) => apply(await deleteFocusMode(id)), [apply]),
     reorder: useCallback(async (ids: string[]) => apply(await reorderFocusModes(ids)), [apply]),
     resetModes: useCallback(async () => apply(await resetFocusModes()), [apply]),

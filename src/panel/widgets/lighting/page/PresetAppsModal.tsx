@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { Button } from '../../../../components/common/Button/Button';
 import { Notice } from '../../../../components/common/Notice/Notice';
-import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { AppPicker } from '../../common/AppPicker';
+import { AppChipRow } from '../../common/AppChipRow';
 import type { PresetApp } from '../../../../api/lighting';
 import styles from './PresetAppsModal.module.scss';
 
 interface PresetAppsModalProps {
   presetName: string;
-  /** Overrides the lighting-preset title and hint, for callers that bind apps to something else. */
+  /** Overrides of the lighting-preset copy, for callers that bind apps to something else. */
   title?: string;
   hint?: string;
+  removeLabel?: (name: string) => string;
+  clearLabel?: string;
+  saveLabel?: string;
   apps: PresetApp[];
   /** Apps other presets already trigger, keyed by id and by resolved process
    *  name, valued with the owning preset's name. */
@@ -23,19 +25,21 @@ interface PresetAppsModalProps {
   onClose: () => void;
 }
 
-/** Picks the apps whose focus activates a lighting preset. Selection is local
- *  until Save: assigning an app unbinds it from whichever preset held it.
- *
- *  Mounted only while open, and `apps` seeds state once: the caller passes a
- *  snapshot taken when the modal opened, so a preset the service activates on
- *  a focus change cannot move the save target out from under an open edit. */
 /** A refused save: `failed` marks a write that did not land (offline, 4xx/5xx), not a conflict. */
 export interface PresetAppsSaveError {
   message: string;
   failed: boolean;
 }
 
-export function PresetAppsModal({ presetName, title, hint, apps, taken = {}, onSave, onClose }: PresetAppsModalProps) {
+/** Picks the apps that activate something: a lighting preset by default, or
+ *  whatever the caller labels through `title`, `hint` and the label props.
+ *  Selection is local until Save. With a `taken` map, assigning an app another
+ *  owner holds is refused with a notice; without one, apps are free to share.
+ *
+ *  Mounted only while open, and `apps` seeds state once: the caller passes a
+ *  snapshot taken when the modal opened, so an activation the service makes on
+ *  a focus change cannot move the save target out from under an open edit. */
+export function PresetAppsModal({ presetName, title, hint, removeLabel, clearLabel, saveLabel, apps, taken = {}, onSave, onClose }: PresetAppsModalProps) {
   const { t } = useTranslation();
   const heading = title ?? t('lighting.layoutPresets.appsTitle', { name: presetName });
   const [selected, setSelected] = useState<PresetApp[]>(apps);
@@ -73,24 +77,12 @@ export function PresetAppsModal({ presetName, title, hint, apps, taken = {}, onS
         {alert && <Notice tone={alert.tone} role="alert">{alert.message}</Notice>}
         {selected.length > 0 && (
           <div className={styles.chipRow}>
-            {/* Every chip is bound, so they all read active; clicking one unbinds it. */}
-            <ChipGroup
-              wrap
-              multiSelect
+            <AppChipRow
+              apps={selected}
               ariaLabel={heading}
-              activeKeys={new Set(selected.map(a => a.id))}
-              options={selected.map(app => ({
-                key: app.id,
-                ariaLabel: t('lighting.layoutPresets.appsRemove', { name: app.name }),
-                label: (
-                  <span className={styles.chipLabel}>
-                    {app.name}
-                    <X size={12} aria-hidden />
-                  </span>
-                ),
-              }))}
-              onToggleKey={key => {
-                const app = selected.find(a => a.id === key);
+              removeLabel={removeLabel ?? (name => t('lighting.layoutPresets.appsRemove', { name }))}
+              onRemove={key => {
+                const app = selected.find(x => x.id === key);
                 if (app) toggle(app);
               }}
             />
@@ -100,7 +92,7 @@ export function PresetAppsModal({ presetName, title, hint, apps, taken = {}, onS
               onClick={() => setSelected([])}
               className={styles.clearAll}
             >
-              {t('lighting.layoutPresets.appsClear')}
+              {clearLabel ?? t('lighting.layoutPresets.appsClear')}
             </Button>
           </div>
         )}
@@ -126,7 +118,7 @@ export function PresetAppsModal({ presetName, title, hint, apps, taken = {}, onS
                 .finally(() => setSaving(false));
             }}
           >
-            {t('lighting.layoutPresets.appsSave')}
+            {saveLabel ?? t('lighting.layoutPresets.appsSave')}
           </Button>
         </div>
       </div>

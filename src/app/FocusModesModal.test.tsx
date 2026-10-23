@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FocusMode, FocusStatus } from '../api/focus';
 import type { PresetApp } from '../api/lighting';
@@ -19,7 +19,7 @@ vi.mock('../panel/widgets/common/AppPicker', () => ({
   ),
 }));
 
-const updateMode = vi.fn(() => Promise.resolve());
+const updateMode = vi.fn<(id: string, patch: unknown) => Promise<boolean>>();
 let status: FocusStatus | null = null;
 
 vi.mock('../hooks/useFocus', () => ({
@@ -62,7 +62,7 @@ function open() {
 }
 
 describe('FocusModesModal app trigger', () => {
-  beforeEach(() => { updateMode.mockClear(); });
+  beforeEach(() => { updateMode.mockReset(); updateMode.mockResolvedValue(true); });
 
   it('offers the app trigger only when the service reports it', () => {
     setStatus(mode({ trigger: 'manual' }), ['manual', 'game']);
@@ -97,14 +97,14 @@ describe('FocusModesModal app trigger', () => {
     fireEvent.click(screen.getByText('focus.mode.apps.choose'));
     fireEvent.click(screen.getByText('pick-chrome'));
     const dialog = screen.getByText('focus.mode.apps.title:Work').closest('[role="dialog"]') ?? document.body;
-    fireEvent.click(within(dialog as HTMLElement).getByText('lighting.layoutPresets.appsSave'));
+    fireEvent.click(within(dialog as HTMLElement).getByText('focus.mode.apps.save'));
     await Promise.resolve();
     expect(updateMode).toHaveBeenCalledWith('work', {
       apps: [{ id: 'proc:chrome', name: 'chrome', processName: 'chrome' }],
     });
   });
 
-  it('renders chips and removes one with a patch', () => {
+  it('renders chips and removes one with a patch', async () => {
     setStatus(mode({
       apps: [
         { id: 'proc:chrome', name: 'chrome', processName: 'chrome' },
@@ -113,9 +113,48 @@ describe('FocusModesModal app trigger', () => {
     }), ['manual', 'app']);
     open();
     expect(screen.getByText('chrome')).toBeTruthy();
-    fireEvent.click(screen.getByLabelText('lighting.layoutPresets.appsRemove:chrome'));
+    await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:chrome')); });
     expect(updateMode).toHaveBeenCalledWith('work', {
       apps: [{ id: 'proc:code', name: 'code', processName: 'code' }],
     });
+  });
+
+  it('keeps the picker open with a notice when the save does not land', async () => {
+    updateMode.mockResolvedValue(false);
+    setStatus(mode(), ['manual', 'app']);
+    open();
+    fireEvent.click(screen.getByText('focus.mode.apps.choose'));
+    fireEvent.click(screen.getByText('pick-chrome'));
+    await act(async () => { fireEvent.click(screen.getByText('focus.mode.apps.save')); });
+    expect(screen.getByText('focus.mode.apps.title:Work')).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toBe('focus.mode.apps.saveFailed');
+  });
+
+  it('builds a second rapid removal on the first, ending with both apps gone', async () => {
+    const resolvers: Array<(ok: boolean) => void> = [];
+    updateMode.mockImplementation(() => new Promise<boolean>(r => { resolvers.push(r); }));
+    setStatus(mode({
+      apps: [
+        { id: 'proc:chrome', name: 'chrome', processName: 'chrome' },
+        { id: 'proc:code', name: 'code', processName: 'code' },
+      ],
+    }), ['manual', 'app']);
+    open();
+    await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:chrome')); });
+    await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:code')); });
+    await act(async () => { resolvers[0](true); });
+    await act(async () => { resolvers[1](true); });
+    expect(updateMode).toHaveBeenNthCalledWith(1, 'work', {
+      apps: [{ id: 'proc:code', name: 'code', processName: 'code' }],
+    });
+    expect(updateMode).toHaveBeenNthCalledWith(2, 'work', { apps: [] });
+  });
+
+  it('surfaces a failed chip removal', async () => {
+    updateMode.mockResolvedValue(false);
+    setStatus(mode({ apps: [{ id: 'proc:chrome', name: 'chrome', processName: 'chrome' }] }), ['manual', 'app']);
+    open();
+    await act(async () => { fireEvent.click(screen.getByLabelText('focus.mode.apps.remove:chrome')); });
+    expect(screen.getByRole('alert').textContent).toBe('focus.mode.apps.saveFailed');
   });
 });

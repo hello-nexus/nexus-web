@@ -1,18 +1,18 @@
-import { useState } from 'react';
-import { AppWindow, ArrowDown, ArrowUp, BellOff, Cloud, ImageIcon, MonitorOff, Plus, RotateCcw, Trash2, X } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { AppWindow, ArrowDown, ArrowUp, BellOff, Cloud, ImageIcon, MonitorOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../components/common/Button/Button';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { SettingSelect, SettingToggle } from '../components/common/SettingRow/SettingRow';
-import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
+import { Notice } from '../components/common/Notice/Notice';
 import { TextInput } from '../components/common/TextInput/TextInput';
 import { FOCUS_ICON_KEYS, focusIcon } from './focusIcons';
+import { AppChipRow } from '../panel/widgets/common/AppChipRow';
 import { PresetAppsModal } from '../panel/widgets/lighting/page/PresetAppsModal';
 import { useFocus } from '../hooks/useFocus';
 import { useTranslation } from '../lib/i18n';
-import type { PresetApp } from '../api/lighting';
-import type { FocusMode, FocusTrigger } from '../api/focus';
+import type { FocusApp, FocusMode, FocusTrigger } from '../api/focus';
 import styles from './FocusModesModal.module.scss';
 
 // Matches FocusRoutes.MaxNameLength: the name rides the top bar chip.
@@ -50,10 +50,37 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
     if (draft && draft !== mode.name) void updateMode(mode.id, { name: draft });
   };
 
-  const saveApps = (mode: FocusMode, apps: PresetApp[]) =>
+  // Chip removals build on this local list, not on `mode.apps`, which is stale
+  // until the service answers; the PATCHes are serialized so a later one never
+  // carries an earlier removal back.
+  const [pendingApps, setPendingApps] = useState<Record<string, FocusApp[]>>({});
+  const pendingRef = useRef<Record<string, FocusApp[]>>({});
+  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const inflightRef = useRef(0);
+  const [appsError, setAppsError] = useState(false);
+
+  const saveApps = (mode: FocusMode, apps: ReadonlyArray<{ id: string; name: string; processName?: string }>) =>
     updateMode(mode.id, {
       apps: apps.map(a => ({ id: a.id, name: a.name, processName: a.processName ?? '' })),
     });
+
+  const removeApp = (mode: FocusMode, appId: string) => {
+    const next = (pendingRef.current[mode.id] ?? mode.apps).filter(a => a.id !== appId);
+    pendingRef.current = { ...pendingRef.current, [mode.id]: next };
+    setPendingApps(pendingRef.current);
+    setAppsError(false);
+    inflightRef.current++;
+    queueRef.current = queueRef.current
+      .then(() => saveApps(mode, next))
+      .catch(() => false)
+      .then(ok => {
+        if (!ok) setAppsError(true);
+        if (--inflightRef.current === 0) {
+          pendingRef.current = {};
+          setPendingApps({});
+        }
+      });
+  };
 
   const move = (index: number, delta: number) => {
     const next = modes.map(m => m.id);
@@ -152,30 +179,18 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
             <div className={styles.field}>
               <span className={styles.fieldLabel}>{t('focus.mode.apps')}</span>
               <div className={styles.appsPicker}>
-                {mode.apps.length === 0 ? (
+                {(pendingApps[mode.id] ?? mode.apps).length === 0 ? (
                   <span className={styles.appsEmpty}>{t('focus.mode.apps.empty')}</span>
                 ) : (
-                  <ChipGroup
-                    wrap
-                    multiSelect
+                  <AppChipRow
+                    apps={pendingApps[mode.id] ?? mode.apps}
                     ariaLabel={t('focus.mode.apps')}
-                    activeKeys={new Set(mode.apps.map(a => a.id))}
-                    options={mode.apps.map(app => ({
-                      key: app.id,
-                      ariaLabel: t('lighting.layoutPresets.appsRemove', { name: app.name }),
-                      label: (
-                        <span className={styles.chipLabel}>
-                          {app.name}
-                          <X size={12} aria-hidden />
-                        </span>
-                      ),
-                    }))}
-                    onToggleKey={key => {
-                      if (disabled) return;
-                      void saveApps(mode, mode.apps.filter(a => a.id !== key));
-                    }}
+                    removeLabel={name => t('focus.mode.apps.remove', { name })}
+                    disabled={disabled}
+                    onRemove={id => removeApp(mode, id)}
                   />
                 )}
+                {appsError && <Notice tone="critical" role="alert">{t('focus.mode.apps.saveFailed')}</Notice>}
                 <Button
                   size="sm"
                   tone="neutral"
@@ -258,8 +273,14 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
           title={t('focus.mode.apps.title', { name: appsFor.name })}
           hint={t('focus.mode.apps.hint')}
           apps={appsFor.apps.map(a => ({ id: a.id, name: a.name, processName: a.processName }))}
+          removeLabel={name => t('focus.mode.apps.remove', { name })}
+          clearLabel={t('focus.mode.apps.clear')}
+          saveLabel={t('focus.mode.apps.save')}
           onSave={async apps => {
-            await saveApps(appsFor, apps);
+            // Stay open on a write that did not land so the edit is not lost.
+            if (!(await saveApps(appsFor, apps))) {
+              return { message: t('focus.mode.apps.saveFailed'), failed: true };
+            }
             setAppsFor(null);
             return null;
           }}
