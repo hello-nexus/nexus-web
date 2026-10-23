@@ -347,12 +347,12 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_count', label: 'Count', labelKey: 'lighting.controls.param.count' },
       { name: 'u_glow',  label: 'Glow', labelKey: 'lighting.controls.param.glow' },
   ]},
-  { key: 'aurora',       labelKey: 'lighting.controls.aurora',       params: [
+  { key: 'aurora',       labelKey: 'lighting.controls.aurora',
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', range: true }], params: [
       { name: 'u_curtains', label: 'Curtains', labelKey: 'lighting.controls.param.curtains' },
       { name: 'u_height',   label: 'Height', labelKey: 'lighting.controls.param.height' },
       { name: 'u_shimmer',  label: 'Shimmer', labelKey: 'lighting.controls.param.shimmer' },
       { name: 'u_rays',     label: 'Rays', labelKey: 'lighting.controls.param.rays' },
-      { name: 'u_spread',   label: 'Color Spread', labelKey: 'lighting.controls.param.colorSpread' },
       { name: 'u_bgLevel',  label: 'Background Brightness', labelKey: 'lighting.controls.param.backgroundBrightness' },
   ]},
   { key: 'lavalamp',     labelKey: 'lighting.controls.lavalamp',     params: [
