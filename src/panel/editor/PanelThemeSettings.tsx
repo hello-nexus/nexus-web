@@ -11,6 +11,8 @@ import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
   PANEL_BACKGROUND_EFFECTS,
+  PANEL_BACKGROUND_EFFECTS_WITH_AUDIO,
+  isAudioBackgroundEffect,
   PANEL_BACKGROUND_FROST_STEP,
   PANEL_WIDGET_PADDING_STEP,
   normalizePanelBackgroundEffect,
@@ -22,6 +24,8 @@ import {
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
+import { BackgroundAudioSource } from '../widgets/lighting/effecteditor/BackgroundAudioSource';
+import { detectOS } from '../../lib/platform';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
 import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
@@ -166,6 +170,8 @@ export interface PanelThemeSettingsProps {
   showEffectSearch?: boolean;
   /** Name of the focus mode holding this panel on a plain background right now, if any. */
   backgroundHeldBy?: string | null;
+  /** panelAudioReactiveAllowed for the surface being edited. Off offers no audio effects. */
+  audioReactive?: boolean;
 }
 
 export function PanelThemeSettings({
@@ -214,6 +220,7 @@ export function PanelThemeSettings({
   showImmersiveBackdrop = true,
   sections = 'all',
   backgroundHeldBy = null,
+  audioReactive = false,
 }: PanelThemeSettingsProps) {
   const showTheme = sections !== 'background';
   const showBackground = sections !== 'theme';
@@ -558,6 +565,7 @@ export function PanelThemeSettings({
                     effect={backgroundEffect}
                     template={backgroundTemplate}
                     effectState={theme.backgroundEffectState}
+                    audioReactive={audioReactive}
                   />
                   <ChipGroup
                     fullWidth
@@ -584,7 +592,7 @@ export function PanelThemeSettings({
                   <AnimateGrid
                     effect={backgroundEffect}
                     onSelect={onBackgroundEffectCommit}
-                    effects={PANEL_BACKGROUND_EFFECTS}
+                    effects={audioReactive ? PANEL_BACKGROUND_EFFECTS_WITH_AUDIO : PANEL_BACKGROUND_EFFECTS}
                     query={showEffectSearch ? effectQuery : undefined}
                     slotFor={backgroundController.slotFor}
                     versionFor={backgroundController.versionFor}
@@ -604,6 +612,9 @@ export function PanelThemeSettings({
                     rgbActiveSlot={backgroundController.rgbActiveSlot}
                     panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
                   />
+                )}
+                {audioReactive && isAudioBackgroundEffect(backgroundEffect) && detectOS() === 'windows' && (
+                  <BackgroundAudioSource />
                 )}
               </>
             )}
