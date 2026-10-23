@@ -11,7 +11,7 @@
   border-radius: 0;
 }
 
-// Round cooler glass (the Kraken included) is round: it shows the inscribed circle of the square
+// Round cooler glass shows the inscribed circle of the square
 // frame we push, so the preview is only WYSIWYG masked to the same circle.
 .container[data-surface='lcd-round'] {
   border-radius: 50%;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { canonicalPanelRecord, type PanelDeviceRecord } from './panel';
-import { canonicalPanelSurface, surfaceSupportsMountOrientation } from '../panel/types';
+import { surfaceSupportsMountOrientation } from '../panel/types';
 
 const layout = { layoutSchemaVersion: 2, surface: 'kraken', pages: [{ id: 'p', widgets: [{ id: 'w', type: 'clock', size: '2x2round', col: 0, row: 0 }] }] };
 
@@ -46,15 +46,6 @@ describe('canonicalPanelRecord', () => {
     expect(canonicalPanelRecord(lcd)).toBe(lcd);
     expect(canonicalPanelRecord(bare)).toBe(bare);
     expect(canonicalPanelRecord(null)).toBeNull();
-  });
-});
-
-describe('canonicalPanelSurface', () => {
-  it('maps only the retired kraken value', () => {
-    expect(canonicalPanelSurface('kraken')).toBe('lcd-round');
-    expect(canonicalPanelSurface('lcd-round')).toBe('lcd-round');
-    expect(canonicalPanelSurface('y70')).toBe('y70');
-    expect(canonicalPanelSurface(undefined)).toBeUndefined();
   });
 });
 

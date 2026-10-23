@@ -510,12 +510,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // tab (brightness/backlight/contrast/RGB) must stay reachable even when
   // this host implements neither DDC nor OS rotation.
   const isXeneonEdgePanel = isMonitorPanel && recordFamily === 'xeneon-edge';
-  // The iCUE LINK cooler's LCD: its screen module's own controls live in this tab, the
-  // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
   // The record's family arrives after the first paint; the streamed row claims the cooler's
   // device id, which is known at once, so the Kraken's tab never waits on the record.
   const isKrakenPanel = recordFamily === NZXT_KRAKEN_FAMILY || device?.sourceId === NZXT_KRAKEN_FAMILY;
   const supportsMountOrientation = surfaceSupportsMountOrientation(glassSurface, recordFamily) && !isKrakenPanel;
+  // The iCUE LINK cooler's LCD: its screen module's own controls live in this tab, the
+  // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
   const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;

@@ -12,7 +12,7 @@ export type PanelWidgetSize = PanelBaseWidgetSize | FreeformWidgetSize;
 // (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
 // 'lcd-round' / 'lcd-square' / 'lcd-wide' = a cooler LCD fed pushed frames. These are not
 // one model's resolution: the panel record carries the real pixel size, so a 480x480
-// Galahad II LCD, a 640x640 Kraken and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
+// Galahad II LCD, a Kraken and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
 // The three differ only in the shape of the one tile they carry, which the surface picks.
 export const PANEL_SURFACES = [
   'y70', 'q60', 'phone', 'desktop', 'monitor',
@@ -21,15 +21,11 @@ export const PANEL_SURFACES = [
 export type PanelSurface = typeof PANEL_SURFACES[number];
 
 // What records, layouts and profile files written before the Kraken folded into
-// 'lcd-round' carry. Read it through canonicalPanelSurface; never stamp it.
+// 'lcd-round' carry. Read it through canonicalPanelRecord (src/api/panel.ts); never stamp it.
 export const LEGACY_KRAKEN_SURFACE = 'kraken';
 export const NZXT_KRAKEN_FAMILY = 'nzxt-kraken';
 // The Kraken's grid density, stamped on its record because 'lcd-round' estimates another.
 export const KRAKEN_PANEL_DPI = 240;
-
-export function canonicalPanelSurface(surface: string | null | undefined): string | null | undefined {
-  return surface === LEGACY_KRAKEN_SURFACE ? 'lcd-round' : surface;
-}
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).

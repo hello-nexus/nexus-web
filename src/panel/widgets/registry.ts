@@ -14,6 +14,7 @@ import {
 import type { AppManifest } from './types';
 import { sizeToSpan } from '../engine/grid';
 import {
+  LEGACY_KRAKEN_SURFACE,
   PANEL_SURFACES,
   SINGLE_WIDGET_SIZES,
   singleWidgetSurfaceSize,
@@ -200,7 +201,9 @@ function makeMarketplaceAppManifest(
 ): AppManifest {
   // A manifest that names panel surfaces ("y70") is limited to them; the
   // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
+  // A manifest written before the Kraken folded into lcd-round names it 'kraken'.
   const surfaces = (manifestSurfaces ?? [])
+    .map(s => (s === LEGACY_KRAKEN_SURFACE ? 'lcd-round' : s))
     .filter((s): s is PanelSurface => (PANEL_SURFACES as readonly string[]).includes(s));
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
