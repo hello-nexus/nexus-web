@@ -1,7 +1,13 @@
 import { authFetchWithStatus } from '../api/service';
 import { isStaleChunkMessage, recoverFromStaleChunkNow } from '../lib/staleChunkRecovery';
 
-export type ErrorKind = 'window-error' | 'unhandled-rejection' | 'render';
+export type ErrorKind = 'window-error' | 'unhandled-rejection' | 'render' | 'app';
+
+/** Identity of the SDK app behind a kind 'app' report; tag is the service log prefix and rides along in the context. */
+export interface AppErrorSource {
+  id: string;
+  tag: string;
+}
 
 interface ClientError {
   kind: ErrorKind;
@@ -10,6 +16,7 @@ interface ClientError {
   message: string;
   stack: string;
   context: string;
+  app?: string;
   count: number;
 }
 
@@ -166,7 +173,7 @@ function gateOpen(): boolean {
   return true;
 }
 
-export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried = false): void {
+export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried = false, app?: AppErrorSource): void {
   if (!recoveryTried && installed && staleChunkMessageOf(error)) {
     // A reload onto a new build makes the error moot; otherwise report it as usual.
     void recoverFromStaleChunkNow().then((reloaded) => {
@@ -178,6 +185,8 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
   reporting = true;
   try {
     const d = describe(error);
+    // Apps share error names and messages, so the app id keeps their fingerprints apart.
+    if (app) d.type = `${app.id}:${d.type}`;
     const stack = stripUrlSecrets(d.stack);
     if (isNoise(d.message, stack)) return;
     const message = cap(stripUrlSecrets(d.message), CAPS.message);
@@ -211,6 +220,7 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
       message,
       stack: cap(stack, CAPS.stack),
       context: cap(stripUrlSecrets(currentContext(context)), CAPS.context),
+      ...(app ? { app: cap(app.tag, CAPS.context) } : {}),
       count: 1,
     } });
     schedule();

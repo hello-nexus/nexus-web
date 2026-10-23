@@ -13,6 +13,7 @@ import { panelDisplayHz, streamFrameCap } from '../../lib/framePacer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
+import { reportAppError } from '../../telemetry/appErrorReporting';
 
 export type CanvasPhase = 'loading' | 'ready' | 'error';
 
@@ -317,6 +318,7 @@ export class CanvasSession {
     worker.addEventListener('error', (ev) => {
       if (worker !== this.worker) return;
       console.error(`[canvas:${this.spec.appId}] worker error`, ev.message);
+      reportAppError(this.spec.appId, 'canvas-error', ev.message);
       // A live renderer that already used its respawn keeps running past a stray fault.
       if (this.phase === 'ready' && this.respawns >= MAX_RESPAWNS) return;
       this.workerFailed();
@@ -348,6 +350,7 @@ export class CanvasSession {
         return;
       case 'error':
         console.error(`[canvas:${this.spec.appId}] renderer error`, m.message);
+        reportAppError(this.spec.appId, 'canvas-error', m.message);
         if (this.phase !== 'ready') this.workerFailed();
         return;
     }
@@ -431,6 +434,8 @@ export class CanvasSession {
 
   private fail(reason: unknown): void {
     console.error(`[canvas:${this.spec.appId}] renderer failed`, reason);
+    // The worker fault behind a respawn-exhausted failure was already reported.
+    if (reason !== 'renderer worker failed') reportAppError(this.spec.appId, 'canvas-error', reason);
     this.teardownWorker();
     this.setPhase('error');
   }

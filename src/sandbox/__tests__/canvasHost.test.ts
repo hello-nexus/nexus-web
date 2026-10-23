@@ -4,6 +4,8 @@ const fetchBundleFile = vi.fn();
 const fetchServiceBlob = vi.fn();
 vi.mock('../../panel/widgets/marketplace/useSdkBundle', () => ({ fetchBundleFile: (...a: unknown[]) => fetchBundleFile(...a) }));
 vi.mock('../../api/service', () => ({ fetchServiceBlob: (...a: unknown[]) => fetchServiceBlob(...a) }));
+const reportAppError = vi.fn();
+vi.mock('../../telemetry/appErrorReporting', () => ({ reportAppError: (...a: unknown[]) => reportAppError(...a) }));
 
 import {
   acquireCanvas, canvasKey, cappedPixelRatio, framePacing, inViewFromEntries, normaliseAssetPath, releaseCanvas,
@@ -55,6 +57,7 @@ beforeEach(() => {
   FakeWorker.all = [];
   fetchBundleFile.mockReset().mockResolvedValue(new Blob(['export {}']));
   fetchServiceBlob.mockReset();
+  reportAppError.mockReset();
   vi.stubGlobal('Worker', FakeWorker);
   let n = 0;
   URL.createObjectURL = () => `blob:test/${n++}`;
@@ -463,6 +466,27 @@ describe('failure handling', () => {
     FakeWorker.all[1].emit({ type: 'booted' });
     FakeWorker.all[1].emit({ type: 'error', message: 'no webgl' });
     expect(session.phase).toBe('error');
+  });
+
+  it('reports a worker fault and a renderer error once each with the app id, not the respawn follow-up', async () => {
+    const { worker } = await readySession();
+    worker.fault();
+    await flush();
+    expect(reportAppError).toHaveBeenCalledTimes(1);
+    expect(reportAppError).toHaveBeenLastCalledWith('com.test.app', 'canvas-error', 'fault');
+    const second = FakeWorker.all[1];
+    second.emit({ type: 'booted' });
+    second.emit({ type: 'ready' });
+    second.emit({ type: 'error', message: 'draw threw' });
+    expect(reportAppError).toHaveBeenCalledTimes(2);
+    expect(reportAppError).toHaveBeenLastCalledWith('com.test.app', 'canvas-error', 'draw threw');
+  });
+
+  it('reports a renderer that cannot be fetched', async () => {
+    fetchBundleFile.mockResolvedValue(null);
+    acquireCanvas(freshKey(), spec, makeWrap(), claimOf());
+    await flush();
+    expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'canvas-error', 'renderer module could not be fetched');
   });
 
   it('errors when the worker never boots', async () => {

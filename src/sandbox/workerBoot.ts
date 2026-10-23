@@ -137,6 +137,11 @@ const _sensorSubs = new Map();
 let _lastEveryCb = null;
 
 function _post(type, payload) { self.postMessage({ type, payload }); }
+// A rejected promise nobody awaited never reaches the page's worker error event.
+self.addEventListener("unhandledrejection", (ev) => {
+  const r = ev.reason;
+  _post("nexus.log", { level: "error", rejection: true, message: String(r && r.message || r) });
+});
 function _rpc(type, payload) {
   return new Promise((resolve, reject) => {
     const id = _rpcId++;
