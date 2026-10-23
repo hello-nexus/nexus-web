@@ -4,7 +4,7 @@ import { PANEL_SURFACES, type PanelSurface } from '../types';
 import { isQSeriesViewport } from '../device/inferSurface';
 import { isLoopbackHost, panelAudioReactiveAllowed, usePanelAudioReactive } from './panelAudio';
 
-const ALLOWED: PanelSurface[] = ['kraken', 'lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70'];
+const ALLOWED: PanelSurface[] = ['lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70'];
 
 describe('panelAudioReactiveAllowed', () => {
   it.each(ALLOWED)('allows %s on a local client', surface => {
