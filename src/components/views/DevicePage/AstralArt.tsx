@@ -33,7 +33,6 @@ export const TILT_EXTENT: StageExtent = { x0: 147 - 165, x1: 147 + 165, y0: -50,
 
 const FRAME = '#23272d';
 const EDGE = '#4b525c';
-const PLATE = '#8b929c';
 const DARK = '#0d0f12';
 const METAL = '#9aa1ab';
 
@@ -41,7 +40,7 @@ const METAL = '#9aa1ab';
 const BLADES = Array.from({ length: 11 }, (_, i) => (i * 360) / 11);
 const BLADE = 'M0 -12 C11 -19 15 -31 9 -41 L-1 -41 C3 -31 -1 -21 -9 -10 Z';
 
-/** Fan side of a triple-fan card: bracket on the left, plate behind the fans, PCIe fingers below. */
+/** Fan side of a triple-fan card: bracket on the left, plate outline behind the fans, PCIe fingers below. */
 export function AstralSideView() {
   const id = useSvgIds();
   return (
@@ -58,7 +57,7 @@ export function AstralSideView() {
       {/* PCIe edge connector with its key notch */}
       <path d="M95 227 H215 V243 H124 V237 H118 V243 H95 Z" fill="#cbd2db" />
       <rect x={BODY.l} y={BODY.t} width={BODY.r - BODY.l} height={BODY.b - BODY.t} rx="9" fill={FRAME} stroke={EDGE} strokeWidth="1.5" />
-      <path d="M38 52 H290 L338 98 V215 H38 Z" fill={PLATE} strokeLinejoin="round" />
+      <path d="M38 52 H290 L338 98 V215 H38 Z" fill="none" stroke={EDGE} strokeWidth="1.5" strokeLinejoin="round" />
       {[104, 251, 400].map(x => <use key={x} href={`#${id('fan')}`} x={x - 74} y={BODY.cy - 74} width="148" height="148" />)}
     </svg>
   );
@@ -77,7 +76,7 @@ export function AstralEndView() {
       </defs>
       <rect x={x} y={BODY.t} width="95" height={BODY.b - BODY.t} rx="5" fill={FRAME} stroke={EDGE} strokeWidth="1.5" />
       <rect x={x + 26} y={BODY.t + 8} width="57" height={BODY.b - BODY.t - 16} fill={`url(#${id('fins')})`} stroke={EDGE} />
-      <rect x={x + 84} y={BODY.t} width="11" height={BODY.b - BODY.t} rx="3" fill={PLATE} />
+      <rect x={x + 84} y={BODY.t} width="11" height={BODY.b - BODY.t} rx="3" fill={FRAME} stroke={EDGE} strokeWidth="1.5" />
     </svg>
   );
 }
