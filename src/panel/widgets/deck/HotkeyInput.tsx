@@ -19,6 +19,8 @@ interface HotkeyInputProps {
   cancelOnEscape?: boolean;
   /** Shows a clear "x" inside the field's right end while `value` is set; clicking it calls this. */
   onClear?: () => void;
+  /** Shows the clear x even with no value (a caller whose clear removes more than the value); defaults to `value` being set. */
+  showClear?: boolean;
 }
 
 const MOD_CODES = new Set([
@@ -56,7 +58,7 @@ function codeToToken(code: string): string {
  * categorized preset list (mirrors Stream Deck's own hotkey picker) without
  * requiring a capture at all.
  */
-export function HotkeyInput({ value, onChange, disabled = false, display, hidePresets = false, onCaptureChange, cancelOnEscape = false, onClear }: HotkeyInputProps) {
+export function HotkeyInput({ value, onChange, disabled = false, display, hidePresets = false, onCaptureChange, cancelOnEscape = false, onClear, showClear }: HotkeyInputProps) {
   const { t } = useTranslation();
   const [capturing, setCapturing] = useState(false);
   const captureCb = useRef(onCaptureChange);
@@ -135,7 +137,7 @@ export function HotkeyInput({ value, onChange, disabled = false, display, hidePr
             </>
           ) : (display || value || t('panel.settings.deck.hotkeySet'))}
         </button>
-        {onClear && value && !disabled && !capturing && (
+        {onClear && (showClear ?? !!value) && !disabled && !capturing && (
           <button
             type="button"
             className={styles.clear}

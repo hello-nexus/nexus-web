@@ -99,6 +99,7 @@ export function DeckHotkeyField({ presetId, tag, onTagChange, layout }: DeckHotk
             display={live?.combo ? formatCombo(live.combo, state.platform, t) : undefined}
             onChange={keys => void onRecord(keys)}
             onClear={() => void onClear()}
+            showClear={!!tag}
           />
         </div>
       </div>

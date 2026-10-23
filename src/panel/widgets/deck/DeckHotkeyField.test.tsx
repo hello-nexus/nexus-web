@@ -79,6 +79,33 @@ describe('DeckHotkeyField', () => {
     expect(onTagChange).toHaveBeenCalledWith(undefined);
   });
 
+  it('shows a disabled binding as unbound, and its x still untags the slot', async () => {
+    tag = 'custom:abc';
+    current = state([{ ...deckBinding, enabled: false, status: 'disabled' }]);
+    vi.mocked(api.deleteHotkey).mockResolvedValue({ ok: true, state: state([]) });
+    render(<DeckHotkeyField presetId="p1" tag={tag} onTagChange={onTagChange} layout="section" />);
+    expect(screen.getByText('panel.settings.deck.hotkeySet')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'hotkeys.clear' }));
+    await waitFor(() => expect(onTagChange).toHaveBeenCalledWith(undefined));
+  });
+
+  it('untags a slot whose tag has no binding', () => {
+    tag = 'custom:gone';
+    current = state([]);
+    render(<DeckHotkeyField presetId="p1" tag={tag} onTagChange={onTagChange} layout="section" />);
+    fireEvent.click(screen.getByRole('button', { name: 'hotkeys.clear' }));
+    expect(onTagChange).toHaveBeenCalledWith(undefined);
+    expect(api.deleteHotkey).not.toHaveBeenCalled();
+  });
+
+  it('untags a slot whose tag belongs to a binding of another preset', () => {
+    tag = 'custom:abc';
+    current = state([{ ...deckBinding, target: { kind: 'deck', presetId: 'other', tag: 'custom:abc' } }]);
+    render(<DeckHotkeyField presetId="p1" tag={tag} onTagChange={onTagChange} layout="section" />);
+    fireEvent.click(screen.getByRole('button', { name: 'hotkeys.clear' }));
+    expect(onTagChange).toHaveBeenCalledWith(undefined);
+  });
+
   it('refuses a combo another enabled hotkey already holds', async () => {
     current = state([
       { id: 'builtin:toggle-window', combo: 'Meta+Alt+n', enabled: true, status: 'active', target: { kind: 'action', action: { type: 'nexus', action: { op: 'toggleWindow' } } } },

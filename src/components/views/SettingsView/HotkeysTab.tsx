@@ -103,17 +103,20 @@ export function HotkeysTab({ serviceOnline, onOpenDeckEditor }: HotkeysTabProps)
   // A binding is live whenever it has a combo, so a stored disabled one is shown unbound: its combo
   // is cleared once. Rows the user already edited this session are left alone.
   const touched = useRef(new Set<string>());
-  const latestBindings = useRef(bindings);
-  latestBindings.current = bindings;
   const supported = !!state?.supported;
   useEffect(() => {
     if (!supported) return;
     for (const b of bindings) {
       if (!b.combo || b.enabled || touched.current.has(b.id)) continue;
       touched.current.add(b.id);
-      const latest = latestBindings.current.find(x => x.id === b.id);
-      if (!latest?.combo || latest.enabled) continue;
-      void putHotkey({ ...toInput(latest), combo: null, enabled: true }).then(res => settle(latest.id, res));
+      void putHotkey({ ...toInput(b), combo: null, enabled: true }).then(res => {
+        if (!res.ok) {
+          settle(b.id, res);
+          return;
+        }
+        apply(res.state);
+        setError(cur => (cur?.id === b.id ? null : cur));
+      });
     }
     // settle only reads stable setters and the apply callback
     // eslint-disable-next-line react-hooks/exhaustive-deps

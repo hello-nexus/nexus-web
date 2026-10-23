@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HotkeysTab } from './HotkeysTab';
 import * as api from '../../../api/hotkeys';
@@ -121,6 +121,35 @@ describe('HotkeysTab', () => {
     expect(vi.mocked(api.putHotkey).mock.calls[0][0]).toMatchObject({ id: 'builtin:toggle-window', combo: null, enabled: true });
     rerender(<HotkeysTab serviceOnline />);
     expect(api.putHotkey).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a disabled binding alone once the user has re-recorded it', async () => {
+    current = state([win({ id: 'custom:off', enabled: false, status: 'disabled' })]);
+    vi.mocked(api.putHotkey).mockResolvedValue({ ok: true, state: current });
+    const { rerender } = render(<HotkeysTab serviceOnline />);
+    await waitFor(() => expect(api.putHotkey).toHaveBeenCalledTimes(1));
+    vi.mocked(api.putHotkey).mockClear();
+    current = state([win({ id: 'custom:off', enabled: false, status: 'disabled' })]);
+    rerender(<HotkeysTab serviceOnline />);
+    const field = screen.getByText('⌥⌘N');
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'KeyJ', ctrlKey: true, altKey: true });
+    await waitFor(() => expect(api.putHotkey).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(api.putHotkey).mock.calls[0][0]).toMatchObject({ combo: 'ctrl+alt+j', enabled: true });
+  });
+
+  it('a successful heal does not wipe another row\'s error', async () => {
+    current = state([win({ id: 'custom:off', combo: 'Meta+Alt+q', enabled: false, status: 'disabled' }), brightness]);
+    let finish: (v: api.HotkeysResult) => void = () => {};
+    vi.mocked(api.putHotkey).mockReturnValue(new Promise(r => { finish = r; }));
+    render(<HotkeysTab serviceOnline />);
+    await waitFor(() => expect(api.putHotkey).toHaveBeenCalledTimes(1));
+    const field = screen.getByText('⌥⌘=');
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'KeyA' });
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await act(async () => { finish({ ok: true, state: current! }); });
+    expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
   it('shows a rejected clear of a disabled binding', async () => {
