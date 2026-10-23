@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Music, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
@@ -124,8 +124,7 @@ import { PresetAppsModal } from './page/PresetAppsModal';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
-import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
-import { Select } from '../../../components/common/Select/Select';
+import { MusicReactiveControl } from './page/MusicReactiveControl';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -2534,7 +2533,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Windows only: the macOS capture takes the whole system mix, so there is no
   // source to name or switch.
   const showAudioOutput = musicReactive && isWindows && showMusicButton;
-  const audioOutput = useLightingAudioOutput(showAudioOutput);
   // The device list is the canvas filter: the canvas draws exactly what the
   // list has selected. Which of those frames is focused is the canvas's own
   // state (`canvasFocusIds`), so a canvas click never removes a frame.
@@ -3027,28 +3025,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             {shaderMode && dockEffect && dockState && !mixedSelection && (
               <>
                 {showMusicButton && (
-                  <div className={styles.musicReactive}>
-                    <HoverTooltip body={t('lighting.musicReactive')} side="left">
-                      <button
-                        type="button"
-                        className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                        onClick={handleMusicReactiveToggle}
-                        aria-label={t('lighting.musicReactive')}
-                      >
-                        <Music size={14} strokeWidth={1.5} />
-                      </button>
-                    </HoverTooltip>
-                    {showAudioOutput && (
-                      <Select
-                        className={styles.musicReactiveOutput}
-                        value={audioOutput.value}
-                        options={audioOutput.options}
-                        onChange={audioOutput.select}
-                        ariaLabel={t('lighting.audioOutput.label')}
-                        height={26}
-                      />
-                    )}
-                  </div>
+                  <MusicReactiveControl active={musicReactive} onToggle={handleMusicReactiveToggle} showSource={showAudioOutput} />
                 )}
                 <HoverTooltip body={t('lighting.fullscreen')} side="left">
                   <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>

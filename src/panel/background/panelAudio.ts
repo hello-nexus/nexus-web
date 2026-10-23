@@ -4,7 +4,7 @@ import type { PanelSurface } from '../types';
 // Displays this PC renders and drives itself. Q-series is left out for latency,
 // 'desktop' until decided; every surface not listed here counts as remote.
 const AUDIO_REACTIVE_SURFACES: ReadonlySet<PanelSurface> = new Set<PanelSurface>([
-  'kraken', 'lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70',
+  'lcd-round', 'lcd-square', 'lcd-wide', 'monitor', 'y70',
 ]);
 
 // 'y70' is inferred from viewport aspect, so surface alone cannot prove the

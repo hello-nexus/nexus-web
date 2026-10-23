@@ -12,7 +12,6 @@ import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
   PANEL_BACKGROUND_EFFECTS,
   PANEL_BACKGROUND_EFFECTS_WITH_AUDIO,
-  isAudioBackgroundEffect,
   PANEL_BACKGROUND_FROST_STEP,
   PANEL_WIDGET_PADDING_STEP,
   normalizePanelBackgroundEffect,
@@ -24,8 +23,6 @@ import {
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
-import { BackgroundAudioSource } from '../widgets/lighting/effecteditor/BackgroundAudioSource';
-import { detectOS } from '../../lib/platform';
 import { usePanelBackgroundEffectController } from '../widgets/lighting/effecteditor/usePanelBackgroundEffectController';
 import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
@@ -612,9 +609,6 @@ export function PanelThemeSettings({
                     rgbActiveSlot={backgroundController.rgbActiveSlot}
                     panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
                   />
-                )}
-                {audioReactive && isAudioBackgroundEffect(backgroundEffect) && detectOS() === 'windows' && (
-                  <BackgroundAudioSource />
                 )}
               </>
             )}
