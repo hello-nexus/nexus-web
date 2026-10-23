@@ -91,12 +91,9 @@ export function AstralTiltLabels({ fans, backplate }: { fans: string; backplate:
   );
 }
 
-// Neutral tones: the track, the lit end and the reading arc never carry a state color.
+// Neutral tones: the track and the lit end never carry a state color.
 const LIT = '#cbd2db';
 const TRACK = '#9ca3af';
-/** The reading, in degrees, at which the reading arc reaches its end. */
-const ARC_FULL_DEG = 1;
-
 const PLUS = '+';
 const MINUS = '-';
 
@@ -110,18 +107,18 @@ interface ArcArrowProps {
   a1: number;
   /** Which end lights up: 1 the + end, -1 the - end, 0 neither. */
   on: -1 | 0 | 1;
-  /** The reading in degrees; an arc from the middle of the track toward the matching end grows with it. */
-  value: number;
+  /** Sizes everything drawn here (heads, markers, strokes) so both views show it the same size on screen. */
+  k?: number;
   signGap?: number;
 }
 
 /** A curved double arrow on a circle around (cx, cy). The end the card moved toward fills with the color and grows a little. */
-export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, value, signGap = 30 }: ArcArrowProps) {
+export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap = 30 }: ArcArrowProps) {
   const rad = (d: number) => (d * Math.PI) / 180;
   const at = (a: number, rr = r): [number, number] => [cx + rr * Math.cos(rad(a)), cy + rr * Math.sin(rad(a))];
   const n = (v: number) => v.toFixed(1);
   const lit = LIT;
-  const head = 18;
+  const head = 18 * k;
   // Leave room for the heads at both ends; the heads point along the arc.
   const span = a1 - a0;
   const trim = (head / r) * (180 / Math.PI) * Math.sign(span);
@@ -130,12 +127,6 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, value, signGap 
   const large = Math.abs(span - 2 * trim) > 180 ? 1 : 0;
   const sweep = span > 0 ? 1 : 0;
   const arc = `M${n(s0[0])} ${n(s0[1])} A${r} ${r} 0 ${large} ${sweep} ${n(s1[0])} ${n(s1[1])}`;
-  // The reading arc starts at the middle of the track and runs toward the end the card moved to.
-  const mid = (a0 + a1) / 2;
-  const frac = Math.min(1, Math.abs(value) / ARC_FULL_DEG);
-  const end = mid + (value > 0 ? a1 - mid : a0 - mid) * frac;
-  const [m0, m1] = [at(mid), at(end)];
-  const reading = on === 0 ? null : `M${n(m0[0])} ${n(m0[1])} A${r} ${r} 0 0 ${end > mid ? 1 : 0} ${n(m1[0])} ${n(m1[1])}`;
   const arrowHead = (a: number, dir: number, active: boolean) => {
     // The tangent of an increasing angle is (-sin, cos); the + end points along it, the - end against.
     const tx = -Math.sin(rad(a)) * dir;
@@ -149,20 +140,19 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, value, signGap 
     return <path d={d} fill={active ? lit : '#6b7280'} />;
   };
   const sign = (a: number, text: string, active: boolean): ReactNode => {
-    const p = at(a, r + signGap);
+    const p = at(a, r + signGap * k);
     return (
       <g>
-        <circle cx={n(p[0])} cy={n(p[1])} r="15" fill={active ? 'var(--accent)' : '#2a2e35'} stroke={active ? 'var(--accent)' : '#4b525c'} strokeWidth="1.5" />
-        <text x={n(p[0])} y={n(p[1] + 6.5)} textAnchor="middle" fontFamily={FONT} fontSize="20" fontWeight="700"
+        <circle cx={n(p[0])} cy={n(p[1])} r={15 * k} fill={active ? 'var(--accent)' : '#2a2e35'} stroke={active ? 'var(--accent)' : '#4b525c'} strokeWidth={1.5 * k} />
+        <text x={n(p[0])} y={n(p[1] + 6.5 * k)} textAnchor="middle" fontFamily={FONT} fontSize={20 * k} fontWeight="700"
           fill={active ? 'var(--accent-text)' : '#cbd2db'}>{text}</text>
       </g>
     );
   };
   return (
     <svg viewBox={viewBox} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d={arc} fill="none" stroke={TRACK} strokeWidth="12" strokeLinecap="round" strokeOpacity="0.18" />
-      <path d={arc} fill="none" stroke={TRACK} strokeWidth="5" strokeLinecap="round" strokeOpacity="0.5" />
-      {reading && <path d={reading} fill="none" stroke="var(--accent)" strokeWidth="9" strokeLinecap="round" />}
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth={12 * k} strokeLinecap="round" strokeOpacity="0.18" />
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth={5 * k} strokeLinecap="round" strokeOpacity="0.5" />
       {arrowHead(a1, Math.sign(span), on > 0)}
       {arrowHead(a0, -Math.sign(span), on < 0)}
       {sign(a1, PLUS, on > 0)}

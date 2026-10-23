@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AstralCard, AstralState } from '../../../api/astral';
 import {
-  alertTone, clock, connectorTone, fitStage, levelStatus, pinTone, pollDelayMs, secondsLeft, signedDegrees, tiltWord, withCurrent, worstPins,
+  alertTone, clock, connectorTone, fitStage, levelStatus, pinTone, pollDelayMs, secondsLeft, signedDegrees, tiltWord, unitScale, withCurrent, worstPins,
 } from './astralUtils';
 
 const card = (over: Partial<AstralCard> = {}): AstralCard => ({
@@ -63,6 +63,13 @@ describe('pin tones', () => {
     expect(pinTone('dead')).toBe('red');
     expect(connectorTone(['green', 'yellow'])).toBe('yellow');
     expect(connectorTone(['yellow', 'red'])).toBe('red');
+  });
+});
+
+describe('unitScale', () => {
+  it('is the stage fit per view unit', () => {
+    const ext = { x0: 0, x1: 100, y0: 0, y1: 100, half: 100, pivot: [50, 50] as const };
+    expect(unitScale(ext, 2)).toBeCloseTo(fitStage(ext, 2).size / 200);
   });
 });
 

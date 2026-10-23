@@ -19,7 +19,7 @@ import {
 } from './AstralArt';
 import {
   CALIBRATE_SECONDS, CRITICAL_SECONDS, LIMITS, TIME_CHOICES, WARN_DEG, alertTone, clock, finite, fitStage, levelStatus, pinTone, pollDelayMs,
-  secondsLeft, sensorId, signedDegrees, tiltDirection, tiltWord, withCurrent, worstPins, type StageExtent,
+  secondsLeft, sensorId, signedDegrees, tiltDirection, tiltWord, unitScale, withCurrent, worstPins, type StageExtent,
 } from './astralUtils';
 import styles from './AstralDevicePage.module.scss';
 
@@ -34,6 +34,8 @@ const TABS: readonly { key: Tab; icon: ReactNode }[] = [
 ];
 // Both views share one shape so the two panels line up.
 const STAGE_ASPECT = 1.9;
+// The tilt view is scaled differently from the side view; its arrow is drawn larger by the ratio so the markers match.
+const TILT_MARK_SCALE = unitScale(SAG_EXTENT, STAGE_ASPECT) / unitScale(TILT_EXTENT, STAGE_ASPECT);
 // The card turns by the reading, never more than this far.
 const MAX_TURN = 25;
 const turn = (v: number | undefined) => Math.min(MAX_TURN, Math.max(-MAX_TURN, v ?? 0));
@@ -233,7 +235,7 @@ export function AstralDevicePage() {
                     rotation={turn(sag)}
                     arrow={(
                       <AstralArcArrow viewBox={SAG_VIEW} cx={SAG_PIVOT[0]} cy={SAG_PIVOT[1]} r={486} a0={-6.6} a1={6.6}
-                        on={tiltDirection(sag)} value={sag ?? 0} signGap={26} />
+                        on={tiltDirection(sag)} signGap={26} />
                     )}
                     alt={t(`${P}sag.view`)}
                   />
@@ -254,7 +256,7 @@ export function AstralDevicePage() {
                     rotation={turn(lean === undefined ? 0 : -lean)}
                     arrow={(
                       <AstralArcArrow viewBox={TILT_VIEW} cx={TILT_PIVOT[0]} cy={TILT_PIVOT[1]} r={222} a0={-76} a1={-104}
-                        on={tiltDirection(lean)} value={lean ?? 0} signGap={26} />
+                        on={tiltDirection(lean)} k={TILT_MARK_SCALE} signGap={26} />
                     )}
                     labels={<AstralTiltLabels fans={t(`${P}fans`)} backplate={t(`${P}backplate`)} />}
                     alt={t(`${P}lean.view`)}

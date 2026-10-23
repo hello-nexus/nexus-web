@@ -129,3 +129,8 @@ export function pollDelayMs(state: AstralState | null): number {
 }
 
 export const finite = (v: number | undefined): number | undefined => (v !== undefined && Number.isFinite(v) ? v : undefined);
+
+/** Screen size of one view unit in a stage, up to the stage width: the same number for two views means the same drawn size. */
+export function unitScale(extent: StageExtent, aspect: number): number {
+  return fitStage(extent, aspect).size / (2 * extent.half);
+}
