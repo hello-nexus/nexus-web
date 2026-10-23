@@ -12,10 +12,12 @@
   min-width: 0;
 }
 
+$inline-gap: 0.5rem;
+
 .inline {
   flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: $inline-gap;
 }
 
 .stacked {
@@ -46,6 +48,30 @@
 
 .inline .label {
   min-width: 50px;
+  // The label takes what the control box leaves on the left and wraps first when the row is tight.
+  flex: 1 1 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.inline .inlineControl {
+  // Track and value together take the shared width (--slider-inline-width, global.scss) when the
+  // container allows it, and shrink with it otherwise, so the row never overflows.
+  flex: 0 1 var(--slider-inline-width);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $inline-gap;
+}
+
+.inline.inlineFill .inlineControl {
+  flex: 1 1 0;
+}
+
+// The track is whatever the value column leaves of the control box.
+.inline .track {
+  flex: 1 1 0;
+  min-width: 3rem;
 }
 
 .value {
@@ -58,12 +84,27 @@
 /* Inline value reserver: a min-width holder that right-aligns the sole value
    child, so the track edge never shifts as the value's width changes while the
    value keeps a full, un-overlapped click/hit area. Font matches the value so
-   the ch-based min-width is measured in the value's own type. */
+   the ch-based min-width is measured in the value's own type. The column is
+   sized by the slider's own widest formatted value (set inline from Slider.tsx),
+   so the number sits flush at the right edge and the track takes the rest of
+   the control box. */
 .inline .inlineValue {
+  flex: none;
   display: inline-flex;
   justify-content: flex-end;
   font-size: var(--type-small);
   white-space: nowrap;
+}
+
+// The edit field takes the value column as it is, so opening edit mode shifts nothing:
+// it adds no width of its own (width 0, filled out to the column by min-width) and drops
+// the negative margins and wide padding the standalone field uses.
+.inline .inlineValue > input {
+  width: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.05rem 0.15rem;
+  box-sizing: border-box;
 }
 
 .head {

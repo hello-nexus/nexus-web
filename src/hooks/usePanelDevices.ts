@@ -86,7 +86,6 @@ const STREAMED_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
 const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCapabilities>> = {
   // No hardware behind it: brightness, rotation and kiosk controls would write to a real Y70 beside it.
   y70: { ...Y70_CAPABILITIES, displayControls: false, launchClose: false },
-  kraken: STREAMED_PANEL_CAPABILITIES,
   'lcd-round': STREAMED_PANEL_CAPABILITIES,
   'lcd-wide': STREAMED_PANEL_CAPABILITIES,
   'lcd-square': STREAMED_PANEL_CAPABILITIES,
@@ -98,6 +97,7 @@ export const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'nzxt-kraken': '/assets/devices/nzxt.svg',
   'asus-ryujin-lcd': '/assets/devices/asus.svg',
   'asus-slc4-lcd': '/assets/devices/asus.svg',
+  'asus-glacial-lcd': '/assets/devices/asus.svg',
   'lianli-galahad2-lcd': '/assets/devices/lianli.svg',
   'lianli-hydroshift-lcd': '/assets/devices/lianli.svg',
   'lianli-tl-lcd': '/assets/devices/lianli.svg',

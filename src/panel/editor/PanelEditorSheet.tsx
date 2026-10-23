@@ -27,8 +27,9 @@ import { pluralKey } from '../../lib/pluralKey';
 import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
-import { isSingleWidgetSurface, surfaceSupportsTouch, type ForcedGrid } from '../types';
+import { isSingleWidgetSurface, surfaceDisplayShape, surfaceSupportsTouch, type ForcedGrid } from '../types';
 import type { PanelBackgroundMode } from '../background/panelBackground';
+import { usePanelAudioReactive } from '../background/panelAudio';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
 
@@ -200,6 +201,7 @@ export function PanelEditorSheet({
   editView: DeckEditView;
   onEditViewChange: (view: DeckEditView) => void;
 }) {
+  const audioReactive = usePanelAudioReactive(surface);
   const { t, language } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
@@ -467,6 +469,7 @@ export function PanelEditorSheet({
               onBackdropCommit={onThemeBackdropCommit}
               showBackdropSelector={showBackdropSelector}
               backgroundHeldBy={backgroundHeldBy}
+              audioReactive={audioReactive}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}
@@ -481,6 +484,7 @@ export function PanelEditorSheet({
               onImmersiveBackdropCommit={onThemeImmersiveBackdropCommit}
               showMediaTab={showMediaTab}
               deviceAspect={deviceAspect}
+              roundDisplay={surfaceDisplayShape(surface) === 'round'}
               deviceW={deviceW}
               deviceH={deviceH}
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}

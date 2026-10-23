@@ -78,13 +78,22 @@ describe('SettingsView', () => {
     expect(screen.getByRole('tab', { name: 'settings.tab.privacyData' })).toBeInTheDocument();
   });
 
-  it('renders exactly 5 tabs, with no Advanced tab', () => {
+  it('renders exactly 6 tabs, with no Advanced tab', () => {
     render(
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="general" onTabChange={() => {}} />,
     );
 
-    expect(screen.getAllByRole('tab')).toHaveLength(5);
+    expect(screen.getAllByRole('tab')).toHaveLength(6);
     expect(screen.queryByRole('tab', { name: 'settings.tab.advanced' })).not.toBeInTheDocument();
+  });
+
+  it('lists Hotkeys as a tab and routes to it', () => {
+    const onTabChange = vi.fn();
+    render(
+      <SettingsView serviceOnline connectionState="online" platform="windows" tab="general" onTabChange={onTabChange} />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'settings.tab.hotkeys' }));
+    expect(onTabChange).toHaveBeenCalledWith('hotkeys', expect.anything());
   });
 
   it('defaults to the general tab when no subtab is given', () => {

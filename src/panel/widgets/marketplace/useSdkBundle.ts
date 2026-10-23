@@ -13,7 +13,7 @@ import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import { postService, fetchServiceBlob, isRemoteOrigin, isForceLanMode } from '../../../api/service';
 import { getMarketplaceListing, subscribeMarketplaceRegistry } from '../../../widgets/marketplaceRegistry';
 
-interface CodeSession { sessionId: string; baseUrl: string; }
+interface CodeSession { sessionId: string; baseUrl: string; expiresInSeconds?: number; }
 
 const bundleCache = new Map<string, string>();
 
@@ -52,12 +52,50 @@ export function useSdkRuntime(): { runtimeUrl: string | null; failed: boolean } 
 // the URL is part of a worker's identity, and a second one would respawn it.
 const pendingBundles = new Map<string, Promise<string | null>>();
 
-async function resolveBundle(listingId: string, key: string): Promise<string | null> {
-  const session = await postService<CodeSession>(
+// One code-session per app version, shared by the widget bundle and any file a
+// host component reads from the same bundle (a Canvas renderer module).
+// A session is reused for part of the lifetime the service reports, and dropped
+// early when the code route refuses it (a service restart forgets sessions).
+const CODE_SESSION_REUSE_FRACTION = 0.75;
+const codeSessions = new Map<string, { reuseUntil: number; session: Promise<CodeSession | null> }>();
+
+function codeSessionFor(listingId: string, key: string): Promise<CodeSession | null> {
+  const cached = codeSessions.get(key);
+  if (cached && Date.now() < cached.reuseUntil) return cached.session;
+  const minted = Date.now();
+  const session = postService<CodeSession>(
     `/apps-api/installed/${encodeURIComponent(listingId)}/code-session`, {},
-  );
-  if (!session?.baseUrl) return null;
-  const blob = await fetchServiceBlob(`${session.baseUrl}/widget.mjs`);
+  ).then((s) => (s?.baseUrl ? s : null), () => null);
+  const entry = { reuseUntil: Number.POSITIVE_INFINITY, session };
+  codeSessions.set(key, entry);
+  void session.then((s) => {
+    if (!s) { if (codeSessions.get(key) === entry) codeSessions.delete(key); return; }
+    entry.reuseUntil = s.expiresInSeconds && s.expiresInSeconds > 0
+      ? minted + s.expiresInSeconds * 1000 * CODE_SESSION_REUSE_FRACTION
+      : minted;
+  });
+  return session;
+}
+
+/** Reads one file of a bundle through its code-session; one fresh session is minted if the route refuses the cached one. */
+async function fetchViaSession(listingId: string, key: string, relPath: string): Promise<Blob | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const session = await codeSessionFor(listingId, key);
+    if (!session) return null;
+    const blob = await fetchServiceBlob(`${session.baseUrl}/${relPath}`);
+    if (blob) return blob;
+    codeSessions.delete(key);
+  }
+  return null;
+}
+
+/** Reads one file of an installed app's bundle through the code route, relay-aware. */
+export async function fetchBundleFile(listingId: string, relPath: string, version: string): Promise<Blob | null> {
+  return fetchViaSession(listingId, `${listingId}@${version}`, relPath);
+}
+
+async function resolveBundle(listingId: string, key: string): Promise<string | null> {
+  const blob = await fetchViaSession(listingId, key, 'widget.mjs');
   if (!blob) return null;
   const url = URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
   bundleCache.set(key, url);

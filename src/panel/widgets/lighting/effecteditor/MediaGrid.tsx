@@ -97,7 +97,7 @@ function SortableMediaCard({ id, children }: { id: string; children: ReactNode }
  * placeholder card at the front. `onReorder` makes the cards draggable and
  * reports the new id order on a drop.
  */
-export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAriaLabel, prepend, thumbAspect, onReorder }: {
+export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAriaLabel, prepend, thumbAspect, thumbRound, onReorder }: {
   items: MediaItem[];
   activeId: string | null;
   thumbs: Record<string, string>;
@@ -106,6 +106,7 @@ export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAri
   deleteAriaLabel?: string;
   prepend?: ReactNode;
   thumbAspect?: number;
+  thumbRound?: boolean;
   onReorder?: (ids: string[]) => void;
 }) {
   const { t } = useTranslation();
@@ -127,6 +128,7 @@ export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAri
         deleteAriaLabel={deleteAriaLabel}
         ariaLabel={label}
         thumbAspect={thumbAspect}
+        thumbRound={thumbRound}
       />
     );
   };

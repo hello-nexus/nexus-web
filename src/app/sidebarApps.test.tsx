@@ -114,6 +114,21 @@ describe('page-only apps (Frames)', () => {
   });
 });
 
+describe('page-only apps (Settings)', () => {
+  it('is a sidebar app with the Settings title and icon', () => {
+    const meta = getSidebarAppMeta('settings');
+    expect(meta).not.toBeNull();
+    expect(meta!.i18nKey).toBe('settings.title');
+    expect(isPinnableAppKey('settings')).toBe(true);
+    expect(listSidebarAppKeys()).toContain('settings');
+  });
+
+  it('lives under Show more: not in the default pinned tail of a fresh profile', () => {
+    expect(DEFAULT_PINNED_TAIL).not.toContain('settings');
+    expect(sanitizePinnedTail(undefined)).not.toContain('settings');
+  });
+});
+
 describe('sanitizePinnedTail - marketplace registry-load window', () => {
   const IBP = typeForMarketplace('com.ibuypower.control');
 

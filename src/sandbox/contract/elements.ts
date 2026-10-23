@@ -181,23 +181,16 @@ export const UI_ELEMENTS = {
   'ui-clockface': {
     properties: ['nowMs', 'design', 'tz', 'showSeconds', 'showDate', 'hour12', 'useAccentColor', 'size'],
   },
-  // First-party 3D avatar (three.js), rendered host-side and driven by
-  // signals: `dance`/`listening`/`energy` map to the pack's NexusBridge
-  // signals (media:playing / discord:talking-silent / system:energy);
-  // `reaction` is a one-shot "TriggerName#seq" (seq increments so a repeat
-  // re-fires) played directly on the animator; `intro` plays the walk-in +
-  // camera push-in once on mount (default false); `interactive` toggles
-  // pointer orbit/zoom (default true), applied only inside the panel's
-  // fullscreen immersive overlay - in a tile the canvas is always inert so a
-  // tap falls through to tap-to-immersive. `pack` is a URL to a pack
-  // directory or an encrypted .nxpack container. `zoom` sets the camera
-  // depth as 0..1 of the deepest closeup; `zoom` fires with the depth after
-  // a wheel or pinch on the canvas so an app control can track it, and
-  // `interaction` fires (throttled) on any pointer or wheel activity on the
-  // stage, for idle timers.
-  'ui-avatar': {
-    properties: ['pack', 'dance', 'listening', 'energy', 'reaction', 'intro', 'interactive', 'demo', 'zoom'],
-    events: ['zoom', 'interaction'],
+  // Generic GPU canvas driven by an app-supplied renderer module. `renderer` is
+  // the bundle-relative path of a module the host runs in its own worker with an
+  // OffscreenCanvas; `props` is a JSON-serializable object handed to it on start and on every
+  // change; mounts of the same app with the same `renderer` and `share` key share
+  // one worker and canvas, moved to the newest mount. `interactive` forwards
+  // pointer and wheel input to the renderer while this mount holds the canvas.
+  // `message` carries whatever the renderer posts.
+  'ui-canvas': {
+    properties: ['renderer', 'props', 'share', 'interactive'],
+    events: ['message'],
   },
   // Standard page header - gives SDK pages the same title/tab chrome native pages
   // use. `tabs` is [{ key, label, disabled? }]; the host fires `change` with the key.
@@ -263,4 +256,4 @@ export const UI_TONES = [
 ] as const;
 export type UiTone = (typeof UI_TONES)[number];
 
-export const SDK_PROTOCOL_VERSION = 1;
+export const SDK_PROTOCOL_VERSION = 2;

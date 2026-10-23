@@ -50,6 +50,9 @@ interface EffectCardBaseProps {
    * frame. Omit for the default 16/9 cropped behavior.
    */
   thumbAspect?: number;
+  /** Draw the thumbnail as a circle (round display). Pair with a square thumbAspect. The box stays square so
+   *  its corner badges and delete button are not clipped. */
+  thumbRound?: boolean;
   /** Overlay mode only: suppress the on-thumbnail caption (the aria-label still
    *  carries the name). Used by the simple colour swatches, which need no text. */
   hideLabel?: boolean;
@@ -69,7 +72,7 @@ type EffectCardProps = EffectCardBaseProps & (
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, hideLabel, metaSans, nonInteractive,
+  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive,
 }: EffectCardProps) {
   const { t } = useTranslation();
   // An image that fails to load leaves the plain tile until a new one arrives, never a broken-image glyph.
@@ -80,10 +83,10 @@ export function EffectCard({
     ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
     : undefined;
   const thumbImgStyle = thumbAspect !== undefined
-    ? { objectFit: 'cover' as const, aspectRatio: String(thumbAspect) }
+    ? { objectFit: 'cover' as const, height: '100%', ...(thumbRound ? { borderRadius: '50%' } : null) }
     : undefined;
   const thumbSkeletonStyle = thumbAspect !== undefined
-    ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
+    ? { height: '100%', ...(thumbRound ? { borderRadius: '50%' } : null) }
     : undefined;
   const inner = (
     <>

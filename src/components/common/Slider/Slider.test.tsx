@@ -3,6 +3,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Slider } from './Slider';
 
 describe('Slider', () => {
+  it('names the inline range from the label when no ariaLabel is given', () => {
+    render(<Slider label="Fan 1" value={34} min={0} max={100} editable onChange={vi.fn()} />);
+    expect(screen.getByRole('slider', { name: 'Fan 1' })).toBeTruthy();
+  });
+
+  it('lets an explicit ariaLabel win over the inline label', () => {
+    render(<Slider label="Fan 1" ariaLabel="Fan one LED count" value={34} min={0} max={100} onChange={vi.fn()} />);
+    expect(screen.getByRole('slider', { name: 'Fan one LED count' })).toBeTruthy();
+  });
+
   it('fires onCommit when a value is typed into the editable field', async () => {
     // A typed edit has no drag-end, so without this the value landed in state
     // and consumers that apply/persist in onCommit (the effect editor applies

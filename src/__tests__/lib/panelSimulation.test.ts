@@ -89,7 +89,7 @@ describe('panelSimulation', () => {
     expect(SIMULATED_PANEL_PRESETS).toContainEqual(expect.objectContaining({
       id: 'kraken',
       name: 'NZXT Kraken Elite V2',
-      surface: 'kraken',
+      surface: 'lcd-round',
       width: 640,
       height: 640,
       dpi: 240,

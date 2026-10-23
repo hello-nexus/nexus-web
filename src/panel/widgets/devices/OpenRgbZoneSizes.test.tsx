@@ -142,6 +142,7 @@ describe('OpenRgbZoneSizes', () => {
     render(<OpenRgbZoneSizes onSetSize={onSetSize} device={device([zone({ index: 4, ledCount: 5 })])} />);
     const slider = screen.getByRole('slider');
     expect(slider.getAttribute('aria-valuetext')).toBe('devices.openrgb.zoneUnset');
+    expect(screen.getByText('5')).toBeTruthy();
     fireEvent.keyDown(slider, { key: 'Enter' });
     await vi.waitFor(() => expect(onSetSize).toHaveBeenCalledWith('openrgb-1', 4, 5));
   });

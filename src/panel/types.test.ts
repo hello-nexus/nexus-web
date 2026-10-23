@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isStreamedPanelSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  surfaceInputMode, widgetDisplayShape, type PanelSurface,
+  surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
 describe('surfaceInputMode', () => {
@@ -12,7 +12,6 @@ describe('surfaceInputMode', () => {
       ['y70', undefined, 'touch'],
       ['phone', undefined, 'touch'],
       ['q60', undefined, 'none'],
-      ['kraken', undefined, 'none'],
       ['lcd-round', undefined, 'none'],
       ['lcd-square', undefined, 'none'],
       ['lcd-wide', undefined, 'none'],
@@ -37,7 +36,7 @@ describe('widgetDisplayShape', () => {
 
 describe('isStreamedPanelSurface', () => {
   it('is always streamed for the pushed-frame device surfaces, regardless of displayBound', () => {
-    for (const surface of ['kraken', 'lcd-round', 'lcd-square', 'lcd-wide', 'q60'] as const) {
+    for (const surface of ['lcd-round', 'lcd-square', 'lcd-wide', 'q60'] as const) {
       expect(isStreamedPanelSurface(surface)).toBe(true);
       expect(isStreamedPanelSurface(surface, false)).toBe(true);
       expect(isStreamedPanelSurface(surface, true)).toBe(true);
@@ -86,6 +85,15 @@ describe('Widget size', () => {
     expect(panelWidgetSizeOptions('lcd-wide', undefined)).toBeUndefined();
   });
 
+  it('lays the ASUS Glacial LCD out as its one tile when large and a monitor grid when small', () => {
+    expect(resolvePanelWidgetSize('lcd-square', 'asus-glacial-lcd', null)).toBe('large');
+    expect(panelLayoutSurface('lcd-square', 'asus-glacial-lcd', null)).toBe('lcd-square');
+    expect(panelLayoutSurface('lcd-square', 'asus-glacial-lcd', 'small')).toBe('monitor');
+    // Other square cooler glass keeps its one tile.
+    expect(panelWidgetSizeOptions('lcd-square', undefined)).toBeUndefined();
+    expect(panelWidgetSizeOptions('lcd-square', 'asus-ryujin-lcd')).toBeUndefined();
+  });
+
   it('halves the Lian Li 8.8 short-axis slots when large and changes nothing when small', () => {
     expect(panelShortSideSlots('monitor', 'lianli-screen88', 'large')).toBe(2);
     expect(panelShortSideSlots('monitor', 'lianli-screen88', 'small')).toBeUndefined();
@@ -123,5 +131,14 @@ describe('surfaceAllowsPages', () => {
     expect(surfaceAllowsPages('monitor', false)).toBe(false);
     expect(surfaceAllowsPages('monitor')).toBe(false);
     expect(surfaceAllowsPages('q60')).toBe(false);
+  });
+});
+
+describe('surfaceDisplayShape', () => {
+  it('is round only on round displays', () => {
+    expect(surfaceDisplayShape('lcd-round')).toBe('round');
+    for (const surface of ['lcd-square', 'lcd-wide', 'q60', 'y70', 'monitor', 'phone', 'desktop'] as const) {
+      expect(surfaceDisplayShape(surface)).toBe('rect');
+    }
   });
 });

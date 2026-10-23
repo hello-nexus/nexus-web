@@ -11,12 +11,15 @@ import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
   PANEL_BACKGROUND_EFFECTS,
+  PANEL_BACKGROUND_EFFECTS_WITH_AUDIO,
   PANEL_BACKGROUND_FROST_STEP,
   PANEL_WIDGET_PADDING_STEP,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundTemplate,
   panelBackgroundDefault,
+  panelBackgroundState,
   panelBackgroundPresets,
+  resolveBackgroundDrawing,
   resolvePanelBackground,
   type PanelBackdrop,
   type PanelBackgroundMode,
@@ -100,6 +103,8 @@ export interface PanelThemeSettingsState {
   gaugeGradient: GaugeGradientStop[];
 }
 
+const OPTIONS_TAB = 'options';
+
 export interface PanelThemeSettingsProps {
   theme: PanelThemeSettingsState;
   resolvedThemeMode: ResolvedPanelThemeMode;
@@ -140,6 +145,8 @@ export interface PanelThemeSettingsProps {
   showMediaTab?: boolean;
   /** Device aspect ratio (W/H) forwarded to the media cropper. */
   deviceAspect?: number;
+  /** Round display: media tiles are drawn as circles, as the preview shows the panel. */
+  roundDisplay?: boolean;
   /** Device native pixel width for the import conversion. */
   deviceW?: number;
   /** Device native pixel height for the import conversion. */
@@ -164,6 +171,8 @@ export interface PanelThemeSettingsProps {
   showEffectSearch?: boolean;
   /** Name of the focus mode holding this panel on a plain background right now, if any. */
   backgroundHeldBy?: string | null;
+  /** panelAudioReactiveAllowed for the surface being edited. Off offers no audio effects. */
+  audioReactive?: boolean;
 }
 
 export function PanelThemeSettings({
@@ -202,6 +211,7 @@ export function PanelThemeSettings({
   onFontCommit,
   showMediaTab = false,
   deviceAspect = 9 / 16,
+  roundDisplay = false,
   deviceW,
   deviceH,
   hideWidgetLabelsToggle = false,
@@ -211,6 +221,7 @@ export function PanelThemeSettings({
   showImmersiveBackdrop = true,
   sections = 'all',
   backgroundHeldBy = null,
+  audioReactive = false,
 }: PanelThemeSettingsProps) {
   const showTheme = sections !== 'background';
   const showBackground = sections !== 'theme';
@@ -220,8 +231,19 @@ export function PanelThemeSettings({
     return value === key ? fallback : value;
   };
   const syncWithDesktopLabel = t('panel.settings.syncWithDesktop') || 'Sync with desktop';
-  const backgroundEffect = normalizePanelBackgroundEffect(theme.backgroundEffect);
-  const backgroundTemplate = normalizePanelBackgroundTemplate(theme.backgroundTemplate);
+  // What this surface draws. A stored audio effect it cannot play shows the
+  // default, and the options below edit that, never the stored effect's template.
+  const storedBackgroundEffect = normalizePanelBackgroundEffect(theme.backgroundEffect);
+  const drawnBackground = resolveBackgroundDrawing(
+    storedBackgroundEffect,
+    normalizePanelBackgroundTemplate(theme.backgroundTemplate),
+    theme.backgroundEffectState,
+    audioReactive,
+  );
+  const backgroundEffect = drawnBackground.effect;
+  const backgroundTemplate = drawnBackground.template;
+  const backgroundEffectState = drawnBackground.effectState ?? panelBackgroundState(backgroundEffect, backgroundTemplate);
+  const backgroundSubstituted = backgroundEffect !== storedBackgroundEffect;
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
@@ -263,6 +285,7 @@ export function PanelThemeSettings({
   // sticky dock while the grid / controls scroll with the page.
   const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
   const [effectQuery, setEffectQuery] = useState('');
+  const visibleEditorTab = backgroundSubstituted ? OPTIONS_TAB : editorTab;
 
   // The same Options | Effect editing surface as the immersive lighting view,
   // here targeting this panel's per-device background effect (animate-only).
@@ -270,7 +293,7 @@ export function PanelThemeSettings({
     effect: backgroundEffect,
     template: backgroundTemplate,
     templatesByEffect: theme.backgroundTemplates,
-    effectState: theme.backgroundEffectState,
+    effectState: backgroundEffectState,
     onSelectEffect: onBackgroundEffectCommit,
     onTemplateSelect: onBackgroundTemplateCommit,
     onPreview: onBackgroundEffectStatePreview,
@@ -532,6 +555,7 @@ export function PanelThemeSettings({
                   deviceId={deviceId ?? ''}
                   activeId={theme.backgroundMediaId}
                   deviceAspect={deviceAspect}
+                  round={roundDisplay}
                   deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
                   deviceH={deviceH ?? 1280}
                   onSelect={(mediaId, type, alpha) => onBackgroundMediaCommit(mediaId, type, alpha)}
@@ -553,7 +577,8 @@ export function PanelThemeSettings({
                   <BackgroundEffectPreview
                     effect={backgroundEffect}
                     template={backgroundTemplate}
-                    effectState={theme.backgroundEffectState}
+                    effectState={backgroundEffectState}
+                    audioReactive={audioReactive}
                   />
                   <ChipGroup
                     fullWidth
@@ -561,13 +586,13 @@ export function PanelThemeSettings({
                       // eslint-disable-next-line i18next/no-literal-string -- editor tab id
                       { key: 'options', label: t('lighting.editor.options') },
                       // eslint-disable-next-line i18next/no-literal-string -- editor tab id
-                      { key: 'effect', label: t('lighting.rightPane.effect') },
+                      ...(backgroundSubstituted ? [] : [{ key: 'effect', label: t('lighting.rightPane.effect') }]),
                     ]}
-                    activeKey={editorTab}
+                    activeKey={visibleEditorTab}
                     onChange={key => setEditorTab(key as 'options' | 'effect')}
                     ariaLabel={t('lighting.rightPane.label')}
                   />
-                  {showEffectSearch && editorTab === 'options' && (
+                  {showEffectSearch && (backgroundSubstituted || editorTab === 'options') && (
                     <SearchInput
                       value={effectQuery}
                       onChange={setEffectQuery}
@@ -576,11 +601,11 @@ export function PanelThemeSettings({
                     />
                   )}
                 </div>
-                {editorTab === 'options' ? (
+                {backgroundSubstituted || editorTab === 'options' ? (
                   <AnimateGrid
                     effect={backgroundEffect}
                     onSelect={onBackgroundEffectCommit}
-                    effects={PANEL_BACKGROUND_EFFECTS}
+                    effects={audioReactive ? PANEL_BACKGROUND_EFFECTS_WITH_AUDIO : PANEL_BACKGROUND_EFFECTS}
                     query={showEffectSearch ? effectQuery : undefined}
                     slotFor={backgroundController.slotFor}
                     versionFor={backgroundController.versionFor}

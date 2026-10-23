@@ -32,6 +32,31 @@ const NON_UI_JSX_ATTRIBUTES = [
   'translationPrefix', 'resetLabelKey', 'resetConfirmKey', 'importLabelKey',
 ]
 
+// One width for every inline slider: styles/global.scss (--slider-inline-*) is the
+// single source and Slider / SettingRow consume it. A call site never sets it.
+// Inline = SettingSlider, or a Slider with no orientation (inline is the default) or an
+// inline one; stacked and bare sliders are outside this rule.
+const INLINE_SLIDER = [
+  "JSXOpeningElement[name.name='SettingSlider']",
+  "JSXOpeningElement[name.name='Slider']:not(:has(> JSXAttribute[name.name='orientation']))",
+  "JSXOpeningElement[name.name='Slider']:has(> JSXAttribute[name.name='orientation'][value.value='inline'])",
+  "JSXOpeningElement[name.name='Slider']:has(> JSXAttribute[name.name='orientation'][value.expression.name='INLINE'])",
+]
+const SLIDER_WIDTH_BAN = [
+  {
+    selector: "JSXAttribute[name.name='controlWidth']",
+    message: 'Inline slider width comes from --slider-inline-* in styles/global.scss; there is no per-site width prop.',
+  },
+  ...INLINE_SLIDER.map(open => ({
+    selector: `${open} > JSXAttribute[name.name='style']`,
+    message: 'An inline slider takes no style: its width comes from --slider-inline-* in styles/global.scss.',
+  })),
+  {
+    selector: "Property[key.value=/^--slider-inline/]",
+    message: 'Only styles/global.scss defines --slider-inline-*.',
+  },
+]
+
 export default defineConfig([
   // Build artifacts. The sandbox harness bundle is generated from harness/app.tsx
   // by the SDK build and gitignored; linting it reports rules its own inlined
@@ -79,6 +104,11 @@ export default defineConfig([
       // issue in production.
       'react-refresh/only-export-components': 'off',
     },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/components/common/Slider/Slider.tsx', 'src/components/common/SettingRow/SettingRow.tsx'],
+    rules: { 'no-restricted-syntax': ['error', ...SLIDER_WIDTH_BAN] },
   },
   {
     // Internal / developer-only surfaces that never ship as end-user UI: test

@@ -130,6 +130,10 @@ function resolveBoundary(boundary: CoachmarkBoundary | undefined, viewport: Boun
   };
 }
 
+// Frames the target must hold still, and the longest a follow may run.
+const FOLLOW_STILL_FRAMES = 6;
+const FOLLOW_MAX_MS = 1500;
+
 /**
  * THE standard way to show a one-time onboarding hint. Do not build a banner
  * or a one-off bubble for a hint; point this at the real control instead.
@@ -213,14 +217,43 @@ export function Coachmark({ hintId, target, title, body, dismissLabel, onDismiss
       reposition();
     };
     sync();
-    const dom = new MutationObserver(sync);
-    dom.observe(document.body, { childList: true, subtree: true });
+    // A class toggle can move the page without resizing anything, so it gets
+    // a bounded per-frame follow.
+    let raf = 0;
+    let startedAt = 0;
+    let still = 0;
+    let last = '';
+    const tick = () => {
+      reposition();
+      const r = resolveTarget(target)?.getBoundingClientRect();
+      const key = r ? `${r.left},${r.top},${r.width},${r.height}` : '';
+      still = key === last ? still + 1 : 0;
+      last = key;
+      raf = still < FOLLOW_STILL_FRAMES && performance.now() - startedAt < FOLLOW_MAX_MS ? requestAnimationFrame(tick) : 0;
+    };
+    const follow = () => {
+      still = 0;
+      if (raf) return;
+      startedAt = performance.now();
+      last = '';
+      raf = requestAnimationFrame(tick);
+    };
+    const dom = new MutationObserver(records => {
+      if (records.some(r => r.type === 'childList')) sync();
+      if (records.some(r => r.type === 'attributes')) follow();
+    });
+    dom.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('transitionrun', follow, true);
+    document.addEventListener('transitionend', follow, true);
     window.addEventListener('resize', reposition);
     window.addEventListener('scroll', reposition, true);
     return () => {
       ro.disconnect();
       io?.disconnect();
       dom.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      document.removeEventListener('transitionrun', follow, true);
+      document.removeEventListener('transitionend', follow, true);
       window.removeEventListener('resize', reposition);
       window.removeEventListener('scroll', reposition, true);
     };

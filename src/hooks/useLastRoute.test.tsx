@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLastRoute } from './useLastRoute';
@@ -10,12 +11,29 @@ vi.mock('../api/session', () => ({
   saveLastRoute: (path: string, fullscreen?: boolean) => mockSave(path, fullscreen),
 }));
 
+const settledLog: boolean[] = [];
+
 function Harness({ path, enabled = true, fullscreen = false }: { path: string; enabled?: boolean; fullscreen?: boolean }) {
-  useLastRoute(path, navigate, enabled, fullscreen, restoreFullscreen);
+  settledLog.push(useLastRoute(path, navigate, enabled, fullscreen, restoreFullscreen));
   return null;
 }
 
 const navigate = vi.fn();
+
+const stateLog: { path: string; settled: boolean }[] = [];
+
+function StatefulHarness({ landing }: { landing: string }) {
+  const [path, setPath] = useState(landing);
+  const settled = useLastRoute(
+    path,
+    (_section, view, subtab) => setPath(`/system/${view}${subtab ? `/${subtab}` : ''}`),
+    true,
+    false,
+    restoreFullscreen,
+  );
+  stateLog.push({ path, settled });
+  return null;
+}
 const restoreFullscreen = vi.fn();
 
 function stored(path: string, fullscreen = false) {
@@ -46,6 +64,36 @@ afterEach(() => {
 });
 
 describe('useLastRoute', () => {
+  it('never reports settled while the path is still the landing route after a restore', async () => {
+    stateLog.length = 0;
+    mockFetch.mockResolvedValue(stored('/system/lighting'));
+    render(<StatefulHarness landing="/system/dashboard" />);
+    await act(async () => { await Promise.resolve(); });
+    expect(stateLog[stateLog.length - 1]).toEqual({ path: '/system/lighting', settled: true });
+    expect(stateLog.some(e => e.settled && e.path === '/system/dashboard')).toBe(false);
+  });
+
+  it('gives up waiting on a stalled read, without restoring or saving', async () => {
+    vi.useFakeTimers();
+    settledLog.length = 0;
+    mockFetch.mockReturnValue(new Promise(() => {}));
+    render(<Harness path="/system/dashboard" />);
+    expect(settledLog[settledLog.length - 1]).toBe(false);
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    expect(settledLog[settledLog.length - 1]).toBe(true);
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('reports the restore as settled only after the read answers', async () => {
+    settledLog.length = 0;
+    let resolve!: (v: unknown) => void;
+    mockFetch.mockReturnValue(new Promise(r => { resolve = r; }));
+    render(<Harness path="/system/dashboard" />);
+    expect(settledLog.every(v => v === false)).toBe(true);
+    await act(async () => { resolve(stored('/system/lighting')); });
+    expect(settledLog[settledLog.length - 1]).toBe(true);
+  });
+
   it('restores the stored route when the window opened bare', async () => {
     mockFetch.mockResolvedValue(stored('/system/monitoring/cpu'));
 

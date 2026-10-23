@@ -7,14 +7,15 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 
 const versions = new Map<string, string>();
 const listeners = new Set<() => void>();
-const postService = vi.fn(async (path: string) => ({ sessionId: 's', baseUrl: path.replace('/code-session', '') }));
-const fetchServiceBlob = vi.fn(async () => new Blob(['export default 1;']));
+let expiresInSeconds: number | undefined = 3600;
+const postService = vi.fn(async (path: string) => ({ sessionId: 's', baseUrl: path.replace('/code-session', ''), expiresInSeconds }));
+const fetchServiceBlob = vi.fn<(path?: string) => Promise<Blob | null>>(async () => new Blob(['export default 1;']));
 let remoteOrigin = false;
 let forceLan = false;
 
 vi.mock('../../../api/service', () => ({
   postService: (path: string) => postService(path),
-  fetchServiceBlob: () => fetchServiceBlob(),
+  fetchServiceBlob: (path: string) => fetchServiceBlob(path),
   get isRemoteOrigin() { return remoteOrigin; },
   isForceLanMode: () => forceLan,
 }));
@@ -113,5 +114,50 @@ describe('useSdkRuntime', () => {
     await waitFor(() => expect(result.current.runtimeUrl).not.toBeNull());
     expect(fetchServiceBlob).toHaveBeenCalledTimes(1);
     expect(pageFetch).not.toHaveBeenCalled();
+  });
+
+  describe('fetchBundleFile', () => {
+    beforeEach(() => {
+      postService.mockClear();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['x']));
+      expiresInSeconds = 3600;
+    });
+
+    it('reuses one code-session for files of the same app version', async () => {
+      vi.resetModules();
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      await fetchBundleFile('com.x.app', 'renderer.mjs', '1.0.0');
+      await fetchBundleFile('com.x.app', 'other.bin', '1.0.0');
+      expect(postService).toHaveBeenCalledTimes(1);
+      await fetchBundleFile('com.x.app', 'renderer.mjs', '2.0.0');
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
+
+    it('mints a fresh session once when the code route refuses the cached one', async () => {
+      vi.resetModules();
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      await fetchBundleFile('com.x.app', 'a.bin', '1.0.0');
+      fetchServiceBlob.mockResolvedValueOnce(null);
+      const blob = await fetchBundleFile('com.x.app', 'b.bin', '1.0.0');
+      expect(blob).not.toBeNull();
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails after one re-mint', async () => {
+      vi.resetModules();
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      fetchServiceBlob.mockResolvedValue(null);
+      expect(await fetchBundleFile('com.x.app', 'a.bin', '1.0.0')).toBeNull();
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not reuse a session whose response carries no lifetime', async () => {
+      vi.resetModules();
+      expiresInSeconds = undefined;
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      await fetchBundleFile('com.x.app', 'a.bin', '1.0.0');
+      await fetchBundleFile('com.x.app', 'a.bin', '1.0.0');
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
   });
 });

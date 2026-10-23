@@ -219,12 +219,9 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
   // A wired unit with its control on always can.
   const hasLighting = flex ? hasFans : hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
     && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
-  // Screens carry the service's long model names; the tiles use the short ones, TL before SL-INF.
+  // The service names each Flex screen and unit; the tiles use those, TL before SL-INF.
   const screenFans = (state?.fans ?? []).filter(f => f.screenSerial);
-  const screenLabels = Object.fromEntries(screenFans.map(f => [
-    f.screenSerial as string,
-    t(`devices.lianli-wireless.${fanTypeKey(f.fanType)}` as Parameters<typeof t>[0]),
-  ]));
+  const unitNames = flex ? new Map((state?.fans ?? []).filter(f => f.name).map(f => [f.mac, f.name as string])) : undefined;
   const screenOrder = [...screenFans]
     .sort((a, b) => Number(a.family === 'slInfFlex') - Number(b.family === 'slInfFlex')
       || (a.sortIndex ?? 0) - (b.sortIndex ?? 0) || a.mac.localeCompare(b.mac))
@@ -282,6 +279,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
             <LianLiWirelessLightingTab
               onSectionNavigate={onSectionNavigate}
               api={flex ? lianLiFlexLightingApi : undefined}
+              unitNames={unitNames}
               header={flex ? (chains, names) => <LianLiFlexSyncSection sync={flexSync} chains={chains} names={names} /> : undefined}
               syncOn={flex && isSyncOn(flexSync)}
               onSettled={flex ? flexSync.refresh : undefined}
@@ -299,7 +297,6 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
           {tab === 'screen' && (
             <LianLiWirelessScreenTab
               api={flex ? lianLiFlexScreenApi : undefined}
-              screenLabels={flex ? screenLabels : undefined}
               defaultOrder={flex ? screenOrder : undefined}
               lcdRestart={lcdRestart}
               aioMacs={aioMacs}

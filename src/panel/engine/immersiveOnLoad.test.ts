@@ -44,7 +44,7 @@ describe('surfaceSupportsImmersiveOnLoad', () => {
   it('rejects single-widget glass and the embedded dashboard', () => {
     // No dashboard to skip on one-widget glass, and no pointer to swipe out with.
     expect(surfaceSupportsImmersiveOnLoad('q60')).toBe(false);
-    expect(surfaceSupportsImmersiveOnLoad('kraken')).toBe(false);
+    expect(surfaceSupportsImmersiveOnLoad('lcd-round')).toBe(false);
     expect(surfaceSupportsImmersiveOnLoad('lcd-round')).toBe(false);
     expect(surfaceSupportsImmersiveOnLoad('desktop')).toBe(false);
   });

@@ -168,6 +168,7 @@ const CURATED_ICONS: Record<string, string> = {
   'nzxt-kraken': '/assets/devices/nzxt.svg',
   'asus-ryujin-lcd': '/assets/devices/asus.svg',
   'asus-slc4-lcd': '/assets/devices/asus.svg',
+  'asus-glacial-lcd': '/assets/devices/asus.svg',
   'asiahorse-umbra': '/assets/devices/asiahorse.svg',
 };
 
@@ -195,6 +196,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   // display; the row is the whole cooler.
   'nzxt-kraken': 'NZXT Kraken',
   'asiahorse-umbra': 'Asiahorse Umbra V2',
+  'asus-glacial-lcd': 'ROG Crosshair X870E Glacial',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';

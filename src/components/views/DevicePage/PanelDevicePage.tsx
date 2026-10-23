@@ -35,6 +35,7 @@ import {
   PANEL_Y70_LONG_AXIS_CELLS,
 } from '../../../panel/engine/grid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
+import { isLocalPanelClient, panelAudioReactiveAllowed } from '../../../panel/background/panelAudio';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
@@ -46,7 +47,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -104,6 +105,7 @@ import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { HydroShift2RingSettings } from './HydroShift2RingSettings';
 import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
 import { HydroShift2CurveSettings } from './HydroShift2CurveSettings';
+import { AsusGlacialLcdControls } from './AsusGlacialLcdDevicePage';
 import { useHydroShift2CurveScreen } from './useHydroShift2CurveScreen';
 import { hydroShift2CurveMediaPreviewUrl } from '../../../api/hydroshift2Curve';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -122,6 +124,7 @@ import { useDeckInstance, DeckInstanceProvider } from '../../../panel/widgets/de
 import { innerGridForSize } from '../../../panel/widgets/deck/deckLayout';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
+  NZXT_KRAKEN_FAMILY,
   type PanelLayout,
   type PanelSurface,
   type PanelWidget,
@@ -229,6 +232,8 @@ function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
     ? (status as TouchRepairErrorStatus)
     : 'failed';
 }
+
+const WRITE_FAIL_TOAST_GAP_MS = 4000;
 
 type Tab = 'widgets' | 'theme' | 'background' | 'settings';
 
@@ -506,11 +511,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // tab (brightness/backlight/contrast/RGB) must stay reachable even when
   // this host implements neither DDC nor OS rotation.
   const isXeneonEdgePanel = isMonitorPanel && recordFamily === 'xeneon-edge';
+  // The record's family arrives after the first paint; the streamed row claims the cooler's
+  // device id, which is known at once, so the Kraken's tab never waits on the record.
+  const isKrakenPanel = recordFamily === NZXT_KRAKEN_FAMILY || device?.sourceId === NZXT_KRAKEN_FAMILY;
+  const supportsMountOrientation = surfaceSupportsMountOrientation(glassSurface, recordFamily) && !isKrakenPanel;
   // The iCUE LINK cooler's LCD: its screen module's own controls live in this tab, the
   // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
   const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;
+  const isGlacialLcdPanel = recordFamily === 'asus-glacial-lcd' && !isSimulated;
   const curveScreen = useHydroShift2CurveScreen(isHydroShift2CurvePanel);
   // Cooler LCDs whose firmware takes a backlight command. The service decides
   // which those are and stamps the capability on the record, so a new dimmable
@@ -587,15 +597,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // Same for the Kraken: the glass is a panel, the cooler around it is the
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
-    || (glassSurface === 'kraken' && !isSimulated)
+    || (isKrakenPanel && !isSimulated)
     // Cooler glass fed pushed frames, or any panel that mounts either way up:
     // the tab hosts its mount orientation.
-    || ((surfaceSupportsMountOrientation(glassSurface) || recordSupportsPortrait) && !isSimulated)
+    || ((supportsMountOrientation || recordSupportsPortrait) && !isSimulated)
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
-    || isRenderScalablePanel;
+    || isRenderScalablePanel
+    || isGlacialLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Theme and layout read and write the panel record for simulators and hardware alike;
   // a simulator has no display or cooler, so its hardware controls are off.
@@ -874,12 +885,24 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   // A write of ours in flight defers broadcast refetches, or the echo reverts a
   // controlled field mid-edit; the last write to settle runs the deferred read.
+  // One toast per failure burst: a failing service makes every write fail.
+  const lastWriteFailToastRef = useRef(0);
+  const reportWriteFailed = useCallback(() => {
+    const now = Date.now();
+    if (now - lastWriteFailToastRef.current < WRITE_FAIL_TOAST_GAP_MS) return;
+    lastWriteFailToastRef.current = now;
+    pushToast({ title: t('devices.panels.saveFailedTitle'), body: t('devices.panels.saveFailedBody') });
+  }, [pushToast, t]);
+
   const writeRecordPatch = useCallback((id: string, patch: PanelDevicePatch) => {
     pendingWritesRef.current += 1;
     writeSeqRef.current += 1;
     return patchPanelDevice(id, patch)
-      .then(() => broadcastLayoutChanged())
-      .catch(() => {})
+      .then(saved => {
+        broadcastLayoutChanged();
+        if (saved === null) reportWriteFailed();
+      })
+      .catch(reportWriteFailed)
       .finally(() => {
         pendingWritesRef.current -= 1;
         if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
@@ -887,7 +910,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           refetchDeviceRecord();
         }
       });
-  }, [refetchDeviceRecord]);
+  }, [refetchDeviceRecord, reportWriteFailed]);
 
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
@@ -1566,6 +1589,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           surface={surface}
                           deviceTouch={deviceTouch}
                           forcedGrid={forcedGrid}
+                          glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}
                           canAddSize={canAddSize}
                           onEditWidget={setConfiguringWidgetId}
@@ -1647,7 +1671,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onFontCommit={panelTheme.commitFont}
                             showMediaTab={surface !== 'desktop'}
                             backgroundHeldBy={backgroundHeldBy}
+                            audioReactive={panelAudioReactiveAllowed(device?.runtimeSurface, isLocalPanelClient())}
                             deviceAspect={devAspect}
+                            roundDisplay={surfaceDisplayShape(surface) === 'round'}
                             deviceW={nativeW}
                             deviceH={nativeH}
                             hideWidgetLabelsToggle={singleWidget}
@@ -1885,7 +1911,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
                       (its own section below), so the software flip would double-apply. */}
-                  {activeTab === 'settings' && (surfaceSupportsMountOrientation(glassSurface) || recordSupportsPortrait)
+                  {activeTab === 'settings' && (supportsMountOrientation || recordSupportsPortrait)
                     && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
@@ -1964,7 +1990,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <HydroShift2CurveSettings screen={curveScreen} />
                     </div>
                   )}
-                  {activeTab === 'settings' && glassSurface === 'kraken' && !isSimulated && (
+                  {activeTab === 'settings' && isGlacialLcdPanel && (
+                    <div className={styles.settingsContent}>
+                      <AsusGlacialLcdControls />
+                    </div>
+                  )}
+                  {activeTab === 'settings' && isKrakenPanel && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} screenStreamed />
                     </div>

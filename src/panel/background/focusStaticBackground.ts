@@ -5,7 +5,7 @@ import type { PanelSurface } from '../types';
 
 // Surfaces this PC renders (kiosks and streamed LCDs); Q-series and phones draw themselves.
 const HOST_RENDERED_SURFACES: ReadonlySet<PanelSurface> = new Set<PanelSurface>([
-  'y70', 'monitor', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide',
+  'y70', 'monitor', 'lcd-round', 'lcd-square', 'lcd-wide',
 ]);
 
 /** Name of the active focus mode when it asks this surface for its solid background, else null. */

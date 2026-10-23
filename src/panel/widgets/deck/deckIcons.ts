@@ -186,7 +186,10 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
     case 'nexus':
       switch (action.action.op) {
         case 'rgbEffect': return 'Palette';
+        case 'toggleWindow': return 'AppWindow';
         case 'lightingBrightness':
+        case 'lightingPowerToggle':
+        case 'lightingBrightnessStep':
         case 'lightingPreset': return 'Lightbulb';
         case 'fanProfile':
         case 'coolingPreset': return 'Fan';

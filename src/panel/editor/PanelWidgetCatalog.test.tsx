@@ -362,3 +362,51 @@ describe('PanelWidgetCatalog', () => {
     });
   });
 });
+
+describe('PanelWidgetCatalog glass aspect', () => {
+  const rootOf = (container: HTMLElement) => container.firstElementChild as HTMLElement;
+  const varOf = (container: HTMLElement, name: string) =>
+    Number.parseFloat(rootOf(container).style.getPropertyValue(name));
+  const scaleOf = (container: HTMLElement) => varOf(container, '--panel-scale');
+  const isGlassTile = (container: HTMLElement) => /glassTile/.test(rootOf(container).className);
+
+  it('makes a portrait single-widget tile taller than wide and scales content to the short side', () => {
+    const { container } = render(<PanelWidgetCatalog surface="lcd-square" glassAspect={720 / 1280} onAdd={vi.fn()} />);
+    const cell = varOf(container, '--panel-cell-size');
+
+    expect(varOf(container, '--panel-row-size')).toBeGreaterThan(cell);
+    expect(varOf(container, '--panel-content-scale')).toBe(cell);
+    expect(scaleOf(container)).toBeCloseTo(cell / 90, 5);
+    expect(isGlassTile(container)).toBe(true);
+  });
+
+  it('scales content to the row on landscape square-surface glass', () => {
+    const { container } = render(<PanelWidgetCatalog surface="lcd-square" glassAspect={640 / 480} onAdd={vi.fn()} />);
+    const row = varOf(container, '--panel-row-size');
+
+    expect(row).toBeLessThan(varOf(container, '--panel-cell-size'));
+    expect(varOf(container, '--panel-content-scale')).toBeCloseTo(row, 5);
+    expect(scaleOf(container)).toBeCloseTo(row / 90, 5);
+    expect(isGlassTile(container)).toBe(true);
+  });
+
+  it('gives the q60 strip its real glass shape', () => {
+    const { container } = render(<PanelWidgetCatalog surface="q60" glassAspect={240 / 800} onAdd={vi.fn()} />);
+
+    expect(varOf(container, '--panel-row-size')).toBeGreaterThan(varOf(container, '--panel-cell-size'));
+    expect(isGlassTile(container)).toBe(true);
+  });
+
+  it('leaves square glass and grid surfaces exactly as before', () => {
+    const square = render(<PanelWidgetCatalog surface="lcd-square" glassAspect={1} onAdd={vi.fn()} />);
+    const cell = varOf(square.container, '--panel-cell-size');
+    expect(varOf(square.container, '--panel-row-size')).toBe(cell);
+    expect(scaleOf(square.container)).toBeCloseTo(cell / 90, 5);
+    expect(isGlassTile(square.container)).toBe(false);
+    square.unmount();
+
+    const grid = render(<PanelWidgetCatalog surface="monitor" glassAspect={720 / 1280} onAdd={vi.fn()} />);
+    expect(varOf(grid.container, '--panel-row-size')).toBe(varOf(grid.container, '--panel-cell-size'));
+    expect(isGlassTile(grid.container)).toBe(false);
+  });
+});

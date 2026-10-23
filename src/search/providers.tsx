@@ -25,6 +25,7 @@ import { setSystemMuted, systemPower } from '../api/system';
 import { toggleObsRecording, toggleObsStreaming } from '../api/obs';
 import { setDiscordMute, setDiscordDeaf } from '../api/discord';
 import { syncCloudNow } from '../api/cloud';
+import type { UiSettingsValue } from '../hooks/useUiSettings';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { exportProfile } from '../api/profiles';
 import {
@@ -140,7 +141,7 @@ const navSubtabs: SearchSource = (ctx) =>
     to: () => ctx.host.goView(s.view, s.sub),
   }));
 
-// Settings is 5 top tabs; these all deep-link to the Settings page and select
+// Settings tabs; these all deep-link to the Settings page and select
 // the owning tab (the `to:` handler below passes `tab` as the subtab).
 // Profiles and Dev tools moved to their own pages - see `standalonePages`.
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
@@ -148,6 +149,7 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
   { tab: 'appearance',       labelKey: 'settings.tab.appearance',        keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format'] },
   { tab: 'lighting-cooling', labelKey: 'settings.lightingCooling.title', keywords: ['lighting', 'cooling', 'rgb', 'led', 'fans', 'render gpu', 'sleep blackout'] },
   { tab: 'monitoring',       labelKey: 'settings.tab.monitoringDiagnostics', keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors', 'diagnostics', 'health'] },
+  { tab: 'hotkeys',          labelKey: 'settings.tab.hotkeys',           keywords: ['hotkey', 'shortcut', 'keyboard', 'global', 'keybind', 'key combo', 'deck'] },
   { tab: 'privacy',          labelKey: 'settings.tab.privacyData',       keywords: ['telemetry', 'screen time', 'data', 'ai'] },
 ];
 
@@ -160,7 +162,7 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
 // `sectionKey` prefixes a label that is ambiguous on its own ("Status", "Model").
 // A row that renders only once another setting is on, or lives in a modal,
 // anchors to the always-rendered row that reveals it.
-const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sectionKey?: string; anchor: string; keywords: string[]; platforms?: string[]; official?: boolean; devTools?: boolean; selfUpdating?: boolean }[] = [
+const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sectionKey?: string; anchor: string; keywords: string[]; platforms?: string[]; official?: boolean; devTools?: boolean; selfUpdating?: boolean; applicable?: (s: UiSettingsValue) => boolean }[] = [
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  anchor: 'set-tray',       keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'systemd', 'login', 'autostart', 'auto start', 'launch', 'start with windows'], platforms: ['windows', 'linux'] },
@@ -190,6 +192,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.audioOutput.label',   anchor: 'set-audio-output', keywords: ['audio', 'output', 'input', 'mic', 'microphone', 'line in', 'speakers', 'headphones', 'sound', 'music', 'reactive', 'visualizer'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.sleepBlackout.label', anchor: 'set-sleep-blackout', keywords: ['sleep', 'suspend', 'standby', 'shutdown', 'power off', 'fade', 'leds', 'lights', 'off', 'ram', 'memory'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.lockBlackout.label', anchor: 'set-lock-blackout', keywords: ['lock', 'locked', 'lock screen', 'away', 'afk', 'fade', 'dim', 'leds', 'lights', 'off'], platforms: ['windows', 'macos', 'linux'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.amdGpuLighting.label', anchor: 'set-amd-gpu-lighting', keywords: ['amd', 'radeon', 'gpu', 'graphics card', 'lighting', 'rgb', 'freeze', 'linux'], applicable: (s) => s.amdGpuLightingApplicable },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.guard.label', anchor: 'set-thermal-guard', keywords: ['cpu', 'thermal', 'guard', 'protection', 'overheat', 'temperature', 'fans'] },
@@ -285,6 +288,7 @@ const settingsItems: SearchSource = (ctx) =>
     .filter((s) => !s.official || OFFICIAL_BUILD)
     .filter((s) => !s.devTools || DEV_TOOLS)
     .filter((s) => !s.selfUpdating || selfUpdating(ctx))
+    .filter((s) => !s.applicable || s.applicable(ctx.settings))
     .map((s) => go(`setting:${s.labelKey}`, {
       title: s.sectionKey ? `${ctx.t(s.sectionKey)} › ${ctx.t(s.labelKey)}` : ctx.t(s.labelKey),
       subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
@@ -347,7 +351,8 @@ const APP_KEYWORDS: Record<string, string[]> = {
 };
 
 const pageOnlyApps: SearchSource = (ctx) =>
-  Object.entries(PAGE_ONLY_APPS).map(([key, app]) => {
+  // Settings has its own nav entry (the settings nav view), so skip its page-only row.
+  Object.entries(PAGE_ONLY_APPS).filter(([key]) => key !== 'settings').map(([key, app]) => {
     const Icon = app.icon;
     return go(`app:${key}`, {
       title: ctx.t(app.i18nKey),
