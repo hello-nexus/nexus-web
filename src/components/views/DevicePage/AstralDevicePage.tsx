@@ -15,13 +15,14 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { AstralArt } from './AstralArt';
 import {
-  LIMITS, TIME_CHOICES, alertTone, clock, finite, levelStatus, pollDelayMs, secondsLeft, sensorId,
+  CRITICAL_SECONDS, LIMITS, TIME_CHOICES, alertTone, clock, finite, levelStatus, pollDelayMs, secondsLeft, sensorId,
   signedDegrees, tiltWord, withCurrent, worstPins,
 } from './astralUtils';
 import styles from './AstralDevicePage.module.scss';
 
 type Tab = 'level' | 'power';
-type Confirm = 'calibrate' | 'equalizer' | 'shutdown' | 'now';
+type ConfirmKind = 'calibrate' | 'equalizer' | 'shutdown' | 'now';
+interface Confirm { kind: ConfirmKind; gpuId?: string }
 
 const P = 'devices.astral.';
 const TABS: readonly { key: Tab; icon: ReactNode }[] = [
@@ -35,21 +36,32 @@ export function AstralDevicePage() {
   const { t } = useTranslation();
   const sensors = useSensors(true);
   const [state, setState] = useState<AstralState | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [tab, setTab] = useState<Tab>('power');
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [failed, setFailed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const alive = useRef(true);
+  // Bumped when a write starts and when it lands; a poll that began before either is stale.
+  const writeSeq = useRef(0);
+  const writing = useRef(0);
 
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; };
   }, []);
 
-  // Slow while nothing moves; once a second while a countdown, calibration or fault is live.
+  // Slow while nothing moves; fast while a countdown, calibration or fault is live. A failed poll keeps retrying.
   const delay = pollDelayMs(state);
   useEffect(() => {
-    const load = () => { void fetchAstral().then(next => { if (alive.current && next) setState(next); }); };
+    const load = () => {
+      const seq = writeSeq.current;
+      void fetchAstral().then(next => {
+        if (!alive.current) return;
+        setLoadFailed(!next);
+        if (next && seq === writeSeq.current && writing.current === 0) setState(next);
+      });
+    };
     load();
     const id = window.setInterval(load, delay);
     return () => window.clearInterval(id);
@@ -71,19 +83,27 @@ export function AstralDevicePage() {
 
   // Every write answers with the full state; a failed one says so and leaves the controls as they were.
   const run = useCallback(async (send: () => Promise<AstralState | null>) => {
-    const next = await send();
+    writeSeq.current += 1;
+    writing.current += 1;
+    let next: AstralState | null = null;
+    try {
+      next = await send();
+    } finally {
+      writing.current -= 1;
+      writeSeq.current += 1;
+    }
     if (!alive.current) return;
     setFailed(!next);
     if (next) setState(next);
   }, []);
 
-  const card: AstralCard | undefined = state?.cards[0];
-  if (!state || !card) {
+  if (!state || state.cards.length === 0) {
     return (
       <div className={styles.page}>
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="ROG Astral" />
         <div className={styles.body}>
+          {loadFailed && <Notice tone="critical" role="alert">{t(`${P}loadFailed`)}</Notice>}
           {state && <Notice tone="info" role="status">{t(`${P}noCard`)}</Notice>}
         </div>
       </div>
@@ -97,22 +117,17 @@ export function AstralDevicePage() {
     over: LIMITS.overcurrent[eq ? 'equalizer' : 'normal'],
     crit: LIMITS.critical[eq ? 'equalizer' : 'normal'],
   };
-  const tone = alertTone(card.state);
-  const level = levelStatus(card);
-  const sag = finite(live.get(sensorId(card.gpuId, 'level/sag')));
-  const lean = finite(live.get(sensorId(card.gpuId, 'level/lean')));
-  const amps = card.pins.map((p, i) => finite(live.get(sensorId(card.gpuId, `pin${i + 1}/current`))) ?? p.amps);
-  const total = amps.reduce((a, b) => a + b, 0);
   const times = (current: number) =>
     withCurrent(TIME_CHOICES, current).map(n => ({ value: String(n), label: t(`${P}seconds`, { n }) }));
+  const multi = state.cards.length > 1;
 
-  const confirms: Record<Confirm, { onConfirm: () => void; destructive: boolean; action: string }> = {
-    calibrate: { onConfirm: () => { void run(() => calibrateAstral(card.gpuId)); }, destructive: false, action: 'calibrate' },
+  const confirmActions: Record<ConfirmKind, { onConfirm: () => void; destructive: boolean; action: string }> = {
+    calibrate: { onConfirm: () => { if (confirm?.gpuId) { const id = confirm.gpuId; void run(() => calibrateAstral(id)); } }, destructive: false, action: 'calibrate' },
     equalizer: { onConfirm: () => set({ equalizer: true }), destructive: true, action: 'turnOn' },
     shutdown: { onConfirm: () => set({ overcurrentShutdown: true }), destructive: false, action: 'turnOn' },
     now: { onConfirm: () => { void run(shutdownAstralNow); }, destructive: true, action: 'shutdownNow' },
   };
-  const pending = confirm ? confirms[confirm] : null;
+  const pending = confirm ? confirmActions[confirm.kind] : null;
 
   const readingCard = (key: 'sag' | 'lean', value: number | undefined, plus: string, minus: string) => (
     <Card title={t(`${P}${key}.title`)}>
@@ -123,6 +138,64 @@ export function AstralDevicePage() {
       </div>
     </Card>
   );
+
+  const levelView = (card: AstralCard) => {
+    const level = levelStatus(card);
+    const sag = finite(live.get(sensorId(card.gpuId, 'level/sag')));
+    const lean = finite(live.get(sensorId(card.gpuId, 'level/lean')));
+    const calibratedAt = card.level.calibratedAtMs;
+    return (
+      <SettingsSection key={card.gpuId} title={multi ? card.name : t(`${P}tab.level`)} boxClassName={styles.sectionBox}>
+        {level === 'none' && <Notice tone="info" role="status">{t(`${P}noSensor`)}</Notice>}
+        {level === 'calibrating' && <Notice tone="info" role="status">{t(`${P}calibrating`)}</Notice>}
+        {level !== 'none' && (
+          <>
+            <div className={styles.pair}>
+              {readingCard('sag', sag, 'down', 'up')}
+              {readingCard('lean', lean, 'fans', 'back')}
+            </div>
+            <span className={styles.dim}>
+              {calibratedAt == null
+                ? t(`${P}notCalibrated`)
+                : t(`${P}calibrated`, { when: new Date(calibratedAt).toLocaleString() })}
+            </span>
+            <div>
+              <Button size="sm" disabled={level === 'calibrating'} onClick={() => setConfirm({ kind: 'calibrate', gpuId: card.gpuId })}>
+                {t(`${P}calibrate`)}
+              </Button>
+            </div>
+          </>
+        )}
+      </SettingsSection>
+    );
+  };
+
+  // Amps and state both come from the same polled snapshot, so a pin never shows a newer reading beside an older verdict.
+  const powerView = (card: AstralCard) => {
+    const tone = alertTone(card.state);
+    const total = card.pins.reduce((sum, p) => sum + p.amps, 0);
+    return (
+      <div key={card.gpuId} className={styles.cardPower}>
+        {tone && (
+          <Notice tone={tone} role={tone === 'critical' ? 'alert' : 'status'}>
+            {t(`${P}alert.${card.state}`, { pins: worstPins(card) })}
+            {card.state === 'overcurrent' && !eq && <NoticeSecondary>{t(`${P}alert.equalizerHint`)}</NoticeSecondary>}
+          </Notice>
+        )}
+        <Card title={multi ? `${card.name}, ${t(`${P}connector`)}` : t(`${P}connector`)} subtitle={t(`${P}total`, { value: total.toFixed(1) })}>
+          <div className={styles.pins}>
+            {card.pins.map((p, i) => (
+              <div key={i} className={`${styles.pin} ${styles[p.state]}`} role="group" aria-label={t(`${P}pinLabel`, { n: i + 1, state: t(`${P}state.${p.state}`) })}>
+                <span className={styles.dim}>{t(`${P}pin`, { n: i + 1 })}</span>
+                <span>{`${p.amps.toFixed(1)} A`}</span>
+                <span className={styles.dim}>{t(`${P}state.${p.state}`)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  };
 
   return (
     <div className={styles.page}>
@@ -135,42 +208,12 @@ export function AstralDevicePage() {
       />
       <div className={styles.body}>
         {failed && <Notice tone="critical" role="alert">{t(`${P}failed`)}</Notice>}
+        {loadFailed && <Notice tone="critical" role="alert">{t(`${P}loadFailed`)}</Notice>}
 
-        {tab === 'level' && (
-          <>
-            {level === 'none' && <Notice tone="info" role="status">{t(`${P}noSensor`)}</Notice>}
-            {level === 'calibrating' && <Notice tone="info" role="status">{t(`${P}calibrating`)}</Notice>}
-            {level !== 'none' && (
-              <div className={styles.pair}>
-                {readingCard('sag', sag, 'down', 'up')}
-                {readingCard('lean', lean, 'fans', 'back')}
-              </div>
-            )}
-            {level !== 'none' && (
-              <SettingsSection title={t(`${P}calibrationTitle`)} boxClassName={styles.sectionBox}>
-                <span className={styles.dim}>
-                  {card.level.calibratedAtMs === null
-                    ? t(`${P}notCalibrated`)
-                    : t(`${P}calibrated`, { when: new Date(card.level.calibratedAtMs).toLocaleString() })}
-                </span>
-                <div>
-                  <Button size="sm" disabled={level === 'calibrating'} onClick={() => setConfirm('calibrate')}>
-                    {t(`${P}calibrate`)}
-                  </Button>
-                </div>
-              </SettingsSection>
-            )}
-          </>
-        )}
+        {tab === 'level' && state.cards.map(levelView)}
 
         {tab === 'power' && (
           <>
-            {tone && (
-              <Notice tone={tone} role={tone === 'critical' ? 'alert' : 'status'}>
-                {t(`${P}alert.${card.state}`, { pins: worstPins(card) })}
-                {card.state === 'overcurrent' && !eq && <NoticeSecondary>{t(`${P}alert.equalizerHint`)}</NoticeSecondary>}
-              </Notice>
-            )}
             {state.countdown && (
               <Notice
                 tone="critical"
@@ -178,7 +221,7 @@ export function AstralDevicePage() {
                 actions={(
                   <>
                     <Button size="sm" onClick={() => { void run(cancelAstralShutdown); }}>{t(`${P}cancelShutdown`)}</Button>
-                    <Button size="sm" tone="danger" onClick={() => setConfirm('now')}>{t(`${P}shutdownNow`)}</Button>
+                    <Button size="sm" tone="danger" onClick={() => setConfirm({ kind: 'now' })}>{t(`${P}shutdownNow`)}</Button>
                   </>
                 )}
               >
@@ -187,16 +230,7 @@ export function AstralDevicePage() {
             )}
             {state.heldOff && <Notice tone="info" role="status">{t(`${P}heldOff`)}</Notice>}
 
-            <Card title={t(`${P}connector`)} subtitle={t(`${P}total`, { value: total.toFixed(1) })}>
-              <div className={styles.pins}>
-                {card.pins.map((p, i) => (
-                  <div key={i} className={`${styles.pin} ${styles[p.state]}`} role="group" aria-label={t(`${P}pinLabel`, { n: i + 1, state: t(`${P}state.${p.state}`) })}>
-                    <span className={styles.dim}>{t(`${P}pin`, { n: i + 1 })}</span>
-                    <span>{`${amps[i].toFixed(1)} A`}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            {state.cards.map(powerView)}
 
             <SettingsSection title={t(`${P}alertsTitle`)} boxClassName={styles.sectionBox}>
               <SettingToggle label={t(`${P}alerts`)} description={t(`${P}alertsHint`)} checked={s.alerts} onChange={on => set({ alerts: on })} />
@@ -206,9 +240,9 @@ export function AstralDevicePage() {
               <Notice tone="warning">{t(`${P}equalizerWarning`)}</Notice>
               <SettingToggle
                 label={t(`${P}equalizer`)}
-                description={t(`${P}equalizerHint`)}
+                description={t(`${P}equalizerHint`, { over: LIMITS.overcurrent.equalizer, crit: LIMITS.critical.equalizer })}
                 checked={eq}
-                onChange={on => (on ? setConfirm('equalizer') : set({ equalizer: false }))}
+                onChange={on => (on ? setConfirm({ kind: 'equalizer' }) : set({ equalizer: false }))}
               />
             </SettingsSection>
 
@@ -217,7 +251,7 @@ export function AstralDevicePage() {
                 label={t(`${P}overShutdown`)}
                 description={t(`${P}overShutdownHint`, { limit: limits.over })}
                 checked={s.overcurrentShutdown}
-                onChange={on => (on ? setConfirm('shutdown') : set({ overcurrentShutdown: false }))}
+                onChange={on => (on ? setConfirm({ kind: 'shutdown' }) : set({ overcurrentShutdown: false }))}
               />
               <SettingSelect
                 label={t(`${P}overFor`)}
@@ -235,7 +269,7 @@ export function AstralDevicePage() {
               />
               <SettingToggle
                 label={t(`${P}critShutdown`)}
-                description={t(`${P}critShutdownHint`, { limit: limits.crit })}
+                description={t(`${P}critShutdownHint`, { limit: limits.crit, seconds: CRITICAL_SECONDS })}
                 checked={s.criticalShutdown}
                 onChange={on => set({ criticalShutdown: on })}
               />
@@ -245,9 +279,9 @@ export function AstralDevicePage() {
       </div>
 
       <ConfirmModal
-        open={pending !== null}
-        title={t(`${P}confirm.${confirm}.title`)}
-        message={t(`${P}confirm.${confirm}.message`)}
+        open={confirm !== null}
+        title={confirm ? t(`${P}confirm.${confirm.kind}.title`) : ''}
+        message={confirm ? t(`${P}confirm.${confirm.kind}.message`, { over: LIMITS.overcurrent.equalizer, crit: LIMITS.critical.equalizer }) : ''}
         confirmLabel={t(`${P}${pending?.action ?? 'turnOn'}`)}
         destructive={pending?.destructive ?? false}
         onConfirm={() => { pending?.onConfirm(); setConfirm(null); }}

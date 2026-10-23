@@ -6,7 +6,7 @@ export interface AstralCard {
   /** Same id as the GPU's sensor parent id. */
   gpuId: string;
   name: string;
-  level: { available: boolean; calibrating: boolean; calibratedAtMs: number | null };
+  level: { available: boolean; calibrating: boolean; calibratedAtMs?: number };
   pins: { amps: number; state: AstralPinState }[];
   /** The worst pin. */
   state: AstralPinState;
@@ -25,8 +25,9 @@ export interface AstralState {
   supported: boolean;
   cards: AstralCard[];
   settings: AstralSettings;
-  countdown: { reason: 'overcurrent' | 'critical'; endsAtMs: number } | null;
-  /** The user cancelled an overcurrent countdown; critical still arms. */
+  /** Absent, not null, when nothing is counting down. */
+  countdown?: { reason: 'overcurrent' | 'critical'; endsAtMs: number };
+  /** The user canceled an overcurrent countdown; critical still arms. */
   heldOff: boolean;
   simulated: boolean;
 }

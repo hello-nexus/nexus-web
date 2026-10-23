@@ -36,7 +36,6 @@ const base = (over: Partial<AstralState> = {}): AstralState => ({
     state: 'ok',
   }],
   settings: { alerts: true, equalizer: false, overcurrentShutdown: false, overcurrentSeconds: 60, countdownSeconds: 60, criticalShutdown: false },
-  countdown: null,
   heldOff: false,
   simulated: false,
   ...over,
@@ -55,15 +54,17 @@ describe('AstralDevicePage', () => {
     live.sensors = [];
   });
 
-  it('colors each pin by its state and prefers the live sensor amps', async () => {
-    live.sensors = [{ id: 'gpu0/astral/pin1/current', value: 9.87 }];
+  it('colors each pin by its state and names the state in text, from one snapshot', async () => {
+    live.sensors = [{ id: 'gpu0/astral/pin1/current', value: 99 }];
     const s = base();
     s.cards[0].pins[2] = { amps: 13, state: 'overcurrent' };
     s.cards[0].state = 'overcurrent';
     await mount(s);
-    expect(screen.getByText('9.9 A')).toBeInTheDocument();
+    expect(screen.getByText('13.0 A')).toBeInTheDocument();
+    expect(screen.queryByText('99.0 A')).toBeNull();
     const pin3 = screen.getByRole('group', { name: /devices.astral.pinLabel:\{"n":3/ });
     expect(pin3.className).toMatch(/overcurrent/);
+    expect(pin3).toHaveTextContent('devices.astral.state.overcurrent');
     expect(screen.getByRole('group', { name: /"n":1,/ }).className).toMatch(/ok/);
     expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.alert.overcurrent:{"pins":"3"}');
   });
@@ -92,7 +93,7 @@ describe('AstralDevicePage', () => {
     expect(api.shutdownAstralNow).toHaveBeenCalled();
   });
 
-  it('says held off while a cancelled countdown holds', async () => {
+  it('says held off while a canceled countdown holds', async () => {
     await mount(base({ heldOff: true }));
     expect(screen.getByText('devices.astral.heldOff')).toBeInTheDocument();
   });
@@ -119,19 +120,65 @@ describe('AstralDevicePage', () => {
       { id: 'gpu0/astral/level/lean', value: -0.62 },
     ];
     const s = base();
-    s.cards[0].level = { available: false, calibrating: true, calibratedAtMs: null };
+    s.cards[0].level = { available: false, calibrating: true };
     await mount(s);
     openLevel();
     expect(screen.getByText('devices.astral.calibrating')).toBeInTheDocument();
     expect(screen.queryByText('devices.astral.noSensor')).toBeNull();
     expect(screen.getByText('+0.18°')).toBeInTheDocument();
-    expect(screen.getByText('−0.62°')).toBeInTheDocument();
+    expect(screen.getByText('-0.62°')).toBeInTheDocument();
     expect(screen.getByText('devices.astral.lean.back')).toBeInTheDocument();
+  });
+
+  it('handles the service omitting null fields', async () => {
+    const s = base();
+    delete (s.cards[0].level as { calibratedAtMs?: number }).calibratedAtMs;
+    await mount(s);
+    openLevel();
+    expect(screen.getByText('devices.astral.notCalibrated')).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('Invalid');
+    expect(screen.queryByText(/devices.astral.countdown/)).toBeNull();
+  });
+
+  it('keeps a write reply over a poll that started before it', async () => {
+    let releasePoll: (v: AstralState) => void = () => {};
+    api.fetchAstral
+      .mockResolvedValueOnce(base())
+      .mockImplementationOnce(() => new Promise<AstralState>(r => { releasePoll = r; }));
+    api.saveAstralSettings.mockResolvedValue(base({ settings: { ...base().settings, alerts: false } }));
+    vi.useFakeTimers();
+    await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
+    await act(async () => { releasePoll(base()); });
+    vi.useRealTimers();
+    expect(screen.getAllByRole('switch')[0]).not.toBeChecked();
+  });
+
+  it('shows a notice and keeps retrying when the state cannot be loaded', async () => {
+    vi.useFakeTimers();
+    api.fetchAstral.mockResolvedValue(null);
+    await act(async () => { render(<AstralDevicePage />); });
+    expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.loadFailed');
+    api.fetchAstral.mockResolvedValue(base());
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    vi.useRealTimers();
+    expect(screen.queryByText('devices.astral.loadFailed')).toBeNull();
+    expect(screen.getByText('devices.astral.connector')).toBeInTheDocument();
+  });
+
+  it('renders every card', async () => {
+    const s = base();
+    s.cards.push({ ...s.cards[0], gpuId: 'gpu1', name: 'Second' });
+    await mount(s);
+    expect(screen.getAllByRole('group', { name: /pinLabel/ })).toHaveLength(12);
+    openLevel();
+    expect(screen.getByText('Second')).toBeInTheDocument();
   });
 
   it('says no sensor for a card without level sensing', async () => {
     const s = base();
-    s.cards[0].level = { available: false, calibrating: false, calibratedAtMs: null };
+    s.cards[0].level = { available: false, calibrating: false };
     await mount(s);
     openLevel();
     expect(screen.getByText('devices.astral.noSensor')).toBeInTheDocument();

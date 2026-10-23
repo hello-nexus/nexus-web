@@ -35,10 +35,10 @@ describe('worstPins', () => {
 
 describe('levelStatus', () => {
   it('calibrating wins over a card that has no readings yet', () => {
-    expect(levelStatus(card({ level: { available: false, calibrating: true, calibratedAtMs: null } }))).toBe('calibrating');
+    expect(levelStatus(card({ level: { available: false, calibrating: true } }))).toBe('calibrating');
   });
   it('reports no sensor only when neither available nor calibrating', () => {
-    expect(levelStatus(card({ level: { available: false, calibrating: false, calibratedAtMs: null } }))).toBe('none');
+    expect(levelStatus(card({ level: { available: false, calibrating: false } }))).toBe('none');
     expect(levelStatus(card())).toBe('ready');
   });
 });
@@ -57,7 +57,7 @@ describe('tiltWord', () => {
 describe('formatting', () => {
   it('signs degrees with a real minus', () => {
     expect(signedDegrees(0.18)).toBe('+0.18°');
-    expect(signedDegrees(-0.62)).toBe('−0.62°');
+    expect(signedDegrees(-0.62)).toBe('-0.62°');
     expect(signedDegrees(0.001)).toBe('0.00°');
   });
   it('counts down without going negative', () => {
@@ -72,7 +72,7 @@ describe('formatting', () => {
 });
 
 describe('pollDelayMs', () => {
-  const state = (c: AstralCard, countdown: AstralState['countdown'] = null): AstralState => ({
+  const state = (c: AstralCard, countdown?: AstralState['countdown']): AstralState => ({
     supported: true,
     cards: [c],
     settings: { alerts: true, equalizer: false, overcurrentShutdown: false, overcurrentSeconds: 60, countdownSeconds: 60, criticalShutdown: false },
@@ -84,7 +84,12 @@ describe('pollDelayMs', () => {
     expect(pollDelayMs(null)).toBe(5000);
     expect(pollDelayMs(state(card()))).toBe(5000);
     expect(pollDelayMs(state(card(), { reason: 'overcurrent', endsAtMs: 1 }))).toBe(1000);
-    expect(pollDelayMs(state(card({ level: { available: false, calibrating: true, calibratedAtMs: null } })))).toBe(1000);
+    expect(pollDelayMs(state(card({ level: { available: false, calibrating: true } })))).toBe(1000);
     expect(pollDelayMs(state(card({ state: 'caution' })))).toBe(1000);
+  });
+  it('looks at every card', () => {
+    const s = state(card());
+    s.cards.push(card({ state: 'dead' }));
+    expect(pollDelayMs(s)).toBe(1000);
   });
 });

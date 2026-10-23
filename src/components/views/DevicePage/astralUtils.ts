@@ -41,10 +41,10 @@ export function tiltWord(value: number | undefined, plus: string, minus: string)
   return value > 0 ? plus : minus;
 }
 
-/** Signed degrees with a real minus sign. */
+/** Signed degrees with an ASCII minus. */
 export function signedDegrees(v: number): string {
   if (Math.abs(v) < 0.005) return '0.00°';
-  return `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}°`;
+  return `${v > 0 ? '+' : '-'}${Math.abs(v).toFixed(2)}°`;
 }
 
 /** Whole seconds left on a countdown, never negative. */
@@ -52,7 +52,7 @@ export function secondsLeft(endsAtMs: number, nowMs: number): number {
   return Math.max(0, Math.ceil((endsAtMs - nowMs) / 1000));
 }
 
-/** "0:42", "1:05" */
+/** Minutes and zero-padded seconds. */
 export function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
@@ -61,11 +61,16 @@ export function withCurrent(times: readonly number[], current: number): number[]
   return times.includes(current) ? [...times] : [...times, current].sort((a, b) => a - b);
 }
 
-/** Poll fast only while something is moving: a countdown, a calibration or a pin off normal. */
+export const SLOW_POLL_MS = 5000;
+export const FAST_POLL_MS = 1000;
+
+/** The seconds the service waits after a critical reading before shutting down. */
+export const CRITICAL_SECONDS = 10;
+
+/** Poll fast only while something is moving: a countdown, a calibration or a pin off normal, on any card. */
 export function pollDelayMs(state: AstralState | null): number {
-  const card = state?.cards[0];
-  const busy = !!state?.countdown || !!card?.level.calibrating || (!!card && card.state !== 'ok');
-  return busy ? 1000 : 5000;
+  const busy = !!state?.countdown || !!state?.cards.some(c => c.level.calibrating || c.state !== 'ok');
+  return busy ? FAST_POLL_MS : SLOW_POLL_MS;
 }
 
 export const finite = (v: number | undefined): number | undefined => (v !== undefined && Number.isFinite(v) ? v : undefined);
