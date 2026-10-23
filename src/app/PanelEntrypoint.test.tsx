@@ -129,6 +129,30 @@ describe('PanelEntrypoint allocate-or-recover', () => {
     }
   });
 
+  it('carries the surface hint into the device URL', async () => {
+    window.history.pushState(null, '', '/panel?surface=y70&displayHz=60');
+    try {
+      allocateMock.mockResolvedValueOnce({ ok: true, record: { id: FRESH_ID } });
+      render(
+        <PanelEntrypoint
+          initialDeviceId={null}
+          isPhonePair={false}
+          pairToken={null}
+          pairDeviceId={null}
+          pairSpki={null}
+          surfaceHint="y70"
+        />,
+      );
+      await waitFor(() => expect(window.history.replaceState).toHaveBeenCalledWith(
+        null,
+        '',
+        expect.stringMatching(new RegExp(`/panel/${FRESH_ID}\\?displayHz=60&surface=y70$`)),
+      ));
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
+
   it('keeps the cached device id when the patch verify succeeds', async () => {
     localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
     patchMock.mockResolvedValueOnce({
@@ -349,6 +373,52 @@ describe('PanelEntrypoint allocate-or-recover', () => {
     await waitFor(() =>
       expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(STALE_ID),
     );
+    expect(allocateMock).not.toHaveBeenCalled();
+  });
+
+  it('drops a cached record of another surface on a q60-hinted load and allocates q60', async () => {
+    localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
+    patchMock.mockResolvedValueOnce({ ok: true, record: { id: STALE_ID, capabilities: { surface: 'phone' } } });
+    allocateMock.mockResolvedValueOnce({ ok: true, record: { id: FRESH_ID } });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+        surfaceHint="q60"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(FRESH_ID),
+    );
+    expect(patchMock).toHaveBeenCalledWith(STALE_ID, {});
+    expect(allocateMock).toHaveBeenCalledWith(expect.objectContaining({ surface: 'q60' }));
+    expect(localStorage.getItem(PANEL_DEVICE_ID_KEY)).toBe(FRESH_ID);
+  });
+
+  it('keeps a cached q60 record on a q60-hinted load', async () => {
+    localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
+    patchMock.mockResolvedValueOnce({ ok: true, record: { id: STALE_ID, capabilities: { surface: 'q60' } } });
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+        surfaceHint="q60"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(STALE_ID),
+    );
+    expect(patchMock).toHaveBeenCalledTimes(1);
     expect(allocateMock).not.toHaveBeenCalled();
   });
 

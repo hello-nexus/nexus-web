@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { inferSurfaceFromViewport } from './inferSurface';
+import { inferSurfaceFromViewport, panelSurfaceHint } from './inferSurface';
 
 function setViewport(width: number, height: number) {
   Object.defineProperty(window, 'innerWidth', { value: width, configurable: true });
@@ -43,5 +43,20 @@ describe('inferSurfaceFromViewport', () => {
   it('honours the phone hint regardless of viewport', () => {
     setViewport(682, 2560);
     expect(inferSurfaceFromViewport(true)).toBe('phone');
+  });
+});
+
+describe('panelSurfaceHint', () => {
+  it('accepts any panel surface a launcher declares', () => {
+    expect(panelSurfaceHint('y70')).toBe('y70');
+    expect(panelSurfaceHint('q60')).toBe('q60');
+    expect(panelSurfaceHint('monitor')).toBe('monitor');
+  });
+
+  it('ignores a missing or unknown value', () => {
+    expect(panelSurfaceHint(null)).toBeNull();
+    expect(panelSurfaceHint('')).toBeNull();
+    expect(panelSurfaceHint('Y70')).toBeNull();
+    expect(panelSurfaceHint('toString')).toBeNull();
   });
 });

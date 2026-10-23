@@ -111,7 +111,7 @@ import {
 import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
-import { inferSurfaceFromViewport } from './device/inferSurface';
+import { inferSurfaceFromViewport, panelSurfaceHint } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { PanelBackgroundSolid } from './background/PanelBackgroundSolid';
@@ -309,11 +309,12 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       // so a report without a fetched base would strip fields this kiosk
       // doesn't own (touch, dpi). Wait for the record fetch to land.
       if (!caps) return;
-      // The same /panel/<id> URL is a supported browser fallback; only a
-      // viewport that itself reads as the Y70 strip may write viewport facts,
-      // or a desktop tab's window size flips the record's orientation while
-      // the glass is unchanged.
-      if (inferSurfaceFromViewport(false) !== 'y70') return;
+      // The same /panel/<id> URL is a supported browser fallback; only the
+      // kiosk host's y70 hint, or without one a viewport that reads as the Y70
+      // strip, may write viewport facts, or a desktop tab's window size flips
+      // the record's orientation while the glass is unchanged.
+      const hint = panelSurfaceHint(new URLSearchParams(window.location.search).get('surface'));
+      if ((hint ?? inferSurfaceFromViewport(false)) !== 'y70') return;
       const cssWidth = Math.max(1, Math.round(window.innerWidth));
       const cssHeight = Math.max(1, Math.round(window.innerHeight));
       if (caps.cssWidth === cssWidth && caps.cssHeight === cssHeight) return;

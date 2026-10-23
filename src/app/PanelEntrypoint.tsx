@@ -170,8 +170,11 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       if (cancelled) return;
       if (persist) writeCachedPanelDeviceId(id);
       setDeviceId(id);
-      // The kiosk host's frame-pacing hint must survive the move to the device URL.
-      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}${framePacingQuery(window.location.search)}`;
+      // The kiosk host's frame-pacing and surface hints must survive the move to the device URL.
+      const kept = new URLSearchParams(framePacingQuery(window.location.search));
+      if (surfaceHint) kept.set('surface', surfaceHint);
+      const query = kept.toString();
+      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}${query ? `?${query}` : ''}`;
       window.history.replaceState(null, '', target);
       setState('ready');
     };

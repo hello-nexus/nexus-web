@@ -1,4 +1,10 @@
-import type { PanelSurface } from '../types';
+import { PANEL_SURFACES, type PanelSurface } from '../types';
+
+// The launcher that identified the display hardware declares the surface (`?surface=`);
+// the viewport guess below is only the fallback for an unidentified browser.
+export function panelSurfaceHint(value: string | null): PanelSurface | null {
+  return (PANEL_SURFACES as readonly string[]).includes(value ?? '') ? value as PanelSurface : null;
+}
 
 // A Y70 is a uniquely tall, narrow strip: the 2.5K is 682x2560 (3.75:1) and the
 // 4K is 1100x3840 (3.5:1). No phone or tablet is anywhere near that tall, so the
