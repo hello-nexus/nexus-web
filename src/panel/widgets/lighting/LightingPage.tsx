@@ -3054,9 +3054,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               effect={gridEffect}
               onSelect={handleEffectPick}
               onEdit={openDock}
-              // The selected tile is the effect shown in the canvas, so the dock edits it
-              // for any selection; a blank gridEffect (mixed, global color) has no such tile.
-              editEnabled={effectEditEnabled(dockCollapsed, gridEffect)}
+              editEnabled={effectEditEnabled(dockCollapsed, gridEffect, selectedDeviceIds.size > 0, mode !== 'none' && !detachedTab)}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}
               frozen={viewMode === 'static'}
