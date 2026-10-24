@@ -9,10 +9,13 @@ import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
+import { PC_SETUP_TOPIC } from '../../../api/pcSetup';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
 import { relaySceneExport } from './buildScene';
+import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
@@ -197,6 +200,16 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
     win.postMessage(message, BUILD_ORIGIN);
   }, []);
 
+  // The revision the frame last learned of, so the ping after its own save is not pushed back.
+  const lastSetupRevRef = useRef<number | null>(null);
+  useTopicCallback(PC_SETUP_TOPIC, ready && !isRemoteOrigin, useCallback(() => {
+    void relaySetupPush().then(push => {
+      if (!push || push.rev === lastSetupRevRef.current) return;
+      lastSetupRevRef.current = push.rev;
+      post(push.message as FrameMessage);
+    });
+  }, [post]));
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== BUILD_ORIGIN) return;
@@ -240,6 +253,17 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
             type: 'nexus-build:scene-saved', v: 1, ok,
             ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}),
           }));
+          break;
+        case 'nexus-build:setup-get':
+          if (isRemoteOrigin) break;
+          void relaySetupGet(data).then(reply => post(reply as FrameMessage));
+          break;
+        case 'nexus-build:setup-put':
+          if (isRemoteOrigin) break;
+          void relaySetupPut(data).then(reply => {
+            if (typeof reply.rev === 'number') lastSetupRevRef.current = reply.rev;
+            post(reply as FrameMessage);
+          });
           break;
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();
@@ -301,6 +325,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       ...(onOpenBenchmark ? { canOpenBenchmark: true } : {}),
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
+      ...(!isRemoteOrigin ? { canSyncSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
