@@ -116,6 +116,8 @@ export interface PanelDeviceRecord {
   // Stable display id when this record was created by promoting an OS
   // monitor (POST /displays/{id}/panel). Absent on self-registered panels.
   displayId?: string;
+  // Per-panel "always on top" (display-bound records). Absent/null = on.
+  alwaysOnTop?: boolean;
   // Per-panel "keep panel clear of other windows" (display-bound records).
   reserveMonitor?: boolean;
   // Per-panel "keep the mouse off the panel" (display-bound records). Absent/null = off.
@@ -205,6 +207,8 @@ export interface PanelDevicePatch {
   // Full list (the client sends the whole selection); empty means none.
   lightingSelection?: string[];
   coolingSelection?: string[];
+  // Display-bound records only; ignored for other panels.
+  alwaysOnTop?: boolean;
   // Display-bound records only; ignored for other panels.
   reserveMonitor?: boolean;
   // Display-bound records only; ignored for other panels.
