@@ -11,9 +11,8 @@
   border-radius: 0;
 }
 
-// The Kraken's glass is round: it shows the inscribed circle of the square
+// Round cooler glass shows the inscribed circle of the square
 // frame we push, so the preview is only WYSIWYG masked to the same circle.
-.container[data-surface='kraken'],
 .container[data-surface='lcd-round'] {
   border-radius: 50%;
   // The iframe is composited (transform-scaled) and a full-opacity video

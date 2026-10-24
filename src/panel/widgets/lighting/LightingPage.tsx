@@ -1,11 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Music, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
-  fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
+  setLightingDevicePower, setLightingDeviceControlled,
   renameLightingDevice, saveLightingGroups, saveLightingStacks, saveDeviceLayout,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings,
@@ -124,8 +124,9 @@ import { PresetAppsModal } from './page/PresetAppsModal';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
+import { MusicReactiveControl } from './page/MusicReactiveControl';
 import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
-import { Select } from '../../../components/common/Select/Select';
+import { useMusicReactive } from '../../../hooks/useMusicReactive';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -620,7 +621,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [canvasFocusIds, deviceStacks, editorTarget, activeProfileId]);
 
-  const [musicReactive, setMusicReactiveState] = useState(false);
+  const { enabled: musicReactive, toggle: handleMusicReactiveToggle, refresh: refreshMusicReactive } = useMusicReactive(serviceOnline);
 
   // Optimistic local mirror of useLightingSync().paused, reconciled whenever
   // the server value changes (multiplex refetch, mode switch resetting it).
@@ -674,6 +675,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const activeProfileKey = activeProfileId ?? 'default';
   const activeProfileKeyRef = useRef(activeProfileKey);
   activeProfileKeyRef.current = activeProfileKey;
+  // Applying a profile can change Music Reactive, and the topic frame that would
+  // say so does not exist without a multiplex connection.
+  const musicProfileKeyRef = useRef(activeProfileKey);
+  useEffect(() => {
+    if (musicProfileKeyRef.current === activeProfileKey) return;
+    musicProfileKeyRef.current = activeProfileKey;
+    if (serviceOnline) refreshMusicReactive();
+  }, [activeProfileKey, serviceOnline, refreshMusicReactive]);
   const [loadedProfileLighting, setLoadedProfileLighting] = useState<{ profileKey: string; sync: string } | null>(null);
 
   const effectTemplatesRef = useRef(effectTemplates);
@@ -774,13 +783,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     Promise.all([
       safe(fetchCurrentSync()),
       safe(fetchAnimateSettings()),
-      safe(fetchMusicReactive()),
       safe(fetchScreenEffect()),
       safe(fetchMediaEffect()),
     ]).then(async ([
       currentSync,
       animateSettings,
-      musicSettings,
       screenEffect,
       mediaEffect,
     ]) => {
@@ -795,9 +802,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         // pre-hydrate {}) or the restored effect starts with the base look.
         await hydrateAnimateSettings(animateSettings, normalizeSync(sync) === 'static');
         if (cancelled) return;
-      }
-      if (musicSettings) {
-        setMusicReactiveState(!!musicSettings.enabled);
       }
       if (screenEffect) {
         setScreenPP(normalizePP(screenEffect));
@@ -849,9 +853,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       fetchAnimateSettings().then(data => {
         if (cancelled || !data) return;
         hydrateAnimateSettings(data);
-      });
-      fetchMusicReactive().then(data => {
-        if (!cancelled && data) setMusicReactiveState(!!data.enabled);
       });
     } else if (rawSync === 'screen') {
       fetchScreenEffect().then(data => {
@@ -917,16 +918,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       });
     }
   });
-
-  const handleMusicReactiveToggle = useCallback(async () => {
-    const next = !musicReactive;
-    setMusicReactiveState(next);
-    try {
-      await setMusicReactive(next);
-    } catch {
-      setMusicReactiveState(!next);
-    }
-  }, [musicReactive]);
 
   // The Marketplace's "Open in Lighting" effect, taken on mount so it never fires on a later visit.
   // Kept when StrictMode's second mount finds nothing left to take.
@@ -2511,6 +2502,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     : (scoped.kind === 'mixed' || (scoped.kind === 'none' && viewMode === 'static' && globalColor) ? '' : activeEffect);
   // With nothing selected, re-picking the running tile changes no card, so it
   // pulses none. A selection's re-pick can move a static pin to the current slot.
+  const openDock = useCallback(() => setDockCollapsed(false), [setDockCollapsed]);
   const handleEffectPick = (key: string) => {
     if (!(key === gridEffect && selectedDeviceIds.size === 0)) pulsePick();
     handleEffectSelect(key);
@@ -3027,28 +3019,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             {shaderMode && dockEffect && dockState && !mixedSelection && (
               <>
                 {showMusicButton && (
-                  <div className={styles.musicReactive}>
-                    <HoverTooltip body={t('lighting.musicReactive')} side="left">
-                      <button
-                        type="button"
-                        className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                        onClick={handleMusicReactiveToggle}
-                        aria-label={t('lighting.musicReactive')}
-                      >
-                        <Music size={14} strokeWidth={1.5} />
-                      </button>
-                    </HoverTooltip>
-                    {showAudioOutput && (
-                      <Select
-                        className={styles.musicReactiveOutput}
-                        value={audioOutput.value}
-                        options={audioOutput.options}
-                        onChange={audioOutput.select}
-                        ariaLabel={t('lighting.audioOutput.label')}
-                        height={26}
-                      />
-                    )}
-                  </div>
+                  <MusicReactiveControl active={musicReactive} onToggle={handleMusicReactiveToggle} output={showAudioOutput ? audioOutput : undefined} />
                 )}
                 <HoverTooltip body={t('lighting.fullscreen')} side="left">
                   <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
@@ -3081,6 +3052,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <AnimateGrid
               effect={gridEffect}
               onSelect={handleEffectPick}
+              onEdit={openDock}
+              // Re-picking is a no-op only with the engine on, an attached tab and no
+              // selection; otherwise it restarts Off, flashes the scope chip or moves pins.
+              editEnabled={dockCollapsed && mode !== 'none' && !detachedTab && selectedDeviceIds.size === 0}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}
               frozen={viewMode === 'static'}

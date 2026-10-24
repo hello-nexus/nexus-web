@@ -35,7 +35,7 @@ function scssNumber(name: string): number {
   return Number(m![1]);
 }
 
-const ROUND_SURFACES: PanelSurface[] = ['kraken', 'lcd-round'];
+const ROUND_SURFACES: PanelSurface[] = ['lcd-round'];
 const GLASS_SIZES = [640, 320, 240, 400, 480];
 
 describe('round full-bleed monitoring tile geometry', () => {

@@ -10,15 +10,23 @@ export type FreeformWidgetSize = `${number}x${number}`;
 export type PanelWidgetSize = PanelBaseWidgetSize | FreeformWidgetSize;
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
 // (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
-// 'lcd-round' / 'lcd-square' / 'lcd-wide' = a cooler LCD fed pushed JPEG frames. Unlike
-// 'kraken' these are not one model's resolution: the panel record carries the real pixel
-// size, so a 480x480 Galahad II LCD and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
+// 'lcd-round' / 'lcd-square' / 'lcd-wide' = a cooler LCD fed pushed frames. These are not
+// one model's resolution: the panel record carries the real pixel size, so a Galahad II
+// LCD, a Kraken and an ID-Cooling FX-LCD share 'lcd-round'.
 // The three differ only in the shape of the one tile they carry, which the surface picks.
 export const PANEL_SURFACES = [
-  'y70', 'q60', 'phone', 'desktop', 'monitor', 'kraken',
+  'y70', 'q60', 'phone', 'desktop', 'monitor',
   'lcd-round', 'lcd-square', 'lcd-wide',
 ] as const;
 export type PanelSurface = typeof PANEL_SURFACES[number];
+
+// What the service still persists on every Kraken record (and in profile files), so older
+// builds find it. Records read as 'lcd-round' through canonicalPanelRecord (src/api/panel.ts);
+// the web never stamps it.
+export const LEGACY_KRAKEN_SURFACE = 'kraken';
+export const NZXT_KRAKEN_FAMILY = 'nzxt-kraken';
+// The Kraken's grid density, stamped on its record because 'lcd-round' estimates another.
+export const KRAKEN_PANEL_DPI = 240;
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).
@@ -28,7 +36,7 @@ export type PanelSurface = typeof PANEL_SURFACES[number];
 export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolean): boolean {
   if (surface === 'monitor') return deviceTouch === true;
   // Cooler glass is a framebuffer on a USB pipe with no input path at all.
-  return surface !== 'q60' && surface !== 'kraken'
+  return surface !== 'q60'
     && surface !== 'lcd-round' && surface !== 'lcd-square' && surface !== 'lcd-wide';
 }
 
@@ -62,7 +70,7 @@ export function widgetDisplayShape(size: PanelWidgetSize): 'rect' | 'round' {
 // nexus-service). `displayBound` (PanelDeviceRecord.displayId set) tells them
 // apart - PanelDisplayBoundContext supplies the real per-device value.
 export function isStreamedPanelSurface(surface: PanelSurface, displayBound = true): boolean {
-  if (surface === 'kraken' || surface === 'lcd-round' || surface === 'lcd-square'
+  if (surface === 'lcd-round' || surface === 'lcd-square'
     || surface === 'lcd-wide' || surface === 'q60') return true;
   return surface === 'monitor' && !displayBound;
 }
@@ -99,8 +107,6 @@ export function canEditFreeText(surface?: PanelSurface, desktopEditor?: boolean)
 // LCD: ~240x800 portrait strip, no touch, room for one tile.
 export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, PanelWidgetSize>>> = {
   q60: '2x4',
-  // 640x640 round glass: one circular tile.
-  kraken: '2x2round',
   // Cooler LCDs: one tile, masked to the glass's shape.
   'lcd-round': '2x2round',
   'lcd-square': '2x2',
@@ -132,8 +138,8 @@ export function widgetLayoutSize(size: PanelWidgetSize): PanelWidgetSize {
 const MOUNT_ORIENTABLE_SURFACES: ReadonlySet<PanelSurface> =
   new Set<PanelSurface>(['lcd-round', 'lcd-square', 'lcd-wide']);
 
-export function surfaceSupportsMountOrientation(surface: PanelSurface): boolean {
-  return MOUNT_ORIENTABLE_SURFACES.has(surface);
+export function surfaceSupportsMountOrientation(surface: PanelSurface, family?: string | null): boolean {
+  return MOUNT_ORIENTABLE_SURFACES.has(surface) && family !== NZXT_KRAKEN_FAMILY;
 }
 
 // Square cooler glass can be landscape, where its tile is shorter than the
