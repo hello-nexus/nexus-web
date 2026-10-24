@@ -1,7 +1,7 @@
 import { useFocus } from '../../hooks/useFocus';
 import type { FocusStatus } from '../../api/focus';
 import type { PanelThemeState } from '../theme/panelTheme';
-import type { PanelSurface } from '../types';
+import { ASUS_GLACIAL_LCD_FAMILY, type PanelSurface } from '../types';
 
 // Surfaces this PC renders (kiosks and streamed LCDs); Q-series and phones draw themselves.
 const HOST_RENDERED_SURFACES: ReadonlySet<PanelSurface> = new Set<PanelSurface>([
@@ -13,6 +13,14 @@ export function focusStaticBackgroundMode(status: FocusStatus | null, surface: P
   if (!status?.activeModeId || !HOST_RENDERED_SURFACES.has(surface)) return null;
   const mode = status.modes.find(m => m.id === status.activeModeId);
   return mode?.staticPanelBackgrounds ? mode.name : null;
+}
+
+/** Families whose screen refreshes about once per second, so an animated background only causes constant blanking. */
+const SLOW_SCREEN_FAMILIES: ReadonlySet<string> = new Set<string>([ASUS_GLACIAL_LCD_FAMILY]);
+
+/** Whether this device family always renders animated backgrounds as a plain one. */
+export function familyForcesStaticBackground(family: string | null | undefined): boolean {
+  return !!family && SLOW_SCREEN_FAMILIES.has(family);
 }
 
 /** Whether a background redraws every frame: a shader, animated media, or a slideshow. */

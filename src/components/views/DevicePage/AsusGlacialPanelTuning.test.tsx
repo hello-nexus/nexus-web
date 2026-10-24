@@ -26,12 +26,12 @@ vi.mock('../../../api/asus-glacial-lcd', () => ({
 const tuning = (over: { settings?: object; stats?: object } = {}) => ({
   settings: {
     maxFps: 5, pacePercent: 19, replyDriven: true, scalePercent: 50, scaleMode: 'send',
-    jpegQuality: 65, chunkKb: 4, doubleBuffer: false, closeWriteMode: true, rawStream: false, updateInPlace: false, rawProbe: false, ...over.settings,
+    jpegQuality: 65, chunkKb: 4, doubleBuffer: false, closeWriteMode: true, ...over.settings,
   },
   stats: {
     uploadsOk: 10, uploadsFailed: 1, lastUploadMs: 900, uploadsPerSec: 1.1, lastFrameBytes: 20480,
     lastEncodeMs: 12, lastError: null, lastErrorAt: null, stalled: false,
-    ackReplies: 40, ackTimeouts: 2, lastUploadAckWaitMs: 350, lastCommitWaitMs: 800, rawFramesOk: 7, rawFramesFailed: 0, rawActive: false, ...over.stats,
+    ackReplies: 40, ackTimeouts: 2, lastUploadAckWaitMs: 350, lastCommitWaitMs: 800, ...over.stats,
   },
 });
 
@@ -70,42 +70,18 @@ describe('AsusGlacialPanelTuning', () => {
     expect(mockSet).toHaveBeenCalledWith({ replyDriven: false });
   });
 
-  it('applies the close write mode and raw stream toggles at once, raw stream off by default', async () => {
+  it('applies the close write mode toggle at once', async () => {
     await mount();
     expect(screen.getByRole('switch', { name: /closeWriteMode/ })).toBeChecked();
-    expect(screen.getByRole('switch', { name: /rawStream/ })).not.toBeChecked();
     await act(async () => { fireEvent.click(screen.getByRole('switch', { name: /closeWriteMode/ })); });
     expect(mockSet).toHaveBeenCalledWith({ closeWriteMode: false });
-    await act(async () => { fireEvent.click(screen.getByRole('switch', { name: /rawStream/ })); });
-    expect(mockSet).toHaveBeenCalledWith({ rawStream: true });
   });
 
-  it('applies the two probe toggles at once, both off by default', async () => {
-    await mount();
-    expect(screen.getByRole('switch', { name: /updateInPlace/ })).not.toBeChecked();
-    expect(screen.getByRole('switch', { name: /rawProbe/ })).not.toBeChecked();
-    await act(async () => { fireEvent.click(screen.getByRole('switch', { name: /updateInPlace/ })); });
-    expect(mockSet).toHaveBeenCalledWith({ updateInPlace: true });
-    await act(async () => { fireEvent.click(screen.getByRole('switch', { name: /rawProbe/ })); });
-    expect(mockSet).toHaveBeenCalledWith({ rawProbe: true });
-  });
-
-  it('shows the reply statistics, and the raw frame counts only while raw streaming is on', async () => {
+  it('shows the reply statistics', async () => {
     await mount();
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.ackRepliesValue:{"ok":"40","missed":"2"}')).toBeInTheDocument();
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.unitMs:{"n":"350"}')).toBeInTheDocument();
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.unitMs:{"n":"800"}')).toBeInTheDocument();
-    expect(screen.queryByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"0"}')).toBeNull();
-  });
-
-  it('keeps the raw frame counts after the service switched raw streaming off by itself', async () => {
-    await mount(tuning({ stats: { rawFramesFailed: 3 } }));
-    expect(screen.getByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"3"}')).toBeInTheDocument();
-  });
-
-  it('shows the raw frame counts while raw streaming is on', async () => {
-    await mount(tuning({ settings: { rawStream: true } }));
-    expect(screen.getByText('devices.asus-glacial-lcd.tuning.rawFramesValue:{"ok":"7","failed":"0"}')).toBeInTheDocument();
   });
 
   it('applies the scale mode chip at once', async () => {
@@ -133,7 +109,7 @@ describe('AsusGlacialPanelTuning', () => {
     expect(mockReset).toHaveBeenCalledTimes(1);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.asus-glacial-lcd.tuning.restoreDefaults' })); });
     expect(mockSet).toHaveBeenCalledWith(GLACIAL_TUNING_DEFAULTS);
-    expect(GLACIAL_TUNING_DEFAULTS).toMatchObject({ maxFps: 30, replyDriven: true, closeWriteMode: true, rawStream: false, updateInPlace: false, rawProbe: false, scaleMode: 'send', pacePercent: 19, doubleBuffer: false, chunkKb: 4, jpegQuality: 65, scalePercent: 100 });
+    expect(GLACIAL_TUNING_DEFAULTS).toMatchObject({ maxFps: 30, replyDriven: true, closeWriteMode: true, scaleMode: 'send', pacePercent: 19, doubleBuffer: false, chunkKb: 4, jpegQuality: 65, scalePercent: 100 });
   });
 
   it('toasts when a write is refused', async () => {

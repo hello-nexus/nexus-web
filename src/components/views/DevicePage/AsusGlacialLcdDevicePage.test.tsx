@@ -8,6 +8,9 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
+let devTools = true;
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return devTools; } }));
+
 const mockGet = vi.fn();
 const mockSet = vi.fn();
 const mockPush = vi.fn();
@@ -67,6 +70,7 @@ async function mount(state = base) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  devTools = true;
   mockSet.mockResolvedValue(true);
 });
 
@@ -184,6 +188,20 @@ describe('AsusGlacialLcdDevicePage', () => {
   it('shows the tuning card only in Nexus panel mode when panel mode is offered', async () => {
     await mount({ ...base, mode: 'panel', panelModeAvailable: true });
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.section')).toBeInTheDocument();
+  });
+
+  it('hides the tuning card outside dev tools builds', async () => {
+    devTools = false;
+    await mount({ ...base, mode: 'panel', panelModeAvailable: true });
+    expect(screen.queryByText('devices.asus-glacial-lcd.tuning.section')).toBeNull();
+  });
+
+  it('warns about the slow update only in Nexus panel mode', async () => {
+    await mount({ ...base, mode: 'panel', panelModeAvailable: true });
+    expect(screen.getByText('devices.asus-glacial-lcd.panelSlowNotice')).toBeInTheDocument();
+    cleanup();
+    await mount({ ...base, mode: 'animated', panelModeAvailable: true });
+    expect(screen.queryByText('devices.asus-glacial-lcd.panelSlowNotice')).toBeNull();
   });
 
   it('keeps the tuning card away in native modes and when panel mode is not offered', async () => {

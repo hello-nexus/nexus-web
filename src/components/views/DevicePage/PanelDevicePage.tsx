@@ -1665,6 +1665,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onFontCommit={panelTheme.commitFont}
                             showMediaTab={surface !== 'desktop'}
                             backgroundHeldBy={backgroundHeldBy}
+                            animatedBackgroundsOff={isGlacialLcdPanel}
                             deviceAspect={devAspect}
                             roundDisplay={surfaceDisplayShape(surface) === 'round'}
                             deviceW={nativeW}

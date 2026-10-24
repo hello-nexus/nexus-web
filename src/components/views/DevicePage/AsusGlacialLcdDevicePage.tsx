@@ -3,6 +3,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
+import { Notice } from '../../common/Notice/Notice';
 import { TextInput } from '../../common/TextInput/TextInput';
 import { useToast } from '../../common/Toast/Toast';
 import { SensorPicker, useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
@@ -19,6 +20,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import { AsusGlacialPanelTuning } from './AsusGlacialPanelTuning';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { useReportDeviceWaiting } from './deviceDetecting';
 import { GLACIAL_LABEL_MAX_BYTES, truncateUtf8 } from './asusGlacialLcdUtils';
 import styles from './LianLiDevicePage.module.scss';
@@ -160,6 +162,10 @@ export function AsusGlacialLcdControls() {
         />
       </SettingRow>
 
+      {chosen && mode === 'panel' && state?.panelModeAvailable === true && (
+        <Notice tone="warning" role="status">{t('devices.asus-glacial-lcd.panelSlowNotice')}</Notice>
+      )}
+
       {chosen && (mode === 'static' || mode === 'animated') && (
         <SettingSelect
           label={t(mode === 'static' ? 'devices.asus-glacial-lcd.picture' : 'devices.asus-glacial-lcd.animation')}
@@ -211,7 +217,7 @@ export function AsusGlacialLcdControls() {
         </>
       )}
     </SettingsSection>
-    {chosen && mode === 'panel' && state?.panelModeAvailable === true && <AsusGlacialPanelTuning />}
+    {DEV_TOOLS && chosen && mode === 'panel' && state?.panelModeAvailable === true && <AsusGlacialPanelTuning />}
     </>
   );
 }

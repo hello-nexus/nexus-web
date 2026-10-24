@@ -48,9 +48,6 @@ export const GLACIAL_TUNING_DEFAULTS: GlacialTuningSettings = {
   chunkKb: 4,
   doubleBuffer: false,
   closeWriteMode: true,
-  rawStream: false,
-  updateInPlace: false,
-  rawProbe: false,
 };
 
 /** The Nexus panel streaming controls: apply at once, with a live view of what the uploads are doing. */
@@ -281,27 +278,6 @@ export function AsusGlacialPanelTuning() {
         disabled={!ready}
         onChange={on => edit({ closeWriteMode: on })}
       />
-      <SettingToggle
-        label={t('devices.asus-glacial-lcd.tuning.rawStream')}
-        description={t('devices.asus-glacial-lcd.tuning.rawStreamHint')}
-        checked={s?.rawStream ?? false}
-        disabled={!ready}
-        onChange={on => edit({ rawStream: on })}
-      />
-      <SettingToggle
-        label={t('devices.asus-glacial-lcd.tuning.updateInPlace')}
-        description={t('devices.asus-glacial-lcd.tuning.updateInPlaceHint')}
-        checked={s?.updateInPlace ?? false}
-        disabled={!ready}
-        onChange={on => edit({ updateInPlace: on })}
-      />
-      <SettingToggle
-        label={t('devices.asus-glacial-lcd.tuning.rawProbe')}
-        description={t('devices.asus-glacial-lcd.tuning.rawProbeHint')}
-        checked={s?.rawProbe ?? false}
-        disabled={!ready}
-        onChange={on => edit({ rawProbe: on })}
-      />
 
       <SettingRow label={t('devices.asus-glacial-lcd.tuning.rate')}>
         <span>{stats ? t('devices.asus-glacial-lcd.tuning.unitPerSec', { n: num(stats.uploadsPerSec, 2) }) : ''}</span>
@@ -327,11 +303,6 @@ export function AsusGlacialPanelTuning() {
       <SettingRow label={t('devices.asus-glacial-lcd.tuning.lastCommitWait')}>
         <span>{stats ? t('devices.asus-glacial-lcd.tuning.unitMs', { n: num(stats.lastCommitWaitMs) }) : ''}</span>
       </SettingRow>
-      {(s?.rawStream || stats?.rawActive || (stats?.rawFramesFailed ?? 0) > 0) && (
-        <SettingRow label={t('devices.asus-glacial-lcd.tuning.rawFrames')}>
-          <span>{stats ? t('devices.asus-glacial-lcd.tuning.rawFramesValue', { ok: num(stats.rawFramesOk), failed: num(stats.rawFramesFailed) }) : ''}</span>
-        </SettingRow>
-      )}
       {stats?.lastError && (
         <SettingRow label={t('devices.asus-glacial-lcd.tuning.lastError')}>
           <span>{stats.lastError}</span>

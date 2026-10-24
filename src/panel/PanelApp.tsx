@@ -169,7 +169,7 @@ import {
   usePanelTheme,
   useResolvedPanelThemeMode,
 } from './theme/panelTheme';
-import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
+import { familyForcesStaticBackground, useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
 import type { PanelThemeSettingsSection } from './editor/PanelThemeSettings';
 import {
@@ -488,10 +488,11 @@ export function PanelContent({
   // resolveEffectivePanelTheme for what each surface forces.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
   const focusStaticMode = useFocusStaticBackground(surface, !simulator && !embedded);
+  const slowScreen = familyForcesStaticBackground(recordState.record?.capabilities?.family);
   const effectiveTheme = useMemo(() => {
     const theme = resolveEffectivePanelTheme(baseTheme, surface);
-    return focusStaticMode ? withStaticBackground(theme) : theme;
-  }, [baseTheme, surface, focusStaticMode]);
+    return focusStaticMode || slowScreen ? withStaticBackground(theme) : theme;
+  }, [baseTheme, surface, focusStaticMode, slowScreen]);
   usePanelLanguageSync(kioskBehavior, panelTheme.prefs);
   // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
   // tracking the desktop OS); fall back to appThemeMode when unpublished -
@@ -2471,6 +2472,7 @@ export function PanelContent({
           onThemeBackdropCommit={panelTheme.commitBackdrop}
           showBackdropSelector={wallpaperBackgroundAvailable}
           backgroundHeldBy={focusStaticMode}
+          animatedBackgroundsOff={slowScreen}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

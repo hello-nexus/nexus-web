@@ -81,12 +81,6 @@ export interface GlacialTuningSettings {
   doubleBuffer: boolean;
   /** Sends the write-mode close report before the picture is shown. */
   closeWriteMode: boolean;
-  /** Experimental: uncompressed frames instead of stored pictures. */
-  rawStream: boolean;
-  /** Probe: rewrite the slot on display and send no show. */
-  updateInPlace: boolean;
-  /** Probe: raw stream with opaque frames and a state query first. */
-  rawProbe: boolean;
 }
 
 export interface GlacialTuningStats {
@@ -104,9 +98,6 @@ export interface GlacialTuningStats {
   ackTimeouts: number;
   lastUploadAckWaitMs: number;
   lastCommitWaitMs: number;
-  rawFramesOk: number;
-  rawFramesFailed: number;
-  rawActive: boolean;
 }
 
 export interface GlacialTuning {

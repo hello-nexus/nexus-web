@@ -79,6 +79,7 @@ export function PanelEditorSheet({
   onThemeImmersiveBackdropCommit,
   showBackdropSelector = false,
   backgroundHeldBy = null,
+  animatedBackgroundsOff = false,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
@@ -167,6 +168,7 @@ export function PanelEditorSheet({
   showBackdropSelector?: boolean;
   // Focus mode holding the panel on a plain background right now, if any.
   backgroundHeldBy?: string | null;
+  animatedBackgroundsOff?: boolean;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
@@ -467,6 +469,7 @@ export function PanelEditorSheet({
               onBackdropCommit={onThemeBackdropCommit}
               showBackdropSelector={showBackdropSelector}
               backgroundHeldBy={backgroundHeldBy}
+              animatedBackgroundsOff={animatedBackgroundsOff}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}

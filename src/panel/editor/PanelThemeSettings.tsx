@@ -166,6 +166,8 @@ export interface PanelThemeSettingsProps {
   showEffectSearch?: boolean;
   /** Name of the focus mode holding this panel on a plain background right now, if any. */
   backgroundHeldBy?: string | null;
+  /** This screen is too slow for animated backgrounds, so they render as a plain one. */
+  animatedBackgroundsOff?: boolean;
 }
 
 export function PanelThemeSettings({
@@ -214,6 +216,7 @@ export function PanelThemeSettings({
   showImmersiveBackdrop = true,
   sections = 'all',
   backgroundHeldBy = null,
+  animatedBackgroundsOff = false,
 }: PanelThemeSettingsProps) {
   const showTheme = sections !== 'background';
   const showBackground = sections !== 'theme';
@@ -467,6 +470,9 @@ export function PanelThemeSettings({
           <div className={styles.backgroundContent} data-settings-aside>
             {backgroundHeldBy && (
               <Notice tone="info" role="status">{label('panel.settings.backgroundHeldByFocus', '{mode} is showing a plain background right now. Your background comes back when it ends.').replace('{mode}', () => backgroundHeldBy)}</Notice>
+            )}
+            {animatedBackgroundsOff && !backgroundHeldBy && (
+              <Notice tone="info" role="status">{label('panel.settings.backgroundSlowScreen', 'This screen updates too slowly for animated backgrounds, so they show a plain background.')}</Notice>
             )}
             {showBackdropSelector && (
               <SettingRow

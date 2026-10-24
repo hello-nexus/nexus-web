@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FocusMode, FocusStatus } from '../../api/focus';
 import type { PanelThemeState } from '../theme/panelTheme';
-import { focusStaticBackgroundMode, withStaticBackground } from './focusStaticBackground';
+import { familyForcesStaticBackground, focusStaticBackgroundMode, withStaticBackground } from './focusStaticBackground';
 
 function status(activeModeId: string | null, staticPanelBackgrounds: boolean): FocusStatus {
   const mode: FocusMode = {
@@ -50,5 +50,14 @@ describe('withStaticBackground', () => {
     expect(withStaticBackground(still)).toBe(still);
     const solid = { ...base, backgroundMode: 'solid' } as PanelThemeState;
     expect(withStaticBackground(solid)).toBe(solid);
+  });
+});
+
+describe('familyForcesStaticBackground', () => {
+  it('forces a plain background for the ASUS Glacial LCD only', () => {
+    expect(familyForcesStaticBackground('asus-glacial-lcd')).toBe(true);
+    expect(familyForcesStaticBackground('xeneon-edge')).toBe(false);
+    expect(familyForcesStaticBackground(undefined)).toBe(false);
+    expect(familyForcesStaticBackground(null)).toBe(false);
   });
 });
