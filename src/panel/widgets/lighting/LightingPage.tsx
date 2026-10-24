@@ -2502,6 +2502,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     : (scoped.kind === 'mixed' || (scoped.kind === 'none' && viewMode === 'static' && globalColor) ? '' : activeEffect);
   // With nothing selected, re-picking the running tile changes no card, so it
   // pulses none. A selection's re-pick can move a static pin to the current slot.
+  const openDock = useCallback(() => setDockCollapsed(false), [setDockCollapsed]);
   const handleEffectPick = (key: string) => {
     if (!(key === gridEffect && selectedDeviceIds.size === 0)) pulsePick();
     handleEffectSelect(key);
@@ -3051,7 +3052,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <AnimateGrid
               effect={gridEffect}
               onSelect={handleEffectPick}
-              onEdit={dockCollapsed ? () => setDockCollapsed(false) : undefined}
+              onEdit={openDock}
+              // Re-picking is a no-op only with the engine on, an attached tab and no
+              // selection; otherwise it restarts Off, flashes the scope chip or moves pins.
+              editEnabled={dockCollapsed && mode !== 'none' && !detachedTab && selectedDeviceIds.size === 0}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}
               frozen={viewMode === 'static'}

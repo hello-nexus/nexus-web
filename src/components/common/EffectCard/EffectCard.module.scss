@@ -222,7 +222,7 @@
 // The pencil only exists on the selected card, so :hover on the card shows it
 // the moment the pointer is already over it when the selection lands.
 .card:hover [data-card-edit],
-.card:focus-within [data-card-edit] {
+.card:focus-visible [data-card-edit] {
   opacity: 1;
   pointer-events: auto;
 }

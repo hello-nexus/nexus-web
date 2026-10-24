@@ -31,6 +31,8 @@ interface EffectCardBaseProps {
    * since nested buttons are invalid HTML.
    */
   asDiv?: boolean;
+  /** Div path only: omit aria-pressed, matching the plain button path (a picker that never announced "pressed"). */
+  noPressedState?: boolean;
   /** Overlay rendered inside the thumbnail, centred (used for the importing spinner). */
   thumbOverlay?: ReactNode;
   /**
@@ -79,7 +81,7 @@ type EffectCardProps = EffectCardBaseProps & (
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel, onEdit, editAriaLabel,
-  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive,
+  asDiv, noPressedState, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive,
 }: EffectCardProps) {
   const { t } = useTranslation();
   // An image that fails to load leaves the plain tile until a new one arrives, never a broken-image glyph.
@@ -144,7 +146,7 @@ export function EffectCard({
         className={className}
         onClick={onClick}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
-        aria-pressed={active}
+        aria-pressed={noPressedState ? undefined : active}
         aria-label={ariaLabel ?? label}
         data-effect-key={dataEffectKey}
       >
