@@ -99,7 +99,7 @@ import styles from './CoolingPage.module.scss';
  * fans bind to a curve through each fan card's mode dropdown.
  */
 
-// The raw defines fold in this module, so a distribution build drops the chunk and the view switch; COOLING_3D in sceneFeature does not fold across modules.
+// Dev-tools only. The raw defines fold in this module, so a distribution build drops the chunk and the view switch; a shared const does not fold across modules.
 const CoolingCase3D = (import.meta.env.DEV || __DEV_TOOLS__)
   ? lazy(() => import('./case3d/CoolingCase3D').then(m => ({ default: m.CoolingCase3D })))
   : null;
