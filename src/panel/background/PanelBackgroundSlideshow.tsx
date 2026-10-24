@@ -14,6 +14,8 @@ const LOAD_CEILING_MS = 30_000;
 // Grace on top of a paced video's expected run before the slideshow moves on regardless.
 const VIDEO_STALL_GRACE_MS = 15_000;
 
+const isVideoItem = (item: BackgroundMediaItem | null) => !!item && item.type === 'animated' && !item.alpha;
+
 /**
  * Cycles this panel's background-media library. `startId` (the record's
  * selected asset) leads the cycle. Slides crossfade: the next asset mounts
@@ -94,6 +96,13 @@ export function PanelBackgroundSlideshow({
       return;
     }
     if (item.id === currentRef.current.id || item.id === incomingRef.current?.id) return;
+    // Two live video decodes at once stall low-end panels: cut video to video.
+    if (isVideoItem(currentRef.current) && isVideoItem(item)) {
+      setIncoming(null);
+      setIncomingReady(false);
+      setCurrent(item);
+      return;
+    }
     setIncoming(item);
     setIncomingReady(false);
   }, [setCurrent, setIncoming]);
@@ -216,7 +225,7 @@ export function PanelBackgroundSlideshow({
   }, [advance]);
 
   const liveCount = items.filter(item => !failedRef.current.has(item.id)).length;
-  const isVideo = !!current && current.type === 'animated' && !current.alpha;
+  const isVideo = isVideoItem(current);
   // A paced video's own ended handler moves the slideshow on; the tick stays
   // off so a still that follows gets its full interval.
   const videoPaced = isVideo && finishVideos && liveCount > 1;
@@ -256,8 +265,12 @@ export function PanelBackgroundSlideshow({
     playsRef.current += 1;
     // An unknown or zero duration cannot be paced; treat it as done.
     const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : Infinity;
-    if (videoPaced && playsRef.current * durationMs >= intervalMs) advance();
-    // Replays either way: the swap waits on the next slide's decode.
+    if (videoPaced && playsRef.current * durationMs >= intervalMs) {
+      const before = currentRef.current;
+      advance();
+      // Moving on: a cut already swapped the slide, a crossfade holds the last frame.
+      if (currentRef.current !== before || incomingRef.current) return;
+    }
     video.currentTime = 0;
     video.play()?.catch(() => {});
     if (videoPaced) armCeiling(durationMs === Infinity ? 0 : durationMs);

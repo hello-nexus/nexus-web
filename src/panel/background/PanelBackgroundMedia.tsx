@@ -46,6 +46,18 @@ export function PanelBackgroundMedia({
     else videoRef.current?.play().catch(() => {});
   }, [url, covered]);
 
+  // A removed video otherwise holds its hardware decoder until GC, and a panel
+  // with a single decoder cannot start the next clip.
+  useEffect(() => {
+    const video = videoRef.current;
+    return () => {
+      if (!video) return;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, []);
+
   return (
     <div
       className={styles.backgroundMedia}
