@@ -9,6 +9,7 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { SyncConflictModal } from '../../common/SyncConflictModal/SyncConflictModal';
 import { AccountSignInModal } from './Account/AccountSignInModal';
+import { setupSkipped } from '../../../api/pcSetup';
 import { deleteCloudProfile, fetchCloudLibrary, importCloudProfile, type CloudLibrary } from '../../../api/cloud';
 import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { useSyncStatus } from '../../../hooks/useSyncStatus';
@@ -154,6 +155,7 @@ export function CloudProfilesSection(
       return;
     }
     setImportedKeys(prev => prev.includes(key) ? prev : [...prev, key]);
+    if (setupSkipped(body?.pcSetup)) setImportError(t('profile.importSetupSkipped'));
     void profiles.refresh();
     loadLibrary();
   };

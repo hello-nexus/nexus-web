@@ -176,6 +176,17 @@ describe('ProfilesTab rename', () => {
 describe('ProfilesTab import', () => {
   beforeEach(() => { inspectProfileFile.mockReset().mockResolvedValue(null); });
 
+  it('says so when the imported file carried a PC setup the service skipped', async () => {
+    const result = { status: 200, body: { error: false, msg: 'Ok', profile: PROFILE_A, pcSetup: 'skipped_new_profile' } };
+    const profiles = buildProfiles({ importProfile: vi.fn().mockResolvedValue(result) });
+    render(<ProfilesTab profiles={profiles} onPreferencesChanged={vi.fn()} />);
+
+    const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText('profile.importSetupSkipped')).toBeInTheDocument());
+  });
+
   it('on a 409 profile_name_taken, opens the replace confirm dialog instead of the inline error', async () => {
     const profiles = buildProfiles({ importProfile: vi.fn().mockResolvedValue(taken()) });
     render(<ProfilesTab profiles={profiles} onPreferencesChanged={vi.fn()} />);

@@ -29,6 +29,8 @@ export interface SceneObject {
   yaw: number;
   size: Vec3;
   hasModel?: boolean;
+  /** A curved monitor: the radius of its screen arc. Build writes it into the shared setup's resolved objects. */
+  curve?: { radiusMm: number } | null;
   anchors: SceneAnchor[];
 }
 

@@ -19,7 +19,16 @@ export interface PcSetupItem {
   id: string;
   kind: string;
   catalog?: { category: string; partId: string; title: string; specs?: unknown };
-  custom?: { name: string; widthMm?: number; depthMm?: number; price?: number };
+  custom?: {
+    name: string;
+    widthMm?: number;
+    depthMm?: number;
+    price?: number;
+    shape?: 'straight' | 'l';
+    returnWidthMm?: number;
+    returnDepthMm?: number;
+    returnSide?: 'left' | 'right';
+  };
   owned: boolean;
   detected?: { key: string; hidden?: boolean };
   replaces?: string;
@@ -53,6 +62,11 @@ export type PcSetupWrite =
   | { kind: 'conflict'; record: PcSetupRecord }
   | { kind: 'invalid'; code: string; msg: string }
   | { kind: 'unreachable' };
+
+/** What a profile or cloud import did with the PC setup it carried; the `skipped_` outcomes left this PC's setup untouched. */
+export type PcSetupImportOutcome = 'applied' | 'applied_unknown_machine' | 'skipped_other_machine' | 'skipped_new_profile';
+
+export const setupSkipped = (outcome: string | null | undefined): boolean => typeof outcome === 'string' && outcome.startsWith('skipped_');
 
 /** The service topic that pings `{ rev }` after every save; subscribers refetch. */
 export const PC_SETUP_TOPIC = 'system/setup';

@@ -8,6 +8,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { PromptModal } from '../../common/PromptModal/PromptModal';
 import { SortableList } from '../../common/SortableList/SortableList';
+import { setupSkipped } from '../../../api/pcSetup';
 import { exportProfile, inspectProfileFile, type Preferences, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
 import { isProfileNameTaken } from '../../../hooks/profileNameUtils';
@@ -69,6 +70,8 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
     const result = await profiles.importProfile(file, false, includeAppData);
     if (result.body?.msg === 'profile_name_taken') {
       setConfirmTarget({ kind: 'replaceImport', file, includeAppData });
+    } else if (setupSkipped(result.body?.pcSetup)) {
+      setImportError(t('profile.importSetupSkipped'));
     }
   };
 
@@ -98,6 +101,8 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
       const result = await profiles.importProfile(target.file, true, target.includeAppData);
       if (result.body?.msg === 'profile_name_taken') {
         setImportError(t('profile.importDuplicateName'));
+      } else if (setupSkipped(result.body?.pcSetup)) {
+        setImportError(t('profile.importSetupSkipped'));
       }
     }
   }, [confirmTarget, profiles, sharing, t]);

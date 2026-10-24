@@ -358,7 +358,7 @@ function SceneEditor({
               selectedDeviceId={selectedDeviceId}
               selectedObjectId={selectedObjectId}
               placing={placing !== null || (selectedDeviceId !== null && !selectedBinding)}
-              editable
+              editable={!!selectedObject && api.movable(selectedObject.id)}
               backdrop={backdrop}
               shaderEffect={shaderEffect}
               shaderState={shaderState}

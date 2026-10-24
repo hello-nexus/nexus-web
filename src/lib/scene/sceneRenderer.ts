@@ -32,6 +32,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
+import { curvedProfile, curveRadius } from './curvedPanel';
 import { CANVAS_H, CANVAS_W, rotateYaw, toWorld } from './sceneMath';
 
 export type ScenePick =
@@ -443,6 +444,8 @@ export class SceneRenderer {
 
   private buildDesk(objects: SceneObject[]): Group {
     const g = new Group();
+    // A desk from the shared setup draws as its own surface; the surface fitted around the objects is only for scenes without one.
+    if (objects.some(o => o.kind === 'desk')) return g;
     const desk = objects.filter(o => o.kind !== 'case' || o.position[1] <= 1);
     let minX = -800, maxX = 800, minZ = -375, maxZ = 375;
     for (const o of desk) {
@@ -461,7 +464,61 @@ export class SceneRenderer {
     return g;
   }
 
+  private deskSurface(obj: SceneObject): Group {
+    const g = new Group();
+    const [w, h, d] = obj.size;
+    const geo = new BoxGeometry(w, h, d);
+    const slab = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.desk), transparent: true, opacity: 0.35, depthWrite: false }));
+    slab.position.y = -h / 2;
+    slab.userData = { pick: 'object', objectId: obj.id, role: 'face' };
+    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.25 * STRUCTURE_LINE_DIM }));
+    edges.position.y = -h / 2;
+    edges.userData = { role: 'edges' };
+    g.add(slab, edges);
+    return g;
+  }
+
+  private curvedMonitor(obj: SceneObject, radius: number): Group {
+    const g = new Group();
+    const [w, h, d] = obj.size;
+    const front = curvedProfile(w, radius, 24);
+    const pos: number[] = [];
+    const tri: number[] = [];
+    front.forEach(([x, z], i) => {
+      pos.push(x, 0, z, x, h, z);
+      if (i > 0) tri.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
+    });
+    const faceGeo = new BufferGeometry();
+    faceGeo.setAttribute('position', new Float32BufferAttribute(pos, 3));
+    faceGeo.setIndex(tri);
+    const face = new Mesh(faceGeo, new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.22, side: DoubleSide, depthWrite: false }));
+    face.userData = { pick: 'object', objectId: obj.id, role: 'face' };
+    // The back follows the front, one thickness behind it.
+    const lines: number[] = [];
+    const seg = (a: number[], b: number[]) => lines.push(...a, ...b);
+    for (const y of [0, h]) {
+      for (let i = 1; i < front.length; i++) {
+        seg([front[i - 1][0], y, front[i - 1][1]], [front[i][0], y, front[i][1]]);
+        seg([front[i - 1][0], y, front[i - 1][1] - d], [front[i][0], y, front[i][1] - d]);
+      }
+    }
+    for (const [x, z] of [front[0], front[front.length - 1]]) {
+      seg([x, 0, z], [x, h, z]);
+      seg([x, 0, z - d], [x, h, z - d]);
+      for (const y of [0, h]) seg([x, y, z], [x, y, z - d]);
+    }
+    const edgeGeo = new BufferGeometry();
+    edgeGeo.setAttribute('position', new Float32BufferAttribute(lines, 3));
+    const edges = new LineSegments(edgeGeo, new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.6 * STRUCTURE_LINE_DIM }));
+    edges.userData = { role: 'edges' };
+    g.add(face, edges);
+    return g;
+  }
+
   private objectBox(obj: SceneObject): Group {
+    if (obj.kind === 'desk') return this.deskSurface(obj);
+    const radius = curveRadius(obj);
+    if (radius !== null) return this.curvedMonitor(obj, radius);
     const g = new Group();
     const [w, h, d] = obj.size;
     const geo = new BoxGeometry(w, h, d);
