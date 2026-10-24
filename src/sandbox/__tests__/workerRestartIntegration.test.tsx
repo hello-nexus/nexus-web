@@ -37,6 +37,14 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
+// The first worker never answers; every respawn answers each ping with a pong.
+class FirstSilentWorker extends SilentWorker {
+  private readonly answers = workers.indexOf(this) > 0;
+  private readonly listeners: Array<(e: { data: unknown }) => void> = [];
+  addEventListener(type: string, fn: (e: { data: unknown }) => void) { if (type === 'message') this.listeners.push(fn); }
+  postMessage(m: { type?: string }) { if (this.answers && m?.type === 'nexus.ping') this.listeners.forEach((fn) => fn({ data: { type: 'nexus.pong' } })); }
+}
+
 const advance = (ms: number) => { for (let t = 0; t < ms; t += 5000) act(() => { vi.advanceTimersByTime(5000); }); };
 
 describe('silent worker, real watchdog and widget', () => {
@@ -56,5 +64,19 @@ describe('silent worker, real watchdog and widget', () => {
 
     advance(3 * 60 * 1000);
     expect(workers.length).toBeGreaterThan(4);
+  });
+
+  it('keeps a respawned worker that answers pings, so the dead worker leaves no watchdog behind', async () => {
+    vi.stubGlobal('Worker', FirstSilentWorker);
+    const { SandboxedWidget } = await import('../SandboxedWidget');
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:e" widgetId="app-b" instanceId="i-b" />);
+
+    advance(60 * 1000);
+    expect(workers).toHaveLength(2);
+    expect(workers[0].terminated).toBe(true);
+
+    advance(10 * 60 * 1000);
+    expect(workers).toHaveLength(2);
+    expect(workers[1].terminated).toBe(false);
   });
 });

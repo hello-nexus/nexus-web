@@ -152,7 +152,7 @@ const ENTER_AFTER_PRESS_MS = 1500;
 /** How long after a press a widget may claim the page's solo audio clock, so only the tile being used takes the music. */
 const SOLO_AFTER_PRESS_MS = 10_000;
 
-/** Unresponsive-worker restarts allowed per widget instance within the window. */
+/** Unresponsive-worker restarts allowed per worker cache key within the window. */
 const MAX_RESTARTS = 3;
 const RESTART_WINDOW_MS = 10 * 60 * 1000;
 const restartLog = new Map<string, number[]>();
