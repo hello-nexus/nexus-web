@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchLedMap, type LedMapEntry, type LightingDevice } from '../../../../api/lighting';
 import {
-  deleteSceneImport,
   fetchLightingScene,
   fetchSceneModel,
   putLightingScene,
@@ -53,7 +52,6 @@ export interface LightingSceneApi {
   setEnabled: (enabled: boolean) => Promise<void>;
   /** Resolves once a final camera is saved, so a preset snapshot taken after it sees the new view. */
   setCamera: (camera: SceneCamera, final: boolean) => Promise<void>;
-  removeImport: () => Promise<void>;
   /** Re-reads the view (and the scene when no local edit is waiting), after a preset or another client changed it. */
   refreshView: () => Promise<void>;
 }
@@ -266,12 +264,7 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     draftTimer.current = setTimeout(sendDraft, wait);
   }, [sendView, sendDraft]);
 
-  const removeImport = useCallback(async () => {
-    const next = await deleteSceneImport();
-    if (next) setScene(next);
-  }, []);
-
-  return { scene, setupRev: setup?.rev ?? 0, movable, moveItem, turnItem, model, update, setEnabled, setCamera, removeImport, refreshView };
+  return { scene, setupRev: setup?.rev ?? 0, movable, moveItem, turnItem, model, update, setEnabled, setCamera, refreshView };
 }
 
 /** LED maps of the placed devices, refetched when a device's LED count changes. */

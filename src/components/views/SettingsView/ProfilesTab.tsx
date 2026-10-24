@@ -8,6 +8,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { PromptModal } from '../../common/PromptModal/PromptModal';
 import { SortableList } from '../../common/SortableList/SortableList';
+import { Notice } from '../../common/Notice/Notice';
 import { setupSkipped } from '../../../api/pcSetup';
 import { exportProfile, inspectProfileFile, type Preferences, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
@@ -31,6 +32,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   const [createOpen, setCreateOpen] = useState(false);
   const [renameError, setRenameError] = useState<{ profileId: string; message: string } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [setupSkippedNote, setSetupSkippedNote] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ file: File; name: string; appIds: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const switchingRef = useRef(false);
@@ -58,6 +60,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
     if (!file) return;
     e.target.value = '';
     setImportError(null);
+    setSetupSkippedNote(false);
     const info = await inspectProfileFile(file);
     if (info && info.appIds.length > 0) {
       setPendingImport({ file, name: info.name, appIds: info.appIds });
@@ -71,7 +74,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
     if (result.body?.msg === 'profile_name_taken') {
       setConfirmTarget({ kind: 'replaceImport', file, includeAppData });
     } else if (setupSkipped(result.body?.pcSetup)) {
-      setImportError(t('profile.importSetupSkipped'));
+      setSetupSkippedNote(true);
     }
   };
 
@@ -102,7 +105,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
       if (result.body?.msg === 'profile_name_taken') {
         setImportError(t('profile.importDuplicateName'));
       } else if (setupSkipped(result.body?.pcSetup)) {
-        setImportError(t('profile.importSetupSkipped'));
+        setSetupSkippedNote(true);
       }
     }
   }, [confirmTarget, profiles, sharing, t]);
@@ -316,6 +319,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         <input ref={fileRef} type="file" accept=".nexusprofile,.json" style={{ display: 'none' }} onChange={handleImport} />
       </div>
       {atLimit && <p className={styles.note} data-settings-aside="true">{t('profile.maxReached')}</p>}
+      {setupSkippedNote && <Notice tone="info" role="status">{t('profile.importSetupSkipped')}</Notice>}
       {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}
       </SettingsSection>
 

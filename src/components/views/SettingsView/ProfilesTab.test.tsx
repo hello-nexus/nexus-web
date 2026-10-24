@@ -184,7 +184,8 @@ describe('ProfilesTab import', () => {
     const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
     fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } });
 
-    await waitFor(() => expect(screen.getByText('profile.importSetupSkipped')).toBeInTheDocument());
+    const note = await screen.findByText('profile.importSetupSkipped');
+    expect(note.closest('[data-tone]')).toHaveAttribute('data-tone', 'info');
   });
 
   it('on a 409 profile_name_taken, opens the replace confirm dialog instead of the inline error', async () => {
