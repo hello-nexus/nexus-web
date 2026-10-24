@@ -389,6 +389,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
+  const [recordAlwaysOnTop, setRecordAlwaysOnTop] = useState(true);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
@@ -681,6 +682,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setLiveDpi(match?.capabilities?.dpi ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
+      setRecordAlwaysOnTop(match?.alwaysOnTop ?? true);
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordFlip180(match?.flip180 ?? false);
@@ -1710,6 +1712,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordAutoOrient(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { autoOrient: next }).catch(() => {});
                       }}
+                      alwaysOnTop={monitorReserve ? recordAlwaysOnTop : null}
+                      onAlwaysOnTopToggle={() => {
+                        const next = !recordAlwaysOnTop;
+                        setRecordAlwaysOnTop(next);
+                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { alwaysOnTop: next }).catch(() => {});
+                      }}
                       reserveMonitor={monitorReserve ? recordReserve : null}
                       onReserveMonitorToggle={() => {
                         const next = !recordReserve;
@@ -1833,6 +1841,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           setQSeriesSleepWhenLocked(next);
                           void setQSeriesDisplay({ sleepWhenLocked: next }).catch(() => {});
                         }}
+                        alwaysOnTop={null}
+                        onAlwaysOnTopToggle={() => {}}
                         reserveMonitor={null}
                         onReserveMonitorToggle={() => {}}
                         keepCursorOff={null}
@@ -1882,6 +1892,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       }}
                       autoOrient={null}
                       onAutoOrientToggle={() => {}}
+                      alwaysOnTop={null}
+                      onAlwaysOnTopToggle={() => {}}
                       reserveMonitor={null}
                       onReserveMonitorToggle={() => {}}
                       keepCursorOff={null}
@@ -2537,6 +2549,8 @@ interface MonitorSettingsPanelProps {
   // Null hides the row (no orientation sensor on this panel family).
   autoOrient: boolean | null;
   onAutoOrientToggle: () => void;
+  alwaysOnTop: boolean | null;
+  onAlwaysOnTopToggle: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
   keepCursorOff: boolean | null;
@@ -2563,6 +2577,7 @@ function MonitorSettingsPanel({
   sleepWithHost, onSleepWithHostToggle,
   sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
+  alwaysOnTop, onAlwaysOnTopToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
@@ -2660,6 +2675,14 @@ function MonitorSettingsPanel({
           label={t('devices.lcd.sleepWhenLocked')}
           checked={sleepWhenLocked}
           onChange={onSleepWhenLockedToggle}
+        />
+      )}
+      {alwaysOnTop !== null && (
+        <SettingToggle
+          label={t('devices.y70.panelAlwaysOnTop')}
+          description={t('devices.y70.panelAlwaysOnTopHint')}
+          checked={alwaysOnTop}
+          onChange={onAlwaysOnTopToggle}
         />
       )}
       {reserveMonitor !== null && (
