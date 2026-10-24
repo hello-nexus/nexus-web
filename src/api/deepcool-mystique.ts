@@ -73,11 +73,9 @@ export interface MystiqueState {
   media: MystiqueMediaItem[];
   /** Id of the GIF the screen plays, empty when unknown. */
   shownGif?: string;
-  /** Id of the picture the screen starts the pictures from, empty when unknown. */
+  /** Id of the picture the screen shows, empty when unknown. */
   shownPicture?: string;
-  /** A picture's copy on the screen is incomplete until the next picture show sends it again. */
-  picturesUnsent?: boolean;
-  /** The screen may hold GIFs from before Nexus's slot, so a picked GIF may not play until Remove all is used. */
+  /** The screen may hold pictures or GIFs from before Nexus's slots, so a picked one may not show until Remove all is used. */
   gifSlotUnsure?: boolean;
   recordFrequency: boolean;
   recordTemperature: boolean;

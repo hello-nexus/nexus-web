@@ -534,7 +534,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
   const pictureTile = (name: string) => screen.getByRole('button', { name: `devices.deepcool-mystique.showItem:{"name":"${name}"}` });
   const twoPictures = [{ kind: 'picture', id: PICTURE_A, name: 'spider' }, { kind: 'picture', id: GIF_A, name: 'web' }];
 
-  it('the picture the screen starts from reads as shown, and clicking it again sends nothing', async () => {
+  it('the picture the screen shows reads as shown, and clicking it again sends nothing', async () => {
     await mount({ ...base, mode: 'media', mediaSource: 'images', shownPicture: PICTURE_A, media: twoPictures });
     expect(pictureTile('spider').getAttribute('aria-pressed')).toBe('true');
     expect(pictureTile('web').getAttribute('aria-pressed')).toBe('false');
@@ -557,15 +557,7 @@ describe('DeepCoolMystiqueDevicePage', () => {
     expect(screen.queryByText('40%')).toBeNull();
   });
 
-  it('the first picture is sent again while a picture copy is unsent', async () => {
-    await mount({ ...base, mode: 'media', mediaSource: 'images', shownPicture: PICTURE_A, picturesUnsent: true, media: twoPictures });
-    await act(async () => {
-      fireEvent.click(pictureTile('spider'));
-    });
-    expect(mockShow).toHaveBeenCalledWith(PICTURE_A);
-  });
-
-  it('a refused picture show drops the click and falls back to the picture the screen starts from', async () => {
+  it('a refused picture show drops the click and falls back to the picture the screen shows', async () => {
     mockShow.mockResolvedValue({ ok: false, notKept: false });
     await mount({ ...base, mode: 'media', mediaSource: 'images', shownPicture: PICTURE_A, media: twoPictures });
     await act(async () => {
