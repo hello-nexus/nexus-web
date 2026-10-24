@@ -195,16 +195,18 @@ describe('AnimateGrid edit pencil', () => {
 
   it('shows the pencil only on the selected tile while the editor is closed', () => {
     const { container } = renderGrid({ effect: 'plasma', onEdit: () => {} });
-    const pencils = container.querySelectorAll('[data-card-edit]');
+    const pencils = container.querySelectorAll('[data-edit-hint-overlay]');
     expect(pencils.length).toBe(1);
     expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe('plasma');
+    expect(pencils[0].getAttribute('aria-hidden')).toBe('true');
+    expect(pencils[0].textContent).toBe('');
   });
 
   it('shows no pencil and re-picks when edit is not enabled', () => {
     const onEdit = vi.fn();
     const onSelect = vi.fn();
     const { container } = renderGrid({ effect: 'plasma', onEdit, editEnabled: false, onSelect });
-    expect(container.querySelectorAll('[data-card-edit]').length).toBe(0);
+    expect(container.querySelectorAll('[data-edit-hint-overlay]').length).toBe(0);
     fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onEdit).not.toHaveBeenCalled();
@@ -233,11 +235,11 @@ describe('AnimateGrid edit pencil', () => {
     }
   });
 
-  it('opens the editor from the pencil without re-selecting', () => {
+  it('names the selected tile by its edit action and opens the editor without re-selecting', () => {
     const onEdit = vi.fn();
     const onSelect = vi.fn();
     renderGrid({ effect: 'plasma', onEdit, onSelect });
-    fireEvent.click(screen.getByRole('button', { name: 'lighting.effects.edit' }));
+    fireEvent.click(screen.getByRole('button', { name: /lighting\.effects\.edit/ }));
     expect(onEdit).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
   });
@@ -266,7 +268,7 @@ describe('AnimateGrid edit pencil', () => {
     const { container, rerender } = renderGrid({ effect: 'plasma', onEdit });
     const next = Array.from(container.querySelectorAll('[data-effect-key]')).map(el => el.getAttribute('data-effect-key')!).find(k => k !== 'plasma')!;
     rerender(<AnimateGrid effect={next} onSelect={() => {}} onEdit={onEdit} editEnabled slotFor={() => 0} versionFor={() => '0'} />);
-    const pencils = container.querySelectorAll('[data-card-edit]');
+    const pencils = container.querySelectorAll('[data-edit-hint-overlay]');
     expect(pencils.length).toBe(1);
     expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe(next);
   });

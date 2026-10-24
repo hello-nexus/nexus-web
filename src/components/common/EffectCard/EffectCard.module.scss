@@ -211,20 +211,23 @@
   right: 0.3rem;
 }
 
-.editBtnSlot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
+// Shared edit hint (see EditHint). Dark scrim, so white glyph regardless of
+// theme; the glyph is a third of the tile's height like a 1x1 panel widget.
+.cardEditable {
+  position: relative;
 }
 
-// The pencil only exists on the selected card, so :hover on the card shows it
-// the moment the pointer is already over it when the selection lands.
-.card:hover [data-card-edit],
-.card:focus-visible [data-card-edit] {
-  opacity: 1;
-  pointer-events: auto;
+.editHint {
+  --edit-hint-color: #fff;
+  --edit-hint-icon-size: 20%;
+}
+
+// Only the selected tile carries the hint, so :hover on the card shows it the
+// moment the pointer is already over it when the selection lands.
+@media (hover: hover) and (pointer: fine) {
+  .card:hover [data-edit-hint-overlay] {
+    opacity: 1;
+  }
 }
 
 .card:hover [data-card-delete='hover'],

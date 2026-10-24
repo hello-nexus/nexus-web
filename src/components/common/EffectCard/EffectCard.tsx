@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Music } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { CardDeleteButton } from '../CardDeleteButton/CardDeleteButton';
-import { CardEditButton } from '../CardEditButton/CardEditButton';
+import { EditHint } from '../EditHint/EditHint';
 import styles from './EffectCard.module.scss';
 
 interface EffectCardBaseProps {
@@ -20,11 +20,11 @@ interface EffectCardBaseProps {
   onDelete?: () => void;
   deleteAriaLabel?: string;
   /**
-   * Optional edit action. Rendered as a pencil centered on the thumbnail,
-   * revealed on hover for hover-capable pointers. Needs `asDiv` (no nested buttons).
+   * Shows the shared edit hint (icon-only scrim with a pencil) over the card on
+   * hover for hover-capable fine pointers. The click itself is the card's
+   * onClick; pass an ariaLabel that names the edit action.
    */
-  onEdit?: () => void;
-  editAriaLabel?: string;
+  editHint?: boolean;
   /**
    * When true, render as a div with role=button instead of a real <button>.
    * Required when the card contains nested interactive elements (CardDeleteButton),
@@ -80,14 +80,14 @@ type EffectCardProps = EffectCardBaseProps & (
 
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
-  audio, meta, onDelete, deleteAriaLabel, onEdit, editAriaLabel,
+  audio, meta, onDelete, deleteAriaLabel, editHint,
   asDiv, noPressedState, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive,
 }: EffectCardProps) {
   const { t } = useTranslation();
   // An image that fails to load leaves the plain tile until a new one arrives, never a broken-image glyph.
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showImg = !!thumbUrl && thumbUrl !== failedUrl;
-  const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''}`;
+  const className = `${styles.card} ${editHint ? styles.cardEditable : ''} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''}`;
   const thumbBoxStyle = thumbAspect !== undefined
     ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
     : undefined;
@@ -116,17 +116,11 @@ export function EffectCard({
             ariaLabel={deleteAriaLabel ?? t('common.delete')}
           />
         )}
-        {onEdit && (
-          <CardEditButton
-            className={styles.editBtnSlot}
-            onEdit={onEdit}
-            ariaLabel={editAriaLabel ?? t('lighting.effects.edit')}
-          />
-        )}
         {overlay && !hideLabel && <span className={styles.labelOverlay}>{label}</span>}
       </div>
       {!overlay && <span className={`${styles.label} ${keepCase ? styles.labelAsIs : ''}`}>{label}</span>}
       {!overlay && meta !== undefined && <span className={`${styles.meta} ${metaSans ? styles.metaSans : ''}`}>{meta}</span>}
+      {editHint && <EditHint className={styles.editHint} />}
     </>
   );
 

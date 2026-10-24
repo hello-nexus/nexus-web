@@ -25,7 +25,7 @@ import { EffectTemplateSelector } from '../components/common/EffectTemplateSelec
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { Slideout } from '../components/common/Slideout/Slideout';
 import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
-import { CardEditButton } from '../components/common/CardEditButton/CardEditButton';
+import { EditHint } from '../components/common/EditHint/EditHint';
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../components/common/ChartHoverTooltip/ChartHoverTooltip';
@@ -496,13 +496,12 @@ function PreviewCardDeleteButton() {
   );
 }
 
-function PreviewCardEditButton() {
-  const [edits, setEdits] = useState(0);
+function PreviewEditHint() {
   return (
     <div className={styles.previewStack}>
-      <div className={styles.previewHoverCard}>
-        <span>{`Effect (edited ${edits}x)`}</span>
-        <CardEditButton onEdit={() => setEdits(n => n + 1)} ariaLabel="Edit effect" />
+      <div className={styles.previewHoverCard} style={{ position: 'relative', minHeight: 90 }}>
+        <span>Effect</span>
+        <EditHint label="Edit effect" />
       </div>
     </div>
   );
@@ -2902,10 +2901,10 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Hover the item row to reveal the X. Keyboard focus also reveals it. Set revealOnHover={false} for always-visible variants.',
   },
   {
-    name: 'CardEditButton', category: 'inputs',
-    filePath: 'src/components/common/CardEditButton/CardEditButton.tsx',
-    description: 'Shared circular pencil overlay for "edit this card" actions, the hover-revealed counterpart of CardDeleteButton. Reveal is opted into by the parent via a data-attribute (`:hover [data-card-edit] { opacity: 1 }`) and only exists on hover-capable fine pointers. Used by the selected lighting effect tile to open the effect editor.', Preview: PreviewCardEditButton,
-    notes: 'Hover the row to reveal the pencil (desktop pointers only). Keyboard focus also reveals it.',
+    name: 'EditHint', category: 'inputs',
+    filePath: 'src/components/common/EditHint/EditHint.tsx',
+    description: 'Shared click-to-edit hover hint: a scrim over the host with a centered pencil and an optional label. Shared by the panel editor widgets and the lighting effect tiles. The host is position: relative and reveals it via `:hover [data-edit-hint-overlay] { opacity: 1 }`.', Preview: PreviewEditHint,
+    notes: 'Hidden until the host reveals it; the overlay is click-through and aria-hidden, so the host carries the accessible name.',
   },
   {
     name: 'HsvPicker', category: 'editable',

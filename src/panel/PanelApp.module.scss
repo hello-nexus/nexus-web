@@ -2007,28 +2007,8 @@
 }
 
 // In the device page's canvas preview (simulator), a widget is click-to-edit
-// and nothing said so (NEX-6). Hovering one fades the notice in.
-// pointer-events:none so the click keeps landing on the cell wrapper exactly as
-// before; the hint is aria-hidden decoration.
-.cellEditHint {
-  @extend %cellNotice;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--ease-fast) ease-out;
-}
-
-.cellEditHintContent {
-  @extend %cellNoticeContent;
-}
-
-.cellEditHintIcon {
-  @extend %cellNoticeIcon;
-  stroke-width: 1.6;
-}
-
-.cellEditHintLabel {
-  @include text-button;
-}
+// and nothing said so (NEX-6). Hovering one fades the shared EditHint in.
+// The hint is click-through and aria-hidden decoration.
 
 // Device-page preview: the widget the panel opens immersive on load wears the
 // lighting canvas's device frame - a white rule with a dark halo on both sides,
@@ -2099,7 +2079,7 @@
 
 // Preview cells read as buttons, and only a real pointer can hover.
 @media (hover: hover) {
-  .panelRoot[data-simulator='true'] .cellWrap:hover .cellEditHint {
+  .panelRoot[data-simulator='true'] .cellWrap:hover [data-edit-hint-overlay] {
     opacity: 1;
   }
 

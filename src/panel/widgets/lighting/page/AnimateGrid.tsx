@@ -40,6 +40,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
 }) {
   const { t } = useTranslation();
   const noGpu = gpuAvailable === false;
+  const editsOnClick = active && editEnabled && !!onEdit && hasFinePointer();
   const url = useEffectThumbnail(fx.key, slot, version, noGpu, frozen);
   const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
   return (
@@ -51,11 +52,12 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
       thumbUrl={url}
       thumbStatic={noGpu}
       active={active}
-      onClick={active && editEnabled && onEdit && hasFinePointer() ? onEdit : onSelect}
-      // The pencil is a nested button, so a grid that can edit renders its tiles as divs.
+      onClick={editsOnClick ? onEdit : onSelect}
+      ariaLabel={editsOnClick ? `${t('lighting.effects.edit')} (${label})` : undefined}
+      // A grid that can edit renders its tiles as divs so toggling edit never remounts them.
       asDiv={!!onEdit}
       noPressedState
-      onEdit={active && editEnabled ? onEdit : undefined}
+      editHint={active && editEnabled && !!onEdit}
       audio={fx.audio}
       cornerBadge={hints.length || pinnedNames?.length ? (
         <span className={styles.cellBadges}>

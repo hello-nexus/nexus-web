@@ -5,6 +5,15 @@ import { EffectCard } from './EffectCard';
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 describe('EffectCard', () => {
+  it('renders the icon-only edit hint only when asked', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} onClick={() => {}} />);
+    expect(container.querySelector('[data-edit-hint-overlay]')).toBeNull();
+    rerender(<EffectCard label="a" thumbUrl={null} editHint asDiv onClick={() => {}} />);
+    const hint = container.querySelector('[data-edit-hint-overlay]')!;
+    expect(hint.textContent).toBe('');
+    expect(hint.closest('[role="button"]')).not.toBeNull();
+  });
+
   it('drops an image that fails to load for the plain tile, and shows the next one', () => {
     const { container, rerender } = render(<EffectCard label="Glitch Garden" thumbUrl="blob:gone" onClick={() => {}} />);
     fireEvent.error(container.querySelector('img')!);
