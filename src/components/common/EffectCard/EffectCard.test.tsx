@@ -5,6 +5,43 @@ import { EffectCard } from './EffectCard';
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 describe('EffectCard', () => {
+  it('reveals the edit hint from pointer presence alone, and clears it on leave', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} asDiv onClick={() => {}} />);
+    const card = () => container.querySelector('[role="button"]')!;
+    fireEvent.pointerEnter(card());
+    rerender(<EffectCard label="a" thumbUrl={null} asDiv editHint onClick={() => {}} />);
+    expect(card().getAttribute('data-edit-hint-shown')).toBe('true');
+    fireEvent.pointerLeave(card());
+    expect(card().hasAttribute('data-edit-hint-shown')).toBe(false);
+  });
+
+  it('drops the pointer reveal when the layout key changes under a still pointer', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} asDiv editHint layoutKey="0" onClick={() => {}} />);
+    fireEvent.pointerEnter(container.querySelector('[role="button"]')!);
+    expect(container.querySelector('[data-edit-hint-shown]')).not.toBeNull();
+    rerender(<EffectCard label="a" thumbUrl={null} asDiv editHint layoutKey="1" onClick={() => {}} />);
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+  });
+
+  it('does not force the hint without editHint or for touch pointers', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} asDiv onClick={() => {}} />);
+    fireEvent.pointerEnter(container.querySelector('[role="button"]')!);
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+    rerender(<EffectCard label="a" thumbUrl={null} asDiv editHint onClick={() => {}} />);
+    fireEvent.pointerLeave(container.querySelector('[role="button"]')!);
+    fireEvent.pointerEnter(container.querySelector('[role="button"]')!, { pointerType: 'touch' });
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+  });
+
+  it('renders the icon-only edit hint only when asked', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} onClick={() => {}} />);
+    expect(container.querySelector('[data-edit-hint-overlay]')).toBeNull();
+    rerender(<EffectCard label="a" thumbUrl={null} editHint asDiv onClick={() => {}} />);
+    const hint = container.querySelector('[data-edit-hint-overlay]')!;
+    expect(hint.textContent).toBe('');
+    expect(hint.closest('[role="button"]')).not.toBeNull();
+  });
+
   it('drops an image that fails to load for the plain tile, and shows the next one', () => {
     const { container, rerender } = render(<EffectCard label="Glitch Garden" thumbUrl="blob:gone" onClick={() => {}} />);
     fireEvent.error(container.querySelector('img')!);

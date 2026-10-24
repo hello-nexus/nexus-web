@@ -25,7 +25,7 @@ const STAGE = { width: 216, height: 236 };
 const LENS_ASPECT = 0.4;
 // The magnified tile keeps the tile's own aspect inside this box.
 const LENS_BOX = { width: 120, height: 120 };
-const ROUND_SURFACES = new Set(['kraken', 'lcd-round']);
+const ROUND_SURFACES = new Set(['lcd-round']);
 
 function fit(aspect: number, box: { width: number; height: number }) {
   return aspect >= box.width / box.height

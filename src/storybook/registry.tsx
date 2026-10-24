@@ -25,6 +25,7 @@ import { EffectTemplateSelector } from '../components/common/EffectTemplateSelec
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { Slideout } from '../components/common/Slideout/Slideout';
 import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
+import { EditHint } from '../components/common/EditHint/EditHint';
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../components/common/ChartHoverTooltip/ChartHoverTooltip';
@@ -491,6 +492,17 @@ function PreviewCardDeleteButton() {
         </div>
       ))}
       {items.length === 0 && <span>All removed</span>}
+    </div>
+  );
+}
+
+function PreviewEditHint() {
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard} style={{ position: 'relative', minHeight: 90 }}>
+        <span>Effect</span>
+        <EditHint label="Edit effect" />
+      </div>
     </div>
   );
 }
@@ -2887,6 +2899,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/CardDeleteButton/CardDeleteButton.tsx',
     description: 'Shared circular X overlay for "delete this card" actions. Hover-reveal by default via a data-attribute the parent container opts into (`:hover [data-card-delete="hover"] { opacity: 1 }`). Used by lighting effect cards and media library thumbnails. Cooling curve cards now use a bottom-anchored "Remove curve" affordance instead so the top-right slot can hold the live output % chip + wire nub.', Preview: PreviewCardDeleteButton,
     notes: 'Hover the item row to reveal the X. Keyboard focus also reveals it. Set revealOnHover={false} for always-visible variants.',
+  },
+  {
+    name: 'EditHint', category: 'inputs',
+    filePath: 'src/components/common/EditHint/EditHint.tsx',
+    description: 'Shared click-to-edit hover hint: a scrim over the host with a centered pencil and an optional label. Shared by the panel editor widgets and the lighting effect tiles. The host is position: relative and reveals it via `:hover [data-edit-hint-overlay] { opacity: 1 }`.', Preview: PreviewEditHint,
+    notes: 'Hidden until the host reveals it; the overlay is click-through and aria-hidden, so the host carries the accessible name.',
   },
   {
     name: 'HsvPicker', category: 'editable',

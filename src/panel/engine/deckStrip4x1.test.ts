@@ -303,7 +303,7 @@ describe('4x1 offered only by deck', () => {
       expect(sizesForSurface(deck, surface), surface).toContain('4x1');
     }
     expect(sizesForSurface(deck, 'monitor', true)).toContain('4x1');
-    for (const surface of ['q60', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide'] as const) {
+    for (const surface of ['q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as const) {
       expect(sizesForSurface(deck, surface), surface).not.toContain('4x1');
     }
     expect(sizesForSurface(deck, 'monitor')).toEqual([]);

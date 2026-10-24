@@ -347,4 +347,8 @@
     opacity: 1;
     pointer-events: auto;
   }
+
+  &:hover [data-edit-hint-overlay] {
+    opacity: 1;
+  }
 }

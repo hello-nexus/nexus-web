@@ -30,8 +30,6 @@ export const DEFAULT_SURFACE_DPI: Record<PanelSurface, number> = {
   desktop: 144,
   // Promoted OS monitors: a desk-distance density estimate (27" 1440p ≈ 109).
   monitor: 110,
-  // 640px across roughly 2.7in of round glass.
-  kraken: 240,
   // Cooler LCDs run 240-480px across 1.5-2.4in of glass; one estimate covers the
   // family because the record carries the real pixel size and DPI only scales text.
   'lcd-round': 210,

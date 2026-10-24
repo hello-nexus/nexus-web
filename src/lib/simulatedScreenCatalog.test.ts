@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LEGACY_SIMULATED_SCREEN_IDS, SIMULATED_SCREEN_CATALOG } from './simulatedScreenCatalog';
-import { PANEL_SURFACES } from '../panel/types';
+import { KRAKEN_PANEL_DPI, PANEL_SURFACES } from '../panel/types';
 import { DEFAULT_SURFACE_DPI } from '../panel/engine/panelGrid';
 import { SURFACE_DPR } from '../panel/embed/simulatedPanelViewport';
 import { simulatedPanelIcon } from '../hooks/usePanelDevices';
@@ -33,14 +33,23 @@ describe('simulated screen catalog', () => {
 
   it('keeps the density literals equal to the surface defaults the real devices use', () => {
     const measured = new Set(['lianli-hydroshift2-curve']);
-    const cooler = SIMULATED_SCREEN_CATALOG.filter(x => (x.surface.startsWith('lcd-') || x.surface === 'kraken') && !measured.has(x.id));
+    const cooler = SIMULATED_SCREEN_CATALOG.filter(x => x.surface.startsWith('lcd-') && !measured.has(x.id) && x.family !== 'nzxt-kraken');
     expect(cooler.length).toBeGreaterThan(0);
     for (const s of cooler) expect(s.dpi, s.id).toBe(DEFAULT_SURFACE_DPI[s.surface]);
     expect(SIMULATED_SCREEN_CATALOG.find(x => x.id === 'monitor')?.dpi).toBe(DEFAULT_SURFACE_DPI.monitor);
   });
 
+  it('keeps every simulated Kraken at the density the real one reports', () => {
+    const krakens = SIMULATED_SCREEN_CATALOG.filter(x => x.family === 'nzxt-kraken');
+    expect(krakens.length).toBeGreaterThan(0);
+    for (const s of krakens) {
+      expect(s.surface, s.id).toBe('lcd-round');
+      expect(s.dpi, s.id).toBe(KRAKEN_PANEL_DPI);
+    }
+  });
+
   it('has a render DPR for every cooler-glass surface so the preview is 1:1', () => {
-    for (const s of SIMULATED_SCREEN_CATALOG.filter(x => x.surface.startsWith('lcd-') || x.surface === 'kraken')) {
+    for (const s of SIMULATED_SCREEN_CATALOG.filter(x => x.surface.startsWith('lcd-'))) {
       expect(SURFACE_DPR[s.surface], s.id).toBe(1);
     }
   });

@@ -53,8 +53,12 @@ describe('panelSurfaceHint', () => {
     expect(panelSurfaceHint('phone')).toBe('phone');
   });
 
+  it('ignores the retired kraken surface', () => {
+    expect(panelSurfaceHint('kraken')).toBeNull();
+  });
+
   it('ignores surfaces whose records only the service creates', () => {
-    for (const s of ['monitor', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide']) {
+    for (const s of ['monitor', 'lcd-round', 'lcd-square', 'lcd-wide']) {
       expect(panelSurfaceHint(s)).toBeNull();
     }
   });
