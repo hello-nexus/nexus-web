@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box } from 'lucide-react';
+import { Box, Link2, Link2Off } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { Button } from '../../../../components/common/Button/Button';
 import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
+import { Notice } from '../../../../components/common/Notice/Notice';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
@@ -43,13 +44,15 @@ const EXHAUST: FanDirection = 'exhaust';
 export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
-  const { layout: coolingLayout, loaded: layoutLoaded, edit } = useCoolingLayout(true);
-  const caseLayout = useMemo(() => parseCaseLayout(record?.setup.resolved.caseLayout), [record]);
+  const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
+  // Parsed once per distinct layout: a setup ping that changes nothing here keeps the same object, so the scene and camera stay.
+  const layoutText = JSON.stringify(record?.setup.resolved.caseLayout ?? null);
+  const caseLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText)), [layoutText]);
   const [active, setActive] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<CaseSceneRenderer | null>(null);
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
 
   const directions = useMemo(() => {
     const out: Record<string, FanDirection> = {};
@@ -73,44 +76,47 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
 
   const handlers = useRef<{ pick: PickHandler }>({ pick: () => {} });
   handlers.current.pick = (key, x, y) => {
+    const owner = key && !selectedChannelId ? channelOfSlot(coolingLayout.bindings, key) : null;
+    if (owner && channels.some(c => c.id === owner)) {
+      setActive(null);
+      onSelectChannel(owner);
+      return;
+    }
     setActive(key);
     if (!key) return;
     setAnchor({ x, y });
-    if (selectedChannelId) {
-      edit(l => ({ ...l, bindings: toggleBinding(l.bindings, selectedChannelId, key) }));
-      return;
-    }
-    const owner = channelOfSlot(coolingLayout.bindings, key);
-    if (owner && channels.some(c => c.id === owner)) onSelectChannel(owner);
   };
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !caseLayout) return undefined;
-    const renderer = createCaseRenderer(canvas, (key, x, y) => handlers.current.pick(key, x, y));
-    rendererRef.current = renderer;
-    const observer = new ResizeObserver(() => renderer.resize());
+    if (!canvas) return undefined;
+    const next = createCaseRenderer(canvas, (key, x, y) => handlers.current.pick(key, x, y));
+    setRenderer(next);
+    const observer = new ResizeObserver(() => next.resize());
     observer.observe(canvas);
-    renderer.resize();
+    next.resize();
     return () => {
       observer.disconnect();
-      renderer.dispose();
-      rendererRef.current = null;
+      next.dispose();
+      setRenderer(null);
     };
-  }, [caseLayout]);
+  }, [canvas]);
 
   const highlighted = useMemo(() => new Set(slotsOfChannel(coolingLayout.bindings, selectedChannelId)), [coolingLayout.bindings, selectedChannelId]);
   const bound = useMemo(() => new Set(coolingLayout.bindings.flatMap(b => b.slotKeys)), [coolingLayout.bindings]);
 
   useEffect(() => {
-    if (caseLayout) rendererRef.current?.setState({ layout: caseLayout, directions, highlighted, bound, active });
-  }, [caseLayout, directions, highlighted, bound, active]);
+    if (caseLayout) renderer?.setState({ layout: caseLayout, directions, highlighted, bound, active });
+  }, [renderer, caseLayout, directions, highlighted, bound, active]);
 
   const setDirection = useCallback((key: string, position: string, direction: FanDirection) => {
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
   }, [edit]);
 
-  if (!loaded || !layoutLoaded) return <div className={styles.root} />;
+  const toggleLink = useCallback((channelId: string, key: string) => {
+    edit(l => ({ ...l, bindings: toggleBinding(l.bindings, channelId, key) }));
+  }, [edit]);
+
+  if (!loaded || !layoutSettled) return <div className={styles.root} />;
 
   if (!caseLayout) {
     return (
@@ -127,6 +133,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
 
   const activeSlot = active ? fanGeometries(caseLayout).find(g => g.slot.key === active)?.slot : undefined;
   const activeOwner = activeSlot ? channels.find(c => c.id === channelOfSlot(coolingLayout.bindings, activeSlot.key)) : undefined;
+  const linkedToSelected = !!activeSlot && highlighted.has(activeSlot.key);
   const selectedName = channels.find(c => c.id === selectedChannelId)?.name;
   const result = model?.result;
   const modeKey = result ? `cooling.case3d.pressure.${result.mode}` : '';
@@ -149,11 +156,12 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
           )}
         </div>
       )}
+      {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       <div className={styles.hint}>
         {selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')}
       </div>
       <div className={styles.viewport}>
-        <canvas ref={canvasRef} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
+        <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {activeSlot && (
           <Popover open onClose={() => setActive(null)} anchorRef={anchorRef} portal className={styles.popover} ariaLabel={t('cooling.case3d.direction.label')}>
@@ -169,6 +177,16 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
             <div className={styles.popoverNote}>
               {activeOwner ? t('cooling.case3d.bound', { name: activeOwner.name }) : t('cooling.case3d.unbound')}
             </div>
+            {selectedChannelId && (
+              <Button
+                size="sm"
+                tone="neutral"
+                icon={linkedToSelected ? <Link2Off size={13} strokeWidth={1.8} /> : <Link2 size={13} strokeWidth={1.8} />}
+                onClick={() => toggleLink(selectedChannelId, activeSlot.key)}
+              >
+                {linkedToSelected ? t('cooling.case3d.unlink') : t('cooling.case3d.link', { name: selectedName ?? '' })}
+              </Button>
+            )}
           </Popover>
         )}
       </div>

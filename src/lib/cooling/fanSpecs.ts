@@ -57,7 +57,7 @@ export interface ModelFan extends ResolvedFanSpec {
 
 const RADIATOR_FAN_SIZES_MM = [120, 140];
 
-/** Fan count and size of a radiator of `lengthMm`: the first standard fan size that divides it, else the nearest count at 120 mm. */
+/** Fan count and size of a radiator of `lengthMm`: the first standard fan size that divides it, else the nearest count at the first standard size. */
 export function inferRadiatorFans(lengthMm: number): { count: number; sizeMm: number } {
   const size = RADIATOR_FAN_SIZES_MM.find(s => lengthMm >= s && lengthMm % s === 0);
   if (size) return { count: lengthMm / size, sizeMm: size };

@@ -243,6 +243,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       controls.dispose();
       clear(staticGroup, disposables);
       clear(fanGroup, fanDisposables);
+      renderer.forceContextLoss();
       renderer.dispose();
     },
   };

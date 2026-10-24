@@ -1,0 +1,164 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FanChannel } from '../../../../api/cooling';
+import type { CoolingLayout } from '../../../../api/coolingLayout';
+import { CoolingCase3D } from './CoolingCase3D';
+import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
+
+const h = vi.hoisted(() => ({
+  setup: { record: null as unknown, loaded: false },
+  layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
+  pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
+  renderers: [] as { setState: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }[],
+}));
+
+vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
+vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
+vi.mock('./coolingCaseRenderer', () => ({
+  createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
+    h.pick.current = onPick;
+    const r = { setState: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+    h.renderers.push(r);
+    return r;
+  }),
+}));
+
+const caseLayout = () => ({
+  size: [450, 230, 470],
+  boxes: [],
+  fanSlots: [
+    { key: 'front:120:0', position: 'front', size: 120, index: 0, taken: 'fan', box: { min: [0, 10, 10], size: [25, 120, 120] }, axis: [1, 0, 0] },
+    { key: 'rear:120:0', position: 'rear', size: 120, index: 0, taken: 'fan', box: { min: [425, 10, 10], size: [25, 120, 120] }, axis: [-1, 0, 0] },
+  ],
+});
+const record = (rev = 1) => ({ rev, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: caseLayout() } } });
+const channels = [{ id: 'fan-a', name: 'Fan A' }, { id: 'fan-b', name: 'Fan B' }] as FanChannel[];
+
+function setLayout(patch: Partial<typeof h.layout>) {
+  h.layout = { ...h.layout, ...patch };
+}
+
+const ui = (selected: string | null = null, onSelect = vi.fn()) => (
+  <CoolingCase3D channels={channels} selectedChannelId={selected} onSelectChannel={onSelect} />
+);
+
+const lastState = () => h.renderers[h.renderers.length - 1].setState.mock.calls.at(-1)?.[0];
+
+beforeEach(() => {
+  h.setup = { record: null, loaded: false };
+  h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
+  h.renderers.length = 0;
+  vi.mocked(createCaseRenderer).mockClear();
+  globalThis.ResizeObserver = class { observe() {} disconnect() {} unobserve() {} } as unknown as typeof ResizeObserver;
+});
+
+describe('CoolingCase3D renderer lifecycle', () => {
+  it('draws when the setup answers before the cooling layout', () => {
+    h.setup = { record: record(), loaded: true };
+    const { rerender } = render(ui());
+    expect(createCaseRenderer).not.toHaveBeenCalled();
+    setLayout({ settled: true });
+    rerender(ui());
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+    expect(lastState().layout.fanSlots).toHaveLength(2);
+  });
+
+  it('draws when the cooling layout answers before the setup', () => {
+    setLayout({ settled: true });
+    const { rerender } = render(ui());
+    expect(createCaseRenderer).not.toHaveBeenCalled();
+    h.setup = { record: record(), loaded: true };
+    rerender(ui());
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+    expect(lastState().directions).toEqual({ 'front:120:0': 'intake', 'rear:120:0': 'exhaust' });
+  });
+
+  it('still draws the case with default directions and a notice when the layout fails', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, failed: true });
+    render(ui());
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('cooling.case3d.layoutError')).toBeTruthy();
+    expect(lastState().directions['rear:120:0']).toBe('exhaust');
+  });
+
+  it('keeps one renderer when a setup ping changes nothing it draws', () => {
+    h.setup = { record: record(1), loaded: true };
+    setLayout({ settled: true });
+    const { rerender } = render(ui());
+    const first = lastState().layout;
+    h.setup = { record: record(2), loaded: true };
+    rerender(ui());
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+    expect(h.renderers[0].dispose).not.toHaveBeenCalled();
+    expect(lastState().layout).toBe(first);
+  });
+
+  it('updates the scene in place when a direction changes', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    const { rerender } = render(ui());
+    setLayout({ layout: { directions: { 'front:120:0': 'exhaust' }, bindings: [], tests: [] } });
+    rerender(ui());
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+    expect(lastState().directions['front:120:0']).toBe('exhaust');
+  });
+
+  it('disposes one renderer per mount across 20 view toggles', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    for (let i = 0; i < 20; i++) render(ui()).unmount();
+    expect(createCaseRenderer).toHaveBeenCalledTimes(20);
+    expect(h.renderers.every(r => r.dispose.mock.calls.length === 1)).toBe(true);
+  });
+
+  it('shows the empty state with no case layout', () => {
+    h.setup = { record: { rev: 1, setup: { resolved: { objects: [] }, items: [] } }, loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    expect(screen.getByText('cooling.case3d.empty.title')).toBeTruthy();
+    expect(createCaseRenderer).not.toHaveBeenCalled();
+  });
+});
+
+describe('CoolingCase3D linking', () => {
+  const mountReady = (selected: string | null, bindings: CoolingLayout['bindings'] = [], onSelect = vi.fn()) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    render(ui(selected, onSelect));
+    return onSelect;
+  };
+
+  it('does not link on a click; the popover offers it for the selected device', () => {
+    mountReady('fan-a');
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(h.layout.edit).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /cooling\.case3d\.link/ }));
+    expect(h.layout.edit).toHaveBeenCalledTimes(1);
+    const mutate = h.layout.edit.mock.calls[0][0] as (l: CoolingLayout) => CoolingLayout;
+    expect(mutate({ directions: {}, bindings: [], tests: [] }).bindings).toEqual([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+  });
+
+  it('offers Unlink for a slot the selected device already holds', () => {
+    mountReady('fan-a', [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.unlink' }));
+    const mutate = h.layout.edit.mock.calls[0][0] as (l: CoolingLayout) => CoolingLayout;
+    expect(mutate({ directions: {}, bindings: [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }], tests: [] }).bindings).toEqual([]);
+  });
+
+  it('shows no link control with no device selected', () => {
+    mountReady(null);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.queryByRole('button', { name: /cooling\.case3d\.(link|unlink)/ })).toBeNull();
+  });
+
+  it('selects the owner of a bound fan when nothing is selected, without a popover or an edit', () => {
+    const onSelect = mountReady(null, [{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
+    act(() => h.pick.current?.('rear:120:0', 10, 10));
+    expect(onSelect).toHaveBeenCalledWith('fan-b');
+    expect(h.layout.edit).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

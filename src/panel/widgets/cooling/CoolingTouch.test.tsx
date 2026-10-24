@@ -84,6 +84,11 @@ vi.mock('../../../api/minihub', async (importOriginal) => {
 });
 
 import { applyProfile, fetchFanChannels } from '../../../api/cooling';
+import { getNp50ConnectionState } from '../../../api/np50';
+
+// The page reads channels and the hub state more than once, so a per-test override must hold for every read and be undone for the next test.
+const defaultFetchFanChannels = vi.mocked(fetchFanChannels).getMockImplementation()!;
+const defaultNp50State = vi.mocked(getNp50ConnectionState).getMockImplementation();
 
 // The service's panel records, by panel id.
 const panelRecords = vi.hoisted(() => ({ current: {} as Record<string, Record<string, string[]>> }));
@@ -109,6 +114,8 @@ function renderTouch(panelId: string | null = null) {
 describe('CoolingTouch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(fetchFanChannels).mockImplementation(defaultFetchFanChannels);
+    if (defaultNp50State) vi.mocked(getNp50ConnectionState).mockImplementation(defaultNp50State);
     // Isolate the shared cooling cache + fan-group collapse persistence.
     localStorage.clear();
     panelRecords.current = {};
@@ -164,8 +171,7 @@ describe('CoolingTouch', () => {
   });
 
   it('groups external-hub fans under a collapsible device header', async () => {
-    const { fetchFanChannels } = await import('../../../api/cooling');
-    vi.mocked(fetchFanChannels).mockResolvedValueOnce({
+    vi.mocked(fetchFanChannels).mockResolvedValue({
       channels: [
         {
           id: 'fan-cpu', name: 'CPU Fan', dutyPercent: 42, rpm: 1180, mode: 'Curve',
@@ -280,12 +286,10 @@ describe('CoolingTouch', () => {
   // drive it from firmware mode - so the batch assign hands the hub over once.
   it('switches a hub to software once when a curve is bound to several of its fans', async () => {
     const { setNp50LiveCoolingMode } = await import('../../../api/np50');
-    const { getNp50ConnectionState } = await import('../../../api/np50');
-    vi.mocked(getNp50ConnectionState).mockResolvedValueOnce({
+    vi.mocked(getNp50ConnectionState).mockResolvedValue({
       deviceId: 'np50:AB12', coolingMode: 'Motherboard',
     } as Awaited<ReturnType<typeof getNp50ConnectionState>>);
-    // Once, not for the rest of the file: clearAllMocks resets calls, not impls.
-    vi.mocked(fetchFanChannels).mockResolvedValueOnce({
+    vi.mocked(fetchFanChannels).mockResolvedValue({
       channels: [
         { id: 'hub-1', name: 'Hub Fan 1', dutyPercent: 35, rpm: 900, mode: 'Auto',
           classification: 'Controllable', calibrated: true, deviceId: 'np50:AB12', deviceName: 'HYTE NP50' },
