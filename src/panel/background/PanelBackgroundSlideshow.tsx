@@ -14,6 +14,8 @@ const LOAD_CEILING_MS = 30_000;
 // Grace on top of a paced video's expected run before the slideshow moves on regardless.
 const VIDEO_STALL_GRACE_MS = 15_000;
 
+const isVideoItem = (item: BackgroundMediaItem | null) => !!item && item.type === 'animated' && !item.alpha;
+
 /**
  * Cycles this panel's background-media library. `startId` (the record's
  * selected asset) leads the cycle. Slides crossfade: the next asset mounts
@@ -63,6 +65,16 @@ export function PanelBackgroundSlideshow({
     setIncomingState(item);
   }, []);
   const [incomingReady, setIncomingReady] = useState(false);
+  // The video a cut swapped in, until it reaches canplay. A clip that stalls
+  // there is failed like a stalled incoming layer, and the cadence waits on it.
+  const [cutInId, setCutInState] = useState<string | null>(null);
+  const cutInRef = useRef(cutInId);
+  const setCutIn = useCallback((id: string | null) => {
+    cutInRef.current = id;
+    setCutInState(id);
+  }, []);
+  // The ended video an advance left on its last frame instead of replaying.
+  const endedRef = useRef<{ video: HTMLVideoElement; id: string } | null>(null);
   // Assets the panel could not decode; cleared when the library changes.
   const failedRef = useRef<Set<string>>(new Set());
   const lapRef = useRef<BackgroundMediaItem[]>([]);
@@ -94,13 +106,22 @@ export function PanelBackgroundSlideshow({
       return;
     }
     if (item.id === currentRef.current.id || item.id === incomingRef.current?.id) return;
+    // Two live video decodes at once stall low-end panels: cut video to video.
+    if (isVideoItem(currentRef.current) && isVideoItem(item)) {
+      setIncoming(null);
+      setIncomingReady(false);
+      setCutIn(item.id);
+      setCurrent(item);
+      return;
+    }
+    setCutIn(null);
     setIncoming(item);
     setIncomingReady(false);
-  }, [setCurrent, setIncoming]);
+  }, [setCurrent, setIncoming, setCutIn]);
 
   const advance = useCallback(() => {
     // A slide already on its way in keeps the cadence; the timer re-arms when it lands.
-    if (incomingRef.current) return;
+    if (incomingRef.current || (cutInRef.current && cutInRef.current === currentRef.current?.id)) return;
     const live = liveItems();
     const cur = currentRef.current;
     if (live.length === 0) {
@@ -147,11 +168,12 @@ export function PanelBackgroundSlideshow({
     }
     if (!ids.has(cur.id)) {
       setIncoming(null);
+      setCutIn(null);
       advance();
     }
   // startId has its own effect below; only a library change (re)starts here.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, liveItems, advance, setCurrent, setIncoming]);
+  }, [items, liveItems, advance, setCurrent, setIncoming, setCutIn]);
 
   useEffect(() => {
     shuffleRef.current = shuffle;
@@ -199,7 +221,15 @@ export function PanelBackgroundSlideshow({
     setIncomingReady(false);
     lapDirtyRef.current = true;
     advance();
-  }, [advance, setIncoming]);
+    // The failed layer was the only way out of an ended video: with nothing
+    // else staged, a held last frame would never move again.
+    const ended = endedRef.current;
+    if (ended && !covered && !incomingRef.current && currentRef.current?.id === ended.id) {
+      endedRef.current = null;
+      ended.video.currentTime = 0;
+      ended.video.play()?.catch(() => {});
+    }
+  }, [advance, setIncoming, covered]);
   // A covered video is paused and may never reach canplay, so it is not timed out.
   useEffect(() => {
     if (covered || !incoming || incomingReady) return;
@@ -211,12 +241,25 @@ export function PanelBackgroundSlideshow({
     const item = currentRef.current;
     if (!item) return;
     failedRef.current.add(item.id);
-    lapDirtyRef.current = true;
+    // Drop it from the lap in place so the cycle continues after it, not from the head.
+    const at = lapDirtyRef.current ? -1 : lapRef.current.findIndex(lapItem => lapItem.id === item.id);
+    if (at >= 0) {
+      lapRef.current = lapRef.current.filter(lapItem => lapItem.id !== item.id);
+      posRef.current = at - 1;
+    } else {
+      lapDirtyRef.current = true;
+    }
+    setCutIn(null);
     advance();
-  }, [advance]);
+  }, [advance, setCutIn]);
+  useEffect(() => {
+    if (covered || !cutInId || cutInId !== current?.id) return;
+    const timer = setTimeout(failCurrent, LOAD_CEILING_MS);
+    return () => clearTimeout(timer);
+  }, [covered, cutInId, current, failCurrent]);
 
   const liveCount = items.filter(item => !failedRef.current.has(item.id)).length;
-  const isVideo = !!current && current.type === 'animated' && !current.alpha;
+  const isVideo = isVideoItem(current);
   // A paced video's own ended handler moves the slideshow on; the tick stays
   // off so a still that follows gets its full interval.
   const videoPaced = isVideo && finishVideos && liveCount > 1;
@@ -225,12 +268,13 @@ export function PanelBackgroundSlideshow({
     if (covered || !current || videoPaced || liveCount < 2) return;
     const timer = setTimeout(advance, intervalMs);
     return () => clearTimeout(timer);
-  }, [covered, current, videoPaced, liveCount, intervalMs, advance]);
+  }, [covered, current, cutInId, videoPaced, liveCount, intervalMs, advance]);
 
   // Whole plays only, counted from the promotion (the clip loops unhandled while fading in).
   const playsRef = useRef(0);
   useEffect(() => {
     playsRef.current = 0;
+    endedRef.current = null;
   }, [current]);
   const ceilingRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const armCeiling = useCallback((durationMs: number) => {
@@ -243,7 +287,7 @@ export function PanelBackgroundSlideshow({
     return () => {
       if (ceilingRef.current) clearTimeout(ceilingRef.current);
     };
-  }, [covered, videoPaced, current, armCeiling]);
+  }, [covered, videoPaced, current, cutInId, armCeiling]);
 
   const onVideoMetadata = useCallback((id: string, video: HTMLVideoElement) => {
     const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : 0;
@@ -256,8 +300,15 @@ export function PanelBackgroundSlideshow({
     playsRef.current += 1;
     // An unknown or zero duration cannot be paced; treat it as done.
     const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : Infinity;
-    if (videoPaced && playsRef.current * durationMs >= intervalMs) advance();
-    // Replays either way: the swap waits on the next slide's decode.
+    if (videoPaced && playsRef.current * durationMs >= intervalMs) {
+      const before = currentRef.current;
+      advance();
+      // Moving on: a cut already swapped the slide, a crossfade holds the last frame.
+      if (currentRef.current !== before || incomingRef.current) {
+        if (before && currentRef.current === before) endedRef.current = { video, id: before.id };
+        return;
+      }
+    }
     video.currentTime = 0;
     video.play()?.catch(() => {});
     if (videoPaced) armCeiling(durationMs === Infinity ? 0 : durationMs);
@@ -277,6 +328,7 @@ export function PanelBackgroundSlideshow({
         opacity={1}
         loop={!videoPaced}
         covered={covered}
+        onLoaded={() => { if (cutInRef.current === current.id) setCutIn(null); }}
         onFailed={failCurrent}
         onVideoMetadata={video => onVideoMetadata(current.id, video)}
         onVideoEnded={onVideoEnded}
