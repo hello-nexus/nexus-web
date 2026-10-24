@@ -62,7 +62,7 @@ export interface SceneRendererCallbacks {
   /** LED canvas positions after the camera or the placements changed. */
   onProjected?: (points: Map<string, Float32Array>) => void;
   /** What the pointer rests on, with its client position; null when it leaves everything. */
-  onHover?: (pick: ScenePick | null, clientX: number, clientY: number) => void;
+  onHover?: (pick: ScenePick | null, clientX: number, clientY: number, stack: ScenePick[]) => void;
 }
 
 /** Visual tones; the accent is read from the theme when the renderer mounts. */
@@ -620,10 +620,6 @@ export class SceneRenderer {
     }
   }
 
-  private eventPick(e: PointerEvent): ScenePick | null {
-    return this.pickAt(e.clientX, e.clientY);
-  }
-
   private readonly onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
     const stack = this.pickStackAt(e.clientX, e.clientY);
@@ -663,11 +659,12 @@ export class SceneRenderer {
       return;
     }
     if (e.buttons !== 0) {
-      this.callbacks.onHover?.(null, e.clientX, e.clientY);
+      this.callbacks.onHover?.(null, e.clientX, e.clientY, []);
       return;
     }
-    const pick = this.eventPick(e);
-    this.callbacks.onHover?.(pick, e.clientX, e.clientY);
+    const stack = this.pickStackAt(e.clientX, e.clientY);
+    const pick = stack.find(p => p.kind === 'anchor') ?? stack[0] ?? null;
+    this.callbacks.onHover?.(pick, e.clientX, e.clientY, stack);
     const key = pick?.kind === 'anchor' ? anchorKey(pick.objectId, pick.anchorId) : null;
     const movable = this.state?.editable && pick && pick.objectId === this.state.selectedObjectId;
     this.canvas.style.cursor = pick ? (movable ? 'grab' : 'pointer') : '';
@@ -690,7 +687,7 @@ export class SceneRenderer {
       this.hovered = null;
       this.restyle();
     }
-    this.callbacks.onHover?.(null, e.clientX, e.clientY);
+    this.callbacks.onHover?.(null, e.clientX, e.clientY, []);
   };
 
   private readonly onPointerUp = (e: PointerEvent) => {

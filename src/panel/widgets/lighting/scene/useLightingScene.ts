@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchLedMap, type LedMapEntry, type LightingDevice } from '../../../../api/lighting';
 import {
   fetchLightingScene,
@@ -60,8 +60,14 @@ export interface LightingSceneApi {
 export function useLightingScene(active: boolean): LightingSceneApi {
   const [scene, setScene] = useState<LightingScene | null>(null);
   const [model, setModel] = useState<ArrayBuffer | null>(null);
+  // Readers see bindings left on a gone desk item's id pointed at its successor; nothing is written until a user edit saves them.
+  const viewScene = useMemo(() => {
+    if (!scene) return null;
+    const bindings = healBindings(scene.objects, scene.bindings);
+    return bindings === scene.bindings ? scene : { ...scene, bindings };
+  }, [scene]);
   const sceneRef = useRef<LightingScene | null>(null);
-  sceneRef.current = scene;
+  sceneRef.current = viewScene;
   const [setup, setSetup] = useState<PcSetupRecord | null>(null);
   const setupRef = useRef<PcSetupRecord | null>(null);
   setupRef.current = setup;
@@ -223,21 +229,12 @@ export function useLightingScene(active: boolean): LightingSceneApi {
   const update = useCallback((mutate: (current: SceneEdit) => SceneEdit) => {
     setScene(s => {
       if (!s) return s;
-      const next = mutate({ objects: s.objects, bindings: s.bindings });
+      const next = mutate({ objects: s.objects, bindings: healBindings(s.objects, s.bindings) });
       return { ...s, bindings: next.bindings };
     });
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
   }, [flush]);
-
-  // A binding left on an object's old id is pointed at its successor once, and saved, so every reader sees the healed one.
-  const sceneObjects = scene?.objects;
-  const sceneBindings = scene?.bindings;
-  useEffect(() => {
-    if (!active || !sceneObjects || !sceneBindings) return;
-    if (healBindings(sceneObjects, sceneBindings) === sceneBindings) return;
-    update(cur => ({ ...cur, bindings: healBindings(cur.objects, cur.bindings) }));
-  }, [active, sceneObjects, sceneBindings, update]);
 
   const setEnabled = useCallback(async (enabled: boolean) => {
     const before = sceneRef.current?.view;
@@ -274,7 +271,7 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     draftTimer.current = setTimeout(sendDraft, wait);
   }, [sendView, sendDraft]);
 
-  return { scene, setupRev: setup?.rev ?? 0, movable, moveItem, turnItem, model, update, setEnabled, setCamera, refreshView };
+  return { scene: viewScene, setupRev: setup?.rev ?? 0, movable, moveItem, turnItem, model, update, setEnabled, setCamera, refreshView };
 }
 
 /** LED maps of the placed devices, refetched when a device's LED count changes. */

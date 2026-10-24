@@ -32,7 +32,7 @@ interface SceneViewportProps {
   onMoveObject?: (objectId: string, position: Vec3) => void;
   onDropDevice?: (deviceId: string, pick: ScenePick | null) => void;
   /** Names what the pointer rests on, shown as a chip beside it; null shows nothing. */
-  hoverLabel?: (pick: ScenePick) => string | null;
+  hoverLabel?: (pick: ScenePick, stack: ScenePick[]) => string | null;
   /** Feed the device cards' readouts with where the camera puts each LED. */
   publishPoints?: boolean;
   /** False pauses drawing while the view is covered (the inline view under the open editor). */
@@ -96,8 +96,8 @@ export function SceneViewport({
         onPick: (pick, stack) => handlers.current.onPick(pick, stack),
         onMoveObject: (id, pos) => handlers.current.onMoveObject?.(id, pos),
         onProjected: points => { if (handlers.current.publishPoints) setScenePoints(points); },
-        onHover: (pick, clientX, clientY) => {
-          const text = pick ? handlers.current.hoverLabel?.(pick) ?? null : null;
+        onHover: (pick, clientX, clientY, stack) => {
+          const text = pick ? handlers.current.hoverLabel?.(pick, stack) ?? null : null;
           const rect = container.getBoundingClientRect();
           setHover(text ? { text, x: clientX - rect.left, y: clientY - rect.top } : null);
         },

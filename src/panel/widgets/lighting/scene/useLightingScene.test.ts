@@ -231,31 +231,32 @@ describe('useLightingScene', () => {
     });
   });
 
-  describe('healing a binding left on an old object id', () => {
+  describe('a binding left on a gone object id', () => {
     const withTop = (id: string, kind: string): SceneObject => ({ ...obj(id, kind, 0, 0), anchors: [{ id: 'top', kind: 'surface', center: [0, 0, 0], right: [1, 0, 0], up: [0, 1, 0], width: 1, height: 1, shape: 'rect' }] });
     const bound = (objectId: string) => ({ deviceId: 'dev', targets: [{ objectId, anchorId: 'top' }], rotation: 0, flip: false });
 
-    it('retargets to the only object of the kind and saves it once', async () => {
+    it('reads healed, writes nothing by itself, and a later edit saves the healed bindings', async () => {
       vi.mocked(fetchLightingScene).mockResolvedValue({ ...baseScene(), objects: [withTop('p-mouse-1', 'mouse')], bindings: [bound('mouse-1')] });
       const { result } = await mounted();
-      await waitFor(() => expect(result.current.scene!.bindings[0].targets[0].objectId).toBe('p-mouse-1'));
+      expect(result.current.scene!.bindings[0].targets[0].objectId).toBe('p-mouse-1');
+      await new Promise(resolve => { setTimeout(resolve, 400); });
+      expect(putLightingScene).not.toHaveBeenCalled();
+      act(() => { result.current.update(s => ({ ...s, bindings: [...s.bindings, { deviceId: 'other', targets: [], rotation: 0, flip: false }] })); });
       await waitFor(() => expect(putLightingScene).toHaveBeenCalledTimes(1));
       expect(vi.mocked(putLightingScene).mock.calls[0][0].bindings![0].targets[0].objectId).toBe('p-mouse-1');
     });
 
-    it('does not heal when two objects share the kind, and saves nothing', async () => {
+    it('stays as it is when two objects share the kind', async () => {
       vi.mocked(fetchLightingScene).mockResolvedValue({ ...baseScene(), objects: [withTop('kb-a', 'keyboard'), withTop('kb-b', 'keyboard')], bindings: [bound('keyboard-1')] });
       const { result } = await mounted();
-      await new Promise(resolve => { setTimeout(resolve, 400); });
       expect(result.current.scene!.bindings[0].targets[0].objectId).toBe('keyboard-1');
-      expect(putLightingScene).not.toHaveBeenCalled();
     });
 
-    it('leaves a binding whose object exists alone and saves nothing', async () => {
-      vi.mocked(fetchLightingScene).mockResolvedValue({ ...baseScene(), objects: [withTop('p-mouse-1', 'mouse')], bindings: [bound('p-mouse-1')] });
+    it('is untouched when its object exists', async () => {
+      const scene = { ...baseScene(), objects: [withTop('p-mouse-1', 'mouse')], bindings: [bound('p-mouse-1')] };
+      vi.mocked(fetchLightingScene).mockResolvedValue(scene);
       const { result } = await mounted();
-      await new Promise(resolve => { setTimeout(resolve, 400); });
-      expect(result.current.scene!.bindings[0].targets[0].objectId).toBe('p-mouse-1');
+      expect(result.current.scene!.bindings).toEqual(scene.bindings);
       expect(putLightingScene).not.toHaveBeenCalled();
     });
   });

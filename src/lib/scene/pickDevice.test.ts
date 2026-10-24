@@ -36,23 +36,34 @@ describe('deviceForPick', () => {
 });
 
 describe('deviceForStack', () => {
-  const picks = [
-    { kind: 'anchor', objectId: 'monitor', anchorId: 'back' },
-    { kind: 'object', objectId: 'monitor' },
-    { kind: 'anchor', objectId: 'case', anchorId: 'fan:front:120:1' },
-    { kind: 'object', objectId: 'case' },
-  ] as const;
-
-  it('looks past a free surface in front to the bound one behind it', () => {
-    expect(deviceForStack(bindings, [...picks])).toBe('fan-b');
+  it('looks past a free surface and an unbound body in front to the bound surface behind them', () => {
+    expect(deviceForStack(bindings, [
+      { kind: 'anchor', objectId: 'monitor', anchorId: 'back' },
+      { kind: 'object', objectId: 'monitor' },
+      { kind: 'anchor', objectId: 'case', anchorId: 'fan:front:120:1' },
+      { kind: 'object', objectId: 'case' },
+    ])).toBe('fan-b');
   });
 
-  it('prefers a bound surface over an object body in front of it', () => {
-    expect(deviceForStack(bindings, [{ kind: 'object', objectId: 'kb-1' }, { kind: 'anchor', objectId: 'case', anchorId: 'fan:front:120:0' }])).toBe('fan-a');
+  it('takes the nearer bound object over a bound surface behind it (a keyboard over the deskmat)', () => {
+    const two = [bind('kbd', ['kb-1', 'top']), bind('mat', ['mat-1', 'top'])];
+    expect(deviceForStack(two, [
+      { kind: 'anchor', objectId: 'kb-1', anchorId: 'top' },
+      { kind: 'object', objectId: 'kb-1' },
+      { kind: 'anchor', objectId: 'mat-1', anchorId: 'top' },
+    ])).toBe('kbd');
+    expect(deviceForStack(two, [{ kind: 'object', objectId: 'kb-1' }, { kind: 'anchor', objectId: 'mat-1', anchorId: 'top' }])).toBe('kbd');
   });
 
-  it('falls back to an object body when no surface names a device, and is null for an empty stack', () => {
-    expect(deviceForStack(bindings, [{ kind: 'anchor', objectId: 'monitor', anchorId: 'back' }, { kind: 'object', objectId: 'case' }])).toBe('fan-a');
+  it('lets a bound surface win over its own object body, even when the body is nearer (case glass over a strip)', () => {
+    expect(deviceForStack(bindings, [
+      { kind: 'object', objectId: 'case' },
+      { kind: 'anchor', objectId: 'case', anchorId: 'fan:front:120:1' },
+    ])).toBe('fan-b');
+  });
+
+  it('falls back to an object body when no surface of it names a device, and is null for nothing bound', () => {
+    expect(deviceForStack(bindings, [{ kind: 'anchor', objectId: 'case', anchorId: 'ram:0' }, { kind: 'object', objectId: 'case' }])).toBe('fan-a');
     expect(deviceForStack(bindings, [{ kind: 'anchor', objectId: 'monitor', anchorId: 'back' }])).toBeNull();
     expect(deviceForStack(bindings, [])).toBeNull();
   });
@@ -74,6 +85,12 @@ describe('healBindings', () => {
     const objects = [obj('case', 'case'), obj('p-mouse-8445a2d5-0', 'mouse'), obj('p-keyboard-fcf22239-0', 'keyboard')];
     const healed = healBindings(objects, [bind('m65', ['mouse-1', 'top']), bind('kbd', ['keyboard-1', 'top']), bind('fan-a', ['case', 'fan:front:120:0'])]);
     expect(healed.map(b => b.targets[0].objectId)).toEqual(['p-mouse-8445a2d5-0', 'p-keyboard-fcf22239-0', 'case']);
+  });
+
+  it('never heals two missing ids onto one object', () => {
+    const objects = [obj('p-mouse-1', 'mouse')];
+    const healed = healBindings(objects, [bind('a', ['mouse-1', 'top']), bind('b', ['mouse-2', 'top'])]);
+    expect(healed.map(b => b.targets[0].objectId)).toEqual(['p-mouse-1', 'mouse-2']);
   });
 
   it('leaves a binding alone when the heir is taken, has no such surface, or no single object of the kind exists', () => {

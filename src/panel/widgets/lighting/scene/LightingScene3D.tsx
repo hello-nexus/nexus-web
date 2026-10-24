@@ -19,7 +19,7 @@ import type { ScenePick, SceneRenderer } from '../../../../lib/scene/sceneRender
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport, DEVICE_DRAG_TYPE, type Backdrop } from './SceneViewport';
 import { anchorLabel, objectLabel } from './sceneLabels';
-import { deviceForPick, deviceForStack } from '../../../../lib/scene/pickDevice';
+import { deviceForPick, pickForStack } from '../../../../lib/scene/pickDevice';
 import { flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
@@ -135,7 +135,7 @@ export default function LightingScene3D({
 
   const onInlinePick = useCallback((_pick: ScenePick | null, stack: ScenePick[]) => {
     if (!scene) return;
-    const deviceId = deviceForStack(scene.bindings, stack);
+    const deviceId = deviceForPick(scene.bindings, pickForStack(scene.bindings, stack));
     if (deviceId) onSelectDevice(deviceId);
   }, [scene, onSelectDevice]);
 
@@ -160,7 +160,7 @@ export default function LightingScene3D({
         audioRef={audioRef}
         onPick={onInlinePick}
         onCamera={onCamera}
-        hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
+        hoverLabel={(pick, stack) => sceneHoverLabel(t, scene, devices, pickForStack(scene.bindings, stack) ?? pick)}
         publishPoints
         active={!editorOpen}
       >
@@ -269,7 +269,9 @@ function SceneEditor({
     setPlacing(null);
   }, [api]);
 
-  const onPick = useCallback((pick: ScenePick | null) => {
+  const onPick = useCallback((rawPick: ScenePick | null, stack: ScenePick[]) => {
+    // A device waiting for a surface needs the front-most one, free or not; any other click means what the hover names.
+    const pick = placing ? rawPick : pickForStack(scene.bindings, stack) ?? rawPick;
     if (pick?.kind === 'anchor') {
       if (placing) {
         place(placing.deviceId, pick.objectId, pick.anchorId, placing.append);
@@ -368,7 +370,7 @@ function SceneEditor({
               onCamera={onCamera}
               onMoveObject={onMoveObject}
               onDropDevice={onDropDevice}
-              hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
+              hoverLabel={(pick, stack) => sceneHoverLabel(t, scene, devices, pickForStack(scene.bindings, stack) ?? pick)}
               rendererRef={rendererRef}
             >
               <div className={styles.overlayTop}>
