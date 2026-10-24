@@ -9,6 +9,7 @@ import { composeSdkWorkerSource } from './sandboxBoot';
 import { proxyFetch } from './proxyClient';
 import { flattenFrameForWorker, type FlatReading } from './sensorFlatten';
 import * as monitoringStore from '../lib/monitoringStore';
+import { reportAppError } from '../telemetry/appErrorReporting';
 import type { AppDataDoc, AppDataPutResult, AudioPlay, WidgetDisplay } from '../../sdk/runtime/context';
 
 /** Longest sensor glob honoured; a worker-supplied pattern runs against every reading on every frame. */
@@ -133,6 +134,10 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   // diagnostics still come over the worker's main channel.
   worker.addEventListener('error', (e) => {
     console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
+    const err = new Error(e.message);
+    err.name = 'WorkerError';
+    err.stack = `${err.name}: ${e.message}\n    at ${e.filename}:${e.lineno}`;
+    reportAppError(context.widgetId, 'worker-error', err);
   });
 
   // Sensor broker - capped to the manifest's
@@ -160,8 +165,17 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
 
   worker.addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { type?: string; id?: number; message?: string; payload?: unknown } | null;
-    if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); return; }
-    if (d?.type === 'nexus.log') { console.warn(`[sdk:${context.widgetId}]`, d.payload); return; }
+    if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); reportAppError(context.widgetId, 'boot-error', d.message ?? 'worker boot failed'); return; }
+    if (d?.type === 'nexus.log') {
+      console.warn(`[sdk:${context.widgetId}]`, d.payload);
+      const log = d.payload as { level?: unknown; message?: unknown; rejection?: unknown; thrown?: unknown } | null;
+      if (log?.level === 'error') {
+        // Only a thrown error or rejection is uploaded; an author's own log text stays in the local service log.
+        const path = log.rejection === true ? 'unhandled-rejection' : log.thrown === true ? 'callback-error' : 'log-error';
+        reportAppError(context.widgetId, path, String(log.message ?? 'error'));
+      }
+      return;
+    }
     if (d?.type === 'nexus.sensors.read' && typeof d.id === 'number') {
       const p = d.payload as { id?: string } | undefined;
       worker.postMessage({ type: 'nexus.reply', id: d.id, result: p?.id && isGranted(p.id) ? findReading(p.id) : null });
@@ -209,6 +223,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   let disposed = false;
   void Promise.resolve(remote.render(receiver.connection, context)).catch((err: unknown) => {
     console.error(`[sdk:${context.widgetId}] render failed`, err);
+    reportAppError(context.widgetId, 'render-failed', err);
   });
 
   return {
