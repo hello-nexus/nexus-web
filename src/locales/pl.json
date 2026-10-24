@@ -2981,6 +2981,7 @@
   "lighting.effectDock.collapse": "Zwin edytor efektu",
   "lighting.effectDock.expand": "Rozwin edytor efektu",
   "lighting.effects.edit": "Edytuj efekt",
+  "lighting.effects.editNamed": "Edytuj efekt ({name})",
   "lighting.effects.noMatches": "Żaden efekt nie pasuje do wyszukiwania.",
   "lighting.effects.search": "Szukaj efektów",
   "lighting.filter.passthrough": "Przeźroczysty",

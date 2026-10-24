@@ -2950,6 +2950,7 @@
   "lighting.effectDock.collapse": "Efekt duzenleyiciyi daralt",
   "lighting.effectDock.expand": "Efekt duzenleyiciyi genislet",
   "lighting.effects.edit": "Efekti düzenle",
+  "lighting.effects.editNamed": "Efekti düzenle ({name})",
   "lighting.effects.noMatches": "Aramanızla eşleşen efekt yok.",
   "lighting.effects.search": "Efekt ara",
   "lighting.filter.passthrough": "Doğrudan",

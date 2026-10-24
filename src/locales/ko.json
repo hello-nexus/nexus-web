@@ -2950,6 +2950,7 @@
   "lighting.effectDock.collapse": "이펙트 편집기 접기",
   "lighting.effectDock.expand": "이펙트 편집기 펼치기",
   "lighting.effects.edit": "이펙트 편집",
+  "lighting.effects.editNamed": "이펙트 편집 ({name})",
   "lighting.effects.noMatches": "검색과 일치하는 효과가 없습니다.",
   "lighting.effects.search": "효과 검색",
   "lighting.filter.passthrough": "패스스루",

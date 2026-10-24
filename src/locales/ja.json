@@ -2950,6 +2950,7 @@
   "lighting.effectDock.collapse": "エフェクトエディターを折りたたむ",
   "lighting.effectDock.expand": "エフェクトエディターを展開",
   "lighting.effects.edit": "エフェクトを編集",
+  "lighting.effects.editNamed": "エフェクトを編集（{name}）",
   "lighting.effects.noMatches": "検索に一致するエフェクトはありません。",
   "lighting.effects.search": "エフェクトを検索",
   "lighting.filter.passthrough": "パススルー",

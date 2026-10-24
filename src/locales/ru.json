@@ -2981,6 +2981,7 @@
   "lighting.effectDock.collapse": "Свернуть редактор эффекта",
   "lighting.effectDock.expand": "Развернуть редактор эффекта",
   "lighting.effects.edit": "Изменить эффект",
+  "lighting.effects.editNamed": "Изменить эффект ({name})",
   "lighting.effects.noMatches": "Нет эффектов, соответствующих запросу.",
   "lighting.effects.search": "Поиск эффектов",
   "lighting.filter.passthrough": "Прямой вывод",

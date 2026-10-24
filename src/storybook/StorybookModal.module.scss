@@ -343,10 +343,12 @@
   font-size: var(--type-small);
 
   &:hover [data-card-delete='hover'],
-  &:focus-within [data-card-delete='hover'],
-  &:hover [data-card-edit],
-  &:focus-within [data-card-edit] {
+  &:focus-within [data-card-delete='hover'] {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  &:hover [data-edit-hint-overlay] {
+    opacity: 1;
   }
 }

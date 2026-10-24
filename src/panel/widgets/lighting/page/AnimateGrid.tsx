@@ -17,7 +17,7 @@ function hasFinePointer(): boolean {
   return typeof window.matchMedia !== 'function' || window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 }
 
-function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, label, hideLabel, gpuAvailable, frozen, onSelect, onEdit, editEnabled }: {
+function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, label, hideLabel, gpuAvailable, frozen, onSelect, onEdit, editEnabled, layoutKey }: {
   fx: EffectDef;
   slot: number;
   version: string;
@@ -37,6 +37,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
   onEdit?: () => void;
   /** The selected tile opens the editor (and shows the pencil) instead of re-selecting. */
   editEnabled?: boolean;
+  layoutKey?: string;
 }) {
   const { t } = useTranslation();
   const noGpu = gpuAvailable === false;
@@ -53,11 +54,12 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
       thumbStatic={noGpu}
       active={active}
       onClick={editsOnClick ? onEdit : onSelect}
-      ariaLabel={editsOnClick ? `${t('lighting.effects.edit')} (${label})` : undefined}
+      ariaLabel={editsOnClick ? t('lighting.effects.editNamed', { name: label }) : undefined}
       // A grid that can edit renders its tiles as divs so toggling edit never remounts them.
       asDiv={!!onEdit}
       noPressedState
       editHint={active && editEnabled && !!onEdit}
+      layoutKey={layoutKey}
       audio={fx.audio}
       cornerBadge={hints.length || pinnedNames?.length ? (
         <span className={styles.cellBadges}>
@@ -176,7 +178,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', s
       <div ref={gridRef} className={styles.animateGrid}>
         {leading}
         {groups.map(g => {
-          const cells = g.items.map(fx => (
+          const cells = g.items.map((fx, i) => (
             <AnimateGridCell
               key={fx.key}
               fx={fx}
@@ -193,6 +195,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', s
               onSelect={() => onSelect(fx.key)}
               onEdit={onEdit}
               editEnabled={editEnabled}
+              layoutKey={`${query}|${g.cat}|${i}|${Array.from(collapsed).join()}`}
             />
           ));
           return (

@@ -446,7 +446,7 @@ export function PanelTouchCell({
                 onEnterImmersive={onEnterImmersiveWidget ? () => onEnterImmersiveWidget(widget) : undefined}
               />
             </div>
-            {editHint && <EditHint label={t('panel.widget.editWidget')} />}
+            {editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
             {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
           </div>
           {immersiveOnLoad && (

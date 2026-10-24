@@ -2950,6 +2950,7 @@
   "lighting.effectDock.collapse": "Recolher editor de efeito",
   "lighting.effectDock.expand": "Expandir editor de efeito",
   "lighting.effects.edit": "Editar efeito",
+  "lighting.effects.editNamed": "Editar efeito ({name})",
   "lighting.effects.noMatches": "Nenhum efeito corresponde à sua busca.",
   "lighting.effects.search": "Buscar efeitos",
   "lighting.filter.passthrough": "Passagem",

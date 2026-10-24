@@ -15,6 +15,14 @@ describe('EffectCard', () => {
     expect(card().hasAttribute('data-edit-hint-shown')).toBe(false);
   });
 
+  it('drops the pointer reveal when the layout key changes under a still pointer', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} asDiv editHint layoutKey="0" onClick={() => {}} />);
+    fireEvent.pointerEnter(container.querySelector('[role="button"]')!);
+    expect(container.querySelector('[data-edit-hint-shown]')).not.toBeNull();
+    rerender(<EffectCard label="a" thumbUrl={null} asDiv editHint layoutKey="1" onClick={() => {}} />);
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+  });
+
   it('does not force the hint without editHint or for touch pointers', () => {
     const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} asDiv onClick={() => {}} />);
     fireEvent.pointerEnter(container.querySelector('[role="button"]')!);

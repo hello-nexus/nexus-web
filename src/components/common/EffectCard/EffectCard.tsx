@@ -25,6 +25,8 @@ interface EffectCardBaseProps {
    * onClick; pass an ariaLabel that names the edit action.
    */
   editHint?: boolean;
+  /** Changes whenever the tile's grid position can have changed (order, filter, collapse). Resets the pointer-presence reveal. */
+  layoutKey?: string;
   /**
    * When true, render as a div with role=button instead of a real <button>.
    * Required when the card contains nested interactive elements (CardDeleteButton),
@@ -80,7 +82,7 @@ type EffectCardProps = EffectCardBaseProps & (
 
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
-  audio, meta, onDelete, deleteAriaLabel, editHint,
+  audio, meta, onDelete, deleteAriaLabel, editHint, layoutKey,
   asDiv, noPressedState, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive,
 }: EffectCardProps) {
   const { t } = useTranslation();
@@ -88,10 +90,16 @@ export function EffectCard({
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   // WebKit does not re-evaluate :hover for a node whose state changed under a still pointer, so the
   // hint is also revealed from tracked pointer presence (mouse and pen only, never touch).
-  const [pointerOver, setPointerOver] = useState(false);
+  // Stored with the layout key it was seen under: a still pointer stays put while the grid reorders
+  // or filters, and the presence then belongs to a different tile until a new pointerenter.
+  const [overKey, setOverKey] = useState<string | null>(null);
+  const pointerOver = overKey !== null && overKey === (layoutKey ?? '');
   const pointerProps = {
-    onPointerEnter: (e: React.PointerEvent) => setPointerOver(e.pointerType !== 'touch'),
-    onPointerLeave: () => setPointerOver(false),
+    // React enter/leave follow the component tree, so a portalled child (a tooltip) reports here too; only the card's own DOM counts.
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType !== 'touch' && e.currentTarget.contains(e.target as Node)) setOverKey(layoutKey ?? '');
+    },
+    onPointerLeave: () => setOverKey(null),
     'data-edit-hint-shown': editHint && pointerOver ? 'true' : undefined,
   };
   const showImg = !!thumbUrl && thumbUrl !== failedUrl;

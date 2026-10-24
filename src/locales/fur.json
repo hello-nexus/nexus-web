@@ -2950,6 +2950,7 @@
   "lighting.effectDock.collapse": "Siare l'editor dai efiets",
   "lighting.effectDock.expand": "Slargje l'editor dai efiets",
   "lighting.effects.edit": "Modifiche l'efiet",
+  "lighting.effects.editNamed": "Modifiche l'efiet ({name})",
   "lighting.effects.noMatches": "Nissun efiet al corispuint ae tô ricercje.",
   "lighting.effects.search": "Cîr efiets",
   "lighting.filter.passthrough": "Pass-Through",
