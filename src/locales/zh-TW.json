@@ -4047,7 +4047,7 @@
   "panel.editor.slotSplitRows": "上下 2 個",
   "panel.editor.slots": "插槽",
   "panel.editor.streamFpsCap.failed": "無法變更幀率上限",
-  "panel.editor.streamFpsCap.hint": "限制所有串流顯示器(例如水泵與風扇螢幕)的幀率。關閉後,每個顯示器以自身幀率運作。",
+  "panel.editor.streamFpsCap.hint": "限制所有串流顯示器（例如水泵與風扇螢幕）的幀率。關閉後，每個顯示器以自身幀率運作。",
   "panel.editor.streamFpsCap.title": "串流顯示器幀率上限",
   "panel.freeform.frame": "{name}，自由調整大小",
   "panel.freeform.handle.bottomLeft": "從左下角調整{name}的大小",
