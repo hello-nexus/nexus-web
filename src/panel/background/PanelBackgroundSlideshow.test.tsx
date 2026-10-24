@@ -12,6 +12,8 @@ const api = vi.hoisted(() => ({
   stalled: new Set<string>(),
   // Latest onVideoEnded handler per mounted video layer.
   ended: new Map<string, (video: HTMLVideoElement) => void>(),
+  // Latest onFailed handler per mounted layer, to fail one on demand.
+  failers: new Map<string, () => void>(),
 }));
 
 vi.mock('../../api/panelBackgroundMedia', () => ({
@@ -28,6 +30,7 @@ vi.mock('./PanelBackgroundMedia', () => ({
   }) => {
     const isVideo = type === 'animated' && !alpha;
     if (isVideo && onVideoEnded) api.ended.set(id, onVideoEnded);
+    if (onFailed) api.failers.set(id, onFailed);
     useEffect(() => () => { api.ended.delete(id); }, [id]);
     useEffect(() => {
       if (api.broken.has(id)) onFailed?.();
@@ -86,6 +89,7 @@ beforeEach(() => {
   api.broken.clear();
   api.stalled.clear();
   api.ended.clear();
+  api.failers.clear();
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -239,6 +243,20 @@ describe('PanelBackgroundSlideshow', () => {
     expect(shown()).toEqual(['a']);
     expect(el.play).toHaveBeenCalledTimes(1);
     expect(el.currentTime).toBe(0);
+  });
+
+  it('leaves an ended video alone when the staged still fails while an opaque widget covers it', async () => {
+    api.items = [item('b', 2), video('a', 1)];
+    api.stalled.add('b');
+    const view = await renderShow('a');
+    const el = fakeVideo();
+    await endVideo('a', el);
+    view.rerender(
+      <PanelBackgroundSlideshow deviceId="dev1" startId="a" intervalSec={10} shuffle={false} finishVideos order={[]} opacity={1} covered />,
+    );
+    await act(async () => { api.failers.get('b')?.(); });
+    expect(shown()).toEqual(['a']);
+    expect(el.play).not.toHaveBeenCalled();
   });
 
   it('does not restart an ended video that a successful crossfade replaces', async () => {

@@ -224,12 +224,12 @@ export function PanelBackgroundSlideshow({
     // The failed layer was the only way out of an ended video: with nothing
     // else staged, a held last frame would never move again.
     const ended = endedRef.current;
-    if (ended && !incomingRef.current && currentRef.current?.id === ended.id) {
+    if (ended && !covered && !incomingRef.current && currentRef.current?.id === ended.id) {
       endedRef.current = null;
       ended.video.currentTime = 0;
       ended.video.play()?.catch(() => {});
     }
-  }, [advance, setIncoming]);
+  }, [advance, setIncoming, covered]);
   // A covered video is paused and may never reach canplay, so it is not timed out.
   useEffect(() => {
     if (covered || !incoming || incomingReady) return;
