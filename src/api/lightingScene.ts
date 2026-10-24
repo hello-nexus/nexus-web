@@ -74,7 +74,7 @@ export interface SceneImport {
 
 export const fetchLightingScene = () => fetchService<LightingScene>('/lighting/scene');
 
-export const putLightingScene = (scene: { objects: SceneObject[]; bindings: SceneBinding[] }) =>
+export const putLightingScene = (scene: { objects?: SceneObject[]; bindings: SceneBinding[] }) =>
   putService<LightingScene>('/lighting/scene', scene);
 
 export const importLightingScene = (body: SceneImport) => putService<LightingScene>('/lighting/scene/import', body);

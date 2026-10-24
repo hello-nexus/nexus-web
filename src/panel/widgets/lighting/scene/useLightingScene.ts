@@ -11,8 +11,13 @@ import {
   type SceneCamera,
   type SceneObject,
   type SceneView,
+  type Vec3,
 } from '../../../../api/lightingScene';
+import { fetchPcSetup, patchPcSetupPlacements, PC_SETUP_TOPIC, type PcSetupPlacement, type PcSetupRecord } from '../../../../api/pcSetup';
+import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { presetCamera } from '../../../../lib/scene/scenePresets';
+import { applyPlacements, isMovable, placementId, placementOf, survivingPlaces } from '../../../../lib/scene/setupPlacement';
+import { moveObject, turnObject } from './sceneEdits';
 
 // Edits land locally at once and reach the service after a short quiet spell, so a burst of clicks is one write.
 const SAVE_DEBOUNCE_MS = 250;
@@ -37,6 +42,12 @@ export interface SceneEdit {
 
 export interface LightingSceneApi {
   scene: LightingScene | null;
+  /** The shared PC setup record revision; 0 until Build saves one. */
+  setupRev: number;
+  /** Whether Lighting may move and turn this object (the case and desk items of a saved record). */
+  movable: (objectId: string) => boolean;
+  moveItem: (objectId: string, position: Vec3) => void;
+  turnItem: (objectId: string, degrees: number) => void;
   model: ArrayBuffer | null;
   update: (mutate: (current: SceneEdit) => SceneEdit) => void;
   setEnabled: (enabled: boolean) => Promise<void>;
@@ -52,6 +63,12 @@ export function useLightingScene(active: boolean): LightingSceneApi {
   const [model, setModel] = useState<ArrayBuffer | null>(null);
   const sceneRef = useRef<LightingScene | null>(null);
   sceneRef.current = scene;
+  const [setup, setSetup] = useState<PcSetupRecord | null>(null);
+  const setupRef = useRef<PcSetupRecord | null>(null);
+  setupRef.current = setup;
+  const pendingPlaces = useRef(new Map<string, PcSetupPlacement>());
+  const placeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const placing = useRef(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Saves still on the wire: until they land, a refresh must not put the older server copy back.
   const saving = useRef(0);
@@ -77,14 +94,16 @@ export function useLightingScene(active: boolean): LightingSceneApi {
   }, []);
 
   const refreshView = useCallback(async () => {
-    const next = await fetchLightingScene();
+    const [next, record] = await Promise.all([fetchLightingScene(), fetchPcSetup()]);
     if (!next) return;
+    const placesPending = !!placeTimer.current || placing.current > 0;
+    if (record && !placesPending) setSetup(cur => same(cur, record));
     setScene(s => {
       if (!s) return next;
       const editsPending = !!saveTimer.current || saving.current > 0;
       return {
         ...s,
-        objects: editsPending ? s.objects : same(s.objects, next.objects),
+        objects: editsPending || placesPending ? s.objects : same(s.objects, next.objects),
         bindings: editsPending ? s.bindings : same(s.bindings, next.bindings),
         view: viewsInFlight.current > 0 ? s.view : same(s.view, next.view),
         modelRev: next.modelRev,
@@ -114,23 +133,99 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     const current = sceneRef.current;
     if (!current) return;
     saving.current++;
-    void putLightingScene({ objects: current.objects, bindings: current.bindings }).then(saved => {
+    // A saved record owns the objects and the service ignores them here; without one the legacy objects ride along unchanged.
+    const record = setupRef.current;
+    const ownsObjects = !!record && record.rev > 0 && record.setup.resolved.objects.length > 0;
+    void putLightingScene({ bindings: current.bindings, ...(ownsObjects ? {} : { objects: current.objects }) }).then(saved => {
       // Only the server-owned fields come back; local edits made meanwhile stay.
       if (saved) setScene(s => (s ? { ...s, modelRev: saved.modelRev, caseId: saved.caseId } : s));
     }).finally(() => { saving.current--; });
   }, []);
 
+  const sendPlacements = useCallback(async (initial: PcSetupPlacement[]): Promise<void> => {
+    let places = initial;
+    // One replay on a stale revision, then the record as the service holds it wins.
+    for (let attempt = 0; attempt < 2 && places.length > 0; attempt++) {
+      const record = setupRef.current;
+      if (!record) break;
+      const resolved = { ...record.setup.resolved, objects: applyPlacements(record.setup.resolved.objects, places) };
+      const res = await patchPcSetupPlacements(record.rev, places);
+      if (res.kind === 'saved') {
+        const next = { rev: res.rev, setup: { ...record.setup, resolved } };
+        setupRef.current = next;
+        setSetup(next);
+        return;
+      }
+      if (res.kind !== 'conflict') break;
+      setupRef.current = res.record;
+      setSetup(res.record);
+      // An item removed in Build meanwhile cancels its move.
+      places = survivingPlaces(res.record.setup, places);
+      const objects = applyPlacements(res.record.setup.resolved.objects, places);
+      setScene(s => (s ? { ...s, objects } : s));
+    }
+    const current = await fetchPcSetup();
+    if (!current) return;
+    setupRef.current = current;
+    setSetup(current);
+    const objects = current.setup.resolved.objects;
+    if (objects.length > 0) setScene(s => (s ? { ...s, objects } : s));
+  }, []);
+
+  const flushPlacements = useCallback(() => {
+    if (placeTimer.current) clearTimeout(placeTimer.current);
+    placeTimer.current = null;
+    const places = [...pendingPlaces.current.values()];
+    pendingPlaces.current.clear();
+    if (places.length === 0) return;
+    placing.current++;
+    void sendPlacements(places).finally(() => { placing.current--; });
+  }, [sendPlacements]);
+
+  const queuePlacement = useCallback((id: string, obj: SceneObject) => {
+    pendingPlaces.current.set(id, placementOf(id, obj));
+    if (placeTimer.current) clearTimeout(placeTimer.current);
+    placeTimer.current = setTimeout(flushPlacements, SAVE_DEBOUNCE_MS);
+  }, [flushPlacements]);
+
+  const movable = useCallback((objectId: string) => {
+    const obj = sceneRef.current?.objects.find(o => o.id === objectId);
+    return !!obj && isMovable(setupRef.current?.setup ?? null, setupRef.current?.rev ?? 0, obj);
+  }, []);
+
+  const editPose = useCallback((objectId: string, edit: (s: SceneEdit) => SceneEdit) => {
+    const current = sceneRef.current;
+    const record = setupRef.current;
+    if (!current || !record || !movable(objectId)) return;
+    const next = edit({ objects: current.objects, bindings: current.bindings });
+    const obj = next.objects.find(o => o.id === objectId);
+    const id = obj ? placementId(record.setup, obj) : null;
+    if (!obj || !id) return;
+    setScene(s => (s ? { ...s, objects: next.objects } : s));
+    queuePlacement(id, obj);
+  }, [movable, queuePlacement]);
+
+  const moveItem = useCallback((objectId: string, position: Vec3) => editPose(objectId, s => moveObject(s, objectId, position)), [editPose]);
+  const turnItem = useCallback((objectId: string, degrees: number) => editPose(objectId, s => turnObject(s, objectId, degrees)), [editPose]);
+
+  useTopicCallback(PC_SETUP_TOPIC, active, useCallback((frame: unknown) => {
+    const rev = (frame as { rev?: unknown } | null)?.rev;
+    if (typeof rev === 'number' && rev === setupRef.current?.rev) return;
+    void refreshView();
+  }, [refreshView]));
+
   // An edit still waiting when the page goes away (Edit in Build navigates at once) is sent, not dropped.
   useEffect(() => () => {
+    if (placeTimer.current) flushPlacements();
     if (saveTimer.current) flush();
     if (draftTimer.current) clearTimeout(draftTimer.current);
-  }, [flush]);
+  }, [flush, flushPlacements]);
 
   const update = useCallback((mutate: (current: SceneEdit) => SceneEdit) => {
     setScene(s => {
       if (!s) return s;
       const next = mutate({ objects: s.objects, bindings: s.bindings });
-      return { ...s, objects: next.objects, bindings: next.bindings };
+      return { ...s, bindings: next.bindings };
     });
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
@@ -176,7 +271,7 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     if (next) setScene(next);
   }, []);
 
-  return { scene, model, update, setEnabled, setCamera, removeImport, refreshView };
+  return { scene, setupRev: setup?.rev ?? 0, movable, moveItem, turnItem, model, update, setEnabled, setCamera, removeImport, refreshView };
 }
 
 /** LED maps of the placed devices, refetched when a device's LED count changes. */

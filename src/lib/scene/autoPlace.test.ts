@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LightingDevice } from '../../api/lighting';
 import { autoPlace, deviceRole } from './autoPlace';
-import { genericCase } from './deskCatalog';
+import { genericCase, newDeskObject } from './deskCatalog';
 
 const dev = (id: string, patch: Partial<LightingDevice> = {}): LightingDevice => ({
   id, name: id, ledsOn: true, ledCount: 10, canvasX: 0, canvasY: 0, canvasW: 100, canvasH: 100, canvasRotation: 0, ...patch,
@@ -29,7 +29,7 @@ describe('autoPlace', () => {
     expect(deviceRole(dev('g', { ...strip, name: 'Case strip' }))).toBe('strip');
   });
 
-  it('creates desk objects for peripherals and fills case fans front first', () => {
+  it('binds to existing objects only and fills case fans front first', () => {
     const pc = genericCase([]);
     const devices = [
       dev('kbd', { iconType: 'keyboard' }),
@@ -42,7 +42,8 @@ describe('autoPlace', () => {
       dev('ram', { type: 'dram' }),
       dev('pad2', { type: 'gamepad' }),
     ];
-    const r = autoPlace([pc], [], devices);
+    const desk = [newDeskObject('keyboard', []), newDeskObject('mouse', []), newDeskObject('mousepad', [])];
+    const r = autoPlace([pc, ...desk], [], devices);
     expect(r.objects.map(o => o.kind).sort()).toEqual(['case', 'keyboard', 'mouse', 'mousepad']);
     const where = (id: string) => r.bindings.find(b => b.deviceId === id)!.targets[0].anchorId;
     expect(['fan-a', 'fan-b', 'fan-c'].map(where)).toEqual(['fan:front:120:0', 'fan:front:120:1', 'fan:front:120:2']);
@@ -62,8 +63,20 @@ describe('autoPlace', () => {
     expect(again.objects).toHaveLength(first.objects.length);
   });
 
-  it('skips case parts when there is no case', () => {
-    const r = autoPlace([], [], [dev('fan', { iconType: 'fan' })]);
-    expect(r.skipped).toEqual(['fan']);
+  it('creates nothing and names the devices that need an item added in Build', () => {
+    const r = autoPlace([], [], [dev('fan', { iconType: 'fan' }), dev('kbd', { iconType: 'keyboard' }), dev('pad', { type: 'gamepad' })]);
+    expect(r.objects).toEqual([]);
+    expect(r.bindings).toEqual([]);
+    expect(r.placed).toEqual([]);
+    expect(r.missing.sort()).toEqual(['fan', 'kbd']);
+    expect(r.skipped).toEqual(['pad']);
+  });
+
+  it('reports a second keyboard as missing once the first has taken the only spot', () => {
+    const kb = newDeskObject('keyboard', []);
+    const r = autoPlace([kb], [], [dev('a', { iconType: 'keyboard' }), dev('b', { iconType: 'keyboard' })]);
+    expect(r.placed).toEqual(['a']);
+    expect(r.missing).toEqual(['b']);
+    expect(r.objects).toEqual([kb]);
   });
 });
