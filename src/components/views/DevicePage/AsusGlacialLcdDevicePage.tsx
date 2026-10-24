@@ -217,7 +217,7 @@ export function AsusGlacialLcdControls() {
         </>
       )}
     </SettingsSection>
-    {DEV_TOOLS && chosen && mode === 'panel' && state?.panelModeAvailable === true && <AsusGlacialPanelTuning />}
+    {DEV_TOOLS && chosen && mode === 'panel' && state?.panelModeAvailable === true && state.tuningAvailable === true && <AsusGlacialPanelTuning />}
     </>
   );
 }

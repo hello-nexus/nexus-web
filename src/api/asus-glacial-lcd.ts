@@ -33,6 +33,8 @@ export interface GlacialState {
   animatedAssets: number[];
   /** Whether Nexus panel mode is offered. Absent or false hides the mode and keeps the native page. */
   panelModeAvailable?: boolean;
+  /** Whether the tuning routes answer. Absent or false hides the tuning card. */
+  tuningAvailable?: boolean;
 }
 
 /** Raised after a settings write so the page router re-reads the mode at once. */

@@ -186,13 +186,18 @@ describe('AsusGlacialLcdDevicePage', () => {
   });
 
   it('shows the tuning card only in Nexus panel mode when panel mode is offered', async () => {
-    await mount({ ...base, mode: 'panel', panelModeAvailable: true });
+    await mount({ ...base, mode: 'panel', panelModeAvailable: true, tuningAvailable: true });
     expect(screen.getByText('devices.asus-glacial-lcd.tuning.section')).toBeInTheDocument();
+  });
+
+  it('hides the tuning card when the service does not offer tuning', async () => {
+    await mount({ ...base, mode: 'panel', panelModeAvailable: true, tuningAvailable: false });
+    expect(screen.queryByText('devices.asus-glacial-lcd.tuning.section')).toBeNull();
   });
 
   it('hides the tuning card outside dev tools builds', async () => {
     devTools = false;
-    await mount({ ...base, mode: 'panel', panelModeAvailable: true });
+    await mount({ ...base, mode: 'panel', panelModeAvailable: true, tuningAvailable: true });
     expect(screen.queryByText('devices.asus-glacial-lcd.tuning.section')).toBeNull();
   });
 

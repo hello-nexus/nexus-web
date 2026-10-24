@@ -136,7 +136,7 @@ import { WidgetPlaylistEditor } from '../../../panel/editor/WidgetPlaylistEditor
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { Card } from '../../common/Card/Card';
 import '../../../panel/styles/tokens.scss';
-import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
+import { familyForcesStaticBackground, useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
 import styles from './PanelDevicePage.module.scss';
 
 function isLandscapeCanvas(canvas?: { width?: number | null; height?: number | null }): boolean {
@@ -1665,7 +1665,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onFontCommit={panelTheme.commitFont}
                             showMediaTab={surface !== 'desktop'}
                             backgroundHeldBy={backgroundHeldBy}
-                            animatedBackgroundsOff={isGlacialLcdPanel}
+                            animatedBackgroundsOff={familyForcesStaticBackground(recordFamily)}
                             deviceAspect={devAspect}
                             roundDisplay={surfaceDisplayShape(surface) === 'round'}
                             deviceW={nativeW}

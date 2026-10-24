@@ -109,7 +109,7 @@ describe('AsusGlacialPanelTuning', () => {
     expect(mockReset).toHaveBeenCalledTimes(1);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.asus-glacial-lcd.tuning.restoreDefaults' })); });
     expect(mockSet).toHaveBeenCalledWith(GLACIAL_TUNING_DEFAULTS);
-    expect(GLACIAL_TUNING_DEFAULTS).toMatchObject({ maxFps: 30, replyDriven: true, closeWriteMode: true, scaleMode: 'send', pacePercent: 19, doubleBuffer: false, chunkKb: 4, jpegQuality: 65, scalePercent: 100 });
+    expect(GLACIAL_TUNING_DEFAULTS).toMatchObject({ maxFps: 1, replyDriven: true, closeWriteMode: true, scaleMode: 'send', pacePercent: 20, doubleBuffer: false, chunkKb: 4, jpegQuality: 65, scalePercent: 100 });
   });
 
   it('toasts when a write is refused', async () => {

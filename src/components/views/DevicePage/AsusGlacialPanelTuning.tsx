@@ -37,10 +37,10 @@ const KB = 1024;
 
 const MAX_FPS_NO_CAP = 30;
 
-/** What Restore defaults writes: the service defaults. */
+/** What Restore defaults writes: the shipped service defaults (1 upload a second). */
 export const GLACIAL_TUNING_DEFAULTS: GlacialTuningSettings = {
-  maxFps: MAX_FPS_NO_CAP,
-  pacePercent: 19,
+  maxFps: 1,
+  pacePercent: 20,
   replyDriven: true,
   scalePercent: 100,
   scaleMode: 'send',

@@ -15,7 +15,7 @@ export function focusStaticBackgroundMode(status: FocusStatus | null, surface: P
   return mode?.staticPanelBackgrounds ? mode.name : null;
 }
 
-/** Families whose screen refreshes about once per second, so an animated background only causes constant blanking. */
+/** Families whose screen refreshes too slowly for animation, so an animated background only causes constant blanking. */
 const SLOW_SCREEN_FAMILIES: ReadonlySet<string> = new Set<string>([ASUS_GLACIAL_LCD_FAMILY]);
 
 /** Whether this device family always renders animated backgrounds as a plain one. */
