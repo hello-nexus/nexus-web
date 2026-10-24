@@ -27,7 +27,7 @@ interface SceneViewportProps {
   shaderState: EffectState | null;
   shaderPaused?: boolean;
   audioRef?: RefObject<AudioSnapshot | null>;
-  onPick: (pick: ScenePick | null) => void;
+  onPick: (pick: ScenePick | null, stack: ScenePick[]) => void;
   onCamera: (camera: SceneCamera, final: boolean) => void;
   onMoveObject?: (objectId: string, position: Vec3) => void;
   onDropDevice?: (deviceId: string, pick: ScenePick | null) => void;
@@ -93,7 +93,7 @@ export function SceneViewport({
     try {
       renderer = new SceneRenderer(canvas, {
         onCamera: (cam, final) => handlers.current.onCamera(cam, final),
-        onPick: pick => handlers.current.onPick(pick),
+        onPick: (pick, stack) => handlers.current.onPick(pick, stack),
         onMoveObject: (id, pos) => handlers.current.onMoveObject?.(id, pos),
         onProjected: points => { if (handlers.current.publishPoints) setScenePoints(points); },
         onHover: (pick, clientX, clientY) => {

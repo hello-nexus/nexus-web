@@ -56,7 +56,8 @@ export interface SceneRenderState {
 
 export interface SceneRendererCallbacks {
   onCamera: (camera: SceneCamera, final: boolean) => void;
-  onPick: (pick: ScenePick | null) => void;
+  /** The front-most thing under the click, and everything under it near to far, so a caller can look past an unbound surface. */
+  onPick: (pick: ScenePick | null, stack: ScenePick[]) => void;
   onMoveObject: (objectId: string, position: Vec3) => void;
   /** LED canvas positions after the camera or the placements changed. */
   onProjected?: (points: Map<string, Float32Array>) => void;
@@ -142,7 +143,7 @@ export class SceneRenderer {
   private readonly unsubscribeFrame: () => void;
   private readonly resizeObserver: ResizeObserver;
   private interacting = false;
-  private down: { x: number; y: number; pick: ScenePick | null } | null = null;
+  private down: { x: number; y: number; pick: ScenePick | null; stack: ScenePick[] } | null = null;
   private drag: { objectId: string; group: Object3D; plane: Plane; offset: Vector3; start: Vec3; moved: boolean } | null = null;
   private hovered: string | null = null;
   // Redraw only when something on screen changed: the camera, the scene, or a new LED frame.
@@ -276,15 +277,30 @@ export class SceneRenderer {
 
   /** What sits under a viewport point (client pixels): a surface first, then an object. */
   pickAt(clientX: number, clientY: number): ScenePick | null {
+    const stack = this.pickStackAt(clientX, clientY);
+    return stack.find(p => p.kind === 'anchor') ?? stack[0] ?? null;
+  }
+
+  /** Every surface and object under a viewport point, nearest first. */
+  pickStackAt(clientX: number, clientY: number): ScenePick[] {
     const rect = this.canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return null;
+    if (rect.width === 0 || rect.height === 0) return [];
     this.pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObjects([this.anchorsGroup, this.objectsGroup], true);
-    const anchor = hits.find(h => h.object.userData.pick === 'anchor');
-    if (anchor) return { kind: 'anchor', objectId: anchor.object.userData.objectId, anchorId: anchor.object.userData.anchorId };
-    const obj = hits.find(h => h.object.userData.pick === 'object');
-    return obj ? { kind: 'object', objectId: obj.object.userData.objectId } : null;
+    const stack: ScenePick[] = [];
+    const seen = new Set<string>();
+    for (const hit of this.raycaster.intersectObjects([this.anchorsGroup, this.objectsGroup], true)) {
+      const data = hit.object.userData;
+      const pick: ScenePick | null = data.pick === 'anchor'
+        ? { kind: 'anchor', objectId: data.objectId, anchorId: data.anchorId }
+        : data.pick === 'object' ? { kind: 'object', objectId: data.objectId } : null;
+      const key = pick ? (pick.kind === 'anchor' ? anchorKey(pick.objectId, pick.anchorId) : pick.objectId) : null;
+      if (pick && key !== null && !seen.has(`${pick.kind}:${key}`)) {
+        seen.add(`${pick.kind}:${key}`);
+        stack.push(pick);
+      }
+    }
+    return stack;
   }
 
   private resize(): void {
@@ -610,8 +626,9 @@ export class SceneRenderer {
 
   private readonly onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
-    const pick = this.eventPick(e);
-    this.down = { x: e.clientX, y: e.clientY, pick };
+    const stack = this.pickStackAt(e.clientX, e.clientY);
+    const pick = stack.find(p => p.kind === 'anchor') ?? stack[0] ?? null;
+    this.down = { x: e.clientX, y: e.clientY, pick, stack };
     const state = this.state;
     // Only the selected object drags across the desk; a drag that starts anywhere else orbits, so a
     // camera move that begins over the case never shoves it.
@@ -689,6 +706,6 @@ export class SceneRenderer {
     }
     if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) return;
     if (e.target !== this.canvas && !drag) return;
-    this.callbacks.onPick(down.pick);
+    this.callbacks.onPick(down.pick, down.stack);
   };
 }
