@@ -69,7 +69,8 @@ export type RendererToHost =
   | { type: 'ready' }
   | { type: 'post'; data: unknown }
   | { type: 'read-asset'; id: number; path: string }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'rejection'; message: string };
 
 /** The slice of a worker global the protocol needs. */
 export interface RendererPort {
