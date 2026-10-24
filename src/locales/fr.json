@@ -4493,6 +4493,7 @@
   "panel.widget.blocks.scoreLabel": "Score",
   "panel.widget.blocks.timeLabel": "Durée",
   "panel.widget.build": "Build",
+  "panel.widget.build.cta": "Construisez votre PC",
   "panel.widget.calculator": "Calculatrice",
   "panel.widget.calendar": "Calendrier",
   "panel.widget.calendar.settings.display": "Affichage",

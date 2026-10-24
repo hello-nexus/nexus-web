@@ -13,7 +13,10 @@ import { PC_SETUP_TOPIC } from '../../../api/pcSetup';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
+import { DEV_TOOLS } from '../../../lib/devTools';
+import { isMacAppShell } from '../../../app/windowActions';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
+import { relayPreviewSave } from './buildPreview';
 import { relaySceneExport } from './buildScene';
 import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import styles from './BuildPage.module.scss';
@@ -105,13 +108,16 @@ interface BuildPageProps {
   onOpenBenchmark?: () => void;
   /** Opens the Lighting page after the frame sent the PC there as a 3D scene. */
   onOpenLighting?: () => void;
+  /** The host's ping platform; the dashboard tile shows no preview on macOS, so none is offered there. */
+  platform?: string;
 }
 
 /**
  * Build: a full-height iframe onto build.hellonexus.com, the upgrade
  * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
-export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPageProps) {
+export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: BuildPageProps) {
+  const canSavePreview = !isRemoteOrigin && (DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);
@@ -122,6 +128,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const onOpenBenchmarkRef = useRef(onOpenBenchmark);
   useEffect(() => { onOpenBenchmarkRef.current = onOpenBenchmark; }, [onOpenBenchmark]);
+  const canSavePreviewRef = useRef(canSavePreview);
+  useEffect(() => { canSavePreviewRef.current = canSavePreview; }, [canSavePreview]);
   const onOpenLightingRef = useRef(onOpenLighting);
   useEffect(() => { onOpenLightingRef.current = onOpenLighting; }, [onOpenLighting]);
   const [ready, setReady] = useState(false);
@@ -274,6 +282,10 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
             post(reply as FrameMessage);
           })]);
           break;
+        case 'nexus-build:set-preview':
+          if (!canSavePreviewRef.current || typeof data.caseId !== 'string' || !isValidCaseId(data.caseId)) break;
+          void relayPreviewSave(data.caseId, data.png);
+          break;
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();
           break;
@@ -336,6 +348,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
       ...(!isRemoteOrigin ? { canSyncSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
+      // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.
+      ...(canSavePreview ? { canSavePreview: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
     };
@@ -346,7 +360,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
     lastHelloSentRef.current = serialized;
     post(payload);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- theme/locale changes post their own delta message below; this only needs to re-run on a new page or on late-arriving machine/games data
-  }, [ready, helloNonce, machineKey, gamesKey, post]);
+  }, [ready, helloNonce, machineKey, gamesKey, canSavePreview, post]);
 
   const prevThemeRef = useRef(resolvedTheme);
   useEffect(() => {

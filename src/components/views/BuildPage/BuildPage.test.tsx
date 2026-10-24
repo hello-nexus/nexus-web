@@ -9,6 +9,10 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key, language: 'en' }),
 }));
 
+const previewApi = vi.hoisted(() => ({ relayPreviewSave: vi.fn(), devTools: false }));
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return previewApi.devTools; } }));
+vi.mock('./buildPreview', () => ({ relayPreviewSave: (...args: unknown[]) => previewApi.relayPreviewSave(...args) }));
+
 const h = vi.hoisted(() => ({
   themeMode: 'dark' as 'dark' | 'light' | 'system',
   openExternalUrl: vi.fn().mockResolvedValue(undefined),
@@ -607,5 +611,98 @@ describe('shared PC setup relay', () => {
     await act(async () => postFromFrame(remote.iframe, { type: 'nexus-build:setup-put', requestId: 'z', baseRev: 0, setup }));
     expect(h.fetchPcSetup).not.toHaveBeenCalled();
     expect(h.putPcSetup).not.toHaveBeenCalled();
+  });
+});
+
+describe('BuildPage preview relay', () => {
+  beforeEach(() => {
+    previewApi.relayPreviewSave.mockReset();
+    previewApi.devTools = false;
+  });
+
+  function readyFrame() {
+    render(<BuildPage path="/builder" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    return { iframe, postSpy };
+  }
+
+  it('advertises canSavePreview in the app host only', () => {
+    const { postSpy } = readyFrame();
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canSavePreview: true }), BUILD_ORIGIN);
+  });
+
+  it('omits canSavePreview from a remote origin and ignores set-preview there', () => {
+    h.isRemoteOrigin = true;
+    const { iframe, postSpy } = readyFrame();
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('omits canSavePreview on macOS and ignores set-preview there', () => {
+    render(<BuildPage path="/builder" platform="macos" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('a dev-tools build offers and relays previews on macOS too', () => {
+    previewApi.devTools = true;
+    render(<BuildPage path="/builder" platform="macos" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canSavePreview: true }), BUILD_ORIGIN);
+    const png = new ArrayBuffer(4);
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png }));
+    expect(previewApi.relayPreviewSave).toHaveBeenCalledWith('case-abc', png);
+  });
+
+  it('a dev-tools build still omits canSavePreview on a remote origin', () => {
+    previewApi.devTools = true;
+    h.isRemoteOrigin = true;
+    const { iframe, postSpy } = readyFrame();
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('relays a valid set-preview', () => {
+    const { iframe } = readyFrame();
+    const png = new ArrayBuffer(4);
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png }));
+    expect(previewApi.relayPreviewSave).toHaveBeenCalledWith('case-abc', png);
+  });
+
+  it.each([
+    ['null', null],
+    ['too long', 'x'.repeat(65)],
+    ['a path', '../etc'],
+    ['a number', 7],
+  ])('rejects a set-preview case id that is %s', (_label, bad) => {
+    const { iframe } = readyFrame();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: bad, png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('ignores set-preview from the wrong origin or source', () => {
+    const { iframe } = readyFrame();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }, 'https://evil.example.com'));
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) },
+        origin: BUILD_ORIGIN,
+        source: window,
+      }));
+    });
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
   });
 });

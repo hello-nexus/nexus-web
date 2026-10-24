@@ -4493,6 +4493,7 @@
   "panel.widget.blocks.scoreLabel": "スコア",
   "panel.widget.blocks.timeLabel": "時間",
   "panel.widget.build": "Build",
+  "panel.widget.build.cta": "PCを組もう",
   "panel.widget.calculator": "電卓",
   "panel.widget.calendar": "カレンダー",
   "panel.widget.calendar.settings.display": "表示",
