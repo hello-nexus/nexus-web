@@ -1,0 +1,101 @@
+import { describe, expect, it } from 'vitest';
+import {
+  channelOfSlot, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
+  type CaseLayout,
+} from './caseLayout';
+
+const valid = {
+  size: [450, 230, 470],
+  boxes: [
+    { slot: 'fan', role: 'part', select: 'fan:front:120:0', min: [0, 10, 10], size: [25, 120, 120], fans: { axis: 'x', diameter: 114 } },
+    { slot: 'fan', role: 'ghost', select: 'slot:rear:120:0', min: [425, 300, 50], size: [25, 120, 120] },
+    { slot: 'gpu', role: 'part', min: [50, 50, 50], size: [300, 40, 120] },
+  ],
+  fanSlots: [
+    { key: 'front:120:0', position: 'front', size: 120, index: 0, taken: 'fan' },
+    { key: 'rear:120:0', position: 'rear', size: 120, index: 0, taken: null },
+    { key: 'top:120:0', position: 'top', size: 120, index: 0, taken: null },
+    { key: 'top:360:0', position: 'top', size: 360, index: 0, taken: 'radiator' },
+  ],
+};
+
+describe('parseCaseLayout', () => {
+  it('accepts a well-formed layout', () => {
+    const l = parseCaseLayout(valid) as CaseLayout;
+    expect(l.boxes).toHaveLength(3);
+    expect(l.fanSlots).toHaveLength(4);
+    expect(l.boxes[0].fans).toEqual({ axis: 'x', diameter: 114 });
+  });
+
+  it.each([
+    ['null', null],
+    ['a string', 'x'],
+    ['no size', { ...valid, size: undefined }],
+    ['zero size', { ...valid, size: [0, 230, 470] }],
+    ['huge size', { ...valid, size: [450, 230, 1e9] }],
+    ['NaN size', { ...valid, size: [450, NaN, 470] }],
+    ['boxes not an array', { ...valid, boxes: {} }],
+    ['too many boxes', { ...valid, boxes: Array.from({ length: 601 }, () => valid.boxes[2]) }],
+  ])('bails on %s', (_name, raw) => {
+    expect(parseCaseLayout(raw)).toBeNull();
+  });
+
+  it('drops malformed entries and keeps the rest', () => {
+    const l = parseCaseLayout({
+      ...valid,
+      boxes: [...valid.boxes, { slot: 'gpu' }, null, { slot: 'gpu', role: 'part', min: [0, 0, 'x'], size: [1, 1, 1] }],
+      fanSlots: [...valid.fanSlots, { key: '', position: 'x', size: 1, index: 0 }, 5],
+    }) as CaseLayout;
+    expect(l.boxes).toHaveLength(3);
+    expect(l.fanSlots).toHaveLength(4);
+  });
+});
+
+describe('directions', () => {
+  it('defaults rear and top to exhaust and the rest to intake', () => {
+    expect(defaultDirection('rear')).toBe('exhaust');
+    expect(defaultDirection('top')).toBe('exhaust');
+    for (const p of ['front', 'bottom', 'left', 'right', 'psu-shroud', 'front-left', 'front-right']) expect(defaultDirection(p)).toBe('intake');
+  });
+
+  it('applies an override and drops it again when it matches the default', () => {
+    const slot = { key: 'rear:120:0', position: 'rear' };
+    const flipped = withDirection({}, slot, 'intake');
+    expect(flipped).toEqual({ 'rear:120:0': 'intake' });
+    expect(directionOf(slot, flipped)).toBe('intake');
+    expect(withDirection(flipped, slot, 'exhaust')).toEqual({});
+  });
+});
+
+describe('toggleBinding', () => {
+  it('binds, adds and unbinds slots of one channel', () => {
+    let b = toggleBinding([], 'fan1', 'a');
+    b = toggleBinding(b, 'fan1', 'b');
+    expect(b).toEqual([{ channelId: 'fan1', slotKeys: ['a', 'b'] }]);
+    b = toggleBinding(b, 'fan1', 'a');
+    expect(b).toEqual([{ channelId: 'fan1', slotKeys: ['b'] }]);
+    b = toggleBinding(b, 'fan1', 'b');
+    expect(b).toEqual([]);
+  });
+
+  it('moves a slot from one channel to another', () => {
+    const b = toggleBinding([{ channelId: 'fan1', slotKeys: ['a'] }], 'fan2', 'a');
+    expect(b).toEqual([{ channelId: 'fan2', slotKeys: ['a'] }]);
+    expect(channelOfSlot(b, 'a')).toBe('fan2');
+    expect(slotsOfChannel(b, 'fan2')).toEqual(['a']);
+    expect(slotsOfChannel(b, null)).toEqual([]);
+  });
+
+  it('caps the slots per channel', () => {
+    let b: ReturnType<typeof toggleBinding> = [];
+    for (let i = 0; i < 20; i++) b = toggleBinding(b, 'fan1', `k${i}`);
+    expect(b[0].slotKeys).toHaveLength(16);
+  });
+});
+
+describe('fanGeometries', () => {
+  it('pairs fan boxes and ghosts with slots and skips radiators and boxless slots', () => {
+    const l = parseCaseLayout(valid) as CaseLayout;
+    expect(fanGeometries(l).map(g => g.slot.key)).toEqual(['front:120:0', 'rear:120:0']);
+  });
+});

@@ -105,7 +105,7 @@ const editorGroup = () => screen.getByRole('radiogroup', { name: 'cooling.curve.
 /** The curve type the editor is currently showing. */
 const editorType = () =>
   screen.getAllByRole('radio')
-    .find(r => r.getAttribute('aria-checked') === 'true')
+    .find(r => r.getAttribute('aria-checked') === 'true' && r.hasAttribute('aria-label'))
     ?.getAttribute('aria-label') ?? null;
 
 /**

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
@@ -44,6 +44,8 @@ import { useSensors } from '../../../hooks/useSensors';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
+import { COOLING_3D } from '../../../lib/scene/sceneFeature';
+import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -97,6 +99,14 @@ import styles from './CoolingPage.module.scss';
  * Selecting a curve drives the hero card and highlights the fans bound to it;
  * fans bind to a curve through each fan card's mode dropdown.
  */
+
+// Guarded by the raw defines so a distribution build never emits the chunk; the COOLING_3D const does not fold far enough.
+const CoolingCase3D = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? lazy(() => import('./case3d/CoolingCase3D').then(m => ({ default: m.CoolingCase3D })))
+  : null;
+
+const VIEW_2D = '2d';
+const VIEW_3D = '3d';
 
 interface CoolingViewProps {
   serviceOnline: boolean;
@@ -779,6 +789,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // fan, so a curve can be assigned to a group in one action. Declared here
   // because the curve-creation paths below clear it.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
+  const [view3dPref, setView3d] = usePersistentState('nexus.cooling.view3d', false);
+  const view3d = COOLING_3D && view3dPref;
 
   // A device page's jump to one of its fans: select it once it is listed, which opens its curve.
   const fanIntentRef = useRef<string | null>(null);
@@ -1615,7 +1627,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
-          <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
+          <span className={styles.paneTitle}>{t(view3d ? 'cooling.case3d.title' : 'cooling.label.curves')}</span>
+          {COOLING_3D && (
+            <ChipGroup
+              ariaLabel={t('cooling.case3d.viewSwitch')}
+              options={[{ key: VIEW_2D, label: t('lighting.scene.view.2d') }, { key: VIEW_3D, label: t('lighting.scene.view.3d') }]}
+              activeKey={view3d ? VIEW_3D : VIEW_2D}
+              onChange={next => setView3d(next === VIEW_3D)}
+            />
+          )}
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
           {offStatusCard}
@@ -2004,6 +2024,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
         </aside>
         <div className={styles.curveCol}>
+          {view3d && CoolingCase3D ? (
+            <Suspense fallback={null}>
+              <CoolingCase3D
+                channels={channels}
+                selectedChannelId={selectedFanIds.size === 1 ? [...selectedFanIds][0] : null}
+                onSelectChannel={id => setSelectedFanIds(new Set([id]))}
+              />
+            </Suspense>
+          ) : (
+          <>
           {/* Curve buttons are their own section under the "Curve" title; the
               editor below is a separate section with its own heading. With
               fans selected, the highlight follows what THEY are wearing, and
@@ -2046,6 +2076,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             </div>
           ) : (
             <p className={styles.curvesEmpty}>{t('cooling.curves.empty')}</p>
+          )}
+          </>
           )}
         </div>
 
