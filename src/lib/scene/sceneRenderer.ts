@@ -75,6 +75,8 @@ const anchorKey = (objectId: string, anchorId: string) => `${objectId}\n${anchor
 const CLICK_SLOP_PX = 5;
 const SNAP_MM = 5;
 const DESK_THICKNESS = 25;
+/** Scales every structure line (case, desk, objects, free spots) so the LEDs read first; selected and hovered lines ignore it. */
+export const STRUCTURE_LINE_DIM = 0.45;
 
 function dotTexture(): CanvasTexture {
   const c = document.createElement('canvas');
@@ -387,7 +389,7 @@ export class SceneRenderer {
         old.dispose();
       }
       mesh.material = new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false });
-      mesh.add(new LineSegments(new EdgesGeometry(mesh.geometry, 25), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.55 })));
+      mesh.add(new LineSegments(new EdgesGeometry(mesh.geometry, 25), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.55 * STRUCTURE_LINE_DIM })));
     }
     // Clones share these buffers; clearGroup leaves them for the model's own disposal.
     model.traverse(o => { o.userData.shared = true; });
@@ -453,7 +455,7 @@ export class SceneRenderer {
     const geo = new BoxGeometry(maxX - minX, DESK_THICKNESS, maxZ - minZ);
     const slab = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.desk), transparent: true, opacity: 0.35, depthWrite: false }));
     slab.position.set((minX + maxX) / 2, -DESK_THICKNESS / 2, (minZ + maxZ) / 2);
-    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.25 }));
+    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.25 * STRUCTURE_LINE_DIM }));
     edges.position.copy(slab.position);
     g.add(slab, edges);
     return g;
@@ -466,7 +468,7 @@ export class SceneRenderer {
     const face = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.22, depthWrite: false }));
     face.position.y = h / 2;
     face.userData = { pick: 'object', objectId: obj.id, role: 'face' };
-    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.6 }));
+    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.6 * STRUCTURE_LINE_DIM }));
     edges.position.y = h / 2;
     edges.userData = { role: 'edges' };
     g.add(face, edges);
@@ -485,7 +487,7 @@ export class SceneRenderer {
     const m = anchorMatrix(obj, a);
     const g = new Group();
     g.applyMatrix4(m);
-    const line = new LineLoop(outline(a), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.4, depthTest: false }));
+    const line = new LineLoop(outline(a), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.4 * STRUCTURE_LINE_DIM, depthTest: false }));
     line.renderOrder = 5;
     const pickGeo = a.shape === 'ring' ? new CircleGeometry(Math.min(a.width, a.height) * 0.5, 32) : new PlaneGeometry(Math.max(a.width, 12), Math.max(a.height, 12));
     const pick = new Mesh(pickGeo, new MeshBasicMaterial({ color: new Color(this.theme.accent), transparent: true, opacity: 0, side: DoubleSide, depthWrite: false }));
@@ -510,7 +512,7 @@ export class SceneRenderer {
       const device = boundTo.get(key);
       const pick = loop.parent?.children.find(c => c.userData.pick === 'anchor') as Mesh | undefined;
       const pickMat = pick?.material as MeshBasicMaterial | undefined;
-      let opacity = 0.35;
+      let opacity = 0.35 * STRUCTURE_LINE_DIM;
       let color = line;
       let fill = 0;
       if (device) {
@@ -537,7 +539,7 @@ export class SceneRenderer {
         if (o.userData.role === 'edges') {
           const mat = (o as LineSegments).material as LineBasicMaterial;
           mat.color.copy(selected ? accent : line);
-          mat.opacity = selected ? 1 : 0.6;
+          mat.opacity = selected ? 1 : 0.6 * STRUCTURE_LINE_DIM;
         }
       });
     }
