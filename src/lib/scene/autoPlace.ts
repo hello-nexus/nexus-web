@@ -77,7 +77,7 @@ export interface AutoPlaceResult {
   missing: string[];
 }
 
-/** Binds every unplaced device it can recognise to a free spot on an existing object; it never creates objects. */
+/** Binds every unplaced device it can recognize to a free spot on an existing object; it never creates objects. */
 export function autoPlace(objects: SceneObject[], bindings: SceneBinding[], devices: LightingDevice[]): AutoPlaceResult {
   const nextObjects = [...objects];
   const nextBindings = [...bindings];
