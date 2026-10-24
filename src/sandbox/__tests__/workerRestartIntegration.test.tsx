@@ -19,8 +19,8 @@ const workers: Array<{ terminated: boolean }> = [];
 class SilentWorker {
   terminated = false;
   constructor() { workers.push(this); }
-  addEventListener(..._a: unknown[]) {}
-  postMessage(..._a: unknown[]) {}
+  addEventListener() {}
+  postMessage() {}
   terminate() { this.terminated = true; }
 }
 
@@ -38,11 +38,14 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 // The first worker never answers; every respawn answers each ping with a pong.
-class FirstSilentWorker extends SilentWorker {
-  private readonly answers = workers.indexOf(this) > 0;
+class FirstSilentWorker {
+  terminated = false;
+  private readonly answers = workers.length > 0;
   private readonly listeners: Array<(e: { data: unknown }) => void> = [];
+  constructor() { workers.push(this); }
   addEventListener(type: string, fn: (e: { data: unknown }) => void) { if (type === 'message') this.listeners.push(fn); }
   postMessage(m: { type?: string }) { if (this.answers && m?.type === 'nexus.ping') this.listeners.forEach((fn) => fn({ data: { type: 'nexus.pong' } })); }
+  terminate() { this.terminated = true; }
 }
 
 const advance = (ms: number) => { for (let t = 0; t < ms; t += 5000) act(() => { vi.advanceTimersByTime(5000); }); };
