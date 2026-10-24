@@ -9,6 +9,7 @@ import { composeSdkWorkerSource } from './sandboxBoot';
 import { proxyFetch } from './proxyClient';
 import { flattenFrameForWorker, type FlatReading } from './sensorFlatten';
 import * as monitoringStore from '../lib/monitoringStore';
+import { reportAppError } from '../telemetry/appErrorReporting';
 import type { AppDataDoc, AppDataPutResult, AudioPlay, WidgetDisplay } from '../../sdk/runtime/context';
 
 /** Longest sensor glob honoured; a worker-supplied pattern runs against every reading on every frame. */
@@ -36,6 +37,12 @@ export function sensorGlobMatch(pattern: string, id: string): boolean {
   while (pi < p.length && p[pi] === '*') pi++;
   return pi === p.length;
 }
+
+export const PING_INTERVAL_MS = 5000;
+/** Consecutive unanswered pings after which the watchdog fires. */
+export const MAX_MISSED_PINGS = 3;
+/** A slow first load may take this long to answer its first ping before misses count. */
+export const FIRST_PONG_GRACE_MS = 30_000;
 
 export interface SandboxContext {
   instanceId: string;
@@ -68,6 +75,10 @@ export interface SandboxContext {
   /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). The host
    *  delivers only readings matching a granted pattern. Empty = no sensors. */
   sensorsRead?: string[];
+  /** Called each time the worker misses MAX_MISSED_PINGS pings in a row; the watchdog keeps running until dispose, so a declined restart is retried. */
+  onUnresponsive?(): void;
+  /** False while no mount shows this worker; the watchdog idles then. */
+  isActive?(): boolean;
   api: {
     persistLocal(next: Record<string, unknown>): void;
     /** Host-brokered action: POSTs /apps-api/dispatch (relay-aware), returns
@@ -133,6 +144,10 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   // diagnostics still come over the worker's main channel.
   worker.addEventListener('error', (e) => {
     console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
+    const err = new Error(e.message);
+    err.name = 'WorkerError';
+    err.stack = `${err.name}: ${e.message}\n    at ${e.filename}:${e.lineno}`;
+    reportAppError(context.widgetId, 'worker-error', err);
   });
 
   // Sensor broker - capped to the manifest's
@@ -158,10 +173,38 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   const onFrame = () => fanoutSensors();
   monitoringStore.subscribe(onFrame);
 
+  // Misses count from spawn, but only once the first pong has arrived or the grace for a slow first load has passed.
+  const graceEnd = Date.now() + FIRST_PONG_GRACE_MS;
+  let heardPong = false;
+  let pingPending = false;
+  let missed = 0;
+  const watchdog = setInterval(() => {
+    // Chromium throttles main-thread timers in a hidden page, which would stall the ping cadence; unmounted widgets are idle by design.
+    if (document.visibilityState === 'hidden' || context.isActive?.() === false) { pingPending = false; missed = 0; return; }
+    if (pingPending && (heardPong || Date.now() >= graceEnd) && ++missed >= MAX_MISSED_PINGS) {
+      missed = 0;
+      pingPending = false;
+      context.onUnresponsive?.();
+      return;
+    }
+    pingPending = true;
+    worker.postMessage({ type: 'nexus.ping' });
+  }, PING_INTERVAL_MS);
+
   worker.addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { type?: string; id?: number; message?: string; payload?: unknown } | null;
-    if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); return; }
-    if (d?.type === 'nexus.log') { console.warn(`[sdk:${context.widgetId}]`, d.payload); return; }
+    if (d?.type === 'nexus.pong') { heardPong = true; pingPending = false; missed = 0; return; }
+    if (d?.type === 'nexus.error') { console.error(`[sdk:${context.widgetId}]`, d.message); reportAppError(context.widgetId, 'boot-error', d.message ?? 'worker boot failed'); return; }
+    if (d?.type === 'nexus.log') {
+      console.warn(`[sdk:${context.widgetId}]`, d.payload);
+      const log = d.payload as { level?: unknown; message?: unknown; rejection?: unknown; thrown?: unknown } | null;
+      if (log?.level === 'error') {
+        // Only a thrown error or rejection is uploaded; an author's own log text stays in the local service log.
+        const path = log.rejection === true ? 'unhandled-rejection' : log.thrown === true ? 'callback-error' : 'log-error';
+        reportAppError(context.widgetId, path, String(log.message ?? 'error'));
+      }
+      return;
+    }
     if (d?.type === 'nexus.sensors.read' && typeof d.id === 'number') {
       const p = d.payload as { id?: string } | undefined;
       worker.postMessage({ type: 'nexus.reply', id: d.id, result: p?.id && isGranted(p.id) ? findReading(p.id) : null });
@@ -209,6 +252,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   let disposed = false;
   void Promise.resolve(remote.render(receiver.connection, context)).catch((err: unknown) => {
     console.error(`[sdk:${context.widgetId}] render failed`, err);
+    reportAppError(context.widgetId, 'render-failed', err);
   });
 
   return {
@@ -217,6 +261,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
     dispose: () => {
       if (disposed) return;
       disposed = true;
+      clearInterval(watchdog);
       monitoringStore.unsubscribe(onFrame);
       sensorSubs.clear();
       try { worker.terminate(); } catch { /* ignore */ }

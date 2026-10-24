@@ -180,3 +180,114 @@ describe('AnimateGrid pin badge', () => {
     expect(screen.getByTestId('effect-pin-badge').textContent).toBe('1');
   });
 });
+
+describe('AnimateGrid edit pencil', () => {
+  const renderGrid = (props: { effect: string; onEdit?: () => void; editEnabled?: boolean; onSelect?: (k: string) => void }) => render(
+    <AnimateGrid
+      effect={props.effect}
+      onSelect={props.onSelect ?? (() => {})}
+      onEdit={props.onEdit}
+      editEnabled={props.editEnabled ?? !!props.onEdit}
+      slotFor={() => 0}
+      versionFor={() => '0'}
+    />,
+  );
+
+  it('shows the pencil only on the selected tile while the editor is closed', () => {
+    const { container } = renderGrid({ effect: 'plasma', onEdit: () => {} });
+    const pencils = container.querySelectorAll('[data-edit-hint-overlay]');
+    expect(pencils.length).toBe(1);
+    expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe('plasma');
+    expect(pencils[0].getAttribute('aria-hidden')).toBe('true');
+    expect(pencils[0].textContent).toBe('');
+  });
+
+  it('shows no pencil and re-picks when edit is not enabled', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit, editEnabled: false, onSelect });
+    expect(container.querySelectorAll('[data-edit-hint-overlay]').length).toBe(0);
+    fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('keeps the same tile elements when edit toggles, so focus survives', () => {
+    const onEdit = vi.fn();
+    const { container, rerender } = renderGrid({ effect: 'plasma', onEdit, editEnabled: true });
+    const tile = container.querySelector('[data-effect-key="plasma"]')!;
+    rerender(<AnimateGrid effect="plasma" onSelect={() => {}} onEdit={onEdit} editEnabled={false} slotFor={() => 0} versionFor={() => '0'} />);
+    expect(container.querySelector('[data-effect-key="plasma"]')).toBe(tile);
+  });
+
+  it('re-picks on a touch or coarse pointer', () => {
+    const original = window.matchMedia;
+    window.matchMedia = (() => ({ matches: false })) as unknown as typeof window.matchMedia;
+    try {
+      const onEdit = vi.fn();
+      const onSelect = vi.fn();
+      const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
+      fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(onEdit).not.toHaveBeenCalled();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it('names the selected tile by its edit action and opens the editor without re-selecting', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    renderGrid({ effect: 'plasma', onEdit, onSelect });
+    fireEvent.click(screen.getByRole('button', { name: /lighting\.effects\.edit/ }));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('opens the editor when the selected tile itself is clicked', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
+    fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('shows the hint on a tile selected under a still pointer, until the pointer leaves', () => {
+    const onEdit = vi.fn();
+    const { container, rerender } = renderGrid({ effect: 'plasma', onEdit });
+    const next = Array.from(container.querySelectorAll('[data-effect-key]')).map(e => e.getAttribute('data-effect-key')!).find(k => k !== 'plasma')!;
+    fireEvent.pointerEnter(container.querySelector(`[data-effect-key="${next}"]`)!);
+    rerender(<AnimateGrid effect={next} onSelect={() => {}} onEdit={onEdit} editEnabled slotFor={() => 0} versionFor={() => '0'} />);
+    const tile = container.querySelector(`[data-effect-key="${next}"]`)!;
+    expect(tile.getAttribute('data-edit-hint-shown')).toBe('true');
+    fireEvent.pointerLeave(tile);
+    expect(tile.hasAttribute('data-edit-hint-shown')).toBe(false);
+  });
+
+  it('does not force the hint while edit is not enabled', () => {
+    const { container } = renderGrid({ effect: 'plasma', onEdit: () => {}, editEnabled: false });
+    fireEvent.pointerEnter(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+  });
+
+  it('selects, not edits, when a different tile is clicked', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
+    const other = Array.from(container.querySelectorAll('[data-effect-key]')).find(el => el.getAttribute('data-effect-key') !== 'plasma')!;
+    fireEvent.click(other);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('puts the pencil on a tile the moment it becomes selected, with no re-hover', () => {
+    const onEdit = vi.fn();
+    const { container, rerender } = renderGrid({ effect: 'plasma', onEdit });
+    const next = Array.from(container.querySelectorAll('[data-effect-key]')).map(el => el.getAttribute('data-effect-key')!).find(k => k !== 'plasma')!;
+    rerender(<AnimateGrid effect={next} onSelect={() => {}} onEdit={onEdit} editEnabled slotFor={() => 0} versionFor={() => '0'} />);
+    const pencils = container.querySelectorAll('[data-edit-hint-overlay]');
+    expect(pencils.length).toBe(1);
+    expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe(next);
+  });
+});

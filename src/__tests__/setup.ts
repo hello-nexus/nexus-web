@@ -30,6 +30,11 @@ if (typeof window !== 'undefined') {
   // don't throw under test.
   Element.prototype.scrollIntoView ??= function () {};
 
+  // jsdom logs "not implemented" for media element control; background video
+  // release calls both on unmount.
+  HTMLMediaElement.prototype.pause = function () {};
+  HTMLMediaElement.prototype.load = function () {};
+
   afterEach(() => {
     localStorage.clear();
   });

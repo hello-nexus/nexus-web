@@ -16,12 +16,10 @@ function buildLayout(surface: PanelLayout['surface']): PanelLayout {
   const defaults = getInstallDefaults();
   // Promoted monitors seed from the desktop layout - same landscape,
   // large-canvas shape (mirrors PanelLayoutDefaults in nexus-service).
-  // Promoted monitors seed from desktop; the Kraken's round single-tile glass seeds
-  // from the Q-series, the other single-widget surface.
   // Single-widget surfaces borrow the Q60's defaults: one tile, no pager.
   const sourceKey = surface === 'monitor'
     ? 'desktop'
-    : (surface === 'kraken' || surface === 'lcd-round' || surface === 'lcd-square'
+    : (surface === 'lcd-round' || surface === 'lcd-square'
         || surface === 'lcd-wide')
       ? 'q60'
       : surface;

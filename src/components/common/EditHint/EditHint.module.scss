@@ -1,0 +1,25 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/cellNotice' as *;
+
+// Look of the panel editor's widget edit hint, shared with the lighting effect
+// tiles. Hidden until the host reveals it (see EditHint.tsx).
+.root {
+  @include cell-notice;
+  color: var(--edit-hint-color, var(--text));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ease-fast) ease-out;
+}
+
+.content {
+  @include cell-notice-content;
+}
+
+.icon {
+  @include cell-notice-icon;
+  stroke-width: 1.6;
+}
+
+.label {
+  @include text-button;
+}

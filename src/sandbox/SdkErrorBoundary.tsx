@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { reportAppError } from '../telemetry/appErrorReporting';
 
 interface Props {
   widgetId: string;
@@ -37,6 +38,7 @@ export class SdkErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error(`[sdk:${this.props.widgetId}] render error`, error, info.componentStack);
+    reportAppError(this.props.widgetId, 'boundary', error);
   }
 
   render(): ReactNode {

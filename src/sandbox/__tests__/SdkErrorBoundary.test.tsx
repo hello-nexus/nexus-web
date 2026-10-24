@@ -2,6 +2,9 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { SdkErrorBoundary } from '../SdkErrorBoundary';
 
+const reportAppError = vi.fn();
+vi.mock('../../telemetry/appErrorReporting', () => ({ reportAppError: (...a: unknown[]) => reportAppError(...a) }));
+
 function Boom(): never {
   throw new Error('app blew up');
 }
@@ -28,6 +31,17 @@ describe('SdkErrorBoundary', () => {
       </SdkErrorBoundary>,
     );
     expect(spy.mock.calls.some((c) => String(c[0]).includes('[sdk:com.test.app]'))).toBe(true);
+  });
+
+  it('reports the render error once with the app id', () => {
+    reportAppError.mockReset();
+    render(
+      <SdkErrorBoundary widgetId="com.test.app" resetKey="r1">
+        <Boom />
+      </SdkErrorBoundary>,
+    );
+    expect(reportAppError).toHaveBeenCalledTimes(1);
+    expect(reportAppError.mock.calls[0].slice(0, 2)).toEqual(['com.test.app', 'boundary']);
   });
 
   it('recovers when resetKey changes (a fresh render attempt)', () => {

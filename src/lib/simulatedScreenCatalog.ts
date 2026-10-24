@@ -28,11 +28,11 @@ export const SIMULATED_SCREEN_CATALOG: readonly SimulatedScreen[] = [
   { id: 'q60', name: 'HYTE Q60', vendor: 'HYTE', surface: 'q60', width: 720, height: 1280, dpi: 240 },
   { id: 'q80', name: 'HYTE Q80', vendor: 'HYTE', surface: 'q60', width: 720, height: 1280, dpi: 240 },
 
-  { id: 'kraken', name: 'NZXT Kraken Elite V2', vendor: 'NZXT', surface: 'kraken', family: 'nzxt-kraken', width: 640, height: 640, dpi: KRAKEN_DPI },
-  { id: 'kraken-plus-v2', name: 'NZXT Kraken Plus V2', vendor: 'NZXT', surface: 'kraken', family: 'nzxt-kraken', width: 240, height: 240, dpi: KRAKEN_DPI },
-  { id: 'kraken-elite-2023', name: 'NZXT Kraken Elite (2023)', vendor: 'NZXT', surface: 'kraken', family: 'nzxt-kraken', width: 640, height: 640, dpi: KRAKEN_DPI },
-  { id: 'kraken-2023', name: 'NZXT Kraken (2023)', vendor: 'NZXT', surface: 'kraken', family: 'nzxt-kraken', width: 240, height: 240, dpi: KRAKEN_DPI },
-  { id: 'kraken-z3', name: 'NZXT Kraken Z3', vendor: 'NZXT', surface: 'kraken', family: 'nzxt-kraken', width: 320, height: 320, dpi: KRAKEN_DPI },
+  { id: 'kraken', name: 'NZXT Kraken Elite V2', vendor: 'NZXT', surface: 'lcd-round', family: 'nzxt-kraken', width: 640, height: 640, dpi: KRAKEN_DPI },
+  { id: 'kraken-plus-v2', name: 'NZXT Kraken Plus V2', vendor: 'NZXT', surface: 'lcd-round', family: 'nzxt-kraken', width: 240, height: 240, dpi: KRAKEN_DPI },
+  { id: 'kraken-elite-2023', name: 'NZXT Kraken Elite (2023)', vendor: 'NZXT', surface: 'lcd-round', family: 'nzxt-kraken', width: 640, height: 640, dpi: KRAKEN_DPI },
+  { id: 'kraken-2023', name: 'NZXT Kraken (2023)', vendor: 'NZXT', surface: 'lcd-round', family: 'nzxt-kraken', width: 240, height: 240, dpi: KRAKEN_DPI },
+  { id: 'kraken-z3', name: 'NZXT Kraken Z3', vendor: 'NZXT', surface: 'lcd-round', family: 'nzxt-kraken', width: 320, height: 320, dpi: KRAKEN_DPI },
 
   { id: 'lianli-hydroshift-lcd', name: 'Lian Li HydroShift LCD', vendor: 'Lian Li', surface: 'lcd-square', family: 'lianli-hydroshift-lcd', width: 480, height: 480, dpi: LCD_DPI },
   { id: 'lianli-galahad2-lcd', name: 'Lian Li Galahad II LCD', vendor: 'Lian Li', surface: 'lcd-square', family: 'lianli-galahad2-lcd', width: 480, height: 480, dpi: LCD_DPI },

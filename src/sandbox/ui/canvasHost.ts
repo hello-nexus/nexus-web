@@ -13,6 +13,7 @@ import { panelDisplayHz, streamFrameCap } from '../../lib/framePacer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
+import { reportAppError } from '../../telemetry/appErrorReporting';
 
 export type CanvasPhase = 'loading' | 'ready' | 'error';
 
@@ -317,12 +318,15 @@ export class CanvasSession {
     worker.addEventListener('error', (ev) => {
       if (worker !== this.worker) return;
       console.error(`[canvas:${this.spec.appId}] worker error`, ev.message);
+      reportAppError(this.spec.appId, 'canvas-error', ev.message);
       // A live renderer that already used its respawn keeps running past a stray fault.
       if (this.phase === 'ready' && this.respawns >= MAX_RESPAWNS) return;
       this.workerFailed();
     });
     this.bootTimer = setTimeout(() => {
-      if (worker === this.worker && !this.booted) this.workerFailed();
+      if (worker !== this.worker || this.booted) return;
+      reportAppError(this.spec.appId, 'boot-timeout', 'renderer did not boot in time');
+      this.workerFailed();
     }, BOOT_TIMEOUT_MS);
   }
 
@@ -346,8 +350,13 @@ export class CanvasSession {
       case 'read-asset':
         void this.serveAsset(worker, m.id, m.path);
         return;
+      case 'rejection':
+        console.error(`[canvas:${this.spec.appId}] unhandled rejection`, m.message);
+        reportAppError(this.spec.appId, 'unhandled-rejection', m.message);
+        return;
       case 'error':
         console.error(`[canvas:${this.spec.appId}] renderer error`, m.message);
+        reportAppError(this.spec.appId, 'canvas-error', m.message);
         if (this.phase !== 'ready') this.workerFailed();
         return;
     }
@@ -431,6 +440,7 @@ export class CanvasSession {
 
   private fail(reason: unknown): void {
     console.error(`[canvas:${this.spec.appId}] renderer failed`, reason);
+    // Not reported as an app error: a missing module or a failed transfer is the host or network, and worker faults are reported where they arrive.
     this.teardownWorker();
     this.setPhase('error');
   }

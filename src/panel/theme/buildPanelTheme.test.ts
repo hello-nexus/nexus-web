@@ -47,7 +47,7 @@ describe('buildPanelTheme', () => {
     const on = (surface: string, over: Partial<PanelDeviceRecord> = {}) =>
       buildPanelTheme(null, { ...y70(over), capabilities: { surface } } as PanelDeviceRecord).backgroundMode;
     expect(on('q60')).toBe('shader');
-    for (const surface of ['y70', 'monitor', 'phone', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide']) {
+    for (const surface of ['y70', 'monitor', 'phone', 'lcd-round', 'lcd-square', 'lcd-wide']) {
       expect(on(surface), surface).toBe('solid');
     }
     expect(on('lcd-wide', { backgroundMode: 'shader' })).toBe('shader');
