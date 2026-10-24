@@ -2,8 +2,8 @@ import { authFetchWithStatus } from './service';
 import type { SceneObject } from './lightingScene';
 
 /**
- * The PC setup Build and Lighting share. Mirrors nexus-service Lighting/Scene/PcSetupModels.cs. Millimetres, x and z
- * are the footprint centre, yaw is degrees counter-clockwise seen from above (the same as SceneObject).
+ * The PC setup Build and Lighting share. Mirrors nexus-service Lighting/Scene/PcSetupModels.cs. Millimeters, x and z
+ * are the footprint center, yaw is degrees counter-clockwise seen from above (the same as SceneObject).
  */
 export interface PcSetupPlace {
   x: number;
@@ -49,7 +49,7 @@ export interface PcSetupRecord {
   setup: PcSetup;
 }
 
-/** An item id, or `case`, and its new footprint centre and yaw. */
+/** An item id, or `case`, and its new footprint center and yaw. */
 export interface PcSetupPlacement {
   id: string;
   x: number;

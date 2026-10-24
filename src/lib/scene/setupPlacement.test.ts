@@ -10,26 +10,23 @@ const setup = (ids: string[], objects: SceneObject[]): PcSetup => ({
   version: 1, case: {}, items: ids.map(id => ({ id, kind: 'desk', owned: true })), resolved: { objects },
 });
 
-describe('desk return wing', () => {
+describe('desk parts', () => {
   const desk = obj('desk-1', 'desk', 0, 0);
   const wing = obj('desk-1.return', 'desk', 1000, 0);
+  const kb = obj('kb-1', 'keyboard', 10, 20);
 
-  it('is not movable on its own while the desk is', () => {
-    const s = setup(['desk-1'], [desk, wing]);
-    expect(isMovable(s, 1, desk)).toBe(true);
+  it('keeps the desk and its return wing out of what Lighting may move', () => {
+    const s = setup(['desk-1', 'kb-1'], [desk, wing, kb]);
+    expect(isMovable(s, 1, desk)).toBe(false);
     expect(isMovable(s, 1, wing)).toBe(false);
+    expect(isMovable(s, 1, kb)).toBe(true);
   });
 
-  it('follows a move of the desk', () => {
-    const [d, w] = applyPlacements([desk, wing], [{ id: 'desk-1', x: 50, z: -20, yaw: 0 }]);
-    expect(d.position).toEqual([50, 0, -20]);
-    expect(w.position).toEqual([1050, 0, -20]);
-  });
-
-  it('swings around the desk on a turn', () => {
-    const [, w] = applyPlacements([desk, wing], [{ id: 'desk-1', x: 0, z: 0, yaw: 90 }]);
-    expect(w.position[0]).toBeCloseTo(0);
-    expect(w.position[2]).toBeCloseTo(-1000);
-    expect(w.yaw).toBe(90);
+  it('moves only the placed object', () => {
+    const [d, w, k] = applyPlacements([desk, wing, kb], [{ id: 'kb-1', x: 50, z: -20, yaw: 90 }]);
+    expect(d).toBe(desk);
+    expect(w).toBe(wing);
+    expect(k.position).toEqual([50, 0, -20]);
+    expect(k.yaw).toBe(90);
   });
 });

@@ -563,6 +563,35 @@ describe('shared PC setup relay', () => {
     expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, rev: 6, setup }, BUILD_ORIGIN);
   });
 
+  it('never pushes an older revision after a newer one when fetches resolve out of order', async () => {
+    const { postSpy } = ready();
+    let first: (v: unknown) => void = () => {};
+    let second: (v: unknown) => void = () => {};
+    h.fetchPcSetup
+      .mockImplementationOnce(() => new Promise(res => { first = res; }))
+      .mockImplementationOnce(() => new Promise(res => { second = res; }));
+    await act(async () => { h.topic!.cb({ rev: 7 }); h.topic!.cb({ rev: 8 }); });
+
+    await act(async () => second({ rev: 8, setup }));
+    await act(async () => first({ rev: 7, setup }));
+
+    const pushed = postSpy.mock.calls.map(c => c[0] as { type: string; rev?: number }).filter(m => m.type === 'nexus-build:setup').map(m => m.rev);
+    expect(pushed).toEqual([8]);
+  });
+
+  it('does not echo the frame\'s own save when the ping fetch resolves before the put reply', async () => {
+    const { iframe, postSpy } = ready();
+    let reply: (v: unknown) => void = () => {};
+    h.putPcSetup.mockImplementation(() => new Promise(res => { reply = res; }));
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 4, setup }));
+    h.fetchPcSetup.mockResolvedValue({ rev: 5, setup });
+    await act(async () => h.topic!.cb({ rev: 5 }));
+    await act(async () => reply({ kind: 'saved', rev: 5 }));
+
+    const pushed = postSpy.mock.calls.map(c => c[0] as { type: string; requestId?: string }).filter(m => m.type === 'nexus-build:setup');
+    expect(pushed).toEqual([expect.objectContaining({ requestId: 'p' })]);
+  });
+
   it('ignores setup messages from the wrong origin or source, and on a remote origin', async () => {
     const { iframe, postSpy } = ready();
     await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'x' }, 'https://evil.example.com'));

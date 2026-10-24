@@ -200,11 +200,17 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
     win.postMessage(message, BUILD_ORIGIN);
   }, []);
 
-  // The revision the frame last learned of, so the ping after its own save is not pushed back.
-  const lastSetupRevRef = useRef<number | null>(null);
+  // The newest revision the frame knows of: its own save replies and every push move it forward, so a stale or echoed fetch is dropped.
+  const lastSetupRevRef = useRef(-1);
+  // Settles when no setup write from the frame is waiting for its reply, so a fetch that overtook a reply is compared after it.
+  const setupWritesRef = useRef<Promise<unknown>>(Promise.resolve());
+  const learnSetupRev = useCallback((rev: unknown) => {
+    if (typeof rev === 'number') lastSetupRevRef.current = Math.max(lastSetupRevRef.current, rev);
+  }, []);
   useTopicCallback(PC_SETUP_TOPIC, ready && !isRemoteOrigin, useCallback(() => {
-    void relaySetupPush().then(push => {
-      if (!push || push.rev === lastSetupRevRef.current) return;
+    void relaySetupPush().then(async push => {
+      await setupWritesRef.current;
+      if (!push || push.rev <= lastSetupRevRef.current) return;
       lastSetupRevRef.current = push.rev;
       post(push.message as FrameMessage);
     });
@@ -256,14 +262,17 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
           break;
         case 'nexus-build:setup-get':
           if (isRemoteOrigin) break;
-          void relaySetupGet(data).then(reply => post(reply as FrameMessage));
+          void relaySetupGet(data).then(reply => {
+            learnSetupRev(reply.rev);
+            post(reply as FrameMessage);
+          });
           break;
         case 'nexus-build:setup-put':
           if (isRemoteOrigin) break;
-          void relaySetupPut(data).then(reply => {
-            if (typeof reply.rev === 'number') lastSetupRevRef.current = reply.rev;
+          setupWritesRef.current = Promise.all([setupWritesRef.current, relaySetupPut(data).then(reply => {
+            learnSetupRev(reply.rev);
             post(reply as FrameMessage);
-          });
+          })]);
           break;
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();
@@ -280,7 +289,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       window.removeEventListener('message', handleMessage);
       clearBuildFrameHistory();
     };
-  }, [post]);
+  }, [post, learnSetupRev]);
 
   const machine: BuildMachine | undefined = specs ? (() => {
     const sig = buildFpsSignatureParams(specs);

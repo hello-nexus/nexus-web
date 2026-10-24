@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type RefObject } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState, type RefObject } from 'react';
 import {
   Box, Eye, EyeOff, FlipHorizontal2, Link, Move3d, Pencil, RotateCcw, RotateCw, Trash2, WandSparkles, X, Zap,
 } from 'lucide-react';
@@ -443,45 +443,41 @@ function SceneEditor({
                 const placed = !!bindingOf(d.id);
                 const active = d.id === selectedDeviceId || d.id === placing?.deviceId;
                 return (
-                  <div
-                    key={d.id}
-                    role="button"
-                    tabIndex={0}
-                    className={`${styles.deviceRow} ${active ? styles.deviceRowActive : ''}`}
-                    draggable
-                    onDragStart={e => {
-                      e.dataTransfer.setData(DEVICE_DRAG_TYPE, d.id);
-                      e.dataTransfer.effectAllowed = 'move';
-                    }}
-                    onClick={() => {
-                      setSelectedObjectId(null);
-                      setSelectedDeviceId(d.id);
-                      setPlacing(placed ? null : { deviceId: d.id, append: false });
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
+                  <Fragment key={d.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`${styles.deviceRow} ${active ? styles.deviceRowActive : ''}`}
+                      draggable
+                      onDragStart={e => {
+                        e.dataTransfer.setData(DEVICE_DRAG_TYPE, d.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onClick={() => {
+                        setSelectedObjectId(null);
                         setSelectedDeviceId(d.id);
                         setPlacing(placed ? null : { deviceId: d.id, append: false });
-                      }
-                    }}
-                  >
-                    <span className={`${styles.deviceDot} ${placed ? styles.deviceDotPlaced : ''}`} />
-                    <span className={styles.deviceText}>
-                      <span className={styles.deviceName}>{d.name}</span>
-                      <span className={styles.deviceWhere}>{whereLabel(d.id)}</span>
-                      {missing.has(d.id) && !placed && (
-                        <button
-                          type="button"
-                          className={styles.deviceWhere}
-                          onClick={e => { e.stopPropagation(); requestOpenBuild('/builder'); }}
-                          onKeyDown={e => e.stopPropagation()}
-                        >
-                          {t('lighting.scene.devices.addInBuild')}
-                        </button>
-                      )}
-                    </span>
-                  </div>
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedDeviceId(d.id);
+                          setPlacing(placed ? null : { deviceId: d.id, append: false });
+                        }
+                      }}
+                    >
+                      <span className={`${styles.deviceDot} ${placed ? styles.deviceDotPlaced : ''}`} />
+                      <span className={styles.deviceText}>
+                        <span className={styles.deviceName}>{d.name}</span>
+                        <span className={styles.deviceWhere}>{whereLabel(d.id)}</span>
+                      </span>
+                    </div>
+                    {missing.has(d.id) && !placed && (
+                      <button type="button" className={styles.deviceLink} onClick={() => requestOpenBuild('/builder')}>
+                        {t('lighting.scene.devices.addInBuild')}
+                      </button>
+                    )}
+                  </Fragment>
                 );
               })}
             </div>

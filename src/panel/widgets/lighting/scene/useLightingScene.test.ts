@@ -144,6 +144,21 @@ describe('useLightingScene', () => {
       await waitFor(() => expect(result.current.setupRev).toBe(4));
     });
 
+    it('never moves the desk or its return wing', async () => {
+      const desk = obj('desk-1', 'desk', 0, 0);
+      const wing = obj('desk-1.return', 'desk', 1000, 0);
+      withRecord(2, [desk, wing, kb], ['desk-1', 'kb-1']);
+      const { result } = await mounted();
+      await waitFor(() => expect(result.current.setupRev).toBe(2));
+      expect(result.current.movable('desk-1')).toBe(false);
+      expect(result.current.movable('desk-1.return')).toBe(false);
+      expect(result.current.movable('kb-1')).toBe(true);
+
+      act(() => { result.current.moveItem('desk-1', [50, 5, -20]); result.current.turnItem('desk-1', 15); });
+      expect(result.current.scene!.objects.find(o => o.id === 'desk-1')!.position).toEqual([0, 5, 0]);
+      expect(patchPcSetupPlacements).not.toHaveBeenCalled();
+    });
+
     it('addresses the case as case and turns it', async () => {
       withRecord(1, [pc, kb], ['kb-1']);
       vi.mocked(patchPcSetupPlacements).mockResolvedValue({ kind: 'saved', rev: 2 });

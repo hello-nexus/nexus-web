@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LightingDevice } from '../../api/lighting';
 import { autoPlace, deviceRole } from './autoPlace';
-import { genericCase, newDeskObject } from './deskCatalog';
+import { caseObject, deskObject } from './sceneFixtures';
 
 const dev = (id: string, patch: Partial<LightingDevice> = {}): LightingDevice => ({
   id, name: id, ledsOn: true, ledCount: 10, canvasX: 0, canvasY: 0, canvasW: 100, canvasH: 100, canvasRotation: 0, ...patch,
@@ -30,7 +30,7 @@ describe('autoPlace', () => {
   });
 
   it('binds to existing objects only and fills case fans front first', () => {
-    const pc = genericCase([]);
+    const pc = caseObject();
     const devices = [
       dev('kbd', { iconType: 'keyboard' }),
       dev('mouse', { iconType: 'mouse' }),
@@ -42,7 +42,7 @@ describe('autoPlace', () => {
       dev('ram', { type: 'dram' }),
       dev('pad2', { type: 'gamepad' }),
     ];
-    const desk = [newDeskObject('keyboard', []), newDeskObject('mouse', []), newDeskObject('mousepad', [])];
+    const desk = [deskObject('keyboard'), deskObject('mouse'), deskObject('mousepad')];
     const r = autoPlace([pc, ...desk], [], devices);
     expect(r.objects.map(o => o.kind).sort()).toEqual(['case', 'keyboard', 'mouse', 'mousepad']);
     const where = (id: string) => r.bindings.find(b => b.deviceId === id)!.targets[0].anchorId;
@@ -53,7 +53,7 @@ describe('autoPlace', () => {
   });
 
   it('leaves placed and uncontrolled devices alone and reuses free desk objects', () => {
-    const pc = genericCase([]);
+    const pc = caseObject();
     const first = autoPlace([pc], [], [dev('kbd', { iconType: 'keyboard' })]);
     const again = autoPlace(first.objects, first.bindings, [
       dev('kbd', { iconType: 'keyboard' }),
@@ -73,7 +73,7 @@ describe('autoPlace', () => {
   });
 
   it('reports a second keyboard as missing once the first has taken the only spot', () => {
-    const kb = newDeskObject('keyboard', []);
+    const kb = deskObject('keyboard');
     const r = autoPlace([kb], [], [dev('a', { iconType: 'keyboard' }), dev('b', { iconType: 'keyboard' })]);
     expect(r.placed).toEqual(['a']);
     expect(r.missing).toEqual(['b']);

@@ -267,35 +267,6 @@
   gap: 0.4rem;
 }
 
-.deskGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.deskTile {
-  @include text-caption;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.55rem 0.3rem;
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast);
-
-  &:hover {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-
-  &:focus-visible { @include focus-ring; }
-}
-
 .deviceList {
   display: flex;
   flex-direction: column;
@@ -352,6 +323,19 @@
   color: var(--text-dim);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.deviceLink {
+  @include text-caption;
+  align-self: flex-start;
+  padding: 0 0.6rem 0.3rem;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible { @include focus-ring; }
 }
 
 .inspectorTitle {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { curvedProfile, curveRadius } from './curvedPanel';
 
 describe('curvedProfile', () => {
-  it('spans the panel width with the edges toward the viewer and the footprint centred', () => {
+  it('spans the panel width with the edges toward the viewer and the footprint centered', () => {
     const p = curvedProfile(620, 1500, 8);
     expect(p).toHaveLength(9);
     expect(p[0][0]).toBeCloseTo(-p[8][0]);
