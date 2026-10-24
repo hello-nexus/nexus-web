@@ -49,6 +49,8 @@ export const GLACIAL_TUNING_DEFAULTS: GlacialTuningSettings = {
   doubleBuffer: false,
   closeWriteMode: true,
   rawStream: false,
+  updateInPlace: false,
+  rawProbe: false,
 };
 
 /** The Nexus panel streaming controls: apply at once, with a live view of what the uploads are doing. */
@@ -285,6 +287,20 @@ export function AsusGlacialPanelTuning() {
         checked={s?.rawStream ?? false}
         disabled={!ready}
         onChange={on => edit({ rawStream: on })}
+      />
+      <SettingToggle
+        label={t('devices.asus-glacial-lcd.tuning.updateInPlace')}
+        description={t('devices.asus-glacial-lcd.tuning.updateInPlaceHint')}
+        checked={s?.updateInPlace ?? false}
+        disabled={!ready}
+        onChange={on => edit({ updateInPlace: on })}
+      />
+      <SettingToggle
+        label={t('devices.asus-glacial-lcd.tuning.rawProbe')}
+        description={t('devices.asus-glacial-lcd.tuning.rawProbeHint')}
+        checked={s?.rawProbe ?? false}
+        disabled={!ready}
+        onChange={on => edit({ rawProbe: on })}
       />
 
       <SettingRow label={t('devices.asus-glacial-lcd.tuning.rate')}>

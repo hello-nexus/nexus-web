@@ -83,6 +83,10 @@ export interface GlacialTuningSettings {
   closeWriteMode: boolean;
   /** Experimental: uncompressed frames instead of stored pictures. */
   rawStream: boolean;
+  /** Probe: rewrite the slot on display and send no show. */
+  updateInPlace: boolean;
+  /** Probe: raw stream with opaque frames and a state query first. */
+  rawProbe: boolean;
 }
 
 export interface GlacialTuningStats {
