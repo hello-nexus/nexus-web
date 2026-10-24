@@ -284,7 +284,7 @@ export function DeepCoolMystiqueDevicePage() {
     }
   };
 
-  // The screen has no select command: a click sends the chosen GIF, or moves the chosen picture to where the pictures start.
+  // The screen has no select command: a click sends the chosen item into the one slot of its kind.
   const showItem = async (item: MystiqueMediaItem) => {
     setShowing(item.id);
     try {
@@ -405,7 +405,7 @@ export function DeepCoolMystiqueDevicePage() {
   const selectMedia = (item: MystiqueMediaItem) => {
     if (!ready || mediaBusy || !state) return;
     setSelected({ picture: null, gif: null, [item.kind]: item.id });
-    if (item.id !== shownId(item.kind) || (item.kind === 'picture' && state.picturesUnsent)) {
+    if (item.id !== shownId(item.kind)) {
       void showItem(item);
     } else if (!kindShown(item.kind)) {
       edit({ mediaSource: sourceOf(item.kind), sourceChosen: true }, { mediaSource: sourceOf(item.kind) });
