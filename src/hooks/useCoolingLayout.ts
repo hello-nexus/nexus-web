@@ -35,7 +35,11 @@ export function useCoolingLayout(active: boolean): CoolingLayoutApi {
   useEffect(() => {
     if (active) void refetch();
   }, [active, refetch]);
-  useTopicCallback(COOLING_LAYOUT_TOPIC, active, () => { void refetch(); });
+  useTopicCallback(COOLING_LAYOUT_TOPIC, active, frame => {
+    const rev = (frame as { rev?: unknown } | null)?.rev;
+    if (typeof rev === 'number' && rev === server.current?.rev) return;
+    void refetch();
+  });
 
   const edit = useCallback((mutate: (layout: CoolingLayout) => CoolingLayout) => {
     if (!server.current) return;

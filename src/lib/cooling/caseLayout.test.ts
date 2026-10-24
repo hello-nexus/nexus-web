@@ -99,3 +99,33 @@ describe('fanGeometries', () => {
     expect(fanGeometries(l).map(g => g.slot.key)).toEqual(['front:120:0', 'rear:120:0']);
   });
 });
+
+describe('slot fields on newer records', () => {
+  const withSlots = {
+    ...valid,
+    fanSlots: [
+      { key: 'front:120:0', position: 'front', size: 120, index: 0, taken: 'fan', box: { min: [0, 10, 10], size: [25, 120, 120] }, axis: [2, 0, 0], fan: { airflowCfm: 70, staticPressureMmH2O: 2.1, title: 'F' } },
+      { key: 'top:120:0', position: 'top', size: 120, index: 0, taken: null, box: { min: [100, 440, 10], size: [120, 25, 120], rotationY: 0.5 }, axis: [0, -1, 0] },
+      { key: 'top:360:0', position: 'top', size: 360, index: 0, taken: 'radiator', radiator: { fanCount: 3, fanAirflowCfm: 60 } },
+      { key: 'bad:120:0', position: 'bottom', size: 120, index: 0, taken: null, box: { min: [0, 0, 'x'], size: [1, 1, 1] }, axis: [0, 0, 0], fan: { airflowCfm: -4 } },
+    ],
+  };
+
+  it('parses boxes, unit axes and specs, and drops invalid ones', () => {
+    const l = parseCaseLayout(withSlots) as CaseLayout;
+    expect(l.fanSlots[0].axis).toEqual([1, 0, 0]);
+    expect(l.fanSlots[0].fan?.airflowCfm).toBe(70);
+    expect(l.fanSlots[2].radiator?.fanCount).toBe(3);
+    expect(l.fanSlots[3].box).toBeUndefined();
+    expect(l.fanSlots[3].axis).toBeUndefined();
+    expect(l.fanSlots[3].fan?.airflowCfm).toBeUndefined();
+  });
+
+  it('draws empty and taken slots from their own boxes', () => {
+    const l = parseCaseLayout(withSlots) as CaseLayout;
+    const g = fanGeometries(l);
+    expect(g.map(x => x.slot.key)).toEqual(['front:120:0', 'top:120:0']);
+    expect(g[1].box.role).toBe('ghost');
+    expect(g[1].box.rotationY).toBe(0.5);
+  });
+});

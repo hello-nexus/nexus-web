@@ -13,7 +13,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import {
   channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
 } from '../../../../lib/cooling/caseLayout';
-import { catalogFanSpecs, resolveFanSpec } from '../../../../lib/cooling/fanSpecs';
+import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
 import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import styles from './CoolingCase3D.module.scss';
@@ -63,10 +63,10 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     let estimated = false;
     const fans: PressureFan[] = [];
     for (const slot of caseLayout.fanSlots) {
-      if (slot.taken !== 'fan') continue;
-      const spec = resolveFanSpec(slot.size, catalog);
-      estimated ||= spec.estimated;
-      fans.push({ key: slot.key, cfm: spec.cfm, staticMmH2O: spec.staticMmH2O, direction: directions[slot.key] });
+      for (const fan of slotModelFans(slot, catalog)) {
+        estimated ||= fan.estimated;
+        fans.push({ key: fan.key, cfm: fan.cfm, staticMmH2O: fan.staticMmH2O, direction: directions[slot.key] });
+      }
     }
     return { result: solveCasePressure(fans), estimated, fanCount: fans.length };
   }, [caseLayout, record, directions]);

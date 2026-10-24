@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PcSetupItem } from '../../api/pcSetup';
-import { catalogFanSpecs, resolveFanSpec } from './fanSpecs';
+import type { CaseFanSlot } from './caseLayout';
+import { catalogFanSpecs, resolveFanSpec, slotModelFans } from './fanSpecs';
 
 const item = (category: string, specs: Record<string, unknown>, owned = true): PcSetupItem => ({
   id: category, kind: category, owned, catalog: { category, partId: 'p', title: 't', specs },
@@ -32,5 +33,31 @@ describe('resolveFanSpec', () => {
 
   it('falls back entirely with no matching size', () => {
     expect(resolveFanSpec(120, [{ sizeMm: 140, cfm: 80 }])).toEqual({ cfm: 60, staticMmH2O: 1.8, estimated: true });
+  });
+});
+
+describe('slotModelFans', () => {
+  const slot = (over: Partial<CaseFanSlot>): CaseFanSlot => ({ key: 'k', position: 'front', size: 120, index: 0, taken: 'fan', ...over });
+
+  it('prefers the slot spec over a same-size catalog item and a default', () => {
+    const [fan] = slotModelFans(slot({ fan: { airflowCfm: 90, staticPressureMmH2O: 2.5 } }), [{ sizeMm: 120, cfm: 70, staticMmH2O: 2.1 }]);
+    expect(fan).toMatchObject({ cfm: 90, staticMmH2O: 2.5, estimated: false });
+  });
+
+  it('falls back per value and flags the estimate', () => {
+    const [fan] = slotModelFans(slot({ fan: { airflowCfm: 90 } }), []);
+    expect(fan).toMatchObject({ cfm: 90, staticMmH2O: 1.8, estimated: true });
+  });
+
+  it('uses defaults for an older record with no spec', () => {
+    expect(slotModelFans(slot({}), [])[0]).toMatchObject({ cfm: 60, staticMmH2O: 1.8, estimated: true });
+  });
+
+  it('skips empty slots and radiators without a fan count, expands those with one', () => {
+    expect(slotModelFans(slot({ taken: null }), [])).toEqual([]);
+    expect(slotModelFans(slot({ taken: 'radiator', size: 360 }), [])).toEqual([]);
+    const fans = slotModelFans(slot({ taken: 'radiator', size: 360, radiator: { fanCount: 3, fanAirflowCfm: 55 } }), []);
+    expect(fans.map(f => f.key)).toEqual(['k', 'k#1', 'k#2']);
+    expect(fans[0]).toMatchObject({ cfm: 55, staticMmH2O: 1.8, estimated: true });
   });
 });

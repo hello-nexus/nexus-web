@@ -1,4 +1,5 @@
 import type { PcSetupItem } from '../../api/pcSetup';
+import type { CaseFanSlot } from './caseLayout';
 import { defaultFanSpec, type FanSpec } from './pressureModel';
 
 /** Catalog spec field names. A rename in the catalog is a change here only. */
@@ -36,11 +37,32 @@ export function catalogFanSpecs(items: readonly PcSetupItem[]): CatalogFanSpec[]
   return out;
 }
 
-/** The spec for a fan of `sizeMm`: the first catalog entry of that size that publishes a value, else the size default. */
-export function resolveFanSpec(sizeMm: number, catalog: readonly CatalogFanSpec[]): ResolvedFanSpec {
+interface PartialSpec {
+  cfm?: number;
+  staticMmH2O?: number;
+}
+
+/** The slot's own spec first, then a catalog item of the same size, then the size default; each value falls back on its own. */
+export function resolveFanSpec(sizeMm: number, catalog: readonly CatalogFanSpec[], own?: PartialSpec): ResolvedFanSpec {
   const fallback = defaultFanSpec(sizeMm);
   const sameSize = catalog.filter(c => c.sizeMm === sizeMm);
-  const cfm = sameSize.find(c => c.cfm)?.cfm;
-  const staticMmH2O = sameSize.find(c => c.staticMmH2O)?.staticMmH2O;
+  const cfm = own?.cfm ?? sameSize.find(c => c.cfm)?.cfm;
+  const staticMmH2O = own?.staticMmH2O ?? sameSize.find(c => c.staticMmH2O)?.staticMmH2O;
   return { cfm: cfm ?? fallback.cfm, staticMmH2O: staticMmH2O ?? fallback.staticMmH2O, estimated: cfm === undefined || staticMmH2O === undefined };
+}
+
+export interface ModelFan extends ResolvedFanSpec {
+  key: string;
+}
+
+/** The fans a slot contributes: one for a taken fan slot, `fanCount` for a radiator slot that states it; none otherwise. */
+export function slotModelFans(slot: CaseFanSlot, catalog: readonly CatalogFanSpec[]): ModelFan[] {
+  if (slot.taken === 'fan') {
+    return [{ key: slot.key, ...resolveFanSpec(slot.size, catalog, { cfm: slot.fan?.airflowCfm, staticMmH2O: slot.fan?.staticPressureMmH2O }) }];
+  }
+  const count = slot.radiator?.fanCount;
+  if (slot.taken !== 'radiator' || !count) return [];
+  const size = slot.size / count;
+  const spec = resolveFanSpec(size, catalog, { cfm: slot.radiator?.fanAirflowCfm, staticMmH2O: slot.radiator?.fanStaticPressureMmH2O });
+  return Array.from({ length: count }, (_, i) => ({ key: i === 0 ? slot.key : `${slot.key}#${i}`, ...spec }));
 }

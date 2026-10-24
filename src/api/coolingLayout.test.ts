@@ -51,3 +51,21 @@ describe('normalizeCoolingLayout', () => {
     expect(normalizeCoolingLayout(null)).toEqual({ directions: {}, bindings: [], tests: [] });
   });
 });
+
+describe('normalizeCoolingLayout caps', () => {
+  it('holds a layout to the service caps', () => {
+    const long = 'k'.repeat(129);
+    const out = normalizeCoolingLayout({
+      directions: { [long]: 'intake', ok: 'exhaust' },
+      bindings: [{ channelId: 'c', slotKeys: Array.from({ length: 20 }, (_, i) => `s${i}`) }, { channelId: long, slotKeys: [] }],
+      tests: [
+        { id: 't', name: 'n'.repeat(65), moves: [], directions: {} },
+        { id: 't2', name: 'ok', moves: [{ from: 'a', to: 'b' }, { from: long, to: 'b' }], directions: { x: 'intake' } },
+      ],
+    });
+    expect(out.directions).toEqual({ ok: 'exhaust' });
+    expect(out.bindings).toHaveLength(1);
+    expect(out.bindings[0].slotKeys).toHaveLength(16);
+    expect(out.tests).toEqual([{ id: 't2', name: 'ok', moves: [{ from: 'a', to: 'b' }], directions: { x: 'intake' } }]);
+  });
+});

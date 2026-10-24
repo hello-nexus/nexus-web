@@ -149,7 +149,11 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       const color = dir === 'intake' ? intake : exhaust;
       const emphasised = state.highlighted.has(slot.key) || state.active === slot.key;
       const center = new Vector3(box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2);
-      const axis = ringAxisOf(box);
+      const given = slot.axis ? new Vector3(...slot.axis) : null;
+      const localGiven = given?.clone().applyAxisAngle(AXES.y, -(box.rotationY ?? 0));
+      const axis = localGiven
+        ? (['x', 'y', 'z'] as const).reduce((best, k) => (Math.abs(localGiven[k]) > Math.abs(localGiven[best]) ? k : best), 'x' as 'x' | 'y' | 'z')
+        : ringAxisOf(box);
       const diameter = box.fans?.diameter ?? Math.max(...box.size);
       const group = new Group();
       group.position.copy(center);
@@ -163,8 +167,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       fanGroup.add(group);
 
       const world = AXES[axis].clone().applyAxisAngle(AXES.y, box.rotationY ?? 0);
-      const sign = caseCenter.clone().sub(center).dot(world) >= 0 ? 1 : -1;
-      const flow = world.clone().multiplyScalar(dir === 'intake' ? sign : -sign);
+      const inward = given ?? world.clone().multiplyScalar(caseCenter.clone().sub(center).dot(world) >= 0 ? 1 : -1);
+      const flow = inward.clone().multiplyScalar(dir === 'intake' ? 1 : -1);
       const length = diameter * 0.9;
       const arrow = new ArrowHelper(flow, center.clone().addScaledVector(flow, -length / 2), length, color.getHex(), length * 0.3, length * 0.18);
       for (const m of [arrow.line.material, arrow.cone.material] as Material[]) {

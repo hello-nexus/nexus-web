@@ -44,7 +44,6 @@ import { useSensors } from '../../../hooks/useSensors';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
-import { COOLING_3D } from '../../../lib/scene/sceneFeature';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
@@ -100,7 +99,7 @@ import styles from './CoolingPage.module.scss';
  * fans bind to a curve through each fan card's mode dropdown.
  */
 
-// Guarded by the raw defines so a distribution build never emits the chunk; the COOLING_3D const does not fold far enough.
+// The raw defines fold in this module, so a distribution build drops the chunk and the view switch; COOLING_3D in sceneFeature does not fold across modules.
 const CoolingCase3D = (import.meta.env.DEV || __DEV_TOOLS__)
   ? lazy(() => import('./case3d/CoolingCase3D').then(m => ({ default: m.CoolingCase3D })))
   : null;
@@ -789,8 +788,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // fan, so a curve can be assigned to a group in one action. Declared here
   // because the curve-creation paths below clear it.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
-  const [view3dPref, setView3d] = usePersistentState('nexus.cooling.view3d', false);
-  const view3d = COOLING_3D && view3dPref;
+  const [view3dPref, setView3d] = useState(false);
+  const view3d = !!CoolingCase3D && view3dPref;
 
   // A device page's jump to one of its fans: select it once it is listed, which opens its curve.
   const fanIntentRef = useRef<string | null>(null);
@@ -1628,7 +1627,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
           <span className={styles.paneTitle}>{t(view3d ? 'cooling.case3d.title' : 'cooling.label.curves')}</span>
-          {COOLING_3D && (
+          {CoolingCase3D && (
             <ChipGroup
               ariaLabel={t('cooling.case3d.viewSwitch')}
               options={[{ key: VIEW_2D, label: t('lighting.scene.view.2d') }, { key: VIEW_3D, label: t('lighting.scene.view.3d') }]}
