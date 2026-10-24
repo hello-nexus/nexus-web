@@ -271,11 +271,11 @@ export function PanelThemeSettings({
   ];
   const [systemFamilies, setSystemFamilies] = useState<string[] | null>(null);
   useEffect(() => {
-    if (!showSystemFonts) return;
+    if (!showSystemFonts || !showTheme) return;
     const ctrl = new AbortController();
     void fetchSystemFonts(ctrl.signal).then(f => { if (!ctrl.signal.aborted) setSystemFamilies(f); });
     return () => ctrl.abort();
-  }, [showSystemFonts]);
+  }, [showSystemFonts, showTheme]);
   const fontOptions = buildPanelFontOptions(
     showSystemFonts ? systemFamilies : null,
     theme.font,
