@@ -270,37 +270,26 @@ function SceneEditor({
   }, [api]);
 
   const onPick = useCallback((rawPick: ScenePick | null, stack: ScenePick[]) => {
-    // A device waiting for a surface needs the front-most one, free or not; any other click means what the hover names.
-    const pick = placing ? rawPick : pickForStack(scene.bindings, stack) ?? rawPick;
-    if (pick?.kind === 'anchor') {
-      if (placing) {
-        place(placing.deviceId, pick.objectId, pick.anchorId, placing.append);
-        return;
-      }
-      const bound = deviceForPick(scene.bindings, pick);
-      if (bound) {
-        setSelectedDeviceId(bound);
-        setSelectedObjectId(pick.objectId);
-        onSelectDevice(bound);
-      } else if (selectedDeviceId && !bindingOf(selectedDeviceId)) {
-        place(selectedDeviceId, pick.objectId, pick.anchorId, false);
-      } else {
-        setSelectedObjectId(pick.objectId);
-        setSelectedDeviceId(null);
-      }
+    // A device waiting for a surface takes the front-most one, free or not.
+    if (placing && rawPick?.kind === 'anchor') {
+      place(placing.deviceId, rawPick.objectId, rawPick.anchorId, placing.append);
+      return;
+    }
+    // The device is what the hover names, looking past free things; the object, to move or turn, is the front-most one.
+    const bound = deviceForPick(scene.bindings, pickForStack(scene.bindings, stack));
+    if (rawPick?.kind === 'anchor' && !bound && selectedDeviceId && !bindingOf(selectedDeviceId)) {
+      place(selectedDeviceId, rawPick.objectId, rawPick.anchorId, false);
       return;
     }
     setPlacing(null);
-    if (pick?.kind === 'object') {
-      // A bound device is selected like a click on its row; the object stays selected so it can still be moved.
-      const bound = deviceForPick(scene.bindings, pick);
-      setSelectedObjectId(pick.objectId);
-      setSelectedDeviceId(bound);
-      if (bound) onSelectDevice(bound);
-    } else {
+    if (!rawPick) {
       setSelectedObjectId(null);
       setSelectedDeviceId(null);
+      return;
     }
+    setSelectedObjectId(stack[0]?.objectId ?? rawPick.objectId);
+    setSelectedDeviceId(bound);
+    if (bound) onSelectDevice(bound);
   }, [placing, place, scene.bindings, selectedDeviceId, bindingOf, onSelectDevice]);
 
   const onDropDevice = useCallback((deviceId: string, pick: ScenePick | null) => {

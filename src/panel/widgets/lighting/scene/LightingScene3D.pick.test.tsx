@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LightingDevice } from '../../../../api/lighting';
 import type { LightingScene, SceneObject } from '../../../../api/lightingScene';
@@ -14,7 +14,7 @@ vi.mock('three', async importOriginal => {
     setClearColor() {}
     setPixelRatio() {}
     setSize() {}
-    setAnimationLoop(cb: (() => void) | null) { loop.frame = cb; }
+    setAnimationLoop(cb: (() => void) | null) { if (cb) loop.frame = cb; }
     render(scene: { updateMatrixWorld: (force: boolean) => void }) { scene.updateMatrixWorld(true); }
     dispose() {}
     forceContextLoss() {}
@@ -89,5 +89,33 @@ describe('LightingScene3D click selection', () => {
     expect(onSelect).not.toHaveBeenCalled();
     click(400, 225);
     expect(onSelect).toHaveBeenCalledWith('m65');
+  });
+
+  it('in the editor, a click on a free monitor in front of a bound strip selects the strip device but moves and turns the monitor', async () => {
+    const kase = caseObject();
+    const monitor: SceneObject = {
+      id: 'mon-1', kind: 'monitor', label: 'Front monitor', source: 'build', position: [0, 0, 800], yaw: 0, size: [600, 600, 30],
+      anchors: [{ id: 'back', kind: 'surface', center: [0, 0, 0], right: [1, 0, 0], up: [0, 1, 0], width: 600, height: 600, shape: 'rect' }],
+    };
+    const scene = viewOf([kase, monitor], [{ deviceId: 'argb-1', targets: [{ objectId: kase.id, anchorId: 'strip:front' }], rotation: 0, flip: false }], [0, 0, 1500]);
+    const api = {
+      scene, setupRev: 1, movable: () => true, moveItem: vi.fn(), turnItem: vi.fn(), model: null, update: vi.fn(),
+      setEnabled: vi.fn(), setCamera: vi.fn(() => Promise.resolve()), refreshView: vi.fn(),
+    } as unknown as LightingSceneApi;
+    const onSelect = vi.fn();
+    render(
+      <LightingScene3D api={api} devices={[device('argb-1', 'ARGB_V2_1')]} selectedDeviceId={null} onSelectDevice={onSelect}
+        shaderEffect={null} shaderState={null} editorOpen onEditorOpenChange={() => {}} />,
+    );
+    await waitFor(() => expect(loop.frame).not.toBeNull());
+    await waitFor(() => expect(document.querySelectorAll('canvas').length).toBeGreaterThanOrEqual(4));
+    loop.frame!();
+    const canvases = document.querySelectorAll('canvas');
+    const target = canvases[canvases.length - 1];
+    const at = { clientX: 400, clientY: 225, button: 0, pointerId: 1, buttons: 0 };
+    target.dispatchEvent(Object.assign(new Event('pointerdown', { bubbles: true }), at));
+    target.dispatchEvent(Object.assign(new Event('pointerup', { bubbles: true }), at));
+    expect(onSelect).toHaveBeenCalledWith('argb-1');
+    expect(await screen.findByText('Front monitor')).not.toBeNull();
   });
 });
