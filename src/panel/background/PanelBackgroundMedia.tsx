@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useRef } from 'react';
+import { type CSSProperties, useCallback, useEffect, useRef } from 'react';
 import { backgroundMediaFileUrl } from '../../api/panelBackgroundMedia';
 import styles from '../PanelApp.module.scss';
 
@@ -47,16 +47,23 @@ export function PanelBackgroundMedia({
   }, [url, covered]);
 
   // A removed video otherwise holds its hardware decoder until GC, and a panel
-  // with a single decoder cannot start the next clip.
-  useEffect(() => {
-    const video = videoRef.current;
+  // with a single decoder cannot start the next clip. A ref callback pairs
+  // with the element itself: it runs during the deletion, before a keyed
+  // sibling's commit, and for an element that outlives one effect run. The
+  // setup restores a src the cleanup stripped (StrictMode's simulated remount
+  // never rewrites an unchanged prop); a changed url is written by React
+  // between the cleanup and the setup.
+  const attachVideo = useCallback((video: HTMLVideoElement | null) => {
+    videoRef.current = video;
+    if (!video) return;
+    if (!video.hasAttribute('src')) video.setAttribute('src', url);
     return () => {
-      if (!video) return;
+      videoRef.current = null;
       video.pause();
       video.removeAttribute('src');
       video.load();
     };
-  }, []);
+  }, [url]);
 
   return (
     <div
@@ -77,7 +84,7 @@ export function PanelBackgroundMedia({
         />
       ) : (
         <video
-          ref={videoRef}
+          ref={attachVideo}
           src={url}
           className={`${styles.backgroundMediaContent} ${styles.backgroundMediaVideo}`}
           autoPlay={!covered}

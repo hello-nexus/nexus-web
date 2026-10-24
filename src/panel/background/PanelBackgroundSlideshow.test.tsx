@@ -8,6 +8,8 @@ const api = vi.hoisted(() => ({
   items: [] as BackgroundMediaItem[],
   // Asset ids whose layer reports a decode failure instead of a load.
   broken: new Set<string>(),
+  // Asset ids whose layer neither loads nor fails.
+  stalled: new Set<string>(),
   // Latest onVideoEnded handler per mounted video layer.
   ended: new Map<string, (video: HTMLVideoElement) => void>(),
 }));
@@ -29,7 +31,7 @@ vi.mock('./PanelBackgroundMedia', () => ({
     useEffect(() => () => { api.ended.delete(id); }, [id]);
     useEffect(() => {
       if (api.broken.has(id)) onFailed?.();
-      else onLoaded?.();
+      else if (!api.stalled.has(id)) onLoaded?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
     useEffect(() => {
@@ -82,6 +84,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   api.items = [];
   api.broken.clear();
+  api.stalled.clear();
   api.ended.clear();
 });
 afterEach(() => {
@@ -224,5 +227,55 @@ describe('PanelBackgroundSlideshow', () => {
     expect(shown()).toEqual(['a']);
     expect(el.play).toHaveBeenCalled();
     expect(el.currentTime).toBe(0);
+  });
+
+  it('restarts an ended video when the still staged after it fails to load', async () => {
+    api.items = [item('b', 2), video('a', 1)];
+    api.broken.add('b');
+    await renderShow('a');
+    const el = fakeVideo();
+    await endVideo('a', el);
+    await tick(0);
+    expect(shown()).toEqual(['a']);
+    expect(el.play).toHaveBeenCalledTimes(1);
+    expect(el.currentTime).toBe(0);
+  });
+
+  it('does not restart an ended video that a successful crossfade replaces', async () => {
+    api.items = [item('b', 2), video('a', 1)];
+    await renderShow('a');
+    const el = fakeVideo();
+    await endVideo('a', el);
+    await tick(1000);
+    expect(shown()).toEqual(['b']);
+    expect(el.play).not.toHaveBeenCalled();
+  });
+
+  it('fails a cut-in video that never reaches canplay and moves past it for good', async () => {
+    api.items = [video('c', 3), video('b', 2), video('a', 1)];
+    api.stalled.add('b');
+    await renderShow('a');
+    await endVideo('a', fakeVideo());
+    expect(shown()).toEqual(['b']);
+    // The interval tick and the paced-video ceiling wait on the stalled clip.
+    await tick(29_000);
+    expect(shown()).toEqual(['b']);
+    await tick(1000);
+    expect(shown()).toEqual(['c']);
+    const seen: (string | null)[] = [];
+    for (let i = 0; i < 4; i++) {
+      await endVideo(shown()[0] as string, fakeVideo());
+      seen.push(shown()[0]);
+    }
+    expect(seen).not.toContain('b');
+  });
+
+  it('keeps the cadence once a cut-in video reaches canplay', async () => {
+    api.items = [video('c', 3), video('b', 2), video('a', 1)];
+    await renderShow('a');
+    await endVideo('a', fakeVideo());
+    expect(shown()).toEqual(['b']);
+    await endVideo('b', fakeVideo());
+    expect(shown()).toEqual(['c']);
   });
 });
