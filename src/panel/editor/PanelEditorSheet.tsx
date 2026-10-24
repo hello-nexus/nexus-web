@@ -454,7 +454,7 @@ export function PanelEditorSheet({
                 onCommit={onMachineNameCommit}
               />
             )}
-            {panelSettingsSection === 'all' && <StreamFpsCapSetting />}
+            {panelSettingsSection !== 'background' && <StreamFpsCapSetting />}
             <PanelThemeSettings
               sections={panelSettingsSection}
               theme={panelTheme}

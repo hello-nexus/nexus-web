@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchStreamSettings, setStreamFpsCap } from '../../api/panel';
 import { isRemoteOrigin, isRemotePaired } from '../../api/service';
-import { Select, type SelectOption } from '../../components/common/Select/Select';
+import type { SelectOption } from '../../components/common/Select/Select';
+import { SettingSelect } from '../../components/common/SettingRow/SettingRow';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import { useToastSafe } from '../../components/common/Toast/Toast';
 import { useTranslation } from '../../lib/i18n';
@@ -71,15 +72,13 @@ export function StreamFpsCapSetting() {
   };
 
   return (
-    <SettingsSection
-      title={t('panel.editor.streamFpsCap.title')}
-      description={t('panel.editor.streamFpsCap.hint')}
-    >
-      <Select
+    <SettingsSection>
+      <SettingSelect
+        label={t('panel.editor.streamFpsCap.title')}
+        description={t('panel.editor.streamFpsCap.hint')}
         value={current == null ? OFF : String(current)}
         onChange={handleChange}
         options={options}
-        ariaLabel={t('panel.editor.streamFpsCap.title')}
         disabled={status !== 'ready'}
       />
     </SettingsSection>
