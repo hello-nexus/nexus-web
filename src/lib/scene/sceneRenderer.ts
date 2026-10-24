@@ -32,7 +32,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
-import { curvedProfile, curveRadius } from './curvedPanel';
+import { curvedLayers, curveRadius } from './curvedPanel';
 import { CANVAS_H, CANVAS_W, rotateYaw, toWorld } from './sceneMath';
 
 export type ScenePick =
@@ -480,8 +480,8 @@ export class SceneRenderer {
 
   private curvedMonitor(obj: SceneObject, radius: number): Group {
     const g = new Group();
-    const [w, h, d] = obj.size;
-    const front = curvedProfile(w, radius, 24);
+    const h = obj.size[1];
+    const { front, back } = curvedLayers(obj.size, radius, 24);
     const pos: number[] = [];
     const tri: number[] = [];
     front.forEach(([x, z], i) => {
@@ -493,19 +493,21 @@ export class SceneRenderer {
     faceGeo.setIndex(tri);
     const face = new Mesh(faceGeo, new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.22, side: DoubleSide, depthWrite: false }));
     face.userData = { pick: 'object', objectId: obj.id, role: 'face' };
-    // The back follows the front, one thickness behind it.
+    // The back arc shares the front's center, one thickness behind it.
     const lines: number[] = [];
     const seg = (a: number[], b: number[]) => lines.push(...a, ...b);
     for (const y of [0, h]) {
       for (let i = 1; i < front.length; i++) {
         seg([front[i - 1][0], y, front[i - 1][1]], [front[i][0], y, front[i][1]]);
-        seg([front[i - 1][0], y, front[i - 1][1] - d], [front[i][0], y, front[i][1] - d]);
+        seg([back[i - 1][0], y, back[i - 1][1]], [back[i][0], y, back[i][1]]);
       }
     }
-    for (const [x, z] of [front[0], front[front.length - 1]]) {
+    for (const end of [0, front.length - 1]) {
+      const [x, z] = front[end];
+      const [bx, bz] = back[end];
       seg([x, 0, z], [x, h, z]);
-      seg([x, 0, z - d], [x, h, z - d]);
-      for (const y of [0, h]) seg([x, y, z], [x, y, z - d]);
+      seg([bx, 0, bz], [bx, h, bz]);
+      for (const y of [0, h]) seg([x, y, z], [bx, y, bz]);
     }
     const edgeGeo = new BufferGeometry();
     edgeGeo.setAttribute('position', new Float32BufferAttribute(lines, 3));
