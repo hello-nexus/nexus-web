@@ -19,8 +19,8 @@ const workers: Array<{ terminated: boolean }> = [];
 class SilentWorker {
   terminated = false;
   constructor() { workers.push(this); }
-  addEventListener() {}
-  postMessage() {}
+  addEventListener(..._a: unknown[]) {}
+  postMessage(..._a: unknown[]) {}
   terminate() { this.terminated = true; }
 }
 
