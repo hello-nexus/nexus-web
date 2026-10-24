@@ -5,6 +5,26 @@ import { EffectCard } from './EffectCard';
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 describe('EffectCard', () => {
+  it('reveals the edit hint from pointer presence alone, and clears it on leave', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} asDiv onClick={() => {}} />);
+    const card = () => container.querySelector('[role="button"]')!;
+    fireEvent.pointerEnter(card());
+    rerender(<EffectCard label="a" thumbUrl={null} asDiv editHint onClick={() => {}} />);
+    expect(card().getAttribute('data-edit-hint-shown')).toBe('true');
+    fireEvent.pointerLeave(card());
+    expect(card().hasAttribute('data-edit-hint-shown')).toBe(false);
+  });
+
+  it('does not force the hint without editHint or for touch pointers', () => {
+    const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} asDiv onClick={() => {}} />);
+    fireEvent.pointerEnter(container.querySelector('[role="button"]')!);
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+    rerender(<EffectCard label="a" thumbUrl={null} asDiv editHint onClick={() => {}} />);
+    fireEvent.pointerLeave(container.querySelector('[role="button"]')!);
+    fireEvent.pointerEnter(container.querySelector('[role="button"]')!, { pointerType: 'touch' });
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+  });
+
   it('renders the icon-only edit hint only when asked', () => {
     const { container, rerender } = render(<EffectCard label="a" thumbUrl={null} onClick={() => {}} />);
     expect(container.querySelector('[data-edit-hint-overlay]')).toBeNull();

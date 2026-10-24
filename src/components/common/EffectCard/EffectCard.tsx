@@ -86,6 +86,14 @@ export function EffectCard({
   const { t } = useTranslation();
   // An image that fails to load leaves the plain tile until a new one arrives, never a broken-image glyph.
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  // WebKit does not re-evaluate :hover for a node whose state changed under a still pointer, so the
+  // hint is also revealed from tracked pointer presence (mouse and pen only, never touch).
+  const [pointerOver, setPointerOver] = useState(false);
+  const pointerProps = {
+    onPointerEnter: (e: React.PointerEvent) => setPointerOver(e.pointerType !== 'touch'),
+    onPointerLeave: () => setPointerOver(false),
+    'data-edit-hint-shown': editHint && pointerOver ? 'true' : undefined,
+  };
   const showImg = !!thumbUrl && thumbUrl !== failedUrl;
   const className = `${styles.card} ${editHint ? styles.cardEditable : ''} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''}`;
   const thumbBoxStyle = thumbAspect !== undefined
@@ -143,6 +151,7 @@ export function EffectCard({
         aria-pressed={noPressedState ? undefined : active}
         aria-label={ariaLabel ?? label}
         data-effect-key={dataEffectKey}
+        {...pointerProps}
       >
         {inner}
       </div>
@@ -156,6 +165,7 @@ export function EffectCard({
       onClick={onClick}
       aria-label={ariaLabel ?? label}
       data-effect-key={dataEffectKey}
+      {...pointerProps}
     >
       {inner}
     </button>

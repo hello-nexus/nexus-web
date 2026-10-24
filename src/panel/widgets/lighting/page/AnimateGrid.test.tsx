@@ -253,6 +253,24 @@ describe('AnimateGrid edit pencil', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it('shows the hint on a tile selected under a still pointer, until the pointer leaves', () => {
+    const onEdit = vi.fn();
+    const { container, rerender } = renderGrid({ effect: 'plasma', onEdit });
+    const next = Array.from(container.querySelectorAll('[data-effect-key]')).map(e => e.getAttribute('data-effect-key')!).find(k => k !== 'plasma')!;
+    fireEvent.pointerEnter(container.querySelector(`[data-effect-key="${next}"]`)!);
+    rerender(<AnimateGrid effect={next} onSelect={() => {}} onEdit={onEdit} editEnabled slotFor={() => 0} versionFor={() => '0'} />);
+    const tile = container.querySelector(`[data-effect-key="${next}"]`)!;
+    expect(tile.getAttribute('data-edit-hint-shown')).toBe('true');
+    fireEvent.pointerLeave(tile);
+    expect(tile.hasAttribute('data-edit-hint-shown')).toBe(false);
+  });
+
+  it('does not force the hint while edit is not enabled', () => {
+    const { container } = renderGrid({ effect: 'plasma', onEdit: () => {}, editEnabled: false });
+    fireEvent.pointerEnter(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(container.querySelector('[data-edit-hint-shown]')).toBeNull();
+  });
+
   it('selects, not edits, when a different tile is clicked', () => {
     const onEdit = vi.fn();
     const onSelect = vi.fn();
