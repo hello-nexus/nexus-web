@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchStreamSettings, setStreamFpsCap } from '../../api/panel';
+import { isRemoteOrigin, isRemotePaired } from '../../api/service';
 import { Select, type SelectOption } from '../../components/common/Select/Select';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import { useToastSafe } from '../../components/common/Toast/Toast';
@@ -10,28 +11,40 @@ const OFF = '';
 
 /**
  * Global frame cap for every streamed display. Applies on change and reverts
- * when the save fails. Renders nothing until the service answers, and stays
- * hidden on a service without the route.
+ * to the last value the service confirmed when the newest save fails. The
+ * service route is loopback-only, so a phone, a remote origin or the relay
+ * never renders or fetches it. The section shows at once with the Select
+ * disabled until the GET answers, and disappears if that GET fails (an older
+ * service without the route).
  */
 export function StreamFpsCapSetting() {
   const { t } = useTranslation();
   const { push } = useToastSafe();
-  const [supported, setSupported] = useState(false);
+  const local = !isRemoteOrigin && !isRemotePaired;
+  const [status, setStatus] = useState<'loading' | 'ready' | 'unsupported'>('loading');
   const [current, setCurrent] = useState<number | null>(null);
   // Newest request wins: an older response must neither revert nor confirm.
   const seq = useRef(0);
+  const confirmed = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!local) return;
     let alive = true;
     void fetchStreamSettings().then(s => {
-      if (!alive || !s) return;
-      setCurrent(s.fpsCap ?? null);
-      setSupported(true);
+      if (!alive) return;
+      if (!s) {
+        setStatus('unsupported');
+        return;
+      }
+      confirmed.current = s.fpsCap ?? null;
+      // A pick made before the GET answered stays; otherwise show the service value.
+      if (seq.current === 0) setCurrent(confirmed.current);
+      setStatus('ready');
     });
     return () => { alive = false; };
-  }, []);
+  }, [local]);
 
-  if (!supported) return null;
+  if (!local || status === 'unsupported') return null;
 
   const options: SelectOption[] = [
     { value: OFF, label: t('lighting.ledMap.rateCapOff') },
@@ -42,16 +55,18 @@ export function StreamFpsCapSetting() {
 
   const handleChange = (v: string) => {
     const next = v === OFF ? null : Number(v);
-    const prev = current;
     const mine = ++seq.current;
     setCurrent(next);
     const fail = () => {
       if (mine !== seq.current) return;
-      setCurrent(prev);
+      setCurrent(confirmed.current);
       push({ title: t('panel.editor.streamFpsCap.failed') });
     };
     setStreamFpsCap(next)
-      .then(r => { if (!r) fail(); })
+      .then(r => {
+        if (!r) fail();
+        else confirmed.current = r.fpsCap ?? null;
+      })
       .catch(fail);
   };
 
@@ -65,6 +80,7 @@ export function StreamFpsCapSetting() {
         onChange={handleChange}
         options={options}
         ariaLabel={t('panel.editor.streamFpsCap.title')}
+        disabled={status !== 'ready'}
       />
     </SettingsSection>
   );
