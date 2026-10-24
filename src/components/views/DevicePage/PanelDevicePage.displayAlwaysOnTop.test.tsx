@@ -142,7 +142,7 @@ describe('PanelDevicePage promoted display always on top', () => {
     expect(all.indexOf(reserve)).toBe(all.indexOf(toggle) + 1);
   });
 
-  it('reads a stored false and PATCHes alwaysOnTop:false on flip', async () => {
+  it('PATCHes alwaysOnTop:false when the default-on toggle is flipped', async () => {
     serveRecord();
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
@@ -172,8 +172,9 @@ describe('PanelDevicePage promoted display always on top', () => {
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
-    await screen.findByRole('tab', { name: 'devices.y70.tab.settings' });
-    await waitFor(() => expect(fetchDisplayTopologyMock).toHaveBeenCalled());
+    // Positive anchor: the record-driven auto-orient toggle renders whenever
+    // monitor settings have loaded, independent of reserveSupported.
+    await screen.findByRole('switch', { name: 'devices.xeneonEdge.autoOrient' });
     expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
   });
 });
