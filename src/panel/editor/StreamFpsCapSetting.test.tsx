@@ -94,8 +94,8 @@ describe('StreamFpsCapSetting', () => {
 
   it('reverts to the last confirmed value when overlapping saves fail', async () => {
     api.fetchStreamSettings.mockResolvedValue({ fpsCap: 30 });
-    const first = { resolve: (_v: unknown) => {} };
-    const second = { resolve: (_v: unknown) => {} };
+    const first = { resolve: (() => {}) as (v: unknown) => void };
+    const second = { resolve: (() => {}) as (v: unknown) => void };
     api.setStreamFpsCap
       .mockImplementationOnce(() => new Promise(r => { first.resolve = r; }))
       .mockImplementationOnce(() => new Promise(r => { second.resolve = r; }));
