@@ -4434,6 +4434,8 @@
   "panel.settings.deck.value": "Valeur",
   "panel.settings.deck.volume": "Volume",
   "panel.settings.font": "Police",
+  "panel.settings.font.bundled": "Incluses",
+  "panel.settings.font.system": "Système",
   "panel.settings.icon": "Icône",
   "panel.settings.immersiveBackdrop": "Arrière-plan immersif",
   "panel.settings.immersiveBackdrop.desc": "Désactivez pour voir votre arrière-plan à travers les vues immersives",

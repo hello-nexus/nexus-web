@@ -4434,6 +4434,8 @@
   "panel.settings.deck.value": "Waarde",
   "panel.settings.deck.volume": "Volume",
   "panel.settings.font": "Lettertype",
+  "panel.settings.font.bundled": "Meegeleverd",
+  "panel.settings.font.system": "Systeem",
   "panel.settings.icon": "Pictogram",
   "panel.settings.immersiveBackdrop": "Immersieve achtergrond",
   "panel.settings.immersiveBackdrop.desc": "Zet uit om je achtergrond door immersieve weergaven heen te zien",

@@ -4434,6 +4434,8 @@
   "panel.settings.deck.value": "Valore",
   "panel.settings.deck.volume": "Volume",
   "panel.settings.font": "Carattere",
+  "panel.settings.font.bundled": "Inclusi",
+  "panel.settings.font.system": "Di sistema",
   "panel.settings.icon": "Icona",
   "panel.settings.immersiveBackdrop": "Sfondo immersivo",
   "panel.settings.immersiveBackdrop.desc": "Disattiva per vedere il tuo sfondo attraverso le viste immersive",

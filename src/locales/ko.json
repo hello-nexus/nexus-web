@@ -4434,6 +4434,8 @@
   "panel.settings.deck.value": "값",
   "panel.settings.deck.volume": "볼륨",
   "panel.settings.font": "글꼴",
+  "panel.settings.font.bundled": "내장",
+  "panel.settings.font.system": "시스템",
   "panel.settings.icon": "아이콘",
   "panel.settings.immersiveBackdrop": "몰입 보기 배경",
   "panel.settings.immersiveBackdrop.desc": "끄면 몰입 보기 뒤로 배경이 보입니다",

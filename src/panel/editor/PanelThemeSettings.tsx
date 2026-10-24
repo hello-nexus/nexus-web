@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
@@ -6,7 +6,9 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
-import { DEFAULT_PANEL_FONT, PANEL_FONTS, type PanelFontId } from '../theme/panelFont';
+import { DEFAULT_PANEL_FONT, type PanelFont } from '../theme/panelFont';
+import { buildPanelFontOptions } from '../theme/panelFontOptions';
+import { fetchSystemFonts } from '../../api/systemFonts';
 import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
@@ -98,7 +100,7 @@ export interface PanelThemeSettingsState {
   // Hex for 'custom'; empty falls back to DEFAULT_CUSTOM_TEXT_COLOR.
   textColor: string;
   // Null is the app font.
-  font: PanelFontId | null;
+  font: PanelFont | null;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
@@ -137,7 +139,9 @@ export interface PanelThemeSettingsProps {
   onTextColorModeCommit: (mode: TextColorMode) => void;
   onTextColorPreview: (hex: string) => void;
   onTextColorCommit: (hex: string) => void;
-  onFontCommit: (font: PanelFontId | null) => void;
+  onFontCommit: (font: PanelFont | null) => void;
+  /** List installed host fonts under the bundled ones. Only for panels rendered on this PC's own OS. */
+  showSystemFonts?: boolean;
   /** Show the media background tab. All display-backed surfaces support it; the
    * embedded desktop deck never renders theme backgrounds (PanelApp gates on
    * !embedded || simulator), so desktop hides it. Tunneled panels also hide it:
@@ -210,6 +214,7 @@ export function PanelThemeSettings({
   onTextColorCommit,
   onFontCommit,
   showMediaTab = false,
+  showSystemFonts = false,
   deviceAspect = 9 / 16,
   roundDisplay = false,
   deviceW,
@@ -264,11 +269,21 @@ export function PanelThemeSettings({
     { key: 'theme', label: label('panel.settings.textColor.theme', 'Theme') },
     { key: 'custom', label: label('panel.settings.textColor.custom', 'Custom') },
   ];
-  const fontOptions = PANEL_FONTS.map(f => ({
-    value: f.id,
-    label: f.family,
-    fontFamily: `'${f.family}', var(--panel-font)`,
-  }));
+  const [systemFamilies, setSystemFamilies] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (!showSystemFonts) return;
+    const ctrl = new AbortController();
+    void fetchSystemFonts(ctrl.signal).then(f => { if (!ctrl.signal.aborted) setSystemFamilies(f); });
+    return () => ctrl.abort();
+  }, [showSystemFonts]);
+  const fontOptions = buildPanelFontOptions(
+    showSystemFonts ? systemFamilies : null,
+    theme.font,
+    {
+      bundled: label('panel.settings.font.bundled', 'Bundled'),
+      system: label('panel.settings.font.system', 'System'),
+    },
+  );
   const textColorDescription = theme.textColorMode === 'custom'
     ? label('panel.settings.textColor.custom.desc', 'One color for all widget text, accent text included')
     : theme.textColorMode === 'theme'
@@ -453,7 +468,7 @@ export function PanelThemeSettings({
           label={label('panel.settings.font', 'Font')}
           value={theme.font ?? DEFAULT_PANEL_FONT}
           options={fontOptions}
-          onChange={value => onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFontId)}
+          onChange={value => onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFont)}
         />
       </SettingsSection>
       )}

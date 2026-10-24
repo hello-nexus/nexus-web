@@ -4480,6 +4480,8 @@
   "panel.settings.deck.value": "Wartość",
   "panel.settings.deck.volume": "Głośność",
   "panel.settings.font": "Czcionka",
+  "panel.settings.font.bundled": "Wbudowane",
+  "panel.settings.font.system": "Systemowe",
   "panel.settings.icon": "Ikona",
   "panel.settings.immersiveBackdrop": "Tło widoku pełnoekranowego",
   "panel.settings.immersiveBackdrop.desc": "Wyłącz, aby widzieć swoje tło przez widoki pełnoekranowe",

@@ -4480,6 +4480,8 @@
   "panel.settings.deck.value": "Значение",
   "panel.settings.deck.volume": "Громкость",
   "panel.settings.font": "Шрифт",
+  "panel.settings.font.bundled": "Встроенные",
+  "panel.settings.font.system": "Системные",
   "panel.settings.icon": "Значок",
   "panel.settings.immersiveBackdrop": "Фон полноэкранного вида",
   "panel.settings.immersiveBackdrop.desc": "Выключите, чтобы видеть свой фон сквозь полноэкранные виды",
