@@ -20,6 +20,7 @@ const h = vi.hoisted(() => ({
   specs: null as unknown as SystemSpecs | null,
   gamesByKey: new Map<string, FpsGameSummary>(),
   serverCase: null as string | null,
+  serverDevices: null as unknown[] | null,
   fetchService: vi.fn(),
   putService: vi.fn(),
   fetchPcSetup: vi.fn(),
@@ -86,8 +87,13 @@ beforeEach(() => {
   h.gamesByKey = new Map();
   h.openExternalUrl.mockClear();
   h.serverCase = null;
+  h.serverDevices = null;
   h.fetchService.mockReset();
-  h.fetchService.mockImplementation(async (path: string) => (path === '/system/case' ? { caseId: h.serverCase } : null));
+  h.fetchService.mockImplementation(async (path: string) => {
+    if (path === '/system/case') return { caseId: h.serverCase };
+    if (path === '/system/devices' && h.serverDevices) return { devices: h.serverDevices };
+    return null;
+  });
   h.fetchPcSetup.mockReset();
   h.putPcSetup.mockReset();
   h.topic = null;
@@ -368,6 +374,33 @@ describe('BuildPage', () => {
       expect(helloPosts(postSpy)[0].machine).toMatchObject({ caseId: 'case-fractal-north', processor: 'AMD Ryzen 7 7800X3D' });
     });
 
+    it('carries the detected devices in the hello machine object', async () => {
+      const device = { key: 'lianli-wireless:AA', modelKey: 'lianli-wl:tl-v2-led', category: 'fan', vendor: 'Lian Li', model: 'Uni Fan TL V2 LED', count: 3, countSource: 'detected' };
+      h.specs = SAMPLE_SPECS;
+      h.serverDevices = [device, { bad: true }];
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(h.fetchService).toHaveBeenCalledWith('/system/devices');
+      expect(helloPosts(postSpy)[0].machine).toMatchObject({ devices: [device], processor: 'AMD Ryzen 7 7800X3D' });
+    });
+
+    it('omits devices from the machine object when an older service has no /system/devices', async () => {
+      h.specs = SAMPLE_SPECS;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('devices');
+    });
+
     it('omits caseId from the machine object when none is set', async () => {
       h.specs = SAMPLE_SPECS;
       render(<BuildPage path="/builder" />);
@@ -455,7 +488,9 @@ describe('BuildPage', () => {
     it('keeps the initial GET\'s case when a save fails before the GET resolves', async () => {
       h.specs = SAMPLE_SPECS;
       let resolveGet: (v: unknown) => void = () => {};
-      h.fetchService.mockImplementation(() => new Promise(resolve => { resolveGet = resolve; }));
+      h.fetchService.mockImplementation((path: string) => (path === '/system/case'
+        ? new Promise(resolve => { resolveGet = resolve; })
+        : Promise.resolve(null)));
       h.putService.mockImplementation(async () => null);
       render(<BuildPage path="/builder" />);
       const iframe = getIframe();

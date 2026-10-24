@@ -47,6 +47,23 @@ interface BuildMachine {
   hz?: number;
   ramGb?: number;
   caseId?: string;
+  devices?: BuildDevice[];
+}
+
+/** One detected cooler, fan or controller from the service's `/system/devices`; passed through to the frame untouched. */
+interface BuildDevice {
+  key: string;
+  modelKey: string;
+  category: string;
+  vendor: string;
+  model: string;
+  vid?: number;
+  pid?: number;
+  family?: string;
+  count?: number;
+  countSource?: string;
+  radiatorMm?: number;
+  partOf?: string;
 }
 
 interface BuildGame {
@@ -164,6 +181,22 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
       const res = await fetchService<{ caseId?: string | null }>('/system/case');
       if (cancelled || caseTouchedRef.current || !res) return;
       if (typeof res.caseId === 'string' && isValidCaseId(res.caseId)) setCaseId(res.caseId);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Detected coolers, fans and controllers. An older service answers 404 (null here), which just leaves it out.
+  const [devices, setDevices] = useState<BuildDevice[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetchService<{ devices?: unknown }>('/system/devices');
+        if (cancelled || !res || !Array.isArray(res.devices)) return;
+        setDevices(res.devices.filter((d): d is BuildDevice => !!d && typeof d.key === 'string' && typeof d.modelKey === 'string'));
+      } catch {
+        // Leave the list empty.
+      }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -316,6 +349,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
       hz: sig?.hz,
       ramGb: sig?.ramBytes != null ? Math.round(sig.ramBytes / BYTES_PER_GIB) : undefined,
       ...(caseId ? { caseId } : {}),
+      ...(devices.length > 0 ? { devices } : {}),
     };
   })() : undefined;
 
