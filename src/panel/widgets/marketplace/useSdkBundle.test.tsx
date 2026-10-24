@@ -110,6 +110,37 @@ describe('useSdkBundle', () => {
       expect(postService.mock.calls.length).toBe(afterFirstRetry);
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
       expect(postService.mock.calls.length).toBeGreaterThan(afterFirstRetry);
+      // Retries so far at 5, 15, 35, 75 s, then every 60 s: 135, 195, 255, 315, 375.
+      // Each retry re-runs the effect, so time advances in steps React flushes between.
+      const advance = async (ms: number) => { for (let i = 0; i < ms; i += 1000) await act(async () => { await vi.advanceTimersByTimeAsync(1000); }); };
+      await advance(316_000 - 15_000);
+      const afterCap = postService.mock.calls.length;
+      await advance(58_000);
+      expect(postService.mock.calls.length).toBe(afterCap);
+      await advance(2_000);
+      expect(postService.mock.calls.length).toBeGreaterThan(afterCap);
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
+  it('an instance backing off picks up the bundle a sibling loaded, without waiting for its own retry', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.useFakeTimers();
+    try {
+      const a = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      // A failed twice; its next retry is 10 s away.
+      expect(a.result.current.failed).toBe(true);
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+      const b = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(b.result.current.entryUrl).not.toBeNull();
+      expect(a.result.current.failed).toBe(false);
+      expect(a.result.current.entryUrl).toBe(b.result.current.entryUrl);
     } finally {
       vi.useRealTimers();
       fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
@@ -125,6 +156,7 @@ describe('useSdkBundle', () => {
       const { unmount } = renderHook(() => useSdkBundle('com.x.app'));
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
       unmount();
+      expect(vi.getTimerCount()).toBe(0);
       const calls = postService.mock.calls.length;
       await act(async () => { await vi.advanceTimersByTimeAsync(120_000); });
       expect(postService.mock.calls.length).toBe(calls);
