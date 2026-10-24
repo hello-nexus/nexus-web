@@ -9,10 +9,13 @@ import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
+import { PC_SETUP_TOPIC } from '../../../api/pcSetup';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
 import { relaySceneExport } from './buildScene';
+import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
@@ -197,6 +200,22 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
     win.postMessage(message, BUILD_ORIGIN);
   }, []);
 
+  // The newest revision the frame knows of: its own save replies and every push move it forward, so a stale or echoed fetch is dropped.
+  const lastSetupRevRef = useRef(-1);
+  // Settles when no setup write from the frame is waiting for its reply, so a fetch that overtook a reply is compared after it.
+  const setupWritesRef = useRef<Promise<unknown>>(Promise.resolve());
+  const learnSetupRev = useCallback((rev: unknown) => {
+    if (typeof rev === 'number') lastSetupRevRef.current = Math.max(lastSetupRevRef.current, rev);
+  }, []);
+  useTopicCallback(PC_SETUP_TOPIC, ready && !isRemoteOrigin, useCallback(() => {
+    void relaySetupPush().then(async push => {
+      await setupWritesRef.current;
+      if (!push || push.rev <= lastSetupRevRef.current) return;
+      lastSetupRevRef.current = push.rev;
+      post(push.message as FrameMessage);
+    });
+  }, [post]));
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== BUILD_ORIGIN) return;
@@ -241,6 +260,20 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
             ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}),
           }));
           break;
+        case 'nexus-build:setup-get':
+          if (isRemoteOrigin) break;
+          void relaySetupGet(data).then(reply => {
+            learnSetupRev(reply.rev);
+            post(reply as FrameMessage);
+          });
+          break;
+        case 'nexus-build:setup-put':
+          if (isRemoteOrigin) break;
+          setupWritesRef.current = Promise.all([setupWritesRef.current, relaySetupPut(data).then(reply => {
+            learnSetupRev(reply.rev);
+            post(reply as FrameMessage);
+          })]);
+          break;
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();
           break;
@@ -256,7 +289,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       window.removeEventListener('message', handleMessage);
       clearBuildFrameHistory();
     };
-  }, [post]);
+  }, [post, learnSetupRev]);
 
   const machine: BuildMachine | undefined = specs ? (() => {
     const sig = buildFpsSignatureParams(specs);
@@ -301,6 +334,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       ...(onOpenBenchmark ? { canOpenBenchmark: true } : {}),
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
+      ...(!isRemoteOrigin ? { canSyncSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),

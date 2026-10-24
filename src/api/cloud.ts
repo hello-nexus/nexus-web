@@ -330,7 +330,7 @@ export const fetchCloudLibrary = () =>
 export interface CloudImportResult {
   status: number;
   /** `name` is present on a 409 and is the LOCAL name that clashed, not the source row's name. */
-  body: { error?: boolean; msg?: string; name?: string } | null;
+  body: { error?: boolean; msg?: string; name?: string; pcSetup?: string } | null;
 }
 
 /**

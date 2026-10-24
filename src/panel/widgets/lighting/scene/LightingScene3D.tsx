@@ -1,7 +1,6 @@
-import { useCallback, useMemo, useRef, useState, type RefObject } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState, type RefObject } from 'react';
 import {
-  Box, Eye, EyeOff, FlipHorizontal2, Headphones, Keyboard, Lightbulb, Link, Monitor, Mouse, Move3d, Pencil,
-  RectangleHorizontal, RotateCcw, RotateCw, Speaker, Square, Trash2, WandSparkles, X, Zap,
+  Box, Eye, EyeOff, FlipHorizontal2, Link, Move3d, Pencil, RotateCcw, RotateCw, Trash2, WandSparkles, X, Zap,
 } from 'lucide-react';
 import type { LightingDevice } from '../../../../api/lighting';
 import type { SceneCamera, SceneObject, Vec3 } from '../../../../api/lightingScene';
@@ -14,14 +13,14 @@ import { useToastSafe } from '../../../../components/common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { autoPlace } from '../../../../lib/scene/autoPlace';
-import { DESK_KINDS, genericCase, newDeskObject, type DeskKind } from '../../../../lib/scene/deskCatalog';
 import { ledWorldPositions, placements } from '../../../../lib/scene/sceneMath';
 import { DEFAULT_FOV, presetCamera, type CameraPreset } from '../../../../lib/scene/scenePresets';
 import type { ScenePick, SceneRenderer } from '../../../../lib/scene/sceneRenderer';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport, DEVICE_DRAG_TYPE, type Backdrop } from './SceneViewport';
 import { anchorLabel, objectLabel } from './sceneLabels';
-import { addObject, flipBinding, moveObject, placeDevice, removeObject, rotateBinding, turnObject, unplaceDevice } from './sceneEdits';
+import { deviceForPick } from '../../../../lib/scene/pickDevice';
+import { flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
 
@@ -44,18 +43,6 @@ export interface LightingScene3DProps {
 const PRESETS: CameraPreset[] = ['front', 'angle', 'side', 'top'];
 const TURN_STEP = 15;
 const TOAST_MS = 2600;
-
-const DESK_ICONS: Record<DeskKind, typeof Keyboard> = {
-  keyboard: Keyboard,
-  mouse: Mouse,
-  mousepad: Square,
-  deskmat: RectangleHorizontal,
-  headset: Headphones,
-  monitor: Monitor,
-  speaker: Speaker,
-  strip: RectangleHorizontal,
-  light: Lightbulb,
-};
 
 const BACKDROP_NEXT: Record<Backdrop, Backdrop> = { dim: 'full', full: 'off', off: 'dim' };
 
@@ -147,9 +134,9 @@ export default function LightingScene3D({
   }, [api, onLayoutCommit]);
 
   const onInlinePick = useCallback((pick: ScenePick | null) => {
-    if (!scene || pick?.kind !== 'anchor') return;
-    const bound = scene.bindings.find(b => b.targets.some(tg => tg.objectId === pick.objectId && tg.anchorId === pick.anchorId));
-    if (bound) onSelectDevice(bound.deviceId);
+    if (!scene) return;
+    const deviceId = deviceForPick(scene.bindings, pick);
+    if (deviceId) onSelectDevice(deviceId);
   }, [scene, onSelectDevice]);
 
   if (!scene) return <div className={styles.viewport} />;
@@ -187,10 +174,16 @@ export default function LightingScene3D({
         {empty && (
           <div className={styles.emptyCard}>
             <div className={styles.emptyTitle}>{t('lighting.scene.empty.title')}</div>
-            <div className={styles.emptyBody}>{t('lighting.scene.empty.inline')}</div>
-            <Button size="md" tone="accent" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => onEditorOpenChange(true)}>
-              {t('lighting.scene.empty.open')}
-            </Button>
+            <div className={styles.emptyBody}>{t(scene.objects.length === 0 ? 'lighting.scene.empty.noItems' : 'lighting.scene.empty.inline')}</div>
+            {scene.objects.length === 0 ? (
+              <Button size="md" tone="accent" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>
+                {t('lighting.scene.pc.fromBuild')}
+              </Button>
+            ) : (
+              <Button size="md" tone="accent" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => onEditorOpenChange(true)}>
+                {t('lighting.scene.empty.open')}
+              </Button>
+            )}
           </div>
         )}
       </SceneViewport>
@@ -208,6 +201,7 @@ export default function LightingScene3D({
           onCamera={onCamera}
           onClose={() => onEditorOpenChange(false)}
           onIdentify={onIdentify}
+          onSelectDevice={onSelectDevice}
           initialDeviceId={selectedDeviceId}
         />
       )}
@@ -228,6 +222,7 @@ interface SceneEditorProps {
   onCamera: (cam: SceneCamera, final: boolean) => void;
   onClose: () => void;
   onIdentify?: (deviceId: string) => void;
+  onSelectDevice: (id: string | null) => void;
   initialDeviceId: string | null;
 }
 
@@ -239,13 +234,15 @@ interface Placing {
 
 function SceneEditor({
   api, devices, leds, backdrop, onBackdrop, shaderEffect, shaderState, shaderPaused, audioRef,
-  onCamera, onClose, onIdentify, initialDeviceId,
+  onCamera, onClose, onIdentify, onSelectDevice, initialDeviceId,
 }: SceneEditorProps) {
   const { t, language } = useTranslation();
   const scene = api.scene!;
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(initialDeviceId);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [placing, setPlacing] = useState<Placing | null>(null);
+  // Devices auto-place found no free spot for: the item is added in Build.
+  const [missing, setMissing] = useState<ReadonlySet<string>>(new Set());
   const rendererRef = useRef<SceneRenderer | null>(null);
   const toast = useToastSafe();
   const flash = useCallback((title: string) => toast.push({ title, durationMs: TOAST_MS }), [toast]);
@@ -278,10 +275,11 @@ function SceneEditor({
         place(placing.deviceId, pick.objectId, pick.anchorId, placing.append);
         return;
       }
-      const bound = scene.bindings.find(b => b.targets.some(tg => tg.objectId === pick.objectId && tg.anchorId === pick.anchorId));
+      const bound = deviceForPick(scene.bindings, pick);
       if (bound) {
-        setSelectedDeviceId(bound.deviceId);
+        setSelectedDeviceId(bound);
         setSelectedObjectId(pick.objectId);
+        onSelectDevice(bound);
       } else if (selectedDeviceId && !bindingOf(selectedDeviceId)) {
         place(selectedDeviceId, pick.objectId, pick.anchorId, false);
       } else {
@@ -292,47 +290,38 @@ function SceneEditor({
     }
     setPlacing(null);
     if (pick?.kind === 'object') {
+      // A bound device is selected like a click on its row; the object stays selected so it can still be moved.
+      const bound = deviceForPick(scene.bindings, pick);
       setSelectedObjectId(pick.objectId);
-      setSelectedDeviceId(null);
+      setSelectedDeviceId(bound);
+      if (bound) onSelectDevice(bound);
     } else {
       setSelectedObjectId(null);
       setSelectedDeviceId(null);
     }
-  }, [placing, place, scene.bindings, selectedDeviceId, bindingOf]);
+  }, [placing, place, scene.bindings, selectedDeviceId, bindingOf, onSelectDevice]);
 
   const onDropDevice = useCallback((deviceId: string, pick: ScenePick | null) => {
     if (pick?.kind === 'anchor') place(deviceId, pick.objectId, pick.anchorId, false);
   }, [place]);
 
   const onMoveObject = useCallback((objectId: string, position: Vec3) => {
-    api.update(s => moveObject(s, objectId, position));
+    api.moveItem(objectId, position);
     setSelectedObjectId(objectId);
   }, [api]);
 
-  const addDesk = (kind: DeskKind) => {
-    const obj = newDeskObject(kind, scene.objects);
-    api.update(s => addObject(s, obj));
-    setSelectedObjectId(obj.id);
-    setSelectedDeviceId(null);
-  };
-
-  const addGenericCase = () => {
-    const obj = genericCase(scene.objects);
-    api.update(s => addObject(s, obj));
-    setSelectedObjectId(obj.id);
-  };
-
   const runAutoPlace = () => {
     const result = autoPlace(scene.objects, scene.bindings, placeable);
+    setMissing(new Set(result.missing));
     if (result.placed.length === 0) {
       flash(t('lighting.scene.devices.nothingToPlace'));
       return;
     }
-    api.update(() => ({ objects: result.objects, bindings: result.bindings }));
+    api.update(s => ({ ...s, bindings: result.bindings }));
     flash(t(pluralKey('lighting.scene.devices.autoPlaced', language, result.placed.length), { count: result.placed.length }));
   };
 
-  const caseObj = scene.objects.find(o => o.kind === 'case');
+  const legacyOnly = api.setupRev === 0 && scene.objects.length > 0;
   const selectedObject = selectedObjectId ? objectsById.get(selectedObjectId) ?? null : null;
   const selectedBinding = selectedDeviceId ? bindingOf(selectedDeviceId) ?? null : null;
   const fov = scene.view.camera?.fov ?? DEFAULT_FOV;
@@ -369,7 +358,7 @@ function SceneEditor({
               selectedDeviceId={selectedDeviceId}
               selectedObjectId={selectedObjectId}
               placing={placing !== null || (selectedDeviceId !== null && !selectedBinding)}
-              editable
+              editable={!!selectedObject && api.movable(selectedObject.id)}
               backdrop={backdrop}
               shaderEffect={shaderEffect}
               shaderState={shaderState}
@@ -412,14 +401,11 @@ function SceneEditor({
                   {selectedObject && (
                     <section className={styles.inspectorSection}>
                       <div className={styles.inspectorTitle}>{objectLabel(t, selectedObject)}</div>
-                      <div className={styles.sectionNote}>{t('lighting.scene.hint.object')}</div>
-                      <div className={styles.buttonRow}>
-                        <Button size="sm" tone="neutral" icon={<RotateCcw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => turnObject(s, selectedObject.id, TURN_STEP))}>{t('lighting.scene.object.turnLeft')}</Button>
-                        <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => turnObject(s, selectedObject.id, -TURN_STEP))}>{t('lighting.scene.object.turnRight')}</Button>
-                        {selectedObject.source === 'user' && (
-                          <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => { api.update(s => removeObject(s, selectedObject.id)); setSelectedObjectId(null); }}>{t('lighting.scene.object.remove')}</Button>
-                        )}
-                      </div>
+                      <div className={styles.sectionNote}>{api.movable(selectedObject.id) ? t('lighting.scene.hint.object') : t('lighting.scene.setup.legacyHint')}</div>
+                      {api.movable(selectedObject.id) && <div className={styles.buttonRow}>
+                        <Button size="sm" tone="neutral" icon={<RotateCcw size={13} strokeWidth={1.8} />} onClick={() => api.turnItem(selectedObject.id, TURN_STEP)}>{t('lighting.scene.object.turnLeft')}</Button>
+                        <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.turnItem(selectedObject.id, -TURN_STEP)}>{t('lighting.scene.object.turnRight')}</Button>
+                      </div>}
                     </section>
                   )}
                 </div>
@@ -427,7 +413,10 @@ function SceneEditor({
               {scene.objects.length === 0 && (
                 <div className={styles.emptyCard}>
                   <div className={styles.emptyTitle}>{t('lighting.scene.empty.title')}</div>
-                  <div className={styles.emptyBody}>{t('lighting.scene.empty.body')}</div>
+                  <div className={styles.emptyBody}>{t('lighting.scene.empty.noItems')}</div>
+                  <Button size="md" tone="accent" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>
+                    {t('lighting.scene.pc.fromBuild')}
+                  </Button>
                 </div>
               )}
             </SceneViewport>
@@ -437,40 +426,9 @@ function SceneEditor({
         <div className={styles.sidebar}>
           <section className={styles.section}>
             <div className={styles.sectionTitle}>{t('lighting.scene.pc.title')}</div>
-            {caseObj?.source === 'build' ? (
-              <>
-                <div className={styles.sectionNote}>{t('lighting.scene.pc.imported')}</div>
-                {!caseObj.anchors.some(a => a.kind === 'fan') && (
-                  <div className={styles.sectionNote}>{t('lighting.scene.pc.noFans')}</div>
-                )}
-                <div className={styles.buttonRow}>
-                  <Button size="sm" tone="neutral" icon={<Box size={13} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('lighting.scene.pc.update')}</Button>
-                  <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => void api.removeImport()}>{t('lighting.scene.pc.remove')}</Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.sectionNote}>{t(caseObj ? 'lighting.scene.pc.genericNote' : 'lighting.scene.pc.none')}</div>
-                <div className={styles.buttonRow}>
-                  <Button size="sm" tone="accent" icon={<Box size={13} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('lighting.scene.pc.fromBuild')}</Button>
-                  {!caseObj && <Button size="sm" tone="neutral" onClick={addGenericCase}>{t('lighting.scene.pc.generic')}</Button>}
-                </div>
-              </>
-            )}
-          </section>
-
-          <section className={styles.section}>
-            <div className={styles.sectionTitle}>{t('lighting.scene.desk.title')}</div>
-            <div className={styles.deskGrid}>
-              {DESK_KINDS.map(kind => {
-                const Icon = DESK_ICONS[kind];
-                return (
-                  <button key={kind} type="button" className={styles.deskTile} onClick={() => addDesk(kind)}>
-                    <Icon size={18} strokeWidth={1.6} />
-                    {t(`lighting.scene.kind.${kind}`)}
-                  </button>
-                );
-              })}
+            <div className={styles.sectionNote}>{t(legacyOnly ? 'lighting.scene.setup.legacyHint' : 'lighting.scene.setup.managedInBuild')}</div>
+            <div className={styles.buttonRow}>
+              <Button size="sm" tone={legacyOnly ? 'accent' : 'neutral'} icon={<Box size={13} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('lighting.scene.pc.update')}</Button>
             </div>
           </section>
 
@@ -485,35 +443,41 @@ function SceneEditor({
                 const placed = !!bindingOf(d.id);
                 const active = d.id === selectedDeviceId || d.id === placing?.deviceId;
                 return (
-                  <div
-                    key={d.id}
-                    role="button"
-                    tabIndex={0}
-                    className={`${styles.deviceRow} ${active ? styles.deviceRowActive : ''}`}
-                    draggable
-                    onDragStart={e => {
-                      e.dataTransfer.setData(DEVICE_DRAG_TYPE, d.id);
-                      e.dataTransfer.effectAllowed = 'move';
-                    }}
-                    onClick={() => {
-                      setSelectedObjectId(null);
-                      setSelectedDeviceId(d.id);
-                      setPlacing(placed ? null : { deviceId: d.id, append: false });
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
+                  <Fragment key={d.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`${styles.deviceRow} ${active ? styles.deviceRowActive : ''}`}
+                      draggable
+                      onDragStart={e => {
+                        e.dataTransfer.setData(DEVICE_DRAG_TYPE, d.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onClick={() => {
+                        setSelectedObjectId(null);
                         setSelectedDeviceId(d.id);
                         setPlacing(placed ? null : { deviceId: d.id, append: false });
-                      }
-                    }}
-                  >
-                    <span className={`${styles.deviceDot} ${placed ? styles.deviceDotPlaced : ''}`} />
-                    <span className={styles.deviceText}>
-                      <span className={styles.deviceName}>{d.name}</span>
-                      <span className={styles.deviceWhere}>{whereLabel(d.id)}</span>
-                    </span>
-                  </div>
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedDeviceId(d.id);
+                          setPlacing(placed ? null : { deviceId: d.id, append: false });
+                        }
+                      }}
+                    >
+                      <span className={`${styles.deviceDot} ${placed ? styles.deviceDotPlaced : ''}`} />
+                      <span className={styles.deviceText}>
+                        <span className={styles.deviceName}>{d.name}</span>
+                        <span className={styles.deviceWhere}>{whereLabel(d.id)}</span>
+                      </span>
+                    </div>
+                    {missing.has(d.id) && !placed && (
+                      <button type="button" className={styles.deviceLink} onClick={() => requestOpenBuild('/builder')}>
+                        {t('lighting.scene.devices.addInBuild')}
+                      </button>
+                    )}
+                  </Fragment>
                 );
               })}
             </div>

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { newDeskObject } from '../../../../lib/scene/deskCatalog';
-import { editBinding, flipBinding, moveObject, placeDevice, removeObject, rotateBinding, turnObject, unplaceDevice } from './sceneEdits';
+import { deskObject } from '../../../../lib/scene/sceneFixtures';
+import { editBinding, flipBinding, moveObject, placeDevice, rotateBinding, turnObject, unplaceDevice } from './sceneEdits';
 
-const kb = newDeskObject('keyboard', []);
-const mouse = newDeskObject('mouse', [kb]);
+const kb = deskObject('keyboard');
+const mouse = deskObject('mouse');
 const base = { objects: [kb, mouse], bindings: [] };
 
 describe('scene edits', () => {
@@ -19,12 +19,9 @@ describe('scene edits', () => {
     expect(base.bindings).toEqual([]);
   });
 
-  it('unplaces, and removing an object drops its placements', () => {
+  it('unplaces a device', () => {
     const s = placeDevice(placeDevice(base, 'd1', kb.id, 'top', false), 'd2', mouse.id, 'top', false);
     expect(unplaceDevice(s, 'd1').bindings.map(b => b.deviceId)).toEqual(['d2']);
-    const r = removeObject(s, kb.id);
-    expect(r.objects.map(o => o.id)).toEqual([mouse.id]);
-    expect(r.bindings.map(b => b.deviceId)).toEqual(['d2']);
   });
 
   it('rotates in quarter turns and flips from the current binding', () => {
@@ -41,9 +38,4 @@ describe('scene edits', () => {
     expect(turnObject(base, kb.id, -15).objects[0].yaw).toBe(345);
   });
 
-  it('gives each new desk object a unique id', () => {
-    const second = newDeskObject('keyboard', [kb, mouse]);
-    expect(second.id).not.toBe(kb.id);
-    expect(second.position[0]).not.toBe(kb.position[0]);
-  });
 });

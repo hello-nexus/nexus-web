@@ -18,6 +18,7 @@ import {
 import { groupNamesOf, type DeviceGroup } from '../../../lib/deviceGroups';
 import { matchesAllWords } from '../../../search/match';
 import { takeLightingEffect } from '../../../lib/lightingIntent';
+import { lightingDeviceAnchor } from '../../../lib/pageAnchors';
 import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useShaderParams } from '../../../hooks/useShaderParams';
@@ -309,6 +310,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setCanvasFocus(id ? withStacked(deviceStacksRef.current, [id]) : new Set());
     setPrimaryDeviceId(id);
   }, [setPrimaryDeviceId]);
+  // A click on a device in the 3D scene selects it as a click on its row does (a lone selection stays, it does not toggle off), then brings the row into view.
+  const handleSelectFromScene = useCallback((id: string | null) => {
+    if (!id) {
+      handleFocusDevice(null);
+      return;
+    }
+    handleSetSelection(new Set(withStacked(deviceStacksRef.current, [id])), id);
+    const anchor = lightingDeviceAnchor(id);
+    requestAnimationFrame(() => {
+      const row = [...document.querySelectorAll('[data-search-anchor]')].find(el => el.getAttribute('data-search-anchor') === anchor);
+      row?.scrollIntoView?.({ block: 'nearest' });
+    });
+  }, [handleFocusDevice, handleSetSelection]);
   const handleSetFocus = useCallback((ids: Set<string>, primary: string | null) => {
     setCanvasFocus(withStacked(deviceStacksRef.current, ids));
     setPrimaryDeviceId(primary);
@@ -3001,7 +3015,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   api={sceneApi}
                   devices={visibleDevices}
                   selectedDeviceId={primaryDeviceId}
-                  onSelectDevice={handleFocusDevice}
+                  onSelectDevice={handleSelectFromScene}
                   shaderEffect={shaderMode ? previewEffect : null}
                   shaderState={shaderMode ? previewShaderState : null}
                   shaderPaused={paused}
