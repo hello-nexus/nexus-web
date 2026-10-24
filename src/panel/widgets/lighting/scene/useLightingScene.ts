@@ -14,6 +14,7 @@ import {
 } from '../../../../api/lightingScene';
 import { fetchPcSetup, patchPcSetupPlacements, PC_SETUP_TOPIC, type PcSetupPlacement, type PcSetupRecord } from '../../../../api/pcSetup';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { healBindings } from '../../../../lib/scene/pickDevice';
 import { presetCamera } from '../../../../lib/scene/scenePresets';
 import { applyPlacements, isMovable, placementId, placementOf, survivingPlaces } from '../../../../lib/scene/setupPlacement';
 import { moveObject, turnObject } from './sceneEdits';
@@ -228,6 +229,15 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
   }, [flush]);
+
+  // A binding left on an object's old id is pointed at its successor once, and saved, so every reader sees the healed one.
+  const sceneObjects = scene?.objects;
+  const sceneBindings = scene?.bindings;
+  useEffect(() => {
+    if (!active || !sceneObjects || !sceneBindings) return;
+    if (healBindings(sceneObjects, sceneBindings) === sceneBindings) return;
+    update(cur => ({ ...cur, bindings: healBindings(cur.objects, cur.bindings) }));
+  }, [active, sceneObjects, sceneBindings, update]);
 
   const setEnabled = useCallback(async (enabled: boolean) => {
     const before = sceneRef.current?.view;

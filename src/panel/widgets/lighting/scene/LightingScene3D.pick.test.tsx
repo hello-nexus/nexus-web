@@ -82,9 +82,9 @@ describe('LightingScene3D click selection', () => {
     expect(onSelect).toHaveBeenCalledWith('argb-1');
   });
 
-  it('a desk mouse whose binding names its old id selects the device; a click on an empty spot selects nothing', async () => {
+  it('a bound desk mouse selects its device; a click on an empty spot selects nothing', async () => {
     const mouse = { ...deskObject('mouse'), id: 'p-mouse-8445a2d5-0' };
-    const { onSelect, click } = await mount(viewOf([mouse], [{ deviceId: 'm65', targets: [{ objectId: 'mouse-1', anchorId: 'top' }], rotation: 0, flip: false }], [0, 400, 300]));
+    const { onSelect, click } = await mount(viewOf([mouse], [{ deviceId: 'm65', targets: [{ objectId: mouse.id, anchorId: 'top' }], rotation: 0, flip: false }], [0, 400, 300]));
     click(5, 5);
     expect(onSelect).not.toHaveBeenCalled();
     click(400, 225);

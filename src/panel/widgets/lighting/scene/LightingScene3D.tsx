@@ -19,7 +19,7 @@ import type { ScenePick, SceneRenderer } from '../../../../lib/scene/sceneRender
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport, DEVICE_DRAG_TYPE, type Backdrop } from './SceneViewport';
 import { anchorLabel, objectLabel } from './sceneLabels';
-import { deviceForPick, deviceForStack, healBindings } from '../../../../lib/scene/pickDevice';
+import { deviceForPick, deviceForStack } from '../../../../lib/scene/pickDevice';
 import { flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
@@ -133,12 +133,11 @@ export default function LightingScene3D({
     if (final) void saved.then(() => onLayoutCommit?.());
   }, [api, onLayoutCommit]);
 
-  const pickBindings = useMemo(() => (scene ? healBindings(scene.objects, scene.bindings) : []), [scene]);
-
   const onInlinePick = useCallback((_pick: ScenePick | null, stack: ScenePick[]) => {
-    const deviceId = deviceForStack(pickBindings, stack);
+    if (!scene) return;
+    const deviceId = deviceForStack(scene.bindings, stack);
     if (deviceId) onSelectDevice(deviceId);
-  }, [pickBindings, onSelectDevice]);
+  }, [scene, onSelectDevice]);
 
   if (!scene) return <div className={styles.viewport} />;
   const empty = scene.bindings.length === 0;
@@ -161,7 +160,7 @@ export default function LightingScene3D({
         audioRef={audioRef}
         onPick={onInlinePick}
         onCamera={onCamera}
-        hoverLabel={pick => sceneHoverLabel(t, { objects: scene.objects, bindings: pickBindings }, devices, pick)}
+        hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
         publishPoints
         active={!editorOpen}
       >

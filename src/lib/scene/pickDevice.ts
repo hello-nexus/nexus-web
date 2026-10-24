@@ -31,7 +31,8 @@ export function deviceForStack(bindings: SceneBinding[], stack: ScenePick[]): st
 /**
  * Bindings with each target whose object is gone pointed at the object that took its place. An older export named
  * a desk item `<kind>-<n>`; the shared setup now names it by its own id, so the binding still targets the old name.
- * The n-th object of that kind takes the target, only while it holds no binding of its own.
+ * Only a scene with exactly one object of that kind heals, and only while that object holds no binding of its own;
+ * with none or several the binding stays as it is.
  */
 export function healBindings(objects: SceneObject[], bindings: SceneBinding[]): SceneBinding[] {
   const known = new Set(objects.map(o => o.id));
@@ -40,8 +41,9 @@ export function healBindings(objects: SceneObject[], bindings: SceneBinding[]): 
   const out = bindings.map(b => {
     const targets = b.targets.map(t => {
       if (known.has(t.objectId)) return t;
-      const m = /^(.+)-(\d+)$/.exec(t.objectId);
-      const heir = m ? objects.filter(o => o.kind === m[1])[Number(m[2]) - 1] : undefined;
+      const kind = /^(.+)-\d+$/.exec(t.objectId)?.[1];
+      const ofKind = kind ? objects.filter(o => o.kind === kind) : [];
+      const heir = ofKind.length === 1 ? ofKind[0] : undefined;
       if (!heir || held.has(heir.id) || !heir.anchors.some(a => a.id === t.anchorId)) return t;
       changed = true;
       return { ...t, objectId: heir.id };

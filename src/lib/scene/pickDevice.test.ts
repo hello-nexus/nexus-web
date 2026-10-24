@@ -64,13 +64,19 @@ describe('healBindings', () => {
     anchors: [{ id: 'top', kind: 'surface', center: [0, 0, 0], right: [1, 0, 0], up: [0, 1, 0], width: 1, height: 1, shape: 'rect' }],
   });
 
-  it('retargets a binding that names a gone desk item to the object of that kind', () => {
+  it('leaves a binding whose object exists untouched', () => {
+    const objects = [obj('case', 'case'), obj('p-mouse-1', 'mouse')];
+    const fine = [bind('a', ['case', 'top']), bind('b', ['p-mouse-1', 'top'])];
+    expect(healBindings(objects, fine)).toBe(fine);
+  });
+
+  it('retargets a binding that names a gone desk item to the only object of that kind', () => {
     const objects = [obj('case', 'case'), obj('p-mouse-8445a2d5-0', 'mouse'), obj('p-keyboard-fcf22239-0', 'keyboard')];
     const healed = healBindings(objects, [bind('m65', ['mouse-1', 'top']), bind('kbd', ['keyboard-1', 'top']), bind('fan-a', ['case', 'fan:front:120:0'])]);
     expect(healed.map(b => b.targets[0].objectId)).toEqual(['p-mouse-8445a2d5-0', 'p-keyboard-fcf22239-0', 'case']);
   });
 
-  it('leaves a binding alone when the heir is taken, has no such surface, or nothing of the kind exists', () => {
+  it('leaves a binding alone when the heir is taken, has no such surface, or no single object of the kind exists', () => {
     const objects = [obj('p-mouse-1', 'mouse')];
     const taken = [bind('a', ['p-mouse-1', 'top']), bind('b', ['mouse-1', 'top'])];
     expect(healBindings(objects, taken)).toBe(taken);
@@ -78,5 +84,8 @@ describe('healBindings', () => {
     expect(healBindings(objects, noSurface)).toBe(noSurface);
     const none = [bind('d', ['headset-1', 'top'])];
     expect(healBindings(objects, none)).toBe(none);
+    const two = [obj('p-kb-a', 'keyboard'), obj('p-kb-b', 'keyboard')];
+    const kbd = [bind('k', ['keyboard-1', 'top'])];
+    expect(healBindings(two, kbd)).toBe(kbd);
   });
 });
