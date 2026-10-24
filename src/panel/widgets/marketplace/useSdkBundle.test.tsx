@@ -110,7 +110,7 @@ describe('useSdkBundle', () => {
       expect(postService.mock.calls.length).toBe(afterFirstRetry);
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
       expect(postService.mock.calls.length).toBeGreaterThan(afterFirstRetry);
-      // Retries so far at 5, 15, 35, 75 s, then every 60 s: 135, 195, 255, 315, 375.
+      // The delay doubles until it reaches the cap, then stays there.
       // Each retry re-runs the effect, so time advances in steps React flushes between.
       const advance = async (ms: number) => { for (let i = 0; i < ms; i += 1000) await act(async () => { await vi.advanceTimersByTimeAsync(1000); }); };
       await advance(316_000 - 15_000);
@@ -133,7 +133,7 @@ describe('useSdkBundle', () => {
     try {
       const a = renderHook(() => useSdkBundle('com.x.app'));
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-      // A failed twice; its next retry is 10 s away.
+      // A has failed twice and is waiting on its timer.
       expect(a.result.current.failed).toBe(true);
       fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
       const b = renderHook(() => useSdkBundle('com.x.app'));
@@ -203,6 +203,28 @@ describe('useSdkRuntime', () => {
     await waitFor(() => expect(result.current.runtimeUrl).not.toBeNull());
     expect(fetchServiceBlob).toHaveBeenCalledTimes(1);
     expect(pageFetch).not.toHaveBeenCalled();
+  });
+
+  it('an instance backing off picks up the runtime a sibling loaded, without waiting for its own retry', async () => {
+    remoteOrigin = false;
+    forceLan = false;
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.resetModules();
+    vi.useFakeTimers();
+    try {
+      const { useSdkRuntime } = await import('./useSdkBundle');
+      const a = renderHook(() => useSdkRuntime());
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(a.result.current.failed).toBe(true);
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export {};']));
+      const b = renderHook(() => useSdkRuntime());
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(b.result.current.runtimeUrl).not.toBeNull();
+      expect(a.result.current.runtimeUrl).toBe(b.result.current.runtimeUrl);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('retries the runtime after a transient failure instead of latching', async () => {
