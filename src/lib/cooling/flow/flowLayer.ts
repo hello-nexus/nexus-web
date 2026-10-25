@@ -3,7 +3,8 @@ import {
   NearestFilter, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COUPLING, HEAT_COLOR_SPAN_C } from './flowParams';
+import { NO_TEMPS, sourceRises, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
 import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
@@ -76,6 +77,7 @@ export class FlowLayer {
   private lastFrameAt = 0;
   private options: FlowOptions = { particles: true, collisions: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
+  private temps: ComponentTemps = NO_TEMPS;
   private coldStart = false;
   private readonly gate = new SteadyGate();
   private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
@@ -135,6 +137,18 @@ export class FlowLayer {
     if (options.collisions !== this.collisionsShown) this.syncCollisions();
   }
 
+  /** New part temperatures: only the heat pass's uniforms change, so the solver, the grid and every particle carry on. */
+  setTemps(temps: ComponentTemps) {
+    this.temps = temps;
+    this.applyTemps();
+  }
+
+  private applyTemps() {
+    if (!this.heatMat) return;
+    const [, gpu, cpu] = sourceRises(this.temps);
+    (this.heatMat.uniforms.uSrc.value as Vector3).set(0, gpu, cpu);
+  }
+
   /** New edit: rebuilds the voxel scene and re-solves from the current field. Null clears the layer. */
   setInput(input: FlowInput | null) {
     this.input = input;
@@ -187,7 +201,8 @@ export class FlowLayer {
       PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBackSpan: { value: 1 }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: this.options.speed }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
-    this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown } });
+    this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown }, uSrc: { value: new Vector3(0, -1, -1) }, uCoupling: { value: HEAT_COUPLING } });
+    this.applyTemps();
 
     const geometry = new BufferGeometry();
     const refs = new Float32Array(w * h * 2);
@@ -198,7 +213,7 @@ export class FlowLayer {
     const pointUniforms = (alpha: number, size: number, minPx: number) => ({
       PA: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
       uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: alpha },
-      uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot },
+      uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
     });
     // Head and trail: additive soft sprites; the trail is fainter.
     this.pointMat = new ShaderMaterial({

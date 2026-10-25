@@ -1,6 +1,7 @@
-import { PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
+import { AMBIENT_C, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
 import { sampleSpawn } from './gridScene';
+import { NO_TEMPS, heatStep, sourceRises, type ComponentTemps } from './heatModel';
 
 /** A particle's lifetime in steps from a uniform sample. */
 export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTER + 2 * PARTICLE_LIFE_JITTER * u);
@@ -9,7 +10,9 @@ export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTE
 export class CpuParticles {
   readonly pos: Float32Array;
   readonly age: Float32Array;
+  /** Degrees above ambient each particle has picked up. */
   readonly heat: Float32Array;
+  private rises = sourceRises(NO_TEMPS);
   readonly count: number;
   private readonly flow: CpuFlow;
   /** Respawns so far, for checks on how evenly particles are recycled. */
@@ -32,6 +35,16 @@ export class CpuParticles {
       this.respawns--;
       this.age[i] = -this.rand() * PARTICLE_MAX_AGE * PARTICLE_BIRTH_SPREAD;
     }
+  }
+
+  /** New part temperatures: read by the next step, nothing restarts. */
+  setTemps(temps: ComponentTemps) {
+    this.rises = sourceRises(temps);
+  }
+
+  /** A particle's temperature, C. */
+  tempC(i: number): number {
+    return AMBIENT_C + this.heat[i];
   }
 
   private rand(): number {
@@ -90,7 +103,7 @@ export class CpuParticles {
       this.age[i] += Math.hypot(x - x0, y - y0, z - z0) < STUCK_MOVE_CELLS * speed ? STUCK_AGE_RATE : 1;
       const cell = this.cellAt(x, y, z);
       if (cell !== from) onMove?.(i, from, cell);
-      this.heat[i] = Math.min(1, this.heat[i] + heat[cell] * speed);
+      if (cell >= 0) this.heat[i] = heatStep(this.heat[i], this.rises[heat[cell]], speed);
       if (open[cell] || this.age[i] > this.life[i]) this.respawn(i);
     }
   }

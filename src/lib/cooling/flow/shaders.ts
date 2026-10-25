@@ -196,15 +196,24 @@ void main() {
   gl_FragColor = vec4(p, age);
 }`;
 
-// Particle heat: grows inside heat cells, resets when the particle respawns.
+// Particle heat, degrees above ambient: in a heat cell the air closes a share of its gap to that part's temperature; resets when the particle respawns.
+// uSrc holds each source's rise above ambient by cell id (index 1 GPU, 2 CPU); negative means that part heats nothing.
 export const PARTICLE_HEAT = PARTICLE_COMMON + /* glsl */ `
 uniform sampler2D PB;
+uniform vec3 uSrc; uniform float uCoupling;
 void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
   vec4 s = texelFetch(PA, f, 0);
   float h = texelFetch(PB, f, 0).r;
   if (s.w < 1.0 || s.x < -1.0e5) h = 0.0;
-  else { ivec3 c = cellAtPos(s.xyz); if (inside(c)) h = min(1.0, h + mask(c).a * uSpeed); }
+  else {
+    ivec3 c = cellAtPos(s.xyz);
+    if (inside(c)) {
+      int id = int(mask(c).a + 0.5);
+      float src = id == 1 ? uSrc.y : (id == 2 ? uSrc.z : -1.0);
+      if (src >= 0.0) h += min(1.0, uCoupling * uSpeed) * (src - h);
+    }
+  }
   gl_FragColor = vec4(h, 0.0, 0.0, 0.0);
 }`;
 
@@ -212,13 +221,13 @@ export const POINT_VERTEX = LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
 uniform float uSize; uniform float uScale; uniform float uMinPx; uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha;
-uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot;
+uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot; uniform float uHeatSpan;
 in vec2 ref;
 out vec3 vColor; out float vAlpha;
 void main() {
   ivec2 r = ivec2(ref);
   vec4 s = texelFetch(PA, r, 0);
-  float h = texelFetch(PB, r, 0).r;
+  float h = clamp(texelFetch(PB, r, 0).r / uHeatSpan, 0.0, 1.0);
   float life = lifeOf(vec2(r) + 0.5, uMaxAge, uLifeJitter);
   vec3 world = (s.xyz + 0.5) * uCell - uOrigin;
   vec3 over = max(max(-world, world - uCaseExtent), 0.0);

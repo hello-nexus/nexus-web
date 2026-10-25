@@ -18,9 +18,13 @@ export const MIN_FAN_HALF_THICKNESS_CELLS = 1;
 export const DOMAIN_MARGIN_MM = 100;
 /** A fan or vent within this distance of a case face puts its margin on that side. */
 export const MOUNT_REACH_MM = 60;
-/** Heat a particle gains per step inside a cell next to a heat source, and inside a porous cooler cell. */
-export const HEAT_RATE_NEAR = 0.015;
-export const HEAT_RATE_POROUS = 0.03;
+/** Air entering the case, C: every particle starts here. */
+export const AMBIENT_C = 25;
+/** Share of the gap between a part and the air that the air closes per step inside the part's heat cells, at unit particle speed. The air never passes the part's own temperature, and air already warm gains less. */
+export const HEAT_COUPLING = 0.05;
+/** Air this many degrees above ambient is drawn in the full hot color. */
+export const HEAT_COLOR_SPAN_C = 40;
+/** Fluid cells this close to a heat-source solid are its heat cells. */
 export const HEAT_REACH_CELLS = 2;
 /** Particle age, in steps, after which it is recycled. */
 export const PARTICLE_MAX_AGE = 900;
