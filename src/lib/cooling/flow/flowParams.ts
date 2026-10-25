@@ -24,6 +24,8 @@ export const HEAT_RATE_POROUS = 0.03;
 export const HEAT_REACH_CELLS = 2;
 /** Particle age, in steps, after which it is recycled. */
 export const PARTICLE_MAX_AGE = 900;
+/** The first pool is born over this share of the max age: until its birth a particle waits unseen at its spawn point. */
+export const PARTICLE_BIRTH_SPREAD = 0.3;
 
 export const GRID_TARGET_CELLS = 64 * 48 * 96;
 export const GRID_LOW_CELLS = 32 * 24 * 48;

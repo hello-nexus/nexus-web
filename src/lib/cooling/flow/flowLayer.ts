@@ -3,7 +3,7 @@ import {
   MeshBasicMaterial, NearestFilter, NormalBlending, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_MAX_AGE } from './flowParams';
+import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_MAX_AGE } from './flowParams';
 import { SteadyGate } from './steadyGate';
 import { buildFlowScene, surfaceSolids, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
@@ -39,7 +39,7 @@ const MAX_DEBUG_VOXELS = 80000;
 const POINT_SIZE = 5;
 const POINT_MIN_PX = 1;
 const TRAIL_MIN_PX = 1;
-const TRAIL_ALPHA = [0.22];
+const TRAIL_ALPHA = [0.286];
 const TRAIL_SIZE = [0.7];
 
 export interface FlowColors {
@@ -76,6 +76,7 @@ export class FlowLayer {
   private options: FlowOptions = { particles: true, deadZones: false, debugSolids: false };
   private seed = 1;
   private debugShown = false;
+  private coldStart = false;
   private readonly gate = new SteadyGate();
   private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
 
@@ -155,6 +156,7 @@ export class FlowLayer {
       this.flow = new GlFlow(this.renderer, this.runner, scene, this.kind);
       this.ensureParticles();
       this.resetParticles();
+      this.coldStart = true;
     }
     this.fscene = scene;
     this.ageRef = Math.max(60, scene.residenceSteps * AGE_SCALE);
@@ -188,7 +190,7 @@ export class FlowLayer {
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, SP: { value: null as unknown }, uSpawnCount: { value: 0 }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE },
+      PA: { value: null as unknown }, SP: { value: null as unknown }, uSpawnCount: { value: 0 }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown } });
@@ -206,7 +208,7 @@ export class FlowLayer {
     });
     // Head and trail: additive soft sprites; the trail is fainter.
     this.pointMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(0.6, POINT_SIZE, POINT_MIN_PX),
+      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(0.78, POINT_SIZE, POINT_MIN_PX),
       transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending,
     });
     this.trailMats = TRAIL_ALPHA.map((alpha, i) => new ShaderMaterial({
@@ -345,7 +347,9 @@ export class FlowLayer {
       for (let i = 0; i < AGE_STEPS_PER_FRAME; i++) flow.stepAge();
       if (this.volumeMat) this.volumeMat.uniforms.AG.value = flow.ageTexture;
     }
-    if (this.options.particles && this.stateMat && this.heatMat && this.points && this.spawnTex) {
+    if (!this.solving) this.coldStart = false;
+    // Particles wait for the first solve: with no velocity yet they would sit on their spawn points.
+    if (this.options.particles && !(this.coldStart && this.solving) && this.stateMat && this.heatMat && this.points && this.spawnTex) {
       for (let st = 0; st < PARTICLE_SUBSTEPS; st++) {
         const next = (this.stateCur + 1) % RING;
         this.stateMat.uniforms.U.value = flow.velocity;
