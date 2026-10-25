@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { RateCapSelect } from './RateCapSelect';
 
@@ -13,6 +13,8 @@ const api = vi.hoisted(() => ({ setLightingMaxRate: vi.fn() }));
 vi.mock('../../../../api/lighting', () => ({ setLightingMaxRate: api.setLightingMaxRate }));
 
 describe('RateCapSelect', () => {
+  beforeEach(() => { api.setLightingMaxRate.mockReset(); });
+
   it('shows Off when no cap is stored and lists the Hz options', () => {
     render(<RateCapSelect id="d1" value={null} onFail={vi.fn()} />);
     const trigger = screen.getByRole('button', { name: 'lighting.ledMap.rateCap' });
@@ -251,5 +253,16 @@ describe('RateCapSelect', () => {
     await act(async () => { r[1]({ error: true, msg: 'x' }); });
     expect(shownHz()).toContain('"hz":30');
     expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks the parent to refetch when the outcome is unknown (rejected request)', async () => {
+    api.setLightingMaxRate.mockRejectedValue(new Error('net'));
+    const onSaved = vi.fn();
+    const onFail = vi.fn();
+    render(<RateCapSelect id="d1" value={15} onFail={onFail} onSaved={onSaved} />);
+    pick(HZ(5));
+    await waitFor(() => expect(onFail).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(shownHz()).toContain('"hz":15');
   });
 });

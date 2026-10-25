@@ -13,7 +13,7 @@ interface Props {
   /** The stored cap in Hz; null = Off. */
   value: number | null;
   onFail: () => void;
-  /** Called once each time the save queue drains after a success, so the parent refetches the device list. */
+  /** Called once each time the save queue drains after a success, so the parent refetches the device list; also after a request with an unknown outcome. */
   onSaved?: () => void;
 }
 
@@ -76,7 +76,10 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
     };
     setLightingMaxRate(id, next)
       .then(r => {
-        if (!r || r.error) fail();
+        if (!r) {
+          saved.current = true;
+          fail();
+        } else if (r.error) fail();
         else {
           saved.current = true;
           if (mine > confirmedSeq.current) {
@@ -87,6 +90,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
         settle();
       })
       .catch(() => {
+        saved.current = true;
         fail();
         settle();
       });
