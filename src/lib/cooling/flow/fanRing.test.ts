@@ -114,7 +114,6 @@ describe('fan ring', () => {
 });
 
 describe('stopped fans and empty slots', () => {
-  const at = (s: FlowScene, mm: number[]) => idx(s, cell(s, mm));
   const emptyFront = slotSpec('front:120:1', 'front', null, [0, 180, 120], [25, 120, 120], [1, 0, 0]);
   const shellX = (s: FlowScene) => s.caseMin[0];
 
@@ -139,7 +138,6 @@ describe('stopped fans and empty slots', () => {
     shellCentre[0] = shellX(s);
     expect(s.solid[idx(s, shellCentre)]).toBe(0);
     expect(s.opening[idx(s, shellCentre)]).toBe(OPENING_VENT);
-    void at;
   });
 
   it('spawns inflow particles across the whole disc of an empty slot, hub area included', () => {

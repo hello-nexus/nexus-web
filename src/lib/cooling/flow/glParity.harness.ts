@@ -55,7 +55,7 @@ async function main() {
   out.velocity = { maxDiff, maxCpu };
   gl.beginMeasure();
   let measured = gl.pollMeasure();
-  while (!measured) { await new Promise(r => setTimeout(r, 4)); measured = gl.pollMeasure(); }
+  while (!measured) { await new Promise(r => requestAnimationFrame(r)); measured = gl.pollMeasure(); }
   out.measure = measured;
   err('measure');
 
