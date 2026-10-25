@@ -428,6 +428,7 @@
   "cooling.case3d.position.left": "Слева",
   "cooling.case3d.position.other": "Вентилятор",
   "cooling.case3d.position.psuShroud": "Кожух блока питания",
+  "cooling.case3d.position.rad": "Радиатор",
   "cooling.case3d.position.rear": "Зад",
   "cooling.case3d.position.right": "Справа",
   "cooling.case3d.position.top": "Верх",

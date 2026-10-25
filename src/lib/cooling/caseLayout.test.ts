@@ -163,10 +163,19 @@ describe('withBoundFans', () => {
 });
 
 describe('linkChannelToSlot', () => {
-  it('links a channel to one slot, replacing the slot\'s device and moving the channel off its other slots', () => {
+  it('adds the slot to the channel, takes it off the device it had, and keeps the channel\'s other slots', () => {
     const start = [{ channelId: 'a', slotKeys: ['s1', 's2'] }, { channelId: 'b', slotKeys: ['s3'] }];
-    expect(linkChannelToSlot(start, 'b', 's1')).toEqual([{ channelId: 'a', slotKeys: ['s2'] }, { channelId: 'b', slotKeys: ['s1'] }]);
-    expect(linkChannelToSlot([{ channelId: 'a', slotKeys: ['s1'] }], 'a', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s2'] }]);
+    expect(linkChannelToSlot(start, 'b', 's1')).toEqual([{ channelId: 'a', slotKeys: ['s2'] }, { channelId: 'b', slotKeys: ['s3', 's1'] }]);
+    expect(linkChannelToSlot([{ channelId: 'a', slotKeys: ['s1'] }], 'a', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s1', 's2'] }]);
+  });
+
+  it('changes nothing for a channel already at the per-binding cap', () => {
+    const full = [{ channelId: 'a', slotKeys: Array.from({ length: 16 }, (_, i) => `k${i}`) }];
+    expect(linkChannelToSlot(full, 'a', 'new')).toEqual(full);
+  });
+
+  it('stores the none marker for an unlinked radiator slot too', () => {
+    expect(linkChannelToSlot([{ channelId: 'a', slotKeys: ['rad:top:0'] }], '', 'rad:top:0')).toEqual([{ channelId: 'none', slotKeys: ['rad:top:0'] }]);
   });
 
   it('unlinks a slot with an empty channel id and drops emptied bindings', () => {
@@ -184,7 +193,7 @@ describe('linkChannelToSlot with simulated fans', () => {
   it('takes the slot off whatever channel held it, real or simulated', () => {
     const start = [{ channelId: 'a', slotKeys: ['s1', 's3'] }, { channelId: 'sim:500', slotKeys: ['s2'] }];
     expect(linkChannelToSlot(start, 'sim:2000', 's1')).toEqual([{ channelId: 'a', slotKeys: ['s3'] }, { channelId: 'sim:500', slotKeys: ['s2'] }, { channelId: 'sim:2000', slotKeys: ['s1'] }]);
-    expect(linkChannelToSlot(start, 'a', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s2'] }]);
+    expect(linkChannelToSlot(start, 'a', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s1', 's3', 's2'] }]);
     expect(linkChannelToSlot(start, '', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s1', 's3'] }]);
   });
 

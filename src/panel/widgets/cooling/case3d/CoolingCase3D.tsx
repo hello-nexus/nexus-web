@@ -19,7 +19,7 @@ import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useComponentTemps } from '../../../../hooks/useComponentTemps';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, directionOf, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { simRpm, speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
@@ -59,6 +59,7 @@ const POSITION_KEYS: Record<string, string> = {
   'front-left': 'cooling.case3d.position.frontLeft',
   'front-right': 'cooling.case3d.position.frontRight',
   gpu: 'cooling.case3d.position.gpu',
+  rad: 'cooling.case3d.position.rad',
 };
 
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
@@ -244,9 +245,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     { value: NONE, label: t('cooling.case3d.noneLinked') },
     ...channels.map(c => {
       const elsewhere = [...new Set(bindings.filter(b => b.channelId === c.id).flatMap(b => b.slotKeys).filter(k => k !== activeSlot.key).map(k => positionName(slotPosition(k))))];
+      // One device can drive several fans, so a linked entry stays choosable until its binding is full.
+      const held = bindings.find(b => b.channelId === c.id)?.slotKeys ?? [];
       return {
         value: c.id,
         label: c.name,
+        disabled: held.length >= MAX_SLOT_KEYS_PER_BINDING && !held.includes(activeSlot.key),
         ...(elsewhere.length > 0 ? {
           className: styles.linkedElsewhere,
           description: elsewhere.length === 1 ? t('cooling.case3d.linkedToOne', { slot: elsewhere[0] }) : t('cooling.case3d.linkedToMany', { slots: elsewhere.join(', ') }),

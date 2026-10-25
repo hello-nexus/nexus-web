@@ -428,6 +428,7 @@
   "cooling.case3d.position.left": "Sinistra",
   "cooling.case3d.position.other": "Ventola",
   "cooling.case3d.position.psuShroud": "Copertura alimentatore",
+  "cooling.case3d.position.rad": "Radiatore",
   "cooling.case3d.position.rear": "Posteriore",
   "cooling.case3d.position.right": "Destra",
   "cooling.case3d.position.top": "Superiore",
