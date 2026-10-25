@@ -223,20 +223,7 @@ export const POINT_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
 in vec3 vColor; in float vAlpha;
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
-  if (r > 1.0) discard;
-  float core = 1.0 - smoothstep(0.5, 0.64, r);
-  float body = 1.0 - smoothstep(0.82, 1.0, r);
-  vec3 c = mix(vec3(0.02, 0.03, 0.05), vColor * 1.15, core);
-  float a = vAlpha * body;
-  if (a < 0.01) discard;
-  gl_FragColor = vec4(c, a);
-}`;
-
-export const TRAIL_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
-in vec3 vColor; in float vAlpha;
-void main() {
-  float r = length(gl_PointCoord - 0.5) * 2.0;
-  float a = vAlpha * smoothstep(1.0, 0.2, r);
+  float a = vAlpha * smoothstep(1.0, 0.15, r);
   if (a < 0.003) discard;
   gl_FragColor = vec4(vColor * a, a);
 }`;

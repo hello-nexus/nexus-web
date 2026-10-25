@@ -6,7 +6,7 @@ import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from '
 import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_MAX_AGE } from './flowParams';
 import { SteadyGate } from './steadyGate';
 import { buildFlowScene, surfaceSolids, type FlowInput, type FlowScene } from './gridScene';
-import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, TRAIL_FRAGMENT, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
+import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
 export const FLOW_TIERS = [GRID_TARGET_CELLS, Math.round(GRID_TARGET_CELLS / 2), GRID_LOW_CELLS];
@@ -14,7 +14,7 @@ export const FLOW_TIERS = [GRID_TARGET_CELLS, Math.round(GRID_TARGET_CELLS / 2),
 export const PARTICLE_TEXTURE = { w: 128, h: 84 };
 const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
 /** Positions kept per particle: the current one and this many older ones, drawn as a trail. */
-const TRAIL_AGES = 3;
+const TRAIL_AGES = 1;
 const RING = TRAIL_AGES + 1;
 const MAX_PARTICLES = PARTICLE_TEXTURE.w * PARTICLE_TEXTURE.h;
 /** GPU time the solver may take per displayed frame. */
@@ -35,12 +35,12 @@ const MAX_SOLVE_STEPS = 1500;
 const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 24;
 const MAX_DEBUG_VOXELS = 80000;
-/** World-space point size in mm at unit scale, and the on-screen minimum in px, so particles stay visible zoomed out. */
-const POINT_SIZE = 12.5;
-const POINT_MIN_PX = 4;
-const TRAIL_MIN_PX = 2.5;
-const TRAIL_ALPHA = [0.4, 0.28, 0.16];
-const TRAIL_SIZE = [0.85, 0.7, 0.55];
+/** Point size in mm at unit scale, the on-screen minimum in px, and the one trail copy's alpha and size share. */
+const POINT_SIZE = 5;
+const POINT_MIN_PX = 1;
+const TRAIL_MIN_PX = 1;
+const TRAIL_ALPHA = [0.22];
+const TRAIL_SIZE = [0.7];
 
 export interface FlowColors {
   cool: Color;
@@ -204,13 +204,13 @@ export class FlowLayer {
       uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uAlpha: { value: alpha },
       uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot },
     });
-    // Head: normal-blended haloed sprite; trails: additive and fainter.
+    // Head and trail: additive soft sprites; the trail is fainter.
     this.pointMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(0.95, POINT_SIZE, POINT_MIN_PX),
-      transparent: true, depthWrite: false, depthTest: false, blending: NormalBlending,
+      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(0.6, POINT_SIZE, POINT_MIN_PX),
+      transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending,
     });
     this.trailMats = TRAIL_ALPHA.map((alpha, i) => new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: TRAIL_FRAGMENT, uniforms: pointUniforms(alpha, POINT_SIZE * TRAIL_SIZE[i], TRAIL_MIN_PX),
+      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(alpha, POINT_SIZE * TRAIL_SIZE[i], TRAIL_MIN_PX),
       transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending,
     }));
     this.points = new Points(geometry, this.pointMat);
