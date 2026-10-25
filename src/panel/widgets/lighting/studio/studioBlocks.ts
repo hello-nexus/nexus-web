@@ -185,6 +185,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   {
     // A hard edge sweeps across and the two sides swap each pass, so it wipes
     // A over B, then B over A. x is the normalized position along the wipe.
+    // The edge overruns x = 1 by its width so the soft band leaves before the sides swap.
     type: 'wipe', stage: 'pattern', cost: 1,
     params: [
       { key: 'shape', min: 0, max: 2, step: 1, def: 0, options: ['lighting.studio.shape.linear', 'lighting.studio.shape.radial', 'lighting.studio.shape.clock'] },
@@ -197,7 +198,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
       'if ($shape < 0.5) { float a = radians($angle); vec2 dir = vec2(cos(a), sin(a)); x = dot(p, dir) / (2.0 * (abs(dir.x) * ar + abs(dir.y))) + 0.5; }',
       'else if ($shape < 1.5) { x = length(p) / length(vec2(ar, 1.0)); }',
       'else { x = fract(atan(p.y, p.x) / 6.2831853 + 0.25); }',
-      'float ph = t * $speed * 0.25; float e = fract(ph); float a0 = mod(floor(ph), 2.0);',
+      'float ph = t * $speed * 0.25; float e = fract(ph) * (1.0 + $softness); float a0 = mod(floor(ph), 2.0);',
       'f = mix(a0, 1.0 - a0, 1.0 - smoothstep(e - $softness, e, x));',
     ].join('\n'),
   },
