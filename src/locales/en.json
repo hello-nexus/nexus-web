@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "This graphics setup cannot run the airflow simulation.",
   "cooling.case3d.flow.warmer": "Warmer",
   "cooling.case3d.hint.bind": "Click a fan in the case to link it to {name} or set its direction.",
+  "cooling.case3d.hint.label": "How to use this view",
   "cooling.case3d.hint.select": "Select a fan on the left to link it to a fan in the case. Click a case fan to set intake or exhaust.",
   "cooling.case3d.layoutError": "Saved directions and device links could not be loaded. Defaults are shown and changes are not saved.",
   "cooling.case3d.linkedToMany": "Linked to {slots} fans",

@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "目前的圖形設定無法執行氣流模擬。",
   "cooling.case3d.flow.warmer": "更熱",
   "cooling.case3d.hint.bind": "點擊機殼中的風扇，可將其綁定到 {name} 或設定方向。",
+  "cooling.case3d.hint.label": "如何使用此檢視",
   "cooling.case3d.hint.select": "先在左側選擇一個風扇，再將其綁定到機殼中的風扇。點擊機殼中的風扇可設定進風或出風。",
   "cooling.case3d.layoutError": "無法載入已儲存的方向與裝置綁定。目前顯示預設值，變更不會被儲存。",
   "cooling.case3d.linkedToMany": "已綁定到{slots}風扇",

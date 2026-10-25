@@ -1626,8 +1626,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             </HoverTooltip>
           </div>
         </div>
-        <div className={`${styles.paneHeader} ${styles.headerRight}`}>
-          <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
+        <div className={`${styles.paneHeader} ${styles.headerRight}${view3d && CoolingCase3D ? ` ${styles.paneHeaderFlush}` : ''}`}>
+          <span className={styles.paneTitle}>{view3d && CoolingCase3D ? t('cooling.view.airflow') : t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
           {offStatusCard}

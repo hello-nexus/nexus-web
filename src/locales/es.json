@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "Esta configuración gráfica no puede ejecutar la simulación del flujo de aire.",
   "cooling.case3d.flow.warmer": "Más cálido",
   "cooling.case3d.hint.bind": "Haz clic en un ventilador de la caja para asociarlo a {name} o elegir su dirección.",
+  "cooling.case3d.hint.label": "Cómo usar esta vista",
   "cooling.case3d.hint.select": "Selecciona un ventilador a la izquierda para asociarlo a un ventilador de la caja. Haz clic en un ventilador de la caja para elegir entrada o salida.",
   "cooling.case3d.layoutError": "No se pudieron cargar las direcciones ni las asociaciones de dispositivos guardadas. Se muestran los valores por defecto y los cambios no se guardan.",
   "cooling.case3d.linkedToMany": "Asociado a los ventiladores {slots}",

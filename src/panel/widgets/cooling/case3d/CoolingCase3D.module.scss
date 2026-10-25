@@ -26,13 +26,10 @@
 }
 
 .statLabel,
-.statNote,
-.hint {
+.statNote {
   @include text-caption;
   color: var(--text-dim);
 }
-
-.hint { padding: 0 0.4rem; }
 
 .mode {
   @include text-button;
@@ -118,7 +115,18 @@
   color: #fff;
 }
 
-.overlayTop { top: 0; }
+.overlayTop {
+  top: 0;
+  // Clear of the info button at the right end.
+  padding-right: 2.75rem;
+}
+
+.info {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  z-index: 1;
+}
 .overlayBottom { bottom: 0; }
 
 .control {

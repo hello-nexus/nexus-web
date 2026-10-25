@@ -50,13 +50,16 @@ describe('CoolingPage canvas header', () => {
     expect(radios[1].textContent).not.toMatch(/[[\]]/);
   });
 
-  it('never changes the title when the view changes', async () => {
+  it('titles the pane Curves in 2D and Airflow in 3D, with no gap under the header in 3D', async () => {
     mount();
     const radios = within(await screen.findByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');
-    expect(screen.getAllByText('cooling.label.curves').length).toBeGreaterThan(0);
+    const header = radios[0].closest('[role="radiogroup"]')!.parentElement as HTMLElement;
+    expect(header.children[0].textContent).toBe('cooling.label.curves');
+    expect(header.className).not.toContain('paneHeaderFlush');
     fireEvent.click(radios[1]);
     await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
-    expect(screen.getAllByText('cooling.label.curves').length).toBeGreaterThan(0);
+    expect(header.children[0].textContent).toBe('cooling.view.airflow');
+    expect(header.className).toContain('paneHeaderFlush');
     expect(screen.queryByText('cooling.case3d.title')).toBeNull();
   });
 

@@ -422,3 +422,17 @@ describe('CoolingCase3D popover bounds', () => {
     delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetHeight;
   });
 });
+
+describe('CoolingCase3D info button', () => {
+  it('holds the how-to text behind an info button inside the dark scope, not as a line', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    expect(screen.queryByText('cooling.case3d.hint.select')).toBeNull();
+    const button = screen.getByRole('button', { name: 'cooling.case3d.hint.label' });
+    expect(button.closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
+    fireEvent.click(button);
+    const tip = screen.getByText('cooling.case3d.hint.select');
+    expect(tip.closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
+  });
+});

@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "Bu grafik yapılandırması hava akışı simülasyonunu çalıştıramıyor.",
   "cooling.case3d.flow.warmer": "Daha sıcak",
   "cooling.case3d.hint.bind": "Kasadaki bir fana tıklayarak onu {name} cihazına bağlayın veya yönünü ayarlayın.",
+  "cooling.case3d.hint.label": "Bu görünüm nasıl kullanılır",
   "cooling.case3d.hint.select": "Kasadaki bir fana bağlamak için solda bir fan seçin. Giriş veya çıkış ayarlamak için kasadaki bir fana tıklayın.",
   "cooling.case3d.layoutError": "Kayıtlı yönler ve cihaz bağlantıları yüklenemedi. Varsayılan değerler gösteriliyor ve değişiklikler kaydedilmez.",
   "cooling.case3d.linkedToMany": "{slots} fanlarına bağlı",

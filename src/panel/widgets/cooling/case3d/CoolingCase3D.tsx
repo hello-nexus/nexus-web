@@ -8,6 +8,7 @@ import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { Notice } from '../../../../components/common/Notice/Notice';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { Slider } from '../../../../components/common/Slider/Slider';
+import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
@@ -224,14 +225,14 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
 
   return (
     <div className={styles.root}>
-      <div className={styles.hint}>
-        {selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')}
-      </div>
       {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       {caseModel.settled && !caseModel.bytes && <Notice tone="info" role="status">{t('cooling.case3d.noModel')}</Notice>}
       {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
+        <div className={`${styles.info} ${styles.control}`}>
+          <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
+        </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         {result && model && (
           <div className={`${styles.overlay} ${styles.overlayTop}`}>

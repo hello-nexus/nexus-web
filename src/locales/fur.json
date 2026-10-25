@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "Cheste configurazion grafiche no pues eseguî la simulazion dal flus di aiar.",
   "cooling.case3d.flow.warmer": "Plui cjalde",
   "cooling.case3d.hint.bind": "Frache su une ventule dal case par associâle a {name} o par stabilî la so direzion.",
+  "cooling.case3d.hint.label": "Cemût doprâ cheste viodude",
   "cooling.case3d.hint.select": "Selezione une ventule a çampe par associâle a une ventule dal case. Frache su une ventule dal case par sielgi jentrade o jessude.",
   "cooling.case3d.layoutError": "No si à podût cjamâ lis direzions e lis associazions dai dispositîfs salvadis. A vegnin mostrâts i valôrs predefinîts e lis modifichis no vegnin salvadis.",
   "cooling.case3d.linkedToMany": "Associât a lis ventulis {slots}",
