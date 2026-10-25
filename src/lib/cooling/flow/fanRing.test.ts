@@ -193,7 +193,8 @@ describe('spawn radius distribution', () => {
   it.each([['120 mm', front120, 120], ['140 mm', front140, 140], ['a turned 120 mm', turned, 120]] as const)('%s fan: radii follow the area-uniform CDF and cover hub to tip', (_n, slot, frame) => {
     const r = ks(slot, frame);
     expect(r.count).toBeGreaterThan(N * 0.9);
-    expect(r.worst).toBeLessThan(0.03);
+    // Cells on the ring's edge are partly solid, which trims the sampled radii a little.
+    expect(r.worst).toBeLessThan(0.027);
     expect(r.min).toBeLessThan(r.hub + (r.tip - r.hub) * 0.08);
     // Nothing on the hub circle or inside it.
     expect(r.min).toBeGreaterThan(r.hub + 0.5);

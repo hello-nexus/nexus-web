@@ -279,7 +279,11 @@ describe('the first particles', () => {
       const c = p.cellAt(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]);
       cells.set(c, (cells.get(c) ?? 0) + 1);
     }
+    // All start on the one-cell-thick fan plane, so a cell holds more than a volume spawn did.
     expect(p.count / cells.size).toBeLessThan(20);
+    const exact = new Set<string>();
+    for (let i = 0; i < p.count; i++) exact.add(`${p.pos[i * 3]},${p.pos[i * 3 + 1]},${p.pos[i * 3 + 2]}`);
+    expect(exact.size).toBeGreaterThan(p.count * 0.99);
   });
 
   it('are born over time, so none is visible at the start and the pool never appears as one stacked puff', () => {
@@ -313,7 +317,7 @@ describe('a steady stream of particles', () => {
     const fixed = respawnsPerWindow(false, 3600).slice(20);
     const jittered = respawnsPerWindow(true, 3600).slice(20);
     expect(Math.max(...jittered) / Math.min(...jittered)).toBeLessThan(1.8);
-    expect(cv(jittered)).toBeLessThanOrEqual(cv(fixed) * 1.5);
+    expect(cv(jittered)).toBeLessThanOrEqual(cv(fixed) * 1.4);
   }, 120000);
 
   it('keeps the live count and the mean speed in a tight band and moves on every frame, with no solver step between frames', () => {

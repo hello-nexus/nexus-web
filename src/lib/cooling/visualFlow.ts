@@ -18,9 +18,8 @@ export function visualFlow(slots: readonly CaseFanSlot[], catalog: readonly Cata
   let net = 0;
   let referenceCfm = 0;
   for (const slot of slots) {
-    const fraction = speeds.get(slot.key)?.fraction ?? 1;
     for (const fan of slotModelFans(slot, catalog)) {
-      const cfm = visualFlowCfm(fan.cfm, fraction);
+      const cfm = visualFlowCfm(fan.cfm, speeds.get(fan.key)?.fraction ?? 1);
       fanCfm[fan.key] = cfm;
       referenceCfm = Math.max(referenceCfm, fan.cfm);
       // A GPU fan's air recirculates inside the case, so it moves particles but not the net.

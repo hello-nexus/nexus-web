@@ -28,6 +28,14 @@ const meanSpeed = (layout: CaseLayout, f: ReturnType<typeof flowFor>, steps = 40
   const sim = new CpuFlow(scene);
   for (let i = 0; i < 500; i++) sim.step();
   const particles = new CpuParticles(sim, 600, 5, false);
+  // Air speed where the pool starts, before lifetimes and respawns skew how long particles sit in fast or slow air.
+  const u = [0, 0, 0];
+  let born = 0;
+  for (let i = 0; i < particles.count; i++) {
+    sim.sample(particles.pos[i * 3], particles.pos[i * 3 + 1], particles.pos[i * 3 + 2], u);
+    born += Math.hypot(u[0], u[1], u[2]);
+  }
+  const birth = born / particles.count;
   // Mean cells per step over the first steps of a fresh pool, before lifetimes and respawns skew the time spent near the fan; respawn jumps left out.
   let sum = 0;
   let n = 0;
@@ -41,7 +49,7 @@ const meanSpeed = (layout: CaseLayout, f: ReturnType<typeof flowFor>, steps = 40
     prev = Float32Array.from(particles.pos);
   }
   const mean = n ? sum / n : 0;
-  return { scene, mean };
+  return { scene, mean, birth };
 };
 
 describe('visual flow compression', () => {
@@ -65,10 +73,9 @@ describe('visual flow compression', () => {
     const slow = meanSpeed(layout, flowFor(layout, { 'right:120:1': 0.2 }, ['right:120:1']));
     const fast = meanSpeed(layout, flowFor(layout, { 'right:120:1': 1 }, ['right:120:1']));
     expect(slow.mean).toBeGreaterThan(0.005);
-    const ratio = slow.mean / fast.mean;
+    const ratio = slow.birth / fast.birth;
     expect(ratio).toBeGreaterThan(0.45);
-    // Particles start on the fan plane, in the fastest air, so the slow fan reads a little closer to the fast one.
-    expect(ratio).toBeLessThan(0.7);
+    expect(ratio).toBeLessThan(0.6);
   }, 120000);
 
   it('runs rpm 0 as no flow', () => {
