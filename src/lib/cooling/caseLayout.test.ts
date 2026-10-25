@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  channelOfSlot, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
+  channelOfSlot, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
   type CaseLayout,
 } from './caseLayout';
 
@@ -127,5 +127,37 @@ describe('slot fields on newer records', () => {
     expect(g.map(x => x.slot.key)).toEqual(['front:120:0', 'top:120:0']);
     expect(g[1].box.role).toBe('ghost');
     expect(g[1].box.rotationY).toBe(0.5);
+  });
+});
+
+describe('shaped parts', () => {
+  const shaped = {
+    ...valid,
+    boxes: [
+      { slot: 'psu', role: 'part', min: [0, 0, 0], size: [100, 50, 80], chamfers: [{ a: 0, aMax: true, b: 1, bMax: true, legA: 20, legB: 10 }, { a: 1, b: 1, legA: 5, legB: 5 }] },
+      { slot: 'gpu', role: 'part', min: [0, 0, 0], size: [10, 10, 10], rings: [{ y: 0, pts: [[0, 0], [5, 0], [5, 5]] }, { y: 10, pts: [[0, 0], [5, 0], [5, 5]] }] },
+      { slot: 'psu', role: 'part', min: [0, 0, 0], size: [10, 10, 10], rings: [{ y: 0, pts: [[0, 0], [5, 0], [5, 5]] }, { y: 10, pts: [[0, 0], [5, 0]] }] },
+      { slot: 'psu', role: 'part', min: [0, 0, 0], size: [10, 10, 10], faces: [[[0, 0, 0], [1, 0, 0], [1, 1, 0]], [[0, 0, 0], [1, 0, 0], [1, 0, 1]], [[0, 0, 0], [0, 1, 0], [0, 1, 1]], [[1, 0, 0], [1, 1, 0], [1, 1, 1]]] },
+    ],
+  };
+
+  it('keeps valid chamfers, rings and faces and drops invalid ones', () => {
+    const l = parseCaseLayout(shaped) as CaseLayout;
+    expect(l.boxes[0].chamfers).toHaveLength(1);
+    expect(l.boxes[1].rings).toHaveLength(2);
+    expect(l.boxes[2].rings).toBeUndefined();
+    expect(l.boxes[3].faces).toHaveLength(4);
+  });
+});
+
+describe('withBoundFans', () => {
+  it('marks bound empty slots as fans, leaves taken and radiator slots alone, and keeps the object when nothing changes', () => {
+    const l = parseCaseLayout(valid) as CaseLayout;
+    const out = withBoundFans(l, ['rear:120:0', 'front:120:0', 'top:360:0', 'nope']);
+    expect(out.fanSlots.find(s => s.key === 'rear:120:0')?.taken).toBe('fan');
+    expect(out.fanSlots.find(s => s.key === 'top:360:0')?.taken).toBe('radiator');
+    expect(out.fanSlots.find(s => s.key === 'top:120:0')?.taken).toBeNull();
+    expect(withBoundFans(l, [])).toBe(l);
+    expect(withBoundFans(l, ['front:120:0', 'nope'])).toBe(l);
   });
 });

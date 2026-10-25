@@ -6,10 +6,11 @@ import { CoolingCase3D } from './CoolingCase3D';
 import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
 
 const h = vi.hoisted(() => ({
+  flowSupported: true,
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
-  renderers: [] as { setState: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }[],
+  renderers: [] as { setState: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
@@ -17,7 +18,7 @@ vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
     h.pick.current = onPick;
-    const r = { setState: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+    const r = { setState: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
   }),
@@ -31,7 +32,11 @@ const caseLayout = () => ({
     { key: 'rear:120:0', position: 'rear', size: 120, index: 0, taken: 'fan', box: { min: [425, 10, 10], size: [25, 120, 120] }, axis: [-1, 0, 0] },
   ],
 });
-const record = (rev = 1) => ({ rev, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: caseLayout() } } });
+const record = (rev = 1, empty = false) => {
+  const layout = caseLayout();
+  if (empty) layout.fanSlots = layout.fanSlots.map(s => ({ ...s, taken: null as never }));
+  return { rev, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } };
+};
 const channels = [{ id: 'fan-a', name: 'Fan A' }, { id: 'fan-b', name: 'Fan B' }] as FanChannel[];
 
 function setLayout(patch: Partial<typeof h.layout>) {
@@ -48,6 +53,7 @@ beforeEach(() => {
   h.setup = { record: null, loaded: false };
   h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
   h.renderers.length = 0;
+  h.flowSupported = true;
   vi.mocked(createCaseRenderer).mockClear();
   globalThis.ResizeObserver = class { observe() {} disconnect() {} unobserve() {} } as unknown as typeof ResizeObserver;
 });
@@ -160,5 +166,100 @@ describe('CoolingCase3D linking', () => {
     expect(onSelect).toHaveBeenCalledWith('fan-b');
     expect(h.layout.edit).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+describe('CoolingCase3D airflow controls', () => {
+  const mountReady = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    return render(ui());
+  };
+
+  it('passes the flow input with every fan cfm and the default options: particles on, dead zones and solids off', () => {
+    mountReady();
+    const state = lastState();
+    expect(state.flow.layout.fanSlots).toHaveLength(2);
+    expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
+    expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, density: 0.6, debugSolids: false });
+  });
+
+  it('keeps the flow input when a setup ping changes nothing it reads', () => {
+    h.setup = { record: record(1), loaded: true };
+    setLayout({ settled: true });
+    const { rerender } = render(ui());
+    const first = lastState().flow;
+    h.setup = { record: record(2), loaded: true };
+    rerender(ui());
+    expect(lastState().flow).toBe(first);
+  });
+
+  it('sends a new flow input when a direction changes', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    const { rerender } = render(ui());
+    const first = lastState().flow;
+    setLayout({ layout: { directions: { 'front:120:0': 'exhaust' }, bindings: [], tests: [] } });
+    rerender(ui());
+    expect(lastState().flow).not.toBe(first);
+    expect(lastState().flow.directions['front:120:0']).toBe('exhaust');
+  });
+
+  it('toggles particles, dead zones and the solid-cell view, and hides the density slider with particles off', () => {
+    mountReady();
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.deadZones' }));
+    expect(lastState().flowOptions.deadZones).toBe(true);
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.solids' }));
+    expect(lastState().flowOptions.debugSolids).toBe(true);
+    expect(screen.getByText('cooling.case3d.flow.density')).toBeTruthy();
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.particles' }));
+    expect(lastState().flowOptions.particles).toBe(false);
+    expect(screen.queryByText('cooling.case3d.flow.density')).toBeNull();
+  });
+
+  it('labels the legend cooler and warmer, with no degrees', () => {
+    mountReady();
+    expect(screen.getByText('cooling.case3d.flow.cooler')).toBeTruthy();
+    expect(screen.getByText('cooling.case3d.flow.warmer')).toBeTruthy();
+  });
+
+  it('says so when the graphics setup cannot run the simulation', () => {
+    h.flowSupported = false;
+    mountReady();
+    expect(screen.getByText('cooling.case3d.flow.unsupported')).toBeTruthy();
+    expect(screen.queryByText('cooling.case3d.flow.cooler')).toBeNull();
+  });
+});
+
+describe('CoolingCase3D slots bound to a cooling device', () => {
+  const mountEmpty = (bindings: CoolingLayout['bindings']) => {
+    h.setup = { record: record(1, true), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    return render(ui());
+  };
+
+  it('treats a bound empty slot as an installed fan: drawn, in the flow input, and no no-fans note', () => {
+    mountEmpty([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    const state = lastState();
+    expect(state.layout.fanSlots.find((s: { key: string }) => s.key === 'front:120:0').taken).toBe('fan');
+    expect(state.layout.fanSlots.find((s: { key: string }) => s.key === 'rear:120:0').taken).toBeNull();
+    expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    expect(Object.keys(state.flow.fanCfm)).toEqual(['front:120:0']);
+    expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
+  });
+
+  it('shows the no-fans note when no slot is taken or bound, and again once the last binding goes', () => {
+    const { rerender } = mountEmpty([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
+    setLayout({ layout: { directions: {}, bindings: [], tests: [] } });
+    rerender(ui());
+    expect(screen.getByText('cooling.case3d.noFans')).toBeTruthy();
+    expect(lastState().flow).toBeNull();
+  });
+
+  it('ignores a binding to a device that is not in the list', () => {
+    mountEmpty([{ channelId: 'gone', slotKeys: ['front:120:0'] }]);
+    expect(screen.getByText('cooling.case3d.noFans')).toBeTruthy();
   });
 });

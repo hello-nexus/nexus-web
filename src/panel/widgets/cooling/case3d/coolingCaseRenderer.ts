@@ -5,6 +5,8 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
+import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
+import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 
 export interface CaseSceneState {
   layout: CaseLayout;
@@ -16,12 +18,17 @@ export interface CaseSceneState {
   bound: ReadonlySet<string>;
   /** The slot whose direction control is open. */
   active: string | null;
+  /** Airflow simulation input; null leaves the flow layer empty. */
+  flow: FlowInput | null;
+  flowOptions: FlowOptions;
 }
 
 export interface CaseSceneRenderer {
   setState: (state: CaseSceneState) => void;
   resize: () => void;
   dispose: () => void;
+  /** False once a layer has found no float render target: the airflow layer cannot run here. */
+  readonly flowSupported: boolean;
 }
 
 /** A click that lands on a fan slot or on nothing; x and y are CSS pixels inside the canvas. */
@@ -36,13 +43,14 @@ const VIEW_DIRECTION = new Vector3(-0.9, 0.7, -1.3).normalize();
 const FIT_MARGIN = 1.35;
 const AXES = { x: new Vector3(1, 0, 0), y: new Vector3(0, 1, 0), z: new Vector3(0, 0, 1) } as const;
 
+// The 2D canvas context normalizes any CSS color syntax (4-digit hex, rgba, named) to forms three can parse.
 function token(el: Element, name: string, fallback: string): Color {
+  const ctx = document.createElement('canvas').getContext('2d');
   const raw = getComputedStyle(el).getPropertyValue(name).trim();
-  try {
-    return new Color(raw || fallback);
-  } catch {
-    return new Color(fallback);
-  }
+  if (!ctx) return new Color(fallback);
+  ctx.fillStyle = fallback;
+  if (raw) ctx.fillStyle = raw;
+  return new Color(String(ctx.fillStyle).replace(/^rgba\((.*),[^,]*\)$/, 'rgb($1)'));
 }
 
 function ringGeometry(radius: number, axis: 'x' | 'y' | 'z'): BufferGeometry {
@@ -73,7 +81,10 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   controls.enablePan = true;
   const staticGroup = new Group();
   const fanGroup = new Group();
-  scene.add(staticGroup, fanGroup);
+  const flowGroup = new Group();
+  scene.add(staticGroup, fanGroup, flowGroup);
+  let flowLayer: FlowLayer | null = null;
+  let flowInput: FlowInput | null = null;
   const disposables: { dispose: () => void }[] = [];
   const fanDisposables: { dispose: () => void }[] = [];
   const raycaster = new Raycaster();
@@ -81,14 +92,19 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let layout: CaseLayout | null = null;
   let frame = 0;
 
-  const render = () => {
+  const render = (now: number) => {
     frame = 0;
+    flowLayer?.frame(now, camera, canvas.clientHeight);
     renderer.render(scene, camera);
+    // Particles keep moving after the solver settles; the loop runs only while the tab is visible.
+    if (flowLayer?.active && !document.hidden) requestRender();
   };
   const requestRender = () => {
     if (!frame) frame = requestAnimationFrame(render);
   };
   controls.addEventListener('change', requestRender);
+  const onVisibility = () => { if (!document.hidden) requestRender(); };
+  document.addEventListener('visibilitychange', onVisibility);
 
   const lineMaterial = (color: Color, opacity: number, list: { dispose: () => void }[]) => {
     const m = new LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
@@ -140,8 +156,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const l = state.layout;
     const [ex, ey, ez] = caseExtents(l);
     const caseCenter = new Vector3(ex / 2, ey / 2, ez / 2);
-    const intake = token(canvas, '--accent', '#2563eb');
-    const exhaust = token(canvas, '--warn', '#f59e0b');
+    const intake = token(canvas, '--airflow-cool', '#38bdf8');
+    const exhaust = token(canvas, '--bad', '#ef4444');
     const highlight = token(canvas, '--text', '#e6e9f0');
     for (const { slot, box } of fanGeometries(l)) {
       const occupied = slot.taken === 'fan';
@@ -231,15 +247,34 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       if (state.layout !== layout) {
         layout = state.layout;
         buildStatic(state.layout);
+        flowLayer?.dispose();
+        flowInput = null;
+        const [ex, ey, ez] = caseExtents(state.layout);
+        const colors: FlowColors = {
+          cool: token(canvas, '--airflow-cool', '#38bdf8'), warm: token(canvas, '--airflow-warm', '#f59e0b'), hot: token(canvas, '--bad', '#ef4444'),
+          dead: token(canvas, '--airflow-warm', '#f59e0b'), solid: token(canvas, '--text', '#e6e9f0'),
+        };
+        flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
       }
       buildFans(state);
+      flowLayer?.setOptions(state.flowOptions);
+      if (state.flow !== flowInput) {
+        flowInput = state.flow;
+        flowLayer?.setInput(state.flow);
+      }
       requestRender();
+    },
+    get flowSupported() {
+      return flowLayer?.supported ?? true;
     },
     resize,
     dispose() {
       if (frame) cancelAnimationFrame(frame);
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointerup', onUp);
+      document.removeEventListener('visibilitychange', onVisibility);
+      flowLayer?.dispose();
+      flowLayer = null;
       controls.dispose();
       clear(staticGroup, disposables);
       clear(fanGroup, fanDisposables);
