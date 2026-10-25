@@ -59,6 +59,14 @@ export interface SelectOption {
   // next header. Not selectable or focusable and skipped by keyboard nav; while
   // searching it shows only if one of its options matches. value is ignored.
   header?: boolean;
+  // Makes the row an action instead of a choice: activating it (click, Enter,
+  // Space) runs this and leaves the menu open without committing any value or
+  // moving the selection. The row may change in place afterwards (an async
+  // "load more" that swaps itself for the loaded options).
+  onAction?: () => void;
+  // Action rows only: a request is in flight; the row shows aria-busy and
+  // ignores activation.
+  busy?: boolean;
 }
 
 export interface SelectProps {
@@ -147,7 +155,8 @@ function filterOptions(opts: readonly SelectOption[], raw: string): readonly Sel
   for (const o of opts) {
     if (o.divider) continue;
     if (o.header) { pending = o; continue; }
-    if (!o.label.toLowerCase().includes(needle)) continue;
+    // Action rows stay while searching so the way to load more is never hidden.
+    if (!o.onAction && !o.label.toLowerCase().includes(needle)) continue;
     if (pending) { out.push(pending); pending = null; }
     out.push(o);
   }
@@ -185,7 +194,7 @@ export function Select({
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
-  const selectedIndex = resolved.findIndex(o => !o.header && !o.divider && o.value === value);
+  const selectedIndex = resolved.findIndex(o => !o.header && !o.divider && !o.onAction && o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
   const showPlaceholder = selectedIndex < 0 && placeholder != null;
@@ -195,7 +204,7 @@ export function Select({
   // per mount; it does not change mid-session.
   const [pointerSearch] = useState(supportsPointerSearch);
   const searchEnabled =
-    pointerSearch && resolved.filter(o => !o.divider && !o.header).length >= SEARCH_MIN_OPTIONS;
+    pointerSearch && resolved.filter(o => !o.divider && !o.header && !o.onAction).length >= SEARCH_MIN_OPTIONS;
 
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -319,6 +328,15 @@ export function Select({
     close(true);
   };
 
+  // Choice rows commit and close; action rows only run their action.
+  const activate = (opt: SelectOption) => {
+    if (opt.onAction) {
+      if (!opt.busy) opt.onAction();
+      return;
+    }
+    commit(opt.value);
+  };
+
   // Render the menu hidden first so its content size is measurable, then fit
   // width, cap height, and position. Re-fit when the visible count changes so
   // filtering re-clamps the height and flip side.
@@ -396,7 +414,7 @@ export function Select({
       case 'Enter': {
         e.preventDefault();
         const opt = visible[activeIndex];
-        if (opt && selectable(opt)) commit(opt.value);
+        if (opt && selectable(opt)) activate(opt);
         break;
       }
       case 'Escape': e.preventDefault(); close(true); break;
@@ -421,7 +439,7 @@ export function Select({
       case ' ': {
         e.preventDefault();
         const opt = visible[activeIndex];
-        if (opt && selectable(opt)) commit(opt.value);
+        if (opt && selectable(opt)) activate(opt);
         break;
       }
       case 'Escape': e.preventDefault(); close(true); break;
@@ -545,6 +563,7 @@ export function Select({
                   role="option"
                   aria-selected={opt.value === value}
                   aria-disabled={opt.disabled || undefined}
+                  aria-busy={opt.busy || undefined}
                   aria-describedby={opt.description ? `${optionId(i)}-desc` : undefined}
                   className={classNames(
                     styles.option,
@@ -553,10 +572,11 @@ export function Select({
                     opt.value === value && styles.selected,
                     opt.disabled && styles.optionDisabled,
                     opt.fontFamily && styles.fontOption,
+                    opt.onAction && styles.actionOption,
                   )}
                   style={opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined}
                   onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
-                  onClick={() => { if (!opt.disabled) commit(opt.value); }}
+                  onClick={() => { if (!opt.disabled) activate(opt); }}
                 >
                   {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
                   {opt.description ? (

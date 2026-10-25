@@ -218,6 +218,12 @@
   }
 }
 
+// Non-committing action row (SelectOption.onAction): accent text, never marked selected.
+.actionOption {
+  color: var(--accent);
+  font-weight: var(--weight-strong);
+}
+
 .option {
   padding: 0.45rem 0.6rem;
   border-radius: var(--radius-sm);

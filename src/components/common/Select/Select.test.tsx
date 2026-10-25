@@ -324,3 +324,35 @@ describe('Select in-menu search', () => {
     expect(screen.queryByRole('combobox')).toBeNull();
   });
 });
+
+describe('Select action rows', () => {
+  it('runs the action on click and Enter without committing, closing or moving the selection', () => {
+    const onChange = vi.fn();
+    const onAction = vi.fn();
+    render(
+      <Select
+        value="a" onChange={onChange} ariaLabel="fruit"
+        options={[...OPTIONS, { value: '', label: 'Load more', onAction }]}
+      />,
+    );
+    const list = open();
+    const row = within(list).getByRole('option', { name: 'Load more' });
+    fireEvent.click(row);
+    expect(onAction).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(list, { key: 'End' });
+    fireEvent.keyDown(list, { key: 'Enter' });
+    expect(onAction).toHaveBeenCalledTimes(2);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    expect(within(screen.getByRole('listbox')).getByRole('option', { name: 'Apple' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('ignores activation while busy', () => {
+    const onAction = vi.fn();
+    render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Loading', onAction, busy: true }]} />);
+    const row = within(open()).getByRole('option', { name: 'Loading' });
+    expect(row.getAttribute('aria-busy')).toBe('true');
+    fireEvent.click(row);
+    expect(onAction).not.toHaveBeenCalled();
+  });
+});

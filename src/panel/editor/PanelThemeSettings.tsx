@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
@@ -9,7 +9,7 @@ import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColo
 import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
 import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
-import { fetchSystemFonts } from '../../api/systemFonts';
+import { loadSystemFonts, useSystemFonts } from '../theme/systemFontsCache';
 import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
@@ -271,20 +271,19 @@ export function PanelThemeSettings({
     { key: 'custom', label: label('panel.settings.textColor.custom', 'Custom') },
   ];
   const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
-  const [systemFamilies, setSystemFamilies] = useState<string[] | null>(null);
-  useEffect(() => {
-    if (!showSystemFonts || !showTheme) return;
-    const ctrl = new AbortController();
-    void fetchSystemFonts(ctrl.signal).then(f => { if (!ctrl.signal.aborted) setSystemFamilies(f); });
-    return () => ctrl.abort();
-  }, [showSystemFonts, showTheme]);
+  const systemFonts = useSystemFonts(showSystemFonts && showTheme);
   const fontOptions = buildPanelFontOptions(
-    showSystemFonts ? systemFamilies : null,
+    showSystemFonts
+      ? { status: systemFonts.status, families: systemFonts.families, onLoad: () => { void loadSystemFonts(); } }
+      : null,
     theme.font,
     {
       bundled: label('panel.settings.font.bundled', 'Bundled'),
       system: label('panel.settings.font.system', 'System'),
       recent: t('search.section.recent') || 'Recent',
+      load: label('panel.settings.font.system.load', 'Load system fonts'),
+      loading: label('panel.settings.font.system.loading', 'Loading system fonts'),
+      empty: label('panel.settings.font.system.empty', 'No system fonts found'),
     },
     recentFonts,
   );
