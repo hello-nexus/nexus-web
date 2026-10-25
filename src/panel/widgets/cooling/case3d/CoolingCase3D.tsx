@@ -18,7 +18,7 @@ import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, isSimChannel, simChannelId, simRpm, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, directionOf, isSimChannel, NONE_CHANNEL, simChannelId, simRpm, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
@@ -172,7 +172,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
-  const bound = useMemo(() => new Set(bindings.flatMap(b => b.slotKeys)), [bindings]);
+  const bound = useMemo(() => new Set(bindings.filter(b => b.channelId !== NONE_CHANNEL).flatMap(b => b.slotKeys)), [bindings]);
   const simulated = useMemo(() => new Set(bindings.filter(b => isSimChannel(b.channelId)).flatMap(b => b.slotKeys)), [bindings]);
 
   useEffect(() => {
@@ -212,6 +212,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const modeKey = result ? `cooling.case3d.pressure.${result.mode}` : '';
   const cfm = (v: number) => t('cooling.case3d.cfm', { value: String(Math.round(Math.abs(v))) });
   const positionName = (position: string) => t(POSITION_KEYS[position] ?? 'cooling.case3d.position.other');
+  const activeOwnerId = activeSlot ? channelOfSlot(bindings, activeSlot.key) : null;
   const activeSimRpm = activeSlot ? simRpm(channelOfSlot(bindings, activeSlot.key) ?? '') : null;
   const slotPosition = (key: string) => caseLayout.fanSlots.find(s => s.key === key)?.position ?? '';
 
@@ -296,7 +297,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             ariaLabel={t('cooling.case3d.direction.label')}
           >
             <div className={styles.popoverTitle}>
-              {activeOwner?.name ?? (activeSimRpm ? t('cooling.case3d.sim.fan') : null) ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
+              {activeOwner?.name ?? (activeSimRpm !== null ? t('cooling.case3d.sim.fan') : null) ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
             </div>
             <ChipGroup
               ariaLabel={t('cooling.case3d.direction.label')}
@@ -306,13 +307,13 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             />
             <Select
               ariaLabel={t('cooling.case3d.device.label')}
-              value={activeSimRpm ? SIM_VALUE : channelOfSlot(bindings, activeSlot.key) ?? NONE}
+              value={activeSimRpm !== null ? SIM_VALUE : activeOwnerId === NONE_CHANNEL ? NONE : activeOwnerId ?? NONE}
               options={deviceOptions}
-              onChange={id => { if (id !== SIM_VALUE) linkChannel(id, activeSlot.key); else if (!activeSimRpm) linkChannel(simChannelId(SIM_RPM_DEFAULT), activeSlot.key); }}
+              onChange={id => { if (id !== SIM_VALUE) linkChannel(id, activeSlot.key); else if (activeSimRpm === null) linkChannel(simChannelId(SIM_RPM_DEFAULT), activeSlot.key); }}
             />
-            {activeSimRpm && (
+            {activeSimRpm !== null && (
               // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              <Slider orientation="inline" editable trackFill label={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_MAX} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => linkChannel(simChannelId(Math.round(v)), activeSlot.key)} />
+              <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_MAX} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => linkChannel(simChannelId(Math.round(v)), activeSlot.key)} />
             )}
           </Popover>
         )}

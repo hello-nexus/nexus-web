@@ -489,6 +489,16 @@ describe('CoolingCase3D simulated fans', () => {
     expect(apply(start)).toEqual([{ channelId: 'sim:1500', slotKeys: ['rear:120:0'] }, { channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
   });
 
+  it('treats a stopped simulated fan at zero RPM as simulated, with an unlabeled slider', () => {
+    mountReady([{ channelId: 'sim:0', slotKeys: ['front:120:0'] }]);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    const slider = screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' }) as HTMLInputElement;
+    expect(slider.min).toBe('0');
+    expect(slider.max).toBe('3000');
+    expect(screen.queryByText('cooling.case3d.sim.speed')).toBeNull();
+    expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.sim.fan');
+  });
+
   it('shows no slider on a slot with a real device', () => {
     mountReady([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
     act(() => h.pick.current?.('front:120:0', 10, 10));
