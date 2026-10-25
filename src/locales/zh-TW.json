@@ -423,6 +423,7 @@
   "cooling.case3d.position.front": "前方",
   "cooling.case3d.position.frontLeft": "左前",
   "cooling.case3d.position.frontRight": "右前",
+  "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "左側",
   "cooling.case3d.position.other": "風扇",
   "cooling.case3d.position.psuShroud": "電源罩",

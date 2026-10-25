@@ -423,6 +423,7 @@
   "cooling.case3d.position.front": "Frontale",
   "cooling.case3d.position.frontLeft": "Frontale sinistra",
   "cooling.case3d.position.frontRight": "Frontale destra",
+  "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Sinistra",
   "cooling.case3d.position.other": "Ventola",
   "cooling.case3d.position.psuShroud": "Copertura alimentatore",

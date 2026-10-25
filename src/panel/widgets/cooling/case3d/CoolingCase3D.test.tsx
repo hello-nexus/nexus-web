@@ -544,7 +544,7 @@ describe('CoolingCase3D simulated fans', () => {
     const files = Object.entries(locales);
     expect(files.length).toBeGreaterThan(1);
     for (const [name, dict] of files) {
-      for (const key of ['cooling.case3d.sim.fan', 'cooling.case3d.sim.group', 'cooling.case3d.sim.speed']) expect(dict[key], `${name} ${key}`).toBeTruthy();
+      for (const key of ['cooling.case3d.sim.fan', 'cooling.case3d.sim.group', 'cooling.case3d.sim.speed', 'cooling.case3d.position.gpu']) expect(dict[key], `${name} ${key}`).toBeTruthy();
       expect(dict['cooling.case3d.sim.rpm'], name).toContain('{value}');
     }
   });

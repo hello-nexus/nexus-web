@@ -423,6 +423,7 @@
   "cooling.case3d.position.front": "Vorne",
   "cooling.case3d.position.frontLeft": "Vorne links",
   "cooling.case3d.position.frontRight": "Vorne rechts",
+  "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Links",
   "cooling.case3d.position.other": "Lüfter",
   "cooling.case3d.position.psuShroud": "Netzteilabdeckung",

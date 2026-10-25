@@ -423,6 +423,7 @@
   "cooling.case3d.position.front": "Перед",
   "cooling.case3d.position.frontLeft": "Спереди слева",
   "cooling.case3d.position.frontRight": "Спереди справа",
+  "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Слева",
   "cooling.case3d.position.other": "Вентилятор",
   "cooling.case3d.position.psuShroud": "Кожух блока питания",
