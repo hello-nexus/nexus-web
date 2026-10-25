@@ -54,11 +54,14 @@ export function buildLianLiWirelessCoolingChains(
     const chainChannelCount = channels.filter(
       ch => ch.id.startsWith(`${prefix}${fan.mac}:port`),
     ).length;
-    const portCount = chainChannelCount > 0 ? chainChannelCount : fan.fanCount;
+    // A P28 V2 has one duty channel for all its fans; each fan still gets an RPM row sharing it.
+    const sharedChannel = fan.family === 'p28v2' ? byId.get(lianliWirelessPortChannelId(fan.mac, 0, prefix)) ?? null : null;
+    const p28Count = fan.family === 'p28v2' ? Math.max(fan.fanCount, 1) : 0;
+    const portCount = p28Count || (chainChannelCount > 0 ? chainChannelCount : fan.fanCount);
     if (portCount <= 0) continue;
     const ports: LianLiWirelessCoolingPort[] = [];
     for (let port = 0; port < portCount; port++) {
-      const channel = byId.get(lianliWirelessPortChannelId(fan.mac, port, prefix)) ?? null;
+      const channel = p28Count ? sharedChannel : byId.get(lianliWirelessPortChannelId(fan.mac, port, prefix)) ?? null;
       ports.push({
         port,
         rpm: fan.rpm[port] ?? 0,

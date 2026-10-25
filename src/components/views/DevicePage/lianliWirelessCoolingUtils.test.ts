@@ -154,3 +154,14 @@ describe('buildLianLiWirelessCoolingChains for a P28 V2 unit', () => {
     expect(chains[0].ports.every(p => p.channel !== null)).toBe(true);
   });
 });
+
+describe('buildLianLiWirelessCoolingChains for a P28 V2 with one duty channel', () => {
+  it('shows each fan RPM, all sharing port 0 channel', () => {
+    const prefix = 'lianli-flex:';
+    const channel = makeChannel({ id: lianliWirelessPortChannelId('998D1DE566E1', 0, prefix) });
+    const fan = makeFan({ fanType: 63, fanCount: 3, rpm: [1640, 1636, 1621, 0], family: 'p28v2' });
+    const [chain] = buildLianLiWirelessCoolingChains([fan], [channel], prefix);
+    expect(chain.ports.map(p => p.rpm)).toEqual([1640, 1636, 1621]);
+    expect(chain.ports.every(p => p.channel === channel)).toBe(true);
+  });
+});
