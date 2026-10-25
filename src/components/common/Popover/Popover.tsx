@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
+import { usePortalRoot } from '../ThemeScope/ThemeScope';
 import styles from './Popover.module.scss';
 
 export type PopoverPlacement =
@@ -70,6 +71,7 @@ export function Popover({
   portal = false,
 }: PopoverProps) {
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const portalRoot = usePortalRoot();
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
   const reposition = useCallback(() => {
@@ -150,5 +152,5 @@ export function Popover({
       {children}
     </div>
   );
-  return portal ? createPortal(node, document.body) : node;
+  return portal ? createPortal(node, portalRoot) : node;
 }

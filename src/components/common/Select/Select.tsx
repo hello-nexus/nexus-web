@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { usePortalRoot } from '../ThemeScope/ThemeScope';
 import { useTranslation } from '../../../lib/i18n';
 import classNames from 'classnames';
 import styles from './Select.module.scss';
@@ -197,6 +198,7 @@ export function Select({
   const searchEnabled =
     pointerSearch && resolved.filter(o => !o.divider && !o.header).length >= SEARCH_MIN_OPTIONS;
 
+  const portalRoot = usePortalRoot();
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   // menuRef is the portaled box (search field + list); listRef is the scrolling
@@ -570,7 +572,7 @@ export function Select({
             )}
           </ul>
         </div>,
-        document.body,
+        portalRoot,
       )}
     </span>
   );
