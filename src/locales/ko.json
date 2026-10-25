@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "균형 압력",
   "cooling.case3d.pressure.negative": "음압",
   "cooling.case3d.pressure.positive": "양압",
+  "cooling.case3d.radiator.error": "라디에이터를 이동하지 못했습니다. 다시 시도해 주세요.",
+  "cooling.case3d.radiator.label": "라디에이터 위치",
   "cooling.case3d.sim.fan": "시뮬레이션 팬",
   "cooling.case3d.sim.group": "시뮬레이션",
   "cooling.case3d.sim.rpm": "{value} RPM",

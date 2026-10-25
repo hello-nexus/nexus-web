@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "平衡壓力",
   "cooling.case3d.pressure.negative": "負壓",
   "cooling.case3d.pressure.positive": "正壓",
+  "cooling.case3d.radiator.error": "無法移動冷排。請重試。",
+  "cooling.case3d.radiator.label": "冷排位置",
   "cooling.case3d.sim.fan": "模擬風扇",
   "cooling.case3d.sim.group": "模擬",
   "cooling.case3d.sim.rpm": "{value} RPM",

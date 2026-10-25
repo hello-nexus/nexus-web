@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "Evenwichtige druk",
   "cooling.case3d.pressure.negative": "Onderdruk",
   "cooling.case3d.pressure.positive": "Overdruk",
+  "cooling.case3d.radiator.error": "De radiator kon niet worden verplaatst. Probeer het opnieuw.",
+  "cooling.case3d.radiator.label": "Positie van de radiator",
   "cooling.case3d.sim.fan": "Gesimuleerde ventilator",
   "cooling.case3d.sim.group": "Gesimuleerd",
   "cooling.case3d.sim.rpm": "{value} RPM",

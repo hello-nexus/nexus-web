@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "Pression bilanciade",
   "cooling.case3d.pressure.negative": "Pression negative",
   "cooling.case3d.pressure.positive": "Pression positive",
+  "cooling.case3d.radiator.error": "No si à podût movi il radiadôr. Prove di gnûf.",
+  "cooling.case3d.radiator.label": "Posizion dal radiadôr",
   "cooling.case3d.sim.fan": "Ventiladôr simulât",
   "cooling.case3d.sim.group": "Simulât",
   "cooling.case3d.sim.rpm": "{value} RPM",

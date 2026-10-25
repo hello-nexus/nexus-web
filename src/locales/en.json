@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "Balanced pressure",
   "cooling.case3d.pressure.negative": "Negative pressure",
   "cooling.case3d.pressure.positive": "Positive pressure",
+  "cooling.case3d.radiator.error": "Could not move the radiator. Try again.",
+  "cooling.case3d.radiator.label": "Radiator position",
   "cooling.case3d.sim.fan": "Simulated fan",
   "cooling.case3d.sim.group": "Simulated",
   "cooling.case3d.sim.rpm": "{value} RPM",

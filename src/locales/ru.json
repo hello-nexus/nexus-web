@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "Сбалансированное давление",
   "cooling.case3d.pressure.negative": "Пониженное давление",
   "cooling.case3d.pressure.positive": "Избыточное давление",
+  "cooling.case3d.radiator.error": "Не удалось переместить радиатор. Повторите попытку.",
+  "cooling.case3d.radiator.label": "Положение радиатора",
   "cooling.case3d.sim.fan": "Имитация вентилятора",
   "cooling.case3d.sim.group": "Имитация",
   "cooling.case3d.sim.rpm": "{value} RPM",
