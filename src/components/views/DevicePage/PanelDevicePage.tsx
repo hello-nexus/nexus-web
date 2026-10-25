@@ -36,6 +36,7 @@ import {
 } from '../../../panel/engine/grid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
 import { isLocalPanelClient, panelAudioReactiveAllowed } from '../../../panel/background/panelAudio';
+import { panelSystemFontsAvailable } from '../../../panel/theme/panelFont';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
@@ -1672,6 +1673,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onTextColorCommit={panelTheme.commitTextColor}
                             onFontCommit={panelTheme.commitFont}
                             showMediaTab={surface !== 'desktop'}
+                            showSystemFonts={isSimulated ? isLocalPanelClient() : panelSystemFontsAvailable(glassSurface)}
                             backgroundHeldBy={backgroundHeldBy}
                             audioReactive={panelAudioReactiveAllowed(device?.runtimeSurface, isLocalPanelClient())}
                             deviceAspect={devAspect}
