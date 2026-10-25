@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  channelOfSlot, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
+  channelOfSlot, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
   type CaseLayout,
 } from './caseLayout';
 
@@ -147,5 +147,17 @@ describe('shaped parts', () => {
     expect(l.boxes[1].rings).toHaveLength(2);
     expect(l.boxes[2].rings).toBeUndefined();
     expect(l.boxes[3].faces).toHaveLength(4);
+  });
+});
+
+describe('withBoundFans', () => {
+  it('marks bound empty slots as fans, leaves taken and radiator slots alone, and keeps the object when nothing changes', () => {
+    const l = parseCaseLayout(valid) as CaseLayout;
+    const out = withBoundFans(l, ['rear:120:0', 'front:120:0', 'top:360:0', 'nope']);
+    expect(out.fanSlots.find(s => s.key === 'rear:120:0')?.taken).toBe('fan');
+    expect(out.fanSlots.find(s => s.key === 'top:360:0')?.taken).toBe('radiator');
+    expect(out.fanSlots.find(s => s.key === 'top:120:0')?.taken).toBeNull();
+    expect(withBoundFans(l, [])).toBe(l);
+    expect(withBoundFans(l, ['front:120:0', 'nope'])).toBe(l);
   });
 });

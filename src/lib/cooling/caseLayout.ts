@@ -273,3 +273,16 @@ export function fanGeometries(layout: CaseLayout): FanSlotGeometry[] {
   }
   return out;
 }
+
+/** The layout with every empty slot named in `boundKeys` marked as holding a fan; the same object when nothing changes. */
+export function withBoundFans(layout: CaseLayout, boundKeys: readonly string[]): CaseLayout {
+  if (boundKeys.length === 0) return layout;
+  const keys = new Set(boundKeys);
+  let changed = false;
+  const fanSlots = layout.fanSlots.map(slot => {
+    if (slot.taken !== null || !keys.has(slot.key)) return slot;
+    changed = true;
+    return { ...slot, taken: 'fan' as const };
+  });
+  return changed ? { ...layout, fanSlots } : layout;
+}

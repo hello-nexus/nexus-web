@@ -14,7 +14,7 @@ import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
+  channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withBoundFans, withDirection,
 } from '../../../../lib/cooling/caseLayout';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
 import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
@@ -51,7 +51,14 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
   // Parsed once per distinct layout: a setup ping that changes nothing here keeps the same object, so the scene and camera stay.
   const layoutText = JSON.stringify(record?.setup.resolved.caseLayout ?? null);
-  const caseLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText)), [layoutText]);
+  const parsedLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText)), [layoutText]);
+  // A slot bound to a cooling device has a physical fan, whether or not the setup record lists one there.
+  const boundKeys = useMemo(() => {
+    const present = new Set(channels.map(c => c.id));
+    return coolingLayout.bindings.filter(b => present.has(b.channelId)).flatMap(b => b.slotKeys);
+  }, [channels, coolingLayout.bindings]);
+  const boundKeyText = [...new Set(boundKeys)].sort().join('\n');
+  const caseLayout = useMemo(() => (parsedLayout ? withBoundFans(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
   const [active, setActive] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -112,7 +119,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
 
   // The same flow input for the same content: a setup ping that changes nothing here must not restart the solve.
   const flowKey = model && model.fanCount > 0
-    ? JSON.stringify([layoutText, directions, model.result.fans.map(f => [f.key, Math.round(f.cfm)]), Math.round(model.result.ventCfm)])
+    ? JSON.stringify([layoutText, boundKeyText, directions, model.result.fans.map(f => [f.key, Math.round(f.cfm)]), Math.round(model.result.ventCfm)])
     : '';
   const flowInput = useMemo<FlowInput | null>(() => {
     if (!caseLayout || !model || flowKey === '') return null;

@@ -32,7 +32,11 @@ const caseLayout = () => ({
     { key: 'rear:120:0', position: 'rear', size: 120, index: 0, taken: 'fan', box: { min: [425, 10, 10], size: [25, 120, 120] }, axis: [-1, 0, 0] },
   ],
 });
-const record = (rev = 1) => ({ rev, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: caseLayout() } } });
+const record = (rev = 1, empty = false) => {
+  const layout = caseLayout();
+  if (empty) layout.fanSlots = layout.fanSlots.map(s => ({ ...s, taken: null as never }));
+  return { rev, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } };
+};
 const channels = [{ id: 'fan-a', name: 'Fan A' }, { id: 'fan-b', name: 'Fan B' }] as FanChannel[];
 
 function setLayout(patch: Partial<typeof h.layout>) {
@@ -225,5 +229,37 @@ describe('CoolingCase3D airflow controls', () => {
     mountReady();
     expect(screen.getByText('cooling.case3d.flow.unsupported')).toBeTruthy();
     expect(screen.queryByText('cooling.case3d.flow.cooler')).toBeNull();
+  });
+});
+
+describe('CoolingCase3D slots bound to a cooling device', () => {
+  const mountEmpty = (bindings: CoolingLayout['bindings']) => {
+    h.setup = { record: record(1, true), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    return render(ui());
+  };
+
+  it('treats a bound empty slot as an installed fan: drawn, in the flow input, and no no-fans note', () => {
+    mountEmpty([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    const state = lastState();
+    expect(state.layout.fanSlots.find((s: { key: string }) => s.key === 'front:120:0').taken).toBe('fan');
+    expect(state.layout.fanSlots.find((s: { key: string }) => s.key === 'rear:120:0').taken).toBeNull();
+    expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    expect(Object.keys(state.flow.fanCfm)).toEqual(['front:120:0']);
+    expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
+  });
+
+  it('shows the no-fans note when no slot is taken or bound, and again once the last binding goes', () => {
+    const { rerender } = mountEmpty([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
+    setLayout({ layout: { directions: {}, bindings: [], tests: [] } });
+    rerender(ui());
+    expect(screen.getByText('cooling.case3d.noFans')).toBeTruthy();
+    expect(lastState().flow).toBeNull();
+  });
+
+  it('ignores a binding to a device that is not in the list', () => {
+    mountEmpty([{ channelId: 'gone', slotKeys: ['front:120:0'] }]);
+    expect(screen.getByText('cooling.case3d.noFans')).toBeTruthy();
   });
 });
