@@ -18,10 +18,11 @@ import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, isSimChannel, NONE_CHANNEL, simChannelId, simRpm, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, directionOf, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
-import { speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
+import { simRpm, speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
+import { visualFlow } from '../../../../lib/cooling/visualFlow';
 import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
@@ -40,6 +41,9 @@ export interface CoolingCase3DProps {
   /** What the view draws; remembered by the caller. */
   flowMode?: FlowMode;
   onFlowModeChange?: (mode: FlowMode) => void;
+  /** Draws the solver's collision shapes in place of the case model; remembered by the caller. */
+  collisionShapes?: boolean;
+  onCollisionShapesChange?: (on: boolean) => void;
 }
 
 const POSITION_KEYS: Record<string, string> = {
@@ -64,11 +68,12 @@ const DEFAULT_MODE: FlowMode = 'both';
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
+const REF_KEY = '#ref';
 const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
-export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange }: CoolingCase3DProps) {
+export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange, collisionShapes: savedCollisions, onCollisionShapesChange }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
@@ -78,7 +83,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   // A slot bound to a cooling device has a physical fan, whether or not the setup record lists one there.
   const boundKeys = useMemo(() => {
     const present = new Set(channels.map(c => c.id));
-    return coolingLayout.bindings.filter(b => present.has(b.channelId) || isSimChannel(b.channelId)).flatMap(b => b.slotKeys);
+    return coolingLayout.bindings.filter(b => present.has(b.channelId) || simRpm(b.channelId) !== null).flatMap(b => b.slotKeys);
   }, [channels, coolingLayout.bindings]);
   const boundKeyText = [...new Set(boundKeys)].sort().join('\n');
   const collapsed = useMemo(() => (parsedLayout ? collapseMounts(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
@@ -94,6 +99,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [flowMode, setFlowMode] = useState<FlowMode>(savedFlowMode ?? DEFAULT_MODE);
   const [slowMo, setSlowMo] = useState(false);
+  const [collisions, setCollisions] = useState(savedCollisions ?? false);
   const particles = flowMode !== 'case';
   const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
@@ -113,8 +119,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       for (const b of bindings) {
         if (!b.slotKeys.includes(slot.key)) continue;
         const ch = channels.find(c => c.id === b.channelId);
-        if (!ch) continue;
-        const sp = speedFraction(ch, slot.fan?.rpmMax ?? slot.radiator?.fanRpmMax, slot.taken === 'radiator' ? slot.size / Math.max(1, slot.radiator?.fanCount ?? 1) : slot.size);
+        const live = ch ?? (simRpm(b.channelId) !== null ? { rpm: simRpm(b.channelId)!, dutyPercent: 0 } : null);
+        if (!live) continue;
+        const sp = speedFraction(live, slot.fan?.rpmMax ?? slot.radiator?.fanRpmMax, slot.taken === 'radiator' ? slot.size / Math.max(1, slot.radiator?.fanCount ?? 1) : slot.size);
         if (!best || sp.fraction > best.fraction) best = sp;
       }
       if (best) out.set(slot.key, best);
@@ -162,24 +169,23 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   // Flows that moved less than a few percent keep their old values, so tach jitter never restarts the solve.
   const rawFlow = useMemo(() => {
-    if (!model || model.fanCount === 0) return null;
-    const out: Record<string, number> = { [VENT_KEY]: model.result.ventCfm };
-    for (const f of model.result.fans) out[f.key] = f.cfm;
-    return out;
-  }, [model]);
+    if (!model || !caseLayout || model.fanCount === 0) return null;
+    const v = visualFlow(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions);
+    return { [VENT_KEY]: v.ventCfm, [REF_KEY]: v.referenceCfm, ...v.fanCfm };
+  }, [model, caseLayout, record, speeds, directions]);
   const [settledFlow, setSettledFlow] = useState<Readonly<Record<string, number>> | null>(null);
-  useEffect(() => {
-    setSettledFlow(prev => (rawFlow && prev ? settleFlows(prev, rawFlow) : rawFlow));
-  }, [rawFlow]);
-  const flowKey = settledFlow ? JSON.stringify([layoutText, boundKeyText, directions, settledFlow]) : '';
+  // Settled in the same render the raw flows arrive, so the scene never sees a stale set of fans for one frame and re-solves twice.
+  const effectiveFlow = rawFlow ? (settledFlow ? settleFlows(settledFlow, rawFlow) : rawFlow) : null;
+  useEffect(() => { setSettledFlow(effectiveFlow); }, [effectiveFlow]);
+  const flowKey = effectiveFlow ? JSON.stringify([layoutText, boundKeyText, directions, effectiveFlow]) : '';
   const flowInput = useMemo<FlowInput | null>(() => {
-    if (!caseLayout || !settledFlow || flowKey === '') return null;
-    const { [VENT_KEY]: ventCfm = 0, ...fanCfm } = settledFlow;
-    return { layout: caseLayout, directions, fanCfm, ventCfm };
+    if (!caseLayout || !effectiveFlow || flowKey === '') return null;
+    const { [VENT_KEY]: ventCfm = 0, [REF_KEY]: referenceCfm, ...fanCfm } = effectiveFlow;
+    return { layout: caseLayout, directions, fanCfm, ventCfm, referenceCfm };
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones: false, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, slowMo]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: collisions && showCase, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, collisions, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -288,6 +294,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 if (mode === 'airflow') setActive(null);
               }}
             />
+            {showCase && (
+              <label className={`${styles.flowToggle} ${styles.control}`}>
+                <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
+                <span>{t('cooling.case3d.flow.collisions')}</span>
+              </label>
+            )}
             {particles && (
               <label className={`${styles.flowToggle} ${styles.control}`}>
                 <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />

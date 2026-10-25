@@ -400,6 +400,7 @@
   "cooling.case3d.empty.title": "Nog geen pc in je setup",
   "cooling.case3d.estimate": "Schatting",
   "cooling.case3d.estimate.body": "Sommige fans hebben geen gepubliceerde specificaties, dus er worden standaardwaarden op basis van de grootte gebruikt. Druk en luchtstroom zijn schattingen.",
+  "cooling.case3d.flow.collisions": "Botsingsvormen",
   "cooling.case3d.flow.controls": "Luchtstroomweergave",
   "cooling.case3d.flow.cooler": "Koeler",
   "cooling.case3d.flow.legend": "Luchttemperatuur, kwalitatief",

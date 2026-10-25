@@ -224,7 +224,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.layout.fanSlots).toHaveLength(2);
     expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
-    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, speed: 1 });
+    expect(state.flowOptions).toEqual({ particles: true, collisions: false, speed: 1 });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -252,7 +252,7 @@ describe('CoolingCase3D airflow controls', () => {
     mountReady();
     expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.deadZones' })).toBeNull();
     expect(screen.queryByRole('slider')).toBeNull();
-    expect(lastState().flowOptions).toEqual({ particles: true, deadZones: false, speed: 1 });
+    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, speed: 1 });
   });
 
   it('slow mo scales the particle step to a quarter without re-solving', () => {
@@ -374,9 +374,25 @@ describe('CoolingCase3D live fan speed', () => {
   it('gives a stopped bound fan no flow', () => {
     mount(0, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
     const cfm = lastState().flow.fanCfm as Record<string, number>;
-    expect(cfm['front:120:0']).toBeUndefined();
+    expect(cfm['front:120:0']).toBe(0);
     expect(cfm['rear:120:0']).toBeGreaterThan(0);
     expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
+  });
+
+  it('gives a simulated fan and a real channel at the same rpm with no top speed identical flow', () => {
+    const real = [{ id: 'real', name: 'Real', rpm: 500, dutyPercent: 20 }] as FanChannel[];
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings: [{ channelId: 'real', slotKeys: ['front:120:0'] }], tests: [] } });
+    const first = render(<CoolingCase3D channels={real} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const realFlow = lastState().flow;
+    first.unmount();
+    setLayout({ settled: true, layout: { directions: {}, bindings: [{ channelId: 'sim:500', slotKeys: ['front:120:0'] }], tests: [] } });
+    render(<CoolingCase3D channels={[]} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const simFlow = lastState().flow;
+    expect(simFlow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    expect(simFlow.fanCfm).toEqual(realFlow.fanCfm);
+    expect(simFlow.ventCfm).toBe(realFlow.ventCfm);
+    expect(simFlow.referenceCfm).toBe(realFlow.referenceCfm);
   });
 
   it('does not send a new flow input for tach jitter, but does for a real speed change', () => {
@@ -602,5 +618,92 @@ describe('CoolingCase3D selection highlight', () => {
     reselect([]);
     expect(lit()).toEqual([]);
     expect(lastState().flow).toBe(flow);
+  });
+});
+
+describe('CoolingCase3D idle re-solves', () => {
+  const chans = (rpm: [number, number, number]) => [
+    { id: 'fan-a', name: 'Fan A', rpm: rpm[0], dutyPercent: 30, maxRpm: 1500 },
+    { id: 'fan-b', name: 'Fan B', rpm: rpm[1], dutyPercent: 30, maxRpm: 1500 },
+    { id: 'fan-c', name: 'Fan C', rpm: rpm[2], dutyPercent: 30, maxRpm: 1500 },
+  ] as FanChannel[];
+  const bindings = [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }, { channelId: 'fan-b', slotKeys: ['rear:120:0'] }];
+  const flows = () => new Set(h.renderers[h.renderers.length - 1].setState.mock.calls.map(c => c[0].flow)).size;
+
+  it('sends the scene once, then no new flow input for repeated topic pings with new identities and steady rpm', () => {
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    h.setup = { record: record(1), loaded: true };
+    const { rerender } = render(<CoolingCase3D channels={chans([950, 520, 0])} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const first = flows();
+    for (let ping = 2; ping < 40; ping++) {
+      h.setup = { record: record(ping), loaded: true };
+      setLayout({ layout: { directions: {}, bindings: bindings.map(b => ({ ...b, slotKeys: [...b.slotKeys] })), tests: [] } });
+      rerender(<CoolingCase3D channels={chans([950 + (ping % 4) * 8, 520 - (ping % 3) * 5, 0])} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    }
+    expect(flows()).toBe(first);
+  });
+
+  it('absorbs a fan curve easing the rpm by a tenth, and solves again for a real ramp', () => {
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    h.setup = { record: record(1), loaded: true };
+    const { rerender } = render(<CoolingCase3D channels={chans([950, 520, 0])} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const first = flows();
+    rerender(<CoolingCase3D channels={chans([1040, 570, 0])} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    expect(flows()).toBe(first);
+    rerender(<CoolingCase3D channels={chans([1400, 900, 0])} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    expect(flows()).toBe(first + 1);
+  });
+
+  it('hands the scene a flow input on the render where the fans first appear, with no stale one before it', () => {
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    h.setup = { record: record(1), loaded: true };
+    render(<CoolingCase3D channels={chans([950, 520, 0])} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const calls = h.renderers[h.renderers.length - 1].setState.mock.calls.map(c => c[0].flow);
+    const withFlow = calls.filter(f => f !== null);
+    expect(withFlow.length).toBeGreaterThan(0);
+    expect(new Set(withFlow).size).toBe(1);
+  });
+});
+
+describe('CoolingCase3D collision shapes', () => {
+  const mountMode = (props: Partial<React.ComponentProps<typeof CoolingCase3D>> = {}) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} {...props} />);
+  };
+  const pickMode = (name: string) => fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText(name));
+
+  it('draws the collision shapes when switched on, in case and airflow and in case alone, and reports it to be remembered', () => {
+    const onChange = vi.fn();
+    mountMode({ onCollisionShapesChange: onChange });
+    expect(lastState().flowOptions.collisions).toBe(false);
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.collisions' }));
+    expect(lastState().flowOptions.collisions).toBe(true);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    pickMode('cooling.case3d.flow.mode.case');
+    expect(lastState().flowOptions.collisions).toBe(true);
+  });
+
+  it('hides the switch and draws nothing but particles in airflow mode', () => {
+    mountMode({ collisionShapes: true });
+    expect(lastState().flowOptions.collisions).toBe(true);
+    pickMode('cooling.case3d.flow.mode.airflow');
+    expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.collisions' })).toBeNull();
+    expect(lastState().flowOptions.collisions).toBe(false);
+    expect(lastState().showCase).toBe(false);
+  });
+});
+
+describe('CoolingCase3D GPU fan slots', () => {
+  it('draws a gpu slot, lets it be picked, and names it GPU', () => {
+    const layout = caseLayout();
+    layout.fanSlots.push({ key: 'gpu:fan:0', position: 'gpu', size: 90, index: 0, taken: 'fan', box: { min: [150, 20, 10], size: [90, 10, 90] }, axis: [0, 1, 0] } as never);
+    h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } }, loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    expect(lastState().layout.fanSlots.map((s: { key: string }) => s.key)).toContain('gpu:fan:0');
+    expect(lastState().directions['gpu:fan:0']).toBeDefined();
+    act(() => h.pick.current?.('gpu:fan:0', 10, 10));
+    expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.position.gpu');
   });
 });

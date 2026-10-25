@@ -400,6 +400,7 @@
   "cooling.case3d.empty.title": "Noch kein PC in Ihrem Setup",
   "cooling.case3d.estimate": "Schätzung",
   "cooling.case3d.estimate.body": "Für manche Lüfter gibt es keine veröffentlichten Daten, daher gelten größenbasierte Standardwerte. Druck und Luftstrom sind Schätzungen.",
+  "cooling.case3d.flow.collisions": "Kollisionsformen",
   "cooling.case3d.flow.controls": "Luftstromanzeige",
   "cooling.case3d.flow.cooler": "Kühler",
   "cooling.case3d.flow.legend": "Lufttemperatur, qualitativ",

@@ -400,6 +400,7 @@
   "cooling.case3d.empty.title": "No PC in your setup yet",
   "cooling.case3d.estimate": "Estimate",
   "cooling.case3d.estimate.body": "Some fans have no published specs, so size-based defaults are used. Pressure and flow are estimates.",
+  "cooling.case3d.flow.collisions": "Collision shapes",
   "cooling.case3d.flow.controls": "Airflow display",
   "cooling.case3d.flow.cooler": "Cooler",
   "cooling.case3d.flow.legend": "Air temperature, qualitative",
