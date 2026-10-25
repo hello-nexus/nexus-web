@@ -338,4 +338,33 @@ describe('radiator mount choice', () => {
     expect(speeds.get('rad:0')?.fraction).toBeCloseTo(0.5);
     expect(speeds.has('right:120:0')).toBe(false);
   });
+
+  it('gives a fanless radiator no rad:N slots, and still moves it', () => {
+    const bare = { slot: topBox.slot, role: topBox.role, min: topBox.min, size: topBox.size };
+    const bareRight = { slot: rightBox.slot, role: rightBox.role, min: rightBox.min, size: rightBox.size };
+    const raw = { ...record('top'), boxes: [...y70.boxes, bare], radiatorOptions: [{ mount: 'top', box: bare, radiator: topKeys, fans: [] }, { mount: 'right', box: bareRight, radiator: rightKeys, fans: [] }] };
+    const l = parseCaseLayout(raw) as CaseLayout;
+    expect(l.fanSlots.some(s => s.key.startsWith('rad:'))).toBe(false);
+    const moved = parseCaseLayout(raw, 'right') as CaseLayout;
+    expect(moved.radiatorMove?.to.min).toEqual(rightBox.min);
+    expect(rightKeys.every(k => slot(moved, k)?.taken === 'radiator')).toBe(true);
+    expect(moved.fanSlots.some(s => s.key.startsWith('rad:'))).toBe(false);
+  });
+
+  it('keeps one rad:N per face position for a push-pull radiator, whatever the maker total', () => {
+    const base = record('top');
+    const pushPull = { ...base, fanSlots: base.fanSlots.map(s => (topKeys.includes(s.key) ? { ...s, radiator: { ...spec, fanCount: 6 } } : s)) };
+    const l = parseCaseLayout(pushPull) as CaseLayout;
+    expect(l.fanSlots.filter(s => s.key.startsWith('rad:'))).toHaveLength(3);
+    const single = { slot: 'cooler', role: 'part', min: [73, 422.9, 58], size: [120, 52, 120], fans: { axis: 'y', side: 'min', count: 1, diameter: 114, bothSides: true } };
+    const two = parseCaseLayout({ ...base, boxes: [...y70.boxes, single], fanSlots: base.fanSlots.map(s => (s.key === 'top:120:0' ? { ...s, radiator: { ...spec, fanCount: 2 } } : s)), radiatorOptions: undefined }) as CaseLayout;
+    expect(two.fanSlots.filter(s => s.key.startsWith('rad:')).map(s => s.key)).toEqual(['rad:0']);
+  });
+
+  it('sums the static pressure of a push-pull position, whose maker total is twice the fans per face', () => {
+    const base = record('top');
+    const withTotal = (fanCount: number) => (parseCaseLayout({ ...base, fanSlots: base.fanSlots.map(s => (topKeys.includes(s.key) ? { ...s, radiator: { ...spec, fanCount } } : s)) }) as CaseLayout).fanSlots.find(s => s.key === 'rad:0')?.fan;
+    expect(withTotal(3)).toMatchObject({ airflowCfm: 70, staticPressureMmH2O: 2.5 });
+    expect(withTotal(6)).toMatchObject({ airflowCfm: 70, staticPressureMmH2O: 5 });
+  });
 });

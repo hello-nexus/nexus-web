@@ -259,7 +259,10 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
   const picked = choice && choice !== resolvedMount ? options.find(o => o.mount === choice) : undefined;
   let radiatorMove: CaseLayout['radiatorMove'];
   if (picked) {
-    const at = boxes.findIndex(isRadiatorBox);
+    const current = options.find(o => o.mount === resolvedMount)?.box;
+    const sameBox = (x: CaseBox) => !!current && x.slot === current.slot && x.min.every((v, i) => v === current.min[i]) && x.size.every((v, i) => v === current.size[i]);
+    // A fanless radiator box carries no `fans`, so the current option's box finds it first.
+    const at = boxes.some(sameBox) ? boxes.findIndex(sameBox) : boxes.findIndex(isRadiatorBox);
     if (at >= 0) {
       radiatorMove = { from: boxes[at], to: picked.box };
       boxes = boxes.map((b, i) => (i === at ? picked.box : b));

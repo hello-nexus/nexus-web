@@ -35,10 +35,12 @@ export const radiatorFanKey = (i: number): string => `rad:${i}`;
 export function radiatorFanSlots(boxes: readonly CaseBox[], size: Vec3, covered: readonly CaseFanSlot[], mount?: string): CaseFanSlot[] {
   const extents: Vec3 = [size[0], size[2], size[1]];
   const spec = covered.find(s => s.taken === 'radiator' && s.radiator)?.radiator;
-  const fan = spec ? { rpmMax: spec.fanRpmMax, airflowCfm: spec.fanAirflowCfm, staticPressureMmH2O: spec.fanStaticPressureMmH2O } : undefined;
   const out: CaseFanSlot[] = [];
   for (const box of boxes) {
     if (box.slot !== 'cooler' || !box.fans?.bothSides || !box.fans.count) continue;
+    // Push-pull: the maker's fan total is twice the fans per face, and the two in series add their static pressure.
+    const series = spec?.fanCount === 2 * box.fans.count ? 2 : 1;
+    const fan = spec ? { rpmMax: spec.fanRpmMax, airflowCfm: spec.fanAirflowCfm, staticPressureMmH2O: spec.fanStaticPressureMmH2O === undefined ? undefined : spec.fanStaticPressureMmH2O * series } : undefined;
     const k = { x: 0, y: 1, z: 2 }[box.fans.axis];
     const high = box.min[k] + box.size[k] / 2 > extents[k] / 2;
     const position = mount ?? [['front', 'rear'], ['bottom', 'top'], ['left', 'right']][k][high ? 1 : 0];
