@@ -17,13 +17,17 @@ export const GENERIC_PROFILE: CaseProfile = {
   structureMinSideMm: null,
 };
 
+/** Dual chamber: the divider, the board tray and the PSU shroud are what air meets. RAM, drives and cables are too small to steer it. */
+const DUAL_CHAMBER: CaseProfile = {
+  solidParts: new Set(['gpu', 'psu', 'motherboard']),
+  porousParts: new Set(['cooler']),
+  structureMinSideMm: 150,
+};
+
 export const CASE_PROFILES: Readonly<Record<string, CaseProfile>> = {
-  // Dual chamber: the divider, the board tray and the PSU shroud are what air meets; the GPU stands vertically in the window chamber on a riser. RAM, drives and cables are too small to steer it.
-  'HYTE Y70': {
-    solidParts: new Set(['gpu', 'psu', 'motherboard']),
-    porousParts: new Set(['cooler']),
-    structureMinSideMm: 150,
-  },
+  'HYTE Y70': DUAL_CHAMBER,
+  'HYTE Y60': DUAL_CHAMBER,
+  'HYTE Y50': DUAL_CHAMBER,
 };
 
 export const profileFor = (caseModel: string | undefined): CaseProfile => (caseModel ? CASE_PROFILES[caseModel] : undefined) ?? GENERIC_PROFILE;
