@@ -710,3 +710,24 @@ export async function claimPanelPhonePairingLan(
     return null;
   }
 }
+
+// Global frame cap for every streamed display. null = Off (each display runs
+// at its own native rate).
+export interface StreamSettings {
+  fpsCap: number | null;
+}
+
+/** Null when the service has no such route (older build) or is unreachable. */
+export async function fetchStreamSettings(): Promise<StreamSettings | null> {
+  const { response, status } = await authFetchWithStatus('/panel/streams/settings', { cache: 'no-store' });
+  if (status === 404 || !response || !response.ok) return null;
+  try {
+    return (await response.json()) as StreamSettings;
+  } catch {
+    return null;
+  }
+}
+
+/** Null on any non-2xx (400 on an invalid value) or transport failure. */
+export const setStreamFpsCap = (fpsCap: number | null) =>
+  putService<StreamSettings>('/panel/streams/settings', { fpsCap });
