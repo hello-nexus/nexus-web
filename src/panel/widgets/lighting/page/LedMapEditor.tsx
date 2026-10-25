@@ -2863,6 +2863,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               )}
               {zoneCard?.rateCapSupported && (
                 <RateCapSelect
+                  key={zoneCard.id}
                   id={zoneCard.id}
                   value={zoneCard.maxRateHz ?? null}
                   onFail={() => push({ title: t('lighting.ledMap.rateCapFailed') })}
