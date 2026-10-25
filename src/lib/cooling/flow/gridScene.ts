@@ -253,10 +253,13 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   interface FanCells { annulus: number[]; blocked: number[]; layers: number; perLayer: number }
   const e1Of = (axis: Vec3) => norm(cross(axis, Math.abs(axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
   const SUB = 3;
+  const hubOf = (p: PlannedFan) => (p.slot.taken === null ? 0 : p.disk.hub);
 
   // The open ring of a fan: cells whose area is mostly between hub and tip carry the air; the hub and the square frame around it are solid.
   const classify = (p: PlannedFan): FanCells => {
-    const { centre, axis, radius, hub, frame, halfThickness } = p.disk;
+    const { centre, axis, radius, frame, halfThickness } = p.disk;
+    // An empty slot is a bare grille: open across the whole disc, no hub, no frame.
+    const hub = hubOf(p);
     const e1 = e1Of(axis);
     const e2 = cross(axis, e1);
     const k = axisIndex(axis);
@@ -289,12 +292,12 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       if (inRing / (SUB * SUB) >= 0.4) {
         annulus.push(id3);
         layers.add([i, j, kk][k]);
-      } else if (!p.porousBox) blocked.push(id3);
+      } else if (!p.porousBox && p.slot.taken !== null) blocked.push(id3);
     });
     return { annulus, blocked, layers: layers.size, perLayer: layers.size > 0 ? annulus.length / layers.size : 0 };
   };
 
-  const cellsOf = plan.fans.map(p => (p.cfm > 0 || p.slot.taken === null ? classify(p) : { annulus: [], blocked: [], layers: 0, perLayer: 0 }));
+  const cellsOf = plan.fans.map(p => (p.cfm > 0 || !p.porousBox ? classify(p) : { annulus: [], blocked: [], layers: 0, perLayer: 0 }));
   const cellAreaM2 = (cellMm / MM_PER_M) ** 2;
   // Air speed through the ring: the fan's flow over the area its ring cells cover, so a coarse grid still moves the fan's CFM.
   const velocityMps = (p: PlannedFan, c: FanCells) => (c.perLayer > 0 && p.cfm > 0 ? (p.cfm * M3S_PER_CFM) / (c.perLayer * cellAreaM2) : 0);
@@ -306,7 +309,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const count = Math.min(MAX_SPAWN_PER_FAN, Math.max(MIN_SPAWN_PER_FAN, Math.round((weight / 60) * SPAWN_PER_60_CFM)));
     const e1 = e1Of(p.disk.axis);
     const e2 = cross(p.disk.axis, e1);
-    const { radius, hub } = p.disk;
+    const { radius } = p.disk;
+    const hub = hubOf(p);
     for (let m = 0; m < count && spawns.length / 3 < MAX_SPAWN_POINTS; m++) {
       // Uniform per area over the ring between hub and tip.
       const r = Math.sqrt(hub * hub + (radius * radius - hub * hub) * ((m + 0.5) / count));
@@ -347,7 +351,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     if (speed > 0) {
       fanCount++;
       if (p.direction === 'intake') { addSpawns(p, p.cfm); intakeCfm += p.cfm; }
-    } else if (p.slot.taken === null && !p.porousBox && input.ventCfm < 0) {
+    } else if (!p.porousBox && input.ventCfm < 0) {
       addSpawns(p, Math.abs(input.ventCfm) / 4);
     }
   });
