@@ -17,6 +17,7 @@ import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useComponentTemps } from '../../../../hooks/useComponentTemps';
+import { DEV_TOOLS } from '../../../../lib/devTools';
 import { useTranslation } from '../../../../lib/i18n';
 import {
   channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
@@ -103,7 +104,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [flowMode, setFlowMode] = useState<FlowMode>(savedFlowMode ?? DEFAULT_MODE);
   const [slowMo, setSlowMo] = useState(false);
-  const [collisions, setCollisions] = useState(savedCollisions ?? false);
+  const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
   const particles = flowMode !== 'case';
   const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
@@ -159,7 +160,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: collisions && showCase, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, collisions, showCase, slowMo]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, collisions, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -276,7 +277,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 if (mode === 'airflow') setActive(null);
               }}
             />
-            {showCase && (
+            {DEV_TOOLS && showCase && (
               <label className={`${styles.flowToggle} ${styles.control}`}>
                 <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
                 <span>{t('cooling.case3d.flow.collisions')}</span>

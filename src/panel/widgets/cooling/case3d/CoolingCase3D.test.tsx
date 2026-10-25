@@ -10,10 +10,12 @@ const h = vi.hoisted(() => ({
   model: { bytes: null as ArrayBuffer | null, settled: true },
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
+  devTools: true,
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
   renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
+vi.mock('../../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
 vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: () => h.model }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
@@ -55,6 +57,7 @@ beforeEach(() => {
   h.setup = { record: null, loaded: false };
   h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
   h.renderers.length = 0;
+  h.devTools = true;
   h.flowSupported = true;
   h.model = { bytes: null, settled: true };
   vi.mocked(createCaseRenderer).mockClear();
@@ -713,6 +716,13 @@ describe('CoolingCase3D collision shapes', () => {
     expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.collisions' })).toBeNull();
     expect(lastState().flowOptions.collisions).toBe(false);
     expect(lastState().showCase).toBe(false);
+  });
+
+  it('hides the switch and never draws collision shapes without dev tools, even when remembered on', () => {
+    h.devTools = false;
+    mountMode({ collisionShapes: true });
+    expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.collisions' })).toBeNull();
+    expect(lastState().flowOptions.collisions).toBe(false);
   });
 });
 
