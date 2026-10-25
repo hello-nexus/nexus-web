@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
+import { parseCaseModel, sceneToLayoutMatrix, styleCaseModel } from '../../../../lib/scene/caseModel';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 
@@ -22,6 +23,8 @@ export interface CaseSceneState {
   /** Airflow simulation input; null leaves the flow layer empty. */
   flow: FlowInput | null;
   flowOptions: FlowOptions;
+  /** Build's exported case model (binary glTF); when present it replaces the outline of the layout's boxes. */
+  model: ArrayBuffer | null;
 }
 
 export interface CaseSceneRenderer {
@@ -86,6 +89,49 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   scene.add(staticGroup, fanGroup, flowGroup);
   let flowLayer: FlowLayer | null = null;
   let flowInput: FlowInput | null = null;
+  let modelBytes: ArrayBuffer | null = null;
+  let modelFor: CaseLayout | null = null;
+  let modelToken = 0;
+  let modelGroup: Group | null = null;
+  let modelStyle: { dispose: () => void } | null = null;
+  let disposed = false;
+
+  const clearModel = () => {
+    if (modelGroup) scene.remove(modelGroup);
+    modelStyle?.dispose();
+    modelGroup = null;
+    modelStyle = null;
+    staticGroup.visible = true;
+  };
+
+  // The model sits in scene space as Build baked it; the inverse of that bake puts it in the layout's own frame, where the fans and the solver are.
+  const showModel = async (bytes: ArrayBuffer | null, forLayout: CaseLayout) => {
+    const token = ++modelToken;
+    modelBytes = bytes;
+    modelFor = forLayout;
+    if (!bytes) { clearModel(); requestRender(); return; }
+    let parsed: Group;
+    try {
+      parsed = await parseCaseModel(bytes);
+    } catch {
+      if (token === modelToken && !disposed) clearModel();
+      return;
+    }
+    if (token !== modelToken || disposed) {
+      parsed.traverse(o => { (o as Mesh).geometry?.dispose(); });
+      return;
+    }
+    clearModel();
+    const holder = new Group();
+    holder.applyMatrix4(sceneToLayoutMatrix(forLayout.size, forLayout.windowRight === true));
+    holder.add(parsed);
+    modelStyle = styleCaseModel(parsed, token_('--text-dim', '#8a93a6'), token_('--text-dim', '#8a93a6'));
+    modelGroup = holder;
+    scene.add(holder);
+    staticGroup.visible = false;
+    requestRender();
+  };
+  const token_ = (name: string, fallback: string) => token(canvas, name, fallback);
   const disposables: { dispose: () => void }[] = [];
   const fanDisposables: { dispose: () => void }[] = [];
   const raycaster = new Raycaster();
@@ -262,6 +308,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
       }
       buildFans(state);
+      if (state.model !== modelBytes || (modelFor !== state.layout && state.model)) void showModel(state.model, state.layout);
       flowLayer?.setOptions(state.flowOptions);
       if (state.flow !== flowInput) {
         flowInput = state.flow;
@@ -280,6 +327,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       document.removeEventListener('visibilitychange', onVisibility);
       flowLayer?.dispose();
       flowLayer = null;
+      disposed = true;
+      modelToken++;
+      clearModel();
       controls.dispose();
       clear(staticGroup, disposables);
       clear(fanGroup, fanDisposables);

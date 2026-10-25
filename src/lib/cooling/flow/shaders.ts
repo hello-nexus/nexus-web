@@ -157,7 +157,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uEmitterCount; uniform float uBackSpan; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps;
+uniform float uEmitterCount; uniform float uBackSpan; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -184,7 +184,9 @@ void main() {
       t = q + vec3(0.0, 0.0, d.z); if (!solidAt(cellAtPos(t))) q = t;
       if (mask(cellAtPos(q)).b > 0.5) break;
     }
-    p = q; age += 1.0;
+    // A particle that barely moves, in dead air or against a wall, ages fast and is soon recycled.
+    age += length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0;
+    p = q;
     ivec3 c = cellAtPos(p);
     respawn = mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
   }

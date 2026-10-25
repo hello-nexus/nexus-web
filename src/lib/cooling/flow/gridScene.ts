@@ -1,7 +1,7 @@
 import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Vec3 } from '../caseLayout';
 import type { FanDirection } from '../pressureModel';
 import {
-  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, SPAWN_BACK_MIN_CELLS, SPAWN_BACK_SPAN_CELLS,
+  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, SPAWN_BACK_MIN_CELLS, SPAWN_OUT_REACH_MM,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
@@ -62,6 +62,8 @@ export interface FlowScene {
    * centre xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset. A stronger fan has more entries.
    */
   emitters: Float32Array;
+  /** Depth, in cells, of the outside air tube the particles start in. */
+  spawnBackSpan: number;
   /** A fixed sample of start points drawn from the emitters (3 floats each), for inspection; the particles draw their own continuously. */
   spawns: Float32Array;
   fanCount: number;
@@ -312,7 +314,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   const spawnHub = (p: PlannedFan) => (hubOf(p) > 0 ? hubOf(p) + SPAWN_HUB_MARGIN * (p.disk.radius - hubOf(p)) : 0);
   const emitters: number[] = [];
   const addSpawns = (p: PlannedFan, weight: number) => {
-    const entries = Math.min(16, Math.max(1, Math.round((weight / 60) * EMITTERS_PER_60_CFM)));
+    // Entries follow the fan's flow exactly, so a near-stopped fan emits next to nothing instead of a dense sheet of slow particles.
+    const entries = Math.min(64, Math.round((weight / 60) * EMITTERS_PER_60_CFM));
     const e1 = e1Of(p.disk.axis);
     const c = [0, 1, 2].map(a => (p.disk.centre[a] + origin[a]) / cellMm - 0.5);
     for (let m = 0; m < entries && emitters.length / 12 < MAX_EMITTER_ENTRIES; m++) {
@@ -371,7 +374,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
 
   const caseM3 = (extents[0] * extents[1] * extents[2]) / (MM_PER_M ** 3);
   const residenceSteps = intakeCfm > 0 ? caseM3 / (intakeCfm * M3S_PER_CFM) / stepSeconds : 0;
-  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, emitters: new Float32Array(emitters), spawns: new Float32Array(0), fanCount };
+  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, emitters: new Float32Array(emitters), spawnBackSpan: SPAWN_OUT_REACH_MM / cellMm, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -405,7 +408,7 @@ export function sampleSpawn(scene: FlowScene, rnd: () => number): Vec3 | null {
     const hub = e[o + 3], tip = e[o + 7];
     const r = Math.sqrt(hub * hub + (tip * tip - hub * hub) * rnd());
     const th = 2 * Math.PI * rnd();
-    const back = e[o + 11] + SPAWN_BACK_SPAN_CELLS * rnd();
+    const back = e[o + 11] + scene.spawnBackSpan * rnd();
     const axis: Vec3 = [e[o + 4], e[o + 5], e[o + 6]];
     const e1: Vec3 = [e[o + 8], e[o + 9], e[o + 10]];
     const e2 = cross(axis, e1);

@@ -239,4 +239,19 @@ describe('LightingPage canvas header', () => {
     fireEvent.click(radios[1]);
     expect(title()).toBe(before);
   });
+
+  it('opens on its own stored 3D view with no 2D canvas first, and not on the Cooling choice', async () => {
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced', lightingView3d: true, coolingView3d: false } }));
+    renderPage();
+    const group = await screen.findByRole('radiogroup', { name: 'lighting.scene.viewSwitch' });
+    expect(within(group).getAllByRole('radio')[1].getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByTestId('preview')).toBeNull();
+  });
+
+  it('opens on 2D when only Cooling has a stored 3D view', async () => {
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced', lightingView3d: false, coolingView3d: true } }));
+    renderPage();
+    const group = await screen.findByRole('radiogroup', { name: 'lighting.scene.viewSwitch' });
+    expect(within(group).getAllByRole('radio')[0].getAttribute('aria-checked')).toBe('true');
+  });
 });

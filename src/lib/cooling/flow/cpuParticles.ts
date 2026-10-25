@@ -1,4 +1,4 @@
-import { PARTICLE_ADVECT_SUBSTEPS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
+import { PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
 import { sampleSpawn } from './gridScene';
 
@@ -57,7 +57,7 @@ export class CpuParticles {
   }
 
   /** Advances every particle one step. `onMove(i, fromCell, toCell)` sees each move that changes cell. */
-  step(onMove?: (i: number, from: number, to: number) => void): void {
+  step(onMove?: (i: number, from: number, to: number) => void, speed: number = PARTICLE_SPEED_SCALE): void {
     const { solid, open, heat } = this.flow.scene;
     const v = [0, 0, 0];
     for (let i = 0; i < this.count; i++) {
@@ -74,8 +74,10 @@ export class CpuParticles {
         x = nx; y = ny; z = nz;
         return true;
       };
-      const h = PARTICLE_SPEED_SCALE / PARTICLE_ADVECT_SUBSTEPS;
-      for (let k = 0; k < PARTICLE_ADVECT_SUBSTEPS; k++) {
+      const subs = substepsFor(speed);
+      const h = speed / subs;
+      const x0 = x, y0 = y, z0 = z;
+      for (let k = 0; k < subs; k++) {
         this.flow.sample(x, y, z, v);
         this.flow.sample(x + 0.5 * h * v[0], y + 0.5 * h * v[1], z + 0.5 * h * v[2], v);
         tryMove(x + h * v[0], y, z);
@@ -85,10 +87,10 @@ export class CpuParticles {
         if (open[c]) break;
       }
       this.pos[o] = x; this.pos[o + 1] = y; this.pos[o + 2] = z;
-      this.age[i] += 1;
+      this.age[i] += Math.hypot(x - x0, y - y0, z - z0) < STUCK_MOVE_CELLS * speed ? STUCK_AGE_RATE : 1;
       const cell = this.cellAt(x, y, z);
       if (cell !== from) onMove?.(i, from, cell);
-      this.heat[i] = Math.min(1, this.heat[i] + heat[cell] * PARTICLE_SPEED_SCALE);
+      this.heat[i] = Math.min(1, this.heat[i] + heat[cell] * speed);
       if (open[cell] || this.age[i] > this.life[i]) this.respawn(i);
     }
   }

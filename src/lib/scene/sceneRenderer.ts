@@ -28,7 +28,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { parseCaseModel } from './caseModel';
 import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
@@ -253,7 +253,7 @@ export class SceneRenderer {
 
   async setModel(bytes: ArrayBuffer | null): Promise<void> {
     const token = ++this.modelToken;
-    const parsed = bytes ? (await new GLTFLoader().parseAsync(bytes, '')).scene : null;
+    const parsed = bytes ? await parseCaseModel(bytes) : null;
     // A newer call (or disposal) overtook this parse: its model is the one to keep.
     if (token !== this.modelToken || this.disposed) {
       if (parsed) this.clearGroup(parsed, true);

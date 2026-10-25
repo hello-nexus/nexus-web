@@ -3,7 +3,7 @@ import {
   NearestFilter, NormalBlending, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { SPAWN_BACK_SPAN_CELLS, DEAD_AGE_RATIO, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_ADVECT_SUBSTEPS, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, DEAD_AGE_RATIO, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
 import { SteadyGate } from './steadyGate';
 import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
@@ -18,12 +18,13 @@ const TRAIL_AGES = 1;
 const RING = TRAIL_AGES + 1;
 const MAX_PARTICLES = PARTICLE_TEXTURE.w * PARTICLE_TEXTURE.h;
 /** GPU time the solver may take per displayed frame. */
-const SOLVER_BUDGET_MS = 6;
-/** Without a GPU timer, frames longer than this (ms) pull the step count down, and frames this close to the vsync interval let it grow. */
+const SOLVER_BUDGET_MS = 8;
+/** Per-frame cost the solver may take while the particles are still waiting for the first solve. */
+const COLD_BUDGET_MS = 12;
+/** Frames longer than this (ms) pull the step count down while no GPU time is known. */
 const FRAME_SLOW_MS = 20;
-const FRAME_FAST_MS = 17.5;
 const TIMER_EMA = 0.3;
-const MAX_STEPS_PER_FRAME = 8;
+const MAX_STEPS_PER_FRAME = 24;
 const MIN_STEPS_PER_FRAME = 1;
 const PARTICLE_SUBSTEPS = 2;
 const AGE_STEPS_PER_FRAME = 16;
@@ -50,6 +51,8 @@ export interface FlowColors {
 export interface FlowOptions {
   particles: boolean;
   deadZones: boolean;
+  /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */
+  speed: number;
 }
 
 /** The airflow layer of the case view: solver, particles, dead-zone volume and the solid-voxel debug view, all on the renderer's own context. */
@@ -67,7 +70,7 @@ export class FlowLayer {
   private stepsPerFrame = 4;
   private slowCount = 0;
   private lastFrameAt = 0;
-  private options: FlowOptions = { particles: true, deadZones: false};
+  private options: FlowOptions = { particles: true, deadZones: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
   private coldStart = false;
   private readonly gate = new SteadyGate();
@@ -121,6 +124,7 @@ export class FlowLayer {
 
   setOptions(options: FlowOptions) {
     this.options = options;
+    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = options.speed; m.uniforms.uSubsteps.value = substepsFor(options.speed); }
     if (this.points) {
       this.points.visible = options.particles;
       for (const t of this.trails) t.visible = options.particles;
@@ -144,7 +148,7 @@ export class FlowLayer {
       this.flow.setScene(scene);
     } else {
       this.flow?.dispose();
-      this.flow = new GlFlow(this.renderer, this.runner, scene, this.kind);
+      this.flow = new GlFlow(this.renderer, scene, this.kind);
       this.ensureParticles();
       this.resetParticles();
       this.coldStart = true;
@@ -168,7 +172,7 @@ export class FlowLayer {
     this.spawnTex.minFilter = NearestFilter;
     this.spawnTex.magFilter = NearestFilter;
     this.spawnTex.needsUpdate = true;
-    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; }
+    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; this.stateMat.uniforms.uBackSpan.value = scene.spawnBackSpan; }
   }
 
   private ensureParticles() {
@@ -178,7 +182,7 @@ export class FlowLayer {
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBackSpan: { value: SPAWN_BACK_SPAN_CELLS }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: PARTICLE_SPEED_SCALE }, uSubsteps: { value: PARTICLE_ADVECT_SUBSTEPS },
+      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBackSpan: { value: 1 }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: this.options.speed }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown } });
@@ -289,21 +293,19 @@ export class FlowLayer {
       const gl = this.renderer.getContext() as WebGL2RenderingContext;
       const timed = this.timer && this.timer.pending.length < 4 ? gl.createQuery() : null;
       if (timed) gl.beginQuery(this.timer!.ext.TIME_ELAPSED_EXT, timed);
-      let ran = 0;
-      let check = false;
-      for (let i = 0; i < this.stepsPerFrame; i++) {
-        flow.step();
-        ran++;
-        this.stepsSinceEdit++;
-        if (this.stepsSinceEdit % STEADY_CHECK_EVERY === 0) check = true;
-      }
+      const start = performance.now();
+      const n = this.stepsPerFrame;
+      flow.step(n);
+      const before = this.stepsSinceEdit;
+      this.stepsSinceEdit += n;
+      const spent = performance.now() - start;
       if (timed) {
         gl.endQuery(this.timer!.ext.TIME_ELAPSED_EXT);
-        this.timer!.pending.push({ q: timed, steps: ran });
+        this.timer!.pending.push({ q: timed, steps: n });
       }
       // Outside the timed span: a PBO read inside an active query is an invalid operation.
-      if (check) this.checkSteady(flow);
-      this.paceSteps(dt);
+      if (Math.floor(this.stepsSinceEdit / STEADY_CHECK_EVERY) > Math.floor(before / STEADY_CHECK_EVERY)) this.checkSteady(flow);
+      this.paceSteps(dt, spent / n);
       this.slowCount = dt > SLOW_FRAME_MS ? this.slowCount + 1 : Math.max(0, this.slowCount - 1);
       if (this.slowCount >= SLOW_FRAMES && this.tier < FLOW_TIERS.length - 1 && this.stepsPerFrame <= MIN_STEPS_PER_FRAME + 1) {
         this.dropTier();
@@ -311,7 +313,7 @@ export class FlowLayer {
       }
     }
     if (this.options.deadZones && !this.solving) {
-      for (let i = 0; i < AGE_STEPS_PER_FRAME; i++) flow.stepAge();
+      flow.stepAge(AGE_STEPS_PER_FRAME);
       if (this.volumeMat) this.volumeMat.uniforms.AG.value = flow.ageTexture;
     }
     if (!this.solving) this.coldStart = false;
@@ -359,12 +361,19 @@ export class FlowLayer {
     }
   }
 
-  // Sets the steps run per frame so the solver stays inside its GPU budget: from measured GPU time per step when the timer exists, else from frame deltas.
-  private paceSteps(dt: number) {
-    let next = this.stepsPerFrame;
-    if (this.timer && this.timer.msPerStep > 0) next = Math.floor(SOLVER_BUDGET_MS / this.timer.msPerStep);
-    else if (dt > FRAME_SLOW_MS) next = this.stepsPerFrame - 1;
-    else if (dt > 0 && dt < FRAME_FAST_MS) next = this.stepsPerFrame + 1;
+  // Sets the steps run per frame from what a step costs: the larger of its CPU submit time and its GPU time (timer query, else frame deltas), within the frame budget.
+  private paceSteps(dt: number, cpuMsPerStep: number) {
+    const budget = this.coldStart ? COLD_BUDGET_MS : SOLVER_BUDGET_MS;
+    const t = this.timer;
+    const gpu = t && t.msPerStep > 0 ? t.msPerStep : 0;
+    const cpuCap = Math.floor(budget / Math.max(cpuMsPerStep, 0.05));
+    let next: number;
+    if (gpu > 0) {
+      next = Math.min(cpuCap, Math.floor(budget / gpu), this.stepsPerFrame + 3);
+    } else {
+      // No GPU time yet: grow one step a frame while frames stay short, back off at once when they do not.
+      next = Math.min(cpuCap, dt > 0 && dt < FRAME_SLOW_MS ? this.stepsPerFrame + 1 : this.stepsPerFrame - 2);
+    }
     this.stepsPerFrame = Math.min(MAX_STEPS_PER_FRAME, Math.max(MIN_STEPS_PER_FRAME, next));
   }
 

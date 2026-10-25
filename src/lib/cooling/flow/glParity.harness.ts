@@ -2,7 +2,7 @@ import { Color, Group, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from '
 import { CpuFlow } from './cpuSolver';
 import { caseWithGpuAndShroud } from './flowFixtures';
 import { FlowLayer } from './flowLayer';
-import { GlFlow, PassRunner, floatSupport } from './glFlow';
+import { GlFlow, floatSupport } from './glFlow';
 import { buildFlowScene } from './gridScene';
 
 declare global { interface Window { __flowGl: Record<string, unknown> } }
@@ -41,11 +41,10 @@ async function main() {
   if (kind === null) return;
   const input = caseWithGpuAndShroud();
   const scene = buildFlowScene(input, 32 * 24 * 48);
-  const runner = new PassRunner(renderer);
-  const gl = new GlFlow(renderer, runner, scene, kind);
+  const gl = new GlFlow(renderer, scene, kind);
   const cpu = new CpuFlow(scene);
   err('construct');
-  for (let i = 0; i < 60; i++) { gl.step(); cpu.step(); }
+  for (let i = 0; i < 60; i++) { gl.step(1); cpu.step(); }
   err('steps');
   const g = gl.readVelocity();
   err('readVelocity');
@@ -70,11 +69,11 @@ async function main() {
   cam.lookAt(240, 220, 180);
   layer.setInput(input);
   const q = new URLSearchParams(location.search);
-  layer.setOptions({ particles: q.get('p') !== '0', deadZones: q.get('d') !== '0' });
+  layer.setOptions({ particles: q.get('p') !== '0', deadZones: q.get('d') !== '0', speed: 1.5 });
   let worst = 0;
   let checked = 0;
   for (let f = 0; f < FRAMES; f++) {
-    layer.frame(f * 16, cam, 240);
+    layer.frame(performance.now(), cam, 240);
     err(`frame${f}`);
     renderer.render(sc, cam);
     err(`render${f}`);
@@ -87,7 +86,7 @@ async function main() {
   let afterWorst = 0;
   let afterChecked = 0;
   for (let f = 0; f < 120; f++) {
-    layer.frame((FRAMES + f) * 16, cam, 240);
+    layer.frame(performance.now(), cam, 240);
     renderer.render(sc, cam);
     if (f % 20 === 19) { const r = bad(layer); afterWorst += r.badCount; afterChecked += r.checked; }
   }

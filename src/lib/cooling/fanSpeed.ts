@@ -6,6 +6,8 @@ export const DEFAULT_RPM_MAX: Readonly<Record<number, number>> = { 120: 1500, 14
 const MAX_FRACTION = 1.2;
 /** A fan's effective flow must change by more than this share before the flow is solved again. */
 export const FLOW_CHANGE_TOLERANCE = 0.05;
+/** And by more than this many CFM, so a slow fan's tach jitter never counts as a change. */
+export const FLOW_CHANGE_FLOOR_CFM = 2;
 
 export function defaultRpmMax(sizeMm: number): number {
   const sizes = Object.keys(DEFAULT_RPM_MAX).map(Number);
@@ -42,15 +44,14 @@ export function scaledSpec(spec: FanSpec, fraction: number): FanSpec {
   return { cfm: spec.cfm * fraction, staticMmH2O: spec.staticMmH2O * fraction * fraction };
 }
 
-/** The previous flows when every fan changed by no more than the tolerance (and none started or stopped), else the new ones. */
-export function settleFlows(prev: Readonly<Record<string, number>>, next: Readonly<Record<string, number>>, tolerance = FLOW_CHANGE_TOLERANCE): Readonly<Record<string, number>> {
+/** The previous flows when no fan changed by more than the larger of the tolerance share and the CFM floor, else the new ones; a changed set of fans always counts. */
+export function settleFlows(prev: Readonly<Record<string, number>>, next: Readonly<Record<string, number>>, tolerance = FLOW_CHANGE_TOLERANCE, floorCfm = FLOW_CHANGE_FLOOR_CFM): Readonly<Record<string, number>> {
   const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
   for (const k of keys) {
     const a = prev[k];
     const b = next[k];
     if (a === undefined || b === undefined) return next;
-    if ((a === 0) !== (b === 0)) return next;
-    if (a !== 0 && Math.abs(b - a) / Math.abs(a) > tolerance) return next;
+    if (Math.abs(b - a) > Math.max(tolerance * Math.abs(a), floorCfm)) return next;
   }
   return prev;
 }

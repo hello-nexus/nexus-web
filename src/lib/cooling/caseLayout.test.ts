@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  channelOfSlot, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
+  channelOfSlot, linkChannelToSlot, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
   type CaseLayout,
 } from './caseLayout';
 
@@ -159,5 +159,17 @@ describe('withBoundFans', () => {
     expect(out.fanSlots.find(s => s.key === 'top:120:0')?.taken).toBeNull();
     expect(withBoundFans(l, [])).toBe(l);
     expect(withBoundFans(l, ['front:120:0', 'nope'])).toBe(l);
+  });
+});
+
+describe('linkChannelToSlot', () => {
+  it('links a channel to one slot, replacing the slot\'s device and moving the channel off its other slots', () => {
+    const start = [{ channelId: 'a', slotKeys: ['s1', 's2'] }, { channelId: 'b', slotKeys: ['s3'] }];
+    expect(linkChannelToSlot(start, 'b', 's1')).toEqual([{ channelId: 'a', slotKeys: ['s2'] }, { channelId: 'b', slotKeys: ['s1'] }]);
+    expect(linkChannelToSlot([{ channelId: 'a', slotKeys: ['s1'] }], 'a', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s2'] }]);
+  });
+
+  it('unlinks a slot with an empty channel id and drops emptied bindings', () => {
+    expect(linkChannelToSlot([{ channelId: 'a', slotKeys: ['s1'] }, { channelId: 'b', slotKeys: ['s2'] }], '', 's1')).toEqual([{ channelId: 'b', slotKeys: ['s2'] }]);
   });
 });
