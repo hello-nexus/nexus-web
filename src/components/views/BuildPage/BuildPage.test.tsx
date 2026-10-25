@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen } from '@testing-library/react';
+import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BuildPage, BUILD_ORIGIN, sanitizeBuildPath } from './BuildPage';
 import { useBuildFrameHistory } from './buildNav';
@@ -9,6 +9,10 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key, language: 'en' }),
 }));
 
+const previewApi = vi.hoisted(() => ({ relayPreviewSave: vi.fn(), devTools: false }));
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return previewApi.devTools; } }));
+vi.mock('./buildPreview', () => ({ relayPreviewSave: (...args: unknown[]) => previewApi.relayPreviewSave(...args) }));
+
 const h = vi.hoisted(() => ({
   themeMode: 'dark' as 'dark' | 'light' | 'system',
   openExternalUrl: vi.fn().mockResolvedValue(undefined),
@@ -16,8 +20,12 @@ const h = vi.hoisted(() => ({
   specs: null as unknown as SystemSpecs | null,
   gamesByKey: new Map<string, FpsGameSummary>(),
   serverCase: null as string | null,
+  serverDevices: null as unknown[] | null,
   fetchService: vi.fn(),
   putService: vi.fn(),
+  fetchPcSetup: vi.fn(),
+  putPcSetup: vi.fn(),
+  topic: null as null | { name: string; enabled: boolean; cb: (frame: unknown) => void },
 }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
@@ -36,6 +44,15 @@ vi.mock('../../../api/service', () => ({
   get isRemoteOrigin() { return h.isRemoteOrigin; },
   fetchService: (...args: unknown[]) => h.fetchService(...args),
   putService: (...args: unknown[]) => h.putService(...args),
+}));
+
+vi.mock('../../../api/pcSetup', () => ({
+  PC_SETUP_TOPIC: 'system/setup',
+  fetchPcSetup: (...args: unknown[]) => h.fetchPcSetup(...args),
+  putPcSetup: (...args: unknown[]) => h.putPcSetup(...args),
+}));
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (name: string, enabled: boolean, cb: (frame: unknown) => void) => { h.topic = { name, enabled, cb }; },
 }));
 
 const SAMPLE_SPECS: SystemSpecs = {
@@ -70,8 +87,16 @@ beforeEach(() => {
   h.gamesByKey = new Map();
   h.openExternalUrl.mockClear();
   h.serverCase = null;
+  h.serverDevices = null;
   h.fetchService.mockReset();
-  h.fetchService.mockImplementation(async (path: string) => (path === '/system/case' ? { caseId: h.serverCase } : null));
+  h.fetchService.mockImplementation(async (path: string) => {
+    if (path === '/system/case') return { caseId: h.serverCase };
+    if (path === '/system/devices' && h.serverDevices) return { devices: h.serverDevices };
+    return null;
+  });
+  h.fetchPcSetup.mockReset();
+  h.putPcSetup.mockReset();
+  h.topic = null;
   h.putService.mockReset();
   h.putService.mockImplementation(async (_path: string, body: { caseId: string | null }) => ({ caseId: body.caseId }));
   Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
@@ -349,6 +374,33 @@ describe('BuildPage', () => {
       expect(helloPosts(postSpy)[0].machine).toMatchObject({ caseId: 'case-fractal-north', processor: 'AMD Ryzen 7 7800X3D' });
     });
 
+    it('carries the detected devices in the hello machine object', async () => {
+      const device = { key: 'lianli-wireless:AA', modelKey: 'lianli-wl:tl-v2-led', category: 'fan', vendor: 'Lian Li', model: 'Uni Fan TL V2 LED', count: 3, countSource: 'detected' };
+      h.specs = SAMPLE_SPECS;
+      h.serverDevices = [device, { bad: true }];
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(h.fetchService).toHaveBeenCalledWith('/system/devices');
+      expect(helloPosts(postSpy)[0].machine).toMatchObject({ devices: [device], processor: 'AMD Ryzen 7 7800X3D' });
+    });
+
+    it('omits devices from the machine object when an older service has no /system/devices', async () => {
+      h.specs = SAMPLE_SPECS;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('devices');
+    });
+
     it('omits caseId from the machine object when none is set', async () => {
       h.specs = SAMPLE_SPECS;
       render(<BuildPage path="/builder" />);
@@ -436,7 +488,9 @@ describe('BuildPage', () => {
     it('keeps the initial GET\'s case when a save fails before the GET resolves', async () => {
       h.specs = SAMPLE_SPECS;
       let resolveGet: (v: unknown) => void = () => {};
-      h.fetchService.mockImplementation(() => new Promise(resolve => { resolveGet = resolve; }));
+      h.fetchService.mockImplementation((path: string) => (path === '/system/case'
+        ? new Promise(resolve => { resolveGet = resolve; })
+        : Promise.resolve(null)));
       h.putService.mockImplementation(async () => null);
       render(<BuildPage path="/builder" />);
       const iframe = getIframe();
@@ -468,5 +522,246 @@ describe('BuildPage', () => {
       expect(posts).toHaveLength(1);
       expect(posts[0].machine).toMatchObject({ caseId: 'case-old' });
     });
+  });
+});
+
+describe('shared PC setup relay', () => {
+  const setup = { version: 1, case: {}, items: [], resolved: { objects: [] } };
+
+  beforeEach(() => {
+    previewApi.devTools = true;
+  });
+
+  afterEach(() => {
+    previewApi.devTools = false;
+  });
+
+  function ready() {
+    render(<BuildPage path="/builder" />);
+    const iframe = getIframe();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    return { iframe, postSpy };
+  }
+
+  it('advertises canSyncSetup in hello only for a local origin', () => {
+    h.isRemoteOrigin = false;
+    const local = ready();
+    act(() => postFromFrame(local.iframe, { type: 'nexus-build:ready' }));
+    expect(local.postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canSyncSetup: true }), BUILD_ORIGIN);
+    cleanup();
+
+    h.isRemoteOrigin = true;
+    const remote = ready();
+    act(() => postFromFrame(remote.iframe, { type: 'nexus-build:ready' }));
+    const hello = remote.postSpy.mock.calls.map(c => c[0] as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).toBeDefined();
+    expect(hello).not.toHaveProperty('canSyncSetup');
+  });
+
+  it('omits canSyncSetup and refuses setup-get and setup-put without dev tools', async () => {
+    previewApi.devTools = false;
+    const { iframe, postSpy } = ready();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = postSpy.mock.calls.map(c => c[0] as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).toBeDefined();
+    expect(hello).not.toHaveProperty('canSyncSetup');
+    expect(h.topic?.enabled).toBe(false);
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 0, setup }));
+    expect(h.fetchPcSetup).not.toHaveBeenCalled();
+    expect(h.putPcSetup).not.toHaveBeenCalled();
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'g', error: 'disabled' }, BUILD_ORIGIN);
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'p', error: 'disabled' }, BUILD_ORIGIN);
+  });
+
+  it('answers setup-get with the record and the request id', async () => {
+    h.fetchPcSetup.mockResolvedValue({ rev: 4, setup });
+    const { iframe, postSpy } = ready();
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'r1' }));
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'r1', rev: 4, setup }, BUILD_ORIGIN);
+  });
+
+  it('answers setup-put with the saved rev and the sent setup', async () => {
+    h.putPcSetup.mockResolvedValue({ kind: 'saved', rev: 5 });
+    const { iframe, postSpy } = ready();
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'r2', baseRev: 4, setup }));
+    expect(h.putPcSetup).toHaveBeenCalledWith(4, setup);
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'r2', rev: 5, setup }, BUILD_ORIGIN);
+  });
+
+  it('maps a 409 to the current record with conflict: true and a 400 to its code', async () => {
+    const current = { rev: 9, setup: { ...setup, version: 1, items: [] } };
+    h.putPcSetup.mockResolvedValueOnce({ kind: 'conflict', record: current });
+    const { iframe, postSpy } = ready();
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'r3', baseRev: 1, setup }));
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'r3', rev: 9, setup: current.setup, conflict: true }, BUILD_ORIGIN);
+
+    h.putPcSetup.mockResolvedValueOnce({ kind: 'invalid', code: 'too_many_items', msg: 'x' });
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'r4', baseRev: 9, setup }));
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'r4', error: 'too_many_items' }, BUILD_ORIGIN);
+  });
+
+  it('rejects a malformed put without calling the service', async () => {
+    const { iframe, postSpy } = ready();
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'r5', baseRev: 'x', setup }));
+    expect(h.putPcSetup).not.toHaveBeenCalled();
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'r5', error: 'bad_message' }, BUILD_ORIGIN);
+  });
+
+  it('pushes the record without a request id when the topic fires, but not the echo of its own save', async () => {
+    h.putPcSetup.mockResolvedValue({ kind: 'saved', rev: 5 });
+    h.fetchPcSetup.mockResolvedValue({ rev: 6, setup });
+    const { iframe, postSpy } = ready();
+    expect(h.topic).toMatchObject({ name: 'system/setup', enabled: true });
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'r6', baseRev: 4, setup }));
+    postSpy.mockClear();
+
+    h.fetchPcSetup.mockResolvedValue({ rev: 5, setup });
+    await act(async () => h.topic!.cb({ rev: 5 }));
+    expect(postSpy).not.toHaveBeenCalled();
+
+    h.fetchPcSetup.mockResolvedValue({ rev: 6, setup });
+    await act(async () => h.topic!.cb({ rev: 6 }));
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, rev: 6, setup }, BUILD_ORIGIN);
+  });
+
+  it('never pushes an older revision after a newer one when fetches resolve out of order', async () => {
+    const { postSpy } = ready();
+    let first: (v: unknown) => void = () => {};
+    let second: (v: unknown) => void = () => {};
+    h.fetchPcSetup
+      .mockImplementationOnce(() => new Promise(res => { first = res; }))
+      .mockImplementationOnce(() => new Promise(res => { second = res; }));
+    await act(async () => { h.topic!.cb({ rev: 7 }); h.topic!.cb({ rev: 8 }); });
+
+    await act(async () => second({ rev: 8, setup }));
+    await act(async () => first({ rev: 7, setup }));
+
+    const pushed = postSpy.mock.calls.map(c => c[0] as { type: string; rev?: number }).filter(m => m.type === 'nexus-build:setup').map(m => m.rev);
+    expect(pushed).toEqual([8]);
+  });
+
+  it('does not echo the frame\'s own save when the ping fetch resolves before the put reply', async () => {
+    const { iframe, postSpy } = ready();
+    let reply: (v: unknown) => void = () => {};
+    h.putPcSetup.mockImplementation(() => new Promise(res => { reply = res; }));
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 4, setup }));
+    h.fetchPcSetup.mockResolvedValue({ rev: 5, setup });
+    await act(async () => h.topic!.cb({ rev: 5 }));
+    await act(async () => reply({ kind: 'saved', rev: 5 }));
+
+    const pushed = postSpy.mock.calls.map(c => c[0] as { type: string; requestId?: string }).filter(m => m.type === 'nexus-build:setup');
+    expect(pushed).toEqual([expect.objectContaining({ requestId: 'p' })]);
+  });
+
+  it('ignores setup messages from the wrong origin or source, and on a remote origin', async () => {
+    const { iframe, postSpy } = ready();
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'x' }, 'https://evil.example.com'));
+    await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: { type: 'nexus-build:setup-get', requestId: 'x' }, origin: BUILD_ORIGIN, source: window })); });
+    expect(h.fetchPcSetup).not.toHaveBeenCalled();
+    expect(postSpy).not.toHaveBeenCalled();
+    cleanup();
+
+    h.isRemoteOrigin = true;
+    const remote = ready();
+    expect(h.topic?.enabled).toBe(false);
+    await act(async () => postFromFrame(remote.iframe, { type: 'nexus-build:setup-get', requestId: 'y' }));
+    await act(async () => postFromFrame(remote.iframe, { type: 'nexus-build:setup-put', requestId: 'z', baseRev: 0, setup }));
+    expect(h.fetchPcSetup).not.toHaveBeenCalled();
+    expect(h.putPcSetup).not.toHaveBeenCalled();
+  });
+});
+
+describe('BuildPage preview relay', () => {
+  beforeEach(() => {
+    previewApi.relayPreviewSave.mockReset();
+    previewApi.devTools = false;
+  });
+
+  function readyFrame() {
+    render(<BuildPage path="/builder" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    return { iframe, postSpy };
+  }
+
+  it('advertises canSavePreview in the app host only', () => {
+    const { postSpy } = readyFrame();
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canSavePreview: true }), BUILD_ORIGIN);
+  });
+
+  it('omits canSavePreview from a remote origin and ignores set-preview there', () => {
+    h.isRemoteOrigin = true;
+    const { iframe, postSpy } = readyFrame();
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('omits canSavePreview on macOS and ignores set-preview there', () => {
+    render(<BuildPage path="/builder" platform="macos" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('a dev-tools build offers and relays previews on macOS too', () => {
+    previewApi.devTools = true;
+    render(<BuildPage path="/builder" platform="macos" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canSavePreview: true }), BUILD_ORIGIN);
+    const png = new ArrayBuffer(4);
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png }));
+    expect(previewApi.relayPreviewSave).toHaveBeenCalledWith('case-abc', png);
+  });
+
+  it('a dev-tools build still omits canSavePreview on a remote origin', () => {
+    previewApi.devTools = true;
+    h.isRemoteOrigin = true;
+    const { iframe, postSpy } = readyFrame();
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).not.toHaveProperty('canSavePreview');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('relays a valid set-preview', () => {
+    const { iframe } = readyFrame();
+    const png = new ArrayBuffer(4);
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png }));
+    expect(previewApi.relayPreviewSave).toHaveBeenCalledWith('case-abc', png);
+  });
+
+  it.each([
+    ['null', null],
+    ['too long', 'x'.repeat(65)],
+    ['a path', '../etc'],
+    ['a number', 7],
+  ])('rejects a set-preview case id that is %s', (_label, bad) => {
+    const { iframe } = readyFrame();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: bad, png: new ArrayBuffer(4) }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
+  it('ignores set-preview from the wrong origin or source', () => {
+    const { iframe } = readyFrame();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) }, 'https://evil.example.com'));
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'nexus-build:set-preview', caseId: 'case-abc', png: new ArrayBuffer(4) },
+        origin: BUILD_ORIGIN,
+        source: window,
+      }));
+    });
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
   });
 });

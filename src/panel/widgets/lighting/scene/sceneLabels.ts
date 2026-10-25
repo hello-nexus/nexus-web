@@ -10,6 +10,7 @@ const STRIP_POSITIONS = ['front', 'top'] as const;
 export function objectLabel(t: T, obj: SceneObject): string {
   if (obj.label) return obj.label;
   if (obj.kind === 'case') return t('lighting.scene.kind.case');
+  if (obj.kind === 'desk') return t('lighting.scene.kind.desk');
   return t(isDeskKind(obj.kind) ? `lighting.scene.kind.${obj.kind}` : 'lighting.scene.kind.other');
 }
 

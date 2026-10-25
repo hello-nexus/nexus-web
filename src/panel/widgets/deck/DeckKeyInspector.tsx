@@ -45,6 +45,7 @@ import type {
   DeckAction, DeckActionType, DeckLightingMode, DeckMonitoringCategory, DeckMonitoringPress,
   DeckMonitoringStyle, DeckNexusAction, DeckNexusOp, DeckSlot, DeckTitleStyle,
 } from './types';
+import { DeckHotkeyField } from './DeckHotkeyField';
 import styles from './DeckKeyInspector.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -52,6 +53,8 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 export interface DeckEditContextValue {
   /** Fields must not write seed values on view (an inherited dial would copy its enclosing level into the folder). */
   freezeSeed: boolean;
+  /** The editor runs on the service, so ops only the service can perform are on offer. */
+  serviceOps?: boolean;
 }
 
 export const DeckEditContext = createContext<DeckEditContextValue>({ freezeSeed: false });
@@ -69,6 +72,16 @@ function deckAuthoringLocked(surface?: PanelSurface, desktopEditor?: boolean): b
   return surface === 'phone' && !desktopEditor;
 }
 
+/**
+ * Whether this editor can bind a global hotkey: the operator needs a keyboard
+ * (canEditFreeText rules out the on-device kiosk sheets) and a desktop session
+ * (a phone session is refused by the desktop-token-only hotkey routes, the same
+ * lock deckAuthoringLocked applies to privileged actions).
+ */
+export function canBindGlobalHotkey(surface?: PanelSurface, desktopEditor?: boolean): boolean {
+  return canEditFreeText(surface, desktopEditor) && !deckAuthoringLocked(surface, desktopEditor);
+}
+
 // NOTE: audioOutput / audioInput are intentionally omitted from every
 // category - switching the default audio endpoint needs IPolicyConfig in the
 // user session and isn't reliably verifiable yet (see deck plan: deferred).
@@ -80,14 +93,15 @@ function deckAuthoringLocked(surface?: PanelSurface, desktopEditor?: boolean): b
 // which doesn't fit a continuously-rendered sensor tile.
 export const NESTED_KINDS: DeckPickerKind[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
-  'text', 'power', 'lighting', 'cooling', 'y70', 'deckBrightness', 'deckSleep', 'playAudio',
+  'text', 'power', 'lighting', 'cooling', 'y70', 'nexusApp', 'deckBrightness', 'deckSleep', 'playAudio',
 ];
 
 // deckBrightness/deckSleep control a physical Stream Deck's own screen (see
-// deckExecutor's no-op comment); on a widget target they'd be a silent dead
-// button, so they're filtered out of every picker (top-level and nested
-// sequence/toggle steps) unless the target is a physical deck.
-const PHYSICAL_ONLY_KINDS = new Set(['deckBrightness', 'deckSleep']);
+// deckExecutor's no-op comment), and nexusApp opens or hides the desktop window
+// through the service; on a widget target they'd be a silent dead button, so
+// they're filtered out of every picker (top-level and nested sequence/toggle
+// steps) unless the target is a physical deck.
+const PHYSICAL_ONLY_KINDS = new Set(['deckBrightness', 'deckSleep', 'nexusApp']);
 
 export function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTarget['kind']): K[] {
   return targetKind === 'physical' ? kinds : kinds.filter(k => !PHYSICAL_ONLY_KINDS.has(k));
@@ -106,20 +120,25 @@ export function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTar
 export type DeckPickerKind =
   | Exclude<DeckActionType, 'page' | 'nexus'>
   | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto'
-  | 'lighting' | 'cooling' | 'y70';
+  | 'lighting' | 'cooling' | 'y70' | 'nexusApp';
 
 /** Which picker entry (and op dropdown) a nexus op belongs to. */
 export const NEXUS_OP_GROUPS = {
-  lighting: ['rgbEffect', 'lightingBrightness', 'lightingPreset'],
+  lighting: ['rgbEffect', 'lightingBrightness', 'lightingPreset', 'lightingPowerToggle', 'lightingBrightnessStep'],
   cooling: ['fanProfile', 'coolingPreset'],
   y70: ['y70Power', 'y70Brightness', 'y70Rotation'],
-} as const satisfies Record<'lighting' | 'cooling' | 'y70', readonly DeckNexusOp[]>;
+  nexusApp: ['toggleWindow'],
+} as const satisfies Record<'lighting' | 'cooling' | 'y70' | 'nexusApp', readonly DeckNexusOp[]>;
+
+/** Ops a touch widget has no route for; only the service (a physical deck or a hotkey) can run them. */
+export const SERVICE_ONLY_NEXUS_OPS: ReadonlySet<DeckNexusOp> = new Set<DeckNexusOp>(['toggleWindow']);
 
 export type DeckNexusGroup = keyof typeof NEXUS_OP_GROUPS;
 
 export function nexusGroupForOp(op: DeckNexusOp): DeckNexusGroup {
   if ((NEXUS_OP_GROUPS.cooling as readonly string[]).includes(op)) return 'cooling';
   if ((NEXUS_OP_GROUPS.y70 as readonly string[]).includes(op)) return 'y70';
+  if ((NEXUS_OP_GROUPS.nexusApp as readonly string[]).includes(op)) return 'nexusApp';
   return 'lighting';
 }
 
@@ -148,7 +167,7 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'nexus',
     labelKey: 'panel.settings.deck.category.nexus',
-    kinds: ['lighting', 'cooling', 'y70', 'monitoring', 'weather'],
+    kinds: ['nexusApp', 'lighting', 'cooling', 'y70', 'monitoring', 'weather'],
   },
   {
     key: 'multi',
@@ -213,7 +232,8 @@ function defaultActionForPickerKind(kind: Exclude<DeckPickerKind, 'folder'>): De
     case 'pageGoto': return { type: 'page', op: 'goto', target: 0 };
     case 'lighting':
     case 'cooling':
-    case 'y70': return { type: 'nexus', action: defaultNexusAction(NEXUS_OP_GROUPS[kind][0]) };
+    case 'y70':
+    case 'nexusApp': return { type: 'nexus', action: defaultNexusAction(NEXUS_OP_GROUPS[kind][0]) };
     default: return defaultActionFor(kind);
   }
 }
@@ -489,6 +509,7 @@ export function defaultNexusAction(op: DeckNexusOp): DeckNexusAction {
   switch (op) {
     case 'rgbEffect': return { op, mode: 'animate', effect: ANIMATE_EFFECTS[0].key };
     case 'lightingBrightness': return { op, value: 1 };
+    case 'lightingBrightnessStep': return { op, value: 0.1 };
     case 'fanProfile': return { op, profile: 'balanced' };
     case 'y70Power': return { op, on: true };
     case 'y70Brightness': return { op, value: 50 };
@@ -500,12 +521,13 @@ export function defaultNexusAction(op: DeckNexusOp): DeckNexusAction {
 
 function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type: 'nexus' }>; onChange: (a: DeckAction) => void }) {
   const { t } = useTranslation();
-  const { freezeSeed } = useContext(DeckEditContext);
+  const { freezeSeed, serviceOps } = useContext(DeckEditContext);
   const a = action.action;
   const set = (patch: Partial<DeckNexusAction>) => onChange({ type: 'nexus', action: { ...a, ...patch } });
   // Only this entry's own ops. Switching group is done by picking a different
   // action in the picker, so the dropdown stays 2-3 entries instead of eight.
-  const groupOps: readonly DeckNexusOp[] = NEXUS_OP_GROUPS[nexusGroupForOp(a.op)];
+  const groupOps: readonly DeckNexusOp[] = NEXUS_OP_GROUPS[nexusGroupForOp(a.op)]
+    .filter(o => serviceOps || !SERVICE_ONLY_NEXUS_OPS.has(o) || o === a.op);
 
   const lightingPresets = useServiceOptions('/devices/lighting-devices/layout-presets', d => {
     const list = (d as { presets?: { id: string; name: string }[] } | null)?.presets ?? [];
@@ -570,6 +592,24 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
           min={0}
           max={100}
           onChange={v => set({ value: clamp(Math.round(v) / 100, 0, 1) })}
+        />
+      )}
+      {a.op === 'lightingBrightnessStep' && (
+        <Slider
+          // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
+          orientation="stacked"
+          editable
+          trackFill
+          label={t('panel.settings.deck.step')}
+          ariaLabel={t('panel.settings.deck.step')}
+          value={Math.round((a.value ?? 0.1) * 100)}
+          min={-100}
+          max={100}
+          onChange={v => {
+            // A step of zero does nothing, so the slider jumps over it to the other direction.
+            const pct = Math.round(v);
+            set({ value: (pct === 0 ? ((a.value ?? 0.1) < 0 ? 1 : -1) : clamp(pct, -100, 100)) / 100 });
+          }}
         />
       )}
       {isPreset && (presets.length > 0 ? (
@@ -1421,6 +1461,9 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   // fixed position).
   const isWeather = slot.action?.type === 'weather';
 
+  // Any deck can carry a global hotkey, on a surface that has a keyboard and a desktop session.
+  const keyHotkey = canBindGlobalHotkey(surface, desktopEditor) && !!target.presetId;
+
   // fitToGrid inserted this key to move between pages on an overflowing
   // preset; it is never authored and DeckTarget.updateSlot/swapSlots refuse
   // to touch it, so there is nothing to edit or delete here.
@@ -1433,7 +1476,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   }
 
   return (
-    <DeckEditContext.Provider value={{ freezeSeed: false }}>
+    <DeckEditContext.Provider value={{ freezeSeed: false, serviceOps: target.kind === 'physical' }}>
     <div className={part === 'picker' ? `${styles.root} ${styles.pickerFill}` : styles.root}>
       {showPicker && (
         <SettingsSection
@@ -1478,6 +1521,15 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
                 ) : null}
               </div>
             </SettingsSection>
+          )}
+
+          {keyHotkey && slot.action && (
+            <DeckHotkeyField
+              presetId={target.presetId!}
+              tag={slot.hotkeyTag}
+              onTagChange={hotkeyTag => writeSlot({ ...slot, hotkeyTag })}
+              layout="section"
+            />
           )}
 
           {isMonitoring || isWeather ? (

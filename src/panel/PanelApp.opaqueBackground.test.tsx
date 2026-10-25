@@ -97,7 +97,7 @@ afterEach(() => {
 
 describe('PanelApp background under an opaque tile', () => {
   it('covers the shader while a photo fills kraken glass', async () => {
-    fetchMock.mockResolvedValue({ found: true, record: recordWith('kraken', '2x2round') });
+    fetchMock.mockResolvedValue({ found: true, record: recordWith('lcd-round', '2x2round') });
     await mountKiosk();
     await waitFor(() => expect(shaderCovered.at(-1)).toBe(true));
     expect(shaderCovered).toContain(false);
@@ -113,7 +113,7 @@ describe('PanelApp background under an opaque tile', () => {
   }
 
   it('keeps it drawing while the photo is letterboxed', async () => {
-    fetchMock.mockResolvedValue({ found: true, record: recordWith('kraken', '2x2round', { fit: true }) });
+    fetchMock.mockResolvedValue({ found: true, record: recordWith('lcd-round', '2x2round', { fit: true }) });
     await mountKiosk();
     await waitFor(() => expect(document.querySelector('img')).not.toBeNull());
     expect(shaderCovered.length).toBeGreaterThan(0);

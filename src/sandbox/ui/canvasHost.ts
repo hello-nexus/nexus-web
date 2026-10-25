@@ -7,11 +7,13 @@
 // remount does not find again.
 
 import type {
-  CanvasPointerEvent, HostToRenderer, RendererSize, RendererToHost,
+  CanvasPointerEvent, FramePacing, HostToRenderer, RendererSize, RendererToHost,
 } from '../../../sdk/runtime/rendererCore';
+import { panelDisplayHz, streamFrameCap } from '../../lib/framePacer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
+import { reportAppError } from '../../telemetry/appErrorReporting';
 
 export type CanvasPhase = 'loading' | 'ready' | 'error';
 
@@ -19,6 +21,10 @@ const DISPOSE_GRACE_MS = 5000;
 const BOOT_TIMEOUT_MS = 20_000;
 const MAX_RESPAWNS = 1;
 const MAX_PIXEL_RATIO = 1.5;
+/** Draw ceiling for a renderer on any page; a slower stream or panel lowers it. */
+const MAX_RENDERER_FPS = 60;
+/** Margin over the panel's reported refresh, which is a whole number under the true rate of a fractional mode. */
+const PANEL_HZ_HEADROOM = 1;
 /** Set by a Layer while one of its Manipulable gestures is live. */
 const LAYER_GESTURE_ATTR = 'data-layer-gesture-live';
 
@@ -26,6 +32,13 @@ const LAYER_GESTURE_ATTR = 'data-layer-gesture-live';
 export function cappedPixelRatio(): number {
   const dpr = typeof window !== 'undefined' && Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1;
   return Math.min(Math.max(dpr, 1), MAX_PIXEL_RATIO);
+}
+
+/** Draw-rate limits for a renderer on the page with this query: the ceiling, lowered by the stream's rate or the panel's refresh. */
+export function framePacing(search: string): FramePacing {
+  const displayHz = panelDisplayHz(search);
+  const panelCap = displayHz === null ? Infinity : displayHz + PANEL_HZ_HEADROOM;
+  return { maxFps: Math.min(MAX_RENDERER_FPS, streamFrameCap(search) ?? Infinity, panelCap), displayHz };
 }
 
 /**
@@ -305,12 +318,15 @@ export class CanvasSession {
     worker.addEventListener('error', (ev) => {
       if (worker !== this.worker) return;
       console.error(`[canvas:${this.spec.appId}] worker error`, ev.message);
+      reportAppError(this.spec.appId, 'canvas-error', ev.message);
       // A live renderer that already used its respawn keeps running past a stray fault.
       if (this.phase === 'ready' && this.respawns >= MAX_RESPAWNS) return;
       this.workerFailed();
     });
     this.bootTimer = setTimeout(() => {
-      if (worker === this.worker && !this.booted) this.workerFailed();
+      if (worker !== this.worker || this.booted) return;
+      reportAppError(this.spec.appId, 'boot-timeout', 'renderer did not boot in time');
+      this.workerFailed();
     }, BOOT_TIMEOUT_MS);
   }
 
@@ -334,8 +350,13 @@ export class CanvasSession {
       case 'read-asset':
         void this.serveAsset(worker, m.id, m.path);
         return;
+      case 'rejection':
+        console.error(`[canvas:${this.spec.appId}] unhandled rejection`, m.message);
+        reportAppError(this.spec.appId, 'unhandled-rejection', m.message);
+        return;
       case 'error':
         console.error(`[canvas:${this.spec.appId}] renderer error`, m.message);
+        reportAppError(this.spec.appId, 'canvas-error', m.message);
         if (this.phase !== 'ready') this.workerFailed();
         return;
     }
@@ -356,6 +377,7 @@ export class CanvasSession {
     this.lastVisible = claim?.visible ?? true;
     const init: HostToRenderer = {
       type: 'init', canvas: offscreen, size, props: claim?.props ?? {}, visible: this.lastVisible,
+      pacing: framePacing(window.location.search),
     };
     worker.postMessage(init, [offscreen]);
   }
@@ -418,6 +440,7 @@ export class CanvasSession {
 
   private fail(reason: unknown): void {
     console.error(`[canvas:${this.spec.appId}] renderer failed`, reason);
+    // Not reported as an app error: a missing module or a failed transfer is the host or network, and worker faults are reported where they arrive.
     this.teardownWorker();
     this.setPhase('error');
   }

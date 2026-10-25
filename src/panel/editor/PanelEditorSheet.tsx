@@ -16,7 +16,7 @@ import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
 import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import type { TextColorMode } from '../theme/textColor';
-import type { PanelFontId } from '../theme/panelFont';
+import type { PanelFont } from '../theme/panelFont';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
@@ -29,6 +29,7 @@ import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 import { isSingleWidgetSurface, surfaceDisplayShape, surfaceSupportsTouch, type ForcedGrid } from '../types';
 import type { PanelBackgroundMode } from '../background/panelBackground';
+import { usePanelAudioReactive } from '../background/panelAudio';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
 
@@ -89,6 +90,7 @@ export function PanelEditorSheet({
   onThemeWidgetPaddingPreview,
   onThemeWidgetPaddingCommit,
   showMediaTab = false,
+  showSystemFonts = false,
   deviceAspect,
   deviceW,
   deviceH,
@@ -173,9 +175,10 @@ export function PanelEditorSheet({
   onThemeTextColorModeCommit: (mode: TextColorMode) => void;
   onThemeTextColorPreview: (hex: string) => void;
   onThemeTextColorCommit: (hex: string) => void;
-  onThemeFontCommit: (font: PanelFontId | null) => void;
+  onThemeFontCommit: (font: PanelFont | null) => void;
   onThemeWidgetPaddingPreview: (percent: number) => void;
   onThemeWidgetPaddingCommit: (percent: number) => void;
+  showSystemFonts?: boolean;
   showMediaTab?: boolean;
   deviceAspect?: number;
   deviceW?: number;
@@ -200,6 +203,7 @@ export function PanelEditorSheet({
   editView: DeckEditView;
   onEditViewChange: (view: DeckEditView) => void;
 }) {
+  const audioReactive = usePanelAudioReactive(surface);
   const { t, language } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
@@ -467,6 +471,7 @@ export function PanelEditorSheet({
               onBackdropCommit={onThemeBackdropCommit}
               showBackdropSelector={showBackdropSelector}
               backgroundHeldBy={backgroundHeldBy}
+              audioReactive={audioReactive}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}
@@ -480,6 +485,7 @@ export function PanelEditorSheet({
               onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
               onImmersiveBackdropCommit={onThemeImmersiveBackdropCommit}
               showMediaTab={showMediaTab}
+              showSystemFonts={showSystemFonts}
               deviceAspect={deviceAspect}
               roundDisplay={surfaceDisplayShape(surface) === 'round'}
               deviceW={deviceW}

@@ -583,6 +583,28 @@ describe('MonitoringPage', () => {
     expect(updateMock).toHaveBeenCalledWith({ monitoringDetailedCollapsed: ['cpu'] });
   });
 
+  it('filters the Detailed tab as the query is typed and shows the empty state', () => {
+    collapsedState = [];
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />);
+    const box = screen.getByPlaceholderText('monitoring.detailed.searchPlaceholder');
+
+    fireEvent.change(box, { target: { value: 'dimm' } });
+    expect(screen.getByText('DIMM #0')).toBeInTheDocument();
+    expect(screen.queryByText('CPU Total')).toBeNull();
+
+    // A space makes each word its own match, across section and sensor.
+    fireEvent.change(box, { target: { value: 'cpu total' } });
+    expect(screen.getByText('CPU Total')).toBeInTheDocument();
+    expect(screen.queryByText('DIMM #0')).toBeNull();
+
+    fireEvent.change(box, { target: { value: 'zzzz' } });
+    expect(screen.getByText('monitoring.detailed.noMatches')).toBeInTheDocument();
+
+    fireEvent.change(box, { target: { value: '' } });
+    expect(screen.getByText('CPU Total')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.detailed.noMatches')).toBeNull();
+  });
+
   it('boxes each family section (CollapsibleSection boxed) but not its nested sensor-type group', () => {
     collapsedState = [];
 

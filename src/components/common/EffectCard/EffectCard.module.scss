@@ -211,6 +211,27 @@
   right: 0.3rem;
 }
 
+// Shared edit hint (see EditHint). Dark scrim, so white glyph regardless of
+// theme; the glyph is sized as a share of the tile's width.
+.cardEditable {
+  position: relative;
+}
+
+.editHint {
+  --edit-hint-color: #fff;
+  --edit-hint-icon-size: 20%;
+}
+
+// Only the selected tile carries the hint, so :hover on the card shows it the
+// moment the pointer is already over it when the selection lands.
+@media (hover: hover) and (pointer: fine) {
+  .card:hover [data-edit-hint-overlay],
+  .card:focus-visible [data-edit-hint-overlay],
+  .card[data-edit-hint-shown] [data-edit-hint-overlay] {
+    opacity: 1;
+  }
+}
+
 .card:hover [data-card-delete='hover'],
 .card:focus-within [data-card-delete='hover'] {
   opacity: 1;

@@ -8,6 +8,7 @@ import { useTranslation } from '../lib/i18n';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
+import { reportAppError } from '../telemetry/appErrorReporting';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 import { MediaImportProvider } from './mediaImportContext';
 import { SdkAppIdContext } from './appIdContext';
@@ -125,7 +126,7 @@ interface LiveWidget {
   // drive this one worker, which holds one size. Newest mount last: it owns the
   // size, and when it leaves the one below re-asserts its own, else the cell
   // stays drawn at fullscreen scale. Disposal waits for the last mount.
-  mounts: Array<{ pushSize: () => void; exitImmersive: () => void; enterImmersive: () => void; wakeAppData: () => void; setOpaque: (opaque: boolean) => void }>;
+  mounts: Array<{ pushSize: () => void; exitImmersive: () => void; enterImmersive: () => void; wakeAppData: () => void; setOpaque: (opaque: boolean) => void; respawn: () => void }>;
   // The worker's last useOpaque() report, for the life of the WORKER: a
   // remount that adopts it never hears the report again, so it reads this.
   opaque: boolean;
@@ -150,6 +151,40 @@ const KEEP_ALIVE_MS = 2500;
 const ENTER_AFTER_PRESS_MS = 1500;
 /** How long after a press a widget may claim the page's solo audio clock, so only the tile being used takes the music. */
 const SOLO_AFTER_PRESS_MS = 10_000;
+
+/** Unresponsive-worker restarts allowed per worker cache key within the window. */
+const MAX_RESTARTS = 3;
+const RESTART_WINDOW_MS = 10 * 60 * 1000;
+const restartLog = new Map<string, number[]>();
+const capReportedAt = new Map<string, number>();
+
+/** Replaces a dead worker the way a fresh mount would: drop its cache entry and re-run every mount's spawn effect. */
+function restartUnresponsive(key: string, widgetId: string): void {
+  const e = liveWidgets.get(key);
+  if (!e) return;
+  const now = Date.now();
+  const recent = (restartLog.get(key) ?? []).filter((t) => now - t < RESTART_WINDOW_MS);
+  if (recent.length >= MAX_RESTARTS) {
+    // The worker's watchdog keeps firing, so this is retried until the oldest restart ages out.
+    const reported = capReportedAt.get(key);
+    if (reported === undefined || now - reported >= RESTART_WINDOW_MS) {
+      capReportedAt.set(key, now);
+      console.warn(`[sdk:${widgetId}] worker unresponsive, restart limit reached`);
+      reportAppError(widgetId, 'worker-unresponsive', 'worker unresponsive, restart limit reached');
+    }
+    return;
+  }
+  restartLog.set(key, [...recent, now]);
+  console.warn(`[sdk:${widgetId}] worker unresponsive, restarted`);
+  reportAppError(widgetId, 'worker-unresponsive', 'worker unresponsive, restarted');
+  if (e.disposeTimer) clearTimeout(e.disposeTimer);
+  if (e.parkTimer) clearTimeout(e.parkTimer);
+  e.handle.dispose();
+  e.audioEngine?.dispose();
+  liveWidgets.delete(key);
+  // The cleanup of the old effect finds no entry, so the opaque report is reset here.
+  for (const m of [...e.mounts]) { m.setOpaque(false); m.respawn(); }
+}
 
 /** Validates and records a key the worker just read or wrote, then wakes the
  *  newest mount so it (re)renders that key's topic bridge. Throws (before any
@@ -213,6 +248,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   // noteAppDataKey) - only the newest mount is ever woken, so only it renders
   // the topic bridges below.
   const [, bumpAppDataTick] = useState(0);
+  const [respawnTick, setRespawnTick] = useState(0);
   // This mount's identity inside the cache entry's stack; stable for its life.
   const mountRef = useRef<LiveWidget["mounts"][number] | null>(null);
   if (mountRef.current === null) {
@@ -222,6 +258,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       enterImmersive: () => enterImmersiveRef.current?.(),
       wakeAppData: () => bumpAppDataTick((t) => t + 1),
       setOpaque: (opaque) => opaqueChangeRef.current?.(opaque),
+      respawn: () => setRespawnTick((t) => t + 1),
     };
   }
 
@@ -267,6 +304,8 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         local: readLocal(widgetId, instanceId),
         netFetch: netFetch ?? [],
         sensorsRead: sensorsRead ?? [],
+        isActive: () => (liveWidgets.get(key)?.mounts.length ?? 0) > 0,
+        onUnresponsive: () => restartUnresponsive(key, widgetId),
         api: {
           persistLocal: preview
             ? () => { /* preview: no localStorage writes */ }
@@ -375,7 +414,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     // Identity is the widget instance + surface (+ preview) + bundle (+ app-data
     // epoch); settings change in place on the reused worker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetId, instanceId, surface, preview, entryUrl, appDataEnabled ? appDataEpoch : '']);
+  }, [widgetId, instanceId, surface, preview, entryUrl, appDataEnabled ? appDataEpoch : '', respawnTick]);
 
   useEffect(() => {
     handle?.update({ settings: settings ?? {} });

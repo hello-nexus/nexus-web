@@ -1,0 +1,218 @@
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { getDeckInstances, getDeckPreset, getDeckPresets, type DeckPresetSummary } from '../../../api/deck';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import type { HotkeyBinding } from '../../../api/hotkeys';
+import type { DeckConfig } from './types';
+
+const DEVICE_PREFIX = 'streamdeck:';
+const WIDGET_PREFIX = 'widget:';
+
+// One copy for every mounted consumer (each deck hotkey field plus the Hotkeys
+// tab), cleared when the last one unmounts. Topic frames patch it in place; a
+// refetch happens only for what a frame says changed.
+const store = {
+  names: {} as Record<string, string>,
+  configs: {} as Record<string, DeckConfig>,
+  /** Instance id (`streamdeck:<serial>` or `widget:<id>`) with the preset it shows. */
+  instances: [] as { id: string; presetId: string }[],
+  version: 0,
+  users: 0,
+  epoch: 0,
+  namesInflight: false,
+  instancesInflight: false,
+  // A frame that said something changed while a GET was in flight: read again once it settles.
+  namesDirty: false,
+  instancesDirty: false,
+  configsPending: new Set<string>(),
+  // The newest config a `preset` frame carried for a config whose GET had not landed yet.
+  configFrames: {} as Record<string, DeckConfig>,
+};
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+function bump(): void {
+  store.version += 1;
+  listeners.forEach(l => l());
+}
+
+function setNames(list: readonly { id: string; name: string }[]): void {
+  store.names = Object.fromEntries(list.map(p => [p.id, p.name]));
+  bump();
+}
+
+// A frame newer than an in-flight GET: the GET result would overwrite it, so read again after.
+function markNamesFromFrame(): void {
+  if (store.namesInflight) store.namesDirty = true;
+}
+
+function refreshNames(): void {
+  if (store.namesInflight) {
+    store.namesDirty = true;
+    return;
+  }
+  const epoch = store.epoch;
+  store.namesInflight = true;
+  store.namesDirty = false;
+  void getDeckPresets().then(list => {
+    if (epoch !== store.epoch) return;
+    store.namesInflight = false;
+    setNames(list);
+    if (store.namesDirty) refreshNames();
+  }, () => {
+    if (epoch === store.epoch) store.namesInflight = false;
+  });
+}
+
+function refreshInstances(): void {
+  if (store.instancesInflight) {
+    store.instancesDirty = true;
+    return;
+  }
+  const epoch = store.epoch;
+  store.instancesInflight = true;
+  store.instancesDirty = false;
+  void getDeckInstances().then(map => {
+    if (epoch !== store.epoch) return;
+    store.instancesInflight = false;
+    store.instances = Object.entries(map).map(([id, inst]) => ({ id, presetId: inst.activePresetId }));
+    bump();
+    if (store.instancesDirty) refreshInstances();
+  }, () => {
+    if (epoch === store.epoch) store.instancesInflight = false;
+  });
+}
+
+function ensureConfigs(ids: readonly string[]): void {
+  const epoch = store.epoch;
+  for (const id of ids) {
+    if (store.configs[id] || store.configsPending.has(id)) continue;
+    store.configsPending.add(id);
+    void getDeckPreset(id).then(preset => {
+      if (epoch !== store.epoch) return;
+      store.configsPending.delete(id);
+      // A frame that arrived during the GET is newer than the GET.
+      const deck = store.configFrames[id] ?? preset?.deck;
+      delete store.configFrames[id];
+      if (deck) {
+        store.configs = { ...store.configs, [id]: deck };
+        bump();
+      }
+    }, () => {
+      if (epoch === store.epoch) store.configsPending.delete(id);
+    });
+  }
+}
+
+interface DeckFrame { kind?: string; presetId?: string; summary?: DeckPresetSummary; deck?: DeckConfig; presets?: DeckPresetSummary[] }
+
+function handleDeckFrame(data: unknown): void {
+  const frame = data as DeckFrame;
+  if (frame.kind === 'presets') {
+    // The frame carries the whole list, so no GET is needed.
+    if (frame.presets) {
+      markNamesFromFrame();
+      setNames(frame.presets);
+    } else refreshNames();
+  } else if (frame.kind === 'preset' && frame.presetId) {
+    let changed = false;
+    if (frame.summary && store.names[frame.presetId] !== frame.summary.name) {
+      markNamesFromFrame();
+      store.names = { ...store.names, [frame.presetId]: frame.summary.name };
+      changed = true;
+    }
+    if (frame.deck && store.configs[frame.presetId]) {
+      store.configs = { ...store.configs, [frame.presetId]: frame.deck };
+      changed = true;
+    } else if (frame.deck && store.configsPending.has(frame.presetId)) {
+      store.configFrames[frame.presetId] = frame.deck;
+    }
+    if (changed) bump();
+  } else if (frame.kind === 'active') {
+    refreshInstances();
+  }
+}
+
+export interface HotkeyDeckInfo {
+  presetNames: Record<string, string>;
+  /** Authored config per preset the bindings point at; only when `configs` was asked for. */
+  configs: Record<string, DeckConfig>;
+  /** The connected device currently showing each preset, the target of an editor jump. */
+  serialByPreset: Record<string, string>;
+  /** Every deck showing each preset: device serials and how many Deck widgets. */
+  holders: Record<string, { serials: string[]; widgets: number }>;
+}
+
+/**
+ * What a deck binding row needs to describe itself: preset names, the preset
+ * configs (to find where a tag sits), and which connected deck shows which
+ * preset. Derived values are computed in render, so an emptied deck list needs
+ * no effect.
+ */
+export function useHotkeyDeckInfo(
+  enabled: boolean,
+  bindings: readonly HotkeyBinding[],
+  options: { configs: boolean; deckSerials: readonly string[] },
+): HotkeyDeckInfo {
+  const version = useSyncExternalStore(subscribe, () => store.version);
+  useTopicCallback('deck', enabled, useCallback((data: unknown) => handleDeckFrame(data), []));
+
+  useEffect(() => {
+    if (!enabled) return;
+    store.users += 1;
+    if (store.users === 1) {
+      refreshNames();
+      refreshInstances();
+    }
+    return () => {
+      store.users -= 1;
+      if (store.users === 0) {
+        store.epoch += 1;
+        Object.assign(store, {
+          names: {}, configs: {}, instances: [], namesInflight: false, instancesInflight: false,
+          namesDirty: false, instancesDirty: false, configsPending: new Set<string>(), configFrames: {},
+        });
+        // A mounted but disabled consumer must not keep reading the old maps.
+        bump();
+      }
+    };
+  }, [enabled]);
+
+  const presetKey = useMemo(
+    () => [...new Set(bindings.flatMap(b => (b.target.kind === 'deck' ? [b.target.presetId] : [])))].sort().join(','),
+    [bindings],
+  );
+  const wantConfigs = options.configs;
+  useEffect(() => {
+    if (enabled && wantConfigs && presetKey) ensureConfigs(presetKey.split(','));
+  }, [enabled, wantConfigs, presetKey]);
+
+  const serialKey = options.deckSerials.join(',');
+
+  return useMemo(() => {
+    const present = new Set(serialKey ? serialKey.split(',') : []);
+    const serialByPreset: Record<string, string> = {};
+    const holders: Record<string, { serials: string[]; widgets: number }> = {};
+    for (const i of store.instances) {
+      const entry = (holders[i.presetId] ??= { serials: [], widgets: 0 });
+      if (i.id.startsWith(DEVICE_PREFIX)) {
+        const serial = i.id.slice(DEVICE_PREFIX.length);
+        entry.serials.push(serial);
+        if (present.has(serial)) serialByPreset[i.presetId] = serial;
+      } else if (i.id.startsWith(WIDGET_PREFIX)) {
+        entry.widgets += 1;
+      }
+    }
+    return {
+      presetNames: store.names,
+      configs: wantConfigs ? store.configs : {},
+      serialByPreset,
+      holders,
+    };
+    // version is the store's change counter; the derived maps are read from the store.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version, serialKey, wantConfigs]);
+}

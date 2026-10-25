@@ -4,9 +4,11 @@ const fetchBundleFile = vi.fn();
 const fetchServiceBlob = vi.fn();
 vi.mock('../../panel/widgets/marketplace/useSdkBundle', () => ({ fetchBundleFile: (...a: unknown[]) => fetchBundleFile(...a) }));
 vi.mock('../../api/service', () => ({ fetchServiceBlob: (...a: unknown[]) => fetchServiceBlob(...a) }));
+const reportAppError = vi.fn();
+vi.mock('../../telemetry/appErrorReporting', () => ({ reportAppError: (...a: unknown[]) => reportAppError(...a) }));
 
 import {
-  acquireCanvas, canvasKey, cappedPixelRatio, inViewFromEntries, normaliseAssetPath, releaseCanvas,
+  acquireCanvas, canvasKey, cappedPixelRatio, framePacing, inViewFromEntries, normaliseAssetPath, releaseCanvas,
   type CanvasClaim, type CanvasSpec,
 } from '../ui/canvasHost';
 
@@ -55,6 +57,7 @@ beforeEach(() => {
   FakeWorker.all = [];
   fetchBundleFile.mockReset().mockResolvedValue(new Blob(['export {}']));
   fetchServiceBlob.mockReset();
+  reportAppError.mockReset();
   vi.stubGlobal('Worker', FakeWorker);
   let n = 0;
   URL.createObjectURL = () => `blob:test/${n++}`;
@@ -92,6 +95,15 @@ describe('helpers', () => {
     vi.stubGlobal('devicePixelRatio', 0.5);
     expect(cappedPixelRatio()).toBe(1);
   });
+  it('reads the page draw-rate limits from its query', () => {
+    expect(framePacing('')).toEqual({ maxFps: 60, displayHz: null });
+    expect(framePacing('?displayHz=144')).toEqual({ maxFps: 60, displayHz: 144 });
+    expect(framePacing('?displayHz=59')).toEqual({ maxFps: 60, displayHz: 59 });
+    expect(framePacing('?displayHz=50')).toEqual({ maxFps: 51, displayHz: 50 });
+    expect(framePacing('?streamFps=90&displayHz=144')).toEqual({ maxFps: 60, displayHz: 144 });
+    expect(framePacing('?streamFps=30&displayHz=60')).toEqual({ maxFps: 30, displayHz: 60 });
+  });
+
   it('reads the newest intersection record', () => {
     expect(inViewFromEntries([{ isIntersecting: false }, { isIntersecting: true }], false)).toBe(true);
     expect(inViewFromEntries([], true)).toBe(true);
@@ -113,7 +125,10 @@ describe('CanvasSession protocol', () => {
 
     worker.emit({ type: 'booted' });
     const init = worker.posted[0];
-    expect(init.data).toMatchObject({ type: 'init', size: { width: 320, height: 180, pixelRatio: 1.5 }, props: { hello: 'x' }, visible: true });
+    expect(init.data).toMatchObject({
+      type: 'init', size: { width: 320, height: 180, pixelRatio: 1.5 }, props: { hello: 'x' }, visible: true,
+      pacing: { maxFps: 60, displayHz: null },
+    });
     expect(init.transfer).toEqual([{ offscreen: true }]);
 
     worker.emit({ type: 'ready' });
@@ -453,11 +468,41 @@ describe('failure handling', () => {
     expect(session.phase).toBe('error');
   });
 
+  it('reports a worker fault and a renderer error once each with the app id, not the respawn follow-up', async () => {
+    const { worker } = await readySession();
+    worker.fault();
+    await flush();
+    expect(reportAppError).toHaveBeenCalledTimes(1);
+    expect(reportAppError).toHaveBeenLastCalledWith('com.test.app', 'canvas-error', 'fault');
+    const second = FakeWorker.all[1];
+    second.emit({ type: 'booted' });
+    second.emit({ type: 'ready' });
+    second.emit({ type: 'error', message: 'draw threw' });
+    expect(reportAppError).toHaveBeenCalledTimes(2);
+    expect(reportAppError).toHaveBeenLastCalledWith('com.test.app', 'canvas-error', 'draw threw');
+  });
+
+  it('does not blame the app when the renderer module cannot be fetched', async () => {
+    fetchBundleFile.mockResolvedValue(null);
+    acquireCanvas(freshKey(), spec, makeWrap(), claimOf());
+    await flush();
+    expect(reportAppError).not.toHaveBeenCalled();
+  });
+
+  it('reports an unhandled rejection forwarded by the renderer worker without respawning', async () => {
+    const { worker, session } = await readySession();
+    worker.emit({ type: 'rejection', message: 'late' });
+    expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'unhandled-rejection', 'late');
+    expect(session.phase).toBe('ready');
+    expect(FakeWorker.all).toHaveLength(1);
+  });
+
   it('errors when the worker never boots', async () => {
     vi.useFakeTimers();
     const session = acquireCanvas(freshKey(), spec, makeWrap(), claimOf());
     await vi.advanceTimersByTimeAsync(21_000);
     await vi.advanceTimersByTimeAsync(21_000);
     expect(session.phase).toBe('error');
+    expect(reportAppError).toHaveBeenCalledWith('com.test.app', 'boot-timeout', 'renderer did not boot in time');
   });
 });

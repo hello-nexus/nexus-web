@@ -95,14 +95,14 @@ describe('planPlacement', () => {
 
   it('uses the grid sizes an app declares on multi-widget screens, and each small screen\'s own size', () => {
     const gridOnly = { ...meta, defaultSize: '4x4' as const, gridSizes: ['4x4' as const] };
-    const kraken: PlacementTarget = { key: 'stream-k', name: 'Kraken', iconSrc: null, surface: 'kraken' };
+    const kraken: PlacementTarget = { key: 'stream-k', name: 'Kraken', iconSrc: null, surface: 'lcd-round' };
     const square: PlacementTarget = { key: 'stream-s', name: 'LCD', iconSrc: null, surface: 'lcd-square' };
     const empty = (surface: PanelLayout['surface']) => ({ layout: layoutOf(surface, []) });
 
     expect(planPlacement(dashboard, empty('desktop'), TYPE, gridOnly, 10)?.widget.size).toBe('4x4');
     expect(planPlacement(y70, empty('y70'), TYPE, gridOnly, 10)?.widget.size).toBe('4x4');
     expect(planPlacement(q60, empty('q60'), TYPE, gridOnly, 10)?.widget.size).toBe('2x4');
-    expect(planPlacement(kraken, empty('kraken'), TYPE, gridOnly, 10)?.widget.size).toBe('2x2round');
+    expect(planPlacement(kraken, empty('lcd-round'), TYPE, gridOnly, 10)?.widget.size).toBe('2x2round');
     expect(planPlacement(square, empty('lcd-square'), TYPE, gridOnly, 10)?.widget.size).toBe('2x2');
   });
 
@@ -121,8 +121,8 @@ describe('planPlacement', () => {
   });
 
   it('offers nothing on round glass to an app without the round tile', () => {
-    const kraken: PlacementTarget = { key: 'stream-k', name: 'Kraken', iconSrc: null, surface: 'kraken' };
-    const plan = planPlacement(kraken, { layout: layoutOf('kraken', []) }, TYPE, { ...meta, sizes: ['2x2', '4x2'] }, 6);
+    const kraken: PlacementTarget = { key: 'stream-k', name: 'Kraken', iconSrc: null, surface: 'lcd-round' };
+    const plan = planPlacement(kraken, { layout: layoutOf('lcd-round', []) }, TYPE, { ...meta, sizes: ['2x2', '4x2'] }, 6);
 
     expect(plan).toBeNull();
   });

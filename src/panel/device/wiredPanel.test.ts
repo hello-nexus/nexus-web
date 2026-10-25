@@ -138,6 +138,6 @@ describe('panelOfflineGrace', () => {
   it('gives the q60 and non-phone surfaces no grace', () => {
     expect(panelOfflineGrace('q60', 'lan').graceMs).toBe(0);
     expect(panelOfflineGrace('desktop', 'lan').graceMs).toBe(0);
-    expect(panelOfflineGrace('kraken', 'lan').graceMs).toBe(0);
+    expect(panelOfflineGrace('lcd-round', 'lan').graceMs).toBe(0);
   });
 });

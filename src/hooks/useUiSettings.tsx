@@ -134,6 +134,10 @@ export interface UiSettingsValue {
   startupDelaySeconds: number;
   // Machine-level, server-mirrored under the preferences top-level readRamTemperatures field.
   readRamTemperatures: boolean;
+  // Linux-only, server-mirrored under the preferences top-level amdGpuLighting field.
+  amdGpuLighting: boolean;
+  // Read-only: the service reports whether the switch applies on this host.
+  amdGpuLightingApplicable: boolean;
   // Global feature switches (default on), server-mirrored under the
   // preferences `features` block. See {@link useFeatureFlags} for the
   // read-only accessor gated surfaces should use instead of this hook.
@@ -263,6 +267,8 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
     readRamTemperatures: src.general.readRamTemperatures,
+    amdGpuLighting: src.general.amdGpuLighting,
+    amdGpuLightingApplicable: false,
     featureLightingEnabled: src.general.featureLightingEnabled,
     featureCoolingEnabled: src.general.featureCoolingEnabled,
     featureMonitoringEnabled: src.general.featureMonitoringEnabled,
@@ -333,6 +339,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
       readRamTemperatures: src.readRamTemperatures,
+      amdGpuLighting: src.amdGpuLighting,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
       featureMonitoringEnabled: src.featureMonitoringEnabled,
@@ -404,6 +411,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
   if (patch.readRamTemperatures !== undefined) out.readRamTemperatures = patch.readRamTemperatures;
+  if (patch.amdGpuLighting !== undefined) out.amdGpuLighting = patch.amdGpuLighting;
   // features block
   const features: FeaturesPrefs = {};
   if (patch.featureLightingEnabled !== undefined) features.lighting = patch.featureLightingEnabled;
@@ -531,6 +539,8 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
     readRamTemperatures: server.readRamTemperatures ?? base.readRamTemperatures,
+    amdGpuLighting: server.amdGpuLighting ?? base.amdGpuLighting,
+    amdGpuLightingApplicable: server.amdGpuLightingApplicable === true,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
     featureCoolingEnabled: server.features?.cooling ?? base.featureCoolingEnabled,
     featureMonitoringEnabled: server.features?.monitoring ?? base.featureMonitoringEnabled,
@@ -629,7 +639,8 @@ export function UiSettingsProvider({
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined
-      || serverPatch.readRamTemperatures !== undefined;
+      || serverPatch.readRamTemperatures !== undefined
+      || serverPatch.amdGpuLighting !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Merge into (not replace) the still-pending patch so fields from separate

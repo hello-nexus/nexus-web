@@ -3,6 +3,8 @@
 // global. Must not import react or reach for __nexusRuntime: it is inlined into
 // the app's renderer module, which runs in a worker without the SDK runtime.
 
+import { createDisplayDivider, createFramePacer } from '../../src/lib/framePacer';
+
 export interface CanvasPointerEvent {
   type: 'down' | 'move' | 'up' | 'cancel' | 'wheel';
   pointerId: number;
@@ -23,6 +25,14 @@ export interface RendererSize {
   pixelRatio: number;
 }
 
+/** Draw-rate limits of the page holding the canvas; with neither, every animation frame draws. */
+export interface FramePacing {
+  /** Most draws a second the page takes, held exactly; wins over displayHz. Or null. */
+  maxFps: number | null;
+  /** Refresh rate of the panel the page is shown on (`?displayHz=`): ticks are divided down to the slowest even rate at or above it. Or null. */
+  displayHz: number | null;
+}
+
 export interface RendererContext {
   canvas: OffscreenCanvas;
   size: RendererSize;
@@ -36,7 +46,7 @@ export interface RendererContext {
   /** Fires after the canvas backing store was resized to the new size. */
   onResize(cb: (size: RendererSize) => void): void;
   onPointer(cb: (e: CanvasPointerEvent) => void): void;
-  /** Runs on the worker's animation frame, only while visible. dt is in seconds and capped. */
+  /** Runs on the worker's animation frame, only while visible and paced to the panel (see FramePacing). dt is in seconds and capped. */
   onFrame(cb: (dt: number, now: number) => void): void;
   onVisibility(cb: (visible: boolean) => void): void;
   /** Call once the first frame is drawn; the host then reveals the canvas. */
@@ -45,7 +55,7 @@ export interface RendererContext {
 
 /** Messages the host sends to the renderer worker. */
 export type HostToRenderer =
-  | { type: 'init'; canvas: OffscreenCanvas; size: RendererSize; props: Record<string, unknown>; visible: boolean }
+  | { type: 'init'; canvas: OffscreenCanvas; size: RendererSize; props: Record<string, unknown>; visible: boolean; pacing?: FramePacing }
   | { type: 'props'; props: Record<string, unknown> }
   | { type: 'resize'; size: RendererSize }
   | { type: 'pointer'; event: CanvasPointerEvent }
@@ -59,7 +69,8 @@ export type RendererToHost =
   | { type: 'ready' }
   | { type: 'post'; data: unknown }
   | { type: 'read-asset'; id: number; path: string }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'rejection'; message: string };
 
 /** The slice of a worker global the protocol needs. */
 export interface RendererPort {
@@ -89,6 +100,7 @@ export function runRenderer(start: (ctx: RendererContext) => void | Promise<void
   let props: Record<string, unknown> = {};
   let raf = 0;
   let last = 0;
+  let shouldDraw: (now: number) => boolean = () => true;
 
   const report = (e: unknown) => port.postMessage({ type: 'error', message: errorMessage(e) });
   const safe = <A extends unknown[]>(cbs: Array<(...a: A) => void>, ...args: A) => {
@@ -100,9 +112,12 @@ export function runRenderer(start: (ctx: RendererContext) => void | Promise<void
   const tick = (now: number) => {
     raf = 0;
     if (!visible || frameCbs.length === 0) return;
-    const dt = last === 0 ? 0 : Math.min((now - last) / 1000, MAX_FRAME_DT);
-    last = now;
-    safe(frameCbs, dt, now);
+    // Every tick reaches the gate: the panel divider learns the tick rate from them.
+    if (shouldDraw(now)) {
+      const dt = last === 0 ? 0 : Math.min((now - last) / 1000, MAX_FRAME_DT);
+      last = now;
+      safe(frameCbs, dt, now);
+    }
     schedule();
   };
   const schedule = () => {
@@ -154,6 +169,7 @@ export function runRenderer(start: (ctx: RendererContext) => void | Promise<void
         canvas = m.canvas;
         props = m.props;
         visible = m.visible;
+        if (m.pacing) shouldDraw = m.pacing.maxFps ? createFramePacer(m.pacing.maxFps) : createDisplayDivider(m.pacing.displayHz);
         applySize(m.size);
         try {
           void Promise.resolve(start(ctx)).then(schedule, report);

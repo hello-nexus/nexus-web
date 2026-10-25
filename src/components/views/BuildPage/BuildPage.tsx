@@ -9,10 +9,16 @@ import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
+import { PC_SETUP_TOPIC } from '../../../api/pcSetup';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
+import { DEV_TOOLS } from '../../../lib/devTools';
+import { isMacAppShell } from '../../../app/windowActions';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
+import { relayPreviewSave } from './buildPreview';
 import { relaySceneExport } from './buildScene';
+import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
@@ -41,6 +47,23 @@ interface BuildMachine {
   hz?: number;
   ramGb?: number;
   caseId?: string;
+  devices?: BuildDevice[];
+}
+
+/** One detected cooler, fan or controller from the service's `/system/devices`; passed through to the frame untouched. */
+interface BuildDevice {
+  key: string;
+  modelKey: string;
+  category: string;
+  vendor: string;
+  model: string;
+  vid?: number;
+  pid?: number;
+  family?: string;
+  count?: number;
+  countSource?: string;
+  radiatorMm?: number;
+  partOf?: string;
 }
 
 interface BuildGame {
@@ -102,13 +125,16 @@ interface BuildPageProps {
   onOpenBenchmark?: () => void;
   /** Opens the Lighting page after the frame sent the PC there as a 3D scene. */
   onOpenLighting?: () => void;
+  /** The host's ping platform; the dashboard tile shows no preview on macOS, so none is offered there. */
+  platform?: string;
 }
 
 /**
  * Build: a full-height iframe onto build.hellonexus.com, the upgrade
  * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
-export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPageProps) {
+export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: BuildPageProps) {
+  const canSavePreview = !isRemoteOrigin && (DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);
@@ -119,6 +145,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const onOpenBenchmarkRef = useRef(onOpenBenchmark);
   useEffect(() => { onOpenBenchmarkRef.current = onOpenBenchmark; }, [onOpenBenchmark]);
+  const canSavePreviewRef = useRef(canSavePreview);
+  useEffect(() => { canSavePreviewRef.current = canSavePreview; }, [canSavePreview]);
   const onOpenLightingRef = useRef(onOpenLighting);
   useEffect(() => { onOpenLightingRef.current = onOpenLighting; }, [onOpenLighting]);
   const [ready, setReady] = useState(false);
@@ -153,6 +181,22 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       const res = await fetchService<{ caseId?: string | null }>('/system/case');
       if (cancelled || caseTouchedRef.current || !res) return;
       if (typeof res.caseId === 'string' && isValidCaseId(res.caseId)) setCaseId(res.caseId);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Detected coolers, fans and controllers. An older service answers 404 (null here), which just leaves it out.
+  const [devices, setDevices] = useState<BuildDevice[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetchService<{ devices?: unknown }>('/system/devices');
+        if (cancelled || !res || !Array.isArray(res.devices)) return;
+        setDevices(res.devices.filter((d): d is BuildDevice => !!d && typeof d.key === 'string' && typeof d.modelKey === 'string'));
+      } catch {
+        // Leave the list empty.
+      }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -196,6 +240,22 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
     if (!win) return;
     win.postMessage(message, BUILD_ORIGIN);
   }, []);
+
+  // The newest revision the frame knows of: its own save replies and every push move it forward, so a stale or echoed fetch is dropped.
+  const lastSetupRevRef = useRef(-1);
+  // Settles when no setup write from the frame is waiting for its reply, so a fetch that overtook a reply is compared after it.
+  const setupWritesRef = useRef<Promise<unknown>>(Promise.resolve());
+  const learnSetupRev = useCallback((rev: unknown) => {
+    if (typeof rev === 'number') lastSetupRevRef.current = Math.max(lastSetupRevRef.current, rev);
+  }, []);
+  useTopicCallback(PC_SETUP_TOPIC, ready && DEV_TOOLS && !isRemoteOrigin, useCallback(() => {
+    void relaySetupPush().then(async push => {
+      await setupWritesRef.current;
+      if (!push || push.rev <= lastSetupRevRef.current) return;
+      lastSetupRevRef.current = push.rev;
+      post(push.message as FrameMessage);
+    });
+  }, [post]));
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -241,6 +301,32 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
             ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}),
           }));
           break;
+        case 'nexus-build:setup-get':
+          if (!DEV_TOOLS || isRemoteOrigin) {
+            // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
+            post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
+            break;
+          }
+          void relaySetupGet(data).then(reply => {
+            learnSetupRev(reply.rev);
+            post(reply as FrameMessage);
+          });
+          break;
+        case 'nexus-build:setup-put':
+          if (!DEV_TOOLS || isRemoteOrigin) {
+            // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
+            post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
+            break;
+          }
+          setupWritesRef.current = Promise.all([setupWritesRef.current, relaySetupPut(data).then(reply => {
+            learnSetupRev(reply.rev);
+            post(reply as FrameMessage);
+          })]);
+          break;
+        case 'nexus-build:set-preview':
+          if (!canSavePreviewRef.current || typeof data.caseId !== 'string' || !isValidCaseId(data.caseId)) break;
+          void relayPreviewSave(data.caseId, data.png);
+          break;
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();
           break;
@@ -256,7 +342,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       window.removeEventListener('message', handleMessage);
       clearBuildFrameHistory();
     };
-  }, [post]);
+  }, [post, learnSetupRev]);
 
   const machine: BuildMachine | undefined = specs ? (() => {
     const sig = buildFpsSignatureParams(specs);
@@ -271,6 +357,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       hz: sig?.hz,
       ramGb: sig?.ramBytes != null ? Math.round(sig.ramBytes / BYTES_PER_GIB) : undefined,
       ...(caseId ? { caseId } : {}),
+      ...(devices.length > 0 ? { devices } : {}),
     };
   })() : undefined;
 
@@ -301,7 +388,11 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       ...(onOpenBenchmark ? { canOpenBenchmark: true } : {}),
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
+      // Shared PC setup sync is experimental: offered only in dev-tools builds.
+      ...(DEV_TOOLS && !isRemoteOrigin ? { canSyncSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
+      // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.
+      ...(canSavePreview ? { canSavePreview: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
     };
@@ -312,7 +403,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
     lastHelloSentRef.current = serialized;
     post(payload);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- theme/locale changes post their own delta message below; this only needs to re-run on a new page or on late-arriving machine/games data
-  }, [ready, helloNonce, machineKey, gamesKey, post]);
+  }, [ready, helloNonce, machineKey, gamesKey, canSavePreview, post]);
 
   const prevThemeRef = useRef(resolvedTheme);
   useEffect(() => {

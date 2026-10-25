@@ -103,6 +103,30 @@ describe('runRenderer protocol', () => {
     expect(frame.mock.calls[before][0]).toBe(0);
   });
 
+  it('draws no faster than the panel refresh, with dt spanning the skipped ticks', async () => {
+    const h = fakePort();
+    const frame = vi.fn();
+    runRenderer((c) => { c.onFrame(frame); }, h.port);
+    h.init({ pacing: { maxFps: null, displayHz: 60 } });
+    await flush();
+    const tickMs = 1000 / 144;
+    for (let i = 0; i < 144; i++) h.runFrame(1000 + i * tickMs);
+    expect(frame.mock.calls.length).toBeGreaterThanOrEqual(60);
+    expect(frame.mock.calls.length).toBeLessThan(80);
+    expect(frame.mock.calls[frame.mock.calls.length - 1][0]).toBeCloseTo((2 * tickMs) / 1000, 5);
+  });
+
+  it('a stream cap wins over the panel refresh', async () => {
+    const h = fakePort();
+    const frame = vi.fn();
+    runRenderer((c) => { c.onFrame(frame); }, h.port);
+    h.init({ pacing: { maxFps: 30, displayHz: 60 } });
+    await flush();
+    for (let i = 0; i < 144; i++) h.runFrame(1000 + i * (1000 / 144));
+    expect(frame.mock.calls.length).toBeGreaterThanOrEqual(29);
+    expect(frame.mock.calls.length).toBeLessThanOrEqual(31);
+  });
+
   it('starts hidden without scheduling frames', async () => {
     const h = fakePort();
     const frame = vi.fn();

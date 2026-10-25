@@ -1,10 +1,12 @@
-import { useCallback } from 'react';
-import type { HardwareSensor, useSensors } from '../../../../hooks/useSensors';
+import { useCallback, useState } from 'react';
+import type { useSensors } from '../../../../hooks/useSensors';
 import { useSensorExtras, type ExtrasComponent } from '../../../../hooks/useSensorExtras';
 import { useSystemSpecs } from '../../../../hooks/useSystemSpecs';
 import { useTranslation } from '../../../../lib/i18n';
 import { useUiSettings } from '../../../../hooks/useUiSettings';
+import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { DetailSection } from './parts';
+import { filterDetailedEntries, type DetailedEntry } from './detailedSearch';
 import styles from '../MonitoringPage.module.scss';
 
 export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors> }) {
@@ -14,6 +16,8 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   // not the sensor stream - the LHM memory node has no manufacturer/part info.
   const { specs } = useSystemSpecs(true);
   const { settings, update } = useUiSettings();
+
+  const [query, setQuery] = useState('');
 
   const collapsed = settings.monitoringDetailedCollapsed;
   const isCollapsed = useCallback((id: string) => collapsed.includes(id), [collapsed]);
@@ -31,9 +35,7 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
     return translated === key ? type : translated;
   }, [t]);
 
-  type Entry = { id: string; title: string; subtitle?: string; sensors: HardwareSensor[] };
-
-  const entries: Entry[] = [];
+  const entries: DetailedEntry[] = [];
 
   // Multiple units of one kind get numbered suffixes; the unit's model name
   // rides in the subtitle. Filtered below with every other section, so a
@@ -73,10 +75,26 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   pushExtras('ec', t('monitoring.detailed.ec'), extras.embeddedControllers);
 
   // Single gate for every section: a header never renders over an empty body.
-  const visibleEntries = entries.filter(entry => entry.sensors.length > 0);
+  const populated = entries.filter(entry => entry.sensors.length > 0);
+
+  // A search opens every section so a match is never folded away, and the
+  // fold toggles stay put until it is cleared.
+  const searching = query.trim().length > 0;
+  const visibleEntries = searching ? filterDetailedEntries(populated, query, groupTypeLabel) : populated;
+  const searchIsCollapsed = useCallback(() => false, []);
+  const noop = useCallback(() => {}, []);
 
   return (
     <div className={styles.detailedRoot}>
+      <SearchInput
+        className={styles.detailedSearch}
+        value={query}
+        onChange={setQuery}
+        placeholder={t('monitoring.detailed.searchPlaceholder')}
+      />
+      {searching && visibleEntries.length === 0 && (
+        <p className={styles.detailedSearchEmpty} role="status">{t('monitoring.detailed.noMatches')}</p>
+      )}
       {visibleEntries.map(entry => (
         <DetailSection
           key={entry.id}
@@ -84,8 +102,8 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
           title={entry.title}
           subtitle={entry.subtitle}
           sensors={entry.sensors}
-          isCollapsed={isCollapsed}
-          onToggle={onToggle}
+          isCollapsed={searching ? searchIsCollapsed : isCollapsed}
+          onToggle={searching ? noop : onToggle}
           groupTypeLabel={groupTypeLabel}
         />
       ))}

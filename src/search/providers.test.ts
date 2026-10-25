@@ -227,6 +227,13 @@ describe('buildEntries', () => {
     expect(win.has('toggle:menubar')).toBe(false);
   });
 
+  it('indexes the AMD graphics card lighting setting only when the service says it applies', () => {
+    const id = 'setting:settings.amdGpuLighting.label';
+    const on = { amdGpuLightingApplicable: true } as CommandContext['settings'];
+    expect(idsOf(true, { platform: 'linux' }).has(id)).toBe(false);
+    expect(idsOf(true, { platform: 'linux', settings: { ...ctx(true).settings, ...on } }).has(id)).toBe(true);
+  });
+
   it('opens the channel switch modal for a channel change instead of saving it', () => {
     const updateSettings = vi.fn();
     const entries = buildEntries(ctx(true, { updateSettings }));

@@ -29,11 +29,9 @@ export const SURFACE_DPR: Record<string, number> = {
   // The dpi-derived fallback is an Android density convention and would
   // shrink the canvas (see failure-log 2026-05-29).
   monitor: 1,
-  // The Kraken renders host-side and the service pushes native frames, so its
-  // canvas is 1:1 (KrakenPanelDiscovery reports dpr 1). The DPI-derived
-  // fallback is an Android density convention and would shrink the glass.
-  kraken: 1,
-  // Same reasoning as the Kraken: the service pushes native-resolution frames.
+  // Cooler glass renders host-side and the service pushes native frames, so the
+  // canvas is 1:1. The DPI-derived fallback is an Android density convention and
+  // would shrink the glass.
   'lcd-round': 1,
   'lcd-square': 1,
   'lcd-wide': 1,

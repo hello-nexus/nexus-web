@@ -1,11 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Music, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
-  fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
+  setLightingDevicePower, setLightingDeviceControlled,
   renameLightingDevice, saveLightingGroups, saveLightingStacks, saveDeviceLayout,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings,
@@ -18,6 +18,7 @@ import {
 import { groupNamesOf, type DeviceGroup } from '../../../lib/deviceGroups';
 import { matchesAllWords } from '../../../search/match';
 import { takeLightingEffect } from '../../../lib/lightingIntent';
+import { lightingDeviceAnchor } from '../../../lib/pageAnchors';
 import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useShaderParams } from '../../../hooks/useShaderParams';
@@ -94,6 +95,7 @@ import {
 } from '../../../types/lightingPalette';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
+import { effectEditEnabled } from './page/effectEdit';
 import { StaticPalette } from './page/StaticPalette';
 import { SimpleAnimationRow } from './page/SimpleAnimationRow';
 import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
@@ -124,8 +126,9 @@ import { PresetAppsModal } from './page/PresetAppsModal';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
+import { MusicReactiveControl } from './page/MusicReactiveControl';
 import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
-import { Select } from '../../../components/common/Select/Select';
+import { useMusicReactive } from '../../../hooks/useMusicReactive';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -308,6 +311,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setCanvasFocus(id ? withStacked(deviceStacksRef.current, [id]) : new Set());
     setPrimaryDeviceId(id);
   }, [setPrimaryDeviceId]);
+  // A click on a device in the 3D scene selects it as a click on its row does (a lone selection stays, it does not toggle off), then brings the row into view.
+  const handleSelectFromScene = useCallback((id: string | null) => {
+    if (!id) {
+      handleFocusDevice(null);
+      return;
+    }
+    handleSetSelection(new Set(withStacked(deviceStacksRef.current, [id])), id);
+    const anchor = lightingDeviceAnchor(id);
+    requestAnimationFrame(() => {
+      const row = [...document.querySelectorAll('[data-search-anchor]')].find(el => el.getAttribute('data-search-anchor') === anchor);
+      row?.scrollIntoView?.({ block: 'nearest' });
+    });
+  }, [handleFocusDevice, handleSetSelection]);
   const handleSetFocus = useCallback((ids: Set<string>, primary: string | null) => {
     setCanvasFocus(withStacked(deviceStacksRef.current, ids));
     setPrimaryDeviceId(primary);
@@ -620,7 +636,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [canvasFocusIds, deviceStacks, editorTarget, activeProfileId]);
 
-  const [musicReactive, setMusicReactiveState] = useState(false);
+  const { enabled: musicReactive, toggle: handleMusicReactiveToggle, refresh: refreshMusicReactive } = useMusicReactive(serviceOnline);
 
   // Optimistic local mirror of useLightingSync().paused, reconciled whenever
   // the server value changes (multiplex refetch, mode switch resetting it).
@@ -674,6 +690,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const activeProfileKey = activeProfileId ?? 'default';
   const activeProfileKeyRef = useRef(activeProfileKey);
   activeProfileKeyRef.current = activeProfileKey;
+  // Applying a profile can change Music Reactive, and the topic frame that would
+  // say so does not exist without a multiplex connection.
+  const musicProfileKeyRef = useRef(activeProfileKey);
+  useEffect(() => {
+    if (musicProfileKeyRef.current === activeProfileKey) return;
+    musicProfileKeyRef.current = activeProfileKey;
+    if (serviceOnline) refreshMusicReactive();
+  }, [activeProfileKey, serviceOnline, refreshMusicReactive]);
   const [loadedProfileLighting, setLoadedProfileLighting] = useState<{ profileKey: string; sync: string } | null>(null);
 
   const effectTemplatesRef = useRef(effectTemplates);
@@ -774,13 +798,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     Promise.all([
       safe(fetchCurrentSync()),
       safe(fetchAnimateSettings()),
-      safe(fetchMusicReactive()),
       safe(fetchScreenEffect()),
       safe(fetchMediaEffect()),
     ]).then(async ([
       currentSync,
       animateSettings,
-      musicSettings,
       screenEffect,
       mediaEffect,
     ]) => {
@@ -795,9 +817,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         // pre-hydrate {}) or the restored effect starts with the base look.
         await hydrateAnimateSettings(animateSettings, normalizeSync(sync) === 'static');
         if (cancelled) return;
-      }
-      if (musicSettings) {
-        setMusicReactiveState(!!musicSettings.enabled);
       }
       if (screenEffect) {
         setScreenPP(normalizePP(screenEffect));
@@ -849,9 +868,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       fetchAnimateSettings().then(data => {
         if (cancelled || !data) return;
         hydrateAnimateSettings(data);
-      });
-      fetchMusicReactive().then(data => {
-        if (!cancelled && data) setMusicReactiveState(!!data.enabled);
       });
     } else if (rawSync === 'screen') {
       fetchScreenEffect().then(data => {
@@ -917,16 +933,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       });
     }
   });
-
-  const handleMusicReactiveToggle = useCallback(async () => {
-    const next = !musicReactive;
-    setMusicReactiveState(next);
-    try {
-      await setMusicReactive(next);
-    } catch {
-      setMusicReactiveState(!next);
-    }
-  }, [musicReactive]);
 
   // The Marketplace's "Open in Lighting" effect, taken on mount so it never fires on a later visit.
   // Kept when StrictMode's second mount finds nothing left to take.
@@ -2511,6 +2517,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     : (scoped.kind === 'mixed' || (scoped.kind === 'none' && viewMode === 'static' && globalColor) ? '' : activeEffect);
   // With nothing selected, re-picking the running tile changes no card, so it
   // pulses none. A selection's re-pick can move a static pin to the current slot.
+  const openDock = useCallback(() => setDockCollapsed(false), [setDockCollapsed]);
   const handleEffectPick = (key: string) => {
     if (!(key === gridEffect && selectedDeviceIds.size === 0)) pulsePick();
     handleEffectSelect(key);
@@ -3009,7 +3016,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   api={sceneApi}
                   devices={visibleDevices}
                   selectedDeviceId={primaryDeviceId}
-                  onSelectDevice={handleFocusDevice}
+                  onSelectDevice={handleSelectFromScene}
                   shaderEffect={shaderMode ? previewEffect : null}
                   shaderState={shaderMode ? previewShaderState : null}
                   shaderPaused={paused}
@@ -3027,28 +3034,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             {shaderMode && dockEffect && dockState && !mixedSelection && (
               <>
                 {showMusicButton && (
-                  <div className={styles.musicReactive}>
-                    <HoverTooltip body={t('lighting.musicReactive')} side="left">
-                      <button
-                        type="button"
-                        className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                        onClick={handleMusicReactiveToggle}
-                        aria-label={t('lighting.musicReactive')}
-                      >
-                        <Music size={14} strokeWidth={1.5} />
-                      </button>
-                    </HoverTooltip>
-                    {showAudioOutput && (
-                      <Select
-                        className={styles.musicReactiveOutput}
-                        value={audioOutput.value}
-                        options={audioOutput.options}
-                        onChange={audioOutput.select}
-                        ariaLabel={t('lighting.audioOutput.label')}
-                        height={26}
-                      />
-                    )}
-                  </div>
+                  <MusicReactiveControl active={musicReactive} onToggle={handleMusicReactiveToggle} output={showAudioOutput ? audioOutput : undefined} />
                 )}
                 <HoverTooltip body={t('lighting.fullscreen')} side="left">
                   <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
@@ -3081,6 +3067,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <AnimateGrid
               effect={gridEffect}
               onSelect={handleEffectPick}
+              onEdit={openDock}
+              editEnabled={effectEditEnabled(dockCollapsed, gridEffect, selectedDeviceIds.size > 0, mode !== 'none' && !detachedTab)}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}
               frozen={viewMode === 'static'}
