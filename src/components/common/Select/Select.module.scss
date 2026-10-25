@@ -218,37 +218,6 @@
   }
 }
 
-// Non-committing action row (SelectOption.onAction): the row is a plain
-// wrapper around a full-width shared-Button look, never marked selected.
-.actionOption,
-.actionOption.active {
-  padding: 0.3rem 0.6rem;
-  background: transparent;
-  overflow: visible;
-}
-
-.actionButton {
-  display: flex;
-  width: 100%;
-}
-
-.actionLabel {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.actionButtonActive {
-  @include focus-ring;
-}
-
-// Fixed slot so the spinner appearing does not shift the label.
-.actionSpinnerSlot {
-  display: inline-flex;
-  width: 1rem;
-  height: 1rem;
-}
-
 .option {
   padding: 0.45rem 0.6rem;
   border-radius: var(--radius-sm);
@@ -296,6 +265,35 @@
 .option.optionDisabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+// Non-committing action row (SelectOption.onAction): a centered shared-Button
+// look, never marked selected. Ordered after .option.active so hovering keeps
+// the row's padding and background and the button does not move.
+.option.actionOption {
+  display: flex;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  overflow: visible;
+}
+
+.actionButton {
+  max-width: 100%;
+}
+
+.actionLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Keyboard/pointer highlight: the Button's own hover look, no size change.
+// Doubled class to outrank Button's .tone-neutral regardless of CSS order.
+.actionButton.actionButtonActive {
+  background: var(--bg-card-hover);
+  border-color: var(--control-border-strong);
+  color: var(--text);
 }
 
 // Thin rule grouping options above/below it, matching the Profile dropdown's

@@ -600,9 +600,7 @@ export function Select({
                     // The row stays the listbox option (keyboard and aria); the visual is the
                     // shared Button look on a span, since a real button cannot nest in an option.
                     <span className={classNames(buttonStyles.button, buttonStyles['size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive)}>
-                      <span className={styles.actionSpinnerSlot} aria-hidden="true">
-                        {opt.busy && <Spinner size={14} />}
-                      </span>
+                      {opt.busy && <span aria-hidden="true"><Spinner size={14} /></span>}
                       <span className={styles.actionLabel}>{opt.label}</span>
                     </span>
                   ) : null}
