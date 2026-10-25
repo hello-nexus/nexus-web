@@ -199,14 +199,23 @@
   to   { opacity: 1; }
 }
 
-// Section heading (SelectOption.header): a dim, non-interactive label.
+// Section heading (SelectOption.header): a dim, non-interactive, all-caps label,
+// the same look as the recent-picks heading in the LED map product picker. Every
+// heading after the first sits under a rule so sections read as separate.
 .header {
-  padding: 0.45rem 0.6rem 0.2rem;
+  padding: 0.6rem 0.6rem 0.2rem;
   color: var(--text-dim);
   font-size: var(--type-mini);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   pointer-events: none;
   cursor: default;
+
+  &:not(:first-child) {
+    margin-top: 0.4rem;
+    border-top: 1px solid var(--separator);
+  }
 }
 
 .option {

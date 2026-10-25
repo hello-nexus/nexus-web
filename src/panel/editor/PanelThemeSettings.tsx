@@ -6,8 +6,9 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
-import { DEFAULT_PANEL_FONT, type PanelFont } from '../theme/panelFont';
+import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
+import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
 import { fetchSystemFonts } from '../../api/systemFonts';
 import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
@@ -269,6 +270,7 @@ export function PanelThemeSettings({
     { key: 'theme', label: label('panel.settings.textColor.theme', 'Theme') },
     { key: 'custom', label: label('panel.settings.textColor.custom', 'Custom') },
   ];
+  const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
   const [systemFamilies, setSystemFamilies] = useState<string[] | null>(null);
   useEffect(() => {
     if (!showSystemFonts || !showTheme) return;
@@ -282,7 +284,9 @@ export function PanelThemeSettings({
     {
       bundled: label('panel.settings.font.bundled', 'Bundled'),
       system: label('panel.settings.font.system', 'System'),
+      recent: t('search.section.recent') || 'Recent',
     },
+    recentFonts,
   );
   const textColorDescription = theme.textColorMode === 'custom'
     ? label('panel.settings.textColor.custom.desc', 'One color for all widget text, accent text included')
@@ -468,7 +472,11 @@ export function PanelThemeSettings({
           label={label('panel.settings.font', 'Font')}
           value={theme.font ?? DEFAULT_PANEL_FONT}
           options={fontOptions}
-          onChange={value => onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFont)}
+          onChange={value => {
+            const family = systemFontFamily(value);
+            if (family) setRecentFonts(pushRecentSystemFont(family));
+            onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFont);
+          }}
         />
       </SettingsSection>
       )}
