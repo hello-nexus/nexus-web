@@ -230,6 +230,12 @@ function parseSlot(raw: unknown): CaseFanSlot | null {
 
 const MAX_OPTIONS = 8;
 
+/** The pick key of the radiator box itself, for a radiator with no fans to pick. */
+export const RADIATOR_PICK_KEY = 'radiator';
+
+/** Build rounds option boxes to tenths of a millimeter while the record's own boxes are raw. */
+const BOX_TOLERANCE_MM = 0.05;
+
 function parseOptions(raw: unknown): RadiatorOption[] {
   if (!Array.isArray(raw)) return [];
   const keys = (v: unknown): string[] | null => (Array.isArray(v) && v.length <= MAX_SLOTS && v.every(keyOf) ? (v as string[]) : null);
@@ -260,7 +266,7 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
   let radiatorMove: CaseLayout['radiatorMove'];
   if (picked) {
     const current = options.find(o => o.mount === resolvedMount)?.box;
-    const sameBox = (x: CaseBox) => !!current && x.slot === current.slot && x.min.every((v, i) => v === current.min[i]) && x.size.every((v, i) => v === current.size[i]);
+    const sameBox = (x: CaseBox) => !!current && x.slot === current.slot && x.min.every((v, i) => Math.abs(v - current.min[i]) <= BOX_TOLERANCE_MM) && x.size.every((v, i) => Math.abs(v - current.size[i]) <= BOX_TOLERANCE_MM);
     // A fanless radiator box carries no `fans`, so the current option's box finds it first.
     const at = boxes.some(sameBox) ? boxes.findIndex(sameBox) : boxes.findIndex(isRadiatorBox);
     if (at >= 0) {

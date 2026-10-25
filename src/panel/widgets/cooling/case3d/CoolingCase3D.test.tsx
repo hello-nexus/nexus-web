@@ -315,6 +315,53 @@ describe('CoolingCase3D radiator position', () => {
     expect(screen.queryByText('cooling.case3d.radiator.error')).toBeNull();
   });
 
+  const click = (name: string) => fireEvent.click(screen.getByRole('radio', { name }));
+
+  it('lets only the latest of two quick moves write, retry and set the view', async () => {
+    let finishFirst: (v: unknown) => void = () => {};
+    h.patch
+      .mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve; }))
+      .mockResolvedValueOnce({ kind: 'conflict', record: { ...radiatorRecord(5), setup: { ...radiatorRecord(5).setup, case: { radiatorMount: 'right' } } } })
+      .mockResolvedValueOnce({ kind: 'saved', rev: 6 });
+    open();
+    click('cooling.case3d.position.right');
+    click('cooling.case3d.position.top');
+    await act(async () => {});
+    expect(h.patch.mock.calls).toEqual([[4, 'right'], [4, 'top'], [5, 'top']]);
+    await act(async () => { finishFirst({ kind: 'saved', rev: 5 }); });
+    expect(lastState().layout.radiatorMount).toBe('top');
+    expect(screen.queryByText('cooling.case3d.radiator.error')).toBeNull();
+  });
+
+  it('adopts a mount Build changed meanwhile instead of overwriting it on a stale rev', async () => {
+    h.patch.mockResolvedValueOnce({ kind: 'conflict', record: { ...radiatorRecord(5), setup: { ...radiatorRecord(5).setup, case: { radiatorMount: 'top' } } } });
+    open();
+    click('cooling.case3d.position.right');
+    await act(async () => {});
+    expect(h.patch).toHaveBeenCalledTimes(1);
+    expect(lastState().layout.radiatorMount).toBe('top');
+  });
+
+  it('opens position chips alone from a pick of the radiator box, for a radiator with no fans', () => {
+    h.setup = { record: radiatorRecord(), loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    act(() => h.pick.current?.('radiator', 10, 10));
+    expect(screen.getByRole('radio', { name: 'cooling.case3d.position.right' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'cooling.case3d.device.label' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'cooling.case3d.direction.intake' })).toBeNull();
+  });
+
+  it('clears the error when the controls close', async () => {
+    h.patch.mockResolvedValue({ kind: 'unreachable' });
+    open();
+    click('cooling.case3d.position.right');
+    await act(async () => {});
+    expect(screen.getByText('cooling.case3d.radiator.error')).toBeTruthy();
+    act(() => h.pick.current?.(null, 0, 0));
+    expect(screen.queryByText('cooling.case3d.radiator.error')).toBeNull();
+  });
+
   it('reverts the view and shows an error when the write fails', async () => {
     h.patch.mockResolvedValue({ kind: 'unreachable' });
     open();
