@@ -9,7 +9,7 @@ import { hullCuts } from './hull';
 import { obstaclesOf } from './obstacles';
 import { boxContains } from './voxelize';
 import { buildCollisionShapes, obstacleGeometry } from './collisionShapes';
-import { Color } from 'three';
+import { Color, type Mesh } from 'three';
 
 // The HYTE Y70's case layout as T1's service returned it (Build's resolved.caseLayout), with no fan or GPU in it.
 const raw = JSON.parse(readFileSync(new URL('../__fixtures__/y70-case-layout.json', import.meta.url), 'utf8')) as Record<string, unknown>;
@@ -68,7 +68,14 @@ describe('the Y70 hull', () => {
 
   it('draws as collision shapes with the rest', () => {
     const { group, dispose } = buildCollisionShapes(obstaclesOf(layout), new Color('#fff'), new Color('#aaa'));
-    expect(group.children.some(m => (m.userData.obstacle as { kind: string }).kind === 'hull')).toBe(true);
+    const hull = group.children.find(m => (m.userData.obstacle as { kind: string }).kind === 'hull') as Mesh;
+    expect(hull).toBeDefined();
+    // Only the diagonal wall: the full corner spans 89 by 87 mm in plan and the wall is its slanted face, inside the shell box.
+    const bb = hull.geometry.boundingBox ?? (hull.geometry.computeBoundingBox(), hull.geometry.boundingBox!);
+    expect([bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z]).toEqual([0, 17, 0, 89, 487, 87]);
+    const positions = hull.geometry.getAttribute('position');
+    const corner = [...Array(positions.count).keys()].filter(i => positions.getX(i) === 0 && positions.getZ(i) === 0);
+    expect(corner).toHaveLength(0);
     dispose();
   });
 });

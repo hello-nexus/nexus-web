@@ -1,6 +1,6 @@
 import { Color, Group, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { CpuFlow } from './cpuSolver';
-import { caseWithGpuAndShroud } from './flowFixtures';
+import { caseWithGpuAndShroud, defaultDir, fronts, inputFor, rear } from './flowFixtures';
 import { FlowLayer } from './flowLayer';
 import { GlFlow, floatSupport } from './glFlow';
 import { buildFlowScene } from './gridScene';
@@ -91,9 +91,60 @@ async function main() {
     if (f % 20 === 19) { const r = bad(layer); afterWorst += r.badCount; afterChecked += r.checked; }
   }
   out.afterTierDrop = { checked: afterChecked, inSolidOrOutside: afterWorst, tier: layer.currentTier, dims: layer.scene!.dims };
+  layer.dispose();
+
+  // What the user sees: per-frame displacement of the particles within one fan diameter downstream of a slow and a fast fan on one face.
+  const pair = inputFor([fronts[0], fronts[1], rear], [], defaultDir, 60);
+  // A rear exhaust takes what the two intakes bring, so neither intake is blocked by the other.
+  pair.fanCfm = { [fronts[0].key]: 33.6, [fronts[1].key]: 60, [rear.key]: 93.6 };
+  pair.referenceCfm = 60;
+  const host2 = new Group();
+  const sc2 = new Scene();
+  sc2.add(host2);
+  const slowFast = new FlowLayer(renderer, host2, new Vector3(480, 440, 360), {
+    cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+  });
+  slowFast.setInput(pair);
+  slowFast.setOptions({ particles: true, collisions: false, speed: 1.5 });
+  const fs2 = slowFast.scene!;
+  const centres: number[][] = [];
+  const e = fs2.emitters;
+  for (let o = 0; o < e.length; o += 12) if (!centres.some(c => c[0] === e[o] && c[1] === e[o + 1] && c[2] === e[o + 2])) centres.push([e[o], e[o + 1], e[o + 2], e[o + 4], e[o + 5], e[o + 6], e[o + 7]]);
+  const sums = centres.map(() => 0);
+  const counts = centres.map(() => 0);
+  let prev: Float32Array | null = null;
+  // Warm up until the solver reports a steady field and the pool has lived through its birth spread, then measure.
+  let framesToSteady = 0;
+  while (!slowFast.settled && framesToSteady < 4000) {
+    slowFast.frame(performance.now(), cam, 240);
+    renderer.render(sc2, cam);
+    framesToSteady++;
+    if (framesToSteady % 50 === 0) await new Promise(r => setTimeout(r, 0));
+  }
+  for (let f = 0; f < 200; f++) { slowFast.frame(performance.now(), cam, 240); renderer.render(sc2, cam); }
+  for (let f = 0; f < 100; f++) {
+    slowFast.frame(performance.now(), cam, 240);
+    renderer.render(sc2, cam);
+    const { pos } = slowFast.readParticles();
+    if (prev) {
+      for (let i = 0; i < pos.length / 4; i++) {
+        if (pos[i * 4] < -1e5 || pos[i * 4 + 3] <= 0 || prev[i * 4 + 3] <= 0) continue;
+        const d = Math.hypot(pos[i * 4] - prev[i * 4], pos[i * 4 + 1] - prev[i * 4 + 1], pos[i * 4 + 2] - prev[i * 4 + 2]);
+        if (d >= 3) continue;
+        centres.forEach((c, n) => {
+          const rel = [prev![i * 4] - c[0], prev![i * 4 + 1] - c[1], prev![i * 4 + 2] - c[2]];
+          const along = rel[0] * c[3] + rel[1] * c[4] + rel[2] * c[5];
+          const radial = Math.hypot(rel[0] - along * c[3], rel[1] - along * c[4], rel[2] - along * c[5]);
+          if (along > 0 && along <= 2 * c[6] && radial <= c[6]) { sums[n] += d; counts[n]++; }
+        });
+      }
+    }
+    prev = pos;
+  }
+  out.visibleSpeed = { centres: centres.length, means: sums.map((s, n) => (counts[n] ? s / counts[n] : 0)), counts, tier: slowFast.currentTier, framesToSteady, settled: slowFast.settled };
+  slowFast.dispose();
   out.glError = renderer.getContext().getError();
   out.trail = trail.slice(0, 8);
-  layer.dispose();
   gl.dispose();
   renderer.forceContextLoss();
 }

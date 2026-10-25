@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseCaseLayout, type CaseLayout } from '../caseLayout';
+import { fanGeometries, parseCaseLayout, type CaseLayout } from '../caseLayout';
 import { simRpm, visualFlowCfm, type SlotSpeed } from '../fanSpeed';
 import { visualFlow } from '../visualFlow';
 import { CpuParticles } from './cpuParticles';
@@ -77,6 +77,53 @@ describe('visual flow compression', () => {
     expect(ratio).toBeGreaterThan(0.45);
     expect(ratio).toBeLessThan(0.6);
   }, 120000);
+
+  it('moves particles within a fan diameter downstream of a 500 rpm fan at 0.45 to 0.6 of those at 2500 rpm, on one face, frame by frame', () => {
+    const slots = ['right:120:1', 'right:120:2'];
+    const layout = layoutWith(slots);
+    const f = flowFor(layout, { 'right:120:1': 0.2, 'right:120:2': 1 }, slots);
+    const scene = buildFlowScene({ layout, directions: f.directions, fanCfm: f.fanCfm, ventCfm: f.ventCfm, referenceCfm: f.referenceCfm }, LOW);
+    const sim = new CpuFlow(scene);
+    for (let i = 0; i < 500; i++) sim.step();
+    const particles = new CpuParticles(sim, 6000, 9);
+    // Steady state: every particle born and the stream established.
+    for (let i = 0; i < 700; i++) particles.step();
+    const geometry = fanGeometries(layout);
+    const regionOf = (key: string) => {
+      const g = geometry.find(x => x.slot.key === key)!;
+      const k = g.box.size.indexOf(Math.min(...g.box.size));
+      const centre = [0, 1, 2].map(a => g.box.min[a] + g.box.size[a] / 2);
+      return { k, centre, axis: g.slot.axis ?? [0, 0, 0], reach: Math.max(...g.box.size) };
+    };
+    const regions = slots.map(regionOf);
+    // Cell coordinates to layout mm, then inside the cylinder one fan diameter long, on the case side of the fan.
+    const toMm = (x: number, y: number, z: number) => [x, y, z].map((c, a) => (c + 0.5) * scene.cellMm - scene.origin[a]);
+    const inside = (r: (typeof regions)[number], mm: number[]) => {
+      const rel = mm.map((v, a) => v - r.centre[a]);
+      const along = rel[r.k] * Math.sign(r.axis[r.k] || 1);
+      const radial = Math.hypot(...rel.filter((_, a) => a !== r.k));
+      return along > 0 && along <= r.reach && radial <= r.reach / 2;
+    };
+    const sums = [0, 0];
+    const counts = [0, 0];
+    for (let frame = 0; frame < 120; frame++) {
+      const prev = Float32Array.from(particles.pos);
+      particles.step();
+      for (let i = 0; i < particles.count; i++) {
+        if (particles.age[i] <= 0) continue;
+        const d = Math.hypot(particles.pos[i * 3] - prev[i * 3], particles.pos[i * 3 + 1] - prev[i * 3 + 1], particles.pos[i * 3 + 2] - prev[i * 3 + 2]);
+        if (d >= 3) continue;
+        const mm = toMm(prev[i * 3], prev[i * 3 + 1], prev[i * 3 + 2]);
+        regions.forEach((r, n) => { if (inside(r, mm)) { sums[n] += d; counts[n]++; } });
+      }
+    }
+    expect(counts[0]).toBeGreaterThan(200);
+    expect(counts[1]).toBeGreaterThan(200);
+    const [slow, fast] = [sums[0] / counts[0], sums[1] / counts[1]];
+    expect(slow).toBeGreaterThan(0.02);
+    expect(slow / fast).toBeGreaterThan(0.45);
+    expect(slow / fast).toBeLessThan(0.6);
+  }, 180000);
 
   it('runs rpm 0 as no flow', () => {
     const layout = layoutWith(['right:120:1']);

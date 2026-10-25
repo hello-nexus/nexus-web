@@ -26,7 +26,7 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
     try {
       const page = await browser.newPage();
       await page.goto(`http://localhost:${port}/src/lib/cooling/flow/glParity.harness.html`, { waitUntil: 'commit' });
-      await page.waitForFunction(() => document.title === 'done', null, { timeout: 280000 });
+      await page.waitForFunction(() => document.title === 'done', null, { timeout: 460000 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const r: Record<string, any> = await page.evaluate(() => (window as unknown as { __flowGl: Record<string, unknown> }).__flowGl);
       expect(r.exception).toBeUndefined();
@@ -43,9 +43,16 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
       expect(r.afterTierDrop.tier).toBe(r.particles.tier + 1);
       expect(r.afterTierDrop.checked).toBeGreaterThan(1000);
       expect(r.afterTierDrop.inSolidOrOutside).toBe(0);
+      // The visible speed: particles within a fan diameter downstream of a 500 rpm fan move 0.45 to 0.6 as far per frame as those of a 2500 rpm fan on the same face.
+      expect(r.visibleSpeed.centres).toBe(2);
+      expect(r.visibleSpeed.counts[0]).toBeGreaterThan(100);
+      expect(r.visibleSpeed.counts[1]).toBeGreaterThan(100);
+      expect(r.visibleSpeed.means[0]).toBeGreaterThan(0.02);
+      expect(r.visibleSpeed.means[0] / r.visibleSpeed.means[1]).toBeGreaterThan(0.45);
+      expect(r.visibleSpeed.means[0] / r.visibleSpeed.means[1]).toBeLessThan(0.6);
     } finally {
       await browser.close();
       await server.close();
     }
-  }, 300000);
+  }, 480000);
 });
