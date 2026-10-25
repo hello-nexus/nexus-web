@@ -97,6 +97,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   mouse: '/assets/devices/mouse.svg',
   keyboard: '/assets/devices/keyboard.svg',
   headset: '/assets/devices/headset.svg',
+  speaker: '/assets/devices/speaker.svg',
   gamepad: '/assets/devices/gamepad.svg',
   display: '/assets/devices/monitor.svg',
   cooler: '/assets/devices/fan.svg',
