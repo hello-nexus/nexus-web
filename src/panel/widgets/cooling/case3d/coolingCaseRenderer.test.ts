@@ -67,6 +67,9 @@ describe('pick gesture', () => {
 
   it('reports empty space for a click and nothing for a drag', () => {
     const canvas = document.createElement('canvas');
+    // jsdom has no pointer capture, which the orbit controls call on a press.
+    canvas.setPointerCapture = () => {};
+    canvas.releasePointerCapture = () => {};
     const onPick = vi.fn();
     const r = createCaseRenderer(canvas, onPick);
     press(canvas, [50, 50], [51, 50]);
