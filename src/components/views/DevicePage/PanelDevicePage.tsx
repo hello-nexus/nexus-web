@@ -1673,7 +1673,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onTextColorCommit={panelTheme.commitTextColor}
                             onFontCommit={panelTheme.commitFont}
                             showMediaTab={surface !== 'desktop'}
-                            showSystemFonts={panelSystemFontsAvailable(glassSurface) && !isSimulated}
+                            showSystemFonts={isSimulated ? isLocalPanelClient() : panelSystemFontsAvailable(glassSurface)}
                             backgroundHeldBy={backgroundHeldBy}
                             audioReactive={panelAudioReactiveAllowed(device?.runtimeSurface, isLocalPanelClient())}
                             deviceAspect={devAspect}
