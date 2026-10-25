@@ -11,7 +11,7 @@ const h = vi.hoisted(() => ({
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
-  renderers: [] as { setState: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
+  renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
@@ -20,7 +20,7 @@ vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
     h.pick.current = onPick;
-    const r = { setState: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
+    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
   }),

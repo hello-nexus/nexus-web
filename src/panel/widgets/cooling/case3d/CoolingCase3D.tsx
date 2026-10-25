@@ -16,6 +16,7 @@ import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNa
 import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useCaseModel } from '../../../../hooks/useCaseModel';
+import { useComponentTemps } from '../../../../hooks/useComponentTemps';
 import { useTranslation } from '../../../../lib/i18n';
 import {
   channelOfSlot, directionOf, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
@@ -27,6 +28,7 @@ import { solveCasePressure, type FanDirection, type PressureFan } from '../../..
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
+import { CaseTempLabels } from './CaseTempLabels';
 import styles from './CoolingCase3D.module.scss';
 
 export interface CoolingCase3DProps {
@@ -104,6 +106,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
   const caseModel = useCaseModel(true, record?.rev ?? null);
+  const temps = useComponentTemps(true);
 
   const directions = useMemo(() => {
     const out: Record<string, FanDirection> = {};
@@ -198,6 +201,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     setFlowSupported(renderer.flowSupported);
   }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, flowInput, flowOptions, caseModel.bytes]);
 
+  // Temperatures ride a path of their own: the renderer hands them to the live particle pass, so a sensor tick never rebuilds the scene.
+  useEffect(() => { renderer?.setTemps(temps); }, [renderer, temps]);
+
   const setDirection = useCallback((key: string, position: string, direction: FanDirection) => {
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
   }, [edit]);
@@ -263,6 +269,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
           <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
         </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
+        <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
         {result && model && (
           <div className={`${styles.overlay} ${styles.overlayTop}`}>
             <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>
