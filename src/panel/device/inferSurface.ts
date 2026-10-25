@@ -1,4 +1,13 @@
-import type { PanelSurface } from '../types';
+import { PANEL_SURFACES, type PanelSurface } from '../types';
+
+// Only the service creates these records; a hinted allocate would adopt and overwrite one.
+const SERVICE_OWNED_SURFACES: ReadonlySet<string> = new Set(['monitor', 'lcd-round', 'lcd-square', 'lcd-wide']);
+
+// The launcher that identified the display declares the surface; the viewport guess is the unhinted fallback.
+export function panelSurfaceHint(value: string | null): PanelSurface | null {
+  if (!value || SERVICE_OWNED_SURFACES.has(value)) return null;
+  return (PANEL_SURFACES as readonly string[]).includes(value) ? value as PanelSurface : null;
+}
 
 // A Y70 is a uniquely tall, narrow strip: the 2.5K is 682x2560 (3.75:1) and the
 // 4K is 1100x3840 (3.5:1). No phone or tablet is anywhere near that tall, so the
@@ -9,6 +18,11 @@ import type { PanelSurface } from '../types';
 // a phone (which then halved its DPI and doubled its grid columns), while the 4K
 // at 150% scaling (734px CSS) escaped. Below this we treat it as the Y70.
 const Y70_MIN_ASPECT = 3;
+
+/** The Q-series native portrait size. */
+export function isQSeriesViewport(width: number, height: number): boolean {
+  return width === 720 && height === 1280;
+}
 
 /**
  * Pick the surface classification for a freshly-registering device from its
@@ -26,7 +40,7 @@ export function inferSurfaceFromViewport(isPhoneHint: boolean): PanelSurface {
   const width = window.innerWidth;
   const height = window.innerHeight;
   // Q-series (720x1280 portrait): match the exact fullscreen native size.
-  if (width === 720 && height === 1280) return 'q60';
+  if (isQSeriesViewport(width, height)) return 'q60';
   const longSide = Math.max(width, height);
   const shortSide = Math.max(1, Math.min(width, height));
   if (longSide / shortSide >= Y70_MIN_ASPECT) return 'y70';

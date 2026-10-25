@@ -12,7 +12,6 @@ describe('surfaceInputMode', () => {
       ['y70', undefined, 'touch'],
       ['phone', undefined, 'touch'],
       ['q60', undefined, 'none'],
-      ['kraken', undefined, 'none'],
       ['lcd-round', undefined, 'none'],
       ['lcd-square', undefined, 'none'],
       ['lcd-wide', undefined, 'none'],
@@ -37,7 +36,7 @@ describe('widgetDisplayShape', () => {
 
 describe('isStreamedPanelSurface', () => {
   it('is always streamed for the pushed-frame device surfaces, regardless of displayBound', () => {
-    for (const surface of ['kraken', 'lcd-round', 'lcd-square', 'lcd-wide', 'q60'] as const) {
+    for (const surface of ['lcd-round', 'lcd-square', 'lcd-wide', 'q60'] as const) {
       expect(isStreamedPanelSurface(surface)).toBe(true);
       expect(isStreamedPanelSurface(surface, false)).toBe(true);
       expect(isStreamedPanelSurface(surface, true)).toBe(true);
@@ -137,7 +136,6 @@ describe('surfaceAllowsPages', () => {
 
 describe('surfaceDisplayShape', () => {
   it('is round only on round displays', () => {
-    expect(surfaceDisplayShape('kraken')).toBe('round');
     expect(surfaceDisplayShape('lcd-round')).toBe('round');
     for (const surface of ['lcd-square', 'lcd-wide', 'q60', 'y70', 'monitor', 'phone', 'desktop'] as const) {
       expect(surfaceDisplayShape(surface)).toBe('rect');

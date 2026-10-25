@@ -1069,7 +1069,7 @@ interface RendererContext {
   onProps(cb: (props) => void): void;
   onResize(cb: (size) => void): void;  // backing store already resized
   onPointer(cb: (e: CanvasPointerEvent) => void): void;
-  onFrame(cb: (dt: number, now: number) => void): void; // only while visible; dt capped
+  onFrame(cb: (dt: number, now: number) => void): void; // only while visible, paced to the panel; dt capped
   onVisibility(cb: (visible: boolean) => void): void;
   ready(): void;                       // first frame drawn: the host reveals the canvas
 }
@@ -1087,7 +1087,10 @@ scoped to this app. It goes through the app asset route, which serves only
 `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.ico`, `.svg`, `.nxpack` and `.key`
 files; any other extension (a `.json`, `.glb` or `.bin`) is refused, so ship
 data inside a `.nxpack` or one of the image types. The canvas resizes after a `resize` message; the renderer
-must redraw in `onResize`, since a hidden renderer gets no frames. On a worker
+must redraw in `onResize`, since a hidden renderer gets no frames. `onFrame`
+runs at most 60 times a second, and at about the panel's refresh or exactly a
+streamed panel's frame rate when either is lower; `dt` spans the skipped
+ticks. On a worker
 fault the host respawns the renderer once, then shows a load error. Build with
 `nexus-app build`, which bundles `renderer.ts` next to
 `index.tsx` into `renderer.mjs` (self-contained, no react).

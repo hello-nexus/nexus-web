@@ -102,7 +102,7 @@ describe('canvas editing', () => {
   });
 
   it('never lets a single-widget surface rearrange, even in the preview', () => {
-    for (const surface of ['q60', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide'] as const) {
+    for (const surface of ['q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as const) {
       expect(panelCanvasEditable(surface, undefined, true)).toBe(false);
     }
   });

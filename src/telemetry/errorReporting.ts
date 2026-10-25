@@ -1,7 +1,13 @@
 import { authFetchWithStatus } from '../api/service';
 import { isStaleChunkMessage, recoverFromStaleChunkNow } from '../lib/staleChunkRecovery';
 
-export type ErrorKind = 'window-error' | 'unhandled-rejection' | 'render';
+export type ErrorKind = 'window-error' | 'unhandled-rejection' | 'render' | 'app' | 'app-log';
+
+/** Identity of the SDK app behind a kind 'app' or 'app-log' report; tag is the service log prefix and rides along in the context. */
+export interface AppErrorSource {
+  id: string;
+  tag: string;
+}
 
 interface ClientError {
   kind: ErrorKind;
@@ -10,23 +16,28 @@ interface ClientError {
   message: string;
   stack: string;
   context: string;
+  app?: string;
   count: number;
 }
 
 const ENDPOINT = '/telemetry/client-errors';
 const FLUSH_DELAY_MS = 5000;
 const MAX_DISTINCT = 20;
+const MAX_DISTINCT_APP = 20;
 const MAX_PER_POST = 10;
 const GATE_WINDOW_MS = 1000;
 const GATE_MAX = 10;
+const GATE_MAX_APP = 5;
+const APP_MESSAGE_CAP = 500;
 const MAX_CAUSE_DEPTH = 3;
 const CAUSE_STACK_CAP = 300;
 const CAPS = { fingerprint: 64, type: 128, message: 1000, stack: 2000, context: 500 };
 
 const records = new Map<string, { entry: ClientError; unsent: number }>();
 const dirty = new Set<string>();
-let gateStart = 0;
-let gateCount = 0;
+interface Gate { start: number; count: number }
+const hostGate: Gate = { start: 0, count: 0 };
+const appGate: Gate = { start: 0, count: 0 };
 let dropped = 0;
 let installed = false;
 let reporting = false;
@@ -152,21 +163,26 @@ function schedule(): void {
   timer = setTimeout(() => { void flush(); }, FLUSH_DELAY_MS);
 }
 
-function gateOpen(): boolean {
+function gateOpen(gate: Gate, max: number): boolean {
   const now = Date.now();
-  if (now - gateStart >= GATE_WINDOW_MS || now < gateStart) {
-    gateStart = now;
-    gateCount = 0;
+  if (now - gate.start >= GATE_WINDOW_MS || now < gate.start) {
+    gate.start = now;
+    gate.count = 0;
   }
-  if (gateCount >= GATE_MAX) {
+  if (gate.count >= max) {
     dropped += 1;
     return false;
   }
-  gateCount += 1;
+  gate.count += 1;
   return true;
 }
 
-export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried = false): void {
+// App reports have their own gate and record budget, so a broken app can never crowd out the host's own errors.
+function isAppKind(kind: ErrorKind): boolean {
+  return kind === 'app' || kind === 'app-log';
+}
+
+export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried = false, app?: AppErrorSource): void {
   if (!recoveryTried && installed && staleChunkMessageOf(error)) {
     // A reload onto a new build makes the error moot; otherwise report it as usual.
     void recoverFromStaleChunkNow().then((reloaded) => {
@@ -174,13 +190,16 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
     });
     return;
   }
-  if (!installed || reporting || !gateOpen()) return;
+  const forApp = isAppKind(kind);
+  if (!installed || reporting || !(forApp ? gateOpen(appGate, GATE_MAX_APP) : gateOpen(hostGate, GATE_MAX))) return;
   reporting = true;
   try {
     const d = describe(error);
+    // Apps share error names and messages, so the app id keeps their fingerprints apart.
+    if (app) d.type = `${app.id}:${d.type}`;
     const stack = stripUrlSecrets(d.stack);
     if (isNoise(d.message, stack)) return;
-    const message = cap(stripUrlSecrets(d.message), CAPS.message);
+    const message = cap(stripUrlSecrets(d.message), forApp ? APP_MESSAGE_CAP : CAPS.message);
     const fingerprint = cap(fingerprintOf(d.type, message), CAPS.fingerprint);
     const existing = records.get(fingerprint);
     if (existing) {
@@ -189,10 +208,12 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
       schedule();
       return;
     }
-    if (records.size >= MAX_DISTINCT) {
+    let sameBudget = 0;
+    for (const rec of records.values()) if (isAppKind(rec.entry.kind) === forApp) sameBudget += 1;
+    if (sameBudget >= (forApp ? MAX_DISTINCT_APP : MAX_DISTINCT)) {
       let evict: string | null = null;
       for (const [fp, rec] of records) {
-        if (rec.unsent === 0) {
+        if (rec.unsent === 0 && isAppKind(rec.entry.kind) === forApp) {
           evict = fp;
           break;
         }
@@ -211,6 +232,7 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
       message,
       stack: cap(stack, CAPS.stack),
       context: cap(stripUrlSecrets(currentContext(context)), CAPS.context),
+      ...(app ? { app: cap(app.tag, CAPS.context) } : {}),
       count: 1,
     } });
     schedule();
@@ -278,8 +300,10 @@ export function resetErrorReportingForTests(): void {
   timer = null;
   records.clear();
   dirty.clear();
-  gateStart = 0;
-  gateCount = 0;
+  hostGate.start = 0;
+  hostGate.count = 0;
+  appGate.start = 0;
+  appGate.count = 0;
   dropped = 0;
   reporting = false;
   if (installed && typeof window !== 'undefined') {

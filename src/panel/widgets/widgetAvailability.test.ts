@@ -381,15 +381,24 @@ describe('marketplace listing derives from the preinstalled + page signal', () =
     expect(appAvailableForSurface(meta, 'y70')).toBe(true);
   });
 
+  it('keeps an app whose manifest names only the retired kraken surface on round glass and off the rest', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.kraken-only', name: 'K', source: 'user', sizes: ['2x2round'], surfaces: ['kraken'] }),
+    ]);
+    const meta = lookupApp(typeForMarketplace('com.hellonexus.kraken-only'))!.meta;
+    expect(meta.surfaces).toEqual(['lcd-round']);
+    expect(appAvailableForSurface(meta, 'lcd-round')).toBe(true);
+    expect(appAvailableForSurface(meta, 'lcd-square')).toBe(false);
+    expect(appAvailableForSurface(meta, 'y70')).toBe(false);
+  });
+
   it('accepts 2x2round (round glass) and offers it only on the surfaces that use it', () => {
     _seedMarketplaceRegistryForTests([
       listing({ id: 'com.hellonexus.aquarium', name: 'Aquarium', source: 'user', sizes: ['2x2round'] }),
     ]);
     const meta = lookupApp(typeForMarketplace('com.hellonexus.aquarium'))!.meta;
     expect(meta.sizes).toEqual(['2x2round']);
-    // kraken and lcd-round both lock to the round tile.
-    expect(appAvailableForSurface(meta, 'kraken')).toBe(true);
-    expect(sizesForSurface(meta, 'kraken')).toEqual(['2x2round']);
+    // lcd-round locks to the round tile.
     expect(appAvailableForSurface(meta, 'lcd-round')).toBe(true);
     expect(sizesForSurface(meta, 'lcd-round')).toEqual(['2x2round']);
     // 2x2round is reserved off every multi-widget surface, same as q60's 2x4.

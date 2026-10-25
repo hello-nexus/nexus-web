@@ -37,6 +37,15 @@ function cell(props: Partial<Parameters<typeof PanelTouchCell>[0]>) {
 }
 
 describe('PanelTouchCell', () => {
+  it('renders the shared EditHint with the edit-widget label under editHint only', () => {
+    const { container, rerender } = render(cell({}));
+    expect(container.querySelector('[data-edit-hint-overlay]')).toBeNull();
+    rerender(cell({ editHint: true }));
+    const hint = container.querySelector('[data-edit-hint-overlay]')!;
+    expect(hint.getAttribute('aria-hidden')).toBe('true');
+    expect(hint.textContent).toBe('panel.widget.editWidget');
+  });
+
   it('keeps the widget mounted through the editor dock', () => {
     const dock = document.body.appendChild(document.createElement('div'));
     const motion = { widgetId: 'w1', phase: 'open' as const, style: {} };

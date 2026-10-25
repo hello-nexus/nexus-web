@@ -169,7 +169,7 @@ describe('buildPanelDevices streamed panels', () => {
       firstSeenAt: 0,
       lastSeenAt: 1,
       streamed: true,
-      capabilities: { surface: 'kraken', family: 'nzxt-kraken', touch: false, cssWidth: 640, cssHeight: 640, dpr: 1 },
+      capabilities: { surface: 'lcd-round', family: 'nzxt-kraken', touch: false, cssWidth: 640, cssHeight: 640, dpr: 1 },
     };
   }
 
@@ -178,7 +178,7 @@ describe('buildPanelDevices streamed panels', () => {
 
     expect(device.id).toBe('stream:rec-lcd');
     expect(device.panelRecordId).toBe('rec-lcd');
-    expect(device.runtimeSurface).toBe('kraken');
+    expect(device.runtimeSurface).toBe('lcd-round');
     expect(device.iconSrc).toBe('/assets/devices/nzxt.svg');
     expect(device.modalKind).toBe('panel-editor');
     expect(device.capabilities.layout).toBe(true);

@@ -173,6 +173,9 @@ const CURATED_ICONS: Record<string, string> = {
   'asiahorse-umbra': '/assets/devices/asiahorse.svg',
 };
 
+/** The service names the handler for P28 V2 when every unit is one; otherwise the LCD Flex label stands. */
+export const flexShortName = (serviceName: string): string => (serviceName === 'Lian Li P28 V2' ? serviceName : 'Lian Li LCD Flex');
+
 const CURATED_SHORT_NAMES: Record<string, string> = {
   // y70 and qseries omitted: the service reports the connected variant's
   // product name ("HYTE Y70 Ina Touch", "HYTE Q80") on the device record;
@@ -189,7 +192,6 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'lianli-tl': 'Lian Li Uni Fan TL',
   'lianli-aio': 'Lian Li Galahad II',
   'lianli-wireless': 'Lian Li L-Wireless Controller',
-  'lianli-flex': 'Lian Li LCD Flex',
   strimer: 'Lian Li Strimer Plus',
   nollie: 'Nollie',
   tryx: 'Tryx Panorama',
@@ -398,7 +400,7 @@ function buildUnifiedList(
     const displayName = d.id === 'smbus-dram' ? t('devices.smbusDram.name') : d.name;
     list.push({
       key: `curated-${d.id}`,
-      shortName: (isLianLiHubId(d.id) ? lianLiHubName(d.id) : CURATED_SHORT_NAMES[d.id]) || displayName,
+      shortName: (isLianLiHubId(d.id) ? lianLiHubName(d.id) : d.id === 'lianli-flex' ? flexShortName(d.name) : CURATED_SHORT_NAMES[d.id]) || displayName,
       name: displayName,
       subtitle: d.category,
       category: d.category,

@@ -248,6 +248,11 @@ export interface Preferences {
   // Machine-level (not per-profile): false stops reading the temperature
   // sensor on each memory stick. Applies live. Missing means true.
   readRamTemperatures?: boolean;
+  // Linux-only, machine-level: lets Nexus drive AMD graphics card lighting.
+  // Missing means off. The Applicable flag is read-only and true only on
+  // Linux; an older service omits both.
+  amdGpuLighting?: boolean;
+  amdGpuLightingApplicable?: boolean;
 }
 
 export interface PreferencesPatch {
@@ -263,6 +268,7 @@ export interface PreferencesPatch {
   features?: FeaturesPrefs;
   startupDelaySeconds?: number;
   readRamTemperatures?: boolean;
+  amdGpuLighting?: boolean;
 }
 
 interface GetProfilesResponse {
@@ -276,6 +282,8 @@ export interface ProfileResponse {
   error?: boolean;
   msg?: string;
   profile?: ProfileEntry;
+  /** Set when the file carried a PC setup. */
+  pcSetup?: string;
 }
 
 export interface ProfileFetchResult<T> {

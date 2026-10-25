@@ -6,17 +6,23 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
-import { DEFAULT_PANEL_FONT, PANEL_FONTS, type PanelFontId } from '../theme/panelFont';
+import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
+import { buildPanelFontOptions } from '../theme/panelFontOptions';
+import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
+import { loadSystemFonts, useSystemFonts } from '../theme/systemFontsCache';
 import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
   PANEL_BACKGROUND_EFFECTS,
+  PANEL_BACKGROUND_EFFECTS_WITH_AUDIO,
   PANEL_BACKGROUND_FROST_STEP,
   PANEL_WIDGET_PADDING_STEP,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundTemplate,
   panelBackgroundDefault,
+  panelBackgroundState,
   panelBackgroundPresets,
+  resolveBackgroundDrawing,
   resolvePanelBackground,
   type PanelBackdrop,
   type PanelBackgroundMode,
@@ -95,10 +101,12 @@ export interface PanelThemeSettingsState {
   // Hex for 'custom'; empty falls back to DEFAULT_CUSTOM_TEXT_COLOR.
   textColor: string;
   // Null is the app font.
-  font: PanelFontId | null;
+  font: PanelFont | null;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
+
+const OPTIONS_TAB = 'options';
 
 export interface PanelThemeSettingsProps {
   theme: PanelThemeSettingsState;
@@ -132,7 +140,9 @@ export interface PanelThemeSettingsProps {
   onTextColorModeCommit: (mode: TextColorMode) => void;
   onTextColorPreview: (hex: string) => void;
   onTextColorCommit: (hex: string) => void;
-  onFontCommit: (font: PanelFontId | null) => void;
+  onFontCommit: (font: PanelFont | null) => void;
+  /** List installed host fonts under the bundled ones. Only for panels rendered on this PC's own OS. */
+  showSystemFonts?: boolean;
   /** Show the media background tab. All display-backed surfaces support it; the
    * embedded desktop deck never renders theme backgrounds (PanelApp gates on
    * !embedded || simulator), so desktop hides it. Tunneled panels also hide it:
@@ -166,6 +176,8 @@ export interface PanelThemeSettingsProps {
   showEffectSearch?: boolean;
   /** Name of the focus mode holding this panel on a plain background right now, if any. */
   backgroundHeldBy?: string | null;
+  /** panelAudioReactiveAllowed for the surface being edited. Off offers no audio effects. */
+  audioReactive?: boolean;
 }
 
 export function PanelThemeSettings({
@@ -203,6 +215,7 @@ export function PanelThemeSettings({
   onTextColorCommit,
   onFontCommit,
   showMediaTab = false,
+  showSystemFonts = false,
   deviceAspect = 9 / 16,
   roundDisplay = false,
   deviceW,
@@ -214,6 +227,7 @@ export function PanelThemeSettings({
   showImmersiveBackdrop = true,
   sections = 'all',
   backgroundHeldBy = null,
+  audioReactive = false,
 }: PanelThemeSettingsProps) {
   const showTheme = sections !== 'background';
   const showBackground = sections !== 'theme';
@@ -223,8 +237,19 @@ export function PanelThemeSettings({
     return value === key ? fallback : value;
   };
   const syncWithDesktopLabel = t('panel.settings.syncWithDesktop') || 'Sync with desktop';
-  const backgroundEffect = normalizePanelBackgroundEffect(theme.backgroundEffect);
-  const backgroundTemplate = normalizePanelBackgroundTemplate(theme.backgroundTemplate);
+  // What this surface draws. A stored audio effect it cannot play shows the
+  // default, and the options below edit that, never the stored effect's template.
+  const storedBackgroundEffect = normalizePanelBackgroundEffect(theme.backgroundEffect);
+  const drawnBackground = resolveBackgroundDrawing(
+    storedBackgroundEffect,
+    normalizePanelBackgroundTemplate(theme.backgroundTemplate),
+    theme.backgroundEffectState,
+    audioReactive,
+  );
+  const backgroundEffect = drawnBackground.effect;
+  const backgroundTemplate = drawnBackground.template;
+  const backgroundEffectState = drawnBackground.effectState ?? panelBackgroundState(backgroundEffect, backgroundTemplate);
+  const backgroundSubstituted = backgroundEffect !== storedBackgroundEffect;
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
@@ -245,11 +270,23 @@ export function PanelThemeSettings({
     { key: 'theme', label: label('panel.settings.textColor.theme', 'Theme') },
     { key: 'custom', label: label('panel.settings.textColor.custom', 'Custom') },
   ];
-  const fontOptions = PANEL_FONTS.map(f => ({
-    value: f.id,
-    label: f.family,
-    fontFamily: `'${f.family}', var(--panel-font)`,
-  }));
+  const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
+  const systemFonts = useSystemFonts(showSystemFonts && showTheme);
+  const fontOptions = buildPanelFontOptions(
+    showSystemFonts
+      ? { status: systemFonts.status, families: systemFonts.families, onLoad: () => { void loadSystemFonts(); } }
+      : null,
+    theme.font,
+    {
+      bundled: label('panel.settings.font.bundled', 'Bundled'),
+      system: label('panel.settings.font.system', 'System'),
+      recent: t('search.section.recent') || 'Recent',
+      load: label('panel.settings.font.system.load', 'Load system fonts'),
+      loading: label('panel.settings.font.system.loading', 'Loading system fonts'),
+      empty: label('panel.settings.font.system.empty', 'No system fonts found'),
+    },
+    recentFonts,
+  );
   const textColorDescription = theme.textColorMode === 'custom'
     ? label('panel.settings.textColor.custom.desc', 'One color for all widget text, accent text included')
     : theme.textColorMode === 'theme'
@@ -266,6 +303,7 @@ export function PanelThemeSettings({
   // sticky dock while the grid / controls scroll with the page.
   const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
   const [effectQuery, setEffectQuery] = useState('');
+  const visibleEditorTab = backgroundSubstituted ? OPTIONS_TAB : editorTab;
 
   // The same Options | Effect editing surface as the immersive lighting view,
   // here targeting this panel's per-device background effect (animate-only).
@@ -273,7 +311,7 @@ export function PanelThemeSettings({
     effect: backgroundEffect,
     template: backgroundTemplate,
     templatesByEffect: theme.backgroundTemplates,
-    effectState: theme.backgroundEffectState,
+    effectState: backgroundEffectState,
     onSelectEffect: onBackgroundEffectCommit,
     onTemplateSelect: onBackgroundTemplateCommit,
     onPreview: onBackgroundEffectStatePreview,
@@ -433,7 +471,11 @@ export function PanelThemeSettings({
           label={label('panel.settings.font', 'Font')}
           value={theme.font ?? DEFAULT_PANEL_FONT}
           options={fontOptions}
-          onChange={value => onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFontId)}
+          onChange={value => {
+            const family = systemFontFamily(value);
+            if (family) setRecentFonts(pushRecentSystemFont(family));
+            onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFont);
+          }}
         />
       </SettingsSection>
       )}
@@ -557,7 +599,8 @@ export function PanelThemeSettings({
                   <BackgroundEffectPreview
                     effect={backgroundEffect}
                     template={backgroundTemplate}
-                    effectState={theme.backgroundEffectState}
+                    effectState={backgroundEffectState}
+                    audioReactive={audioReactive}
                   />
                   <ChipGroup
                     fullWidth
@@ -565,13 +608,13 @@ export function PanelThemeSettings({
                       // eslint-disable-next-line i18next/no-literal-string -- editor tab id
                       { key: 'options', label: t('lighting.editor.options') },
                       // eslint-disable-next-line i18next/no-literal-string -- editor tab id
-                      { key: 'effect', label: t('lighting.rightPane.effect') },
+                      ...(backgroundSubstituted ? [] : [{ key: 'effect', label: t('lighting.rightPane.effect') }]),
                     ]}
-                    activeKey={editorTab}
+                    activeKey={visibleEditorTab}
                     onChange={key => setEditorTab(key as 'options' | 'effect')}
                     ariaLabel={t('lighting.rightPane.label')}
                   />
-                  {showEffectSearch && editorTab === 'options' && (
+                  {showEffectSearch && (backgroundSubstituted || editorTab === 'options') && (
                     <SearchInput
                       value={effectQuery}
                       onChange={setEffectQuery}
@@ -580,11 +623,11 @@ export function PanelThemeSettings({
                     />
                   )}
                 </div>
-                {editorTab === 'options' ? (
+                {backgroundSubstituted || editorTab === 'options' ? (
                   <AnimateGrid
                     effect={backgroundEffect}
                     onSelect={onBackgroundEffectCommit}
-                    effects={PANEL_BACKGROUND_EFFECTS}
+                    effects={audioReactive ? PANEL_BACKGROUND_EFFECTS_WITH_AUDIO : PANEL_BACKGROUND_EFFECTS}
                     query={showEffectSearch ? effectQuery : undefined}
                     slotFor={backgroundController.slotFor}
                     versionFor={backgroundController.versionFor}

@@ -9,6 +9,7 @@ import {
   PanelSimulatorWrapper,
 } from './app/PanelEntrypoint';
 import { RESERVED_PANEL_PATH_SEGMENTS, shouldForcePhonePanelRoute } from './app/panelRouting';
+import { panelSurfaceHint } from './panel/device/inferSurface';
 import { Dashboard } from './app/Dashboard';
 import { isRemoteOrigin, setForceLanMode } from './api/service';
 import { isWindowsAppShell, isMacAppShell } from './app/windowActions';
@@ -149,7 +150,8 @@ export default function App() {
     const second = segments[1];
     const isPhonePair = second === 'phone';
     const explicitDeviceId = second && !RESERVED_PANEL_PATH_SEGMENTS.has(second) ? second : null;
-    const surfaceHint = !isPhonePair && params.get('surface') === 'y70' ? 'y70' : null;
+    // The phone path is its own hint; the legacy /panel/q60 path declares q60.
+    const surfaceHint = isPhonePair ? null : second === 'q60' ? 'q60' : panelSurfaceHint(params.get('surface'));
     return (
       <I18nProvider>
         <PanelEntrypoint

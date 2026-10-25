@@ -7,6 +7,7 @@ import {
   _seedMarketplaceRegistryForTests,
   getMarketplaceListing,
   getPreinstalledPageAppTypes,
+  isMarketplaceRegistryExpired,
   isMarketplaceIdEnabled,
   loadMarketplaceApps,
   reloadMarketplaceApps,
@@ -123,5 +124,24 @@ describe('reloadMarketplaceApps', () => {
 
     expect(await reloadMarketplaceApps()).toBe(false);
     expect(getMarketplaceListing('com.hellonexus.ina')).toBeTruthy();
+  });
+});
+
+describe('loadMarketplaceApps after a failed read', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  // A failed read must not stamp the cache fresh, or the layout reconciler
+  // would trust the stale list and drop placed app widgets.
+  it('keeps the previous apps and does not advance the freshness stamp', async () => {
+    vi.useFakeTimers();
+    _seedMarketplaceRegistryForTests([listing({ id: 'com.hellonexus.ina', name: 'Ina', source: 'user' })]);
+    vi.advanceTimersByTime(31_000);
+    expect(isMarketplaceRegistryExpired()).toBe(true);
+    mockList.mockRejectedValueOnce(new Error('offline'));
+
+    await loadMarketplaceApps();
+
+    expect(getMarketplaceListing('com.hellonexus.ina')).toBeTruthy();
+    expect(isMarketplaceRegistryExpired()).toBe(true);
   });
 });

@@ -9,6 +9,7 @@ import type { DeckEditView } from '../widgets/types';
 import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
 import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
+import { EditHint } from '../../components/common/EditHint/EditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
 import { surfaceSupportsTouch, type PanelLayout, type PanelSurface, type PanelWidget, type PanelConfigValue } from '../types';
@@ -445,14 +446,7 @@ export function PanelTouchCell({
                 onEnterImmersive={onEnterImmersiveWidget ? () => onEnterImmersiveWidget(widget) : undefined}
               />
             </div>
-            {editHint && (
-              <div className={styles.cellEditHint} aria-hidden="true">
-                <div className={styles.cellEditHintContent}>
-                  <Pencil className={styles.cellEditHintIcon} />
-                  <span className={styles.cellEditHintLabel}>{t('panel.widget.editWidget')}</span>
-                </div>
-              </div>
-            )}
+            {editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
             {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
           </div>
           {immersiveOnLoad && (

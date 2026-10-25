@@ -18,6 +18,16 @@ if (typeof window !== 'undefined') {
     }),
   });
 
+  // Node's BroadcastChannel reaches every worker in the process, so a page in one test file would receive control-sync messages from another file running in parallel.
+  class BroadcastChannelStub {
+    onmessage = null;
+    postMessage() {}
+    close() {}
+    addEventListener() {}
+    removeEventListener() {}
+  }
+  globalThis.BroadcastChannel = BroadcastChannelStub as unknown as typeof BroadcastChannel;
+
   class ResizeObserverStub {
     observe() {}
     unobserve() {}
@@ -29,6 +39,11 @@ if (typeof window !== 'undefined') {
   // components that keep an active item in view (Select listbox, TopSearch)
   // don't throw under test.
   Element.prototype.scrollIntoView ??= function () {};
+
+  // jsdom logs "not implemented" for media element control; background video
+  // release calls both on unmount.
+  HTMLMediaElement.prototype.pause = function () {};
+  HTMLMediaElement.prototype.load = function () {};
 
   afterEach(() => {
     localStorage.clear();

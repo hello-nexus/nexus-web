@@ -379,6 +379,8 @@ export interface PingResponse {
 interface RequestOptions {
   method?: string;
   body?: unknown;
+  /** Extra request headers; direct (non-tunneled) paths only. */
+  headers?: Record<string, string>;
   signal?: AbortSignal;
   cache?: RequestCache;
   /** The HTTP cache may answer this route, so its response is no sign of life. */
@@ -548,7 +550,7 @@ export async function authFetchWithStatus(path: string, opts: RequestOptions = {
 
   try {
     const token = await getToken();
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { ...opts.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 

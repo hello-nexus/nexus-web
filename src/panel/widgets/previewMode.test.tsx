@@ -105,6 +105,8 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   // so a substring match on them would pass with the title element deleted.
   snake: ['panel.widget.snake.play'],
   blocks: ['panel.widget.blocks.play'],
+  // The mocked t() returns keys; the picker size carries the invitation under the silhouette.
+  build: ['panel.widget.build.cta'],
   processes: ['chrome', 'Nexus', '12.4%', '8.2%', '2.7 GB'],
 };
 
