@@ -183,6 +183,8 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
 function mountSides(fans: readonly PlannedFan[], extents: Vec3): [boolean, boolean][] {
   const sides: [boolean, boolean][] = [[false, false], [false, false], [false, false]];
   for (const f of fans) {
+    // A card's fans sit inside the case, so they never put outside air on a side.
+    if (f.slot.position === 'gpu') continue;
     const k = axisIndex(f.disk.axis);
     const lo = f.disk.axis[k] > 0;
     const c = f.disk.centre[k];
@@ -236,16 +238,26 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   const layoutMm = (i: number, j: number, k: number): Vec3 => [(i + 0.5) * cellMm - origin[0], (j + 0.5) * cellMm - origin[1], (k + 0.5) * cellMm - origin[2]];
 
   const sources: number[] = [];
-  const voxelize = (box: CaseBox, fn: (c: number) => void) => {
+  // `touching` takes every cell the shape touches, so a particle in a fluid cell is never inside the shape.
+  const voxelize = (box: CaseBox, fn: (c: number) => void, touching = false) => {
     const b = boxBounds(box, cellMm);
+    const half = cellMm / 2;
     eachCellIn(b.min, b.max, (i, j, k) => {
       if (!inCase(i, j, k) || onCaseShell(i, j, k)) return;
-      if (boxContains(box, layoutMm(i, j, k), cellMm)) fn(id(i, j, k));
+      const c = layoutMm(i, j, k);
+      const hit = touching
+        ? [-half, half].some(dx => [-half, half].some(dy => [-half, half].some(dz => boxContains(box, [c[0] + dx, c[1] + dy, c[2] + dz], cellMm))))
+        : boxContains(box, c, cellMm);
+      if (hit) fn(id(i, j, k));
     });
   };
+  /** Cells outside the case's real shape: solid, and no fan opens them. */
+  const outside = new Uint8Array(n);
   const obstacles = obstaclesOf(layout);
   for (const o of obstacles) {
-    if (o.porous) {
+    if (o.kind === 'hull') {
+      voxelize(o.box, c => { solid[c] = 1; outside[c] = 1; }, true);
+    } else if (o.porous) {
       voxelize(o.box, c => { darcy[c] = DARCY_K; heat[c] = HEAT_RATE_POROUS; });
     } else {
       const isHeat = HEAT_PARTS.has(o.box.slot);
@@ -301,6 +313,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       }
       if (inFrame === 0) return;
       const id3 = id(i, j, kk);
+      if (outside[id3]) return;
       if (inRing / (SUB * SUB) >= 0.4) {
         annulus.push(id3);
         layers.add([i, j, kk][k]);
@@ -309,7 +322,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     return { annulus, blocked, layers: layers.size, perLayer: layers.size > 0 ? annulus.length / layers.size : 0 };
   };
 
-  const cellsOf = plan.fans.map(p => (p.cfm > 0 || !p.porousBox ? classify(p) : { annulus: [], blocked: [], layers: 0, perLayer: 0 }));
+  const cellsOf = plan.fans.map(p => (p.cfm > 0 || (!p.porousBox && p.slot.position !== 'gpu') ? classify(p) : { annulus: [], blocked: [], layers: 0, perLayer: 0 }));
   const cellAreaM2 = (cellMm / MM_PER_M) ** 2;
   // Air speed through the ring: the fan's flow over the area its ring cells cover, so a coarse grid still moves the fan's CFM.
   const velocityMps = (p: PlannedFan, c: FanCells) => (c.perLayer > 0 && p.cfm > 0 ? (p.cfm * M3S_PER_CFM) / (c.perLayer * cellAreaM2) : 0);
@@ -356,7 +369,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     if (speed > 0) {
       fanCount++;
       if (p.direction === 'intake') { addSpawns(p, p.cfm); intakeCfm += p.cfm; }
-    } else if (!p.porousBox && input.ventCfm < 0) {
+    } else if (!p.porousBox && p.slot.position !== 'gpu' && input.ventCfm < 0) {
       addSpawns(p, Math.abs(input.ventCfm) / 4);
     }
   });
