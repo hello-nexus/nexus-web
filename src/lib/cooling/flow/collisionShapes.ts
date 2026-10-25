@@ -1,6 +1,7 @@
 import { BufferGeometry, DoubleSide, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, Shape, ShapeGeometry, Path, BoxGeometry, Vector2, type Color } from 'three';
 import type { CaseBox, Vec3 } from '../caseLayout';
 import type { Obstacle } from './obstacles';
+import { hullWall } from './hull';
 
 /** The geometry of one obstacle as the grid rasterizes it: a plate in its plane, a closed solid by its faces, anything else as its box turned by `rotationY`. Layout mm. */
 export function obstacleGeometry(box: CaseBox): { geometry: BufferGeometry; position: Vec3; rotationY: number } {
@@ -36,12 +37,12 @@ export function obstacleGeometry(box: CaseBox): { geometry: BufferGeometry; posi
   return { geometry: new BoxGeometry(box.size[0], box.size[1], box.size[2]), position: centre, rotationY: box.rotationY ?? 0 };
 }
 
-/** Translucent shapes for a scene's obstacles, solid ones in `solid` and porous ones in `porous`. Dispose with the returned function. */
+/** Translucent shapes for a scene's obstacles, solid ones in `solid` and porous ones in `porous`. A hull cut shows only its wall, since the rest of the cut lies outside the case. Dispose with the returned function. */
 export function buildCollisionShapes(obstacles: readonly Obstacle[], solid: Color, porous: Color): { group: Group; dispose: () => void } {
   const group = new Group();
   const owned: { dispose: () => void }[] = [];
   for (const o of obstacles) {
-    const { geometry, position, rotationY } = obstacleGeometry(o.box);
+    const { geometry, position, rotationY } = obstacleGeometry(o.kind === 'hull' ? hullWall(o.box) : o.box);
     const color = o.porous ? porous : solid;
     const face = new MeshBasicMaterial({ color, transparent: true, opacity: o.porous ? 0.2 : 0.28, side: DoubleSide, depthWrite: false });
     const mesh = new Mesh(geometry, face);

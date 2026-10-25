@@ -37,6 +37,9 @@ function wedgeOf(shell: CaseBox, c: CaseChamfer): CaseBox {
   return { slot: 'case', role: 'structure', min, size, faces: [lo, hi, side(0, 1), side(1, 2), side(2, 0)] };
 }
 
+/** The wall a cut leaves: the prism's diagonal face, the quad between its two slanted edges. The rest of the prism is air outside the case. */
+export const hullWall = (cut: CaseBox): CaseBox => ({ ...cut, faces: [cut.faces![3]] });
+
 /** The prisms the case's shape cuts from its bounding box, one per large chamfer of the shell. */
 export function hullCuts(layout: CaseLayout): CaseBox[] {
   const shell = shellOf(layout);
