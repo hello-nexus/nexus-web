@@ -29,6 +29,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
   // from the parent (an older save's refetch) must not overwrite a newer pick.
   const pending = useRef(new Set<number>());
   const confirmed = useRef<number | null>(value);
+  const confirmedSeq = useRef(0);
   const lastId = useRef(id);
   useEffect(() => {
     if (lastId.current !== id) {
@@ -51,6 +52,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
   const handleChange = (v: string) => {
     const next = v === OFF ? null : Number(v);
     const mine = ++seq.current;
+    const cardId = id;
     pending.current.add(mine);
     setCurrent(next);
     const fail = () => {
@@ -62,9 +64,14 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
       .then(r => {
         pending.current.delete(mine);
         if (!r || r.error) fail();
-        else {
+        else if (cardId === lastId.current && mine > confirmedSeq.current) {
           confirmed.current = next;
+          confirmedSeq.current = mine;
           if (mine === seq.current) onSaved?.();
+          else if (pending.current.size === 0) {
+            setCurrent(next);
+            onSaved?.();
+          }
         }
       })
       .catch(() => {
