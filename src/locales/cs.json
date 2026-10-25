@@ -423,6 +423,7 @@
   "cooling.case3d.position.front": "Vpředu",
   "cooling.case3d.position.frontLeft": "Vpředu vlevo",
   "cooling.case3d.position.frontRight": "Vpředu vpravo",
+  "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Vlevo",
   "cooling.case3d.position.other": "Ventilátor",
   "cooling.case3d.position.psuShroud": "Kryt zdroje",

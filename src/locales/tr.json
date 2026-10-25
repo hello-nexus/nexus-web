@@ -423,6 +423,7 @@
   "cooling.case3d.position.front": "Ön",
   "cooling.case3d.position.frontLeft": "Ön sol",
   "cooling.case3d.position.frontRight": "Ön sağ",
+  "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Sol",
   "cooling.case3d.position.other": "Fan",
   "cooling.case3d.position.psuShroud": "PSU kapağı",

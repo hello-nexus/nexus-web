@@ -423,6 +423,7 @@
   "cooling.case3d.position.front": "Voor",
   "cooling.case3d.position.frontLeft": "Linksvoor",
   "cooling.case3d.position.frontRight": "Rechtsvoor",
+  "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Links",
   "cooling.case3d.position.other": "Fan",
   "cooling.case3d.position.psuShroud": "PSU-kap",

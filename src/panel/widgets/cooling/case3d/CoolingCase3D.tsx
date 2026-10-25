@@ -53,6 +53,7 @@ const POSITION_KEYS: Record<string, string> = {
   'psu-shroud': 'cooling.case3d.position.psuShroud',
   'front-left': 'cooling.case3d.position.frontLeft',
   'front-right': 'cooling.case3d.position.frontRight',
+  gpu: 'cooling.case3d.position.gpu',
 };
 
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
