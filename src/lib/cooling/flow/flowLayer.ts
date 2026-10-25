@@ -52,8 +52,6 @@ export interface FlowColors {
 
 export interface FlowOptions {
   particles: boolean;
-  /** Ignored; kept until the branches that drop the dead-zone toggle have merged. */
-  deadZones?: boolean;
   /** Draws the obstacles the solver rasterizes, as shapes, in place of the case model. */
   collisions: boolean;
   /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */

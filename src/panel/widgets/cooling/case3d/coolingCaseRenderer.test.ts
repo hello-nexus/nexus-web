@@ -18,6 +18,20 @@ vi.mock('three', async importOriginal => {
   return { ...actual, WebGLRenderer: FakeRenderer };
 });
 
+const layers = vi.hoisted(() => ({ created: 0, disposed: 0 }));
+vi.mock('../../../../lib/cooling/flow/flowLayer', () => ({
+  FlowLayer: class {
+    supported = true;
+    constructor() { layers.created++; }
+    setOptions() {}
+    setInput() {}
+    setTemps() {}
+    frame() {}
+    get active() { return false; }
+    dispose() { layers.disposed++; }
+  },
+}));
+
 import { LineBasicMaterial, LineDashedMaterial, Color } from 'three';
 import { createCaseRenderer, ringMaterial } from './coolingCaseRenderer';
 
@@ -46,6 +60,22 @@ describe('createCaseRenderer', () => {
       expect(m.dispose).toHaveBeenCalledTimes(1);
       expect(m.calls).toEqual(['forceContextLoss', 'dispose']);
     }
+  });
+
+  it('keeps the flow layer through a fan edit and rebuilds it only when the case shape changes', () => {
+    layers.created = 0;
+    layers.disposed = 0;
+    const r = createCaseRenderer(document.createElement('canvas'), () => {});
+    const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 }, model: null });
+    r.setState(state(layout));
+    const edited: CaseLayout = { ...layout, fanSlots: layout.fanSlots.map(s => ({ ...s, taken: 'fan' as const })) };
+    r.setState(state(edited));
+    expect(layers.created).toBe(1);
+    expect(layers.disposed).toBe(0);
+    r.setState(state({ ...edited, size: [500, 230, 470] }));
+    expect(layers.created).toBe(2);
+    expect(layers.disposed).toBe(1);
+    r.dispose();
   });
 });
 

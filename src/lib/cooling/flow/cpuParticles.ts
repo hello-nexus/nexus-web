@@ -76,6 +76,8 @@ export class CpuParticles {
     for (let i = 0; i < this.count; i++) {
       const o = i * 3;
       if (this.pos[o] < -1e5) { this.respawn(i); continue; }
+      const here = this.cellAt(this.pos[o], this.pos[o + 1], this.pos[o + 2]);
+      if (here >= 0 && solid[here]) { this.respawn(i); continue; }
       if (this.age[i] < 0) { this.age[i] += 1; continue; }
       let x = this.pos[o], y = this.pos[o + 1], z = this.pos[o + 2];
       const from = this.cellAt(x, y, z);
