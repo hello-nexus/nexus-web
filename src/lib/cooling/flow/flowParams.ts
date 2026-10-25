@@ -50,10 +50,6 @@ export const substepsFor = (speed: number) => Math.min(8, Math.max(1, Math.ceil(
 export const STUCK_MOVE_CELLS = 0.015;
 export const STUCK_AGE_RATE = 20;
 
-/** Intake particles start this many cells outward of the fan, spread over this depth. */
-export const SPAWN_BACK_MIN_CELLS = 1.5;
-/** Intake particles start anywhere in the tube of outside air this deep, mm, in front of the fan's opening. */
-export const SPAWN_OUT_REACH_MM = 60;
 /** Emitter entries per 60 CFM of flow, within these bounds: a stronger fan sends proportionally more particles. */
 export const EMITTERS_PER_60_CFM = 16;
 export const MAX_EMITTER_ENTRIES = 256;

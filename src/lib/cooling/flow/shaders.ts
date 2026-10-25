@@ -136,7 +136,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uEmitterCount; uniform float uBackSpan; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
+uniform float uEmitterCount; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -171,7 +171,8 @@ void main() {
     age += length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0;
     p = q;
     ivec3 c = cellAtPos(p);
-    respawn = mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
+    // Nothing lives outside the case's own box: a particle that leaves it is recycled.
+    respawn = any(lessThan(p, uCaseMin)) || any(greaterThan(p, uCaseMax)) || mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
   }
   if (respawn) {
     bool found = false;
@@ -187,7 +188,7 @@ void main() {
       vec3 e2 = cross(b.xyz, c2.xyz);
       float r = sqrt(a.w * a.w + (b.w * b.w - a.w * a.w) * hash(gl_FragCoord.xy * 1.3 + sd));
       float th = 6.2831853 * hash(gl_FragCoord.xy * 2.1 + sd);
-      float back = c2.w + uBackSpan * hash(gl_FragCoord.xy * 3.3 + sd);
+      float back = c2.w;
       vec3 cand = a.xyz + c2.xyz * (r * cos(th)) + e2 * (r * sin(th)) - b.xyz * back;
       if (!solidAt(cellAtPos(cand))) { np = cand; found = true; break; }
     }
