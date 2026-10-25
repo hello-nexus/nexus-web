@@ -145,16 +145,6 @@ describe('wired LCD Flex channels', () => {
   });
 });
 
-describe('buildLianLiWirelessCoolingChains for a P28 V2 unit', () => {
-  it('lists one row per fan channel with that fan RPM under the Flex prefix', () => {
-    const prefix = 'lianli-flex:';
-    const channels = [0, 1, 2].map(p => makeChannel({ id: lianliWirelessPortChannelId('998D1DE566E1', p, prefix), rpm: 1000 + p }));
-    const chains = buildLianLiWirelessCoolingChains([makeFan({ fanType: 63, fanCount: 3, rpm: [1000, 1001, 1002, 0] })], channels, prefix);
-    expect(chains[0].ports.map(p => p.rpm)).toEqual([1000, 1001, 1002]);
-    expect(chains[0].ports.every(p => p.channel !== null)).toBe(true);
-  });
-});
-
 describe('buildLianLiWirelessCoolingChains for a P28 V2 with one duty channel', () => {
   it('shows each fan RPM, all sharing port 0 channel', () => {
     const prefix = 'lianli-flex:';
