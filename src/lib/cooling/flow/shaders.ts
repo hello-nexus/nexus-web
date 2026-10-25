@@ -156,8 +156,8 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 `;
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
-uniform sampler2D PA; uniform sampler2D SP;
-uniform float uSpawnCount; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter;
+uniform sampler2D PA; uniform sampler2D EM;
+uniform float uEmitterCount; uniform float uBackSpan; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -172,21 +172,42 @@ void main() {
   // Not yet born: wait unseen at the spawn point.
   if (!respawn && age < 0.0) { gl_FragColor = vec4(p, age + 1.0); return; }
   if (!respawn) {
-    vec3 k1 = sampleU(p);
-    vec3 d = sampleU(p + 0.5 * k1);
     vec3 q = p;
-    // One axis at a time, so a blocked axis slides along the surface instead of entering it.
-    vec3 t = q + vec3(d.x, 0.0, 0.0); if (!solidAt(cellAtPos(t))) q = t;
-    t = q + vec3(0.0, d.y, 0.0); if (!solidAt(cellAtPos(t))) q = t;
-    t = q + vec3(0.0, 0.0, d.z); if (!solidAt(cellAtPos(t))) q = t;
+    float h = uSpeed / uSubsteps;
+    // Sub-steps keep each move under a cell; one axis at a time, so a blocked axis slides along the surface instead of entering it.
+    for (int k = 0; k < 8; k++) {
+      if (float(k) >= uSubsteps) break;
+      vec3 k1 = sampleU(q);
+      vec3 d = sampleU(q + 0.5 * h * k1) * h;
+      vec3 t = q + vec3(d.x, 0.0, 0.0); if (!solidAt(cellAtPos(t))) q = t;
+      t = q + vec3(0.0, d.y, 0.0); if (!solidAt(cellAtPos(t))) q = t;
+      t = q + vec3(0.0, 0.0, d.z); if (!solidAt(cellAtPos(t))) q = t;
+      if (mask(cellAtPos(q)).b > 0.5) break;
+    }
     p = q; age += 1.0;
     ivec3 c = cellAtPos(p);
     respawn = mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
   }
   if (respawn) {
-    if (uSpawnCount < 1.0) { gl_FragColor = vec4(-1.0e6, 0.0, 0.0, uMaxAge * 8.0); return; }
-    int i = int(hash(gl_FragCoord.xy + uSeed) * uSpawnCount);
-    p = texelFetch(SP, ivec2(min(i, int(uSpawnCount) - 1), 0), 0).xyz;
+    bool found = false;
+    vec3 np = p;
+    // A start point drawn area-uniform over a fan's ring between hub and tip, set outward of the fan; a few tries in case it lands in a solid.
+    for (int t = 0; t < 6; t++) {
+      if (uEmitterCount < 1.0) break;
+      float sd = uSeed + float(t) * 17.31;
+      int e = min(int(hash(gl_FragCoord.xy + sd) * uEmitterCount), int(uEmitterCount) - 1);
+      vec4 a = texelFetch(EM, ivec2(e * 3, 0), 0);
+      vec4 b = texelFetch(EM, ivec2(e * 3 + 1, 0), 0);
+      vec4 c2 = texelFetch(EM, ivec2(e * 3 + 2, 0), 0);
+      vec3 e2 = cross(b.xyz, c2.xyz);
+      float r = sqrt(a.w * a.w + (b.w * b.w - a.w * a.w) * hash(gl_FragCoord.xy * 1.3 + sd));
+      float th = 6.2831853 * hash(gl_FragCoord.xy * 2.1 + sd);
+      float back = c2.w + uBackSpan * hash(gl_FragCoord.xy * 3.3 + sd);
+      vec3 cand = a.xyz + c2.xyz * (r * cos(th)) + e2 * (r * sin(th)) - b.xyz * back;
+      if (!solidAt(cellAtPos(cand))) { np = cand; found = true; break; }
+    }
+    if (!found) { gl_FragColor = vec4(-1.0e6, 0.0, 0.0, uMaxAge * 8.0); return; }
+    p = np;
     age = fresh ? -hash(gl_FragCoord.xy * 1.7 + uSeed) * uMaxAge * uBirthSpread : 0.0;
   }
   gl_FragColor = vec4(p, age);
@@ -200,7 +221,7 @@ void main() {
   vec4 s = texelFetch(PA, f, 0);
   float h = texelFetch(PB, f, 0).r;
   if (s.w < 1.0 || s.x < -1.0e5) h = 0.0;
-  else { ivec3 c = cellAtPos(s.xyz); if (inside(c)) h = min(1.0, h + mask(c).a); }
+  else { ivec3 c = cellAtPos(s.xyz); if (inside(c)) h = min(1.0, h + mask(c).a * uSpeed); }
   gl_FragColor = vec4(h, 0.0, 0.0, 0.0);
 }`;
 
@@ -245,7 +266,7 @@ void main() {
 }`;
 
 export const VOLUME_FRAGMENT = COMMON + /* glsl */ `
-uniform sampler2D AG; uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uAgeRef; uniform vec3 uColor;
+uniform sampler2D AG; uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uAgeRef; uniform float uDeadAt; uniform vec3 uColor;
 in vec3 vWorld;
 void main() {
   vec3 ro = cameraPosition;
@@ -264,7 +285,8 @@ void main() {
     ivec3 c = ivec3(floor((p + uOrigin) / uCell));
     if (!inside(c) || mask(c).r > 0.5) continue;
     float age = texelFetch(AG, tc(c), 0).r / uAgeRef;
-    float dens = smoothstep(1.0, 2.5, age);
+    // A faint gradient of air age everywhere, then a clear tint where the air is older than uDeadAt straight-through times.
+    float dens = 0.1 * clamp(age / (2.0 * uDeadAt), 0.0, 1.0) + smoothstep(uDeadAt, 2.0 * uDeadAt, age);
     float a = 1.0 - exp(-dens * dt / (uCell * 6.0));
     acc += T * a * uColor;
     T *= 1.0 - a;

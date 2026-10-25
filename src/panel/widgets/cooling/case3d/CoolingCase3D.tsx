@@ -15,6 +15,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import {
   channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
+import { speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
 import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
@@ -41,6 +42,7 @@ const POSITION_KEYS: Record<string, string> = {
   'front-right': 'cooling.case3d.position.frontRight',
 };
 
+const VENT_KEY = '#vent';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
@@ -69,7 +71,6 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [particles, setParticles] = useState(true);
   const [deadZones, setDeadZones] = useState(false);
-  const [debugSolids, setDebugSolids] = useState(false);
   const [flowSupported, setFlowSupported] = useState(true);
 
   const directions = useMemo(() => {
@@ -78,19 +79,36 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     return out;
   }, [caseLayout, coolingLayout.directions]);
 
+  // Live speed of each drawn fan that has a cooling device bound: the channel's tach over the fan's top speed. Unbound fans stay at their rated curve.
+  const speeds = useMemo(() => {
+    const out = new Map<string, SlotSpeed>();
+    for (const slot of caseLayout?.fanSlots ?? []) {
+      let best: SlotSpeed | undefined;
+      for (const b of bindings) {
+        if (!b.slotKeys.includes(slot.key)) continue;
+        const ch = channels.find(c => c.id === b.channelId);
+        if (!ch) continue;
+        const sp = speedFraction(ch, slot.fan?.rpmMax ?? slot.radiator?.fanRpmMax, slot.taken === 'radiator' ? slot.size / Math.max(1, slot.radiator?.fanCount ?? 1) : slot.size);
+        if (!best || sp.fraction > best.fraction) best = sp;
+      }
+      if (best) out.set(slot.key, best);
+    }
+    return out;
+  }, [caseLayout, bindings, channels]);
+
   const model = useMemo(() => {
     if (!caseLayout) return null;
     const catalog = catalogFanSpecs(record?.setup.items ?? []);
     let estimated = false;
     const fans: PressureFan[] = [];
     for (const slot of caseLayout.fanSlots) {
-      for (const fan of slotModelFans(slot, catalog)) {
+      for (const fan of slotModelFans(slot, catalog, speeds.get(slot.key))) {
         estimated ||= fan.estimated;
         fans.push({ key: fan.key, cfm: fan.cfm, staticMmH2O: fan.staticMmH2O, direction: directions[slot.key] });
       }
     }
     return { result: solveCasePressure(fans), estimated, fanCount: fans.length };
-  }, [caseLayout, record, directions]);
+  }, [caseLayout, record, directions, speeds]);
 
   const handlers = useRef<{ pick: PickHandler }>({ pick: () => {} });
   handlers.current.pick = (key, x, y) => {
@@ -119,19 +137,26 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     };
   }, [canvas]);
 
-  // The same flow input for the same content: a setup ping that changes nothing here must not restart the solve.
-  const flowKey = model && model.fanCount > 0
-    ? JSON.stringify([layoutText, boundKeyText, directions, model.result.fans.map(f => [f.key, Math.round(f.cfm)]), Math.round(model.result.ventCfm)])
-    : '';
+  // Flows that moved less than a few percent keep their old values, so tach jitter never restarts the solve.
+  const rawFlow = useMemo(() => {
+    if (!model || model.fanCount === 0) return null;
+    const out: Record<string, number> = { [VENT_KEY]: model.result.ventCfm };
+    for (const f of model.result.fans) out[f.key] = f.cfm;
+    return out;
+  }, [model]);
+  const [settledFlow, setSettledFlow] = useState<Readonly<Record<string, number>> | null>(null);
+  useEffect(() => {
+    setSettledFlow(prev => (rawFlow && prev ? settleFlows(prev, rawFlow) : rawFlow));
+  }, [rawFlow]);
+  const flowKey = settledFlow ? JSON.stringify([layoutText, boundKeyText, directions, settledFlow]) : '';
   const flowInput = useMemo<FlowInput | null>(() => {
-    if (!caseLayout || !model || flowKey === '') return null;
-    const fanCfm: Record<string, number> = {};
-    for (const f of model.result.fans) fanCfm[f.key] = f.cfm;
-    return { layout: caseLayout, directions, fanCfm, ventCfm: model.result.ventCfm };
+    if (!caseLayout || !settledFlow || flowKey === '') return null;
+    const { [VENT_KEY]: ventCfm = 0, ...fanCfm } = settledFlow;
+    return { layout: caseLayout, directions, fanCfm, ventCfm };
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones, debugSolids }), [particles, deadZones, debugSolids]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones }), [particles, deadZones]);
 
   const highlighted = useMemo(() => new Set(slotsOfChannel(bindings, selectedChannelId)), [bindings, selectedChannelId]);
   const bound = useMemo(() => new Set(bindings.flatMap(b => b.slotKeys)), [bindings]);
@@ -199,11 +224,8 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
           <Toggle checked={deadZones} onChange={setDeadZones} ariaLabel={t('cooling.case3d.flow.deadZones')} />
           <span>{t('cooling.case3d.flow.deadZones')}</span>
         </label>
-        <label className={styles.flowToggle}>
-          <Toggle checked={debugSolids} onChange={setDebugSolids} ariaLabel={t('cooling.case3d.flow.solids')} />
-          <span>{t('cooling.case3d.flow.solids')}</span>
-        </label>
       </div>
+      {deadZones && flowSupported && <div className={styles.hint}>{t('cooling.case3d.flow.deadZonesHint')}</div>}
       {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       <div className={styles.hint}>

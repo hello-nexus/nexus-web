@@ -43,12 +43,14 @@ export interface CaseBox {
 
 export interface SlotFanSpec {
   title?: string;
+  rpmMax?: number;
   airflowCfm?: number;
   staticPressureMmH2O?: number;
 }
 
 export interface SlotRadiatorSpec {
   title?: string;
+  fanRpmMax?: number;
   fanAirflowCfm?: number;
   fanStaticPressureMmH2O?: number;
   fanCount?: number;
@@ -183,11 +185,12 @@ function parseSlot(raw: unknown): CaseFanSlot | null {
   const axis = unitAxis(s.axis);
   if (axis) slot.axis = axis;
   const f = s.fan as Record<string, unknown> | undefined;
-  if (f && typeof f === 'object') slot.fan = { title: titleOf(f.title), airflowCfm: positiveNum(f.airflowCfm), staticPressureMmH2O: positiveNum(f.staticPressureMmH2O) };
+  if (f && typeof f === 'object') slot.fan = { title: titleOf(f.title), rpmMax: positiveNum(f.rpmMax), airflowCfm: positiveNum(f.airflowCfm), staticPressureMmH2O: positiveNum(f.staticPressureMmH2O) };
   const r = s.radiator as Record<string, unknown> | undefined;
   if (r && typeof r === 'object') {
     slot.radiator = {
       title: titleOf(r.title),
+      fanRpmMax: positiveNum(r.fanRpmMax),
       fanAirflowCfm: positiveNum(r.fanAirflowCfm),
       fanStaticPressureMmH2O: positiveNum(r.fanStaticPressureMmH2O),
       fanCount: finite(r.fanCount) && Number.isInteger(r.fanCount) && r.fanCount > 0 && r.fanCount <= 16 ? r.fanCount : undefined,

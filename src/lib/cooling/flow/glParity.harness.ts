@@ -61,7 +61,7 @@ async function main() {
 
   const host = new Group();
   const layer = new FlowLayer(renderer, host, new Vector3(480, 440, 360), {
-    cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), dead: new Color('#f59e0b'), solid: new Color('#ffffff'),
+    cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), dead: new Color('#f59e0b'),
   });
   const sc = new Scene();
   sc.add(host);
@@ -70,7 +70,7 @@ async function main() {
   cam.lookAt(240, 220, 180);
   layer.setInput(input);
   const q = new URLSearchParams(location.search);
-  layer.setOptions({ particles: q.get('p') !== '0', deadZones: q.get('d') !== '0', debugSolids: false });
+  layer.setOptions({ particles: q.get('p') !== '0', deadZones: q.get('d') !== '0' });
   let worst = 0;
   let checked = 0;
   for (let f = 0; f < FRAMES; f++) {

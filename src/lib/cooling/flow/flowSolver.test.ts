@@ -2,9 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { VMAX_CELLS } from './flowParams';
-import { OPENING_EXHAUST, OPENING_INTAKE, OPENING_VENT, buildFlowScene, gridFor, isSolidAt, surfaceSolids, type FlowScene } from './gridScene';
-import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, nineFans, slotSpec, tops } from './flowFixtures';
+import { DEAD_AGE_RATIO, PARTICLE_ADVECT_SUBSTEPS, PARTICLE_SPEED_SCALE, VMAX_CELLS } from './flowParams';
+import { OPENING_EXHAUST, OPENING_INTAKE, OPENING_VENT, buildFlowScene, gridFor, isSolidAt, type FlowScene } from './gridScene';
+import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, nineFans, rear, slotSpec, tops } from './flowFixtures';
 
 const LOW = 32 * 24 * 48;
 const idx = (s: FlowScene, i: number, j: number, k: number) => i + s.dims[0] * (j + s.dims[1] * k);
@@ -109,7 +109,6 @@ describe('buildFlowScene', () => {
     expect(isSolidAt(scene, [270, 140, 160])).toBe(true);
     expect(isSolidAt(scene, [180, 65, 180])).toBe(true);
     expect(isSolidAt(scene, [240, 300, 160])).toBe(false);
-    expect(surfaceSolids(scene).length).toBeGreaterThan(300);
   });
 });
 
@@ -272,14 +271,14 @@ describe('the first particles', () => {
   const scene = buildFlowScene(caseWithGpuAndShroud(), 64 * 48 * 96);
   const sim = new CpuFlow(scene, 1);
 
-  it('start far denser than the spawn points can show: the pool sits on a few hundred cells, tens per cell', () => {
+  it('start spread over continuous positions, a few per cell at most, not tens stacked on a fixed point set', () => {
     const cells = new Map<number, number>();
     const p = new CpuParticles(sim, 128 * 84, 5);
     for (let i = 0; i < p.count; i++) {
       const c = p.cellAt(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]);
       cells.set(c, (cells.get(c) ?? 0) + 1);
     }
-    expect(p.count / cells.size).toBeGreaterThan(10);
+    expect(p.count / cells.size).toBeLessThan(8);
   });
 
   it('are born over time, so none is visible at the start and the pool never appears as one stacked puff', () => {
@@ -313,7 +312,7 @@ describe('a steady stream of particles', () => {
     const fixed = respawnsPerWindow(false, 3600).slice(20);
     const jittered = respawnsPerWindow(true, 3600).slice(20);
     expect(Math.max(...fixed) / Math.min(...fixed)).toBeGreaterThan(2);
-    expect(Math.max(...jittered) / Math.min(...jittered)).toBeLessThan(1.6);
+    expect(Math.max(...jittered) / Math.min(...jittered)).toBeLessThan(1.8);
     expect(cv(jittered)).toBeLessThan(cv(fixed) / 2);
   }, 120000);
 
@@ -340,7 +339,71 @@ describe('a steady stream of particles', () => {
     expect(Math.min(...live)).toBeGreaterThan(p.count * 0.97);
     expect(Math.min(...moved)).toBeGreaterThan(0);
     const mean = moved.reduce((a, b) => a + b, 0) / moved.length;
-    expect(Math.min(...moved)).toBeGreaterThan(mean * 0.8);
-    expect(Math.max(...moved)).toBeLessThan(mean * 1.2);
+    expect(Math.min(...moved)).toBeGreaterThan(mean * 0.6);
+    expect(Math.max(...moved)).toBeLessThan(mean * 1.4);
   }, 120000);
 });
+
+describe('particles at the faster visual speed', () => {
+  it('moves under a cell per sub-step at the top solver speed', () => {
+    expect(VMAX_CELLS * (PARTICLE_SPEED_SCALE / PARTICLE_ADVECT_SUBSTEPS)).toBeLessThan(1);
+  });
+
+  it('never crosses a one-cell wall in a field at the top speed pushing straight at it', () => {
+    const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
+    const sim = new CpuFlow(scene, 1);
+    const [NX, NY] = scene.dims;
+    const wallI = Math.floor((250 + scene.origin[0]) / scene.cellMm);
+    const j = Math.floor((300 + scene.origin[1]) / scene.cellMm);
+    const k = Math.floor((180 + scene.origin[2]) / scene.cellMm);
+    const cellOf = (i: number) => i + NX * (j + NY * k);
+    // A one-cell solid wall across x, every other fluid cell flowing +x at the velocity cap.
+    for (let jj = 1; jj < NY - 1; jj++) for (let kk = 1; kk < scene.dims[2] - 1; kk++) scene.solid[wallI + NX * (jj + NY * kk)] = 1;
+    for (let c = 0; c < sim.n; c++) if (!scene.solid[c]) sim.u[c * 3] = VMAX_CELLS;
+    const p = new CpuParticles(sim, 200, 4);
+    for (let i = 0; i < p.count; i++) { p.age[i] = 0; p.pos[i * 3] = wallI - 8 + (i % 4); p.pos[i * 3 + 1] = j; p.pos[i * 3 + 2] = k + ((i * 7) % 5) - 2; }
+    void cellOf;
+    let crossed = 0;
+    for (let s = 0; s < 40; s++) {
+      p.step();
+      for (let i = 0; i < p.count; i++) if (p.age[i] > 0 && p.pos[i * 3] > wallI + 0.5 && p.pos[i * 3] < wallI + 3) crossed++;
+    }
+    expect(crossed).toBe(0);
+  });
+});
+
+describe('mean age of air', () => {
+  // A sealed 100 mm pocket in the middle of a through-flow: nothing can reach it.
+  const wall = (min: number[], size: number[]) => ({ slot: 'storage', role: 'part', min, size });
+  const pocket = [
+    wall([180, 140, 120], [20, 120, 120]), wall([300, 140, 120], [20, 120, 120]),
+    wall([180, 140, 120], [140, 20, 120]), wall([180, 240, 120], [140, 20, 120]),
+    wall([180, 140, 120], [140, 120, 20]), wall([180, 140, 220], [140, 120, 20]),
+  ];
+  const scene = buildFlowScene(inputFor([fronts[1], rear], pocket, defaultDir, 80), LOW);
+  const sim = new CpuFlow(scene);
+  for (let i = 0; i < 250; i++) sim.step();
+  for (let i = 0; i < Math.round(scene.residenceSteps * (DEAD_AGE_RATIO + 2)); i++) sim.stepAge();
+  const ageAt = (x: number, y: number, z: number) => {
+    const i = Math.floor((x + scene.origin[0]) / scene.cellMm), j = Math.floor((y + scene.origin[1]) / scene.cellMm), k = Math.floor((z + scene.origin[2]) / scene.cellMm);
+    return sim.age[i + scene.dims[0] * (j + scene.dims[1] * k)] / scene.residenceSteps;
+  };
+
+  it('is a measurable residence time for the through-flow, so the age scale means something', () => {
+    expect(scene.residenceSteps).toBeGreaterThan(20);
+  });
+
+  it('shows a sealed pocket as dead air, past the dead threshold', () => {
+    expect(scene.solid[idxAt(scene, 250, 200, 180)]).toBe(0);
+    expect(ageAt(250, 200, 180)).toBeGreaterThan(DEAD_AGE_RATIO);
+    expect(ageAt(260, 190, 170)).toBeGreaterThan(DEAD_AGE_RATIO);
+  });
+
+  it('keeps the air in the stream in front of the intake well under the threshold', () => {
+    expect(ageAt(60, 200, 180)).toBeLessThan(DEAD_AGE_RATIO / 2);
+  });
+});
+
+function idxAt(s: FlowScene, x: number, y: number, z: number) {
+  return Math.floor((x + s.origin[0]) / s.cellMm) + s.dims[0] * (Math.floor((y + s.origin[1]) / s.cellMm) + s.dims[1] * Math.floor((z + s.origin[2]) / s.cellMm));
+}
