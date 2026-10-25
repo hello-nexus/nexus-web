@@ -7,6 +7,7 @@ import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
 
 const h = vi.hoisted(() => ({
   flowSupported: true,
+  model: { bytes: null as ArrayBuffer | null, settled: true },
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
@@ -14,6 +15,7 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
+vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: () => h.model }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
@@ -54,6 +56,7 @@ beforeEach(() => {
   h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
   h.renderers.length = 0;
   h.flowSupported = true;
+  h.model = { bytes: null, settled: true };
   vi.mocked(createCaseRenderer).mockClear();
   globalThis.ResizeObserver = class { observe() {} disconnect() {} unobserve() {} } as unknown as typeof ResizeObserver;
 });
@@ -127,45 +130,84 @@ describe('CoolingCase3D renderer lifecycle', () => {
   });
 });
 
-describe('CoolingCase3D linking', () => {
+describe('CoolingCase3D device dropdown', () => {
   const mountReady = (selected: string | null, bindings: CoolingLayout['bindings'] = [], onSelect = vi.fn()) => {
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
     render(ui(selected, onSelect));
     return onSelect;
   };
-
-  it('does not link on a click; the popover offers it for the selected device', () => {
-    mountReady('fan-a');
+  const open = () => {
     act(() => h.pick.current?.('front:120:0', 10, 10));
-    expect(h.layout.edit).not.toHaveBeenCalled();
-    expect(screen.getByRole('dialog')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /cooling\.case3d\.link/ }));
-    expect(h.layout.edit).toHaveBeenCalledTimes(1);
-    const mutate = h.layout.edit.mock.calls[0][0] as (l: CoolingLayout) => CoolingLayout;
-    expect(mutate({ directions: {}, bindings: [], tests: [] }).bindings).toEqual([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
-  });
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+  };
+  const mutate = () => h.layout.edit.mock.calls.at(-1)![0] as (l: CoolingLayout) => CoolingLayout;
+  const base = (bindings: CoolingLayout['bindings']): CoolingLayout => ({ directions: {}, bindings, tests: [] });
 
-  it('offers Unlink for a slot the selected device already holds', () => {
-    mountReady('fan-a', [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
-    act(() => h.pick.current?.('front:120:0', 10, 10));
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.unlink' }));
-    const mutate = h.layout.edit.mock.calls[0][0] as (l: CoolingLayout) => CoolingLayout;
-    expect(mutate({ directions: {}, bindings: [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }], tests: [] }).bindings).toEqual([]);
-  });
-
-  it('shows no link control with no device selected', () => {
+  it('titles an unlinked fan by its position and a linked one by the device name', () => {
     mountReady(null);
     act(() => h.pick.current?.('front:120:0', 10, 10));
-    expect(screen.queryByRole('button', { name: /cooling\.case3d\.(link|unlink)/ })).toBeNull();
+    expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.position.front');
   });
 
-  it('selects the owner of a bound fan when nothing is selected, without a popover or an edit', () => {
+  it('titles a linked fan by the device name from the left-hand list', () => {
+    mountReady(null, [{ channelId: 'fan-b', slotKeys: ['front:120:0'] }]);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.getByRole('dialog').textContent).toContain('Fan B');
+  });
+
+  it('lists every device by its name, with a no-fan-linked entry first', () => {
+    mountReady(null);
+    open();
+    const names = screen.getAllByRole('option').map(o => o.textContent);
+    expect(names[0]).toContain('cooling.case3d.noneLinked');
+    expect(names.join('|')).toContain('Fan A');
+    expect(names.join('|')).toContain('Fan B');
+  });
+
+  it('links the chosen device to this fan at once', () => {
+    mountReady(null);
+    open();
+    fireEvent.click(screen.getByRole('option', { name: /Fan A/ }));
+    expect(mutate()(base([])).bindings).toEqual([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+  });
+
+  it('replaces the device this fan had', () => {
+    mountReady(null, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    open();
+    fireEvent.click(screen.getByRole('option', { name: /Fan B/ }));
+    expect(mutate()(base([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }])).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['front:120:0'] }]);
+  });
+
+  it('unlinks with the no-fan-linked entry', () => {
+    mountReady(null, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    open();
+    fireEvent.click(screen.getByRole('option', { name: /cooling\.case3d\.noneLinked/ }));
+    expect(mutate()(base([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }])).bindings).toEqual([]);
+  });
+
+  it('marks a device already on another fan and moves it here, off the old fan', () => {
+    mountReady(null, [{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
+    open();
+    const entry = screen.getByRole('option', { name: /Fan B/ });
+    expect(entry.textContent).toContain('cooling.case3d.linkedToOne');
+    fireEvent.click(entry);
+    expect(mutate()(base([{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }])).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['front:120:0'] }]);
+  });
+
+  it('moves a channel that held several fans to this one alone', () => {
+    mountReady(null, [{ channelId: 'fan-b', slotKeys: ['rear:120:0', 'front:120:0'] }]);
+    open();
+    fireEvent.click(screen.getByRole('option', { name: /Fan B/ }));
+    expect(mutate()(base([{ channelId: 'fan-b', slotKeys: ['rear:120:0', 'front:120:0'] }])).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['front:120:0'] }]);
+  });
+
+  it('selects the device of a linked fan in the list and opens the fan\'s controls, without editing anything', () => {
     const onSelect = mountReady(null, [{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
     act(() => h.pick.current?.('rear:120:0', 10, 10));
     expect(onSelect).toHaveBeenCalledWith('fan-b');
     expect(h.layout.edit).not.toHaveBeenCalled();
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 });
 
@@ -182,7 +224,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.layout.fanSlots).toHaveLength(2);
     expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
-    expect(state.flowOptions).toEqual({ particles: true, deadZones: false });
+    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, speed: 1.5 });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -314,5 +356,33 @@ describe('CoolingCase3D live fan speed', () => {
     expect(lastState().flow).toBe(first);
     rerender(<CoolingCase3D channels={rpmChannels(500)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
     expect(lastState().flow).not.toBe(first);
+  });
+});
+
+describe('CoolingCase3D case model', () => {
+  const mount = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    return render(ui());
+  };
+
+  it('hands Build\'s exported model to the scene and shows no hint', () => {
+    const bytes = new ArrayBuffer(8);
+    h.model = { bytes, settled: true };
+    mount();
+    expect(lastState().model).toBe(bytes);
+    expect(screen.queryByText('cooling.case3d.noModel')).toBeNull();
+  });
+
+  it('keeps the outline and says to open Build once when the service holds no model', () => {
+    mount();
+    expect(lastState().model).toBeNull();
+    expect(screen.getByText('cooling.case3d.noModel')).toBeTruthy();
+  });
+
+  it('shows no hint while the model is still being asked for', () => {
+    h.model = { bytes: null, settled: false };
+    mount();
+    expect(screen.queryByText('cooling.case3d.noModel')).toBeNull();
   });
 });

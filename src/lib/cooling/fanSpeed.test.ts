@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultRpmMax, scaledSpec, settleFlows, speedFraction } from './fanSpeed';
+import { defaultRpmMax, scaledSpec, settleFlows, speedFraction, FLOW_CHANGE_FLOOR_CFM } from './fanSpeed';
 import { slotModelFans } from './fanSpecs';
 import { solveCasePressure } from './pressureModel';
 import type { CaseFanSlot } from './caseLayout';
@@ -90,5 +90,29 @@ describe('settleFlows hysteresis', () => {
       settled = next;
     }
     expect(changes).toBe(0);
+  });
+});
+
+describe('settleFlows with a CFM floor', () => {
+  // A 120 mm fan rated 60 CFM at 1500 rpm: 30 rpm of tach jitter is 1.2 CFM.
+  const cfmAt = (rpm: number) => scaledSpec({ cfm: 60, staticMmH2O: 1.8 }, rpm / 1500).cfm;
+
+  it.each([[480], [1450]])('does not re-solve for plus or minus 30 rpm of jitter around %i rpm over many updates', rpm => {
+    let settled: Readonly<Record<string, number>> = { a: cfmAt(rpm), b: 40 };
+    let changes = 0;
+    for (let i = 0; i < 500; i++) {
+      const jitter = Math.round(Math.sin(i * 2.3) * 30);
+      const next = settleFlows(settled, { a: cfmAt(rpm + jitter), b: 40 });
+      if (next !== settled) changes++;
+      settled = next;
+    }
+    expect(changes).toBe(0);
+  });
+
+  it('does re-solve for a real step change, from a slow fan too', () => {
+    const slow = { a: cfmAt(480) };
+    expect(settleFlows(slow, { a: cfmAt(480) + FLOW_CHANGE_FLOOR_CFM + 1 })).not.toBe(slow);
+    const fast = { a: cfmAt(1450) };
+    expect(settleFlows(fast, { a: cfmAt(1000) })).not.toBe(fast);
   });
 });

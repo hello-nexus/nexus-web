@@ -181,6 +181,9 @@ export interface GeneralSettings {
   // each seeded from the single pre-split ui.showUncontrolledDevices.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Whether the Lighting and Cooling pages open on their 3D view; one per page. Server-mirrored under ui.lightingView3d / ui.coolingView3d.
+  lightingView3d: boolean;
+  coolingView3d: boolean;
   // Sidebar DEVICES row keys the user hid. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
   // Display-unit choices. Server-mirrored under the preferences `units` block
@@ -255,6 +258,8 @@ export function getDefaultSettings(): NexusSettings {
       coolingDashboardMode: 'simple',
       showUncontrolledLightingDevices: true,
       showUncontrolledCoolingDevices: true,
+      lightingView3d: false,
+      coolingView3d: false,
       hiddenSidebarDevices: [],
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,

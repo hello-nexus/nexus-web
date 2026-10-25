@@ -75,6 +75,8 @@ export interface CaseLayout {
   size: Vec3;
   boxes: CaseBox[];
   fanSlots: CaseFanSlot[];
+  /** The glass is on the right as seen from the front; Build's exported model mirrors x for it. */
+  windowRight?: boolean;
 }
 
 const MAX_DIM_MM = 3000;
@@ -210,6 +212,7 @@ export function parseCaseLayout(raw: unknown): CaseLayout | null {
     size,
     boxes: r.boxes.map(parseBox).filter((b): b is CaseBox => b !== null),
     fanSlots: r.fanSlots.map(parseSlot).filter((s): s is CaseFanSlot => s !== null),
+    ...(r.windowRight === true ? { windowRight: true } : {}),
   };
 }
 
@@ -247,6 +250,15 @@ export function toggleBinding(bindings: readonly FanBinding[], channelId: string
   const own = bindings.find(b => b.channelId === channelId)?.slotKeys ?? [];
   const slotKeys = held ? own.filter(k => k !== slotKey) : [...own, slotKey].slice(0, MAX_SLOT_KEYS_PER_BINDING);
   return [...others, { channelId, slotKeys }].filter(b => b.slotKeys.length > 0);
+}
+
+/** `channelId` drives exactly `slotKey` afterwards: it leaves any other fan, and whatever device this fan had is replaced. An empty `channelId` unlinks the fan. */
+export function linkChannelToSlot(bindings: readonly FanBinding[], channelId: string, slotKey: string): FanBinding[] {
+  const rest = bindings
+    .filter(b => b.channelId !== channelId)
+    .map(b => ({ ...b, slotKeys: b.slotKeys.filter(k => k !== slotKey) }))
+    .filter(b => b.slotKeys.length > 0);
+  return channelId === '' ? rest : [...rest, { channelId, slotKeys: [slotKey] }];
 }
 
 export const channelOfSlot = (bindings: readonly FanBinding[], slotKey: string): string | null =>

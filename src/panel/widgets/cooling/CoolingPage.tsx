@@ -46,6 +46,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewSwitch } from '../../../components/common/ViewSwitch/ViewSwitch';
 import { useUiSettings } from '../../../hooks/useUiSettings';
+import { effectiveView3d } from '../../../lib/viewPreference';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
@@ -788,8 +789,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // fan, so a curve can be assigned to a group in one action. Declared here
   // because the curve-creation paths below clear it.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
-  const [view3dPref, setView3d] = useState(false);
-  const view3d = !!CoolingCase3D && view3dPref;
+  const view3d = effectiveView3d(settings.coolingView3d, !!CoolingCase3D);
+  const setView3d = useCallback((next: boolean) => updateUi({ coolingView3d: next }), [updateUi]);
 
   // A device page's jump to one of its fans: select it once it is listed, which opens its curve.
   const fanIntentRef = useRef<string | null>(null);

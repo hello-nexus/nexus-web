@@ -194,6 +194,8 @@ export interface UiPrefs {
   showUncontrolledDevices?: boolean;
   showUncontrolledLightingDevices?: boolean;
   showUncontrolledCoolingDevices?: boolean;
+  lightingView3d?: boolean;
+  coolingView3d?: boolean;
   hiddenSidebarDevices?: string[];
 }
 

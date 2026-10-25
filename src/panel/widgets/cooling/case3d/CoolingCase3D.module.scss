@@ -12,8 +12,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem 1rem;
-  padding: 0.25rem 0.4rem;
+  gap: 0.2rem 1rem;
+  min-width: 0;
   @include text-body;
   color: var(--text);
 }
@@ -87,7 +87,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 1.2rem;
-  padding: 0 0.4rem;
 }
 
 .flowToggle {
@@ -98,20 +97,45 @@
   color: var(--text);
 }
 
-.legend {
+.speed {
+  flex: 1 1 11rem;
+  min-width: 9rem;
+  max-width: 16rem;
+}
+
+// Strips over the canvas: dark and translucent so their text reads over the scene, and inert except for the controls themselves.
+.overlay {
   position: absolute;
-  left: 0.6rem;
-  bottom: 0.6rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.75rem;
+  background: rgb(0 0 0 / var(--alpha-strong));
+  backdrop-filter: blur(var(--blur-backdrop));
+  pointer-events: none;
+  color: #fff;
+}
+
+.overlayTop { top: 0; }
+.overlayBottom { bottom: 0; }
+
+.control {
+  pointer-events: auto;
+}
+
+.overlayNote {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.legend {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
   @include text-caption;
   color: var(--text-dim);
-  pointer-events: none;
 }
 
 .legendBar {
@@ -119,4 +143,9 @@
   height: 0.5rem;
   border-radius: var(--radius-pill);
   background: linear-gradient(to right, var(--airflow-cool), var(--airflow-warm), var(--bad));
+}
+
+// A device already driving another fan: the move is visible before it is chosen.
+.linkedElsewhere {
+  color: var(--accent);
 }
