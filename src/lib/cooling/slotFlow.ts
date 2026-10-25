@@ -68,11 +68,12 @@ export function boundSlotKeys(bindings: readonly FanBinding[], channels: readonl
   return bindings.filter(b => present.has(b.channelId) || simRpm(b.channelId) !== null).flatMap(b => b.slotKeys);
 }
 
-/** The case-wide figures: fan laws on each fan's live speed, solved against the case's openings. */
+/** The case-wide figures: fan laws on each fan's live speed, solved against the case's openings. GPU fans are left out: their air recirculates inside the case. */
 export function lumpedModel(slots: readonly CaseFanSlot[], catalog: readonly CatalogFanSpec[], speeds: ReadonlyMap<string, SlotSpeed>, directions: Readonly<Record<string, FanDirection>>) {
   let estimated = false;
   const fans: PressureFan[] = [];
   for (const slot of slots) {
+    if (isGpuSlotKey(slot.key)) continue;
     for (const fan of slotModelFans(slot, catalog, speeds.get(slot.key))) {
       estimated ||= fan.estimated;
       fans.push({ key: fan.key, cfm: fan.cfm, staticMmH2O: fan.staticMmH2O, direction: directions[slot.key] });

@@ -2,6 +2,7 @@ import type { CaseFanSlot } from './caseLayout';
 import { visualFlowCfm, type SlotSpeed } from './fanSpeed';
 import { slotModelFans, type CatalogFanSpec } from './fanSpecs';
 import type { FanDirection } from './pressureModel';
+import { isGpuSlotKey } from './slotFlow';
 
 export interface VisualFlow {
   fanCfm: Record<string, number>;
@@ -22,7 +23,8 @@ export function visualFlow(slots: readonly CaseFanSlot[], catalog: readonly Cata
       const cfm = visualFlowCfm(fan.cfm, fraction);
       fanCfm[fan.key] = cfm;
       referenceCfm = Math.max(referenceCfm, fan.cfm);
-      net += directions[slot.key] === 'exhaust' ? -cfm : cfm;
+      // A GPU fan's air recirculates inside the case, so it moves particles but not the net.
+      if (!isGpuSlotKey(slot.key)) net += directions[slot.key] === 'exhaust' ? -cfm : cfm;
     }
   }
   return { fanCfm, ventCfm: net, referenceCfm };

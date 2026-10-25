@@ -64,11 +64,11 @@ const cases: { name: string; edit: (s: State) => State; intake: Move; exhaust: M
   { name: 'unbind a real fan', edit: s => ({ ...s, bindings: s.bindings.filter(b => b.channelId !== 'fan-5') }), intake: 'down', exhaust: 'down' },
   { name: 'place a sim fan then remove it', edit: s => ({ ...bindSim(1500, ['bottom:120:0'])(s), bindings: s.bindings }), intake: 'same', exhaust: 'same' },
   { name: 'move a real fan between slots', edit: s => ({ ...s, bindings: s.bindings.map(b => (b.channelId === 'fan-2' ? { ...b, slotKeys: ['bottom:120:0'] } : b)) }), intake: 'same', exhaust: 'same' },
-  ...[[900, 'up'], [2000, 'up']].map(([rpm, intake]) => ({
-    name: `GPU channel at ${rpm} rpm`, edit: setRpm('gpu-fan', rpm as number), intake: intake as Move, exhaust: intake as Move,
+  ...[900, 2000].map(rpm => ({
+    name: `GPU channel at ${rpm} rpm (outside the case totals)`, edit: setRpm('gpu-fan', rpm), intake: 'same' as Move, exhaust: 'same' as Move,
   })),
   { name: 'GPU channel at 900 rpm with a none override', edit: s => ({ ...setRpm('gpu-fan', 900)(s), bindings: [...s.bindings, { channelId: 'none', slotKeys: ['gpu:fan:0', 'gpu:fan:1'] }] }), intake: 'same', exhaust: 'same' },
-  { name: 'a user binding on a GPU fan slot', edit: s => ({ ...setRpm('gpu-fan', 900)(s), bindings: [...s.bindings, { channelId: 'fan-2', slotKeys: ['gpu:fan:0'] }] }), intake: 'up', exhaust: 'up' },
+  { name: 'a user binding on a GPU fan slot', edit: s => ({ ...setRpm('gpu-fan', 900)(s), bindings: [...s.bindings, { channelId: 'fan-2', slotKeys: ['gpu:fan:0'] }] }), intake: 'same', exhaust: 'same' },
   { name: 'flip intake to exhaust', edit: s => ({ ...s, overrides: { 'right:120:1': 'exhaust' } }), intake: 'down', exhaust: 'down' },
   { name: 'flip exhaust to intake', edit: s => ({ ...s, overrides: { 'rear:120:0': 'intake' } }), intake: 'up', exhaust: 'down' },
   { name: 'one real channel on three slots', edit: s => ({ ...withChannel(s, ch('splitter', 1500)), bindings: [...s.bindings, { channelId: 'splitter', slotKeys: ['bottom:120:0', 'bottom:120:1', 'right:120:0'] }] }), intake: 'up', exhaust: 'up' },
@@ -239,15 +239,20 @@ describe('GPU fans on the shared path', () => {
     expect(none.effective).toEqual([{ channelId: 'none', slotKeys: keys }]);
   });
 
-  it('gives no flow at 0 rpm and flow, moving the stats, above it', () => {
+  it('gives no flow at 0 rpm and flow above it, and keeps GPU fans out of the case totals', () => {
     const idle = run([], [gpu(0)]);
     expect(idle.visual.fanCfm['gpu:fan:0']).toBe(0);
     const spinning = run([], [gpu(900)]);
     expect(spinning.visual.fanCfm['gpu:fan:0']).toBeGreaterThan(0);
     expect(spinning.visual.fanCfm['gpu:fan:0']).toBe(spinning.visual.fanCfm['gpu:fan:1']);
-    expect(spinning.lumped.result.intakeCfm).toBeGreaterThan(idle.lumped.result.intakeCfm);
     const faster = run([], [gpu(2000)]);
-    expect(faster.lumped.result.intakeCfm).toBeGreaterThan(spinning.lumped.result.intakeCfm);
+    expect(faster.visual.fanCfm['gpu:fan:0']).toBeGreaterThan(spinning.visual.fanCfm['gpu:fan:0']);
+    for (const r of [idle, spinning, faster]) {
+      expect(r.lumped.fanCount).toBe(0);
+      expect(r.lumped.result.intakeCfm).toBe(0);
+      expect(r.lumped.result.exhaustCfm).toBe(0);
+      expect(r.visual.ventCfm).toBe(0);
+    }
   });
 
   it('defaults GPU fans to intake and honors a stored direction', () => {
