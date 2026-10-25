@@ -13,7 +13,7 @@ import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withBoundFans, withDirection,
+  channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
 import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
@@ -57,7 +57,11 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     return coolingLayout.bindings.filter(b => present.has(b.channelId)).flatMap(b => b.slotKeys);
   }, [channels, coolingLayout.bindings]);
   const boundKeyText = [...new Set(boundKeys)].sort().join('\n');
-  const caseLayout = useMemo(() => (parsedLayout ? withBoundFans(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
+  const collapsed = useMemo(() => (parsedLayout ? collapseMounts(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
+  const caseLayout = collapsed?.layout ?? null;
+  const canonOf = collapsed?.canonOf;
+  // Bindings as the view shows them: each on the one drawn fan of its mount.
+  const bindings = useMemo(() => (canonOf ? normalizeBindings(coolingLayout.bindings, canonOf) : coolingLayout.bindings), [coolingLayout.bindings, canonOf]);
   const [active, setActive] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -90,7 +94,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
 
   const handlers = useRef<{ pick: PickHandler }>({ pick: () => {} });
   handlers.current.pick = (key, x, y) => {
-    const owner = key && !selectedChannelId ? channelOfSlot(coolingLayout.bindings, key) : null;
+    const owner = key && !selectedChannelId ? channelOfSlot(bindings, key) : null;
     if (owner && channels.some(c => c.id === owner)) {
       setActive(null);
       onSelectChannel(owner);
@@ -129,8 +133,8 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   }, [flowKey]);
   const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones, debugSolids }), [particles, deadZones, debugSolids]);
 
-  const highlighted = useMemo(() => new Set(slotsOfChannel(coolingLayout.bindings, selectedChannelId)), [coolingLayout.bindings, selectedChannelId]);
-  const bound = useMemo(() => new Set(coolingLayout.bindings.flatMap(b => b.slotKeys)), [coolingLayout.bindings]);
+  const highlighted = useMemo(() => new Set(slotsOfChannel(bindings, selectedChannelId)), [bindings, selectedChannelId]);
+  const bound = useMemo(() => new Set(bindings.flatMap(b => b.slotKeys)), [bindings]);
 
   useEffect(() => {
     if (!caseLayout || !renderer) return;
@@ -143,8 +147,8 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   }, [edit]);
 
   const toggleLink = useCallback((channelId: string, key: string) => {
-    edit(l => ({ ...l, bindings: toggleBinding(l.bindings, channelId, key) }));
-  }, [edit]);
+    edit(l => ({ ...l, bindings: toggleBinding(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key) }));
+  }, [edit, canonOf]);
 
   if (!loaded || !layoutSettled) return <div className={styles.root} />;
 
@@ -162,7 +166,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   }
 
   const activeSlot = active ? fanGeometries(caseLayout).find(g => g.slot.key === active)?.slot : undefined;
-  const activeOwner = activeSlot ? channels.find(c => c.id === channelOfSlot(coolingLayout.bindings, activeSlot.key)) : undefined;
+  const activeOwner = activeSlot ? channels.find(c => c.id === channelOfSlot(bindings, activeSlot.key)) : undefined;
   const linkedToSelected = !!activeSlot && highlighted.has(activeSlot.key);
   const selectedName = channels.find(c => c.id === selectedChannelId)?.name;
   const result = model?.result;

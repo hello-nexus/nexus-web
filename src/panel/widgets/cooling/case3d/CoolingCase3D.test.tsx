@@ -261,3 +261,24 @@ describe('CoolingCase3D slots bound to a cooling device', () => {
     expect(screen.getByText('cooling.case3d.noFans')).toBeTruthy();
   });
 });
+
+describe('CoolingCase3D overlapping mounts', () => {
+  it('draws one fan for a 120 and a 140 mm slot at the same mount and links without adding one', () => {
+    const layout = {
+      size: [470, 320, 487],
+      boxes: [],
+      fanSlots: [
+        { key: 'top:120:1', position: 'top', size: 120, index: 1, taken: null, box: { min: [193, 450, 58], size: [120, 25, 120] }, axis: [0, -1, 0] },
+        { key: 'top:140:0', position: 'top', size: 140, index: 0, taken: null, box: { min: [170, 450, 48], size: [140, 25, 140] }, axis: [0, -1, 0] },
+      ],
+    };
+    h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } }, loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings: [{ channelId: 'fan-a', slotKeys: ['top:120:1'] }, { channelId: 'fan-b', slotKeys: ['top:140:0'] }], tests: [] } });
+    render(ui());
+    const state = lastState();
+    expect(state.layout.fanSlots).toHaveLength(1);
+    expect(state.layout.fanSlots[0].taken).toBe('fan');
+    expect(Object.keys(state.flow.fanCfm)).toHaveLength(1);
+    expect([...state.bound]).toEqual([state.layout.fanSlots[0].key]);
+  });
+});
