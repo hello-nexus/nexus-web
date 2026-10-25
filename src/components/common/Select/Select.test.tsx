@@ -324,3 +324,103 @@ describe('Select in-menu search', () => {
     expect(screen.queryByRole('combobox')).toBeNull();
   });
 });
+
+describe('Select action rows', () => {
+  it('runs the action on click and Enter without committing, closing or moving the selection', () => {
+    const onChange = vi.fn();
+    const onAction = vi.fn();
+    render(
+      <Select
+        value="a" onChange={onChange} ariaLabel="fruit"
+        options={[...OPTIONS, { value: '', label: 'Load more', onAction }]}
+      />,
+    );
+    const list = open();
+    const row = within(list).getByRole('option', { name: 'Load more' });
+    fireEvent.click(row);
+    expect(onAction).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(list, { key: 'End' });
+    fireEvent.keyDown(list, { key: 'Enter' });
+    expect(onAction).toHaveBeenCalledTimes(2);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    expect(within(screen.getByRole('listbox')).getByRole('option', { name: 'Apple' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('ignores activation while busy', () => {
+    const onAction = vi.fn();
+    render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Loading', onAction, busy: true }]} />);
+    const row = within(open()).getByRole('option', { name: 'Loading' });
+    expect(row.getAttribute('aria-busy')).toBe('true');
+    fireEvent.click(row);
+    expect(onAction).not.toHaveBeenCalled();
+  });
+});
+
+describe('Select action rows and in-place option changes', () => {
+  it('never marks an action row selected, even when its value equals the current value', () => {
+    render(<Select value="" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load more', onAction: vi.fn() }]} />);
+    const row = within(open()).getByRole('option', { name: 'Load more' });
+    expect(row.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('clears the active row when options are replaced while open, so Enter commits nothing', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load more', onAction: vi.fn() }]} />);
+    const list = open();
+    rerender(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, { value: 'd', label: 'Date' }, { value: 'e', label: 'Elder' }]} />);
+    fireEvent.keyDown(list, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox')).toBeTruthy();
+  });
+});
+
+describe('Select action row button look', () => {
+  it('shows the spinner only while busy, inside the same option', () => {
+    const { rerender } = render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', onAction: vi.fn() }]} />);
+    let row = within(open()).getByRole('option', { name: 'Load' });
+    expect(within(row).queryByRole('img', { hidden: true })).toBeNull();
+    rerender(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', busyLabel: 'Loading', onAction: vi.fn(), busy: true }]} />);
+    row = within(screen.getByRole('listbox')).getByRole('option', { name: 'Loading' });
+    expect(within(row).getByRole('img', { hidden: true })).toBeTruthy();
+    expect(row.getAttribute('aria-busy')).toBe('true');
+    expect(row.getAttribute('aria-selected')).toBe('false');
+    expect(row.getAttribute('aria-describedby')).toBeNull();
+    // The idle label stays in the DOM (hidden by CSS) to hold the button size.
+    const label = within(row).getByText('Load');
+    expect(label.parentElement?.className).toMatch(/actionButtonBusy/);
+  });
+
+  it('falls back to the label as the busy accessible name', () => {
+    render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', onAction: vi.fn(), busy: true }]} />);
+    expect(within(open()).getByRole('option', { name: 'Load' }).getAttribute('aria-busy')).toBe('true');
+  });
+});
+
+describe('Select in-place option swaps', () => {
+  const load = { value: '', label: 'Load', onAction: vi.fn() };
+
+  it('with a search active, Enter after the list grows commits nothing', () => {
+    const many = Array.from({ length: 9 }, (_, i) => ({ value: `f${i}`, label: `Font ${i}` }));
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(hover: hover) and (pointer: fine)', media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
+    const onChange = vi.fn();
+    const { rerender } = render(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...many, load]} />);
+    const list = open();
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'font' } });
+    rerender(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...many, { value: 'x', label: 'Font X' }]} />);
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(list.isConnected).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it('a same-count swap resets the active row', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, load]} />);
+    const list = open();
+    rerender(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, { value: 'd', label: 'Date' }]} />);
+    fireEvent.keyDown(list, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});

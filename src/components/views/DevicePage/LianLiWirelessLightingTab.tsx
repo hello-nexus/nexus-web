@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { Lightbulb } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -42,6 +43,10 @@ function chainTitle(t: Translate, chain: LianLiWirelessChainLighting): string {
     ? chain.model
     : t(`devices.lianli-wireless.${fanTypeKey(chain.fanType)}` as Parameters<Translate>[0]);
 }
+
+/** The P28 V2 receiver: always driven by the Lighting page, with no stored effects, merge or motherboard ARGB. */
+export const isP28Chain = (chain: LianLiWirelessChainLighting, flex: boolean): boolean =>
+  flex && (chain.family ? chain.family === 'p28v2' : fanTypeKey(chain.fanType) === 'fanTypeP28v2');
 
 function lanesOf(chain: LianLiWirelessChainLighting): LianLiWirelessLane[] {
   return Array.from({ length: chain.lanes }, (_, i) => chain.laneSettings[i] ?? {
@@ -208,6 +213,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
   const chains = sortBySequence(data.chains);
   // The service names the leader when it can; otherwise the same rule applies here.
   const leaderMac = data.mergeLeaderMac !== undefined ? data.mergeLeaderMac : mergeLeaderMac(chains);
+  const flex = api !== WIRELESS_LIGHTING_API;
   const leader = chains.find(c => c.mac === leaderMac);
   // Units of one model read the same, so repeated titles are numbered in sequence order.
   const numbered = numberDuplicateTitles(chains.map(c => chainTitle(t, c)));
@@ -229,7 +235,8 @@ export function LianLiWirelessLightingTab({ onSectionNavigate, api = WIRELESS_LI
           onReset={api.reset ? () => reset(chain.mac) : undefined}
           onMove={chains.length > 1 && chain.sortIndex !== undefined ? delta => move(chain.mac, delta) : undefined}
           first={i === 0}
-          synced={syncOn && chain.supportsZones === true}
+          flex={flex}
+          synced={syncOn && chain.supportsZones === true && !isP28Chain(chain, flex)}
           last={i === chains.length - 1}
           onSectionNavigate={onSectionNavigate}
         />
@@ -253,18 +260,21 @@ interface ChainSectionProps {
   onMove?: (delta: -1 | 1) => void;
   first: boolean;
   last: boolean;
+  /** The chain is a wired Flex unit, not an RF wireless one. */
+  flex: boolean;
   /** The group sync drives this fan's look. */
   synced: boolean;
   onSectionNavigate?: (section: string) => void;
 }
 
-function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, synced, onSectionNavigate }: ChainSectionProps) {
+function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, followsTitle, onMove, first, last, flex, synced, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetFailed, setResetFailed] = useState(false);
+  const p28 = isP28Chain(chain, flex);
   const lightingPage = chain.mode === MODE_CUSTOM;
   // With no saved choice the switch shows what the chain reports it is doing.
-  const argbOn = chain.motherboardArgb ?? chain.playingMotherboardArgb === true;
+  const argbOn = !p28 && (chain.motherboardArgb ?? chain.playingMotherboardArgb === true);
   // Effect controls do nothing while the chain plays its motherboard input.
   const locked = lightingPage || argbOn;
   // The animation the chain plays when the Lighting page is not driving it.
@@ -273,12 +283,12 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
   const follower = !synced && chain.merge === true && canMerge(chain) && followsTitle !== undefined;
   const lookLocked = locked || follower || synced;
   const perLane = chain.supportsPerLane && effectKey === MODE_PER_LANE;
-  const perZone = chain.supportsZones === true && effectKey === MODE_PER_ZONE;
+  const perZone = chain.supportsZones === true && !p28 && effectKey === MODE_PER_ZONE;
 
   const effectOptions = chain.modes.map(e => ({ value: e.key, label: effectLabel(t, e.key) }));
   // The choices that are not effects come first, set apart from the effect list.
   const modeOptions = [
-    ...(chain.supportsZones ? [{ value: MODE_PER_ZONE, label: t('devices.lianli-flex.modePerZone') }, { value: '', label: '', divider: true }] : []),
+    ...(chain.supportsZones && !p28 ? [{ value: MODE_PER_ZONE, label: t('devices.lianli-flex.modePerZone') }, { value: '', label: '', divider: true }] : []),
     ...effectOptions,
     ...(chain.supportsPerLane ? [{ value: MODE_PER_LANE, label: t('devices.lianli-wireless.strimerModePerLane') }] : []),
   ];
@@ -296,7 +306,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
   return (
     <>
     <SettingsSection title={title} boxClassName={styles.sectionBox}>
-      {(chain.argbCableConnected || argbOn) && (
+      {!p28 && (chain.argbCableConnected || argbOn) && (
         <SettingToggle
           label={t('devices.motherboardArgb.label')}
           description={t('devices.motherboardArgb.hint')}
@@ -304,13 +314,20 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
           onChange={on => onCommit({ motherboardArgb: on })}
         />
       )}
-      <LightingPageSwitch
+      {!p28 && <LightingPageSwitch
         on={lightingPage}
         disabled={argbOn || synced}
         onChange={on => onCommit(on ? { mode: MODE_CUSTOM } : { mode: effectKey, effectMode: effectKey })}
         onSectionNavigate={onSectionNavigate}
-      />
+      />}
 
+      {p28 ? (
+        <SettingRow label={t('devices.lightingPage.setHint')}>
+          <Button size="sm" tone="neutral" icon={<Lightbulb size={14} />} onClick={() => onSectionNavigate?.('lighting')}>
+            {t('smartLights.colorOnLightingPage')}
+          </Button>
+        </SettingRow>
+      ) : (<>
       <LianLiChainEffectControls
         modes={chain.modes}
         value={{ mode: effectKey, speed: chain.speed, direction: chain.direction, brightness: chain.brightness, colors: chain.colors }}
@@ -346,7 +363,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
             />
           </Fragment>
         ))}
-        {(canMerge(chain) || chain.supportsZones) && (
+        {!p28 && (canMerge(chain) || chain.supportsZones) && (
           <SettingToggle
             label={t('devices.lianli-wireless.merge')}
             description={canMerge(chain) || !chain.supportsZones
@@ -358,6 +375,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
           />
         )}
       </LianLiChainEffectControls>
+      </>)}
 
       {chain.upDownSwap != null && (
         <SettingToggle
@@ -380,7 +398,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
         </SettingRow>
       )}
 
-      {onReset && (
+      {onReset && !p28 && (
         <SettingRow label={t('devices.lianli-flex.resetLighting')} description={t('devices.lianli-flex.resetLightingHint')}>
           <Button size="sm" tone="neutral" onClick={() => { setResetFailed(false); setConfirmReset(true); }}>
             {t('devices.lianli-flex.resetLightingButton')}

@@ -32,7 +32,7 @@ import {
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { normalizeTextColorMode, type TextColorMode } from './textColor';
-import { normalizePanelFont, panelFontVars, type PanelFontId } from './panelFont';
+import { normalizePanelFont, panelFontVars, type PanelFont } from './panelFont';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
@@ -523,7 +523,7 @@ export function usePanelTheme(
     persistPatch({ textColor: hex });
   }, [persistPatch]);
 
-  const commitFont = useCallback((font: PanelFontId | null) => {
+  const commitFont = useCallback((font: PanelFont | null) => {
     setTheme(prev => ({ ...prev, font }));
     persistPatch({ font: font ?? '' });
   }, [persistPatch]);
