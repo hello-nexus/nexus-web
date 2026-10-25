@@ -149,10 +149,15 @@ void main() {
   gl_FragColor = vec4(min(age + 1.0, 100000.0), 0.0, 0.0, 0.0);
 }`;
 
-const PARTICLE_COMMON = COMMON + /* glsl */ `
-uniform sampler2D PA; uniform sampler2D SP;
-uniform float uSpawnCount; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread;
+const LIFE = /* glsl */ `
 float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+// A particle's own lifetime in steps, fixed per pixel of the state texture, so deaths spread out instead of arriving in waves.
+float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - jitter + 2.0 * jitter * hash(pixel * 3.7)); }
+`;
+
+const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
+uniform sampler2D PA; uniform sampler2D SP;
+uniform float uSpawnCount; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -176,7 +181,7 @@ void main() {
     t = q + vec3(0.0, 0.0, d.z); if (!solidAt(cellAtPos(t))) q = t;
     p = q; age += 1.0;
     ivec3 c = cellAtPos(p);
-    respawn = mask(c).b > 0.5 || age > uMaxAge;
+    respawn = mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
   }
   if (respawn) {
     if (uSpawnCount < 1.0) { gl_FragColor = vec4(-1.0e6, 0.0, 0.0, uMaxAge * 8.0); return; }
@@ -199,10 +204,10 @@ void main() {
   gl_FragColor = vec4(h, 0.0, 0.0, 0.0);
 }`;
 
-export const POINT_VERTEX = /* glsl */ `
+export const POINT_VERTEX = LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
-uniform float uSize; uniform float uScale; uniform float uMinPx; uniform float uMaxAge; uniform float uAlpha;
+uniform float uSize; uniform float uScale; uniform float uMinPx; uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha;
 uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot;
 in vec2 ref;
 out vec3 vColor; out float vAlpha;
@@ -210,10 +215,11 @@ void main() {
   ivec2 r = ivec2(ref);
   vec4 s = texelFetch(PA, r, 0);
   float h = texelFetch(PB, r, 0).r;
+  float life = lifeOf(vec2(r) + 0.5, uMaxAge, uLifeJitter);
   vec3 world = (s.xyz + 0.5) * uCell - uOrigin;
   vec3 over = max(max(-world, world - uCaseExtent), 0.0);
   float outside = length(over);
-  float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(uMaxAge * 0.85, uMaxAge, s.w)) * (1.0 - smoothstep(uMargin * 0.35, uMargin, outside));
+  float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.35, uMargin, outside));
   vColor = h < 0.5 ? mix(uCool, uWarm, h * 2.0) : mix(uWarm, uHot, (h - 0.5) * 2.0);
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha;
   vec4 mv = modelViewMatrix * vec4(world, 1.0);

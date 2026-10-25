@@ -292,3 +292,55 @@ describe('the first particles', () => {
     expect(visible()).toBeGreaterThan(p.count * 0.95);
   });
 });
+
+describe('a steady stream of particles', () => {
+  const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
+  const sim = new CpuFlow(scene);
+  for (let i = 0; i < 200; i++) sim.step();
+  const WINDOW = 50;
+  const FRAME_STEPS = 2;
+
+  const respawnsPerWindow = (jitter: boolean, steps: number) => {
+    const p = new CpuParticles(sim, 4000, 3, jitter);
+    const win: number[] = [];
+    let last = p.respawns;
+    for (let s = 1; s <= steps; s++) { p.step(); if (s % WINDOW === 0) { win.push(p.respawns - last); last = p.respawns; } }
+    return win;
+  };
+  const cv = (a: number[]) => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length) / m; };
+
+  it('recycles in waves when every particle lives the same time, and evenly with per-particle lifetimes', () => {
+    const fixed = respawnsPerWindow(false, 3600).slice(20);
+    const jittered = respawnsPerWindow(true, 3600).slice(20);
+    expect(Math.max(...fixed) / Math.min(...fixed)).toBeGreaterThan(2);
+    expect(Math.max(...jittered) / Math.min(...jittered)).toBeLessThan(1.6);
+    expect(cv(jittered)).toBeLessThan(cv(fixed) / 2);
+  }, 120000);
+
+  it('keeps the live count and the mean speed in a tight band and moves on every frame, with no solver step between frames', () => {
+    const p = new CpuParticles(sim, 4000, 9);
+    for (let f = 0; f < 600; f++) for (let s = 0; s < FRAME_STEPS; s++) p.step();
+    const live: number[] = [];
+    const moved: number[] = [];
+    for (let f = 0; f < 800; f++) {
+      const before = Float32Array.from(p.pos);
+      for (let s = 0; s < FRAME_STEPS; s++) p.step();
+      let alive = 0;
+      let dist = 0;
+      let n = 0;
+      for (let i = 0; i < p.count; i++) {
+        if (p.age[i] < 0) continue;
+        alive++;
+        const d = Math.hypot(p.pos[i * 3] - before[i * 3], p.pos[i * 3 + 1] - before[i * 3 + 1], p.pos[i * 3 + 2] - before[i * 3 + 2]);
+        if (d < 5) { dist += d; n++; }
+      }
+      live.push(alive);
+      moved.push(n > 0 ? dist / n : 0);
+    }
+    expect(Math.min(...live)).toBeGreaterThan(p.count * 0.97);
+    expect(Math.min(...moved)).toBeGreaterThan(0);
+    const mean = moved.reduce((a, b) => a + b, 0) / moved.length;
+    expect(Math.min(...moved)).toBeGreaterThan(mean * 0.8);
+    expect(Math.max(...moved)).toBeLessThan(mean * 1.2);
+  }, 120000);
+});

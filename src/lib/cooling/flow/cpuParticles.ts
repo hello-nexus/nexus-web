@@ -1,5 +1,8 @@
-import { PARTICLE_BIRTH_SPREAD, PARTICLE_MAX_AGE } from './flowParams';
+import { PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
+
+/** A particle's lifetime in steps from a uniform sample. */
+export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTER + 2 * PARTICLE_LIFE_JITTER * u);
 
 /** CPU reference of the GPU particle pass: RK2 advection through the velocity field, per-axis sliding so a particle never enters a solid, respawn at the spawn points. */
 export class CpuParticles {
@@ -8,17 +11,24 @@ export class CpuParticles {
   readonly heat: Float32Array;
   readonly count: number;
   private readonly flow: CpuFlow;
+  /** Respawns so far, for checks on how evenly particles are recycled. */
+  respawns = 0;
+  /** Per-particle lifetime in steps. */
+  readonly life: Float32Array;
   private seed: number;
 
-  constructor(flow: CpuFlow, count: number, seed = 1) {
+  constructor(flow: CpuFlow, count: number, seed = 1, jitter = true) {
     this.flow = flow;
     this.count = count;
     this.pos = new Float32Array(count * 3);
     this.age = new Float32Array(count);
     this.heat = new Float32Array(count);
+    this.life = new Float32Array(count);
     this.seed = seed;
     for (let i = 0; i < count; i++) {
+      this.life[i] = jitter ? lifeOf(this.rand()) : PARTICLE_MAX_AGE;
       this.respawn(i);
+      this.respawns--;
       this.age[i] = -this.rand() * PARTICLE_MAX_AGE * PARTICLE_BIRTH_SPREAD;
     }
   }
@@ -33,6 +43,7 @@ export class CpuParticles {
     const n = s.length / 3;
     this.age[i] = 0;
     this.heat[i] = 0;
+    this.respawns++;
     if (n === 0) { this.pos[i * 3] = -1e6; return; }
     const m = Math.floor(this.rand() * n);
     this.pos[i * 3] = s[m * 3]; this.pos[i * 3 + 1] = s[m * 3 + 1]; this.pos[i * 3 + 2] = s[m * 3 + 2];
@@ -75,7 +86,7 @@ export class CpuParticles {
       const cell = this.cellAt(x, y, z);
       if (cell !== from) onMove?.(i, from, cell);
       this.heat[i] = Math.min(1, this.heat[i] + heat[cell]);
-      if (open[cell] || this.age[i] > PARTICLE_MAX_AGE) this.respawn(i);
+      if (open[cell] || this.age[i] > this.life[i]) this.respawn(i);
     }
   }
 }

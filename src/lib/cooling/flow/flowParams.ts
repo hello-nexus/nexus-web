@@ -24,6 +24,8 @@ export const HEAT_RATE_POROUS = 0.03;
 export const HEAT_REACH_CELLS = 2;
 /** Particle age, in steps, after which it is recycled. */
 export const PARTICLE_MAX_AGE = 900;
+/** Each particle lives the max age times 1 plus or minus this share, so deaths and respawns spread evenly instead of arriving in waves. */
+export const PARTICLE_LIFE_JITTER = 0.5;
 /** The first pool is born over this share of the max age: until its birth a particle waits unseen at its spawn point. */
 export const PARTICLE_BIRTH_SPREAD = 0.3;
 
