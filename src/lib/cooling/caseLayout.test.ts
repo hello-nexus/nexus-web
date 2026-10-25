@@ -195,6 +195,7 @@ describe('linkChannelToSlot with simulated fans', () => {
 
   it('reads the fixed speed off a simulated channel id', () => {
     expect(simRpm('sim:1500')).toBe(1500);
+    expect(simRpm('sim:0')).toBe(0);
     expect(simRpm('fan-a')).toBeNull();
     expect(simRpm('sim:abc')).toBeNull();
   });
@@ -204,5 +205,20 @@ describe('linkChannelToSlot with simulated fans', () => {
     expect(linkChannelToSlot(start, 'sim:1100', 's1')).toEqual([{ channelId: 'sim:1100', slotKeys: ['s1'] }]);
     const full = Array.from({ length: 64 }, (_, i) => ({ channelId: `c${i}`, slotKeys: [`k${i}`] }));
     expect(linkChannelToSlot(full, 'sim:900', 'new')).toEqual(full);
+  });
+});
+
+describe('linkChannelToSlot on a GPU slot', () => {
+  it('stores a none marker for no fan linked, merged into one binding, and only for GPU slots', () => {
+    const one = linkChannelToSlot([{ channelId: 'gpu-a', slotKeys: ['gpu:fan:0'] }], '', 'gpu:fan:0');
+    expect(one).toEqual([{ channelId: 'none', slotKeys: ['gpu:fan:0'] }]);
+    expect(linkChannelToSlot(one, '', 'gpu:fan:1')).toEqual([{ channelId: 'none', slotKeys: ['gpu:fan:0', 'gpu:fan:1'] }]);
+    expect(linkChannelToSlot([{ channelId: 'a', slotKeys: ['s1'] }], '', 's1')).toEqual([]);
+  });
+
+  it('removes the slot from none when any device or simulated fan is chosen', () => {
+    const marked = [{ channelId: 'none', slotKeys: ['gpu:fan:0', 'gpu:fan:1'] }];
+    expect(linkChannelToSlot(marked, 'gpu-a', 'gpu:fan:0')).toEqual([{ channelId: 'none', slotKeys: ['gpu:fan:1'] }, { channelId: 'gpu-a', slotKeys: ['gpu:fan:0'] }]);
+    expect(linkChannelToSlot(marked, 'sim:900', 'gpu:fan:1')).toEqual([{ channelId: 'none', slotKeys: ['gpu:fan:0'] }, { channelId: 'sim:900', slotKeys: ['gpu:fan:1'] }]);
   });
 });

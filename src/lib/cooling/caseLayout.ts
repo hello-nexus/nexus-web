@@ -254,8 +254,8 @@ export function toggleBinding(bindings: readonly FanBinding[], channelId: string
 
 /** Simulated fans: a binding on `sim:<rpm>` groups the slots pinned to that fixed speed, with no device behind them. */
 export const SIM_PREFIX = 'sim:';
-export const SIM_RPM_MIN = 500;
-export const SIM_RPM_MAX = 2500;
+export const SIM_RPM_MIN = 0;
+export const SIM_RPM_MAX = 3000;
 export const SIM_RPM_STEP = 100;
 export const SIM_RPM_DEFAULT = 1500;
 export const MAX_BINDINGS = 64;
@@ -264,17 +264,25 @@ export const isSimChannel = (channelId: string): boolean => channelId.startsWith
 /** The fixed speed of a simulated channel, or null for anything else. */
 export function simRpm(channelId: string): number | null {
   const rpm = isSimChannel(channelId) ? Number(channelId.slice(SIM_PREFIX.length)) : NaN;
-  return Number.isFinite(rpm) && rpm > 0 ? rpm : null;
+  return Number.isFinite(rpm) && rpm >= 0 ? rpm : null;
 }
 
-/** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A real device also leaves its other fans; a simulated channel keeps its other slots, since any number can share a speed. A new simulated binding past the service's binding cap changes nothing. An empty `channelId` unlinks the fan. */
+/** The binding that marks a GPU fan slot as deliberately unlinked, so a derived default stays off it. */
+export const NONE_CHANNEL = 'none';
+export const isGpuSlot = (slotKey: string): boolean => slotKey.startsWith('gpu:');
+
+/** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A real device also leaves its other fans; a simulated channel keeps its other slots, since any number can share a speed. A new simulated binding past the service's binding cap changes nothing. An empty `channelId` unlinks the fan; on a GPU slot that stores the `none` marker instead of nothing. */
 export function linkChannelToSlot(bindings: readonly FanBinding[], channelId: string, slotKey: string): FanBinding[] {
   const sim = isSimChannel(channelId);
   const rest = bindings
     .filter(b => sim || b.channelId !== channelId)
     .map(b => ({ ...b, slotKeys: b.slotKeys.filter(k => k !== slotKey) }))
     .filter(b => b.slotKeys.length > 0);
-  if (channelId === '') return rest;
+  if (channelId === '') {
+    if (!isGpuSlot(slotKey)) return rest;
+    const marked = rest.find(b => b.channelId === NONE_CHANNEL)?.slotKeys ?? [];
+    return [...rest.filter(b => b.channelId !== NONE_CHANNEL), { channelId: NONE_CHANNEL, slotKeys: [...marked, slotKey] }];
+  }
   if (!sim) return [...rest, { channelId, slotKeys: [slotKey] }];
   const own = rest.find(b => b.channelId === channelId)?.slotKeys ?? [];
   if (own.length === 0 && rest.length >= MAX_BINDINGS) return [...bindings];

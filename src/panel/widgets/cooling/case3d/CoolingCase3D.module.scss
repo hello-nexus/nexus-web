@@ -44,7 +44,8 @@
   min-height: 18rem;
   border-radius: var(--radius);
   overflow: hidden;
-  background: var(--bg-elevated);
+  // Build's stage fill.
+  background: linear-gradient(var(--surface), var(--surface)), var(--backdrop-base);
   touch-action: none;
 }
 
@@ -94,7 +95,9 @@
   color: var(--text);
 }
 
+// Keeps the label on one line; the slider takes the rest.
 .speed {
+  white-space: nowrap;
   flex: 1 1 18rem;
   min-width: 14rem;
   max-width: 24rem;
