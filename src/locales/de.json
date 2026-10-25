@@ -428,6 +428,7 @@
   "cooling.case3d.position.left": "Links",
   "cooling.case3d.position.other": "Lüfter",
   "cooling.case3d.position.psuShroud": "Netzteilabdeckung",
+  "cooling.case3d.position.rad": "Radiator",
   "cooling.case3d.position.rear": "Hinten",
   "cooling.case3d.position.right": "Rechts",
   "cooling.case3d.position.top": "Oben",

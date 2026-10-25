@@ -268,24 +268,22 @@ export const simChannelId = (rpm: number): string => `${SIM_PREFIX}${rpm}`;
 export const isSimChannel = (channelId: string): boolean => channelId.startsWith(SIM_PREFIX);
 /** The binding that marks a GPU fan slot as deliberately unlinked, so a derived default stays off it. */
 export const NONE_CHANNEL = 'none';
-export const isGpuSlot = (slotKey: string): boolean => slotKey.startsWith('gpu:');
+/** GPU and radiator fan slots get a derived default link, so unlinking one stores an explicit override. */
+export const hasDerivedLink = (slotKey: string): boolean => slotKey.startsWith('gpu:') || slotKey.startsWith('rad:');
 
-/** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A real device also leaves its other fans; a simulated channel keeps its other slots, since any number can share a speed. A new simulated binding past the service's binding cap changes nothing. An empty `channelId` unlinks the fan; on a GPU slot that stores the `none` marker instead of nothing. */
+/** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A channel keeps its other slots, since one device can drive several fans; a channel already at the per-binding cap, or a new binding past the service's binding cap, changes nothing. An empty `channelId` unlinks the fan; on a slot with a derived default that stores the `none` marker instead of nothing. */
 export function linkChannelToSlot(bindings: readonly FanBinding[], channelId: string, slotKey: string): FanBinding[] {
-  const sim = isSimChannel(channelId);
   const rest = bindings
-    .filter(b => sim || b.channelId !== channelId)
     .map(b => ({ ...b, slotKeys: b.slotKeys.filter(k => k !== slotKey) }))
     .filter(b => b.slotKeys.length > 0);
   if (channelId === '') {
-    if (!isGpuSlot(slotKey)) return rest;
+    if (!hasDerivedLink(slotKey)) return rest;
     const marked = rest.find(b => b.channelId === NONE_CHANNEL)?.slotKeys ?? [];
     return [...rest.filter(b => b.channelId !== NONE_CHANNEL), { channelId: NONE_CHANNEL, slotKeys: [...marked, slotKey] }];
   }
-  if (!sim) return [...rest, { channelId, slotKeys: [slotKey] }];
   const own = rest.find(b => b.channelId === channelId)?.slotKeys ?? [];
-  if (own.length === 0 && rest.length >= MAX_BINDINGS) return [...bindings];
-  return [...rest.filter(b => b.channelId !== channelId), { channelId, slotKeys: [...own, slotKey].slice(-MAX_SLOT_KEYS_PER_BINDING) }];
+  if (own.length >= MAX_SLOT_KEYS_PER_BINDING || (own.length === 0 && rest.length >= MAX_BINDINGS)) return [...bindings];
+  return [...rest.filter(b => b.channelId !== channelId), { channelId, slotKeys: [...own, slotKey] }];
 }
 
 export const channelOfSlot = (bindings: readonly FanBinding[], slotKey: string): string | null =>

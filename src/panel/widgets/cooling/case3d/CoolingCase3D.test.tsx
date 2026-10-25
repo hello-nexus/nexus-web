@@ -186,20 +186,29 @@ describe('CoolingCase3D device dropdown', () => {
     expect(mutate()(base([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }])).bindings).toEqual([]);
   });
 
-  it('marks a device already on another fan and moves it here, off the old fan', () => {
-    mountReady(null, [{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
+  it('marks a device already on another fan and adds this fan to it, keeping the other', () => {
+    const start = [{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }];
+    mountReady(null, start);
     open();
     const entry = screen.getByRole('option', { name: /Fan B/ });
     expect(entry.textContent).toContain('cooling.case3d.linkedToOne');
     fireEvent.click(entry);
-    expect(mutate()(base([{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }])).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['front:120:0'] }]);
+    expect(mutate()(base(start)).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['rear:120:0', 'front:120:0'] }]);
   });
 
-  it('moves a channel that held several fans to this one alone', () => {
-    mountReady(null, [{ channelId: 'fan-b', slotKeys: ['rear:120:0', 'front:120:0'] }]);
+  it('keeps a device\'s several fans when one of them is unlinked', () => {
+    const start = [{ channelId: 'fan-b', slotKeys: ['rear:120:0', 'front:120:0'] }];
+    mountReady(null, start);
     open();
-    fireEvent.click(screen.getByRole('option', { name: /Fan B/ }));
-    expect(mutate()(base([{ channelId: 'fan-b', slotKeys: ['rear:120:0', 'front:120:0'] }])).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['front:120:0'] }]);
+    fireEvent.click(screen.getByRole('option', { name: /cooling\.case3d\.noneLinked/ }));
+    expect(mutate()(base(start)).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
+  });
+
+  it('disables a device whose binding is full, unless it already holds this fan', () => {
+    const full = Array.from({ length: 16 }, (_, i) => `other:${i}`);
+    mountReady(null, [{ channelId: 'fan-b', slotKeys: full }]);
+    open();
+    expect(screen.getByRole('option', { name: /Fan B/ }).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('selects the device of a linked fan in the list and opens the fan\'s controls, without editing anything', () => {
@@ -560,7 +569,7 @@ describe('CoolingCase3D simulated fans', () => {
     const files = Object.entries(locales);
     expect(files.length).toBeGreaterThan(1);
     for (const [name, dict] of files) {
-      for (const key of ['cooling.case3d.sim.fan', 'cooling.case3d.sim.group', 'cooling.case3d.sim.speed', 'cooling.case3d.position.gpu']) expect(dict[key], `${name} ${key}`).toBeTruthy();
+      for (const key of ['cooling.case3d.sim.fan', 'cooling.case3d.sim.group', 'cooling.case3d.sim.speed', 'cooling.case3d.position.gpu', 'cooling.case3d.position.rad']) expect(dict[key], `${name} ${key}`).toBeTruthy();
       expect(dict['cooling.case3d.sim.rpm'], name).toContain('{value}');
     }
   });

@@ -428,6 +428,7 @@
   "cooling.case3d.position.left": "왼쪽",
   "cooling.case3d.position.other": "팬",
   "cooling.case3d.position.psuShroud": "PSU 커버",
+  "cooling.case3d.position.rad": "라디에이터",
   "cooling.case3d.position.rear": "후면",
   "cooling.case3d.position.right": "오른쪽",
   "cooling.case3d.position.top": "상단",
