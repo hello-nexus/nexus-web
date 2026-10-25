@@ -6,10 +6,11 @@ import { CoolingCase3D } from './CoolingCase3D';
 import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
 
 const h = vi.hoisted(() => ({
+  flowSupported: true,
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
-  renderers: [] as { setState: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }[],
+  renderers: [] as { setState: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
@@ -17,7 +18,7 @@ vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
     h.pick.current = onPick;
-    const r = { setState: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+    const r = { setState: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
   }),
@@ -48,6 +49,7 @@ beforeEach(() => {
   h.setup = { record: null, loaded: false };
   h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
   h.renderers.length = 0;
+  h.flowSupported = true;
   vi.mocked(createCaseRenderer).mockClear();
   globalThis.ResizeObserver = class { observe() {} disconnect() {} unobserve() {} } as unknown as typeof ResizeObserver;
 });
@@ -160,5 +162,68 @@ describe('CoolingCase3D linking', () => {
     expect(onSelect).toHaveBeenCalledWith('fan-b');
     expect(h.layout.edit).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+describe('CoolingCase3D airflow controls', () => {
+  const mountReady = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    return render(ui());
+  };
+
+  it('passes the flow input with every fan cfm and the default options: particles on, dead zones and solids off', () => {
+    mountReady();
+    const state = lastState();
+    expect(state.flow.layout.fanSlots).toHaveLength(2);
+    expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
+    expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, density: 0.6, debugSolids: false });
+  });
+
+  it('keeps the flow input when a setup ping changes nothing it reads', () => {
+    h.setup = { record: record(1), loaded: true };
+    setLayout({ settled: true });
+    const { rerender } = render(ui());
+    const first = lastState().flow;
+    h.setup = { record: record(2), loaded: true };
+    rerender(ui());
+    expect(lastState().flow).toBe(first);
+  });
+
+  it('sends a new flow input when a direction changes', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    const { rerender } = render(ui());
+    const first = lastState().flow;
+    setLayout({ layout: { directions: { 'front:120:0': 'exhaust' }, bindings: [], tests: [] } });
+    rerender(ui());
+    expect(lastState().flow).not.toBe(first);
+    expect(lastState().flow.directions['front:120:0']).toBe('exhaust');
+  });
+
+  it('toggles particles, dead zones and the solid-cell view, and hides the density slider with particles off', () => {
+    mountReady();
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.deadZones' }));
+    expect(lastState().flowOptions.deadZones).toBe(true);
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.solids' }));
+    expect(lastState().flowOptions.debugSolids).toBe(true);
+    expect(screen.getByText('cooling.case3d.flow.density')).toBeTruthy();
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.particles' }));
+    expect(lastState().flowOptions.particles).toBe(false);
+    expect(screen.queryByText('cooling.case3d.flow.density')).toBeNull();
+  });
+
+  it('labels the legend cooler and warmer, with no degrees', () => {
+    mountReady();
+    expect(screen.getByText('cooling.case3d.flow.cooler')).toBeTruthy();
+    expect(screen.getByText('cooling.case3d.flow.warmer')).toBeTruthy();
+  });
+
+  it('says so when the graphics setup cannot run the simulation', () => {
+    h.flowSupported = false;
+    mountReady();
+    expect(screen.getByText('cooling.case3d.flow.unsupported')).toBeTruthy();
+    expect(screen.queryByText('cooling.case3d.flow.cooler')).toBeNull();
   });
 });

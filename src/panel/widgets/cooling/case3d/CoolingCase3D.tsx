@@ -3,6 +3,8 @@ import { Box, Link2, Link2Off } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { Button } from '../../../../components/common/Button/Button';
+import { Slider } from '../../../../components/common/Slider/Slider';
+import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { Notice } from '../../../../components/common/Notice/Notice';
 import { Popover } from '../../../../components/common/Popover/Popover';
@@ -16,6 +18,8 @@ import {
 } from '../../../../lib/cooling/caseLayout';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
 import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
+import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
+import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import styles from './CoolingCase3D.module.scss';
 
@@ -53,6 +57,11 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const anchorRef = useRef<HTMLDivElement>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
+  const [particles, setParticles] = useState(true);
+  const [deadZones, setDeadZones] = useState(false);
+  const [debugSolids, setDebugSolids] = useState(false);
+  const [density, setDensity] = useState(60);
+  const [flowSupported, setFlowSupported] = useState(true);
 
   const directions = useMemo(() => {
     const out: Record<string, FanDirection> = {};
@@ -101,12 +110,28 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     };
   }, [canvas]);
 
+  // The same flow input for the same content: a setup ping that changes nothing here must not restart the solve.
+  const flowKey = model && model.fanCount > 0
+    ? JSON.stringify([layoutText, directions, model.result.fans.map(f => [f.key, Math.round(f.cfm)]), Math.round(model.result.ventCfm)])
+    : '';
+  const flowInput = useMemo<FlowInput | null>(() => {
+    if (!caseLayout || !model || flowKey === '') return null;
+    const fanCfm: Record<string, number> = {};
+    for (const f of model.result.fans) fanCfm[f.key] = f.cfm;
+    return { layout: caseLayout, directions, fanCfm, ventCfm: model.result.ventCfm };
+    // flowKey covers every input read here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flowKey]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones, density: density / 100, debugSolids }), [particles, deadZones, density, debugSolids]);
+
   const highlighted = useMemo(() => new Set(slotsOfChannel(coolingLayout.bindings, selectedChannelId)), [coolingLayout.bindings, selectedChannelId]);
   const bound = useMemo(() => new Set(coolingLayout.bindings.flatMap(b => b.slotKeys)), [coolingLayout.bindings]);
 
   useEffect(() => {
-    if (caseLayout) renderer?.setState({ layout: caseLayout, directions, highlighted, bound, active });
-  }, [renderer, caseLayout, directions, highlighted, bound, active]);
+    if (!caseLayout || !renderer) return;
+    renderer.setState({ layout: caseLayout, directions, highlighted, bound, active, flow: flowInput, flowOptions });
+    setFlowSupported(renderer.flowSupported);
+  }, [renderer, caseLayout, directions, highlighted, bound, active, flowInput, flowOptions]);
 
   const setDirection = useCallback((key: string, position: string, direction: FanDirection) => {
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
@@ -156,12 +181,40 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
           )}
         </div>
       )}
+      <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
+        <label className={styles.flowToggle}>
+          <Toggle checked={particles} onChange={setParticles} ariaLabel={t('cooling.case3d.flow.particles')} />
+          <span>{t('cooling.case3d.flow.particles')}</span>
+        </label>
+        <label className={styles.flowToggle}>
+          <Toggle checked={deadZones} onChange={setDeadZones} ariaLabel={t('cooling.case3d.flow.deadZones')} />
+          <span>{t('cooling.case3d.flow.deadZones')}</span>
+        </label>
+        <label className={styles.flowToggle}>
+          <Toggle checked={debugSolids} onChange={setDebugSolids} ariaLabel={t('cooling.case3d.flow.solids')} />
+          <span>{t('cooling.case3d.flow.solids')}</span>
+        </label>
+        {particles && (
+          <div className={styles.flowDensity}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- slider layout enum */}
+            <Slider orientation="stacked" editable trackFill label={t('cooling.case3d.flow.density')} value={density} min={10} max={100} onChange={v => setDensity(v)} />
+          </div>
+        )}
+      </div>
+      {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       <div className={styles.hint}>
         {selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')}
       </div>
       <div className={styles.viewport}>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
+        {particles && flowSupported && (
+          <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend')}>
+            <span>{t('cooling.case3d.flow.cooler')}</span>
+            <span className={styles.legendBar} aria-hidden="true" />
+            <span>{t('cooling.case3d.flow.warmer')}</span>
+          </div>
+        )}
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {activeSlot && (
           <Popover open onClose={() => setActive(null)} anchorRef={anchorRef} portal className={styles.popover} ariaLabel={t('cooling.case3d.direction.label')}>

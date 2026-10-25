@@ -3,6 +3,29 @@ import type { FanDirection } from './pressureModel';
 /** Read-only view of the PcLayout nexus-build writes as `resolved.caseLayout`. Millimeters; x front to rear, y up, z from the window side. */
 export type Vec3 = [number, number, number];
 
+export interface CaseChamfer {
+  a: 0 | 1 | 2;
+  aMax: boolean;
+  b: 0 | 1 | 2;
+  bMax: boolean;
+  legA: number;
+  legB: number;
+  round?: boolean;
+}
+
+/** Outline [x, z] at one height of a lofted part; every ring of a part has the same vertex count. */
+export interface CaseRing {
+  y: number;
+  pts: [number, number][];
+}
+
+export interface CasePlate {
+  normal: 0 | 1 | 2;
+  outline: [number, number][];
+  holes: [number, number][][];
+  wall?: boolean;
+}
+
 export interface CaseBox {
   slot: string;
   role: string;
@@ -11,6 +34,11 @@ export interface CaseBox {
   select?: string;
   rotationY?: number;
   fans?: { axis: 'x' | 'y' | 'z'; diameter: number };
+  chamfers?: CaseChamfer[];
+  rings?: CaseRing[];
+  /** A closed solid: planar polygons of [x, y, z] points. */
+  faces?: Vec3[][];
+  plate?: CasePlate;
 }
 
 export interface SlotFanSpec {
@@ -62,6 +90,59 @@ function vec3(v: unknown, positive: boolean): Vec3 | null {
 
 const keyOf = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= MAX_KEY;
 
+const MAX_POLY_POINTS = 512;
+const MAX_FACES = 400;
+const MAX_RINGS = 64;
+
+function poly2(v: unknown): [number, number][] | null {
+  if (!Array.isArray(v) || v.length < 3 || v.length > MAX_POLY_POINTS) return null;
+  const out: [number, number][] = [];
+  for (const p of v) {
+    if (!Array.isArray(p) || p.length !== 2 || !finite(p[0]) || !finite(p[1]) || Math.abs(p[0]) > MAX_DIM_MM || Math.abs(p[1]) > MAX_DIM_MM) return null;
+    out.push([p[0], p[1]]);
+  }
+  return out;
+}
+
+function parseShapes(b: Record<string, unknown>, box: CaseBox) {
+  if (Array.isArray(b.chamfers)) {
+    const cuts: CaseChamfer[] = [];
+    for (const c of b.chamfers.slice(0, 16) as Record<string, unknown>[]) {
+      const axis = (v: unknown): v is 0 | 1 | 2 => v === 0 || v === 1 || v === 2;
+      if (c && axis(c.a) && axis(c.b) && c.a !== c.b && finite(c.legA) && finite(c.legB) && c.legA > 0 && c.legB > 0) {
+        cuts.push({ a: c.a, aMax: c.aMax === true, b: c.b, bMax: c.bMax === true, legA: c.legA, legB: c.legB, round: c.round === true });
+      }
+    }
+    if (cuts.length) box.chamfers = cuts;
+  }
+  if (Array.isArray(b.rings) && b.rings.length >= 2 && b.rings.length <= MAX_RINGS) {
+    const rings: CaseRing[] = [];
+    for (const r of b.rings as Record<string, unknown>[]) {
+      const pts = r && finite(r.y) ? poly2(r.pts) : null;
+      if (pts) rings.push({ y: r.y as number, pts });
+    }
+    const n = rings[0]?.pts.length;
+    if (rings.length === b.rings.length && rings.every(r => r.pts.length === n)) box.rings = rings;
+  }
+  if (Array.isArray(b.faces) && b.faces.length > 0 && b.faces.length <= MAX_FACES) {
+    const faces: Vec3[][] = [];
+    for (const f of b.faces) {
+      if (!Array.isArray(f) || f.length < 3 || f.length > MAX_POLY_POINTS) continue;
+      const pts = f.map(p => vec3(p, false));
+      if (pts.every((p): p is Vec3 => p !== null)) faces.push(pts);
+    }
+    if (faces.length >= 4) box.faces = faces;
+  }
+  const pl = b.plate as Record<string, unknown> | undefined;
+  if (pl && typeof pl === 'object' && (pl.normal === 0 || pl.normal === 1 || pl.normal === 2)) {
+    const outline = poly2(pl.outline);
+    if (outline) {
+      const holes = Array.isArray(pl.holes) ? pl.holes.slice(0, 64).map(poly2).filter((h): h is [number, number][] => h !== null) : [];
+      box.plate = { normal: pl.normal, outline, holes, ...(pl.wall === true ? { wall: true } : {}) };
+    }
+  }
+}
+
 function parseBox(raw: unknown): CaseBox | null {
   if (!raw || typeof raw !== 'object') return null;
   const b = raw as Record<string, unknown>;
@@ -75,6 +156,7 @@ function parseBox(raw: unknown): CaseBox | null {
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
     box.fans = { axis: fans.axis, diameter: fans.diameter };
   }
+  parseShapes(b, box);
   return box;
 }
 

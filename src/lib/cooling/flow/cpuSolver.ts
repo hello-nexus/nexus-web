@@ -1,0 +1,147 @@
+import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
+import type { FlowScene } from './gridScene';
+
+/**
+ * CPU reference of the GPU solver in `shaders.ts`: same equations and boundary rules, one step per call.
+ * Every cell on the domain boundary is solid or fixed-pressure, so the pressure and divergence loops stay in the interior.
+ */
+export class CpuFlow {
+  readonly n: number;
+  u: Float32Array;
+  private next: Float32Array;
+  private p: Float32Array;
+  private p2: Float32Array;
+  private readonly div: Float32Array;
+  private readonly fluid: Float32Array;
+  private readonly invCount: Float32Array;
+  private readonly NX: number;
+  private readonly NY: number;
+  private readonly NZ: number;
+  readonly scene: FlowScene;
+  private readonly iterations: number;
+
+  constructor(scene: FlowScene, iterations: number = JACOBI_ITERATIONS) {
+    this.scene = scene;
+    this.iterations = iterations;
+    [this.NX, this.NY, this.NZ] = scene.dims;
+    const { NX, NY, NZ } = this;
+    this.n = NX * NY * NZ;
+    this.u = new Float32Array(this.n * 3);
+    this.next = new Float32Array(this.n * 3);
+    this.p = new Float32Array(this.n);
+    this.p2 = new Float32Array(this.n);
+    this.div = new Float32Array(this.n);
+    this.fluid = new Float32Array(this.n);
+    this.invCount = new Float32Array(this.n);
+    for (let c = 0; c < this.n; c++) this.fluid[c] = scene.solid[c] ? 0 : 1;
+    const sx = 1, sy = NX, sz = NX * NY;
+    for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
+      const c = i + NX * (j + NY * k);
+      const cnt = this.fluid[c - sx] + this.fluid[c + sx] + this.fluid[c - sy] + this.fluid[c + sy] + this.fluid[c - sz] + this.fluid[c + sz];
+      this.invCount[c] = cnt > 0 ? 1 / cnt : 0;
+    }
+  }
+
+  /** Trilinear velocity at cell coordinates (cell centres at integers); solid cells contribute nothing. Writes into `r`. */
+  sample(px: number, py: number, pz: number, r: number[] | Float32Array): void {
+    const { NX, NY, NZ } = this;
+    const solid = this.scene.solid;
+    const u = this.u;
+    const x = Math.min(Math.max(px, 0), NX - 1), y = Math.min(Math.max(py, 0), NY - 1), z = Math.min(Math.max(pz, 0), NZ - 1);
+    const i0 = Math.floor(x), j0 = Math.floor(y), k0 = Math.floor(z);
+    const fx = x - i0, fy = y - j0, fz = z - k0;
+    const i1 = Math.min(i0 + 1, NX - 1), j1 = Math.min(j0 + 1, NY - 1), k1 = Math.min(k0 + 1, NZ - 1);
+    let ax = 0, ay = 0, az = 0;
+    for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+      const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+      if (w === 0) continue;
+      const c = (dx ? i1 : i0) + NX * ((dy ? j1 : j0) + NY * (dz ? k1 : k0));
+      if (solid[c]) continue;
+      ax += w * u[c * 3]; ay += w * u[c * 3 + 1]; az += w * u[c * 3 + 2];
+    }
+    r[0] = ax; r[1] = ay; r[2] = az;
+  }
+
+  step(): void {
+    const { NX, NY, NZ, scene } = this;
+    const { solid, open, darcy, target, fanCell } = scene;
+    const sx = 1, sy = NX, sz = NX * NY;
+    const a = [0, 0, 0];
+    const u = this.u;
+    const out = this.next;
+
+    for (let k = 0; k < NZ; k++) for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const c = i + NX * (j + NY * k);
+      if (solid[c]) { out[c * 3] = 0; out[c * 3 + 1] = 0; out[c * 3 + 2] = 0; continue; }
+      this.sample(i - u[c * 3], j - u[c * 3 + 1], k - u[c * 3 + 2], a);
+      let x = a[0], y = a[1], z = a[2];
+      if (fanCell[c]) {
+        x += (target[c * 3] - x) * FAN_BLEND; y += (target[c * 3 + 1] - y) * FAN_BLEND; z += (target[c * 3 + 2] - z) * FAN_BLEND;
+      }
+      const drag = (1 + darcy[c]) / DAMPING;
+      x /= drag; y /= drag; z /= drag;
+      const m = Math.hypot(x, y, z);
+      if (m > VMAX_CELLS) { const s = VMAX_CELLS / m; x *= s; y *= s; z *= s; }
+      out[c * 3] = x; out[c * 3 + 1] = y; out[c * 3 + 2] = z;
+    }
+    this.u = out;
+    this.next = u;
+    const v = this.u;
+    const fl = this.fluid;
+    const div = this.div;
+
+    for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
+      const c = i + NX * (j + NY * k);
+      if (solid[c] || open[c]) { div[c] = 0; continue; }
+      div[c] = 0.5 * (v[(c + sx) * 3] * fl[c + sx] - v[(c - sx) * 3] * fl[c - sx]
+        + v[(c + sy) * 3 + 1] * fl[c + sy] - v[(c - sy) * 3 + 1] * fl[c - sy]
+        + v[(c + sz) * 3 + 2] * fl[c + sz] - v[(c - sz) * 3 + 2] * fl[c - sz]);
+    }
+
+    let p = this.p, q = this.p2;
+    const ic = this.invCount;
+    for (let it = 0; it < this.iterations; it++) {
+      for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
+        const c = i + NX * (j + NY * k);
+        if (solid[c] || open[c]) { q[c] = 0; continue; }
+        q[c] = (fl[c - sx] * p[c - sx] + fl[c + sx] * p[c + sx] + fl[c - sy] * p[c - sy] + fl[c + sy] * p[c + sy] + fl[c - sz] * p[c - sz] + fl[c + sz] * p[c + sz] - div[c]) * ic[c];
+      }
+      const t = p; p = q; q = t;
+    }
+    this.p = p;
+    this.p2 = q;
+
+    // The gradient reads a solid neighbour as the cell's own pressure, so no pressure force crosses a wall.
+    const pn = (nb: number, pc: number) => (solid[nb] ? pc : p[nb]);
+    for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
+      const c = i + NX * (j + NY * k);
+      if (solid[c]) continue;
+      const pc = open[c] ? 0 : p[c];
+      let x = v[c * 3] - 0.5 * (pn(c + sx, pc) - pn(c - sx, pc));
+      let y = v[c * 3 + 1] - 0.5 * (pn(c + sy, pc) - pn(c - sy, pc));
+      let z = v[c * 3 + 2] - 0.5 * (pn(c + sz, pc) - pn(c - sz, pc));
+      // No penetration: nothing moves into a solid neighbour.
+      if ((solid[c + sx] && x > 0) || (solid[c - sx] && x < 0)) x = 0;
+      if ((solid[c + sy] && y > 0) || (solid[c - sy] && y < 0)) y = 0;
+      if ((solid[c + sz] && z > 0) || (solid[c - sz] && z < 0)) z = 0;
+      const m = Math.hypot(x, y, z);
+      if (!(m <= VMAX_CELLS)) {
+        const s = Number.isFinite(m) ? VMAX_CELLS / m : 0;
+        x *= s; y *= s; z *= s;
+      }
+      v[c * 3] = x; v[c * 3 + 1] = y; v[c * 3 + 2] = z;
+    }
+  }
+
+  /** Largest velocity magnitude over fluid cells, cells per step; NaN if any component is not finite. */
+  maxSpeed(): number {
+    let m = 0;
+    for (let c = 0; c < this.n; c++) {
+      if (this.scene.solid[c]) continue;
+      const s = Math.hypot(this.u[c * 3], this.u[c * 3 + 1], this.u[c * 3 + 2]);
+      if (!Number.isFinite(s)) return NaN;
+      if (s > m) m = s;
+    }
+    return m;
+  }
+}

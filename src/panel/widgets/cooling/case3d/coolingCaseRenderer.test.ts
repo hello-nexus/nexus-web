@@ -9,6 +9,7 @@ vi.mock('three', async importOriginal => {
     calls: string[] = [];
     forceContextLoss = vi.fn(() => { this.calls.push('forceContextLoss'); });
     dispose = vi.fn(() => { this.calls.push('dispose'); });
+    extensions = { has: () => false };
     constructor() { made.push(this); }
     setPixelRatio() {}
     setSize() {}
@@ -28,11 +29,14 @@ const layout: CaseLayout = {
   ],
 };
 
+// jsdom has no 2D context; the token reader falls back to its default colors.
+HTMLCanvasElement.prototype.getContext = (() => null) as never;
+
 describe('createCaseRenderer', () => {
   it('releases the WebGL context before disposing, once per renderer', () => {
     for (let i = 0; i < 20; i++) {
       const r = createCaseRenderer(document.createElement('canvas'), () => {});
-      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), active: null });
+      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), active: null, flow: null, flowOptions: { particles: true, deadZones: false, density: 0.6, debugSolids: false } });
       r.dispose();
     }
     expect(made).toHaveLength(20);

@@ -129,3 +129,23 @@ describe('slot fields on newer records', () => {
     expect(g[1].box.rotationY).toBe(0.5);
   });
 });
+
+describe('shaped parts', () => {
+  const shaped = {
+    ...valid,
+    boxes: [
+      { slot: 'psu', role: 'part', min: [0, 0, 0], size: [100, 50, 80], chamfers: [{ a: 0, aMax: true, b: 1, bMax: true, legA: 20, legB: 10 }, { a: 1, b: 1, legA: 5, legB: 5 }] },
+      { slot: 'gpu', role: 'part', min: [0, 0, 0], size: [10, 10, 10], rings: [{ y: 0, pts: [[0, 0], [5, 0], [5, 5]] }, { y: 10, pts: [[0, 0], [5, 0], [5, 5]] }] },
+      { slot: 'psu', role: 'part', min: [0, 0, 0], size: [10, 10, 10], rings: [{ y: 0, pts: [[0, 0], [5, 0], [5, 5]] }, { y: 10, pts: [[0, 0], [5, 0]] }] },
+      { slot: 'psu', role: 'part', min: [0, 0, 0], size: [10, 10, 10], faces: [[[0, 0, 0], [1, 0, 0], [1, 1, 0]], [[0, 0, 0], [1, 0, 0], [1, 0, 1]], [[0, 0, 0], [0, 1, 0], [0, 1, 1]], [[1, 0, 0], [1, 1, 0], [1, 1, 1]]] },
+    ],
+  };
+
+  it('keeps valid chamfers, rings and faces and drops invalid ones', () => {
+    const l = parseCaseLayout(shaped) as CaseLayout;
+    expect(l.boxes[0].chamfers).toHaveLength(1);
+    expect(l.boxes[1].rings).toHaveLength(2);
+    expect(l.boxes[2].rings).toBeUndefined();
+    expect(l.boxes[3].faces).toHaveLength(4);
+  });
+});
