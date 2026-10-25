@@ -5,6 +5,7 @@ import { slotModelFans, type CatalogFanSpec } from './fanSpecs';
 import { solveCasePressure, type FanDirection, type PressureFan } from './pressureModel';
 
 export const GPU_FAN_PREFIX = 'gpu:fan:';
+export const AIO_FAN_PREFIX = 'rad:';
 /** A binding to this id says the user unlinked the fan, so no default applies to its slots. */
 export const NO_FAN_CHANNEL = 'none';
 
@@ -12,17 +13,22 @@ export const isGpuSlotKey = (key: string): boolean => key.startsWith(GPU_FAN_PRE
 
 const gpuIndex = (key: string): number => Number.parseInt(key.slice(GPU_FAN_PREFIX.length), 10) || 0;
 
-/** The stored bindings plus a derived one for every GPU fan slot no binding names: the GPU's own fan channels in order, the last one shared when slots outnumber channels. Never written back. */
-export function withGpuDefaults(bindings: readonly FanBinding[], slotKeys: readonly string[], channels: readonly Pick<FanChannel, 'id' | 'isGpu' | 'kind'>[]): FanBinding[] {
-  const gpu = channels.filter(c => c.isGpu && (c.kind ?? 'Fan') !== 'Pump');
-  if (gpu.length === 0) return [...bindings];
+const isAioSlot = (slot: Pick<CaseFanSlot, 'key' | 'taken'>): boolean => slot.key.startsWith(AIO_FAN_PREFIX) || slot.taken === 'radiator';
+
+/** The stored bindings plus a derived one for every GPU fan slot and AIO radiator slot no binding names: the card's or cooler's own fan channels in order, the last one shared when slots outnumber channels. A stored binding, including a `none` one, always wins; the derived ones are never written back. */
+export function withDefaultBindings(bindings: readonly FanBinding[], slots: readonly Pick<CaseFanSlot, 'key' | 'taken'>[], channels: readonly Pick<FanChannel, 'id' | 'isGpu' | 'isAio' | 'kind'>[]): FanBinding[] {
   const named = new Set(bindings.flatMap(b => b.slotKeys));
-  const open = slotKeys.filter(k => isGpuSlotKey(k) && !named.has(k)).sort((a, b) => gpuIndex(a) - gpuIndex(b));
   const derived = new Map<string, string[]>();
-  open.forEach((key, i) => {
-    const id = gpu[Math.min(i, gpu.length - 1)].id;
-    derived.set(id, [...(derived.get(id) ?? []), key]);
-  });
+  const assign = (keys: string[], owners: readonly Pick<FanChannel, 'id'>[]) => {
+    if (owners.length === 0) return;
+    keys.forEach((key, i) => {
+      const id = owners[Math.min(i, owners.length - 1)].id;
+      derived.set(id, [...(derived.get(id) ?? []), key]);
+    });
+  };
+  const fans = (own: (c: Pick<FanChannel, 'isGpu' | 'isAio'>) => boolean) => channels.filter(c => own(c) && (c.kind ?? 'Fan') !== 'Pump');
+  assign(slots.filter(sl => isGpuSlotKey(sl.key) && !named.has(sl.key)).map(sl => sl.key).sort((a, b) => gpuIndex(a) - gpuIndex(b)), fans(c => !!c.isGpu));
+  assign(slots.filter(sl => isAioSlot(sl) && !named.has(sl.key)).map(sl => sl.key), fans(c => !!c.isAio));
   return [...bindings, ...[...derived].map(([channelId, keys]) => ({ channelId, slotKeys: keys }))];
 }
 
@@ -49,6 +55,8 @@ export function slotSpeeds(slots: readonly CaseFanSlot[], bindings: readonly Fan
       const sp = speedFraction(live, slot.fan?.rpmMax ?? slot.radiator?.fanRpmMax, size);
       if (!best || sp.fraction > best.fraction) best = sp;
     }
+    // A GPU fan always exists on the card; with no channel driving it, it is not turning.
+    if (!best && isGpuSlotKey(slot.key)) best = { fraction: 0, estimated: true };
     if (best) out.set(slot.key, best);
   }
   return out;

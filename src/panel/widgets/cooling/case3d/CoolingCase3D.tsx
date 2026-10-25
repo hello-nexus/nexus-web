@@ -19,7 +19,7 @@ import {
   channelOfSlot, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { settleFlows } from '../../../../lib/cooling/fanSpeed';
-import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withGpuDefaults } from '../../../../lib/cooling/slotFlow';
+import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
 import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
 import { visualFlow } from '../../../../lib/cooling/visualFlow';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
@@ -61,9 +61,9 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   // Parsed once per distinct layout: a setup ping that changes nothing here keeps the same object, so the scene and camera stay.
   const layoutText = JSON.stringify(record?.setup.resolved.caseLayout ?? null);
   const parsedLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText)), [layoutText]);
-  // The stored bindings plus the derived default for each GPU fan slot; the stored layout never carries the default.
+  // The stored bindings plus the derived default for each GPU fan and AIO radiator slot; the stored layout never carries the default.
   const storedBindings = coolingLayout.bindings;
-  const effectiveBindings = useMemo(() => withGpuDefaults(storedBindings, (parsedLayout?.fanSlots ?? []).map(sl => sl.key), channels), [storedBindings, parsedLayout, channels]);
+  const effectiveBindings = useMemo(() => withDefaultBindings(storedBindings, parsedLayout?.fanSlots ?? [], channels), [storedBindings, parsedLayout, channels]);
   // A slot bound to a cooling device has a physical fan, whether or not the setup record lists one there.
   const boundKeys = useMemo(() => boundSlotKeys(effectiveBindings, channels), [effectiveBindings, channels]);
   const boundKeyText = [...new Set(boundKeys)].sort().join('\n');

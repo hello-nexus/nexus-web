@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { FanChannel } from '../../../api/cooling';
 import { parseCaseLayout, type CaseFanSlot, type CaseLayout, type FanBinding } from '../caseLayout';
 import type { FanDirection } from '../pressureModel';
-import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withGpuDefaults } from '../slotFlow';
+import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../slotFlow';
 import { visualFlow } from '../visualFlow';
 import { CpuParticles } from './cpuParticles';
 import { CpuFlow } from './cpuSolver';
@@ -12,7 +12,9 @@ import { buildFlowScene } from './gridScene';
 
 // The exhaust fan pushes harder as the case pressurizes, so it follows the intake.
 // The T1 setup on the real Y70 layout: Fan #1 exhausts at the rear, Fans #2 and #5 take air in on the right panel at about 600 rpm with no top speed.
-const raw = JSON.parse(readFileSync(new URL('../__fixtures__/y70-case-layout.json', import.meta.url), 'utf8')) as { fanSlots: { key: string }[] };
+const raw = JSON.parse(readFileSync(new URL('../__fixtures__/y70-case-layout.json', import.meta.url), 'utf8')) as { boxes: unknown[]; fanSlots: { key: string }[] };
+// T1's vertical graphics card (304 x 125 x 38.6) with its two fans.
+const verticalGpu = { slot: 'gpu', role: 'part', min: [150, 150, 12], size: [125, 304, 38.6], fans: { axis: 'z', side: 'min', count: 2, diameter: 90 } };
 const LOW = 32 * 24 * 48;
 const catalog: never[] = [];
 
@@ -25,7 +27,7 @@ interface State {
 
 const ch = (id: string, rpm: number, extra: Partial<Channel> = {}): Channel => ({ id, rpm, dutyPercent: 40, ...extra });
 const baseline = (): State => ({
-  channels: [ch('fan-1', 1800), ch('fan-2', 600), ch('fan-5', 600)],
+  channels: [ch('fan-1', 1800), ch('fan-2', 600), ch('fan-5', 600), ch('gpu-fan', 0, { isGpu: true })],
   bindings: [
     { channelId: 'fan-1', slotKeys: ['rear:120:0'] },
     { channelId: 'fan-2', slotKeys: ['right:120:1'] },
@@ -35,9 +37,9 @@ const baseline = (): State => ({
 });
 
 const derive = (s: State) => {
-  const bindings = withGpuDefaults(s.bindings, raw.fanSlots.map(f => f.key), s.channels);
+  const bindings = withDefaultBindings(s.bindings, ['gpu:fan:0', 'gpu:fan:1', ...raw.fanSlots.map(f => f.key)].map(key => ({ key, taken: null })), s.channels);
   const keys = boundSlotKeys(bindings, s.channels);
-  const layout = parseCaseLayout({ ...raw, fanSlots: raw.fanSlots.map(f => (keys.includes(f.key) ? { ...f, taken: 'fan' } : f)) }) as CaseLayout;
+  const layout = parseCaseLayout({ ...raw, boxes: [...raw.boxes, verticalGpu], fanSlots: raw.fanSlots.map(f => (keys.includes(f.key) ? { ...f, taken: 'fan' } : f)) }) as CaseLayout;
   const speeds = slotSpeeds(layout.fanSlots, bindings, s.channels);
   const directions = slotDirections(layout.fanSlots, s.overrides);
   const lumped = lumpedModel(layout.fanSlots, catalog, speeds, directions);
@@ -62,8 +64,14 @@ const cases: { name: string; edit: (s: State) => State; intake: Move; exhaust: M
   { name: 'unbind a real fan', edit: s => ({ ...s, bindings: s.bindings.filter(b => b.channelId !== 'fan-5') }), intake: 'down', exhaust: 'down' },
   { name: 'place a sim fan then remove it', edit: s => ({ ...bindSim(1500, ['bottom:120:0'])(s), bindings: s.bindings }), intake: 'same', exhaust: 'same' },
   { name: 'move a real fan between slots', edit: s => ({ ...s, bindings: s.bindings.map(b => (b.channelId === 'fan-2' ? { ...b, slotKeys: ['bottom:120:0'] } : b)) }), intake: 'same', exhaust: 'same' },
+  ...[[900, 'up'], [2000, 'up']].map(([rpm, intake]) => ({
+    name: `GPU channel at ${rpm} rpm`, edit: setRpm('gpu-fan', rpm as number), intake: intake as Move, exhaust: intake as Move,
+  })),
+  { name: 'GPU channel at 900 rpm with a none override', edit: s => ({ ...setRpm('gpu-fan', 900)(s), bindings: [...s.bindings, { channelId: 'none', slotKeys: ['gpu:fan:0', 'gpu:fan:1'] }] }), intake: 'same', exhaust: 'same' },
+  { name: 'a user binding on a GPU fan slot', edit: s => ({ ...setRpm('gpu-fan', 900)(s), bindings: [...s.bindings, { channelId: 'fan-2', slotKeys: ['gpu:fan:0'] }] }), intake: 'up', exhaust: 'up' },
   { name: 'flip intake to exhaust', edit: s => ({ ...s, overrides: { 'right:120:1': 'exhaust' } }), intake: 'down', exhaust: 'down' },
   { name: 'flip exhaust to intake', edit: s => ({ ...s, overrides: { 'rear:120:0': 'intake' } }), intake: 'up', exhaust: 'down' },
+  { name: 'one real channel on three slots', edit: s => ({ ...withChannel(s, ch('splitter', 1500)), bindings: [...s.bindings, { channelId: 'splitter', slotKeys: ['bottom:120:0', 'bottom:120:1', 'right:120:0'] }] }), intake: 'up', exhaust: 'up' },
   { name: 'one sim fan on three slots', edit: bindSim(1500, ['bottom:120:0', 'bottom:120:1', 'right:120:0']), intake: 'up', exhaust: 'up' },
 ];
 
@@ -153,13 +161,57 @@ describe('fan edit matrix on the T1 setup', () => {
   });
 });
 
+describe('one real channel on many slots', () => {
+  it('runs every slot at the channel rpm and full per-fan flow, and the stats count all three', () => {
+    const slots3 = ['bottom:120:0', 'bottom:120:1', 'right:120:0'];
+    const one: State = { ...baseline(), channels: [...baseline().channels, ch('splitter', 1500)], bindings: [...baseline().bindings, { channelId: 'splitter', slotKeys: ['bottom:120:0'] }] };
+    const three: State = { ...one, bindings: [...baseline().bindings, { channelId: 'splitter', slotKeys: slots3 }] };
+    const a = derive(one);
+    const b = derive(three);
+    const flows = slots3.map(k => b.visual.fanCfm[k]);
+    expect(new Set(flows).size).toBe(1);
+    expect(flows[0]).toBe(a.visual.fanCfm['bottom:120:0']);
+    expect(slots3.every(k => b.scene.emitterCounts[k] > 0)).toBe(true);
+    expect(b.lumped.fanCount).toBe(a.lumped.fanCount + 2);
+    expect(b.lumped.result.intakeCfm).toBeGreaterThan(a.lumped.result.intakeCfm);
+  });
+});
+
+describe('AIO radiator fans on the shared path', () => {
+  const rad = (key: string): CaseFanSlot => ({ key, position: 'top', size: 120, index: 0, taken: 'radiator', radiator: { fanCount: 3 } } as CaseFanSlot);
+  it('binds radiator slots to the AIO channel unless the user says none or binds another', () => {
+    const channels = [ch('aio-fan', 1200, { isAio: true }), ch('pump', 2800, { isAio: true, kind: 'Pump' }), ch('fan-2', 800)];
+    const slots = [rad('top:120:0'), rad('rad:front:0')];
+    expect(withDefaultBindings([], slots, channels)).toEqual([{ channelId: 'aio-fan', slotKeys: ['top:120:0', 'rad:front:0'] }]);
+    expect(withDefaultBindings([{ channelId: 'none', slotKeys: ['top:120:0'] }], slots, channels)).toEqual([{ channelId: 'none', slotKeys: ['top:120:0'] }, { channelId: 'aio-fan', slotKeys: ['rad:front:0'] }]);
+    expect(withDefaultBindings([{ channelId: 'fan-2', slotKeys: ['rad:front:0'] }], slots, channels).find(b => b.slotKeys.includes('rad:front:0'))?.channelId).toBe('fan-2');
+  });
+
+  it('moves the stats with the AIO fan rpm, each radiator fan at the channel speed', () => {
+    const slots = [rad('rad:front:0')];
+    const run = (rpm: number) => {
+      const channels = [ch('aio-fan', rpm, { isAio: true })];
+      const effective = withDefaultBindings([], slots, channels);
+      const speeds = slotSpeeds(slots, effective, channels);
+      const directions = slotDirections(slots, {});
+      return { lumped: lumpedModel(slots, catalog, speeds, directions), visual: visualFlow(slots, catalog, speeds, directions) };
+    };
+    const slow = run(500);
+    const fast = run(2000);
+    expect(slow.lumped.fanCount).toBe(3);
+    expect(fast.lumped.result.intakeCfm + fast.lumped.result.exhaustCfm).toBeGreaterThan(slow.lumped.result.intakeCfm + slow.lumped.result.exhaustCfm);
+    expect(run(0).visual.fanCfm['rad:front:0']).toBe(0);
+    expect(slow.visual.fanCfm['rad:front:0']).toBeGreaterThan(0);
+  });
+});
+
 describe('GPU fans on the shared path', () => {
   const gpuSlot = (index: number): CaseFanSlot => ({ key: `gpu:fan:${index}`, position: 'gpu', size: 92, index, taken: 'fan' });
   const slots = [gpuSlot(0), gpuSlot(1)];
   const keys = slots.map(s => s.key);
   const gpu = (rpm: number): Channel => ch('gpu-fan', rpm, { isGpu: true });
   const run = (bindings: FanBinding[], channels: Channel[]) => {
-    const effective = withGpuDefaults(bindings, keys, channels);
+    const effective = withDefaultBindings(bindings, slots, channels);
     const speeds = slotSpeeds(slots, effective, channels);
     const directions = slotDirections(slots, {});
     return { effective, speeds, lumped: lumpedModel(slots, catalog, speeds, directions), visual: visualFlow(slots, catalog, speeds, directions) };
@@ -173,7 +225,7 @@ describe('GPU fans on the shared path', () => {
   });
 
   it('maps several GPU channels in order', () => {
-    const r = withGpuDefaults([], keys, [ch('g0', 500, { isGpu: true }), ch('g1', 500, { isGpu: true })]);
+    const r = withDefaultBindings([], slots, [ch('g0', 500, { isGpu: true }), ch('g1', 500, { isGpu: true })]);
     expect(r).toEqual([{ channelId: 'g0', slotKeys: ['gpu:fan:0'] }, { channelId: 'g1', slotKeys: ['gpu:fan:1'] }]);
   });
 
@@ -182,7 +234,8 @@ describe('GPU fans on the shared path', () => {
     expect(user.effective.find(b => b.slotKeys.includes('gpu:fan:0'))?.channelId).toBe('fan-2');
     expect(user.effective.find(b => b.slotKeys.includes('gpu:fan:1'))?.channelId).toBe('gpu-fan');
     const none = run([{ channelId: 'none', slotKeys: keys }], [gpu(900)]);
-    expect(none.speeds.size).toBe(0);
+    expect([...none.speeds.values()].every(v => v.fraction === 0)).toBe(true);
+    expect(none.visual.fanCfm['gpu:fan:0']).toBe(0);
     expect(none.effective).toEqual([{ channelId: 'none', slotKeys: keys }]);
   });
 
