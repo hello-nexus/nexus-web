@@ -226,6 +226,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
     .sort((a, b) => Number(a.family === 'slInfFlex') - Number(b.family === 'slInfFlex')
       || (a.sortIndex ?? 0) - (b.sortIndex ?? 0) || a.mac.localeCompare(b.mac))
     .map(f => f.screenSerial as string);
+  const p28Only = flex && !!state?.fans.length && state.fans.every(f => f.family === 'p28v2');
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
   const flexLcdKey = (state?.fans ?? []).filter(f => f.flexLcdChain).map(f => `${f.mac}:${f.fanCount}`).join(',');
   const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
@@ -243,7 +244,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
     <div className={styles.page}>
       <ViewHeader
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
-        title={flex ? 'Lian Li LCD Flex' : 'Lian Li L-Wireless Controller'}
+        title={flex ? (p28Only ? 'Lian Li P28 V2' : 'Lian Li LCD Flex') : 'Lian Li L-Wireless Controller'}
         tabs={disconnected ? undefined : tabs}
         activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}

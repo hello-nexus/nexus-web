@@ -96,11 +96,11 @@ describe('LightingPage grid edit gate', () => {
     await waitFor(() => expect(screen.getByTestId('grid-edit')).toHaveTextContent('true'));
   });
 
-  it('leaves the re-pick alone with devices selected (a pick moves their pins)', async () => {
+  it('enables edit with devices selected, whatever the global tab state', async () => {
     localStorage.setItem('nexus.lighting.pinSelection', JSON.stringify(['dev1']));
     renderPage();
     await waitFor(() => expect(screen.getByTestId('grid-edit')).toBeInTheDocument());
-    expect(screen.getByTestId('grid-edit')).toHaveTextContent('false');
+    expect(screen.getByTestId('grid-edit')).toHaveTextContent('true');
   });
 
   it('disables edit once the dock is open', async () => {

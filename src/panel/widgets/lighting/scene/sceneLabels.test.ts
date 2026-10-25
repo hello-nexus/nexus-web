@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { genericCase, newDeskObject } from '../../../../lib/scene/deskCatalog';
+import { caseObject, deskObject } from '../../../../lib/scene/sceneFixtures';
 import { anchorLabel, objectLabel } from './sceneLabels';
 
 const t = (key: string, params?: Record<string, string | number>) => (params ? `${key}(${Object.values(params).join(',')})` : key);
 
 describe('scene labels', () => {
-  const pc = genericCase([]);
+  const pc = caseObject();
   const at = (id: string) => anchorLabel(t, pc, pc.anchors.find(a => a.id === id)!);
 
   it('names fan mounts by position and 1-based index', () => {
@@ -23,7 +23,7 @@ describe('scene labels', () => {
   });
 
   it('names a desk surface after its object', () => {
-    const kb = newDeskObject('keyboard', []);
+    const kb = deskObject('keyboard');
     expect(anchorLabel(t, kb, kb.anchors[0])).toBe('lighting.scene.kind.keyboard');
     expect(objectLabel(t, { ...kb, label: 'My board' })).toBe('My board');
     expect(objectLabel(t, pc)).toBe('lighting.scene.kind.case');

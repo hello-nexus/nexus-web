@@ -282,6 +282,8 @@ export interface ProfileResponse {
   error?: boolean;
   msg?: string;
   profile?: ProfileEntry;
+  /** Set when the file carried a PC setup. */
+  pcSetup?: string;
 }
 
 export interface ProfileFetchResult<T> {

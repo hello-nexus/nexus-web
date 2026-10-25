@@ -9,6 +9,8 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { SyncConflictModal } from '../../common/SyncConflictModal/SyncConflictModal';
 import { AccountSignInModal } from './Account/AccountSignInModal';
+import { Notice } from '../../common/Notice/Notice';
+import { setupSkipped } from '../../../api/pcSetup';
 import { deleteCloudProfile, fetchCloudLibrary, importCloudProfile, type CloudLibrary } from '../../../api/cloud';
 import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { useSyncStatus } from '../../../hooks/useSyncStatus';
@@ -57,6 +59,7 @@ export function CloudProfilesSection(
   const [conflict, setConflict] = useState<ConflictPrompt | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ installId: string; profileId: string; key: string } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [setupSkippedNote, setSetupSkippedNote] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [backingUp, setBackingUp] = useState<string[]>([]);
   // Profiles backed up since this page opened: their button says so, and takes no press, until the page is left.
@@ -139,6 +142,7 @@ export function CloudProfilesSection(
     if (busyKey) return;
     setBusyKey(key);
     setImportError(null);
+    setSetupSkippedNote(false);
     const { status, body } = await importCloudProfile(installId, profileId, replaceExisting, includeAppData);
     setBusyKey(null);
     if (status === 409 || body?.msg === 'profile_name_taken') {
@@ -154,6 +158,7 @@ export function CloudProfilesSection(
       return;
     }
     setImportedKeys(prev => prev.includes(key) ? prev : [...prev, key]);
+    if (setupSkipped(body?.pcSetup)) setSetupSkippedNote(true);
     void profiles.refresh();
     loadLibrary();
   };
@@ -367,6 +372,7 @@ export function CloudProfilesSection(
       {others.length > 0 && (
         <SettingsSection title={t('profile.cloud.others.title')}>
           {others.map(otherRow)}
+          {setupSkippedNote && <Notice tone="info" role="status">{t('profile.importSetupSkipped')}</Notice>}
           {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}
           {atLimit && <p className={styles.note} data-settings-aside="true">{t('profile.maxReached')}</p>}
         </SettingsSection>

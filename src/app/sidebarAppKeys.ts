@@ -15,8 +15,8 @@ export type SidebarAppKey = string; // any app type that has a Page, or 'dashboa
 // outright; every other key must be a widget type shipping a desktop SPA Page,
 // read from the static registry for built-ins or from the synthetic manifest
 // for marketplace (SDK) apps, so a page-capable SDK app pins like a native one.
-// Not the same as click-through: that needs a tile, so it excludes page-only
-// apps (see isDashboardClickthroughType).
+// Not the same as click-through: that needs a tile, so it admits a page-only app
+// only when APP_REGISTRY holds one (see isDashboardClickthroughType).
 export function isPinnableAppKey(s: string): boolean {
   if (isPageOnlyAppKey(s)) return true;
   if (APP_REGISTRY[s]?.Page != null) return true;

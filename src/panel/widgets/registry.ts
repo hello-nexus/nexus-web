@@ -58,6 +58,7 @@ import { blocksApp } from './blocks';
 import { whiteboardApp } from './whiteboard';
 import { processesApp } from './processes';
 import { blankApp } from './blank';
+import { buildApp } from './build';
 import { webViewApp } from './web-view';
 
 // Single source of truth for app type -> manifest. "App" is the
@@ -96,6 +97,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   whiteboard: whiteboardApp,
   processes:  processesApp,
   blank:      blankApp,
+  build:      buildApp,
   'web-view': webViewApp,
 };
 

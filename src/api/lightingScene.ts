@@ -1,4 +1,4 @@
-import { deleteService, fetchService, fetchServiceBlob, putService } from './service';
+import { fetchService, fetchServiceBlob, putService } from './service';
 
 /** Scene millimetres: +Y up, desk at y = 0, +Z toward the seated user. Mirrors nexus-service Lighting/Scene/SceneModels.cs. */
 export type Vec3 = [number, number, number];
@@ -29,6 +29,8 @@ export interface SceneObject {
   yaw: number;
   size: Vec3;
   hasModel?: boolean;
+  /** A curved monitor: the radius of its screen arc. Build writes it into the shared setup's resolved objects. */
+  curve?: { radiusMm: number } | null;
   anchors: SceneAnchor[];
 }
 
@@ -74,12 +76,10 @@ export interface SceneImport {
 
 export const fetchLightingScene = () => fetchService<LightingScene>('/lighting/scene');
 
-export const putLightingScene = (scene: { objects: SceneObject[]; bindings: SceneBinding[] }) =>
+export const putLightingScene = (scene: { objects?: SceneObject[]; bindings: SceneBinding[] }) =>
   putService<LightingScene>('/lighting/scene', scene);
 
 export const importLightingScene = (body: SceneImport) => putService<LightingScene>('/lighting/scene/import', body);
-
-export const deleteSceneImport = () => deleteService<LightingScene>('/lighting/scene/import');
 
 /**
  * Commits the view; `draft` drives the hardware without saving, for a camera mid-drag. `seq` increases with every

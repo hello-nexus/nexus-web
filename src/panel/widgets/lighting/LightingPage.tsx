@@ -18,6 +18,7 @@ import {
 import { groupNamesOf, type DeviceGroup } from '../../../lib/deviceGroups';
 import { matchesAllWords } from '../../../search/match';
 import { takeLightingEffect } from '../../../lib/lightingIntent';
+import { lightingDeviceAnchor } from '../../../lib/pageAnchors';
 import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useShaderParams } from '../../../hooks/useShaderParams';
@@ -94,6 +95,7 @@ import {
 } from '../../../types/lightingPalette';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
+import { effectEditEnabled } from './page/effectEdit';
 import { StaticPalette } from './page/StaticPalette';
 import { SimpleAnimationRow } from './page/SimpleAnimationRow';
 import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
@@ -309,6 +311,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setCanvasFocus(id ? withStacked(deviceStacksRef.current, [id]) : new Set());
     setPrimaryDeviceId(id);
   }, [setPrimaryDeviceId]);
+  // A click on a device in the 3D scene selects it as a click on its row does (a lone selection stays, it does not toggle off), then brings the row into view.
+  const handleSelectFromScene = useCallback((id: string | null) => {
+    if (!id) {
+      handleFocusDevice(null);
+      return;
+    }
+    handleSetSelection(new Set(withStacked(deviceStacksRef.current, [id])), id);
+    const anchor = lightingDeviceAnchor(id);
+    requestAnimationFrame(() => {
+      const row = [...document.querySelectorAll('[data-search-anchor]')].find(el => el.getAttribute('data-search-anchor') === anchor);
+      row?.scrollIntoView?.({ block: 'nearest' });
+    });
+  }, [handleFocusDevice, handleSetSelection]);
   const handleSetFocus = useCallback((ids: Set<string>, primary: string | null) => {
     setCanvasFocus(withStacked(deviceStacksRef.current, ids));
     setPrimaryDeviceId(primary);
@@ -3001,7 +3016,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   api={sceneApi}
                   devices={visibleDevices}
                   selectedDeviceId={primaryDeviceId}
-                  onSelectDevice={handleFocusDevice}
+                  onSelectDevice={handleSelectFromScene}
                   shaderEffect={shaderMode ? previewEffect : null}
                   shaderState={shaderMode ? previewShaderState : null}
                   shaderPaused={paused}
@@ -3053,9 +3068,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               effect={gridEffect}
               onSelect={handleEffectPick}
               onEdit={openDock}
-              // Re-picking is a no-op only with the engine on, an attached tab and no
-              // selection; otherwise it restarts Off, flashes the scope chip or moves pins.
-              editEnabled={dockCollapsed && mode !== 'none' && !detachedTab && selectedDeviceIds.size === 0}
+              editEnabled={effectEditEnabled(dockCollapsed, gridEffect, selectedDeviceIds.size > 0, mode !== 'none' && !detachedTab)}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}
               frozen={viewMode === 'static'}
