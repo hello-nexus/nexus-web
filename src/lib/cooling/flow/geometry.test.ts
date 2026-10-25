@@ -8,7 +8,7 @@ import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { hullCuts } from './hull';
 import { obstaclesOf } from './obstacles';
 import { boxContains } from './voxelize';
-import { buildCollisionShapes } from './collisionShapes';
+import { buildCollisionShapes, obstacleGeometry } from './collisionShapes';
 import { Color } from 'three';
 
 // The HYTE Y70's case layout as T1's service returned it (Build's resolved.caseLayout), with no fan or GPU in it.
@@ -73,6 +73,29 @@ describe('the Y70 hull', () => {
   });
 });
 
+describe('collision shapes stay within the case', () => {
+  it('lie inside the shell box, the hull prism included', () => {
+    const layout = y70([verticalGpu, horizontalGpu]);
+    const shell = layout.boxes.find(b => b.chamfers)!;
+    for (const o of obstaclesOf(layout)) {
+      const { geometry, position } = obstacleGeometry(o.box);
+      geometry.computeBoundingBox();
+      const bb = geometry.boundingBox!;
+      const lo = [bb.min.x + position[0], bb.min.y + position[1], bb.min.z + position[2]];
+      const hi = [bb.max.x + position[0], bb.max.y + position[1], bb.max.z + position[2]];
+      for (let a = 0; a < 3; a++) {
+        expect(lo[a]).toBeGreaterThanOrEqual(-0.01);
+        expect(hi[a]).toBeLessThanOrEqual([layout.size[0], layout.size[2], layout.size[1]][a] + 0.01);
+        if (o.kind === 'hull') {
+          expect(lo[a]).toBeGreaterThanOrEqual(shell.min[a] - 0.01);
+          expect(hi[a]).toBeLessThanOrEqual(shell.min[a] + shell.size[a] + 0.01);
+        }
+      }
+      geometry.dispose();
+    }
+  });
+});
+
 describe('the Y70 obstacle list with a GPU', () => {
   it('has the chamber divider, the PSU shroud and the card', () => {
     const obstacles = obstaclesOf(y70([verticalGpu]));
@@ -91,7 +114,7 @@ describe('GPU fan slots', () => {
     const slots = slotsOf(verticalGpu);
     expect(slots.map(s => s.key)).toEqual(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']);
     expect(slots.every(s => s.taken === 'fan' && s.axis?.join() === '0,0,1')).toBe(true);
-    // Centres a third of the 304 mm length apart, on the card's middle in x.
+    // Centers a third of the 304 mm length apart, on the card's middle in x.
     const ys = slots.map(s => s.box!.min[1] + s.box!.size[1] / 2);
     expect(ys[1] - ys[0]).toBeCloseTo(304 / 3);
     expect(slots[0].box!.min[0] + slots[0].box!.size[0] / 2).toBeCloseTo(150 + 125 / 2);
@@ -295,14 +318,25 @@ describe('AIO radiator fans', () => {
 
 describe('GPU fans with per-fan sizes and faces', () => {
   const slotsOf = (fans: Record<string, unknown>) => y70([{ ...horizontalGpu, fans: { ...horizontalGpu.fans, ...fans } }]).fanSlots.filter(s => s.position === 'gpu');
-  const centreX = (s: { box?: { min: number[]; size: number[] } }) => s.box!.min[0] + s.box!.size[0] / 2;
+  const centerX = (s: { box?: { min: number[]; size: number[] } }) => s.box!.min[0] + s.box!.size[0] / 2;
 
-  it('packs a larger centre fan from the bracket end, as Build draws it', () => {
+  it('packs a larger center fan from the bracket end, as Build draws it', () => {
     const slots = slotsOf({ sizes: [80, 100, 80] });
     expect(slots.map(s => s.size)).toEqual([86, 106, 86]);
     // Card 150..450 along x: offsets 65, 160 and 255 from the max end.
-    expect(slots.map(centreX)).toEqual([385, 290, 195]);
+    expect(slots.map(centerX)).toEqual([385, 290, 195]);
     expect(slots.every(s => s.axis?.join() === '0,1,0')).toBe(true);
+  });
+
+  it('shrinks sizes that outrun the card so the rings stay on it', () => {
+    // 3 x 120 on a 300 mm card: 280 mm usable, so every size scales by 280 / 360.
+    const slots = slotsOf({ sizes: [120, 120, 120] });
+    const frame = (120 * 280) / 360 + 6;
+    expect(slots.every(s => Math.abs(s.box!.size[0] - frame) < 1e-9)).toBe(true);
+    const lo = Math.min(...slots.map(s => s.box!.min[0] + 6 / 2));
+    const hi = Math.max(...slots.map(s => s.box!.min[0] + s.box!.size[0] - 6 / 2));
+    expect(hi).toBeCloseTo(450 - 20 + 0, 5);
+    expect(lo).toBeCloseTo(150, 5);
   });
 
   it('puts a backplate fan on the opposite face, drawing air the other way', () => {
@@ -313,7 +347,7 @@ describe('GPU fans with per-fan sizes and faces', () => {
   it('ignores lists that do not match the fan count or hold a bad entry, and keeps the even spread', () => {
     for (const bad of [{ sizes: [80, 100] }, { sizes: [80, 'x', 80] }, { faces: ['cooler', 'cooler'] }, { faces: ['cooler', 'top', 'cooler'] }]) {
       const slots = slotsOf(bad);
-      expect(slots.map(centreX)).toEqual([200, 300, 400]);
+      expect(slots.map(centerX)).toEqual([200, 300, 400]);
       expect(slots.every(s => s.size === 96 && s.axis?.join() === '0,1,0')).toBe(true);
     }
   });
