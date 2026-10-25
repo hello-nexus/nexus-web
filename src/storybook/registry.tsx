@@ -2734,7 +2734,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ViewSwitch', category: 'inputs',
     filePath: 'src/components/common/ViewSwitch/ViewSwitch.tsx',
-    description: 'The 2D / 3D canvas switch on the Lighting and Cooling headers: a ChipGroup whose segments start with a small 2D or 3D pill, then the view name. The 3D segment keeps a cube and an accent tint while idle.', Preview: PreviewViewSwitch,
+    description: 'The 2D / 3D canvas switch on the Lighting and Cooling headers: a ChipGroup whose segments start with a small 2D or 3D pill, then the view name.', Preview: PreviewViewSwitch,
   },
   {
     name: 'ChipGroup (multi-select)', category: 'inputs',
