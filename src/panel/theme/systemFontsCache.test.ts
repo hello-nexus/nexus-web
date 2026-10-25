@@ -35,11 +35,11 @@ describe('system fonts cache', () => {
     expect(fetchSystemFonts).toHaveBeenCalledTimes(1);
   });
 
-  it('a failed enumeration returns to idle and is not cached, so the Load row can retry', async () => {
+  it('a failed enumeration reads as empty, is not cached, and a second load re-requests', async () => {
     fetchSystemFonts.mockResolvedValue({ families: [], loaded: false });
     const h = renderHook(() => useSystemFonts(false));
     await act(async () => { await loadSystemFonts(); });
-    expect(h.result.current.status).toBe('idle');
+    expect(h.result.current.status).toBe('empty');
     await act(async () => { await loadSystemFonts(); });
     expect(fetchSystemFonts).toHaveBeenCalledTimes(2);
   });

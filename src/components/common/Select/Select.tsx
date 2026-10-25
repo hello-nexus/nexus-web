@@ -340,6 +340,19 @@ export function Select({
   // Render the menu hidden first so its content size is measurable, then fit
   // width, cap height, and position. Re-fit when the visible count changes so
   // filtering re-clamps the height and flip side.
+  // Options replaced in place while open (an action row swapped for the loaded
+  // list): re-measure the width and move the active row back to the selected
+  // value (none if absent) so Enter cannot commit a row the user never moved to.
+  const prevOptionCount = useRef(resolved.length);
+  useLayoutEffect(() => {
+    if (open && prevOptionCount.current !== resolved.length) {
+      openWidthRef.current = null;
+      if (!query.trim()) setActiveIndex(selectedIndex);
+    }
+    prevOptionCount.current = resolved.length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reacts to the option count only
+  }, [open, resolved.length]);
+
   useLayoutEffect(() => {
     if (open) reposition();
   }, [open, reposition, visible.length]);
@@ -561,7 +574,7 @@ export function Select({
                   key={`${opt.value}-${i}`}
                   id={optionId(i)}
                   role="option"
-                  aria-selected={opt.value === value}
+                  aria-selected={!opt.onAction && opt.value === value}
                   aria-disabled={opt.disabled || undefined}
                   aria-busy={opt.busy || undefined}
                   aria-describedby={opt.description ? `${optionId(i)}-desc` : undefined}
@@ -569,7 +582,7 @@ export function Select({
                     styles.option,
                     opt.className,
                     i === activeIndex && styles.active,
-                    opt.value === value && styles.selected,
+                    !opt.onAction && opt.value === value && styles.selected,
                     opt.disabled && styles.optionDisabled,
                     opt.fontFamily && styles.fontOption,
                     opt.onAction && styles.actionOption,

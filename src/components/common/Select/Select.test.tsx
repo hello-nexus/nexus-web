@@ -356,3 +356,21 @@ describe('Select action rows', () => {
     expect(onAction).not.toHaveBeenCalled();
   });
 });
+
+describe('Select action rows and in-place option changes', () => {
+  it('never marks an action row selected, even when its value equals the current value', () => {
+    render(<Select value="" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load more', onAction: vi.fn() }]} />);
+    const row = within(open()).getByRole('option', { name: 'Load more' });
+    expect(row.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('clears the active row when options are replaced while open, so Enter commits nothing', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load more', onAction: vi.fn() }]} />);
+    const list = open();
+    rerender(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, { value: 'd', label: 'Date' }, { value: 'e', label: 'Elder' }]} />);
+    fireEvent.keyDown(list, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox')).toBeTruthy();
+  });
+});

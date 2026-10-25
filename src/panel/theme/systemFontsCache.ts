@@ -35,10 +35,9 @@ export function loadSystemFonts(): Promise<void> {
   if (loading) return loading;
   publish({ status: 'loading', families: null });
   loading = fetchSystemFonts().then(res => {
-    // A failed enumeration (not loaded) returns to idle so the Load row stays and can retry;
-    // empty is only a successful enumeration that found nothing.
-    if (!res.loaded) publish({ status: 'idle', families: null });
-    else publish(res.families.length > 0 ? { status: 'loaded', families: res.families } : { status: 'empty', families: null });
+    // Nothing came back (failed or found no fonts): 'empty' tells the row to say so while
+    // staying clickable, so another click re-requests.
+    publish(res.loaded && res.families.length > 0 ? { status: 'loaded', families: res.families } : { status: 'empty', families: null });
   }).finally(() => { loading = null; });
   return loading;
 }
