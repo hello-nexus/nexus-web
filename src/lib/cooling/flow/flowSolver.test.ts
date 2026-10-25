@@ -87,8 +87,9 @@ describe('buildFlowScene', () => {
 
   it('adds the fans of a radiator slot, with porous cells and heat', () => {
     const rad = slotSpec('top:360:0', 'top', 'radiator', [100, 388, 60], [360, 52, 120], [0, -1, 0]);
-    const input = inputFor([rad], [], () => 'exhaust');
-    input.fanCfm = { 'top:360:0': 50, 'top:360:0#1': 50, 'top:360:0#2': 50 };
+    const radBox = { slot: 'cooler', role: 'part', min: [100, 388, 60], size: [360, 52, 120], fans: { axis: 'y', side: 'min', count: 3, diameter: 114, bothSides: true } };
+    const input = inputFor([rad], [radBox], () => 'exhaust');
+    input.fanCfm = { 'rad:0': 50, 'rad:1': 50, 'rad:2': 50 };
     const s = buildFlowScene(input, LOW);
     expect(s.fanCount).toBe(3);
     expect(s.darcy.some(v => v > 0)).toBe(true);

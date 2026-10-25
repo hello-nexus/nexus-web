@@ -145,23 +145,7 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
   for (const slot of layout.fanSlots) {
     const direction = input.directions[slot.key] ?? 'intake';
     if (slot.taken === 'radiator') {
-      const box = slot.box;
-      if (!box) continue;
-      radiators.push({ box });
-      const axis = inwardAxis(slot, box, extents);
-      const k = axisIndex(axis);
-      const perp = [0, 1, 2].filter(a => a !== k);
-      const count = 1 + Object.keys(input.fanCfm).filter(key => key.startsWith(`${slot.key}#`)).length;
-      const longAxis = box.size[perp[0]] >= box.size[perp[1]] ? perp[0] : perp[1];
-      const shortSide = box.size[perp[0] === longAxis ? perp[1] : perp[0]];
-      for (let f = 0; f < count; f++) {
-        const center: Vec3 = [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2];
-        center[longAxis] = box.min[longAxis] + (box.size[longAxis] * (f + 0.5)) / count;
-        fans.push({
-          disk: { center, axis, ...diskRadii(Math.min(shortSide, box.size[longAxis] / count)), halfThickness: Math.max(box.size[k] / 2, minThickness) },
-          direction, cfm: input.fanCfm[f === 0 ? slot.key : `${slot.key}#${f}`] ?? 0, slot, porousBox: true,
-        });
-      }
+      if (slot.box) radiators.push({ box: slot.box });
       continue;
     }
     const box = geometry.get(slot.key);

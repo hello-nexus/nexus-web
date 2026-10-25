@@ -37,7 +37,7 @@ export interface PcSetupItem {
 
 export interface PcSetup {
   version: number;
-  case: { place?: PcSetupPlace };
+  case: { place?: PcSetupPlace; /** The face the AIO radiator is mounted on; absent leaves Build's default order. */ radiatorMount?: string };
   /** Opaque to the service. */
   parts?: unknown;
   items: PcSetupItem[];
@@ -107,3 +107,7 @@ export const putPcSetup = (baseRev: number, setup: PcSetup) => write('/system/se
 /** Lighting's write: moves and turns existing items; the service updates the matching resolved objects itself. */
 export const patchPcSetupPlacements = (baseRev: number, places: PcSetupPlacement[]) =>
   write('/system/setup/placements', 'PATCH', { baseRev, places });
+
+/** Cooling's write: the radiator's mount (a face name, or null to return to Build's default); the service touches only that field. */
+export const patchPcSetupRadiator = (baseRev: number, mount: string | null) =>
+  write('/system/setup/radiator', 'PATCH', { baseRev, mount });

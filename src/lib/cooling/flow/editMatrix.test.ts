@@ -178,10 +178,12 @@ describe('one real channel on many slots', () => {
 });
 
 describe('AIO radiator fans on the shared path', () => {
-  const rad = (key: string, fanCount = 3): CaseFanSlot => ({ key, position: 'top', size: 120 * fanCount, index: 0, taken: 'radiator', radiator: { fanCount } } as CaseFanSlot);
-  const loose = (key: string): CaseFanSlot => ({ key, position: 'front', size: 120, index: 0, taken: 'fan' });
+  const rad = (count = 3): CaseFanSlot[] => [
+    { key: 'top:120:0', position: 'top', size: 120, index: 0, taken: 'radiator', radiator: { fanCount: count } },
+    ...Array.from({ length: count }, (_, i): CaseFanSlot => ({ key: `rad:${i}`, position: 'top', size: 120, index: i, taken: 'fan', fan: { airflowCfm: 60, staticPressureMmH2O: 2 } })),
+  ];
   const aio = [ch('aio-fan', 1200, { isAio: true }), ch('pump', 2800, { isAio: true, kind: 'Pump' }), ch('fan-2', 800)];
-  const keys360 = ['top:120:0', 'top:120:0#1', 'top:120:0#2'];
+  const keys360 = ['rad:0', 'rad:1', 'rad:2'];
   const run = (slots: CaseFanSlot[], bindings: FanBinding[], channels: Channel[]) => {
     const effective = withDefaultBindings(bindings, slots, channels);
     const speeds = slotSpeeds(slots, effective, channels);
@@ -190,39 +192,39 @@ describe('AIO radiator fans on the shared path', () => {
   };
 
   it('binds every fan of a mounted 360 radiator to the AIO fan channel, not the pump', () => {
-    expect(withDefaultBindings([], [rad('top:120:0')], aio)).toEqual([{ channelId: 'aio-fan', slotKeys: keys360 }]);
+    expect(withDefaultBindings([], rad(), aio)).toEqual([{ channelId: 'aio-fan', slotKeys: keys360 }]);
   });
 
   it('runs a 360 top radiator as 3 spinning fans at equal flow that all count in the stats', () => {
-    const r = run([rad('top:120:0')], [], aio);
+    const r = run(rad(), [], aio);
     expect(keys360.map(k => r.visual.fanCfm[k] > 0)).toEqual([true, true, true]);
     expect(new Set(keys360.map(k => r.visual.fanCfm[k])).size).toBe(1);
     expect(r.lumped.fanCount).toBe(3);
   });
 
   it('stops only the fan a none binding names', () => {
-    const r = run([rad('top:120:0')], [{ channelId: 'none', slotKeys: ['top:120:0#1'] }], aio);
-    expect(r.visual.fanCfm['top:120:0#1']).toBe(0);
-    expect(r.visual.fanCfm['top:120:0']).toBeGreaterThan(0);
-    expect(r.visual.fanCfm['top:120:0#2']).toBeGreaterThan(0);
-    expect(r.effective).toEqual([{ channelId: 'none', slotKeys: ['top:120:0#1'] }, { channelId: 'aio-fan', slotKeys: ['top:120:0', 'top:120:0#2'] }]);
+    const r = run(rad(), [{ channelId: 'none', slotKeys: ['rad:1'] }], aio);
+    expect(r.visual.fanCfm['rad:1']).toBe(0);
+    expect(r.visual.fanCfm['rad:0']).toBeGreaterThan(0);
+    expect(r.visual.fanCfm['rad:2']).toBeGreaterThan(0);
+    expect(r.effective).toEqual([{ channelId: 'none', slotKeys: ['rad:1'] }, { channelId: 'aio-fan', slotKeys: ['rad:0', 'rad:2'] }]);
   });
 
-  it('lets a real binding on the radiator slot drive all its fans and a user binding win on loose radiator fans', () => {
-    const r = run([rad('top:120:0')], [{ channelId: 'fan-2', slotKeys: ['top:120:0'] }], aio);
-    expect(r.effective).toEqual([{ channelId: 'fan-2', slotKeys: ['top:120:0'] }]);
-    expect(keys360.every(k => r.speeds.get(k)?.fraction === r.speeds.get('top:120:0')?.fraction)).toBe(true);
-    const looseRun = withDefaultBindings([{ channelId: 'fan-2', slotKeys: ['rad:front:1'] }], [loose('rad:front:0'), loose('rad:front:1')], aio);
-    expect(looseRun.find(b => b.slotKeys.includes('rad:front:1'))?.channelId).toBe('fan-2');
-    expect(looseRun.find(b => b.slotKeys.includes('rad:front:0'))?.channelId).toBe('aio-fan');
+  it('lets a user binding win on one radiator fan and drives nothing from a binding on a covered case slot', () => {
+    const named = withDefaultBindings([{ channelId: 'fan-2', slotKeys: ['rad:1'] }], rad(), aio);
+    expect(named.find(b => b.slotKeys.includes('rad:1'))?.channelId).toBe('fan-2');
+    expect(named.find(b => b.slotKeys.includes('rad:0'))?.channelId).toBe('aio-fan');
+    const r = run(rad(), [{ channelId: 'fan-2', slotKeys: ['top:120:0'] }], aio);
+    expect(r.speeds.has('top:120:0')).toBe(false);
+    expect(r.lumped.fanCount).toBe(3);
   });
 
   it('moves the stats with the AIO fan rpm', () => {
-    const at = (rpm: number) => run([rad('top:120:0')], [], [ch('aio-fan', rpm, { isAio: true })]);
+    const at = (rpm: number) => run(rad(), [], [ch('aio-fan', rpm, { isAio: true })]);
     const [slow, fast] = [at(500), at(2000)];
     expect(fast.lumped.result.exhaustCfm).toBeGreaterThan(slow.lumped.result.exhaustCfm);
-    expect(at(0).visual.fanCfm['top:120:0']).toBe(0);
-    expect(slow.visual.fanCfm['top:120:0']).toBeGreaterThan(0);
+    expect(at(0).visual.fanCfm['rad:0']).toBe(0);
+    expect(slow.visual.fanCfm['rad:0']).toBeGreaterThan(0);
   });
 });
 

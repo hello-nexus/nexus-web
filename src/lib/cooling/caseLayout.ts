@@ -1,7 +1,7 @@
 import type { FanDirection } from './pressureModel';
 import { SIM_PREFIX } from './fanSpeed';
 import { gpuFanSlots } from './gpuFans';
-import { looseRadiatorSlots, radiatorSlotFans } from './radiatorFans';
+import { radiatorFanSlots } from './radiatorFans';
 
 /** Read-only view of the PcLayout nexus-build writes as `resolved.caseLayout`. Millimeters; x front to rear, y up, z from the window side. */
 export type Vec3 = [number, number, number];
@@ -73,6 +73,14 @@ export interface CaseFanSlot {
   radiator?: SlotRadiatorSpec;
 }
 
+/** One placement of the AIO radiator, as Build resolved it: the box it fills, the case slots it covers and the case slots that keep a fan. */
+export interface RadiatorOption {
+  mount: string;
+  box: CaseBox;
+  radiator: string[];
+  fans: string[];
+}
+
 export interface CaseLayout {
   /** Outer case [depth, width, height]; box sizes are [depth, height, width]. */
   size: Vec3;
@@ -80,6 +88,12 @@ export interface CaseLayout {
   fanSlots: CaseFanSlot[];
   /** The glass is on the right as seen from the front; Build's exported model mirrors x for it. */
   windowRight?: boolean;
+  /** The mount the radiator sits on in this layout: the chosen option's, else the one Build resolved. */
+  radiatorMount?: string;
+  /** Every mount the radiator can take, with the box it would fill; present with two or more. */
+  radiatorOptions?: RadiatorOption[];
+  /** Set when the chosen mount is not the one the record was resolved with: the radiator box as the model draws it, and where it now goes. */
+  radiatorMove?: { from: CaseBox; to: CaseBox };
   /** The case's name as Build resolved it, when the maker's own documents describe the interior. */
   caseModel?: string;
 }
@@ -214,19 +228,52 @@ function parseSlot(raw: unknown): CaseFanSlot | null {
   return slot;
 }
 
-/** The layout the setup record carries, or null when it is missing or malformed. Entries that fail validation are dropped. */
-export function parseCaseLayout(raw: unknown): CaseLayout | null {
+const MAX_OPTIONS = 8;
+
+function parseOptions(raw: unknown): RadiatorOption[] {
+  if (!Array.isArray(raw)) return [];
+  const keys = (v: unknown): string[] | null => (Array.isArray(v) && v.length <= MAX_SLOTS && v.every(keyOf) ? (v as string[]) : null);
+  const out: RadiatorOption[] = [];
+  for (const o of raw.slice(0, MAX_OPTIONS) as Record<string, unknown>[]) {
+    const box = o && typeof o === 'object' ? parseBox(o.box) : null;
+    const radiator = o ? keys(o.radiator) : null;
+    const fans = o ? keys(o.fans) : null;
+    if (box && radiator && fans && keyOf(o.mount) && !out.some(x => x.mount === o.mount)) out.push({ mount: o.mount, box, radiator, fans });
+  }
+  return out;
+}
+
+const isRadiatorBox = (b: CaseBox): boolean => b.slot === 'cooler' && b.fans?.bothSides === true && !!b.fans.count;
+
+/** The layout the setup record carries, or null when it is missing or malformed. Entries that fail validation are dropped. `choice` is the mount the user picked; it applies when it names one of the record's options and differs from the mount the record was resolved with. */
+export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayout | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   const size = vec3(r.size, true);
   if (!size || !Array.isArray(r.boxes) || !Array.isArray(r.fanSlots)) return null;
   if (r.boxes.length > MAX_BOXES || r.fanSlots.length > MAX_SLOTS) return null;
-  const boxes = r.boxes.map(parseBox).filter((b): b is CaseBox => b !== null);
-  const slots = r.fanSlots.map(parseSlot).filter((s): s is CaseFanSlot => s !== null);
+  let boxes = r.boxes.map(parseBox).filter((b): b is CaseBox => b !== null);
+  let slots = r.fanSlots.map(parseSlot).filter((s): s is CaseFanSlot => s !== null);
+  const resolvedMount = keyOf(r.radiatorMount) ? r.radiatorMount : undefined;
+  const options = parseOptions(r.radiatorOptions);
+  const picked = choice && choice !== resolvedMount ? options.find(o => o.mount === choice) : undefined;
+  let radiatorMove: CaseLayout['radiatorMove'];
+  if (picked) {
+    const at = boxes.findIndex(isRadiatorBox);
+    if (at >= 0) {
+      radiatorMove = { from: boxes[at], to: picked.box };
+      boxes = boxes.map((b, i) => (i === at ? picked.box : b));
+    }
+    slots = slots.map(s => ({ ...s, taken: picked.radiator.includes(s.key) ? 'radiator' : picked.fans.includes(s.key) ? 'fan' : null }));
+  }
+  const mount = picked?.mount ?? resolvedMount;
   return {
     size,
     boxes,
-    fanSlots: [...slots, ...gpuFanSlots(boxes), ...(slots.some(x => x.taken === 'radiator') ? [] : looseRadiatorSlots(boxes, size))],
+    fanSlots: [...slots, ...gpuFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
+    ...(mount ? { radiatorMount: mount } : {}),
+    ...(options.length >= 2 ? { radiatorOptions: options } : {}),
+    ...(radiatorMove ? { radiatorMove } : {}),
     ...(r.windowRight === true ? { windowRight: true } : {}),
     ...(typeof r.caseModel === 'string' && r.caseModel.length <= 120 ? { caseModel: r.caseModel } : {}),
   };
@@ -296,7 +343,7 @@ export interface FanSlotGeometry {
   box: CaseBox;
 }
 
-/** Slots with a drawn box, taken or empty: the slot's own box on newer records, else a fan box or ghost Build kept. A radiator slot yields one entry per fan, on its interior face, keyed as the pressure model keys them. */
+/** Slots with a drawn box, taken or empty: the slot's own box on newer records, else a fan box or ghost Build kept. A case slot the radiator covers has no fan of its own. */
 export function fanGeometries(layout: CaseLayout): FanSlotGeometry[] {
   const byKey = new Map<string, CaseBox>();
   for (const box of layout.boxes) {
@@ -305,7 +352,7 @@ export function fanGeometries(layout: CaseLayout): FanSlotGeometry[] {
   }
   const out: FanSlotGeometry[] = [];
   for (const slot of layout.fanSlots) {
-    if (slot.taken === 'radiator') { out.push(...radiatorSlotFans(slot)); continue; }
+    if (slot.taken === 'radiator') continue;
     const own = slot.box ? { slot: 'fan', role: slot.taken ? 'part' : 'ghost', min: slot.box.min, size: slot.box.size, rotationY: slot.box.rotationY } : undefined;
     const box = own ?? byKey.get(slot.key);
     if (box) out.push({ slot, box });
@@ -338,17 +385,18 @@ export interface MountCollapse {
 
 /**
  * One drawn slot per physical mount, chosen greedily: installed first, then bound, then the larger size, then slot order.
- * A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
+ * Radiator fan slots (`rad:`) always stand alone. A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
  * Drawn slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
  */
 export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[]): MountCollapse {
   const slots = layout.fanSlots;
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
-  const order = slots.map((_, i) => i).sort((x, y) => rank(slots[y]) - rank(slots[x]) || slots[y].size - slots[x].size || x - y);
+  const own = (s: CaseFanSlot) => s.key.startsWith('rad:');
+  const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || slots[y].size - slots[x].size || x - y);
   const chosen: number[] = [];
   for (const i of order) if (chosen.every(j => planeOverlap(slots[i], slots[j]) === 0)) chosen.push(i);
-  const shown = new Set(chosen);
+  const shown = new Set([...chosen, ...slots.flatMap((s, i) => (own(s) ? [i] : []))]);
   const canon = new Map<string, string>();
   slots.forEach((s, i) => {
     if (shown.has(i)) { canon.set(s.key, s.key); return; }

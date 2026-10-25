@@ -50,11 +50,8 @@ describe('slotModelFans with a live speed', () => {
     expect(r.fans).toEqual([]);
   });
 
-  it('scales a radiator fan too, and the lumped flow follows the slower fan', () => {
-    const rad = slot({ taken: 'radiator', size: 240, radiator: { fanCount: 2, fanAirflowCfm: 60, fanStaticPressureMmH2O: 2 } });
-    const fans = slotModelFans(rad, [], { fraction: 0.5, estimated: false });
-    expect(fans).toHaveLength(2);
-    expect(fans[0].cfm).toBe(30);
+  it('gives a case slot the radiator covers no fans, and the lumped flow follows the slower fan', () => {
+    expect(slotModelFans(slot({ taken: 'radiator', size: 240, radiator: { fanCount: 2, fanAirflowCfm: 60, fanStaticPressureMmH2O: 2 } }), [], { fraction: 0.5, estimated: false })).toEqual([]);
     const full = solveCasePressure(slotModelFans(slot({ fan: { airflowCfm: 80, staticPressureMmH2O: 2 } }), []).map(f => ({ ...f, direction: 'intake' as const })));
     const slow = solveCasePressure(slotModelFans(slot({ fan: { airflowCfm: 80, staticPressureMmH2O: 2 } }), [], { fraction: 0.5, estimated: false }).map(f => ({ ...f, direction: 'intake' as const })));
     expect(slow.fans[0].cfm).toBeLessThan(full.fans[0].cfm);

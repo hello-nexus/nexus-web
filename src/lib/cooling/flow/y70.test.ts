@@ -138,7 +138,8 @@ describe('a vertical GPU on the Y70', () => {
 describe('an AIO radiator on the Y70, from synthetic data', () => {
   const cooler = { slot: 'cooler', role: 'part', min: [329, 237, 48], size: [105, 126, 155], fans: { axis: 'x', diameter: 120 } };
   const rad = { key: 'top:360:0', position: 'top', size: 360, index: 0, taken: 'radiator', box: { min: [60, 435, 40], size: [360, 52, 120] }, axis: [0, -1, 0], radiator: { fanCount: 3, fanAirflowCfm: 50 } };
-  const scene = buildFlowScene(input(y70([cooler], [rad]), { 'top:360:0': 50, 'top:360:0#1': 50, 'top:360:0#2': 50 }), MID);
+  const radBox = { slot: 'cooler', role: 'part', min: [60, 435, 40], size: [360, 52, 120], fans: { axis: 'y', side: 'min', count: 3, diameter: 114, bothSides: true } };
+  const scene = buildFlowScene(input(y70([cooler, radBox], [rad]), { 'rad:0': 50, 'rad:1': 50, 'rad:2': 50 }), MID);
 
   it('is a porous block: it slows air and never stops it', () => {
     expect(scene.darcy[at(scene, [380, 300, 120])]).toBeGreaterThan(0);
