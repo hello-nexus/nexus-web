@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { studioBlock } from './studioBlocks';
 
 // Runs the wipe block's shipped edge statements (the lines after x is picked) as JS.
-function wipeAt(softness: number) {
+function wipeAt(softness: number, speed = 1) {
   const code = studioBlock('wipe')!.code.split('\n').slice(-2).join('\n')
     .replace(/\bfloat\s+/g, 'let ')
-    .replace(/\$speed/g, '1.0')
+    .replace(/\$speed/g, `(${speed})`)
     .replace(/\$softness/g, String(softness));
   const glsl = {
     fract: (v: number) => v - Math.floor(v),
@@ -18,15 +18,17 @@ function wipeAt(softness: number) {
     },
   };
   const run = new Function('t', 'x', ...Object.keys(glsl), `let f; ${code}; return f;`);
-  // ph = t * speed * 0.25, so one pass is t = 4.
-  return (ph: number, x: number) => run(ph * 4, x, ...Object.values(glsl)) as number;
+  const rate = Number(/\$speed \* ([\d.]+)/.exec(studioBlock('wipe')!.code)![1]);
+  const passLength = 1 / (rate * Math.abs(speed));
+  return (passes: number, x: number) => run(passes * passLength, x, ...Object.values(glsl)) as number;
 }
 
 const positions = Array.from({ length: 101 }, (_, i) => i / 100);
 
 describe('wipe', () => {
-  it.each([0.002, 0.25, 0.5])('fully covers the strip before the sides swap at softness %s', softness => {
-    const f = wipeAt(softness);
+  const cases = [1, -1].flatMap(speed => [0.002, 0.25, 0.5].map(softness => [speed, softness]));
+  it.each(cases)('fully covers the strip before the sides swap at speed %s, softness %s', (speed, softness) => {
+    const f = wipeAt(softness, speed);
     for (const x of positions) {
       expect(f(0, x)).toBeCloseTo(0, 3);
       expect(f(0.99999, x)).toBeCloseTo(1, 2);
