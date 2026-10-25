@@ -267,3 +267,28 @@ describe('stability', () => {
 });
 
 void defaultDir; void tops; void gpuBox;
+
+describe('the first particles', () => {
+  const scene = buildFlowScene(caseWithGpuAndShroud(), 64 * 48 * 96);
+  const sim = new CpuFlow(scene, 1);
+
+  it('start far denser than the spawn points can show: the pool sits on a few hundred cells, tens per cell', () => {
+    const cells = new Map<number, number>();
+    const p = new CpuParticles(sim, 128 * 84, 5);
+    for (let i = 0; i < p.count; i++) {
+      const c = p.cellAt(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]);
+      cells.set(c, (cells.get(c) ?? 0) + 1);
+    }
+    expect(p.count / cells.size).toBeGreaterThan(10);
+  });
+
+  it('are born over time, so none is visible at the start and the pool never appears as one stacked puff', () => {
+    const p = new CpuParticles(sim, 128 * 84, 5);
+    const visible = () => { let n = 0; for (let i = 0; i < p.count; i++) if (p.age[i] >= 0) n++; return n; };
+    expect(visible()).toBe(0);
+    for (let s = 0; s < 40; s++) p.step();
+    expect(visible()).toBeLessThan(p.count * 0.2);
+    for (let s = 0; s < 300; s++) p.step();
+    expect(visible()).toBeGreaterThan(p.count * 0.95);
+  });
+});

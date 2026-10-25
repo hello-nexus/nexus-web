@@ -151,7 +151,7 @@ void main() {
 
 const PARTICLE_COMMON = COMMON + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D SP;
-uniform float uSpawnCount; uniform float uSeed; uniform float uMaxAge;
+uniform float uSpawnCount; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread;
 float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
@@ -164,6 +164,8 @@ void main() {
   vec3 p = s.xyz; float age = s.w;
   bool respawn = age > uMaxAge * 4.0;
   bool fresh = respawn;
+  // Not yet born: wait unseen at the spawn point.
+  if (!respawn && age < 0.0) { gl_FragColor = vec4(p, age + 1.0); return; }
   if (!respawn) {
     vec3 k1 = sampleU(p);
     vec3 d = sampleU(p + 0.5 * k1);
@@ -180,7 +182,7 @@ void main() {
     if (uSpawnCount < 1.0) { gl_FragColor = vec4(-1.0e6, 0.0, 0.0, uMaxAge * 8.0); return; }
     int i = int(hash(gl_FragCoord.xy + uSeed) * uSpawnCount);
     p = texelFetch(SP, ivec2(min(i, int(uSpawnCount) - 1), 0), 0).xyz;
-    age = fresh ? hash(gl_FragCoord.xy * 1.7 + uSeed) * uMaxAge * 0.8 : 0.0;
+    age = fresh ? -hash(gl_FragCoord.xy * 1.7 + uSeed) * uMaxAge * uBirthSpread : 0.0;
   }
   gl_FragColor = vec4(p, age);
 }`;

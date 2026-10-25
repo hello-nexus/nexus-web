@@ -1,4 +1,4 @@
-import { PARTICLE_MAX_AGE } from './flowParams';
+import { PARTICLE_BIRTH_SPREAD, PARTICLE_MAX_AGE } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
 
 /** CPU reference of the GPU particle pass: RK2 advection through the velocity field, per-axis sliding so a particle never enters a solid, respawn at the spawn points. */
@@ -19,7 +19,7 @@ export class CpuParticles {
     this.seed = seed;
     for (let i = 0; i < count; i++) {
       this.respawn(i);
-      this.age[i] = this.rand() * PARTICLE_MAX_AGE;
+      this.age[i] = -this.rand() * PARTICLE_MAX_AGE * PARTICLE_BIRTH_SPREAD;
     }
   }
 
@@ -53,6 +53,7 @@ export class CpuParticles {
     for (let i = 0; i < this.count; i++) {
       const o = i * 3;
       if (this.pos[o] < -1e5) { this.respawn(i); continue; }
+      if (this.age[i] < 0) { this.age[i] += 1; continue; }
       const px = this.pos[o], py = this.pos[o + 1], pz = this.pos[o + 2];
       this.flow.sample(px, py, pz, v);
       this.flow.sample(px + 0.5 * v[0], py + 0.5 * v[1], pz + 0.5 * v[2], v);
