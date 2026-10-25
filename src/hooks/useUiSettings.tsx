@@ -5,10 +5,10 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  loadSettings, saveSettings, cachePreferencesLocally,
+  loadSettings, saveSettings, cachePreferencesLocally, COOLING_FLOW_MODES,
   applyThemeMode, applyAccentColor, applyBackgroundMode,
   type NexusSettings, type ThemeMode, type Language, type BackgroundMode, type AccentSource,
-  type DashboardMode,
+  type DashboardMode, type CoolingFlowMode,
 } from '../lib/settings';
 import {
   fetchPreferences, savePreferences,
@@ -122,7 +122,7 @@ export interface UiSettingsValue {
   // Whether each page opens on its 3D view. Server-mirrored under ui.lightingView3d / ui.coolingView3d.
   lightingView3d: boolean;
   coolingView3d: boolean;
-  coolingFlowMode: 'both' | 'case' | 'airflow';
+  coolingFlowMode: CoolingFlowMode;
   coolingCollisionShapes: boolean;
   // Sidebar DEVICES row keys the user hid; a row is omitted only while its
   // Nexus Control is also off. Server-mirrored under ui.hiddenSidebarDevices.
@@ -521,7 +521,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledCoolingDevices,
     lightingView3d: server.ui?.lightingView3d ?? base.lightingView3d,
     coolingView3d: server.ui?.coolingView3d ?? base.coolingView3d,
-    coolingFlowMode: server.ui?.coolingFlowMode ?? base.coolingFlowMode,
+    coolingFlowMode: COOLING_FLOW_MODES.find(m => m === server.ui?.coolingFlowMode) ?? base.coolingFlowMode,
     coolingCollisionShapes: server.ui?.coolingCollisionShapes ?? base.coolingCollisionShapes,
     hiddenSidebarDevices: server.ui?.hiddenSidebarDevices ?? base.hiddenSidebarDevices,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,

@@ -1,21 +1,17 @@
 import type { FanSpec } from './pressureModel';
 
 /** Top speed assumed for a fan whose spec and channel give none, rpm. */
-export const SIM_RPM_MAX = 2500;
-/** Rated top speed by frame size, rpm, for a fan whose spec and channel give none. */
-export const DEFAULT_RPM_MAX: Readonly<Record<number, number>> = { 120: SIM_RPM_MAX, 140: SIM_RPM_MAX };
-/** A speed fraction above this reads as noise, not a faster fan. */
-const MAX_FRACTION = 1.2;
+export const UNKNOWN_SPEC_RPM_MAX = 2500;
+/** A speed fraction above this reads as noise, not a faster fan; the stats and the particles share this cap. */
+export const MAX_FRACTION = 1.2;
+/** Simulated fans: a channel id `sim:<rpm>` pins a fan to a fixed speed with no device behind it. */
+export const SIM_PREFIX = 'sim:';
+/** Highest simulated speed, rpm. */
+export const SIM_RPM_CEILING = 3000;
 /** A fan's effective flow must change by more than this share before the flow is solved again: a fan curve easing a few hundred rpm is not a new scene. */
 export const FLOW_CHANGE_TOLERANCE = 0.15;
 /** And by more than this many CFM, so a slow fan's tach jitter never counts as a change. */
 export const FLOW_CHANGE_FLOOR_CFM = 4;
-
-export function defaultRpmMax(sizeMm: number): number {
-  const sizes = Object.keys(DEFAULT_RPM_MAX).map(Number);
-  const nearest = sizes.reduce((best, s) => (Math.abs(s - sizeMm) < Math.abs(best - sizeMm) ? s : best), sizes[0]);
-  return DEFAULT_RPM_MAX[nearest];
-}
 
 export interface ChannelSpeed {
   rpm: number;
@@ -31,11 +27,11 @@ export interface SlotSpeed {
   estimated: boolean;
 }
 
-/** A bound channel's speed as a share of the fan's top speed: the tach over the spec's rpmMax, else the channel's observed max, else a size default; duty stands in when the tach is unreadable. */
-export function speedFraction(channel: ChannelSpeed, specRpmMax: number | undefined, sizeMm: number): SlotSpeed {
+/** A bound channel's speed as a share of the fan's top speed: the tach over the spec's rpmMax, else the channel's observed max, else the unknown-spec default; duty stands in when the tach is unreadable. */
+export function speedFraction(channel: ChannelSpeed, specRpmMax: number | undefined): SlotSpeed {
   if (channel.rpmUnavailable) return { fraction: clamp(channel.dutyPercent / 100), estimated: true };
   const observed = channel.maxRpm && channel.maxRpm > 0 ? channel.maxRpm : undefined;
-  const top = specRpmMax ?? observed ?? defaultRpmMax(sizeMm);
+  const top = specRpmMax ?? observed ?? UNKNOWN_SPEC_RPM_MAX;
   return { fraction: clamp(channel.rpm / top), estimated: specRpmMax === undefined };
 }
 
@@ -58,10 +54,6 @@ export function settleFlows(prev: Readonly<Record<string, number>>, next: Readon
   return prev;
 }
 
-/** Highest simulated speed accepted from a channel id, rpm. */
-export const SIM_RPM_CEILING = 3000;
-const SIM_PREFIX = 'sim:';
-
 /** The fixed rpm of a simulated channel id (`sim:<rpm>`), clamped to the ceiling; null for any other id. */
 export function simRpm(channelId: string): number | null {
   if (!channelId.startsWith(SIM_PREFIX)) return null;
@@ -69,8 +61,8 @@ export function simRpm(channelId: string): number | null {
   return Number.isFinite(rpm) ? Math.min(SIM_RPM_CEILING, Math.max(0, rpm)) : null;
 }
 
-/** Share of rated flow shown for a fan at `fraction` of top speed: a spinning fan always moves, and the slowest reads about half the fastest. */
+/** Share of rated flow shown for a fan at `fraction` of top speed: a spinning fan always moves, and the slowest still reads as clearly moving. The same speed cap as the stats. */
 const VISUAL_FLOW_FLOOR = 0.45;
 export function visualFlowCfm(ratedCfm: number, fraction: number): number {
-  return fraction > 0 ? ratedCfm * (VISUAL_FLOW_FLOOR + (1 - VISUAL_FLOW_FLOOR) * Math.min(1, fraction)) : 0;
+  return fraction > 0 ? ratedCfm * (VISUAL_FLOW_FLOOR + (1 - VISUAL_FLOW_FLOOR) * Math.min(MAX_FRACTION, fraction)) : 0;
 }

@@ -11,7 +11,7 @@ export const DARCY_K = 0.4;
 export const DAMPING = 0.999;
 /** Floor of the reference fan velocity, m/s, so a weak setup does not look as fast as a strong one. */
 export const MIN_REFERENCE_SPEED = 2;
-/** Cells whose axial distance to a fan disk centre is within this many cells receive its force. */
+/** Cells whose axial distance to a fan disk center is within this many cells receive its force. */
 export const MIN_FAN_HALF_THICKNESS_CELLS = 1;
 
 /** Air outside the case is simulated this far past each side that has a fan or vent. */
@@ -40,8 +40,6 @@ export const MIN_GRID_AXIS = 8;
 
 /** Particles move this many times faster than the solver's own time, so the flow reads clearly; fan-to-fan differences stay proportional. */
 export const PARTICLE_SPEED_SCALE = 1.5;
-export const PARTICLE_SPEED_MIN = 0.5;
-export const PARTICLE_SPEED_MAX = 3;
 /** Longest advection sub-step, in cells: under one cell so a particle cannot skip a one-cell wall. */
 export const MAX_SUBSTEP_CELLS = 0.7;
 /** Advection sub-steps per particle step at a visual speed scale: enough that the fastest cell moves at most MAX_SUBSTEP_CELLS per sub-step. */

@@ -92,14 +92,14 @@ describe('visual flow compression', () => {
     const regionOf = (key: string) => {
       const g = geometry.find(x => x.slot.key === key)!;
       const k = g.box.size.indexOf(Math.min(...g.box.size));
-      const centre = [0, 1, 2].map(a => g.box.min[a] + g.box.size[a] / 2);
-      return { k, centre, axis: g.slot.axis ?? [0, 0, 0], reach: Math.max(...g.box.size) };
+      const center = [0, 1, 2].map(a => g.box.min[a] + g.box.size[a] / 2);
+      return { k, center, axis: g.slot.axis ?? [0, 0, 0], reach: Math.max(...g.box.size) };
     };
     const regions = slots.map(regionOf);
     // Cell coordinates to layout mm, then inside the cylinder one fan diameter long, on the case side of the fan.
     const toMm = (x: number, y: number, z: number) => [x, y, z].map((c, a) => (c + 0.5) * scene.cellMm - scene.origin[a]);
     const inside = (r: (typeof regions)[number], mm: number[]) => {
-      const rel = mm.map((v, a) => v - r.centre[a]);
+      const rel = mm.map((v, a) => v - r.center[a]);
       const along = rel[r.k] * Math.sign(r.axis[r.k] || 1);
       const radial = Math.hypot(...rel.filter((_, a) => a !== r.k));
       return along > 0 && along <= r.reach && radial <= r.reach / 2;

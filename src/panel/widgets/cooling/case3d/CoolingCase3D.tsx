@@ -13,6 +13,7 @@ import { Popover } from '../../../../components/common/Popover/Popover';
 import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
+import { COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE, type CoolingFlowMode } from '../../../../lib/settings';
 import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useCaseModel } from '../../../../hooks/useCaseModel';
@@ -20,9 +21,9 @@ import { useComponentTemps } from '../../../../hooks/useComponentTemps';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
-import { settleFlows, simRpm } from '../../../../lib/cooling/fanSpeed';
+import { settleFlows, simRpm, SIM_RPM_CEILING } from '../../../../lib/cooling/fanSpeed';
 import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
 import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
 import { visualFlow } from '../../../../lib/cooling/visualFlow';
@@ -43,8 +44,8 @@ export interface CoolingCase3DProps {
   /** A click on empty canvas: the left-hand selection clears. */
   onClearSelection?: () => void;
   /** What the view draws; remembered by the caller. */
-  flowMode?: FlowMode;
-  onFlowModeChange?: (mode: FlowMode) => void;
+  flowMode?: CoolingFlowMode;
+  onFlowModeChange?: (mode: CoolingFlowMode) => void;
   /** Draws the solver's collision shapes in place of the case model; remembered by the caller. */
   collisionShapes?: boolean;
   onCollisionShapesChange?: (on: boolean) => void;
@@ -61,15 +62,11 @@ const POSITION_KEYS: Record<string, string> = {
   'front-left': 'cooling.case3d.position.frontLeft',
   'front-right': 'cooling.case3d.position.frontRight',
   gpu: 'cooling.case3d.position.gpu',
-  rad: 'cooling.case3d.position.rad',
 };
 
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
 const NORMAL_SPEED = 1;
 const SLOW_MO_FACTOR = 0.25;
-const FLOW_MODES = ['both', 'case', 'airflow'] as const;
-type FlowMode = typeof FLOW_MODES[number];
-const DEFAULT_MODE: FlowMode = 'both';
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
@@ -95,16 +92,24 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const caseLayout = collapsed?.layout ?? null;
   const canonOf = collapsed?.canonOf;
   // Bindings as the view shows them: each on the one drawn fan of its mount.
-  const bindings = useMemo(() => (canonOf ? normalizeBindings(effectiveBindings, canonOf) : effectiveBindings), [effectiveBindings, canonOf]);
+  // A simulated speed being dragged shows in the stats and the particles at once; it is saved once, when the drag ends.
+  const [simPreview, setSimPreview] = useState<{ key: string; rpm: number } | null>(null);
+  const bindings = useMemo(() => {
+    const shown = canonOf ? normalizeBindings(effectiveBindings, canonOf) : effectiveBindings;
+    return simPreview ? linkChannelToSlot(shown, simChannelId(simPreview.rpm), simPreview.key, false) : shown;
+  }, [effectiveBindings, canonOf, simPreview]);
   const [active, setActive] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
-  const [flowMode, setFlowMode] = useState<FlowMode>(savedFlowMode ?? DEFAULT_MODE);
+  const [flowMode, setFlowMode] = useState<CoolingFlowMode>(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE);
   const [slowMo, setSlowMo] = useState(false);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
+  // The saved choices can change after mount (the settings load, or another window edits them), so the view follows them.
+  useEffect(() => { setFlowMode(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE); }, [savedFlowMode]);
+  useEffect(() => { setCollisions(DEV_TOOLS && (savedCollisions ?? false)); }, [savedCollisions]);
   const particles = flowMode !== 'case';
   const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
@@ -113,7 +118,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
 
-  // Live speed of each drawn fan that has a cooling device bound: the channel's tach over the fan's top speed. Unbound fans stay at their rated curve.
+  // Live speed of each drawn fan: the bound channel's tach (or simulated rpm) over the fan's top speed. A GPU or AIO fan that is unlinked reads stopped; any other unbound fan stays at its rated curve.
   const speeds = useMemo(() => slotSpeeds(caseLayout?.fanSlots ?? [], bindings, channels), [caseLayout, bindings, channels]);
 
   const model = useMemo(() => (caseLayout ? lumpedModel(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, directions, speeds]);
@@ -142,7 +147,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     };
   }, [canvas]);
 
-  // Flows that moved less than a few percent keep their old values, so tach jitter never restarts the solve.
+  // Flows that moved little keep their old values, so tach jitter never restarts the solve.
   const rawFlow = useMemo(() => {
     if (!model || !caseLayout || model.fanCount === 0) return null;
     const v = visualFlow(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions);
@@ -180,9 +185,10 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
   }, [edit]);
 
-  // Choosing a device links it to this fan alone: it leaves any fan it drove before, and this fan's earlier device is replaced.
+  // Choosing a device links it to this fan: the fan's earlier device is replaced, and the device keeps its other fans. Unlinking a fan that has a derived default (GPU and AIO fans, a radiator's `#N` fans by their slot) stores the `none` marker.
   const linkChannel = useCallback((channelId: string, key: string) => {
-    const derivedDefault = hasDerivedLink(key) || parsedLayout?.fanSlots.find(sl => sl.key === key)?.taken === 'radiator';
+    const baseKey = key.replace(/#\d+$/, '');
+    const derivedDefault = hasDerivedLink(baseKey) || parsedLayout?.fanSlots.find(sl => sl.key === baseKey)?.taken === 'radiator';
     edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key, derivedDefault) }));
   }, [edit, canonOf, parsedLayout]);
 
@@ -268,10 +274,10 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             <ChipGroup
               className={styles.control}
               ariaLabel={t('cooling.case3d.flow.mode.label')}
-              options={FLOW_MODES.map(key => ({ key, label: t(`cooling.case3d.flow.mode.${key}`) }))}
+              options={COOLING_FLOW_MODES.map(key => ({ key, label: t(`cooling.case3d.flow.mode.${key}`) }))}
               activeKey={flowMode}
               onChange={next => {
-                const mode = FLOW_MODES.find(m => m === next) ?? DEFAULT_MODE;
+                const mode = COOLING_FLOW_MODES.find(m => m === next) ?? DEFAULT_COOLING_FLOW_MODE;
                 setFlowMode(mode);
                 onFlowModeChange?.(mode);
                 if (mode === 'airflow') setActive(null);
@@ -303,7 +309,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
           <Popover
             open
             // A choice in the device list is portaled to the page, so a press there must not close this popover.
-            onClose={() => { if (!document.querySelector('[role="listbox"]')) setActive(null); }}
+            onClose={e => { if (!(e?.target instanceof Element && e.target.closest('[role="listbox"]'))) setActive(null); }}
             anchorRef={anchorRef}
             portal
             boundsRef={viewportRef}
@@ -327,7 +333,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             />
             {activeSimRpm !== null && (
               // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_MAX} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => linkChannel(simChannelId(Math.round(v)), activeSlot.key)} />
+              <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_CEILING} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => setSimPreview({ key: activeSlot.key, rpm: Math.round(v) })} onCommit={v => { linkChannel(simChannelId(Math.round(v)), activeSlot.key); setSimPreview(null); }} />
             )}
           </Popover>
         )}

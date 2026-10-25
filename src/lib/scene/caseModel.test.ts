@@ -62,8 +62,8 @@ describe('the Y70 model in the layout frame', () => {
     for (const s of Y70_FAN_SLOTS) {
       const axis = s.axis.findIndex(v => v !== 0);
       const outer = s.axis[axis] > 0 ? s.box.min[axis] : s.box.min[axis] + s.box.size[axis];
-      const centre = s.box.min.map((m, i) => m + s.box.size[i] / 2);
-      const covering = planes.filter(p => p.axis === axis && [0, 1, 2].every(i => i === axis || (centre[i] >= p.lo[i] - 1 && centre[i] <= p.hi[i] + 1)));
+      const center = s.box.min.map((m, i) => m + s.box.size[i] / 2);
+      const covering = planes.filter(p => p.axis === axis && [0, 1, 2].every(i => i === axis || (center[i] >= p.lo[i] - 1 && center[i] <= p.hi[i] + 1)));
       const gap = Math.min(...covering.map(p => Math.abs(p.at - outer)));
       expect(Number.isFinite(gap)).toBe(true);
       gaps.push(gap);

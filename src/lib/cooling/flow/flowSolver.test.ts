@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { MAX_SUBSTEP_CELLS, PARTICLE_SPEED_MAX, PARTICLE_SPEED_MIN, VMAX_CELLS, substepsFor } from './flowParams';
+import { MAX_SUBSTEP_CELLS, VMAX_CELLS, substepsFor } from './flowParams';
 import { OPENING_EXHAUST, OPENING_INTAKE, OPENING_VENT, buildFlowScene, gridFor, isSolidAt, type FlowScene } from './gridScene';
 import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, nineFans, slotSpec, tops } from './flowFixtures';
 
@@ -75,10 +75,6 @@ describe('buildFlowScene', () => {
     expect(a.maxTargetCells).toBeLessThanOrEqual(0.5 + 1e-9);
   });
 
-  it('sizes the mean-age scale from the case volume and the intake flow, and has none without intake', () => {
-    expect(scene.residenceSteps).toBeGreaterThan(20);
-    expect(buildFlowScene(inputFor([fronts[0]], [], () => 'exhaust'), LOW).residenceSteps).toBe(0);
-  });
 
   it('treats empty slots as vents and spawns there only while air is drawn in', () => {
     const empty = [slotSpec('top:120:0', 'top', null, [120, 415, 120], [120, 25, 120], [0, -1, 0])];
@@ -122,7 +118,7 @@ describe('CpuFlow boundaries', () => {
   const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
   const sim = settle(scene, 250);
 
-  it('keeps solid cells at rest and lets nothing move into a solid neighbour', () => {
+  it('keeps solid cells at rest and lets nothing move into a solid neighbor', () => {
     const [NX, NY, NZ] = scene.dims;
     const sx = 1, sy = NX, sz = NX * NY;
     let into = 0; let solidMoving = 0; let faces = 0;
@@ -350,12 +346,12 @@ describe('a steady stream of particles', () => {
 });
 
 describe('particles at any visual speed', () => {
-  it.each([PARTICLE_SPEED_MIN, 1, 1.5, 2.2, PARTICLE_SPEED_MAX])('moves under a cell per sub-step at the top solver speed, at %fx', speed => {
+  it.each([0.5, 1, 1.5, 2.2, 3])('moves under a cell per sub-step at the top solver speed, at %fx', speed => {
     expect((VMAX_CELLS * speed) / substepsFor(speed)).toBeLessThanOrEqual(MAX_SUBSTEP_CELLS + 1e-9);
     expect(MAX_SUBSTEP_CELLS).toBeLessThan(1);
   });
 
-  it.each([PARTICLE_SPEED_MIN, 1.5, PARTICLE_SPEED_MAX])('never crosses a one-cell wall in a field at the top speed pushing straight at it, at %fx', speed => {
+  it.each([0.5, 1.5, 3])('never crosses a one-cell wall in a field at the top speed pushing straight at it, at %fx', speed => {
     const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
     const sim = new CpuFlow(scene, 1);
     const [NX, NY] = scene.dims;

@@ -1,6 +1,6 @@
 import {
   ArrowHelper, BoxGeometry, BufferGeometry, Color, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
-  LineSegments, Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3, WebGLRenderer,
+  LineSegments, Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Texture, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
@@ -100,6 +100,20 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
   return x <= y && x <= z ? 'x' : y <= z ? 'y' : 'z';
 }
 
+/** Frees everything a parsed model holds on the GPU: its geometry, its materials and their textures. */
+function disposeParsed(root: Group): void {
+  root.traverse(o => {
+    const mesh = o as Mesh;
+    mesh.geometry?.dispose();
+    for (const material of Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : []) {
+      for (const value of Object.values(material)) if (value instanceof Texture) value.dispose();
+      material.dispose();
+    }
+  });
+}
+
+const modelKeyOf = (l: CaseLayout): string => `${l.size.join(',')}|${l.windowRight === true}`;
+
 export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler): CaseSceneRenderer {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -117,7 +131,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let anchors: readonly HeatAnchor[] = [];
   let onProject: ((positions: Record<string, ProjectedAnchor>) => void) | null = null;
   let modelBytes: ArrayBuffer | null = null;
-  let modelFor: CaseLayout | null = null;
+  // The model is parsed and styled for one case size and window side; a layout object that changes neither keeps it.
+  let modelKey = '';
   let modelToken = 0;
   let modelGroup: Group | null = null;
   let modelStyle: { dispose: () => void } | null = null;
@@ -143,7 +158,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const showModel = async (bytes: ArrayBuffer | null, forLayout: CaseLayout) => {
     const token = ++modelToken;
     modelBytes = bytes;
-    modelFor = forLayout;
+    modelKey = modelKeyOf(forLayout);
     if (!bytes) { clearModel(); requestRender(); return; }
     let parsed: Group;
     try {
@@ -153,7 +168,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       return;
     }
     if (token !== modelToken || disposed) {
-      parsed.traverse(o => { (o as Mesh).geometry?.dispose(); });
+      disposeParsed(parsed);
       return;
     }
     clearModel();
@@ -174,18 +189,23 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let layout: CaseLayout | null = null;
   let frame = 0;
 
+  // Reused every frame: the projected positions, and the vector each anchor is projected through.
+  const projected: Record<string, ProjectedAnchor> = {};
+  const scratch = new Vector3();
   const projectAnchors = () => {
     if (!onProject || anchors.length === 0) return;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    const out: Record<string, ProjectedAnchor> = {};
     for (const a of anchors) {
-      const v = new Vector3(...a.at).project(camera);
+      const v = scratch.set(a.at[0], a.at[1], a.at[2]).project(camera);
       const x = (v.x * 0.5 + 0.5) * w;
       const y = (-v.y * 0.5 + 0.5) * h;
-      out[a.key] = { x, y, visible: v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h };
+      const entry = projected[a.key] ?? (projected[a.key] = { x: 0, y: 0, visible: false });
+      entry.x = x;
+      entry.y = y;
+      entry.visible = v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h;
     }
-    onProject(out);
+    onProject(projected);
   };
 
   const render = (now: number) => {
@@ -371,7 +391,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       showCase = state.showCase;
       applyVisibility();
       buildFans(state);
-      if (state.model !== modelBytes || (modelFor !== state.layout && state.model)) void showModel(state.model, state.layout);
+      if (state.model !== modelBytes || (modelKey !== modelKeyOf(state.layout) && state.model)) void showModel(state.model, state.layout);
       flowLayer?.setOptions(state.flowOptions);
       if (collisionsOn !== state.flowOptions.collisions) { collisionsOn = state.flowOptions.collisions; applyVisibility(); }
       if (state.flow !== flowInput) {
@@ -383,10 +403,13 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     setTemps(next) {
       temps = next;
       flowLayer?.setTemps(next);
+      // New labels need a projection even when nothing else moves.
+      requestRender();
     },
     setAnchors(next, cb) {
       anchors = next;
       onProject = cb;
+      for (const key of Object.keys(projected)) delete projected[key];
       requestRender();
     },
     get flowSupported() {

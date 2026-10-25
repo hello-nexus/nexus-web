@@ -64,12 +64,14 @@ function applySpeed(fan: ModelFan, speed?: SlotSpeed): ModelFan {
 }
 
 const RADIATOR_FAN_SIZES_MM = [120, 140];
+/** Most fans a radiator's length is read to hold: no stock AIO carries more. */
+export const MAX_RADIATOR_FANS = 4;
 
 /** Fan count and size of a radiator of `lengthMm`: the first standard fan size that divides it, else the nearest count at the first standard size. */
 export function inferRadiatorFans(lengthMm: number): { count: number; sizeMm: number } {
   const size = RADIATOR_FAN_SIZES_MM.find(s => lengthMm >= s && lengthMm % s === 0);
-  if (size) return { count: lengthMm / size, sizeMm: size };
-  return { count: Math.max(1, Math.round(lengthMm / RADIATOR_FAN_SIZES_MM[0])), sizeMm: RADIATOR_FAN_SIZES_MM[0] };
+  if (size) return { count: Math.min(MAX_RADIATOR_FANS, lengthMm / size), sizeMm: size };
+  return { count: Math.min(MAX_RADIATOR_FANS, Math.max(1, Math.round(lengthMm / RADIATOR_FAN_SIZES_MM[0]))), sizeMm: RADIATOR_FAN_SIZES_MM[0] };
 }
 
 /** The fans a slot contributes: one for a taken fan slot, the radiator's fans for a radiator slot (count inferred from its length when unstated, which marks them estimates). */

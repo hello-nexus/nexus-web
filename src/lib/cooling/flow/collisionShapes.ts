@@ -5,7 +5,7 @@ import { hullWall } from './hull';
 
 /** The geometry of one obstacle as the grid rasterizes it: a plate in its plane, a closed solid by its faces, anything else as its box turned by `rotationY`. Layout mm. */
 export function obstacleGeometry(box: CaseBox): { geometry: BufferGeometry; position: Vec3; rotationY: number } {
-  const centre: Vec3 = [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2];
+  const center: Vec3 = [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2];
   if (box.plate) {
     const n = box.plate.normal;
     const [a, b] = [0, 1, 2].filter(i => i !== n);
@@ -34,7 +34,7 @@ export function obstacleGeometry(box: CaseBox): { geometry: BufferGeometry; posi
     geometry.setAttribute('position', new Float32BufferAttribute(pts, 3));
     return { geometry, position: [0, 0, 0], rotationY: 0 };
   }
-  return { geometry: new BoxGeometry(box.size[0], box.size[1], box.size[2]), position: centre, rotationY: box.rotationY ?? 0 };
+  return { geometry: new BoxGeometry(box.size[0], box.size[1], box.size[2]), position: center, rotationY: box.rotationY ?? 0 };
 }
 
 /** Translucent shapes for a scene's obstacles, solid ones in `solid` and porous ones in `porous`. A hull cut shows only its wall, since the rest of the cut lies outside the case. Dispose with the returned function. */

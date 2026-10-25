@@ -40,6 +40,9 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
 });
 
 import { applyProfile, setFanControlled, setFanPin } from '../../../api/cooling';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 

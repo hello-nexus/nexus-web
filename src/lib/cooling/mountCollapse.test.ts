@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { channelOfSlot, collapseMounts, normalizeBindings, parseCaseLayout, toggleBinding, type CaseLayout } from './caseLayout';
+import { channelOfSlot, collapseMounts, normalizeBindings, parseCaseLayout, linkChannelToSlot, type CaseLayout } from './caseLayout';
 import { Y70_FAN_SLOTS, Y70_SIZE } from './y70Slots.fixture';
 
 const layout = parseCaseLayout({ size: Y70_SIZE, boxes: [], fanSlots: Y70_FAN_SLOTS }) as CaseLayout;
@@ -82,7 +82,7 @@ describe('collapseMounts on the Y70', () => {
 describe('binding a device', () => {
   it('links the drawn fan and adds no fan or slot', () => {
     const before = collapseMounts(layout, boundOf(T1_BINDINGS));
-    const next = toggleBinding(normalizeBindings(T1_BINDINGS, before.canonOf), '/lpc/it8696e/0/control/4', 'right:120:1');
+    const next = linkChannelToSlot(normalizeBindings(T1_BINDINGS, before.canonOf), '/lpc/it8696e/0/control/4', 'right:120:1');
     const after = collapseMounts(layout, next.flatMap(b => b.slotKeys));
     expect(after.layout.fanSlots.length).toBe(before.layout.fanSlots.length);
     expect(fans(after.layout).length).toBe(fans(before.layout).length);
@@ -93,7 +93,7 @@ describe('binding a device', () => {
     const before = collapseMounts(layout, boundOf(T1_BINDINGS));
     const hidden = layout.fanSlots.find(s => s.key === 'top:120:1')!.key;
     expect(before.canonOf(hidden)).toBe('top:140:0');
-    const next = toggleBinding(normalizeBindings(T1_BINDINGS, before.canonOf), '/lpc/it8696e/0/control/4', hidden);
+    const next = linkChannelToSlot(normalizeBindings(T1_BINDINGS, before.canonOf), '/lpc/it8696e/0/control/4', hidden);
     const after = collapseMounts(layout, next.flatMap(b => b.slotKeys));
     expect(fans(after.layout).length).toBe(fans(before.layout).length);
   });

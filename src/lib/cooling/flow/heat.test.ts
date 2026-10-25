@@ -16,7 +16,7 @@ const cellsOf = (s: FlowScene, source: number) => {
   for (let c = 0; c < s.heat.length; c++) if (s.heat[c] === source && !s.solid[c]) out.push(c);
   return out;
 };
-const centreMm = (s: FlowScene, c: number): [number, number, number] => {
+const centerMm = (s: FlowScene, c: number): [number, number, number] => {
   const [NX, NY] = s.dims;
   const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
   return [(i + 0.5) * s.cellMm - s.origin[0], (j + 0.5) * s.cellMm - s.origin[1], (k + 0.5) * s.cellMm - s.origin[2]];
@@ -36,7 +36,7 @@ describe('heat sources in the scene', () => {
     const gpu = cellsOf(scene, SOURCE_GPU);
     expect(gpu.length).toBeGreaterThan(0);
     expect(cellsOf(scene, SOURCE_CPU)).toHaveLength(0);
-    const c = centreMm(scene, gpu[0]);
+    const c = centerMm(scene, gpu[0]);
     expect(c[0]).toBeGreaterThan(gpuBox.min[0] - 4 * scene.cellMm);
     expect(c[0]).toBeLessThan(gpuBox.min[0] + gpuBox.size[0] + 4 * scene.cellMm);
   });
@@ -52,7 +52,7 @@ describe('heat sources in the scene', () => {
     const heat = cellsOf(s, SOURCE_CPU);
     expect(heat.length).toBeGreaterThan(0);
     const radBox = { slot: 'radiator', role: 'part', min: rad.min, size: rad.size } as never;
-    for (const c of heat) expect(boxContains(radBox, centreMm(s, c), s.cellMm)).toBe(true);
+    for (const c of heat) expect(boxContains(radBox, centerMm(s, c), s.cellMm)).toBe(true);
     const [NX, NY] = s.dims;
     const at = (mm: number[]) => Math.floor((mm[0] + s.origin[0]) / s.cellMm) + NX * (Math.floor((mm[1] + s.origin[1]) / s.cellMm) + NY * Math.floor((mm[2] + s.origin[2]) / s.cellMm));
     expect(s.darcy[at([380, 260, 210])]).toBeGreaterThan(0);
@@ -63,7 +63,7 @@ describe('heat sources in the scene', () => {
     const s = buildFlowScene(inputFor(nineFans, [cooler], defaultDir), LOW);
     const heat = cellsOf(s, SOURCE_CPU);
     expect(heat.length).toBeGreaterThan(0);
-    for (const c of heat) expect(boxContains(cooler as never, centreMm(s, c), s.cellMm)).toBe(true);
+    for (const c of heat) expect(boxContains(cooler as never, centerMm(s, c), s.cellMm)).toBe(true);
   });
 });
 
