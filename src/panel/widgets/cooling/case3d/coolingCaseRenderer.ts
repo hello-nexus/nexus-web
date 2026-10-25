@@ -9,6 +9,7 @@ import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import { parseCaseModel, sceneToLayoutMatrix, styleCaseModel } from '../../../../lib/scene/caseModel';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
+import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
 
 export interface CaseSceneState {
   layout: CaseLayout;
@@ -31,8 +32,19 @@ export interface CaseSceneState {
   model: ArrayBuffer | null;
 }
 
+/** Where an anchor lands on the canvas, CSS pixels; `visible` is false behind the camera or off the canvas. */
+export interface ProjectedAnchor {
+  x: number;
+  y: number;
+  visible: boolean;
+}
+
 export interface CaseSceneRenderer {
   setState: (state: CaseSceneState) => void;
+  /** Live part temperatures: reach the particles' heat uniforms only, never the solver or the particles themselves. */
+  setTemps: (temps: ComponentTemps) => void;
+  /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. */
+  setAnchors: (anchors: readonly HeatAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void) => void;
   resize: () => void;
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
@@ -101,6 +113,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   scene.add(staticGroup, fanGroup, flowGroup);
   let flowLayer: FlowLayer | null = null;
   let flowInput: FlowInput | null = null;
+  let temps: ComponentTemps = NO_TEMPS;
+  let anchors: readonly HeatAnchor[] = [];
+  let onProject: ((positions: Record<string, ProjectedAnchor>) => void) | null = null;
   let modelBytes: ArrayBuffer | null = null;
   let modelFor: CaseLayout | null = null;
   let modelToken = 0;
@@ -159,10 +174,25 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let layout: CaseLayout | null = null;
   let frame = 0;
 
+  const projectAnchors = () => {
+    if (!onProject || anchors.length === 0) return;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const out: Record<string, ProjectedAnchor> = {};
+    for (const a of anchors) {
+      const v = new Vector3(...a.at).project(camera);
+      const x = (v.x * 0.5 + 0.5) * w;
+      const y = (-v.y * 0.5 + 0.5) * h;
+      out[a.key] = { x, y, visible: v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h };
+    }
+    onProject(out);
+  };
+
   const render = (now: number) => {
     frame = 0;
     flowLayer?.frame(now, camera, canvas.clientHeight);
     renderer.render(scene, camera);
+    projectAnchors();
     // Particles keep moving after the solver settles; the loop runs only while the tab is visible.
     if (flowLayer?.active && !document.hidden) requestRender();
   };
@@ -331,6 +361,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
           collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
         };
         flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
+        flowLayer.setTemps(temps);
       }
       showCase = state.showCase;
       applyVisibility();
@@ -342,6 +373,15 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         flowInput = state.flow;
         flowLayer?.setInput(state.flow);
       }
+      requestRender();
+    },
+    setTemps(next) {
+      temps = next;
+      flowLayer?.setTemps(next);
+    },
+    setAnchors(next, cb) {
+      anchors = next;
+      onProject = cb;
       requestRender();
     },
     get flowSupported() {

@@ -1,7 +1,7 @@
 import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Vec3 } from '../caseLayout';
 import type { FanDirection } from '../pressureModel';
 import {
-  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES, SPAWN_BACK_MIN_CELLS, SPAWN_OUT_REACH_MM,
+  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES, SPAWN_BACK_MIN_CELLS, SPAWN_OUT_REACH_MM,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
@@ -10,7 +10,10 @@ import { boxBounds, boxContains } from './voxelize';
 
 const M3S_PER_CFM = 0.000471947;
 const MM_PER_M = 1000;
-const HEAT_PARTS = new Set(['gpu', 'psu', 'cpu']);
+/** Which part heats the air in a cell: `FlowScene.heat` holds one of these. */
+export const SOURCE_NONE = 0;
+export const SOURCE_GPU = 1;
+export const SOURCE_CPU = 2;
 /** Share of the ring width kept clear of the hub edge when spawning. */
 const SPAWN_HUB_MARGIN = 0.04;
 const SAMPLE_SPAWNS = 2048;
@@ -50,7 +53,7 @@ export interface FlowScene {
   /** Fixed-pressure cells: the fluid cells on the domain boundary. */
   open: Uint8Array;
   darcy: Float32Array;
-  /** Heat a particle gains per step in each cell. */
+  /** Heat source of each cell, by `SOURCE_*`: the part whose temperature warms air passing through it. */
   heat: Float32Array;
   /** Target velocity of fan cells, cells per step, 3 floats per cell. */
   target: Float32Array;
@@ -237,7 +240,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   };
   const layoutMm = (i: number, j: number, k: number): Vec3 => [(i + 0.5) * cellMm - origin[0], (j + 0.5) * cellMm - origin[1], (k + 0.5) * cellMm - origin[2]];
 
-  const sources: number[] = [];
+  /** Solid parts whose neighbouring fluid cells are heat cells: [cell, source]. */
+  const sources: [number, number][] = [];
   // `touching` takes every cell the shape touches, so a particle in a fluid cell is never inside the shape.
   const voxelize = (box: CaseBox, fn: (c: number) => void, touching = false) => {
     const b = boxBounds(box, cellMm);
@@ -254,20 +258,24 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   /** Cells outside the case's real shape: solid, and no fan opens them. */
   const outside = new Uint8Array(n);
   const obstacles = obstaclesOf(layout);
+  // An AIO dumps the CPU's heat at its radiator, an air cooler at its own fins; with neither, the CPU box itself is the source.
+  const cpuOnRadiator = layout.fanSlots.some(s => s.taken === 'radiator' && s.box);
+  const hasCooler = obstacles.some(o => o.porous && o.box.slot === 'cooler');
   for (const o of obstacles) {
     if (o.kind === 'hull') {
       voxelize(o.box, c => { solid[c] = 1; outside[c] = 1; }, true);
     } else if (o.porous) {
-      voxelize(o.box, c => { darcy[c] = DARCY_K; heat[c] = HEAT_RATE_POROUS; });
+      const heats = o.box.slot === 'cooler' && !cpuOnRadiator;
+      voxelize(o.box, c => { darcy[c] = DARCY_K; if (heats) heat[c] = SOURCE_CPU; });
     } else {
-      const isHeat = HEAT_PARTS.has(o.box.slot);
-      voxelize(o.box, c => { solid[c] = 1; if (isHeat) sources.push(c); });
+      const source = o.box.slot === 'gpu' ? SOURCE_GPU : o.box.slot === 'cpu' && !cpuOnRadiator && !hasCooler ? SOURCE_CPU : SOURCE_NONE;
+      voxelize(o.box, c => { solid[c] = 1; if (source !== SOURCE_NONE) sources.push([c, source]); });
     }
   }
 
   const plan = planFans(input, extents, cellMm * MIN_FAN_HALF_THICKNESS_CELLS);
   for (const r of plan.radiators) {
-    voxelize({ slot: 'radiator', role: 'part', min: r.box.min, size: r.box.size, rotationY: r.box.rotationY }, c => { if (!solid[c]) { darcy[c] = DARCY_K; heat[c] = HEAT_RATE_POROUS; } });
+    voxelize({ slot: 'radiator', role: 'part', min: r.box.min, size: r.box.size, rotationY: r.box.rotationY }, c => { if (!solid[c]) { darcy[c] = DARCY_K; heat[c] = SOURCE_CPU; } });
   }
 
   interface FanCells { annulus: number[]; blocked: number[]; layers: number; perLayer: number }
@@ -375,13 +383,13 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   });
 
   // Heat: fluid cells within reach of a heat-source solid warm the air that passes.
-  for (const c of sources) {
+  for (const [c, source] of sources) {
     const ci = c % NX, cj = Math.floor(c / NX) % NY, ck = Math.floor(c / (NX * NY));
     for (let dk = -HEAT_REACH_CELLS; dk <= HEAT_REACH_CELLS; dk++) for (let dj = -HEAT_REACH_CELLS; dj <= HEAT_REACH_CELLS; dj++) for (let di = -HEAT_REACH_CELLS; di <= HEAT_REACH_CELLS; di++) {
       const i = ci + di, j = cj + dj, k = ck + dk;
       if (i < 0 || j < 0 || k < 0 || i >= NX || j >= NY || k >= NZ) continue;
       const m = id(i, j, k);
-      if (!solid[m] && heat[m] < HEAT_RATE_NEAR) heat[m] = HEAT_RATE_NEAR;
+      if (!solid[m] && heat[m] === SOURCE_NONE) heat[m] = source;
     }
   }
 
