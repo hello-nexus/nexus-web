@@ -222,6 +222,8 @@
   --good: #10b981;
   --warn: #f59e0b;
   --bad: #ef4444;
+  --airflow-cool: #1e9bff;
+  --airflow-warm: #ff8a00;
   // Notice levels (Notice.tsx): soft fills and borders. Fixed rgba, not color-mix (Chromium 83 panels).
   --info-soft: rgba(255, 255, 255, 0.05);
   --warn-soft: rgba(245, 158, 11, 0.12);
@@ -252,6 +254,8 @@
   --good: #059669;
   --warn: #d97706;
   --bad: #dc2626;
+  --airflow-cool: #0070e0;
+  --airflow-warm: #e65100;
   // Notice levels (Notice.tsx): soft fills and borders. Fixed rgba, not color-mix (Chromium 83 panels).
   --info-soft: rgba(0, 0, 0, 0.05);
   --warn-soft: rgba(217, 119, 6, 0.1);

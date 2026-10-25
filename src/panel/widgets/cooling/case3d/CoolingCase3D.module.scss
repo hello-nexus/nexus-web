@@ -1,0 +1,122 @@
+@use '../../../../styles/text' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  height: 100%;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  padding: 0.25rem 0.4rem;
+  @include text-body;
+  color: var(--text);
+}
+
+.stat {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel,
+.statNote,
+.hint {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.hint { padding: 0 0.4rem; }
+
+.mode {
+  @include text-button;
+  &.positive { color: var(--accent); }
+  &.negative { color: var(--warn); }
+  &.balanced { color: var(--text); }
+}
+
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 18rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  touch-action: none;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.popover {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 14rem;
+  padding: 0.6rem;
+}
+
+.popoverTitle {
+  @include text-button;
+  color: var(--text);
+}
+
+.popoverNote {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.flowBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.2rem;
+  padding: 0 0.4rem;
+}
+
+.flowToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  @include text-button;
+  color: var(--text);
+}
+
+.legend {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  @include text-caption;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.legendBar {
+  width: 6rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--airflow-cool), var(--airflow-warm), var(--bad));
+}
