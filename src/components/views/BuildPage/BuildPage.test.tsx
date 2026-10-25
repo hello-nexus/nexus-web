@@ -25,6 +25,7 @@ const h = vi.hoisted(() => ({
   putService: vi.fn(),
   fetchPcSetup: vi.fn(),
   putPcSetup: vi.fn(),
+  caseTopic: null as null | ((frame: unknown) => void),
   topic: null as null | { name: string; enabled: boolean; cb: (frame: unknown) => void },
 }));
 
@@ -52,7 +53,9 @@ vi.mock('../../../api/pcSetup', () => ({
   putPcSetup: (...args: unknown[]) => h.putPcSetup(...args),
 }));
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
-  useTopicCallback: (name: string, enabled: boolean, cb: (frame: unknown) => void) => { h.topic = { name, enabled, cb }; },
+  useTopicCallback: (name: string, enabled: boolean, cb: (frame: unknown) => void) => {
+    if (name === 'system/case') h.caseTopic = cb; else h.topic = { name, enabled, cb };
+  },
 }));
 
 const SAMPLE_SPECS: SystemSpecs = {
@@ -97,6 +100,7 @@ beforeEach(() => {
   h.fetchPcSetup.mockReset();
   h.putPcSetup.mockReset();
   h.topic = null;
+  h.caseTopic = null;
   h.putService.mockReset();
   h.putService.mockImplementation(async (_path: string, body: { caseId: string | null }) => ({ caseId: body.caseId }));
   Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
@@ -411,6 +415,21 @@ describe('BuildPage', () => {
       act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
 
       expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('caseId');
+    });
+
+    it('refetches the case on a system/case ping and re-posts hello with it', async () => {
+      h.specs = SAMPLE_SPECS;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+      expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('caseId');
+
+      h.serverCase = 'case-y70';
+      await act(async () => { h.caseTopic!({}); await Promise.resolve(); await Promise.resolve(); });
+
+      expect(helloPosts(postSpy).at(-1)?.machine).toMatchObject({ caseId: 'case-y70' });
     });
 
     it('saves a set-case pick through the service and re-posts hello with it', async () => {
