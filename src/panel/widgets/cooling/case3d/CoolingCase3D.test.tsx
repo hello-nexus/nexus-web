@@ -505,3 +505,58 @@ describe('CoolingCase3D simulated fans', () => {
     }
   });
 });
+
+describe('CoolingCase3D deselect', () => {
+  const mountWith = (onClear = vi.fn(), onSelect = vi.fn()) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId="fan-a" onSelectChannel={onSelect} onClearSelection={onClear} />);
+    return { onClear, onSelect };
+  };
+
+  it('clears the selection and closes the popover on a click of empty space', () => {
+    const { onClear } = mountWith();
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    act(() => h.pick.current?.(null, 40, 40));
+    expect(onClear).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('keeps the selection when a fan is clicked', () => {
+    const { onClear } = mountWith();
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(onClear).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+});
+
+describe('CoolingCase3D selection highlight', () => {
+  const bindings = [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }, { channelId: 'fan-b', slotKeys: ['rear:120:0'] }];
+  const mountSel = (ids: string[]) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    const view = (next: string[]) => <CoolingCase3D channels={channels} selectedChannelId={next.length === 1 ? next[0] : null} selectedChannelIds={next} onSelectChannel={vi.fn()} />;
+    const { rerender } = render(view(ids));
+    return (next: string[]) => rerender(view(next));
+  };
+  const lit = () => [...lastState().highlighted].sort();
+
+  it('highlights the slots of one selected device', () => {
+    mountSel(['fan-a']);
+    expect(lit()).toEqual(['front:120:0']);
+  });
+
+  it('highlights the slots of every selected device', () => {
+    mountSel(['fan-a', 'fan-b']);
+    expect(lit()).toEqual(['front:120:0', 'rear:120:0']);
+  });
+
+  it('clears the highlight on deselect, without re-solving the airflow', () => {
+    const reselect = mountSel(['fan-a', 'fan-b']);
+    const flow = lastState().flow;
+    reselect([]);
+    expect(lit()).toEqual([]);
+    expect(lastState().flow).toBe(flow);
+  });
+});

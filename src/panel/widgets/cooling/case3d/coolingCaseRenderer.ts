@@ -44,6 +44,8 @@ const CLICK_SLOP_PX = 4;
 const RING_SEGMENTS = 48;
 const BASE_OPACITY = 0.3;
 const FAN_OPACITY = 1;
+// Build's picked-part treatment: the pick reads in full and shows through, keeping its intake or exhaust color; the rest fall back to this fraction.
+const DIMMED = 0.22;
 const EMPTY_FAN_OPACITY = 0.28;
 const VIEW_DIRECTION = new Vector3(-0.9, 0.7, -1.3).normalize();
 const FIT_MARGIN = 1.35;
@@ -213,7 +215,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const caseCenter = new Vector3(ex / 2, ey / 2, ez / 2);
     const intake = token(canvas, '--airflow-cool', '#38bdf8');
     const exhaust = token(canvas, '--bad', '#ef4444');
-    const highlight = token(canvas, '--text', '#e6e9f0');
+    const picking = state.highlighted.size > 0 || state.active !== null;
     for (const { slot, box } of fanGeometries(l)) {
       const occupied = slot.taken === 'fan';
       const dir = state.directions[slot.key] ?? 'intake';
@@ -237,7 +239,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       for (const r of [radii.tip, radii.hub]) {
         const geo = ringGeometry(r, axis);
         fanDisposables.push(geo);
-        const mat = ringMaterial(emphasised ? highlight : color, emphasised ? 1 : opacity, r, state.simulated.has(slot.key));
+        const mat = ringMaterial(color, emphasised ? 1 : opacity * (picking ? DIMMED : 1), r, state.simulated.has(slot.key));
+        mat.depthTest = !emphasised;
         fanDisposables.push(mat);
         const ring = new LineLoop(geo, mat);
         if (mat instanceof LineDashedMaterial) ring.computeLineDistances();

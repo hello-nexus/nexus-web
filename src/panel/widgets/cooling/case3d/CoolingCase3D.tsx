@@ -33,7 +33,11 @@ export interface CoolingCase3DProps {
   channels: FanChannel[];
   /** The fan selected in the left rail; null unless exactly one is. */
   selectedChannelId: string | null;
+  /** Every device selected on the left; their fans highlight. Defaults to the one selected fan. */
+  selectedChannelIds?: readonly string[];
   onSelectChannel: (channelId: string) => void;
+  /** A click on empty canvas: the left-hand selection clears. */
+  onClearSelection?: () => void;
 }
 
 const POSITION_KEYS: Record<string, string> = {
@@ -55,7 +59,7 @@ const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
-export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: CoolingCase3DProps) {
+export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
@@ -127,7 +131,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     const owner = key && !selectedChannelId ? channelOfSlot(bindings, key) : null;
     if (owner && channels.some(c => c.id === owner)) onSelectChannel(owner);
     setActive(key);
-    if (!key) return;
+    if (!key) { onClearSelection?.(); return; }
     setAnchor({ x, y });
   };
 
@@ -166,7 +170,8 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   }, [flowKey]);
   const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones: false, speed: particleSpeed }), [particles, particleSpeed]);
 
-  const highlighted = useMemo(() => new Set(slotsOfChannel(bindings, selectedChannelId)), [bindings, selectedChannelId]);
+  const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
+  const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
   const bound = useMemo(() => new Set(bindings.flatMap(b => b.slotKeys)), [bindings]);
   const simulated = useMemo(() => new Set(bindings.filter(b => isSimChannel(b.channelId)).flatMap(b => b.slotKeys)), [bindings]);
 

@@ -58,3 +58,22 @@ describe('ringMaterial', () => {
     expect(ringMaterial(new Color('#fff'), 1, 40, false)).not.toBeInstanceOf(LineDashedMaterial);
   });
 });
+
+describe('pick gesture', () => {
+  const press = (canvas: HTMLCanvasElement, from: [number, number], to: [number, number]) => {
+    canvas.dispatchEvent(new MouseEvent('pointerdown', { clientX: from[0], clientY: from[1] }));
+    canvas.dispatchEvent(new MouseEvent('pointerup', { clientX: to[0], clientY: to[1] }));
+  };
+
+  it('reports empty space for a click and nothing for a drag', () => {
+    const canvas = document.createElement('canvas');
+    const onPick = vi.fn();
+    const r = createCaseRenderer(canvas, onPick);
+    press(canvas, [50, 50], [51, 50]);
+    expect(onPick).toHaveBeenCalledTimes(1);
+    expect(onPick.mock.calls[0][0]).toBeNull();
+    press(canvas, [50, 50], [90, 80]);
+    expect(onPick).toHaveBeenCalledTimes(1);
+    r.dispose();
+  });
+});

@@ -2030,7 +2030,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               <CoolingCase3D
                 channels={channels}
                 selectedChannelId={selectedFanIds.size === 1 ? [...selectedFanIds][0] : null}
+                selectedChannelIds={[...selectedFanIds]}
                 onSelectChannel={id => setSelectedFanIds(new Set([id]))}
+                onClearSelection={() => setSelectedFanIds(new Set())}
               />
             </Suspense>
           ) : (
