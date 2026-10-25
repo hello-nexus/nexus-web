@@ -66,7 +66,7 @@ describe('createCaseRenderer', () => {
     layers.created = 0;
     layers.disposed = 0;
     const r = createCaseRenderer(document.createElement('canvas'), () => {});
-    const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 }, model: null });
+    const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), simulated: new Set<string>(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 }, model: null });
     r.setState(state(layout));
     const edited: CaseLayout = { ...layout, fanSlots: layout.fanSlots.map(s => ({ ...s, taken: 'fan' as const })) };
     r.setState(state(edited));
