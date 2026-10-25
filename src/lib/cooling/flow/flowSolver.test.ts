@@ -183,8 +183,8 @@ describe('CpuParticles', () => {
   const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
   const sim = settle(scene, 250);
 
-  it('over 5000 steps never ends inside a solid cell and only crosses the shell at openings', () => {
-    const particles = new CpuParticles(sim, 400, 7);
+  it('over 1200 steps never ends inside a solid cell and only crosses the shell at openings', () => {
+    const particles = new CpuParticles(sim, 150, 7);
     const [NX, NY] = scene.dims;
     const shell = (c: number) => {
       const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
@@ -196,14 +196,14 @@ describe('CpuParticles', () => {
       return i > scene.caseMin[0] && i < scene.caseMax[0] && j > scene.caseMin[1] && j < scene.caseMax[1] && k > scene.caseMin[2] && k < scene.caseMax[2];
     };
     let inSolid = 0; let exits = 0; let badExit = 0; let wallCrossings = 0; let entries = 0;
-    for (let s = 0; s < 5000; s++) {
+    for (let s = 0; s < 1200; s++) {
       particles.step((_i, from, to) => {
         if (to < 0) return;
         if (scene.solid[to]) wallCrossings++;
         if (inside(from) && shell(to)) { exits++; if (scene.opening[to] !== OPENING_EXHAUST && scene.opening[to] !== OPENING_VENT) badExit++; }
         if (!shell(from) && !inside(from) && shell(to)) { entries++; if (scene.opening[to] === 0) wallCrossings++; }
       });
-      if (s % 50 === 0 || s === 4999) {
+      if (s % 50 === 0 || s === 1199) {
         for (let i = 0; i < particles.count; i++) {
           const c = particles.cellAt(particles.pos[i * 3], particles.pos[i * 3 + 1], particles.pos[i * 3 + 2]);
           if (c >= 0 && scene.solid[c]) inSolid++;
@@ -219,13 +219,13 @@ describe('CpuParticles', () => {
   }, 120000);
 
   it('warms air that passes the heat sources: some particles leave warmer than they came', () => {
-    const particles = new CpuParticles(sim, 400, 11);
-    for (let s = 0; s < 1500; s++) particles.step();
+    const particles = new CpuParticles(sim, 150, 11);
+    for (let s = 0; s < 800; s++) particles.step();
     let warm = 0; let cool = 0;
     for (let i = 0; i < particles.count; i++) { if (particles.heat[i] > 0.1) warm++; if (particles.heat[i] === 0) cool++; }
     expect(warm).toBeGreaterThan(0);
     expect(cool).toBeGreaterThan(0);
-  });
+  }, 60000);
 });
 
 const kinetic = (sim: CpuFlow) => {

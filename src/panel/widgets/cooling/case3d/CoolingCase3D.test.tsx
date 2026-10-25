@@ -362,6 +362,20 @@ describe('CoolingCase3D live fan speed', () => {
     expect(simFlow.referenceCfm).toBe(realFlow.referenceCfm);
   });
 
+  it('moves the flow with a simulated speed without restarting the renderer or the layout', () => {
+    h.setup = { record: record(), loaded: true };
+    const slider = (id: string) => ({ settled: true, layout: { directions: {}, bindings: [{ channelId: id, slotKeys: ['front:120:0'] }], tests: [] } });
+    setLayout(slider('sim:500'));
+    const { rerender } = render(<CoolingCase3D channels={[]} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const low = lastState();
+    setLayout(slider('sim:2500'));
+    rerender(<CoolingCase3D channels={[]} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const high = lastState();
+    expect(vi.mocked(createCaseRenderer)).toHaveBeenCalledTimes(1);
+    expect(high.layout).toEqual(low.layout);
+    expect(high.flow.fanCfm['front:120:0']).toBeGreaterThan(low.flow.fanCfm['front:120:0']);
+  });
+
   it('does not send a new flow input for tach jitter, but does for a real speed change', () => {
     const bindings = [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }];
     h.setup = { record: record(), loaded: true };
