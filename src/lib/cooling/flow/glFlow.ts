@@ -131,6 +131,17 @@ export class GlFlow {
   private readonly fanTex: WebGLTexture;
   private readonly velWrap: ExternalTexture[];
   private readonly maskWrap: ExternalTexture;
+  /** Scratch objects reused by every pass, so a solver step allocates none. */
+  private readonly viewport = new Vector4();
+  private readonly uniforms = {
+    advect: { textures: {} as Record<string, WebGLTexture>, floats: { uBlend: FAN_BLEND, uDamp: DAMPING, uVmax: VMAX_CELLS } },
+    diverge: { textures: {} as Record<string, WebGLTexture> },
+    jacobi: { textures: {} as Record<string, WebGLTexture> },
+    gradient: { textures: {} as Record<string, WebGLTexture>, floats: { uVmax: VMAX_CELLS } },
+    reduceFirst: { textures: {} as Record<string, WebGLTexture>, ints: { S: [0, 0] } },
+    reduceNext: { textures: {} as Record<string, WebGLTexture>, ints: { S: [0, 0] } },
+    encode: { textures: {} as Record<string, WebGLTexture> },
+  };
   private cur = 0;
   private prev = 0;
   private presCur = 0;
@@ -230,21 +241,22 @@ export class GlFlow {
     gl.uniform3f(loc('uN'), this.current.dims[0], this.current.dims[1], this.current.dims[2]);
     gl.uniform1f(loc('uTX'), this.tx);
     let unit = 0;
-    for (const [name, tex] of Object.entries(u.textures ?? {})) {
+    // for-in, not Object.entries: this runs for every pass of every solver step, so it allocates nothing.
+    for (const name in u.textures) {
       gl.activeTexture(gl.TEXTURE0 + unit);
-      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.bindTexture(gl.TEXTURE_2D, u.textures[name]);
       gl.uniform1i(loc(name), unit++);
     }
-    for (const [name, v] of Object.entries(u.floats ?? {})) gl.uniform1f(loc(name), v);
-    for (const [name, v] of Object.entries(u.ints ?? {})) gl.uniform2i(loc(name), v[0], v[1]);
-    for (const [name, v] of Object.entries(u.vec3s ?? {})) gl.uniform3f(loc(name), v[0], v[1], v[2]);
+    for (const name in u.floats) gl.uniform1f(loc(name), u.floats[name]);
+    for (const name in u.ints) gl.uniform2i(loc(name), u.ints[name][0], u.ints[name][1]);
+    for (const name in u.vec3s) gl.uniform3f(loc(name), u.vec3s[name][0], u.vec3s[name][1], u.vec3s[name][2]);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
   /** Runs `batch` as raw GL, then hands the context back to three.js with its state cache cleared and its viewport restored. */
   private raw(batch: () => void) {
     const gl = this.gl;
-    const viewport = this.renderer.getCurrentViewport(new Vector4());
+    const viewport = this.renderer.getCurrentViewport(this.viewport);
     gl.disable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.CULL_FACE);
@@ -339,15 +351,27 @@ export class GlFlow {
     const u0 = this.vel[this.cur];
     const u1 = this.vel[(this.cur + 1) % 3];
     const u2 = this.vel[(this.cur + 2) % 3];
-    this.draw(p.advect, u1, { textures: { U: u0.texture, M: this.maskTex, F: this.fanTex }, floats: { uBlend: FAN_BLEND, uDamp: DAMPING, uVmax: VMAX_CELLS } });
-    this.draw(p.diverge, this.div, { textures: { U: u1.texture, M: this.maskTex } });
+    const un = this.uniforms;
+    un.advect.textures.U = u0.texture;
+    un.advect.textures.M = this.maskTex;
+    un.advect.textures.F = this.fanTex;
+    this.draw(p.advect, u1, un.advect);
+    un.diverge.textures.U = u1.texture;
+    un.diverge.textures.M = this.maskTex;
+    this.draw(p.diverge, this.div, un.diverge);
     let pi = this.presCur;
     for (let i = 0; i < JACOBI_ITERATIONS; i++) {
-      this.draw(p.jacobi, this.pres[1 - pi], { textures: { P: this.pres[pi].texture, D: this.div.texture, M: this.maskTex } });
+      un.jacobi.textures.P = this.pres[pi].texture;
+      un.jacobi.textures.D = this.div.texture;
+      un.jacobi.textures.M = this.maskTex;
+      this.draw(p.jacobi, this.pres[1 - pi], un.jacobi);
       pi = 1 - pi;
     }
     this.presCur = pi;
-    this.draw(p.gradient, u2, { textures: { U: u1.texture, P: this.pres[pi].texture, M: this.maskTex }, floats: { uVmax: VMAX_CELLS } });
+    un.gradient.textures.U = u1.texture;
+    un.gradient.textures.P = this.pres[pi].texture;
+    un.gradient.textures.M = this.maskTex;
+    this.draw(p.gradient, u2, un.gradient);
     this.prev = this.cur;
     this.cur = (this.cur + 2) % 3;
   }
@@ -381,12 +405,21 @@ export class GlFlow {
     const gl = this.gl;
     let started = false;
     this.raw(() => {
-      this.draw(this.programs.reduceFirst, this.reduce[0], { textures: { A: this.vel[this.cur].texture, B: this.vel[this.prev].texture }, ints: { S: [this.w, this.h] } });
+      const un = this.uniforms;
+      un.reduceFirst.textures.A = this.vel[this.cur].texture;
+      un.reduceFirst.textures.B = this.vel[this.prev].texture;
+      un.reduceFirst.ints.S[0] = this.w;
+      un.reduceFirst.ints.S[1] = this.h;
+      this.draw(this.programs.reduceFirst, this.reduce[0], un.reduceFirst);
       for (let i = 1; i < this.reduce.length; i++) {
         const src = this.reduce[i - 1];
-        this.draw(this.programs.reduceNext, this.reduce[i], { textures: { A: src.texture }, ints: { S: [src.width, src.height] } });
+        un.reduceNext.textures.A = src.texture;
+        un.reduceNext.ints.S[0] = src.width;
+        un.reduceNext.ints.S[1] = src.height;
+        this.draw(this.programs.reduceNext, this.reduce[i], un.reduceNext);
       }
-      this.draw(this.programs.encode, this.encoded, { textures: { A: this.reduce[this.reduce.length - 1].texture } });
+      un.encode.textures.A = this.reduce[this.reduce.length - 1].texture;
+      this.draw(this.programs.encode, this.encoded, un.encode);
       const buffer = gl.createBuffer()!;
       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
       gl.bufferData(gl.PIXEL_PACK_BUFFER, 4, gl.STREAM_READ);

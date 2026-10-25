@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  channelOfSlot, linkChannelToSlot, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
-  type CaseLayout,
+  linkChannelToSlot, withBoundFans, defaultDirection, fanGeometries, parseCaseLayout, withDirection,
+  type CaseLayout, type FanBinding,
 } from './caseLayout';
 
 const valid = {
@@ -62,34 +62,7 @@ describe('directions', () => {
     const slot = { key: 'rear:120:0', position: 'rear' };
     const flipped = withDirection({}, slot, 'intake');
     expect(flipped).toEqual({ 'rear:120:0': 'intake' });
-    expect(directionOf(slot, flipped)).toBe('intake');
     expect(withDirection(flipped, slot, 'exhaust')).toEqual({});
-  });
-});
-
-describe('toggleBinding', () => {
-  it('binds, adds and unbinds slots of one channel', () => {
-    let b = toggleBinding([], 'fan1', 'a');
-    b = toggleBinding(b, 'fan1', 'b');
-    expect(b).toEqual([{ channelId: 'fan1', slotKeys: ['a', 'b'] }]);
-    b = toggleBinding(b, 'fan1', 'a');
-    expect(b).toEqual([{ channelId: 'fan1', slotKeys: ['b'] }]);
-    b = toggleBinding(b, 'fan1', 'b');
-    expect(b).toEqual([]);
-  });
-
-  it('moves a slot from one channel to another', () => {
-    const b = toggleBinding([{ channelId: 'fan1', slotKeys: ['a'] }], 'fan2', 'a');
-    expect(b).toEqual([{ channelId: 'fan2', slotKeys: ['a'] }]);
-    expect(channelOfSlot(b, 'a')).toBe('fan2');
-    expect(slotsOfChannel(b, 'fan2')).toEqual(['a']);
-    expect(slotsOfChannel(b, null)).toEqual([]);
-  });
-
-  it('caps the slots per channel', () => {
-    let b: ReturnType<typeof toggleBinding> = [];
-    for (let i = 0; i < 20; i++) b = toggleBinding(b, 'fan1', `k${i}`);
-    expect(b[0].slotKeys).toHaveLength(16);
   });
 });
 
@@ -159,6 +132,16 @@ describe('withBoundFans', () => {
     expect(out.fanSlots.find(s => s.key === 'top:120:0')?.taken).toBeNull();
     expect(withBoundFans(l, [])).toBe(l);
     expect(withBoundFans(l, ['front:120:0', 'nope'])).toBe(l);
+  });
+});
+
+describe('unlinking past the none cap', () => {
+  it('starts a second none binding after sixteen keys', () => {
+    let b: FanBinding[] = [];
+    for (let i = 0; i < 20; i++) b = linkChannelToSlot(b, '', `gpu:fan:${i}`);
+    const none = b.filter(x => x.channelId === 'none');
+    expect(none.map(x => x.slotKeys.length)).toEqual([16, 4]);
+    expect(new Set(none.flatMap(x => x.slotKeys)).size).toBe(20);
   });
 });
 

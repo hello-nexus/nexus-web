@@ -15,7 +15,8 @@ export type PopoverPlacement =
 
 export interface PopoverProps {
   open: boolean;
-  onClose: () => void;
+  /** Called for an outside press, a scroll of an ancestor, or Escape; `event` is the one that asked, so a caller can tell where a press landed. */
+  onClose: (event?: Event) => void;
   children: ReactNode;
   /**
    * The element the popover is anchored to. Used for click-outside detection
@@ -115,7 +116,7 @@ export function Popover({
     // Mounted open, the anchor's ref attaches after this popover's layout effect.
     reposition();
     // A scrolling ancestor carries the anchor away; fixed coordinates cannot follow it.
-    const onScroll = (e: Event) => { if (!popoverRef.current?.contains(e.target as Node)) onClose(); };
+    const onScroll = (e: Event) => { if (!popoverRef.current?.contains(e.target as Node)) onClose(e); };
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', reposition);
     return () => {
@@ -130,10 +131,10 @@ export function Popover({
       const target = e.target as Node;
       const inAnchor = anchorRef.current?.contains(target) ?? false;
       const inPopover = popoverRef.current?.contains(target) ?? false;
-      if (!inAnchor && !inPopover) onClose();
+      if (!inAnchor && !inPopover) onClose(e);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onClose(e);
     };
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown', onKey);

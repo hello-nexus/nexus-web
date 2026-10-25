@@ -29,15 +29,15 @@ export interface HeatAnchor {
   at: Vec3;
 }
 
-const centre = (b: { min: Vec3; size: Vec3 }): Vec3 => [b.min[0] + b.size[0] / 2, b.min[1] + b.size[1] / 2, b.min[2] + b.size[2] / 2];
+const center = (b: { min: Vec3; size: Vec3 }): Vec3 => [b.min[0] + b.size[0] / 2, b.min[1] + b.size[1] / 2, b.min[2] + b.size[2] / 2];
 const firstOf = (boxes: readonly CaseBox[], slot: string) => boxes.find(b => b.slot === slot && b.role === 'part');
 
 /** Where each component's temperature label sits: the GPU card, and the CPU at its cooler, else its own box, else the radiator. */
 export function heatAnchors(layout: CaseLayout): HeatAnchor[] {
   const out: HeatAnchor[] = [];
   const gpu = firstOf(layout.boxes, 'gpu');
-  if (gpu) out.push({ key: 'gpu', at: centre(gpu) });
+  if (gpu) out.push({ key: 'gpu', at: center(gpu) });
   const cpuBox = firstOf(layout.boxes, 'cooler') ?? firstOf(layout.boxes, 'cpu') ?? layout.fanSlots.find(s => s.taken === 'radiator' && s.box)?.box;
-  if (cpuBox) out.push({ key: 'cpu', at: centre(cpuBox) });
+  if (cpuBox) out.push({ key: 'cpu', at: center(cpuBox) });
   return out;
 }

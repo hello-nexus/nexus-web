@@ -60,7 +60,7 @@ export class CpuFlow {
     }
   }
 
-  /** Trilinear velocity at cell coordinates (cell centres at integers); solid cells contribute nothing. Writes into `r`. */
+  /** Trilinear velocity at cell coordinates (cell centers at integers); solid cells contribute nothing. Writes into `r`. */
   sample(px: number, py: number, pz: number, r: number[] | Float32Array): void {
     const { NX, NY, NZ } = this;
     const solid = this.scene.solid;
@@ -129,7 +129,7 @@ export class CpuFlow {
     this.p = p;
     this.p2 = q;
 
-    // The gradient reads a solid neighbour as the cell's own pressure, so no pressure force crosses a wall.
+    // The gradient reads a solid neighbor as the cell's own pressure, so no pressure force crosses a wall.
     const pn = (nb: number, pc: number) => (solid[nb] ? pc : p[nb]);
     for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
       const c = i + NX * (j + NY * k);
@@ -138,7 +138,7 @@ export class CpuFlow {
       let x = v[c * 3] - 0.5 * (pn(c + sx, pc) - pn(c - sx, pc));
       let y = v[c * 3 + 1] - 0.5 * (pn(c + sy, pc) - pn(c - sy, pc));
       let z = v[c * 3 + 2] - 0.5 * (pn(c + sz, pc) - pn(c - sz, pc));
-      // No penetration: nothing moves into a solid neighbour.
+      // No penetration: nothing moves into a solid neighbor.
       if ((solid[c + sx] && x > 0) || (solid[c - sx] && x < 0)) x = 0;
       if ((solid[c + sy] && y > 0) || (solid[c - sy] && y < 0)) y = 0;
       if ((solid[c + sz] && z > 0) || (solid[c - sz] && z < 0)) z = 0;

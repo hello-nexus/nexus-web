@@ -10,9 +10,9 @@ const M3S_PER_CFM = 0.000471947;
 const LOW = 32 * 24 * 48;
 const FINE = 64 * 48 * 96;
 
-// The front fan: frame 120 mm, centre (x 12.5, y 120, z 180), axis +x.
+// The front fan: frame 120 mm, center (x 12.5, y 120, z 180), axis +x.
 const fan = fronts[1];
-const CENTRE = [12.5, 60 + 120 + 60, 180];
+const CENTER = [12.5, 60 + 120 + 60, 180];
 const { tip, hub } = fanRadii(120);
 const cell = (s: FlowScene, mm: number[]) => [0, 1, 2].map(a => Math.floor((mm[a] + s.origin[a]) / s.cellMm));
 const idx = (s: FlowScene, c: number[]) => c[0] + s.dims[0] * (c[1] + s.dims[1] * c[2]);
@@ -41,19 +41,19 @@ describe('fan ring', () => {
           if (!scene.fanCell[c]) continue;
           forced++;
           const p = mm(c);
-          const r = Math.hypot(p[1] - CENTRE[1], p[2] - CENTRE[2]);
+          const r = Math.hypot(p[1] - CENTER[1], p[2] - CENTER[2]);
           expect(r).toBeGreaterThan(hub - scene.cellMm);
           expect(r).toBeLessThan(tip + scene.cellMm);
         }
         expect(forced).toBeGreaterThan(5);
-        const hubCell = cell(scene, [20, CENTRE[1], CENTRE[2]]);
+        const hubCell = cell(scene, [20, CENTER[1], CENTER[2]]);
         expect(scene.solid[idx(scene, hubCell)]).toBe(1);
-        const frameCorner = cell(scene, [20, CENTRE[1] + 56, CENTRE[2] + 56]);
+        const frameCorner = cell(scene, [20, CENTER[1] + 56, CENTER[2] + 56]);
         expect(scene.solid[idx(scene, frameCorner)]).toBe(1);
-        const ringMid = cell(scene, [20, CENTRE[1] + (hub + tip) / 2, CENTRE[2]]);
+        const ringMid = cell(scene, [20, CENTER[1] + (hub + tip) / 2, CENTER[2]]);
         expect(scene.solid[idx(scene, ringMid)]).toBe(0);
         expect(scene.fanCell[idx(scene, ringMid)]).toBe(1);
-        expect(isSolidAt(scene, [20, CENTRE[1], CENTRE[2]])).toBe(true);
+        expect(isSolidAt(scene, [20, CENTER[1], CENTER[2]])).toBe(true);
       });
 
       it('moves the fan CFM through its ring, within 10%, however coarse the grid', () => {
@@ -80,7 +80,7 @@ describe('fan ring', () => {
         let far = 0;
         for (let n = 0; n < particles.count; n++) {
           const p = [0, 1, 2].map(a => (particles.pos[n * 3 + a] + 0.5) * scene.cellMm - scene.origin[a]);
-          const r = Math.hypot(p[1] - CENTRE[1], p[2] - CENTRE[2]);
+          const r = Math.hypot(p[1] - CENTER[1], p[2] - CENTER[2]);
           expect(r).toBeGreaterThan(hub);
           expect(r).toBeLessThanOrEqual(tip + 0.5);
           if (r < (hub + tip) / 2) near++; else far++;
@@ -120,11 +120,11 @@ describe('stopped fans and empty slots', () => {
   it('keeps a fan with no flow as an open vent with a hub, not a sealed hole', () => {
     const input = inputFor([fan], [], () => 'intake', 0);
     const s = buildFlowScene(input, FINE);
-    const ring = cell(s, [20, CENTRE[1] + (hub + tip) / 2, CENTRE[2]]);
+    const ring = cell(s, [20, CENTER[1] + (hub + tip) / 2, CENTER[2]]);
     ring[0] = shellX(s);
     expect(s.solid[idx(s, ring)]).toBe(0);
     expect(s.opening[idx(s, ring)]).toBe(OPENING_VENT);
-    const hubCell = cell(s, [20, CENTRE[1], CENTRE[2]]);
+    const hubCell = cell(s, [20, CENTER[1], CENTER[2]]);
     expect(s.solid[idx(s, hubCell)]).toBe(1);
     expect(s.fanCell.some(v => v === 1)).toBe(false);
     expect(s.fanCount).toBe(0);
@@ -132,12 +132,12 @@ describe('stopped fans and empty slots', () => {
 
   it('keeps an empty slot as an open grille with no hub', () => {
     const s = buildFlowScene(inputFor([emptyFront], [], () => 'intake'), FINE);
-    const centre = cell(s, [20, CENTRE[1], CENTRE[2]]);
-    expect(s.solid[idx(s, centre)]).toBe(0);
-    const shellCentre = [...centre];
-    shellCentre[0] = shellX(s);
-    expect(s.solid[idx(s, shellCentre)]).toBe(0);
-    expect(s.opening[idx(s, shellCentre)]).toBe(OPENING_VENT);
+    const center = cell(s, [20, CENTER[1], CENTER[2]]);
+    expect(s.solid[idx(s, center)]).toBe(0);
+    const shellCenter = [...center];
+    shellCenter[0] = shellX(s);
+    expect(s.solid[idx(s, shellCenter)]).toBe(0);
+    expect(s.opening[idx(s, shellCenter)]).toBe(OPENING_VENT);
   });
 
   it('spawns inflow particles across the whole disc of an empty slot, hub area included', () => {
@@ -145,7 +145,7 @@ describe('stopped fans and empty slots', () => {
     let inner = 0;
     for (let m = 0; m < s.spawns.length / 3; m++) {
       const p = [0, 1, 2].map(a => (s.spawns[m * 3 + a] + 0.5) * s.cellMm - s.origin[a]);
-      if (Math.hypot(p[1] - CENTRE[1], p[2] - CENTRE[2]) < hub) inner++;
+      if (Math.hypot(p[1] - CENTER[1], p[2] - CENTER[2]) < hub) inner++;
     }
     expect(s.spawns.length).toBeGreaterThan(0);
     expect(inner).toBeGreaterThan(0);
@@ -203,7 +203,7 @@ describe('spawn radius distribution', () => {
     expect(r.max).toBeLessThanOrEqual(r.tip + r.scene.cellMm * 0.01);
   });
 
-  it('starts at continuous positions, not on a few cell centres or a fixed point set', () => {
+  it('starts at continuous positions, not on a few cell centers or a fixed point set', () => {
     const r = ks(front120, 120);
     expect(r.distinct).toBeGreaterThan(r.count * 0.95);
   });

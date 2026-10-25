@@ -1,7 +1,7 @@
 import type { CaseBox, CaseFanSlot, Vec3 } from './caseLayout';
 import { inferRadiatorFans } from './fanSpecs';
 
-/** Depth of a drawn radiator fan along its axis, mm: a standard 25 mm fan. */
+/** Depth of a drawn radiator fan along its axis, mm: a standard fan's thickness. */
 const FAN_DEPTH_MM = 25;
 
 /**

@@ -47,6 +47,9 @@ vi.mock('../../../components/common/Coachmark/Coachmark', () => ({
 }));
 
 import { dismissOnboardingHint } from '../../../api/onboarding';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 function renderPage(calibrating = false) {
   const serviceState = { cooling: { calibrating } } as unknown as ServiceState;

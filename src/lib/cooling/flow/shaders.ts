@@ -26,7 +26,7 @@ vec4 mask(ivec3 c) { return texelFetch(M, tc(c), 0); }
 bool solidAt(ivec3 c) { return !inside(c) || mask(c).r > 0.5; }
 uniform sampler2D U;
 vec3 vel(ivec3 c) { if (solidAt(c)) return vec3(0.0); return texelFetch(U, tc(c), 0).xyz; }
-// Trilinear velocity at cell coordinates (cell centres at integers); solid cells contribute nothing.
+// Trilinear velocity at cell coordinates (cell centers at integers); solid cells contribute nothing.
 vec3 sampleU(vec3 p) {
   p = clamp(p, vec3(0.0), vec3(N - 1));
   ivec3 b = ivec3(floor(p));
@@ -66,7 +66,7 @@ void main() {
 
 const PRESSURE = /* glsl */ `
 uniform sampler2D P;
-// Pressure of a neighbour: a solid wall reads as the cell's own pressure (no force across it), fixed-pressure cells as 0.
+// Pressure of a neighbor: a solid wall reads as the cell's own pressure (no force across it), fixed-pressure cells as 0.
 float pn(ivec3 n, float pc) { if (solidAt(n)) return pc; if (mask(n).b > 0.5) return 0.0; return texelFetch(P, tc(n), 0).r; }
 `;
 
@@ -100,7 +100,7 @@ void main() {
   float pc = m.b > 0.5 ? 0.0 : texelFetch(P, tc(c), 0).r;
   vec3 g = 0.5 * vec3(pn(c + ivec3(1,0,0), pc) - pn(c - ivec3(1,0,0), pc), pn(c + ivec3(0,1,0), pc) - pn(c - ivec3(0,1,0), pc), pn(c + ivec3(0,0,1), pc) - pn(c - ivec3(0,0,1), pc));
   u -= g;
-  // No penetration: nothing moves into a solid neighbour.
+  // No penetration: nothing moves into a solid neighbor.
   if ((solidAt(c + ivec3(1,0,0)) && u.x > 0.0) || (solidAt(c - ivec3(1,0,0)) && u.x < 0.0)) u.x = 0.0;
   if ((solidAt(c + ivec3(0,1,0)) && u.y > 0.0) || (solidAt(c - ivec3(0,1,0)) && u.y < 0.0)) u.y = 0.0;
   if ((solidAt(c + ivec3(0,0,1)) && u.z > 0.0) || (solidAt(c - ivec3(0,0,1)) && u.z < 0.0)) u.z = 0.0;

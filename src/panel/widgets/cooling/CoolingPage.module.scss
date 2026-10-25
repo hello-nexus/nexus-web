@@ -440,7 +440,7 @@
 // sidebar column, name on top, RPM meta + duty bar + dropdown beneath.
 .fanCard {
   position: relative;
-  // Row, matching the lighting rail: the select box sits centred against the
+  // Row, matching the lighting rail: the select box sits centered against the
   // full card height and the fan's own stack sits beside it.
   display: flex; align-items: center; gap: 0.6rem;
   padding: 0.6rem 0.75rem;

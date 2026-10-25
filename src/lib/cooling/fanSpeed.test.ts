@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultRpmMax, scaledSpec, settleFlows, speedFraction, FLOW_CHANGE_FLOOR_CFM } from './fanSpeed';
+import { UNKNOWN_SPEC_RPM_MAX, scaledSpec, settleFlows, speedFraction, FLOW_CHANGE_FLOOR_CFM } from './fanSpeed';
 import { slotModelFans } from './fanSpecs';
 import { solveCasePressure } from './pressureModel';
 import type { CaseFanSlot } from './caseLayout';
@@ -18,20 +18,19 @@ describe('speedFraction', () => {
   const ch = (rpm: number, extra = {}) => ({ rpm, dutyPercent: 40, ...extra });
 
   it('uses the spec top speed, then the channel max, then a size default, marking the stand-ins as estimates', () => {
-    expect(speedFraction(ch(900), 1800, 120)).toEqual({ fraction: 0.5, estimated: false });
-    expect(speedFraction(ch(900, { maxRpm: 1200 }), undefined, 120)).toEqual({ fraction: 0.75, estimated: true });
-    expect(speedFraction(ch(750), undefined, 120).fraction).toBeCloseTo(750 / defaultRpmMax(120));
-    expect(defaultRpmMax(140)).toBe(defaultRpmMax(120));
+    expect(speedFraction(ch(900), 1800)).toEqual({ fraction: 0.5, estimated: false });
+    expect(speedFraction(ch(900, { maxRpm: 1200 }), undefined)).toEqual({ fraction: 0.75, estimated: true });
+    expect(speedFraction(ch(750), undefined).fraction).toBeCloseTo(750 / UNKNOWN_SPEC_RPM_MAX);
   });
 
   it('gives 0 for a stopped fan and clamps a runaway reading', () => {
-    expect(speedFraction(ch(0), 1800, 120).fraction).toBe(0);
-    expect(speedFraction(ch(99999), 1800, 120).fraction).toBeLessThanOrEqual(1.2);
-    expect(speedFraction(ch(Number.NaN), 1800, 120).fraction).toBe(0);
+    expect(speedFraction(ch(0), 1800).fraction).toBe(0);
+    expect(speedFraction(ch(99999), 1800).fraction).toBeLessThanOrEqual(1.2);
+    expect(speedFraction(ch(Number.NaN), 1800).fraction).toBe(0);
   });
 
   it('falls back to duty when the tach cannot be read', () => {
-    expect(speedFraction({ rpm: 0, dutyPercent: 60, rpmUnavailable: true }, 1800, 120)).toEqual({ fraction: 0.6, estimated: true });
+    expect(speedFraction({ rpm: 0, dutyPercent: 60, rpmUnavailable: true }, 1800)).toEqual({ fraction: 0.6, estimated: true });
   });
 });
 

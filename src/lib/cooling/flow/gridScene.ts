@@ -61,8 +61,8 @@ export interface FlowScene {
   /** Shell cells that are open to the outside, by `OPENING_*`. */
   opening: Uint8Array;
   /**
-   * Where intake and inflow particles start: one entry per 12 floats, a fan's ring in cell coordinates (cell centres at integers):
-   * centre xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset (zero: particles start on the fan plane, inside the case face; a card's fans start just upstream of the card). A stronger fan has more entries.
+   * Where intake and inflow particles start: one entry per 12 floats, a fan's ring in cell coordinates (cell centers at integers):
+   * center xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset (zero: particles start on the fan plane, inside the case face; a card's fans start just upstream of the card). A stronger fan has more entries.
    */
   emitters: Float32Array;
   /** The case's own box in cell coordinates, as a particle sees it: min then max per axis. Nothing is drawn outside it. */
@@ -74,8 +74,6 @@ export interface FlowScene {
   fanCount: number;
   /** What was rasterized into the solid and porous cells, for the collision view. */
   obstacles: Obstacle[];
-  /** Steps a parcel of air takes to cross the case at the nominal through-flow: case volume over intake flow, in solver steps. 0 when nothing draws air in. */
-  residenceSteps: number;
 }
 
 /** Cell size and counts for roughly `targetCells` cells with the extents' aspect, each axis within the allowed range. */
@@ -98,19 +96,19 @@ function axisIndex(axis: Vec3): 0 | 1 | 2 {
   return a[0] >= a[1] && a[0] >= a[2] ? 0 : a[1] >= a[2] ? 1 : 2;
 }
 
-/** Unit vector into the case: the slot's own axis, else the box's thinnest side pointing at the case centre. */
+/** Unit vector into the case: the slot's own axis, else the box's thinnest side pointing at the case center. */
 export function inwardAxis(slot: CaseFanSlot, box: { min: Vec3; size: Vec3 }, extents: Vec3): Vec3 {
   if (slot.axis) return slot.axis;
   const [sx, sy, sz] = box.size;
   const k = sx <= sy && sx <= sz ? 0 : sy <= sz ? 1 : 2;
-  const centre = box.min[k] + box.size[k] / 2;
+  const center = box.min[k] + box.size[k] / 2;
   const v: Vec3 = [0, 0, 0];
-  v[k] = centre <= extents[k] / 2 ? 1 : -1;
+  v[k] = center <= extents[k] / 2 ? 1 : -1;
   return v;
 }
 
 interface Disk {
-  centre: Vec3;
+  center: Vec3;
   axis: Vec3;
   /** Blade tip radius and hub radius, mm: air passes between them. */
   radius: number;
@@ -157,10 +155,10 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
       const longAxis = box.size[perp[0]] >= box.size[perp[1]] ? perp[0] : perp[1];
       const shortSide = box.size[perp[0] === longAxis ? perp[1] : perp[0]];
       for (let f = 0; f < count; f++) {
-        const centre: Vec3 = [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2];
-        centre[longAxis] = box.min[longAxis] + (box.size[longAxis] * (f + 0.5)) / count;
+        const center: Vec3 = [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2];
+        center[longAxis] = box.min[longAxis] + (box.size[longAxis] * (f + 0.5)) / count;
         fans.push({
-          disk: { centre, axis, ...diskRadii(Math.min(shortSide, box.size[longAxis] / count)), halfThickness: Math.max(box.size[k] / 2, minThickness) },
+          disk: { center, axis, ...diskRadii(Math.min(shortSide, box.size[longAxis] / count)), halfThickness: Math.max(box.size[k] / 2, minThickness) },
           direction, cfm: input.fanCfm[f === 0 ? slot.key : `${slot.key}#${f}`] ?? 0, slot, porousBox: true,
         });
       }
@@ -173,7 +171,7 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
     const perp = [0, 1, 2].filter(a => a !== k);
     fans.push({
       disk: {
-        centre: [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2],
+        center: [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2],
         axis,
         ...diskRadii(Math.min(box.size[perp[0]], box.size[perp[1]])),
         halfThickness: Math.max(box.size[k] / 2, minThickness),
@@ -192,7 +190,7 @@ function mountSides(fans: readonly PlannedFan[], extents: Vec3): [boolean, boole
     if (f.slot.position === 'gpu') continue;
     const k = axisIndex(f.disk.axis);
     const lo = f.disk.axis[k] > 0;
-    const c = f.disk.centre[k];
+    const c = f.disk.center[k];
     const reach = lo ? c - f.disk.halfThickness : extents[k] - (c + f.disk.halfThickness);
     if (reach <= MOUNT_REACH_MM) sides[k][lo ? 0 : 1] = true;
   }
@@ -242,7 +240,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   };
   const layoutMm = (i: number, j: number, k: number): Vec3 => [(i + 0.5) * cellMm - origin[0], (j + 0.5) * cellMm - origin[1], (k + 0.5) * cellMm - origin[2]];
 
-  /** Solid parts whose neighbouring fluid cells are heat cells: [cell, source]. */
+  /** Solid parts whose neighboring fluid cells are heat cells: [cell, source]. */
   const sources: [number, number][] = [];
   // `touching` takes every cell the shape touches, so a particle in a fluid cell is never inside the shape.
   const voxelize = (box: CaseBox, fn: (c: number) => void, touching = false) => {
@@ -287,7 +285,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
 
   // The open ring of a fan: cells whose area is mostly between hub and tip carry the air; the hub and the square frame around it are solid.
   const classify = (p: PlannedFan): FanCells => {
-    const { centre, axis, radius, frame, halfThickness } = p.disk;
+    const { center, axis, radius, frame, halfThickness } = p.disk;
     // An empty slot is a bare grille: open across the whole disc, no hub, no frame.
     const hub = hubOf(p);
     const e1 = e1Of(axis);
@@ -300,10 +298,10 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const annulus: number[] = [];
     const blocked: number[] = [];
     const layers = new Set<number>();
-    eachCellIn(sub(centre, [reach, reach, reach]), add(centre, [reach, reach, reach]), (i, j, kk) => {
+    eachCellIn(sub(center, [reach, reach, reach]), add(center, [reach, reach, reach]), (i, j, kk) => {
       if (!inCase(i, j, kk)) return;
       const cc = layoutMm(i, j, kk);
-      const d0 = sub(cc, centre);
+      const d0 = sub(cc, center);
       const along = dot(d0, axis);
       // A fan within reach of a face vents through that face across its footprint, however far the panel sits from the mount; a perpendicular panel it touches stays shut.
       const shell = onCaseShell(i, j, kk);
@@ -355,7 +353,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     for (const { p, entries: wanted } of pending) {
       const entries = Math.max(1, Math.floor(wanted * share));
       const e1 = e1Of(p.disk.axis);
-      const c = [0, 1, 2].map(a => (p.disk.centre[a] + origin[a]) / cellMm - 0.5);
+      const c = [0, 1, 2].map(a => (p.disk.center[a] + origin[a]) / cellMm - 0.5);
       for (let m = 0; m < entries; m++) {
         emitters.push(c[0], c[1], c[2], spawnHub(p) / cellMm, p.disk.axis[0], p.disk.axis[1], p.disk.axis[2], p.disk.radius / cellMm, e1[0], e1[1], e1[2], p.slot.position === 'gpu' ? p.disk.halfThickness / cellMm + 1 : 0);
       }
@@ -363,11 +361,10 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     }
   };
 
-  // Frames and hubs first: a neighbour's frame must not close another fan's open ring where their cells meet.
+  // Frames and hubs first: a neighbor's frame must not close another fan's open ring where their cells meet.
   for (const cells of cellsOf) for (const c of cells.blocked) solid[c] = 1;
   let fanCount = 0;
   let maxTarget = 0;
-  let intakeCfm = 0;
   plan.fans.forEach((p, n) => {
     const cells = cellsOf[n];
     const { axis } = p.disk;
@@ -388,7 +385,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     }
     if (speed > 0) {
       fanCount++;
-      if (p.direction === 'intake') { addSpawns(p, p.cfm); intakeCfm += p.cfm; }
+      if (p.direction === 'intake') addSpawns(p, p.cfm);
     } else if (!p.porousBox && p.slot.position !== 'gpu' && input.ventCfm < 0) {
       addSpawns(p, Math.abs(input.ventCfm) / 4);
     }
@@ -412,9 +409,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     if ((i === 0 || j === 0 || k === 0 || i === NX - 1 || j === NY - 1 || k === NZ - 1) && !solid[id(i, j, k)]) open[id(i, j, k)] = 1;
   }
 
-  const caseM3 = (extents[0] * extents[1] * extents[2]) / (MM_PER_M ** 3);
-  const residenceSteps = intakeCfm > 0 ? caseM3 / (intakeCfm * M3S_PER_CFM) / stepSeconds : 0;
-  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), emitterCounts, caseBounds: { min: [0, 1, 2].map(a => origin[a] / cellMm - 0.5) as Vec3, max: [0, 1, 2].map(a => (extents[a] + origin[a]) / cellMm - 0.5) as Vec3 }, spawns: new Float32Array(0), fanCount };
+  const result: FlowScene = { dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), emitterCounts, caseBounds: { min: [0, 1, 2].map(a => origin[a] / cellMm - 0.5) as Vec3, max: [0, 1, 2].map(a => (extents[a] + origin[a]) / cellMm - 0.5) as Vec3 }, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };

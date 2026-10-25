@@ -4,6 +4,9 @@ import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import type { ServiceState } from '../../../types/service';
 import { CoolingPage } from './CoolingPage';
 import styles from './CoolingPage.module.scss';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 vi.mock('../../../api/cooling', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../api/cooling')>();

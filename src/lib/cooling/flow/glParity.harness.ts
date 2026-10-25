@@ -107,11 +107,11 @@ async function main() {
   slowFast.setInput(pair);
   slowFast.setOptions({ particles: true, collisions: false, speed: 1.5 });
   const fs2 = slowFast.scene!;
-  const centres: number[][] = [];
+  const centers: number[][] = [];
   const e = fs2.emitters;
-  for (let o = 0; o < e.length; o += 12) if (!centres.some(c => c[0] === e[o] && c[1] === e[o + 1] && c[2] === e[o + 2])) centres.push([e[o], e[o + 1], e[o + 2], e[o + 4], e[o + 5], e[o + 6], e[o + 7]]);
-  const sums = centres.map(() => 0);
-  const counts = centres.map(() => 0);
+  for (let o = 0; o < e.length; o += 12) if (!centers.some(c => c[0] === e[o] && c[1] === e[o + 1] && c[2] === e[o + 2])) centers.push([e[o], e[o + 1], e[o + 2], e[o + 4], e[o + 5], e[o + 6], e[o + 7]]);
+  const sums = centers.map(() => 0);
+  const counts = centers.map(() => 0);
   let prev: Float32Array | null = null;
   // Warm up until the solver reports a steady field and the pool has lived through its birth spread, then measure.
   let framesToSteady = 0;
@@ -131,7 +131,7 @@ async function main() {
         if (pos[i * 4] < -1e5 || pos[i * 4 + 3] <= 0 || prev[i * 4 + 3] <= 0) continue;
         const d = Math.hypot(pos[i * 4] - prev[i * 4], pos[i * 4 + 1] - prev[i * 4 + 1], pos[i * 4 + 2] - prev[i * 4 + 2]);
         if (d >= 3) continue;
-        centres.forEach((c, n) => {
+        centers.forEach((c, n) => {
           const rel = [prev![i * 4] - c[0], prev![i * 4 + 1] - c[1], prev![i * 4 + 2] - c[2]];
           const along = rel[0] * c[3] + rel[1] * c[4] + rel[2] * c[5];
           const radial = Math.hypot(rel[0] - along * c[3], rel[1] - along * c[4], rel[2] - along * c[5]);
@@ -141,7 +141,7 @@ async function main() {
     }
     prev = pos;
   }
-  out.visibleSpeed = { centres: centres.length, means: sums.map((s, n) => (counts[n] ? s / counts[n] : 0)), counts, tier: slowFast.currentTier, framesToSteady, settled: slowFast.settled };
+  out.visibleSpeed = { centers: centers.length, means: sums.map((s, n) => (counts[n] ? s / counts[n] : 0)), counts, tier: slowFast.currentTier, framesToSteady, settled: slowFast.settled };
   slowFast.dispose();
   out.glError = renderer.getContext().getError();
   out.trail = trail.slice(0, 8);
