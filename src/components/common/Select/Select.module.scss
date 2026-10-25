@@ -232,6 +232,12 @@
   width: 100%;
 }
 
+.actionLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .actionButtonActive {
   @include focus-ring;
 }

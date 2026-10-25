@@ -350,7 +350,7 @@ describe('Select action rows', () => {
   it('ignores activation while busy', () => {
     const onAction = vi.fn();
     render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Loading', onAction, busy: true }]} />);
-    const row = within(open()).getByRole('option', { name: /Loading/ });
+    const row = within(open()).getByRole('option', { name: 'Loading' });
     expect(row.getAttribute('aria-busy')).toBe('true');
     fireEvent.click(row);
     expect(onAction).not.toHaveBeenCalled();
@@ -379,10 +379,10 @@ describe('Select action row button look', () => {
   it('shows the spinner only while busy, inside the same option', () => {
     const { rerender } = render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', onAction: vi.fn() }]} />);
     let row = within(open()).getByRole('option', { name: 'Load' });
-    expect(within(row).queryByRole('img')).toBeNull();
+    expect(within(row).queryByRole('img', { hidden: true })).toBeNull();
     rerender(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Loading', onAction: vi.fn(), busy: true }]} />);
-    row = within(screen.getByRole('listbox')).getByRole('option', { name: /Loading/ });
-    expect(within(row).getByRole('img')).toBeTruthy();
+    row = within(screen.getByRole('listbox')).getByRole('option', { name: 'Loading' });
+    expect(within(row).getByRole('img', { hidden: true })).toBeTruthy();
     expect(row.getAttribute('aria-busy')).toBe('true');
   });
 });

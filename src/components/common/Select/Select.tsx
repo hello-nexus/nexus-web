@@ -343,12 +343,13 @@ export function Select({
   // list): re-measure the width and move the active row back to the selected
   // value, or to none while searching, so Enter cannot commit a row the user
   // never moved to. Keyed on a content signature so a same-count swap counts.
-  const optionSignature = resolved.map(o => `${o.onAction ? 'a' : 'o'}${o.header ? 'h' : ''}${o.value}`).join('|');
+  const optionSignature = resolved.map(o => `${o.onAction ? `a${o.label}` : 'o'}${o.header ? 'h' : ''}${o.value}`).join('|');
   const prevSignature = useRef(optionSignature);
   useLayoutEffect(() => {
     if (open && prevSignature.current !== optionSignature) {
       openWidthRef.current = null;
       setActiveIndex(query.trim() ? -1 : selectedIndex);
+      reposition();
     }
     prevSignature.current = optionSignature;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reacts to the option content only
@@ -581,7 +582,7 @@ export function Select({
                   aria-selected={!opt.onAction && opt.value === value}
                   aria-disabled={opt.disabled || undefined}
                   aria-busy={opt.busy || undefined}
-                  aria-describedby={opt.description ? `${optionId(i)}-desc` : undefined}
+                  aria-describedby={opt.description && !opt.onAction ? `${optionId(i)}-desc` : undefined}
                   className={classNames(
                     styles.option,
                     opt.className,
@@ -599,10 +600,10 @@ export function Select({
                     // The row stays the listbox option (keyboard and aria); the visual is the
                     // shared Button look on a span, since a real button cannot nest in an option.
                     <span className={classNames(buttonStyles.button, buttonStyles['size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive)}>
-                      <span className={styles.actionSpinnerSlot} aria-hidden={!opt.busy || undefined}>
+                      <span className={styles.actionSpinnerSlot} aria-hidden="true">
                         {opt.busy && <Spinner size={14} />}
                       </span>
-                      {opt.label}
+                      <span className={styles.actionLabel}>{opt.label}</span>
                     </span>
                   ) : null}
                   {!opt.onAction && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
