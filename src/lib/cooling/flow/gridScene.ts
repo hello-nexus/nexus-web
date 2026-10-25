@@ -65,6 +65,8 @@ export interface FlowScene {
    * centre xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset. A stronger fan has more entries.
    */
   emitters: Float32Array;
+  /** Emitter entries by fan slot key. */
+  emitterCounts: Record<string, number>;
   /** Depth, in cells, of the outside air tube the particles start in. */
   spawnBackSpan: number;
   /** A fixed sample of start points drawn from the emitters (3 floats each), for inspection; the particles draw their own continuously. */
@@ -341,13 +343,23 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   // Particles start strictly outside the hub: a margin past its edge, so none sits on the core circle.
   const spawnHub = (p: PlannedFan) => (hubOf(p) > 0 ? hubOf(p) + SPAWN_HUB_MARGIN * (p.disk.radius - hubOf(p)) : 0);
   const emitters: number[] = [];
+  const emitterCounts: Record<string, number> = {};
+  const pending: { p: PlannedFan; entries: number }[] = [];
   const addSpawns = (p: PlannedFan, weight: number) => {
-    // Entries follow the fan's flow, so a near-stopped fan emits next to nothing instead of a dense sheet of slow particles.
-    const entries = Math.min(MAX_EMITTERS_PER_FAN, Math.max(MIN_EMITTERS_PER_FAN, Math.round((weight / 60) * EMITTERS_PER_60_CFM)));
-    const e1 = e1Of(p.disk.axis);
-    const c = [0, 1, 2].map(a => (p.disk.centre[a] + origin[a]) / cellMm - 0.5);
-    for (let m = 0; m < entries && emitters.length / 12 < MAX_EMITTER_ENTRIES; m++) {
-      emitters.push(c[0], c[1], c[2], spawnHub(p) / cellMm, p.disk.axis[0], p.disk.axis[1], p.disk.axis[2], p.disk.radius / cellMm, e1[0], e1[1], e1[2], p.disk.halfThickness / cellMm + SPAWN_BACK_MIN_CELLS);
+    // Entries follow the fan's flow within a floor and a cap, so a near-stopped fan emits next to nothing but a spinning one never none.
+    pending.push({ p, entries: Math.min(MAX_EMITTERS_PER_FAN, Math.max(MIN_EMITTERS_PER_FAN, Math.round((weight / 60) * EMITTERS_PER_60_CFM))) });
+  };
+  const flushSpawns = () => {
+    const total = pending.reduce((sum, q) => sum + q.entries, 0);
+    const share = total > MAX_EMITTER_ENTRIES ? MAX_EMITTER_ENTRIES / total : 1;
+    for (const { p, entries: wanted } of pending) {
+      const entries = Math.max(1, Math.floor(wanted * share));
+      const e1 = e1Of(p.disk.axis);
+      const c = [0, 1, 2].map(a => (p.disk.centre[a] + origin[a]) / cellMm - 0.5);
+      for (let m = 0; m < entries; m++) {
+        emitters.push(c[0], c[1], c[2], spawnHub(p) / cellMm, p.disk.axis[0], p.disk.axis[1], p.disk.axis[2], p.disk.radius / cellMm, e1[0], e1[1], e1[2], p.disk.halfThickness / cellMm + SPAWN_BACK_MIN_CELLS);
+      }
+      emitterCounts[p.slot.key] = (emitterCounts[p.slot.key] ?? 0) + entries;
     }
   };
 
@@ -382,6 +394,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     }
   });
 
+  flushSpawns();
+
   // Heat: fluid cells within reach of a heat-source solid warm the air that passes.
   for (const [c, source] of sources) {
     const ci = c % NX, cj = Math.floor(c / NX) % NY, ck = Math.floor(c / (NX * NY));
@@ -400,7 +414,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
 
   const caseM3 = (extents[0] * extents[1] * extents[2]) / (MM_PER_M ** 3);
   const residenceSteps = intakeCfm > 0 ? caseM3 / (intakeCfm * M3S_PER_CFM) / stepSeconds : 0;
-  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), spawnBackSpan: SPAWN_OUT_REACH_MM / cellMm, spawns: new Float32Array(0), fanCount };
+  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), emitterCounts, spawnBackSpan: SPAWN_OUT_REACH_MM / cellMm, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };

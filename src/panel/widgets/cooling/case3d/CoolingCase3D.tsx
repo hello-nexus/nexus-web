@@ -19,12 +19,13 @@ import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useComponentTemps } from '../../../../hooks/useComponentTemps';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
-import { simRpm, speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
-import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
+import { settleFlows, simRpm } from '../../../../lib/cooling/fanSpeed';
+import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
+import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
 import { visualFlow } from '../../../../lib/cooling/visualFlow';
-import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
+import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
@@ -83,17 +84,17 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   // Parsed once per distinct layout: a setup ping that changes nothing here keeps the same object, so the scene and camera stay.
   const layoutText = JSON.stringify(record?.setup.resolved.caseLayout ?? null);
   const parsedLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText)), [layoutText]);
+  // The stored bindings plus the derived default for each GPU fan and AIO radiator slot; the stored layout never carries the default.
+  const storedBindings = coolingLayout.bindings;
+  const effectiveBindings = useMemo(() => withDefaultBindings(storedBindings, parsedLayout?.fanSlots ?? [], channels), [storedBindings, parsedLayout, channels]);
   // A slot bound to a cooling device has a physical fan, whether or not the setup record lists one there.
-  const boundKeys = useMemo(() => {
-    const present = new Set(channels.map(c => c.id));
-    return coolingLayout.bindings.filter(b => present.has(b.channelId) || simRpm(b.channelId) !== null).flatMap(b => b.slotKeys);
-  }, [channels, coolingLayout.bindings]);
+  const boundKeys = useMemo(() => boundSlotKeys(effectiveBindings, channels), [effectiveBindings, channels]);
   const boundKeyText = [...new Set(boundKeys)].sort().join('\n');
   const collapsed = useMemo(() => (parsedLayout ? collapseMounts(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
   const caseLayout = collapsed?.layout ?? null;
   const canonOf = collapsed?.canonOf;
   // Bindings as the view shows them: each on the one drawn fan of its mount.
-  const bindings = useMemo(() => (canonOf ? normalizeBindings(coolingLayout.bindings, canonOf) : coolingLayout.bindings), [coolingLayout.bindings, canonOf]);
+  const bindings = useMemo(() => (canonOf ? normalizeBindings(effectiveBindings, canonOf) : effectiveBindings), [effectiveBindings, canonOf]);
   const [active, setActive] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -109,43 +110,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const caseModel = useCaseModel(true, record?.rev ?? null);
   const temps = useComponentTemps(true);
 
-  const directions = useMemo(() => {
-    const out: Record<string, FanDirection> = {};
-    for (const slot of caseLayout?.fanSlots ?? []) out[slot.key] = directionOf(slot, coolingLayout.directions);
-    return out;
-  }, [caseLayout, coolingLayout.directions]);
+  const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
 
   // Live speed of each drawn fan that has a cooling device bound: the channel's tach over the fan's top speed. Unbound fans stay at their rated curve.
-  const speeds = useMemo(() => {
-    const out = new Map<string, SlotSpeed>();
-    for (const slot of caseLayout?.fanSlots ?? []) {
-      let best: SlotSpeed | undefined;
-      for (const b of bindings) {
-        if (!b.slotKeys.includes(slot.key)) continue;
-        const ch = channels.find(c => c.id === b.channelId);
-        const live = ch ?? (simRpm(b.channelId) !== null ? { rpm: simRpm(b.channelId)!, dutyPercent: 0 } : null);
-        if (!live) continue;
-        const sp = speedFraction(live, slot.fan?.rpmMax ?? slot.radiator?.fanRpmMax, slot.taken === 'radiator' ? slot.size / Math.max(1, slot.radiator?.fanCount ?? 1) : slot.size);
-        if (!best || sp.fraction > best.fraction) best = sp;
-      }
-      if (best) out.set(slot.key, best);
-    }
-    return out;
-  }, [caseLayout, bindings, channels]);
+  const speeds = useMemo(() => slotSpeeds(caseLayout?.fanSlots ?? [], bindings, channels), [caseLayout, bindings, channels]);
 
-  const model = useMemo(() => {
-    if (!caseLayout) return null;
-    const catalog = catalogFanSpecs(record?.setup.items ?? []);
-    let estimated = false;
-    const fans: PressureFan[] = [];
-    for (const slot of caseLayout.fanSlots) {
-      for (const fan of slotModelFans(slot, catalog, speeds.get(slot.key))) {
-        estimated ||= fan.estimated;
-        fans.push({ key: fan.key, cfm: fan.cfm, staticMmH2O: fan.staticMmH2O, direction: directions[slot.key] });
-      }
-    }
-    return { result: solveCasePressure(fans), estimated, fanCount: fans.length };
-  }, [caseLayout, record, directions, speeds]);
+  const model = useMemo(() => (caseLayout ? lumpedModel(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, directions, speeds]);
 
   const handlers = useRef<{ pick: PickHandler }>({ pick: () => {} });
   handlers.current.pick = (key, x, y) => {
@@ -211,8 +181,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   // Choosing a device links it to this fan alone: it leaves any fan it drove before, and this fan's earlier device is replaced.
   const linkChannel = useCallback((channelId: string, key: string) => {
-    edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key) }));
-  }, [edit, canonOf]);
+    const derivedDefault = hasDerivedLink(key) || parsedLayout?.fanSlots.find(sl => sl.key === key)?.taken === 'radiator';
+    edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key, derivedDefault) }));
+  }, [edit, canonOf, parsedLayout]);
 
   if (!loaded || !layoutSettled) return <div className={styles.root} />;
 

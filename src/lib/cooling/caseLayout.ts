@@ -271,13 +271,13 @@ export const NONE_CHANNEL = 'none';
 /** GPU and radiator fan slots get a derived default link, so unlinking one stores an explicit override. */
 export const hasDerivedLink = (slotKey: string): boolean => slotKey.startsWith('gpu:') || slotKey.startsWith('rad:');
 
-/** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A channel keeps its other slots, since one device can drive several fans; a channel already at the per-binding cap, or a new binding past the service's binding cap, changes nothing. An empty `channelId` unlinks the fan; on a slot with a derived default that stores the `none` marker instead of nothing. */
-export function linkChannelToSlot(bindings: readonly FanBinding[], channelId: string, slotKey: string): FanBinding[] {
+/** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A channel keeps its other slots, since one device can drive several fans; a channel already at the per-binding cap, or a new binding past the service's binding cap, changes nothing. An empty `channelId` unlinks the fan; on a slot with a derived default (`derivedDefault`, GPU and radiator slots by key) that stores the `none` marker instead of nothing. */
+export function linkChannelToSlot(bindings: readonly FanBinding[], channelId: string, slotKey: string, derivedDefault: boolean = hasDerivedLink(slotKey)): FanBinding[] {
   const rest = bindings
     .map(b => ({ ...b, slotKeys: b.slotKeys.filter(k => k !== slotKey) }))
     .filter(b => b.slotKeys.length > 0);
   if (channelId === '') {
-    if (!hasDerivedLink(slotKey)) return rest;
+    if (!derivedDefault) return rest;
     const marked = rest.find(b => b.channelId === NONE_CHANNEL)?.slotKeys ?? [];
     return [...rest.filter(b => b.channelId !== NONE_CHANNEL), { channelId: NONE_CHANNEL, slotKeys: [...marked, slotKey] }];
   }
