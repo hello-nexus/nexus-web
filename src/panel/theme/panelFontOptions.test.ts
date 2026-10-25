@@ -28,7 +28,7 @@ describe('buildPanelFontOptions', () => {
 
   it('shows the in-flight and empty states on the action row', () => {
     const busy = buildPanelFontOptions({ ...idle, status: 'loading' }, null, labels).at(-1)!;
-    expect([busy.label, busy.busy]).toEqual(['Loading', true]);
+    expect([busy.label, busy.busy, busy.busyLabel]).toEqual(['Load system fonts', true, 'Loading']);
     const none = buildPanelFontOptions({ ...idle, status: 'empty' }, null, labels).at(-1)!;
     expect([none.label, none.busy]).toEqual(['None found', false]);
   });

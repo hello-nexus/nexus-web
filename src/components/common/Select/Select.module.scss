@@ -288,6 +288,24 @@
   text-overflow: ellipsis;
 }
 
+// Busy: the label stays in layout (hidden) so the button keeps its idle size,
+// and the spinner sits centered over it.
+.actionButtonBusy {
+  position: relative;
+
+  .actionLabel {
+    visibility: hidden;
+  }
+}
+
+.actionSpinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 // Keyboard/pointer highlight: the Button's own hover look, no size change.
 // Doubled class to outrank Button's .tone-neutral regardless of CSS order.
 .actionButton.actionButtonActive {

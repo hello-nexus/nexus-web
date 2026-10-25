@@ -61,9 +61,10 @@ export function buildPanelFontOptions(
   if (currentFamily && !recentRows.includes(currentFamily)) out.push(systemRow(currentFamily));
   out.push({
     value: '',
-    label: system.status === 'loading' ? labels.loading : system.status === 'empty' ? labels.empty : labels.load,
+    label: system.status === 'empty' ? labels.empty : labels.load,
     onAction: system.onLoad,
     busy: system.status === 'loading',
+    busyLabel: labels.loading,
   });
   return out;
 }
