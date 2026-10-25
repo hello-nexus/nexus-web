@@ -475,6 +475,7 @@ export function Select({
       {open && createPortal(
         <div
           ref={menuRef}
+          data-select-menu="true"
           className={styles.menu}
           style={{
             position: 'fixed',

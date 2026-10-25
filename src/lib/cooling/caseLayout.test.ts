@@ -145,6 +145,16 @@ describe('unlinking past the none cap', () => {
   });
 });
 
+describe('unlinking at the binding cap', () => {
+  it('refuses a marker that would need a binding past the service cap', () => {
+    const full = Array.from({ length: 64 }, (_, i) => ({ channelId: `c${i}`, slotKeys: [`s${i}`] }));
+    expect(linkChannelToSlot(full, '', 'gpu:fan:0')).toEqual(full);
+    // With room for one more binding the marker is stored.
+    const roomy = full.slice(0, 63);
+    expect(linkChannelToSlot(roomy, '', 'gpu:fan:0')).toEqual([...roomy, { channelId: 'none', slotKeys: ['gpu:fan:0'] }]);
+  });
+});
+
 describe('linkChannelToSlot', () => {
   it('adds the slot to the channel, takes it off the device it had, and keeps the channel\'s other slots', () => {
     const start = [{ channelId: 'a', slotKeys: ['s1', 's2'] }, { channelId: 'b', slotKeys: ['s3'] }];

@@ -94,11 +94,11 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   // Bindings as the view shows them: each on the one drawn fan of its mount.
   // A simulated speed being dragged shows in the stats and the particles at once; it is saved once, when the drag ends.
   const [simPreview, setSimPreview] = useState<{ key: string; rpm: number } | null>(null);
-  const bindings = useMemo(() => {
-    const shown = canonOf ? normalizeBindings(effectiveBindings, canonOf) : effectiveBindings;
-    return simPreview ? linkChannelToSlot(shown, simChannelId(simPreview.rpm), simPreview.key, false) : shown;
-  }, [effectiveBindings, canonOf, simPreview]);
+  const savedBindings = useMemo(() => (canonOf ? normalizeBindings(effectiveBindings, canonOf) : effectiveBindings), [effectiveBindings, canonOf]);
+  const bindings = useMemo(() => (simPreview ? linkChannelToSlot(savedBindings, simChannelId(simPreview.rpm), simPreview.key, false) : savedBindings), [savedBindings, simPreview]);
   const [active, setActive] = useState<string | null>(null);
+  // A drag that was never finished must not leave its speed showing once another fan is chosen or the controls close.
+  useEffect(() => { setSimPreview(null); }, [active]);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -308,8 +308,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         {activeSlot && (
           <Popover
             open
-            // A choice in the device list is portaled to the page, so a press there must not close this popover.
-            onClose={e => { if (!(e?.target instanceof Element && e.target.closest('[role="listbox"]'))) setActive(null); }}
+            // The device list's menu (its options, search field and padding) is portaled to the page, so a press or Escape inside it must not close this popover.
+            onClose={e => { if (!(e?.target instanceof Element && e.target.closest('[data-select-menu]'))) setActive(null); }}
             anchorRef={anchorRef}
             portal
             boundsRef={viewportRef}
@@ -333,7 +333,11 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             />
             {activeSimRpm !== null && (
               // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_CEILING} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => setSimPreview({ key: activeSlot.key, rpm: Math.round(v) })} onCommit={v => { linkChannel(simChannelId(Math.round(v)), activeSlot.key); setSimPreview(null); }} />
+              <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_CEILING} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => setSimPreview({ key: activeSlot.key, rpm: Math.round(v) })} onCommit={v => {
+                // A press that changed nothing saves nothing.
+                if (simRpm(channelOfSlot(savedBindings, activeSlot.key) ?? '') !== Math.round(v)) linkChannel(simChannelId(Math.round(v)), activeSlot.key);
+                setSimPreview(null);
+              }} />
             )}
           </Popover>
         )}
