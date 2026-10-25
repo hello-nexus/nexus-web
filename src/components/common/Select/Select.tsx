@@ -69,6 +69,9 @@ export interface SelectOption {
   // Action rows only: a request is in flight; the row shows aria-busy and
   // ignores activation.
   busy?: boolean;
+  // Action rows only: accessible name while busy. The visible label stays in
+  // layout, hidden, so the button keeps its idle size under the spinner.
+  busyLabel?: string;
 }
 
 export interface SelectProps {
@@ -582,6 +585,7 @@ export function Select({
                   aria-selected={!opt.onAction && opt.value === value}
                   aria-disabled={opt.disabled || undefined}
                   aria-busy={opt.busy || undefined}
+                  aria-label={opt.busy && opt.onAction ? (opt.busyLabel ?? opt.label) : undefined}
                   aria-describedby={opt.description && !opt.onAction ? `${optionId(i)}-desc` : undefined}
                   className={classNames(
                     styles.option,
@@ -599,8 +603,8 @@ export function Select({
                   {opt.onAction ? (
                     // The row stays the listbox option (keyboard and aria); the visual is the
                     // shared Button look on a span, since a real button cannot nest in an option.
-                    <span className={classNames(buttonStyles.button, buttonStyles['size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive)}>
-                      {opt.busy && <span aria-hidden="true"><Spinner size={14} /></span>}
+                    <span className={classNames(buttonStyles.button, buttonStyles['size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive, opt.busy && styles.actionButtonBusy)}>
+                      {opt.busy && <span className={styles.actionSpinner} aria-hidden="true"><Spinner size={14} /></span>}
                       <span className={styles.actionLabel}>{opt.label}</span>
                     </span>
                   ) : null}
