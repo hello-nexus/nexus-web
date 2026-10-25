@@ -252,13 +252,33 @@ export function toggleBinding(bindings: readonly FanBinding[], channelId: string
   return [...others, { channelId, slotKeys }].filter(b => b.slotKeys.length > 0);
 }
 
-/** `channelId` drives exactly `slotKey` afterwards: it leaves any other fan, and whatever device this fan had is replaced. An empty `channelId` unlinks the fan. */
+/** Simulated fans: a binding on `sim:<rpm>` groups the slots pinned to that fixed speed, with no device behind them. */
+export const SIM_PREFIX = 'sim:';
+export const SIM_RPM_MIN = 500;
+export const SIM_RPM_MAX = 2500;
+export const SIM_RPM_STEP = 100;
+export const SIM_RPM_DEFAULT = 1500;
+export const MAX_BINDINGS = 64;
+export const simChannelId = (rpm: number): string => `${SIM_PREFIX}${rpm}`;
+export const isSimChannel = (channelId: string): boolean => channelId.startsWith(SIM_PREFIX);
+/** The fixed speed of a simulated channel, or null for anything else. */
+export function simRpm(channelId: string): number | null {
+  const rpm = isSimChannel(channelId) ? Number(channelId.slice(SIM_PREFIX.length)) : NaN;
+  return Number.isFinite(rpm) && rpm > 0 ? rpm : null;
+}
+
+/** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A real device also leaves its other fans; a simulated channel keeps its other slots, since any number can share a speed. A new simulated binding past the service's binding cap changes nothing. An empty `channelId` unlinks the fan. */
 export function linkChannelToSlot(bindings: readonly FanBinding[], channelId: string, slotKey: string): FanBinding[] {
+  const sim = isSimChannel(channelId);
   const rest = bindings
-    .filter(b => b.channelId !== channelId)
+    .filter(b => sim || b.channelId !== channelId)
     .map(b => ({ ...b, slotKeys: b.slotKeys.filter(k => k !== slotKey) }))
     .filter(b => b.slotKeys.length > 0);
-  return channelId === '' ? rest : [...rest, { channelId, slotKeys: [slotKey] }];
+  if (channelId === '') return rest;
+  if (!sim) return [...rest, { channelId, slotKeys: [slotKey] }];
+  const own = rest.find(b => b.channelId === channelId)?.slotKeys ?? [];
+  if (own.length === 0 && rest.length >= MAX_BINDINGS) return [...bindings];
+  return [...rest.filter(b => b.channelId !== channelId), { channelId, slotKeys: [...own, slotKey].slice(-MAX_SLOT_KEYS_PER_BINDING) }];
 }
 
 export const channelOfSlot = (bindings: readonly FanBinding[], slotKey: string): string | null =>

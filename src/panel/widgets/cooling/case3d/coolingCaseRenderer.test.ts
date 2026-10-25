@@ -18,7 +18,8 @@ vi.mock('three', async importOriginal => {
   return { ...actual, WebGLRenderer: FakeRenderer };
 });
 
-import { createCaseRenderer } from './coolingCaseRenderer';
+import { LineBasicMaterial, LineDashedMaterial, Color } from 'three';
+import { createCaseRenderer, ringMaterial } from './coolingCaseRenderer';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],
@@ -36,7 +37,7 @@ describe('createCaseRenderer', () => {
   it('releases the WebGL context before disposing, once per renderer', () => {
     for (let i = 0; i < 20; i++) {
       const r = createCaseRenderer(document.createElement('canvas'), () => {});
-      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), active: null, flow: null, flowOptions: { particles: true, deadZones: false, speed: 1.5 }, model: null });
+      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), active: null, flow: null, flowOptions: { particles: true, deadZones: false, speed: 1.5 }, model: null });
       r.dispose();
     }
     expect(made).toHaveLength(20);
@@ -45,5 +46,15 @@ describe('createCaseRenderer', () => {
       expect(m.dispose).toHaveBeenCalledTimes(1);
       expect(m.calls).toEqual(['forceContextLoss', 'dispose']);
     }
+  });
+});
+
+describe('ringMaterial', () => {
+  it('draws a simulated fan ring dashed and a real one solid', () => {
+    const dashed = ringMaterial(new Color('#fff'), 1, 40, true);
+    expect(dashed).toBeInstanceOf(LineDashedMaterial);
+    expect((dashed as LineDashedMaterial).dashSize).toBeGreaterThan(0);
+    expect(ringMaterial(new Color('#fff'), 1, 40, false)).toBeInstanceOf(LineBasicMaterial);
+    expect(ringMaterial(new Color('#fff'), 1, 40, false)).not.toBeInstanceOf(LineDashedMaterial);
   });
 });
