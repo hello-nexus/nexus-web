@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import type { CoolingLayout } from '../../../../api/coolingLayout';
@@ -224,7 +224,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.layout.fanSlots).toHaveLength(2);
     expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
-    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, speed: 1.5 });
+    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, speed: 1 });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -248,12 +248,46 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().flow.directions['front:120:0']).toBe('exhaust');
   });
 
-  it('toggles particles, with no dead zones control', () => {
+  it('has no dead zones control, no speed slider, and a fixed 1x speed', () => {
     mountReady();
     expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.deadZones' })).toBeNull();
-    expect(lastState().flowOptions.deadZones).toBe(false);
-    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.particles' }));
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(lastState().flowOptions).toEqual({ particles: true, deadZones: false, speed: 1 });
+  });
+
+  it('slow mo scales the particle step to a quarter without re-solving', () => {
+    mountReady();
+    const flow = lastState().flow;
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
+    expect(lastState().flowOptions.speed).toBe(0.25);
+    expect(lastState().flow).toBe(flow);
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
+    expect(lastState().flowOptions.speed).toBe(1);
+  });
+
+  it('switches between case and airflow, and reports the choice to be remembered', () => {
+    const onMode = vi.fn();
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} onFlowModeChange={onMode} />);
+    expect(lastState().showCase).toBe(true);
+    expect(lastState().flowOptions.particles).toBe(true);
+    const pick = (name: string) => fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText(name));
+    pick('cooling.case3d.flow.mode.case');
+    expect(lastState().showCase).toBe(true);
     expect(lastState().flowOptions.particles).toBe(false);
+    expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.slowMo' })).toBeNull();
+    pick('cooling.case3d.flow.mode.airflow');
+    expect(lastState().showCase).toBe(false);
+    expect(lastState().flowOptions.particles).toBe(true);
+    expect(onMode).toHaveBeenLastCalledWith('airflow');
+  });
+
+  it('opens in the remembered mode', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} flowMode="airflow" />);
+    expect(lastState().showCase).toBe(false);
   });
 
   it('labels the legend cooler and warmer, with no degrees', () => {

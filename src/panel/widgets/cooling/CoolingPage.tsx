@@ -2031,6 +2031,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 channels={channels}
                 selectedChannelId={selectedFanIds.size === 1 ? [...selectedFanIds][0] : null}
                 selectedChannelIds={[...selectedFanIds]}
+                flowMode={settings.coolingFlowMode}
+                onFlowModeChange={mode => updateUi({ coolingFlowMode: mode })}
                 onSelectChannel={id => setSelectedFanIds(new Set([id]))}
                 onClearSelection={() => setSelectedFanIds(new Set())}
               />

@@ -18,6 +18,8 @@ export interface CaseSceneState {
   highlighted: ReadonlySet<string>;
   /** Slots bound to any channel. */
   bound: ReadonlySet<string>;
+  /** False hides the case, the fans and their picking, leaving only the airflow layer. */
+  showCase: boolean;
   /** Slots bound to a simulated fan: their rings are drawn dashed. */
   simulated: ReadonlySet<string>;
   /** The slot whose direction control is open. */
@@ -106,12 +108,20 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let modelStyle: { dispose: () => void } | null = null;
   let disposed = false;
 
+  let showCase = true;
+  // The generic outline stands in only while no model is drawn.
+  const applyCaseVisibility = () => {
+    staticGroup.visible = showCase && !modelGroup;
+    if (modelGroup) modelGroup.visible = showCase;
+    fanGroup.visible = showCase;
+  };
+
   const clearModel = () => {
     if (modelGroup) scene.remove(modelGroup);
     modelStyle?.dispose();
     modelGroup = null;
     modelStyle = null;
-    staticGroup.visible = true;
+    applyCaseVisibility();
   };
 
   // The model sits in scene space as Build baked it; the inverse of that bake puts it in the layout's own frame, where the fans and the solver are.
@@ -138,7 +148,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     modelStyle = styleCaseModel(parsed, token_('--text-dim', '#8a93a6'), token_('--text-dim', '#8a93a6'));
     modelGroup = holder;
     scene.add(holder);
-    staticGroup.visible = false;
+    applyCaseVisibility();
     requestRender();
   };
   const token_ = (name: string, fallback: string) => token(canvas, name, fallback);
@@ -292,7 +302,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     raycaster.setFromCamera(new Vector2((x / rect.width) * 2 - 1, -(y / rect.height) * 2 + 1), camera);
-    const hit = raycaster.intersectObjects(hitMeshes, false)[0];
+    const hit = showCase ? raycaster.intersectObjects(hitMeshes, false)[0] : undefined;
     onPick(typeof hit?.object.userData.slotKey === 'string' ? hit.object.userData.slotKey : null, x, y);
   };
   canvas.addEventListener('pointerdown', onDown);
@@ -322,6 +332,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         };
         flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
       }
+      showCase = state.showCase;
+      applyCaseVisibility();
       buildFans(state);
       if (state.model !== modelBytes || (modelFor !== state.layout && state.model)) void showModel(state.model, state.layout);
       flowLayer?.setOptions(state.flowOptions);
