@@ -11,6 +11,7 @@ import {
 import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
 import { LianLiChainEffectControls, effectLabel, type LianLiEffectValue } from './LianLiChainEffectControls';
 import { numberDuplicateTitles } from './lianliChainUtils';
+import { isP28Chain } from './LianLiWirelessLightingTab';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
 
@@ -93,7 +94,7 @@ export function useLianLiFlexSync(active: boolean, onWritten?: () => void): Lian
 
 /** A unit under Lighting-page control or on Per zone loses that state when sync takes the fans. */
 export const syncReplacesState = (chains: readonly LianLiWirelessChainLighting[]): boolean =>
-  chains.some(c => c.mode === 'custom' || c.mode === 'perZone');
+  chains.some(c => !isP28Chain(c, true) && (c.mode === 'custom' || c.mode === 'perZone'));
 
 /** Whether the group is synced: every fan then follows the shared look. */
 export const isSyncOn = (sync: LianLiFlexSyncState): boolean => !!sync.data && sync.data.members.length > 1 && sync.data.enabled;

@@ -7,7 +7,7 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveTheme, currentAccentColor } from '../../../lib/settings';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
-import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
+import { buildFpsSignatureParams, primaryGpuCard } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
 import { PC_SETUP_TOPIC } from '../../../api/pcSetup';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -348,7 +348,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
     const sig = buildFpsSignatureParams(specs);
     return {
       processor: specs.processor || undefined,
-      primaryGpu: primaryGpuModel(specs),
+      primaryGpu: primaryGpuCard(specs),
       memory: specs.memory || undefined,
       motherboard: specs.motherboard || undefined,
       storage: specs.storage || undefined,
