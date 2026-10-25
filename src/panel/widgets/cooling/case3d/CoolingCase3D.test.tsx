@@ -252,7 +252,7 @@ describe('CoolingCase3D airflow controls', () => {
     mountReady();
     expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.deadZones' })).toBeNull();
     expect(screen.queryByRole('slider')).toBeNull();
-    expect(lastState().flowOptions).toEqual({ particles: true, deadZones: false, speed: 1 });
+    expect(lastState().flowOptions).toEqual({ particles: true, deadZones: false, collisions: false, speed: 1 });
   });
 
   it('slow mo scales the particle step to a quarter without re-solving', () => {
@@ -618,6 +618,9 @@ describe('CoolingCase3D selection highlight', () => {
     reselect([]);
     expect(lit()).toEqual([]);
     expect(lastState().flow).toBe(flow);
+  });
+});
+
 describe('CoolingCase3D idle re-solves', () => {
   const chans = (rpm: [number, number, number]) => [
     { id: 'fan-a', name: 'Fan A', rpm: rpm[0], dutyPercent: 30, maxRpm: 1500 },

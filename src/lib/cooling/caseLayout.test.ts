@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  channelOfSlot, linkChannelToSlot, simRpm, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
+  channelOfSlot, linkChannelToSlot, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
   type CaseLayout,
 } from './caseLayout';
 
@@ -193,12 +193,6 @@ describe('linkChannelToSlot with simulated fans', () => {
     expect(linkChannelToSlot(start, 'a', 's1')).toEqual([{ channelId: 'sim:1000', slotKeys: ['s2'] }, { channelId: 'a', slotKeys: ['s1'] }]);
   });
 
-  it('reads the fixed speed off a simulated channel id', () => {
-    expect(simRpm('sim:1500')).toBe(1500);
-    expect(simRpm('sim:0')).toBe(0);
-    expect(simRpm('fan-a')).toBeNull();
-    expect(simRpm('sim:abc')).toBeNull();
-  });
 
   it('regroups a slot by speed, dropping the emptied group and capping new groups at the service limit', () => {
     const start = [{ channelId: 'sim:1000', slotKeys: ['s1'] }];

@@ -264,12 +264,6 @@ export const SIM_RPM_DEFAULT = 1500;
 export const MAX_BINDINGS = 64;
 export const simChannelId = (rpm: number): string => `${SIM_PREFIX}${rpm}`;
 export const isSimChannel = (channelId: string): boolean => channelId.startsWith(SIM_PREFIX);
-/** The fixed speed of a simulated channel, or null for anything else. */
-export function simRpm(channelId: string): number | null {
-  const rpm = isSimChannel(channelId) ? Number(channelId.slice(SIM_PREFIX.length)) : NaN;
-  return Number.isFinite(rpm) && rpm >= 0 ? rpm : null;
-}
-
 /** The binding that marks a GPU fan slot as deliberately unlinked, so a derived default stays off it. */
 export const NONE_CHANNEL = 'none';
 export const isGpuSlot = (slotKey: string): boolean => slotKey.startsWith('gpu:');
