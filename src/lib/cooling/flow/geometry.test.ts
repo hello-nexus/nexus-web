@@ -292,3 +292,29 @@ describe('AIO radiator fans', () => {
     expect(y70([{ ...cooler, fans: { axis: 'x', side: 'min', count: 1, diameter: 114 } }]).fanSlots.some(s => s.key.startsWith('rad:'))).toBe(false);
   });
 });
+
+describe('GPU fans with per-fan sizes and faces', () => {
+  const slotsOf = (fans: Record<string, unknown>) => y70([{ ...horizontalGpu, fans: { ...horizontalGpu.fans, ...fans } }]).fanSlots.filter(s => s.position === 'gpu');
+  const centreX = (s: { box?: { min: number[]; size: number[] } }) => s.box!.min[0] + s.box!.size[0] / 2;
+
+  it('packs a larger centre fan from the bracket end, as Build draws it', () => {
+    const slots = slotsOf({ sizes: [80, 100, 80] });
+    expect(slots.map(s => s.size)).toEqual([86, 106, 86]);
+    // Card 150..450 along x: offsets 65, 160 and 255 from the max end.
+    expect(slots.map(centreX)).toEqual([385, 290, 195]);
+    expect(slots.every(s => s.axis?.join() === '0,1,0')).toBe(true);
+  });
+
+  it('puts a backplate fan on the opposite face, drawing air the other way', () => {
+    const slots = slotsOf({ sizes: [80, 100, 100], faces: ['cooler', 'cooler', 'backplate'] });
+    expect(slots.map(s => s.axis?.join())).toEqual(['0,1,0', '0,1,0', '0,-1,0']);
+  });
+
+  it('ignores lists that do not match the fan count or hold a bad entry, and keeps the even spread', () => {
+    for (const bad of [{ sizes: [80, 100] }, { sizes: [80, 'x', 80] }, { faces: ['cooler', 'cooler'] }, { faces: ['cooler', 'top', 'cooler'] }]) {
+      const slots = slotsOf(bad);
+      expect(slots.map(centreX)).toEqual([200, 300, 400]);
+      expect(slots.every(s => s.size === 96 && s.axis?.join() === '0,1,0')).toBe(true);
+    }
+  });
+});

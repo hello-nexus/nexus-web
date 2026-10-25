@@ -35,7 +35,7 @@ export interface CaseBox {
   size: Vec3;
   select?: string;
   rotationY?: number;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[] };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -112,6 +112,14 @@ function poly2(v: unknown): [number, number][] | null {
   return out;
 }
 
+/** Per-fan ring diameters and faces; each list is kept only when it is entirely valid and matches the fan count. */
+function ringLists(fans: Record<string, unknown>): { sizes?: number[]; faces?: ('cooler' | 'backplate')[] } {
+  const count = finite(fans.count) ? fans.count : 0;
+  const sizes = Array.isArray(fans.sizes) && fans.sizes.length === count && fans.sizes.every(n => finite(n) && n > 0 && n <= MAX_DIM_MM) ? (fans.sizes as number[]) : undefined;
+  const faces = Array.isArray(fans.faces) && fans.faces.length === count && fans.faces.every(f => f === 'cooler' || f === 'backplate') ? (fans.faces as ('cooler' | 'backplate')[]) : undefined;
+  return { ...(sizes ? { sizes } : {}), ...(faces ? { faces } : {}) };
+}
+
 function parseShapes(b: Record<string, unknown>, box: CaseBox) {
   if (Array.isArray(b.chamfers)) {
     const cuts: CaseChamfer[] = [];
@@ -162,7 +170,7 @@ function parseBox(raw: unknown): CaseBox | null {
   if (finite(b.rotationY)) box.rotationY = b.rotationY;
   const fans = b.fans as Record<string, unknown> | undefined;
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
-    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}) };
+    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...ringLists(fans) };
   }
   parseShapes(b, box);
   return box;
