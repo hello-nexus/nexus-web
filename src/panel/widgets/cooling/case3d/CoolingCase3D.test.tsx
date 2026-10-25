@@ -11,11 +11,13 @@ const h = vi.hoisted(() => ({
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   devTools: true,
+  patch: vi.fn(),
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
   renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
 vi.mock('../../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
+vi.mock('../../../../api/pcSetup', async importOriginal => ({ ...(await importOriginal<typeof import('../../../../api/pcSetup')>()), patchPcSetupRadiator: (...args: unknown[]) => h.patch(...args) }));
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
 vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: () => h.model }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
@@ -57,6 +59,7 @@ beforeEach(() => {
   h.setup = { record: null, loaded: false };
   h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
   h.renderers.length = 0;
+  h.patch = vi.fn();
   h.devTools = true;
   h.flowSupported = true;
   h.model = { bytes: null, settled: true };
@@ -232,7 +235,7 @@ describe('CoolingCase3D radiator fans', () => {
         objects: [],
         caseLayout: {
           size: [450, 230, 470],
-          boxes: [],
+          boxes: [{ slot: 'cooler', role: 'part', min: [60, 400, 40], size: [360, 52, 120], fans: { axis: 'y', side: 'min', count: 3, diameter: 114, bothSides: true } }],
           fanSlots: [{ key: 'top:360:0', position: 'top', size: 360, index: 0, taken: 'radiator', box: { min: [60, 400, 40], size: [360, 52, 120] }, axis: [0, -1, 0], radiator: { fanCount: 3 } }],
         },
       },
@@ -241,17 +244,84 @@ describe('CoolingCase3D radiator fans', () => {
   const base = (bindings: CoolingLayout['bindings']): CoolingLayout => ({ directions: {}, bindings, tests: [] });
 
   it('stores the none marker when the second fan of a radiator is unlinked, and leaves the first fan on its device', () => {
-    const start = [{ channelId: 'fan-a', slotKeys: ['top:360:0'] }, { channelId: 'fan-b', slotKeys: ['top:360:0#1'] }];
+    const start = [{ channelId: 'fan-a', slotKeys: ['rad:0'] }, { channelId: 'fan-b', slotKeys: ['rad:1'] }];
     h.setup = { record: radiatorRecord(), loaded: true };
     setLayout({ settled: true, layout: base(start) });
     render(ui());
-    act(() => h.pick.current?.('top:360:0#1', 10, 10));
+    act(() => h.pick.current?.('rad:1', 10, 10));
     fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
     fireEvent.click(screen.getByRole('option', { name: /cooling\.case3d\.noneLinked/ }));
     const next = (h.layout.edit.mock.calls.at(-1)![0] as (l: CoolingLayout) => CoolingLayout)(base(start)).bindings;
-    expect(next).toContainEqual({ channelId: 'none', slotKeys: ['top:360:0#1'] });
-    expect(next).toContainEqual({ channelId: 'fan-a', slotKeys: ['top:360:0'] });
+    expect(next).toContainEqual({ channelId: 'none', slotKeys: ['rad:1'] });
+    expect(next).toContainEqual({ channelId: 'fan-a', slotKeys: ['rad:0'] });
     expect(next.some(b => b.channelId === 'fan-b')).toBe(false);
+  });
+});
+
+describe('CoolingCase3D radiator position', () => {
+  const topBox = { slot: 'cooler', role: 'part', min: [60, 400, 40], size: [360, 52, 120], fans: { axis: 'y', side: 'min', count: 3, diameter: 114, bothSides: true } };
+  const rightBox = { slot: 'cooler', role: 'part', min: [20, 60, 250], size: [120, 360, 52], fans: { axis: 'z', side: 'min', count: 3, diameter: 114, bothSides: true } };
+  const slots = (taken: 'radiator' | null, key: string) => ({ key, position: key.split(':')[0], size: 120, index: 0, taken, box: { min: [0, 0, 0], size: [10, 10, 10] }, axis: [0, -1, 0] });
+  const radiatorRecord = (rev = 4) => ({
+    rev,
+    setup: {
+      version: 1, case: {}, items: [],
+      resolved: {
+        objects: [],
+        caseLayout: {
+          size: [450, 230, 470],
+          boxes: [topBox],
+          fanSlots: [slots('radiator', 'top:120:0'), slots(null, 'right:120:0')],
+          radiatorMount: 'top',
+          radiatorOptions: [
+            { mount: 'top', box: topBox, radiator: ['top:120:0'], fans: [] },
+            { mount: 'right', box: rightBox, radiator: ['right:120:0'], fans: [] },
+          ],
+        },
+      },
+    },
+  });
+  const open = () => {
+    h.setup = { record: radiatorRecord(), loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    act(() => h.pick.current?.('rad:0', 10, 10));
+  };
+
+  it('offers the options on a radiator fan only', () => {
+    open();
+    expect(screen.getByRole('radio', { name: 'cooling.case3d.position.right' })).toBeTruthy();
+    act(() => h.pick.current?.(null, 0, 0));
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.queryByRole('radio', { name: 'cooling.case3d.position.right' })).toBeNull();
+  });
+
+  it('sends the record rev and the mount, and moves the view before the service pings', async () => {
+    h.patch.mockResolvedValue({ kind: 'saved', rev: 5 });
+    open();
+    fireEvent.click(screen.getByRole('radio', { name: 'cooling.case3d.position.right' }));
+    expect(h.patch).toHaveBeenCalledWith(4, 'right');
+    expect(lastState().layout.radiatorMount).toBe('right');
+    await act(async () => {});
+    expect(lastState().layout.radiatorMount).toBe('right');
+  });
+
+  it('retries once on a stale rev with the returned rev', async () => {
+    h.patch.mockResolvedValueOnce({ kind: 'conflict', record: radiatorRecord(9) }).mockResolvedValueOnce({ kind: 'saved', rev: 10 });
+    open();
+    fireEvent.click(screen.getByRole('radio', { name: 'cooling.case3d.position.right' }));
+    await act(async () => {});
+    expect(h.patch.mock.calls).toEqual([[4, 'right'], [9, 'right']]);
+    expect(screen.queryByText('cooling.case3d.radiator.error')).toBeNull();
+  });
+
+  it('reverts the view and shows an error when the write fails', async () => {
+    h.patch.mockResolvedValue({ kind: 'unreachable' });
+    open();
+    fireEvent.click(screen.getByRole('radio', { name: 'cooling.case3d.position.right' }));
+    await act(async () => {});
+    expect(screen.getByText('cooling.case3d.radiator.error')).toBeTruthy();
+    expect(lastState().layout.radiatorMount).toBe('top');
   });
 });
 

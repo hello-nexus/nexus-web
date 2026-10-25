@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "Ausgeglichener Druck",
   "cooling.case3d.pressure.negative": "Unterdruck",
   "cooling.case3d.pressure.positive": "Überdruck",
+  "cooling.case3d.radiator.error": "Der Radiator konnte nicht verschoben werden. Versuchen Sie es erneut.",
+  "cooling.case3d.radiator.label": "Position des Radiators",
   "cooling.case3d.sim.fan": "Simulierter Lüfter",
   "cooling.case3d.sim.group": "Simuliert",
   "cooling.case3d.sim.rpm": "{value} RPM",

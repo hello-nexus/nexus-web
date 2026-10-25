@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import t1State from './__fixtures__/t1-cooling-state.json';
+import y70Layout from './__fixtures__/y70-case-layout.json';
 import {
-  linkChannelToSlot, withBoundFans, defaultDirection, fanGeometries, parseCaseLayout, withDirection,
+  collapseMounts, linkChannelToSlot, withBoundFans, defaultDirection, fanGeometries, parseCaseLayout, withDirection,
   type CaseLayout, type FanBinding,
 } from './caseLayout';
+import { slotDirections, slotSpeeds, withDefaultBindings } from './slotFlow';
+import { slotModelFans } from './fanSpecs';
 
 const valid = {
   size: [450, 230, 470],
@@ -216,5 +220,151 @@ describe('linkChannelToSlot on a GPU slot', () => {
     const marked = [{ channelId: 'none', slotKeys: ['gpu:fan:0', 'gpu:fan:1'] }];
     expect(linkChannelToSlot(marked, 'gpu-a', 'gpu:fan:0')).toEqual([{ channelId: 'none', slotKeys: ['gpu:fan:1'] }, { channelId: 'gpu-a', slotKeys: ['gpu:fan:0'] }]);
     expect(linkChannelToSlot(marked, 'sim:900', 'gpu:fan:1')).toEqual([{ channelId: 'none', slotKeys: ['gpu:fan:0'] }, { channelId: 'sim:900', slotKeys: ['gpu:fan:1'] }]);
+  });
+});
+
+describe('radiator fan slots', () => {
+  const t1 = t1State as { caseLayout: unknown };
+  const layout = parseCaseLayout(t1.caseLayout) as CaseLayout;
+  const radFans = (l: CaseLayout) => l.fanSlots.filter(s => s.key.startsWith('rad:'));
+
+  it('keys the T1 360 as rad:0..2, three fans, and gives the covered case slots none', () => {
+    expect(radFans(layout).map(s => s.key)).toEqual(['rad:0', 'rad:1', 'rad:2']);
+    expect(radFans(layout).every(s => s.position === 'top' && s.taken === 'fan')).toBe(true);
+    expect(fanGeometries(layout).filter(g => g.slot.key.startsWith('rad:'))).toHaveLength(3);
+    const covered = layout.fanSlots.filter(s => s.taken === 'radiator');
+    expect(covered.length).toBeGreaterThan(0);
+    expect(covered.flatMap(s => slotModelFans(s, []))).toEqual([]);
+    expect(fanGeometries(layout).some(g => g.slot.taken === 'radiator')).toBe(false);
+    expect(layout.fanSlots.flatMap(s => slotModelFans(s, [])).filter(f => f.key.startsWith('rad:'))).toHaveLength(3);
+  });
+
+  it('still gives three fans when each covered slot states a fan count of 3', () => {
+    const raw = t1.caseLayout as { fanSlots: { taken: string; radiator?: object }[] };
+    const stated = { ...raw, fanSlots: raw.fanSlots.map(s => (s.taken === 'radiator' ? { ...s, radiator: { ...s.radiator, fanCount: 3 } } : s)) };
+    const l = parseCaseLayout(stated) as CaseLayout;
+    expect(radFans(l)).toHaveLength(3);
+    expect(l.fanSlots.flatMap(s => slotModelFans(s, [])).filter(f => f.key.startsWith('rad:'))).toHaveLength(3);
+  });
+
+  it('carries the covered slots\' radiator spec and defaults the direction by position', () => {
+    expect(radFans(layout)[0].fan).toMatchObject({ airflowCfm: 90.1, staticPressureMmH2O: 3.97, rpmMax: 2600 });
+    expect(slotDirections(radFans(layout), {})).toEqual({ 'rad:0': 'exhaust', 'rad:1': 'exhaust', 'rad:2': 'exhaust' });
+  });
+
+  it('lands the default AIO bindings on rad:N', () => {
+    const out = withDefaultBindings([], layout.fanSlots, [{ id: 'aio', isAio: true, isGpu: false, kind: 'Fan' }]);
+    expect(out).toEqual([{ channelId: 'aio', slotKeys: ['rad:0', 'rad:1', 'rad:2'] }]);
+  });
+
+  it('never collapses a rad: slot into a case slot, nor the other way round', () => {
+    const { layout: out, canonOf } = collapseMounts(layout, []);
+    expect(radFans(out).map(s => s.key)).toEqual(['rad:0', 'rad:1', 'rad:2']);
+    expect(canonOf('rad:1')).toBe('rad:1');
+  });
+});
+
+describe('radiator mount choice', () => {
+  const y70 = y70Layout as unknown as { boxes: unknown[]; fanSlots: { key: string }[] };
+  const topBox = { slot: 'cooler', role: 'part', min: [73, 422.9, 58], size: [360, 52, 120], fans: { axis: 'y', side: 'min', count: 3, diameter: 114, bothSides: true } };
+  const rightBox = { slot: 'cooler', role: 'part', min: [27, 69, 245.2], size: [120, 360, 52], fans: { axis: 'z', side: 'min', count: 3, diameter: 114, bothSides: true } };
+  const topKeys = ['top:120:0', 'top:120:1', 'top:120:2'];
+  const rightKeys = ['right:120:0', 'right:120:1', 'right:120:2'];
+  const spec = { title: 'AIO 360', fanAirflowCfm: 70, fanStaticPressureMmH2O: 2.5, fanRpmMax: 2000 };
+  const record = (mount: 'top' | 'right') => ({
+    ...y70,
+    boxes: [...y70.boxes, mount === 'top' ? topBox : rightBox],
+    fanSlots: y70.fanSlots.map(s => ({ ...s, taken: (mount === 'top' ? topKeys : rightKeys).includes(s.key) ? 'radiator' : null, ...(topKeys.includes(s.key) || rightKeys.includes(s.key) ? { radiator: spec } : {}) })),
+    radiatorMount: mount,
+    radiatorOptions: [
+      { mount: 'top', box: topBox, radiator: topKeys, fans: [] },
+      { mount: 'right', box: rightBox, radiator: rightKeys, fans: ['top:120:0'] },
+    ],
+  });
+  const slot = (l: CaseLayout, key: string) => l.fanSlots.find(s => s.key === key);
+
+  it('leaves the record as resolved without a choice or when the choice is its own mount', () => {
+    for (const choice of [undefined, null, 'top', 'bogus']) {
+      const l = parseCaseLayout(record('top'), choice) as CaseLayout;
+      expect(l.radiatorMount).toBe('top');
+      expect(l.radiatorMove).toBeUndefined();
+      expect(topKeys.every(k => slot(l, k)?.taken === 'radiator')).toBe(true);
+    }
+    expect((parseCaseLayout(record('top')) as CaseLayout).radiatorOptions?.map(o => o.mount)).toEqual(['top', 'right']);
+  });
+
+  it('moves the radiator to the right: covers right slots, sets top slots per option.fans, puts rad:N on the right as intake', () => {
+    const l = parseCaseLayout(record('top'), 'right') as CaseLayout;
+    expect(l.radiatorMount).toBe('right');
+    expect(rightKeys.every(k => slot(l, k)?.taken === 'radiator')).toBe(true);
+    expect(slot(l, 'top:120:0')?.taken).toBe('fan');
+    expect(slot(l, 'top:120:1')?.taken).toBeNull();
+    expect(slot(l, 'top:120:2')?.taken).toBeNull();
+    const rad = l.fanSlots.filter(s => s.key.startsWith('rad:'));
+    expect(rad.map(s => s.key)).toEqual(['rad:0', 'rad:1', 'rad:2']);
+    expect(rad.every(s => s.position === 'right' && s.axis?.join() === '0,0,-1')).toBe(true);
+    expect(slotDirections(rad, {})).toEqual({ 'rad:0': 'intake', 'rad:1': 'intake', 'rad:2': 'intake' });
+    expect(rad[0].fan).toMatchObject({ airflowCfm: 70 });
+    expect(l.radiatorMove).toEqual({ from: expect.objectContaining({ min: topBox.min }), to: expect.objectContaining({ min: rightBox.min }) });
+  });
+
+  it('keeps rad:N bindings and drives nothing from a binding on a covered case slot', () => {
+    const l = parseCaseLayout(record('top'), 'right') as CaseLayout;
+    const bindings = [{ channelId: 'aio', slotKeys: ['rad:0', 'rad:1'] }, { channelId: 'fan-9', slotKeys: ['right:120:1'] }];
+    const effective = withDefaultBindings(bindings, l.fanSlots, []);
+    expect(effective.find(b => b.channelId === 'aio')?.slotKeys).toEqual(['rad:0', 'rad:1']);
+    const speeds = slotSpeeds(l.fanSlots, bindings, [{ id: 'aio', rpm: 1000, dutyPercent: 50 }, { id: 'fan-9', rpm: 1000, dutyPercent: 50 }]);
+    expect(speeds.has('right:120:1')).toBe(false);
+    expect(speeds.has('rad:1')).toBe(true);
+    expect(l.fanSlots.flatMap(s => slotModelFans(s, [])).map(f => f.key).filter(k => k.startsWith('right:'))).toEqual([]);
+  });
+
+  it('drops malformed options and shows none below two', () => {
+    const raw = record('top');
+    expect((parseCaseLayout({ ...raw, radiatorOptions: [raw.radiatorOptions[0], { mount: 'right' }] }) as CaseLayout).radiatorOptions).toBeUndefined();
+  });
+
+  it('reads the radiator spec, not the fan spec, from a covered slot that carries both', () => {
+    const base = record('top');
+    const both = { ...base, fanSlots: base.fanSlots.map(s => (topKeys.includes(s.key) ? { ...s, fan: { rpmMax: 999, airflowCfm: 11 }, radiator: { ...spec } } : s)) };
+    const l = parseCaseLayout(both) as CaseLayout;
+    const rad = l.fanSlots.filter(s => s.key.startsWith('rad:'));
+    expect(rad.every(s => s.fan?.rpmMax === 2000 && s.fan?.airflowCfm === 70)).toBe(true);
+    const moved = parseCaseLayout(both, 'right') as CaseLayout;
+    expect(moved.fanSlots.find(s => s.key === 'top:120:0')?.taken).toBe('fan');
+    const covered = moved.fanSlots.find(s => s.key === 'right:120:0')!;
+    expect(covered.taken).toBe('radiator');
+    const speeds = slotSpeeds([{ ...covered, fan: { rpmMax: 999 }, radiator: { fanRpmMax: 2000 } }, ...moved.fanSlots.filter(s => s.key.startsWith('rad:'))], [{ channelId: 'aio', slotKeys: ['rad:0', 'right:120:0'] }], [{ id: 'aio', rpm: 1000, dutyPercent: 50 }]);
+    expect(speeds.get('rad:0')?.fraction).toBeCloseTo(0.5);
+    expect(speeds.has('right:120:0')).toBe(false);
+  });
+
+  it('gives a fanless radiator no rad:N slots, and still moves it', () => {
+    const bare = { slot: topBox.slot, role: topBox.role, min: topBox.min, size: topBox.size };
+    const bareRight = { slot: rightBox.slot, role: rightBox.role, min: rightBox.min, size: rightBox.size };
+    const raw = { ...record('top'), boxes: [...y70.boxes, bare], radiatorOptions: [{ mount: 'top', box: bare, radiator: topKeys, fans: [] }, { mount: 'right', box: bareRight, radiator: rightKeys, fans: [] }] };
+    const l = parseCaseLayout(raw) as CaseLayout;
+    expect(l.fanSlots.some(s => s.key.startsWith('rad:'))).toBe(false);
+    const moved = parseCaseLayout(raw, 'right') as CaseLayout;
+    expect(moved.radiatorMove?.to.min).toEqual(rightBox.min);
+    expect(rightKeys.every(k => slot(moved, k)?.taken === 'radiator')).toBe(true);
+    expect(moved.fanSlots.some(s => s.key.startsWith('rad:'))).toBe(false);
+  });
+
+  it('keeps one rad:N per face position for a push-pull radiator, whatever the maker total', () => {
+    const base = record('top');
+    const pushPull = { ...base, fanSlots: base.fanSlots.map(s => (topKeys.includes(s.key) ? { ...s, radiator: { ...spec, fanCount: 6 } } : s)) };
+    const l = parseCaseLayout(pushPull) as CaseLayout;
+    expect(l.fanSlots.filter(s => s.key.startsWith('rad:'))).toHaveLength(3);
+    const single = { slot: 'cooler', role: 'part', min: [73, 422.9, 58], size: [120, 52, 120], fans: { axis: 'y', side: 'min', count: 1, diameter: 114, bothSides: true } };
+    const two = parseCaseLayout({ ...base, boxes: [...y70.boxes, single], fanSlots: base.fanSlots.map(s => (s.key === 'top:120:0' ? { ...s, radiator: { ...spec, fanCount: 2 } } : s)), radiatorOptions: undefined }) as CaseLayout;
+    expect(two.fanSlots.filter(s => s.key.startsWith('rad:')).map(s => s.key)).toEqual(['rad:0']);
+  });
+
+  it('sums the static pressure of a push-pull position, whose maker total is twice the fans per face', () => {
+    const base = record('top');
+    const withTotal = (fanCount: number) => (parseCaseLayout({ ...base, fanSlots: base.fanSlots.map(s => (topKeys.includes(s.key) ? { ...s, radiator: { ...spec, fanCount } } : s)) }) as CaseLayout).fanSlots.find(s => s.key === 'rad:0')?.fan;
+    expect(withTotal(3)).toMatchObject({ airflowCfm: 70, staticPressureMmH2O: 2.5 });
+    expect(withTotal(6)).toMatchObject({ airflowCfm: 70, staticPressureMmH2O: 5 });
   });
 });

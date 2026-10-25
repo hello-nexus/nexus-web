@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "Zrównoważone ciśnienie",
   "cooling.case3d.pressure.negative": "Podciśnienie",
   "cooling.case3d.pressure.positive": "Nadciśnienie",
+  "cooling.case3d.radiator.error": "Nie udało się przenieść chłodnicy. Spróbuj ponownie.",
+  "cooling.case3d.radiator.label": "Położenie chłodnicy",
   "cooling.case3d.sim.fan": "Symulowany wentylator",
   "cooling.case3d.sim.group": "Symulowane",
   "cooling.case3d.sim.rpm": "{value} RPM",

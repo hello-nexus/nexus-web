@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "バランスのとれた圧力",
   "cooling.case3d.pressure.negative": "負圧",
   "cooling.case3d.pressure.positive": "正圧",
+  "cooling.case3d.radiator.error": "ラジエーターを移動できませんでした。もう一度お試しください。",
+  "cooling.case3d.radiator.label": "ラジエーターの位置",
   "cooling.case3d.sim.fan": "シミュレーションファン",
   "cooling.case3d.sim.group": "シミュレーション",
   "cooling.case3d.sim.rpm": "{value} RPM",

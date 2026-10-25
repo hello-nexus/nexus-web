@@ -12,6 +12,7 @@ import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoToolt
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
+import { patchPcSetupRadiator } from '../../../../api/pcSetup';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE, type CoolingFlowMode } from '../../../../lib/settings';
 import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
@@ -81,7 +82,14 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
   // Parsed once per distinct layout: a setup ping that changes nothing here keeps the same object, so the scene and camera stay.
   const layoutText = JSON.stringify(record?.setup.resolved.caseLayout ?? null);
-  const parsedLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText)), [layoutText]);
+  // A radiator move shows at once from a local pending mount; the saved record takes over once it carries the write.
+  const [pendingMove, setPendingMove] = useState<{ mount: string; rev: number | null } | null>(null);
+  const [moveFailed, setMoveFailed] = useState(false);
+  const mountChoice = pendingMove?.mount ?? record?.setup.case?.radiatorMount ?? null;
+  const parsedLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText), mountChoice), [layoutText, mountChoice]);
+  useEffect(() => {
+    if (pendingMove?.rev != null && record && record.rev >= pendingMove.rev) setPendingMove(null);
+  }, [record, pendingMove]);
   // The stored bindings plus the derived default for each GPU fan and AIO radiator slot; the stored layout never carries the default.
   const storedBindings = coolingLayout.bindings;
   const effectiveBindings = useMemo(() => withDefaultBindings(storedBindings, parsedLayout?.fanSlots ?? [], channels), [storedBindings, parsedLayout, channels]);
@@ -157,7 +165,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   // Settled in the same render the raw flows arrive, so the scene never sees a stale set of fans for one frame and re-solves twice.
   const effectiveFlow = rawFlow ? (settledFlow ? settleFlows(settledFlow, rawFlow) : rawFlow) : null;
   useEffect(() => { setSettledFlow(effectiveFlow); }, [effectiveFlow]);
-  const flowKey = effectiveFlow ? JSON.stringify([layoutText, boundKeyText, directions, effectiveFlow]) : '';
+  const flowKey = effectiveFlow ? JSON.stringify([layoutText, mountChoice, boundKeyText, directions, effectiveFlow]) : '';
   const flowInput = useMemo<FlowInput | null>(() => {
     if (!caseLayout || !effectiveFlow || flowKey === '') return null;
     const { [VENT_KEY]: ventCfm = 0, [REF_KEY]: referenceCfm, ...fanCfm } = effectiveFlow;
@@ -185,12 +193,22 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
   }, [edit]);
 
-  // Choosing a device links it to this fan: the fan's earlier device is replaced, and the device keeps its other fans. Unlinking a fan that has a derived default (GPU and AIO fans, a radiator's `#N` fans by their slot) stores the `none` marker.
+  // Choosing a device links it to this fan: the fan's earlier device is replaced, and the device keeps its other fans. Unlinking a fan that has a derived default (GPU and AIO fans) stores the `none` marker.
   const linkChannel = useCallback((channelId: string, key: string) => {
-    const baseKey = key.replace(/#\d+$/, '');
-    const derivedDefault = hasDerivedLink(baseKey) || parsedLayout?.fanSlots.find(sl => sl.key === baseKey)?.taken === 'radiator';
-    edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key, derivedDefault) }));
-  }, [edit, canonOf, parsedLayout]);
+    edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key, hasDerivedLink(key)) }));
+  }, [edit, canonOf]);
+
+  // The service's write is by record rev; a stale rev answers with the current record, and one retry on that rev settles a race with another writer.
+  const moveRadiator = useCallback(async (mount: string) => {
+    if (!record) return;
+    setMoveFailed(false);
+    setPendingMove({ mount, rev: null });
+    let result = await patchPcSetupRadiator(record.rev, mount);
+    if (result.kind === 'conflict') result = await patchPcSetupRadiator(result.record.rev, mount);
+    if (result.kind === 'saved') { const rev = result.rev; setPendingMove(cur => (cur?.mount === mount ? { mount, rev } : cur)); return; }
+    setPendingMove(cur => (cur?.mount === mount ? null : cur));
+    setMoveFailed(true);
+  }, [record]);
 
   if (!loaded || !layoutSettled) return <div className={styles.root} />;
 
@@ -243,6 +261,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   return (
     <div className={styles.root}>
       {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
+      {moveFailed && <Notice tone="warning" role="status">{t('cooling.case3d.radiator.error')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       {caseModel.settled && !caseModel.bytes && <Notice tone="info" role="status">{t('cooling.case3d.noModel')}</Notice>}
       {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
@@ -325,6 +344,14 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               activeKey={directions[activeSlot.key]}
               onChange={next => setDirection(activeSlot.key, activeSlot.position, next as FanDirection)}
             />
+            {activeSlot.key.startsWith('rad:') && caseLayout.radiatorOptions && (
+              <ChipGroup
+                ariaLabel={t('cooling.case3d.radiator.label')}
+                options={caseLayout.radiatorOptions.map(o => ({ key: o.mount, label: positionName(o.mount) }))}
+                activeKey={caseLayout.radiatorMount ?? ''}
+                onChange={next => { if (next !== caseLayout.radiatorMount) void moveRadiator(next); }}
+              />
+            )}
             <Select
               ariaLabel={t('cooling.case3d.device.label')}
               value={activeSimRpm !== null ? SIM_VALUE : activeOwnerId === NONE_CHANNEL ? NONE : activeOwnerId ?? NONE}

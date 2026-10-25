@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { inferRadiatorFans } from './fanSpecs';
 import { withDefaultBindings } from './slotFlow';
 
 const gpuSlots = ['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2'].map(key => ({ key, taken: null, size: 90 }));
@@ -15,18 +14,15 @@ describe('withDefaultBindings owners', () => {
   });
 
   it('keeps a radiator\'s fans on their own channels when the first is unlinked', () => {
-    const slots = [{ key: 'top:360:0', taken: 'radiator' as const, size: 360, radiator: { fanCount: 3 } }];
+    const slots = [0, 1, 2].map(i => ({ key: `rad:${i}`, taken: 'fan' as const }));
     const aio = [{ id: 'a0', isAio: true }, { id: 'a1', isAio: true }, { id: 'a2', isAio: true }];
-    const derived = withDefaultBindings([{ channelId: 'none', slotKeys: ['top:360:0'] }], slots, aio);
-    expect(derived.find(b => b.channelId === 'a1')?.slotKeys).toEqual(['top:360:0#1']);
-    expect(derived.find(b => b.channelId === 'a2')?.slotKeys).toEqual(['top:360:0#2']);
+    const derived = withDefaultBindings([{ channelId: 'none', slotKeys: ['rad:0'] }], slots, aio);
+    expect(derived.find(b => b.channelId === 'a1')?.slotKeys).toEqual(['rad:1']);
+    expect(derived.find(b => b.channelId === 'a2')?.slotKeys).toEqual(['rad:2']);
   });
-});
 
-describe('inferRadiatorFans', () => {
-  it('reads at most four fans from any length', () => {
-    expect(inferRadiatorFans(420)).toEqual({ count: 3, sizeMm: 140 });
-    expect(inferRadiatorFans(1200).count).toBe(4);
-    expect(inferRadiatorFans(10000).count).toBe(4);
+  it('gives the case slots a radiator covers no default binding', () => {
+    const slots = [{ key: 'top:120:0', taken: 'radiator' as const }, { key: 'rad:0', taken: 'fan' as const }];
+    expect(withDefaultBindings([], slots, [{ id: 'a0', isAio: true }])).toEqual([{ channelId: 'a0', slotKeys: ['rad:0'] }]);
   });
 });

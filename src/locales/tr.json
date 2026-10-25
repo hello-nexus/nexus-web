@@ -434,6 +434,8 @@
   "cooling.case3d.pressure.balanced": "Dengeli basınç",
   "cooling.case3d.pressure.negative": "Negatif basınç",
   "cooling.case3d.pressure.positive": "Pozitif basınç",
+  "cooling.case3d.radiator.error": "Radyatör taşınamadı. Tekrar deneyin.",
+  "cooling.case3d.radiator.label": "Radyatör konumu",
   "cooling.case3d.sim.fan": "Simüle fan",
   "cooling.case3d.sim.group": "Simüle",
   "cooling.case3d.sim.rpm": "{value} RPM",

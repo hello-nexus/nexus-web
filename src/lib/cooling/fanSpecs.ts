@@ -63,28 +63,8 @@ function applySpeed(fan: ModelFan, speed?: SlotSpeed): ModelFan {
   return { key: fan.key, cfm: scaled.cfm, staticMmH2O: scaled.staticMmH2O, estimated: fan.estimated || speed.estimated };
 }
 
-const RADIATOR_FAN_SIZES_MM = [120, 140];
-/** Most fans a radiator's length is read to hold: no stock AIO carries more. */
-export const MAX_RADIATOR_FANS = 4;
-
-/** Fan count and size of a radiator of `lengthMm`: the first standard fan size that divides it, else the nearest count at the first standard size. */
-export function inferRadiatorFans(lengthMm: number): { count: number; sizeMm: number } {
-  const size = RADIATOR_FAN_SIZES_MM.find(s => lengthMm >= s && lengthMm % s === 0);
-  if (size) return { count: Math.min(MAX_RADIATOR_FANS, lengthMm / size), sizeMm: size };
-  return { count: Math.min(MAX_RADIATOR_FANS, Math.max(1, Math.round(lengthMm / RADIATOR_FAN_SIZES_MM[0]))), sizeMm: RADIATOR_FAN_SIZES_MM[0] };
-}
-
-/** The fans a slot contributes: one for a taken fan slot, the radiator's fans for a radiator slot (count inferred from its length when unstated, which marks them estimates). */
+/** The fan a slot contributes: one for a taken fan slot, none otherwise (a case slot the radiator covers has no fans of its own). */
 export function slotModelFans(slot: CaseFanSlot, catalog: readonly CatalogFanSpec[], speed?: SlotSpeed): ModelFan[] {
-  if (slot.taken === 'fan') {
-    return [applySpeed({ key: slot.key, ...resolveFanSpec(slot.size, catalog, { cfm: slot.fan?.airflowCfm, staticMmH2O: slot.fan?.staticPressureMmH2O }) }, speed)];
-  }
-  if (slot.taken !== 'radiator') return [];
-  const stated = slot.radiator?.fanCount;
-  const inferred = stated ? null : inferRadiatorFans(slot.size);
-  const count = stated ?? inferred!.count;
-  const sizeMm = inferred?.sizeMm ?? slot.size / count;
-  const spec = resolveFanSpec(sizeMm, catalog, { cfm: slot.radiator?.fanAirflowCfm, staticMmH2O: slot.radiator?.fanStaticPressureMmH2O });
-  const estimated = spec.estimated || inferred !== null;
-  return Array.from({ length: count }, (_, i) => applySpeed({ key: i === 0 ? slot.key : `${slot.key}#${i}`, ...spec, estimated }, speed));
+  if (slot.taken !== 'fan') return [];
+  return [applySpeed({ key: slot.key, ...resolveFanSpec(slot.size, catalog, { cfm: slot.fan?.airflowCfm, staticMmH2O: slot.fan?.staticPressureMmH2O }) }, speed)];
 }
