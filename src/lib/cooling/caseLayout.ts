@@ -1,4 +1,5 @@
 import type { FanDirection } from './pressureModel';
+import { gpuFanSlots } from './gpuFans';
 
 /** Read-only view of the PcLayout nexus-build writes as `resolved.caseLayout`. Millimeters; x front to rear, y up, z from the window side. */
 export type Vec3 = [number, number, number];
@@ -33,7 +34,7 @@ export interface CaseBox {
   size: Vec3;
   select?: string;
   rotationY?: number;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max' };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -160,7 +161,7 @@ function parseBox(raw: unknown): CaseBox | null {
   if (finite(b.rotationY)) box.rotationY = b.rotationY;
   const fans = b.fans as Record<string, unknown> | undefined;
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
-    box.fans = { axis: fans.axis, diameter: fans.diameter };
+    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}) };
   }
   parseShapes(b, box);
   return box;
@@ -210,10 +211,11 @@ export function parseCaseLayout(raw: unknown): CaseLayout | null {
   const size = vec3(r.size, true);
   if (!size || !Array.isArray(r.boxes) || !Array.isArray(r.fanSlots)) return null;
   if (r.boxes.length > MAX_BOXES || r.fanSlots.length > MAX_SLOTS) return null;
+  const boxes = r.boxes.map(parseBox).filter((b): b is CaseBox => b !== null);
   return {
     size,
-    boxes: r.boxes.map(parseBox).filter((b): b is CaseBox => b !== null),
-    fanSlots: r.fanSlots.map(parseSlot).filter((s): s is CaseFanSlot => s !== null),
+    boxes,
+    fanSlots: [...r.fanSlots.map(parseSlot).filter((s): s is CaseFanSlot => s !== null), ...gpuFanSlots(boxes)],
     ...(r.windowRight === true ? { windowRight: true } : {}),
     ...(typeof r.caseModel === 'string' && r.caseModel.length <= 120 ? { caseModel: r.caseModel } : {}),
   };

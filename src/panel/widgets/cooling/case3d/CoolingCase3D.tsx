@@ -41,6 +41,9 @@ export interface CoolingCase3DProps {
   /** What the view draws; remembered by the caller. */
   flowMode?: FlowMode;
   onFlowModeChange?: (mode: FlowMode) => void;
+  /** Draws the solver's collision shapes in place of the case model; remembered by the caller. */
+  collisionShapes?: boolean;
+  onCollisionShapesChange?: (on: boolean) => void;
 }
 
 const POSITION_KEYS: Record<string, string> = {
@@ -70,7 +73,7 @@ const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
-export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange }: CoolingCase3DProps) {
+export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange, collisionShapes: savedCollisions, onCollisionShapesChange }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
@@ -96,6 +99,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [flowMode, setFlowMode] = useState<FlowMode>(savedFlowMode ?? DEFAULT_MODE);
   const [slowMo, setSlowMo] = useState(false);
+  const [collisions, setCollisions] = useState(savedCollisions ?? false);
   const particles = flowMode !== 'case';
   const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
@@ -181,7 +185,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones: false, collisions: false, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, slowMo]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: collisions && showCase, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, collisions, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -290,6 +294,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 if (mode === 'airflow') setActive(null);
               }}
             />
+            {showCase && (
+              <label className={`${styles.flowToggle} ${styles.control}`}>
+                <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
+                <span>{t('cooling.case3d.flow.collisions')}</span>
+              </label>
+            )}
             {particles && (
               <label className={`${styles.flowToggle} ${styles.control}`}>
                 <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />

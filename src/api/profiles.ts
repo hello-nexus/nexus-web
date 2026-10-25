@@ -197,6 +197,7 @@ export interface UiPrefs {
   lightingView3d?: boolean;
   coolingView3d?: boolean;
   coolingFlowMode?: 'both' | 'case' | 'airflow';
+  coolingCollisionShapes?: boolean;
   hiddenSidebarDevices?: string[];
 }
 

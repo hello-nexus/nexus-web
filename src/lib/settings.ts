@@ -186,6 +186,8 @@ export interface GeneralSettings {
   coolingView3d: boolean;
   // What the Cooling 3D view draws: case and airflow, the case alone, or the airflow alone. Server-mirrored under ui.coolingFlowMode.
   coolingFlowMode: 'both' | 'case' | 'airflow';
+  // Whether the Cooling 3D view draws the solver's collision shapes instead of the case model. Server-mirrored under ui.coolingCollisionShapes.
+  coolingCollisionShapes: boolean;
   // Sidebar DEVICES row keys the user hid. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
   // Display-unit choices. Server-mirrored under the preferences `units` block
@@ -263,6 +265,7 @@ export function getDefaultSettings(): NexusSettings {
       lightingView3d: false,
       coolingView3d: false,
       coolingFlowMode: 'both',
+      coolingCollisionShapes: false,
       hiddenSidebarDevices: [],
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,

@@ -2033,6 +2033,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 selectedChannelIds={[...selectedFanIds]}
                 flowMode={settings.coolingFlowMode}
                 onFlowModeChange={mode => updateUi({ coolingFlowMode: mode })}
+                collisionShapes={settings.coolingCollisionShapes}
+                onCollisionShapesChange={on => updateUi({ coolingCollisionShapes: on })}
                 onSelectChannel={id => setSelectedFanIds(new Set([id]))}
                 onClearSelection={() => setSelectedFanIds(new Set())}
               />
