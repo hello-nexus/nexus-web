@@ -571,7 +571,8 @@ describe('shared PC setup relay', () => {
     await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 0, setup }));
     expect(h.fetchPcSetup).not.toHaveBeenCalled();
     expect(h.putPcSetup).not.toHaveBeenCalled();
-    expect(postSpy.mock.calls.some(c => (c[0] as { type: string }).type === 'nexus-build:setup')).toBe(false);
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'g', error: 'disabled' }, BUILD_ORIGIN);
+    expect(postSpy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'p', error: 'disabled' }, BUILD_ORIGIN);
   });
 
   it('answers setup-get with the record and the request id', async () => {

@@ -302,14 +302,22 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
           }));
           break;
         case 'nexus-build:setup-get':
-          if (!DEV_TOOLS || isRemoteOrigin) break;
+          if (!DEV_TOOLS || isRemoteOrigin) {
+            // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
+            post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
+            break;
+          }
           void relaySetupGet(data).then(reply => {
             learnSetupRev(reply.rev);
             post(reply as FrameMessage);
           });
           break;
         case 'nexus-build:setup-put':
-          if (!DEV_TOOLS || isRemoteOrigin) break;
+          if (!DEV_TOOLS || isRemoteOrigin) {
+            // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
+            post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
+            break;
+          }
           setupWritesRef.current = Promise.all([setupWritesRef.current, relaySetupPut(data).then(reply => {
             learnSetupRev(reply.rev);
             post(reply as FrameMessage);
