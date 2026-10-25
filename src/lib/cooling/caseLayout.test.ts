@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  channelOfSlot, linkChannelToSlot, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
+  channelOfSlot, linkChannelToSlot, simRpm, withBoundFans, defaultDirection, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, toggleBinding, withDirection,
   type CaseLayout,
 } from './caseLayout';
 
@@ -171,5 +171,38 @@ describe('linkChannelToSlot', () => {
 
   it('unlinks a slot with an empty channel id and drops emptied bindings', () => {
     expect(linkChannelToSlot([{ channelId: 'a', slotKeys: ['s1'] }, { channelId: 'b', slotKeys: ['s2'] }], '', 's1')).toEqual([{ channelId: 'b', slotKeys: ['s2'] }]);
+  });
+});
+
+describe('linkChannelToSlot with simulated fans', () => {
+  it('keeps a simulated fan on every slot it was chosen for', () => {
+    const one = linkChannelToSlot([], 'sim:1000', 's1');
+    const two = linkChannelToSlot(one, 'sim:1000', 's2');
+    expect(two).toEqual([{ channelId: 'sim:1000', slotKeys: ['s1', 's2'] }]);
+  });
+
+  it('takes the slot off whatever channel held it, real or simulated', () => {
+    const start = [{ channelId: 'a', slotKeys: ['s1', 's3'] }, { channelId: 'sim:500', slotKeys: ['s2'] }];
+    expect(linkChannelToSlot(start, 'sim:2000', 's1')).toEqual([{ channelId: 'a', slotKeys: ['s3'] }, { channelId: 'sim:500', slotKeys: ['s2'] }, { channelId: 'sim:2000', slotKeys: ['s1'] }]);
+    expect(linkChannelToSlot(start, 'a', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s2'] }]);
+    expect(linkChannelToSlot(start, '', 's2')).toEqual([{ channelId: 'a', slotKeys: ['s1', 's3'] }]);
+  });
+
+  it('switches a slot from a simulated fan to a real device without touching the simulated channel\'s other slots', () => {
+    const start = [{ channelId: 'sim:1000', slotKeys: ['s1', 's2'] }];
+    expect(linkChannelToSlot(start, 'a', 's1')).toEqual([{ channelId: 'sim:1000', slotKeys: ['s2'] }, { channelId: 'a', slotKeys: ['s1'] }]);
+  });
+
+  it('reads the fixed speed off a simulated channel id', () => {
+    expect(simRpm('sim:1500')).toBe(1500);
+    expect(simRpm('fan-a')).toBeNull();
+    expect(simRpm('sim:abc')).toBeNull();
+  });
+
+  it('regroups a slot by speed, dropping the emptied group and capping new groups at the service limit', () => {
+    const start = [{ channelId: 'sim:1000', slotKeys: ['s1'] }];
+    expect(linkChannelToSlot(start, 'sim:1100', 's1')).toEqual([{ channelId: 'sim:1100', slotKeys: ['s1'] }]);
+    const full = Array.from({ length: 64 }, (_, i) => ({ channelId: `c${i}`, slotKeys: [`k${i}`] }));
+    expect(linkChannelToSlot(full, 'sim:900', 'new')).toEqual(full);
   });
 });

@@ -16,6 +16,9 @@ export function sceneToLayoutMatrix(size: readonly [number, number, number], win
   return new Matrix4().set(0, 0, -1, D / 2, 0, 1, 0, 0, sx, 0, 0, W / 2, 0, 0, 0, 1);
 }
 
+/** Scales every structure line (case, desk, objects, free spots) so the LEDs and airflow read first; selected and hovered lines ignore it. */
+export const STRUCTURE_LINE_DIM = 0.45;
+
 /** Replaces the model's materials with a faint face and an edge outline, so what is inside stays visible. Returns what to dispose. */
 export function styleCaseModel(model: Group, face: Color, line: Color): { dispose: () => void } {
   const owned: { dispose: () => void }[] = [];
@@ -23,10 +26,10 @@ export function styleCaseModel(model: Group, face: Color, line: Color): { dispos
   model.traverse(o => { if ((o as Mesh).isMesh) meshes.push(o as Mesh); });
   for (const mesh of meshes) {
     for (const old of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) old.dispose();
-    const material: Material = new MeshBasicMaterial({ color: face, transparent: true, opacity: 0.1, side: DoubleSide, depthWrite: false });
+    const material: Material = new MeshBasicMaterial({ color: face, transparent: true, opacity: 0.1 * STRUCTURE_LINE_DIM, side: DoubleSide, depthWrite: false });
     mesh.material = material;
     const edgesGeometry = new EdgesGeometry(mesh.geometry, 25);
-    const edgeMaterial = new LineBasicMaterial({ color: line, transparent: true, opacity: 0.45, depthWrite: false });
+    const edgeMaterial = new LineBasicMaterial({ color: line, transparent: true, opacity: 0.45 * STRUCTURE_LINE_DIM, depthWrite: false });
     mesh.add(new LineSegments(edgesGeometry, edgeMaterial));
     owned.push(material, edgesGeometry, edgeMaterial);
   }

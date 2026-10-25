@@ -1,5 +1,5 @@
 import {
-  ArrowHelper, BoxGeometry, BufferGeometry, Color, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineLoop,
+  ArrowHelper, BoxGeometry, BufferGeometry, Color, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
   LineSegments, Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -18,6 +18,8 @@ export interface CaseSceneState {
   highlighted: ReadonlySet<string>;
   /** Slots bound to any channel. */
   bound: ReadonlySet<string>;
+  /** Slots bound to a simulated fan: their rings are drawn dashed. */
+  simulated: ReadonlySet<string>;
   /** The slot whose direction control is open. */
   active: string | null;
   /** Airflow simulation input; null leaves the flow layer empty. */
@@ -42,6 +44,8 @@ const CLICK_SLOP_PX = 4;
 const RING_SEGMENTS = 48;
 const BASE_OPACITY = 0.3;
 const FAN_OPACITY = 1;
+// Build's picked-part treatment: the pick reads in full and shows through, keeping its intake or exhaust color; the rest fall back to this fraction.
+const DIMMED = 0.22;
 const EMPTY_FAN_OPACITY = 0.28;
 const VIEW_DIRECTION = new Vector3(-0.9, 0.7, -1.3).normalize();
 const FIT_MARGIN = 1.35;
@@ -55,6 +59,12 @@ function token(el: Element, name: string, fallback: string): Color {
   ctx.fillStyle = fallback;
   if (raw) ctx.fillStyle = raw;
   return new Color(String(ctx.fillStyle).replace(/^rgba\((.*),[^,]*\)$/, 'rgb($1)'));
+}
+
+/** Solid for a real fan, dashed for a simulated one; the dash scales with the ring so every size reads alike. */
+export function ringMaterial(color: Color, opacity: number, radius: number, simulated: boolean): LineBasicMaterial | LineDashedMaterial {
+  const base = { color, transparent: true, opacity, depthWrite: false };
+  return simulated ? new LineDashedMaterial({ ...base, dashSize: radius * 0.2, gapSize: radius * 0.14 }) : new LineBasicMaterial(base);
 }
 
 function ringGeometry(radius: number, axis: 'x' | 'y' | 'z'): BufferGeometry {
@@ -205,7 +215,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const caseCenter = new Vector3(ex / 2, ey / 2, ez / 2);
     const intake = token(canvas, '--airflow-cool', '#38bdf8');
     const exhaust = token(canvas, '--bad', '#ef4444');
-    const highlight = token(canvas, '--text', '#e6e9f0');
+    const picking = state.highlighted.size > 0 || state.active !== null;
     for (const { slot, box } of fanGeometries(l)) {
       const occupied = slot.taken === 'fan';
       const dir = state.directions[slot.key] ?? 'intake';
@@ -229,7 +239,12 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       for (const r of [radii.tip, radii.hub]) {
         const geo = ringGeometry(r, axis);
         fanDisposables.push(geo);
-        group.add(new LineLoop(geo, lineMaterial(emphasised ? highlight : color, emphasised ? 1 : opacity, fanDisposables)));
+        const mat = ringMaterial(color, emphasised ? 1 : opacity * (picking ? DIMMED : 1), r, state.simulated.has(slot.key));
+        mat.depthTest = !emphasised;
+        fanDisposables.push(mat);
+        const ring = new LineLoop(geo, mat);
+        if (mat instanceof LineDashedMaterial) ring.computeLineDistances();
+        group.add(ring);
       }
       fanGroup.add(group);
 

@@ -95,12 +95,12 @@
 }
 
 .speed {
-  flex: 1 1 11rem;
-  min-width: 9rem;
-  max-width: 16rem;
+  flex: 1 1 18rem;
+  min-width: 14rem;
+  max-width: 24rem;
 }
 
-// Strips over the canvas: dark and translucent so their text reads over the scene, and inert except for the controls themselves.
+// Strips over the canvas: dark and translucent so their text reads over the scene; a press on one is not a press on empty canvas.
 .overlay {
   position: absolute;
   left: 0;
@@ -111,7 +111,6 @@
   padding: 0.5rem 0.75rem;
   background: rgb(0 0 0 / var(--alpha-strong));
   backdrop-filter: blur(var(--blur-backdrop));
-  pointer-events: none;
   color: #fff;
 }
 
@@ -131,11 +130,6 @@
 
 .control {
   pointer-events: auto;
-}
-
-.overlayNote {
-  @include text-caption;
-  color: var(--text-dim);
 }
 
 .legend {

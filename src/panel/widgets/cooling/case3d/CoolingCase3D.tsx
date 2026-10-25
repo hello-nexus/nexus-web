@@ -18,7 +18,7 @@ import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, directionOf, isSimChannel, simChannelId, simRpm, SIM_RPM_DEFAULT, SIM_RPM_MAX, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
 import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
@@ -33,7 +33,11 @@ export interface CoolingCase3DProps {
   channels: FanChannel[];
   /** The fan selected in the left rail; null unless exactly one is. */
   selectedChannelId: string | null;
+  /** Every device selected on the left; their fans highlight. Defaults to the one selected fan. */
+  selectedChannelIds?: readonly string[];
   onSelectChannel: (channelId: string) => void;
+  /** A click on empty canvas: the left-hand selection clears. */
+  onClearSelection?: () => void;
 }
 
 const POSITION_KEYS: Record<string, string> = {
@@ -49,11 +53,13 @@ const POSITION_KEYS: Record<string, string> = {
 };
 
 const VENT_KEY = '#vent';
+const SIM_HEADER = '#sim-group';
+const SIM_VALUE = '#sim';
 const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
-export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: CoolingCase3DProps) {
+export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
@@ -63,7 +69,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   // A slot bound to a cooling device has a physical fan, whether or not the setup record lists one there.
   const boundKeys = useMemo(() => {
     const present = new Set(channels.map(c => c.id));
-    return coolingLayout.bindings.filter(b => present.has(b.channelId)).flatMap(b => b.slotKeys);
+    return coolingLayout.bindings.filter(b => present.has(b.channelId) || isSimChannel(b.channelId)).flatMap(b => b.slotKeys);
   }, [channels, coolingLayout.bindings]);
   const boundKeyText = [...new Set(boundKeys)].sort().join('\n');
   const collapsed = useMemo(() => (parsedLayout ? collapseMounts(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
@@ -78,7 +84,6 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [particles, setParticles] = useState(true);
-  const [deadZones, setDeadZones] = useState(false);
   const [flowSupported, setFlowSupported] = useState(true);
   const [particleSpeed, setParticleSpeed] = useState(PARTICLE_SPEED_SCALE);
   const caseModel = useCaseModel(true, record?.rev ?? null);
@@ -126,7 +131,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     const owner = key && !selectedChannelId ? channelOfSlot(bindings, key) : null;
     if (owner && channels.some(c => c.id === owner)) onSelectChannel(owner);
     setActive(key);
-    if (!key) return;
+    if (!key) { onClearSelection?.(); return; }
     setAnchor({ x, y });
   };
 
@@ -163,16 +168,18 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones, speed: particleSpeed }), [particles, deadZones, particleSpeed]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones: false, speed: particleSpeed }), [particles, particleSpeed]);
 
-  const highlighted = useMemo(() => new Set(slotsOfChannel(bindings, selectedChannelId)), [bindings, selectedChannelId]);
+  const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
+  const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
   const bound = useMemo(() => new Set(bindings.flatMap(b => b.slotKeys)), [bindings]);
+  const simulated = useMemo(() => new Set(bindings.filter(b => isSimChannel(b.channelId)).flatMap(b => b.slotKeys)), [bindings]);
 
   useEffect(() => {
     if (!caseLayout || !renderer) return;
-    renderer.setState({ layout: caseLayout, directions, highlighted, bound, active, flow: flowInput, flowOptions, model: caseModel.bytes });
+    renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, active, flow: flowInput, flowOptions, model: caseModel.bytes });
     setFlowSupported(renderer.flowSupported);
-  }, [renderer, caseLayout, directions, highlighted, bound, active, flowInput, flowOptions, caseModel.bytes]);
+  }, [renderer, caseLayout, directions, highlighted, bound, simulated, active, flowInput, flowOptions, caseModel.bytes]);
 
   const setDirection = useCallback((key: string, position: string, direction: FanDirection) => {
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
@@ -205,6 +212,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const modeKey = result ? `cooling.case3d.pressure.${result.mode}` : '';
   const cfm = (v: number) => t('cooling.case3d.cfm', { value: String(Math.round(Math.abs(v))) });
   const positionName = (position: string) => t(POSITION_KEYS[position] ?? 'cooling.case3d.position.other');
+  const activeSimRpm = activeSlot ? simRpm(channelOfSlot(bindings, activeSlot.key) ?? '') : null;
   const slotPosition = (key: string) => caseLayout.fanSlots.find(s => s.key === key)?.position ?? '';
 
   // Every device of the left-hand list, by the name it shows there; one already on another fan says which, and choosing it moves it here.
@@ -221,6 +229,9 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
         } : {}),
       };
     }),
+    // A simulated fan has no device behind it, so any number of slots can use it and it never reads as linked elsewhere.
+    { value: SIM_HEADER, label: t('cooling.case3d.sim.group'), header: true },
+    { value: SIM_VALUE, label: t('cooling.case3d.sim.fan') },
   ] : [];
 
   return (
@@ -257,18 +268,13 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
               <Toggle checked={particles} onChange={setParticles} ariaLabel={t('cooling.case3d.flow.particles')} />
               <span>{t('cooling.case3d.flow.particles')}</span>
             </label>
-            <label className={`${styles.flowToggle} ${styles.control}`}>
-              <Toggle checked={deadZones} onChange={setDeadZones} ariaLabel={t('cooling.case3d.flow.deadZones')} />
-              <span>{t('cooling.case3d.flow.deadZones')}</span>
-            </label>
             {particles && (
               <div className={`${styles.speed} ${styles.control}`}>
                 {/* eslint-disable-next-line i18next/no-literal-string -- slider layout enum */}
-                <Slider orientation="stacked" editable trackFill label={t('cooling.case3d.flow.speed')} value={particleSpeed} min={PARTICLE_SPEED_MIN} max={PARTICLE_SPEED_MAX} step={0.1} formatValue={v => t('cooling.case3d.flow.speedValue', { value: v.toFixed(1) })} onChange={v => setParticleSpeed(v)} />
+                <Slider orientation="inline" editable trackFill label={t('cooling.case3d.flow.speed')} value={particleSpeed} min={PARTICLE_SPEED_MIN} max={PARTICLE_SPEED_MAX} step={0.1} formatValue={v => t('cooling.case3d.flow.speedValue', { value: v.toFixed(1) })} onChange={v => setParticleSpeed(v)} />
               </div>
             )}
           </div>
-          {deadZones && flowSupported && <div className={styles.overlayNote}>{t('cooling.case3d.flow.deadZonesHint')}</div>}
           {particles && flowSupported && (
             <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend')}>
               <span>{t('cooling.case3d.flow.cooler')}</span>
@@ -290,7 +296,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
             ariaLabel={t('cooling.case3d.direction.label')}
           >
             <div className={styles.popoverTitle}>
-              {activeOwner?.name ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
+              {activeOwner?.name ?? (activeSimRpm ? t('cooling.case3d.sim.fan') : null) ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
             </div>
             <ChipGroup
               ariaLabel={t('cooling.case3d.direction.label')}
@@ -300,10 +306,14 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
             />
             <Select
               ariaLabel={t('cooling.case3d.device.label')}
-              value={channelOfSlot(bindings, activeSlot.key) ?? NONE}
+              value={activeSimRpm ? SIM_VALUE : channelOfSlot(bindings, activeSlot.key) ?? NONE}
               options={deviceOptions}
-              onChange={id => linkChannel(id, activeSlot.key)}
+              onChange={id => { if (id !== SIM_VALUE) linkChannel(id, activeSlot.key); else if (!activeSimRpm) linkChannel(simChannelId(SIM_RPM_DEFAULT), activeSlot.key); }}
             />
+            {activeSimRpm && (
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              <Slider orientation="inline" editable trackFill label={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_MAX} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => linkChannel(simChannelId(Math.round(v)), activeSlot.key)} />
+            )}
           </Popover>
         )}
       </ThemeScope>

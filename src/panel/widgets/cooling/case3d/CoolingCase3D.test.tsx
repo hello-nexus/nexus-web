@@ -248,11 +248,10 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().flow.directions['front:120:0']).toBe('exhaust');
   });
 
-  it('toggles particles and dead zones', () => {
+  it('toggles particles, with no dead zones control', () => {
     mountReady();
-    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.deadZones' }));
-    expect(lastState().flowOptions.deadZones).toBe(true);
-    expect(screen.getByText('cooling.case3d.flow.deadZonesHint')).toBeTruthy();
+    expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.deadZones' })).toBeNull();
+    expect(lastState().flowOptions.deadZones).toBe(false);
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.particles' }));
     expect(lastState().flowOptions.particles).toBe(false);
   });
@@ -434,5 +433,130 @@ describe('CoolingCase3D info button', () => {
     fireEvent.click(button);
     const tip = screen.getByText('cooling.case3d.hint.select');
     expect(tip.closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
+  });
+});
+
+describe('CoolingCase3D simulated fans', () => {
+  const mountReady = (bindings: CoolingLayout['bindings'] = []) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    render(ui());
+  };
+  const open = (slot = 'front:120:0') => {
+    act(() => h.pick.current?.(slot, 10, 10));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+  };
+  const apply = (bindings: CoolingLayout['bindings']) => (h.layout.edit.mock.calls.at(-1)![0] as (l: CoolingLayout) => CoolingLayout)({ directions: {}, bindings, tests: [] }).bindings;
+
+  it('lists one simulated fan entry under its group heading after the real devices, with no linked-elsewhere note', () => {
+    mountReady([{ channelId: 'sim:1000', slotKeys: ['rear:120:0'] }]);
+    open();
+    const text = screen.getAllByRole('option').map(o => o.textContent ?? '');
+    expect(text.filter(t => t.includes('cooling.case3d.sim.fan'))).toHaveLength(1);
+    expect(text.findIndex(t => t.includes('Fan B'))).toBeLessThan(text.findIndex(t => t.includes('cooling.case3d.sim.fan')));
+    expect(screen.getByText('cooling.case3d.sim.group')).toBeTruthy();
+    expect(text.join('|')).not.toContain('cooling.case3d.linkedTo');
+  });
+
+  it('starts a slot at the default simulated speed and keeps the other simulated slots', () => {
+    const start = [{ channelId: 'sim:1500', slotKeys: ['rear:120:0'] }];
+    mountReady(start);
+    open();
+    fireEvent.click(screen.getAllByRole('option').find(o => o.textContent?.includes('cooling.case3d.sim.fan'))!);
+    expect(apply(start)).toEqual([{ channelId: 'sim:1500', slotKeys: ['rear:120:0', 'front:120:0'] }]);
+  });
+
+  it('shows the speed slider only for a simulated slot, and moving it regroups the slot', () => {
+    const start = [{ channelId: 'sim:1500', slotKeys: ['front:120:0', 'rear:120:0'] }];
+    mountReady(start);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.sim.fan');
+    fireEvent.change(screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' }), { target: { value: '2100' } });
+    expect(apply(start)).toEqual([{ channelId: 'sim:1500', slotKeys: ['rear:120:0'] }, { channelId: 'sim:2100', slotKeys: ['front:120:0'] }]);
+  });
+
+  it('keeps two slots at different simulated speeds and marks both for the renderer', () => {
+    mountReady([{ channelId: 'sim:700', slotKeys: ['front:120:0'] }, { channelId: 'sim:2400', slotKeys: ['rear:120:0'] }]);
+    expect([...lastState().simulated].sort()).toEqual(['front:120:0', 'rear:120:0']);
+    expect([...lastState().bound].sort()).toEqual(['front:120:0', 'rear:120:0']);
+  });
+
+  it('hides the slider for a real device and clears the simulated fan when one is chosen', () => {
+    const start = [{ channelId: 'sim:1500', slotKeys: ['front:120:0', 'rear:120:0'] }];
+    mountReady(start);
+    open();
+    fireEvent.click(screen.getByRole('option', { name: /Fan A/ }));
+    expect(apply(start)).toEqual([{ channelId: 'sim:1500', slotKeys: ['rear:120:0'] }, { channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+  });
+
+  it('shows no slider on a slot with a real device', () => {
+    mountReady([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.queryByRole('slider', { name: 'cooling.case3d.sim.speed' })).toBeNull();
+  });
+
+  it('ships the simulated-fan strings in every locale', () => {
+    const locales = import.meta.glob('../../../../locales/*.json', { eager: true, import: 'default' }) as Record<string, Record<string, string>>;
+    const files = Object.entries(locales);
+    expect(files.length).toBeGreaterThan(1);
+    for (const [name, dict] of files) {
+      for (const key of ['cooling.case3d.sim.fan', 'cooling.case3d.sim.group', 'cooling.case3d.sim.speed']) expect(dict[key], `${name} ${key}`).toBeTruthy();
+      expect(dict['cooling.case3d.sim.rpm'], name).toContain('{value}');
+    }
+  });
+});
+
+describe('CoolingCase3D deselect', () => {
+  const mountWith = (onClear = vi.fn(), onSelect = vi.fn()) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId="fan-a" onSelectChannel={onSelect} onClearSelection={onClear} />);
+    return { onClear, onSelect };
+  };
+
+  it('clears the selection and closes the popover on a click of empty space', () => {
+    const { onClear } = mountWith();
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    act(() => h.pick.current?.(null, 40, 40));
+    expect(onClear).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('keeps the selection when a fan is clicked', () => {
+    const { onClear } = mountWith();
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(onClear).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+});
+
+describe('CoolingCase3D selection highlight', () => {
+  const bindings = [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }, { channelId: 'fan-b', slotKeys: ['rear:120:0'] }];
+  const mountSel = (ids: string[]) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    const view = (next: string[]) => <CoolingCase3D channels={channels} selectedChannelId={next.length === 1 ? next[0] : null} selectedChannelIds={next} onSelectChannel={vi.fn()} />;
+    const { rerender } = render(view(ids));
+    return (next: string[]) => rerender(view(next));
+  };
+  const lit = () => [...lastState().highlighted].sort();
+
+  it('highlights the slots of one selected device', () => {
+    mountSel(['fan-a']);
+    expect(lit()).toEqual(['front:120:0']);
+  });
+
+  it('highlights the slots of every selected device', () => {
+    mountSel(['fan-a', 'fan-b']);
+    expect(lit()).toEqual(['front:120:0', 'rear:120:0']);
+  });
+
+  it('clears the highlight on deselect, without re-solving the airflow', () => {
+    const reselect = mountSel(['fan-a', 'fan-b']);
+    const flow = lastState().flow;
+    reselect([]);
+    expect(lit()).toEqual([]);
+    expect(lastState().flow).toBe(flow);
   });
 });
