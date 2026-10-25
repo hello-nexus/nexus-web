@@ -105,6 +105,16 @@ function tab(key: string) {
 }
 
 describe('LianLiWirelessDevicePage as the wired LCD Flex page', () => {
+  it('shows a P28 V2 receiver without a Screens tab and titles the page for it', async () => {
+    mockState.mockResolvedValue(connected([{ ...unit, fanType: 63, family: 'p28v2', screenSerial: '' }]));
+    await renderPage();
+    for (const label of ['devices.lianli-wireless.tab.devices', 'lighting.title', 'cooling.title']) {
+      expect(tab(label)).toBeInTheDocument();
+    }
+    expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ })).toBeNull();
+    expect(screen.getByRole('tablist', { name: 'Lian Li P28 V2' })).toBeInTheDocument();
+  });
+
   it('reads the wired state, never the wireless one', async () => {
     await renderPage();
     expect(mockState).toHaveBeenCalled();

@@ -618,4 +618,48 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
       expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.merge' })).toBeDisabled();
     });
   });
+
+  describe('P28 V2 receiver', () => {
+    const p28Unit: LianLiWirelessChainLighting = {
+      ...tlUnit, mac: 'PP28', fanType: 63, modes: [], mode: 'custom', supportsZones: false, zones: [], upDownSwap: null,
+      argbCableConnected: true, motherboardArgb: true,
+    };
+
+    it('offers no motherboard ARGB, Lighting page switch, Per zone or Merge', async () => {
+      await renderTab([p28Unit]);
+      expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('switch', { name: 'devices.lightingPage.use' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.merge' })).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli-flex.mergeNeedsEffect')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli-flex.modePerZone')).not.toBeInTheDocument();
+    });
+
+    it('hides Mode, brightness and Reset lighting, and links to the Lighting page', async () => {
+      const onSectionNavigate = vi.fn();
+      mockGet.mockResolvedValue({ laneModes: [], chains: [p28Unit] });
+      await act(async () => { render(<LianLiWirelessLightingTab api={{ ...api, reset: vi.fn() }} onSectionNavigate={onSectionNavigate} />); });
+      expect(screen.queryByLabelText('devices.lianli.lightingMode')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli.lightingBrightness')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli-flex.resetLighting')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' }));
+      expect(onSectionNavigate).toHaveBeenCalledWith('lighting');
+    });
+
+    it('is keyed on the family, so a P28 reporting fan type 0 is still one', async () => {
+      await renderTab([{ ...p28Unit, fanType: 0, family: 'p28v2' }]);
+      expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('switch', { name: 'devices.lightingPage.use' })).not.toBeInTheDocument();
+    });
+
+    it('is not a P28 when the family says otherwise', async () => {
+      await renderTab([{ ...p28Unit, family: 'tlFlex' }]);
+      expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toBeInTheDocument();
+    });
+
+    it('is not marked synced when the group sync is on', async () => {
+      mockGet.mockResolvedValue({ laneModes: [], chains: [p28Unit] });
+      await act(async () => { render(<LianLiWirelessLightingTab api={api} syncOn />); });
+      expect(screen.queryByText('devices.lianli-flex.followsSync')).not.toBeInTheDocument();
+    });
+  });
 });
