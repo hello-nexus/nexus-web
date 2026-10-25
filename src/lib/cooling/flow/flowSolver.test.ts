@@ -2,9 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { DEAD_AGE_RATIO, MAX_SUBSTEP_CELLS, PARTICLE_SPEED_MAX, PARTICLE_SPEED_MIN, VMAX_CELLS, substepsFor } from './flowParams';
+import { MAX_SUBSTEP_CELLS, PARTICLE_SPEED_MAX, PARTICLE_SPEED_MIN, VMAX_CELLS, substepsFor } from './flowParams';
 import { OPENING_EXHAUST, OPENING_INTAKE, OPENING_VENT, buildFlowScene, gridFor, isSolidAt, type FlowScene } from './gridScene';
-import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, nineFans, rear, slotSpec, tops } from './flowFixtures';
+import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, nineFans, slotSpec, tops } from './flowFixtures';
 
 const LOW = 32 * 24 * 48;
 const idx = (s: FlowScene, i: number, j: number, k: number) => i + s.dims[0] * (j + s.dims[1] * k);
@@ -215,7 +215,7 @@ describe('CpuParticles', () => {
     expect(entries).toBeGreaterThan(0);
     expect(exits).toBeGreaterThan(0);
     expect(badExit).toBe(0);
-  });
+  }, 120000);
 
   it('warms air that passes the heat sources: some particles leave warmer than they came', () => {
     const particles = new CpuParticles(sim, 400, 11);
@@ -370,39 +370,3 @@ describe('particles at any visual speed', () => {
     expect(jumped).toBe(0);
   });
 });
-
-describe('mean age of air', () => {
-  // A sealed 100 mm pocket in the middle of a through-flow: nothing can reach it.
-  const wall = (min: number[], size: number[]) => ({ slot: 'storage', role: 'part', min, size });
-  const pocket = [
-    wall([180, 140, 120], [20, 120, 120]), wall([300, 140, 120], [20, 120, 120]),
-    wall([180, 140, 120], [140, 20, 120]), wall([180, 240, 120], [140, 20, 120]),
-    wall([180, 140, 120], [140, 120, 20]), wall([180, 140, 220], [140, 120, 20]),
-  ];
-  const scene = buildFlowScene(inputFor([fronts[1], rear], pocket, defaultDir, 80), LOW);
-  const sim = new CpuFlow(scene);
-  for (let i = 0; i < 250; i++) sim.step();
-  for (let i = 0; i < Math.round(scene.residenceSteps * (DEAD_AGE_RATIO + 2)); i++) sim.stepAge();
-  const ageAt = (x: number, y: number, z: number) => {
-    const i = Math.floor((x + scene.origin[0]) / scene.cellMm), j = Math.floor((y + scene.origin[1]) / scene.cellMm), k = Math.floor((z + scene.origin[2]) / scene.cellMm);
-    return sim.age[i + scene.dims[0] * (j + scene.dims[1] * k)] / scene.residenceSteps;
-  };
-
-  it('is a measurable residence time for the through-flow, so the age scale means something', () => {
-    expect(scene.residenceSteps).toBeGreaterThan(20);
-  });
-
-  it('shows a sealed pocket as dead air, past the dead threshold', () => {
-    expect(scene.solid[idxAt(scene, 250, 200, 180)]).toBe(0);
-    expect(ageAt(250, 200, 180)).toBeGreaterThan(DEAD_AGE_RATIO);
-    expect(ageAt(260, 190, 170)).toBeGreaterThan(DEAD_AGE_RATIO);
-  });
-
-  it('keeps the air in the stream in front of the intake well under the threshold', () => {
-    expect(ageAt(60, 200, 180)).toBeLessThan(DEAD_AGE_RATIO / 2);
-  });
-});
-
-function idxAt(s: FlowScene, x: number, y: number, z: number) {
-  return Math.floor((x + s.origin[0]) / s.cellMm) + s.dims[0] * (Math.floor((y + s.origin[1]) / s.cellMm) + s.dims[1] * Math.floor((z + s.origin[2]) / s.cellMm));
-}

@@ -4,7 +4,7 @@ import {
 } from 'three';
 import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
 import type { FlowScene } from './gridScene';
-import { ADVECT, AGE, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT } from './shaders';
+import { ADVECT, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT } from './shaders';
 
 export type FloatKind = typeof FloatType | typeof HalfFloatType;
 
@@ -121,21 +121,18 @@ export class GlFlow {
   private current: FlowScene;
   private readonly vao: WebGLVertexArrayObject;
   private readonly quad: WebGLBuffer;
-  private readonly programs: Record<'advect' | 'diverge' | 'jacobi' | 'gradient' | 'age' | 'reduceFirst' | 'reduceNext' | 'encode', RawProgram>;
+  private readonly programs: Record<'advect' | 'diverge' | 'jacobi' | 'gradient' | 'reduceFirst' | 'reduceNext' | 'encode', RawProgram>;
   private readonly vel: RawTarget[];
   private readonly pres: RawTarget[];
   private readonly div: RawTarget;
-  private readonly age: RawTarget[];
   private readonly reduce: RawTarget[] = [];
   private readonly encoded: RawTarget;
   private readonly maskTex: WebGLTexture;
   private readonly fanTex: WebGLTexture;
   private readonly velWrap: ExternalTexture[];
-  private readonly ageWrap: ExternalTexture[];
   private readonly maskWrap: ExternalTexture;
   private cur = 0;
   private prev = 0;
-  private ageCur = 0;
   private presCur = 0;
   private inFlight: { fence: WebGLSync; buffer: WebGLBuffer } | null = null;
 
@@ -159,12 +156,11 @@ export class GlFlow {
     gl.bindVertexArray(null);
     this.programs = {
       advect: this.build(ADVECT), diverge: this.build(DIVERGE), jacobi: this.build(JACOBI), gradient: this.build(GRADIENT),
-      age: this.build(AGE), reduceFirst: this.build(REDUCE_FIRST), reduceNext: this.build(REDUCE_NEXT), encode: this.build(ENCODE),
+      reduceFirst: this.build(REDUCE_FIRST), reduceNext: this.build(REDUCE_NEXT), encode: this.build(ENCODE),
     };
     this.vel = [0, 1, 2].map(() => this.makeTarget(this.w, this.h, false));
     this.pres = [0, 1].map(() => this.makeTarget(this.w, this.h, false));
     this.div = this.makeTarget(this.w, this.h, false);
-    this.age = [0, 1].map(() => this.makeTarget(this.w, this.h, false));
     let rw = this.w;
     let rh = this.h;
     do {
@@ -177,7 +173,6 @@ export class GlFlow {
     this.fanTex = this.makeTexture(this.w, this.h, false);
     const wrap = (t: WebGLTexture) => new ExternalTexture(t);
     this.velWrap = this.vel.map(t => wrap(t.texture));
-    this.ageWrap = this.age.map(t => wrap(t.texture));
     this.maskWrap = wrap(this.maskTex);
     this.upload();
     this.reset();
@@ -279,10 +274,6 @@ export class GlFlow {
     return this.velWrap[this.cur];
   }
 
-  get ageTexture(): Texture {
-    return this.ageWrap[this.ageCur];
-  }
-
   get maskTexture(): Texture {
     return this.maskWrap;
   }
@@ -331,16 +322,9 @@ export class GlFlow {
   }
 
   reset() {
-    this.clear([...this.vel, ...this.pres, this.div, ...this.age]);
+    this.clear([...this.vel, ...this.pres, this.div]);
     this.cur = 0;
     this.presCur = 0;
-    this.ageCur = 0;
-  }
-
-  /** Clears the mean-age field. */
-  resetAge() {
-    this.clear(this.age);
-    this.ageCur = 0;
   }
 
   /** `count` solver steps in one batch of raw GL. */
@@ -366,19 +350,6 @@ export class GlFlow {
     this.draw(p.gradient, u2, { textures: { U: u1.texture, P: this.pres[pi].texture, M: this.maskTex }, floats: { uVmax: VMAX_CELLS } });
     this.prev = this.cur;
     this.cur = (this.cur + 2) % 3;
-  }
-
-  /** `count` mean-age steps on the current velocity. */
-  stepAge(count = 1) {
-    this.raw(() => {
-      for (let n = 0; n < count; n++) {
-        this.draw(this.programs.age, this.age[1 - this.ageCur], {
-          textures: { U: this.vel[this.cur].texture, M: this.maskTex, AG: this.age[this.ageCur].texture },
-          vec3s: { uCaseMin: this.current.caseMin, uCaseMax: this.current.caseMax },
-        });
-        this.ageCur = 1 - this.ageCur;
-      }
-    });
   }
 
   /** The whole velocity field as 3 floats per cell, read back from the GPU; for checks against the CPU reference. */
@@ -461,7 +432,7 @@ export class GlFlow {
       gl.deleteBuffer(this.inFlight.buffer);
       this.inFlight = null;
     }
-    for (const t of [...this.vel, ...this.pres, this.div, ...this.age, ...this.reduce, this.encoded]) {
+    for (const t of [...this.vel, ...this.pres, this.div, ...this.reduce, this.encoded]) {
       gl.deleteTexture(t.texture);
       gl.deleteFramebuffer(t.framebuffer);
     }
@@ -470,6 +441,6 @@ export class GlFlow {
     for (const p of Object.values(this.programs)) gl.deleteProgram(p.program);
     gl.deleteBuffer(this.quad);
     gl.deleteVertexArray(this.vao);
-    for (const w of [...this.velWrap, ...this.ageWrap, this.maskWrap]) w.dispose();
+    for (const w of [...this.velWrap, this.maskWrap]) w.dispose();
   }
 }

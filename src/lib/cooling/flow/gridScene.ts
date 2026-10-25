@@ -1,18 +1,16 @@
 import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Vec3 } from '../caseLayout';
 import type { FanDirection } from '../pressureModel';
 import {
-  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, SPAWN_BACK_MIN_CELLS, SPAWN_OUT_REACH_MM,
+  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES, SPAWN_BACK_MIN_CELLS, SPAWN_OUT_REACH_MM,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
+import { obstaclesOf, type Obstacle } from './obstacles';
 import { boxBounds, boxContains } from './voxelize';
 
 const M3S_PER_CFM = 0.000471947;
 const MM_PER_M = 1000;
-const SOLID_PARTS = new Set(['gpu', 'psu', 'motherboard', 'storage', 'ram', 'cpu']);
-const POROUS_PARTS = new Set(['cooler']);
 const HEAT_PARTS = new Set(['gpu', 'psu', 'cpu']);
-const SPAWN_TRIES = 6;
 /** Share of the ring width kept clear of the hub edge when spawning. */
 const SPAWN_HUB_MARGIN = 0.04;
 const SAMPLE_SPAWNS = 2048;
@@ -32,6 +30,8 @@ export interface FlowInput {
   fanCfm: Readonly<Record<string, number>>;
   /** Air leaving (positive) or entering (negative) through the unfanned openings, CFM. */
   ventCfm: number;
+  /** Flow of a fan at full speed: fixes the time scale, so a slower fan reads slower instead of the fastest fan always setting the pace. */
+  referenceCfm?: number;
 }
 
 export interface FlowScene {
@@ -67,6 +67,8 @@ export interface FlowScene {
   /** A fixed sample of start points drawn from the emitters (3 floats each), for inspection; the particles draw their own continuously. */
   spawns: Float32Array;
   fanCount: number;
+  /** What was rasterized into the solid and porous cells, for the collision view. */
+  obstacles: Obstacle[];
   /** Steps a parcel of air takes to cross the case at the nominal through-flow: case volume over intake flow, in solver steps. 0 when nothing draws air in. */
   residenceSteps: number;
 }
@@ -241,13 +243,13 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       if (boxContains(box, layoutMm(i, j, k), cellMm)) fn(id(i, j, k));
     });
   };
-  for (const box of layout.boxes) {
-    if (box.role === 'ghost' || box.role === 'limit' || box.role === 'glass' || box.role === 'detail') continue;
-    if (POROUS_PARTS.has(box.slot)) {
-      voxelize(box, c => { darcy[c] = DARCY_K; heat[c] = HEAT_RATE_POROUS; });
-    } else if (SOLID_PARTS.has(box.slot)) {
-      const isHeat = HEAT_PARTS.has(box.slot);
-      voxelize(box, c => { solid[c] = 1; if (isHeat) sources.push(c); });
+  const obstacles = obstaclesOf(layout);
+  for (const o of obstacles) {
+    if (o.porous) {
+      voxelize(o.box, c => { darcy[c] = DARCY_K; heat[c] = HEAT_RATE_POROUS; });
+    } else {
+      const isHeat = HEAT_PARTS.has(o.box.slot);
+      voxelize(o.box, c => { solid[c] = 1; if (isHeat) sources.push(c); });
     }
   }
 
@@ -270,6 +272,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const e2 = cross(axis, e1);
     const k = axisIndex(axis);
     const lat = [0, 1, 2].filter(a => a !== k);
+    // The face this fan points out through: the min side when the axis points inward from it, else the max side.
+    const onOwnFace = (index: number) => index === (axis[k] > 0 ? caseMin[k] : caseMax[k]);
     const reach = frame / 2 + cellMm * 2;
     const annulus: number[] = [];
     const blocked: number[] = [];
@@ -279,8 +283,10 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       const cc = layoutMm(i, j, kk);
       const d0 = sub(cc, centre);
       const along = dot(d0, axis);
-      // A fan within reach of a face vents through that face across its footprint, however far the panel sits from the mount.
-      if (Math.abs(along) > halfThickness + (onCaseShell(i, j, kk) ? Math.max(MOUNT_REACH_MM, cellMm * 1.5) : 0)) return;
+      // A fan within reach of a face vents through that face across its footprint, however far the panel sits from the mount; a perpendicular panel it touches stays shut.
+      const shell = onCaseShell(i, j, kk);
+      if (shell && !onOwnFace([i, j, kk][k])) return;
+      if (Math.abs(along) > halfThickness + (shell ? Math.max(MOUNT_REACH_MM, cellMm * 1.5) : 0)) return;
       let inRing = 0;
       let inFrame = 0;
       for (let a = 0; a < SUB; a++) for (let b = 0; b < SUB; b++) {
@@ -307,15 +313,16 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   const cellAreaM2 = (cellMm / MM_PER_M) ** 2;
   // Air speed through the ring: the fan's flow over the area its ring cells cover, so a coarse grid still moves the fan's CFM.
   const velocityMps = (p: PlannedFan, c: FanCells) => (c.perLayer > 0 && p.cfm > 0 ? (p.cfm * M3S_PER_CFM) / (c.perLayer * cellAreaM2) : 0);
-  const reference = Math.max(MIN_REFERENCE_SPEED, ...plan.fans.map((p, i) => velocityMps(p, cellsOf[i])));
+  const referenceOf = (p: PlannedFan, c: FanCells) => (input.referenceCfm && c.perLayer > 0 ? (input.referenceCfm * M3S_PER_CFM) / (c.perLayer * cellAreaM2) : velocityMps(p, c));
+  const reference = Math.max(MIN_REFERENCE_SPEED, ...plan.fans.map((p, i) => referenceOf(p, cellsOf[i])));
   const stepSeconds = (CFL_TARGET * (cellMm / MM_PER_M)) / reference;
 
   // Particles start strictly outside the hub: a margin past its edge, so none sits on the core circle.
   const spawnHub = (p: PlannedFan) => (hubOf(p) > 0 ? hubOf(p) + SPAWN_HUB_MARGIN * (p.disk.radius - hubOf(p)) : 0);
   const emitters: number[] = [];
   const addSpawns = (p: PlannedFan, weight: number) => {
-    // Entries follow the fan's flow exactly, so a near-stopped fan emits next to nothing instead of a dense sheet of slow particles.
-    const entries = Math.min(64, Math.round((weight / 60) * EMITTERS_PER_60_CFM));
+    // Entries follow the fan's flow, so a near-stopped fan emits next to nothing instead of a dense sheet of slow particles.
+    const entries = Math.min(MAX_EMITTERS_PER_FAN, Math.max(MIN_EMITTERS_PER_FAN, Math.round((weight / 60) * EMITTERS_PER_60_CFM)));
     const e1 = e1Of(p.disk.axis);
     const c = [0, 1, 2].map(a => (p.disk.centre[a] + origin[a]) / cellMm - 0.5);
     for (let m = 0; m < entries && emitters.length / 12 < MAX_EMITTER_ENTRIES; m++) {
@@ -339,10 +346,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const kind = speed > 0 ? (p.direction === 'intake' ? OPENING_INTAKE : OPENING_EXHAUST) : p.porousBox ? OPENING_NONE : OPENING_VENT;
     for (const c of cells.annulus) {
       const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
-      if (onCaseShell(i, j, k)) {
-        solid[c] = 0;
-        if (kind !== OPENING_NONE) opening[c] = kind;
-      }
+      solid[c] = 0;
+      if (onCaseShell(i, j, k) && kind !== OPENING_NONE) opening[c] = kind;
       if (speed > 0 && !solid[c]) {
         target[c * 3] = vel[0]; target[c * 3 + 1] = vel[1]; target[c * 3 + 2] = vel[2];
         fanCell[c] = 1;
@@ -374,7 +379,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
 
   const caseM3 = (extents[0] * extents[1] * extents[2]) / (MM_PER_M ** 3);
   const residenceSteps = intakeCfm > 0 ? caseM3 / (intakeCfm * M3S_PER_CFM) / stepSeconds : 0;
-  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, emitters: new Float32Array(emitters), spawnBackSpan: SPAWN_OUT_REACH_MM / cellMm, spawns: new Float32Array(0), fanCount };
+  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), spawnBackSpan: SPAWN_OUT_REACH_MM / cellMm, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };

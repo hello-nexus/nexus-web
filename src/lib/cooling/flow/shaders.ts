@@ -1,3 +1,5 @@
+import { SPAWN_TRIES } from './flowParams';
+
 /** GLSL for the grid solver and particles: a straight port of `cpuSolver.ts` and `cpuParticles.ts`. The 3D grid is packed into one 2D float texture, `TX` slices per row. */
 
 export const FULLSCREEN_VERTEX = /* glsl */ `
@@ -126,29 +128,6 @@ void main() {
   gl_FragColor = vec4(r, 0.0, 0.0);
 }`;
 
-// Mean age of air: advected with the flow, one step older each step; air outside the case is fresh.
-export const AGE = COMMON + /* glsl */ `
-uniform sampler2D AG; uniform vec3 uCaseMin; uniform vec3 uCaseMax;
-float ageAt(ivec3 c) { return texelFetch(AG, tc(clamp(c, ivec3(0), N - 1)), 0).r; }
-void main() {
-  ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
-  if (c.z >= N.z || mask(c).r > 0.5) { gl_FragColor = vec4(0.0); return; }
-  vec3 fc = vec3(c);
-  if (any(lessThan(fc, uCaseMin)) || any(greaterThan(fc, uCaseMax))) { gl_FragColor = vec4(0.0); return; }
-  vec3 p = clamp(vec3(c) - texelFetch(U, tc(c), 0).xyz, vec3(0.0), vec3(N - 1));
-  ivec3 b = ivec3(floor(p)); vec3 f = p - vec3(b);
-  float sum = 0.0; float wsum = 0.0;
-  for (int i = 0; i < 8; i++) {
-    ivec3 o = ivec3(i & 1, (i >> 1) & 1, (i >> 2) & 1);
-    float wt = (o.x == 1 ? f.x : 1.0 - f.x) * (o.y == 1 ? f.y : 1.0 - f.y) * (o.z == 1 ? f.z : 1.0 - f.z);
-    ivec3 n = clamp(b + o, ivec3(0), N - 1);
-    if (mask(n).r > 0.5) continue;
-    sum += wt * ageAt(n); wsum += wt;
-  }
-  float age = wsum > 0.0 ? sum / wsum : texelFetch(AG, tc(c), 0).r;
-  gl_FragColor = vec4(min(age + 1.0, 100000.0), 0.0, 0.0, 0.0);
-}`;
-
 const LIFE = /* glsl */ `
 float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 // A particle's own lifetime in steps, fixed per pixel of the state texture, so deaths spread out instead of arriving in waves.
@@ -161,8 +140,10 @@ uniform float uEmitterCount; uniform float uBackSpan; uniform float uSeed; unifo
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
+const SPAWN_DEFINE = `#define SPAWN_TRIES ${SPAWN_TRIES}\n`;
+
 // Particle state: xyz cell coordinates, w age. One pass moves, recycles and respawns.
-export const PARTICLE_STATE = PARTICLE_COMMON + /* glsl */ `
+export const PARTICLE_STATE = SPAWN_DEFINE + PARTICLE_COMMON + /* glsl */ `
 void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
   vec4 s = texelFetch(PA, f, 0);
@@ -194,7 +175,7 @@ void main() {
     bool found = false;
     vec3 np = p;
     // A start point drawn area-uniform over a fan's ring between hub and tip, set outward of the fan; a few tries in case it lands in a solid.
-    for (int t = 0; t < 6; t++) {
+    for (int t = 0; t < SPAWN_TRIES; t++) {
       if (uEmitterCount < 1.0) break;
       float sd = uSeed + float(t) * 17.31;
       int e = min(int(hash(gl_FragCoord.xy + sd) * uEmitterCount), int(uEmitterCount) - 1);
@@ -257,46 +238,6 @@ void main() {
   float a = vAlpha * smoothstep(1.0, 0.15, r);
   if (a < 0.003) discard;
   gl_FragColor = vec4(vColor * a, a);
-}`;
-
-export const VOLUME_VERTEX = /* glsl */ `
-out vec3 vWorld;
-void main() {
-  vec4 w = modelMatrix * vec4(position, 1.0);
-  vWorld = w.xyz;
-  gl_Position = projectionMatrix * viewMatrix * w;
-}`;
-
-export const VOLUME_FRAGMENT = COMMON + /* glsl */ `
-uniform sampler2D AG; uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uAgeRef; uniform float uDeadAt; uniform vec3 uColor;
-in vec3 vWorld;
-void main() {
-  vec3 ro = cameraPosition;
-  vec3 rd = normalize(vWorld - ro);
-  vec3 inv = 1.0 / rd;
-  vec3 t0 = (vec3(0.0) - ro) * inv; vec3 t1 = (uCaseExtent - ro) * inv;
-  vec3 tmin = min(t0, t1); vec3 tmax = max(t0, t1);
-  float ta = max(max(tmin.x, tmin.y), max(tmin.z, 0.0));
-  float tb = min(min(tmax.x, tmax.y), tmax.z);
-  if (tb <= ta) discard;
-  const int STEPS = 64;
-  float dt = (tb - ta) / float(STEPS);
-  float T = 1.0; vec3 acc = vec3(0.0);
-  for (int i = 0; i < STEPS; i++) {
-    vec3 p = ro + rd * (ta + (float(i) + 0.5) * dt);
-    ivec3 c = ivec3(floor((p + uOrigin) / uCell));
-    if (!inside(c) || mask(c).r > 0.5) continue;
-    float age = texelFetch(AG, tc(c), 0).r / uAgeRef;
-    // A faint gradient of air age everywhere, then a clear tint where the air is older than uDeadAt straight-through times.
-    float dens = 0.1 * clamp(age / (2.0 * uDeadAt), 0.0, 1.0) + smoothstep(uDeadAt, 2.0 * uDeadAt, age);
-    float a = 1.0 - exp(-dens * dt / (uCell * 6.0));
-    acc += T * a * uColor;
-    T *= 1.0 - a;
-    if (T < 0.02) break;
-  }
-  float alpha = 1.0 - T;
-  if (alpha < 0.004) discard;
-  gl_FragColor = vec4(acc / max(alpha, 1e-4), alpha * 0.85);
 }`;
 
 // Packs the reduction result into RGBA8 so it can be read back through a PBO and fence: u in R,G and du/u in B,A, 16 bits each.

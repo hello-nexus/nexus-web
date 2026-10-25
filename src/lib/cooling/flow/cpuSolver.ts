@@ -14,9 +14,6 @@ export class CpuFlow {
   private readonly div: Float32Array;
   private readonly fluid: Float32Array;
   private readonly invCount: Float32Array;
-  /** Mean age of air, in steps, per cell; stepped by `stepAge`. */
-  age: Float32Array;
-  private ageNext: Float32Array;
   private readonly NX: number;
   private readonly NY: number;
   private readonly NZ: number;
@@ -36,8 +33,6 @@ export class CpuFlow {
     this.div = new Float32Array(this.n);
     this.fluid = new Float32Array(this.n);
     this.invCount = new Float32Array(this.n);
-    this.age = new Float32Array(this.n);
-    this.ageNext = new Float32Array(this.n);
     for (let c = 0; c < this.n; c++) this.fluid[c] = scene.solid[c] ? 0 : 1;
     const sx = 1, sy = NX, sz = NX * NY;
     for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
@@ -136,30 +131,6 @@ export class CpuFlow {
       }
       v[c * 3] = x; v[c * 3 + 1] = y; v[c * 3 + 2] = z;
     }
-  }
-
-  /** One mean-age step on the current velocity, as the GPU pass does: air outside the case is fresh, air inside is one step older than where it came from. */
-  stepAge(): void {
-    const { NX, NY, NZ, scene } = this;
-    const { solid, caseMin, caseMax } = scene;
-    const u = this.u;
-    for (let k = 0; k < NZ; k++) for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
-      const c = i + NX * (j + NY * k);
-      if (solid[c] || i < caseMin[0] || i > caseMax[0] || j < caseMin[1] || j > caseMax[1] || k < caseMin[2] || k > caseMax[2]) { this.ageNext[c] = 0; continue; }
-      const x = Math.min(Math.max(i - u[c * 3], 0), NX - 1), y = Math.min(Math.max(j - u[c * 3 + 1], 0), NY - 1), z = Math.min(Math.max(k - u[c * 3 + 2], 0), NZ - 1);
-      const i0 = Math.floor(x), j0 = Math.floor(y), k0 = Math.floor(z);
-      const fx = x - i0, fy = y - j0, fz = z - k0;
-      let sum = 0, wsum = 0;
-      for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
-        const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
-        const n = Math.min(i0 + dx, NX - 1) + NX * (Math.min(j0 + dy, NY - 1) + NY * Math.min(k0 + dz, NZ - 1));
-        if (solid[n]) continue;
-        sum += w * this.age[n];
-        wsum += w;
-      }
-      this.ageNext[c] = Math.min((wsum > 0 ? sum / wsum : this.age[c]) + 1, 100000);
-    }
-    const t = this.age; this.age = this.ageNext; this.ageNext = t;
   }
 
   /** Largest velocity magnitude over fluid cells, cells per step; NaN if any component is not finite. */
