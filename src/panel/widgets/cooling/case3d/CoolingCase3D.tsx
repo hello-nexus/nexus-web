@@ -9,6 +9,7 @@ import { Notice } from '../../../../components/common/Notice/Notice';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Popover } from '../../../../components/common/Popover/Popover';
+import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
@@ -228,7 +229,8 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
       {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       {caseModel.settled && !caseModel.bytes && <Notice tone="info" role="status">{t('cooling.case3d.noModel')}</Notice>}
-      <div className={styles.viewport}>
+      {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
+      <ThemeScope theme="dark" className={styles.viewport}>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         {result && model && (
           <div className={`${styles.overlay} ${styles.overlayTop}`}>
@@ -301,7 +303,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
             />
           </Popover>
         )}
-      </div>
+      </ThemeScope>
     </div>
   );
 }

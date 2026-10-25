@@ -386,3 +386,20 @@ describe('CoolingCase3D case model', () => {
     expect(screen.queryByText('cooling.case3d.noModel')).toBeNull();
   });
 });
+
+describe('CoolingCase3D dark scope', () => {
+  it('keeps the canvas, popover and device menu in a dark scope under the light theme', () => {
+    document.documentElement.setAttribute('data-theme', 'light');
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    const scope = screen.getByRole('img', { name: 'cooling.case3d.canvas' }).closest('[data-theme]') as HTMLElement;
+    expect(scope.getAttribute('data-theme')).toBe('dark');
+    expect(scope.style.getPropertyValue('--accent')).toBe('inherit');
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.getByRole('dialog').closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+    expect(screen.getByRole('listbox').closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
+    document.documentElement.removeAttribute('data-theme');
+  });
+});
