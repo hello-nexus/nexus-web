@@ -274,53 +274,55 @@ export function fanGeometries(layout: CaseLayout): FanSlotGeometry[] {
   return out;
 }
 
-const MOUNT_OVERLAP = 0.5;
-
-function overlapShare(a: CaseFanSlot, b: CaseFanSlot): number {
-  if (!a.box || !b.box) return 0;
-  let inter = 1;
+/** Overlap, mm squared, of two slots on their face plane (the plane across the slot axis); 0 when they only touch. */
+function planeOverlap(a: CaseFanSlot, b: CaseFanSlot): number {
+  if (!a.box || !b.box || a.position !== b.position) return 0;
+  const axis = a.box.size.indexOf(Math.min(...a.box.size));
+  let area = 1;
   for (let i = 0; i < 3; i++) {
-    const lo = Math.max(a.box.min[i], b.box.min[i]);
-    const hi = Math.min(a.box.min[i] + a.box.size[i], b.box.min[i] + b.box.size[i]);
-    if (hi <= lo) return 0;
-    inter *= hi - lo;
+    if (i === axis) continue;
+    const span = Math.min(a.box.min[i] + a.box.size[i], b.box.min[i] + b.box.size[i]) - Math.max(a.box.min[i], b.box.min[i]);
+    if (span <= TOUCH_MM) return 0;
+    area *= span;
   }
-  const vol = (s: CaseFanSlot) => s.box!.size[0] * s.box!.size[1] * s.box!.size[2];
-  return inter / Math.min(vol(a), vol(b));
+  return area;
 }
+
+/** Face-plane overlap up to this many mm counts as touching, not overlapping; box coordinates carry rounding. */
+const TOUCH_MM = 0.05;
 
 export interface MountCollapse {
   layout: CaseLayout;
-  /** The shown slot standing for `key`: the key itself, or the slot it overlaps at the same mount. */
+  /** The shown slot standing for `key`: the key itself, or the shown slot it overlaps most. */
   canonOf: (key: string) => string;
 }
 
 /**
- * One slot per physical mount. Alternative sizes at the same spot overlap; the shown one is the installed slot, else a bound one, else the larger.
- * Shown slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
+ * One drawn slot per physical mount, chosen greedily: installed first, then bound, then the larger size, then slot order.
+ * A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
+ * Drawn slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
  */
 export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[]): MountCollapse {
   const slots = layout.fanSlots;
-  const parent = slots.map((_, i) => i);
-  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-  for (let i = 0; i < slots.length; i++) for (let j = i + 1; j < slots.length; j++) {
-    if (slots[i].position === slots[j].position && overlapShare(slots[i], slots[j]) > MOUNT_OVERLAP) parent[find(j)] = find(i);
-  }
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
-  const best = new Map<number, number>();
-  slots.forEach((s, i) => {
-    const root = find(i);
-    const cur = best.get(root);
-    if (cur === undefined) { best.set(root, i); return; }
-    const c = slots[cur];
-    if (rank(s) > rank(c) || (rank(s) === rank(c) && s.size > c.size)) best.set(root, i);
-  });
-  const shownIdx = new Set(best.values());
+  const order = slots.map((_, i) => i).sort((x, y) => rank(slots[y]) - rank(slots[x]) || slots[y].size - slots[x].size || x - y);
+  const chosen: number[] = [];
+  for (const i of order) if (chosen.every(j => planeOverlap(slots[i], slots[j]) === 0)) chosen.push(i);
+  const shown = new Set(chosen);
   const canon = new Map<string, string>();
-  slots.forEach((s, i) => canon.set(s.key, slots[best.get(find(i))!].key));
-  let changed = shownIdx.size !== slots.length;
-  const fanSlots = slots.filter((_, i) => shownIdx.has(i)).map(slot => {
+  slots.forEach((s, i) => {
+    if (shown.has(i)) { canon.set(s.key, s.key); return; }
+    let top = chosen[0];
+    let best = -1;
+    for (const j of chosen) {
+      const o = planeOverlap(s, slots[j]);
+      if (o > best) { best = o; top = j; }
+    }
+    canon.set(s.key, slots[top].key);
+  });
+  let changed = shown.size !== slots.length;
+  const fanSlots = slots.filter((_, i) => shown.has(i)).map(slot => {
     const holds = [...bound].some(k => canon.get(k) === slot.key);
     if (slot.taken !== null || !holds) return slot;
     changed = true;

@@ -24,38 +24,49 @@ describe('the Y70 slot data', () => {
   });
 });
 
+const perFace = (l: CaseLayout) => {
+  const out: Record<string, number> = {};
+  for (const s of l.fanSlots) out[s.position] = (out[s.position] ?? 0) + 1;
+  return out;
+};
+
+function noOverlaps(l: CaseLayout) {
+  for (let i = 0; i < l.fanSlots.length; i++) for (let j = i + 1; j < l.fanSlots.length; j++) {
+    const a = l.fanSlots[i], b = l.fanSlots[j];
+    if (a.position !== b.position) continue;
+    const axis = a.box!.size.indexOf(Math.min(...a.box!.size));
+    const span = [0, 1, 2].filter(k => k !== axis).map(k => Math.min(a.box!.min[k] + a.box!.size[k], b.box!.min[k] + b.box!.size[k]) - Math.max(a.box!.min[k], b.box!.min[k]));
+    expect(span.every(v => v > 0.05)).toBe(false);
+  }
+}
+
 describe('collapseMounts on the Y70', () => {
-  it('shows one slot per physical mount, the larger size when nothing is installed or bound', () => {
+  // The Y70 holds two 140 mm or three 120 mm fans on top and on the right, two 140 mm (or two 120 mm) on the bottom, and one on the rear.
+  it('with nothing installed or bound, shows the larger size: 2 top, 2 right, 2 bottom, 1 rear', () => {
     const { layout: out } = collapseMounts(layout, []);
-    const keys = out.fanSlots.map(s => s.key).sort();
-    expect(out.fanSlots.length).toBeLessThan(16);
-    expect(keys).toContain('top:140:0');
-    expect(keys).not.toContain('top:120:1');
+    expect(perFace(out)).toEqual({ top: 2, right: 2, bottom: 2, rear: 1 });
+    expect(out.fanSlots.map(s => s.key).sort()).toEqual(['bottom:140:0', 'bottom:140:1', 'rear:140:0', 'right:140:0', 'right:140:1', 'top:140:0', 'top:140:1']);
     expect(fans(out)).toHaveLength(0);
-    for (const pos of ['top', 'right', 'bottom', 'rear']) {
-      const slots = out.fanSlots.filter(s => s.position === pos);
-      for (let i = 0; i < slots.length; i++) for (let j = i + 1; j < slots.length; j++) {
-        const a = slots[i].box!, b = slots[j].box!;
-        const ox = Math.min(a.min[0] + a.size[0], b.min[0] + b.size[0]) - Math.max(a.min[0], b.min[0]);
-        const oy = Math.min(a.min[1] + a.size[1], b.min[1] + b.size[1]) - Math.max(a.min[1], b.min[1]);
-        const oz = Math.min(a.min[2] + a.size[2], b.min[2] + b.size[2]) - Math.max(a.min[2], b.min[2]);
-        const share = ox > 0 && oy > 0 && oz > 0 ? (ox * oy * oz) / Math.min(a.size[0] * a.size[1] * a.size[2], b.size[0] * b.size[1] * b.size[2]) : 0;
-        expect(share).toBeLessThanOrEqual(0.5);
-      }
-    }
+    noOverlaps(out);
   });
 
-  it('draws one fan per mount that holds a bound device, the bound size winning', () => {
+  it('with the T1 bindings, draws 2 top, 3 right, 2 bottom, 1 rear, six of them fans, and no two overlap', () => {
     const { layout: out, canonOf } = collapseMounts(layout, boundOf(T1_BINDINGS));
-    const keys = fans(out).map(s => s.key);
-    expect(keys).toContain('top:140:0');
-    expect(keys).not.toContain('top:120:1');
-    expect(keys).toContain('top:120:0');
+    expect(perFace(out)).toEqual({ top: 2, right: 3, bottom: 2, rear: 1 });
+    expect(fans(out).map(s => s.key).sort()).toEqual(['bottom:120:0', 'bottom:120:1', 'right:120:1', 'right:120:2', 'top:120:2', 'top:140:0']);
     expect(canonOf('top:120:1')).toBe('top:140:0');
-    expect(new Set(keys).size).toBe(keys.length);
-    // No two drawn fans share a mount: neighbours are a whole fan apart, not stacked.
-    const tops = fans(out).filter(s => s.position === 'top').map(s => s.box!.min[0]);
-    expect(Math.min(...tops.flatMap((a, i) => tops.slice(i + 1).map(b => Math.abs(a - b))))).toBeGreaterThan(90);
+    expect(canonOf('top:120:0')).toBe('top:140:0');
+    noOverlaps(out);
+  });
+
+  it('hides both 120 mm slots a 140 mm one overlaps, and maps each to it', () => {
+    const { layout: out, canonOf } = collapseMounts(layout, ['top:140:0']);
+    const keys = out.fanSlots.filter(s => s.position === 'top').map(s => s.key);
+    expect(keys).toContain('top:140:0');
+    expect(keys).not.toContain('top:120:0');
+    expect(keys).not.toContain('top:120:1');
+    expect(canonOf('top:120:0')).toBe('top:140:0');
+    expect(canonOf('top:120:1')).toBe('top:140:0');
   });
 
   it('keeps an installed fan over a bigger alternative at the same mount', () => {
@@ -64,6 +75,7 @@ describe('collapseMounts on the Y70', () => {
     const keys = out.fanSlots.map(s => s.key);
     expect(keys).toContain('top:120:1');
     expect(keys).not.toContain('top:140:0');
+    noOverlaps(out);
   });
 });
 
