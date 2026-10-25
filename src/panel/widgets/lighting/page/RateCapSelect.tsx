@@ -21,8 +21,9 @@ interface Props {
 export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
   const { t } = useTranslation();
   const [current, setCurrent] = useState<number | null>(value);
-  // Newest request wins: a response from an older request, or one that started
-  // on another card, must neither revert nor confirm anything.
+  // Only the newest request reverts the display. A success from an older request
+  // records the confirmed value only if it is newer than the last confirmation, and
+  // none of this applies to a response that started on another card.
   const seq = useRef(0);
   useEffect(() => { seq.current += 1; }, [id]);
   // Requests still in flight for this card. While any is, a value arriving
@@ -30,6 +31,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
   const pending = useRef(new Set<number>());
   const confirmed = useRef<number | null>(value);
   const confirmedSeq = useRef(0);
+  const shown = useRef(value);
   const lastId = useRef(id);
   useEffect(() => {
     if (lastId.current !== id) {
@@ -39,6 +41,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
       return;
     }
     confirmed.current = value;
+    shown.current = value;
     setCurrent(value);
   }, [value, id]);
 
@@ -54,29 +57,36 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
     const mine = ++seq.current;
     const cardId = id;
     pending.current.add(mine);
+    shown.current = next;
     setCurrent(next);
+    const settle = () => {
+      pending.current.delete(mine);
+      if (cardId !== lastId.current) return;
+      if (pending.current.size === 0 && shown.current !== confirmed.current) {
+        shown.current = confirmed.current;
+        setCurrent(confirmed.current);
+        onSaved?.();
+      }
+    };
     const fail = () => {
       if (mine !== seq.current) return;
+      shown.current = confirmed.current;
       setCurrent(confirmed.current);
       onFail();
     };
     setLightingMaxRate(id, next)
       .then(r => {
-        pending.current.delete(mine);
         if (!r || r.error) fail();
         else if (cardId === lastId.current && mine > confirmedSeq.current) {
           confirmed.current = next;
           confirmedSeq.current = mine;
           if (mine === seq.current) onSaved?.();
-          else if (pending.current.size === 0) {
-            setCurrent(next);
-            onSaved?.();
-          }
         }
+        settle();
       })
       .catch(() => {
-        pending.current.delete(mine);
         fail();
+        settle();
       });
   };
 

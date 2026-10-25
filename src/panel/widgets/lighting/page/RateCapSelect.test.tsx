@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { RateCapSelect } from './RateCapSelect';
 
 vi.mock('../../../../lib/i18n', () => ({
@@ -159,9 +159,7 @@ describe('RateCapSelect', () => {
     const { rerender } = render(<RateCapSelect id="a" value={null} onFail={onFail} />);
     pick(HZ(30));
     rerender(<RateCapSelect id="b" value={20} onFail={onFail} />);
-    resolvers[0]({ error: false, msg: '' });
-    await Promise.resolve();
-    await Promise.resolve();
+    await act(async () => { resolvers[0]({ error: false, msg: '' }); });
     pick(HZ(5));
     await waitFor(() => expect(onFail).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }).textContent).toContain('"hz":20');
@@ -180,9 +178,7 @@ describe('RateCapSelect', () => {
     pick(HZ(30));
     pick(HZ(5));
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
-    resolvers[0]({ error: false, msg: '' });
-    await Promise.resolve();
-    await Promise.resolve();
+    await act(async () => { resolvers[0]({ error: false, msg: '' }); });
     pick(HZ(1));
     await waitFor(() => expect(onFail).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }).textContent).toContain('"hz":5');
@@ -203,5 +199,39 @@ describe('RateCapSelect', () => {
     resolvers[0]({ error: false, msg: '' });
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }).textContent).toContain('"hz":30');
+  });
+
+  const shownHz = () => screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }).textContent;
+
+  it('ends on the confirmed value when C fails, A succeeds, then B fails', async () => {
+    const r: Array<(v: unknown) => void> = [];
+    api.setLightingMaxRate.mockReset();
+    api.setLightingMaxRate.mockImplementation(() => new Promise(res => { r.push(res); }));
+    const onFail = vi.fn();
+    render(<RateCapSelect id="d1" value={15} onFail={onFail} />);
+    pick(HZ(30));
+    pick(HZ(20));
+    pick(HZ(5));
+    await act(async () => { r[2]({ error: true, msg: 'x' }); });
+    expect(onFail).toHaveBeenCalledTimes(1);
+    await act(async () => { r[0]({ error: false, msg: '' }); });
+    await act(async () => { r[1]({ error: true, msg: 'x' }); });
+    expect(shownHz()).toContain('"hz":30');
+  });
+
+  it('ends on the confirmed value when C fails, B succeeds, then A succeeds', async () => {
+    const r: Array<(v: unknown) => void> = [];
+    api.setLightingMaxRate.mockReset();
+    api.setLightingMaxRate.mockImplementation(() => new Promise(res => { r.push(res); }));
+    const onSaved = vi.fn();
+    render(<RateCapSelect id="d1" value={15} onFail={vi.fn()} onSaved={onSaved} />);
+    pick(HZ(30));
+    pick(HZ(20));
+    pick(HZ(5));
+    await act(async () => { r[2]({ error: true, msg: 'x' }); });
+    await act(async () => { r[1]({ error: false, msg: '' }); });
+    await act(async () => { r[0]({ error: false, msg: '' }); });
+    expect(shownHz()).toContain('"hz":20');
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 });
