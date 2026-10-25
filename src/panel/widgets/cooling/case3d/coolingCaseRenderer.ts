@@ -302,16 +302,21 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   return {
     setState(state) {
       if (state.layout !== layout) {
+        const previous = layout;
         layout = state.layout;
         buildStatic(state.layout);
-        flowLayer?.dispose();
-        flowInput = null;
-        const [ex, ey, ez] = caseExtents(state.layout);
-        const colors: FlowColors = {
-          cool: token(canvas, '--airflow-cool', '#38bdf8'), warm: token(canvas, '--airflow-warm', '#f59e0b'), hot: token(canvas, '--bad', '#ef4444'),
-          collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
-        };
-        flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
+        // The flow layer lives as long as the case shape: a fan edit changes the layout object but keeps the field and the particles.
+        const extents = caseExtents(state.layout);
+        if (!flowLayer || !previous || caseExtents(previous).some((v, i) => v !== extents[i])) {
+          flowLayer?.dispose();
+          flowInput = null;
+          const [ex, ey, ez] = extents;
+          const colors: FlowColors = {
+            cool: token(canvas, '--airflow-cool', '#38bdf8'), warm: token(canvas, '--airflow-warm', '#f59e0b'), hot: token(canvas, '--bad', '#ef4444'),
+            collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
+          };
+          flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
+        }
       }
       buildFans(state);
       if (state.model !== modelBytes || (modelFor !== state.layout && state.model)) void showModel(state.model, state.layout);

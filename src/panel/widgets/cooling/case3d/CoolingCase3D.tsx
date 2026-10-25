@@ -16,12 +16,13 @@ import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, directionOf, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
-import { simRpm, speedFraction, settleFlows, type SlotSpeed } from '../../../../lib/cooling/fanSpeed';
-import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs';
+import { settleFlows } from '../../../../lib/cooling/fanSpeed';
+import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withGpuDefaults } from '../../../../lib/cooling/slotFlow';
+import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
 import { visualFlow } from '../../../../lib/cooling/visualFlow';
-import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
+import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import { PARTICLE_SPEED_MAX, PARTICLE_SPEED_MIN, PARTICLE_SPEED_SCALE } from '../../../../lib/cooling/flow/flowParams';
@@ -60,17 +61,17 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   // Parsed once per distinct layout: a setup ping that changes nothing here keeps the same object, so the scene and camera stay.
   const layoutText = JSON.stringify(record?.setup.resolved.caseLayout ?? null);
   const parsedLayout = useMemo(() => parseCaseLayout(JSON.parse(layoutText)), [layoutText]);
+  // The stored bindings plus the derived default for each GPU fan slot; the stored layout never carries the default.
+  const storedBindings = coolingLayout.bindings;
+  const effectiveBindings = useMemo(() => withGpuDefaults(storedBindings, (parsedLayout?.fanSlots ?? []).map(sl => sl.key), channels), [storedBindings, parsedLayout, channels]);
   // A slot bound to a cooling device has a physical fan, whether or not the setup record lists one there.
-  const boundKeys = useMemo(() => {
-    const present = new Set(channels.map(c => c.id));
-    return coolingLayout.bindings.filter(b => present.has(b.channelId) || simRpm(b.channelId) !== null).flatMap(b => b.slotKeys);
-  }, [channels, coolingLayout.bindings]);
+  const boundKeys = useMemo(() => boundSlotKeys(effectiveBindings, channels), [effectiveBindings, channels]);
   const boundKeyText = [...new Set(boundKeys)].sort().join('\n');
   const collapsed = useMemo(() => (parsedLayout ? collapseMounts(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
   const caseLayout = collapsed?.layout ?? null;
   const canonOf = collapsed?.canonOf;
   // Bindings as the view shows them: each on the one drawn fan of its mount.
-  const bindings = useMemo(() => (canonOf ? normalizeBindings(coolingLayout.bindings, canonOf) : coolingLayout.bindings), [coolingLayout.bindings, canonOf]);
+  const bindings = useMemo(() => (canonOf ? normalizeBindings(effectiveBindings, canonOf) : effectiveBindings), [effectiveBindings, canonOf]);
   const [active, setActive] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -82,43 +83,12 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const [particleSpeed, setParticleSpeed] = useState(PARTICLE_SPEED_SCALE);
   const caseModel = useCaseModel(true, record?.rev ?? null);
 
-  const directions = useMemo(() => {
-    const out: Record<string, FanDirection> = {};
-    for (const slot of caseLayout?.fanSlots ?? []) out[slot.key] = directionOf(slot, coolingLayout.directions);
-    return out;
-  }, [caseLayout, coolingLayout.directions]);
+  const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
 
   // Live speed of each drawn fan that has a cooling device bound: the channel's tach over the fan's top speed. Unbound fans stay at their rated curve.
-  const speeds = useMemo(() => {
-    const out = new Map<string, SlotSpeed>();
-    for (const slot of caseLayout?.fanSlots ?? []) {
-      let best: SlotSpeed | undefined;
-      for (const b of bindings) {
-        if (!b.slotKeys.includes(slot.key)) continue;
-        const ch = channels.find(c => c.id === b.channelId);
-        const live = ch ?? (simRpm(b.channelId) !== null ? { rpm: simRpm(b.channelId)!, dutyPercent: 0 } : null);
-        if (!live) continue;
-        const sp = speedFraction(live, slot.fan?.rpmMax ?? slot.radiator?.fanRpmMax, slot.taken === 'radiator' ? slot.size / Math.max(1, slot.radiator?.fanCount ?? 1) : slot.size);
-        if (!best || sp.fraction > best.fraction) best = sp;
-      }
-      if (best) out.set(slot.key, best);
-    }
-    return out;
-  }, [caseLayout, bindings, channels]);
+  const speeds = useMemo(() => slotSpeeds(caseLayout?.fanSlots ?? [], bindings, channels), [caseLayout, bindings, channels]);
 
-  const model = useMemo(() => {
-    if (!caseLayout) return null;
-    const catalog = catalogFanSpecs(record?.setup.items ?? []);
-    let estimated = false;
-    const fans: PressureFan[] = [];
-    for (const slot of caseLayout.fanSlots) {
-      for (const fan of slotModelFans(slot, catalog, speeds.get(slot.key))) {
-        estimated ||= fan.estimated;
-        fans.push({ key: fan.key, cfm: fan.cfm, staticMmH2O: fan.staticMmH2O, direction: directions[slot.key] });
-      }
-    }
-    return { result: solveCasePressure(fans), estimated, fanCount: fans.length };
-  }, [caseLayout, record, directions, speeds]);
+  const model = useMemo(() => (caseLayout ? lumpedModel(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, directions, speeds]);
 
   const handlers = useRef<{ pick: PickHandler }>({ pick: () => {} });
   handlers.current.pick = (key, x, y) => {

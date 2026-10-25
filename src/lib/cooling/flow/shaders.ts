@@ -150,6 +150,8 @@ void main() {
   vec3 p = s.xyz; float age = s.w;
   bool respawn = age > uMaxAge * 4.0;
   bool fresh = respawn;
+  // A warm update can close the cell a particle sits in: only those start over.
+  if (!respawn && p.x > -1.0e5 && solidAt(cellAtPos(p))) respawn = true;
   // Not yet born: wait unseen at the spawn point.
   if (!respawn && age < 0.0) { gl_FragColor = vec4(p, age + 1.0); return; }
   if (!respawn) {

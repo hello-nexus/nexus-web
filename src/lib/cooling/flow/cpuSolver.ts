@@ -17,7 +17,7 @@ export class CpuFlow {
   private readonly NX: number;
   private readonly NY: number;
   private readonly NZ: number;
-  readonly scene: FlowScene;
+  scene: FlowScene;
   private readonly iterations: number;
 
   constructor(scene: FlowScene, iterations: number = JACOBI_ITERATIONS) {
@@ -33,7 +33,25 @@ export class CpuFlow {
     this.div = new Float32Array(this.n);
     this.fluid = new Float32Array(this.n);
     this.invCount = new Float32Array(this.n);
+    this.bind(scene);
+  }
+
+  /** Warm update: a scene on the same grid replaces the obstacles, openings and fans; velocity and pressure are kept, except in cells that became solid. */
+  setScene(scene: FlowScene): void {
+    if (scene.dims.some((d, i) => d !== this.scene.dims[i])) throw new Error('setScene needs the same grid');
+    this.scene = scene;
+    this.bind(scene);
+    for (let c = 0; c < this.n; c++) {
+      if (!scene.solid[c]) continue;
+      this.u[c * 3] = 0; this.u[c * 3 + 1] = 0; this.u[c * 3 + 2] = 0;
+      this.p[c] = 0;
+    }
+  }
+
+  private bind(scene: FlowScene): void {
+    const { NX, NY, NZ } = this;
     for (let c = 0; c < this.n; c++) this.fluid[c] = scene.solid[c] ? 0 : 1;
+    this.invCount.fill(0);
     const sx = 1, sy = NX, sz = NX * NY;
     for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 1; j++) for (let i = 1; i < NX - 1; i++) {
       const c = i + NX * (j + NY * k);
