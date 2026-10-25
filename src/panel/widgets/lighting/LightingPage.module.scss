@@ -224,8 +224,12 @@
 }
 
 // 2D | 3D chip pair beside the Effects title.
-.sceneViewSwitch {
-  margin-left: 0.5rem;
+.headerEnd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  min-width: 0;
 }
 
 // Holds the canvas's footprint while the 3D view's chunk loads.

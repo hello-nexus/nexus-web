@@ -113,6 +113,8 @@ describe('the grid solids match the drawn parts', () => {
       const inside = i > scene.caseMin[0] && i < scene.caseMax[0] && j > scene.caseMin[1] && j < scene.caseMax[1] && k > scene.caseMin[2] && k < scene.caseMax[2];
       if (!inside) continue;
       const p: Vec3 = [(i + 0.5) * h - scene.origin[0], (j + 0.5) * h - scene.origin[1], (k + 0.5) * h - scene.origin[2]];
+      // The front fan's frame and hub are solid by design.
+      if (p[0] < 60 && p[2] > 100 && p[2] < 260) continue;
       if (inGpu(p)) gpuCells++; else if (inPsu(p)) psuCells++; else stray++;
     }
     expect(stray).toBe(0);

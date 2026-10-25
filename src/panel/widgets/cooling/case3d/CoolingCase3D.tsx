@@ -3,7 +3,6 @@ import { Box, Link2, Link2Off } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { Button } from '../../../../components/common/Button/Button';
-import { Slider } from '../../../../components/common/Slider/Slider';
 import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { Notice } from '../../../../components/common/Notice/Notice';
@@ -67,7 +66,6 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const [particles, setParticles] = useState(true);
   const [deadZones, setDeadZones] = useState(false);
   const [debugSolids, setDebugSolids] = useState(false);
-  const [density, setDensity] = useState(60);
   const [flowSupported, setFlowSupported] = useState(true);
 
   const directions = useMemo(() => {
@@ -129,7 +127,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones, density: density / 100, debugSolids }), [particles, deadZones, density, debugSolids]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones, debugSolids }), [particles, deadZones, debugSolids]);
 
   const highlighted = useMemo(() => new Set(slotsOfChannel(coolingLayout.bindings, selectedChannelId)), [coolingLayout.bindings, selectedChannelId]);
   const bound = useMemo(() => new Set(coolingLayout.bindings.flatMap(b => b.slotKeys)), [coolingLayout.bindings]);
@@ -201,12 +199,6 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
           <Toggle checked={debugSolids} onChange={setDebugSolids} ariaLabel={t('cooling.case3d.flow.solids')} />
           <span>{t('cooling.case3d.flow.solids')}</span>
         </label>
-        {particles && (
-          <div className={styles.flowDensity}>
-            {/* eslint-disable-next-line i18next/no-literal-string -- slider layout enum */}
-            <Slider orientation="stacked" editable trackFill label={t('cooling.case3d.flow.density')} value={density} min={10} max={100} onChange={v => setDensity(v)} />
-          </div>
-        )}
       </div>
       {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}

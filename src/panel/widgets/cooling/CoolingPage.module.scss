@@ -106,6 +106,9 @@
 }
 
 .headerLeft { grid-column: 1; }
+
+// The 2D / 3D switch sits at the right end of the canvas header.
+.viewSwitch { margin-left: auto; }
 // min-width lets the title ellipsize instead of pushing the badge and the
 // action out of the column, the same way the fan header's title group does.
 .headerRight {

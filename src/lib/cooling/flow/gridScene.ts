@@ -4,6 +4,7 @@ import {
   CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, MAX_SPAWN_POINTS,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM,
 } from './flowParams';
+import { fanRadii } from '../fanGeometry';
 import { boxBounds, boxContains } from './voxelize';
 
 const M3S_PER_CFM = 0.000471947;
@@ -98,7 +99,11 @@ export function inwardAxis(slot: CaseFanSlot, box: { min: Vec3; size: Vec3 }, ex
 interface Disk {
   centre: Vec3;
   axis: Vec3;
+  /** Blade tip radius and hub radius, mm: air passes between them. */
   radius: number;
+  hub: number;
+  /** Side of the fan's square frame, mm. */
+  frame: number;
   halfThickness: number;
 }
 
@@ -114,6 +119,11 @@ interface Plan {
   fans: PlannedFan[];
   /** Radiator slots, whose box is porous. */
   radiators: { box: { min: Vec3; size: Vec3; rotationY?: number } }[];
+}
+
+function diskRadii(frame: number): { radius: number; hub: number; frame: number } {
+  const r = fanRadii(frame);
+  return { radius: r.tip, hub: r.hub, frame };
 }
 
 function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
@@ -137,7 +147,7 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
         const centre: Vec3 = [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2];
         centre[longAxis] = box.min[longAxis] + (box.size[longAxis] * (f + 0.5)) / count;
         fans.push({
-          disk: { centre, axis, radius: Math.min(shortSide, box.size[longAxis] / count) * 0.47, halfThickness: Math.max(box.size[k] / 2, minThickness) },
+          disk: { centre, axis, ...diskRadii(Math.min(shortSide, box.size[longAxis] / count)), halfThickness: Math.max(box.size[k] / 2, minThickness) },
           direction, cfm: input.fanCfm[f === 0 ? slot.key : `${slot.key}#${f}`] ?? 0, slot, porousBox: true,
         });
       }
@@ -152,7 +162,7 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
       disk: {
         centre: [box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2],
         axis,
-        radius: Math.min(box.size[perp[0]], box.size[perp[1]]) * 0.47,
+        ...diskRadii(Math.min(box.size[perp[0]], box.size[perp[1]])),
         halfThickness: Math.max(box.size[k] / 2, minThickness),
       },
       direction, cfm: slot.taken === 'fan' ? (input.fanCfm[slot.key] ?? 0) : 0, slot, porousBox: false,
@@ -240,20 +250,66 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     voxelize({ slot: 'radiator', role: 'part', min: r.box.min, size: r.box.size, rotationY: r.box.rotationY }, c => { if (!solid[c]) { darcy[c] = DARCY_K; heat[c] = HEAT_RATE_POROUS; } });
   }
 
-  const velocityMps = (p: PlannedFan) => {
-    const radiusM = p.disk.radius / MM_PER_M;
-    return (p.cfm * M3S_PER_CFM) / (Math.PI * radiusM * radiusM);
+  interface FanCells { annulus: number[]; blocked: number[]; layers: number; perLayer: number }
+  const e1Of = (axis: Vec3) => norm(cross(axis, Math.abs(axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+  const SUB = 3;
+
+  // The open ring of a fan: cells whose area is mostly between hub and tip carry the air; the hub and the square frame around it are solid.
+  const classify = (p: PlannedFan): FanCells => {
+    const { centre, axis, radius, hub, frame, halfThickness } = p.disk;
+    const e1 = e1Of(axis);
+    const e2 = cross(axis, e1);
+    const k = axisIndex(axis);
+    const lat = [0, 1, 2].filter(a => a !== k);
+    const reach = frame / 2 + cellMm * 2;
+    const annulus: number[] = [];
+    const blocked: number[] = [];
+    const layers = new Set<number>();
+    eachCellIn(sub(centre, [reach, reach, reach]), add(centre, [reach, reach, reach]), (i, j, kk) => {
+      if (!inCase(i, j, kk)) return;
+      const cc = layoutMm(i, j, kk);
+      const d0 = sub(cc, centre);
+      const along = dot(d0, axis);
+      // The shell cell can sit a cell or so past the fan box when the case size is not a whole number of cells.
+      if (Math.abs(along) > halfThickness + (onCaseShell(i, j, kk) ? cellMm * 1.5 : 0)) return;
+      let inRing = 0;
+      let inFrame = 0;
+      for (let a = 0; a < SUB; a++) for (let b = 0; b < SUB; b++) {
+        const d: Vec3 = [d0[0], d0[1], d0[2]];
+        d[lat[0]] += ((a + 0.5) / SUB - 0.5) * cellMm;
+        d[lat[1]] += ((b + 0.5) / SUB - 0.5) * cellMm;
+        const u = dot(d, e1), v = dot(d, e2);
+        if (Math.abs(u) > frame / 2 || Math.abs(v) > frame / 2) continue;
+        inFrame++;
+        const r = Math.hypot(u, v);
+        if (r > hub && r <= radius) inRing++;
+      }
+      if (inFrame === 0) return;
+      const id3 = id(i, j, kk);
+      if (inRing / (SUB * SUB) >= 0.4) {
+        annulus.push(id3);
+        layers.add([i, j, kk][k]);
+      } else if (!p.porousBox) blocked.push(id3);
+    });
+    return { annulus, blocked, layers: layers.size, perLayer: layers.size > 0 ? annulus.length / layers.size : 0 };
   };
-  const reference = Math.max(MIN_REFERENCE_SPEED, ...plan.fans.map(velocityMps));
+
+  const cellsOf = plan.fans.map(p => (p.cfm > 0 || p.slot.taken === null ? classify(p) : { annulus: [], blocked: [], layers: 0, perLayer: 0 }));
+  const cellAreaM2 = (cellMm / MM_PER_M) ** 2;
+  // Air speed through the ring: the fan's flow over the area its ring cells cover, so a coarse grid still moves the fan's CFM.
+  const velocityMps = (p: PlannedFan, c: FanCells) => (c.perLayer > 0 && p.cfm > 0 ? (p.cfm * M3S_PER_CFM) / (c.perLayer * cellAreaM2) : 0);
+  const reference = Math.max(MIN_REFERENCE_SPEED, ...plan.fans.map((p, i) => velocityMps(p, cellsOf[i])));
   const stepSeconds = (CFL_TARGET * (cellMm / MM_PER_M)) / reference;
 
   const spawns: number[] = [];
   const addSpawns = (p: PlannedFan, weight: number) => {
     const count = Math.min(MAX_SPAWN_PER_FAN, Math.max(MIN_SPAWN_PER_FAN, Math.round((weight / 60) * SPAWN_PER_60_CFM)));
-    const e1 = norm(cross(p.disk.axis, Math.abs(p.disk.axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+    const e1 = e1Of(p.disk.axis);
     const e2 = cross(p.disk.axis, e1);
+    const { radius, hub } = p.disk;
     for (let m = 0; m < count && spawns.length / 3 < MAX_SPAWN_POINTS; m++) {
-      const r = p.disk.radius * 0.9 * Math.sqrt((m + 0.5) / count);
+      // Uniform per area over the ring between hub and tip.
+      const r = Math.sqrt(hub * hub + (radius * radius - hub * hub) * ((m + 0.5) / count));
       const th = m * GOLDEN_ANGLE;
       const back = p.disk.halfThickness + cellMm * (SPAWN_OUTSIDE_CELLS + ((m * 0.37) % 3));
       const pos = add(add(add(p.disk.centre, scale(e1, r * Math.cos(th))), scale(e2, r * Math.sin(th))), scale(p.disk.axis, -back));
@@ -263,39 +319,38 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     }
   };
 
+  // Frames and hubs first: a neighbour's frame must not close another fan's open ring where their cells meet.
+  for (const cells of cellsOf) for (const c of cells.blocked) solid[c] = 1;
   let fanCount = 0;
   let maxTarget = 0;
   let intakeCfm = 0;
-  for (const p of plan.fans) {
-    const { centre, axis, radius, halfThickness } = p.disk;
-    const speed = p.cfm > 0 ? (CFL_TARGET * velocityMps(p)) / reference : 0;
+  plan.fans.forEach((p, n) => {
+    const cells = cellsOf[n];
+    const { axis } = p.disk;
+    const mps = velocityMps(p, cells);
+    const speed = mps > 0 ? (CFL_TARGET * mps) / reference : 0;
     maxTarget = Math.max(maxTarget, speed);
     const sign = p.direction === 'intake' ? 1 : -1;
     const vel = scale(axis, sign * speed);
-    const reach = radius + cellMm * 2;
     const kind = speed > 0 ? (p.direction === 'intake' ? OPENING_INTAKE : OPENING_EXHAUST) : p.porousBox ? OPENING_NONE : OPENING_VENT;
-    eachCellIn(sub(centre, [reach, reach, reach]), add(centre, [reach, reach, reach]), (i, j, k) => {
-      const d = sub(layoutMm(i, j, k), centre);
-      const along = dot(d, axis);
-      const perp = Math.hypot(...(sub(d, scale(axis, along))));
-      if (perp > radius) return;
-      const c = id(i, j, k);
-      if (onCaseShell(i, j, k) && Math.abs(along) <= halfThickness + cellMm * 1.5) {
+    for (const c of cells.annulus) {
+      const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
+      if (onCaseShell(i, j, k)) {
         solid[c] = 0;
         if (kind !== OPENING_NONE) opening[c] = kind;
       }
-      if (Math.abs(along) <= halfThickness && speed > 0 && !solid[c]) {
+      if (speed > 0 && !solid[c]) {
         target[c * 3] = vel[0]; target[c * 3 + 1] = vel[1]; target[c * 3 + 2] = vel[2];
         fanCell[c] = 1;
       }
-    });
+    }
     if (speed > 0) {
       fanCount++;
       if (p.direction === 'intake') { addSpawns(p, p.cfm); intakeCfm += p.cfm; }
     } else if (p.slot.taken === null && !p.porousBox && input.ventCfm < 0) {
       addSpawns(p, Math.abs(input.ventCfm) / 4);
     }
-  }
+  });
 
   // Heat: fluid cells within reach of a heat-source solid warm the air that passes.
   for (const c of sources) {

@@ -72,7 +72,7 @@ import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanv
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { useLightingScene } from './scene/useLightingScene';
-import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
+import { ViewSwitch } from '../../../components/common/ViewSwitch/ViewSwitch';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
@@ -231,8 +231,8 @@ function loadDeviceOrder(): string[] {
 const LightingScene3D = lazy(() => import('./scene/LightingScene3D'));
 const ShaderStudio = lazy(() => import('./studio/ShaderStudio').then(m => ({ default: m.ShaderStudio })));
 const SavedEffectSections = lazy(() => import('./studio/CustomEffectsGrid').then(m => ({ default: m.SavedEffectSections })));
-const VIEW_2D = '2d';
-const VIEW_3D = '3d';
+const VIEW_2D = '2d' as const;
+const VIEW_3D = '3d' as const;
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate, accountUsername = null }: LightingViewProps) {
   const { t, language } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused, gameSyncRemovedNotice } = useLightingSync(serviceOnline, activeProfileId);
@@ -2877,33 +2877,34 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         <div className={`${styles.paneHeader} ${styles.headerCenter}`}>
           <span className={styles.paneTitle}>{t('lighting.pane.effects')}</span>
           {visibleDevices.length > 0 && scopeChip}
-          {SCENE_3D && showCanvas && (
-            <ChipGroup
-              className={styles.sceneViewSwitch}
-              ariaLabel={t('lighting.scene.viewSwitch')}
-              options={[{ key: VIEW_2D, label: t('lighting.scene.view.2d') }, { key: VIEW_3D, label: t('lighting.scene.view.3d') }]}
-              activeKey={scene3d ? VIEW_3D : VIEW_2D}
-              onChange={next => {
-                const firstTime = next === VIEW_3D && (sceneApi.scene?.bindings.length ?? 0) === 0;
-                void sceneApi.setEnabled(next === VIEW_3D);
-                if (firstTime) setSceneEditorOpen(true);
-              }}
-            />
-          )}
-          {dockCollapsed && (
-            <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
-              <Button
-                tone="ghost"
-                size="sm"
-                icon={<PanelRightOpen />}
-                aria-label={t('lighting.effectDock.expand')}
-                className={styles.dockToggle}
-                onClick={() => setDockCollapsed(false)}
-              >
-                {t('lighting.rightPane.effect')}
-              </Button>
-            </HoverTooltip>
-          )}
+          <span className={styles.headerEnd}>
+            {SCENE_3D && showCanvas && (
+              <ViewSwitch
+                ariaLabel={t('lighting.scene.viewSwitch')}
+                value={scene3d ? VIEW_3D : VIEW_2D}
+                labels={{ '2d': t('lighting.view.layout'), '3d': t('lighting.view.desk') }}
+                onChange={next => {
+                  const firstTime = next === VIEW_3D && (sceneApi.scene?.bindings.length ?? 0) === 0;
+                  void sceneApi.setEnabled(next === VIEW_3D);
+                  if (firstTime) setSceneEditorOpen(true);
+                }}
+              />
+            )}
+            {dockCollapsed && (
+              <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={<PanelRightOpen />}
+                  aria-label={t('lighting.effectDock.expand')}
+                  className={styles.dockToggle}
+                  onClick={() => setDockCollapsed(false)}
+                >
+                  {t('lighting.rightPane.effect')}
+                </Button>
+              </HoverTooltip>
+            )}
+          </span>
         </div>
         {!dockCollapsed && (
           <div className={`${styles.paneHeader} ${styles.headerRight}`}>
