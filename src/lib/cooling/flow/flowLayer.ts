@@ -3,7 +3,7 @@ import {
   MeshBasicMaterial, NearestFilter, NormalBlending, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_MAX_AGE } from './flowParams';
+import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE } from './flowParams';
 import { SteadyGate } from './steadyGate';
 import { buildFlowScene, surfaceSolids, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
@@ -190,7 +190,7 @@ export class FlowLayer {
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, SP: { value: null as unknown }, uSpawnCount: { value: 0 }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD },
+      PA: { value: null as unknown }, SP: { value: null as unknown }, uSpawnCount: { value: 0 }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown } });
@@ -203,7 +203,7 @@ export class FlowLayer {
     geometry.setDrawRange(0, Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier]));
     const pointUniforms = (alpha: number, size: number, minPx: number) => ({
       PA: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
-      uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uAlpha: { value: alpha },
+      uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: alpha },
       uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot },
     });
     // Head and trail: additive soft sprites; the trail is fainter.
