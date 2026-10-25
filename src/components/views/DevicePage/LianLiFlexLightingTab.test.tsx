@@ -634,6 +634,17 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
       expect(screen.queryByText('devices.lianli-flex.modePerZone')).not.toBeInTheDocument();
     });
 
+    it('hides Mode, brightness and Reset lighting, and links to the Lighting page', async () => {
+      const onSectionNavigate = vi.fn();
+      mockGet.mockResolvedValue({ laneModes: [], chains: [p28Unit] });
+      await act(async () => { render(<LianLiWirelessLightingTab api={{ ...api, reset: vi.fn() }} onSectionNavigate={onSectionNavigate} />); });
+      expect(screen.queryByLabelText('devices.lianli.lightingMode')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli.lightingBrightness')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli-flex.resetLighting')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' }));
+      expect(onSectionNavigate).toHaveBeenCalledWith('lighting');
+    });
+
     it('is keyed on the family, so a P28 reporting fan type 0 is still one', async () => {
       await renderTab([{ ...p28Unit, fanType: 0, family: 'p28v2' }]);
       expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();

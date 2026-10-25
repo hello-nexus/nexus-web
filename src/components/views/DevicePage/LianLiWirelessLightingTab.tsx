@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { Lightbulb } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -320,6 +321,13 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
         onSectionNavigate={onSectionNavigate}
       />}
 
+      {p28 ? (
+        <SettingRow label={t('devices.lightingPage.setHint')}>
+          <Button size="sm" tone="neutral" icon={<Lightbulb size={14} />} onClick={() => onSectionNavigate?.('lighting')}>
+            {t('smartLights.colorOnLightingPage')}
+          </Button>
+        </SettingRow>
+      ) : (<>
       <LianLiChainEffectControls
         modes={chain.modes}
         value={{ mode: effectKey, speed: chain.speed, direction: chain.direction, brightness: chain.brightness, colors: chain.colors }}
@@ -367,6 +375,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
           />
         )}
       </LianLiChainEffectControls>
+      </>)}
 
       {chain.upDownSwap != null && (
         <SettingToggle
@@ -389,7 +398,7 @@ function ChainSection({ chain, title, laneModes, onPreview, onCommit, onReset, f
         </SettingRow>
       )}
 
-      {onReset && (
+      {onReset && !p28 && (
         <SettingRow label={t('devices.lianli-flex.resetLighting')} description={t('devices.lianli-flex.resetLightingHint')}>
           <Button size="sm" tone="neutral" onClick={() => { setResetFailed(false); setConfirmReset(true); }}>
             {t('devices.lianli-flex.resetLightingButton')}
