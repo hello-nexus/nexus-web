@@ -28,6 +28,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
   // Requests still in flight for this card. While any is, a value arriving
   // from the parent (an older save's refetch) must not overwrite a newer pick.
   const pending = useRef(new Set<number>());
+  const confirmed = useRef<number | null>(value);
   const lastId = useRef(id);
   useEffect(() => {
     if (lastId.current !== id) {
@@ -36,6 +37,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
     } else if (pending.current.size > 0) {
       return;
     }
+    confirmed.current = value;
     setCurrent(value);
   }, [value, id]);
 
@@ -48,20 +50,22 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
 
   const handleChange = (v: string) => {
     const next = v === OFF ? null : Number(v);
-    const prev = current;
     const mine = ++seq.current;
     pending.current.add(mine);
     setCurrent(next);
     const fail = () => {
       if (mine !== seq.current) return;
-      setCurrent(prev);
+      setCurrent(confirmed.current);
       onFail();
     };
     setLightingMaxRate(id, next)
       .then(r => {
         pending.current.delete(mine);
         if (!r || r.error) fail();
-        else if (mine === seq.current) onSaved?.();
+        else {
+          confirmed.current = next;
+          if (mine === seq.current) onSaved?.();
+        }
       })
       .catch(() => {
         pending.current.delete(mine);

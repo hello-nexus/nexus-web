@@ -118,4 +118,34 @@ describe('RateCapSelect', () => {
     rerender(<RateCapSelect id="d1" value={5} onFail={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }).textContent).toContain('"hz":5');
   });
+
+  it('reverts to the last confirmed value after a success then a failure', async () => {
+    api.setLightingMaxRate.mockReset();
+    api.setLightingMaxRate
+      .mockResolvedValueOnce({ error: false, msg: '' })
+      .mockResolvedValueOnce({ error: true, msg: 'x' });
+    const onFail = vi.fn();
+    render(<RateCapSelect id="d1" value={null} onFail={onFail} />);
+    pick(HZ(10));
+    await waitFor(() => expect(api.setLightingMaxRate).toHaveBeenCalledTimes(1));
+    await Promise.resolve();
+    pick(HZ(5));
+    await waitFor(() => expect(onFail).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }).textContent).toContain('"hz":10');
+  });
+
+  it('reverts to the confirmed value, not an unconfirmed earlier pick', async () => {
+    let failFirst: (v: unknown) => void = () => {};
+    api.setLightingMaxRate.mockReset();
+    api.setLightingMaxRate
+      .mockImplementationOnce(() => new Promise(res => { failFirst = res; }))
+      .mockResolvedValueOnce({ error: true, msg: 'x' });
+    const onFail = vi.fn();
+    render(<RateCapSelect id="d1" value={15} onFail={onFail} />);
+    pick(HZ(30));
+    pick(HZ(5));
+    failFirst({ error: true, msg: 'x' });
+    await waitFor(() => expect(onFail).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }).textContent).toContain('"hz":15');
+  });
 });
