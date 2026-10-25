@@ -4,12 +4,13 @@ import {
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
 import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_MAX_AGE } from './flowParams';
+import { SteadyGate } from './steadyGate';
 import { buildFlowScene, surfaceSolids, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, TRAIL_FRAGMENT, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
 export const FLOW_TIERS = [GRID_TARGET_CELLS, Math.round(GRID_TARGET_CELLS / 2), GRID_LOW_CELLS];
-/** Fixed pool, about 1.3 times the earlier 8192; a coarser grid tier draws a share of it. */
+/** Fixed particle pool; a coarser grid tier draws a share of it. */
 export const PARTICLE_TEXTURE = { w: 128, h: 84 };
 const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
 /** Positions kept per particle: the current one and this many older ones, drawn as a trail. */
@@ -26,7 +27,7 @@ const MAX_STEPS_PER_FRAME = 8;
 const MIN_STEPS_PER_FRAME = 1;
 const PARTICLE_SUBSTEPS = 2;
 const AGE_STEPS_PER_FRAME = 4;
-/** Recirculation makes most air older than the straight-through time; the dead-zone volume shows air older than a few of those. */
+/** Dead-zone age scale, as a multiple of the straight-through time. */
 const AGE_SCALE = 4;
 const STEADY_CHECK_EVERY = 16;
 const STEADY_RATIO = 0.01;
@@ -75,7 +76,7 @@ export class FlowLayer {
   private options: FlowOptions = { particles: true, deadZones: false, debugSolids: false };
   private seed = 1;
   private debugShown = false;
-  private measuring = false;
+  private readonly gate = new SteadyGate();
   private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
 
   private stateTargets: ReturnType<typeof target>[] = [];
@@ -102,7 +103,8 @@ export class FlowLayer {
     this.extent = extent;
     this.colors = colors;
     this.kind = floatSupport(renderer);
-    this.supported = this.kind !== null;
+    // Particle positions need 32-bit float targets: half floats stall slow particles, so a half-only context gets no layer.
+    this.supported = this.kind === FloatType;
     this.runner = this.supported ? new PassRunner(renderer) : null;
     const ext = this.supported ? (renderer.getContext() as WebGL2RenderingContext).getExtension('EXT_disjoint_timer_query_webgl2') : null;
     this.timer = ext ? { ext, pending: [], msPerStep: 0 } : null;
@@ -160,6 +162,7 @@ export class FlowLayer {
     this.updateUniforms();
     this.syncDebug();
     this.stepsSinceEdit = 0;
+    this.gate.invalidate();
     this.solving = scene.fanCount > 0;
     this.flow?.resetAge();
   }
@@ -201,8 +204,7 @@ export class FlowLayer {
       uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uAlpha: { value: alpha },
       uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot },
     });
-    // The head is a round sprite with a bright core and a dark halo, drawn with normal blending so it reads on light and dark themes;
-    // the trail copies are additive and fainter.
+    // Head: normal-blended haloed sprite; trails: additive and fainter.
     this.pointMat = new ShaderMaterial({
       glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(0.95, POINT_SIZE, POINT_MIN_PX),
       transparent: true, depthWrite: false, depthTest: false, blending: NormalBlending,
@@ -312,6 +314,7 @@ export class FlowLayer {
     this.lastFrameAt = now;
 
     const wantsFlow = this.options.particles || this.options.deadZones;
+    this.pollSteady(flow);
     if (this.solving && wantsFlow) {
       this.pollTimer();
       const gl = this.renderer.getContext() as WebGL2RenderingContext;
@@ -394,19 +397,16 @@ export class FlowLayer {
     this.stepsPerFrame = Math.min(MAX_STEPS_PER_FRAME, Math.max(MIN_STEPS_PER_FRAME, next));
   }
 
-  // Asks the GPU for the velocity change; the answer arrives through a PBO and fence a few frames later, so no frame waits for it.
+  // Starts a steady check; its result is read in a later frame, so no frame waits on it.
   private checkSteady(flow: GlFlow) {
-    if (this.measuring) return;
-    this.measuring = true;
-    void flow.measure().then(({ du, u }) => {
-      this.measuring = false;
-      if (flow !== this.flow) return;
-      const settled = Number.isFinite(u) && u > 1e-6 && du < STEADY_RATIO * u;
-      if (settled || this.stepsSinceEdit >= MAX_SOLVE_STEPS || !Number.isFinite(u)) this.solving = false;
-    }, () => {
-      this.measuring = false;
-      if (flow === this.flow && this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
-    });
+    if (flow.beginMeasure()) this.gate.begin();
+  }
+
+  // Applies a finished steady check to the solve.
+  private pollSteady(flow: GlFlow) {
+    const r = flow.pollMeasure();
+    if (!r) return;
+    if (this.gate.settles(r.du, r.u, STEADY_RATIO) || this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
   }
 
   /** Particle positions (cell coordinates) and heat read back from the GPU; for checks that none sit in a solid cell. */

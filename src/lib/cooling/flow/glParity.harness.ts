@@ -53,7 +53,10 @@ async function main() {
   let maxCpu = 0;
   for (let i = 0; i < cpu.u.length; i++) { maxDiff = Math.max(maxDiff, Math.abs(g[i] - cpu.u[i])); maxCpu = Math.max(maxCpu, Math.abs(cpu.u[i])); }
   out.velocity = { maxDiff, maxCpu };
-  out.measure = await gl.measure();
+  gl.beginMeasure();
+  let measured = gl.pollMeasure();
+  while (!measured) { await new Promise(r => setTimeout(r, 4)); measured = gl.pollMeasure(); }
+  out.measure = measured;
   err('measure');
 
   const host = new Group();

@@ -127,6 +127,7 @@ export class GlFlow {
   private readonly reduceNext: ShaderMaterial;
   private readonly encode: ShaderMaterial;
   private readonly encoded: WebGLRenderTarget;
+  private inFlight: { fence: WebGLSync; buffer: WebGLBuffer } | null = null;
   private presCur = 0;
 
   constructor(renderer: WebGLRenderer, runner: PassRunner, scene: FlowScene, type: FloatKind) {
@@ -298,11 +299,9 @@ export class GlFlow {
     return out;
   }
 
-  /**
-   * Largest velocity change over the last step and largest velocity, cells per step. The reduction runs on the GPU, the result is packed
-   * into RGBA8 and read through a PBO and fence, so the frame never waits on it.
-   */
-  async measure(): Promise<{ du: number; u: number }> {
+  /** Starts a GPU reduction of the last step's velocity change and top speed, read back through a PBO and fence; false while one is in flight. */
+  beginMeasure(): boolean {
+    if (this.inFlight) return false;
     this.reduceFirst.uniforms.A.value = this.vel[this.cur].texture;
     this.reduceFirst.uniforms.B.value = this.vel[this.prev].texture;
     this.runner.run(this.reduceFirst, this.reduceTargets[0]);
@@ -314,14 +313,6 @@ export class GlFlow {
     }
     this.encode.uniforms.A.value = this.reduceTargets[this.reduceTargets.length - 1].texture;
     this.runner.run(this.encode, this.encoded);
-    const bytes = await this.readEncoded();
-    const u = (bytes[0] + bytes[1] / 255) / 255;
-    const ratio = (bytes[2] + bytes[3] / 255) / 255;
-    return { du: ratio * u, u };
-  }
-
-  // Reads the 4 encoded bytes through a pixel-pack buffer and a fence, polling the fence off the render path so no frame waits.
-  private async readEncoded(): Promise<Uint8Array> {
     const gl = this.renderer.getContext() as WebGL2RenderingContext;
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
@@ -333,23 +324,40 @@ export class GlFlow {
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
     const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
     gl.flush();
-    if (!fence) { gl.deleteBuffer(buffer); throw new Error('fenceSync unavailable'); }
-    for (;;) {
-      const status = gl.clientWaitSync(fence, 0, 0);
-      if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) break;
-      if (status === gl.WAIT_FAILED) { gl.deleteSync(fence); gl.deleteBuffer(buffer); throw new Error('fence wait failed'); }
-      await new Promise(resolve => setTimeout(resolve, 4));
-    }
-    gl.deleteSync(fence);
+    if (!fence) { gl.deleteBuffer(buffer); return false; }
+    this.inFlight = { fence, buffer };
+    return true;
+  }
+
+  /** The result of the measure in flight once its fence has signaled, else null; call once per frame. */
+  pollMeasure(): { du: number; u: number } | null {
+    const flight = this.inFlight;
+    if (!flight) return null;
+    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    const status = gl.clientWaitSync(flight.fence, 0, 0);
+    if (status === gl.TIMEOUT_EXPIRED) return null;
+    this.inFlight = null;
+    gl.deleteSync(flight.fence);
     const bytes = new Uint8Array(4);
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
-    gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, bytes);
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-    gl.deleteBuffer(buffer);
-    return bytes;
+    if (status !== gl.WAIT_FAILED) {
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, flight.buffer);
+      gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, bytes);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    }
+    gl.deleteBuffer(flight.buffer);
+    if (status === gl.WAIT_FAILED) return null;
+    const u = (bytes[0] + bytes[1] / 255) / 255;
+    const ratio = (bytes[2] + bytes[3] / 255) / 255;
+    return { du: ratio * u, u };
   }
 
   dispose() {
+    if (this.inFlight) {
+      const gl = this.renderer.getContext() as WebGL2RenderingContext;
+      gl.deleteSync(this.inFlight.fence);
+      gl.deleteBuffer(this.inFlight.buffer);
+      this.inFlight = null;
+    }
     for (const t of [...this.vel, ...this.pres, this.div, ...this.age, ...this.reduceTargets]) t.dispose();
     this.mask.dispose();
     this.fan.dispose();

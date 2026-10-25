@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { fanRadii, FAN_HUB_RATIO } from '../fanGeometry';
 import { CpuParticles } from './cpuParticles';
 import { CpuFlow } from './cpuSolver';
-import { buildFlowScene, isSolidAt, type FlowScene } from './gridScene';
+import { OPENING_VENT, buildFlowScene, isSolidAt, type FlowScene } from './gridScene';
 import { fronts, inputFor, slotSpec, tops, rear } from './flowFixtures';
 
 const M3S_PER_CFM = 0.000471947;
@@ -110,5 +110,46 @@ describe('fan ring', () => {
     const scene = buildFlowScene(inputFor([rear, tops[0]], [], () => 'exhaust', 70), LOW);
     expect(scene.fanCount).toBe(2);
     expect(slotSpec).toBeDefined();
+  });
+});
+
+describe('stopped fans and empty slots', () => {
+  const at = (s: FlowScene, mm: number[]) => idx(s, cell(s, mm));
+  const emptyFront = slotSpec('front:120:1', 'front', null, [0, 180, 120], [25, 120, 120], [1, 0, 0]);
+  const shellX = (s: FlowScene) => s.caseMin[0];
+
+  it('keeps a fan with no flow as an open vent with a hub, not a sealed hole', () => {
+    const input = inputFor([fan], [], () => 'intake', 0);
+    const s = buildFlowScene(input, FINE);
+    const ring = cell(s, [20, CENTRE[1] + (hub + tip) / 2, CENTRE[2]]);
+    ring[0] = shellX(s);
+    expect(s.solid[idx(s, ring)]).toBe(0);
+    expect(s.opening[idx(s, ring)]).toBe(OPENING_VENT);
+    const hubCell = cell(s, [20, CENTRE[1], CENTRE[2]]);
+    expect(s.solid[idx(s, hubCell)]).toBe(1);
+    expect(s.fanCell.some(v => v === 1)).toBe(false);
+    expect(s.fanCount).toBe(0);
+  });
+
+  it('keeps an empty slot as an open grille with no hub', () => {
+    const s = buildFlowScene(inputFor([emptyFront], [], () => 'intake'), FINE);
+    const centre = cell(s, [20, CENTRE[1], CENTRE[2]]);
+    expect(s.solid[idx(s, centre)]).toBe(0);
+    const shellCentre = [...centre];
+    shellCentre[0] = shellX(s);
+    expect(s.solid[idx(s, shellCentre)]).toBe(0);
+    expect(s.opening[idx(s, shellCentre)]).toBe(OPENING_VENT);
+    void at;
+  });
+
+  it('spawns inflow particles across the whole disc of an empty slot, hub area included', () => {
+    const s = buildFlowScene({ ...inputFor([emptyFront], [], () => 'intake'), ventCfm: -60 }, FINE);
+    let inner = 0;
+    for (let m = 0; m < s.spawns.length / 3; m++) {
+      const p = [0, 1, 2].map(a => (s.spawns[m * 3 + a] + 0.5) * s.cellMm - s.origin[a]);
+      if (Math.hypot(p[1] - CENTRE[1], p[2] - CENTRE[2]) < hub) inner++;
+    }
+    expect(s.spawns.length).toBeGreaterThan(0);
+    expect(inner).toBeGreaterThan(0);
   });
 });
