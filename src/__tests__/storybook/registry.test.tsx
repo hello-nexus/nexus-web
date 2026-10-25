@@ -20,6 +20,7 @@ const COMMON_EXCLUSIONS: Record<string, string> = {
   ChannelSwitchModal: 'Continue starts a real install of another update channel; a preview would trigger it',
   ContextMenu: 'side-effect contextmenu suppressor, renders null; has its own unit test',
   ErrorBoundary: 'render-time error catcher, nothing to preview',
+  ThemeScope: 'theme-pinning wrapper and portal-root context, nothing to preview',
   PairRemote: 'live-state pairing orchestration (QR mint, sessions poll, socket); not stub-renderable',
 };
 

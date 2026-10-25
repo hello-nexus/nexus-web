@@ -25,7 +25,6 @@ import { catalogFanSpecs, slotModelFans } from '../../../../lib/cooling/fanSpecs
 import { solveCasePressure, type FanDirection, type PressureFan } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
-import { PARTICLE_SPEED_MAX, PARTICLE_SPEED_MIN, PARTICLE_SPEED_SCALE } from '../../../../lib/cooling/flow/flowParams';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import styles from './CoolingCase3D.module.scss';
 
@@ -38,6 +37,9 @@ export interface CoolingCase3DProps {
   onSelectChannel: (channelId: string) => void;
   /** A click on empty canvas: the left-hand selection clears. */
   onClearSelection?: () => void;
+  /** What the view draws; remembered by the caller. */
+  flowMode?: FlowMode;
+  onFlowModeChange?: (mode: FlowMode) => void;
 }
 
 const POSITION_KEYS: Record<string, string> = {
@@ -52,6 +54,12 @@ const POSITION_KEYS: Record<string, string> = {
   'front-right': 'cooling.case3d.position.frontRight',
 };
 
+/** Particle speed multiplier, and the share of it that Slow mo keeps. */
+const NORMAL_SPEED = 1;
+const SLOW_MO_FACTOR = 0.25;
+const FLOW_MODES = ['both', 'case', 'airflow'] as const;
+type FlowMode = typeof FLOW_MODES[number];
+const DEFAULT_MODE: FlowMode = 'both';
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
@@ -59,7 +67,7 @@ const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
-export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection }: CoolingCase3DProps) {
+export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
@@ -83,9 +91,11 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const viewportRef = useRef<HTMLDivElement>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
-  const [particles, setParticles] = useState(true);
+  const [flowMode, setFlowMode] = useState<FlowMode>(savedFlowMode ?? DEFAULT_MODE);
+  const [slowMo, setSlowMo] = useState(false);
+  const particles = flowMode !== 'case';
+  const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
-  const [particleSpeed, setParticleSpeed] = useState(PARTICLE_SPEED_SCALE);
   const caseModel = useCaseModel(true, record?.rev ?? null);
 
   const directions = useMemo(() => {
@@ -168,7 +178,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones: false, speed: particleSpeed }), [particles, particleSpeed]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, deadZones: false, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -177,9 +187,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   useEffect(() => {
     if (!caseLayout || !renderer) return;
-    renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, active, flow: flowInput, flowOptions, model: caseModel.bytes });
+    renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, showCase, active, flow: flowInput, flowOptions, model: caseModel.bytes });
     setFlowSupported(renderer.flowSupported);
-  }, [renderer, caseLayout, directions, highlighted, bound, simulated, active, flowInput, flowOptions, caseModel.bytes]);
+  }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, flowInput, flowOptions, caseModel.bytes]);
 
   const setDirection = useCallback((key: string, position: string, direction: FanDirection) => {
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
@@ -265,15 +275,23 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         )}
         <div className={`${styles.overlay} ${styles.overlayBottom}`}>
           <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
-            <label className={`${styles.flowToggle} ${styles.control}`}>
-              <Toggle checked={particles} onChange={setParticles} ariaLabel={t('cooling.case3d.flow.particles')} />
-              <span>{t('cooling.case3d.flow.particles')}</span>
-            </label>
+            <ChipGroup
+              className={styles.control}
+              ariaLabel={t('cooling.case3d.flow.mode.label')}
+              options={FLOW_MODES.map(key => ({ key, label: t(`cooling.case3d.flow.mode.${key}`) }))}
+              activeKey={flowMode}
+              onChange={next => {
+                const mode = FLOW_MODES.find(m => m === next) ?? DEFAULT_MODE;
+                setFlowMode(mode);
+                onFlowModeChange?.(mode);
+                if (mode === 'airflow') setActive(null);
+              }}
+            />
             {particles && (
-              <div className={`${styles.speed} ${styles.control}`}>
-                {/* eslint-disable-next-line i18next/no-literal-string -- slider layout enum */}
-                <Slider orientation="inline" editable trackFill label={t('cooling.case3d.flow.speed')} value={particleSpeed} min={PARTICLE_SPEED_MIN} max={PARTICLE_SPEED_MAX} step={0.1} formatValue={v => t('cooling.case3d.flow.speedValue', { value: v.toFixed(1) })} onChange={v => setParticleSpeed(v)} />
-              </div>
+              <label className={`${styles.flowToggle} ${styles.control}`}>
+                <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
+                <span>{t('cooling.case3d.flow.slowMo')}</span>
+              </label>
             )}
           </div>
           {particles && flowSupported && (

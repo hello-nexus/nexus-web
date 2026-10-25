@@ -95,14 +95,6 @@
   color: var(--text);
 }
 
-// Keeps the label on one line; the slider takes the rest.
-.speed {
-  white-space: nowrap;
-  flex: 1 1 18rem;
-  min-width: 14rem;
-  max-width: 24rem;
-}
-
 // Strips over the canvas: dark and translucent so their text reads over the scene; a press on one is not a press on empty canvas.
 .overlay {
   position: absolute;

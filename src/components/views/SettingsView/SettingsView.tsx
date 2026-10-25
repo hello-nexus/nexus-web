@@ -88,6 +88,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       showUncontrolledCoolingDevices: ui.showUncontrolledCoolingDevices,
       lightingView3d: ui.lightingView3d,
       coolingView3d: ui.coolingView3d,
+      coolingFlowMode: ui.coolingFlowMode,
       hiddenSidebarDevices: ui.hiddenSidebarDevices,
       monitoringTempUnit: ui.monitoringTempUnit,
       timeFormat: ui.timeFormat,
