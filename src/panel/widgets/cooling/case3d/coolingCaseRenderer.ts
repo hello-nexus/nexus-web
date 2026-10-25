@@ -4,6 +4,7 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
+import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
@@ -175,7 +176,11 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       group.position.copy(center);
       group.rotation.y = box.rotationY ?? 0;
       const opacity = occupied ? FAN_OPACITY : EMPTY_FAN_OPACITY;
-      for (const r of [diameter / 2, diameter * 0.18]) {
+      const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+      const frameMm = Math.min(...box.size.filter((_, i) => i !== axisIndex));
+      const radii = fanRadii(frameMm);
+      // Tip ring and hub ring: the air moves through the open ring between them.
+      for (const r of [radii.tip, radii.hub]) {
         const geo = ringGeometry(r, axis);
         fanDisposables.push(geo);
         group.add(new LineLoop(geo, lineMaterial(emphasised ? highlight : color, emphasised ? 1 : opacity, fanDisposables)));

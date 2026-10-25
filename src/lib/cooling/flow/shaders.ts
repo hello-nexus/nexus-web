@@ -200,7 +200,7 @@ void main() {
 export const POINT_VERTEX = /* glsl */ `
 uniform sampler2D PA; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
-uniform float uSize; uniform float uScale; uniform float uMaxAge; uniform float uAlpha;
+uniform float uSize; uniform float uScale; uniform float uMinPx; uniform float uMaxAge; uniform float uAlpha;
 uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot;
 in vec2 ref;
 out vec3 vColor; out float vAlpha;
@@ -216,14 +216,27 @@ void main() {
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha;
   vec4 mv = modelViewMatrix * vec4(world, 1.0);
   gl_Position = projectionMatrix * mv;
-  gl_PointSize = max(1.0, uSize * uScale / max(-mv.z, 1.0));
+  gl_PointSize = max(uMinPx, uSize * uScale / max(-mv.z, 1.0));
 }`;
 
 export const POINT_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
 in vec3 vColor; in float vAlpha;
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
-  float a = vAlpha * smoothstep(1.0, 0.15, r);
+  if (r > 1.0) discard;
+  float core = 1.0 - smoothstep(0.5, 0.64, r);
+  float body = 1.0 - smoothstep(0.82, 1.0, r);
+  vec3 c = mix(vec3(0.02, 0.03, 0.05), vColor * 1.15, core);
+  float a = vAlpha * body;
+  if (a < 0.01) discard;
+  gl_FragColor = vec4(c, a);
+}`;
+
+export const TRAIL_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
+in vec3 vColor; in float vAlpha;
+void main() {
+  float r = length(gl_PointCoord - 0.5) * 2.0;
+  float a = vAlpha * smoothstep(1.0, 0.2, r);
   if (a < 0.003) discard;
   gl_FragColor = vec4(vColor * a, a);
 }`;
@@ -265,4 +278,14 @@ void main() {
   float alpha = 1.0 - T;
   if (alpha < 0.004) discard;
   gl_FragColor = vec4(acc / max(alpha, 1e-4), alpha * 0.85);
+}`;
+
+// Packs the reduction result into RGBA8 so it can be read back through a PBO and fence: u in R,G and du/u in B,A, 16 bits each.
+export const ENCODE = FRAGMENT_OUT + /* glsl */ `
+uniform sampler2D A;
+vec2 pack16(float v) { float c = clamp(v, 0.0, 0.99998); float hi = floor(c * 255.0) / 255.0; return vec2(hi, (c - hi) * 255.0); }
+void main() {
+  vec2 r = texelFetch(A, ivec2(0), 0).xy;
+  float ratio = r.y > 1e-9 ? r.x / r.y : 1.0;
+  gl_FragColor = vec4(pack16(r.y), pack16(ratio));
 }`;

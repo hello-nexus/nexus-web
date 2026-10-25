@@ -44,7 +44,7 @@ import { useSensors } from '../../../hooks/useSensors';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
-import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
+import { ViewSwitch } from '../../../components/common/ViewSwitch/ViewSwitch';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -104,8 +104,8 @@ const CoolingCase3D = (import.meta.env.DEV || __DEV_TOOLS__)
   ? lazy(() => import('./case3d/CoolingCase3D').then(m => ({ default: m.CoolingCase3D })))
   : null;
 
-const VIEW_2D = '2d';
-const VIEW_3D = '3d';
+const VIEW_2D = '2d' as const;
+const VIEW_3D = '3d' as const;
 
 interface CoolingViewProps {
   serviceOnline: boolean;
@@ -1626,18 +1626,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
-          <span className={styles.paneTitle}>{t(view3d ? 'cooling.case3d.title' : 'cooling.label.curves')}</span>
-          {CoolingCase3D && (
-            <ChipGroup
-              ariaLabel={t('cooling.case3d.viewSwitch')}
-              options={[{ key: VIEW_2D, label: t('lighting.scene.view.2d') }, { key: VIEW_3D, label: t('lighting.scene.view.3d') }]}
-              activeKey={view3d ? VIEW_3D : VIEW_2D}
-              onChange={next => setView3d(next === VIEW_3D)}
-            />
-          )}
+          <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
           {offStatusCard}
+          {CoolingCase3D && (
+            <ViewSwitch
+              className={styles.viewSwitch}
+              ariaLabel={t('cooling.case3d.viewSwitch')}
+              value={view3d ? VIEW_3D : VIEW_2D}
+              labels={{ '2d': t('cooling.view.curves'), '3d': t('cooling.view.airflow') }}
+              onChange={next => setView3d(next === VIEW_3D)}
+            />
+          )}
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (

@@ -182,7 +182,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.layout.fanSlots).toHaveLength(2);
     expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
-    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, density: 0.6, debugSolids: false });
+    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, debugSolids: false });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -206,16 +206,14 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().flow.directions['front:120:0']).toBe('exhaust');
   });
 
-  it('toggles particles, dead zones and the solid-cell view, and hides the density slider with particles off', () => {
+  it('toggles particles, dead zones and the solid-cell view', () => {
     mountReady();
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.deadZones' }));
     expect(lastState().flowOptions.deadZones).toBe(true);
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.solids' }));
     expect(lastState().flowOptions.debugSolids).toBe(true);
-    expect(screen.getByText('cooling.case3d.flow.density')).toBeTruthy();
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.particles' }));
     expect(lastState().flowOptions.particles).toBe(false);
-    expect(screen.queryByText('cooling.case3d.flow.density')).toBeNull();
   });
 
   it('labels the legend cooler and warmer, with no degrees', () => {

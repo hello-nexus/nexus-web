@@ -5,13 +5,23 @@ import {
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
 import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_MAX_AGE } from './flowParams';
 import { buildFlowScene, surfaceSolids, type FlowInput, type FlowScene } from './gridScene';
-import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
+import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, TRAIL_FRAGMENT, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
 export const FLOW_TIERS = [GRID_TARGET_CELLS, Math.round(GRID_TARGET_CELLS / 2), GRID_LOW_CELLS];
-export const PARTICLE_TEXTURE = { w: 128, h: 64 };
+/** Fixed pool, about 1.3 times the earlier 8192; a coarser grid tier draws a share of it. */
+export const PARTICLE_TEXTURE = { w: 128, h: 84 };
+const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
+/** Positions kept per particle: the current one and this many older ones, drawn as a trail. */
+const TRAIL_AGES = 3;
+const RING = TRAIL_AGES + 1;
 const MAX_PARTICLES = PARTICLE_TEXTURE.w * PARTICLE_TEXTURE.h;
-const SOLVER_BUDGET_MS = 7;
+/** GPU time the solver may take per displayed frame. */
+const SOLVER_BUDGET_MS = 6;
+/** Without a GPU timer, frames longer than this (ms) pull the step count down, and frames this close to the vsync interval let it grow. */
+const FRAME_SLOW_MS = 20;
+const FRAME_FAST_MS = 17.5;
+const TIMER_EMA = 0.3;
 const MAX_STEPS_PER_FRAME = 8;
 const MIN_STEPS_PER_FRAME = 1;
 const PARTICLE_SUBSTEPS = 2;
@@ -24,7 +34,12 @@ const MAX_SOLVE_STEPS = 1500;
 const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 24;
 const MAX_DEBUG_VOXELS = 80000;
-const POINT_SIZE = 5;
+/** World-space point size in mm at unit scale, and the on-screen minimum in px, so particles stay visible zoomed out. */
+const POINT_SIZE = 12.5;
+const POINT_MIN_PX = 4;
+const TRAIL_MIN_PX = 2.5;
+const TRAIL_ALPHA = [0.4, 0.28, 0.16];
+const TRAIL_SIZE = [0.85, 0.7, 0.55];
 
 export interface FlowColors {
   cool: Color;
@@ -39,8 +54,6 @@ export interface FlowColors {
 export interface FlowOptions {
   particles: boolean;
   deadZones: boolean;
-  /** 0..1 share of the particle pool drawn. */
-  density: number;
   debugSolids: boolean;
 }
 
@@ -58,10 +71,12 @@ export class FlowLayer {
   private solving = false;
   private stepsPerFrame = 4;
   private slowCount = 0;
-  private frames = 0;
   private lastFrameAt = 0;
-  private options: FlowOptions = { particles: true, deadZones: false, density: 0.6, debugSolids: false };
+  private options: FlowOptions = { particles: true, deadZones: false, debugSolids: false };
   private seed = 1;
+  private debugShown = false;
+  private measuring = false;
+  private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
 
   private stateTargets: ReturnType<typeof target>[] = [];
   private heatTargets: ReturnType<typeof target>[] = [];
@@ -70,9 +85,9 @@ export class FlowLayer {
   private heatMat: ShaderMaterial | null = null;
   private spawnTex: DataTexture | null = null;
   private points: Points | null = null;
-  private trail: Points | null = null;
+  private trails: Points[] = [];
   private pointMat: ShaderMaterial | null = null;
-  private trailMat: ShaderMaterial | null = null;
+  private trailMats: ShaderMaterial[] = [];
   private volume: Mesh | null = null;
   private volumeMat: ShaderMaterial | null = null;
   private debug: InstancedMesh | null = null;
@@ -89,12 +104,19 @@ export class FlowLayer {
     this.kind = floatSupport(renderer);
     this.supported = this.kind !== null;
     this.runner = this.supported ? new PassRunner(renderer) : null;
+    const ext = this.supported ? (renderer.getContext() as WebGL2RenderingContext).getExtension('EXT_disjoint_timer_query_webgl2') : null;
+    this.timer = ext ? { ext, pending: [], msPerStep: 0 } : null;
     this.group = host;
   }
 
   /** The grid tier in use, 0 being the finest. */
   get currentTier(): number {
     return this.tier;
+  }
+
+  /** How the solver's step count is paced: from GPU timer queries when the context has them, else from frame times. */
+  get timingMode(): 'gpu-timer' | 'frame-delta' {
+    return this.timer ? 'gpu-timer' : 'frame-delta';
   }
 
   /** Whether the layer still has something to animate: a solve in progress, or particles drawn. */
@@ -106,11 +128,10 @@ export class FlowLayer {
     this.options = options;
     if (this.points) {
       this.points.visible = options.particles;
-      this.trail!.visible = options.particles;
-      this.points.geometry.setDrawRange(0, Math.round(MAX_PARTICLES * options.density));
+      for (const t of this.trails) t.visible = options.particles;
     }
     if (this.volume) this.volume.visible = options.deadZones;
-    if (this.fscene) this.syncDebug();
+    if (this.fscene && options.debugSolids !== this.debugShown) this.syncDebug();
   }
 
   /** New edit: rebuilds the voxel scene and re-solves from the current field. Null clears the layer. */
@@ -131,6 +152,7 @@ export class FlowLayer {
       this.flow?.dispose();
       this.flow = new GlFlow(this.renderer, this.runner, scene, this.kind);
       this.ensureParticles();
+      this.resetParticles();
     }
     this.fscene = scene;
     this.ageRef = Math.max(60, scene.residenceSteps * AGE_SCALE);
@@ -159,16 +181,8 @@ export class FlowLayer {
   private ensureParticles() {
     if (!this.kind || this.stateMat) return;
     const { w, h } = PARTICLE_TEXTURE;
-    const fill = new Float32Array(w * h * 4);
-    for (let i = 0; i < w * h; i++) fill[i * 4 + 3] = PARTICLE_MAX_AGE * 5;
-    const init = new DataTexture(fill, w, h, RGBAFormat, FloatType);
-    init.needsUpdate = true;
-    this.stateTargets = [target(w, h, FloatType), target(w, h, FloatType)];
-    this.heatTargets = [target(w, h, FloatType), target(w, h, FloatType)];
-    const blit = pass(FRAGMENT_OUT + 'uniform sampler2D T; void main(){ gl_FragColor = texelFetch(T, ivec2(gl_FragCoord.xy), 0); }', { T: { value: init } });
-    this.runner!.run(blit, this.stateTargets[0]);
-    blit.dispose();
-    init.dispose();
+    this.stateTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
+    this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
       PA: { value: null as unknown }, SP: { value: null as unknown }, uSpawnCount: { value: 0 }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE },
@@ -181,22 +195,27 @@ export class FlowLayer {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { refs[(y * w + x) * 2] = x; refs[(y * w + x) * 2 + 1] = y; }
     geometry.setAttribute('ref', new BufferAttribute(refs, 2));
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(w * h * 3), 3));
-    geometry.setDrawRange(0, Math.round(MAX_PARTICLES * this.options.density));
-    const pointUniforms = (alpha: number, size: number) => ({
+    geometry.setDrawRange(0, Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier]));
+    const pointUniforms = (alpha: number, size: number, minPx: number) => ({
       PA: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
-      uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uAlpha: { value: alpha },
+      uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uAlpha: { value: alpha },
       uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot },
     });
-    const material = (alpha: number, size: number) => new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(alpha, size),
-      transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending,
+    // The head is a round sprite with a bright core and a dark halo, drawn with normal blending so it reads on light and dark themes;
+    // the trail copies are additive and fainter.
+    this.pointMat = new ShaderMaterial({
+      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(0.95, POINT_SIZE, POINT_MIN_PX),
+      transparent: true, depthWrite: false, depthTest: false, blending: NormalBlending,
     });
-    this.pointMat = material(0.6, POINT_SIZE);
-    this.trailMat = material(0.22, POINT_SIZE * 0.7);
+    this.trailMats = TRAIL_ALPHA.map((alpha, i) => new ShaderMaterial({
+      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: TRAIL_FRAGMENT, uniforms: pointUniforms(alpha, POINT_SIZE * TRAIL_SIZE[i], TRAIL_MIN_PX),
+      transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending,
+    }));
     this.points = new Points(geometry, this.pointMat);
-    this.trail = new Points(geometry, this.trailMat);
-    for (const p of [this.points, this.trail]) { p.frustumCulled = false; p.renderOrder = 5; this.group.add(p); }
-    this.trail.renderOrder = 4;
+    this.trails = this.trailMats.map(m => new Points(geometry, m));
+    for (const p of [this.points, ...this.trails]) { p.frustumCulled = false; this.group.add(p); }
+    this.points.renderOrder = 6;
+    this.trails.forEach((t, i) => { t.renderOrder = 5 - i; });
 
     this.volumeMat = new ShaderMaterial({
       glslVersion: GLSL3, vertexShader: VOLUME_VERTEX, fragmentShader: VOLUME_FRAGMENT,
@@ -213,6 +232,32 @@ export class FlowLayer {
     this.group.add(this.volume);
   }
 
+  /** Every particle starts over: positions are in cell coordinates, which mean something else on a new grid. */
+  private resetParticles() {
+    if (!this.kind || !this.runner || this.stateTargets.length === 0) return;
+    const { w, h } = PARTICLE_TEXTURE;
+    const fill = new Float32Array(w * h * 4);
+    for (let i = 0; i < w * h; i++) fill[i * 4 + 3] = PARTICLE_MAX_AGE * 5;
+    const init = new DataTexture(fill, w, h, RGBAFormat, FloatType);
+    init.needsUpdate = true;
+    const blit = pass(FRAGMENT_OUT + 'uniform sampler2D T; void main(){ gl_FragColor = texelFetch(T, ivec2(gl_FragCoord.xy), 0); }', { T: { value: init } });
+    const zero = pass(FRAGMENT_OUT + 'void main(){ gl_FragColor = vec4(0.0); }', {});
+    for (let i = 0; i < RING; i++) { this.runner.run(blit, this.stateTargets[i]); this.runner.run(zero, this.heatTargets[i]); }
+    blit.dispose();
+    zero.dispose();
+    init.dispose();
+    this.stateCur = 0;
+  }
+
+  /** Rebuilds the scene one grid tier coarser. */
+  dropTier() {
+    if (this.tier >= FLOW_TIERS.length - 1) return;
+    this.tier++;
+    this.points?.geometry.setDrawRange(0, Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier]));
+    this.slowCount = 0;
+    this.build(false);
+  }
+
   private updateUniforms() {
     const flow = this.flow;
     const scene = this.fscene;
@@ -225,7 +270,7 @@ export class FlowLayer {
       m.uniforms.uTX.value = flow.tx;
       m.uniforms.M.value = flow.maskTexture;
     }
-    for (const m of [this.pointMat, this.trailMat]) {
+    for (const m of [this.pointMat, ...this.trailMats]) {
       if (!m) continue;
       m.uniforms.uCell.value = scene.cellMm;
       (m.uniforms.uOrigin.value as Vector3).copy(origin);
@@ -240,6 +285,7 @@ export class FlowLayer {
   private syncDebug() {
     if (this.debug) { this.group.remove(this.debug); this.debug.geometry.dispose(); (this.debug.material as MeshBasicMaterial).dispose(); this.debug.dispose(); this.debug = null; }
     const scene = this.fscene;
+    this.debugShown = this.options.debugSolids;
     if (!scene || !this.options.debugSolids) return;
     const pts = surfaceSolids(scene);
     const count = Math.min(MAX_DEBUG_VOXELS, pts.length / 3);
@@ -267,25 +313,28 @@ export class FlowLayer {
 
     const wantsFlow = this.options.particles || this.options.deadZones;
     if (this.solving && wantsFlow) {
-      const start = performance.now();
+      this.pollTimer();
+      const gl = this.renderer.getContext() as WebGL2RenderingContext;
+      const timed = this.timer && this.timer.pending.length < 4 ? gl.createQuery() : null;
+      if (timed) gl.beginQuery(this.timer!.ext.TIME_ELAPSED_EXT, timed);
+      let ran = 0;
+      let check = false;
       for (let i = 0; i < this.stepsPerFrame; i++) {
         flow.step();
+        ran++;
         this.stepsSinceEdit++;
-        if (this.stepsSinceEdit % STEADY_CHECK_EVERY === 0) {
-          const { du, u } = flow.measure();
-          const settled = Number.isFinite(u) && u > 1e-6 && du < STEADY_RATIO * u;
-          if (settled || this.stepsSinceEdit >= MAX_SOLVE_STEPS || !Number.isFinite(u)) { this.solving = false; break; }
-        }
+        if (this.stepsSinceEdit % STEADY_CHECK_EVERY === 0) check = true;
       }
-      const spent = performance.now() - start;
-      if (spent > SOLVER_BUDGET_MS && this.stepsPerFrame > MIN_STEPS_PER_FRAME) this.stepsPerFrame--;
-      else if (spent < SOLVER_BUDGET_MS / 2 && this.stepsPerFrame < MAX_STEPS_PER_FRAME) this.stepsPerFrame++;
-      this.frames++;
+      if (timed) {
+        gl.endQuery(this.timer!.ext.TIME_ELAPSED_EXT);
+        this.timer!.pending.push({ q: timed, steps: ran });
+      }
+      // Outside the timed span: a PBO read inside an active query is an invalid operation.
+      if (check) this.checkSteady(flow);
+      this.paceSteps(dt);
       this.slowCount = dt > SLOW_FRAME_MS ? this.slowCount + 1 : Math.max(0, this.slowCount - 1);
       if (this.slowCount >= SLOW_FRAMES && this.tier < FLOW_TIERS.length - 1 && this.stepsPerFrame <= MIN_STEPS_PER_FRAME + 1) {
-        this.tier++;
-        this.slowCount = 0;
-        this.build(false);
+        this.dropTier();
         return;
       }
     }
@@ -294,30 +343,70 @@ export class FlowLayer {
       if (this.volumeMat) this.volumeMat.uniforms.AG.value = flow.ageTexture;
     }
     if (this.options.particles && this.stateMat && this.heatMat && this.points && this.spawnTex) {
-      for (let s = 0; s < PARTICLE_SUBSTEPS; s++) {
-        const a0 = this.stateTargets[this.stateCur];
-        const a1 = this.stateTargets[1 - this.stateCur];
-        const b0 = this.heatTargets[this.stateCur];
-        const b1 = this.heatTargets[1 - this.stateCur];
+      for (let st = 0; st < PARTICLE_SUBSTEPS; st++) {
+        const next = (this.stateCur + 1) % RING;
         this.stateMat.uniforms.U.value = flow.velocity;
-        this.stateMat.uniforms.PA.value = a0.texture;
+        this.stateMat.uniforms.PA.value = this.stateTargets[this.stateCur].texture;
         this.stateMat.uniforms.uSeed.value = (this.seed = (this.seed + 1) % 9973) * 0.137;
-        this.runner.run(this.stateMat, a1);
-        this.heatMat.uniforms.PA.value = a1.texture;
-        this.heatMat.uniforms.PB.value = b0.texture;
-        this.runner.run(this.heatMat, b1);
-        this.stateCur = 1 - this.stateCur;
+        this.runner.run(this.stateMat, this.stateTargets[next]);
+        this.heatMat.uniforms.PA.value = this.stateTargets[next].texture;
+        this.heatMat.uniforms.PB.value = this.heatTargets[this.stateCur].texture;
+        this.runner.run(this.heatMat, this.heatTargets[next]);
+        this.stateCur = next;
       }
-      const cur = this.stateTargets[this.stateCur];
-      const old = this.stateTargets[1 - this.stateCur];
       const scale = viewportHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
-      this.pointMat!.uniforms.PA.value = cur.texture;
+      this.pointMat!.uniforms.PA.value = this.stateTargets[this.stateCur].texture;
       this.pointMat!.uniforms.PB.value = this.heatTargets[this.stateCur].texture;
-      this.trailMat!.uniforms.PA.value = old.texture;
-      this.trailMat!.uniforms.PB.value = this.heatTargets[1 - this.stateCur].texture;
       this.pointMat!.uniforms.uScale.value = scale;
-      this.trailMat!.uniforms.uScale.value = scale;
+      this.trailMats.forEach((m, a) => {
+        const at = (this.stateCur - 1 - a + 2 * RING) % RING;
+        m.uniforms.PA.value = this.stateTargets[at].texture;
+        m.uniforms.PB.value = this.heatTargets[at].texture;
+        m.uniforms.uScale.value = scale;
+      });
     }
+  }
+
+  // Collects finished GPU timer queries, oldest first; a disjoint result is dropped.
+  private pollTimer() {
+    const t = this.timer;
+    if (!t) return;
+    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    while (t.pending.length > 0) {
+      const { q, steps } = t.pending[0];
+      if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break;
+      const disjoint = gl.getParameter(t.ext.GPU_DISJOINT_EXT);
+      if (!disjoint) {
+        const ms = (gl.getQueryParameter(q, gl.QUERY_RESULT) as number) / 1e6 / Math.max(1, steps);
+        t.msPerStep = t.msPerStep === 0 ? ms : t.msPerStep * (1 - TIMER_EMA) + ms * TIMER_EMA;
+      }
+      gl.deleteQuery(q);
+      t.pending.shift();
+    }
+  }
+
+  // Sets the steps run per frame so the solver stays inside its GPU budget: from measured GPU time per step when the timer exists, else from frame deltas.
+  private paceSteps(dt: number) {
+    let next = this.stepsPerFrame;
+    if (this.timer && this.timer.msPerStep > 0) next = Math.floor(SOLVER_BUDGET_MS / this.timer.msPerStep);
+    else if (dt > FRAME_SLOW_MS) next = this.stepsPerFrame - 1;
+    else if (dt > 0 && dt < FRAME_FAST_MS) next = this.stepsPerFrame + 1;
+    this.stepsPerFrame = Math.min(MAX_STEPS_PER_FRAME, Math.max(MIN_STEPS_PER_FRAME, next));
+  }
+
+  // Asks the GPU for the velocity change; the answer arrives through a PBO and fence a few frames later, so no frame waits for it.
+  private checkSteady(flow: GlFlow) {
+    if (this.measuring) return;
+    this.measuring = true;
+    void flow.measure().then(({ du, u }) => {
+      this.measuring = false;
+      if (flow !== this.flow) return;
+      const settled = Number.isFinite(u) && u > 1e-6 && du < STEADY_RATIO * u;
+      if (settled || this.stepsSinceEdit >= MAX_SOLVE_STEPS || !Number.isFinite(u)) this.solving = false;
+    }, () => {
+      this.measuring = false;
+      if (flow === this.flow && this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
+    });
   }
 
   /** Particle positions (cell coordinates) and heat read back from the GPU; for checks that none sit in a solid cell. */
@@ -340,18 +429,19 @@ export class FlowLayer {
     this.fscene = null;
     this.solving = false;
     if (this.debug) { this.group.remove(this.debug); this.debug.geometry.dispose(); (this.debug.material as MeshBasicMaterial).dispose(); this.debug.dispose(); this.debug = null; }
-    for (const p of [this.points, this.trail]) if (p) p.visible = false;
+    for (const p of [this.points, ...this.trails]) if (p) p.visible = false;
     if (this.volume) this.volume.visible = false;
   }
 
   dispose() {
     this.teardown();
     for (const t of [...this.stateTargets, ...this.heatTargets]) t.dispose();
-    for (const m of [this.stateMat, this.heatMat, this.pointMat, this.trailMat, this.volumeMat]) m?.dispose();
+    for (const m of [this.stateMat, this.heatMat, this.pointMat, ...this.trailMats, this.volumeMat]) m?.dispose();
     this.spawnTex?.dispose();
     this.points?.geometry.dispose();
     this.volume?.geometry.dispose();
-    for (const o of [this.points, this.trail, this.volume]) if (o) this.group.remove(o);
+    for (const o of [this.points, ...this.trails, this.volume]) if (o) this.group.remove(o);
+    if (this.timer) for (const { q } of this.timer.pending) (this.renderer.getContext() as WebGL2RenderingContext).deleteQuery(q);
     this.runner?.dispose();
     this.stateMat = null;
   }

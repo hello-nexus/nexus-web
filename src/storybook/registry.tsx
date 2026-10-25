@@ -45,6 +45,7 @@ import { PairedPcsContent } from '../components/common/PairedPcs/PairedPcsConten
 import { EffectControls } from '../panel/widgets/lighting/page/EffectControls';
 import { Tabs } from '../components/common/Tabs/Tabs';
 import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
+import { ViewSwitch } from '../components/common/ViewSwitch/ViewSwitch';
 import { ColorSlots } from '../components/common/ColorSlots/ColorSlots';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal/PromptModal';
@@ -644,6 +645,11 @@ function PreviewTabs() {
     activeKey={active}
     onChange={setActive}
   />;
+}
+
+function PreviewViewSwitch() {
+  const [value, setValue] = useState<'2d' | '3d'>('3d');
+  return <ViewSwitch ariaLabel="Sample view switch" value={value} onChange={setValue} labels={{ '2d': 'Layout', '3d': 'Desk' }} />;
 }
 
 function PreviewChipGroup() {
@@ -2724,6 +2730,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'ChipGroup', category: 'inputs',
     filePath: 'src/components/common/ChipGroup/ChipGroup.tsx',
     description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (.chip-active fills the selected one with the accent, labelled in the contrast-paired --accent-text). Single-select renders a radiogroup: one tab stop on the checked chip, arrows move focus without selecting, Space/Enter commits - callers write firmware and device settings on change, so selection must not follow focus. multiSelect keeps aria-pressed toggle buttons. fullWidth stretches the row so it reads as a segmented control; wrap reflows onto further lines for a data-length chip list (the lighting preset app bindings) instead of widening its container.', Preview: PreviewChipGroup,
+  },
+  {
+    name: 'ViewSwitch', category: 'inputs',
+    filePath: 'src/components/common/ViewSwitch/ViewSwitch.tsx',
+    description: 'The 2D / 3D canvas switch on the Lighting and Cooling headers: a ChipGroup whose segments start with a small 2D or 3D pill, then the view name. The 3D segment keeps a cube and an accent tint while idle.', Preview: PreviewViewSwitch,
   },
   {
     name: 'ChipGroup (multi-select)', category: 'inputs',

@@ -228,27 +228,41 @@ describe('CpuParticles', () => {
   });
 });
 
+const kinetic = (sim: CpuFlow) => {
+  let e = 0;
+  for (let c = 0; c < sim.n; c++) e += sim.u[c * 3] ** 2 + sim.u[c * 3 + 1] ** 2 + sim.u[c * 3 + 2] ** 2;
+  return e;
+};
+
 describe('stability', () => {
-  it('stays finite and bounded for 2000 steps with nine fans, a GPU and a shroud', () => {
+  it('settles: kinetic energy stops changing over the last 100 steps and the velocity cap is never reached', () => {
     const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
     expect(scene.fanCount).toBe(nineFans.length);
     const sim = new CpuFlow(scene);
-    for (let i = 0; i < 2000; i++) {
+    let peak = 0;
+    let before = 0;
+    for (let i = 1; i <= 1500; i++) {
       sim.step();
-      if (i % 250 === 0) expect(sim.maxSpeed()).toBeLessThanOrEqual(VMAX_CELLS + 1e-6);
+      if (i % 25 === 0) peak = Math.max(peak, sim.maxSpeed());
+      if (i === 1400) before = kinetic(sim);
     }
-    expect(sim.maxSpeed()).toBeGreaterThan(0);
-    expect(sim.maxSpeed()).toBeLessThanOrEqual(VMAX_CELLS + 1e-6);
+    const after = kinetic(sim);
+    expect(Number.isFinite(after)).toBe(true);
+    expect(after).toBeGreaterThan(0);
+    expect(Math.abs(after - before) / after).toBeLessThan(0.02);
+    expect(peak).toBeLessThan(VMAX_CELLS * 0.9);
   }, 180000);
 
-  it('stays finite and bounded at the largest grid with nine fans', () => {
+  it('stays finite at the largest grid with nine fans, with the velocity cap not reached', () => {
     const scene = buildFlowScene(caseWithGpuAndShroud());
     expect(scene.dims[0] * scene.dims[1] * scene.dims[2]).toBeGreaterThan(250000);
     const steps = process.env.FLOW_FULL === '1' ? 2000 : 150;
     const sim = new CpuFlow(scene);
-    for (let i = 0; i < steps; i++) sim.step();
-    expect(Number.isFinite(sim.maxSpeed())).toBe(true);
-    expect(sim.maxSpeed()).toBeLessThanOrEqual(VMAX_CELLS + 1e-6);
+    let peak = 0;
+    for (let i = 1; i <= steps; i++) { sim.step(); if (i % 25 === 0) peak = Math.max(peak, sim.maxSpeed()); }
+    expect(Number.isFinite(peak)).toBe(true);
+    expect(peak).toBeGreaterThan(0);
+    expect(peak).toBeLessThan(VMAX_CELLS * 0.9);
   }, 900000);
 });
 

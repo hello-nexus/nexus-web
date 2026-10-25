@@ -1,18 +1,30 @@
 import {
-  Color, DataTexture, DataUtils, FloatType, GLSL3, HalfFloatType, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, Scene,
+  Color, DataTexture, DataUtils, FloatType, GLSL3, HalfFloatType, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, Scene, UnsignedByteType,
   ShaderMaterial, Vector2, Vector3, WebGLRenderTarget, type Texture, type WebGLRenderer,
 } from 'three';
 import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
 import type { FlowScene } from './gridScene';
-import { ADVECT, AGE, DIVERGE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT } from './shaders';
+import { ADVECT, AGE, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT } from './shaders';
 
 export type FloatKind = typeof FloatType | typeof HalfFloatType;
 
 /** The float render-target type this context can draw to: 32-bit when EXT_color_buffer_float is there, else half-float, else null. */
 export function floatSupport(renderer: WebGLRenderer): FloatKind | null {
-  if (renderer.extensions.has('EXT_color_buffer_float')) return FloatType;
-  if (renderer.extensions.has('EXT_color_buffer_half_float')) return HalfFloatType;
+  if (renderer.extensions.has('EXT_color_buffer_float') && renderable(renderer, FloatType)) return FloatType;
+  if ((renderer.extensions.has('EXT_color_buffer_half_float') || renderer.extensions.has('EXT_color_buffer_float')) && renderable(renderer, HalfFloatType)) return HalfFloatType;
   return null;
+}
+
+// A float extension can be advertised and still give an incomplete framebuffer; draw to a 1x1 target and ask.
+function renderable(renderer: WebGLRenderer, type: FloatKind): boolean {
+  const gl = renderer.getContext();
+  const probe = target(1, 1, type);
+  const prev = renderer.getRenderTarget();
+  renderer.setRenderTarget(probe);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  renderer.setRenderTarget(prev);
+  probe.dispose();
+  return ok;
 }
 
 /** Draws a full-screen triangle with one material into a render target. */
@@ -53,7 +65,7 @@ export function pass(fragmentShader: string, uniforms: ShaderMaterial['uniforms'
   });
 }
 
-export function target(w: number, h: number, type: FloatKind): WebGLRenderTarget {
+export function target(w: number, h: number, type: FloatKind | typeof UnsignedByteType): WebGLRenderTarget {
   return new WebGLRenderTarget(w, h, {
     type, format: RGBAFormat, minFilter: NearestFilter, magFilter: NearestFilter, depthBuffer: false, stencilBuffer: false, generateMipmaps: false,
   });
@@ -113,7 +125,8 @@ export class GlFlow {
   private readonly ageMat: ShaderMaterial;
   private readonly reduceFirst: ShaderMaterial;
   private readonly reduceNext: ShaderMaterial;
-  private readonly readBuffer: Float32Array | Uint16Array;
+  private readonly encode: ShaderMaterial;
+  private readonly encoded: WebGLRenderTarget;
   private presCur = 0;
 
   constructor(renderer: WebGLRenderer, runner: PassRunner, scene: FlowScene, type: FloatKind) {
@@ -136,7 +149,6 @@ export class GlFlow {
       rh = Math.ceil(rh / 4);
       this.reduceTargets.push(target(rw, rh, type));
     } while (rw > 1 || rh > 1);
-    this.readBuffer = type === FloatType ? new Float32Array(4) : new Uint16Array(4);
     this.mask = dataTexture(new Float32Array(4), 1, 1, type);
     this.fan = dataTexture(new Float32Array(4), 1, 1, type);
 
@@ -151,6 +163,8 @@ export class GlFlow {
     });
     this.reduceFirst = pass(REDUCE_FIRST, { A: { value: null as Texture | null }, B: { value: null as Texture | null }, S: { value: new Vector2(this.w, this.h) } });
     this.reduceNext = pass(REDUCE_NEXT, { A: { value: null as Texture | null }, S: { value: new Vector2() } });
+    this.encode = pass(ENCODE, { A: { value: null as Texture | null } });
+    this.encoded = target(1, 1, UnsignedByteType);
     this.upload();
     this.reset();
   }
@@ -284,8 +298,11 @@ export class GlFlow {
     return out;
   }
 
-  /** Largest velocity change over the last step and largest velocity, cells per step; reads one texel back. */
-  measure(): { du: number; u: number } {
+  /**
+   * Largest velocity change over the last step and largest velocity, cells per step. The reduction runs on the GPU, the result is packed
+   * into RGBA8 and read through a PBO and fence, so the frame never waits on it.
+   */
+  async measure(): Promise<{ du: number; u: number }> {
     this.reduceFirst.uniforms.A.value = this.vel[this.cur].texture;
     this.reduceFirst.uniforms.B.value = this.vel[this.prev].texture;
     this.runner.run(this.reduceFirst, this.reduceTargets[0]);
@@ -295,16 +312,48 @@ export class GlFlow {
       (this.reduceNext.uniforms.S.value as Vector2).set(src.width, src.height);
       this.runner.run(this.reduceNext, this.reduceTargets[i]);
     }
-    const last = this.reduceTargets[this.reduceTargets.length - 1];
-    this.renderer.readRenderTargetPixels(last, 0, 0, 1, 1, this.readBuffer as never);
-    const b = this.readBuffer;
-    return this.type === FloatType ? { du: b[0], u: b[1] } : { du: f16(b[0]), u: f16(b[1]) };
+    this.encode.uniforms.A.value = this.reduceTargets[this.reduceTargets.length - 1].texture;
+    this.runner.run(this.encode, this.encoded);
+    const bytes = await this.readEncoded();
+    const u = (bytes[0] + bytes[1] / 255) / 255;
+    const ratio = (bytes[2] + bytes[3] / 255) / 255;
+    return { du: ratio * u, u };
+  }
+
+  // Reads the 4 encoded bytes through a pixel-pack buffer and a fence, polling the fence off the render path so no frame waits.
+  private async readEncoded(): Promise<Uint8Array> {
+    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+    gl.bufferData(gl.PIXEL_PACK_BUFFER, 4, gl.STREAM_READ);
+    const prev = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(this.encoded);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    this.renderer.setRenderTarget(prev);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    gl.flush();
+    if (!fence) { gl.deleteBuffer(buffer); throw new Error('fenceSync unavailable'); }
+    for (;;) {
+      const status = gl.clientWaitSync(fence, 0, 0);
+      if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) break;
+      if (status === gl.WAIT_FAILED) { gl.deleteSync(fence); gl.deleteBuffer(buffer); throw new Error('fence wait failed'); }
+      await new Promise(resolve => setTimeout(resolve, 4));
+    }
+    gl.deleteSync(fence);
+    const bytes = new Uint8Array(4);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+    gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, bytes);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    gl.deleteBuffer(buffer);
+    return bytes;
   }
 
   dispose() {
     for (const t of [...this.vel, ...this.pres, this.div, ...this.age, ...this.reduceTargets]) t.dispose();
     this.mask.dispose();
     this.fan.dispose();
-    for (const m of [this.advect, this.diverge, this.jacobi, this.gradient, this.ageMat, this.reduceFirst, this.reduceNext]) m.dispose();
+    for (const m of [this.advect, this.diverge, this.jacobi, this.gradient, this.ageMat, this.reduceFirst, this.reduceNext, this.encode]) m.dispose();
+    this.encoded.dispose();
   }
 }
