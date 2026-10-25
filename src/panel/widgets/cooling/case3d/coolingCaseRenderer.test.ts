@@ -18,11 +18,11 @@ vi.mock('three', async importOriginal => {
   return { ...actual, WebGLRenderer: FakeRenderer };
 });
 
-const layers = vi.hoisted(() => ({ created: 0, disposed: 0 }));
+const layers = vi.hoisted(() => ({ created: 0, disposed: 0, host: null as null | { parent: { children: { matrixWorld: { elements: number[] }; position: { length(): number }; scale: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number } }[] } | null } }));
 vi.mock('../../../../lib/cooling/flow/flowLayer', () => ({
   FlowLayer: class {
     supported = true;
-    constructor() { layers.created++; }
+    constructor(_renderer: unknown, host: never) { layers.created++; layers.host = host; }
     setOptions() {}
     setInput() {}
     setTemps() {}
@@ -107,6 +107,21 @@ describe('pick gesture', () => {
     expect(onPick.mock.calls[0][0]).toBeNull();
     press(canvas, [50, 50], [90, 80]);
     expect(onPick).toHaveBeenCalledTimes(1);
+    r.dispose();
+  });
+});
+
+describe('one transform from layout mm', () => {
+  it('draws the outline, the fans and the airflow layer (particles and collision shapes) in the same untransformed space', () => {
+    const r = createCaseRenderer(document.createElement('canvas'), () => {});
+    r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: true, speed: 1 }, model: null });
+    const groups = layers.host?.parent?.children ?? [];
+    expect(groups.length).toBeGreaterThanOrEqual(3);
+    for (const g of groups) {
+      expect(g.position.length()).toBe(0);
+      expect([g.scale.x, g.scale.y, g.scale.z]).toEqual([1, 1, 1]);
+      expect([g.rotation.x, g.rotation.y, g.rotation.z]).toEqual([0, 0, 0]);
+    }
     r.dispose();
   });
 });
