@@ -1,5 +1,6 @@
-import { PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE } from './flowParams';
+import { PARTICLE_ADVECT_SUBSTEPS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
+import { sampleSpawn } from './gridScene';
 
 /** A particle's lifetime in steps from a uniform sample. */
 export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTER + 2 * PARTICLE_LIFE_JITTER * u);
@@ -39,14 +40,12 @@ export class CpuParticles {
   }
 
   private respawn(i: number) {
-    const s = this.flow.scene.spawns;
-    const n = s.length / 3;
     this.age[i] = 0;
     this.heat[i] = 0;
     this.respawns++;
-    if (n === 0) { this.pos[i * 3] = -1e6; return; }
-    const m = Math.floor(this.rand() * n);
-    this.pos[i * 3] = s[m * 3]; this.pos[i * 3 + 1] = s[m * 3 + 1]; this.pos[i * 3 + 2] = s[m * 3 + 2];
+    const q = sampleSpawn(this.flow.scene, () => this.rand());
+    if (!q) { this.pos[i * 3] = -1e6; return; }
+    this.pos[i * 3] = q[0]; this.pos[i * 3 + 1] = q[1]; this.pos[i * 3 + 2] = q[2];
   }
 
   /** Cell index holding cell-coordinate point (x, y, z), or -1 outside the domain. */
@@ -65,10 +64,7 @@ export class CpuParticles {
       const o = i * 3;
       if (this.pos[o] < -1e5) { this.respawn(i); continue; }
       if (this.age[i] < 0) { this.age[i] += 1; continue; }
-      const px = this.pos[o], py = this.pos[o + 1], pz = this.pos[o + 2];
-      this.flow.sample(px, py, pz, v);
-      this.flow.sample(px + 0.5 * v[0], py + 0.5 * v[1], pz + 0.5 * v[2], v);
-      let x = px, y = py, z = pz;
+      let x = this.pos[o], y = this.pos[o + 1], z = this.pos[o + 2];
       const from = this.cellAt(x, y, z);
       // Positions live in float32, so test the rounded point: a double just below a cell edge can round onto it.
       const tryMove = (nx: number, ny: number, nz: number) => {
@@ -78,14 +74,21 @@ export class CpuParticles {
         x = nx; y = ny; z = nz;
         return true;
       };
-      tryMove(x + v[0], y, z);
-      tryMove(x, y + v[1], z);
-      tryMove(x, y, z + v[2]);
+      const h = PARTICLE_SPEED_SCALE / PARTICLE_ADVECT_SUBSTEPS;
+      for (let k = 0; k < PARTICLE_ADVECT_SUBSTEPS; k++) {
+        this.flow.sample(x, y, z, v);
+        this.flow.sample(x + 0.5 * h * v[0], y + 0.5 * h * v[1], z + 0.5 * h * v[2], v);
+        tryMove(x + h * v[0], y, z);
+        tryMove(x, y + h * v[1], z);
+        tryMove(x, y, z + h * v[2]);
+        const c = this.cellAt(x, y, z);
+        if (open[c]) break;
+      }
       this.pos[o] = x; this.pos[o + 1] = y; this.pos[o + 2] = z;
       this.age[i] += 1;
       const cell = this.cellAt(x, y, z);
       if (cell !== from) onMove?.(i, from, cell);
-      this.heat[i] = Math.min(1, this.heat[i] + heat[cell]);
+      this.heat[i] = Math.min(1, this.heat[i] + heat[cell] * PARTICLE_SPEED_SCALE);
       if (open[cell] || this.age[i] > this.life[i]) this.respawn(i);
     }
   }

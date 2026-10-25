@@ -1,11 +1,11 @@
 import {
-  AdditiveBlending, BackSide, BoxGeometry, BufferAttribute, BufferGeometry, Color, DataTexture, FloatType, GLSL3, InstancedMesh, Matrix4, Mesh,
-  MeshBasicMaterial, NearestFilter, NormalBlending, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
+  AdditiveBlending, BackSide, BoxGeometry, BufferAttribute, BufferGeometry, Color, DataTexture, FloatType, GLSL3, Mesh,
+  NearestFilter, NormalBlending, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE } from './flowParams';
+import { SPAWN_BACK_SPAN_CELLS, DEAD_AGE_RATIO, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_ADVECT_SUBSTEPS, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
 import { SteadyGate } from './steadyGate';
-import { buildFlowScene, surfaceSolids, type FlowInput, type FlowScene } from './gridScene';
+import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
@@ -26,17 +26,14 @@ const TIMER_EMA = 0.3;
 const MAX_STEPS_PER_FRAME = 8;
 const MIN_STEPS_PER_FRAME = 1;
 const PARTICLE_SUBSTEPS = 2;
-const AGE_STEPS_PER_FRAME = 4;
-/** Dead-zone age scale, as a multiple of the straight-through time. */
-const AGE_SCALE = 4;
+const AGE_STEPS_PER_FRAME = 16;
 const STEADY_CHECK_EVERY = 16;
 const STEADY_RATIO = 0.01;
 const MAX_SOLVE_STEPS = 1500;
 const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 24;
-const MAX_DEBUG_VOXELS = 80000;
 /** Point size in mm at unit scale, the on-screen minimum in px, and the one trail copy's alpha and size share. */
-const POINT_SIZE = 5;
+const POINT_SIZE = 6.5;
 const POINT_MIN_PX = 1;
 const TRAIL_MIN_PX = 1;
 const TRAIL_ALPHA = [0.286];
@@ -48,14 +45,11 @@ export interface FlowColors {
   hot: Color;
   /** Dead-zone volume tint. */
   dead: Color;
-  /** Debug solids. */
-  solid: Color;
 }
 
 export interface FlowOptions {
   particles: boolean;
   deadZones: boolean;
-  debugSolids: boolean;
 }
 
 /** The airflow layer of the case view: solver, particles, dead-zone volume and the solid-voxel debug view, all on the renderer's own context. */
@@ -73,9 +67,8 @@ export class FlowLayer {
   private stepsPerFrame = 4;
   private slowCount = 0;
   private lastFrameAt = 0;
-  private options: FlowOptions = { particles: true, deadZones: false, debugSolids: false };
+  private options: FlowOptions = { particles: true, deadZones: false};
   private seed = 1;
-  private debugShown = false;
   private coldStart = false;
   private readonly gate = new SteadyGate();
   private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
@@ -92,7 +85,6 @@ export class FlowLayer {
   private trailMats: ShaderMaterial[] = [];
   private volume: Mesh | null = null;
   private volumeMat: ShaderMaterial | null = null;
-  private debug: InstancedMesh | null = null;
   private ageRef = 1;
 
   private readonly renderer: WebGLRenderer;
@@ -134,7 +126,6 @@ export class FlowLayer {
       for (const t of this.trails) t.visible = options.particles;
     }
     if (this.volume) this.volume.visible = options.deadZones;
-    if (this.fscene && options.debugSolids !== this.debugShown) this.syncDebug();
   }
 
   /** New edit: rebuilds the voxel scene and re-solves from the current field. Null clears the layer. */
@@ -159,10 +150,9 @@ export class FlowLayer {
       this.coldStart = true;
     }
     this.fscene = scene;
-    this.ageRef = Math.max(60, scene.residenceSteps * AGE_SCALE);
+    this.ageRef = Math.max(60, scene.residenceSteps);
     this.uploadSpawns(scene);
     this.updateUniforms();
-    this.syncDebug();
     this.stepsSinceEdit = 0;
     this.gate.invalidate();
     this.solving = scene.fanCount > 0;
@@ -170,17 +160,15 @@ export class FlowLayer {
   }
 
   private uploadSpawns(scene: FlowScene) {
-    const n = Math.max(1, scene.spawns.length / 3);
-    const data = new Float32Array(n * 4);
-    for (let i = 0; i < scene.spawns.length / 3; i++) {
-      data[i * 4] = scene.spawns[i * 3]; data[i * 4 + 1] = scene.spawns[i * 3 + 1]; data[i * 4 + 2] = scene.spawns[i * 3 + 2];
-    }
+    const entries = scene.emitters.length / 12;
+    const data = new Float32Array(Math.max(1, entries) * 12);
+    data.set(scene.emitters);
     this.spawnTex?.dispose();
-    this.spawnTex = new DataTexture(data, n, 1, RGBAFormat, FloatType);
+    this.spawnTex = new DataTexture(data, Math.max(1, entries) * 3, 1, RGBAFormat, FloatType);
     this.spawnTex.minFilter = NearestFilter;
     this.spawnTex.magFilter = NearestFilter;
     this.spawnTex.needsUpdate = true;
-    for (const m of [this.stateMat]) if (m) { m.uniforms.SP.value = this.spawnTex; m.uniforms.uSpawnCount.value = scene.spawns.length / 3; }
+    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; }
   }
 
   private ensureParticles() {
@@ -190,7 +178,7 @@ export class FlowLayer {
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, SP: { value: null as unknown }, uSpawnCount: { value: 0 }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER },
+      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBackSpan: { value: SPAWN_BACK_SPAN_CELLS }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: PARTICLE_SPEED_SCALE }, uSubsteps: { value: PARTICLE_ADVECT_SUBSTEPS },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown } });
@@ -225,7 +213,7 @@ export class FlowLayer {
       glslVersion: GLSL3, vertexShader: VOLUME_VERTEX, fragmentShader: VOLUME_FRAGMENT,
       uniforms: {
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown }, AG: { value: null as unknown },
-        uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() }, uAgeRef: { value: 1 }, uColor: { value: this.colors.dead },
+        uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() }, uAgeRef: { value: 1 }, uDeadAt: { value: DEAD_AGE_RATIO }, uColor: { value: this.colors.dead },
       },
       transparent: true, depthWrite: false, depthTest: false, side: BackSide, blending: NormalBlending,
     });
@@ -284,27 +272,6 @@ export class FlowLayer {
       (this.volumeMat.uniforms.uOrigin.value as Vector3).copy(origin);
       this.volumeMat.uniforms.uAgeRef.value = this.ageRef;
     }
-  }
-
-  private syncDebug() {
-    if (this.debug) { this.group.remove(this.debug); this.debug.geometry.dispose(); (this.debug.material as MeshBasicMaterial).dispose(); this.debug.dispose(); this.debug = null; }
-    const scene = this.fscene;
-    this.debugShown = this.options.debugSolids;
-    if (!scene || !this.options.debugSolids) return;
-    const pts = surfaceSolids(scene);
-    const count = Math.min(MAX_DEBUG_VOXELS, pts.length / 3);
-    const mesh = new InstancedMesh(
-      new BoxGeometry(scene.cellMm * 0.92, scene.cellMm * 0.92, scene.cellMm * 0.92),
-      new MeshBasicMaterial({ color: this.colors.solid, transparent: true, opacity: 0.07, depthWrite: false }),
-      count,
-    );
-    const m = new Matrix4();
-    for (let i = 0; i < count; i++) { m.setPosition(pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]); mesh.setMatrixAt(i, m); }
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.renderOrder = 2;
-    mesh.frustumCulled = false;
-    this.debug = mesh;
-    this.group.add(mesh);
   }
 
   /** Runs the solver and particle passes for one displayed frame. Call before rendering the scene. */
@@ -432,7 +399,6 @@ export class FlowLayer {
     this.flow = null;
     this.fscene = null;
     this.solving = false;
-    if (this.debug) { this.group.remove(this.debug); this.debug.geometry.dispose(); (this.debug.material as MeshBasicMaterial).dispose(); this.debug.dispose(); this.debug = null; }
     for (const p of [this.points, ...this.trails]) if (p) p.visible = false;
     if (this.volume) this.volume.visible = false;
   }

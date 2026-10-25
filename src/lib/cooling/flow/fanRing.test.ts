@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { fanRadii, FAN_HUB_RATIO } from '../fanGeometry';
 import { CpuParticles } from './cpuParticles';
 import { CpuFlow } from './cpuSolver';
-import { OPENING_VENT, buildFlowScene, isSolidAt, type FlowScene } from './gridScene';
+import { OPENING_VENT, buildFlowScene, isSolidAt, sampleSpawn, type FlowScene } from './gridScene';
 import { fronts, inputFor, slotSpec, tops, rear } from './flowFixtures';
 
 const M3S_PER_CFM = 0.000471947;
@@ -81,7 +81,7 @@ describe('fan ring', () => {
         for (let n = 0; n < particles.count; n++) {
           const p = [0, 1, 2].map(a => (particles.pos[n * 3 + a] + 0.5) * scene.cellMm - scene.origin[a]);
           const r = Math.hypot(p[1] - CENTRE[1], p[2] - CENTRE[2]);
-          expect(r).toBeGreaterThanOrEqual(hub - 0.5);
+          expect(r).toBeGreaterThan(hub);
           expect(r).toBeLessThanOrEqual(tip + 0.5);
           if (r < (hub + tip) / 2) near++; else far++;
         }
@@ -149,5 +149,76 @@ describe('stopped fans and empty slots', () => {
     }
     expect(s.spawns.length).toBeGreaterThan(0);
     expect(inner).toBeGreaterThan(0);
+  });
+});
+
+describe('spawn radius distribution', () => {
+  const N = 20000;
+  const lcg = (seed: number) => () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+
+  /** KS distance between the spawn radii of the only fan and the area-uniform CDF over hub..tip. */
+  function ks(slot: ReturnType<typeof slotSpec>, frame: number, rotation = 0) {
+    const scene = buildFlowScene(inputFor([slot], [], () => 'intake', 70), FINE);
+    const e = scene.emitters;
+    const c = [e[0], e[1], e[2]];
+    const axis = [e[4], e[5], e[6]];
+    const { tip: t, hub: h } = fanRadii(frame);
+    const rnd = lcg(11);
+    const radii: number[] = [];
+    const cells = new Set<number>();
+    let atHub = 0;
+    for (let n = 0; n < N; n++) {
+      const q = sampleSpawn(scene, rnd);
+      if (!q) continue;
+      const d = [0, 1, 2].map(a => q[a] - c[a]);
+      const along = d[0] * axis[0] + d[1] * axis[1] + d[2] * axis[2];
+      const rad = Math.hypot(...d.map((v, a) => v - along * axis[a])) * scene.cellMm;
+      if (rad <= h + 0.05) atHub++;
+      radii.push(rad);
+      cells.add(Math.floor(q[0] * 1000) * 1e6 + Math.floor(q[1] * 1000) * 1e3 + Math.floor(q[2] * 1000));
+    }
+    radii.sort((a, b) => a - b);
+    let worst = 0;
+    radii.forEach((r, i) => {
+      const f = Math.min(1, Math.max(0, (r * r - h * h) / (t * t - h * h)));
+      worst = Math.max(worst, Math.abs((i + 1) / radii.length - f), Math.abs(i / radii.length - f));
+    });
+    return { atHub, worst, min: radii[0], max: radii[radii.length - 1], hub: h, tip: t, distinct: cells.size, count: radii.length, scene, rotation };
+  }
+
+  const front120 = slotSpec('front:120:1', 'front', 'fan', [0, 180, 120], [25, 120, 120], [1, 0, 0]);
+  const front140 = slotSpec('front:140:1', 'front', 'fan', [0, 170, 110], [25, 140, 140], [1, 0, 0]);
+  const turned = slotSpec('front:120:2', 'front', 'fan', [0, 180, 120], [25, 120, 120], [Math.cos(0.6), 0, -Math.sin(0.6)]);
+
+  it.each([['120 mm', front120, 120], ['140 mm', front140, 140], ['a turned 120 mm', turned, 120]] as const)('%s fan: radii follow the area-uniform CDF and cover hub to tip', (_n, slot, frame) => {
+    const r = ks(slot, frame);
+    expect(r.count).toBeGreaterThan(N * 0.9);
+    expect(r.worst).toBeLessThan(0.025);
+    expect(r.min).toBeLessThan(r.hub + (r.tip - r.hub) * 0.08);
+    // Nothing on the hub circle or inside it.
+    expect(r.min).toBeGreaterThan(r.hub + 0.5);
+    expect(r.atHub).toBe(0);
+    expect(r.max).toBeGreaterThan(r.tip - (r.tip - r.hub) * 0.03);
+    expect(r.max).toBeLessThanOrEqual(r.tip + r.scene.cellMm * 0.01);
+  });
+
+  it('starts at continuous positions, not on a few cell centres or a fixed point set', () => {
+    const r = ks(front120, 120);
+    expect(r.distinct).toBeGreaterThan(r.count * 0.95);
+  });
+
+  it('gives a stronger, larger fan more emitter entries than a smaller one', () => {
+    const a = buildFlowScene(inputFor([front120], [], () => 'intake', 60), FINE);
+    const b = buildFlowScene(inputFor([front140], [], () => 'intake', 70), FINE);
+    expect(b.emitters.length).toBeGreaterThan(a.emitters.length);
+  });
+});
+
+describe('a fan mounted away from the wall', () => {
+  it('vents through the face it points at, however far the panel sits from the mount', () => {
+    // 23 mm of air between the mount and the side wall, as on the Y70's right side.
+    const set = slotSpec('right:120:1', 'right', 'fan', [27, 189, 312], [120, 120, 25], [0, 0, -1]);
+    const s = buildFlowScene(inputFor([set], [], () => 'intake', 60), FINE);
+    expect(s.opening.some(v => v === 1)).toBe(true);
   });
 });

@@ -257,7 +257,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         const [ex, ey, ez] = caseExtents(state.layout);
         const colors: FlowColors = {
           cool: token(canvas, '--airflow-cool', '#38bdf8'), warm: token(canvas, '--airflow-warm', '#f59e0b'), hot: token(canvas, '--bad', '#ef4444'),
-          dead: token(canvas, '--airflow-warm', '#f59e0b'), solid: token(canvas, '--text', '#e6e9f0'),
+          dead: token(canvas, '--airflow-warm', '#f59e0b'),
         };
         flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
       }

@@ -1,7 +1,7 @@
 import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Vec3 } from '../caseLayout';
 import type { FanDirection } from '../pressureModel';
 import {
-  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, MAX_SPAWN_POINTS,
+  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, SPAWN_BACK_MIN_CELLS, SPAWN_BACK_SPAN_CELLS,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
@@ -12,11 +12,10 @@ const MM_PER_M = 1000;
 const SOLID_PARTS = new Set(['gpu', 'psu', 'motherboard', 'storage', 'ram', 'cpu']);
 const POROUS_PARTS = new Set(['cooler']);
 const HEAT_PARTS = new Set(['gpu', 'psu', 'cpu']);
-const GOLDEN_ANGLE = 2.399963;
-const SPAWN_PER_60_CFM = 64;
-const MIN_SPAWN_PER_FAN = 8;
-const MAX_SPAWN_PER_FAN = 512;
-const SPAWN_OUTSIDE_CELLS = 1.5;
+const SPAWN_TRIES = 6;
+/** Share of the ring width kept clear of the hub edge when spawning. */
+const SPAWN_HUB_MARGIN = 0.04;
+const SAMPLE_SPAWNS = 2048;
 const MIN_CASE_CELLS = 4;
 
 /** What a fluid cell on the case shell is: open to the outside through an intake fan, an exhaust fan, or an empty slot. */
@@ -58,7 +57,12 @@ export interface FlowScene {
   fanCell: Uint8Array;
   /** Shell cells that are open to the outside, by `OPENING_*`. */
   opening: Uint8Array;
-  /** Where intake and inflow particles start, in cell coordinates (cell centres at integers); 3 floats each. */
+  /**
+   * Where intake and inflow particles start: one entry per 12 floats, a fan's ring in cell coordinates (cell centres at integers):
+   * centre xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset. A stronger fan has more entries.
+   */
+  emitters: Float32Array;
+  /** A fixed sample of start points drawn from the emitters (3 floats each), for inspection; the particles draw their own continuously. */
   spawns: Float32Array;
   fanCount: number;
   /** Steps a parcel of air takes to cross the case at the nominal through-flow: case volume over intake flow, in solver steps. 0 when nothing draws air in. */
@@ -273,8 +277,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       const cc = layoutMm(i, j, kk);
       const d0 = sub(cc, centre);
       const along = dot(d0, axis);
-      // The shell cell can sit a cell or so past the fan box when the case size is not a whole number of cells.
-      if (Math.abs(along) > halfThickness + (onCaseShell(i, j, kk) ? cellMm * 1.5 : 0)) return;
+      // A fan within reach of a face vents through that face across its footprint, however far the panel sits from the mount.
+      if (Math.abs(along) > halfThickness + (onCaseShell(i, j, kk) ? Math.max(MOUNT_REACH_MM, cellMm * 1.5) : 0)) return;
       let inRing = 0;
       let inFrame = 0;
       for (let a = 0; a < SUB; a++) for (let b = 0; b < SUB; b++) {
@@ -304,22 +308,15 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   const reference = Math.max(MIN_REFERENCE_SPEED, ...plan.fans.map((p, i) => velocityMps(p, cellsOf[i])));
   const stepSeconds = (CFL_TARGET * (cellMm / MM_PER_M)) / reference;
 
-  const spawns: number[] = [];
+  // Particles start strictly outside the hub: a margin past its edge, so none sits on the core circle.
+  const spawnHub = (p: PlannedFan) => (hubOf(p) > 0 ? hubOf(p) + SPAWN_HUB_MARGIN * (p.disk.radius - hubOf(p)) : 0);
+  const emitters: number[] = [];
   const addSpawns = (p: PlannedFan, weight: number) => {
-    const count = Math.min(MAX_SPAWN_PER_FAN, Math.max(MIN_SPAWN_PER_FAN, Math.round((weight / 60) * SPAWN_PER_60_CFM)));
+    const entries = Math.min(16, Math.max(1, Math.round((weight / 60) * EMITTERS_PER_60_CFM)));
     const e1 = e1Of(p.disk.axis);
-    const e2 = cross(p.disk.axis, e1);
-    const { radius } = p.disk;
-    const hub = hubOf(p);
-    for (let m = 0; m < count && spawns.length / 3 < MAX_SPAWN_POINTS; m++) {
-      // Uniform per area over the ring between hub and tip.
-      const r = Math.sqrt(hub * hub + (radius * radius - hub * hub) * ((m + 0.5) / count));
-      const th = m * GOLDEN_ANGLE;
-      const back = p.disk.halfThickness + cellMm * (SPAWN_OUTSIDE_CELLS + ((m * 0.37) % 3));
-      const pos = add(add(add(p.disk.centre, scale(e1, r * Math.cos(th))), scale(e2, r * Math.sin(th))), scale(p.disk.axis, -back));
-      const ci = Math.floor((pos[0] + origin[0]) / cellMm), cj = Math.floor((pos[1] + origin[1]) / cellMm), ck = Math.floor((pos[2] + origin[2]) / cellMm);
-      if (ci < 1 || cj < 1 || ck < 1 || ci >= NX - 1 || cj >= NY - 1 || ck >= NZ - 1 || solid[id(ci, cj, ck)]) continue;
-      spawns.push((pos[0] + origin[0]) / cellMm - 0.5, (pos[1] + origin[1]) / cellMm - 0.5, (pos[2] + origin[2]) / cellMm - 0.5);
+    const c = [0, 1, 2].map(a => (p.disk.centre[a] + origin[a]) / cellMm - 0.5);
+    for (let m = 0; m < entries && emitters.length / 12 < MAX_EMITTER_ENTRIES; m++) {
+      emitters.push(c[0], c[1], c[2], spawnHub(p) / cellMm, p.disk.axis[0], p.disk.axis[1], p.disk.axis[2], p.disk.radius / cellMm, e1[0], e1[1], e1[2], p.disk.halfThickness / cellMm + SPAWN_BACK_MIN_CELLS);
     }
   };
 
@@ -374,7 +371,17 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
 
   const caseM3 = (extents[0] * extents[1] * extents[2]) / (MM_PER_M ** 3);
   const residenceSteps = intakeCfm > 0 ? caseM3 / (intakeCfm * M3S_PER_CFM) / stepSeconds : 0;
-  return { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, spawns: new Float32Array(spawns), fanCount };
+  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, emitters: new Float32Array(emitters), spawns: new Float32Array(0), fanCount };
+  const scene: FlowScene = result;
+  let seed = 7;
+  const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  const samples: number[] = [];
+  for (let m = 0; m < SAMPLE_SPAWNS && emitters.length > 0; m++) {
+    const q = sampleSpawn(scene, rnd);
+    if (q) samples.push(q[0], q[1], q[2]);
+  }
+  scene.spawns = new Float32Array(samples);
+  return scene;
 }
 
 /** Whether the cell holding layout-mm point `p` is solid; outside the domain counts as solid. */
@@ -387,18 +394,25 @@ export function isSolidAt(scene: FlowScene, p: Vec3): boolean {
   return scene.solid[i + NX * (j + NY * k)] === 1;
 }
 
-/** Cell centres, in layout mm, of the solid cells that form the parts' surface (solid with a fluid neighbour), the case shell left out. */
-export function surfaceSolids(scene: FlowScene): Float32Array {
+/** A start point, in cell coordinates, drawn from the scene's emitters: an entry at random, then a point area-uniform over its ring between hub and tip, set outward of the fan. Null after a few tries that land in a solid. */
+export function sampleSpawn(scene: FlowScene, rnd: () => number): Vec3 | null {
+  const n = scene.emitters.length / 12;
+  if (n === 0) return null;
   const [NX, NY, NZ] = scene.dims;
-  const out: number[] = [];
-  const { caseMin, caseMax, solid, cellMm, origin } = scene;
-  for (let k = caseMin[2] + 1; k < caseMax[2]; k++) for (let j = caseMin[1] + 1; j < caseMax[1]; j++) for (let i = caseMin[0] + 1; i < caseMax[0]; i++) {
-    const c = i + NX * (j + NY * k);
-    if (!solid[c]) continue;
-    if (!solid[c - 1] || !solid[c + 1] || !solid[c - NX] || !solid[c + NX] || !solid[c - NX * NY] || !solid[c + NX * NY]) {
-      out.push((i + 0.5) * cellMm - origin[0], (j + 0.5) * cellMm - origin[1], (k + 0.5) * cellMm - origin[2]);
-    }
+  for (let t = 0; t < SPAWN_TRIES; t++) {
+    const o = Math.min(n - 1, Math.floor(rnd() * n)) * 12;
+    const e = scene.emitters;
+    const hub = e[o + 3], tip = e[o + 7];
+    const r = Math.sqrt(hub * hub + (tip * tip - hub * hub) * rnd());
+    const th = 2 * Math.PI * rnd();
+    const back = e[o + 11] + SPAWN_BACK_SPAN_CELLS * rnd();
+    const axis: Vec3 = [e[o + 4], e[o + 5], e[o + 6]];
+    const e1: Vec3 = [e[o + 8], e[o + 9], e[o + 10]];
+    const e2 = cross(axis, e1);
+    const pos: Vec3 = [0, 1, 2].map(a => e[o + a] + e1[a] * r * Math.cos(th) + e2[a] * r * Math.sin(th) - axis[a] * back) as Vec3;
+    const i = Math.floor(pos[0] + 0.5), j = Math.floor(pos[1] + 0.5), k = Math.floor(pos[2] + 0.5);
+    if (i < 1 || j < 1 || k < 1 || i >= NX - 1 || j >= NY - 1 || k >= NZ - 1 || scene.solid[i + NX * (j + NY * k)]) continue;
+    return pos;
   }
-  void NZ;
-  return new Float32Array(out);
+  return null;
 }

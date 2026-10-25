@@ -37,7 +37,7 @@ const record = (rev = 1, empty = false) => {
   if (empty) layout.fanSlots = layout.fanSlots.map(s => ({ ...s, taken: null as never }));
   return { rev, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } };
 };
-const channels = [{ id: 'fan-a', name: 'Fan A' }, { id: 'fan-b', name: 'Fan B' }] as FanChannel[];
+const channels = [{ id: 'fan-a', name: 'Fan A', rpm: 1500, dutyPercent: 100, maxRpm: 1500 }, { id: 'fan-b', name: 'Fan B', rpm: 1500, dutyPercent: 100, maxRpm: 1500 }] as FanChannel[];
 
 function setLayout(patch: Partial<typeof h.layout>) {
   h.layout = { ...h.layout, ...patch };
@@ -182,7 +182,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.layout.fanSlots).toHaveLength(2);
     expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
-    expect(state.flowOptions).toEqual({ particles: true, deadZones: false, debugSolids: false });
+    expect(state.flowOptions).toEqual({ particles: true, deadZones: false });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -206,12 +206,11 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().flow.directions['front:120:0']).toBe('exhaust');
   });
 
-  it('toggles particles, dead zones and the solid-cell view', () => {
+  it('toggles particles and dead zones', () => {
     mountReady();
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.deadZones' }));
     expect(lastState().flowOptions.deadZones).toBe(true);
-    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.solids' }));
-    expect(lastState().flowOptions.debugSolids).toBe(true);
+    expect(screen.getByText('cooling.case3d.flow.deadZonesHint')).toBeTruthy();
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.particles' }));
     expect(lastState().flowOptions.particles).toBe(false);
   });
@@ -280,5 +279,40 @@ describe('CoolingCase3D overlapping mounts', () => {
     expect(state.layout.fanSlots[0].taken).toBe('fan');
     expect(Object.keys(state.flow.fanCfm)).toHaveLength(1);
     expect([...state.bound]).toEqual([state.layout.fanSlots[0].key]);
+  });
+});
+
+describe('CoolingCase3D live fan speed', () => {
+  const rpmChannels = (rpmA: number) => [{ id: 'fan-a', name: 'Fan A', rpm: rpmA, dutyPercent: 50, maxRpm: 1500 }, { id: 'fan-b', name: 'Fan B', rpm: 1500, dutyPercent: 100, maxRpm: 1500 }] as FanChannel[];
+  const mount = (rpm: number, bindings: CoolingLayout['bindings']) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    return render(<CoolingCase3D channels={rpmChannels(rpm)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+  };
+
+  it('runs a bound fan at its live share and leaves an unbound one rated', () => {
+    mount(750, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    const cfm = lastState().flow.fanCfm as Record<string, number>;
+    expect(cfm['front:120:0']).toBeLessThan(cfm['rear:120:0'] * 0.8);
+  });
+
+  it('gives a stopped bound fan no flow', () => {
+    mount(0, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    const cfm = lastState().flow.fanCfm as Record<string, number>;
+    expect(cfm['front:120:0']).toBeUndefined();
+    expect(cfm['rear:120:0']).toBeGreaterThan(0);
+    expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
+  });
+
+  it('does not send a new flow input for tach jitter, but does for a real speed change', () => {
+    const bindings = [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }];
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    const { rerender } = render(<CoolingCase3D channels={rpmChannels(1000)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const first = lastState().flow;
+    rerender(<CoolingCase3D channels={rpmChannels(1015)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    expect(lastState().flow).toBe(first);
+    rerender(<CoolingCase3D channels={rpmChannels(500)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    expect(lastState().flow).not.toBe(first);
   });
 });

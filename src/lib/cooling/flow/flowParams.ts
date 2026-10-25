@@ -34,3 +34,18 @@ export const GRID_LOW_CELLS = 32 * 24 * 48;
 export const MAX_GRID_AXIS = 128;
 export const MIN_GRID_AXIS = 8;
 export const MAX_SPAWN_POINTS = 2048;
+
+/** Particles move this many times faster than the solver's own time, so the flow reads clearly; fan-to-fan differences stay proportional. */
+export const PARTICLE_SPEED_SCALE = 2.5;
+/** Advection sub-steps per particle step, so a step stays under one cell at the top speed and cannot skip a wall. */
+export const PARTICLE_ADVECT_SUBSTEPS = 3;
+
+/** Air older than this many straight-through times counts as a dead zone; younger air shows as a faint age gradient. */
+export const DEAD_AGE_RATIO = 5;
+
+/** Intake particles start this many cells outward of the fan, spread over this depth. */
+export const SPAWN_BACK_MIN_CELLS = 1.5;
+export const SPAWN_BACK_SPAN_CELLS = 3;
+/** Emitter entries per 60 CFM of flow, within these bounds: a stronger fan sends proportionally more particles. */
+export const EMITTERS_PER_60_CFM = 4;
+export const MAX_EMITTER_ENTRIES = 256;
