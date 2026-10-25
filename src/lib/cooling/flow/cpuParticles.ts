@@ -69,6 +69,11 @@ export class CpuParticles {
     return i + NX * (j + NY * k);
   }
 
+  private inCase(x: number, y: number, z: number): boolean {
+    const { min, max } = this.flow.scene.caseBounds;
+    return x >= min[0] && x <= max[0] && y >= min[1] && y <= max[1] && z >= min[2] && z <= max[2];
+  }
+
   /** Advances every particle one step. `onMove(i, fromCell, toCell)` sees each move that changes cell. */
   step(onMove?: (i: number, from: number, to: number) => void, speed: number = PARTICLE_SPEED_SCALE): void {
     const { solid, open, heat } = this.flow.scene;
@@ -106,7 +111,7 @@ export class CpuParticles {
       const cell = this.cellAt(x, y, z);
       if (cell !== from) onMove?.(i, from, cell);
       if (cell >= 0) this.heat[i] = heatStep(this.heat[i], this.rises[heat[cell]], speed);
-      if (open[cell] || this.age[i] > this.life[i]) this.respawn(i);
+      if (open[cell] || this.age[i] > this.life[i] || !this.inCase(x, y, z)) this.respawn(i);
     }
   }
 }

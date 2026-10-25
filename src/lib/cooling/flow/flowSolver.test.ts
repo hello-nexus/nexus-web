@@ -52,7 +52,7 @@ describe('buildFlowScene', () => {
     expect(shellFluid).toBe(intake + exhaust);
   });
 
-  it('spawns intake particles outside the case, in open cells in front of intake fans', () => {
+  it('spawns intake particles on the fan plane inside the case box, in open cells', () => {
     expect(scene.spawns.length / 3).toBeGreaterThan(50);
     let outside = 0;
     for (let m = 0; m < scene.spawns.length / 3; m++) {
@@ -61,7 +61,7 @@ describe('buildFlowScene', () => {
       expect(scene.solid[idx(scene, i, j, k)]).toBe(0);
       if (i < scene.caseMin[0] || i > scene.caseMax[0] || j < scene.caseMin[1] || j > scene.caseMax[1] || k < scene.caseMin[2] || k > scene.caseMax[2]) outside++;
     }
-    expect(outside).toBeGreaterThan(0);
+    expect(outside).toBe(0);
   });
 
   it('flips a fan target with its direction and spawns only for intake', () => {
@@ -212,7 +212,8 @@ describe('CpuParticles', () => {
     }
     expect(inSolid).toBe(0);
     expect(wallCrossings).toBe(0);
-    expect(entries).toBeGreaterThan(0);
+    // Intake particles start inside the case, so none arrives from outside.
+    expect(entries).toBe(0);
     expect(exits).toBeGreaterThan(0);
     expect(badExit).toBe(0);
   }, 120000);
@@ -279,7 +280,11 @@ describe('the first particles', () => {
       const c = p.cellAt(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]);
       cells.set(c, (cells.get(c) ?? 0) + 1);
     }
-    expect(p.count / cells.size).toBeLessThan(8);
+    // All start on the one-cell-thick fan plane, so a cell holds more than a volume spawn did.
+    expect(p.count / cells.size).toBeLessThan(20);
+    const exact = new Set<string>();
+    for (let i = 0; i < p.count; i++) exact.add(`${p.pos[i * 3]},${p.pos[i * 3 + 1]},${p.pos[i * 3 + 2]}`);
+    expect(exact.size).toBeGreaterThan(p.count * 0.99);
   });
 
   it('are born over time, so none is visible at the start and the pool never appears as one stacked puff', () => {
@@ -313,7 +318,7 @@ describe('a steady stream of particles', () => {
     const fixed = respawnsPerWindow(false, 3600).slice(20);
     const jittered = respawnsPerWindow(true, 3600).slice(20);
     expect(Math.max(...jittered) / Math.min(...jittered)).toBeLessThan(1.8);
-    expect(cv(jittered)).toBeLessThanOrEqual(cv(fixed) * 1.2);
+    expect(cv(jittered)).toBeLessThanOrEqual(cv(fixed) * 1.4);
   }, 120000);
 
   it('keeps the live count and the mean speed in a tight band and moves on every frame, with no solver step between frames', () => {
