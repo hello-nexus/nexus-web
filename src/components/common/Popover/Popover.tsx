@@ -33,6 +33,8 @@ export interface PopoverProps {
    *  ancestor cannot cut it off. Flips to the other side when it would leave
    *  the viewport. */
   portal?: boolean;
+  /** With portal: keep the popover inside this element's box instead of the viewport. */
+  boundsRef?: RefObject<HTMLElement | null>;
 }
 
 // Matches the inline placement offsets in Popover.module.scss.
@@ -69,6 +71,7 @@ export function Popover({
   role = 'dialog',
   ariaLabel,
   portal = false,
+  boundsRef,
 }: PopoverProps) {
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const portalRoot = usePortalRoot();
@@ -95,11 +98,13 @@ export function Popover({
       left = side === 'right' ? r.right + SIDE_GAP : r.left - SIDE_GAP - w;
       top = align === 'start' ? r.top : r.bottom - h;
     }
-    setCoords({
-      top: clamp(top, VIEWPORT_MARGIN, window.innerHeight - h - VIEWPORT_MARGIN),
-      left: clamp(left, VIEWPORT_MARGIN, window.innerWidth - w - VIEWPORT_MARGIN),
-    });
-  }, [anchorRef, placement]);
+    const b = boundsRef?.current?.getBoundingClientRect();
+    const minX = Math.max(VIEWPORT_MARGIN, b ? b.left + VIEWPORT_MARGIN : 0);
+    const minY = Math.max(VIEWPORT_MARGIN, b ? b.top + VIEWPORT_MARGIN : 0);
+    const maxX = Math.min(window.innerWidth, b ? b.right : Infinity) - w - VIEWPORT_MARGIN;
+    const maxY = Math.min(window.innerHeight, b ? b.bottom : Infinity) - h - VIEWPORT_MARGIN;
+    setCoords({ top: clamp(top, minY, maxY), left: clamp(left, minX, maxX) });
+  }, [anchorRef, boundsRef, placement]);
 
   useLayoutEffect(() => {
     if (open && portal) reposition();

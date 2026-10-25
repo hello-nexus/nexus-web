@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "Diese Grafikkonfiguration kann die Luftstromsimulation nicht ausführen.",
   "cooling.case3d.flow.warmer": "Wärmer",
   "cooling.case3d.hint.bind": "Klicken Sie im Gehäuse auf einen Lüfter, um ihn mit {name} zu verknüpfen oder seine Richtung festzulegen.",
+  "cooling.case3d.hint.label": "So verwenden Sie diese Ansicht",
   "cooling.case3d.hint.select": "Wählen Sie links einen Lüfter aus, um ihn mit einem Lüfter im Gehäuse zu verknüpfen. Klicken Sie auf einen Gehäuselüfter, um Ansaugen oder Ausblasen festzulegen.",
   "cooling.case3d.layoutError": "Gespeicherte Richtungen und Geräteverknüpfungen konnten nicht geladen werden. Es werden Standardwerte angezeigt, Änderungen werden nicht gespeichert.",
   "cooling.case3d.linkedToMany": "Verknüpft mit Lüftern {slots}",

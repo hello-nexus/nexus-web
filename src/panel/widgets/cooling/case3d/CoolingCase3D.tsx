@@ -8,6 +8,7 @@ import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { Notice } from '../../../../components/common/Notice/Notice';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { Slider } from '../../../../components/common/Slider/Slider';
+import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
@@ -73,6 +74,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
   const [active, setActive] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [particles, setParticles] = useState(true);
@@ -223,14 +225,14 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
 
   return (
     <div className={styles.root}>
-      <div className={styles.hint}>
-        {selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')}
-      </div>
       {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       {caseModel.settled && !caseModel.bytes && <Notice tone="info" role="status">{t('cooling.case3d.noModel')}</Notice>}
       {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
-      <ThemeScope theme="dark" className={styles.viewport}>
+      <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
+        <div className={`${styles.info} ${styles.control}`}>
+          <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
+        </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         {result && model && (
           <div className={`${styles.overlay} ${styles.overlayTop}`}>
@@ -283,6 +285,7 @@ export function CoolingCase3D({ channels, selectedChannelId, onSelectChannel }: 
             onClose={() => { if (!document.querySelector('[role="listbox"]')) setActive(null); }}
             anchorRef={anchorRef}
             portal
+            boundsRef={viewportRef}
             className={styles.popover}
             ariaLabel={t('cooling.case3d.direction.label')}
           >

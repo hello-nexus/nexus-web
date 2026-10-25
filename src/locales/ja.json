@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "このグラフィックス環境ではエアフローのシミュレーションを実行できません。",
   "cooling.case3d.flow.warmer": "高温",
   "cooling.case3d.hint.bind": "ケース内のファンをクリックすると、{name}に割り当てたり向きを設定したりできます。",
+  "cooling.case3d.hint.label": "この表示の使い方",
   "cooling.case3d.hint.select": "左でファンを選ぶと、ケース内のファンに割り当てられます。ケース内のファンをクリックすると吸気か排気かを設定できます。",
   "cooling.case3d.layoutError": "保存された向きとデバイスの割り当てを読み込めませんでした。既定値を表示しており、変更は保存されません。",
   "cooling.case3d.linkedToMany": "{slots}のファンに割り当て済み",

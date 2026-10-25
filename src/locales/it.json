@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "Questa configurazione grafica non può eseguire la simulazione del flusso d'aria.",
   "cooling.case3d.flow.warmer": "Più calda",
   "cooling.case3d.hint.bind": "Fai clic su una ventola del case per associarla a {name} o impostarne la direzione.",
+  "cooling.case3d.hint.label": "Come usare questa vista",
   "cooling.case3d.hint.select": "Seleziona una ventola a sinistra per associarla a una ventola del case. Fai clic su una ventola del case per scegliere immissione o estrazione.",
   "cooling.case3d.layoutError": "Impossibile caricare le direzioni e le associazioni dei dispositivi salvate. Vengono mostrati i valori predefiniti e le modifiche non vengono salvate.",
   "cooling.case3d.linkedToMany": "Associato alle ventole {slots}",

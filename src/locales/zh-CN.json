@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "当前图形配置无法运行气流模拟。",
   "cooling.case3d.flow.warmer": "更热",
   "cooling.case3d.hint.bind": "点击机箱中的风扇，可将其绑定到 {name} 或设置方向。",
+  "cooling.case3d.hint.label": "如何使用此视图",
   "cooling.case3d.hint.select": "先在左侧选择一个风扇，再将其绑定到机箱中的风扇。点击机箱中的风扇可设置进风或出风。",
   "cooling.case3d.layoutError": "无法加载已保存的方向和设备绑定。当前显示默认值，更改不会被保存。",
   "cooling.case3d.linkedToMany": "已绑定到{slots}风扇",

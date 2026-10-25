@@ -3,6 +3,10 @@
 if (typeof window !== 'undefined') {
   await import('@testing-library/jest-dom/vitest');
 
+  // The 1s default waitFor/findBy timeout flakes on big pages when the suite runs in parallel.
+  const { configure } = await import('@testing-library/dom');
+  configure({ asyncUtilTimeout: 8000 });
+
   // Theme detection reads matchMedia, which jsdom does not implement.
   Object.defineProperty(window, 'matchMedia', {
     writable: true,

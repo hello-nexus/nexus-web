@@ -411,6 +411,7 @@
   "cooling.case3d.flow.unsupported": "Toto grafické nastavení nedokáže spustit simulaci proudění vzduchu.",
   "cooling.case3d.flow.warmer": "Teplejší",
   "cooling.case3d.hint.bind": "Kliknutím na ventilátor ve skříni jej přiřadíte k zařízení {name} nebo nastavíte jeho směr.",
+  "cooling.case3d.hint.label": "Jak tento pohled používat",
   "cooling.case3d.hint.select": "Vyberte vlevo ventilátor a přiřaďte ho k ventilátoru ve skříni. Kliknutím na ventilátor ve skříni nastavíte přívod nebo odvod.",
   "cooling.case3d.layoutError": "Uložené směry a přiřazení zařízení se nepodařilo načíst. Zobrazují se výchozí hodnoty a změny se neukládají.",
   "cooling.case3d.linkedToMany": "Přiřazeno k ventilátorům: {slots}",
