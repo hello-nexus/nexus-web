@@ -248,7 +248,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
   const learnSetupRev = useCallback((rev: unknown) => {
     if (typeof rev === 'number') lastSetupRevRef.current = Math.max(lastSetupRevRef.current, rev);
   }, []);
-  useTopicCallback(PC_SETUP_TOPIC, ready && !isRemoteOrigin, useCallback(() => {
+  useTopicCallback(PC_SETUP_TOPIC, ready && DEV_TOOLS && !isRemoteOrigin, useCallback(() => {
     void relaySetupPush().then(async push => {
       await setupWritesRef.current;
       if (!push || push.rev <= lastSetupRevRef.current) return;
@@ -302,14 +302,14 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
           }));
           break;
         case 'nexus-build:setup-get':
-          if (isRemoteOrigin) break;
+          if (!DEV_TOOLS || isRemoteOrigin) break;
           void relaySetupGet(data).then(reply => {
             learnSetupRev(reply.rev);
             post(reply as FrameMessage);
           });
           break;
         case 'nexus-build:setup-put':
-          if (isRemoteOrigin) break;
+          if (!DEV_TOOLS || isRemoteOrigin) break;
           setupWritesRef.current = Promise.all([setupWritesRef.current, relaySetupPut(data).then(reply => {
             learnSetupRev(reply.rev);
             post(reply as FrameMessage);
@@ -380,7 +380,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
       ...(onOpenBenchmark ? { canOpenBenchmark: true } : {}),
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
-      ...(!isRemoteOrigin ? { canSyncSetup: true } : {}),
+      // Shared PC setup sync is experimental: offered only in dev-tools builds.
+      ...(DEV_TOOLS && !isRemoteOrigin ? { canSyncSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
       // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.
       ...(canSavePreview ? { canSavePreview: true } : {}),
