@@ -403,3 +403,22 @@ describe('CoolingCase3D dark scope', () => {
     document.documentElement.removeAttribute('data-theme');
   });
 });
+
+describe('CoolingCase3D popover bounds', () => {
+  it('keeps the popover inside the canvas box for a fan at the right edge', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    const { container } = render(ui());
+    const viewport = container.querySelector('[data-theme="dark"]') as HTMLElement;
+    viewport.getBoundingClientRect = () => ({ left: 100, right: 500, top: 50, bottom: 450, width: 400, height: 400, x: 100, y: 50, toJSON: () => ({}) });
+    const anchor = viewport.querySelector('div[style*="left"]') as HTMLElement;
+    anchor.getBoundingClientRect = () => ({ left: 495, right: 495, top: 200, bottom: 200, width: 0, height: 0, x: 495, y: 200, toJSON: () => ({}) });
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 224 });
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 120 });
+    act(() => h.pick.current?.('rear:120:0', 395, 150));
+    const pop = screen.getByRole('dialog');
+    expect(parseFloat(pop.style.left) + 224).toBeLessThanOrEqual(500);
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetWidth;
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetHeight;
+  });
+});
