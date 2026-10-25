@@ -274,15 +274,67 @@ export function fanGeometries(layout: CaseLayout): FanSlotGeometry[] {
   return out;
 }
 
-/** The layout with every empty slot named in `boundKeys` marked as holding a fan; the same object when nothing changes. */
-export function withBoundFans(layout: CaseLayout, boundKeys: readonly string[]): CaseLayout {
-  if (boundKeys.length === 0) return layout;
-  const keys = new Set(boundKeys);
-  let changed = false;
-  const fanSlots = layout.fanSlots.map(slot => {
-    if (slot.taken !== null || !keys.has(slot.key)) return slot;
+const MOUNT_OVERLAP = 0.5;
+
+function overlapShare(a: CaseFanSlot, b: CaseFanSlot): number {
+  if (!a.box || !b.box) return 0;
+  let inter = 1;
+  for (let i = 0; i < 3; i++) {
+    const lo = Math.max(a.box.min[i], b.box.min[i]);
+    const hi = Math.min(a.box.min[i] + a.box.size[i], b.box.min[i] + b.box.size[i]);
+    if (hi <= lo) return 0;
+    inter *= hi - lo;
+  }
+  const vol = (s: CaseFanSlot) => s.box!.size[0] * s.box!.size[1] * s.box!.size[2];
+  return inter / Math.min(vol(a), vol(b));
+}
+
+export interface MountCollapse {
+  layout: CaseLayout;
+  /** The shown slot standing for `key`: the key itself, or the slot it overlaps at the same mount. */
+  canonOf: (key: string) => string;
+}
+
+/**
+ * One slot per physical mount. Alternative sizes at the same spot overlap; the shown one is the installed slot, else a bound one, else the larger.
+ * Shown slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
+ */
+export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[]): MountCollapse {
+  const slots = layout.fanSlots;
+  const parent = slots.map((_, i) => i);
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  for (let i = 0; i < slots.length; i++) for (let j = i + 1; j < slots.length; j++) {
+    if (slots[i].position === slots[j].position && overlapShare(slots[i], slots[j]) > MOUNT_OVERLAP) parent[find(j)] = find(i);
+  }
+  const bound = new Set(boundKeys);
+  const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
+  const best = new Map<number, number>();
+  slots.forEach((s, i) => {
+    const root = find(i);
+    const cur = best.get(root);
+    if (cur === undefined) { best.set(root, i); return; }
+    const c = slots[cur];
+    if (rank(s) > rank(c) || (rank(s) === rank(c) && s.size > c.size)) best.set(root, i);
+  });
+  const shownIdx = new Set(best.values());
+  const canon = new Map<string, string>();
+  slots.forEach((s, i) => canon.set(s.key, slots[best.get(find(i))!].key));
+  let changed = shownIdx.size !== slots.length;
+  const fanSlots = slots.filter((_, i) => shownIdx.has(i)).map(slot => {
+    const holds = [...bound].some(k => canon.get(k) === slot.key);
+    if (slot.taken !== null || !holds) return slot;
     changed = true;
     return { ...slot, taken: 'fan' as const };
   });
-  return changed ? { ...layout, fanSlots } : layout;
+  return { layout: changed ? { ...layout, fanSlots } : layout, canonOf: key => canon.get(key) ?? key };
+}
+
+/** Bindings with every slot key pointed at its shown slot, repeats dropped, so a binding never names a hidden alternative. */
+export function normalizeBindings(bindings: readonly FanBinding[], canonOf: (key: string) => string): FanBinding[] {
+  return bindings.map(b => ({ ...b, slotKeys: [...new Set(b.slotKeys.map(canonOf))] }));
+}
+
+/** The layout with one slot per mount and every empty slot named in `boundKeys` marked as holding a fan. */
+export function withBoundFans(layout: CaseLayout, boundKeys: readonly string[]): CaseLayout {
+  return collapseMounts(layout, boundKeys).layout;
 }
