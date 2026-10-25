@@ -5,7 +5,7 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  loadSettings, saveSettings, cachePreferencesLocally, COOLING_FLOW_MODES,
+  loadSettings, saveSettings, cachePreferencesLocally, COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE,
   applyThemeMode, applyAccentColor, applyBackgroundMode,
   type NexusSettings, type ThemeMode, type Language, type BackgroundMode, type AccentSource,
   type DashboardMode, type CoolingFlowMode,
@@ -267,7 +267,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     showUncontrolledCoolingDevices: src.general.showUncontrolledCoolingDevices,
     lightingView3d: src.general.lightingView3d,
     coolingView3d: src.general.coolingView3d,
-    coolingFlowMode: src.general.coolingFlowMode,
+    coolingFlowMode: COOLING_FLOW_MODES.find(m => m === src.general.coolingFlowMode) ?? DEFAULT_COOLING_FLOW_MODE,
     coolingCollisionShapes: src.general.coolingCollisionShapes,
     hiddenSidebarDevices: src.general.hiddenSidebarDevices,
     monitoringTempUnit: src.general.monitoringTempUnit,
@@ -393,7 +393,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; lightingView3d: boolean; coolingView3d: boolean; coolingFlowMode: 'both' | 'case' | 'airflow'; coolingCollisionShapes: boolean; hiddenSidebarDevices: string[] }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; lightingView3d: boolean; coolingView3d: boolean; coolingFlowMode: CoolingFlowMode; coolingCollisionShapes: boolean; hiddenSidebarDevices: string[] }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.notifyConflictLaunches !== undefined) ui.notifyConflictLaunches = patch.notifyConflictLaunches;

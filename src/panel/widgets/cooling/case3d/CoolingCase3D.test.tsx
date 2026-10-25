@@ -270,6 +270,55 @@ describe('CoolingCase3D saved view choices', () => {
   });
 });
 
+describe('CoolingCase3D device menu and simulated speed edge cases', () => {
+  const many = Array.from({ length: 12 }, (_, i) => ({ id: `fan-${i}`, name: `Fan ${i}`, rpm: 1500, dutyPercent: 100, maxRpm: 1500 })) as FanChannel[];
+  const mountMany = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={many} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+  };
+
+  it('keeps the controls open when the search field of a long device list is pressed', () => {
+    mountMany();
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    expect(screen.queryByRole('dialog')).toBeTruthy();
+  });
+
+  it('closes only the device menu on Escape in the search field', () => {
+    mountMany();
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeTruthy();
+  });
+
+  const simStart = [{ channelId: 'sim:1500', slotKeys: ['front:120:0', 'rear:120:0'] }];
+  const mountSim = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings: simStart, tests: [] } });
+    render(ui());
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+  };
+
+  it('drops an unsaved speed when another fan is chosen', () => {
+    mountSim();
+    const before = lastState().flow.fanCfm['front:120:0'];
+    fireEvent.change(screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' }), { target: { value: '2100' } });
+    expect(lastState().flow.fanCfm['front:120:0']).toBeGreaterThan(before);
+    act(() => h.pick.current?.('rear:120:0', 20, 20));
+    expect(lastState().flow.fanCfm['front:120:0']).toBe(before);
+    expect(h.layout.edit).not.toHaveBeenCalled();
+  });
+
+  it('saves nothing when the slider is released at the stored speed', async () => {
+    mountSim();
+    fireEvent.keyUp(screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' }));
+    await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    expect(h.layout.edit).not.toHaveBeenCalled();
+  });
+});
+
 describe('CoolingCase3D airflow controls', () => {
   const mountReady = () => {
     h.setup = { record: record(), loaded: true };

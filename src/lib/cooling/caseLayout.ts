@@ -276,7 +276,9 @@ export function linkChannelToSlot(bindings: readonly FanBinding[], channelId: st
     // The service takes at most MAX_SLOT_KEYS_PER_BINDING keys per binding, so the markers fill one binding and then start another.
     const marked = [...rest.filter(b => b.channelId === NONE_CHANNEL).flatMap(b => b.slotKeys), slotKey];
     const chunks = Array.from({ length: Math.ceil(marked.length / MAX_SLOT_KEYS_PER_BINDING) }, (_, i) => ({ channelId: NONE_CHANNEL, slotKeys: marked.slice(i * MAX_SLOT_KEYS_PER_BINDING, (i + 1) * MAX_SLOT_KEYS_PER_BINDING) }));
-    return [...rest.filter(b => b.channelId !== NONE_CHANNEL), ...chunks];
+    const kept = rest.filter(b => b.channelId !== NONE_CHANNEL);
+    // Past the service's binding cap the unlink is refused, as a link is.
+    return kept.length + chunks.length > MAX_BINDINGS ? [...bindings] : [...kept, ...chunks];
   }
   const own = rest.find(b => b.channelId === channelId)?.slotKeys ?? [];
   if (own.length >= MAX_SLOT_KEYS_PER_BINDING || (own.length === 0 && rest.length >= MAX_BINDINGS)) return [...bindings];
