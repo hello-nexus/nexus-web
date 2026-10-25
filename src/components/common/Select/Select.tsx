@@ -15,6 +15,8 @@ import {
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../lib/i18n';
 import classNames from 'classnames';
+import { Spinner } from '../Spinner/Spinner';
+import buttonStyles from '../Button/Button.module.scss';
 import styles from './Select.module.scss';
 
 /**
@@ -337,22 +339,24 @@ export function Select({
     commit(opt.value);
   };
 
+  // Options replaced in place while open (an action row swapped for the loaded
+  // list): re-measure the width and move the active row back to the selected
+  // value, or to none while searching, so Enter cannot commit a row the user
+  // never moved to. Keyed on a content signature so a same-count swap counts.
+  const optionSignature = resolved.map(o => `${o.onAction ? 'a' : 'o'}${o.header ? 'h' : ''}${o.value}`).join('|');
+  const prevSignature = useRef(optionSignature);
+  useLayoutEffect(() => {
+    if (open && prevSignature.current !== optionSignature) {
+      openWidthRef.current = null;
+      setActiveIndex(query.trim() ? -1 : selectedIndex);
+    }
+    prevSignature.current = optionSignature;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reacts to the option content only
+  }, [open, optionSignature]);
+
   // Render the menu hidden first so its content size is measurable, then fit
   // width, cap height, and position. Re-fit when the visible count changes so
   // filtering re-clamps the height and flip side.
-  // Options replaced in place while open (an action row swapped for the loaded
-  // list): re-measure the width and move the active row back to the selected
-  // value (none if absent) so Enter cannot commit a row the user never moved to.
-  const prevOptionCount = useRef(resolved.length);
-  useLayoutEffect(() => {
-    if (open && prevOptionCount.current !== resolved.length) {
-      openWidthRef.current = null;
-      if (!query.trim()) setActiveIndex(selectedIndex);
-    }
-    prevOptionCount.current = resolved.length;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reacts to the option count only
-  }, [open, resolved.length]);
-
   useLayoutEffect(() => {
     if (open) reposition();
   }, [open, reposition, visible.length]);
@@ -591,8 +595,18 @@ export function Select({
                   onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
                   onClick={() => { if (!opt.disabled) activate(opt); }}
                 >
-                  {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
-                  {opt.description ? (
+                  {opt.onAction ? (
+                    // The row stays the listbox option (keyboard and aria); the visual is the
+                    // shared Button look on a span, since a real button cannot nest in an option.
+                    <span className={classNames(buttonStyles.button, buttonStyles['size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive)}>
+                      <span className={styles.actionSpinnerSlot} aria-hidden={!opt.busy || undefined}>
+                        {opt.busy && <Spinner size={14} />}
+                      </span>
+                      {opt.label}
+                    </span>
+                  ) : null}
+                  {!opt.onAction && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
+                  {opt.onAction ? null : opt.description ? (
                     <span className={styles.optionText}>
                       <span>{opt.label}</span>
                       <span id={`${optionId(i)}-desc`} data-option-description="true" className={styles.optionDescription}>{opt.description}</span>

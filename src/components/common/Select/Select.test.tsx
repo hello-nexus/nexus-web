@@ -350,7 +350,7 @@ describe('Select action rows', () => {
   it('ignores activation while busy', () => {
     const onAction = vi.fn();
     render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Loading', onAction, busy: true }]} />);
-    const row = within(open()).getByRole('option', { name: 'Loading' });
+    const row = within(open()).getByRole('option', { name: /Loading/ });
     expect(row.getAttribute('aria-busy')).toBe('true');
     fireEvent.click(row);
     expect(onAction).not.toHaveBeenCalled();
@@ -372,5 +372,45 @@ describe('Select action rows and in-place option changes', () => {
     fireEvent.keyDown(list, { key: 'Enter' });
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByRole('listbox')).toBeTruthy();
+  });
+});
+
+describe('Select action row button look', () => {
+  it('shows the spinner only while busy, inside the same option', () => {
+    const { rerender } = render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', onAction: vi.fn() }]} />);
+    let row = within(open()).getByRole('option', { name: 'Load' });
+    expect(within(row).queryByRole('img')).toBeNull();
+    rerender(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Loading', onAction: vi.fn(), busy: true }]} />);
+    row = within(screen.getByRole('listbox')).getByRole('option', { name: /Loading/ });
+    expect(within(row).getByRole('img')).toBeTruthy();
+    expect(row.getAttribute('aria-busy')).toBe('true');
+  });
+});
+
+describe('Select in-place option swaps', () => {
+  const load = { value: '', label: 'Load', onAction: vi.fn() };
+
+  it('with a search active, Enter after the list grows commits nothing', () => {
+    const many = Array.from({ length: 9 }, (_, i) => ({ value: `f${i}`, label: `Font ${i}` }));
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(hover: hover) and (pointer: fine)', media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
+    const onChange = vi.fn();
+    const { rerender } = render(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...many, load]} />);
+    const list = open();
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'font' } });
+    rerender(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...many, { value: 'x', label: 'Font X' }]} />);
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(list.isConnected).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it('a same-count swap resets the active row', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, load]} />);
+    const list = open();
+    rerender(<Select value="zzz" onChange={onChange} ariaLabel="fruit" options={[...OPTIONS, { value: 'd', label: 'Date' }]} />);
+    fireEvent.keyDown(list, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

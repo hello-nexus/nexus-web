@@ -218,10 +218,29 @@
   }
 }
 
-// Non-committing action row (SelectOption.onAction): accent text, never marked selected.
-.actionOption {
-  color: var(--accent);
-  font-weight: var(--weight-strong);
+// Non-committing action row (SelectOption.onAction): the row is a plain
+// wrapper around a full-width shared-Button look, never marked selected.
+.actionOption,
+.actionOption.active {
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  overflow: visible;
+}
+
+.actionButton {
+  display: flex;
+  width: 100%;
+}
+
+.actionButtonActive {
+  @include focus-ring;
+}
+
+// Fixed slot so the spinner appearing does not shift the label.
+.actionSpinnerSlot {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
 }
 
 .option {
