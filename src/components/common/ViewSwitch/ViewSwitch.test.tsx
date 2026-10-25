@@ -11,8 +11,9 @@ describe('ViewSwitch', () => {
     expect(a.textContent).toBe('lighting.scene.view.2dLayout');
     expect(b.textContent).toBe('lighting.scene.view.3dDesk');
     expect(`${a.textContent}${b.textContent}`).not.toMatch(/[[\]()]/);
-    expect(b.querySelector('svg')).toBeTruthy();
     expect(a.querySelector('svg')).toBeNull();
+    expect(b.querySelector('svg')).toBeNull();
+    expect(a.querySelector('span')?.className).toBe(b.querySelector('span')?.className);
   });
 
   it('marks the shown view checked and reports a pick', () => {

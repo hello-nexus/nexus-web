@@ -2,12 +2,6 @@
 
 .switch {
   flex-shrink: 0;
-
-  // The 3D segment stays tinted while idle.
-  [data-chip-key='3d']:not(:global(.chip-active)) {
-    color: var(--accent);
-    background: var(--accent-soft);
-  }
 }
 
 .segment {
@@ -25,9 +19,4 @@
   @include text-caption;
   background: var(--border);
   color: inherit;
-
-  &[data-dim='3d'] {
-    background: var(--accent);
-    color: var(--accent-text);
-  }
 }
