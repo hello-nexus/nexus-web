@@ -1,7 +1,8 @@
 import type { CaseBox, CaseLayout } from '../caseLayout';
 import { profileFor } from './caseProfiles';
+import { hullCuts } from './hull';
 
-export type ObstacleKind = 'panel' | 'gpu' | 'psu' | 'board' | 'part' | 'porous';
+export type ObstacleKind = 'panel' | 'gpu' | 'psu' | 'board' | 'part' | 'porous' | 'hull';
 
 /** One thing the grid rasterizes: the same list drives the solver's cells and the collision view, so the two cannot differ. */
 export interface Obstacle {
@@ -20,10 +21,10 @@ const longestSide = (box: CaseBox): number => {
   return Math.max(...box.size);
 };
 
-/** The solid and porous obstacles of a layout for its case's profile; walls are the grid's own shell and are not listed. */
+/** The solid and porous obstacles of a layout for its case's profile; walls are the grid's own shell and are not listed. The hull cuts come first: the corners the case's shape takes off its bounding box. */
 export function obstaclesOf(layout: CaseLayout): Obstacle[] {
   const profile = profileFor(layout.caseModel);
-  const out: Obstacle[] = [];
+  const out: Obstacle[] = hullCuts(layout).map(box => ({ kind: 'hull', porous: false, box }));
   for (const box of layout.boxes) {
     if (box.role === 'ghost' || box.role === 'limit' || box.role === 'glass' || box.role === 'detail') continue;
     if (box.slot === 'case') {
