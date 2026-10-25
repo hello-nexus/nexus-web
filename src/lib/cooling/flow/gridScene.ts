@@ -1,7 +1,7 @@
 import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Vec3 } from '../caseLayout';
 import type { FanDirection } from '../pressureModel';
 import {
-  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES, SPAWN_BACK_MIN_CELLS, SPAWN_OUT_REACH_MM,
+  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_RATE_NEAR, HEAT_RATE_POROUS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
@@ -59,11 +59,11 @@ export interface FlowScene {
   opening: Uint8Array;
   /**
    * Where intake and inflow particles start: one entry per 12 floats, a fan's ring in cell coordinates (cell centres at integers):
-   * centre xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset. A stronger fan has more entries.
+   * centre xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset (zero: particles start on the fan plane, inside the case face; a card's fans start just upstream of the card). A stronger fan has more entries.
    */
   emitters: Float32Array;
-  /** Depth, in cells, of the outside air tube the particles start in. */
-  spawnBackSpan: number;
+  /** The case's own box in cell coordinates, as a particle sees it: min then max per axis. Nothing is drawn outside it. */
+  caseBounds: { min: Vec3; max: Vec3 };
   /** A fixed sample of start points drawn from the emitters (3 floats each), for inspection; the particles draw their own continuously. */
   spawns: Float32Array;
   fanCount: number;
@@ -339,7 +339,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const e1 = e1Of(p.disk.axis);
     const c = [0, 1, 2].map(a => (p.disk.centre[a] + origin[a]) / cellMm - 0.5);
     for (let m = 0; m < entries && emitters.length / 12 < MAX_EMITTER_ENTRIES; m++) {
-      emitters.push(c[0], c[1], c[2], spawnHub(p) / cellMm, p.disk.axis[0], p.disk.axis[1], p.disk.axis[2], p.disk.radius / cellMm, e1[0], e1[1], e1[2], p.disk.halfThickness / cellMm + SPAWN_BACK_MIN_CELLS);
+      emitters.push(c[0], c[1], c[2], spawnHub(p) / cellMm, p.disk.axis[0], p.disk.axis[1], p.disk.axis[2], p.disk.radius / cellMm, e1[0], e1[1], e1[2], p.slot.position === 'gpu' ? p.disk.halfThickness / cellMm + 1 : 0);
     }
   };
 
@@ -392,7 +392,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
 
   const caseM3 = (extents[0] * extents[1] * extents[2]) / (MM_PER_M ** 3);
   const residenceSteps = intakeCfm > 0 ? caseM3 / (intakeCfm * M3S_PER_CFM) / stepSeconds : 0;
-  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), spawnBackSpan: SPAWN_OUT_REACH_MM / cellMm, spawns: new Float32Array(0), fanCount };
+  const result: FlowScene = { residenceSteps, dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), caseBounds: { min: [0, 1, 2].map(a => origin[a] / cellMm - 0.5) as Vec3, max: [0, 1, 2].map(a => (extents[a] + origin[a]) / cellMm - 0.5) as Vec3 }, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -426,7 +426,7 @@ export function sampleSpawn(scene: FlowScene, rnd: () => number): Vec3 | null {
     const hub = e[o + 3], tip = e[o + 7];
     const r = Math.sqrt(hub * hub + (tip * tip - hub * hub) * rnd());
     const th = 2 * Math.PI * rnd();
-    const back = e[o + 11] + scene.spawnBackSpan * rnd();
+    const back = e[o + 11];
     const axis: Vec3 = [e[o + 4], e[o + 5], e[o + 6]];
     const e1: Vec3 = [e[o + 8], e[o + 9], e[o + 10]];
     const e2 = cross(axis, e1);

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseCaseLayout, type CaseBox, type CaseLayout } from '../caseLayout';
+import { fanGeometries, parseCaseLayout, type CaseBox, type CaseLayout } from '../caseLayout';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
 import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
@@ -162,16 +162,8 @@ describe('particles on the Y70', () => {
   const particles = new CpuParticles(sim, 600, 3);
   const cut = hullCuts(layout)[0];
   const gpu = layout.boxes.find(b => b.slot === 'gpu')!;
-  const [NX, NY] = scene.dims;
   const shrunk = (b: CaseBox, by: number): CaseBox => ({ ...b, min: [b.min[0] + by, b.min[1] + by, b.min[2] + by], size: [b.size[0] - 2 * by, b.size[1] - 2 * by, b.size[2] - 2 * by] });
-  const opened = new Set<string>();
-  for (let c = 0; c < scene.opening.length; c++) {
-    if (!scene.opening[c]) continue;
-    const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
-    [i, j, k].forEach((v, a) => { if (v === scene.caseMin[a]) opened.add(`${a}min`); if (v === scene.caseMax[a]) opened.add(`${a}max`); });
-  }
-
-  it('never enter the chamfer prism, a solid cell or the card, and leave the case only through an opening', () => {
+  it('never enter the chamfer prism, a solid cell or the card, and never lie outside the case box', () => {
     expect(scene.fanCount).toBeGreaterThan(0);
     const size = [layout.size[0], layout.size[2], layout.size[1]];
     let seen = 0;
@@ -185,8 +177,8 @@ describe('particles on the Y70', () => {
         expect(boxContains(shrunk(gpu, scene.cellMm), mm, 0)).toBe(false);
         expect(scene.solid[particles.cellAt(particles.pos[i * 3], particles.pos[i * 3 + 1], particles.pos[i * 3 + 2])]).toBe(0);
         for (let a = 0; a < 3; a++) {
-          if (mm[a] < -scene.cellMm) expect(opened.has(`${a}min`)).toBe(true);
-          if (mm[a] > size[a] + scene.cellMm) expect(opened.has(`${a}max`)).toBe(true);
+          expect(mm[a]).toBeGreaterThan(-0.01);
+          expect(mm[a]).toBeLessThan(size[a] + 0.01);
         }
       }
     }
@@ -221,6 +213,29 @@ describe('particles on the Y70', () => {
     expect(nearDiagonal).toBeGreaterThan(0);
   });
 
+  it('from the bottom intakes rise into the case from the fan plane', () => {
+    const bottom = y70([], ['bottom:120:0', 'bottom:120:1']);
+    const sc = buildFlowScene(inputOf(bottom), LOW);
+    const flow = new CpuFlow(sc);
+    for (let i = 0; i < 200; i++) flow.step();
+    const group = new CpuParticles(flow, 300, 9, false);
+    group.age.fill(0);
+    const meanY = () => {
+      let sum = 0, n = 0;
+      for (let i = 0; i < group.count; i++) if (group.pos[i * 3] > -1e5) { sum += mmOf(sc, group.pos, i * 3)[1]; n++; }
+      return sum / n;
+    };
+    const start = meanY();
+    // The fan plane sits just inside the floor, never below it.
+    expect(start).toBeGreaterThan(0);
+    for (let s = 0; s < 25; s++) group.step();
+    expect(meanY()).toBeGreaterThan(start + 5);
+    for (let s = 0; s < 400; s++) {
+      group.step();
+      for (let i = 0; i < group.count; i++) if (group.pos[i * 3] > -1e5) expect(mmOf(sc, group.pos, i * 3)[1]).toBeGreaterThan(-0.01);
+    }
+  }, 120000);
+
   it('start on a fan ring, off the hub, and never inside the card', () => {
     const e = scene.emitters;
     expect(e.length).toBeGreaterThan(0);
@@ -231,5 +246,49 @@ describe('particles on the Y70', () => {
       expect(boxContains(cut, mm, 0)).toBe(false);
       expect(boxContains(shrunk(gpu, scene.cellMm), mm, 0)).toBe(false);
     }
+  });
+});
+
+describe('AIO radiator fans', () => {
+  const radSlot = { key: 'top:360:0', position: 'top', size: 360, index: 0, taken: 'radiator', box: { min: [60, 435, 40], size: [360, 52, 120] }, axis: [0, -1, 0], radiator: { fanCount: 3, fanAirflowCfm: 50 } };
+  const cooler = { slot: 'cooler', role: 'part', min: [329, 237, 48], size: [105, 126, 155] };
+  const caseSlots = raw.fanSlots as unknown[];
+  const layout = parseCaseLayout({ ...raw, boxes: [...(raw.boxes as unknown[]), cooler], fanSlots: [...caseSlots, radSlot] }) as CaseLayout;
+
+  it('a 360 top radiator gives three selectable fans on its interior face that touch no case mount', () => {
+    const all = fanGeometries(layout);
+    const rad = all.filter(g => g.slot.key.startsWith('top:360:0'));
+    expect(rad.map(g => g.slot.key)).toEqual(['top:360:0', 'top:360:0#1', 'top:360:0#2']);
+    expect(rad.every(g => g.slot.taken === 'fan' && g.slot.size === 120)).toBe(true);
+    // Below the radiator (y 435), the face toward the case interior.
+    expect(rad.every(g => g.box.min[1] + g.box.size[1] <= 435.01 && g.box.min[1] >= 435 - 25.01)).toBe(true);
+    const overlap = (a: CaseBox, b: CaseBox) => [0, 1, 2].every(i => Math.min(a.min[i] + a.size[i], b.min[i] + b.size[i]) - Math.max(a.min[i], b.min[i]) > 0.05);
+    for (const r of rad) {
+      for (const other of all) if (other !== r && !other.slot.key.startsWith('top:360:0')) expect(overlap(r.box, other.box)).toBe(false);
+      for (const other of rad) if (other !== r) expect(overlap(r.box, other.box)).toBe(false);
+    }
+  });
+
+  it('draws the radiator as porous and sends a running radiator fan\'s flow through it', () => {
+    const input = { ...inputOf(layout), fanCfm: { 'top:360:0': 50, 'top:360:0#1': 50, 'top:360:0#2': 50 } };
+    const scene = buildFlowScene(input, LOW);
+    expect(scene.fanCount).toBe(3);
+    let cells = 0, porous = 0;
+    for (let c = 0; c < scene.fanCell.length; c++) if (scene.fanCell[c]) { cells++; if (scene.darcy[c] > 0) porous++; }
+    expect(cells).toBeGreaterThan(0);
+    // The rest is the layer on the roof panel, where the air leaves the block for outside.
+    expect(porous).toBeGreaterThan(cells * 0.6);
+    expect(scene.obstacles.some(o => o.porous)).toBe(true);
+  });
+
+  it('a radiator the case mounts do not hold gets rad:<position>:N slots from its cooler box', () => {
+    const loose = { slot: 'cooler', role: 'part', min: [60, 435, 40], size: [360, 52, 124], fans: { axis: 'y', side: 'min', count: 3, diameter: 114, bothSides: true } };
+    const l = y70([loose]);
+    const slots = l.fanSlots.filter(s => s.key.startsWith('rad:'));
+    expect(slots.map(s => s.key)).toEqual(['rad:top:0', 'rad:top:1', 'rad:top:2']);
+    expect(slots.every(s => s.position === 'top' && s.axis?.join() === '0,-1,0')).toBe(true);
+    expect(fanGeometries(l).filter(g => g.slot.key.startsWith('rad:'))).toHaveLength(3);
+    // A tower cooler's single fan is not a radiator.
+    expect(y70([{ ...cooler, fans: { axis: 'x', side: 'min', count: 1, diameter: 114 } }]).fanSlots.some(s => s.key.startsWith('rad:'))).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import type { FanDirection } from './pressureModel';
 import { gpuFanSlots } from './gpuFans';
+import { looseRadiatorSlots, radiatorSlotFans } from './radiatorFans';
 
 /** Read-only view of the PcLayout nexus-build writes as `resolved.caseLayout`. Millimeters; x front to rear, y up, z from the window side. */
 export type Vec3 = [number, number, number];
@@ -34,7 +35,7 @@ export interface CaseBox {
   size: Vec3;
   select?: string;
   rotationY?: number;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max' };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -161,7 +162,7 @@ function parseBox(raw: unknown): CaseBox | null {
   if (finite(b.rotationY)) box.rotationY = b.rotationY;
   const fans = b.fans as Record<string, unknown> | undefined;
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
-    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}) };
+    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}) };
   }
   parseShapes(b, box);
   return box;
@@ -212,10 +213,11 @@ export function parseCaseLayout(raw: unknown): CaseLayout | null {
   if (!size || !Array.isArray(r.boxes) || !Array.isArray(r.fanSlots)) return null;
   if (r.boxes.length > MAX_BOXES || r.fanSlots.length > MAX_SLOTS) return null;
   const boxes = r.boxes.map(parseBox).filter((b): b is CaseBox => b !== null);
+  const slots = r.fanSlots.map(parseSlot).filter((s): s is CaseFanSlot => s !== null);
   return {
     size,
     boxes,
-    fanSlots: [...r.fanSlots.map(parseSlot).filter((s): s is CaseFanSlot => s !== null), ...gpuFanSlots(boxes)],
+    fanSlots: [...slots, ...gpuFanSlots(boxes), ...(slots.some(x => x.taken === 'radiator') ? [] : looseRadiatorSlots(boxes, size))],
     ...(r.windowRight === true ? { windowRight: true } : {}),
     ...(typeof r.caseModel === 'string' && r.caseModel.length <= 120 ? { caseModel: r.caseModel } : {}),
   };
@@ -277,7 +279,7 @@ export interface FanSlotGeometry {
   box: CaseBox;
 }
 
-/** Slots with a drawn box, taken or empty: the slot's own box on newer records, else a fan box or ghost Build kept. Radiator slots are left out. */
+/** Slots with a drawn box, taken or empty: the slot's own box on newer records, else a fan box or ghost Build kept. A radiator slot yields one entry per fan, on its interior face, keyed as the pressure model keys them. */
 export function fanGeometries(layout: CaseLayout): FanSlotGeometry[] {
   const byKey = new Map<string, CaseBox>();
   for (const box of layout.boxes) {
@@ -286,7 +288,7 @@ export function fanGeometries(layout: CaseLayout): FanSlotGeometry[] {
   }
   const out: FanSlotGeometry[] = [];
   for (const slot of layout.fanSlots) {
-    if (slot.taken === 'radiator') continue;
+    if (slot.taken === 'radiator') { out.push(...radiatorSlotFans(slot)); continue; }
     const own = slot.box ? { slot: 'fan', role: slot.taken ? 'part' : 'ghost', min: slot.box.min, size: slot.box.size, rotationY: slot.box.rotationY } : undefined;
     const box = own ?? byKey.get(slot.key);
     if (box) out.push({ slot, box });
