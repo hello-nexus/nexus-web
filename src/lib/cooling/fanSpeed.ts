@@ -1,13 +1,15 @@
 import type { FanSpec } from './pressureModel';
 
+/** Top speed assumed for a fan whose spec and channel give none, rpm. */
+export const SIM_RPM_MAX = 2500;
 /** Rated top speed by frame size, rpm, for a fan whose spec and channel give none. */
-export const DEFAULT_RPM_MAX: Readonly<Record<number, number>> = { 120: 1500, 140: 1200 };
+export const DEFAULT_RPM_MAX: Readonly<Record<number, number>> = { 120: SIM_RPM_MAX, 140: SIM_RPM_MAX };
 /** A speed fraction above this reads as noise, not a faster fan. */
 const MAX_FRACTION = 1.2;
-/** A fan's effective flow must change by more than this share before the flow is solved again. */
-export const FLOW_CHANGE_TOLERANCE = 0.05;
+/** A fan's effective flow must change by more than this share before the flow is solved again: a fan curve easing a few hundred rpm is not a new scene. */
+export const FLOW_CHANGE_TOLERANCE = 0.15;
 /** And by more than this many CFM, so a slow fan's tach jitter never counts as a change. */
-export const FLOW_CHANGE_FLOOR_CFM = 2;
+export const FLOW_CHANGE_FLOOR_CFM = 4;
 
 export function defaultRpmMax(sizeMm: number): number {
   const sizes = Object.keys(DEFAULT_RPM_MAX).map(Number);
@@ -54,4 +56,21 @@ export function settleFlows(prev: Readonly<Record<string, number>>, next: Readon
     if (Math.abs(b - a) > Math.max(tolerance * Math.abs(a), floorCfm)) return next;
   }
   return prev;
+}
+
+/** Highest simulated speed accepted from a channel id, rpm. */
+export const SIM_RPM_CEILING = 3000;
+const SIM_PREFIX = 'sim:';
+
+/** The fixed rpm of a simulated channel id (`sim:<rpm>`), clamped to the ceiling; null for any other id. */
+export function simRpm(channelId: string): number | null {
+  if (!channelId.startsWith(SIM_PREFIX)) return null;
+  const rpm = Number.parseInt(channelId.slice(SIM_PREFIX.length), 10);
+  return Number.isFinite(rpm) ? Math.min(SIM_RPM_CEILING, Math.max(0, rpm)) : null;
+}
+
+/** Share of rated flow shown for a fan at `fraction` of top speed: a spinning fan always moves, and the slowest reads about half the fastest. */
+const VISUAL_FLOW_FLOOR = 0.45;
+export function visualFlowCfm(ratedCfm: number, fraction: number): number {
+  return fraction > 0 ? ratedCfm * (VISUAL_FLOW_FLOOR + (1 - VISUAL_FLOW_FLOOR) * Math.min(1, fraction)) : 0;
 }

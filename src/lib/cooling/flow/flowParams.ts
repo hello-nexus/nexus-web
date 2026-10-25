@@ -33,7 +33,6 @@ export const GRID_TARGET_CELLS = 64 * 48 * 96;
 export const GRID_LOW_CELLS = 32 * 24 * 48;
 export const MAX_GRID_AXIS = 128;
 export const MIN_GRID_AXIS = 8;
-export const MAX_SPAWN_POINTS = 2048;
 
 /** Particles move this many times faster than the solver's own time, so the flow reads clearly; fan-to-fan differences stay proportional. */
 export const PARTICLE_SPEED_SCALE = 1.5;
@@ -47,9 +46,6 @@ export const substepsFor = (speed: number) => Math.min(8, Math.max(1, Math.ceil(
 export const STUCK_MOVE_CELLS = 0.015;
 export const STUCK_AGE_RATE = 20;
 
-/** Air older than this many straight-through times counts as a dead zone; younger air shows as a faint age gradient. */
-export const DEAD_AGE_RATIO = 5;
-
 /** Intake particles start this many cells outward of the fan, spread over this depth. */
 export const SPAWN_BACK_MIN_CELLS = 1.5;
 /** Intake particles start anywhere in the tube of outside air this deep, mm, in front of the fan's opening. */
@@ -57,3 +53,8 @@ export const SPAWN_OUT_REACH_MM = 60;
 /** Emitter entries per 60 CFM of flow, within these bounds: a stronger fan sends proportionally more particles. */
 export const EMITTERS_PER_60_CFM = 16;
 export const MAX_EMITTER_ENTRIES = 256;
+/** Most entries one fan may hold, and the minimum every spinning fan gets. */
+export const MAX_EMITTERS_PER_FAN = 64;
+export const MIN_EMITTERS_PER_FAN = 4;
+/** Rejection-sampling attempts per spawn before the particle waits a frame. */
+export const SPAWN_TRIES = 6;

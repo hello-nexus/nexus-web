@@ -36,7 +36,7 @@ describe('createCaseRenderer', () => {
   it('releases the WebGL context before disposing, once per renderer', () => {
     for (let i = 0; i < 20; i++) {
       const r = createCaseRenderer(document.createElement('canvas'), () => {});
-      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), active: null, flow: null, flowOptions: { particles: true, deadZones: false, speed: 1.5 }, model: null });
+      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), active: null, flow: null, flowOptions: { particles: true, deadZones: false, collisions: false, speed: 1.5 }, model: null });
       r.dispose();
     }
     expect(made).toHaveLength(20);

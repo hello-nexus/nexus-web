@@ -1,12 +1,13 @@
 import {
-  AdditiveBlending, BackSide, BoxGeometry, BufferAttribute, BufferGeometry, Color, DataTexture, FloatType, GLSL3, Mesh,
-  NearestFilter, NormalBlending, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
+  AdditiveBlending, BufferAttribute, BufferGeometry, Color, DataTexture, FloatType, GLSL3,
+  NearestFilter, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, DEAD_AGE_RATIO, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
+import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
 import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
-import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
+import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
 export const FLOW_TIERS = [GRID_TARGET_CELLS, Math.round(GRID_TARGET_CELLS / 2), GRID_LOW_CELLS];
@@ -27,7 +28,6 @@ const TIMER_EMA = 0.3;
 const MAX_STEPS_PER_FRAME = 24;
 const MIN_STEPS_PER_FRAME = 1;
 const PARTICLE_SUBSTEPS = 2;
-const AGE_STEPS_PER_FRAME = 16;
 const STEADY_CHECK_EVERY = 16;
 const STEADY_RATIO = 0.01;
 const MAX_SOLVE_STEPS = 1500;
@@ -44,18 +44,22 @@ export interface FlowColors {
   cool: Color;
   warm: Color;
   hot: Color;
-  /** Dead-zone volume tint. */
-  dead: Color;
+  /** Collision shapes: solid obstacles and porous ones. */
+  collision: Color;
+  porous: Color;
 }
 
 export interface FlowOptions {
   particles: boolean;
-  deadZones: boolean;
+  /** Ignored; kept until the branches that drop the dead-zone toggle have merged. */
+  deadZones?: boolean;
+  /** Draws the obstacles the solver rasterizes, as shapes, in place of the case model. */
+  collisions: boolean;
   /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */
   speed: number;
 }
 
-/** The airflow layer of the case view: solver, particles, dead-zone volume and the solid-voxel debug view, all on the renderer's own context. */
+/** The airflow layer of the case view: solver, particles and the collision shapes, all on the renderer's own context. */
 export class FlowLayer {
   readonly supported: boolean;
   private readonly kind: FloatKind | null;
@@ -70,7 +74,7 @@ export class FlowLayer {
   private stepsPerFrame = 4;
   private slowCount = 0;
   private lastFrameAt = 0;
-  private options: FlowOptions = { particles: true, deadZones: false, speed: PARTICLE_SPEED_SCALE };
+  private options: FlowOptions = { particles: true, collisions: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
   private coldStart = false;
   private readonly gate = new SteadyGate();
@@ -86,9 +90,8 @@ export class FlowLayer {
   private trails: Points[] = [];
   private pointMat: ShaderMaterial | null = null;
   private trailMats: ShaderMaterial[] = [];
-  private volume: Mesh | null = null;
-  private volumeMat: ShaderMaterial | null = null;
-  private ageRef = 1;
+  private collisionsShown = false;
+  private collisions: { group: Group; dispose: () => void } | null = null;
 
   private readonly renderer: WebGLRenderer;
   private readonly extent: Vector3;
@@ -119,7 +122,7 @@ export class FlowLayer {
 
   /** Whether the layer still has something to animate: a solve in progress, or particles drawn. */
   get active(): boolean {
-    return this.supported && !!this.fscene && (this.solving || this.options.particles || this.options.deadZones);
+    return this.supported && !!this.fscene && (this.solving || this.options.particles);
   }
 
   setOptions(options: FlowOptions) {
@@ -129,7 +132,7 @@ export class FlowLayer {
       this.points.visible = options.particles;
       for (const t of this.trails) t.visible = options.particles;
     }
-    if (this.volume) this.volume.visible = options.deadZones;
+    if (options.collisions !== this.collisionsShown) this.syncCollisions();
   }
 
   /** New edit: rebuilds the voxel scene and re-solves from the current field. Null clears the layer. */
@@ -154,13 +157,12 @@ export class FlowLayer {
       this.coldStart = true;
     }
     this.fscene = scene;
-    this.ageRef = Math.max(60, scene.residenceSteps);
+    if (this.collisionsShown) this.syncCollisions(true);
     this.uploadSpawns(scene);
     this.updateUniforms();
     this.stepsSinceEdit = 0;
     this.gate.invalidate();
     this.solving = scene.fanCount > 0;
-    this.flow?.resetAge();
   }
 
   private uploadSpawns(scene: FlowScene) {
@@ -212,20 +214,6 @@ export class FlowLayer {
     for (const p of [this.points, ...this.trails]) { p.frustumCulled = false; this.group.add(p); }
     this.points.renderOrder = 6;
     this.trails.forEach((t, i) => { t.renderOrder = 5 - i; });
-
-    this.volumeMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: VOLUME_VERTEX, fragmentShader: VOLUME_FRAGMENT,
-      uniforms: {
-        uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown }, AG: { value: null as unknown },
-        uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() }, uAgeRef: { value: 1 }, uDeadAt: { value: DEAD_AGE_RATIO }, uColor: { value: this.colors.dead },
-      },
-      transparent: true, depthWrite: false, depthTest: false, side: BackSide, blending: NormalBlending,
-    });
-    this.volume = new Mesh(new BoxGeometry(this.extent.x, this.extent.y, this.extent.z), this.volumeMat);
-    this.volume.position.copy(this.extent).multiplyScalar(0.5);
-    this.volume.renderOrder = 3;
-    this.volume.visible = this.options.deadZones;
-    this.group.add(this.volume);
   }
 
   /** Every particle starts over: positions are in cell coordinates, which mean something else on a new grid. */
@@ -260,7 +248,7 @@ export class FlowLayer {
     if (!flow || !scene) return;
     const n = new Vector3(...scene.dims);
     const origin = new Vector3(...scene.origin);
-    for (const m of [this.stateMat, this.heatMat, this.volumeMat]) {
+    for (const m of [this.stateMat, this.heatMat]) {
       if (!m) continue;
       (m.uniforms.uN.value as Vector3).copy(n);
       m.uniforms.uTX.value = flow.tx;
@@ -270,11 +258,6 @@ export class FlowLayer {
       if (!m) continue;
       m.uniforms.uCell.value = scene.cellMm;
       (m.uniforms.uOrigin.value as Vector3).copy(origin);
-    }
-    if (this.volumeMat) {
-      this.volumeMat.uniforms.uCell.value = scene.cellMm;
-      (this.volumeMat.uniforms.uOrigin.value as Vector3).copy(origin);
-      this.volumeMat.uniforms.uAgeRef.value = this.ageRef;
     }
   }
 
@@ -286,7 +269,7 @@ export class FlowLayer {
     const dt = this.lastFrameAt ? now - this.lastFrameAt : 0;
     this.lastFrameAt = now;
 
-    const wantsFlow = this.options.particles || this.options.deadZones;
+    const wantsFlow = this.options.particles;
     this.pollSteady(flow);
     if (this.solving && wantsFlow) {
       this.pollTimer();
@@ -311,10 +294,6 @@ export class FlowLayer {
         this.dropTier();
         return;
       }
-    }
-    if (this.options.deadZones && !this.solving) {
-      flow.stepAge(AGE_STEPS_PER_FRAME);
-      if (this.volumeMat) this.volumeMat.uniforms.AG.value = flow.ageTexture;
     }
     if (!this.solving) this.coldStart = false;
     // Particles wait for the first solve: with no velocity yet they would sit on their spawn points.
@@ -403,23 +382,33 @@ export class FlowLayer {
     return this.fscene;
   }
 
+  // Rebuilds the collision shapes from the scene's own obstacle list; `force` redraws for a new scene.
+  private syncCollisions(force = false) {
+    if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
+    this.collisionsShown = this.options.collisions;
+    const scene = this.fscene;
+    if (!this.collisionsShown || !scene) { if (force) this.collisionsShown = this.options.collisions; return; }
+    this.collisions = buildCollisionShapes(scene.obstacles, this.colors.collision, this.colors.porous);
+    this.collisions.group.renderOrder = 1;
+    this.group.add(this.collisions.group);
+  }
+
   private teardown() {
+    if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
     this.flow?.dispose();
     this.flow = null;
     this.fscene = null;
     this.solving = false;
     for (const p of [this.points, ...this.trails]) if (p) p.visible = false;
-    if (this.volume) this.volume.visible = false;
   }
 
   dispose() {
     this.teardown();
     for (const t of [...this.stateTargets, ...this.heatTargets]) t.dispose();
-    for (const m of [this.stateMat, this.heatMat, this.pointMat, ...this.trailMats, this.volumeMat]) m?.dispose();
+    for (const m of [this.stateMat, this.heatMat, this.pointMat, ...this.trailMats]) m?.dispose();
     this.spawnTex?.dispose();
     this.points?.geometry.dispose();
-    this.volume?.geometry.dispose();
-    for (const o of [this.points, ...this.trails, this.volume]) if (o) this.group.remove(o);
+    for (const o of [this.points, ...this.trails]) if (o) this.group.remove(o);
     if (this.timer) for (const { q } of this.timer.pending) (this.renderer.getContext() as WebGL2RenderingContext).deleteQuery(q);
     this.runner?.dispose();
     this.stateMat = null;

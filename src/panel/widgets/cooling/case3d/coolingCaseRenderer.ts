@@ -95,13 +95,19 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let modelGroup: Group | null = null;
   let modelStyle: { dispose: () => void } | null = null;
   let disposed = false;
+  let collisionsOn = false;
+  // The collision view stands in for both the model and the outline.
+  const applyVisibility = () => {
+    staticGroup.visible = !modelGroup && !collisionsOn;
+    if (modelGroup) modelGroup.visible = !collisionsOn;
+  };
 
   const clearModel = () => {
     if (modelGroup) scene.remove(modelGroup);
     modelStyle?.dispose();
     modelGroup = null;
     modelStyle = null;
-    staticGroup.visible = true;
+    applyVisibility();
   };
 
   // The model sits in scene space as Build baked it; the inverse of that bake puts it in the layout's own frame, where the fans and the solver are.
@@ -128,7 +134,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     modelStyle = styleCaseModel(parsed, token_('--text-dim', '#8a93a6'), token_('--text-dim', '#8a93a6'));
     modelGroup = holder;
     scene.add(holder);
-    staticGroup.visible = false;
+    applyVisibility();
     requestRender();
   };
   const token_ = (name: string, fallback: string) => token(canvas, name, fallback);
@@ -303,13 +309,14 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         const [ex, ey, ez] = caseExtents(state.layout);
         const colors: FlowColors = {
           cool: token(canvas, '--airflow-cool', '#38bdf8'), warm: token(canvas, '--airflow-warm', '#f59e0b'), hot: token(canvas, '--bad', '#ef4444'),
-          dead: token(canvas, '--airflow-warm', '#f59e0b'),
+          collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
         };
         flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
       }
       buildFans(state);
       if (state.model !== modelBytes || (modelFor !== state.layout && state.model)) void showModel(state.model, state.layout);
       flowLayer?.setOptions(state.flowOptions);
+      if (collisionsOn !== state.flowOptions.collisions) { collisionsOn = state.flowOptions.collisions; applyVisibility(); }
       if (state.flow !== flowInput) {
         flowInput = state.flow;
         flowLayer?.setInput(state.flow);

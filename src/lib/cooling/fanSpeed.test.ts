@@ -21,7 +21,7 @@ describe('speedFraction', () => {
     expect(speedFraction(ch(900), 1800, 120)).toEqual({ fraction: 0.5, estimated: false });
     expect(speedFraction(ch(900, { maxRpm: 1200 }), undefined, 120)).toEqual({ fraction: 0.75, estimated: true });
     expect(speedFraction(ch(750), undefined, 120).fraction).toBeCloseTo(750 / defaultRpmMax(120));
-    expect(defaultRpmMax(140)).toBeLessThan(defaultRpmMax(120));
+    expect(defaultRpmMax(140)).toBe(defaultRpmMax(120));
   });
 
   it('gives 0 for a stopped fan and clamps a runaway reading', () => {
@@ -67,12 +67,12 @@ describe('slotModelFans with a live speed', () => {
 describe('settleFlows hysteresis', () => {
   const base = { a: 40, b: 60, '#vent': -10 };
 
-  it('keeps the old flows while every fan stays within 5% of them', () => {
-    expect(settleFlows(base, { a: 41, b: 58.5, '#vent': -10.3 })).toBe(base);
+  it('keeps the old flows while every fan stays within the tolerance of them', () => {
+    expect(settleFlows(base, { a: 43, b: 54, '#vent': -10.3 })).toBe(base);
   });
 
   it('lets a real change through, a fan stopping or starting, and a changed set of fans', () => {
-    const big = { a: 44, b: 60, '#vent': -10 };
+    const big = { a: 50, b: 60, '#vent': -10 };
     expect(settleFlows(base, big)).toBe(big);
     const stopped = { a: 0, b: 60, '#vent': -10 };
     expect(settleFlows(base, stopped)).toBe(stopped);
@@ -84,7 +84,7 @@ describe('settleFlows hysteresis', () => {
     let settled: Readonly<Record<string, number>> = base;
     let changes = 0;
     for (let i = 0; i < 200; i++) {
-      const jitter = 1 + Math.sin(i * 1.7) * 0.03;
+      const jitter = 1 + Math.sin(i * 1.7) * 0.06;
       const next = settleFlows(settled, { a: 40 * jitter, b: 60 * jitter, '#vent': -10 * jitter });
       if (next !== settled) changes++;
       settled = next;
@@ -114,5 +114,22 @@ describe('settleFlows with a CFM floor', () => {
     expect(settleFlows(slow, { a: cfmAt(480) + FLOW_CHANGE_FLOOR_CFM + 1 })).not.toBe(slow);
     const fast = { a: cfmAt(1450) };
     expect(settleFlows(fast, { a: cfmAt(1000) })).not.toBe(fast);
+  });
+});
+
+describe('a fan curve easing the rpm', () => {
+  // T1 over 30 s: 950, 991, 1038, 1043, 1015, 1005, 967, 950 rpm on a 1500 rpm fan, then a real ramp to 1163.
+  const cfmAt = (rpm: number) => scaledSpec({ cfm: 60, staticMmH2O: 1.8 }, rpm / 1500).cfm;
+
+  it('never re-solves for the drift, and does for the ramp', () => {
+    let settled: Readonly<Record<string, number>> = { a: cfmAt(950) };
+    let changes = 0;
+    for (const rpm of [952, 991, 1038, 1044, 1043, 1035, 1015, 1007, 1005, 967, 954, 948, 952, 978, 995]) {
+      const next = settleFlows(settled, { a: cfmAt(rpm) });
+      if (next !== settled) changes++;
+      settled = next;
+    }
+    expect(changes).toBe(0);
+    expect(settleFlows(settled, { a: cfmAt(1163) })).not.toBe(settled);
   });
 });
