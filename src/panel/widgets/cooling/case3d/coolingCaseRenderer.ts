@@ -3,7 +3,7 @@ import {
   Box3, LineSegments, Material, Mesh, Object3D, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Texture, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { caseExtents, fanGeometries, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
+import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import { parseCaseModel, sceneToLayoutMatrix, STRUCTURE_LINE_DIM, styleCaseModel } from '../../../../lib/scene/caseModel';
@@ -112,6 +112,9 @@ function disposeParsed(root: Group): void {
   });
 }
 
+/** Build exports the AIO pump and radiator both as `cooler`; the loader renames repeats to `cooler_1`. */
+const COOLER_NODE = /^cooler(_\d+)?$/;
+
 /**
  * Shows every model node named "cooler", then hides each whose center lies inside `from` (layout mm): the radiator drawn where the layout first placed it, once the user moved it.
  * `root` must already sit in layout space. Returns the hidden nodes.
@@ -121,7 +124,7 @@ export function hideMovedRadiator(root: Object3D, from: Pick<CaseBox, 'min' | 's
   const hidden: Object3D[] = [];
   const center = new Vector3();
   root.traverse(o => {
-    if (o.name !== 'cooler') return;
+    if (!COOLER_NODE.test(o.name)) return;
     o.visible = true;
     if (!from) return;
     new Box3().setFromObject(o).getCenter(center);
@@ -200,7 +203,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     holder.add(parsed);
     modelStyle = styleCaseModel(parsed, token_('--text-dim', '#8a93a6'), token_('--text-dim', '#8a93a6'));
     modelGroup = holder;
-    hideMovedRadiator(holder, forLayout.radiatorMove?.from ?? null);
+    hideMovedRadiator(holder, (layout ?? forLayout).radiatorMove?.from ?? null);
     scene.add(holder);
     applyVisibility();
     requestRender();
@@ -380,6 +383,17 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       fanGroup.add(hit);
       hitMeshes.push(hit);
     }
+    // The radiator box itself is pickable, so a radiator with no fans can still be moved.
+    const radiatorBox = l.radiatorOptions?.find(o => o.mount === l.radiatorMount)?.box;
+    if (radiatorBox) {
+      const hit = new Mesh(new BoxGeometry(...radiatorBox.size), new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+      hit.position.set(radiatorBox.min[0] + radiatorBox.size[0] / 2, radiatorBox.min[1] + radiatorBox.size[1] / 2, radiatorBox.min[2] + radiatorBox.size[2] / 2);
+      hit.rotation.y = radiatorBox.rotationY ?? 0;
+      hit.userData.slotKey = RADIATOR_PICK_KEY;
+      fanDisposables.push(hit.geometry, hit.material);
+      fanGroup.add(hit);
+      hitMeshes.push(hit);
+    }
   };
 
   let down: { x: number; y: number } | null = null;
@@ -391,7 +405,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     raycaster.setFromCamera(new Vector2((x / rect.width) * 2 - 1, -(y / rect.height) * 2 + 1), camera);
-    const hit = showCase ? raycaster.intersectObjects(hitMeshes, false)[0] : undefined;
+    // A fan wins over the radiator box it sits against.
+    const hits = showCase ? raycaster.intersectObjects(hitMeshes, false) : [];
+    const hit = hits.find(h => h.object.userData.slotKey !== RADIATOR_PICK_KEY) ?? hits[0];
     onPick(typeof hit?.object.userData.slotKey === 'string' ? hit.object.userData.slotKey : null, x, y);
   };
   canvas.addEventListener('pointerdown', onDown);

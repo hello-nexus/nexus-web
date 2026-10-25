@@ -367,4 +367,14 @@ describe('radiator mount choice', () => {
     expect(withTotal(3)).toMatchObject({ airflowCfm: 70, staticPressureMmH2O: 2.5 });
     expect(withTotal(6)).toMatchObject({ airflowCfm: 70, staticPressureMmH2O: 5 });
   });
+
+  it('finds a fanless radiator box whose raw coordinates differ from the rounded option box at the second decimal', () => {
+    const bare = { slot: topBox.slot, role: topBox.role, min: [73, 422.9, 58], size: [360, 52, 120] };
+    const raw = { slot: topBox.slot, role: topBox.role, min: [73.02, 422.93, 58.01], size: [360.02, 51.97, 120] };
+    const bareRight = { slot: rightBox.slot, role: rightBox.role, min: rightBox.min, size: rightBox.size };
+    const rec = { ...record('top'), boxes: [...y70.boxes, raw], radiatorOptions: [{ mount: 'top', box: bare, radiator: topKeys, fans: [] }, { mount: 'right', box: bareRight, radiator: rightKeys, fans: [] }] };
+    const moved = parseCaseLayout(rec, 'right') as CaseLayout;
+    expect(moved.radiatorMove?.from.min).toEqual(raw.min);
+    expect(moved.boxes.some(b => b.min[1] === 422.93)).toBe(false);
+  });
 });

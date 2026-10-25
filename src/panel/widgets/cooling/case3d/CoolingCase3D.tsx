@@ -22,7 +22,7 @@ import { useComponentTemps } from '../../../../hooks/useComponentTemps';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
+  channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, RADIATOR_PICK_KEY, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { settleFlows, simRpm, SIM_RPM_CEILING } from '../../../../lib/cooling/fanSpeed';
 import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
@@ -198,17 +198,32 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key, hasDerivedLink(key)) }));
   }, [edit, canonOf]);
 
-  // The service's write is by record rev; a stale rev answers with the current record, and one retry on that rev settles a race with another writer.
+  // The service's write is by record rev. Each move carries a sequence number and only the latest may retry or touch the pending and error state.
+  // A stale rev answers with the current record: retry once on its rev unless it holds a mount this view did not write, which is another writer's pick and is left alone.
+  const moveSeq = useRef(0);
+  const writtenMounts = useRef(new Set<string>());
   const moveRadiator = useCallback(async (mount: string) => {
     if (!record) return;
+    const seq = ++moveSeq.current;
+    const base = record.setup.case?.radiatorMount ?? null;
+    writtenMounts.current.add(mount);
     setMoveFailed(false);
     setPendingMove({ mount, rev: null });
     let result = await patchPcSetupRadiator(record.rev, mount);
-    if (result.kind === 'conflict') result = await patchPcSetupRadiator(result.record.rev, mount);
-    if (result.kind === 'saved') { const rev = result.rev; setPendingMove(cur => (cur?.mount === mount ? { mount, rev } : cur)); return; }
-    setPendingMove(cur => (cur?.mount === mount ? null : cur));
+    if (seq !== moveSeq.current) return;
+    if (result.kind === 'conflict') {
+      const theirs = result.record.setup.case?.radiatorMount ?? null;
+      if (theirs !== base && !(theirs !== null && writtenMounts.current.has(theirs))) { setPendingMove(null); return; }
+      result = await patchPcSetupRadiator(result.record.rev, mount);
+      if (seq !== moveSeq.current) return;
+    }
+    if (result.kind === 'saved') { const rev = result.rev; setPendingMove({ mount, rev }); return; }
+    setPendingMove(null);
     setMoveFailed(true);
   }, [record]);
+  // The error is about the last attempt: it goes once the record moves on or the controls close.
+  const recordRev = record?.rev;
+  useEffect(() => { setMoveFailed(false); }, [recordRev, active]);
 
   if (!loaded || !layoutSettled) return <div className={styles.root} />;
 
@@ -226,12 +241,21 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   }
 
   const activeSlot = active ? fanGeometries(caseLayout).find(g => g.slot.key === active)?.slot : undefined;
+  const radiatorPicked = active === RADIATOR_PICK_KEY && !!caseLayout.radiatorOptions;
   const activeOwner = activeSlot ? channels.find(c => c.id === channelOfSlot(bindings, activeSlot.key)) : undefined;
   const selectedName = channels.find(c => c.id === selectedChannelId)?.name;
   const result = model?.result;
   const modeKey = result ? `cooling.case3d.pressure.${result.mode}` : '';
   const cfm = (v: number) => t('cooling.case3d.cfm', { value: String(Math.round(Math.abs(v))) });
   const positionName = (position: string) => t(POSITION_KEYS[position] ?? 'cooling.case3d.position.other');
+  const radiatorChips = (caseLayout.radiatorOptions && (radiatorPicked || activeSlot?.key.startsWith('rad:'))) ? (
+    <ChipGroup
+      ariaLabel={t('cooling.case3d.radiator.label')}
+      options={caseLayout.radiatorOptions.map(o => ({ key: o.mount, label: positionName(o.mount) }))}
+      activeKey={caseLayout.radiatorMount ?? ''}
+      onChange={next => { if (next !== caseLayout.radiatorMount) void moveRadiator(next); }}
+    />
+  ) : null;
   const activeOwnerId = activeSlot ? channelOfSlot(bindings, activeSlot.key) : null;
   const activeSimRpm = activeSlot ? simRpm(channelOfSlot(bindings, activeSlot.key) ?? '') : null;
   const slotPosition = (key: string) => caseLayout.fanSlots.find(s => s.key === key)?.position ?? '';
@@ -324,6 +348,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
           )}
         </div>
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
+        {radiatorPicked && !activeSlot && (
+          <Popover open onClose={() => setActive(null)} anchorRef={anchorRef} portal boundsRef={viewportRef} className={styles.popover} ariaLabel={t('cooling.case3d.radiator.label')}>
+            <div className={styles.popoverTitle}>{t('cooling.case3d.radiator.label')}</div>
+            {radiatorChips}
+          </Popover>
+        )}
         {activeSlot && (
           <Popover
             open
@@ -344,14 +374,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               activeKey={directions[activeSlot.key]}
               onChange={next => setDirection(activeSlot.key, activeSlot.position, next as FanDirection)}
             />
-            {activeSlot.key.startsWith('rad:') && caseLayout.radiatorOptions && (
-              <ChipGroup
-                ariaLabel={t('cooling.case3d.radiator.label')}
-                options={caseLayout.radiatorOptions.map(o => ({ key: o.mount, label: positionName(o.mount) }))}
-                activeKey={caseLayout.radiatorMount ?? ''}
-                onChange={next => { if (next !== caseLayout.radiatorMount) void moveRadiator(next); }}
-              />
-            )}
+            {radiatorChips}
             <Select
               ariaLabel={t('cooling.case3d.device.label')}
               value={activeSimRpm !== null ? SIM_VALUE : activeOwnerId === NONE_CHANNEL ? NONE : activeOwnerId ?? NONE}

@@ -49,7 +49,7 @@ type LiveChannel = Pick<FanChannel, 'id' | 'rpm' | 'dutyPercent' | 'maxRpm' | 'r
 export function slotSpeeds(slots: readonly CaseFanSlot[], bindings: readonly FanBinding[], channels: readonly LiveChannel[]): Map<string, SlotSpeed> {
   const out = new Map<string, SlotSpeed>();
   for (const slot of slots) {
-    const topSpeed = slot.taken === 'radiator' ? slot.radiator?.fanRpmMax : slot.fan?.rpmMax;
+    const topSpeed = slot.fan?.rpmMax;
     slotFanKeys(slot).forEach(key => {
       let best: SlotSpeed | undefined;
       let unlinked = false;
