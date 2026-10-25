@@ -120,6 +120,11 @@ export class FlowLayer {
     return this.timer ? 'gpu-timer' : 'frame-delta';
   }
 
+  /** True once the solver has found the steady field and stopped stepping. */
+  get settled(): boolean {
+    return !!this.fscene && !this.solving;
+  }
+
   /** Whether the layer still has something to animate: a solve in progress, or particles drawn. */
   get active(): boolean {
     return this.supported && !!this.fscene && (this.solving || this.options.particles);
