@@ -110,6 +110,18 @@ export function buildEmbeddedPanelThemeVars(appAccentColor: string | undefined, 
   } as CSSProperties;
 }
 
+/**
+ * Card fill vars for the desktop overlay. Fills from the opaque surface so the
+ * widget-opacity slider is the sole transparency source: top of the range is a
+ * solid card, lower values fade it over the wallpaper.
+ */
+export function buildOverlayCardVars(widgetOpacity: number): CSSProperties {
+  return {
+    '--panel-card-fill': 'var(--panel-card-fill-opaque)',
+    '--panel-card-bg-opacity': `${Math.round(widgetOpacity * 100)}%`,
+  } as CSSProperties;
+}
+
 /** The hex the panel's --panel-accent family derives from. */
 export function panelAccentColor(theme: PanelThemeState): string {
   const accentColor = theme.accentSyncWithDesktop
