@@ -3,6 +3,7 @@ import { Box } from 'lucide-react';
 import type { FanChannel } from '../../../../api/cooling';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { Button } from '../../../../components/common/Button/Button';
+import { Spinner } from '../../../../components/common/Spinner/Spinner';
 import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { Notice } from '../../../../components/common/Notice/Notice';
@@ -32,6 +33,7 @@ import { visualFlow } from '../../../../lib/cooling/visualFlow';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
+import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
 import styles from './CoolingCase3D.module.scss';
@@ -51,6 +53,8 @@ export interface CoolingCase3DProps {
   /** Draws the solver's collision shapes in place of the case model; remembered by the caller. */
   collisionShapes?: boolean;
   onCollisionShapesChange?: (on: boolean) => void;
+  /** Where the invisible Build resolve that fills a missing or out-of-date layout stands; absent when nothing resolves one. */
+  autoResolve?: AutoResolveState;
 }
 
 const POSITION_KEYS: Record<string, string> = {
@@ -77,7 +81,7 @@ const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
-export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange, collisionShapes: savedCollisions, onCollisionShapesChange }: CoolingCase3DProps) {
+export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange, collisionShapes: savedCollisions, onCollisionShapesChange, autoResolve }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
   const { layout: coolingLayout, settled: layoutSettled, failed: layoutFailed, edit } = useCoolingLayout(true);
@@ -229,6 +233,36 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   useEffect(() => { setMoveFailed(false); }, [recordRev, active]);
 
   if (!loaded || !layoutSettled) return <div className={styles.root} />;
+
+  if (autoResolve?.phase === 'resolving' && (!caseLayout || !airflowCase)) {
+    return (
+      <div className={styles.root}>
+        <EmptyState
+          icon={<Spinner size={28} />}
+          title={t('cooling.case3d.resolving.title')}
+          hint={t('cooling.case3d.resolving.hint')}
+        />
+      </div>
+    );
+  }
+
+  if (autoResolve?.phase === 'failed' && !caseLayout) {
+    return (
+      <div className={styles.root}>
+        <EmptyState
+          icon={<Box size={28} strokeWidth={1.6} />}
+          title={t('cooling.case3d.resolveFailed.title')}
+          hint={t('cooling.case3d.resolveFailed.hint')}
+          action={
+            <div className={styles.emptyActions}>
+              <Button tone="accent" onClick={autoResolve.retry}>{t('cooling.case3d.resolveFailed.retry')}</Button>
+              <Button tone="neutral" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.empty.action')}</Button>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
 
   if (!caseLayout || !airflowCase) {
     return (

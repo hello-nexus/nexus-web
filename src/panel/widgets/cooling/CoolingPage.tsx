@@ -105,6 +105,11 @@ const CoolingCase3D = (import.meta.env.DEV || __DEV_TOOLS__)
   ? lazy(() => import('./case3d/CoolingCase3D').then(m => ({ default: m.CoolingCase3D })))
   : null;
 
+// Fills the setup record's case layout through an invisible Build when it is missing or out of date; dev-tools only, like the view that needs it.
+const CoolingAutoResolve = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? lazy(() => import('./case3d/CoolingAutoResolve').then(m => ({ default: m.CoolingAutoResolve })))
+  : null;
+
 const VIEW_2D = '2d' as const;
 const VIEW_3D = '3d' as const;
 
@@ -2025,9 +2030,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
         </aside>
         <div className={styles.curveCol}>
-          {view3d && CoolingCase3D ? (
+          {view3d && CoolingCase3D && CoolingAutoResolve ? (
+            <Suspense fallback={null}>
+            <CoolingAutoResolve>
+              {autoResolve => (
             <Suspense fallback={null}>
               <CoolingCase3D
+                autoResolve={autoResolve}
                 channels={channels}
                 selectedChannelId={selectedFanIds.size === 1 ? [...selectedFanIds][0] : null}
                 selectedChannelIds={[...selectedFanIds]}
@@ -2038,6 +2047,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 onSelectChannel={id => setSelectedFanIds(new Set([id]))}
                 onClearSelection={() => setSelectedFanIds(new Set())}
               />
+            </Suspense>
+              )}
+            </CoolingAutoResolve>
             </Suspense>
           ) : (
           <>
