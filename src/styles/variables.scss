@@ -208,7 +208,7 @@
 
   // Type - Lexend
   --font-sans: 'Twemoji Country Flags', 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --font-mono: 'JetBrains Mono', 'Lexend', 'SF Mono', Menlo, Consolas, monospace;
   // Panel surfaces inherit the same stack; defined at :root (not .panel-root) so
   // portaled panel chrome (context menus, overlays) keeps the font outside .panel-root.
   --panel-font: var(--font-sans);

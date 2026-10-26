@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "Telemetry is opted out, events are not sent",
   "tools.appTelemetry.title": "App telemetry",
   "tools.appTelemetry.unavailable": "Could not read app telemetry from the service.",
-  "tools.fontDebug.description": "Audition chunky font candidates across the desktop chrome and the panel kiosk surface in lockstep. Pick the first tile to revert to defaults.",
-  "tools.fontDebug.title": "Debug font",
   "tools.helloGreeting.label": "Preview the one-time boot greeting in the top search bar, or reset it so it shows again next time.",
   "tools.helloGreeting.play": "Play greeting",
   "tools.helloGreeting.reset": "Reset greeting",

@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "テレメトリーはオプトアウトされているため、イベントは送信されません",
   "tools.appTelemetry.title": "アプリのテレメトリー",
   "tools.appTelemetry.unavailable": "サービスからアプリのテレメトリーを読み取れませんでした。",
-  "tools.fontDebug.description": "太字フォントの候補を、デスクトップのクロームとパネルのキオスク画面で同時に並べて確認します。最初のタイルを選ぶとデフォルトに戻ります。",
-  "tools.fontDebug.title": "フォントをデバッグ",
   "tools.helloGreeting.label": "上部の検索バーに表示される起動時の一度きりのあいさつをプレビューするか、次回また表示されるようリセットします。",
   "tools.helloGreeting.play": "あいさつを再生",
   "tools.helloGreeting.reset": "あいさつをリセット",

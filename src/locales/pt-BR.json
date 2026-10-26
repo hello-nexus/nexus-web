@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "A telemetria está desativada, os eventos não são enviados",
   "tools.appTelemetry.title": "Telemetria de apps",
   "tools.appTelemetry.unavailable": "Não foi possível ler a telemetria de apps do serviço.",
-  "tools.fontDebug.description": "Teste candidatas de fonte robusta no chrome do desktop e na superfície de kiosk do painel em sincronia. Escolha o primeiro tile para reverter aos padrões.",
-  "tools.fontDebug.title": "Depurar fonte",
   "tools.helloGreeting.label": "Pré-visualize a saudação única de inicialização na barra de pesquisa superior, ou redefina-a para que apareça novamente na próxima vez.",
   "tools.helloGreeting.play": "Reproduzir saudação",
   "tools.helloGreeting.reset": "Redefinir saudação",

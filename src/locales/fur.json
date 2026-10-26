@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "La telemetrie e je disativade, i events no vegnin mandâts",
   "tools.appTelemetry.title": "Telemetrie des aplicazions",
   "tools.appTelemetry.unavailable": "Impussibil lei la telemetrie des aplicazions dal servizi.",
-  "tools.fontDebug.description": "Prove i candidâts di caratar in grues su la struture dal desktop e su la superficie kiosk dal panel, in sincronie. Sielç la prime casele par tornâ ai valôrs predefinîts.",
-  "tools.fontDebug.title": "Debug dal caratar",
   "tools.helloGreeting.label": "Mostre in anteprime il salût unic dal inviament te sbare di ricercje in alt, o ripristinilu par che al torni a comparî la prossime volte.",
   "tools.helloGreeting.play": "Riprodûs il salût",
   "tools.helloGreeting.reset": "Ripristine il salût",

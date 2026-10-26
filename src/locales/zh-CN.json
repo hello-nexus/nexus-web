@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "已退出遥测，事件不会发送",
   "tools.appTelemetry.title": "应用遥测",
   "tools.appTelemetry.unavailable": "无法从服务读取应用遥测。",
-  "tools.fontDebug.description": "在桌面框架与面板自助界面上同步试用粗体字候选。选择第一个图块可恢复默认值。",
-  "tools.fontDebug.title": "调试字体",
   "tools.helloGreeting.label": "预览顶部搜索栏中的一次性开机问候语，或重置它以便下次再次显示。",
   "tools.helloGreeting.play": "播放问候语",
   "tools.helloGreeting.reset": "重置问候语",

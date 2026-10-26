@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "Telemetri devre dışı, olaylar gönderilmiyor",
   "tools.appTelemetry.title": "Uygulama telemetrisi",
   "tools.appTelemetry.unavailable": "Uygulama telemetrisi hizmetten okunamadı.",
-  "tools.fontDebug.description": "İri yazı tipi adaylarını masaüstü çerçevesi ve panel kiosk yüzeyinde eşzamanlı olarak deneyin. Varsayılanlara dönmek için ilk döşemeyi seçin.",
-  "tools.fontDebug.title": "Yazı tipi hata ayıklama",
   "tools.helloGreeting.label": "Üst arama çubuğundaki tek seferlik açılış selamını önizleyin veya bir dahaki sefere tekrar görünmesi için sıfırlayın.",
   "tools.helloGreeting.play": "Selamı oynat",
   "tools.helloGreeting.reset": "Selamı sıfırla",

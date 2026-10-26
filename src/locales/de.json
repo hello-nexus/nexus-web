@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "Telemetrie ist abgewählt, Ereignisse werden nicht gesendet",
   "tools.appTelemetry.title": "App-Telemetrie",
   "tools.appTelemetry.unavailable": "App-Telemetrie konnte nicht vom Dienst gelesen werden.",
-  "tools.fontDebug.description": "Testen Sie kräftige Schriftkandidaten im Gleichschritt über die Desktop-Oberfläche und die Panel-Kiosk-Fläche. Wählen Sie die erste Kachel, um zu den Standardwerten zurückzukehren.",
-  "tools.fontDebug.title": "Schrift debuggen",
   "tools.helloGreeting.label": "Boot-Begrüßung in der oberen Suchleiste in der Vorschau anzeigen oder zurücksetzen, damit sie beim nächsten Mal wieder erscheint.",
   "tools.helloGreeting.play": "Begrüßung abspielen",
   "tools.helloGreeting.reset": "Begrüßung zurücksetzen",

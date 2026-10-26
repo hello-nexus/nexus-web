@@ -5980,8 +5980,6 @@
   "tools.appTelemetry.status.optedOut": "Telemetrie je odhlášena, události se neodesílají",
   "tools.appTelemetry.title": "Telemetrie aplikací",
   "tools.appTelemetry.unavailable": "Telemetrii aplikací se ze služby nepodařilo načíst.",
-  "tools.fontDebug.description": "Vyzkoušejte tučné kandidáty fontů současně v desktopovém rozhraní a na kiosku panelu. Výběrem první dlaždice se vrátíte k výchozímu nastavení.",
-  "tools.fontDebug.title": "Ladicí font",
   "tools.helloGreeting.label": "Zobrazte náhled jednorázového uvítání při spuštění v horním vyhledávacím poli, nebo jej resetujte, aby se příště zobrazilo znovu.",
   "tools.helloGreeting.play": "Přehrát uvítání",
   "tools.helloGreeting.reset": "Resetovat uvítání",

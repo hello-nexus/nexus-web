@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "Telemetrie is uitgeschakeld, gebeurtenissen worden niet verzonden",
   "tools.appTelemetry.title": "App-telemetrie",
   "tools.appTelemetry.unavailable": "Kon de app-telemetrie niet van de service lezen.",
-  "tools.fontDebug.description": "Test dikke lettertypekandidaten over de desktop-chrome en het paneel-kiosk-oppervlak in gelijke tred. Kies de eerste tegel om terug te keren naar de standaardwaarden.",
-  "tools.fontDebug.title": "Lettertype debuggen",
   "tools.helloGreeting.label": "Bekijk de eenmalige opstartbegroeting in de bovenste zoekbalk, of herstel deze zodat hij de volgende keer weer verschijnt.",
   "tools.helloGreeting.play": "Begroeting afspelen",
   "tools.helloGreeting.reset": "Begroeting herstellen",

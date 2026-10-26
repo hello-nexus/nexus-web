@@ -4,13 +4,12 @@
 // the browser silently drops the whole rule block if it sees it here.
 
 // Lexend is the unified default; the @font-face is loaded once from
-// global.scss. The Tools > Debug font picker swaps in self-hosted
-// alternatives.
+// global.scss.
 
 // Widgets draw in one font: mono call sites resolve to the panel font (the
 // theme's font override included) and align digits via tabular-nums. The
 // [data-theme] form outranks variables.scss's [data-theme="dark"] token block,
-// which also lands on the panel root and would restore JetBrains Mono.
+// which also lands on the panel root and would restore the desktop stack.
 .panel-root,
 .panel-root[data-theme] { --font-mono: var(--panel-font); }
 

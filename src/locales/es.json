@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "La telemetría está desactivada, los eventos no se envían",
   "tools.appTelemetry.title": "Telemetría de apps",
   "tools.appTelemetry.unavailable": "No se pudo leer la telemetría de apps desde el servicio.",
-  "tools.fontDebug.description": "Prueba candidatas de fuente robusta en el cromo del escritorio y en la superficie del panel en quiosco a la vez. Elige la primera casilla para volver a los valores predeterminados.",
-  "tools.fontDebug.title": "Depurar fuente",
   "tools.helloGreeting.label": "Muestra en vista previa el saludo único de arranque en la barra de búsqueda superior, o restablécelo para que vuelva a aparecer la próxima vez.",
   "tools.helloGreeting.play": "Reproducir saludo",
   "tools.helloGreeting.reset": "Restablecer saludo",

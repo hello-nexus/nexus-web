@@ -5980,8 +5980,6 @@
   "tools.appTelemetry.status.optedOut": "Telemetria jest wyłączona, zdarzenia nie są wysyłane",
   "tools.appTelemetry.title": "Telemetria aplikacji",
   "tools.appTelemetry.unavailable": "Nie udało się odczytać telemetrii aplikacji z usługi.",
-  "tools.fontDebug.description": "Testuj jednocześnie pogrubione kandydatury czcionek w interfejsie desktopowym i na powierzchni kiosku panelu. Wybierz pierwszy kafelek, aby przywrócić domyślne.",
-  "tools.fontDebug.title": "Debugowanie czcionki",
   "tools.helloGreeting.label": "Podgląd jednorazowego powitania przy starcie w górnym pasku wyszukiwania lub zresetuj je, aby pojawiło się ponownie następnym razem.",
   "tools.helloGreeting.play": "Odtwórz powitanie",
   "tools.helloGreeting.reset": "Resetuj powitanie",

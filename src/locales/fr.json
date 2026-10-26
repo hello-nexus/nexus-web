@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "La télémétrie est désactivée, les événements ne sont pas envoyés",
   "tools.appTelemetry.title": "Télémétrie des applications",
   "tools.appTelemetry.unavailable": "Impossible de lire la télémétrie des applications depuis le service.",
-  "tools.fontDebug.description": "Testez des candidats de polices épaisses sur le chrome du bureau et la surface kiosque du panneau en parallèle. Choisissez la première tuile pour revenir aux valeurs par défaut.",
-  "tools.fontDebug.title": "Police de débogage",
   "tools.helloGreeting.label": "Prévisualise le message d'accueil unique du démarrage dans la barre de recherche du haut, ou réinitialise-le pour qu'il réapparaisse la prochaine fois.",
   "tools.helloGreeting.play": "Lire le message d'accueil",
   "tools.helloGreeting.reset": "Réinitialiser le message d'accueil",

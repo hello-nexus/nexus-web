@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "텔레메트리가 꺼져 있어 이벤트가 전송되지 않습니다",
   "tools.appTelemetry.title": "앱 텔레메트리",
   "tools.appTelemetry.unavailable": "서비스에서 앱 텔레메트리를 읽을 수 없습니다.",
-  "tools.fontDebug.description": "데스크톱 크롬과 패널 키오스크 화면에서 두꺼운 폰트 후보를 동시에 비교해 보세요. 첫 번째 타일을 선택하면 기본값으로 되돌아갑니다.",
-  "tools.fontDebug.title": "폰트 디버그",
   "tools.helloGreeting.label": "상단 검색창에 표시되는 1회성 부팅 인사말을 미리 보거나, 다음번에 다시 표시되도록 초기화하세요.",
   "tools.helloGreeting.play": "인사말 재생",
   "tools.helloGreeting.reset": "인사말 초기화",

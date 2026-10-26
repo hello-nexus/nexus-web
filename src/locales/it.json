@@ -5928,8 +5928,6 @@
   "tools.appTelemetry.status.optedOut": "La telemetria è disattivata, gli eventi non vengono inviati",
   "tools.appTelemetry.title": "Telemetria delle app",
   "tools.appTelemetry.unavailable": "Impossibile leggere la telemetria delle app dal servizio.",
-  "tools.fontDebug.description": "Prova i caratteri grafici corposi candidati sull'interfaccia del desktop e sulla superficie kiosk del pannello in parallelo. Scegli il primo riquadro per tornare ai valori predefiniti.",
-  "tools.fontDebug.title": "Font di debug",
   "tools.helloGreeting.label": "Mostra in anteprima il saluto una tantum all'avvio nella barra di ricerca superiore, oppure reimpostalo perché ricompaia la prossima volta.",
   "tools.helloGreeting.play": "Riproduci saluto",
   "tools.helloGreeting.reset": "Reimposta saluto",
