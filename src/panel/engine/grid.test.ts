@@ -7,7 +7,7 @@ import {
   panelWidgetPaddingRatio,
   resolvePanelSpacing,
   sizeToSpan,
-  snapStride,
+  snapDropCell,
   PANEL_GRID_COLS,
   PANEL_WIDGET_PADDING_DEFAULT_PERCENT,
   PANEL_WIDGET_PADDING_MAX_RATIO,
@@ -186,18 +186,6 @@ describe('sizeToSpan', () => {
   });
 });
 
-describe('snapStride', () => {
-  it('returns 1 for a 1-cell span so 1x1 widgets walk every cell', () => {
-    expect(snapStride(1)).toBe(1);
-  });
-
-  it('returns 2 for any multi-cell span so 4x4 lands on 2-cell increments', () => {
-    expect(snapStride(2)).toBe(2);
-    expect(snapStride(4)).toBe(2);
-    expect(snapStride(8)).toBe(2);
-  });
-});
-
 describe('resolvePanelSpacing', () => {
   it('solves gap = padding = ratio * cellSize exactly, satisfying the perimeter equation', () => {
     for (const [extent, count, ratio] of [[734, 4, 0.045], [2560, 14, 0.079], [1206, 8, 0.045]] as const) {
@@ -304,5 +292,32 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
     expect(cap.contentScale).toBe(360);
     expect(cap.contentGap).toBe(0);
     expect([cap.contentColumns, cap.contentRows]).toEqual([cap.columns, cap.rows]);
+  });
+});
+
+describe('snapDropCell', () => {
+  const grid = { cols: 4, rows: 16 };
+
+  it('lets a 2x2 drop on odd columns and rows', () => {
+    expect(snapDropCell(1.2, 3.1, { cols: 2, rows: 2 }, grid)).toEqual({ col: 1, row: 3 });
+    expect(snapDropCell(0.4, 0.6, { cols: 2, rows: 2 }, grid)).toEqual({ col: 0, row: 1 });
+  });
+
+  it('clamps so the rect stays inside the grid', () => {
+    expect(snapDropCell(9, 99, { cols: 2, rows: 2 }, grid)).toEqual({ col: 2, row: 14 });
+    expect(snapDropCell(-3, -1, { cols: 2, rows: 2 }, grid)).toEqual({ col: 0, row: 0 });
+  });
+
+  it('clamps a 4x4 to col 0 on 4 columns and lets it sit on any row', () => {
+    expect(snapDropCell(2, 2, { cols: 4, rows: 4 }, grid)).toEqual({ col: 0, row: 2 });
+    expect(snapDropCell(1, 3, { cols: 4, rows: 4 }, grid)).toEqual({ col: 0, row: 3 });
+  });
+
+  it('lets a 4x1 sit on odd rows', () => {
+    expect(snapDropCell(0, 5, { cols: 4, rows: 1 }, grid)).toEqual({ col: 0, row: 5 });
+  });
+
+  it('works on the landscape 16x4 grid', () => {
+    expect(snapDropCell(5.4, 1.6, { cols: 2, rows: 2 }, { cols: 16, rows: 4 })).toEqual({ col: 5, row: 2 });
   });
 });

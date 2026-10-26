@@ -193,6 +193,12 @@ describe('LianLiWirelessLightingTab', () => {
 });
 
 describe('motherboard ARGB', () => {
+  it('keeps every control on an RF chain that reports fan type 63', async () => {
+    await renderTab({ ...catalog, chains: [{ ...fanChain, fanType: 63, argbCableConnected: true }] });
+    expect(screen.getByRole('switch', { name: 'devices.motherboardArgb.label' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toBeInTheDocument();
+  });
+
   it('is offered only on a chain with its sync cable plugged in', async () => {
     await renderTab({ ...catalog, chains: [{ ...fanChain, argbCableConnected: false }] });
     expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();

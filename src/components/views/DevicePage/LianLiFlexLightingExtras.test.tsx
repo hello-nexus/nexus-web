@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LianLiFlexSyncSection, useLianLiFlexSync } from './LianLiFlexSyncSection';
+import { LianLiFlexSyncSection, syncReplacesState, useLianLiFlexSync } from './LianLiFlexSyncSection';
 import type { LianLiFlexSync } from '../../../api/lianli-flex';
 import type { LianLiWirelessChainLighting } from '../../../api/lianli-wireless';
 
@@ -222,5 +222,16 @@ describe('LianLiFlexSyncSection', () => {
     await renderSync();
     await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-flex.syncEnable' })); });
     expect(mockGetSync).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('syncReplacesState', () => {
+  const chain = (fanType: number, mode: string) => ({ fanType, mode }) as LianLiWirelessChainLighting;
+
+  it('ignores a P28 V2 unit, which always reports the Lighting page mode', () => {
+    expect(syncReplacesState([chain(63, 'custom')])).toBe(false);
+    expect(syncReplacesState([{ fanType: 0, mode: 'custom', family: 'p28v2' } as LianLiWirelessChainLighting])).toBe(false);
+    expect(syncReplacesState([chain(51, 'rainbow'), chain(63, 'custom')])).toBe(false);
+    expect(syncReplacesState([chain(51, 'custom'), chain(63, 'custom')])).toBe(true);
   });
 });

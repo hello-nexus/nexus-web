@@ -33,8 +33,8 @@ describe('appendWidget', () => {
     expect(n).toMatchObject({ col: 2, row: 0 });
   });
 
-  it('fills an off-stride hole instead of spilling to a new page', () => {
-    // 1x1s pin all four stride-aligned 2x2 anchors; (1, 0) stays free.
+  it('fills the first free cell instead of spilling to a new page', () => {
+    // 1x1s pin the four even 2x2 anchors; (1, 0) is the first free cell.
     const l = layout([[
       widget('k1', '1x1', 0, 0),
       widget('k2', '1x1', 3, 0),
