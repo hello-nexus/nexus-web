@@ -71,33 +71,54 @@ export function hitTestMessage(
 }
 
 export const REQUEST_HIT_TEST = 'nexus.panel.requestHitTest';
+export const ORIGIN_MESSAGE = 'nexus.panel.origin';
 
-interface HostHook { requestHitTest(): void }
+/** Where the kiosk window sits in the monitor's full frame, CSS px; the full size is present when the host sends it. */
+export interface KioskOrigin { originX: number; originY: number; fullW?: number; fullH?: number }
+
+interface HostHook {
+  requestHitTest(): void;
+  setOrigin(origin: KioskOrigin): void;
+}
 type HostWindow = PanelBridgeWindow & { __nexusPanelHost?: HostHook };
 
 const requestSubscribers = new Set<() => void>();
+const originSubscribers = new Set<(origin: KioskOrigin) => void>();
 let detach: (() => void) | null = null;
 
 function fireRequest(): void {
   for (const cb of [...requestSubscribers]) cb();
 }
 
-function isRequestMessage(data: unknown): boolean {
-  if (typeof data === 'string') {
-    try { return (JSON.parse(data) as { type?: unknown } | null)?.type === REQUEST_HIT_TEST; } catch { return false; }
-  }
-  return typeof data === 'object' && data !== null && (data as { type?: unknown }).type === REQUEST_HIT_TEST;
+function fireOrigin(origin: KioskOrigin): void {
+  for (const cb of [...originSubscribers]) cb(origin);
 }
 
-/** Runs `cb` when the host asks for a re-report: macOS calls `__nexusPanelHost.requestHitTest()`, Windows posts a message. */
-export function onHostRequestHitTest(cb: () => void): () => void {
+function parsed(data: unknown): { type?: unknown; [key: string]: unknown } | null {
+  if (typeof data === 'string') {
+    try { return JSON.parse(data) as { type?: unknown } | null; } catch { return null; }
+  }
+  return typeof data === 'object' && data !== null ? data as { type?: unknown } : null;
+}
+
+const finite = (value: unknown): number | undefined => (typeof value === 'number' && Number.isFinite(value) ? value : undefined);
+
+function originOf(msg: Record<string, unknown>): KioskOrigin {
+  return { originX: finite(msg.originX) ?? 0, originY: finite(msg.originY) ?? 0, fullW: finite(msg.fullW), fullH: finite(msg.fullH) };
+}
+
+function onMessage(event: Event): void {
+  const msg = parsed((event as MessageEvent).data);
+  if (msg?.type === REQUEST_HIT_TEST) fireRequest();
+  else if (msg?.type === ORIGIN_MESSAGE) fireOrigin(originOf(msg));
+}
+
+// One hook and one listener pair serve every subscriber; the last unsubscribe removes them.
+function subscribe<T>(set: Set<T>, cb: T): () => void {
   if (typeof window === 'undefined') return () => {};
   const w = window as unknown as HostWindow;
-  const first = requestSubscribers.size === 0;
-  requestSubscribers.add(cb);
-  const onMessage = (event: Event) => { if (isRequestMessage((event as MessageEvent).data)) fireRequest(); };
-  if (first) {
-    w.__nexusPanelHost = { requestHitTest: fireRequest };
+  if (requestSubscribers.size + originSubscribers.size === 0) {
+    w.__nexusPanelHost = { requestHitTest: fireRequest, setOrigin: fireOrigin };
     w.chrome?.webview?.addEventListener?.('message', onMessage);
     window.addEventListener('message', onMessage);
     detach = () => {
@@ -106,8 +127,19 @@ export function onHostRequestHitTest(cb: () => void): () => void {
       delete w.__nexusPanelHost;
     };
   }
+  set.add(cb);
   return () => {
-    requestSubscribers.delete(cb);
-    if (requestSubscribers.size === 0) detach?.();
+    set.delete(cb);
+    if (requestSubscribers.size + originSubscribers.size === 0) detach?.();
   };
+}
+
+/** Runs `cb` when the host asks for a re-report: macOS calls `__nexusPanelHost.requestHitTest()`, Windows posts a message. */
+export function onHostRequestHitTest(cb: () => void): () => void {
+  return subscribe(requestSubscribers, cb);
+}
+
+/** Runs `cb` when the host refits the kiosk and reports its new origin: macOS calls `__nexusPanelHost.setOrigin(...)`, Windows posts a message. */
+export function onHostOrigin(cb: (origin: KioskOrigin) => void): () => void {
+  return subscribe(originSubscribers, cb);
 }

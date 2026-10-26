@@ -20,16 +20,24 @@ export interface ImportViewport {
   // Kiosk window origin inside the monitor's full frame, CSS px; the legacy overlay covered the full frame.
   originX?: number;
   originY?: number;
+  // The monitor's full-frame size, CSS px, when the host reports it.
+  fullW?: number;
+  fullH?: number;
 }
 
 /** The origin the host passes on the kiosk URL; missing or malformed means a full-frame window. */
-export function kioskOriginFromSearch(search: string): { originX: number; originY: number } {
+export function kioskOriginFromSearch(search: string): { originX: number; originY: number; fullW?: number; fullH?: number } {
   const params = new URLSearchParams(search);
   const read = (key: string) => {
-    const value = Number(params.get(key));
-    return Number.isFinite(value) ? value : 0;
+    const raw = params.get(key);
+    const value = raw === null || raw === '' ? Number.NaN : Number(raw);
+    return Number.isFinite(value) ? value : undefined;
   };
-  return { originX: read('originX'), originY: read('originY') };
+  const full = (key: string) => {
+    const value = read(key);
+    return value !== undefined && value > 0 ? value : undefined;
+  };
+  return { originX: read('originX') ?? 0, originY: read('originY') ?? 0, fullW: full('fullW'), fullH: full('fullH') };
 }
 
 export interface ImportGrid {
@@ -168,8 +176,8 @@ export function planDesktopImport(
     // The legacy window clamps a stored cell to the viewport before drawing it.
     const originX = vp.originX ?? 0;
     const originY = vp.originY ?? 0;
-    const maxCol = Math.max(0, (vp.w + originX) / stride - span.cols);
-    const maxRow = Math.max(0, (vp.h + originY) / stride - span.rows);
+    const maxCol = Math.max(0, (vp.fullW ?? vp.w + originX) / stride - span.cols);
+    const maxRow = Math.max(0, (vp.fullH ?? vp.h + originY) / stride - span.rows);
     const x = clamp(legacy.col, 0, maxCol) * stride + inset - originX;
     const y = clamp(legacy.row, 0, maxRow) * stride + inset - originY;
     const col = clamp(Math.round((x - grid.padding) / colStride), 0, Math.max(0, grid.columns - span.cols));

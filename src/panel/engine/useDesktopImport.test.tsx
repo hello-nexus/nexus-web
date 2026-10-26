@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DesktopImportDto } from '../../api/panel';
 import type { PanelLayout } from '../types';
-import { IMPORT_RETRY_MS, IMPORT_SETTLE_MS, useDesktopImport } from './useDesktopImport';
+import { IMPORT_MAX_WAITS, IMPORT_RETRY_MS, IMPORT_SETTLE_MS, useDesktopImport } from './useDesktopImport';
 
 const patchMock = vi.fn();
 vi.mock('../../api/panel', () => ({ patchPanelDevice: (...a: unknown[]) => patchMock(...a) }));
@@ -133,5 +133,59 @@ describe('useDesktopImport', () => {
     const rows = (patchMock.mock.calls[0][1].layout as PanelLayout).pages[0].widgets.length;
     expect(rows).toBeGreaterThan(0);
     set(1024, 768);
+  });
+
+  it('uses the origin the host reports while settling, restarting the wait', async () => {
+    renderHook(() => useDesktopImport(args()));
+    await settle(IMPORT_SETTLE_MS - 100);
+    (window as unknown as { __nexusPanelHost: { setOrigin(o: unknown): void } }).__nexusPanelHost.setOrigin({ originX: 0, originY: 25, fullW: 2560, fullH: 1440 });
+    await settle(IMPORT_SETTLE_MS - 50);
+    expect(patchMock).not.toHaveBeenCalled();
+    await settle(SETTLED);
+    expect(patchMock).toHaveBeenCalledOnce();
+  });
+
+  it('starts again on a later trigger after giving up', async () => {
+    const original = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 0, configurable: true });
+    renderHook(() => useDesktopImport(args()));
+    await settle(IMPORT_SETTLE_MS * (IMPORT_MAX_WAITS + 5));
+    expect(patchMock).not.toHaveBeenCalled();
+    Object.defineProperty(window, 'innerWidth', { value: original, configurable: true });
+    await act(async () => { window.dispatchEvent(new Event('resize')); await vi.advanceTimersByTimeAsync(SETTLED); });
+    expect(patchMock).toHaveBeenCalledOnce();
+  });
+
+  it('places a later import with a new key after a save went through', async () => {
+    const view = renderHook(({ p }) => useDesktopImport(args({ pending: p })), { initialProps: { p: pending as DesktopImportDto | null } });
+    await settle();
+    expect(patchMock).toHaveBeenCalledTimes(1);
+    view.rerender({ p: null });
+    await settle();
+    view.rerender({ p: { ...pending, widgets: [{ ...pending.widgets[0], id: 'next' }] } });
+    await settle();
+    expect(patchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not place the same import twice while the record still carries it', async () => {
+    const view = renderHook(({ p }) => useDesktopImport(args({ pending: p })), { initialProps: { p: pending } });
+    await settle();
+    view.rerender({ p: { ...pending, widgets: [...pending.widgets] } });
+    window.dispatchEvent(new Event('resize'));
+    await settle();
+    expect(patchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a replacing instance place once a stale save fails', async () => {
+    let fail: (v: null) => void = () => {};
+    patchMock.mockReturnValueOnce(new Promise(r => { fail = r; })).mockResolvedValue({ id: 'rec' });
+    const view = renderHook(({ id }) => useDesktopImport(args({ deviceId: id })), { initialProps: { id: 'rec' } });
+    await settle();
+    expect(patchMock).toHaveBeenCalledTimes(1);
+    view.rerender({ id: 'other' });
+    await settle();
+    expect(patchMock).toHaveBeenCalledTimes(1);
+    await act(async () => { fail(null); await vi.advanceTimersByTimeAsync(SETTLED); });
+    expect(patchMock).toHaveBeenCalledTimes(2);
   });
 });

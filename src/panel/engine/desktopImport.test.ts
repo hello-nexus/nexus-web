@@ -148,6 +148,18 @@ describe('kiosk origin', () => {
     expect(kioskOriginFromSearch('?originX=80&originY=25')).toEqual({ originX: 80, originY: 25 });
     expect(kioskOriginFromSearch('?x=1')).toEqual({ originX: 0, originY: 0 });
     expect(kioskOriginFromSearch('?originX=oops')).toEqual({ originX: 0, originY: 0 });
+    expect(kioskOriginFromSearch('?originY=25&fullW=1920&fullH=1080')).toEqual({ originX: 0, originY: 25, fullW: 1920, fullH: 1080 });
+  });
+
+  it('clamps against the reported full frame when present', () => {
+    const far = imp([widget('far', 60, 40, '1x1')]);
+    const withFull = planDesktopImport(far, { ...base, originX: 120, fullW: 1920, fullH: 1080 }, PAD, emptyLayout());
+    const without = planDesktopImport(far, { ...base, originX: 120 }, PAD, emptyLayout());
+    // The 1920 wide frame ends a few cells in; clamping against the larger viewport plus origin would reach further.
+    expect(withFull.layout.pages[0].widgets[0].col).toBeLessThanOrEqual(without.layout.pages[0].widgets[0].col);
+    const stride = withFull.grid.colSize + withFull.grid.gap;
+    const maxX = (1920 / 86 - 1) * 86 + 6 - 120;
+    expect(withFull.layout.pages[0].widgets[0].col).toBe(Math.min(withFull.grid.columns - 1, Math.round((maxX - withFull.grid.padding) / stride)));
   });
 
   it('shifts a widget up by a top menu bar offset', () => {

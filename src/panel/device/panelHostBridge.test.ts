@@ -103,3 +103,31 @@ describe('hitTestMessage lease', () => {
     expect(hitTestMessage(false, [], 1, true)).not.toHaveProperty('lease');
   });
 });
+
+describe('onHostOrigin', () => {
+  it('runs on the macOS setOrigin call and on a Windows message, parsing the numbers', async () => {
+    const { onHostOrigin, onHostRequestHitTest } = await import('./panelHostBridge');
+    let listener: ((e: Event) => void) | undefined;
+    (window as unknown as Record<string, unknown>).chrome = {
+      webview: { postMessage: vi.fn(), addEventListener: (_t: string, l: (e: Event) => void) => { listener = l; }, removeEventListener: vi.fn() },
+    };
+    const seen: unknown[] = [];
+    const offOrigin = onHostOrigin(o => seen.push(o));
+    const request = vi.fn();
+    const offRequest = onHostRequestHitTest(request);
+    (window as unknown as { __nexusPanelHost: { setOrigin(o: unknown): void } }).__nexusPanelHost.setOrigin({ originX: 0, originY: 25, fullW: 1920, fullH: 1080 });
+    listener!({ data: { type: 'nexus.panel.origin', originX: 80, originY: 0, fullW: 2560, fullH: 1440 } } as unknown as Event);
+    listener!({ data: JSON.stringify({ type: 'nexus.panel.origin', originX: 'bad' }) } as unknown as Event);
+    expect(seen).toEqual([
+      { originX: 0, originY: 25, fullW: 1920, fullH: 1080 },
+      { originX: 80, originY: 0, fullW: 2560, fullH: 1440 },
+      { originX: 0, originY: 0, fullW: undefined, fullH: undefined },
+    ]);
+    expect(request).not.toHaveBeenCalled();
+    offOrigin();
+    // The hook stays while a request subscriber remains.
+    expect((window as unknown as Record<string, unknown>).__nexusPanelHost).toBeDefined();
+    offRequest();
+    expect((window as unknown as Record<string, unknown>).__nexusPanelHost).toBeUndefined();
+  });
+});
