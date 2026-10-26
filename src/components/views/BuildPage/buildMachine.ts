@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchService } from '../../../api/service';
 import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
-import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
+import { buildFpsSignatureParams, primaryGpuCard } from '../../../panel/widgets/frames/fpsSignatureParams';
 
 // Same rule as the cloud api's device case id: a catalog part id.
 const CASE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
@@ -48,7 +48,7 @@ export function buildMachine(specs: SystemSpecs, caseId: string | null, devices:
   const sig = buildFpsSignatureParams(specs);
   return {
     processor: specs.processor || undefined,
-    primaryGpu: primaryGpuModel(specs),
+    primaryGpu: primaryGpuCard(specs),
     memory: specs.memory || undefined,
     motherboard: specs.motherboard || undefined,
     storage: specs.storage || undefined,

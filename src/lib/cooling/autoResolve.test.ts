@@ -40,6 +40,13 @@ describe('layoutNeedsResolve', () => {
     expect(layoutNeedsResolve(record(2, bare), key.replace('Unlisted', 'Other'), 'hyte-y70')).toBe(true);
   });
 
+  it('keeps a failed try out of storage, so the next load asks again', () => {
+    const key = 'case=c|cpu=x|gpu=Unlisted Card|board=y';
+    const bare = { caseModel: 'HYTE Y70', inputKey: key, boxes: [{ slot: 'gpu', role: 'detail' }] };
+    markTried(key, true);
+    expect(layoutNeedsResolve(record(2, bare), key, 'hyte-y70')).toBe(true);
+  });
+
   it('needs none without a record, a key, or a case to lay out', () => {
     expect(layoutNeedsResolve(null, 'k1', 'hyte-y70')).toBe(false);
     expect(layoutNeedsResolve(record(0), null, 'hyte-y70')).toBe(false);

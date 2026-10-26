@@ -38,7 +38,7 @@ export function CoolingAutoResolve({ children }: { children: (state: AutoResolve
 
   const finish = useCallback((failed: boolean) => {
     if (frameKey === null) return;
-    markTried(frameKey);
+    markTried(frameKey, failed);
     if (failed) setFailedKey(frameKey);
     setFrameKey(null);
   }, [frameKey]);

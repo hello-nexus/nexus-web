@@ -6,9 +6,10 @@ import { supportsAirflow } from './airflowCases';
 const tried = new Set<string>();
 
 export const hasTried = (key: string): boolean => tried.has(key);
-export const markTried = (key: string): void => {
+/** `failed` tries are kept out of storage, so a transient failure (offline, a refused context) retries on the next load. */
+export const markTried = (key: string, failed: boolean = false): void => {
   tried.add(key);
-  if (namesGpu(key)) writeGpuTried(key);
+  if (!failed && namesGpu(key)) writeGpuTried(key);
 };
 export const forgetTried = (key: string): void => { tried.delete(key); };
 /** Test seam. */
