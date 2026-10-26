@@ -3,7 +3,13 @@ import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { monitorCurve, type DeskBox } from './deskScene';
-import { lineMaterial, type Dimmable, type Palette, type Style, type Vec3 } from './pcScene';
+import { CASE_ID, lineMaterial, type Dimmable, type Palette, type Style, type Vec3 } from './pcScene';
+
+const DIMMED = 0.22;
+// How much more opaque the faces of the picked part are drawn in the case view.
+const PICKED_FACE_BOOST = 0.25;
+// How much a hovered item's faces gain in a desk view, where hover is a tint and the outline is the selection's.
+const HOVER_TINT = 0.12;
 
 const SEGMENTS = 16;
 // A vertical line every this many segments, ends included, shows the curve on the front.
@@ -112,4 +118,29 @@ export function buildDeskBoxes(boxes: DeskBox[], palette: Palette, materials: Li
   const root = new Group();
   for (const box of boxes) root.add(buildDeskBox(box, palette, materials, pickables, dimmables));
   return root;
+}
+
+/**
+ * Marks the highlighted item. `dim` (the case view) fades everything else; `tint` (the desk view) leaves the rest alone and
+ * washes the item's faces. The case holds every part, so highlighting it dims nothing.
+ */
+export function applyHighlight(dimmables: Dimmable[], highlight: string | null, mode: 'dim' | 'tint' = 'dim', part: string | null = null) {
+  // In the desk view only the case's own parts dim and show; the desk's items are never part of that.
+  const ofCase = (id: string) => id !== CASE_ID && !id.startsWith('desk:');
+  const focusId = mode === 'dim' ? (highlight !== null && highlight !== CASE_ID ? highlight : null) : part;
+  const shownId = mode === 'tint' && part !== null ? part : highlight;
+  for (const d of dimmables) {
+    const scoped = mode === 'dim' || ofCase(d.id);
+    const picked = focusId !== null && scoped && d.id === focusId;
+    const factor = focusId !== null && scoped && !picked ? DIMMED : 1;
+    const tinted = mode === 'tint' && d.id === highlight;
+    d.materials.forEach((m, i) => {
+      // Fat lines carry a width; a face does not, and only faces take the tint.
+      const isFace = !('linewidth' in m);
+      // The picked part reads in full and shows through whatever stands in front of it, so a part behind a cooler or a card is still seen.
+      m.opacity = picked ? (isFace ? Math.min(1, d.base[i] + PICKED_FACE_BOOST) : 1) : Math.min(1, d.base[i] * factor + (tinted && isFace ? HOVER_TINT : 0));
+      m.depthTest = !picked;
+    });
+    if (d.node) d.node.visible = d.id === shownId;
+  }
 }
