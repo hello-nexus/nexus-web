@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   listOverlayWidgets,
   patchOverlayWidget,
@@ -140,6 +140,9 @@ export default function OverlayShell() {
   const scaleFactor = useMemo(() => scale / 100, [scale]);
   const cellPx = useMemo(() => Math.round(BASE_CELL_PX * scaleFactor), [scaleFactor]);
   const [layout, setLayout] = useState<OverlayWidgetDto[]>([]);
+  // Rendered layout plus config merges not yet rendered, read by handleUpdateConfig.
+  const layoutRef = useRef(layout);
+  useLayoutEffect(() => { layoutRef.current = layout; }, [layout]);
   const [loading, setLoading] = useState(true);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [widgetOpacity, setWidgetOpacity] = useState(1);
@@ -409,13 +412,13 @@ export default function OverlayShell() {
     id: string,
     config: Record<string, PanelConfigValue>,
   ) => {
-    let merged: Record<string, PanelConfigValue> | undefined;
-    setLayout(prev => prev.map(entry => {
-      if (entry.id !== id) return entry;
-      merged = { ...entry.config, ...config };
-      return { ...entry, config: merged };
-    }));
-    if (merged) await patchOverlayWidget(id, { config: merged });
+    // Built outside the updater: React may run the updater after this reads it.
+    const entry = layoutRef.current.find(w => w.id === id);
+    if (!entry) return;
+    const merged = { ...entry.config, ...config };
+    layoutRef.current = layoutRef.current.map(w => w.id === id ? { ...w, config: merged } : w);
+    setLayout(prev => prev.map(w => w.id === id ? { ...w, config: { ...w.config, ...config } } : w));
+    await patchOverlayWidget(id, { config: merged });
   }, []);
 
   const handleRemoveFromEditor = useCallback(async (id: string) => {
