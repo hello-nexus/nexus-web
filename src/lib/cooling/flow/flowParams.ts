@@ -80,3 +80,14 @@ export const PARTICLE_DRAW_SHARE = 0.7;
 export const drawnParticles = (pool: number, tierShare: number) => Math.round(pool * tierShare * PARTICLE_DRAW_SHARE);
 /** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */
 export const FAN_CLEARANCE_MM = 30;
+
+/** Velocity streaks: each particle is drawn as a line along its last step's displacement, the tail this many steps of travel behind the head. */
+export const STREAK_STEPS = 6;
+/** Streak length bounds, scene mm: a stalled particle keeps the minimum, a fast one is capped at the maximum. */
+export const STREAK_MIN_MM = 3;
+export const STREAK_MAX_MM = 40;
+/** Streak width in scene mm, and the narrowest it is drawn on screen, px. */
+export const STREAK_WIDTH_MM = 3;
+export const STREAK_MIN_WIDTH_PX = 1.5;
+/** Steps shorter than this many mm have no usable direction, so the streak takes a fixed axis. */
+export const STREAK_STALL_MM = 1e-4;

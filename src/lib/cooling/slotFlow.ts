@@ -45,25 +45,24 @@ export function slotDirections(slots: readonly Pick<CaseFanSlot, 'key' | 'positi
 
 type LiveChannel = Pick<FanChannel, 'id' | 'rpm' | 'dutyPercent' | 'maxRpm' | 'rpmUnavailable'>;
 
-/** Live speed of each fan that has a device bound, keyed by fan key: a channel's tach or a simulated `sim:<rpm>` id, both through the same share-of-top-speed rule. A GPU or radiator fan that is unlinked, or a GPU fan nothing drives, is not turning; any other unbound fan has no entry. */
+/** Live speed of each fan that has a device bound, keyed by fan key: a channel's tach or a simulated `sim:<rpm>` id, both through the same share-of-top-speed rule. A fan with no device bound, or an explicit `none`, is not turning: it reads as a 0 rpm fan. */
 export function slotSpeeds(slots: readonly CaseFanSlot[], bindings: readonly FanBinding[], channels: readonly LiveChannel[]): Map<string, SlotSpeed> {
   const out = new Map<string, SlotSpeed>();
   for (const slot of slots) {
     const topSpeed = slot.fan?.rpmMax;
     slotFanKeys(slot).forEach(key => {
       let best: SlotSpeed | undefined;
-      let unlinked = false;
       for (const b of bindings) {
         if (!b.slotKeys.includes(key)) continue;
-        if (b.channelId === NONE_CHANNEL) { unlinked = true; continue; }
+        if (b.channelId === NONE_CHANNEL) continue;
         const rpm = simRpm(b.channelId);
         const live = channels.find(c => c.id === b.channelId) ?? (rpm !== null ? { rpm, dutyPercent: 0 } : null);
         if (!live) continue;
         const sp = speedFraction(live, topSpeed);
         if (!best || sp.fraction > best.fraction) best = sp;
       }
-      if (!best && (unlinked || isGpuSlotKey(key))) best = { fraction: 0, estimated: true };
-      if (best) out.set(key, best);
+      if (!best) best = { fraction: 0, estimated: true };
+      out.set(key, best);
     });
   }
   return out;

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import type { CoolingLayout } from '../../../../api/coolingLayout';
@@ -448,7 +448,8 @@ describe('CoolingCase3D airflow controls', () => {
     const state = lastState();
     expect(state.flow.layout.fanSlots).toHaveLength(2);
     expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
-    expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    // No fan is linked, so both read as 0 rpm fans.
+    expect(state.flow.fanCfm).toEqual({ 'front:120:0': 0, 'rear:120:0': 0 });
     expect(state.flowOptions).toEqual({ particles: true, collisions: false, speed: 1 });
   });
 
@@ -589,17 +590,37 @@ describe('CoolingCase3D live fan speed', () => {
     return render(<CoolingCase3D channels={rpmChannels(rpm)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
   };
 
-  it('runs a bound fan at its live share and leaves an unbound one rated', () => {
-    mount(750, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+  it('runs a bound fan at its live share and an unbound one idle', () => {
+    mount(750, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }, { channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
     const cfm = lastState().flow.fanCfm as Record<string, number>;
     expect(cfm['front:120:0']).toBeLessThan(cfm['rear:120:0'] * 0.8);
+    cleanup();
+    mount(750, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    expect((lastState().flow.fanCfm as Record<string, number>)['rear:120:0']).toBe(0);
+  });
+
+  it('starts and stops a fan in place when a device is linked and unlinked', () => {
+    h.setup = { record: record(), loaded: true };
+    const withBinding = (bindings: CoolingLayout['bindings']) => ({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    setLayout(withBinding([]));
+    const { rerender } = render(<CoolingCase3D channels={rpmChannels(1500)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const idle = lastState();
+    expect(idle.flow.fanCfm['front:120:0']).toBe(0);
+    setLayout(withBinding([{ channelId: 'sim:1500', slotKeys: ['front:120:0'] }]));
+    rerender(<CoolingCase3D channels={rpmChannels(1500)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const running = lastState();
+    expect(running.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    setLayout(withBinding([{ channelId: 'none', slotKeys: ['front:120:0'] }]));
+    rerender(<CoolingCase3D channels={rpmChannels(1500)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    expect(lastState().flow.fanCfm['front:120:0']).toBe(0);
+    expect(vi.mocked(createCaseRenderer)).toHaveBeenCalledTimes(1);
+    expect(running.layout).toEqual(idle.layout);
   });
 
   it('gives a stopped bound fan no flow', () => {
     mount(0, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
     const cfm = lastState().flow.fanCfm as Record<string, number>;
     expect(cfm['front:120:0']).toBe(0);
-    expect(cfm['rear:120:0']).toBeGreaterThan(0);
     expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
   });
 
