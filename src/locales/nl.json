@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Firmwarebediening",
   "cooling.card.manual": "Handmatig",
   "cooling.card.mode": "Ventilatormodus",
+  "cooling.case3d.build.customize": "Onderdelen aanpassen in Build",
   "cooling.case3d.canvas": "3D-weergave van je behuizing met fans en luchtstroomrichting",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Gekoppeld apparaat",

@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Sterowanie Firmware",
   "cooling.card.manual": "Reczne",
   "cooling.card.mode": "Tryb wentylatora",
+  "cooling.case3d.build.customize": "Dostosuj podzespoły w Build",
   "cooling.case3d.canvas": "Widok 3D obudowy z wentylatorami i kierunkiem przepływu powietrza",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Przypisane urządzenie",

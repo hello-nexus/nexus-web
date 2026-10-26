@@ -327,8 +327,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       {caseModel.settled && !caseModel.bytes && <Notice tone="info" role="status">{t('cooling.case3d.noModel')}</Notice>}
       {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
-        <div className={`${styles.info} ${styles.control}`}>
+        <div className={`${styles.corner} ${styles.control}`}>
           <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
+          <Button size="sm" tone="ghost" icon={<Box size={14} strokeWidth={1.8} />} title={t('cooling.case3d.build.customize')} aria-label={t('cooling.case3d.build.customize')} onClick={() => requestOpenBuild('/builder')} />
         </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />

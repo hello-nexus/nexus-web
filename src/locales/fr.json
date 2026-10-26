@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Contrôle Firmware",
   "cooling.card.manual": "Manuel",
   "cooling.card.mode": "Mode du ventilateur",
+  "cooling.case3d.build.customize": "Personnaliser les composants dans Build",
   "cooling.case3d.canvas": "Vue 3D de votre boîtier avec les ventilateurs et le sens du flux d'air",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Appareil associé",

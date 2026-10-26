@@ -389,6 +389,7 @@
   "cooling.card.firmware": "펌웨어 제어",
   "cooling.card.manual": "수동",
   "cooling.card.mode": "팬 모드",
+  "cooling.case3d.build.customize": "Build에서 부품 사용자 지정",
   "cooling.case3d.canvas": "팬과 공기 흐름 방향을 보여 주는 케이스 3D 보기",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "연결된 장치",

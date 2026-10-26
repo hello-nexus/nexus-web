@@ -389,6 +389,7 @@
   "cooling.card.firmware": "ファームウェア制御",
   "cooling.card.manual": "手動",
   "cooling.card.mode": "ファンモード",
+  "cooling.case3d.build.customize": "Buildでパーツをカスタマイズ",
   "cooling.case3d.canvas": "ファンと風向きを表示するケースの3Dビュー",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "割り当てられたデバイス",

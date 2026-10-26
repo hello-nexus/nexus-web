@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Řízení firmwarem",
   "cooling.card.manual": "Ruční",
   "cooling.card.mode": "Režim ventilátoru",
+  "cooling.case3d.build.customize": "Upravit součásti v Buildu",
   "cooling.case3d.canvas": "3D pohled na vaši skříň s ventilátory a směrem proudění vzduchu",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Přiřazené zařízení",
