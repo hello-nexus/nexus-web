@@ -1,3 +1,4 @@
+import type { SceneLayout } from '../scene/pcScene';
 import type { FanDirection } from './pressureModel';
 import { SIM_PREFIX } from './fanSpeed';
 import { gpuFanSlots } from './gpuFans';
@@ -27,6 +28,8 @@ export interface CasePlate {
   outline: [number, number][];
   holes: [number, number][][];
   wall?: boolean;
+  /** The outline is a shell face, whose edges the shell draws; only the cutouts draw. */
+  onShell?: boolean;
 }
 
 export interface CaseBox {
@@ -36,7 +39,13 @@ export interface CaseBox {
   size: Vec3;
   select?: string;
   rotationY?: number;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[] };
+  /** Where the dimensions come from; `estimate` draws dashed. */
+  source?: string;
+  /** A solid read from the maker's CAD, drawn like a CAD plate. */
+  cadSolid?: boolean;
+  /** A part that collides with another, drawn in the warning color. */
+  conflict?: boolean;
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -89,6 +98,15 @@ export interface CaseTube {
   points: Vec3[];
 }
 
+/** A line the case view draws besides the hoses: a part's cable or outline run, in layout mm. */
+export interface CaseLine {
+  slot: string;
+  role: string;
+  points: Vec3[];
+  /** Set on a hose: a solid tube of this radius (mm) through the points. */
+  radius?: number;
+}
+
 export interface CaseLayout {
   /** Outer case [depth, width, height]; box sizes are [depth, height, width]. */
   size: Vec3;
@@ -98,6 +116,8 @@ export interface CaseLayout {
   windowRight?: boolean;
   /** The AIO hoses at the radiator's current mount. */
   tubes?: CaseTube[];
+  /** Every other line Build draws, hairlines through points. */
+  lines?: CaseLine[];
   /** The mount the radiator sits on in this layout: the chosen option's, else the one Build resolved. */
   radiatorMount?: string;
   /** Every mount the radiator can take, with the box it would fill; present with two or more. */
@@ -179,7 +199,7 @@ function parseShapes(b: Record<string, unknown>, box: CaseBox) {
     const outline = poly2(pl.outline);
     if (outline) {
       const holes = Array.isArray(pl.holes) ? pl.holes.slice(0, 64).map(poly2).filter((h): h is [number, number][] => h !== null) : [];
-      box.plate = { normal: pl.normal, outline, holes, ...(pl.wall === true ? { wall: true } : {}) };
+      box.plate = { normal: pl.normal, outline, holes, ...(pl.wall === true ? { wall: true } : {}), ...(pl.onShell === true ? { onShell: true } : {}) };
     }
   }
 }
@@ -192,10 +212,13 @@ function parseBox(raw: unknown): CaseBox | null {
   if (!min || !size || size.some(n => n < 0) || typeof b.slot !== 'string' || typeof b.role !== 'string') return null;
   const box: CaseBox = { slot: b.slot, role: b.role, min, size };
   if (keyOf(b.select)) box.select = b.select;
+  if (typeof b.source === 'string' && b.source.length <= 32) box.source = b.source;
+  if (b.cadSolid === true) box.cadSolid = true;
+  if (b.conflict === true) box.conflict = true;
   if (finite(b.rotationY)) box.rotationY = b.rotationY;
   const fans = b.fans as Record<string, unknown> | undefined;
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
-    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...ringLists(fans) };
+    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...(typeof fans.source === 'string' && fans.source.length <= 32 ? { source: fans.source } : {}), ...ringLists(fans) };
   }
   parseShapes(b, box);
   return box;
@@ -242,6 +265,23 @@ const MAX_OPTIONS = 8;
 const MAX_TUBES = 4;
 const MAX_TUBE_POINTS = 12;
 const MAX_TUBE_RADIUS_MM = 30;
+const MAX_LINES = 64;
+const MAX_LINE_POINTS = 256;
+
+/** Every line of the record, in its order: hairlines and hoses (a hose has a radius). */
+function parseLines(raw: unknown): CaseLine[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CaseLine[] = [];
+  for (const l of raw.slice(0, MAX_LINES) as Record<string, unknown>[]) {
+    if (!l || typeof l !== 'object' || typeof l.slot !== 'string' || typeof l.role !== 'string') continue;
+    if (!Array.isArray(l.points) || l.points.length < 2 || l.points.length > MAX_LINE_POINTS) continue;
+    const points = l.points.map(p => vec3(p, false));
+    const radius = finite(l.radius) && l.radius > 0 && l.radius <= MAX_TUBE_RADIUS_MM ? l.radius : undefined;
+    if (l.radius !== undefined && radius === undefined) continue;
+    if (points.every((p): p is Vec3 => p !== null)) out.push({ slot: l.slot, role: l.role, points, ...(radius ? { radius } : {}) });
+  }
+  return out;
+}
 
 function parseTubes(raw: unknown): CaseTube[] {
   if (!Array.isArray(raw)) return [];
@@ -304,10 +344,12 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
   const mount = picked?.mount ?? resolvedMount;
   // Build's hose lines are the resolved mount's; a moved radiator takes its option's, and none when the record has none.
   const tubes = picked ? picked.tubes ?? [] : parseTubes(Array.isArray(r.lines) ? (r.lines as Record<string, unknown>[]).filter(l => l && typeof l === 'object' && l.radius !== undefined) : []);
+  const lines = parseLines(r.lines);
   return {
     size,
     boxes,
     ...(tubes.length > 0 ? { tubes } : {}),
+    ...(lines.length > 0 ? { lines } : {}),
     fanSlots: [...slots, ...gpuFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
     ...(mount ? { radiatorMount: mount } : {}),
     ...(options.length >= 2 ? { radiatorOptions: options } : {}),
@@ -315,6 +357,14 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
     ...(r.windowRight === true ? { windowRight: true } : {}),
     ...(typeof r.caseModel === 'string' && r.caseModel.length <= 120 ? { caseModel: r.caseModel } : {}),
   };
+}
+
+/** The layout as Build's scene draws it. A moved radiator takes its option's hoses in place of the record's. */
+export function sceneLayout(layout: CaseLayout): SceneLayout {
+  const lines = layout.lines ?? [];
+  if (!layout.radiatorMove) return { size: layout.size, boxes: layout.boxes, lines };
+  const hoses = (layout.tubes ?? []).map(t => ({ slot: 'cooler', role: 'part', radius: t.radius, points: t.points }));
+  return { size: layout.size, boxes: layout.boxes, lines: [...lines.filter(l => l.radius === undefined), ...hoses] };
 }
 
 /** Case extents in scene axes [x, y, z]. */

@@ -238,6 +238,7 @@ describe('LightingPage canvas header', () => {
     const before = title();
     fireEvent.click(radios[1]);
     expect(title()).toBe(before);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('opens on its own stored 3D view with no 2D canvas first, and not on the Cooling choice', async () => {

@@ -13,7 +13,6 @@ const h = vi.hoisted(() => ({
 
 vi.mock('../../../../hooks/useComponentTemps', () => ({ useComponentTemps: () => h.temps }));
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
-vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: () => ({ bytes: null, settled: true }) }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn(() => {

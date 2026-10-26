@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CaseLayout } from '../../../../lib/cooling/caseLayout';
 
 const made = vi.hoisted(() => [] as { forceContextLoss: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; calls: string[] }[]);
+const drawn = vi.hoisted(() => [] as { children: unknown[] }[]);
 
 vi.mock('three', async importOriginal => {
   const actual = await importOriginal<typeof import('three')>();
@@ -13,7 +14,7 @@ vi.mock('three', async importOriginal => {
     constructor() { made.push(this); }
     setPixelRatio() {}
     setSize() {}
-    render() {}
+    render(scene: { children: unknown[] }) { drawn.push(scene); }
   }
   return { ...actual, WebGLRenderer: FakeRenderer };
 });
@@ -33,6 +34,11 @@ vi.mock('../../../../lib/cooling/flow/flowLayer', () => ({
 }));
 
 import { LineBasicMaterial, LineDashedMaterial, Color } from 'three';
+import { Group } from 'three';
+import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
+import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
+import { buildCase, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
+import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
 import { createCaseRenderer, ringMaterial } from './coolingCaseRenderer';
 
 const layout: CaseLayout = {
@@ -51,7 +57,7 @@ describe('createCaseRenderer', () => {
   it('releases the WebGL context before disposing, once per renderer', () => {
     for (let i = 0; i < 20; i++) {
       const r = createCaseRenderer(document.createElement('canvas'), () => {});
-      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 }, model: null });
+      r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 } });
       r.dispose();
     }
     expect(made).toHaveLength(20);
@@ -66,7 +72,7 @@ describe('createCaseRenderer', () => {
     layers.created = 0;
     layers.disposed = 0;
     const r = createCaseRenderer(document.createElement('canvas'), () => {});
-    const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), simulated: new Set<string>(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 }, model: null });
+    const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), simulated: new Set<string>(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 } });
     r.setState(state(layout));
     const edited: CaseLayout = { ...layout, fanSlots: layout.fanSlots.map(s => ({ ...s, taken: 'fan' as const })) };
     r.setState(state(edited));
@@ -114,7 +120,7 @@ describe('pick gesture', () => {
 describe('one transform from layout mm', () => {
   it('draws the outline, the fans and the airflow layer (particles and collision shapes) in the same untransformed space', () => {
     const r = createCaseRenderer(document.createElement('canvas'), () => {});
-    r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: true, speed: 1 }, model: null });
+    r.setState({ layout, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: true, speed: 1 } });
     const groups = layers.host?.parent?.children ?? [];
     expect(groups.length).toBeGreaterThanOrEqual(3);
     for (const g of groups) {
@@ -126,14 +132,24 @@ describe('one transform from layout mm', () => {
   });
 });
 
-describe('tubeGeometry', () => {
-  it('is a tube of the hose radius around the curve', async () => {
-    const { tubeGeometry } = await import('./coolingCaseRenderer');
-    const geo = tubeGeometry({ radius: 6, points: [[0, 0, 0], [0, 25, 0], [50, 40, 0], [60, 40, 0]] });
-    geo.computeBoundingBox();
-    const box = geo.boundingBox!;
-    // The z extent is the tube's diameter: the curve stays in one plane.
-    expect(box.max.z - box.min.z).toBeCloseTo(12, 0);
-    expect(box.min.z).toBeLessThan(0);
+describe('the case is Build\'s scene', () => {
+  it('draws the case through the shared scene module, the same graph Build builds for the same layout', () => {
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1; });
+    drawn.length = 0;
+    const canvas = document.createElement('canvas');
+    const r = createCaseRenderer(canvas, () => {});
+    const parsed = parseCaseLayout(y70)!;
+    r.setState({ layout: parsed, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1 } });
+    // The scene's first child is the case group; its one child holds Build's case, centered as Build centers it.
+    const staticGroup = drawn.at(-1)!.children[0] as Group;
+    const [D, W, H] = parsed.size;
+    const expected = new Group();
+    expected.position.set(D / 2, H / 2, W / 2);
+    // Build's call for a still view of a case; the fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
+    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, scenePalette(canvas), [], [], [], true, false, true, true));
+    expect(staticGroup.children).toHaveLength(1);
+    expect(sceneSignature(staticGroup.children[0])).toEqual(sceneSignature(expected));
+    r.dispose();
+    vi.unstubAllGlobals();
   });
 });
