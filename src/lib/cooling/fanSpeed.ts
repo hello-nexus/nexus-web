@@ -62,7 +62,7 @@ export function simRpm(channelId: string): number | null {
 }
 
 /** Share of rated flow shown for a fan at `fraction` of top speed: a spinning fan always moves, and the slowest still reads as clearly moving. The same speed cap as the stats. */
-const VISUAL_FLOW_FLOOR = 0.45;
+const VISUAL_FLOW_FLOOR = 0.3;
 export function visualFlowCfm(ratedCfm: number, fraction: number): number {
   return fraction > 0 ? ratedCfm * (VISUAL_FLOW_FLOOR + (1 - VISUAL_FLOW_FLOOR) * Math.min(MAX_FRACTION, fraction)) : 0;
 }

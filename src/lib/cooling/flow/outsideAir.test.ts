@@ -234,16 +234,16 @@ describe('the Y70 bottom intakes', () => {
 });
 
 describe('the drawn particle budget', () => {
-  it('draws 70 percent of the pool at every grid tier, outside air included', () => {
-    expect(PARTICLE_DRAW_SHARE).toBeCloseTo(0.7, 10);
-    for (const tier of [1, 0.75, 0.5]) expect(drawnParticles(10752, tier)).toBe(Math.round(10752 * tier * 0.7));
+  it('draws half of the pool at every grid tier, outside air included', () => {
+    expect(PARTICLE_DRAW_SHARE).toBeCloseTo(0.5, 10);
+    for (const tier of [1, 0.75, 0.5]) expect(drawnParticles(10752, tier)).toBe(Math.round(10752 * tier * 0.5));
   });
 });
 
 describe('a face fan keeps its rated speed on both sides of its face', () => {
   it('drives the cells inward of the face to the fan target, in proportion between a slow and a fast fan', () => {
     const input = inputFor([fronts[0], fronts[1], rear], [], defaultDir, 60);
-    input.fanCfm = { [fronts[0].key]: 33.6, [fronts[1].key]: 60, [rear.key]: 93.6 };
+    input.fanCfm = { [fronts[0].key]: 26.4, [fronts[1].key]: 60, [rear.key]: 86.4 };
     input.referenceCfm = 60;
     const scene = buildFlowScene(input, 64 * 48 * 96);
     const [NX, NY] = scene.dims;
@@ -265,7 +265,7 @@ describe('a face fan keeps its rated speed on both sides of its face', () => {
     const slow = targetAt(inward(fronts[0].key));
     const fast = targetAt(inward(fronts[1].key));
     expect(slow).toBeGreaterThan(0);
-    expect(slow / fast).toBeGreaterThan(0.45);
-    expect(slow / fast).toBeLessThan(0.6);
+    expect(slow / fast).toBeGreaterThan(0.38);
+    expect(slow / fast).toBeLessThan(0.52);
   });
 });
