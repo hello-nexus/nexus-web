@@ -5,14 +5,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HostMessage } from './hostBridge';
 
 const posted: HostMessage[] = [];
+const widgets = vi.hoisted(() => ({
+  list: [{ id: 'w1', type: 'stub', size: '2x2', monitor: 0, col: 0, row: 0 }],
+  onPrefs: null as null | (() => void),
+}));
 
 vi.mock('./hostBridge', () => ({
   postToHost: (msg: HostMessage) => { posted.push(msg); },
 }));
 vi.mock('../api/overlay', () => ({
-  listOverlayWidgets: vi.fn(async () => [
-    { id: 'w1', type: 'stub', size: '2x2', monitor: 0, col: 0, row: 0 },
-  ]),
+  listOverlayWidgets: vi.fn(async () => widgets.list),
   patchOverlayWidget: vi.fn(async () => null),
   deleteOverlayWidget: vi.fn(async () => true),
   setAllOverlayWidgetsLocked: vi.fn(async () => null),
@@ -21,7 +23,11 @@ vi.mock('../api/service', () => ({
   fetchService: vi.fn(async () => null),
   postService: vi.fn(async () => null),
 }));
-vi.mock('../hooks/useMultiplexSocket', () => ({ useTopicCallback: () => {} }));
+vi.mock('../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (topic: string, _enabled: boolean, cb: () => void) => {
+    if (topic === 'prefs') widgets.onPrefs = cb;
+  },
+}));
 vi.mock('../panel/widgets/registry', () => ({
   APP_REGISTRY: { stub: { meta: {}, Widget: () => null, Settings: () => null } },
   sizesForSurface: () => ['2x2'],
@@ -44,9 +50,12 @@ const activatable = () => posted
   .map(m => m.value);
 
 describe('OverlayShell activation', () => {
-  beforeEach(() => { posted.length = 0; });
+  beforeEach(() => {
+    posted.length = 0;
+    widgets.list = [{ id: 'w1', type: 'stub', size: '2x2', monitor: 0, col: 0, row: 0 }];
+  });
 
-  it('is activatable only while the edit sheet is open', async () => {
+  async function openEditor() {
     const { container } = render(<OverlayShell />);
     const tile = await vi.waitFor(() => {
       const el = container.querySelector('[data-widget-id="w1"]');
@@ -54,12 +63,23 @@ describe('OverlayShell activation', () => {
       return el;
     });
     expect(activatable()).toEqual([false]);
-
     fireEvent.contextMenu(tile);
     await act(async () => { fireEvent.click(screen.getByText('edit')); });
     expect(activatable()).toEqual([false, true]);
+  }
+
+  it('is activatable only while the edit sheet is open', async () => {
+    await openEditor();
 
     await act(async () => { fireEvent.click(screen.getByText('close')); });
     expect(activatable()).toEqual([false, true, false]);
+  });
+
+  it('stops being activatable when the edited widget is deleted elsewhere', async () => {
+    await openEditor();
+    widgets.list = [];
+    await act(async () => { widgets.onPrefs?.(); });
+    await vi.waitFor(() => expect(activatable()).toEqual([false, true, false]));
+    expect(screen.queryByText('close')).toBeNull();
   });
 });

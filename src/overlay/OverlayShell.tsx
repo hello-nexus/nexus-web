@@ -447,14 +447,17 @@ export default function OverlayShell() {
   // host even with no interaction. A broadcast mid-interaction still posts true
   // because `raised` dominates, so it can't sink the window under the user. No
   // POST to /preferences here - the persisted setting is unchanged.
-  const raised = menu !== null || editingWidgetId !== null || dragOverride !== null;
+  // A widget deleted elsewhere (dashboard, purge) leaves editingWidgetId set
+  // with no sheet to close, so editing follows the entry the sheet renders.
+  const editingEntry = editingWidgetId ? layout.find(w => w.id === editingWidgetId) : undefined;
+  const editing = !!editingEntry && !!APP_REGISTRY[editingEntry.type];
+  const raised = menu !== null || editing || dragOverride !== null;
   useEffect(() => {
     postToHost({ type: 'setAlwaysOnTop', value: raised || alwaysOnTop });
   }, [raised, alwaysOnTop]);
 
   // The Windows host keeps the overlay non-activating so widget clicks never
   // take the foreground; text fields in the edit sheet need it to take focus.
-  const editing = editingWidgetId !== null;
   useEffect(() => {
     postToHost({ type: 'setActivatable', value: editing });
   }, [editing]);
