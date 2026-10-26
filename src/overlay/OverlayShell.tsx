@@ -452,6 +452,13 @@ export default function OverlayShell() {
     postToHost({ type: 'setAlwaysOnTop', value: raised || alwaysOnTop });
   }, [raised, alwaysOnTop]);
 
+  // The Windows host keeps the overlay non-activating so widget clicks never
+  // take the foreground; text fields in the edit sheet need it to take focus.
+  const editing = editingWidgetId !== null;
+  useEffect(() => {
+    postToHost({ type: 'setActivatable', value: editing });
+  }, [editing]);
+
   // Reset the slot picker any time we open the editor on a new widget,
   // matching PanelApp's expected starting state (slot 0).
   useEffect(() => {
