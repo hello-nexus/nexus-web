@@ -9,6 +9,7 @@ import {
 import { fetchService, postService } from '../api/service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { sizesForSurface, APP_REGISTRY } from '../panel/widgets/registry';
+import { mergeWidgetConfig } from './overlayConfig';
 import { purgePanelOnlyOverlayWidgets } from './overlayWidgetPurge';
 import type { DeckEditView } from '../panel/widgets/types';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
@@ -140,6 +141,9 @@ export default function OverlayShell() {
   const scaleFactor = useMemo(() => scale / 100, [scale]);
   const cellPx = useMemo(() => Math.round(BASE_CELL_PX * scaleFactor), [scaleFactor]);
   const [layout, setLayout] = useState<OverlayWidgetDto[]>([]);
+  // Latest committed layout, so config merges read current state at call time.
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
   const [loading, setLoading] = useState(true);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [widgetOpacity, setWidgetOpacity] = useState(1);
@@ -409,12 +413,10 @@ export default function OverlayShell() {
     id: string,
     config: Record<string, PanelConfigValue>,
   ) => {
-    let merged: Record<string, PanelConfigValue> | undefined;
-    setLayout(prev => prev.map(entry => {
-      if (entry.id !== id) return entry;
-      merged = { ...entry.config, ...config };
-      return { ...entry, config: merged };
-    }));
+    const result = mergeWidgetConfig(layoutRef.current, id, config);
+    layoutRef.current = result.layout;
+    setLayout(result.layout);
+    const merged = result.merged;
     if (merged) await patchOverlayWidget(id, { config: merged });
   }, []);
 
