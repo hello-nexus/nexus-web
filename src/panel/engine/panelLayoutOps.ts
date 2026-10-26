@@ -253,8 +253,8 @@ export function patchWidgetById(
  * widgets cascade row-major into the first empty rect that fits each
  * (skipping the active rect and earlier-displaced widgets). A Springboard
  * shift of the run between the source's old slot and the drop
- * (shiftPreview) replaces the cascade when the cascade fails, or when the
- * shift also lands the source on (col, row) and moves the siblings no
+ * (shiftPreview) replaces the cascade when it lands the source on (col, row)
+ * and either the cascade fails or the shift moves the siblings no
  * further - on a full column the cascade either fails or teleports a
  * neighbour into the vacated cell at the far end.
  */
@@ -357,8 +357,8 @@ export function previewDrag(
   const shifted = shiftPreview(layout, sourceId, sourcePageIdx, targetPageIdx, placed, cols, rows);
   if (!shifted) return cascaded;
   const landed = shifted.pages[targetPageIdx].widgets.find(w => w.id === sourceId);
-  // The reflow scans even cells first, so it can move the source off an odd
-  // target; the highlight shows the target, so refuse rather than land elsewhere.
+  // The band reflow is first-fit, so it can land the source before the
+  // highlighted target; refuse rather than land elsewhere.
   const onTarget = landed !== undefined && landed.col === col && landed.row === row;
   if (!cascaded) return onTarget ? shifted : null;
   if (!onTarget) return cascaded;

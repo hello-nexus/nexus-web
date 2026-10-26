@@ -277,11 +277,7 @@ describe('previewDrag', () => {
       widgets.push(widget(`l${r}`, '2x2', 0, r), widget(`r${r}`, '2x2', 2, r));
     }
     const l = layout([widgets]);
-    const result = previewDrag(l, 'r2', 'p1', 1, 1, { gridCols: 4, pageRows: 16 });
-    if (result) {
-      expect(findWidget(result, 'r2')!.widget).toMatchObject({ col: 1, row: 1 });
-      expectNoOverlap(result);
-    }
+    expect(previewDrag(l, 'r2', 'p1', 1, 1, { gridCols: 4, pageRows: 16 })).toBeNull();
   });
 
   it('accepts an odd target on a page with free space', () => {
