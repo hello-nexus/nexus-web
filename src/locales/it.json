@@ -435,7 +435,7 @@
   "cooling.case3d.pressure.positive": "Pressione positiva",
   "cooling.case3d.radiator.error": "Impossibile spostare il radiatore. Riprova.",
   "cooling.case3d.radiator.label": "Posizione del radiatore",
-  "cooling.case3d.resolveFailed.hint": "Build non ha finito di caricarsi. Controlla la connessione a internet e riprova.",
+  "cooling.case3d.resolveFailed.hint": "Build non è riuscito a finire di preparare la disposizione. Controlla la connessione a internet e riprova.",
   "cooling.case3d.resolveFailed.retry": "Riprova",
   "cooling.case3d.resolveFailed.title": "Impossibile preparare la vista del flusso d'aria",
   "cooling.case3d.resolving.hint": "Lettura del case e dei componenti di questo PC. Servono pochi secondi.",

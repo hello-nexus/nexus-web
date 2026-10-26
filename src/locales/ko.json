@@ -435,7 +435,7 @@
   "cooling.case3d.pressure.positive": "양압",
   "cooling.case3d.radiator.error": "라디에이터를 이동하지 못했습니다. 다시 시도해 주세요.",
   "cooling.case3d.radiator.label": "라디에이터 위치",
-  "cooling.case3d.resolveFailed.hint": "Build가 로딩을 마치지 못했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.",
+  "cooling.case3d.resolveFailed.hint": "Build가 레이아웃 준비를 마치지 못했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.",
   "cooling.case3d.resolveFailed.retry": "다시 시도",
   "cooling.case3d.resolveFailed.title": "공기 흐름 보기를 준비하지 못했습니다",
   "cooling.case3d.resolving.hint": "이 PC의 케이스와 부품을 읽는 중입니다. 몇 초 걸립니다.",

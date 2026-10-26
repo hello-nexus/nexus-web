@@ -435,7 +435,7 @@
   "cooling.case3d.pressure.positive": "Избыточное давление",
   "cooling.case3d.radiator.error": "Не удалось переместить радиатор. Повторите попытку.",
   "cooling.case3d.radiator.label": "Положение радиатора",
-  "cooling.case3d.resolveFailed.hint": "Build не успел загрузиться. Проверьте подключение к интернету и повторите попытку.",
+  "cooling.case3d.resolveFailed.hint": "Build не смог завершить подготовку схемы. Проверьте подключение к интернету и повторите попытку.",
   "cooling.case3d.resolveFailed.retry": "Повторить",
   "cooling.case3d.resolveFailed.title": "Не удалось подготовить просмотр воздушного потока",
   "cooling.case3d.resolving.hint": "Считываются корпус и компоненты этого ПК. Это займёт несколько секунд.",

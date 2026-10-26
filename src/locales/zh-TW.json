@@ -435,7 +435,7 @@
   "cooling.case3d.pressure.positive": "正壓",
   "cooling.case3d.radiator.error": "無法移動冷排。請重試。",
   "cooling.case3d.radiator.label": "冷排位置",
-  "cooling.case3d.resolveFailed.hint": "Build 未能載入完成。請檢查網路連線後重試。",
+  "cooling.case3d.resolveFailed.hint": "Build 未能完成配置準備。請檢查網路連線後重試。",
   "cooling.case3d.resolveFailed.retry": "重試",
   "cooling.case3d.resolveFailed.title": "無法準備氣流檢視",
   "cooling.case3d.resolving.hint": "正在讀取這台 PC 的機殼和零件，需要幾秒鐘。",

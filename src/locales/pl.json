@@ -435,7 +435,7 @@
   "cooling.case3d.pressure.positive": "Nadciśnienie",
   "cooling.case3d.radiator.error": "Nie udało się przenieść chłodnicy. Spróbuj ponownie.",
   "cooling.case3d.radiator.label": "Położenie chłodnicy",
-  "cooling.case3d.resolveFailed.hint": "Build nie zakończył ładowania. Sprawdź połączenie z internetem i spróbuj ponownie.",
+  "cooling.case3d.resolveFailed.hint": "Build nie zdołał dokończyć przygotowania układu. Sprawdź połączenie z internetem i spróbuj ponownie.",
   "cooling.case3d.resolveFailed.retry": "Spróbuj ponownie",
   "cooling.case3d.resolveFailed.title": "Nie udało się przygotować widoku przepływu powietrza",
   "cooling.case3d.resolving.hint": "Odczytywanie obudowy i podzespołów tego PC. Potrwa to kilka sekund.",

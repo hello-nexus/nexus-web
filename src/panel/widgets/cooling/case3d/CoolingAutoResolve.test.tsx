@@ -17,7 +17,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock('../../../../api/service', () => ({ get isRemoteOrigin() { return h.remote; } }));
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
-vi.mock('../../../../components/views/BuildPage/buildMachine', () => ({ useBuildMachine: () => h.machine }));
+vi.mock('../../../../components/views/BuildPage/buildMachine', () => ({ useBuildMachine: (enabled: boolean) => (enabled ? h.machine : { machine: null, key: null }) }));
 vi.mock('../../../../components/views/BuildPage/BuildPage', () => ({
   BuildPage: ({ headless }: { headless: HeadlessBuild }) => {
     h.headless = headless;
@@ -112,7 +112,6 @@ describe('CoolingAutoResolve', () => {
     unmount();
     h.machine = machineFor('k1');
     h.remote = true;
-    h.machine = { machine: null, key: null };
     mount();
     expect(frame()).toBeNull();
   });

@@ -435,7 +435,7 @@
   "cooling.case3d.pressure.positive": "Přetlak",
   "cooling.case3d.radiator.error": "Radiátor se nepodařilo přesunout. Zkuste to znovu.",
   "cooling.case3d.radiator.label": "Poloha radiátoru",
-  "cooling.case3d.resolveFailed.hint": "Build se nepodařilo dokončit načítání. Zkontrolujte připojení k internetu a zkuste to znovu.",
+  "cooling.case3d.resolveFailed.hint": "Build nedokázal dokončit přípravu rozložení. Zkontrolujte připojení k internetu a zkuste to znovu.",
   "cooling.case3d.resolveFailed.retry": "Zkusit znovu",
   "cooling.case3d.resolveFailed.title": "Zobrazení proudění vzduchu se nepodařilo připravit",
   "cooling.case3d.resolving.hint": "Načítá se skříň a součásti tohoto PC. Potrvá to několik sekund.",

@@ -758,11 +758,11 @@ describe('BuildPage headless', () => {
     expect(hello).not.toHaveProperty('canSavePreview');
   });
 
-  it('renders the frame out of sight, at the default path, with no fallback page', () => {
+  it('renders the frame out of sight, flagged headless in its URL, with no fallback page', () => {
     const { container } = render(<BuildPage headless={headlessProp()} />);
     const wrap = container.firstElementChild as HTMLElement;
     expect(wrap.getAttribute('aria-hidden')).toBe('true');
-    expect(getIframe().getAttribute('src')).toBe(`${BUILD_ORIGIN}/builder`);
+    expect(getIframe().getAttribute('src')).toBe(`${BUILD_ORIGIN}/builder?headless=1`);
     expect(screen.queryByText('build.offline.title')).toBeNull();
   });
 

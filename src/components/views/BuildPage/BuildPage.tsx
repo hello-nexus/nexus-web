@@ -23,6 +23,7 @@ import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
 const DEFAULT_PATH = '/builder';
+const HEADLESS_PATH = '/builder?headless=1';
 const READY_TIMEOUT_MS = 8000;
 const MAX_GAMES = 10;
 // Only the iframe's own script/form/same-origin-storage capabilities are
@@ -133,7 +134,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   const { specs } = useSystemSpecs(true);
   const { gamesByKey } = useFpsGames();
 
-  const safePath = sanitizeBuildPath(path);
+  // The flag in the URL tells the page it is headless before any hello lands.
+  const safePath = sanitizeBuildPath(headless ? HEADLESS_PATH : path);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const onOpenBenchmarkRef = useRef(onOpenBenchmark);
