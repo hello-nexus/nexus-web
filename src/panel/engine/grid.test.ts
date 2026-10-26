@@ -7,6 +7,7 @@ import {
   panelWidgetPaddingRatio,
   resolvePanelSpacing,
   sizeToSpan,
+  snapDropCell,
   snapStride,
   PANEL_GRID_COLS,
   PANEL_WIDGET_PADDING_DEFAULT_PERCENT,
@@ -304,5 +305,31 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
     expect(cap.contentScale).toBe(360);
     expect(cap.contentGap).toBe(0);
     expect([cap.contentColumns, cap.contentRows]).toEqual([cap.columns, cap.rows]);
+  });
+});
+
+describe('snapDropCell', () => {
+  const grid = { cols: 4, rows: 16 };
+
+  it('lets a 2x2 drop on odd columns and rows', () => {
+    expect(snapDropCell(1.2, 3.1, { cols: 2, rows: 2 }, grid)).toEqual({ col: 1, row: 3 });
+    expect(snapDropCell(0.4, 0.6, { cols: 2, rows: 2 }, grid)).toEqual({ col: 0, row: 1 });
+  });
+
+  it('clamps so the rect stays inside the grid', () => {
+    expect(snapDropCell(9, 99, { cols: 2, rows: 2 }, grid)).toEqual({ col: 2, row: 14 });
+    expect(snapDropCell(-3, -1, { cols: 2, rows: 2 }, grid)).toEqual({ col: 0, row: 0 });
+  });
+
+  it('lets a 4x4 sit on col/row 2 only where it fits', () => {
+    expect(snapDropCell(2, 2, { cols: 4, rows: 4 }, grid)).toEqual({ col: 0, row: 2 });
+  });
+
+  it('works on the landscape 16x4 grid', () => {
+    expect(snapDropCell(5.4, 1.6, { cols: 2, rows: 2 }, { cols: 16, rows: 4 })).toEqual({ col: 5, row: 2 });
+  });
+
+  it('keeps resize on the 2-cell stride', () => {
+    expect(snapStride(2)).toBe(2);
   });
 });

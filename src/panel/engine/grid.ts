@@ -114,21 +114,20 @@ export function snapStride(span: number): number {
   return span <= 1 ? 1 : 2;
 }
 
-// Where a dragged widget drops: the top-left cell index rounded to the widget's own
-// per-axis stride and clamped so the rect stays inside the grid.
+// Where a dragged widget drops: the top-left cell index rounded to the nearest
+// cell and clamped so the rect stays inside the grid. Drops are not stride-limited,
+// so a 2-cell widget can start on any column or row.
 export function snapDropCell(
   continuousCol: number,
   continuousRow: number,
   span: GridSpan,
   grid: { cols: number; rows: number },
 ): { col: number; row: number } {
-  const colStep = snapStride(span.cols);
-  const rowStep = snapStride(span.rows);
-  const maxCol = Math.max(0, Math.floor((grid.cols - span.cols) / colStep) * colStep);
-  const maxRow = Math.max(0, Math.floor((grid.rows - span.rows) / rowStep) * rowStep);
+  const maxCol = Math.max(0, grid.cols - span.cols);
+  const maxRow = Math.max(0, grid.rows - span.rows);
   return {
-    col: Math.min(Math.max(0, Math.round(continuousCol / colStep) * colStep), maxCol),
-    row: Math.min(Math.max(0, Math.round(continuousRow / rowStep) * rowStep), maxRow),
+    col: Math.min(Math.max(0, Math.round(continuousCol)), maxCol),
+    row: Math.min(Math.max(0, Math.round(continuousRow)), maxRow),
   };
 }
 
