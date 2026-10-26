@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Verknüpft mit Lüftern {slots}",
   "cooling.case3d.linkedToOne": "Verknüpft mit Lüfter {slot}",
   "cooling.case3d.noFans": "In diesem Gehäuse sind keine Lüfter installiert.",
-  "cooling.case3d.noModel": "Es wird der Gehäuseumriss gezeigt. Öffnen Sie Build einmal, um das Gehäusemodell zu exportieren.",
   "cooling.case3d.noneLinked": "Kein Lüfter verknüpft",
   "cooling.case3d.position.bottom": "Unten",
   "cooling.case3d.position.front": "Vorne",

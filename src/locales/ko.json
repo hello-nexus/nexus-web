@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "{slots} 팬에 연결됨",
   "cooling.case3d.linkedToOne": "{slot} 팬에 연결됨",
   "cooling.case3d.noFans": "이 케이스에는 설치된 팬이 없습니다.",
-  "cooling.case3d.noModel": "케이스 윤곽을 표시하고 있습니다. Build를 한 번 열면 케이스 모델이 내보내집니다.",
   "cooling.case3d.noneLinked": "연결된 팬 없음",
   "cooling.case3d.position.bottom": "하단",
   "cooling.case3d.position.front": "전면",

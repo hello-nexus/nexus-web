@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Přiřazeno k ventilátorům: {slots}",
   "cooling.case3d.linkedToOne": "Přiřazeno k ventilátoru: {slot}",
   "cooling.case3d.noFans": "V této skříni nejsou nainstalované žádné ventilátory.",
-  "cooling.case3d.noModel": "Zobrazuje se obrys skříně. Jednou otevřete Build, aby se model skříně exportoval.",
   "cooling.case3d.noneLinked": "Žádný ventilátor nepřiřazen",
   "cooling.case3d.position.bottom": "Dole",
   "cooling.case3d.position.front": "Vpředu",

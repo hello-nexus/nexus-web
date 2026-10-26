@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Привязан к вентиляторам: {slots}",
   "cooling.case3d.linkedToOne": "Привязан к вентилятору: {slot}",
   "cooling.case3d.noFans": "В этом корпусе не установлены вентиляторы.",
-  "cooling.case3d.noModel": "Показан контур корпуса. Откройте Build один раз, чтобы экспортировать модель корпуса.",
   "cooling.case3d.noneLinked": "Вентилятор не привязан",
   "cooling.case3d.position.bottom": "Низ",
   "cooling.case3d.position.front": "Перед",

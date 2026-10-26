@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Vinculado aos ventiladores {slots}",
   "cooling.case3d.linkedToOne": "Vinculado ao ventilador {slot}",
   "cooling.case3d.noFans": "Não há ventiladores instalados neste gabinete.",
-  "cooling.case3d.noModel": "Exibindo o contorno do gabinete. Abra o Build uma vez para exportar o modelo do gabinete.",
   "cooling.case3d.noneLinked": "Nenhum ventilador vinculado",
   "cooling.case3d.position.bottom": "Base",
   "cooling.case3d.position.front": "Frente",

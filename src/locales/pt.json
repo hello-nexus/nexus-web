@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Associado às ventoinhas {slots}",
   "cooling.case3d.linkedToOne": "Associado à ventoinha {slot}",
   "cooling.case3d.noFans": "Não há ventoinhas instaladas nesta caixa.",
-  "cooling.case3d.noModel": "A mostrar o contorno da caixa. Abra o Build uma vez para exportar o modelo da caixa.",
   "cooling.case3d.noneLinked": "Nenhuma ventoinha associada",
   "cooling.case3d.position.bottom": "Base",
   "cooling.case3d.position.front": "Frente",
