@@ -186,38 +186,6 @@ export function WidgetContextMenu({
         </>
       )}
 
-      {onOpenPanelActions && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onOpenPanelActions)}>
-          <SlidersHorizontal size={14} />
-          <span>{t('panel.actions.label')}</span>
-        </button>
-      )}
-
-      {onToggleAlwaysOnTop && (
-        <button
-          type="button"
-          className={`${styles.item} ${alwaysOnTop ? styles.itemChecked : ''}`}
-          disabled={alwaysOnTopDisabled}
-          onClick={() => runAndClose(onToggleAlwaysOnTop)}
-        >
-          <Pin size={14} />
-          <span>{t('panel.widget.menu.alwaysOnTop')}</span>
-          {alwaysOnTop && <Check size={14} className={styles.itemCheck} />}
-        </button>
-      )}
-
-      {onToggleLock && (
-        <button
-          type="button"
-          className={`${styles.item} ${locked ? styles.itemChecked : ''}`}
-          onClick={() => runAndClose(onToggleLock)}
-        >
-          <Lock size={14} />
-          <span>{t('panel.widget.menu.lockWidgets')}</span>
-          {locked && <Check size={14} className={styles.itemCheck} />}
-        </button>
-      )}
-
       {hasConfig && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
           <Pencil size={14} />
@@ -246,13 +214,6 @@ export function WidgetContextMenu({
         </button>
       ))}
 
-      {onAddWidget && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onAddWidget)}>
-          <Plus size={14} />
-          <span>{t('panel.widget.menu.addWidget')}</span>
-        </button>
-      )}
-
       {onPinToSidebar && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onPinToSidebar)}>
           <Pin size={14} />
@@ -271,6 +232,49 @@ export function WidgetContextMenu({
         <Trash2 size={14} />
         <span>{t('panel.widget.menu.remove')}</span>
       </button>
+
+
+      {/* Panel-wide items follow the widget's own, after a divider. */}
+      {(onAddWidget || onOpenPanelActions || onToggleLock || onToggleAlwaysOnTop) && <div className={styles.divider} />}
+
+      {onAddWidget && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onAddWidget)}>
+          <Plus size={14} />
+          <span>{t('panel.widget.menu.addWidget')}</span>
+        </button>
+      )}
+
+      {onOpenPanelActions && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onOpenPanelActions)}>
+          <SlidersHorizontal size={14} />
+          <span>{t('panel.actions.label')}</span>
+        </button>
+      )}
+
+      {onToggleLock && (
+        <button
+          type="button"
+          className={`${styles.item} ${locked ? styles.itemChecked : ''}`}
+          onClick={() => runAndClose(onToggleLock)}
+        >
+          <Lock size={14} />
+          <span>{t('panel.widget.menu.lockWidgets')}</span>
+          {locked && <Check size={14} className={styles.itemCheck} />}
+        </button>
+      )}
+
+      {onToggleAlwaysOnTop && (
+        <button
+          type="button"
+          className={`${styles.item} ${alwaysOnTop ? styles.itemChecked : ''}`}
+          disabled={alwaysOnTopDisabled}
+          onClick={() => runAndClose(onToggleAlwaysOnTop)}
+        >
+          <Pin size={14} />
+          <span>{t('panel.widget.menu.alwaysOnTop')}</span>
+          {alwaysOnTop && <Check size={14} className={styles.itemCheck} />}
+        </button>
+      )}
     </div>
   );
 }

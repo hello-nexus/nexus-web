@@ -1314,8 +1314,6 @@
   "devices.openrgb.zoneUnset": "{value}、未設定",
   "devices.page.notConnected": "デバイスが接続されていません",
   "devices.page.title": "デバイス",
-  "devices.panels.emptySpaceMenu": "空きスペースでパネルメニューを開く",
-  "devices.panels.emptySpaceMenuHint": "パネルの背後にあるデスクトップやアプリへのクリックをブロックします。オフのときは、ウィジェットからメニューを開きます。",
   "devices.panels.nextPage": "次のページ",
   "devices.panels.phone": "電話またはタブレットパネル",
   "devices.panels.prevPage": "前のページ",

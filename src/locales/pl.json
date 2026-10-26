@@ -1321,8 +1321,6 @@
   "devices.openrgb.zoneUnset": "{value}, nie ustawiono",
   "devices.page.notConnected": "Urządzenie niepodłączone",
   "devices.page.title": "Urządzenie",
-  "devices.panels.emptySpaceMenu": "Puste miejsce otwiera menu panelu",
-  "devices.panels.emptySpaceMenuHint": "Blokuje kliknięcia na pulpit i aplikacje za panelem. Gdy wyłączone, otwórz menu z poziomu widgetu.",
   "devices.panels.nextPage": "Następna strona",
   "devices.panels.phone": "Panel telefonu lub tabletu",
   "devices.panels.prevPage": "Poprzednia strona",

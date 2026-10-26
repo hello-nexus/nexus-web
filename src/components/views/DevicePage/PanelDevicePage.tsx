@@ -49,7 +49,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, effectiveClickThrough, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -395,7 +395,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordWidgetsLocked, setRecordWidgetsLocked] = useState(false);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
-  const [recordClickThrough, setRecordClickThrough] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
   const [recordMirror, setRecordMirror] = useState(false);
   const [recordPortrait, setRecordPortrait] = useState(false);
@@ -698,7 +697,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordWidgetsLocked(resolveWidgetsLocked(match?.widgetsLocked, match?.layout?.pages.flatMap(p => p.widgets) ?? []));
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
-      setRecordClickThrough(match?.clickThrough ?? false);
       setRecordFlip180(match?.flip180 ?? false);
       setRecordMirror(match?.mirror ?? false);
       setRecordPortrait(match?.portrait ?? false);
@@ -879,7 +877,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       if (writeSeqRef.current !== seq) return;
       // Widget size is written with the layout, so it goes stale the same way.
       setRecordWidgetSize(record.widgetSize ?? null);
-      setRecordClickThrough(record.clickThrough ?? false);
       const synced = layoutSurfaceOf(record, record.capabilities?.touch ?? glassTouch);
       setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid, !!record.displayId));
     }).catch(() => {});
@@ -1750,14 +1747,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { reserveMonitor: next }).catch(() => {});
                       }}
                       keepCursorOff={monitorGuards ? recordKeepCursorOff : null}
-                      clickThrough={isMonitorPanel && theme.backdrop === 'desktop' ? effectiveClickThrough(recordClickThrough, recordAlwaysOnTop && theme.backdrop === 'desktop', genericDisplay) : null}
-                      clickThroughForced={genericDisplay && recordAlwaysOnTop && theme.backdrop === 'desktop'}
-                      onClickThroughToggle={() => {
-                        if (genericDisplay && recordAlwaysOnTop && theme.backdrop === 'desktop') return;
-                        const next = !recordClickThrough;
-                        setRecordClickThrough(next);
-                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { clickThrough: next }).catch(() => {});
-                      }}
                       onKeepCursorOffToggle={() => {
                         const next = !recordKeepCursorOff;
                         setRecordKeepCursorOff(next);
@@ -1876,8 +1865,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onReserveMonitorToggle={() => {}}
                         keepCursorOff={null}
                         onKeepCursorOffToggle={() => {}}
-                        clickThrough={null}
-                        onClickThroughToggle={() => {}}
                         // Q-series has no orientation sensor and no vendor
                         // settings channel: null hides both blocks, leaving the
                         // manual picker unconditional.
@@ -1931,8 +1918,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       onReserveMonitorToggle={() => {}}
                       keepCursorOff={null}
                       onKeepCursorOffToggle={() => {}}
-                      clickThrough={null}
-                      onClickThroughToggle={() => {}}
                       xeneonSettings={null}
                       onXeneonChange={() => {}}
                       onXeneonCommit={() => {}}
@@ -2594,11 +2579,6 @@ interface MonitorSettingsPanelProps {
   onReserveMonitorToggle: () => void;
   keepCursorOff: boolean | null;
   onKeepCursorOffToggle: () => void;
-  // Null hides the row: click-through only exists with the Desktop background.
-  clickThrough: boolean | null;
-  // Always on top holds click-through on: the row (which reads its inverse) shows off and disabled.
-  clickThroughForced?: boolean;
-  onClickThroughToggle: () => void;
   // Short-axis cell count of the grid; null hides the slider.
   // Corsair Xeneon Edge native settings (brightness/backlight/contrast/RGB).
   // Null hides the whole block: not this panel family, or the ~1s HID read
@@ -2625,7 +2605,6 @@ function MonitorSettingsPanel({
   alwaysOnTop, alwaysOnTopDisabled, onAlwaysOnTopToggle, widgetsLocked, onWidgetsLockedToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
-  clickThrough, clickThroughForced, onClickThroughToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
   hardwareResetBusy,
   touchPermissionNeeded, onOpenTouchPermission,
@@ -2753,15 +2732,6 @@ function MonitorSettingsPanel({
           description={t('devices.y70.keepCursorOffHint')}
           checked={keepCursorOff}
           onChange={onKeepCursorOffToggle}
-        />
-      )}
-      {clickThrough !== null && (
-        <SettingToggle
-          label={t('devices.panels.emptySpaceMenu')}
-          description={t('devices.panels.emptySpaceMenuHint')}
-          checked={!clickThrough}
-          disabled={clickThroughForced}
-          onChange={onClickThroughToggle}
         />
       )}
       </SettingsSection>

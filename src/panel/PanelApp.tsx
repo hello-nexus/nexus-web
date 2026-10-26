@@ -116,7 +116,7 @@ import {
   type PanelWidgetSize,
   type ForcedGrid,
 } from './types';
-import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, sizeForLegacyGridSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, effectiveClickThrough } from './types';
+import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, sizeForLegacyGridSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -1446,7 +1446,10 @@ export function PanelContent({
   // A solid generic display is never on top (its clicks would reach hidden windows); the stored choice waits.
   const onTopBlocked = genericDisplay && backdrop !== 'desktop';
   const effectiveOnTop = menuAlwaysOnTop === true && !onTopBlocked;
-  const clickThrough = seeThrough && effectiveClickThrough(recordState.record?.clickThrough === true, effectiveOnTop, genericDisplay);
+  // A generic display's empty space always reaches the desktop; other display panels follow their record.
+  const clickThrough = seeThrough && (genericDisplay || recordState.record?.clickThrough === true);
+  // Empty space never opens panel UI where it is meant to pass clicks; the widget menu reaches it instead.
+  const emptySpaceInert = genericDisplay || clickThrough;
   // Long-press on the empty background opens the actions tray (mirrors the
   // widget long-press-to-menu). Kiosk surfaces only, not while in a sheet /
   // immersive / drag state, and only when the press misses widgets and
@@ -1462,8 +1465,7 @@ export function PanelContent({
     || Boolean(dragArmedId)
     || isOffline
     || touch.rearranging
-    // Empty space belongs to the desktop: a press there during a transient capture only dismisses.
-    || clickThrough;
+    || emptySpaceInert;
   const handleBackgroundPointerDown = useCallback((e: React.PointerEvent) => {
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
@@ -1481,7 +1483,7 @@ export function PanelContent({
   // long-press: same gating, opens the tray. Suppresses the browser's native
   // menu on the panel surface.
   const handleBackgroundContextMenu = useCallback((e: React.MouseEvent) => {
-    if (clickThrough) e.preventDefault();
+    if (emptySpaceInert) e.preventDefault();
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
     if (
@@ -1491,7 +1493,7 @@ export function PanelContent({
     ) return;
     e.preventDefault();
     setTrayOpen(true);
-  }, [backgroundPressBlocked, clickThrough]);
+  }, [backgroundPressBlocked, emptySpaceInert]);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -2501,7 +2503,7 @@ export function PanelContent({
             onAddWidget={mouseEditable ? () => openSheet('catalog') : undefined}
             alwaysOnTop={menuAlwaysOnTop === undefined ? undefined : effectiveOnTop}
             alwaysOnTopDisabled={onTopBlocked}
-            onOpenPanelActions={clickThrough && kioskBehavior ? () => setTrayOpen(true) : undefined}
+            onOpenPanelActions={emptySpaceInert && kioskBehavior ? () => setTrayOpen(true) : undefined}
             onToggleAlwaysOnTop={menuAlwaysOnTop === undefined ? undefined : toggleAlwaysOnTop}
             locked={widgetsLocked}
             onToggleLock={lockAvailable && recordState.record ? toggleWidgetsLocked : undefined}

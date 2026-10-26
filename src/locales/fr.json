@@ -1314,8 +1314,6 @@
   "devices.openrgb.zoneUnset": "{value}, non défini",
   "devices.page.notConnected": "Appareil non connecté",
   "devices.page.title": "Appareil",
-  "devices.panels.emptySpaceMenu": "L'espace vide ouvre le menu du panneau",
-  "devices.panels.emptySpaceMenuHint": "Bloque les clics vers votre bureau et les applications derrière le panneau. Désactivé, ouvrez plutôt le menu depuis un widget.",
   "devices.panels.nextPage": "Page suivante",
   "devices.panels.phone": "Panneau téléphone ou tablette",
   "devices.panels.prevPage": "Page précédente",

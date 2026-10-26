@@ -1321,8 +1321,6 @@
   "devices.openrgb.zoneUnset": "{value}, nenastaveno",
   "devices.page.notConnected": "Zařízení není připojeno",
   "devices.page.title": "Zařízení",
-  "devices.panels.emptySpaceMenu": "Prázdné místo otevírá nabídku panelu",
-  "devices.panels.emptySpaceMenuHint": "Blokuje kliknutí na plochu a aplikace za panelem. Když je vypnuto, otevřete nabídku z widgetu.",
   "devices.panels.nextPage": "Další stránka",
   "devices.panels.phone": "Panel v telefonu nebo tabletu",
   "devices.panels.prevPage": "Předchozí stránka",
