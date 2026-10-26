@@ -1,7 +1,7 @@
 import { getToken, handleUnauthorized } from './auth';
 import { authFetchWithStatus, deleteService, fetchService, isForceLanMode, isLocalhostUnreachable, isTunnelActive, isRemoteOrigin, loopbackFetchInit, postService, putService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
-import { KRAKEN_PANEL_DPI, LEGACY_KRAKEN_SURFACE, NZXT_KRAKEN_FAMILY, type PanelLayout, type PanelSurface, type PanelWidgetSizeMode } from '../panel/types';
+import { KRAKEN_PANEL_DPI, LEGACY_KRAKEN_SURFACE, NZXT_KRAKEN_FAMILY, type PanelConfigValue, type PanelLayout, type PanelSurface, type PanelWidgetSizeMode } from '../panel/types';
 import type { PresetApp, PresetAppConflict, SetPresetAppsResult } from './lighting';
 
 // Init for the direct localhost fetches below. The phone-session cookie only
@@ -54,6 +54,29 @@ export interface PanelDeviceCapabilitiesDto {
 export interface PanelGaugeGradientStopDto {
   at: number;
   color: string;
+}
+
+// A legacy desktop-widget layout waiting to be placed on this panel's grid
+// (planDesktopImport). Mirrors the service's DesktopImport.
+export interface DesktopImportWidgetDto {
+  id: string;
+  type: string;
+  size: string;
+  // Legacy overlay position in quarter-cell steps from the display's top-left.
+  col: number;
+  row: number;
+  locked?: boolean;
+  config?: Record<string, PanelConfigValue>;
+}
+
+export interface DesktopImportDto {
+  version: 1;
+  // The legacy cell stride in px; cellUnits says whose px.
+  cellPx: number;
+  cellUnits: 'device' | 'css';
+  // The panel already had widgets: keep its grid and add these beside them.
+  merge: boolean;
+  widgets: DesktopImportWidgetDto[];
 }
 
 export interface PanelDeviceRecord {
@@ -122,6 +145,18 @@ export interface PanelDeviceRecord {
   reserveMonitor?: boolean;
   // Per-panel "keep the mouse off the panel" (display-bound records). Absent/null = off.
   keepCursorOff?: boolean;
+  // Empty space passes clicks through to the desktop; only with the 'desktop'
+  // backdrop. Absent/null = off.
+  clickThrough?: boolean | null;
+  // Short-axis cell count (even, 2-64) replacing the density-derived one.
+  // Absent/null = the panel's own density.
+  gridSlots?: number | null;
+  // Whether the display hosts the panel when the host honors it; replaces
+  // `enabled` when present. Absent/null = follow `enabled`.
+  hosted?: boolean | null;
+  // Legacy desktop widgets waiting for the panel to place them; cleared by the
+  // PATCH that writes the planned layout.
+  desktopImport?: DesktopImportDto | null;
   // Display-bound panels with a physical orientation sensor (e.g. the Xeneon
   // Edge): true = the sensor drives display rotation, false = the user's
   // orientation picker applies instead. Absent/null = on.
@@ -213,6 +248,12 @@ export interface PanelDevicePatch {
   reserveMonitor?: boolean;
   // Display-bound records only; ignored for other panels.
   keepCursorOff?: boolean;
+  // Display-bound records only; ignored for other panels.
+  clickThrough?: boolean;
+  // Even 2-64; monitor panels only.
+  gridSlots?: number;
+  // Sent with the planned layout once a desktop import is placed.
+  clearDesktopImport?: boolean;
   // Display-bound records with a physical orientation sensor only; ignored
   // for other panels.
   autoOrient?: boolean;

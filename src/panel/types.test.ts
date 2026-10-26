@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-  isStreamedPanelSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
   surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
@@ -131,6 +131,50 @@ describe('surfaceAllowsPages', () => {
     expect(surfaceAllowsPages('monitor', false)).toBe(false);
     expect(surfaceAllowsPages('monitor')).toBe(false);
     expect(surfaceAllowsPages('q60')).toBe(false);
+  });
+
+  it('gives a display-bound multi-widget panel a clickable pager, never single-tile glass', () => {
+    expect(surfaceAllowsPages('monitor', false, true)).toBe(true);
+    expect(surfaceAllowsPages('monitor', undefined, true)).toBe(true);
+    expect(surfaceAllowsPages('q60', false, true)).toBe(false);
+    expect(surfaceAllowsPages('lcd-round', false, true)).toBe(false);
+  });
+});
+
+describe('panelCanvasEditable', () => {
+  it('keeps the preview rule and the touch rule', () => {
+    expect(panelCanvasEditable('monitor', false, true)).toBe(true);
+    expect(panelCanvasEditable('q60', false, true)).toBe(false);
+    expect(panelCanvasEditable('y70', undefined, false)).toBe(true);
+    expect(panelCanvasEditable('monitor', true, false)).toBe(true);
+  });
+
+  it('lets the mouse edit a display-bound multi-widget panel on the glass', () => {
+    expect(panelCanvasEditable('monitor', false, false)).toBe(false);
+    expect(panelCanvasEditable('monitor', false, false, true)).toBe(true);
+    expect(panelCanvasEditable('monitor', undefined, false, true)).toBe(true);
+    expect(panelCanvasEditable('q60', false, false, true)).toBe(false);
+    expect(panelCanvasEditable('lcd-square', false, false, true)).toBe(false);
+  });
+});
+
+describe('grid density override', () => {
+  it('rounds to an even count within 2 to 64', () => {
+    expect(normalizeGridSlots(18)).toBe(18);
+    expect(normalizeGridSlots(17)).toBe(18);
+    expect(normalizeGridSlots(0)).toBe(2);
+    expect(normalizeGridSlots(500)).toBe(64);
+    expect(normalizeGridSlots(null)).toBeUndefined();
+    expect(normalizeGridSlots(Number.NaN)).toBeUndefined();
+  });
+
+  it('replaces the Widget size count on a monitor grid only', () => {
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12, 20)).toBe(20);
+    expect(panelShortSideSlots('monitor', undefined, null, 12, 20)).toBe(20);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12, null)).toBe(6);
+    expect(panelShortSideSlots('monitor', 'icue-link-lcd5', 'large', 12, 20)).toBeUndefined();
+    expect(panelShortSideSlots('q60', undefined, null, 12, 20)).toBeUndefined();
+    expect(panelShortSideSlots('y70', undefined, null, 12, 20)).toBeUndefined();
   });
 });
 

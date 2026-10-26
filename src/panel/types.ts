@@ -154,9 +154,10 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
   return singleWidgetSurfaceSize(surface) !== undefined;
 }
 
-// Pages are reached by swiping, so a panel without touch keeps one page.
-export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean): boolean {
-  return surfaceSupportsTouch(surface, deviceTouch);
+// Pages are reached by swiping, so a panel without touch keeps one page, except a
+// display-bound multi-widget panel, which has a clickable pager.
+export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean, displayBound = false): boolean {
+  return surfaceSupportsTouch(surface, deviceTouch) || (displayBound && !isSingleWidgetSurface(surface));
 }
 
 // Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid. A panel
@@ -231,12 +232,29 @@ export function widgetSizeShortSideSlots(
   return densitySlots === undefined ? undefined : Math.max(2, Math.round(densitySlots * share));
 }
 
+// Short-axis cell counts a record's grid density may name (even, so a 2x2 tile always fits).
+export const GRID_SLOTS_MIN = 2;
+export const GRID_SLOTS_MAX = 64;
+
+/** The record's own grid density when valid, else undefined. */
+export function normalizeGridSlots(value: number | null | undefined): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  const even = Math.round(value / 2) * 2;
+  return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, even));
+}
+
 export function panelShortSideSlots(
   surface: PanelSurface,
   family: string | null | undefined,
   widgetSize: string | null | undefined,
   densitySlots?: number,
+  gridSlots?: number | null,
 ): number | undefined {
+  // Only a monitor grid takes the override; a single-tile layout has no density to set.
+  const own = surface === 'monitor' && !isSingleWidgetSurface(panelLayoutSurface(surface, family, widgetSize))
+    ? normalizeGridSlots(gridSlots)
+    : undefined;
+  if (own !== undefined) return own;
   return widgetSizeShortSideSlots(
     panelWidgetSizeOptions(surface, family),
     resolvePanelWidgetSize(surface, family, widgetSize),
@@ -287,9 +305,11 @@ export function surfaceDefaultsToAnimatedBackground(surface: PanelSurface): bool
 
 // Whether a press on the canvas can drag, resize or remove widgets. The device-page
 // preview is edited with the dashboard's mouse, so any multi-widget panel qualifies
-// there; on the glass itself only a touch surface does.
-export function panelCanvasEditable(surface: PanelSurface, deviceTouch: boolean | undefined, preview: boolean): boolean {
-  return preview ? !isSingleWidgetSurface(surface) : surfaceSupportsTouch(surface, deviceTouch);
+// there; on the glass itself a touch surface does, and so does a display-bound
+// multi-widget panel, which its mouse edits.
+export function panelCanvasEditable(surface: PanelSurface, deviceTouch: boolean | undefined, preview: boolean, displayBound = false): boolean {
+  if (preview) return !isSingleWidgetSurface(surface);
+  return surfaceSupportsTouch(surface, deviceTouch) || (displayBound && !isSingleWidgetSurface(surface));
 }
 
 // Sizes reserved for single-widget surfaces. Multi-widget surfaces hide them
@@ -365,6 +385,8 @@ export interface PanelWidget {
   col: number;
   row: number;
   isImmersive?: boolean;
+  // A locked widget cannot be dragged, resized or edited until unlocked.
+  locked?: boolean;
   config?: Record<string, PanelConfigValue>;
 }
 
