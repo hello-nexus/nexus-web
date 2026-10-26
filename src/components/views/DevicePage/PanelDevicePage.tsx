@@ -1729,8 +1729,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordAutoOrient(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { autoOrient: next }).catch(() => {});
                       }}
-                      alwaysOnTop={genericDisplay ? recordAlwaysOnTop : null}
+                      alwaysOnTop={genericDisplay ? recordAlwaysOnTop && theme.backdrop === 'desktop' : null}
+                      alwaysOnTopDisabled={genericDisplay && theme.backdrop !== 'desktop'}
                       onAlwaysOnTopToggle={() => {
+                        if (theme.backdrop !== 'desktop') return;
                         const next = !recordAlwaysOnTop;
                         setRecordAlwaysOnTop(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { alwaysOnTop: next }).catch(() => {});
@@ -1748,10 +1750,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { reserveMonitor: next }).catch(() => {});
                       }}
                       keepCursorOff={monitorGuards ? recordKeepCursorOff : null}
-                      clickThrough={isMonitorPanel && theme.backdrop === 'desktop' ? effectiveClickThrough(recordClickThrough, recordAlwaysOnTop, genericDisplay) : null}
-                      clickThroughForced={genericDisplay && recordAlwaysOnTop}
+                      clickThrough={isMonitorPanel && theme.backdrop === 'desktop' ? effectiveClickThrough(recordClickThrough, recordAlwaysOnTop && theme.backdrop === 'desktop', genericDisplay) : null}
+                      clickThroughForced={genericDisplay && recordAlwaysOnTop && theme.backdrop === 'desktop'}
                       onClickThroughToggle={() => {
-                        if (genericDisplay && recordAlwaysOnTop) return;
+                        if (genericDisplay && recordAlwaysOnTop && theme.backdrop === 'desktop') return;
                         const next = !recordClickThrough;
                         setRecordClickThrough(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { clickThrough: next }).catch(() => {});
@@ -2583,6 +2585,8 @@ interface MonitorSettingsPanelProps {
   autoOrient: boolean | null;
   onAutoOrientToggle: () => void;
   alwaysOnTop: boolean | null;
+  // A generic display allows it only with the see-through background: the row shows off and disabled.
+  alwaysOnTopDisabled?: boolean;
   onAlwaysOnTopToggle: () => void;
   widgetsLocked: boolean | null;
   onWidgetsLockedToggle: () => void;
@@ -2592,7 +2596,7 @@ interface MonitorSettingsPanelProps {
   onKeepCursorOffToggle: () => void;
   // Null hides the row: click-through only exists with the Desktop background.
   clickThrough: boolean | null;
-  // Always on top holds click-through on: the row shows on and disabled.
+  // Always on top holds click-through on: the row (which reads its inverse) shows off and disabled.
   clickThroughForced?: boolean;
   onClickThroughToggle: () => void;
   // Short-axis cell count of the grid; null hides the slider.
@@ -2618,7 +2622,7 @@ function MonitorSettingsPanel({
   sleepWithHost, onSleepWithHostToggle,
   sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
-  alwaysOnTop, onAlwaysOnTopToggle, widgetsLocked, onWidgetsLockedToggle,
+  alwaysOnTop, alwaysOnTopDisabled, onAlwaysOnTopToggle, widgetsLocked, onWidgetsLockedToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
   clickThrough, clickThroughForced, onClickThroughToggle,
@@ -2724,6 +2728,7 @@ function MonitorSettingsPanel({
           label={t('devices.y70.panelAlwaysOnTop')}
           description={t('devices.y70.panelAlwaysOnTopHint')}
           checked={alwaysOnTop}
+          disabled={alwaysOnTopDisabled}
           onChange={onAlwaysOnTopToggle}
         />
       )}
@@ -2752,9 +2757,9 @@ function MonitorSettingsPanel({
       )}
       {clickThrough !== null && (
         <SettingToggle
-          label={t('devices.panels.clickThrough')}
-          description={t('devices.panels.clickThroughHint')}
-          checked={clickThrough}
+          label={t('devices.panels.emptySpaceMenu')}
+          description={t('devices.panels.emptySpaceMenuHint')}
+          checked={!clickThrough}
           disabled={clickThroughForced}
           onChange={onClickThroughToggle}
         />

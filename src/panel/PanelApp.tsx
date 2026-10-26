@@ -1437,6 +1437,16 @@ export function PanelContent({
     return label === 'connection.relayMode' ? 'Connected via cloud relay' : label;
   })();
 
+  // Always on top: a display panel keeps it on its record (absent = on), the Y70 in the global panel prefs.
+  const displayRecord = displayBound && kioskBehavior ? recordState.record : null;
+  const y70OnTop = glassSurface === 'y70' && !displayBound && kioskBehavior ? panelTheme.prefs?.panel?.alwaysOnTop : undefined;
+  const layeredOnTop = displayRecord ? displayRecord.alwaysOnTop ?? true : y70OnTop;
+  // Only a generic display lets the user change it; a known device keeps its stored value, unshown.
+  const menuAlwaysOnTop = genericDisplay ? layeredOnTop : undefined;
+  // A solid generic display is never on top (its clicks would reach hidden windows); the stored choice waits.
+  const onTopBlocked = genericDisplay && backdrop !== 'desktop';
+  const effectiveOnTop = menuAlwaysOnTop === true && !onTopBlocked;
+  const clickThrough = seeThrough && effectiveClickThrough(recordState.record?.clickThrough === true, effectiveOnTop, genericDisplay);
   // Long-press on the empty background opens the actions tray (mirrors the
   // widget long-press-to-menu). Kiosk surfaces only, not while in a sheet /
   // immersive / drag state, and only when the press misses widgets and
@@ -1451,7 +1461,9 @@ export function PanelContent({
     || Boolean(activeDragId)
     || Boolean(dragArmedId)
     || isOffline
-    || touch.rearranging;
+    || touch.rearranging
+    // Empty space belongs to the desktop: a press there during a transient capture only dismisses.
+    || clickThrough;
   const handleBackgroundPointerDown = useCallback((e: React.PointerEvent) => {
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
@@ -1469,6 +1481,7 @@ export function PanelContent({
   // long-press: same gating, opens the tray. Suppresses the browser's native
   // menu on the panel surface.
   const handleBackgroundContextMenu = useCallback((e: React.MouseEvent) => {
+    if (clickThrough) e.preventDefault();
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
     if (
@@ -1478,7 +1491,7 @@ export function PanelContent({
     ) return;
     e.preventDefault();
     setTrayOpen(true);
-  }, [backgroundPressBlocked]);
+  }, [backgroundPressBlocked, clickThrough]);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -1812,26 +1825,19 @@ export function PanelContent({
 
   // Lock applies wherever a widget can be arranged, except the phone's own gesture set.
   const lockAvailable = dragEditable && genericDisplay;
-  // Always on top: a display panel keeps it on its record (absent = on), the Y70 in the global panel prefs.
-  const displayRecord = displayBound && kioskBehavior ? recordState.record : null;
-  const y70OnTop = glassSurface === 'y70' && !displayBound && kioskBehavior ? panelTheme.prefs?.panel?.alwaysOnTop : undefined;
-  const layeredOnTop = displayRecord ? displayRecord.alwaysOnTop ?? true : y70OnTop;
-  // Only a generic display lets the user change it; a known device keeps its stored value, unshown.
-  const menuAlwaysOnTop = genericDisplay ? layeredOnTop : undefined;
   const lockRecordId = recordState.record?.id;
   const toggleWidgetsLocked = useCallback(() => {
     if (lockRecordId) void patchPanelDevice(lockRecordId, { widgetsLocked: !widgetsLocked });
   }, [lockRecordId, widgetsLocked]);
   const toggleAlwaysOnTop = useCallback(() => {
-    if (menuAlwaysOnTop === undefined) return;
+    if (menuAlwaysOnTop === undefined || onTopBlocked) return;
     const next = !menuAlwaysOnTop;
     if (displayRecord) void patchPanelDevice(displayRecord.id, { alwaysOnTop: next });
     else void savePreferences({ panel: { alwaysOnTop: next } });
-  }, [displayRecord, menuAlwaysOnTop]);
+  }, [displayRecord, menuAlwaysOnTop, onTopBlocked]);
 
   // Host sync: a see-through, click-through display window takes input only where the panel draws.
   const hostBound = kioskBehavior && displayBound && panelHostAvailable();
-  const clickThrough = seeThrough && effectiveClickThrough(recordState.record?.clickThrough === true, menuAlwaysOnTop === true, genericDisplay);
   const hitFull = Boolean(sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
     || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
   // Position and size, so a remote edit that keeps the ids still remeasures.
@@ -2493,7 +2499,9 @@ export function PanelContent({
             displayTargets={onDesktopSurface ? displayTargets : undefined}
             onAddToDisplay={onDesktopSurface && displayTargets.length > 0 ? displayId => { void addToDisplay(displayId, ctxWidget); } : undefined}
             onAddWidget={mouseEditable ? () => openSheet('catalog') : undefined}
-            alwaysOnTop={menuAlwaysOnTop}
+            alwaysOnTop={menuAlwaysOnTop === undefined ? undefined : effectiveOnTop}
+            alwaysOnTopDisabled={onTopBlocked}
+            onOpenPanelActions={clickThrough && kioskBehavior ? () => setTrayOpen(true) : undefined}
             onToggleAlwaysOnTop={menuAlwaysOnTop === undefined ? undefined : toggleAlwaysOnTop}
             locked={widgetsLocked}
             onToggleLock={lockAvailable && recordState.record ? toggleWidgetsLocked : undefined}

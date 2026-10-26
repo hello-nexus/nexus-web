@@ -121,3 +121,25 @@ describe('WidgetContextMenu lock widgets', () => {
     expect(screen.queryByText('panel.widget.menu.lockWidgets')).toBeNull();
   });
 });
+
+describe('WidgetContextMenu always on top', () => {
+  const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: true, surface: 'monitor' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+
+  it('toggles when allowed', () => {
+    const onToggle = vi.fn();
+    render(<WidgetContextMenu {...base} alwaysOnTop onToggleAlwaysOnTop={onToggle} />);
+    const item = screen.getByRole('button', { name: 'panel.widget.menu.alwaysOnTop' });
+    expect(item).not.toBeDisabled();
+    fireEvent.click(item);
+    expect(onToggle).toHaveBeenCalled();
+  });
+
+  it('shows a disabled, unchecked item when the background does not allow it', () => {
+    const onToggle = vi.fn();
+    render(<WidgetContextMenu {...base} alwaysOnTop={false} alwaysOnTopDisabled onToggleAlwaysOnTop={onToggle} />);
+    const item = screen.getByRole('button', { name: 'panel.widget.menu.alwaysOnTop' });
+    expect(item).toBeDisabled();
+    fireEvent.click(item);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+});

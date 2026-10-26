@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, Trash2 } from 'lucide-react';
+import { Check, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -37,7 +37,11 @@ interface WidgetContextMenuProps {
   onUnpinFromSidebar?: () => void;
   // When provided, renders an "Always on top" item with a checkmark reflecting `alwaysOnTop`.
   alwaysOnTop?: boolean;
+  // Shown but inert: the panel's background does not allow it.
+  alwaysOnTopDisabled?: boolean;
   onToggleAlwaysOnTop?: () => void;
+  // Opens the panel menu from a widget, for panels whose empty space passes clicks through.
+  onOpenPanelActions?: () => void;
   // Panel-wide widget lock. When onToggleLock is provided the menu renders a checked
   // "Lock widgets" row; while `locked`, the edit/resize/immersive items are hidden.
   locked?: boolean;
@@ -55,8 +59,10 @@ export function WidgetContextMenu({
   onResize, onResizeMode, onEdit, onRemove, onImmersive,
   displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
+  onOpenPanelActions,
   onClose,
   alwaysOnTop,
+  alwaysOnTopDisabled,
   onToggleAlwaysOnTop,
   locked,
   onToggleLock,
@@ -180,10 +186,18 @@ export function WidgetContextMenu({
         </>
       )}
 
+      {onOpenPanelActions && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onOpenPanelActions)}>
+          <SlidersHorizontal size={14} />
+          <span>{t('panel.actions.label')}</span>
+        </button>
+      )}
+
       {onToggleAlwaysOnTop && (
         <button
           type="button"
           className={`${styles.item} ${alwaysOnTop ? styles.itemChecked : ''}`}
+          disabled={alwaysOnTopDisabled}
           onClick={() => runAndClose(onToggleAlwaysOnTop)}
         >
           <Pin size={14} />

@@ -123,9 +123,14 @@
   transition: background var(--ease-fast), color var(--ease-fast);
   text-align: left;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--panel-element-bg-hover);
     color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 

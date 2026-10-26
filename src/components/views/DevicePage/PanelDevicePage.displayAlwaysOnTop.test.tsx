@@ -91,7 +91,7 @@ const DEVICE: PanelDevice = {
 } as PanelDevice;
 
 beforeEach(() => {
-  themeState.backdrop = undefined;
+  themeState.backdrop = 'desktop';
   fetchPanelDevicesMock.mockReset();
   patchPanelDeviceMock.mockReset().mockResolvedValue({ ok: true });
   fetchDisplayTopologyMock.mockReset().mockResolvedValue({
@@ -181,6 +181,19 @@ describe('PanelDevicePage promoted display always on top', () => {
     expect(screen.queryByRole('switch', { name: 'devices.y70.reserveMonitor' })).not.toBeInTheDocument();
   });
 
+  it('reads off and disabled without the see-through background, keeping the stored value', async () => {
+    themeState.backdrop = 'theme';
+    serveRecord({ alwaysOnTop: true });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'false'));
+    expect(toggle).toBeDisabled();
+    fireEvent.click(toggle);
+    expect(patchPanelDeviceMock).not.toHaveBeenCalledWith('rec1', expect.objectContaining({ alwaysOnTop: expect.anything() }));
+  });
+
   it('is not offered on a known device display such as the Xeneon Edge', async () => {
     serveRecord({ family: 'xeneon-edge' });
     render(<PanelDevicePage device={DEVICE} />);
@@ -192,17 +205,17 @@ describe('PanelDevicePage promoted display always on top', () => {
   });
 });
 
-describe('PanelDevicePage generic display click-through', () => {
-  const CLICK_THROUGH_LABEL = 'devices.panels.clickThrough';
+describe('PanelDevicePage generic display empty-space menu', () => {
+  const EMPTY_SPACE_MENU_LABEL = 'devices.panels.emptySpaceMenu';
 
-  it('shows click-through on and disabled while always on top, whatever is stored', async () => {
+  it('reads off and disabled while always on top forces click-through, whatever is stored', async () => {
     themeState.backdrop = 'desktop';
     serveRecord({ alwaysOnTop: true, clickThrough: false });
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
-    const toggle = await screen.findByRole('switch', { name: CLICK_THROUGH_LABEL });
-    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+    const toggle = await screen.findByRole('switch', { name: EMPTY_SPACE_MENU_LABEL });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'false'));
     expect(toggle).toBeDisabled();
     fireEvent.click(toggle);
     expect(patchPanelDeviceMock).not.toHaveBeenCalledWith('rec1', expect.objectContaining({ clickThrough: expect.anything() }));
@@ -216,21 +229,21 @@ describe('PanelDevicePage generic display click-through', () => {
 
     fireEvent.click(await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL }));
     await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { alwaysOnTop: false }));
-    const toggle = screen.getByRole('switch', { name: CLICK_THROUGH_LABEL });
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    const toggle = screen.getByRole('switch', { name: EMPTY_SPACE_MENU_LABEL });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
     expect(toggle).not.toBeDisabled();
     fireEvent.click(toggle);
     await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { clickThrough: true }));
   });
 
-  it('leaves a known device click-through free under always on top', async () => {
+  it('leaves a known device on its stored choice under always on top', async () => {
     themeState.backdrop = 'desktop';
     serveRecord({ family: 'xeneon-edge', alwaysOnTop: true, clickThrough: false });
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
-    const toggle = await screen.findByRole('switch', { name: CLICK_THROUGH_LABEL });
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    const toggle = await screen.findByRole('switch', { name: EMPTY_SPACE_MENU_LABEL });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
     expect(toggle).not.toBeDisabled();
   });
 });
