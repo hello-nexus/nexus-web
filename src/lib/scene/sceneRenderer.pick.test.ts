@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Color, Vector3, type Group } from 'three';
+import { Color, Vector3, type Group, type Mesh } from 'three';
 import fixture from '../cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout, sceneLayout } from '../cooling/caseLayout';
 import { buildCase } from './pcScene';
+import { buildDeskBoxes } from './deskNodes';
+import { deskLegBoxes, deskSlabBoxes, placedItemBoxes } from './deskScene';
 import { sceneSignature } from './pcSceneSignature';
 import type { SceneBinding, SceneObject } from '../../api/lightingScene';
 import { caseObject, deskObject } from './sceneFixtures';
@@ -144,6 +146,54 @@ describe('scene pick path', () => {
       renderer.setCaseScene(null);
       renderer.setState(stateOf([kase], []));
       expect(groupOf(kase.id).children.some(c => c.matrixAutoUpdate === false)).toBe(false);
+    });
+  });
+  describe('the desk drawn by Build\'s scene code', () => {
+    const groupOf = (id: string) => (renderer as unknown as { objectGroups: Map<string, Group> }).objectGroups.get(id)!;
+    const palette = { part: new Color(theme.line), frame: new Color(theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+    // The selection tint restyles opacity and color; the geometry and draw order are the shared scene's.
+    const shape = (o: Group) => JSON.parse(JSON.stringify(sceneSignature(o), (k, v) => (k === 'opacity' || k === 'color' ? undefined : v)));
+    const monitor = (source: 'build' | 'user'): SceneObject => ({ id: 'mon-1', kind: 'monitor', label: null, source, position: [0, 0, 0], yaw: 0, size: [620, 450, 50], anchors: [] });
+
+    it('draws a plain item as the very box the desk scene makes for it', () => {
+      const keyboard = deskObject('keyboard');
+      renderer.setState(stateOf([keyboard], []));
+      const expected = buildDeskBoxes(placedItemBoxes({ id: keyboard.id, kind: 'keyboard', cx: 0, cz: 0, minY: 0, yaw: 0, size: keyboard.size }), palette, [], [], []);
+      expect(shape(groupOf(keyboard.id).children[0])).toEqual(shape(expected));
+    });
+
+    it('stands a monitor Build exported on its foot and neck, and a placed one is the panel alone', () => {
+      renderer.setState(stateOf([monitor('build')], []));
+      const standing = groupOf('mon-1').children[0].children.length;
+      renderer.setState(stateOf([monitor('user')], []));
+      expect(standing).toBe(3);
+      expect(groupOf('mon-1').children[0].children).toHaveLength(1);
+    });
+
+    it('draws a curved monitor through the shared curved panel', () => {
+      renderer.setState(stateOf([{ ...monitor('user'), curve: { radiusMm: 1800 } }], []));
+      let face: Mesh | undefined;
+      groupOf('mon-1').traverse(o => { if (o.userData.role === 'face') face = o as Mesh; });
+      expect(face?.geometry.getAttribute('position').count).toBeGreaterThan(36);
+    });
+
+    it('draws a desk object with its slab and four legs, picked as that object', () => {
+      const desk: SceneObject = { id: 'desk-1', kind: 'desk', label: null, source: 'build', position: [0, 0, 0], yaw: 0, size: [1600, 30, 800], anchors: [] };
+      renderer.setState(stateOf([desk], []));
+      const expected = buildDeskBoxes([...deskSlabBoxes({ x0: -800, x1: 800, z0: -400, z1: 400 }), ...deskLegBoxes({ x0: -800, x1: 800, z0: -400, z1: 400 })], palette, [], [], []);
+      expect(groupOf(desk.id).children[0].children).toHaveLength(expected.children.length);
+      renderer.setCamera({ position: [0, 900, 1400], target: [0, 0, 0], fov: 40 });
+      settle(renderer);
+      expect(renderer.pickAt(400, 330)).toEqual({ kind: 'object', objectId: desk.id });
+    });
+
+    it('draws an L desk as one set of legs on the main object and the far slab on the return', () => {
+      const main: SceneObject = { id: 'desk-1', kind: 'desk', label: null, source: 'build', position: [0, 0, 0], yaw: 0, size: [1400, 30, 700], anchors: [] };
+      const ret: SceneObject = { id: 'desk-1.return', kind: 'desk', label: null, source: 'build', position: [400, 0, 400], yaw: 0, size: [600, 30, 1500], anchors: [] };
+      renderer.setState(stateOf([main, ret], []));
+      const faces = (o: SceneObject) => groupOf(o.id).children[0].children.length;
+      expect(faces(main)).toBe(1 + 6);
+      expect(faces(ret)).toBe(1);
     });
   });
 });
