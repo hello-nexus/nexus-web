@@ -86,6 +86,30 @@ export function igpuSensors(sensors: SensorState): HardwareSensor[] {
   return igpuComponents(sensors).flatMap(g => g.sensors);
 }
 
+/**
+ * Display name of a storage sensor with its drive in front ("C: Used",
+ * "Games (D:) Free"). Every drive reports the same Used / Free / Usage names,
+ * so without the drive the picker and the widget caption cannot tell them
+ * apart. The service names a component "<volume> (<mount>)" on Windows and the
+ * bare volume label elsewhere, so the mount (the sensor's parent) is appended
+ * when the component name does not already carry it.
+ */
+export function storageSensorLabel(sensors: SensorState, sensor: HardwareSensor): string {
+  const component = Object.entries(sensors.storageComponents)
+    .find(([id, c]) => !isSmartStorageComponentId(id) && c.sensors?.some(s => s.id === sensor.id))?.[1];
+  const mount = sensor.parent?.name ?? '';
+  const base = component?.name || mount;
+  if (!base) return sensor.name;
+  const drive = mount && !base.includes(mount) ? `${base} (${mount})` : base;
+  return `${drive} ${sensor.name}`;
+}
+
+/** Name a sensor's caption/option is derived from: drive-qualified for storage, the plain name elsewhere. */
+export function sensorCaptionName(device: DeviceKey, sensors: SensorState, sensor: HardwareSensor | undefined): string | undefined {
+  if (!sensor) return undefined;
+  return device === 'storage' ? storageSensorLabel(sensors, sensor) : sensor.name;
+}
+
 /** Flattened sensors from every smart/*-keyed storage component. */
 export function smartStorageSensors(sensors: SensorState): HardwareSensor[] {
   return Object.entries(sensors.storageComponents)

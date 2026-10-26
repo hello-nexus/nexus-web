@@ -38,6 +38,7 @@ import {
 } from '../../theme/gaugeGradient';
 import { RotateCcw } from 'lucide-react';
 import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
+import { sensorCaptionName } from '../monitoring/sensorCategories';
 import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
 import {
   CATEGORY_LABEL_KEYS, DEVICE_OPTION_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys,
@@ -229,7 +230,7 @@ function microAutoLabel(
 ): string {
   const effectiveName = device === 'network' && !rawName ? NETWORK_SENSOR_TOTAL : rawName;
   const sensor = resolveSensor(sensors, [], networkSensors, device, effectiveName, undefined, extras);
-  const name = sensor?.name ?? '';
+  const name = sensorCaptionName(device, sensors, sensor) ?? '';
   if (prefixed) return labelForDevice(device, name || effectiveName);
   return bareSensorLabel(device, name) || name || effectiveName;
 }
@@ -653,7 +654,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
     ?? (activeConfig ? defaultValueColorReverse(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : false);
   const slotLabelMode = (widget.config?.[`slot${activeSlot}_labelMode`] as string | undefined) ?? 'auto';
   const slotLabelOverride = (widget.config?.[`slot${activeSlot}_label`] as string | undefined) ?? '';
-  const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : '';
+  const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, sensorCaptionName(activeConfig.device, sensors, activeSensor) ?? activeConfig.sensorName) : '';
 
   return (
     <div className={styles.settingsRoot}>
