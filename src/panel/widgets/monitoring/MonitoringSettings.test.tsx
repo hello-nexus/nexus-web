@@ -35,12 +35,16 @@ const mockSensors = {
   memory: [{ id: 'mem-usage', name: 'Memory Usage', type: 'Load', value: 62, units: '%', formatted: '62%', parent: { id: 'mem', name: 'Memory' } }],
   storage: [],
   storageComponents: {
+    'C:': {
+      id: 'C:', name: 'Windows (C:)', capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '',
+      sensors: [{ id: 'storage-c', name: 'Used', type: 'Load', value: 51, units: '%', formatted: '51%', parent: { id: 'C:', name: 'C:' } }],
+    },
     'smart/nvme/0': {
       id: 'smart/nvme/0', name: 'Test NVMe', capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '',
       sensors: [{ id: '/nvme/0/temperature/0', name: 'Composite Temperature', type: 'Temperature', value: 42, units: '°C', formatted: '42.0 °C', parent: { id: '/nvme/0', name: 'Test NVMe' } }],
     },
   },
-  storageSensors: [{ id: 'storage-c', name: 'Drive C', type: 'Load', value: 51, units: '%', formatted: '51%', parent: { id: 'storage', name: 'Storage' } }],
+  storageSensors: [{ id: 'storage-c', name: 'Used', type: 'Load', value: 51, units: '%', formatted: '51%', parent: { id: 'C:', name: 'C:' } }],
   motherboard: [{ id: 'fan-1', name: 'Fan 1', type: 'Fan', value: 1200, units: 'RPM', formatted: '1200 RPM', parent: { id: 'mobo', name: 'Motherboard' } }],
   motherboardModel: '',
   cpuModel: '',
@@ -258,7 +262,7 @@ describe('MonitoringSettings', () => {
     expect(optionLabels(sensorSelect)).toEqual(['Fan 1 (Fan)']);
 
     fireEvent.change(deviceSelect, { target: { value: 'storage' } });
-    expect(optionLabels(sensorSelect)).toEqual(['Drive C']);
+    expect(optionLabels(sensorSelect)).toEqual(['Windows (C:) Used']);
   });
 
   it('exposes the Tryx-shared categories as a subset in the same order, plus widget-only categories the overlay never sees', () => {

@@ -32,6 +32,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
+import { curvedLayers, curveRadius } from './curvedPanel';
 import { CANVAS_H, CANVAS_W, rotateYaw, toWorld } from './sceneMath';
 
 export type ScenePick =
@@ -55,12 +56,13 @@ export interface SceneRenderState {
 
 export interface SceneRendererCallbacks {
   onCamera: (camera: SceneCamera, final: boolean) => void;
-  onPick: (pick: ScenePick | null) => void;
+  /** The front-most thing under the click, and everything under it near to far, so a caller can look past an unbound surface. */
+  onPick: (pick: ScenePick | null, stack: ScenePick[]) => void;
   onMoveObject: (objectId: string, position: Vec3) => void;
   /** LED canvas positions after the camera or the placements changed. */
   onProjected?: (points: Map<string, Float32Array>) => void;
   /** What the pointer rests on, with its client position; null when it leaves everything. */
-  onHover?: (pick: ScenePick | null, clientX: number, clientY: number) => void;
+  onHover?: (pick: ScenePick | null, clientX: number, clientY: number, stack: ScenePick[]) => void;
 }
 
 /** Visual tones; the accent is read from the theme when the renderer mounts. */
@@ -75,6 +77,8 @@ const anchorKey = (objectId: string, anchorId: string) => `${objectId}\n${anchor
 const CLICK_SLOP_PX = 5;
 const SNAP_MM = 5;
 const DESK_THICKNESS = 25;
+/** Scales every structure line (case, desk, objects, free spots) so the LEDs read first; selected and hovered lines ignore it. */
+export const STRUCTURE_LINE_DIM = 0.45;
 
 function dotTexture(): CanvasTexture {
   const c = document.createElement('canvas');
@@ -139,7 +143,7 @@ export class SceneRenderer {
   private readonly unsubscribeFrame: () => void;
   private readonly resizeObserver: ResizeObserver;
   private interacting = false;
-  private down: { x: number; y: number; pick: ScenePick | null } | null = null;
+  private down: { x: number; y: number; pick: ScenePick | null; stack: ScenePick[] } | null = null;
   private drag: { objectId: string; group: Object3D; plane: Plane; offset: Vector3; start: Vec3; moved: boolean } | null = null;
   private hovered: string | null = null;
   // Redraw only when something on screen changed: the camera, the scene, or a new LED frame.
@@ -273,15 +277,30 @@ export class SceneRenderer {
 
   /** What sits under a viewport point (client pixels): a surface first, then an object. */
   pickAt(clientX: number, clientY: number): ScenePick | null {
+    const stack = this.pickStackAt(clientX, clientY);
+    return stack.find(p => p.kind === 'anchor') ?? stack[0] ?? null;
+  }
+
+  /** Every surface and object under a viewport point, nearest first. */
+  pickStackAt(clientX: number, clientY: number): ScenePick[] {
     const rect = this.canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return null;
+    if (rect.width === 0 || rect.height === 0) return [];
     this.pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObjects([this.anchorsGroup, this.objectsGroup], true);
-    const anchor = hits.find(h => h.object.userData.pick === 'anchor');
-    if (anchor) return { kind: 'anchor', objectId: anchor.object.userData.objectId, anchorId: anchor.object.userData.anchorId };
-    const obj = hits.find(h => h.object.userData.pick === 'object');
-    return obj ? { kind: 'object', objectId: obj.object.userData.objectId } : null;
+    const stack: ScenePick[] = [];
+    const seen = new Set<string>();
+    for (const hit of this.raycaster.intersectObjects([this.anchorsGroup, this.objectsGroup], true)) {
+      const data = hit.object.userData;
+      const pick: ScenePick | null = data.pick === 'anchor'
+        ? { kind: 'anchor', objectId: data.objectId, anchorId: data.anchorId }
+        : data.pick === 'object' ? { kind: 'object', objectId: data.objectId } : null;
+      const key = pick ? (pick.kind === 'anchor' ? anchorKey(pick.objectId, pick.anchorId) : pick.objectId) : null;
+      if (pick && key !== null && !seen.has(`${pick.kind}:${key}`)) {
+        seen.add(`${pick.kind}:${key}`);
+        stack.push(pick);
+      }
+    }
+    return stack;
   }
 
   private resize(): void {
@@ -387,7 +406,7 @@ export class SceneRenderer {
         old.dispose();
       }
       mesh.material = new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false });
-      mesh.add(new LineSegments(new EdgesGeometry(mesh.geometry, 25), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.55 })));
+      mesh.add(new LineSegments(new EdgesGeometry(mesh.geometry, 25), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.55 * STRUCTURE_LINE_DIM })));
     }
     // Clones share these buffers; clearGroup leaves them for the model's own disposal.
     model.traverse(o => { o.userData.shared = true; });
@@ -441,6 +460,8 @@ export class SceneRenderer {
 
   private buildDesk(objects: SceneObject[]): Group {
     const g = new Group();
+    // A desk from the shared setup draws as its own surface; the surface fitted around the objects is only for scenes without one.
+    if (objects.some(o => o.kind === 'desk')) return g;
     const desk = objects.filter(o => o.kind !== 'case' || o.position[1] <= 1);
     let minX = -800, maxX = 800, minZ = -375, maxZ = 375;
     for (const o of desk) {
@@ -453,20 +474,76 @@ export class SceneRenderer {
     const geo = new BoxGeometry(maxX - minX, DESK_THICKNESS, maxZ - minZ);
     const slab = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.desk), transparent: true, opacity: 0.35, depthWrite: false }));
     slab.position.set((minX + maxX) / 2, -DESK_THICKNESS / 2, (minZ + maxZ) / 2);
-    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.25 }));
+    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.25 * STRUCTURE_LINE_DIM }));
     edges.position.copy(slab.position);
     g.add(slab, edges);
     return g;
   }
 
+  private deskSurface(obj: SceneObject): Group {
+    const g = new Group();
+    const [w, h, d] = obj.size;
+    const geo = new BoxGeometry(w, h, d);
+    const slab = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.desk), transparent: true, opacity: 0.35, depthWrite: false }));
+    slab.position.y = -h / 2;
+    slab.userData = { pick: 'object', objectId: obj.id, role: 'face' };
+    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.25 * STRUCTURE_LINE_DIM }));
+    edges.position.y = -h / 2;
+    edges.userData = { role: 'edges' };
+    g.add(slab, edges);
+    return g;
+  }
+
+  private curvedMonitor(obj: SceneObject, radius: number): Group {
+    const g = new Group();
+    const h = obj.size[1];
+    const { front, back } = curvedLayers(obj.size, radius, 24);
+    const pos: number[] = [];
+    const tri: number[] = [];
+    front.forEach(([x, z], i) => {
+      pos.push(x, 0, z, x, h, z);
+      if (i > 0) tri.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i - 1, 2 * i + 1, 2 * i);
+    });
+    const faceGeo = new BufferGeometry();
+    faceGeo.setAttribute('position', new Float32BufferAttribute(pos, 3));
+    faceGeo.setIndex(tri);
+    const face = new Mesh(faceGeo, new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.22, side: DoubleSide, depthWrite: false }));
+    face.userData = { pick: 'object', objectId: obj.id, role: 'face' };
+    // The back arc shares the front's center, one thickness behind it.
+    const lines: number[] = [];
+    const seg = (a: number[], b: number[]) => lines.push(...a, ...b);
+    for (const y of [0, h]) {
+      for (let i = 1; i < front.length; i++) {
+        seg([front[i - 1][0], y, front[i - 1][1]], [front[i][0], y, front[i][1]]);
+        seg([back[i - 1][0], y, back[i - 1][1]], [back[i][0], y, back[i][1]]);
+      }
+    }
+    for (const end of [0, front.length - 1]) {
+      const [x, z] = front[end];
+      const [bx, bz] = back[end];
+      seg([x, 0, z], [x, h, z]);
+      seg([bx, 0, bz], [bx, h, bz]);
+      for (const y of [0, h]) seg([x, y, z], [bx, y, bz]);
+    }
+    const edgeGeo = new BufferGeometry();
+    edgeGeo.setAttribute('position', new Float32BufferAttribute(lines, 3));
+    const edges = new LineSegments(edgeGeo, new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.6 * STRUCTURE_LINE_DIM }));
+    edges.userData = { role: 'edges' };
+    g.add(face, edges);
+    return g;
+  }
+
   private objectBox(obj: SceneObject): Group {
+    if (obj.kind === 'desk') return this.deskSurface(obj);
+    const radius = curveRadius(obj);
+    if (radius !== null) return this.curvedMonitor(obj, radius);
     const g = new Group();
     const [w, h, d] = obj.size;
     const geo = new BoxGeometry(w, h, d);
     const face = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.22, depthWrite: false }));
     face.position.y = h / 2;
     face.userData = { pick: 'object', objectId: obj.id, role: 'face' };
-    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.6 }));
+    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.6 * STRUCTURE_LINE_DIM }));
     edges.position.y = h / 2;
     edges.userData = { role: 'edges' };
     g.add(face, edges);
@@ -485,7 +562,7 @@ export class SceneRenderer {
     const m = anchorMatrix(obj, a);
     const g = new Group();
     g.applyMatrix4(m);
-    const line = new LineLoop(outline(a), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.4, depthTest: false }));
+    const line = new LineLoop(outline(a), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.4 * STRUCTURE_LINE_DIM, depthTest: false }));
     line.renderOrder = 5;
     const pickGeo = a.shape === 'ring' ? new CircleGeometry(Math.min(a.width, a.height) * 0.5, 32) : new PlaneGeometry(Math.max(a.width, 12), Math.max(a.height, 12));
     const pick = new Mesh(pickGeo, new MeshBasicMaterial({ color: new Color(this.theme.accent), transparent: true, opacity: 0, side: DoubleSide, depthWrite: false }));
@@ -510,7 +587,7 @@ export class SceneRenderer {
       const device = boundTo.get(key);
       const pick = loop.parent?.children.find(c => c.userData.pick === 'anchor') as Mesh | undefined;
       const pickMat = pick?.material as MeshBasicMaterial | undefined;
-      let opacity = 0.35;
+      let opacity = 0.35 * STRUCTURE_LINE_DIM;
       let color = line;
       let fill = 0;
       if (device) {
@@ -537,20 +614,17 @@ export class SceneRenderer {
         if (o.userData.role === 'edges') {
           const mat = (o as LineSegments).material as LineBasicMaterial;
           mat.color.copy(selected ? accent : line);
-          mat.opacity = selected ? 1 : 0.6;
+          mat.opacity = selected ? 1 : 0.6 * STRUCTURE_LINE_DIM;
         }
       });
     }
   }
 
-  private eventPick(e: PointerEvent): ScenePick | null {
-    return this.pickAt(e.clientX, e.clientY);
-  }
-
   private readonly onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
-    const pick = this.eventPick(e);
-    this.down = { x: e.clientX, y: e.clientY, pick };
+    const stack = this.pickStackAt(e.clientX, e.clientY);
+    const pick = stack.find(p => p.kind === 'anchor') ?? stack[0] ?? null;
+    this.down = { x: e.clientX, y: e.clientY, pick, stack };
     const state = this.state;
     // Only the selected object drags across the desk; a drag that starts anywhere else orbits, so a
     // camera move that begins over the case never shoves it.
@@ -585,11 +659,12 @@ export class SceneRenderer {
       return;
     }
     if (e.buttons !== 0) {
-      this.callbacks.onHover?.(null, e.clientX, e.clientY);
+      this.callbacks.onHover?.(null, e.clientX, e.clientY, []);
       return;
     }
-    const pick = this.eventPick(e);
-    this.callbacks.onHover?.(pick, e.clientX, e.clientY);
+    const stack = this.pickStackAt(e.clientX, e.clientY);
+    const pick = stack.find(p => p.kind === 'anchor') ?? stack[0] ?? null;
+    this.callbacks.onHover?.(pick, e.clientX, e.clientY, stack);
     const key = pick?.kind === 'anchor' ? anchorKey(pick.objectId, pick.anchorId) : null;
     const movable = this.state?.editable && pick && pick.objectId === this.state.selectedObjectId;
     this.canvas.style.cursor = pick ? (movable ? 'grab' : 'pointer') : '';
@@ -612,7 +687,7 @@ export class SceneRenderer {
       this.hovered = null;
       this.restyle();
     }
-    this.callbacks.onHover?.(null, e.clientX, e.clientY);
+    this.callbacks.onHover?.(null, e.clientX, e.clientY, []);
   };
 
   private readonly onPointerUp = (e: PointerEvent) => {
@@ -628,6 +703,6 @@ export class SceneRenderer {
     }
     if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) return;
     if (e.target !== this.canvas && !drag) return;
-    this.callbacks.onPick(down.pick);
+    this.callbacks.onPick(down.pick, down.stack);
   };
 }

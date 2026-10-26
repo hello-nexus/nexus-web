@@ -17,7 +17,7 @@ interface Props {
 export function SamplingModeSelect({ id, value, onFail, onSaved }: Props) {
   const { t } = useTranslation();
   const [current, setCurrent] = useState<SamplingMode>(value);
-  // Newest request wins, as in RateCapSelect.
+  // Newest request wins; a failure reverts to the value held at pick time.
   const seq = useRef(0);
   const pending = useRef(new Set<number>());
   const lastId = useRef(id);

@@ -347,10 +347,13 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_count', label: 'Count', labelKey: 'lighting.controls.param.count' },
       { name: 'u_glow',  label: 'Glow', labelKey: 'lighting.controls.param.glow' },
   ]},
-  { key: 'aurora',       labelKey: 'lighting.controls.aurora',       params: [
+  { key: 'aurora',       labelKey: 'lighting.controls.aurora',
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', range: true }], params: [
       { name: 'u_curtains', label: 'Curtains', labelKey: 'lighting.controls.param.curtains' },
       { name: 'u_height',   label: 'Height', labelKey: 'lighting.controls.param.height' },
       { name: 'u_shimmer',  label: 'Shimmer', labelKey: 'lighting.controls.param.shimmer' },
+      { name: 'u_rays',     label: 'Rays', labelKey: 'lighting.controls.param.rays' },
+      { name: 'u_bgLevel',  label: 'Background Brightness', labelKey: 'lighting.controls.param.backgroundBrightness' },
   ]},
   { key: 'lavalamp',     labelKey: 'lighting.controls.lavalamp',     params: [
       { name: 'u_count',     label: 'Blobs', labelKey: 'lighting.controls.param.blobs' },
@@ -653,23 +656,12 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_centerGain',  labelKey: 'lighting.controls.bb.centerGain',  label: 'Gain' },
       { name: 'u_centerFloor', labelKey: 'lighting.controls.bb.centerFloor', label: 'Noise Gate' },
       { name: 'u_centerSize',  labelKey: 'lighting.controls.bb.centerSize',  label: 'Size' },
-      { name: 'u_topMeters', labelKey: 'lighting.controls.bb.topMeters', label: 'Top Meters',
-        options: [
-          { value: 0, labelKey: 'lighting.controls.bb.opt.off' },
-          { value: 1, labelKey: 'lighting.controls.bb.opt.on' },
-        ] },
-      { name: 'u_cornerFills', labelKey: 'lighting.controls.bb.cornerFills', label: 'Corner Fills',
-        options: [
-          { value: 0, labelKey: 'lighting.controls.bb.opt.off' },
-          { value: 1, labelKey: 'lighting.controls.bb.opt.on' },
-        ] },
+      { name: 'u_topMeters', labelKey: 'lighting.controls.bb.topMeters', label: 'Top Meters', toggle: true },
+      { name: 'u_cornerFills', labelKey: 'lighting.controls.bb.cornerFills', label: 'Corner Fills', toggle: true },
       { name: 'u_topHeight',  labelKey: 'lighting.controls.bb.topHeight',  label: 'Top Height' },
-      { name: 'u_bottomBars', labelKey: 'lighting.controls.bb.bottomBars', label: 'Bottom Bars',
-        options: [
-          { value: 0, labelKey: 'lighting.controls.bb.opt.off' },
-          { value: 1, labelKey: 'lighting.controls.bb.opt.on' },
-        ] },
+      { name: 'u_bottomBars', labelKey: 'lighting.controls.bb.bottomBars', label: 'Bottom Bars', toggle: true },
       { name: 'u_bottomScale', labelKey: 'lighting.controls.bb.bottomScale', label: 'Bottom Height' },
+      { name: 'u_stereo', labelKey: 'lighting.controls.bb.stereo', label: 'Stereo split', toggle: true },
       { name: 'u_bgLevel',    labelKey: 'lighting.controls.bb.bgLevel',    label: 'Background' },
       { name: 'u_beatColor',  labelKey: 'lighting.controls.bb.beatColor',  label: 'Beat Color' },
       { name: 'u_flash',      labelKey: 'lighting.controls.bb.flash',      label: 'Beat Flash' },

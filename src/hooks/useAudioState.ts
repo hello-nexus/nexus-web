@@ -9,6 +9,9 @@ export interface AudioSnapshot {
   beat: number;
   spectrum: number[];
   spectrum64: number[];
+  /** Present only while a stereo-mode Beat Builder runs. */
+  spectrumLeft64?: number[] | null;
+  spectrumRight64?: number[] | null;
 }
 
 export function useAudioState(enabled: boolean): React.RefObject<AudioSnapshot | null> {

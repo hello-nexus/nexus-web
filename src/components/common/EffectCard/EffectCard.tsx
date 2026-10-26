@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Music } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { CardDeleteButton } from '../CardDeleteButton/CardDeleteButton';
+import { EditHint } from '../EditHint/EditHint';
 import styles from './EffectCard.module.scss';
 
 interface EffectCardBaseProps {
@@ -19,11 +20,21 @@ interface EffectCardBaseProps {
   onDelete?: () => void;
   deleteAriaLabel?: string;
   /**
+   * Shows the shared edit hint (icon-only scrim with a pencil) over the card on
+   * hover for hover-capable fine pointers. The click itself is the card's
+   * onClick; pass an ariaLabel that names the edit action.
+   */
+  editHint?: boolean;
+  /** Changes whenever the tile's grid position can have changed (order, filter, collapse). Resets the pointer-presence reveal. */
+  layoutKey?: string;
+  /**
    * When true, render as a div with role=button instead of a real <button>.
    * Required when the card contains nested interactive elements (CardDeleteButton),
    * since nested buttons are invalid HTML.
    */
   asDiv?: boolean;
+  /** Div path only: omit aria-pressed, matching the plain button path (a picker that never announced "pressed"). */
+  noPressedState?: boolean;
   /** Overlay rendered inside the thumbnail, centred (used for the importing spinner). */
   thumbOverlay?: ReactNode;
   /**
@@ -50,6 +61,9 @@ interface EffectCardBaseProps {
    * frame. Omit for the default 16/9 cropped behavior.
    */
   thumbAspect?: number;
+  /** Draw the thumbnail as a circle (round display). Pair with a square thumbAspect. The box stays square so
+   *  its corner badges and delete button are not clipped. */
+  thumbRound?: boolean;
   /** Overlay mode only: suppress the on-thumbnail caption (the aria-label still
    *  carries the name). Used by the simple colour swatches, which need no text. */
   hideLabel?: boolean;
@@ -70,22 +84,36 @@ type EffectCardProps = EffectCardBaseProps & (
 
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
-  audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, hideLabel, metaSans, nonInteractive, disabled,
+  audio, meta, onDelete, deleteAriaLabel, editHint, layoutKey,
+  asDiv, noPressedState, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive, disabled,
 }: EffectCardProps) {
   const { t } = useTranslation();
   // An image that fails to load leaves the plain tile until a new one arrives, never a broken-image glyph.
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  // WebKit does not re-evaluate :hover for a node whose state changed under a still pointer, so the
+  // hint is also revealed from tracked pointer presence (mouse and pen only, never touch).
+  // Stored with the layout key it was seen under: a still pointer stays put while the grid reorders
+  // or filters, and the presence then belongs to a different tile until a new pointerenter.
+  const [overKey, setOverKey] = useState<string | null>(null);
+  const pointerOver = overKey !== null && overKey === (layoutKey ?? '');
+  const pointerProps = {
+    // React enter/leave follow the component tree, so a portalled child (a tooltip) reports here too; only the card's own DOM counts.
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType !== 'touch' && e.currentTarget.contains(e.target as Node)) setOverKey(layoutKey ?? '');
+    },
+    onPointerLeave: () => setOverKey(null),
+    'data-edit-hint-shown': editHint && pointerOver ? 'true' : undefined,
+  };
   const showImg = !!thumbUrl && thumbUrl !== failedUrl;
-  const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''} ${disabled ? styles.cardDisabled : ''}`;
+  const className = `${styles.card} ${editHint ? styles.cardEditable : ''} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''} ${disabled ? styles.cardDisabled : ''}`;
   const thumbBoxStyle = thumbAspect !== undefined
     ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
     : undefined;
   const thumbImgStyle = thumbAspect !== undefined
-    ? { objectFit: 'cover' as const, aspectRatio: String(thumbAspect) }
+    ? { objectFit: 'cover' as const, height: '100%', ...(thumbRound ? { borderRadius: '50%' } : null) }
     : undefined;
   const thumbSkeletonStyle = thumbAspect !== undefined
-    ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
+    ? { height: '100%', ...(thumbRound ? { borderRadius: '50%' } : null) }
     : undefined;
   const inner = (
     <>
@@ -110,6 +138,7 @@ export function EffectCard({
       </div>
       {!overlay && <span className={`${styles.label} ${keepCase ? styles.labelAsIs : ''}`}>{label}</span>}
       {!overlay && meta !== undefined && <span className={`${styles.meta} ${metaSans ? styles.metaSans : ''}`}>{meta}</span>}
+      {editHint && <EditHint className={styles.editHint} />}
     </>
   );
 
@@ -129,10 +158,11 @@ export function EffectCard({
         className={className}
         onClick={disabled ? undefined : onClick}
         onKeyDown={e => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick?.(); } }}
-        aria-pressed={active}
+        aria-pressed={noPressedState ? undefined : active}
         aria-disabled={disabled || undefined}
         aria-label={ariaLabel ?? label}
         data-effect-key={dataEffectKey}
+        {...pointerProps}
       >
         {inner}
       </div>
@@ -147,6 +177,7 @@ export function EffectCard({
       disabled={disabled}
       aria-label={ariaLabel ?? label}
       data-effect-key={dataEffectKey}
+      {...pointerProps}
     >
       {inner}
     </button>

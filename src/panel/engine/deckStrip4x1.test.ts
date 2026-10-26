@@ -7,7 +7,7 @@ import {
   fitLayoutToPages, fitLayoutToSinglePage, firstFreeRect, overflowLayout, pageHasOverlap,
   repackToFit, repaginatePanelLayout, restoreOverflowPositions,
 } from './paginate';
-import { sizeToSpan, snapStride, strideScanSteps } from './grid';
+import { sizeToSpan } from './grid';
 import { normalizePanelLayout } from './usePanelLayout';
 import { innerGridForSize } from '../widgets/deck/deckLayout';
 import { APP_REGISTRY, pickerSizeFor, sizesForSurface } from '../widgets/registry';
@@ -56,18 +56,6 @@ describe('4x1 span and snap', () => {
     expect(sizeToSpan('4x1')).toEqual({ cols: 4, rows: 1 });
   });
 
-  it('snaps to every row but keeps the 2-cell column stride', () => {
-    expect(strideScanSteps(4, 1)).toEqual([{ col: 2, row: 1 }, { col: 1, row: 1 }]);
-    expect(snapStride(1)).toBe(1);
-  });
-
-  it('leaves the coarse snap of every other size unchanged', () => {
-    for (const size of ['2x2', '2x4', '4x2', '4x4'] as const) {
-      const span = sizeToSpan(size);
-      expect(strideScanSteps(span.cols, span.rows)[0]).toEqual({ col: 2, row: 2 });
-    }
-  });
-
   it('survives normalizePanelWidgetSize', () => {
     expect(PANEL_WIDGET_SIZES).toContain('4x1');
     expect(normalizePanelWidgetSize('4x1')).toBe('4x1');
@@ -90,12 +78,12 @@ describe('4x1 placement among coarser widgets', () => {
     expect(firstFreeRect(existing, 4, 8, 4, 1)).toEqual({ col: 0, row: 2 });
   });
 
-  it('does not make the next 2x2 use the odd row the strip leaves', () => {
+  it('puts the next 2x2 in the first free cell right under the strip', () => {
     const existing = [widget('a', '4x1', 0, 0)];
-    expect(firstFreeRect(existing, 4, 8, 2, 2)).toEqual({ col: 0, row: 2 });
+    expect(firstFreeRect(existing, 4, 8, 2, 2)).toEqual({ col: 0, row: 1 });
   });
 
-  it('a 2x2 falls back to the odd-row hole only when no aligned slot is left', () => {
+  it('a 2x2 takes the only odd-row hole when nothing else is free', () => {
     const existing = [widget('a', '4x1', 0, 0), widget('b', '4x1', 0, 3)];
     expect(firstFreeRect(existing, 4, 4, 2, 2)).toEqual({ col: 0, row: 1 });
   });
@@ -110,9 +98,6 @@ describe('4x1 placement among coarser widgets', () => {
     for (const [id, size, type] of adds) layout = appendWidget(layout, widget(id, size, 0, 0, type), capacity);
     expect(layout.pages).toHaveLength(1);
     expectClean(layout.pages[0].widgets, 4, 16);
-    const coarse = layout.pages[0].widgets.filter(w => w.size !== '4x1');
-    // Only the strips may sit on odd rows while the aligned grid still has room.
-    expect(coarse.filter(w => w.type !== 'stocks').every(w => w.row % 2 === 0)).toBe(true);
   });
 
   it('spills a strip to a new page when a short page is full, and refuses on a single page', () => {
@@ -135,13 +120,13 @@ describe('4x1 drag', () => {
     expect(at(next, 'c')).toEqual([0, 2, '2x2']);
   });
 
-  it('cascades an overlapped 2x2 onto the coarse grid, never an odd row, when it can', () => {
+  it('moves an overlapped 2x2 the least distance, below the strip', () => {
     const l = layoutOf([widget('d', '4x1', 0, 7), widget('c', '2x2', 0, 2, 'clock')]);
     const next = previewDrag(l, 'd', 'p1', 0, 2, capacity)!;
     expect(next).not.toBeNull();
     expectClean(next.pages[0].widgets, 4, 8);
     expect(at(next, 'd')).toEqual([0, 2, '4x1']);
-    expect((at(next, 'c') as number[])[1] % 2).toBe(0);
+    expect(at(next, 'c')).toEqual([0, 3, '2x2']);
   });
 
   it('moves a strip within a page of several strips with no overlap', () => {
@@ -168,11 +153,11 @@ describe('resize between deck sizes', () => {
     expect(at(tryResizeWidget(l, 'd', '4x1', capacity, 5)!, 'd')).toEqual([0, 2, '4x1']);
   });
 
-  it('grows a strip on an odd row back onto the coarse grid', () => {
+  it('grows a strip on an odd row in place', () => {
     const l = layoutOf([widget('a', '4x1', 0, 0), widget('d', '4x1', 0, 1)]);
     const next = tryResizeWidget(l, 'd', '4x2', capacity, 5)!;
     expectClean(next.pages[0].widgets, 4, 8);
-    expect((at(next, 'd') as number[])[1] % 2).toBe(0);
+    expect(at(next, 'd')).toEqual([0, 1, '4x2']);
   });
 
   it('grows 4x1 to 4x4 and 2x2 through the neighbours without overlap', () => {
@@ -185,9 +170,6 @@ describe('resize between deck sizes', () => {
       const all = next.pages.flatMap(p => p.widgets);
       expect(all).toHaveLength(3);
       for (const p of next.pages) expectClean(p.widgets, 4, 8);
-      const d = next.pages.flatMap(p => p.widgets).find(w => w.id === 'd')!;
-      expect(d.row % snapStride(sizeToSpan(size).rows)).toBe(0);
-      expect(d.col % snapStride(sizeToSpan(size).cols)).toBe(0);
     }
   });
 
@@ -303,7 +285,7 @@ describe('4x1 offered only by deck', () => {
       expect(sizesForSurface(deck, surface), surface).toContain('4x1');
     }
     expect(sizesForSurface(deck, 'monitor', true)).toContain('4x1');
-    for (const surface of ['q60', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide'] as const) {
+    for (const surface of ['q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as const) {
       expect(sizesForSurface(deck, surface), surface).not.toContain('4x1');
     }
     expect(sizesForSurface(deck, 'monitor')).toEqual([]);

@@ -7,14 +7,15 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 
 const versions = new Map<string, string>();
 const listeners = new Set<() => void>();
-const postService = vi.fn(async (path: string) => ({ sessionId: 's', baseUrl: path.replace('/code-session', '') }));
-const fetchServiceBlob = vi.fn(async () => new Blob(['export default 1;']));
+let expiresInSeconds: number | undefined = 3600;
+const postService = vi.fn(async (path: string) => ({ sessionId: 's', baseUrl: path.replace('/code-session', ''), expiresInSeconds }));
+const fetchServiceBlob = vi.fn<(path?: string) => Promise<Blob | null>>(async () => new Blob(['export default 1;']));
 let remoteOrigin = false;
 let forceLan = false;
 
 vi.mock('../../../api/service', () => ({
   postService: (path: string) => postService(path),
-  fetchServiceBlob: () => fetchServiceBlob(),
+  fetchServiceBlob: (path: string) => fetchServiceBlob(path),
   get isRemoteOrigin() { return remoteOrigin; },
   isForceLanMode: () => forceLan,
 }));
@@ -76,6 +77,95 @@ describe('useSdkBundle', () => {
     expect(postService).toHaveBeenCalledTimes(1);
   });
 
+  it('retries the bundle after a transient failure instead of latching', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(result.current.failed).toBe(true);
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(result.current.failed).toBe(false);
+      expect(result.current.entryUrl).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
+  it('backs off between retries of a permanent bundle failure', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.useFakeTimers();
+    try {
+      renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      const afterFirstRetry = postService.mock.calls.length;
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(postService.mock.calls.length).toBe(afterFirstRetry);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(postService.mock.calls.length).toBeGreaterThan(afterFirstRetry);
+      // The delay doubles until it reaches the cap, then stays there.
+      // Each retry re-runs the effect, so time advances in steps React flushes between.
+      const advance = async (ms: number) => { for (let i = 0; i < ms; i += 1000) await act(async () => { await vi.advanceTimersByTimeAsync(1000); }); };
+      await advance(316_000 - 15_000);
+      const afterCap = postService.mock.calls.length;
+      await advance(58_000);
+      expect(postService.mock.calls.length).toBe(afterCap);
+      await advance(2_000);
+      expect(postService.mock.calls.length).toBeGreaterThan(afterCap);
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
+  it('an instance backing off picks up the bundle a sibling loaded, without waiting for its own retry', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.useFakeTimers();
+    try {
+      const a = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      // A has failed twice and is waiting on its timer.
+      expect(a.result.current.failed).toBe(true);
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+      const b = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(b.result.current.entryUrl).not.toBeNull();
+      expect(a.result.current.failed).toBe(false);
+      expect(a.result.current.entryUrl).toBe(b.result.current.entryUrl);
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
+  it('stops retrying once the widget unmounts', async () => {
+    const useSdkBundle = await loadHook();
+    versions.set('com.x.app', '1.0.0');
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.useFakeTimers();
+    try {
+      const { unmount } = renderHook(() => useSdkBundle('com.x.app'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+      const calls = postService.mock.calls.length;
+      await act(async () => { await vi.advanceTimersByTimeAsync(120_000); });
+      expect(postService.mock.calls.length).toBe(calls);
+    } finally {
+      vi.useRealTimers();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export default 1;']));
+    }
+  });
+
   it('fetches nothing until the registry lists the app', async () => {
     const useSdkBundle = await loadHook();
     const { result } = renderHook(() => useSdkBundle('com.x.unknown'));
@@ -113,5 +203,91 @@ describe('useSdkRuntime', () => {
     await waitFor(() => expect(result.current.runtimeUrl).not.toBeNull());
     expect(fetchServiceBlob).toHaveBeenCalledTimes(1);
     expect(pageFetch).not.toHaveBeenCalled();
+  });
+
+  it('an instance backing off picks up the runtime a sibling loaded, without waiting for its own retry', async () => {
+    remoteOrigin = false;
+    forceLan = false;
+    fetchServiceBlob.mockReset().mockResolvedValue(null);
+    vi.resetModules();
+    vi.useFakeTimers();
+    try {
+      const { useSdkRuntime } = await import('./useSdkBundle');
+      const a = renderHook(() => useSdkRuntime());
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(a.result.current.failed).toBe(true);
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['export {};']));
+      const b = renderHook(() => useSdkRuntime());
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(b.result.current.runtimeUrl).not.toBeNull();
+      expect(a.result.current.runtimeUrl).toBe(b.result.current.runtimeUrl);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries the runtime after a transient failure instead of latching', async () => {
+    remoteOrigin = false;
+    forceLan = false;
+    fetchServiceBlob.mockReset().mockResolvedValueOnce(null).mockResolvedValue(new Blob(['export {};']));
+    vi.resetModules();
+    vi.useFakeTimers();
+    try {
+      const { useSdkRuntime } = await import('./useSdkBundle');
+      const { result } = renderHook(() => useSdkRuntime());
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(result.current.failed).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(result.current.failed).toBe(false);
+      expect(result.current.runtimeUrl).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  describe('fetchBundleFile', () => {
+    beforeEach(() => {
+      postService.mockClear();
+      fetchServiceBlob.mockReset().mockResolvedValue(new Blob(['x']));
+      expiresInSeconds = 3600;
+    });
+
+    it('reuses one code-session for files of the same app version', async () => {
+      vi.resetModules();
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      await fetchBundleFile('com.x.app', 'renderer.mjs', '1.0.0');
+      await fetchBundleFile('com.x.app', 'other.bin', '1.0.0');
+      expect(postService).toHaveBeenCalledTimes(1);
+      await fetchBundleFile('com.x.app', 'renderer.mjs', '2.0.0');
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
+
+    it('mints a fresh session once when the code route refuses the cached one', async () => {
+      vi.resetModules();
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      await fetchBundleFile('com.x.app', 'a.bin', '1.0.0');
+      fetchServiceBlob.mockResolvedValueOnce(null);
+      const blob = await fetchBundleFile('com.x.app', 'b.bin', '1.0.0');
+      expect(blob).not.toBeNull();
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails after one re-mint', async () => {
+      vi.resetModules();
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      fetchServiceBlob.mockResolvedValue(null);
+      expect(await fetchBundleFile('com.x.app', 'a.bin', '1.0.0')).toBeNull();
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not reuse a session whose response carries no lifetime', async () => {
+      vi.resetModules();
+      expiresInSeconds = undefined;
+      const { fetchBundleFile } = await import('./useSdkBundle');
+      await fetchBundleFile('com.x.app', 'a.bin', '1.0.0');
+      await fetchBundleFile('com.x.app', 'a.bin', '1.0.0');
+      expect(postService).toHaveBeenCalledTimes(2);
+    });
   });
 });

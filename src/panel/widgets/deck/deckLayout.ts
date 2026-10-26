@@ -206,6 +206,20 @@ export function dialsInherited(deck: DeckConfig, page: number, folderPath: reado
   return inherited;
 }
 
+function stripDialHotkeyTags(dials: readonly DeckDial[]): DeckDial[] {
+  const strip = (d: DeckDial): DeckDial => {
+    const out = { ...d };
+    if (d.action?.type === 'custom' && d.action.hotkeyTags) {
+      const action = { ...d.action };
+      delete action.hotkeyTags;
+      out.action = action;
+    }
+    if (d.stack) out.stack = d.stack.map(strip);
+    return out;
+  };
+  return dials.map(strip);
+}
+
 // A folder without its own dials inherits the enclosing level's, so the first
 // write inside it materializes that inherited set as the folder's own.
 function mapDialsLevel<T extends DialContainer>(
@@ -216,7 +230,8 @@ function mapDialsLevel<T extends DialContainer>(
   count: number,
   fn: (dials: DeckDial[]) => DeckDial[],
 ): T {
-  const own = container.dials ?? inherited;
+  // A folder's first write copies the enclosing level's dials; a copy must not share hotkey tags with the original.
+  const own = container.dials ?? (inherited ? stripDialHotkeyTags(inherited) : inherited);
   if (depth === folderPath.length) return { ...container, dials: fn(growDials(own ?? [], count)) };
   const idx = folderPath[depth];
   return {
@@ -525,4 +540,25 @@ export function fitToGridWithOrigins(preset: FitGridPreset, target: FitGridTarge
 /** How many fitted pages `preset` spans on `target`. */
 export function fitPageCount(preset: FitGridPreset, target: FitGridTarget): number {
   return fitToGrid(preset, target).pages.length;
+}
+
+/** Where an authored key shows on `target`'s fitted pages: the fitted page and root slot index, or null. */
+export function authoredToFitted(
+  preset: FitGridPreset,
+  target: FitGridTarget,
+  authoredPage: number,
+  authoredIndex: number,
+): { page: number; index: number } | null {
+  const { origins } = fitToGridWithOrigins(preset, target);
+  for (let page = 0; page < origins.length; page++) {
+    const index = origins[page].findIndex(o => o.kind === 'authored' && o.page === authoredPage && o.slotIndex === authoredIndex);
+    if (index >= 0) return { page, index };
+  }
+  return null;
+}
+
+/** The first fitted page an authored page starts on, or null. */
+export function authoredPageToFitted(preset: FitGridPreset, target: FitGridTarget, authoredPage: number): number | null {
+  const at = fitToGridWithOrigins(preset, target).pageOrigins.indexOf(authoredPage);
+  return at < 0 ? null : at;
 }

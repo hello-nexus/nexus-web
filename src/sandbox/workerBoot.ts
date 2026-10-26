@@ -17,11 +17,82 @@
 // Authors can use sibling ESM imports because the browser resolves them
 // against the entry URL, which already carries the per-session token.
 
+/**
+ * Worker-global listener for a rejected promise nobody awaited, which never reaches the page's worker error
+ * event. `post` is a statement that reports the string `m`; reading the reason is guarded because String() of
+ * a null-prototype object throws.
+ */
+export function unhandledRejectionListener(post: string): string {
+  return `
+self.addEventListener("unhandledrejection", (ev) => {
+  let m;
+  try { const r = ev.reason; m = String(r && r.message || r); } catch (_) { m = "unhandled rejection"; }
+  ${post}
+});`;
+}
+
 export function workerBootScript(): string {
   return WORKER_BOOT;
 }
 
-const WORKER_BOOT = `
+/** Globals no worker may keep: network, persistence, cross-context channels, nested workers. */
+const KILLED_COMMON = [
+  // Network primitives.
+  "WebSocket", "WebSocketStream", "WebTransport", "XMLHttpRequest",
+  "EventSource", "importScripts", "RTCPeerConnection", "webkitRTCPeerConnection",
+  // Persistence + cross-context channels - block silent storage and any
+  // sideband to other workers/tabs hosting the same origin.
+  "BroadcastChannel", "MessageChannel", "indexedDB", "caches",
+  "SharedArrayBuffer", "Notification", "webkitRequestFileSystem",
+  "webkitRequestFileSystemSync", "webkitResolveLocalFileSystemURL",
+  "webkitResolveLocalFileSystemSyncURL",
+  // Sandbox escape via a nested worker. The child would inherit a clean
+  // fetch + WebSocket surface (CSP worker-src self blob: permits it), so
+  // disable the constructors here. FontFace and fonts load a remote URL as a font.
+  "Worker", "SharedWorker", "ServiceWorker", "FontFace", "fonts",
+];
+/** A widget worker also loses fetch, the canvas-shaped exfil surface and the JIT host. */
+const KILLED_WIDGET = ["fetch", "createImageBitmap", "WebAssembly"];
+// Navigator-hosted egress, persistence and device APIs; absent names are pre-empted.
+const KILLED_NAVIGATOR = [
+  "sendBeacon", "usb", "hid", "serial", "bluetooth", "gpu", "serviceWorker",
+  "storage", "storageBuckets", "locks", "credentials", "mediaDevices", "clipboard", "wakeLock",
+  "ml", "xr",
+];
+
+// Renderer workers keep a fetch that reaches only in-memory URLs: engines turn
+// embedded images into blob URLs and load them through fetch. Anything else
+// fails like a network error. The wrapper replaces the original on every owner
+// in the chain, so the prototype copy is no way around it.
+const FETCH_GUARD = `
+const _realFetch = self.fetch;
+// Everything the guard touches is captured at boot, and the request it checks is
+// the one it sends, so renderer code replacing a global, prototype or getter
+// cannot change what it decides or what it sends.
+const _Request = Request;
+const _urlGetter = Object.getOwnPropertyDescriptor(Request.prototype, "url").get;
+const _apply = Reflect.apply;
+const _slice = String.prototype.slice;
+const _lower = String.prototype.toLowerCase;
+function _guardedFetch(input, init) {
+  let req;
+  try {
+    req = new _Request(input, init);
+    const scheme = _apply(_lower, _apply(_slice, _apply(_urlGetter, req, []), [0, 5]), []);
+    if (scheme !== "blob:" && scheme !== "data:") throw new TypeError("blocked");
+  } catch (_) { return Promise.reject(new TypeError("Failed to fetch")); }
+  return _apply(_realFetch, self, [req]);
+}
+_lock(self, ["fetch"], _guardedFetch);
+`;
+
+function lockPrelude(killed: string[], guardFetch: boolean): string {
+  return `${PRELUDE_A}
+const _killed = ${JSON.stringify(killed)};${PRELUDE_B}
+const _killedNavigator = ${JSON.stringify(KILLED_NAVIGATOR)};${PRELUDE_C}${guardFetch ? FETCH_GUARD : ''}`;
+}
+
+const PRELUDE_A = `
 "use strict";
 
 // TEMP EXPERIMENT: WeakRef is Chrome 84; the Q60 panel is a Chromium 83
@@ -41,7 +112,7 @@ if (typeof WeakRef === "undefined") {
 // the network, persist state, or signal cross-tab except through nexus.*.
 // Chromium hosts several of these on WorkerGlobalScope.prototype, so _lock
 // redefines each name on every object in the prototype chain that owns it.
-function _lock(root, names) {
+function _lock(root, names, value) {
   const owners = [root];
   try {
     for (let o = Object.getPrototypeOf(root); o; o = Object.getPrototypeOf(o)) owners.push(o);
@@ -50,39 +121,22 @@ function _lock(root, names) {
     for (const o of owners) {
       try {
         if (o === root || Object.prototype.hasOwnProperty.call(o, name)) {
-          Object.defineProperty(o, name, { value: undefined, writable: false, configurable: false });
+          Object.defineProperty(o, name, { value: value, writable: false, configurable: false });
         }
       } catch (_) { /* some are non-configurable; best effort */ }
     }
   }
-}
-const _killed = [
-  // Network primitives.
-  "fetch", "WebSocket", "WebSocketStream", "WebTransport", "XMLHttpRequest",
-  "EventSource", "importScripts", "RTCPeerConnection", "webkitRTCPeerConnection",
-  // Persistence + cross-context channels - block silent storage and any
-  // sideband to other workers/tabs hosting the same origin.
-  "BroadcastChannel", "MessageChannel", "indexedDB", "caches",
-  "SharedArrayBuffer", "Notification", "webkitRequestFileSystem",
-  "webkitRequestFileSystemSync", "webkitResolveLocalFileSystemURL",
-  "webkitResolveLocalFileSystemSyncURL",
-  // Sandbox escape via a nested worker. The child would inherit a clean
-  // fetch + WebSocket surface (CSP worker-src self blob: permits it), so
-  // disable the constructors here. createImageBitmap is the canvas-shaped
-  // exfil surface; WebAssembly hosts JIT we have no policy on. FontFace and
-  // fonts load a remote URL as a font.
-  "Worker", "SharedWorker", "ServiceWorker", "createImageBitmap",
-  "WebAssembly", "FontFace", "fonts",
-];
+}`;
+const PRELUDE_B = `
 _lock(self, _killed);
 // Navigator-hosted egress, persistence and device APIs; absent names are pre-empted.
-const _killedNavigator = [
-  "sendBeacon", "usb", "hid", "serial", "bluetooth", "gpu", "serviceWorker",
-  "storage", "storageBuckets", "locks", "credentials", "mediaDevices", "clipboard", "wakeLock",
-  "ml", "xr",
-];
+`;
+const PRELUDE_C = `
 try { if (self.navigator) _lock(self.navigator, _killedNavigator); } catch (_) { /* best effort */ }
 
+`;
+
+const WORKER_BODY = `
 let _readyResolve;
 let _ready = new Promise((res) => { _readyResolve = res; });
 let _widgetId = "";
@@ -97,6 +151,8 @@ const _sensorSubs = new Map();
 let _lastEveryCb = null;
 
 function _post(type, payload) { self.postMessage({ type, payload }); }
+function _errText(e) { try { return String(e && e.message || e); } catch (_) { return "error"; } }
+${unhandledRejectionListener('_post("nexus.log", { level: "error", rejection: true, message: m });')}
 function _rpc(type, payload) {
   return new Promise((resolve, reject) => {
     const id = _rpcId++;
@@ -124,7 +180,7 @@ self.addEventListener("message", (ev) => {
     }
     case "nexus.refresh": {
       // Host asked us to re-run the most recent every() body once.
-      if (typeof _lastEveryCb === "function") { try { _lastEveryCb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); } }
+      if (typeof _lastEveryCb === "function") { try { _lastEveryCb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); } }
       break;
     }
     case "nexus.sensors.reading": {
@@ -229,16 +285,16 @@ const nexus = {
       if (typeof cb !== "function") return () => {};
       const ms = _parseCadence(cadence);
       _lastEveryCb = cb;
-      try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
+      try { cb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); }
       const handle = setInterval(() => {
-        try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
+        try { cb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); }
       }, ms);
       return () => { clearInterval(handle); _lastEveryCb = null; };
     },
     timeout(ms, cb) {
       if (typeof cb !== "function") return () => {};
       const handle = setTimeout(() => {
-        try { cb(); } catch (e) { _post("nexus.log", { level: "error", message: String(e && e.message || e) }); }
+        try { cb(); } catch (e) { _post("nexus.log", { level: "error", thrown: true, message: _errText(e) }); }
       }, Math.max(0, ms | 0));
       return () => clearTimeout(handle);
     },
@@ -247,3 +303,14 @@ const nexus = {
 
 Object.defineProperty(self, "nexus", { value: nexus, configurable: false, writable: false });
 `;
+
+const WORKER_BOOT = lockPrelude([...KILLED_COMMON, ...KILLED_WIDGET], false) + WORKER_BODY;
+
+/**
+ * Boot prelude of a Canvas renderer worker: the widget lock set, except that
+ * OffscreenCanvas, WebGL, createImageBitmap, WebAssembly and requestAnimationFrame
+ * stay, and fetch survives as a guard that serves only blob: and data: URLs.
+ */
+export function rendererBootScript(): string {
+  return lockPrelude(KILLED_COMMON, true) + unhandledRejectionListener('self.postMessage({ type: "rejection", message: m });');
+}

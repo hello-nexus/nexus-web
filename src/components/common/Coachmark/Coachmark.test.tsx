@@ -196,6 +196,85 @@ describe('Coachmark', () => {
     expect(ioObserved).toContain(b);
   });
 
+  describe('layout follow', () => {
+    let frames: FrameRequestCallback[];
+    let now: number;
+    let left: number;
+    let el: HTMLElement;
+    const cancelled = vi.fn();
+    const runFrame = () => act(async () => { frames.shift()?.(0); });
+    const drain = async () => { for (let i = 0; i < 400 && frames.length; i++) await runFrame(); };
+
+    beforeEach(() => {
+      frames = [];
+      now = 0;
+      left = 100;
+      cancelled.mockClear();
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { frames.push(cb); return frames.length; });
+      vi.stubGlobal('cancelAnimationFrame', cancelled);
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      el = mountTarget();
+      el.getBoundingClientRect = () => rect(left, 100, 30, 30);
+    });
+
+    it('follows a moving target frame by frame after a class change and then stops', async () => {
+      render(<Coachmark {...props} />);
+      await act(async () => { await Promise.resolve(); });
+      const start = region().style.left;
+      await act(async () => { el.classList.add('shifted'); await Promise.resolve(); });
+      left = 300;
+      await runFrame();
+      const mid = region().style.left;
+      expect(mid).not.toBe(start);
+      left = 500;
+      await runFrame();
+      expect(region().style.left).not.toBe(mid);
+      await drain();
+      expect(frames).toHaveLength(0);
+    });
+
+    it('follows when a class change and a DOM change land in the same batch, with no transition events', async () => {
+      render(<Coachmark {...props} />);
+      await act(async () => { await Promise.resolve(); });
+      const start = region().style.left;
+      await act(async () => {
+        el.classList.add('shifted');
+        document.body.appendChild(document.createElement('span'));
+        await Promise.resolve();
+      });
+      left = 400;
+      await runFrame();
+      expect(region().style.left).not.toBe(start);
+    });
+
+    it('stops following at the cap even while events keep arriving', async () => {
+      render(<Coachmark {...props} />);
+      await act(async () => { await Promise.resolve(); });
+      await act(async () => { el.classList.add('a'); await Promise.resolve(); });
+      for (const at of [400, 800, 1200, 1400]) {
+        left += 50;
+        now = at;
+        await act(async () => { document.body.dispatchEvent(new Event('transitionrun', { bubbles: true })); });
+        await runFrame();
+      }
+      expect(frames).toHaveLength(1);
+      // Past the cap measured from the first event, the next frame ends the loop.
+      left += 50;
+      now = 1600;
+      await runFrame();
+      expect(frames).toHaveLength(0);
+    });
+
+    it('cancels a pending frame on unmount', async () => {
+      const view = render(<Coachmark {...props} />);
+      await act(async () => { await Promise.resolve(); });
+      await act(async () => { el.classList.add('shifted'); await Promise.resolve(); });
+      expect(frames.length).toBe(1);
+      view.unmount();
+      expect(cancelled).toHaveBeenCalled();
+    });
+  });
+
   it('hides the bubble and the ring when the target is outside the boundary', () => {
     mountTarget();
     const { container } = render(<Coachmark {...props} boundary={() => rect(0, 200, 1000, 600)} />);

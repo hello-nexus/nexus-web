@@ -1,7 +1,7 @@
 {
   "name": "@hello-nexus/sdk",
-  "version": "0.6.0",
-  "description": "Author-facing SDK for building sandboxed Nexus apps - @hello-nexus/sdk (mount + hooks) and @hello-nexus/sdk/ui (the blessed component set). The host runtime is provided at load; an app bundle externalizes these to it.",
+  "version": "0.7.1",
+  "description": "Author-facing SDK for building sandboxed Nexus apps - @hello-nexus/sdk (mount + hooks), @hello-nexus/sdk/ui (the blessed component set) and @hello-nexus/sdk/renderer (the Canvas renderer worker end). The host runtime is provided at load; an app bundle externalizes these to it.",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -25,6 +25,10 @@
     "./ui": {
       "types": "./dist/types/sdk/runtime/ui.d.ts",
       "import": "./dist/ui.js"
+    },
+    "./renderer": {
+      "types": "./dist/types/sdk/runtime/renderer.d.ts",
+      "import": "./dist/renderer.js"
     }
   },
   "sideEffects": ["./dist/ui.js"],

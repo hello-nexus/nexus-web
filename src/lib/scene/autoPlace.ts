@@ -1,6 +1,6 @@
 import type { LightingDevice } from '../../api/lighting';
 import type { SceneBinding, SceneObject } from '../../api/lightingScene';
-import { newDeskObject, type DeskKind } from './deskCatalog';
+import type { DeskKind } from './deskCatalog';
 
 export type DeviceRole =
   | 'keyboard' | 'mouse' | 'mousepad' | 'headset' | 'speaker' | 'monitor' | 'lightbar'
@@ -73,9 +73,11 @@ export interface AutoPlaceResult {
   bindings: SceneBinding[];
   placed: string[];
   skipped: string[];
+  /** Devices whose kind of spot does not exist yet in the scene: the item has to be added in Build. */
+  missing: string[];
 }
 
-/** Places every unplaced device it can recognise: peripherals on desk objects (made when missing), case parts on free case surfaces. */
+/** Binds every unplaced device it can recognize to a free spot on an existing object; it never creates objects. */
 export function autoPlace(objects: SceneObject[], bindings: SceneBinding[], devices: LightingDevice[]): AutoPlaceResult {
   const nextObjects = [...objects];
   const nextBindings = [...bindings];
@@ -83,6 +85,7 @@ export function autoPlace(objects: SceneObject[], bindings: SceneBinding[], devi
   const bound = new Set(bindings.map(b => b.deviceId));
   const placed: string[] = [];
   const skipped: string[] = [];
+  const missing: string[] = [];
   const caseObj = nextObjects.find(o => o.kind === 'case');
 
   const bind = (deviceId: string, objectId: string, anchorId: string) => {
@@ -97,15 +100,20 @@ export function autoPlace(objects: SceneObject[], bindings: SceneBinding[], devi
     const deskKinds = role ? DESK_ROLE[role] : undefined;
     if (deskKinds) {
       const free = nextObjects.find(o => deskKinds.includes(o.kind as DeskKind) && o.anchors.some(a => !taken.has(`${o.id}\n${a.id}`)));
-      const obj = free ?? newDeskObject(deskKinds[0], nextObjects);
-      if (!free) nextObjects.push(obj);
-      const anchor = obj.anchors.find(a => !taken.has(`${obj.id}\n${a.id}`))!;
-      bind(d.id, obj.id, anchor.id);
+      if (!free) {
+        missing.push(d.id);
+        continue;
+      }
+      bind(d.id, free.id, free.anchors.find(a => !taken.has(`${free.id}\n${a.id}`))!.id);
       continue;
     }
     const kinds = role ? CASE_ROLE[role] : undefined;
-    if (!kinds || !caseObj) {
+    if (!kinds) {
       skipped.push(d.id);
+      continue;
+    }
+    if (!caseObj) {
+      missing.push(d.id);
       continue;
     }
     const candidates = kinds.flatMap(kind =>
@@ -113,10 +121,10 @@ export function autoPlace(objects: SceneObject[], bindings: SceneBinding[], devi
         .filter(a => a.kind === kind && !taken.has(`${caseObj.id}\n${a.id}`))
         .sort((a, b) => (kind === 'fan' ? fanRank(a.id) - fanRank(b.id) : 0)));
     if (candidates.length === 0) {
-      skipped.push(d.id);
+      missing.push(d.id);
       continue;
     }
     bind(d.id, caseObj.id, candidates[0].id);
   }
-  return { objects: nextObjects, bindings: nextBindings, placed, skipped };
+  return { objects: nextObjects, bindings: nextBindings, placed, skipped, missing };
 }

@@ -58,6 +58,12 @@ export function Layer(p: HostProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const regs = useRef(new Map<string, Registration>());
   const gestureRef = useRef<ActiveGesture | null>(null);
+  // Lets a canvas inside this layer stand down while a manipulable is grabbed.
+  const markLive = useCallback((live: boolean) => {
+    const el = rootRef.current;
+    if (!el) return;
+    if (live) el.setAttribute('data-layer-gesture-live', 'true'); else el.removeAttribute('data-layer-gesture-live');
+  }, []);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   // Children size themselves against the layer's box in its own CSS px.
@@ -78,17 +84,17 @@ export function Layer(p: HostProps) {
       regs.current.delete(id);
       // Unmounted mid-gesture (the worker dropped it): the pointer's release
       // must not report a change for it.
-      if (gestureRef.current?.reg === reg) gestureRef.current = null;
+      if (gestureRef.current?.reg === reg) { gestureRef.current = null; markLive(false); }
     };
-  }, []);
+  }, [markLive]);
   const api = useMemo<StageApi>(() => ({ register, size }), [register, size]);
 
   // Leaving gesture mode mid-gesture drops the gesture where it is.
   useEffect(() => {
     if (gestures) return;
     const g = gestureRef.current;
-    if (g) { g.reg.setLive(null); gestureRef.current = null; }
-  }, [gestures]);
+    if (g) { g.reg.setLive(null); gestureRef.current = null; markLive(false); }
+  }, [gestures, markLive]);
 
   const pointOf = useCallback((e: ReactPointerEvent): Point => {
     const r = rootRef.current?.getBoundingClientRect();
@@ -117,10 +123,11 @@ export function Layer(p: HostProps) {
     const r = e.currentTarget.getBoundingClientRect();
     const transform = reg.get();
     gestureRef.current = { id, reg, start: { transform, a: at }, a: { pointerId: e.pointerId, at }, b: null, w: r.width, h: r.height, live: transform, moved: false };
+    markLive(true);
     if (reg.editable) reg.setLive(transform);
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     e.preventDefault();
-  }, [gestures, pointOf]);
+  }, [gestures, pointOf, markLive]);
 
   const onPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     const g = gestureRef.current;
@@ -152,10 +159,11 @@ export function Layer(p: HostProps) {
       return;
     }
     gestureRef.current = null;
+    markLive(false);
     g.reg.setLive(null);
     if (!g.moved) g.reg.emitPress();
     else if (g.reg.editable) g.reg.emitChange(g.live);
-  }, []);
+  }, [markLive]);
 
   const style: CSSProperties = {
     position: 'relative',

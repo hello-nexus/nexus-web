@@ -11,6 +11,38 @@
   border-radius: var(--radius-sm);
 }
 
+.fieldWrap {
+  position: relative;
+  display: flex;
+}
+
+.fieldClearable {
+  padding-right: 1.8rem;
+}
+
+.clear {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--text);
+  }
+}
+
 .field {
   width: 100%;
   box-sizing: border-box;
@@ -29,4 +61,9 @@
     outline: none;
     border-color: var(--panel-accent, var(--accent));
   }
+}
+
+.hint {
+  margin-left: 0.6rem;
+  color: var(--text-dim);
 }

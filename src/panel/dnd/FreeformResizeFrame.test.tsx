@@ -74,9 +74,17 @@ describe('FreeformResizeFrame', () => {
     press(handle, 50, 50);
     move(handle, 50 - 100, 50 + 50);
     release(handle, -50, 100);
-    expect(onUpdate).toHaveBeenLastCalledWith('tl', -1, 1);
+    expect(onUpdate).toHaveBeenLastCalledWith('tl', -1, 1, false);
     expect(onEnd).toHaveBeenCalledTimes(1);
     expect(onExit).not.toHaveBeenCalled();
+  });
+
+  it('reports Shift from the move event as the ratio lock', () => {
+    const { onUpdate } = setup();
+    const handle = screen.getByRole('button', { name: 'panel.freeform.handle.topLeft' });
+    press(handle, 50, 50);
+    fireEvent.pointerMove(handle, { clientX: -50, clientY: 100, pointerId: 1, shiftKey: true });
+    expect(onUpdate).toHaveBeenLastCalledWith('tl', -1, 1, true);
   });
 
   it('does not start a gesture when the widget is gone', () => {
@@ -145,7 +153,7 @@ describe('FreeformResizeFrame hover corners', () => {
     move(handle, 100, 100);
     release(handle, 100, 100);
     fireEvent.click(handle);
-    expect(onUpdate).toHaveBeenLastCalledWith('br', 1, 2);
+    expect(onUpdate).toHaveBeenLastCalledWith('br', 1, 2, false);
     expect(onEnd).toHaveBeenCalledTimes(1);
     expect(onParentDown).not.toHaveBeenCalled();
     expect(onParentClick).not.toHaveBeenCalled();

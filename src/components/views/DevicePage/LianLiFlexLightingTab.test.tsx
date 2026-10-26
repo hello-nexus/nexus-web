@@ -316,6 +316,16 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
     expect(within(second).getByText('devices.lianli-flex.followsLeader:{"leader":"devices.lianli-wireless.fanTypeTlFlex"}')).toBeInTheDocument();
   });
 
+  it('uses the service unit names so Lighting agrees with Cooling and Screens', async () => {
+    const a = { ...tlUnit, mac: 'AA11', sortIndex: 0, merge: true };
+    const b = { ...tlUnit, mac: 'CC33', sortIndex: 1, merge: true };
+    mockGet.mockResolvedValue({ laneModes: [], chains: [a, b], mergeLeaderMac: 'AA11' });
+    const names = new Map([['AA11', 'TL Flex 1'], ['CC33', 'TL Flex 2']]);
+    await act(async () => { render(<LianLiWirelessLightingTab api={api} unitNames={names} />); });
+    expect(screen.getByText('TL Flex 1')).toBeInTheDocument();
+    expect(screen.getByText('TL Flex 2')).toBeInTheDocument();
+  });
+
   it('reads the units back after every write, accepted or not, and tells the caller', async () => {
     const written = vi.fn();
     mockGet.mockResolvedValue({ laneModes: [], chains: [tlUnit] });
@@ -606,6 +616,50 @@ describe('LianLiWirelessLightingTab with the wired LCD Flex api', () => {
       expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toBeDisabled();
       expect(screen.getByRole('switch', { name: 'devices.lianli-flex.upDownSwap' })).toBeDisabled();
       expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.merge' })).toBeDisabled();
+    });
+  });
+
+  describe('P28 V2 receiver', () => {
+    const p28Unit: LianLiWirelessChainLighting = {
+      ...tlUnit, mac: 'PP28', fanType: 63, modes: [], mode: 'custom', supportsZones: false, zones: [], upDownSwap: null,
+      argbCableConnected: true, motherboardArgb: true,
+    };
+
+    it('offers no motherboard ARGB, Lighting page switch, Per zone or Merge', async () => {
+      await renderTab([p28Unit]);
+      expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('switch', { name: 'devices.lightingPage.use' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.merge' })).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli-flex.mergeNeedsEffect')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli-flex.modePerZone')).not.toBeInTheDocument();
+    });
+
+    it('hides Mode, brightness and Reset lighting, and links to the Lighting page', async () => {
+      const onSectionNavigate = vi.fn();
+      mockGet.mockResolvedValue({ laneModes: [], chains: [p28Unit] });
+      await act(async () => { render(<LianLiWirelessLightingTab api={{ ...api, reset: vi.fn() }} onSectionNavigate={onSectionNavigate} />); });
+      expect(screen.queryByLabelText('devices.lianli.lightingMode')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli.lightingBrightness')).not.toBeInTheDocument();
+      expect(screen.queryByText('devices.lianli-flex.resetLighting')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' }));
+      expect(onSectionNavigate).toHaveBeenCalledWith('lighting');
+    });
+
+    it('is keyed on the family, so a P28 reporting fan type 0 is still one', async () => {
+      await renderTab([{ ...p28Unit, fanType: 0, family: 'p28v2' }]);
+      expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('switch', { name: 'devices.lightingPage.use' })).not.toBeInTheDocument();
+    });
+
+    it('is not a P28 when the family says otherwise', async () => {
+      await renderTab([{ ...p28Unit, family: 'tlFlex' }]);
+      expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toBeInTheDocument();
+    });
+
+    it('is not marked synced when the group sync is on', async () => {
+      mockGet.mockResolvedValue({ laneModes: [], chains: [p28Unit] });
+      await act(async () => { render(<LianLiWirelessLightingTab api={api} syncOn />); });
+      expect(screen.queryByText('devices.lianli-flex.followsSync')).not.toBeInTheDocument();
     });
   });
 });

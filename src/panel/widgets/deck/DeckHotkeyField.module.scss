@@ -1,0 +1,16 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.recorder {
+  flex: 1;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}

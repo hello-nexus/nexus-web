@@ -421,3 +421,29 @@ describe('makePresetDeckTarget - dials', () => {
     expect(target.removePageKeyCount(0)).toBe(2);
   });
 });
+
+describe('makePresetDeckTarget - hotkey tags ride along with the slot', () => {
+  const deck: DeckConfig = {
+    pages: [{ slots: [{ hotkeyTag: 'a', action: { type: 'text', text: 'a' } }, { action: { type: 'text', text: 'b' } }, {}] }],
+  };
+
+  it('exposes the preset id for the hotkey field', () => {
+    expect(makePresetDeckTarget(preset(deck), IDENTITY_GRID, 'physical', vi.fn()).presetId).toBe('p1');
+  });
+
+  it('keeps the tag on the slot when two keys swap, so the binding follows it', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(preset(deck), IDENTITY_GRID, 'physical', save);
+    target.swapSlots(0, [], 0, 1);
+    const saved = save.mock.calls[0][0] as DeckConfig;
+    expect(saved.pages[0].slots[1].hotkeyTag).toBe('a');
+    expect(saved.pages[0].slots[0].hotkeyTag).toBeUndefined();
+  });
+
+  it('writes a tag set on a slot through updateSlot', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(preset(deck), IDENTITY_GRID, 'physical', save);
+    target.updateSlot(0, [], 1, { ...deck.pages[0].slots[1], hotkeyTag: 'new' });
+    expect((save.mock.calls[0][0] as DeckConfig).pages[0].slots[1].hotkeyTag).toBe('new');
+  });
+});

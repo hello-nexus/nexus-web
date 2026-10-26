@@ -6,6 +6,9 @@ import type { Section } from './useRoute';
 /** How long one save may hold back the next; a request can stall without ever settling. */
 const SAVE_TURN_MS = 5000;
 
+/** How long the returned flag waits on the restore read before giving up on it. */
+const RESTORE_WAIT_MS = 3000;
+
 /**
  * Restores the route a reopened window was last on, and whether it was in
  * fullscreen, and records every change of either so the next reopen has one. The value lives in the service's process
@@ -16,6 +19,9 @@ const SAVE_TURN_MS = 5000;
  * Startup & tray, default on). Read from localStorage rather than
  * useUiSettings: this runs in Dashboard's own body, which sits outside the
  * UiSettingsProvider it renders.
+ *
+ * @returns true once the restore has resolved, or after a bounded wait if the
+ * read stalls. Saving still waits on the read itself.
  */
 export function useLastRoute(
   path: string,
@@ -23,7 +29,7 @@ export function useLastRoute(
   enabled: boolean,
   fullscreen: boolean,
   restoreFullscreen: () => void,
-) {
+): boolean {
   // The window's own address, captured before useRoute's redirect rewrites it.
   // A window opened on an explicit deep link (a tray balloon, /settings) must
   // keep it, so only a bare landing restores the route. A bare path landing
@@ -40,6 +46,7 @@ export function useLastRoute(
     return path === '/' || path === '' ? 'bare' : 'path';
   });
   const restoredRef = useRef(false);
+  const [waitedOut, setWaitedOut] = useState(false);
   // Saving before the restore read has answered would overwrite the stored
   // route with the default one the window opened on, and the two requests are
   // served concurrently.
@@ -66,6 +73,7 @@ export function useLastRoute(
     if (landing === 'deepLink' || !rememberLastPage()) { setRestoreSettled(true); return; }
     let cancelled = false;
     let settled = false;
+    let settledWithNavigate = false;
     void (async () => {
       try {
         const stored = await fetchLastRoute();
@@ -82,21 +90,31 @@ export function useLastRoute(
         // One transition with the navigate, so fullscreen lands in the same
         // render as the restored page. Set any earlier, Dashboard clears it
         // for sitting on a page that cannot be fullscreen.
+        settledWithNavigate = true;
         startTransition(() => {
           navigate('system', parts[1], parts[2] ?? null);
+          // Same transition, so a consumer of the flag never sees it set while
+          // the page is still the landing one.
+          setRestoreSettled(true);
           if (stored.fullscreen) restoreFullscreen();
         });
       } catch {
         // A failed read restores nothing; saving still resumes below.
       } finally {
         settled = true;
-        if (!cancelled) setRestoreSettled(true);
+        if (!cancelled && !settledWithNavigate) setRestoreSettled(true);
       }
     })();
     // Tearing down before the read answers releases the claim, so StrictMode's
     // double-invoke restores instead of leaving the hook inert in dev.
     return () => { cancelled = true; if (!settled) restoredRef.current = false; };
   }, [enabled, landing, navigate, restoreFullscreen]);
+
+  useEffect(() => {
+    if (!enabled || restoreSettled) return;
+    const id = setTimeout(() => setWaitedOut(true), RESTORE_WAIT_MS);
+    return () => clearTimeout(id);
+  }, [enabled, restoreSettled]);
 
   useEffect(() => {
     // Re-read per navigation rather than once at mount, so switching the
@@ -110,6 +128,8 @@ export function useLastRoute(
       .then(() => Promise.race([saveLastRoute(path, fullscreen), new Promise(r => setTimeout(r, SAVE_TURN_MS))]))
       .catch(() => {});
   }, [enabled, restoreSettled, path, fullscreen]);
+
+  return restoreSettled || waitedOut;
 }
 
 function rememberLastPage(): boolean {

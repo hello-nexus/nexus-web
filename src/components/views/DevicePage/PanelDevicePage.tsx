@@ -35,6 +35,8 @@ import {
   PANEL_Y70_LONG_AXIS_CELLS,
 } from '../../../panel/engine/grid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
+import { isLocalPanelClient, panelAudioReactiveAllowed } from '../../../panel/background/panelAudio';
+import { panelSystemFontsAvailable } from '../../../panel/theme/panelFont';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
@@ -46,7 +48,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -123,6 +125,7 @@ import { useDeckInstance, DeckInstanceProvider } from '../../../panel/widgets/de
 import { innerGridForSize } from '../../../panel/widgets/deck/deckLayout';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
+  NZXT_KRAKEN_FAMILY,
   type PanelLayout,
   type PanelSurface,
   type PanelWidget,
@@ -387,6 +390,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
+  const [recordAlwaysOnTop, setRecordAlwaysOnTop] = useState(true);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
@@ -509,6 +513,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // tab (brightness/backlight/contrast/RGB) must stay reachable even when
   // this host implements neither DDC nor OS rotation.
   const isXeneonEdgePanel = isMonitorPanel && recordFamily === 'xeneon-edge';
+  // The record's family arrives after the first paint; the streamed row claims the cooler's
+  // device id, which is known at once, so the Kraken's tab never waits on the record.
+  const isKrakenPanel = recordFamily === NZXT_KRAKEN_FAMILY || device?.sourceId === NZXT_KRAKEN_FAMILY;
+  const supportsMountOrientation = surfaceSupportsMountOrientation(glassSurface, recordFamily) && !isKrakenPanel;
   // The iCUE LINK cooler's LCD: its screen module's own controls live in this tab, the
   // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
@@ -591,10 +599,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // Same for the Kraken: the glass is a panel, the cooler around it is the
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
-    || (glassSurface === 'kraken' && !isSimulated)
+    || (isKrakenPanel && !isSimulated)
     // Cooler glass fed pushed frames, or any panel that mounts either way up:
     // the tab hosts its mount orientation.
-    || ((surfaceSupportsMountOrientation(glassSurface) || recordSupportsPortrait) && !isSimulated)
+    || ((supportsMountOrientation || recordSupportsPortrait) && !isSimulated)
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
@@ -675,6 +683,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setLiveDpi(match?.capabilities?.dpi ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
+      setRecordAlwaysOnTop(match?.alwaysOnTop ?? true);
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordFlip180(match?.flip180 ?? false);
@@ -1664,8 +1673,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onTextColorCommit={panelTheme.commitTextColor}
                             onFontCommit={panelTheme.commitFont}
                             showMediaTab={surface !== 'desktop'}
+                            showSystemFonts={isSimulated ? isLocalPanelClient() : panelSystemFontsAvailable(glassSurface)}
                             backgroundHeldBy={backgroundHeldBy}
+                            audioReactive={panelAudioReactiveAllowed(device?.runtimeSurface, isLocalPanelClient())}
                             deviceAspect={devAspect}
+                            roundDisplay={surfaceDisplayShape(surface) === 'round'}
                             deviceW={nativeW}
                             deviceH={nativeH}
                             hideWidgetLabelsToggle={singleWidget}
@@ -1701,6 +1713,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         const next = !recordAutoOrient;
                         setRecordAutoOrient(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { autoOrient: next }).catch(() => {});
+                      }}
+                      alwaysOnTop={monitorReserve ? recordAlwaysOnTop : null}
+                      onAlwaysOnTopToggle={() => {
+                        const next = !recordAlwaysOnTop;
+                        setRecordAlwaysOnTop(next);
+                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { alwaysOnTop: next }).catch(() => {});
                       }}
                       reserveMonitor={monitorReserve ? recordReserve : null}
                       onReserveMonitorToggle={() => {
@@ -1825,6 +1843,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           setQSeriesSleepWhenLocked(next);
                           void setQSeriesDisplay({ sleepWhenLocked: next }).catch(() => {});
                         }}
+                        alwaysOnTop={null}
+                        onAlwaysOnTopToggle={() => {}}
                         reserveMonitor={null}
                         onReserveMonitorToggle={() => {}}
                         keepCursorOff={null}
@@ -1874,6 +1894,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       }}
                       autoOrient={null}
                       onAutoOrientToggle={() => {}}
+                      alwaysOnTop={null}
+                      onAlwaysOnTopToggle={() => {}}
                       reserveMonitor={null}
                       onReserveMonitorToggle={() => {}}
                       keepCursorOff={null}
@@ -1903,7 +1925,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
                       (its own section below), so the software flip would double-apply. */}
-                  {activeTab === 'settings' && (surfaceSupportsMountOrientation(glassSurface) || recordSupportsPortrait)
+                  {activeTab === 'settings' && (supportsMountOrientation || recordSupportsPortrait)
                     && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
@@ -1987,7 +2009,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <AsusGlacialLcdControls />
                     </div>
                   )}
-                  {activeTab === 'settings' && glassSurface === 'kraken' && !isSimulated && (
+                  {activeTab === 'settings' && isKrakenPanel && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} screenStreamed />
                     </div>
@@ -2529,6 +2551,8 @@ interface MonitorSettingsPanelProps {
   // Null hides the row (no orientation sensor on this panel family).
   autoOrient: boolean | null;
   onAutoOrientToggle: () => void;
+  alwaysOnTop: boolean | null;
+  onAlwaysOnTopToggle: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
   keepCursorOff: boolean | null;
@@ -2555,6 +2579,7 @@ function MonitorSettingsPanel({
   sleepWithHost, onSleepWithHostToggle,
   sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
+  alwaysOnTop, onAlwaysOnTopToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
@@ -2652,6 +2677,14 @@ function MonitorSettingsPanel({
           label={t('devices.lcd.sleepWhenLocked')}
           checked={sleepWhenLocked}
           onChange={onSleepWhenLockedToggle}
+        />
+      )}
+      {alwaysOnTop !== null && (
+        <SettingToggle
+          label={t('devices.y70.panelAlwaysOnTop')}
+          description={t('devices.y70.panelAlwaysOnTopHint')}
+          checked={alwaysOnTop}
+          onChange={onAlwaysOnTopToggle}
         />
       )}
       {reserveMonitor !== null && (

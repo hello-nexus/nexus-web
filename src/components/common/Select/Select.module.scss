@@ -199,14 +199,23 @@
   to   { opacity: 1; }
 }
 
-// Section heading (SelectOption.header): a dim, non-interactive label.
+// Section heading (SelectOption.header): a dim, non-interactive, all-caps label,
+// the same look as the recent-picks heading in the LED map product picker. Every
+// heading after the first sits under a rule so sections read as separate.
 .header {
-  padding: 0.45rem 0.6rem 0.2rem;
+  padding: 0.6rem 0.6rem 0.2rem;
   color: var(--text-dim);
   font-size: var(--type-mini);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   pointer-events: none;
   cursor: default;
+
+  &:not(:first-child) {
+    margin-top: 0.4rem;
+    border-top: 1px solid var(--separator);
+  }
 }
 
 .option {
@@ -256,6 +265,53 @@
 .option.optionDisabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+// Non-committing action row (SelectOption.onAction): a centered shared-Button
+// look, never marked selected. Ordered after .option.active so hovering keeps
+// the row's padding and background and the button does not move.
+.option.actionOption {
+  display: flex;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  overflow: visible;
+}
+
+.actionButton {
+  max-width: 100%;
+}
+
+.actionLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Busy: the label stays in layout (hidden) so the button keeps its idle size,
+// and the spinner sits centered over it.
+.actionButtonBusy {
+  position: relative;
+
+  .actionLabel {
+    visibility: hidden;
+  }
+}
+
+.actionSpinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Keyboard/pointer highlight: the Button's own hover look, no size change.
+// Doubled class to outrank Button's .tone-neutral regardless of CSS order.
+.actionButton.actionButtonActive {
+  background: var(--bg-card-hover);
+  border-color: var(--control-border-strong);
+  color: var(--text);
 }
 
 // Thin rule grouping options above/below it, matching the Profile dropdown's

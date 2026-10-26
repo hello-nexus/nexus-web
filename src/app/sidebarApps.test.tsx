@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, listSidebarAppKeys, sanitizePinnedTail, sanitizeRecents } from './sidebarApps';
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
+import { PAGE_ONLY_APPS } from './pageOnlyApps';
 import { Boxes, Film } from 'lucide-react';
 import { appIconComponent, appIconMaskComponent } from '../components/icons/AppIconImage';
 import {
@@ -113,6 +114,21 @@ describe('page-only apps (Frames)', () => {
   });
 });
 
+describe('page-only apps (Settings)', () => {
+  it('is a sidebar app with the Settings title and icon', () => {
+    const meta = getSidebarAppMeta('settings');
+    expect(meta).not.toBeNull();
+    expect(meta!.i18nKey).toBe('settings.title');
+    expect(isPinnableAppKey('settings')).toBe(true);
+    expect(listSidebarAppKeys()).toContain('settings');
+  });
+
+  it('lives under Show more: not in the default pinned tail of a fresh profile', () => {
+    expect(DEFAULT_PINNED_TAIL).not.toContain('settings');
+    expect(sanitizePinnedTail(undefined)).not.toContain('settings');
+  });
+});
+
 describe('sanitizePinnedTail - marketplace registry-load window', () => {
   const IBP = typeForMarketplace('com.ibuypower.control');
 
@@ -140,7 +156,8 @@ describe('listSidebarAppKeys', () => {
   it('lists page-only apps and built-ins with a Page, and no page-less widget', () => {
     const keys = listSidebarAppKeys();
     expect(keys).toContain('frames');
-    const pageless = Object.entries(APP_REGISTRY).filter(([, def]) => def.Page == null).map(([key]) => key);
+    expect(keys.filter(k => k === 'build')).toHaveLength(1);
+    const pageless = Object.entries(APP_REGISTRY).filter(([key, def]) => def.Page == null && !PAGE_ONLY_APPS[key]).map(([key]) => key);
     expect(pageless.length).toBeGreaterThan(0);
     for (const key of pageless) expect(keys).not.toContain(key);
     for (const key of keys) expect(isPinnableAppKey(key)).toBe(true);

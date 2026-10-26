@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MediaCropper } from './MediaCropper';
 
 function renderCropper(props: Partial<Parameters<typeof MediaCropper>[0]> = {}) {
@@ -105,6 +105,39 @@ describe('MediaCropper animated sources', () => {
     );
 
     expect(video.hasAttribute('src')).toBe(false);
+  });
+});
+
+describe('MediaCropper round guide', () => {
+  function loadImage() {
+    fireEvent.load(document.querySelector('img')!);
+  }
+
+  function stubLayout() {
+    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} unobserve() {} });
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ width: 400, height: 400, top: 0, left: 0, right: 400, bottom: 400, x: 0, y: 0, toJSON: () => ({}) });
+    vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(800);
+    vi.spyOn(HTMLImageElement.prototype, 'naturalHeight', 'get').mockReturnValue(600);
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ['round', true, true],
+    ['rectangular', false, false],
+  ])('draws the circle guide only for a %s display', (_name, round, expected) => {
+    stubLayout();
+    const onConfirm = vi.fn();
+    render(<MediaCropper src="blob:preview" aspect={1} round={round} onConfirm={onConfirm} onCancel={() => {}} />);
+    loadImage();
+    expect(screen.queryByTestId('round-crop-guide') !== null).toBe(expected);
+    // The saved crop is the same square either way.
+    fireEvent.click(screen.getByText('cropper.confirm'));
+    const crop = onConfirm.mock.calls[0][0];
+    expect((crop.w * 800) / (crop.h * 600)).toBeCloseTo(1, 2);
   });
 });
 

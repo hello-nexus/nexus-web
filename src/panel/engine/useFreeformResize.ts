@@ -68,11 +68,11 @@ export function useFreeformResize({
     if (next) setBoth(next === session.base ? null : next);
   }, [capacity, setBoth, widgetId]);
 
-  const update = useCallback((corner: FreeformCorner, dCols: number, dRows: number) => {
+  const update = useCallback((corner: FreeformCorner, dCols: number, dRows: number, lockRatio = false) => {
     const session = sessionRef.current;
     if (!session) return;
     const bounds = { cols: boundCols, rows: boundRows };
-    applyTarget(session, resizeRectFromCorner(session.start, corner, dCols, dRows, snapSpans, bounds, placeable(session)));
+    applyTarget(session, resizeRectFromCorner(session.start, corner, dCols, dRows, snapSpans, bounds, placeable(session), lockRatio));
   }, [applyTarget, boundCols, boundRows, snapSpans, placeable]);
 
   const step = useCallback((corner: FreeformCorner, stepCols: number, stepRows: number) => {

@@ -224,8 +224,12 @@
 }
 
 // 2D | 3D chip pair beside the Effects title.
-.sceneViewSwitch {
-  margin-left: 0.5rem;
+.headerEnd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  min-width: 0;
 }
 
 // Holds the canvas's footprint while the 3D view's chunk loads.
@@ -272,60 +276,6 @@
     color: var(--accent);
     border-color: var(--accent);
     background: var(--accent-soft);
-  }
-}
-
-.musicReactive {
-  position: absolute;
-  top: 0.4rem;
-  left: 0.4rem;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  // Leaves the fullscreen button its corner on a narrow canvas.
-  max-width: calc(100% - 3rem);
-}
-
-// Output name + chevron beside the toggle; the trigger ellipsizes a long name.
-.musicReactiveOutput {
-  min-width: 0;
-  max-width: 22rem;
-  --select-bg: var(--surface);
-}
-
-.musicReactiveBtn {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-dim);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast);
-
-  &:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-}
-
-.musicReactiveBtnOn {
-  color: var(--accent-text);
-  border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-glow-shadow);
-
-  &:hover {
-    color: var(--accent-text);
-    background: var(--accent-glow);
-    border-color: var(--accent-glow);
   }
 }
 

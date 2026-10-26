@@ -4,10 +4,12 @@ import { snapDropCell } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
 import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
+import { APP_REGISTRY } from '../widgets/registry';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
 // off the App registry (manifest.Page) like the sidebar pin list. Adding a
-// Page to an app makes its widget click-through automatically.
+// Page to an app makes its widget click-through automatically; a page-only app
+// with a registered tile (Build) is the other way in.
 export type DashboardWidgetSection = string;
 
 export interface DashboardSectionNavigatePayload {
@@ -30,10 +32,10 @@ export type DashboardSectionNavigate =
   (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
 
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
-  // Click-through needs a TILE to click through from, so this is narrower than
-  // sidebar-pinnable: isPinnableAppKey also admits page-only apps (Store, Frames), which
-  // have no widget. A stale layout naming one must not be treated as clickable.
-  return !isPageOnlyAppKey(type) && isPinnableAppKey(type);
+  // Click-through needs a tile to click through from: a page-only key (Store, Frames) is
+  // clickable only when APP_REGISTRY holds a tile for it (Build), so a stale layout
+  // naming a tile-less one is not.
+  return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }
@@ -197,9 +199,8 @@ export function buildPanelCollisionDetection(
     const stride = cellSize + gap;
     const rowStride = rowSize + gap;
     const rootStyle = window.getComputedStyle(root);
-    // Snap rule: 1x1 lands on every cell; multi-cell widgets land on 2-cell
-    // multiples (a 4x4 sits at col 0 or 2). Read the active's span off the
-    // source cell so the snap tracks the cursor.
+    // Snap rule: every widget lands on any cell, clamped to stay in the grid.
+    // Read the active's span off the source cell so the snap tracks the cursor.
     const activeColSpan = Math.max(1,
       Number.parseInt(sourceCell?.getAttribute('data-panel-cell-col-span') ?? '1', 10) || 1,
     );
@@ -225,9 +226,8 @@ export function buildPanelCollisionDetection(
     const pageStyle = window.getComputedStyle(pageEl);
     const padLeft = Number.parseFloat(pageStyle.paddingLeft || '0') || 0;
     const padTop = Number.parseFloat(pageStyle.paddingTop || '0') || 0;
-    // Center-based snap: round the top-left cell index to the nearest snap
-    // stride multiple. Math.round() puts the threshold at the half-stride
-    // boundary, so the widget jumps past half a stride into a new slot.
+    // Center-based snap: round the top-left cell index to the nearest cell,
+    // so the widget moves to a new slot once it is past half a cell.
     const localX = translated.left - pageRect.left - padLeft;
     const localY = translated.top - pageRect.top - padTop;
     const continuousCol = localX / stride;
