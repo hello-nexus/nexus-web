@@ -1,12 +1,13 @@
 import {
-  ArrowHelper, BoxGeometry, BufferGeometry, CatmullRomCurve3, Color, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
-  Box3, LineSegments, Material, Mesh, Object3D, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Texture, TubeGeometry, Vector2, Vector3, WebGLRenderer,
+  ArrowHelper, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
+  Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3, WebGLRenderer,
 } from 'three';
+import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, type CaseBox, type CaseLayout, type CaseTube } from '../../../../lib/cooling/caseLayout';
+import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
-import { CASE_LINE_OPACITY, parseCaseModel, sceneToLayoutMatrix, styleCaseModel } from '../../../../lib/scene/caseModel';
+import { buildCase, disposeGroup, scenePalette, type Palette } from '../../../../lib/scene/pcScene';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
@@ -28,8 +29,6 @@ export interface CaseSceneState {
   /** Airflow simulation input; null leaves the flow layer empty. */
   flow: FlowInput | null;
   flowOptions: FlowOptions;
-  /** Build's exported case model (binary glTF); when present it replaces the outline of the layout's boxes. */
-  model: ArrayBuffer | null;
 }
 
 /** Where an anchor lands on the canvas, CSS pixels; `visible` is false behind the camera or off the canvas. */
@@ -56,7 +55,6 @@ export type PickHandler = (slotKey: string | null, x: number, y: number) => void
 
 const CLICK_SLOP_PX = 4;
 const RING_SEGMENTS = 48;
-const BASE_OPACITY = 0.3;
 const FAN_OPACITY = 1;
 // Build's picked-part treatment: the pick reads in full and shows through, keeping its intake or exhaust color; the rest fall back to this fraction.
 const DIMMED = 0.22;
@@ -100,49 +98,6 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
   return x <= y && x <= z ? 'x' : y <= z ? 'y' : 'z';
 }
 
-/** Frees everything a parsed model holds on the GPU: its geometry, its materials and their textures. */
-function disposeParsed(root: Group): void {
-  root.traverse(o => {
-    const mesh = o as Mesh;
-    mesh.geometry?.dispose();
-    for (const material of Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : []) {
-      for (const value of Object.values(material)) if (value instanceof Texture) value.dispose();
-      material.dispose();
-    }
-  });
-}
-
-/** Build exports the AIO pump and radiator both as `cooler`; the loader renames repeats to `cooler_1`. */
-const COOLER_NODE = /^cooler(_\d+)?$/;
-
-/**
- * Shows every model node named "cooler", then hides each whose center lies inside `from` (layout mm): the radiator drawn where the layout first placed it, once the user moved it.
- * `root` must already sit in layout space. Returns the hidden nodes.
- */
-export function hideMovedRadiator(root: Object3D, from: Pick<CaseBox, 'min' | 'size'> | null): Object3D[] {
-  root.updateMatrixWorld(true);
-  const hidden: Object3D[] = [];
-  const center = new Vector3();
-  root.traverse(o => {
-    if (!COOLER_NODE.test(o.name)) return;
-    o.visible = true;
-    if (!from) return;
-    new Box3().setFromObject(o).getCenter(center);
-    if ([0, 1, 2].every(i => center.getComponent(i) >= from.min[i] && center.getComponent(i) <= from.min[i] + from.size[i])) {
-      o.visible = false;
-      hidden.push(o);
-    }
-  });
-  return hidden;
-}
-
-/** An AIO hose as a solid tube of its own radius (layout mm) along the smooth curve through its points. */
-export function tubeGeometry(tube: CaseTube): TubeGeometry {
-  return new TubeGeometry(new CatmullRomCurve3(tube.points.map(p => new Vector3(...p))), 48, tube.radius, 12);
-}
-
-const modelKeyOf = (l: CaseLayout): string => `${l.size.join(',')}|${l.windowRight === true}`;
-
 export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler): CaseSceneRenderer {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -153,72 +108,20 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const staticGroup = new Group();
   const fanGroup = new Group();
   const flowGroup = new Group();
-  const moveGroup = new Group();
-  const tubeGroup = new Group();
-  scene.add(staticGroup, fanGroup, flowGroup, moveGroup, tubeGroup);
+  scene.add(staticGroup, fanGroup, flowGroup);
   let flowLayer: FlowLayer | null = null;
   let flowInput: FlowInput | null = null;
   let temps: ComponentTemps = NO_TEMPS;
   let anchors: readonly HeatAnchor[] = [];
   let onProject: ((positions: Record<string, ProjectedAnchor>) => void) | null = null;
-  let modelBytes: ArrayBuffer | null = null;
-  // The model is parsed and styled for one case size and window side; a layout object that changes neither keeps it.
-  let modelKey = '';
-  let modelToken = 0;
-  let modelGroup: Group | null = null;
-  let modelStyle: { dispose: () => void } | null = null;
-  let disposed = false;
   let collisionsOn = false;
   let showCase = true;
-  // The collision view stands in for both the model and the outline; Airflow hides the case and the fans.
+  // The collision view stands in for the case; Airflow hides the case and the fans.
   const applyVisibility = () => {
-    staticGroup.visible = showCase && !modelGroup && !collisionsOn;
-    if (modelGroup) modelGroup.visible = showCase && !collisionsOn;
+    staticGroup.visible = showCase && !collisionsOn;
     fanGroup.visible = showCase;
-    moveGroup.visible = showCase && !!modelGroup && !collisionsOn;
-    tubeGroup.visible = showCase && !collisionsOn;
   };
 
-  const clearModel = () => {
-    if (modelGroup) scene.remove(modelGroup);
-    modelStyle?.dispose();
-    modelGroup = null;
-    modelStyle = null;
-    applyVisibility();
-  };
-
-  // The model sits in scene space as Build baked it; the inverse of that bake puts it in the layout's own frame, where the fans and the solver are.
-  const showModel = async (bytes: ArrayBuffer | null, forLayout: CaseLayout) => {
-    const token = ++modelToken;
-    modelBytes = bytes;
-    modelKey = modelKeyOf(forLayout);
-    if (!bytes) { clearModel(); requestRender(); return; }
-    let parsed: Group;
-    try {
-      parsed = await parseCaseModel(bytes);
-    } catch {
-      if (token === modelToken && !disposed) clearModel();
-      return;
-    }
-    if (token !== modelToken || disposed) {
-      disposeParsed(parsed);
-      return;
-    }
-    clearModel();
-    const holder = new Group();
-    holder.applyMatrix4(sceneToLayoutMatrix(forLayout.size, forLayout.windowRight === true));
-    holder.add(parsed);
-    modelStyle = styleCaseModel(parsed, token_('--text-dim', '#8a93a6'), token_('--text-dim', '#8a93a6'));
-    modelGroup = holder;
-    hideMovedRadiator(holder, (layout ?? forLayout).radiatorMove?.from ?? null);
-    scene.add(holder);
-    applyVisibility();
-    requestRender();
-  };
-  const token_ = (name: string, fallback: string) => token(canvas, name, fallback);
-  const disposables: { dispose: () => void }[] = [];
-  const moveDisposables: { dispose: () => void }[] = [];
-  const tubeDisposables: { dispose: () => void }[] = [];
   const fanDisposables: { dispose: () => void }[] = [];
   const raycaster = new Raycaster();
   let hitMeshes: Mesh[] = [];
@@ -259,12 +162,6 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const onVisibility = () => { if (!document.hidden) requestRender(); };
   document.addEventListener('visibilitychange', onVisibility);
 
-  const lineMaterial = (color: Color, opacity: number, list: { dispose: () => void }[]) => {
-    const m = new LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
-    list.push(m);
-    return m;
-  };
-
   const fit = (l: CaseLayout) => {
     const [ex, ey, ez] = caseExtents(l);
     const center = new Vector3(ex / 2, ey / 2, ez / 2);
@@ -275,57 +172,31 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     controls.update();
   };
 
+  const lineMaterials: LineMaterial[] = [];
+  const clearCase = () => {
+    staticGroup.children.forEach(child => disposeGroup(child as Group));
+    staticGroup.clear();
+    lineMaterials.length = 0;
+  };
+
   const clear = (group: Group, list: { dispose: () => void }[]) => {
     group.clear();
     list.splice(0).forEach(d => d.dispose());
   };
 
+  // The case is Build's own scene (lib/scene/pcScene), built from the same layout; the fans are this view's overlay.
   const buildStatic = (l: CaseLayout) => {
-    clear(staticGroup, disposables);
-    const color = token(canvas, '--text-dim', '#8a93a6');
-    const [ex, ey, ez] = caseExtents(l);
-    const shellGeo = new EdgesGeometry(new BoxGeometry(ex, ey, ez));
-    disposables.push(shellGeo);
-    const shell = new LineSegments(shellGeo, lineMaterial(color, 0.75, disposables));
-    shell.position.set(ex / 2, ey / 2, ez / 2);
-    staticGroup.add(shell);
-    for (const box of l.boxes) {
-      if (box.slot === 'fan' || box.role === 'ghost' || box.role === 'limit') continue;
-      const [sx, sy, sz] = box.size;
-      if (sx <= 0 && sy <= 0 && sz <= 0) continue;
-      const geo = new EdgesGeometry(new BoxGeometry(Math.max(sx, 0.01), Math.max(sy, 0.01), Math.max(sz, 0.01)));
-      disposables.push(geo);
-      const edges = new LineSegments(geo, lineMaterial(color, box.role === 'part' ? BASE_OPACITY * 1.4 : BASE_OPACITY * 0.6, disposables));
-      edges.position.set(box.min[0] + sx / 2, box.min[1] + sy / 2, box.min[2] + sz / 2);
-      edges.rotation.y = box.rotationY ?? 0;
-      staticGroup.add(edges);
-    }
+    clearCase();
+    const palette: Palette = scenePalette(canvas);
+    const [D, W, H] = l.size;
+    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true);
+    // Build centers the case on the origin; this view keeps the layout's own corner at the origin, where the fans and the solver are.
+    const holder = new Group();
+    holder.position.set(D / 2, H / 2, W / 2);
+    holder.add(group);
+    staticGroup.add(holder);
+    lineMaterials.forEach(m => m.resolution.set(canvas.clientWidth, canvas.clientHeight));
     fit(l);
-  };
-
-  // With the model showing, the box the radiator moved to is drawn as an outline in the model's own line style; the model still shows it where Build placed it.
-  const buildMove = (l: CaseLayout) => {
-    clear(moveGroup, moveDisposables);
-    const to = l.radiatorMove?.to;
-    if (!to) return;
-    const [sx, sy, sz] = to.size;
-    const geo = new EdgesGeometry(new BoxGeometry(Math.max(sx, 0.01), Math.max(sy, 0.01), Math.max(sz, 0.01)));
-    moveDisposables.push(geo);
-    const edges = new LineSegments(geo, lineMaterial(token(canvas, '--text-dim', '#8a93a6'), CASE_LINE_OPACITY, moveDisposables));
-    edges.position.set(to.min[0] + sx / 2, to.min[1] + sy / 2, to.min[2] + sz / 2);
-    edges.rotation.y = to.rotationY ?? 0;
-    moveGroup.add(edges);
-  };
-
-  // The model carries no hoses, so both the model and the plain outline get them drawn here, at the radiator's current mount.
-  const buildTubes = (l: CaseLayout) => {
-    clear(tubeGroup, tubeDisposables);
-    for (const tube of l.tubes ?? []) {
-      const geo = tubeGeometry(tube);
-      const material = new MeshBasicMaterial({ color: token(canvas, '--text-dim', '#8a93a6'), transparent: true, opacity: CASE_LINE_OPACITY, depthWrite: false });
-      tubeDisposables.push(geo, material);
-      tubeGroup.add(new Mesh(geo, material));
-    }
   };
 
   const buildFans = (state: CaseSceneState) => {
@@ -437,6 +308,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const h = canvas.clientHeight;
     if (w === 0 || h === 0) return;
     renderer.setSize(w, h, false);
+    lineMaterials.forEach(m => m.resolution.set(w, h));
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     requestRender();
@@ -448,9 +320,6 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         const previous = layout;
         layout = state.layout;
         buildStatic(state.layout);
-        buildMove(state.layout);
-        buildTubes(state.layout);
-        if (modelGroup) hideMovedRadiator(modelGroup, state.layout.radiatorMove?.from ?? null);
         // The flow layer lives as long as the case shape: a fan edit changes the layout object but keeps the field and the particles.
         const extents = caseExtents(state.layout);
         if (!flowLayer || !previous || caseExtents(previous).some((v, i) => v !== extents[i])) {
@@ -468,7 +337,6 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       showCase = state.showCase;
       applyVisibility();
       buildFans(state);
-      if (state.model !== modelBytes || (modelKey !== modelKeyOf(state.layout) && state.model)) void showModel(state.model, state.layout);
       flowLayer?.setOptions(state.flowOptions);
       if (collisionsOn !== state.flowOptions.collisions) { collisionsOn = state.flowOptions.collisions; applyVisibility(); }
       if (state.flow !== flowInput) {
@@ -500,14 +368,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       document.removeEventListener('visibilitychange', onVisibility);
       flowLayer?.dispose();
       flowLayer = null;
-      disposed = true;
-      modelToken++;
-      clearModel();
       controls.dispose();
-      clear(staticGroup, disposables);
+      clearCase();
       clear(fanGroup, fanDisposables);
-      clear(moveGroup, moveDisposables);
-      clear(tubeGroup, tubeDisposables);
       renderer.forceContextLoss();
       renderer.dispose();
     },

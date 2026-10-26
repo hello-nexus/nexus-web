@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "{slots} fanlarına bağlı",
   "cooling.case3d.linkedToOne": "{slot} fanına bağlı",
   "cooling.case3d.noFans": "Bu kasada kurulu fan yok.",
-  "cooling.case3d.noModel": "Kasa ana hattı gösteriliyor. Kasa modelini dışa aktarmak için Build'i bir kez açın.",
   "cooling.case3d.noneLinked": "Bağlı fan yok",
   "cooling.case3d.position.bottom": "Alt",
   "cooling.case3d.position.front": "Ön",
