@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   listOverlayWidgets,
   patchOverlayWidget,
@@ -142,7 +142,7 @@ export default function OverlayShell() {
   const [layout, setLayout] = useState<OverlayWidgetDto[]>([]);
   // Rendered layout plus config merges not yet rendered, read by handleUpdateConfig.
   const layoutRef = useRef(layout);
-  layoutRef.current = layout;
+  useLayoutEffect(() => { layoutRef.current = layout; }, [layout]);
   const [loading, setLoading] = useState(true);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [widgetOpacity, setWidgetOpacity] = useState(1);
@@ -412,8 +412,7 @@ export default function OverlayShell() {
     id: string,
     config: Record<string, PanelConfigValue>,
   ) => {
-    // The PATCH payload is built outside the updater: React may defer an
-    // updater past this read, which skipped the PATCH.
+    // Built outside the updater: React may run the updater after this reads it.
     const entry = layoutRef.current.find(w => w.id === id);
     if (!entry) return;
     const merged = { ...entry.config, ...config };
