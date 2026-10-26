@@ -20,6 +20,7 @@ const h = vi.hoisted(() => ({
   specs: null as unknown as SystemSpecs | null,
   gamesByKey: new Map<string, FpsGameSummary>(),
   serverCase: null as string | null,
+  serverCaseAuto: false,
   serverDevices: null as unknown[] | null,
   fetchService: vi.fn(),
   putService: vi.fn(),
@@ -90,10 +91,11 @@ beforeEach(() => {
   h.gamesByKey = new Map();
   h.openExternalUrl.mockClear();
   h.serverCase = null;
+  h.serverCaseAuto = false;
   h.serverDevices = null;
   h.fetchService.mockReset();
   h.fetchService.mockImplementation(async (path: string) => {
-    if (path === '/system/case') return { caseId: h.serverCase };
+    if (path === '/system/case') return { caseId: h.serverCase, auto: h.serverCaseAuto };
     if (path === '/system/devices' && h.serverDevices) return { devices: h.serverDevices };
     return null;
   });
@@ -403,6 +405,36 @@ describe('BuildPage', () => {
       act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
 
       expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('devices');
+    });
+
+    it('marks a detection-assigned case in the hello machine object and drops the mark once the user picks', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.serverCase = 'case-y70';
+      h.serverCaseAuto = true;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+      expect(helloPosts(postSpy)[0].machine).toMatchObject({ caseId: 'case-y70', caseAuto: true });
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: 'case-abc' }));
+      await flush();
+
+      expect(helloPosts(postSpy).at(-1)?.machine).not.toHaveProperty('caseAuto');
+    });
+
+    it('omits caseAuto when the service does not flag the case', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.serverCase = 'case-abc';
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('caseAuto');
     });
 
     it('omits caseId from the machine object when none is set', async () => {

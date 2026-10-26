@@ -48,6 +48,8 @@ interface BuildMachine {
   hz?: number;
   ramGb?: number;
   caseId?: string;
+  // The case was filled in by detection (a Y70 display), not chosen; absent when the user chose it.
+  caseAuto?: true;
   devices?: BuildDevice[];
 }
 
@@ -175,13 +177,17 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
   // service (machine-local, mirrored to the signed-in account) and picked in
   // the frame.
   const [caseId, setCaseId] = useState<string | null>(null);
+  const [caseAuto, setCaseAuto] = useState(false);
   const caseTouchedRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const res = await fetchService<{ caseId?: string | null }>('/system/case');
+      const res = await fetchService<{ caseId?: string | null; auto?: boolean }>('/system/case');
       if (cancelled || caseTouchedRef.current || !res) return;
-      if (typeof res.caseId === 'string' && isValidCaseId(res.caseId)) setCaseId(res.caseId);
+      if (typeof res.caseId === 'string' && isValidCaseId(res.caseId)) {
+        setCaseId(res.caseId);
+        setCaseAuto(res.auto === true);
+      }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -189,10 +195,11 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
   // The service pings this topic when the case changes (a manual pick or the Y70 display auto-assign), so an open page follows it; the hello below re-sends with the new caseId.
   useTopicCallback(SYSTEM_CASE_TOPIC, !isRemoteOrigin, useCallback(() => {
     void (async () => {
-      const res = await fetchService<{ caseId?: string | null }>('/system/case');
+      const res = await fetchService<{ caseId?: string | null; auto?: boolean }>('/system/case');
       if (!res) return;
       caseTouchedRef.current = true;
       setCaseId(typeof res.caseId === 'string' && isValidCaseId(res.caseId) ? res.caseId : null);
+      setCaseAuto(res.auto === true);
     })();
   }, []));
 
@@ -298,6 +305,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
             if (!res || res.error === true) return;
             caseTouchedRef.current = true;
             setCaseId(typeof res.caseId === 'string' && isValidCaseId(res.caseId) ? res.caseId : null);
+            // A pick through the frame is the user's choice.
+            setCaseAuto(false);
           })();
           break;
         }
@@ -368,6 +377,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
       hz: sig?.hz,
       ramGb: sig?.ramBytes != null ? Math.round(sig.ramBytes / BYTES_PER_GIB) : undefined,
       ...(caseId ? { caseId } : {}),
+      ...(caseId && caseAuto ? { caseAuto: true as const } : {}),
       ...(devices.length > 0 ? { devices } : {}),
     };
   })() : undefined;
