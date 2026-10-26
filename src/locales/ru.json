@@ -1321,8 +1321,6 @@
   "devices.openrgb.zoneUnset": "{value}, не задано",
   "devices.page.notConnected": "Устройство не подключено",
   "devices.page.title": "Устройство",
-  "devices.panels.emptySpaceMenu": "Пустое место открывает меню панели",
-  "devices.panels.emptySpaceMenuHint": "Блокирует клики по рабочему столу и приложениям за панелью. Если выключено, открывайте меню через виджет.",
   "devices.panels.nextPage": "Следующая страница",
   "devices.panels.phone": "Панель телефона или планшета",
   "devices.panels.prevPage": "Предыдущая страница",

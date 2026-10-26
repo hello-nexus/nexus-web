@@ -1314,8 +1314,6 @@
   "devices.openrgb.zoneUnset": "{value}，未設定",
   "devices.page.notConnected": "裝置未連接",
   "devices.page.title": "裝置",
-  "devices.panels.emptySpaceMenu": "空白區域開啟面板選單",
-  "devices.panels.emptySpaceMenuHint": "阻擋點擊傳到面板後方的桌面與應用程式。關閉時，請從小工具開啟選單。",
   "devices.panels.nextPage": "下一頁",
   "devices.panels.phone": "手機或平板面板",
   "devices.panels.prevPage": "上一頁",
