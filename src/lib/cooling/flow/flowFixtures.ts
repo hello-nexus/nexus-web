@@ -42,7 +42,8 @@ export function solidBoxFaces(min: number[], size: number[]): number[][][] {
     [[x0, y0, z1], [x0, y1, z1], [x1, y1, z1], [x1, y0, z1]],
   ];
 }
-export const shroudBox = { slot: 'psu', role: 'structure', min: [20, 20, 40], size: [330, 90, 280], faces: solidBoxFaces([20, 20, 40], [330, 90, 280]), cadSolid: true };
+/** Sits above the bottom fans' clearance (the 25 mm fan plus FAN_CLEARANCE_MM), so no fan discs open into it. */
+export const shroudBox = { slot: 'psu', role: 'structure', min: [20, 60, 40], size: [330, 50, 280], faces: solidBoxFaces([20, 60, 40], [330, 50, 280]), cadSolid: true };
 
 export function inputFor(slots: SlotSpec[], boxes: unknown[], dirOf: (s: SlotSpec) => 'intake' | 'exhaust', cfm = 60, ventCfm = 0): FlowInput {
   const layout = layoutOf(slots, boxes);

@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { LayoutDashboard, Star } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ScanEye } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDisplayTopology } from '../../../hooks/useDisplayTopology';
-import { demoteDisplayPanel, promoteDisplayToPanel, setDisplayDdc, type TopologyDisplay } from '../../../api/displays';
+import { demoteDisplayPanel, identifyDisplays, promoteDisplayToPanel, setDisplayDdc, type TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../ServiceRequired';
+import { DisplayDetailHeader } from './DisplayDetailHeader';
 import { MonitorMap } from './MonitorMap';
+import { identifyPayload, IDENTIFY_SHOWN_MS } from './identifyPayload';
 import styles from './DisplaysView.module.scss';
 
 interface DisplaysViewProps {
@@ -19,7 +22,7 @@ interface DisplaysViewProps {
 }
 
 /**
- * Windows-display-settings-style monitor topology with the monitor → Nexus
+ * Display-settings-style monitor topology with the monitor → Nexus
  * panel transform. Promote/demote mutate via REST and settle on a refetch;
  * other windows stay in sync through the `displays` topic.
  */
@@ -30,6 +33,9 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [ddcPendingId, setDdcPendingId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [identifying, setIdentifying] = useState(false);
+  const identifyTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(identifyTimer.current), []);
 
   const displays = useMemo(() => topology?.displays ?? [], [topology]);
 
@@ -45,6 +51,14 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
   }, [displays, selectedId]);
 
   const selected = displays.find(d => d.id === selectedId) ?? null;
+
+  // An older service answers 404; that is ignored rather than surfaced.
+  const identify = async () => {
+    setIdentifying(true);
+    window.clearTimeout(identifyTimer.current);
+    identifyTimer.current = window.setTimeout(() => setIdentifying(false), IDENTIFY_SHOWN_MS);
+    await identifyDisplays(identifyPayload(displays));
+  };
 
   // No header of its own: this view renders as the Displays tab inside the
   // Devices page, which owns the ViewHeader + tab strip.
@@ -102,22 +116,34 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
 
   return (
     <section className={styles.view}>
+      <Notice tone="info">{t('displays.intro')}</Notice>
       {displays.length === 0 ? (
         <div className={styles.empty}>{loading ? '' : t('displays.empty')}</div>
       ) : (
         <>
-          <MonitorMap displays={displays} selectedId={selectedId} onSelect={setSelectedId} />
+          <div className={styles.mapCard}>
+            <MonitorMap displays={displays} selectedId={selectedId} onSelect={setSelectedId} />
+            <div className={styles.mapActions}>
+              {selected && !selected.isY70 && (
+                <label className={styles.panelToggle}>
+                  <span>{t('displays.panel.active')}</span>
+                  <Toggle
+                    checked={selected.assignedPanelDeviceId !== null}
+                    disabled={pendingId === selected.id || (selected.assignedPanelDeviceId === null && (!topology?.hostingSupported || !selected.hostingSupported))}
+                    ariaLabel={t('displays.panel.active')}
+                    onChange={next => void (next ? promote(selected) : demote(selected))}
+                  />
+                </label>
+              )}
+              <Button type="button" tone="neutral" size="sm" icon={<ScanEye size={14} />} disabled={identifying} onClick={() => void identify()}>
+                {t('displays.identify')}
+              </Button>
+            </div>
+          </div>
 
           {selected && (
             <div className={styles.detail} data-testid="display-detail">
-              <div className={styles.detailHeader}>
-                <span className={styles.detailName}>{selected.name}</span>
-                {(selected.manufacturer || selected.model) && (
-                  <span className={styles.detailSub}>
-                    {[selected.manufacturer, selected.model].filter(Boolean).join(' - ')}
-                  </span>
-                )}
-              </div>
+              <DisplayDetailHeader display={selected} onDeviceSelect={onDeviceSelect} />
 
               <dl className={styles.facts}>
                 <div className={styles.factRow}>
@@ -133,9 +159,6 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
               </dl>
 
               <div className={styles.chips}>
-                {selected.isPrimary && (
-                  <span className={styles.chip}><Star size={12} /> {t('displays.primary')}</span>
-                )}
                 {selected.isInternal && (
                   <span className={styles.chip}>{t('displays.internal')}</span>
                 )}
@@ -163,63 +186,9 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
               </div>
               )}
 
-              <div className={styles.actions}>
-                {selected.isY70 ? (
-                  <>
-                    <span className={styles.panelBadge}>
-                      <LayoutDashboard size={14} /> {t('displays.panel.activeAuto')}
-                    </span>
-                    <Button type="button" tone="neutral" size="sm" onClick={() => onDeviceSelect('panel-device:y70')}>
-                      {t('displays.panel.open')}
-                    </Button>
-                  </>
-                ) : selected.assignedPanelDeviceId ? (
-                  <>
-                    <span className={styles.panelBadge}>
-                      <LayoutDashboard size={14} /> {t('displays.panel.active')}
-                    </span>
-                    <Button
-                      type="button"
-                      tone="neutral"
-                      size="sm"
-                      onClick={() => onDeviceSelect(`panel-display:${selected.assignedPanelDeviceId}`)}
-                    >
-                      {t('displays.panel.open')}
-                    </Button>
-                    <Button
-                      type="button"
-                      tone="danger"
-                      size="sm"
-                      disabled={pendingId === selected.id}
-                      onClick={() => void demote(selected)}
-                    >
-                      {t('displays.panel.stop')}
-                    </Button>
-                  </>
-                ) : displays.length <= 1 ? (
-                  // A panel takes over its display fullscreen, so the only/main
-                  // screen can't host one - you'd lose your desktop.
-                  <span className={styles.hint}>{t('displays.panel.singleMonitorHint')}</span>
-                ) : selected.isPrimary ? (
-                  <span className={styles.hint}>{t('displays.panel.primaryHint')}</span>
-                ) : (
-                  <>
-                    <Button
-                      type="button"
-                      tone="accent"
-                      size="sm"
-                      disabled={!topology?.hostingSupported || !selected.hostingSupported || pendingId === selected.id}
-                      loading={pendingId === selected.id}
-                      onClick={() => void promote(selected)}
-                    >
-                      {t('displays.panel.use')}
-                    </Button>
-                    {(!topology?.hostingSupported || !selected.hostingSupported) && (
-                      <span className={styles.hint}>{t('displays.panel.unsupportedHint')}</span>
-                    )}
-                  </>
-                )}
-              </div>
+              {!selected.isY70 && !selected.assignedPanelDeviceId && (!topology?.hostingSupported || !selected.hostingSupported) && (
+                <span className={styles.hint}>{t('displays.panel.unsupportedHint')}</span>
+              )}
 
               {error && <div className={styles.error}>{error}</div>}
               {topology?.hint ? <div className={styles.hint}>{topology.hint}</div> : null}

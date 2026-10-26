@@ -265,6 +265,8 @@ export function previewDrag(
   col: number,
   row: number,
   capacity: PaginateCapacity,
+  // A displaced widget takes the free cell nearest its old one (display panels), not the first free one from the top.
+  nearestFree = false,
 ): PanelLayout | null {
   const cols = Math.max(1, capacity.gridCols);
   const rows = Math.max(1, capacity.pageRows);
@@ -334,15 +336,19 @@ export function previewDrag(
     const colSpan = Math.max(1, Math.min(span.cols, cols));
     const rowSpan = Math.max(1, span.rows);
     let found: { col: number; row: number } | null = null;
-    for (let r = 0; r + rowSpan <= rows && !found; r++) {
-      for (let c = 0; c + colSpan <= cols && !found; c++) {
+    // nearestFree scans every cell for the one closest to the old slot; otherwise first fit from the top.
+    let best = Infinity;
+    for (let r = 0; r + rowSpan <= rows && (nearestFree || !found); r++) {
+      for (let c = 0; c + colSpan <= cols && (nearestFree || !found); c++) {
         let fits = true;
         for (let rr = r; rr < r + rowSpan && fits; rr++) {
           for (let cc = c; cc < c + colSpan && fits; cc++) {
             if (occupied[rr][cc]) fits = false;
           }
         }
-        if (fits) found = { col: c, row: r };
+        if (!fits) continue;
+        const dist = (c - w.col) ** 2 + (r - w.row) ** 2;
+        if (!found || dist < best) { best = dist; found = { col: c, row: r }; }
       }
     }
     if (!found) { displaced.length = 0; break; }
@@ -352,7 +358,7 @@ export function previewDrag(
   const cascaded = displaced.length === sorted.length
     ? withTargetPage(layout, sourceId, sourcePageIdx, targetPageIdx, [...stationary, placed, ...displaced])
     : null;
-  if (overlapping.length === 0) return cascaded;
+  if (overlapping.length === 0 || nearestFree) return cascaded;
 
   const shifted = shiftPreview(layout, sourceId, sourcePageIdx, targetPageIdx, placed, cols, rows);
   if (!shifted) return cascaded;

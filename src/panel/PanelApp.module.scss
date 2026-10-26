@@ -401,6 +401,14 @@
   min-height: 0;
 }
 
+.emptyPageAction {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
 .panelPageIndicatorPosition {
   position: absolute;
   left: 50%;
@@ -2029,6 +2037,11 @@
   transition: opacity var(--ease-fast) ease-out;
 }
 
+
+// Fades in when someone tries to move or edit a locked widget (useLockNotice).
+.cellWrap[data-lock-notice='true'] .cell > .cellLockNotice {
+  opacity: 1;
+}
 
 // Preview cells read as buttons, and only a real pointer can hover.
 @media (hover: hover) {

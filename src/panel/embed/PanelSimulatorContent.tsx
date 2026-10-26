@@ -32,6 +32,7 @@ export function PanelSimulatorContent() {
           shortSideSlots={sim.shortSideSlots}
           simulatorPreviewScale={sim.previewScale}
           displayBound={sim.displayBound}
+          genericDisplayOverride={sim.genericDisplay}
           layoutState={sim.layoutState}
           simulator
           hoverResize

@@ -1,7 +1,7 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  isStreamedPanelSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
   surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
@@ -132,6 +132,42 @@ describe('surfaceAllowsPages', () => {
     expect(surfaceAllowsPages('monitor')).toBe(false);
     expect(surfaceAllowsPages('q60')).toBe(false);
   });
+
+  it('gives a display-bound multi-widget panel a clickable pager, never single-tile glass', () => {
+    expect(surfaceAllowsPages('monitor', false, true)).toBe(true);
+    expect(surfaceAllowsPages('monitor', undefined, true)).toBe(true);
+    expect(surfaceAllowsPages('q60', false, true)).toBe(false);
+    expect(surfaceAllowsPages('lcd-round', false, true)).toBe(false);
+  });
+});
+
+describe('panelCanvasEditable', () => {
+  it('keeps the preview rule and the touch rule', () => {
+    expect(panelCanvasEditable('monitor', false, true)).toBe(true);
+    expect(panelCanvasEditable('q60', false, true)).toBe(false);
+    expect(panelCanvasEditable('y70', undefined, false)).toBe(true);
+    expect(panelCanvasEditable('monitor', true, false)).toBe(true);
+  });
+
+  it('lets the mouse edit a display-bound multi-widget panel on the glass', () => {
+    expect(panelCanvasEditable('monitor', false, false)).toBe(false);
+    expect(panelCanvasEditable('monitor', false, false, true)).toBe(true);
+    expect(panelCanvasEditable('monitor', undefined, false, true)).toBe(true);
+    expect(panelCanvasEditable('q60', false, false, true)).toBe(false);
+    expect(panelCanvasEditable('lcd-square', false, false, true)).toBe(false);
+  });
+});
+
+describe('grid density override', () => {
+  it('rounds to an even count within 2 to 64', () => {
+    expect(normalizeGridSlots(18)).toBe(18);
+    expect(normalizeGridSlots(17)).toBe(18);
+    expect(normalizeGridSlots(0)).toBeUndefined();
+    expect(normalizeGridSlots(1)).toBe(2);
+    expect(normalizeGridSlots(500)).toBe(64);
+    expect(normalizeGridSlots(null)).toBeUndefined();
+    expect(normalizeGridSlots(Number.NaN)).toBeUndefined();
+  });
 });
 
 describe('surfaceDisplayShape', () => {
@@ -140,5 +176,107 @@ describe('surfaceDisplayShape', () => {
     for (const surface of ['lcd-square', 'lcd-wide', 'q60', 'y70', 'monitor', 'phone', 'desktop'] as const) {
       expect(surfaceDisplayShape(surface)).toBe('rect');
     }
+  });
+});
+
+describe('canEditFreeText', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const withWindow = (w: object) => vi.stubGlobal('window', w);
+
+  it('is on for a monitor surface under a WebView2 or WKWebView kiosk host', () => {
+    withWindow({ chrome: { webview: { postMessage: () => {} } } });
+    expect(canEditFreeText('monitor')).toBe(true);
+    withWindow({ webkit: { messageHandlers: { nexusPanel: { postMessage: () => {} } } } });
+    expect(canEditFreeText('monitor')).toBe(true);
+  });
+
+  it('is off for a monitor surface with no host (streamed capture)', () => {
+    withWindow({});
+    expect(canEditFreeText('monitor')).toBe(false);
+  });
+
+  it('stays off for keyboardless surfaces even with a host', () => {
+    withWindow({ chrome: { webview: { postMessage: () => {} } } });
+    for (const s of ['y70', 'q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(canEditFreeText(s)).toBe(false);
+    }
+  });
+
+  it('keeps desktop and phone on', () => {
+    withWindow({});
+    expect(canEditFreeText('desktop')).toBe(true);
+    expect(canEditFreeText('phone')).toBe(true);
+  });
+});
+
+describe('hostedDisplayKeyboard', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is the one rule behind free text, the catalog search and the editor', () => {
+    vi.stubGlobal('window', { chrome: { webview: { postMessage: () => {} } } });
+    expect(hostedDisplayKeyboard('monitor')).toBe(true);
+    expect(surfaceSupportsTextInput('monitor')).toBe(true);
+    for (const s of ['y70', 'q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(hostedDisplayKeyboard(s)).toBe(false);
+      expect(surfaceSupportsTextInput(s)).toBe(false);
+    }
+  });
+
+  it('is off without a kiosk host', () => {
+    vi.stubGlobal('window', {});
+    expect(hostedDisplayKeyboard('monitor')).toBe(false);
+    expect(surfaceSupportsTextInput('monitor')).toBe(false);
+  });
+});
+
+describe('isGenericDisplayPanel and pages', () => {
+  it('is true only for a display-bound monitor with no curated family', () => {
+    expect(isGenericDisplayPanel('monitor', undefined, true)).toBe(true);
+    expect(isGenericDisplayPanel('monitor', 'xeneon-edge', true)).toBe(false);
+    expect(isGenericDisplayPanel('monitor', 'icue-link-lcd5', true)).toBe(false);
+    expect(isGenericDisplayPanel('monitor', undefined, false)).toBe(false);
+    for (const s of ['y70', 'q60', 'phone', 'desktop', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(isGenericDisplayPanel(s, undefined, true)).toBe(false);
+    }
+  });
+
+  it('gives a generic display one page and leaves a known display its pages', () => {
+    expect(surfaceAllowsPages('monitor', true, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', false, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', false, true, false)).toBe(true);
+    expect(surfaceAllowsPages('monitor', true, true, false)).toBe(true);
+    expect(surfaceAllowsPages('y70', undefined, false, false)).toBe(true);
+    expect(surfaceAllowsPages('phone', undefined, false, false)).toBe(true);
+  });
+});
+
+describe('widget size options for a plain display', () => {
+  it('offers large, small and extra small, scaling the density grid', async () => {
+    const { panelWidgetSizeOptions, panelShortSideSlots, panelLayoutSurface, resolvePanelWidgetSize } = await import('./types');
+    const options = panelWidgetSizeOptions('monitor', undefined);
+    expect(Object.keys(options!.layoutSurface).sort()).toEqual(['large', 'small', 'xsmall']);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'small', 12)).toBeUndefined();
+    expect(panelShortSideSlots('monitor', undefined, 'xsmall', 12)).toBe(24);
+    expect(panelShortSideSlots('monitor', undefined, 'xsmall', 60)).toBe(64);
+    expect(resolvePanelWidgetSize('monitor', undefined, 'xsmall')).toBe('xsmall');
+    expect(panelLayoutSurface('monitor', undefined, 'xsmall')).toBe('monitor');
+  });
+
+  it('does not offer extra small on a curated display or a tile panel', async () => {
+    const { panelWidgetSizeOptions, resolvePanelWidgetSize } = await import('./types');
+    expect(panelWidgetSizeOptions('monitor', 'lianli-screen88')!.layoutSurface.xsmall).toBeUndefined();
+    expect(panelWidgetSizeOptions('q60')!.layoutSurface.xsmall).toBeUndefined();
+    expect(resolvePanelWidgetSize('q60', undefined, 'xsmall')).toBe('large');
+  });
+
+  it('maps a retired grid density to the nearest size', async () => {
+    const { sizeForLegacyGridSlots } = await import('./types');
+    expect(sizeForLegacyGridSlots(6, 12)).toBe('large');
+    expect(sizeForLegacyGridSlots(12, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(10, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(26, 12)).toBe('xsmall');
+    expect(sizeForLegacyGridSlots(0, 12)).toBeUndefined();
+    expect(sizeForLegacyGridSlots(12, undefined)).toBeUndefined();
   });
 });

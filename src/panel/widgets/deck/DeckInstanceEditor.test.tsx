@@ -187,6 +187,17 @@ describe('DeckInstanceEditor - inline preset toolbar', () => {
     expect(screen.getByTestId('preset-toolbar')).toHaveAttribute('data-desktop', 'true');
   });
 
+  it('offers desktop actions on a monitor panel under a local kiosk host only', () => {
+    vi.stubGlobal('chrome', { webview: { postMessage: () => {} } });
+    const { rerender } = render(<DeckInstanceEditor {...baseProps({ surface: 'monitor' })} />);
+    expect(screen.getByTestId('preset-toolbar')).toHaveAttribute('data-desktop', 'true');
+    rerender(<DeckInstanceEditor {...baseProps({ surface: 'y70' })} />);
+    expect(screen.getByTestId('preset-toolbar')).toHaveAttribute('data-desktop', 'false');
+    vi.unstubAllGlobals();
+    rerender(<DeckInstanceEditor {...baseProps({ surface: 'monitor' })} />);
+    expect(screen.getByTestId('preset-toolbar')).toHaveAttribute('data-desktop', 'false');
+  });
+
   it('loading a preset activates it and resets page and selected slot', () => {
     const onPageChange = vi.fn();
     const onSelectedSlotChange = vi.fn();

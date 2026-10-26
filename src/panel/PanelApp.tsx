@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Lock, SatelliteDish } from 'lucide-react';
+import { Lock, Plus, SatelliteDish } from 'lucide-react';
 import {
   DndContext, DragOverlay, MeasuringStrategy, PointerSensor, type PointerSensorOptions,
   useSensor, useSensors,
@@ -36,7 +36,7 @@ import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { panelWidgetPaddingRatio, sizeToSpan, type GridSpan } from './engine/grid';
-import { layoutRowExtent, overflowLayout, repaginatePanelLayout, restoreOverflowPositions, type PaginateCapacity } from './engine/paginate';
+import { firstPageView, foldIntoFirstPage, heldPages, layoutRowExtent, overflowLayout, repaginatePanelLayout, restoreOverflowPositions, withHeldPages, type PaginateCapacity } from './engine/paginate';
 import {
   BLANK_PAGE_ID,
   allCellsForPage,
@@ -49,6 +49,13 @@ import {
   tryResizeWidget,
 } from './engine/panelLayoutOps';
 import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
+import { AdaptivePointerSensor, dragActivationFor } from './engine/pointerDragSensor';
+import { resolveWidgetsLocked } from './engine/widgetLock';
+import { useDesktopImport } from './engine/useDesktopImport';
+import { editTargetGone, latestOr, useSyncLatestLayout } from './engine/latestLayout';
+import { useDisplayTargets } from './engine/useDisplayTargets';
+import { usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
+import { panelHostAvailable } from './device/panelHostBridge';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
 import { PanelActionsTray } from './chrome/PanelActionsTray';
@@ -79,10 +86,10 @@ import { PanelImmersiveOpenProvider } from './widgets/common/PanelImmersiveConte
 import { PanelOpaqueProvider } from './widgets/common/PanelOpaqueContext';
 import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
-import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
+import { savePreferences } from '../api/profiles';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
-import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
+import { useMultiplex, useTopic } from '../hooks/useMultiplexSocket';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGrace } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
@@ -96,6 +103,7 @@ import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { PanelSentry } from './overlays/PanelSentry';
 import { useTranslation } from '../lib/i18n';
 import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
+import { openAppAt } from '../api/displays';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
@@ -108,7 +116,10 @@ import {
   type PanelWidgetSize,
   type ForcedGrid,
 } from './types';
-import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
+import { recordWidgetSizeOf } from './engine/recordWidgetSize';
+import { kioskViewportSettled, recordCanvasOf } from './engine/recordCanvas';
+import { kioskViewportReporter } from './engine/kioskViewportReport';
+import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -132,6 +143,7 @@ import {
   buildPanelCollisionDetection,
   findWidgetById,
   isDashboardClickthroughType,
+  appRouteForWidget,
   noopCellPointers,
   parseDragTarget,
 } from './engine/panelLayoutHelpers';
@@ -192,6 +204,7 @@ import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
 const NO_SPANS: readonly GridSpan[] = [];
+const EMPTY_IMPORT_LAYOUT: PanelLayout = { layoutSchemaVersion: 2, surface: 'monitor', pages: [{ id: 'page-1', widgets: [] }] };
 const NO_ROOM = { tl: false, tr: false, bl: false, br: false };
 
 // Corners snap to a widget's declared sizes that fit; opted-in widgets also get the even spans beyond the declared sizes.
@@ -252,15 +265,24 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // The record's own capabilities where it has them; a viewport inference
   // keeps the panel mounting when the server has no record for this id.
   const caps = record?.capabilities;
+  const viewportWidth = record?.kioskViewport?.cssWidth;
+  const viewportHeight = record?.kioskViewport?.cssHeight;
+  const viewportDpr = record?.kioskViewport?.dpr;
   const resolved = useMemo(() => {
+    const kioskViewport = viewportWidth && viewportHeight ? { cssWidth: viewportWidth, cssHeight: viewportHeight, dpr: viewportDpr ?? 1 } : undefined;
+    const canvas = recordCanvasOf({ kioskViewport, capabilities: { cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr } });
     const glassSurface = (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface;
-    const surface = panelLayoutSurface(glassSurface, caps?.family, record?.widgetSize);
+    const widgetSize = recordWidgetSizeOf(
+      { widgetSize: record?.widgetSize, gridSlots: record?.gridSlots, displayId: record?.displayId, kioskViewport, capabilities: { family: caps?.family, cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr, dpi: caps?.dpi } },
+      glassSurface,
+    );
+    const surface = panelLayoutSurface(glassSurface, caps?.family, widgetSize);
     const relaid = surface !== glassSurface;
-    const dpi = panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);
+    const dpi = panelLayoutDpi(glassSurface, caps?.family, widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);
     // A kiosk fills its monitor, so the record's size is the canvas the runtime grid
     // measures; it follows a resolution change.
-    const densitySlots = caps?.cssWidth && caps.cssHeight
-      ? densityShortSideSlots(caps.cssWidth, caps.cssHeight, caps.dpr || 1, dpi ?? estimateRuntimePanelDpi(surface))
+    const densitySlots = canvas
+      ? densityShortSideSlots(canvas.width, canvas.height, canvas.dpr, dpi ?? estimateRuntimePanelDpi(surface))
       : runtimeDensityShortSideSlots(surface, dpi);
     return {
       surface,
@@ -268,10 +290,21 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       // Touch and density belong to the glass, whichever surface it lays out as.
       touch: relaid ? surfaceSupportsTouch(glassSurface, caps?.touch) : caps?.touch,
       dpi,
-      shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize, densitySlots),
+      shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, widgetSize, densitySlots),
+      densitySlots,
+      widgetSize,
       displayBound: !!record?.displayId,
     };
-  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, record?.widgetSize, record?.displayId]);
+  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, viewportWidth, viewportHeight, viewportDpr, record?.widgetSize, record?.gridSlots, record?.displayId]);
+  // The size a retired grid density stood for is written once; the stored density is left in place.
+  const migratedSizeRef = useRef('');
+  const migrateId = record?.id;
+  const migrateSize = !record?.widgetSize && record?.gridSlots ? resolved.widgetSize : undefined;
+  useEffect(() => {
+    if (!migrateId || !migrateSize || migratedSizeRef.current === migrateId) return;
+    migratedSizeRef.current = migrateId;
+    void patchPanelDevice(migrateId, { widgetSize: migrateSize });
+  }, [migrateId, migrateSize]);
   const recordCapsRef = useRef<PanelDeviceCapabilitiesDto | null>(null);
   const hasCaps = !!caps;
   useEffect(() => { recordCapsRef.current = caps ?? null; }, [caps]);
@@ -294,6 +327,16 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   }, [connected, refetch]);
   useAppsChangedSync(refetch);
 
+  // Only a host-launched kiosk on a display-bound record knows its real window, so it reports that for the editor preview.
+  const kioskViewportRef = useRef<{ cssWidth: number; cssHeight: number; dpr: number } | null>(null);
+  kioskViewportRef.current = viewportWidth && viewportHeight ? { cssWidth: viewportWidth, cssHeight: viewportHeight, dpr: viewportDpr ?? 1 } : null;
+  const reportsViewport = !!record?.displayId && resolved.glassSurface === 'monitor';
+  useEffect(() => {
+    if (!reportsViewport) return undefined;
+    return kioskViewportReporter(window, deviceId, () => kioskViewportRef.current, (id, viewport) => {
+      void patchPanelDevice(id, { kioskViewport: viewport });
+    });
+  }, [reportsViewport, deviceId]);
   // Keep the record's viewport facts truthful across a display rotation. The
   // Y70 record is not display-bound, so the promoted-monitor topology sync
   // never rewrites it - this kiosk is the only writer - and the device page
@@ -391,7 +434,7 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
 function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; displayBound?: boolean }) {
   const landscape = useViewportLandscape();
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, landscape), [shortSideSlots, landscape]);
-  const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch, forcedGrid);
+  const layoutState = usePanelLayout(recordState, deviceId, surface, widgetInputOf(deviceTouch, !!displayBound), forcedGrid);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
@@ -417,6 +460,7 @@ export function PanelContent({
   deviceDpi,
   shortSideSlots,
   displayBound = false,
+  genericDisplayOverride,
   layoutState,
   embedded = false,
   simulator = false,
@@ -449,6 +493,8 @@ export function PanelContent({
   // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
   // the desktop see-through gate.
   displayBound?: boolean;
+  // Simulator only: the editor's classification, since the inert record has no family.
+  genericDisplayOverride?: boolean;
   recordState?: PanelRecordState;
   layoutState: PanelLayoutState;
   embedded?: boolean;
@@ -480,7 +526,15 @@ export function PanelContent({
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
-  const { layout, loaded, saveForbidden, hydrated, setLayout: setStoredLayout } = layoutState;
+  const { layout: fullLayout, loaded, saveForbidden, hydrated, setLayout: setFullLayout } = layoutState;
+  // A generic display panel renders its first page only; later stored pages are written back untouched.
+  const genericDisplay = genericDisplayOverride ?? isGenericDisplayPanel(glassSurface, recordState.record?.capabilities?.family, displayBound);
+  const heldLayoutPages = useMemo(() => (genericDisplay ? heldPages(fullLayout) : []), [genericDisplay, fullLayout]);
+  const layout = useMemo(() => (genericDisplay ? firstPageView(fullLayout) : fullLayout), [genericDisplay, fullLayout]);
+  const setStoredLayout = useCallback(
+    (next: PanelLayout) => setFullLayout(genericDisplay ? withHeldPages(next, heldLayoutPages) : next),
+    [genericDisplay, heldLayoutPages, setFullLayout],
+  );
   const panelTheme = usePanelTheme(recordState, deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state
@@ -550,27 +604,8 @@ export function PanelContent({
   // stays null so sidebar pointer tracking never engages. See CrossZoneDrag.
   const { setDraggingPinnableType, dropHandlerRef: sidebarDropHandlerRef } = useCrossZoneDrag();
 
-  // Overlay widgets floating on the desktop, tracked so the context menu can
-  // flip "Add to desktop" / "Remove from desktop" by whether this widget type
-  // already has an overlay instance. Only fetched on the embedded desktop.
-  const [overlayWidgets, setOverlayWidgets] = useState<{ id: string; type: string }[]>([]);
-  const overlayActive = embedded && surface === 'desktop';
-  useEffect(() => {
-    if (!overlayActive) return;
-    let cancelled = false;
-    void listOverlayWidgets().then(list => {
-      if (cancelled) return;
-      setOverlayWidgets(list.map(w => ({ id: w.id, type: w.type })));
-    });
-    return () => { cancelled = true; };
-  }, [overlayActive]);
-  // Overlay create/delete writes broadcast on the 'prefs' topic; refetch on
-  // it so add/remove reflects in the context menu immediately.
-  useTopicCallback('prefs', overlayActive, () => {
-    void listOverlayWidgets().then(list => {
-      setOverlayWidgets(list.map(w => ({ id: w.id, type: w.type })));
-    });
-  });
+  // The dashboard's menu adds a widget to any display panel that is on.
+  const { targets: displayTargets, addToDisplay } = useDisplayTargets(embedded && surface === 'desktop');
   // The HTTP /ping shares the browser's 6-connection pool and the host's CPU
   // with whatever the panel is doing, so a widget that floods the pool (deck
   // app-icon loads) or pegs the box (a benchmark run) can starve the ping past
@@ -873,7 +908,11 @@ export function PanelContent({
   // ---------- Pagination derived from layout ----------
   // Widgets still get the device's own touch, so a display-only panel's widgets stay
   // non-interactive while its preview is edited by mouse.
-  const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator);
+  // A display-bound panel is edited on its display with the mouse, so it needs no touch digitizer.
+  // A display's mouse reaches widgets that need a pointer, as the legacy desktop overlay's did.
+  const widgetTouch = widgetInputOf(deviceTouch, displayBound);
+  const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator, displayBound && kioskBehavior);
+  const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch);
   // An editable canvas hoists the focused widget above the editor's scrim, else
   // the edited widget reads dimmed under it. See .cellEditorDocked rules.
   const editorDockSupported = dragEditable;
@@ -882,7 +921,9 @@ export function PanelContent({
     () => ({ gridCols: gridColumns, pageRows }),
     [gridColumns, pageRows],
   );
+  const latestLayoutRef = useRef<PanelLayout | null>(null);
   const setLayout = useCallback((next: PanelLayout) => {
+    latestLayoutRef.current = next;
     setStoredLayout(fittedLayout !== layout ? restoreOverflowPositions(next, layout, fittedLayout) : next);
   }, [fittedLayout, layout, setStoredLayout]);
 
@@ -910,7 +951,14 @@ export function PanelContent({
   );
 
   // The dashboard has one page by design; a panel without touch has no way to swipe.
-  const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
+  const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch, displayBound && kioskBehavior, genericDisplay);
+  // Stored pages fold onto page 1 only from the host kiosk at its reported window size; a held widget is never deleted.
+  const foldPersists = kioskBehavior && displayBound && panelHostAvailable() && kioskViewportSettled(recordState.record?.kioskViewport, window);
+  useEffect(() => {
+    if (!genericDisplay || !hydrated || !foldPersists || fullLayout.pages.length <= 1) return;
+    const folded = foldIntoFirstPage(fullLayout, capacity);
+    if (folded.changed) setFullLayout(folded.layout);
+  }, [capacity, foldPersists, fullLayout, genericDisplay, hydrated, setFullLayout]);
 
   // Resize mode is entered from the widget context menu.
   // Hovering a tile with a mouse shows the same corners without the mode.
@@ -921,17 +969,19 @@ export function PanelContent({
   const resizeCols = Math.max(1, capacity.gridCols);
   const resizeRows = Math.max(1, capacity.pageRows);
   const resizeBounds = useMemo(() => ({ cols: resizeCols, rows: resizeRows }), [resizeCols, resizeRows]);
-  const canResizeType = (type: string) => dragEditable && resizeSpansForType(type, surface, deviceTouch, forcedGrid, resizeBounds).length > 1;
-  const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type));
+  const widgetsLocked = genericDisplay && resolveWidgetsLocked(recordState.record?.widgetsLocked, fullLayout.pages.flatMap(p => p.widgets));
+  const lockedOf = () => widgetsLocked;
+  const canResizeType = (type: string, locked?: boolean) => dragEditable && !locked && resizeSpansForType(type, surface, widgetTouch, forcedGrid, resizeBounds).length > 1;
+  const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type, lockedOf()));
   const hoverWidget = !freeformId && hoverResizeId ? findWidgetById(paginatedLayout, hoverResizeId) : undefined;
-  const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type));
+  const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type, lockedOf()));
   const cornerTarget = freeformActive ? freeformWidget : hoverActive ? hoverWidget : undefined;
   const cornerTargetId = cornerTarget?.id;
   const cornerType = cornerTarget?.type;
   const freeformDef = cornerTarget ? lookupApp(cornerTarget.type) : undefined;
   const freeformSpans = useMemo(
-    () => (cornerType ? resizeSpansForType(cornerType, surface, deviceTouch, forcedGrid, resizeBounds) : NO_SPANS),
-    [cornerType, surface, deviceTouch, forcedGrid, resizeBounds],
+    () => (cornerType ? resizeSpansForType(cornerType, surface, widgetTouch, forcedGrid, resizeBounds) : NO_SPANS),
+    [cornerType, surface, widgetTouch, forcedGrid, resizeBounds],
   );
   // Computed from the layout the tile stands in (not a gesture's draft) and only for the tile showing corners,
   // since each corner solves a placement per candidate span.
@@ -1121,7 +1171,7 @@ export function PanelContent({
   // stored (addWidget creates it), though activePageId can point at it so every
   // surface shows the same page. A drag mints its own trailing page.
   const [blankPageId] = useState(createUuid);
-  const blankPageEligible = (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && surfaceSupportsTouch(surface, deviceTouch)))
+  const blankPageEligible = (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable)))
     && !singlePage
     && !isSingleWidgetSurface(surface)
     && !activeDragId
@@ -1150,7 +1200,7 @@ export function PanelContent({
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
-          return appAvailableForSurface(def.meta, surface, { deviceTouch, forcedGrid });
+          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -1161,7 +1211,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, deviceTouch, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -1247,6 +1297,7 @@ export function PanelContent({
     setLayout(setImmersiveOnLoadWidgetId(paginatedLayout, on ? widgetId : null));
   }, [paginatedLayout, setLayout]);
 
+  useSyncLatestLayout(latestLayoutRef, paginatedLayout);
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
   const editingWidgetSize = editingWidget?.size;
   // The edited widget's own grid tile (PanelTouchCell, in the page below) and
@@ -1291,12 +1342,19 @@ export function PanelContent({
       }
       return;
     }
+    // A generic display has no immersive view: a tap opens the app at that widget's page, never while editing.
+    if (genericDisplay) {
+      if (!sheetMode && lookupApp(w.type)) void openAppAt(appRouteForWidget(w.type));
+      return;
+    }
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
+    // An immersive view closes by touch, so a mouse-only display never opens one.
+    if (!surfaceSupportsTouch(surface, deviceTouch)) return;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
     if (!def.meta.supportsImmersive[orientationKey]) return;
     enterImmersive(w.id);
-  }, [embedded, enterImmersive, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
+  }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, sheetMode, simulator, surface]);
   // macOS delivers touchscreen contacts as mouse pointers (see
   // engine/touchViaPointer); only under that flag does a mouse get the
   // touch gesture model.
@@ -1399,13 +1457,26 @@ export function PanelContent({
     return label === 'connection.relayMode' ? 'Connected via cloud relay' : label;
   })();
 
+  // Always on top: a display panel keeps it on its record (absent = on), the Y70 in the global panel prefs.
+  const displayRecord = displayBound && kioskBehavior ? recordState.record : null;
+  const y70OnTop = glassSurface === 'y70' && !displayBound && kioskBehavior ? panelTheme.prefs?.panel?.alwaysOnTop : undefined;
+  const layeredOnTop = displayRecord ? displayRecord.alwaysOnTop ?? true : y70OnTop;
+  // Only a generic display lets the user change it; a known device keeps its stored value, unshown.
+  const menuAlwaysOnTop = genericDisplay ? layeredOnTop : undefined;
+  // A solid generic display is never on top (its clicks would reach hidden windows); the stored choice waits.
+  const onTopBlocked = genericDisplay && backdrop !== 'desktop';
+  const effectiveOnTop = menuAlwaysOnTop === true && !onTopBlocked;
+  // A generic display's empty space always reaches the desktop; other display panels follow their record.
+  const clickThrough = seeThrough && (genericDisplay || recordState.record?.clickThrough === true);
+  // Empty space never opens panel UI where it is meant to pass clicks; the widget menu reaches it instead.
+  const emptySpaceInert = genericDisplay || clickThrough;
   // Long-press on the empty background opens the actions tray (mirrors the
   // widget long-press-to-menu). Kiosk surfaces only, not while in a sheet /
   // immersive / drag state, and only when the press misses widgets and
   // interactive elements.
   const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS, { allowMouse: mouseAsTouch });
   const backgroundPressBlocked = !kioskBehavior
-    || !surfaceSupportsTouch(surface, deviceTouch)
+    || !(surfaceSupportsTouch(surface, deviceTouch) || mouseEditable)
     || trayOpen
     || controlCenterOpen
     || Boolean(sheetMode)
@@ -1413,7 +1484,8 @@ export function PanelContent({
     || Boolean(activeDragId)
     || Boolean(dragArmedId)
     || isOffline
-    || touch.rearranging;
+    || touch.rearranging
+    || emptySpaceInert;
   const handleBackgroundPointerDown = useCallback((e: React.PointerEvent) => {
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
@@ -1431,6 +1503,7 @@ export function PanelContent({
   // long-press: same gating, opens the tray. Suppresses the browser's native
   // menu on the panel surface.
   const handleBackgroundContextMenu = useCallback((e: React.MouseEvent) => {
+    if (emptySpaceInert) e.preventDefault();
     if (backgroundPressBlocked) return;
     if (!(e.target instanceof Element)) return;
     if (
@@ -1440,7 +1513,7 @@ export function PanelContent({
     ) return;
     e.preventDefault();
     setTrayOpen(true);
-  }, [backgroundPressBlocked]);
+  }, [backgroundPressBlocked, emptySpaceInert]);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -1458,7 +1531,13 @@ export function PanelContent({
     setEditorDockMotion(null);
   }, []);
 
-   
+  // A widget removed elsewhere ends its edit session for good, so it cannot reopen the sheet if it returns.
+  useEffect(() => {
+    if (sheetMode === 'settings' && !sheetClosing && editTargetGone(editingWidgetId, editingWidget !== null, editingWidgetId !== null && playlistTypeOfWidgetId(editingWidgetId) !== undefined)) {
+      finishSheetClose();
+    }
+  }, [sheetMode, sheetClosing, editingWidgetId, editingWidget, finishSheetClose]);
+
   const closeSheet = useCallback(() => {
     if (!sheetMode) return;
     const closingWidget = editingWidgetId && editingWidgetSize
@@ -1626,13 +1705,15 @@ export function PanelContent({
   }, [activePageIndex, paginatedLayout, capacity, singlePage]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
+    // Built on the latest queued layout, so two edits before a render both land.
+    const base = latestOr(latestLayoutRef, paginatedLayout);
     const standInType = playlistTypeOfWidgetId(widgetId);
     if (standInType) {
-      setLayout(patchPlaylistWidgetConfig(paginatedLayout, standInType, config));
+      setLayout(patchPlaylistWidgetConfig(base, standInType, config));
       return;
     }
     setLayout(patchWidgetById(
-      paginatedLayout,
+      base,
       widgetId,
       w => ({ ...w, config: { ...w.config, ...config } }),
       capacity,
@@ -1747,14 +1828,83 @@ export function PanelContent({
       ? { activationConstraint: { distance: DRAG_DISTANCE_PX } }
       : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
   );
+  // A real mouse on the glass drags on distance; touch and a mouse standing in for touch hold first.
+  const adaptiveSensor = useSensor(AdaptivePointerSensor, {
+    activationConstraint: undefined,
+    constraintFor: (e: PointerEvent) => (dragActivationFor(e.pointerType, mouseAsTouch) === 'distance'
+      ? { distance: DRAG_DISTANCE_PX }
+      : { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 }),
+  });
   // The tile in resize mode is already selected, so on a hold-to-drag panel it drags on distance, like the desktop.
   const resizeTileSensor = useSensor(ResizeTilePointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } });
   // A panel that can't be drag-edited (single-widget glass; display-only glass outside
   // the preview) registers no drag sensor, so a pointer press never lifts a cell.
   const sensors = useSensors(
-    dragEditable ? pointerSensor : null,
+    dragEditable && desktopActivation ? pointerSensor : null,
+    dragEditable && !desktopActivation ? adaptiveSensor : null,
     dragEditable && freeformActive && !desktopActivation ? resizeTileSensor : null,
   );
+
+  // Lock applies wherever a widget can be arranged, except the phone's own gesture set.
+  const lockAvailable = dragEditable && genericDisplay;
+  const lockRecordId = recordState.record?.id;
+  const toggleWidgetsLocked = useCallback(() => {
+    if (lockRecordId) void patchPanelDevice(lockRecordId, { widgetsLocked: !widgetsLocked });
+  }, [lockRecordId, widgetsLocked]);
+  const toggleAlwaysOnTop = useCallback(() => {
+    if (menuAlwaysOnTop === undefined || onTopBlocked) return;
+    const next = !menuAlwaysOnTop;
+    if (displayRecord) void patchPanelDevice(displayRecord.id, { alwaysOnTop: next });
+    else void savePreferences({ panel: { alwaysOnTop: next } });
+  }, [displayRecord, menuAlwaysOnTop, onTopBlocked]);
+
+  // Host sync: a see-through, click-through display window takes input only where the panel draws.
+  const hostBound = kioskBehavior && displayBound && panelHostAvailable();
+  const hitFull = Boolean(sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
+    || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
+  // Position and size, so a remote edit that keeps the ids still remeasures.
+  const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
+  usePanelHitTest(
+    hostBound && seeThrough,
+    clickThrough,
+    hitFull,
+    rootRef,
+    `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
+  );
+  // The host blurs the desktop behind the cards: CSS cannot sample it.
+  usePanelFrost(
+    hostBound,
+    effectiveTheme.backgroundFrost,
+    seeThrough,
+    Boolean(activeDragId),
+    rootRef,
+    `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
+  );
+  // Every sheet (widget edit, catalog, panel settings, pairing) can hold a text field.
+  usePanelActivatable(hostBound, Boolean(sheetMode));
+  usePanelRaise(
+    hostBound && layeredOnTop === false,
+    Boolean(touch.ctxMenu || sheetMode || trayOpen || activeDragId || dragArmedId || freeformActive),
+  );
+
+  // The stored layout, not the local seed: the seed holds starter widgets until the record hydrates it.
+  const importLayout = recordState.record?.layout ?? EMPTY_IMPORT_LAYOUT;
+  const importCanvas = recordCanvasOf(recordState.record);
+  const importDensitySlots = importCanvas
+    ? densityShortSideSlots(importCanvas.width, importCanvas.height, importCanvas.dpr, recordState.record?.capabilities?.dpi ?? estimateRuntimePanelDpi(glassSurface))
+    : undefined;
+  // The legacy desktop overlay only ever ran on plain OS displays, so import is gated to generic ones.
+  useDesktopImport({
+    enabled: kioskBehavior && !simulator && genericDisplay,
+    hostReady: panelHostAvailable,
+    deviceId,
+    pending: recordState.record?.desktopImport,
+    layout: importLayout,
+    paddingPercent: effectiveTheme.widgetPadding,
+    grid: runtimeGrid,
+    singlePage: genericDisplay,
+    densitySlots: importDensitySlots,
+  });
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
   // Gesture refs for the collision detector. startX/Y is dnd-kit's press
@@ -1842,10 +1992,11 @@ export function PanelContent({
       target.col,
       target.row,
       capacity,
+      displayBound,
     );
     setPreviewLayout(preview);
     setDropRefused(preview === null);
-  }, [overIdTick, activeDragId, dragLayout, capacity, widgetById]);
+  }, [overIdTick, activeDragId, dragLayout, capacity, widgetById, displayBound]);
 
   const handleDndDragStart = useCallback((event: DragStartEvent) => {
     const id = String(event.active.id);
@@ -2003,6 +2154,7 @@ export function PanelContent({
           target.col,
           target.row,
           capacity,
+          displayBound,
         );
         if (!preview) {
           // Refused drop (displaced widgets have nowhere to go, or a 1x1
@@ -2160,6 +2312,7 @@ export function PanelContent({
                               editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               movable={dragEditable}
+                              locked={lockedOf()}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
@@ -2219,6 +2372,14 @@ export function PanelContent({
                           />
                         ) : null}
                       </div>
+                      {mouseEditable && page.widgets.length === 0 && (
+                        <div className={styles.emptyPageAction} data-panel-hit="true">
+                          <button type="button" className="chip-action" onClick={() => openSheet('catalog')}>
+                            <Plus size={14} aria-hidden />
+                            <span>{t('panel.addWidgets')}</span>
+                          </button>
+                        </div>
+                      )}
                     </>
                   )}
                 />
@@ -2230,12 +2391,13 @@ export function PanelContent({
                       total={pageCount}
                       active={Math.min(activePageIndex, pageCount - 1)}
                       visibilityToken={activePageIndex}
+                      onSelect={mouseEditable ? handlePageChange : undefined}
                     />
                   </div>
                 )}
               </div>
             </div>
-            {kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && (
+            {kioskBehavior && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable) && (
               <PanelActionsTray
                 open={trayOpen}
                 onOpen={() => setTrayOpen(true)}
@@ -2331,15 +2493,7 @@ export function PanelContent({
           && surfaceSupportsTouch(surface, deviceTouch);
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
-        // "Add to desktop" always pins another floating overlay copy; multiple
-        // same-type instances coexist, each with its own config. "Remove from
-        // desktop" deletes every instance of the type.
         const onDesktopSurface = embedded && surface === 'desktop';
-        const overlayMatches = onDesktopSurface
-          ? overlayWidgets.filter(o => o.type === ctxWidget.type)
-          : [];
-        const desktopAddAvailable = onDesktopSurface;
-        const desktopRemoveAvailable = onDesktopSurface && overlayMatches.length > 0;
 
         // Sidebar pin toggle, only for pinnable types (isPinnableAppKey):
         // "Pin to Sidebar" when not pinned, "Unpin from Sidebar" when pinned.
@@ -2354,35 +2508,26 @@ export function PanelContent({
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
-            sizes={sizesForSurface(def.meta, surface, deviceTouch, forcedGrid)}
+            sizes={sizesForSurface(def.meta, surface, widgetTouch, forcedGrid)}
             hasConfig
             surface={surface}
             themeMode={resolvedThemeMode}
             themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
-            onResizeMode={canResizeType(ctxWidget.type) ? () => setFreeformId(ctxWidget.id) : undefined}
+            onResizeMode={canResizeType(ctxWidget.type, lockedOf()) ? () => setFreeformId(ctxWidget.id) : undefined}
             // The preview edits in the device page's settings pane, as a plain click does.
             onEdit={() => (simulator ? onSimulatorWidgetClicked?.(ctxWidget.id) : openWidgetSettings(ctxWidget, ctxPoint))}
             onRemove={() => removeWidget(ctxWidget.id)}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
-            onAddToDesktop={desktopAddAvailable ? () => {
-              void createOverlayWidget({
-                type: ctxWidget.type,
-                size: ctxWidget.size,
-                config: ctxWidget.config,
-              }).then(created => {
-                if (created) setOverlayWidgets(prev => [...prev, { id: created.id, type: created.type }]);
-              });
-            } : undefined}
-            onRemoveFromDesktop={desktopRemoveAvailable ? () => {
-              const removed = overlayMatches.map(o => o.id);
-              for (const id of removed) {
-                void deleteOverlayWidget(id);
-              }
-              // Optimistic update so the next menu open shows "Add to desktop"
-              // without waiting for the prefs topic round-trip.
-              setOverlayWidgets(prev => prev.filter(o => !removed.includes(o.id)));
-            } : undefined}
+            displayTargets={onDesktopSurface ? displayTargets : undefined}
+            onAddToDisplay={onDesktopSurface && displayTargets.length > 0 ? displayId => { void addToDisplay(displayId, ctxWidget); } : undefined}
+            onAddWidget={mouseEditable ? () => openSheet('catalog') : undefined}
+            alwaysOnTop={menuAlwaysOnTop === undefined ? undefined : effectiveOnTop}
+            alwaysOnTopDisabled={onTopBlocked}
+            onOpenPanelActions={emptySpaceInert && kioskBehavior ? () => setTrayOpen(true) : undefined}
+            onToggleAlwaysOnTop={menuAlwaysOnTop === undefined ? undefined : toggleAlwaysOnTop}
+            locked={widgetsLocked}
+            onToggleLock={lockAvailable && recordState.record ? toggleWidgetsLocked : undefined}
             onPinToSidebar={pinAvailable && pinnableKey ? () => {
               updateUiSettings({
                 pinnedSidebarApps: [...pinnedTail, pinnableKey],
@@ -2444,7 +2589,8 @@ export function PanelContent({
           mode={sheetMode}
           surface={surface}
           deviceId={deviceId}
-          deviceTouch={deviceTouch}
+          deviceTouch={widgetTouch}
+          displayBound={displayBound}
           forcedGrid={forcedGrid}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const fetchPanelDevicesMock = vi.fn();
 const patchPanelDeviceMock = vi.fn();
 const fetchDisplayTopologyMock = vi.fn();
+const themeState = vi.hoisted(() => ({ backdrop: undefined as string | undefined }));
 
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
@@ -41,7 +42,7 @@ vi.mock('../../../panel/engine/panelSync', () => ({
 }));
 vi.mock('../../../panel/theme/panelTheme', () => ({
   usePanelTheme: () => ({
-    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [] },
+    theme: { backdrop: themeState.backdrop, themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [] },
     commitThemeSync: vi.fn(), commitThemeMode: vi.fn(), commitAccentSync: vi.fn(),
     previewAccent: vi.fn(), commitAccent: vi.fn(), previewBackground: vi.fn(),
     commitBackground: vi.fn(), commitBackgroundMode: vi.fn(), commitBackgroundEffect: vi.fn(),
@@ -90,6 +91,7 @@ const DEVICE: PanelDevice = {
 } as PanelDevice;
 
 beforeEach(() => {
+  themeState.backdrop = 'desktop';
   fetchPanelDevicesMock.mockReset();
   patchPanelDeviceMock.mockReset().mockResolvedValue({ ok: true });
   fetchDisplayTopologyMock.mockReset().mockResolvedValue({
@@ -123,8 +125,8 @@ function serveRecord(extra: Record<string, unknown> = {}) {
     devices: [{
       id: 'rec1',
       displayId: 'disp1',
-      capabilities: { surface: 'monitor', touch: true, family: 'xeneon-edge', orientation: 'Landscape' },
-      ...extra,
+      capabilities: { surface: 'monitor', touch: true, orientation: 'Landscape', ...(extra.family ? { family: extra.family } : {}) },
+      ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'family')),
     }],
   });
 }
@@ -139,7 +141,9 @@ describe('PanelDevicePage promoted display always on top', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     const all = screen.getAllByRole('switch');
     const reserve = screen.getByRole('switch', { name: RESERVE_LABEL });
-    expect(all.indexOf(reserve)).toBe(all.indexOf(toggle) + 1);
+    const lock = screen.getByRole('switch', { name: 'panel.widget.menu.lockWidgets' });
+    expect(all.indexOf(lock)).toBe(all.indexOf(toggle) + 1);
+    expect(all.indexOf(reserve)).toBe(all.indexOf(lock) + 1);
   });
 
   it('PATCHes alwaysOnTop:false when the default-on toggle is flipped', async () => {
@@ -163,7 +167,7 @@ describe('PanelDevicePage promoted display always on top', () => {
     await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'false'));
   });
 
-  it('is hidden when the host cannot reserve monitors', async () => {
+  it('is offered even when the host cannot reserve monitors', async () => {
     serveRecord();
     fetchDisplayTopologyMock.mockResolvedValue({
       hostingSupported: true, rotationSupported: true, reserveSupported: false,
@@ -172,9 +176,31 @@ describe('PanelDevicePage promoted display always on top', () => {
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
-    // Positive anchor: the record-driven auto-orient toggle renders whenever
-    // monitor settings have loaded, independent of reserveSupported.
-    await screen.findByRole('switch', { name: 'devices.xeneonEdge.autoOrient' });
+    // The window level applies on every host that hosts panels; only the window guards are Windows-only.
+    await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL });
+    expect(screen.queryByRole('switch', { name: 'devices.y70.reserveMonitor' })).not.toBeInTheDocument();
+  });
+
+  it('reads off and disabled without the see-through background, keeping the stored value', async () => {
+    themeState.backdrop = 'theme';
+    serveRecord({ alwaysOnTop: true });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'false'));
+    expect(toggle).toBeDisabled();
+    fireEvent.click(toggle);
+    expect(patchPanelDeviceMock).not.toHaveBeenCalledWith('rec1', expect.objectContaining({ alwaysOnTop: expect.anything() }));
+  });
+
+  it('is not offered on a known device display such as the Xeneon Edge', async () => {
+    serveRecord({ family: 'xeneon-edge' });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: RESERVE_LABEL });
     expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'panel.widget.menu.lockWidgets' })).not.toBeInTheDocument();
   });
 });

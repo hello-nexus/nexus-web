@@ -107,6 +107,9 @@
 
 .headerLeft { grid-column: 1; }
 
+// The 3D canvas butts the header.
+.paneHeaderFlush { padding-bottom: 0; }
+
 // The 2D / 3D switch sits at the right end of the canvas header.
 .viewSwitch { margin-left: auto; }
 // min-width lets the title ellipsize instead of pushing the badge and the
@@ -437,7 +440,7 @@
 // sidebar column, name on top, RPM meta + duty bar + dropdown beneath.
 .fanCard {
   position: relative;
-  // Row, matching the lighting rail: the select box sits centred against the
+  // Row, matching the lighting rail: the select box sits centered against the
   // full card height and the fan's own stack sits beside it.
   display: flex; align-items: center; gap: 0.6rem;
   padding: 0.6rem 0.75rem;

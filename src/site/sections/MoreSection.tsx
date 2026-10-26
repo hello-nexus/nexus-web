@@ -1,4 +1,4 @@
-import { Lightbulb, House, Trophy, Hourglass, LayoutGrid, Stethoscope, Droplets, Users } from 'lucide-react';
+import { Lightbulb, House, Trophy, Hourglass, LayoutDashboard, Stethoscope, Droplets, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import styles from '../site.module.scss';
@@ -6,7 +6,7 @@ import styles from '../site.module.scss';
 const CARDS: Array<{ key: string; Icon: LucideIcon }> = [
   { key: 'smartlights', Icon: Lightbulb },
   { key: 'homeautomation', Icon: House },
-  { key: 'widgets', Icon: LayoutGrid },
+  { key: 'widgets', Icon: LayoutDashboard },
   { key: 'benchmarks', Icon: Trophy },
   { key: 'screentime', Icon: Hourglass },
   { key: 'diagnostics', Icon: Stethoscope },
@@ -20,7 +20,7 @@ export function MoreSection() {
     <section className={styles.moreSection}>
       <div className={styles.moreHeading}>
         <p className={`${styles.eyebrow} ${styles.eyebrowCentered}`}>
-          <LayoutGrid size={15} aria-hidden />
+          <LayoutDashboard size={15} aria-hidden />
           <span>{t('welcome.capabilities.widgets')}</span>
         </p>
         <h2>{t('site.more.title')}</h2>

@@ -354,6 +354,54 @@ export function fitLayoutToSinglePage(
   };
 }
 
+/** Like fitLayoutToSinglePage, but widgets without room stay in a held page after the first, never dropped. */
+export function fitLayoutToSinglePageHolding(layout: PanelLayout, capacity: PaginateCapacity): PanelLayout {
+  const { layout: fitted, dropped } = fitLayoutToSinglePage(layout, capacity);
+  return dropped.length === 0 ? fitted : { ...fitted, pages: [...fitted.pages, { id: createUuid(), widgets: dropped }] };
+}
+
+/** Moves every widget onto the first page at the nearest free cells; one with no free cell stays held on its page. */
+export function foldIntoFirstPage(layout: PanelLayout, capacity: PaginateCapacity): { layout: PanelLayout; changed: boolean } {
+  if (layout.pages.length <= 1) return { layout, changed: false };
+  const cols = Math.max(1, Math.floor(capacity.gridCols));
+  const rows = Math.max(1, Math.floor(capacity.pageRows));
+  const first = layout.pages[0];
+  const origin = new Map<string, string>();
+  for (const page of layout.pages) for (const w of page.widgets) origin.set(w.id, page.id);
+  const { placed, overflow } = fillPage(flattenPages(layout.pages), cols, rows);
+  const heldIds = new Set(layout.pages.slice(1).flatMap(p => p.widgets.map(w => w.id)));
+  const sameFirst = placed.length === first.widgets.length
+    && placed.every(p => first.widgets.some(w => w.id === p.id && w.col === p.col && w.row === p.row));
+  if (sameFirst && overflow.length === heldIds.size && overflow.every(w => heldIds.has(w.id)) && layout.pages.every(p => p.widgets.length > 0 || p === first)) {
+    return { layout, changed: false };
+  }
+  const held = layout.pages.slice(1)
+    .map(page => ({ ...page, widgets: overflow.filter(w => origin.get(w.id) === page.id) }))
+    .filter(page => page.widgets.length > 0);
+  const stranded = overflow.filter(w => origin.get(w.id) === first.id);
+  const kept: PanelPage[] = [{ ...first, widgets: placed }, ...held];
+  if (stranded.length > 0) kept.push({ id: createUuid(), widgets: stranded });
+  return { layout: { ...layout, activePageId: first.id, pages: kept }, changed: true };
+}
+
+/** The pages a single-page panel does not render, to be written back unchanged with every edit. */
+export function heldPages(layout: PanelLayout): PanelPage[] {
+  return layout.pages.slice(1);
+}
+
+/** The layout a single-page panel renders: its first page only. */
+export function firstPageView(layout: PanelLayout): PanelLayout {
+  if (layout.pages.length <= 1) return layout;
+  return { ...layout, activePageId: layout.pages[0].id, pages: layout.pages.slice(0, 1) };
+}
+
+/** Re-attaches held pages to an edited single-page layout so no stored widget is lost. */
+export function withHeldPages(next: PanelLayout, held: PanelPage[]): PanelLayout {
+  if (held.length === 0) return next;
+  const have = new Set(next.pages.map(p => p.id));
+  return { ...next, pages: [...next.pages, ...held.filter(p => !have.has(p.id))] };
+}
+
 /**
  * Fits each page to the given grid (fillPage); what a page cannot hold opens a
  * new page right after it, and past maxPages is dropped. Returns the input when

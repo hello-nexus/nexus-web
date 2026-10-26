@@ -1,4 +1,4 @@
-import { Boxes } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import { appIconComponent } from '../../components/icons/AppIconImage';
 import { MarketplaceTouch, MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
@@ -113,10 +113,12 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
-  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid },
+  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean },
 ): boolean {
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
-  if (meta.surfaces && !meta.surfaces.includes(surface)) return false;
+  // A display panel replaces the legacy desktop overlay, so it also takes the widgets limited to the desktop.
+  const desktopOnDisplay = opts?.displayBound === true && surface === 'monitor' && meta.surfaces?.includes('desktop') === true;
+  if (meta.surfaces && !meta.surfaces.includes(surface) && !desktopOnDisplay) return false;
   // The phone surface only exists on remotely-connected panels, so it doubles
   // as the remote default for callers that don't carry the flag (layout
   // reconcile, PanelApp's render filter).
@@ -188,7 +190,7 @@ const MARKETPLACE_PREVIEWS: Record<string, AppManifest['Preview']> = {};
 // the listing's manifest so a 1x1 app stays 1x1 and a 4x2-only
 // weather stays 4x2. Anything the manifest declares that the panel
 // engine doesn't know about is filtered out.
-function makeMarketplaceAppManifest(
+export function makeMarketplaceAppManifest(
   id: string,
   label: string,
   manifestSizes: string[] | undefined,
@@ -225,7 +227,7 @@ function makeMarketplaceAppManifest(
       // The app's own manifest mark when it ships one; the generic catalog
       // glyph otherwise. Not gated on `preinstalled` - the OEM flag decides
       // whether an app auto-seeds, not which icon it draws.
-      icon: iconUrl ? appIconComponent(iconUrl) : Boxes,
+      icon: iconUrl ? appIconComponent(iconUrl) : LayoutDashboard,
       sizes: safeSizes,
       defaultSize,
       gridSizes: gridSizes.length > 0 ? gridSizes : undefined,

@@ -41,7 +41,7 @@ export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): numb
 // the install-defaults cache. Read through the cache for one source of truth
 // (as defaultLayout.ts does). The literals below are only the bootstrap-race
 // fallback before the cache fills, and must match the JSON.
-const WIDGET_OPACITY_FALLBACK = 0.7;
+const WIDGET_OPACITY_FALLBACK = 1;
 const WIDGET_LABELS_FALLBACK = false;
 
 export const defaultPanelWidgetOpacity = (): number =>

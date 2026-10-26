@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { WebViewSettings } from './WebViewSettings';
 
@@ -23,5 +23,16 @@ describe('WebViewSettings URL field', () => {
   it('stays editable on a touch panel edited from the desktop', () => {
     render(<WebViewSettings {...base} surface="y70" desktopEditor />);
     expect(screen.getByDisplayValue('https://example.com/')).toBeTruthy();
+  });
+});
+
+describe('WebViewSettings URL field on a hosted display', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is an editable input on a monitor panel under a kiosk host', () => {
+    vi.stubGlobal('chrome', { webview: { postMessage: () => {} } });
+    render(<WebViewSettings {...base} surface="monitor" />);
+    expect(screen.getByDisplayValue('https://example.com/')).toBeTruthy();
+    expect(screen.queryByText('common.desktopOnly')).toBeNull();
   });
 });

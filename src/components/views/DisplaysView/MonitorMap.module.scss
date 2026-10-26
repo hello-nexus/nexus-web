@@ -1,17 +1,17 @@
-// Windows-display-settings-style arrangement canvas. The rect positions are
+// Display-settings-style arrangement canvas. The rect positions are
 // inline styles computed by monitorMapLayout; this file is chrome only.
 
 .map {
   position: relative;
   min-height: 260px;
-  border: var(--border-width) solid transparent;
   border-radius: var(--radius-lg);
-  background: var(--surface);
 }
 
 .monitor {
   position: absolute;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
   align-items: center;
   justify-content: center;
   appearance: none;
@@ -20,7 +20,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--bg);
-  color: var(--text-dim);
+  color: var(--text);
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast);
 
@@ -32,9 +32,12 @@
 
 .selected {
   border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--text);
-  box-shadow: 0 0 0 1px var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+
+  &:hover {
+    color: var(--accent-text);
+  }
 }
 
 .panel {
@@ -45,26 +48,18 @@
 }
 
 .number {
-  font-size: clamp(0.9rem, 2.4vw, 1.6rem);
+  line-height: 1;
   font-weight: var(--weight-heading);
-  opacity: 0.85;
   pointer-events: none;
 }
 
 .badges {
-  position: absolute;
-  top: 4px;
-  right: 6px;
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
   pointer-events: none;
 }
 
-.primaryBadge {
-  color: var(--text-dim);
-}
-
 .panelBadge {
-  color: var(--accent);
+  color: inherit;
 }

@@ -1,0 +1,64 @@
+{
+ "enabled": true,
+ "alwaysOnTop": true,
+ "scale": 137,
+ "opacity": 0.4,
+ "monitor": -1,
+ "layout": [
+  {
+   "id": "873d6c9c58f24bef953397060f20b8aa",
+   "type": "clock",
+   "size": "4x2",
+   "monitor": 0,
+   "col": 0.75,
+   "row": 0.75,
+   "locked": false,
+   "config": {
+    "design": "analog",
+    "format": "24h",
+    "showSeconds": true,
+    "showDate": false
+   }
+  },
+  {
+   "id": "30b20f1bbeeb49f38c605eb7e27de2a6",
+   "type": "weather",
+   "size": "2x2",
+   "monitor": 0,
+   "col": 4.5,
+   "row": 0.75,
+   "locked": true,
+   "config": null
+  },
+  {
+   "id": "f07ffbe968d74ea1a8ce76c8f678b026",
+   "type": "calendar",
+   "size": "2x2",
+   "monitor": 0,
+   "col": 4.75,
+   "row": 1.75,
+   "locked": false,
+   "config": null
+  },
+  {
+   "id": "35eafdf65ae84560ba735618e8e6a71c",
+   "type": "stopwatch",
+   "size": "2x2",
+   "monitor": 0,
+   "col": 7.25,
+   "row": 4.5,
+   "locked": false,
+   "config": null
+  },
+  {
+   "id": "276ba1bd5d574bf4be413f314aac11bf",
+   "type": "app:com.hellonexus.aquarium",
+   "size": "4x2",
+   "monitor": 0,
+   "col": 10.25,
+   "row": 6.5,
+   "locked": false,
+   "config": null
+  }
+ ]
+}

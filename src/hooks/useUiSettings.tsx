@@ -5,10 +5,10 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  loadSettings, saveSettings, cachePreferencesLocally,
+  loadSettings, saveSettings, cachePreferencesLocally, COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE,
   applyThemeMode, applyAccentColor, applyBackgroundMode,
   type NexusSettings, type ThemeMode, type Language, type BackgroundMode, type AccentSource,
-  type DashboardMode,
+  type DashboardMode, type CoolingFlowMode,
 } from '../lib/settings';
 import {
   fetchPreferences, savePreferences,
@@ -119,6 +119,11 @@ export interface UiSettingsValue {
   // pages keep separate answers.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Whether each page opens on its 3D view. Server-mirrored under ui.lightingView3d / ui.coolingView3d.
+  lightingView3d: boolean;
+  coolingView3d: boolean;
+  coolingFlowMode: CoolingFlowMode;
+  coolingCollisionShapes: boolean;
   // Sidebar DEVICES row keys the user hid; a row is omitted only while its
   // Nexus Control is also off. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
@@ -260,6 +265,10 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     coolingDashboardMode: src.general.coolingDashboardMode,
     showUncontrolledLightingDevices: src.general.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: src.general.showUncontrolledCoolingDevices,
+    lightingView3d: src.general.lightingView3d,
+    coolingView3d: src.general.coolingView3d,
+    coolingFlowMode: COOLING_FLOW_MODES.find(m => m === src.general.coolingFlowMode) ?? DEFAULT_COOLING_FLOW_MODE,
+    coolingCollisionShapes: src.general.coolingCollisionShapes,
     hiddenSidebarDevices: src.general.hiddenSidebarDevices,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
@@ -332,6 +341,10 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       coolingDashboardMode: src.coolingDashboardMode,
       showUncontrolledLightingDevices: src.showUncontrolledLightingDevices,
       showUncontrolledCoolingDevices: src.showUncontrolledCoolingDevices,
+      lightingView3d: src.lightingView3d,
+      coolingView3d: src.coolingView3d,
+      coolingFlowMode: src.coolingFlowMode,
+      coolingCollisionShapes: src.coolingCollisionShapes,
       hiddenSidebarDevices: src.hiddenSidebarDevices,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
@@ -380,7 +393,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; hiddenSidebarDevices: string[] }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; lightingView3d: boolean; coolingView3d: boolean; coolingFlowMode: CoolingFlowMode; coolingCollisionShapes: boolean; hiddenSidebarDevices: string[] }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.notifyConflictLaunches !== undefined) ui.notifyConflictLaunches = patch.notifyConflictLaunches;
@@ -393,6 +406,10 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
   if (patch.showUncontrolledLightingDevices !== undefined) ui.showUncontrolledLightingDevices = patch.showUncontrolledLightingDevices;
   if (patch.showUncontrolledCoolingDevices !== undefined) ui.showUncontrolledCoolingDevices = patch.showUncontrolledCoolingDevices;
+  if (patch.lightingView3d !== undefined) ui.lightingView3d = patch.lightingView3d;
+  if (patch.coolingView3d !== undefined) ui.coolingView3d = patch.coolingView3d;
+  if (patch.coolingFlowMode !== undefined) ui.coolingFlowMode = patch.coolingFlowMode;
+  if (patch.coolingCollisionShapes !== undefined) ui.coolingCollisionShapes = patch.coolingCollisionShapes;
   if (patch.hiddenSidebarDevices !== undefined) ui.hiddenSidebarDevices = patch.hiddenSidebarDevices;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
@@ -502,6 +519,10 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: server.ui?.showUncontrolledCoolingDevices
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledCoolingDevices,
+    lightingView3d: server.ui?.lightingView3d ?? base.lightingView3d,
+    coolingView3d: server.ui?.coolingView3d ?? base.coolingView3d,
+    coolingFlowMode: COOLING_FLOW_MODES.find(m => m === server.ui?.coolingFlowMode) ?? base.coolingFlowMode,
+    coolingCollisionShapes: server.ui?.coolingCollisionShapes ?? base.coolingCollisionShapes,
     hiddenSidebarDevices: server.ui?.hiddenSidebarDevices ?? base.hiddenSidebarDevices,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
@@ -577,10 +598,9 @@ interface UiSettingsProviderProps {
   /**
    * Whether server-driven theme / accent / language changes apply to
    * `document.documentElement` and global i18n state. `true` (default) for
-   * the desktop dashboard. `false` for the kiosk panel, overlay process,
-   * and simulator iframe: those own their own theme/language pipelines
-   * (usePanelTheme, the overlay's theme manager, the parent modal's
-   * postMessage feed) and would fight a second writer.
+   * the desktop dashboard. `false` for the kiosk panel and simulator
+   * iframe: those own their own theme/language pipelines (usePanelTheme,
+   * the parent modal's postMessage feed) and would fight a second writer.
    */
   manageDom?: boolean;
 }
@@ -635,7 +655,7 @@ export function UiSettingsProvider({
     // client-scoped fields - short-circuit to skip a pointless POST.
     // startupDelaySeconds is a top-level number (0 is a valid value), so it is
     // checked for definedness rather than truthiness like the domain blocks.
-    const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
+    const anyBlock = serverPatch.theme || serverPatch.panel
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined

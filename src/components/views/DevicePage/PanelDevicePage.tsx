@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
@@ -27,6 +27,9 @@ import {
   widgetPlaylistOf,
 } from '../../../panel/engine/widgetPlaylist';
 import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
+import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
+import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
+import { monitorGridCapacity, recordCanvasOf } from '../../../panel/engine/recordCanvas';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -40,7 +43,7 @@ import { panelSystemFontsAvailable } from '../../../panel/theme/panelFont';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
-import { fitLayoutToPages, fitLayoutToSinglePage, repaginatePanelLayout, type PaginateCapacity } from '../../../panel/engine/paginate';
+import { fitLayoutToPages, fitLayoutToSinglePage, fitLayoutToSinglePageHolding, repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { ensureSimulatedPanelRecord, getPanelGridSizingSettings, getSimulatedPanelRecordId } from '../../../lib/panelSimulation';
 import {
@@ -48,7 +51,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -146,32 +149,9 @@ function isLandscapeCanvas(canvas?: { width?: number | null; height?: number | n
   return !!canvas?.width && !!canvas.height && canvas.width > canvas.height;
 }
 
-// The runtime's monitor grid for a canvas in CSS px at the given device pixel ratio.
-function monitorGridCapacity(
-  canvas: { width: number; height: number },
-  dpr: number,
-  dpi: number,
-  paddingRatio: number,
-  shortSideSlots?: number,
-): PaginateCapacity {
-  const capacity = panelGridCapacityForCanvas(
-    Math.max(1, Math.round(canvas.width * dpr)),
-    Math.max(1, Math.round(canvas.height * dpr)),
-    {
-      surface: 'monitor',
-      dpi,
-      // The kiosk's readRuntimePanelGrid honors the dev sizing knob;
-      // omitting it here diverges the editor grid whenever it is set.
-      sizing: getPanelGridSizingSettings(),
-      shortSideSlots,
-      paddingRatio,
-    },
-  );
-  return { gridCols: capacity.columns, pageRows: capacity.rows };
-}
-
 const WIDGET_SIZE_LARGE: PanelWidgetSizeMode = 'large';
 const WIDGET_SIZE_SMALL: PanelWidgetSizeMode = 'small';
+const WIDGET_SIZE_XSMALL: PanelWidgetSizeMode = 'xsmall';
 
 interface PanelDevicePageProps {
   device: PanelDevice;
@@ -320,7 +300,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
-  const [panelAlwaysOnTop, setPanelAlwaysOnTop] = useState<boolean | undefined>(undefined);
   const [qSeriesBrightness, setQSeriesBrightness] = useState(100);
   const [qSeriesScreenOff, setQSeriesScreenOff] = useState(false);
   const [qSeriesSleepWithHost, setQSeriesSleepWithHost] = useState(true);
@@ -391,6 +370,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
   const [recordAlwaysOnTop, setRecordAlwaysOnTop] = useState(true);
+  const [recordWidgetsLocked, setRecordWidgetsLocked] = useState(false);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
@@ -439,7 +419,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // keeps its own input.
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
-  const pagesAllowed = surfaceAllowsPages(surface, deviceTouch);
+  const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
+  const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel, genericDisplay);
+  const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
   // Physical px = canvas x dpr. liveCanvas and a real record's previewSize are CSS px
   // (scaled by the record dpr), except the Q-series, whose WebView reports physical px;
@@ -458,19 +440,21 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const layoutSurfaceOf = useCallback((record: PanelDeviceRecord | null | undefined, touch: boolean | undefined) => {
     const caps = record?.capabilities;
     const family = caps?.family ?? device?.family;
-    const laidOut = panelLayoutSurface(glassSurface, family, record?.widgetSize);
+    const sizeOf = recordWidgetSizeOf(record, glassSurface);
+    const laidOut = panelLayoutSurface(glassSurface, family, sizeOf);
     // Same canvas the editor grid reads: the record's own, else the device entry's.
-    const canvas = caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight } : device?.previewSize;
-    const dpi = panelLayoutDpi(glassSurface, family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI)
+    const recordCanvas = recordCanvasOf(record);
+    const canvas = recordCanvas ? { width: recordCanvas.width, height: recordCanvas.height } : device?.previewSize;
+    const dpi = panelLayoutDpi(glassSurface, family, sizeOf, caps?.dpi, DEFAULT_SURFACE_DPI)
       ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
     const canvasDensitySlots = canvas
-      ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (caps?.cssWidth ? caps.dpr : device?.previewDpr) || 1, dpi)
+      ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (recordCanvas ? recordCanvas.dpr : device?.previewDpr) || 1, dpi)
       : undefined;
     return {
       surface: laidOut,
-      touch: laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
+      touch: record?.displayId ? true : laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
-        panelShortSideSlots(glassSurface, family, record?.widgetSize, canvasDensitySlots),
+        panelShortSideSlots(glassSurface, family, sizeOf, canvasDensitySlots),
         isLandscapeCanvas(canvas),
       ),
     };
@@ -494,18 +478,24 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
   // Rotation and the monitor-reserve guard exist only on hosts that
   // implement them (rotation: Windows, macOS; reserve: Windows).
-  const [hostCaps, setHostCaps] = useState<{ rotation: boolean; reserve: boolean } | null>(null);
+  const [hostCaps, setHostCaps] = useState<{ rotation: boolean; reserve: boolean; primary: boolean } | null>(null);
   useEffect(() => {
     if (!isMonitorPanel) return;
     let cancelled = false;
     fetchDisplayTopology().then(topo => {
       if (cancelled || !topo) return;
-      setHostCaps({ rotation: topo.rotationSupported, reserve: topo.reserveSupported });
+      setHostCaps({
+        rotation: topo.rotationSupported,
+        reserve: topo.reserveSupported,
+        primary: topo.displays.find(d => d.id === device?.displayId)?.isPrimary === true,
+      });
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [isMonitorPanel]);
+  }, [isMonitorPanel, device?.displayId]);
   const monitorRotation = isMonitorPanel && hostCaps?.rotation === true;
   const monitorReserve = isMonitorPanel && hostCaps?.reserve === true;
+  // The guards that keep windows or the mouse off a panel cannot apply to the display the desktop lives on.
+  const monitorGuards = monitorReserve && hostCaps?.primary !== true;
   // Only the curated Xeneon Edge family carries a physical orientation
   // sensor; other promoted monitors keep the manual-only rotation picker.
   const monitorAutoOrient = monitorRotation && recordFamily === 'xeneon-edge';
@@ -590,7 +580,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // the device can actually open.
   const previewLandscape = !!previewCanvas && previewCanvas.width > previewCanvas.height;
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported
-    || monitorRotation || monitorReserve
+    || monitorRotation || monitorReserve || isMonitorPanel
     // The Xeneon Edge's native settings replace DDC brightness for this
     // family, so it must not depend on ddcSupported/monitorRotation.
     || isXeneonEdgePanel
@@ -676,14 +666,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       if (tog) setScreenOn(!tog.toggle);
       const match = matchPanelRecord(devices?.devices, boundRecordId(), glassSurface, isSimulated);
       setEditingDeviceId(match?.id ?? null);
-      const cw = match?.capabilities?.cssWidth;
-      const ch = match?.capabilities?.cssHeight;
-      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
-      setLiveDpr(match?.capabilities?.dpr ?? null);
+      const canvas = recordCanvasOf(match);
+      setLiveCanvas(canvas ? { width: canvas.width, height: canvas.height } : null);
+      setLiveDpr(canvas?.dpr ?? null);
       setLiveDpi(match?.capabilities?.dpi ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
       setRecordAlwaysOnTop(match?.alwaysOnTop ?? true);
+      setRecordWidgetsLocked(resolveWidgetsLocked(match?.widgetsLocked, match?.layout?.pages.flatMap(p => p.widgets) ?? []));
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordFlip180(match?.flip180 ?? false);
@@ -699,16 +689,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
       setMatchedFamily(match?.capabilities?.family);
-      setRecordWidgetSize(match?.widgetSize ?? null);
+      setRecordWidgetSize(recordWidgetSizeOf(match, glassSurface) ?? null);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       setRecordTouch(match?.capabilities?.touch);
       const loaded = layoutSurfaceOf(match, match?.capabilities?.touch ?? device?.capabilities.touch);
       const savedLayout = match?.layout ?? defaultLayoutForSurface(loaded.surface);
-      setLayout(normalizePanelLayout(savedLayout, loaded.surface, loaded.touch, loaded.forcedGrid));
+      setLayout(normalizePanelLayout(savedLayout, loaded.surface, loaded.touch, loaded.forcedGrid, !!match?.displayId));
       if (prefs) {
         setAutoLaunch(prefs.panel?.autoLaunch ?? true);
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
-        setPanelAlwaysOnTop(prefs.panel?.alwaysOnTop);
       }
       setLoaded(true);
       // Non-Xeneon panels re-enable the hardware-reset button once these
@@ -842,10 +831,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const seq = writeSeqRef.current;
     fetchPanelDevice(editingDeviceId).then(record => {
       if (!record) return;
-      const cw = record.capabilities?.cssWidth;
-      const ch = record.capabilities?.cssHeight;
-      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
-      setLiveDpr(record.capabilities?.dpr ?? null);
+      const canvas = recordCanvasOf(record);
+      setLiveCanvas(canvas ? { width: canvas.width, height: canvas.height } : null);
+      setLiveDpr(canvas?.dpr ?? null);
       setLiveDpi(record.capabilities?.dpi ?? null);
       // A physical rotation (Xeneon Edge auto-orient) rewrites the record's
       // orientation and broadcasts here. Without this the page keeps its
@@ -866,11 +854,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // and persists against.
       if (writeSeqRef.current !== seq) return;
       // Widget size is written with the layout, so it goes stale the same way.
-      setRecordWidgetSize(record.widgetSize ?? null);
+      setRecordWidgetSize(recordWidgetSizeOf(record, glassSurface) ?? null);
       const synced = layoutSurfaceOf(record, record.capabilities?.touch ?? glassTouch);
-      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid));
+      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid, !!record.displayId));
     }).catch(() => {});
-  }, [editingDeviceId, glassTouch, layoutSurfaceOf]);
+  }, [editingDeviceId, glassSurface, glassTouch, layoutSurfaceOf]);
 
   // Every broadcast-driven read goes through this. A write of ours in flight
   // must defer rather than apply, or the echo reverts a controlled field
@@ -923,8 +911,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // fallback guess: the bytes stay un-conformed and every render path
     // re-fits them at its own capacity.
     const normalized = editorCapacityDerived
-      ? repaginatePanelLayout(normalizePanelLayout(next, surface, deviceTouch, forcedGrid), editorCapacity)
-      : normalizePanelLayout(next, surface, deviceTouch, forcedGrid);
+      ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel), editorCapacity)
+      : normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel);
     setLayout(normalized);
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
@@ -944,7 +932,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, simulatorId, surface, glassSurface, deviceTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, isMonitorPanel, editorCapacity, editorCapacityDerived, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -1019,8 +1007,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [previewPlaylist, setPreviewPlaylist] = useState<{ type: string | null; at: number }>({ type: null, at: 0 });
   const handlePlaylistShown = useCallback((type: string | null) => setPreviewPlaylist({ type, at: Date.now() }), []);
   const playingTypes = useMemo(
-    () => (playlistMode ? playingPlaylistTypes(layout, surface, deviceTouch) ?? [] : []),
-    [deviceTouch, layout, playlistMode, surface],
+    () => (playlistMode ? playingPlaylistTypes(layout, surface, registryTouch) ?? [] : []),
+    [registryTouch, layout, playlistMode, surface],
   );
   const stepPlaylist = useCallback((delta: 1 | -1) => {
     // A jump the preview has not reported yet is the newer position.
@@ -1143,10 +1131,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // same write; widgets the new size cannot show are named before they go.
   const planWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     if (!widgetSizeOptions) return { layout, removed: [] as PanelWidget[] };
-    const target = widgetSizeOptions.layoutSurface[mode];
-    const targetTouch = target === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
+    const target = widgetSizeOptions.layoutSurface[mode] ?? glassSurface;
+    const targetTouch = isMonitorPanel ? true : target === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
     const targetSlots = widgetSizeShortSideSlots(widgetSizeOptions, mode, densitySlots);
-    const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)));
+    const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)), isMonitorPanel);
     const kept = new Set(normalized.pages.flatMap(p => p.widgets.map(w => w.id)));
     const removed = layout.pages.flatMap(p => p.widgets).filter(w => !kept.has(w.id));
     // A forced grid can leave widgets without room: they move to new pages where the
@@ -1160,11 +1148,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
       targetSlots,
     );
-    const fit = surfaceAllowsPages(target, targetTouch)
+    if (genericDisplay) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
+    const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay)
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
+  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);
@@ -1327,7 +1316,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   }, [editingDeviceId, pushToast, t]);
 
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
-    { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
+    { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutDashboard size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
     { key: 'background', label: t('devices.y70.theme.background'), icon: <Wallpaper size={14} /> },
     ...(settingsAvailable
@@ -1524,7 +1513,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 key={configuringWidget.id}
                 widget={configuringWidget}
                 surface={surface}
-                deviceTouch={deviceTouch}
+                deviceTouch={registryTouch}
                 forcedGrid={forcedGrid}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
@@ -1565,6 +1554,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                   options={[
                                     { key: WIDGET_SIZE_LARGE, label: t('devices.panels.widgetSize.large'), disabled: !editingDeviceId },
                                     { key: WIDGET_SIZE_SMALL, label: t('devices.panels.widgetSize.small'), disabled: !editingDeviceId },
+                                    ...(widgetSizeOptions.layoutSurface.xsmall ? [{ key: WIDGET_SIZE_XSMALL, label: t('devices.panels.widgetSize.xsmall'), disabled: !editingDeviceId }] : []),
                                   ]}
                                 />
                               </SettingRow>
@@ -1576,7 +1566,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 onChange={on => updateLayout(setWidgetPlaylistEnabled(
                                   layout,
                                   on,
-                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
+                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch: registryTouch, displayBound: isMonitorPanel }).map(([type]) => type),
                                 ))}
                               />
                             )}
@@ -1590,7 +1580,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         )}
                         <PanelWidgetCatalog
                           surface={surface}
-                          deviceTouch={deviceTouch}
+                          deviceTouch={registryTouch}
+                          displayBound={isMonitorPanel}
                           forcedGrid={forcedGrid}
                           glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}
@@ -1714,19 +1705,27 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordAutoOrient(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { autoOrient: next }).catch(() => {});
                       }}
-                      alwaysOnTop={monitorReserve ? recordAlwaysOnTop : null}
+                      alwaysOnTop={genericDisplay ? recordAlwaysOnTop && theme.backdrop === 'desktop' : null}
+                      alwaysOnTopDisabled={genericDisplay && theme.backdrop !== 'desktop'}
                       onAlwaysOnTopToggle={() => {
+                        if (theme.backdrop !== 'desktop') return;
                         const next = !recordAlwaysOnTop;
                         setRecordAlwaysOnTop(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { alwaysOnTop: next }).catch(() => {});
                       }}
-                      reserveMonitor={monitorReserve ? recordReserve : null}
+                      widgetsLocked={genericDisplay ? recordWidgetsLocked : null}
+                      onWidgetsLockedToggle={() => {
+                        const next = !recordWidgetsLocked;
+                        setRecordWidgetsLocked(next);
+                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { widgetsLocked: next }).catch(() => {});
+                      }}
+                      reserveMonitor={monitorGuards ? recordReserve : null}
                       onReserveMonitorToggle={() => {
                         const next = !recordReserve;
                         setRecordReserve(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { reserveMonitor: next }).catch(() => {});
                       }}
-                      keepCursorOff={monitorReserve ? recordKeepCursorOff : null}
+                      keepCursorOff={monitorGuards ? recordKeepCursorOff : null}
                       onKeepCursorOffToggle={() => {
                         const next = !recordKeepCursorOff;
                         setRecordKeepCursorOff(next);
@@ -1793,14 +1792,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (!supportsAutoLaunch) return;
                         savePreferences({ panel: { reserveMonitor: next } }).catch(() => {});
                       }}
-                      alwaysOnTop={panelAlwaysOnTop}
-                      onAlwaysOnTopToggle={() => {
-                        if (panelAlwaysOnTop === undefined) return;
-                        const next = !panelAlwaysOnTop;
-                        setPanelAlwaysOnTop(next);
-                        if (!supportsAutoLaunch) return;
-                        savePreferences({ panel: { alwaysOnTop: next } }).catch(() => {});
-                      }}
+                      alwaysOnTop={undefined}
+                      onAlwaysOnTopToggle={() => {}}
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
                       usbDisconnected={usbDisconnected}
@@ -1845,6 +1838,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         }}
                         alwaysOnTop={null}
                         onAlwaysOnTopToggle={() => {}}
+                        widgetsLocked={null}
+                        onWidgetsLockedToggle={() => {}}
                         reserveMonitor={null}
                         onReserveMonitorToggle={() => {}}
                         keepCursorOff={null}
@@ -1896,6 +1891,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       onAutoOrientToggle={() => {}}
                       alwaysOnTop={null}
                       onAlwaysOnTopToggle={() => {}}
+                      widgetsLocked={null}
+                      onWidgetsLockedToggle={() => {}}
                       reserveMonitor={null}
                       onReserveMonitorToggle={() => {}}
                       keepCursorOff={null}
@@ -2169,6 +2166,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 shortSideSlots={shortSideSlots}
                 displayBound={!!device?.displayId}
+                genericDisplay={genericDisplay}
                 onPlaylistShown={handlePlaylistShown}
               />
               {isHydroShift2CurvePanel && curveScreen.playingClip && (
@@ -2552,11 +2550,16 @@ interface MonitorSettingsPanelProps {
   autoOrient: boolean | null;
   onAutoOrientToggle: () => void;
   alwaysOnTop: boolean | null;
+  // A generic display allows it only with the see-through background: the row shows off and disabled.
+  alwaysOnTopDisabled?: boolean;
   onAlwaysOnTopToggle: () => void;
+  widgetsLocked: boolean | null;
+  onWidgetsLockedToggle: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
   keepCursorOff: boolean | null;
   onKeepCursorOffToggle: () => void;
+  // Short-axis cell count of the grid; null hides the slider.
   // Corsair Xeneon Edge native settings (brightness/backlight/contrast/RGB).
   // Null hides the whole block: not this panel family, or the ~1s HID read
   // hasn't resolved yet.
@@ -2579,7 +2582,7 @@ function MonitorSettingsPanel({
   sleepWithHost, onSleepWithHostToggle,
   sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
-  alwaysOnTop, onAlwaysOnTopToggle,
+  alwaysOnTop, alwaysOnTopDisabled, onAlwaysOnTopToggle, widgetsLocked, onWidgetsLockedToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
@@ -2684,7 +2687,15 @@ function MonitorSettingsPanel({
           label={t('devices.y70.panelAlwaysOnTop')}
           description={t('devices.y70.panelAlwaysOnTopHint')}
           checked={alwaysOnTop}
+          disabled={alwaysOnTopDisabled}
           onChange={onAlwaysOnTopToggle}
+        />
+      )}
+      {widgetsLocked !== null && (
+        <SettingToggle
+          label={t('panel.widget.menu.lockWidgets')}
+          checked={widgetsLocked}
+          onChange={onWidgetsLockedToggle}
         />
       )}
       {reserveMonitor !== null && (

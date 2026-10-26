@@ -294,3 +294,33 @@ describe('previewDrag', () => {
     expectNoOverlap(result!);
   });
 });
+
+describe('previewDrag on a display panel (nearest free cell)', () => {
+  const BIG = { gridCols: 16, pageRows: 10 };
+
+  it('sends a displaced widget to the free cell nearest its old one, not the top', () => {
+    const l = layout([[widget('drag', '2x2', 0, 0), widget('stay', '2x2', 7, 5)]]);
+    const classic = previewDrag(l, 'drag', 'p1', 7, 5, BIG)!;
+    expect(findWidget(classic, 'stay')!.widget.row).toBe(0);
+
+    const result = previewDrag(l, 'drag', 'p1', 7, 5, BIG, true)!;
+    expect(findWidget(result, 'drag')!.widget).toMatchObject({ col: 7, row: 5 });
+    const stay = findWidget(result, 'stay')!.widget;
+    expect(Math.hypot(stay.col - 7, stay.row - 5)).toBeLessThanOrEqual(2);
+    expect(stay.row).toBeGreaterThan(0);
+    expectNoOverlap(result);
+  });
+
+  it('breaks distance ties in reading order and keeps every widget', () => {
+    const l = layout([[widget('a', '2x2', 0, 0), widget('b', '2x2', 4, 4), widget('c', '4x2', 10, 8)]]);
+    const result = previewDrag(l, 'a', 'p1', 4, 4, BIG, true)!;
+    expect(result.pages[0].widgets).toHaveLength(3);
+    expect(findWidget(result, 'c')!.widget).toMatchObject({ col: 10, row: 8 });
+    expectNoOverlap(result);
+  });
+
+  it('refuses the drop when the displaced widget has nowhere to go', () => {
+    const l = layout([[widget('b', '2x2', 0, 0)], [widget('a', '4x2', 0, 0)]]);
+    expect(previewDrag(l, 'a', 'p1', 0, 0, { gridCols: 4, pageRows: 2 }, true)).toBeNull();
+  });
+});

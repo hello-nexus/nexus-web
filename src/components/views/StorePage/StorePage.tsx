@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Tag,
+  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutDashboard, Ruler, ShieldCheck, Sparkles, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
@@ -301,7 +301,7 @@ function useHighlights(latest: StoreVersion): Highlight[] {
   const out: Highlight[] = [
     {
       key: 'widget',
-      icon: <LayoutGrid size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      icon: <LayoutDashboard size={HIGHLIGHT_ICON} aria-hidden={true} />,
       label: t('store.spec.widget'),
       value: latest.hasWidget ? t('store.value.hasFeature') : t('store.value.noFeature'),
     },
@@ -690,7 +690,7 @@ export function StorePage({ tab, onTabChange, accounts, devices = NO_DEVICES, on
           className={styles.sectionTabs}
           ariaLabel={t('apps.tabs.store')}
           tabs={[
-            { key: APPS_TAB, label: t('store.section.apps'), icon: <LayoutGrid size={14} /> },
+            { key: APPS_TAB, label: t('store.section.apps'), icon: <LayoutDashboard size={14} /> },
             { key: EFFECTS_ROUTE, label: t('store.effects.tab'), icon: <AnimationIcon size={14} /> },
           ]}
           activeKey={effectsPath === null ? APPS_TAB : EFFECTS_ROUTE}

@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { Boxes } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import styles from './AppIconTile.module.scss';
 
 interface AppIconTileProps {
@@ -27,7 +27,7 @@ export function AppIconTile({ src, size, className }: AppIconTileProps) {
     >
       {icon
         ? <img src={icon} alt="" className={styles.image} onError={() => setFailed(icon)} />
-        : <Boxes className={styles.fallback} aria-hidden={true} />}
+        : <LayoutDashboard className={styles.fallback} aria-hidden={true} />}
     </span>
   );
 }

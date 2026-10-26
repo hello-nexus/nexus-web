@@ -167,7 +167,7 @@ export interface AppMetadata {
   panelOnly?: boolean;
   // Whether the widget participates in slot selection during editing: the live
   // tile renders selectable cells and the edit sheet edits the selected slot
-  // (monitoring, deck). When true, PanelApp/WidgetEditSheet/PanelEditorSheet
+  // (monitoring, deck). When true, PanelApp/PanelEditorSheet
   // pass selectedSlot/onSelectedSlotChange through. Defaults to false.
   usesSlotSelection?: boolean;
   // Initial config a freshly-added widget is seeded with (e.g. the deck's

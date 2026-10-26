@@ -20,8 +20,8 @@ vi.mock('../hooks/useMultiplexSocket', async importOriginal => ({
   ...await importOriginal<typeof import('../hooks/useMultiplexSocket')>(),
   useMultiplex: () => null,
   useTopic: () => null,
-  useTopicCallback: (topic: string, _enabled: boolean, handler: (raw: unknown) => void) => {
-    topicHandlers.set(topic, handler);
+  useTopicCallback: (topic: string, enabled: boolean, handler: (raw: unknown) => void) => {
+    if (enabled) topicHandlers.set(topic, handler);
   },
 }));
 

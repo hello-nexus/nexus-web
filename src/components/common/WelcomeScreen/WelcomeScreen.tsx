@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, Lightbulb, Fan, LayoutGrid, Smartphone, Heart, type LucideIcon } from 'lucide-react';
+import { Activity, Lightbulb, Fan, LayoutDashboard, Smartphone, Heart, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
@@ -35,7 +35,7 @@ const CAPABILITIES: readonly { Icon: LucideIcon; key: string }[] = [
   { Icon: Activity, key: 'welcome.capabilities.monitoring' },
   { Icon: Lightbulb, key: 'welcome.capabilities.lighting' },
   { Icon: Fan, key: 'welcome.capabilities.cooling' },
-  { Icon: LayoutGrid, key: 'welcome.capabilities.widgets' },
+  { Icon: LayoutDashboard, key: 'welcome.capabilities.widgets' },
   { Icon: Smartphone, key: 'welcome.capabilities.remote' },
 ];
 

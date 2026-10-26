@@ -21,6 +21,8 @@ export interface BadgeProps {
   /** Renders the label in caps, for badges that read as a label on a heading
    *  rather than as a value. */
   uppercase?: boolean;
+  /** Solid fill in the badge color with the contrast-paired text, for a badge that must stand out. */
+  filled?: boolean;
   /** 'small' sets the label one step up from the default caption size. */
   size?: 'caption' | 'small';
   /** Hover explanation; also the badge's accessible name, since a tooltip is pointer-only. */
@@ -28,10 +30,10 @@ export interface BadgeProps {
   className?: string;
 }
 
-export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact, uppercase, size = 'caption', tooltip, className }: BadgeProps) {
+export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact, uppercase, filled, size = 'caption', tooltip, className }: BadgeProps) {
   const badge = (
     <span
-      className={classNames(styles.badge, compact && styles.compact, uppercase && styles.uppercase, size === 'small' && styles.small, !tooltip && className)}
+      className={classNames(styles.badge, compact && styles.compact, uppercase && styles.uppercase, filled && styles.filled, size === 'small' && styles.small, !tooltip && className)}
       style={{ '--badge-color': color, ...(minWidth ? { '--badge-min-width': minWidth } : {}) } as CSSProperties}
     >
       {iconPosition === 'start' && icon}

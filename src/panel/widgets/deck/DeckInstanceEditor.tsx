@@ -11,7 +11,8 @@ import { ElgatoImportModal } from '../../../components/views/DevicePage/ElgatoIm
 import { StarterPresetsModal } from '../../../components/views/DevicePage/StarterPresetsModal';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckInstanceMode } from '../../../api/deck';
-import type { PanelSurface } from '../../types';
+import { hostedDisplayKeyboard, type PanelSurface } from '../../types';
+import { isLocalPanelClient } from '../../background/panelAudio';
 import { SettingsBlock } from '../../../components/common/SettingsSection/SettingsSection';
 import styles from './DeckInstanceEditor.module.scss';
 
@@ -89,7 +90,7 @@ export function DeckInstanceEditor({
   // offered and silently rejected. `desktopEditor` covers the desktop
   // dashboard's own simulated-panel preview, which is a real desktop request
   // despite a non-desktop `surface`.
-  const desktopActions = !surface || surface === 'desktop' || !!desktopEditor;
+  const desktopActions = !surface || surface === 'desktop' || !!desktopEditor || (hostedDisplayKeyboard(surface) && isLocalPanelClient());
 
   // Without a host override, a switched-to preset can have fewer pages/slots
   // than the one it replaced, so page/selectedSlot reset here too - otherwise
