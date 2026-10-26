@@ -13,31 +13,35 @@ interface Props {
   /** The stored cap in Hz; null = Off. */
   value: number | null;
   onFail: () => void;
-  /** Called after the newest save succeeds, so the parent refetches the device list. */
+  /** Called once each time the save queue drains after a success, so the parent refetches the device list; also after a request with an unknown outcome. */
   onSaved?: () => void;
 }
 
-/** Per-device frame-rate cap. Applies on change; reverts when the save fails. */
+/** Per-device frame-rate cap. Applies on change; reverts when the save fails. Mount one per card (key by id). */
 export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
   const { t } = useTranslation();
   const [current, setCurrent] = useState<number | null>(value);
-  // Newest request wins: a response from an older request, or one that started
-  // on another card, must neither revert nor confirm anything.
+  // Only the newest request reverts the display, to the last confirmed value. An older
+  // success records the confirmed value only if it is newer than the last confirmation.
   const seq = useRef(0);
-  useEffect(() => { seq.current += 1; }, [id]);
-  // Requests still in flight for this card. While any is, a value arriving
-  // from the parent (an older save's refetch) must not overwrite a newer pick.
+  // Requests in flight. While any is, a value arriving from the parent (an older
+  // save's refetch) must not overwrite a newer pick.
   const pending = useRef(new Set<number>());
-  const lastId = useRef(id);
+  const confirmed = useRef<number | null>(value);
+  const confirmedSeq = useRef(0);
+  const shown = useRef(value);
+  const saved = useRef(false);
+  const mounted = useRef(true);
   useEffect(() => {
-    if (lastId.current !== id) {
-      lastId.current = id;
-      pending.current.clear();
-    } else if (pending.current.size > 0) {
-      return;
-    }
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  useEffect(() => {
+    if (pending.current.size > 0) return;
+    confirmed.current = value;
+    shown.current = value;
     setCurrent(value);
-  }, [value, id]);
+  }, [value]);
 
   const options: SelectOption[] = [
     { value: OFF, label: t('lighting.ledMap.rateCapOff') },
@@ -48,24 +52,47 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
 
   const handleChange = (v: string) => {
     const next = v === OFF ? null : Number(v);
-    const prev = current;
     const mine = ++seq.current;
     pending.current.add(mine);
+    shown.current = next;
     setCurrent(next);
+    const settle = () => {
+      pending.current.delete(mine);
+      if (pending.current.size > 0) return;
+      if (mounted.current && shown.current !== confirmed.current) {
+        shown.current = confirmed.current;
+        setCurrent(confirmed.current);
+      }
+      if (saved.current) {
+        saved.current = false;
+        onSaved?.();
+      }
+    };
     const fail = () => {
-      if (mine !== seq.current) return;
-      setCurrent(prev);
+      if (mine !== seq.current || !mounted.current) return;
+      shown.current = confirmed.current;
+      setCurrent(confirmed.current);
       onFail();
     };
     setLightingMaxRate(id, next)
       .then(r => {
-        pending.current.delete(mine);
-        if (!r || r.error) fail();
-        else if (mine === seq.current) onSaved?.();
+        if (!r) {
+          saved.current = true;
+          fail();
+        } else if (r.error) fail();
+        else {
+          saved.current = true;
+          if (mine > confirmedSeq.current) {
+            confirmed.current = next;
+            confirmedSeq.current = mine;
+          }
+        }
+        settle();
       })
       .catch(() => {
-        pending.current.delete(mine);
+        saved.current = true;
         fail();
+        settle();
       });
   };
 

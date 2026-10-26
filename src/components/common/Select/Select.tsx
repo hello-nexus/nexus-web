@@ -513,6 +513,7 @@ export function Select({
         <div
           ref={menuRef}
           className={styles.menu}
+          data-select-menu=""
           style={{
             position: 'fixed',
             top: coords?.top ?? 0,
