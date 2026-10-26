@@ -4,6 +4,8 @@
  *
  *   FLOW_GL=1 npx vitest run src/lib/cooling/flow/glParity.test.ts
  *
+ * FLOW_GL_FRAMES=<n> shortens the particle run on a slow software renderer.
+ *
  * Needs a Chromium binary: playwright's own (`npx playwright install chromium`), or CHROME=<path to chrome-headless-shell or chrome>.
  * Serves glParity.harness.html through a throwaway vite server, so it needs no running dev server and touches no ports but a random one.
  */
@@ -25,7 +27,7 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
     const browser = await chromium.launch({ executablePath, args: GL_ARGS });
     try {
       const page = await browser.newPage();
-      await page.goto(`http://localhost:${port}/src/lib/cooling/flow/glParity.harness.html`, { waitUntil: 'commit' });
+      await page.goto(`http://localhost:${port}/src/lib/cooling/flow/glParity.harness.html${process.env.FLOW_GL_FRAMES ? `?frames=${process.env.FLOW_GL_FRAMES}` : ''}`, { waitUntil: 'commit' });
       await page.waitForFunction(() => document.title === 'done', null, { timeout: 460000 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const r: Record<string, any> = await page.evaluate(() => (window as unknown as { __flowGl: Record<string, unknown> }).__flowGl);
@@ -35,6 +37,8 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
       expect(r.trail).toEqual([]);
       expect(r.glError).toBe(0);
       if (r.float32) expect(r.velocity.maxDiff).toBeLessThan(1e-3);
+      // Streak tail endpoints (head minus direction times length) and lengths agree with streak.ts to float precision.
+      if (r.float32) { expect(r.streak.n).toBe(256); expect(r.streak.maxDiff).toBeLessThan(1e-3); }
       expect(r.velocity.maxCpu).toBeGreaterThan(0.1);
       expect(Number.isFinite(r.measure.u)).toBe(true);
       expect(r.measure.u).toBeGreaterThan(0.1);

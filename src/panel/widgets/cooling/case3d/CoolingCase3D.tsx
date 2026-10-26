@@ -126,7 +126,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
 
-  // Live speed of each drawn fan: the bound channel's tach (or simulated rpm) over the fan's top speed. A GPU or AIO fan that is unlinked reads stopped; any other unbound fan stays at its rated curve.
+  // Live speed of each drawn fan: the bound channel's tach (or simulated rpm) over the fan's top speed. A fan with no device linked, or an explicit none, reads stopped like a 0 rpm fan.
   const speeds = useMemo(() => slotSpeeds(caseLayout?.fanSlots ?? [], bindings, channels), [caseLayout, bindings, channels]);
 
   const model = useMemo(() => (caseLayout ? lumpedModel(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, directions, speeds]);
