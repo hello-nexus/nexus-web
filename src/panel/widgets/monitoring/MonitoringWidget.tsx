@@ -19,7 +19,7 @@ import type { GaugeDesignKey, GaugeProps } from './gauges';
 import { DEFAULT_SLOTS, defaultSlotDesign, heroSpecForSize, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, smartStorageSensors } from './sensorCategories';
+import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorCaptionName, smartStorageSensors } from './sensorCategories';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
@@ -319,7 +319,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   // Auto / hide / custom caption; the stored custom text survives sensor
   // changes and mode switches. The a11y name stays meaningful even when hidden.
-  const autoLabel = labelForDevice(device, sensor?.name ?? effectiveSensorName);
+  const autoLabel = labelForDevice(device, sensorCaptionName(device, sensors, sensor) ?? effectiveSensorName);
   const label = displayLabel(labelMode, labelOverride, autoLabel);
   const resolvedLabel = labelMode === 'custom' ? (labelOverride?.trim() || autoLabel) : autoLabel;
   // Shared key so the tile + immersive instance for the same sensor share one
