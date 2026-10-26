@@ -1,8 +1,10 @@
-import { Color, Group, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
+import { Color, DataTexture, FloatType, Group, RGBAFormat, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { CpuFlow } from './cpuSolver';
 import { caseWithGpuAndShroud, defaultDir, fronts, inputFor, rear } from './flowFixtures';
 import { FlowLayer } from './flowLayer';
-import { GlFlow, floatSupport } from './glFlow';
+import { GlFlow, PassRunner, floatSupport, pass, target } from './glFlow';
+import { STREAK_PARITY } from './shaders';
+import { stepDisplacement, streakOf } from './streak';
 import { buildFlowScene } from './gridScene';
 import { EMITTER_STRIDE } from './flowParams';
 
@@ -53,6 +55,41 @@ async function main() {
   let maxCpu = 0;
   for (let i = 0; i < cpu.u.length; i++) { maxDiff = Math.max(maxDiff, Math.abs(g[i] - cpu.u[i])); maxCpu = Math.max(maxCpu, Math.abs(cpu.u[i])); }
   out.velocity = { maxDiff, maxCpu };
+  // Streak geometry: the GLSL direction and length against streak.ts for random steps, stalls, respawns and absent particles.
+  if (kind === 1015) {
+    const n = 256;
+    const prev = new Float32Array(n * 4);
+    const cur = new Float32Array(n * 4);
+    let seed = 7;
+    const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    for (let i = 0; i < n; i++) {
+      for (let k = 0; k < 3; k++) { prev[i * 4 + k] = rnd() * 40; cur[i * 4 + k] = prev[i * 4 + k] + (i % 8 === 0 ? 0 : (rnd() - 0.5) * (i % 5 === 0 ? 0.001 : i % 3 === 0 ? 6 : 1.2)); }
+      prev[i * 4 + 3] = 10; cur[i * 4 + 3] = i % 11 === 0 ? 0 : 11;
+      if (i % 13 === 0) prev[i * 4] = -1e6;
+    }
+    const tex = (d: Float32Array) => { const t = new DataTexture(d, n, 1, RGBAFormat, FloatType); t.needsUpdate = true; return t; };
+    const t0 = tex(prev);
+    const t1 = tex(cur);
+    const cellMm = 4.5;
+    const m = pass(STREAK_PARITY, { T0: { value: t0 }, T1: { value: t1 }, uCellMm: { value: cellMm } });
+    const rt = target(n, 1, kind);
+    const runner = new PassRunner(renderer);
+    runner.run(m, rt);
+    const got = new Float32Array(n * 4);
+    renderer.readRenderTargetPixels(rt, 0, 0, n, 1, got);
+    let maxDiff = 0;
+    for (let i = 0; i < n; i++) {
+      const d = stepDisplacement(prev.subarray(i * 4, i * 4 + 3), cur.subarray(i * 4, i * 4 + 3), prev[i * 4 + 3], cur[i * 4 + 3], cellMm);
+      const want = streakOf(d);
+      const wantTail = [want.dir[0] * want.length, want.dir[1] * want.length, want.dir[2] * want.length];
+      const gotTail = [got[i * 4] * got[i * 4 + 3], got[i * 4 + 1] * got[i * 4 + 3], got[i * 4 + 2] * got[i * 4 + 3]];
+      for (let k = 0; k < 3; k++) maxDiff = Math.max(maxDiff, Math.abs(wantTail[k] - gotTail[k]));
+      maxDiff = Math.max(maxDiff, Math.abs(want.length - got[i * 4 + 3]));
+    }
+    out.streak = { n, maxDiff };
+    t0.dispose(); t1.dispose(); m.dispose(); rt.dispose(); runner.dispose();
+    err('streak');
+  }
   gl.beginMeasure();
   let measured = gl.pollMeasure();
   while (!measured) { await new Promise(r => requestAnimationFrame(r)); measured = gl.pollMeasure(); }

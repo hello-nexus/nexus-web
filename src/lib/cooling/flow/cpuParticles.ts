@@ -1,6 +1,7 @@
 import { AMBIENT_C, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
 import { sampleSpawn } from './gridScene';
+import { stepDisplacement, streakEnds, type Vec3 } from './streak';
 import { NO_TEMPS, heatStep, sourceRises, type ComponentTemps } from './heatModel';
 
 /** A particle's lifetime in steps from a uniform sample. */
@@ -10,6 +11,9 @@ export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTE
 export class CpuParticles {
   readonly pos: Float32Array;
   readonly age: Float32Array;
+  /** Position and age before the latest step, for the streak. */
+  private readonly prevPos: Float32Array;
+  private readonly prevAge: Float32Array;
   /** Degrees above ambient each particle has picked up. */
   readonly heat: Float32Array;
   private rises = sourceRises(NO_TEMPS);
@@ -26,6 +30,8 @@ export class CpuParticles {
     this.count = count;
     this.pos = new Float32Array(count * 3);
     this.age = new Float32Array(count);
+    this.prevPos = new Float32Array(count * 3);
+    this.prevAge = new Float32Array(count);
     this.heat = new Float32Array(count);
     this.life = new Float32Array(count);
     this.seed = seed;
@@ -86,6 +92,8 @@ export class CpuParticles {
   step(onMove?: (i: number, from: number, to: number) => void, speed: number = PARTICLE_SPEED_SCALE): void {
     const { solid, open, heat } = this.flow.scene;
     const v = [0, 0, 0];
+    this.prevPos.set(this.pos);
+    this.prevAge.set(this.age);
     for (let i = 0; i < this.count; i++) {
       const o = i * 3;
       if (this.pos[o] < -1e5) { this.respawn(i); continue; }
@@ -121,5 +129,12 @@ export class CpuParticles {
       if (cell >= 0) this.heat[i] = heatStep(this.heat[i], this.rises[heat[cell]], speed);
       if (open[cell] || this.age[i] > this.life[i] || !this.inCase(x, y, z)) this.respawn(i);
     }
+  }
+
+  /** Streak ends of particle i in mm, in cell-grid space (origin at the grid corner), the same geometry the vertex shader draws. */
+  streak(i: number, cellMm: number): { head: Vec3; tail: Vec3 } {
+    const o = i * 3;
+    const d = stepDisplacement(this.prevPos.subarray(o, o + 3), this.pos.subarray(o, o + 3), this.prevAge[i], this.age[i], cellMm);
+    return streakEnds([(this.pos[o] + 0.5) * cellMm, (this.pos[o + 1] + 0.5) * cellMm, (this.pos[o + 2] + 0.5) * cellMm], d);
   }
 }

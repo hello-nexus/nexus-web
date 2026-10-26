@@ -1,4 +1,4 @@
-import { SPAWN_TRIES } from './flowParams';
+import { SPAWN_TRIES, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
 
 /** GLSL for the grid solver and particles: a straight port of `cpuSolver.ts` and `cpuParticles.ts`. The 3D grid is packed into one 2D float texture, `TX` slices per row. */
 
@@ -228,36 +228,85 @@ void main() {
   gl_FragColor = vec4(h, 0.0, 0.0, 0.0);
 }`;
 
-export const POINT_VERTEX = LIFE + /* glsl */ `
-uniform sampler2D PA; uniform sampler2D PB;
+const glFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
+
+/** Streak geometry shared by the vertex shader and the parity pass; mirrors `stepDisplacement` and `streakOf` in streak.ts. */
+export const STREAK_GLSL = /* glsl */ `
+#define STREAK_STEPS ${glFloat(STREAK_STEPS)}
+#define STREAK_MIN_MM ${glFloat(STREAK_MIN_MM)}
+#define STREAK_MAX_MM ${glFloat(STREAK_MAX_MM)}
+#define STREAK_STALL_MM ${glFloat(STREAK_STALL_MM)}
+// One step's displacement in mm; a respawned (age did not grow) or absent particle has not moved.
+vec3 stepDisplacement(vec4 prev, vec4 cur, float cellMm) {
+  if (prev.x < -1.0e5 || cur.x < -1.0e5 || prev.w >= cur.w) return vec3(0.0);
+  return (cur.xyz - prev.xyz) * cellMm;
+}
+// xyz unit direction, w length in mm.
+vec4 streakOf(vec3 d) {
+  float m = length(d);
+  vec3 dir = m > STREAK_STALL_MM ? d / m : vec3(1.0, 0.0, 0.0);
+  return vec4(dir, clamp(m * STREAK_STEPS, STREAK_MIN_MM, STREAK_MAX_MM));
+}
+`;
+
+// A particle is a camera-facing quad from its head back along its last step. Per particle 4 vertices: corner.x is 0 at the tail and 1 at the head, corner.y the side.
+export const STREAK_VERTEX = LIFE + STREAK_GLSL + /* glsl */ `
+uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
-uniform float uSize; uniform float uScale; uniform float uMinPx; uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha;
+uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
+uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha;
 uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot; uniform float uHeatSpan;
-in vec2 ref;
-out vec3 vColor; out float vAlpha;
+in vec2 ref; in vec2 corner;
+out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
 void main() {
   ivec2 r = ivec2(ref);
   vec4 s = texelFetch(PA, r, 0);
+  vec4 p = texelFetch(PP, r, 0);
   float h = clamp(texelFetch(PB, r, 0).r / uHeatSpan, 0.0, 1.0);
   float life = lifeOf(vec2(r) + 0.5, uMaxAge, uLifeJitter);
-  vec3 world = (s.xyz + 0.5) * uCell - uOrigin;
-  vec3 over = max(max(-world, world - uCaseExtent), 0.0);
+  vec3 head = (s.xyz + 0.5) * uCell - uOrigin;
+  vec3 over = max(max(-head, head - uCaseExtent), 0.0);
   float outside = length(over);
   float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
   vColor = h < 0.5 ? mix(uCool, uWarm, h * 2.0) : mix(uWarm, uHot, (h - 0.5) * 2.0);
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha;
-  vec4 mv = modelViewMatrix * vec4(world, 1.0);
-  gl_Position = projectionMatrix * mv;
-  gl_PointSize = max(uMinPx, uSize * uScale / max(-mv.z, 1.0));
+  vec4 sl = streakOf(stepDisplacement(p, s, uCell));
+  vec3 tail = head - sl.xyz * sl.w;
+  vec4 ch = projectionMatrix * modelViewMatrix * vec4(head, 1.0);
+  vec4 ct = projectionMatrix * modelViewMatrix * vec4(tail, 1.0);
+  float wh = max(ch.w, 1.0e-4);
+  float wt = max(ct.w, 1.0e-4);
+  vec2 ph = ch.xy / wh * 0.5 * uViewport;
+  vec2 pt = ct.xy / wt * 0.5 * uViewport;
+  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wh);
+  vec2 axis = ph - pt;
+  float len = length(axis);
+  axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
+  vec2 side = vec2(-axis.y, axis.x);
+  // Caps extend each end by half the width, so a stalled streak is never shorter than it is wide.
+  bool isHead = corner.x > 0.5;
+  vec2 px = (isHead ? ph + axis * half_ : pt - axis * half_) + side * half_ * corner.y;
+  vec4 c = isHead ? ch : ct;
+  float cw = isHead ? wh : wt;
+  gl_Position = vec4(px / (0.5 * uViewport) * cw, c.z, c.w);
+  vAlong = corner.x;
+  vSide = corner.y;
 }`;
 
-export const POINT_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
-in vec3 vColor; in float vAlpha;
+export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
+in vec3 vColor; in float vAlpha; in float vAlong; in float vSide;
 void main() {
-  float r = length(gl_PointCoord - 0.5) * 2.0;
-  float a = vAlpha * smoothstep(1.0, 0.15, r);
+  float a = vAlpha * mix(0.1, 1.0, vAlong) * smoothstep(1.0, 0.25, abs(vSide));
   if (a < 0.003) discard;
   gl_FragColor = vec4(vColor * a, a);
+}`;
+
+// Parity pass: per texel a previous and a current particle state (cell xyz, age), out the streak of their step: xyz direction and w length in mm.
+export const STREAK_PARITY = FRAGMENT_OUT + STREAK_GLSL + /* glsl */ `
+uniform sampler2D T0; uniform sampler2D T1; uniform float uCellMm;
+void main() {
+  ivec2 f = ivec2(gl_FragCoord.xy);
+  gl_FragColor = streakOf(stepDisplacement(texelFetch(T0, f, 0), texelFetch(T1, f, 0), uCellMm));
 }`;
 
 // Packs the reduction result into RGBA8 so it can be read back through a PBO and fence: u in R,G and du/u in B,A, 16 bits each.
