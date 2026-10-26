@@ -1111,3 +1111,41 @@ describe('CoolingCase3D while Build resolves the layout out of sight', () => {
     expect(createCaseRenderer).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('CoolingCase3D renderer creation', () => {
+  const contextBlocked = () => new Error('A WebGL context could not be created. Reason: Web page caused context loss and was blocked');
+  const mountSettled = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    return render(ui());
+  };
+
+  it('retries once after a refused context and then runs the view', () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(createCaseRenderer).mockImplementationOnce(() => { throw contextBlocked(); });
+      mountSettled();
+      expect(vi.mocked(createCaseRenderer)).toHaveBeenCalledTimes(1);
+      act(() => { vi.advanceTimersByTime(1000); });
+      expect(vi.mocked(createCaseRenderer)).toHaveBeenCalledTimes(2);
+      expect(h.renderers).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('throws to the boundary when the retry is refused too', () => {
+    vi.useFakeTimers();
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      vi.mocked(createCaseRenderer).mockImplementation(() => { throw contextBlocked(); });
+      mountSettled();
+      expect(() => act(() => { vi.advanceTimersByTime(1000); })).toThrow('context loss');
+      expect(vi.mocked(createCaseRenderer)).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.mocked(createCaseRenderer).mockReset();
+      quiet.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+});

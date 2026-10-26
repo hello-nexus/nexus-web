@@ -81,6 +81,8 @@ const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
 
+const CONTEXT_RETRY_MS = 400;
+
 export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds, onSelectChannel, onClearSelection, flowMode: savedFlowMode, onFlowModeChange, collisionShapes: savedCollisions, onCollisionShapesChange, autoResolve }: CoolingCase3DProps) {
   const { t } = useTranslation();
   const { record, loaded } = usePcSetupRecord(true);
@@ -148,9 +150,18 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     setAnchor({ x, y });
   };
 
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!canvas) return undefined;
-    const next = createCaseRenderer(canvas, (key, x, y) => handlers.current.pick(key, x, y));
+    let next: CaseSceneRenderer;
+    try {
+      next = createCaseRenderer(canvas, (key, x, y) => handlers.current.pick(key, x, y));
+    } catch (error) {
+      if (attempt > 0) throw error;
+      // The browser refuses a context right after the hidden Build frame is torn down ("caused context loss and was blocked"); one retry once that settles.
+      const timer = setTimeout(() => setAttempt(1), CONTEXT_RETRY_MS);
+      return () => clearTimeout(timer);
+    }
     setRenderer(next);
     const observer = new ResizeObserver(() => next.resize());
     observer.observe(canvas);
@@ -160,7 +171,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       next.dispose();
       setRenderer(null);
     };
-  }, [canvas]);
+  }, [canvas, attempt]);
 
   // Flows that moved little keep their old values, so tach jitter never restarts the solve.
   const rawFlow = useMemo(() => {

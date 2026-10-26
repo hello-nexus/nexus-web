@@ -823,6 +823,7 @@ describe('BuildPage headless', () => {
   const helloOf = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
 
   it('sends the host\'s machine and key in hello, marked headless, and none of the page chrome flags', () => {
+    previewApi.devTools = true;
     h.specs = SAMPLE_SPECS;
     render(<BuildPage headless={headlessProp()} onOpenBenchmark={vi.fn()} />);
     const iframe = getIframe();
@@ -831,6 +832,17 @@ describe('BuildPage headless', () => {
     const hello = helloOf(spy)!;
     expect(hello).toMatchObject({ headless: true, layoutKey: 'case=hyte-y70-touch-infinite|cpu=AMD', machine, canSyncSetup: true });
     expect(hello).not.toHaveProperty('canSavePreview');
+    previewApi.devTools = false;
+  });
+
+  it('offers no setup sync in a distribution build, headless or not', () => {
+    previewApi.devTools = false;
+    h.specs = SAMPLE_SPECS;
+    render(<BuildPage headless={headlessProp()} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(helloOf(spy)!).not.toHaveProperty('canSyncSetup');
   });
 
   it('renders the frame out of sight, flagged headless in its URL, with no fallback page', () => {
