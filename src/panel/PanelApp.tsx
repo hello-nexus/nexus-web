@@ -1866,8 +1866,8 @@ export function PanelContent({
   // refs are read via the closure. The useMemo body never dereferences
   // `.current` - only the returned function does, at call time.
   const panelCollisionDetection = useMemo(
-    () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef, displayBound),
-    [activePageIndexRef, displayBound],
+    () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef),
+    [activePageIndexRef],
   );
 
   // Tick incremented when the over target changes. The highlight overlay

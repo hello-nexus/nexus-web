@@ -166,8 +166,6 @@ export function readCellMetrics(root: HTMLElement | null): { cellSize: number; r
 export function buildPanelCollisionDetection(
   gestureRef: { current: DragGestureState },
   activePageIndexRef: { current: number },
-  // Display panels drop on any whole cell; other surfaces snap multi-cell widgets to even cells.
-  fineSnap = false,
 ): CollisionDetection {
   return (args) => {
     const { droppableContainers, active, pointerCoordinates } = args;
@@ -201,9 +199,8 @@ export function buildPanelCollisionDetection(
     const stride = cellSize + gap;
     const rowStride = rowSize + gap;
     const rootStyle = window.getComputedStyle(root);
-    // Snap rule: 1x1 lands on every cell; multi-cell widgets land on 2-cell
-    // multiples (a 4x4 sits at col 0 or 2). Read the active's span off the
-    // source cell so the snap tracks the cursor.
+    // Snap rule: every widget lands on any cell, clamped to stay in the grid.
+    // Read the active's span off the source cell so the snap tracks the cursor.
     const activeColSpan = Math.max(1,
       Number.parseInt(sourceCell?.getAttribute('data-panel-cell-col-span') ?? '1', 10) || 1,
     );
@@ -229,9 +226,8 @@ export function buildPanelCollisionDetection(
     const pageStyle = window.getComputedStyle(pageEl);
     const padLeft = Number.parseFloat(pageStyle.paddingLeft || '0') || 0;
     const padTop = Number.parseFloat(pageStyle.paddingTop || '0') || 0;
-    // Center-based snap: round the top-left cell index to the nearest snap
-    // stride multiple. Math.round() puts the threshold at the half-stride
-    // boundary, so the widget jumps past half a stride into a new slot.
+    // Center-based snap: round the top-left cell index to the nearest cell,
+    // so the widget moves to a new slot once it is past half a cell.
     const localX = translated.left - pageRect.left - padLeft;
     const localY = translated.top - pageRect.top - padTop;
     const continuousCol = localX / stride;
@@ -242,7 +238,6 @@ export function buildPanelCollisionDetection(
       continuousRow,
       { cols: activeColSpan, rows: activeRowSpan },
       { cols: totalCols, rows: totalRows },
-      fineSnap,
     );
 
     const pageId = pageEl.dataset.panelPageId;
