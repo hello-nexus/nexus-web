@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
-import { LayoutDashboard, Star } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import type { TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
 import { displayNumberLabel, layoutMonitorRects } from './monitorMapLayout';
@@ -60,7 +60,6 @@ export function MonitorMap({ displays, selectedId, onSelect }: MonitorMapProps) 
               {displayNumberLabel(display, i)}
             </span>
             <span className={styles.badges}>
-              {display.isPrimary && <Star size={scaled(rect, 0.22, 16, 40)} className={styles.primaryBadge} aria-label="primary" />}
               {isPanel && <LayoutDashboard size={scaled(rect, 0.22, 16, 40)} className={styles.panelBadge} aria-label="panel" />}
             </span>
           </button>
