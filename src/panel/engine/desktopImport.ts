@@ -22,24 +22,31 @@ export interface ImportViewport {
 export interface ImportGrid {
   columns: number;
   rows: number;
-  // CSS px.
-  cellSize: number;
+  // CSS px. `colSize` is the rendered column width: the runtime stretches the columns over the full width, so it can exceed `rowSize`.
+  colSize: number;
   rowSize: number;
   gap: number;
   padding: number;
 }
+
+/** The grid as the runtime reports it (cellSize is its row height); the column width is solved from the viewport. */
+export type RuntimeGrid = Omit<ImportGrid, 'colSize'> & { cellSize: number };
 
 export interface DesktopImportPlan {
   layout: PanelLayout;
   // The density chosen for a fresh panel; undefined when merging into the current grid.
   gridSlots: number | undefined;
   grid: ImportGrid;
-  // Visible cell the legacy layout drew, and the relative error of the chosen grid's cell against it.
+  // Visible cell the legacy layout drew, and the worst relative error of the chosen grid's column width or row height against it.
   legacyCell: number;
   cellError: number;
 }
 
 interface Rect { col: number; row: number; colSpan: number; rowSpan: number }
+
+export function columnWidth(vp: ImportViewport, g: { columns: number; gap: number; padding: number }): number {
+  return Math.max(1, (vp.w - g.padding * 2 - g.gap * (g.columns - 1)) / g.columns);
+}
 
 function gridFor(vp: ImportViewport, slots: number, paddingRatio: number): ImportGrid {
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
@@ -48,22 +55,20 @@ function gridFor(vp: ImportViewport, slots: number, paddingRatio: number): Impor
     Math.max(1, Math.round(vp.h * dpr)),
     { surface: 'monitor', shortSideSlots: slots, paddingRatio },
   );
-  return {
-    columns: cap.columns,
-    rows: cap.rows,
-    cellSize: cap.cellSize / dpr,
-    rowSize: cap.rowSize / dpr,
-    gap: cap.gap / dpr,
-    padding: cap.padding / dpr,
-  };
+  const base = { columns: cap.columns, rows: cap.rows, rowSize: cap.rowSize / dpr, gap: cap.gap / dpr, padding: cap.padding / dpr };
+  return { ...base, colSize: columnWidth(vp, base) };
 }
 
-/** The even short-axis count whose cell best matches `legacyCell`; ties take the smaller count. */
+function cellMismatch(grid: ImportGrid, legacyCell: number): number {
+  return Math.max(Math.abs(grid.colSize - legacyCell), Math.abs(grid.rowSize - legacyCell)) / legacyCell;
+}
+
+/** The even short-axis count whose rendered column width and row height best match `legacyCell`; ties take the smaller count. */
 export function bestGridSlots(vp: ImportViewport, paddingRatio: number, legacyCell: number): { slots: number; grid: ImportGrid } {
   let best: { slots: number; grid: ImportGrid; err: number } | null = null;
   for (let n = GRID_SLOTS_MIN; n <= GRID_SLOTS_MAX; n += 2) {
     const grid = gridFor(vp, n, paddingRatio);
-    const err = Math.abs(grid.cellSize - legacyCell);
+    const err = cellMismatch(grid, legacyCell);
     if (!best || err < best.err - 1e-9) best = { slots: n, grid, err };
   }
   return { slots: best!.slots, grid: best!.grid };
@@ -113,7 +118,7 @@ export function planDesktopImport(
   vp: ImportViewport,
   paddingPercent: number,
   layout: PanelLayout,
-  currentGrid?: ImportGrid,
+  currentGrid?: RuntimeGrid,
   snapSize?: SizeSnapper,
 ): DesktopImportPlan {
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
@@ -126,14 +131,14 @@ export function planDesktopImport(
   let slots: number | undefined;
   let grid: ImportGrid;
   if (imp.merge && currentGrid) {
-    grid = currentGrid;
+    grid = { ...currentGrid, colSize: columnWidth(vp, currentGrid) };
   } else {
     const best = bestGridSlots(vp, paddingRatio, legacyCell);
     slots = best.slots;
     grid = best.grid;
   }
 
-  const colStride = grid.cellSize + grid.gap;
+  const colStride = grid.colSize + grid.gap;
   const rowStride = grid.rowSize + grid.gap;
   const pages: PanelPage[] = layout.pages.map(p => ({ ...p, widgets: [...p.widgets] }));
   const existing = new Set(pages.flatMap(p => p.widgets.map(w => w.id)));
@@ -172,7 +177,7 @@ export function planDesktopImport(
     gridSlots: slots,
     grid,
     legacyCell,
-    cellError: Math.abs(grid.cellSize - legacyCell) / legacyCell,
+    cellError: cellMismatch(grid, legacyCell),
   };
 }
 

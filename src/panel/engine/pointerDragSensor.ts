@@ -1,4 +1,4 @@
-import { PointerSensor, type PointerSensorOptions } from '@dnd-kit/core';
+import { PointerSensor, type PointerActivationConstraint, type PointerSensorOptions, type SensorProps } from '@dnd-kit/core';
 
 export type DragActivation = 'distance' | 'delay';
 
@@ -7,18 +7,15 @@ export function dragActivationFor(pointerType: string, mouseAsTouch: boolean): D
   return pointerType === 'mouse' && !mouseAsTouch ? 'distance' : 'delay';
 }
 
-export interface FilteredPointerOptions extends PointerSensorOptions {
-  accept?: (event: PointerEvent) => boolean;
+export interface AdaptivePointerOptions extends PointerSensorOptions {
+  // Resolved per press: the activation a drag needs depends on who is pressing.
+  constraintFor?: (event: PointerEvent) => PointerActivationConstraint;
 }
 
-// A press the sensor declines falls to the next registered one, so two instances split by `accept`.
-export class FilteredPointerSensor extends PointerSensor {
-  static activators = [{
-    eventName: 'onPointerDown' as const,
-    handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }, options: FilteredPointerOptions) => {
-      if (!event.isPrimary || event.button !== 0 || options.accept?.(event) === false) return false;
-      options.onActivation?.({ event });
-      return true;
-    },
-  }];
+// dnd-kit keeps one handler per event name, so two sensors cannot split by pointer type; one sensor picks its constraint per press.
+export class AdaptivePointerSensor extends PointerSensor {
+  constructor(props: SensorProps<AdaptivePointerOptions>) {
+    const { constraintFor, ...rest } = props.options ?? {};
+    super({ ...props, options: { ...rest, activationConstraint: constraintFor?.(props.event as PointerEvent) ?? rest.activationConstraint } });
+  }
 }

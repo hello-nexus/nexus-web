@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { patchPanelDevice, type DesktopImportDto } from '../../api/panel';
 import type { PanelLayout } from '../types';
 import { snapLegacySize } from './legacySize';
-import { hasPendingImport, importBase, planDesktopImport, type ImportGrid } from './desktopImport';
+import { hasPendingImport, importBase, planDesktopImport, type RuntimeGrid } from './desktopImport';
 
 // Waits between save attempts after a failed one; the last step is the final try.
 export const IMPORT_RETRY_MS = [2_000, 5_000, 15_000, 30_000] as const;
@@ -14,7 +14,7 @@ export function useDesktopImport({ enabled, deviceId, pending, layout, paddingPe
   pending: DesktopImportDto | null | undefined;
   layout: PanelLayout;
   paddingPercent: number;
-  grid: ImportGrid;
+  grid: RuntimeGrid;
 }): void {
   const busyRef = useRef(false);
   const attemptRef = useRef(0);

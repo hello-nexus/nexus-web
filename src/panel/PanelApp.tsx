@@ -49,7 +49,7 @@ import {
   tryResizeWidget,
 } from './engine/panelLayoutOps';
 import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
-import { FilteredPointerSensor, dragActivationFor } from './engine/pointerDragSensor';
+import { AdaptivePointerSensor, dragActivationFor } from './engine/pointerDragSensor';
 import { setAllWidgetsLocked, setWidgetLocked } from './engine/widgetLock';
 import { useDesktopImport } from './engine/useDesktopImport';
 import { useDisplayTargets } from './engine/useDisplayTargets';
@@ -1741,13 +1741,11 @@ export function PanelContent({
       : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
   );
   // A real mouse on the glass drags on distance; touch and a mouse standing in for touch hold first.
-  const mouseDragSensor = useSensor(FilteredPointerSensor, {
-    activationConstraint: { distance: DRAG_DISTANCE_PX },
-    accept: (e: PointerEvent) => dragActivationFor(e.pointerType, mouseAsTouch) === 'distance',
-  });
-  const holdDragSensor = useSensor(FilteredPointerSensor, {
-    activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 },
-    accept: (e: PointerEvent) => dragActivationFor(e.pointerType, mouseAsTouch) === 'delay',
+  const adaptiveSensor = useSensor(AdaptivePointerSensor, {
+    activationConstraint: undefined,
+    constraintFor: (e: PointerEvent) => (dragActivationFor(e.pointerType, mouseAsTouch) === 'distance'
+      ? { distance: DRAG_DISTANCE_PX }
+      : { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 }),
   });
   // The tile in resize mode is already selected, so on a hold-to-drag panel it drags on distance, like the desktop.
   const resizeTileSensor = useSensor(ResizeTilePointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } });
@@ -1755,8 +1753,7 @@ export function PanelContent({
   // the preview) registers no drag sensor, so a pointer press never lifts a cell.
   const sensors = useSensors(
     dragEditable && desktopActivation ? pointerSensor : null,
-    dragEditable && !desktopActivation ? mouseDragSensor : null,
-    dragEditable && !desktopActivation ? holdDragSensor : null,
+    dragEditable && !desktopActivation ? adaptiveSensor : null,
     dragEditable && freeformActive && !desktopActivation ? resizeTileSensor : null,
   );
 

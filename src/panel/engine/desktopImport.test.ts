@@ -23,7 +23,7 @@ describe('density', () => {
     it(`matches the legacy visible cell on ${f.name}`, () => {
       const plan = planDesktopImport(imp([widget('a', 0, 0)]), f.vp, PAD, emptyLayout());
       // Reported so a regression in the match is visible in the run output.
-      console.info(`[desktopImport] ${f.name}: slots ${plan.gridSlots}, cell ${plan.grid.cellSize.toFixed(2)} vs legacy ${plan.legacyCell.toFixed(2)}, error ${(plan.cellError * 100).toFixed(2)}%`);
+      console.info(`[desktopImport] ${f.name}: slots ${plan.gridSlots}, cell ${plan.grid.colSize.toFixed(2)} vs legacy ${plan.legacyCell.toFixed(2)}, error ${(plan.cellError * 100).toFixed(2)}%`);
       expect(plan.cellError).toBeLessThanOrEqual(f.maxError);
       expect(plan.gridSlots! % 2).toBe(0);
     });
@@ -31,7 +31,7 @@ describe('density', () => {
 
   it('matches the cell, not the stride', () => {
     const { grid } = bestGridSlots({ w: 2560, h: 1440, dpr: 1 }, panelWidgetPaddingRatio(PAD), 74);
-    expect(Math.abs(grid.cellSize - 74)).toBeLessThan(Math.abs(grid.cellSize - 86));
+    expect(Math.abs(grid.colSize - 74)).toBeLessThan(Math.abs(grid.colSize - 86));
   });
 
   it('breaks a tie toward the smaller count', () => {
@@ -57,7 +57,7 @@ describe('positions', () => {
     const plan = planDesktopImport(imp([widget('a', 0, 0, '1x1'), widget('b', 3.25, 2.5, '1x1')]), vp, PAD, emptyLayout());
     const [a, b] = plan.layout.pages[0].widgets;
     expect(a).toMatchObject({ col: 0, row: 0 });
-    const stride = plan.grid.cellSize + plan.grid.gap;
+    const stride = plan.grid.colSize + plan.grid.gap;
     const x = 3.25 * 86 + 6;
     expect(b.col).toBe(Math.round((x - plan.grid.padding) / stride));
   });
@@ -105,7 +105,7 @@ describe('merge and idempotence', () => {
     const layout = current.layout;
     const merged = planDesktopImport(imp([widget('n', 4, 4)], { merge: true }), vp, PAD, layout, { ...current.grid, columns: 8, rows: 6, cellSize: 200, rowSize: 200 });
     expect(merged.gridSlots).toBeUndefined();
-    expect(merged.grid.cellSize).toBe(200);
+    expect(merged.grid.rowSize).toBe(200);
     expect(merged.layout.pages[0].widgets.map(w => w.id).sort()).toEqual(['n', 'x']);
   });
 
