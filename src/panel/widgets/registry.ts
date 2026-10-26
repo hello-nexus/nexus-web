@@ -113,11 +113,12 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
-  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid },
+  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean },
 ): boolean {
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
-  // A desktop-limited widget can also sit on a monitor: a display panel replaces the legacy desktop overlay that hosted it.
-  if (meta.surfaces && !meta.surfaces.includes(surface) && !(surface === 'monitor' && meta.surfaces.includes('desktop'))) return false;
+  // A display panel replaces the legacy desktop overlay, so it also takes the widgets limited to the desktop.
+  const desktopOnDisplay = opts?.displayBound === true && surface === 'monitor' && meta.surfaces?.includes('desktop') === true;
+  if (meta.surfaces && !meta.surfaces.includes(surface) && !desktopOnDisplay) return false;
   // The phone surface only exists on remotely-connected panels, so it doubles
   // as the remote default for callers that don't carry the flag (layout
   // reconcile, PanelApp's render filter).

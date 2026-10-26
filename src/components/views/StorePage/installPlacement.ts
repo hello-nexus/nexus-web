@@ -182,7 +182,7 @@ export function planPlacement(
 ): PlacementPlan | null {
   const { layout, record } = loaded;
   const { surface, deviceTouch, forcedGrid } = layoutOf(target, record);
-  if (!appAvailableForSurface(meta, surface, { deviceTouch, forcedGrid })) return null;
+  if (!appAvailableForSurface(meta, surface, { deviceTouch, forcedGrid, displayBound: !!record?.displayId })) return null;
   const copySize = copyOf?.size && sizesForSurface(meta, surface, deviceTouch, forcedGrid).includes(copyOf.size) ? copyOf.size : null;
   const size = copySize ?? placementSize(meta, surface, deviceTouch, forcedGrid);
   if (!size) return null;
@@ -245,6 +245,7 @@ export async function loadTarget(target: PlacementTarget): Promise<LoadedTarget 
     laidOut.surface,
     laidOut.deviceTouch,
     laidOut.forcedGrid,
+    !!record?.displayId,
   );
   return { layout, record };
 }

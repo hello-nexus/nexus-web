@@ -1141,7 +1141,7 @@ export function PanelContent({
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
-          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid });
+          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -1152,7 +1152,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2481,6 +2481,7 @@ export function PanelContent({
           surface={surface}
           deviceId={deviceId}
           deviceTouch={widgetTouch}
+          displayBound={displayBound}
           forcedGrid={forcedGrid}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}

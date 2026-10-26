@@ -715,7 +715,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordTouch(match?.capabilities?.touch);
       const loaded = layoutSurfaceOf(match, match?.capabilities?.touch ?? device?.capabilities.touch);
       const savedLayout = match?.layout ?? defaultLayoutForSurface(loaded.surface);
-      setLayout(normalizePanelLayout(savedLayout, loaded.surface, loaded.touch, loaded.forcedGrid));
+      setLayout(normalizePanelLayout(savedLayout, loaded.surface, loaded.touch, loaded.forcedGrid, !!match?.displayId));
       if (prefs) {
         setAutoLaunch(prefs.panel?.autoLaunch ?? true);
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
@@ -881,7 +881,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordClickThrough(record.clickThrough ?? false);
       setRecordGridSlots(record.gridSlots ?? null);
       const synced = layoutSurfaceOf(record, record.capabilities?.touch ?? glassTouch);
-      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid));
+      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid, !!record.displayId));
     }).catch(() => {});
   }, [editingDeviceId, glassTouch, layoutSurfaceOf]);
 
@@ -936,8 +936,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // fallback guess: the bytes stay un-conformed and every render path
     // re-fits them at its own capacity.
     const normalized = editorCapacityDerived
-      ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid), editorCapacity)
-      : normalizePanelLayout(next, surface, registryTouch, forcedGrid);
+      ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel), editorCapacity)
+      : normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel);
     setLayout(normalized);
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
@@ -957,7 +957,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, isMonitorPanel, editorCapacity, editorCapacityDerived, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -1159,7 +1159,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const target = widgetSizeOptions.layoutSurface[mode];
     const targetTouch = target === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
     const targetSlots = widgetSizeShortSideSlots(widgetSizeOptions, mode, densitySlots);
-    const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)));
+    const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)), isMonitorPanel);
     const kept = new Set(normalized.pages.flatMap(p => p.widgets.map(w => w.id)));
     const removed = layout.pages.flatMap(p => p.widgets).filter(w => !kept.has(w.id));
     // A forced grid can leave widgets without room: they move to new pages where the
@@ -1177,7 +1177,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
+  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, isMonitorPanel, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);
@@ -1607,7 +1607,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 onChange={on => updateLayout(setWidgetPlaylistEnabled(
                                   layout,
                                   on,
-                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch: registryTouch }).map(([type]) => type),
+                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch: registryTouch, displayBound: isMonitorPanel }).map(([type]) => type),
                                 ))}
                               />
                             )}
@@ -1622,6 +1622,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         <PanelWidgetCatalog
                           surface={surface}
                           deviceTouch={registryTouch}
+                          displayBound={isMonitorPanel}
                           forcedGrid={forcedGrid}
                           glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}
