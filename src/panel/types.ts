@@ -1,3 +1,5 @@
+import { panelHostAvailable } from './device/panelHostBridge';
+
 // Canonical shape for the panel widget engine. Mirrors
 // nexus-service/Models/Panel/PanelLayoutDto.cs. Keep in sync.
 
@@ -99,6 +101,8 @@ export function canEditFreeText(surface?: PanelSurface, desktopEditor?: boolean)
   const shell = w?.nexusShellPlatform;
   if (shell === 'windows-app' || shell === 'mac-app') return true;
   if (surface === undefined) return true;
+  // A PC display panel under a kiosk host takes the keyboard via nexus.panel.activatable; the Y70 is its own surface.
+  if (surface === 'monitor' && panelHostAvailable()) return true;
   return surfaceSupportsTextInput(surface);
 }
 

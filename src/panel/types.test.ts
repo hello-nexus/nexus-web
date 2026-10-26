@@ -1,7 +1,7 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  canEditFreeText, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
   surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
@@ -185,5 +185,35 @@ describe('surfaceDisplayShape', () => {
     for (const surface of ['lcd-square', 'lcd-wide', 'q60', 'y70', 'monitor', 'phone', 'desktop'] as const) {
       expect(surfaceDisplayShape(surface)).toBe('rect');
     }
+  });
+});
+
+describe('canEditFreeText', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const withWindow = (w: object) => vi.stubGlobal('window', w);
+
+  it('is on for a monitor surface under a WebView2 or WKWebView kiosk host', () => {
+    withWindow({ chrome: { webview: { postMessage: () => {} } } });
+    expect(canEditFreeText('monitor')).toBe(true);
+    withWindow({ webkit: { messageHandlers: { nexusPanel: { postMessage: () => {} } } } });
+    expect(canEditFreeText('monitor')).toBe(true);
+  });
+
+  it('is off for a monitor surface with no host (streamed capture)', () => {
+    withWindow({});
+    expect(canEditFreeText('monitor')).toBe(false);
+  });
+
+  it('stays off for keyboardless surfaces even with a host', () => {
+    withWindow({ chrome: { webview: { postMessage: () => {} } } });
+    for (const s of ['y70', 'q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(canEditFreeText(s)).toBe(false);
+    }
+  });
+
+  it('keeps desktop and phone on', () => {
+    withWindow({});
+    expect(canEditFreeText('desktop')).toBe(true);
+    expect(canEditFreeText('phone')).toBe(true);
   });
 });
