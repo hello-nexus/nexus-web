@@ -8,6 +8,8 @@ const record = (rev: number, layout?: Record<string, unknown>): PcSetupRecord =>
 });
 
 describe('layoutNeedsResolve', () => {
+  beforeEach(() => resetTried());
+
   it('needs a resolve when the record holds no layout', () => {
     expect(layoutNeedsResolve(record(0), 'k1', 'hyte-y70')).toBe(true);
   });
@@ -27,6 +29,15 @@ describe('layoutNeedsResolve', () => {
     expect(layoutNeedsResolve(record(2, bare), key, 'hyte-y70')).toBe(true);
     expect(layoutNeedsResolve(record(2, { ...bare, boxes: [...bare.boxes, { slot: 'gpu', role: 'part' }] }), key, 'hyte-y70')).toBe(false);
     expect(layoutNeedsResolve(record(2, { ...bare, inputKey: 'case=c|gpu=' }), 'case=c|gpu=', 'hyte-y70')).toBe(false);
+  });
+
+  it('asks for the missing card once per key, even after a reload', () => {
+    const key = 'case=c|cpu=x|gpu=Unlisted Card|board=y';
+    const bare = { caseModel: 'HYTE Y70', inputKey: key, boxes: [{ slot: 'gpu', role: 'detail' }] };
+    expect(layoutNeedsResolve(record(2, bare), key, 'hyte-y70')).toBe(true);
+    markTried(key);
+    expect(layoutNeedsResolve(record(2, bare), key, 'hyte-y70')).toBe(false);
+    expect(layoutNeedsResolve(record(2, bare), key.replace('Unlisted', 'Other'), 'hyte-y70')).toBe(true);
   });
 
   it('needs none without a record, a key, or a case to lay out', () => {
