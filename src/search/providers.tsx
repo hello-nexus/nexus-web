@@ -600,9 +600,9 @@ const quickOpens: SearchSource = (ctx) => [
     to: () => { ctx.host.goView('dashboard'); fireSearchSignal('add-widget'); },
   }),
   go('open:desktop-widgets', {
-    title: ctx.t('dashboard.desktopWidgets'), icon: <AppWindow size={18} />,
-    keywords: ['desktop', 'widgets', 'overlay', 'floating'],
-    to: () => { ctx.host.goView('dashboard'); fireSearchSignal('desktop-widgets'); },
+    title: ctx.t('dashboard.displayPanels'), icon: <AppWindow size={18} />,
+    keywords: ['desktop', 'widgets', 'overlay', 'floating', 'display', 'panel'],
+    to: () => ctx.host.goView('devices', 'displays'),
   }),
   go('open:connected-devices', {
     title: ctx.t('devices.connected.browse'), icon: NAV_ICONS.devices,

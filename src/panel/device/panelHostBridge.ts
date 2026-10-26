@@ -13,7 +13,11 @@ export type PanelHostMessage =
   // Lift a not-on-top window above other windows while a menu, sheet or drag is open.
   | { type: 'nexus.panel.raise'; value: boolean };
 
-interface HostPoster { postMessage(payload: unknown): void }
+interface HostPoster {
+  postMessage(payload: unknown): void;
+  addEventListener?(type: 'message', listener: (event: Event) => void): void;
+  removeEventListener?(type: 'message', listener: (event: Event) => void): void;
+}
 
 // Cast at the call site: other surfaces attach their own narrow
 // webkit.messageHandlers shapes, so a global Window augmentation would clash.
@@ -72,4 +76,49 @@ export function hitTestMessage(
   dpr: number,
 ): Extract<PanelHostMessage, { type: 'nexus.panel.hitTest' }> {
   return { type: 'nexus.panel.hitTest', mode: full ? 'full' : 'region', dpr, rects: full ? [] : rects };
+}
+
+export const REQUEST_HIT_TEST = 'nexus.panel.requestHitTest';
+
+interface HostHook { requestHitTest(): void }
+type HostWindow = PanelBridgeWindow & { __nexusPanelHost?: HostHook };
+
+const requestSubscribers = new Set<() => void>();
+let detach: (() => void) | null = null;
+
+function fireRequest(): void {
+  for (const cb of [...requestSubscribers]) cb();
+}
+
+function isRequestMessage(data: unknown): boolean {
+  if (typeof data === 'string') {
+    try { return (JSON.parse(data) as { type?: unknown } | null)?.type === REQUEST_HIT_TEST; } catch { return false; }
+  }
+  return typeof data === 'object' && data !== null && (data as { type?: unknown }).type === REQUEST_HIT_TEST;
+}
+
+/**
+ * Runs `cb` when the host asks the page to report again: the macOS helper calls
+ * `window.__nexusPanelHost.requestHitTest()`, the Windows host posts a message event.
+ */
+export function onHostRequestHitTest(cb: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const w = window as unknown as HostWindow;
+  const first = requestSubscribers.size === 0;
+  requestSubscribers.add(cb);
+  const onMessage = (event: Event) => { if (isRequestMessage((event as MessageEvent).data)) fireRequest(); };
+  if (first) {
+    w.__nexusPanelHost = { requestHitTest: fireRequest };
+    w.chrome?.webview?.addEventListener?.('message', onMessage);
+    window.addEventListener('message', onMessage);
+    detach = () => {
+      w.chrome?.webview?.removeEventListener?.('message', onMessage);
+      window.removeEventListener('message', onMessage);
+      delete w.__nexusPanelHost;
+    };
+  }
+  return () => {
+    requestSubscribers.delete(cb);
+    if (requestSubscribers.size === 0) detach?.();
+  };
 }

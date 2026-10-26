@@ -115,6 +115,7 @@ function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surfac
   const shortSideSlots = panelShortSideSlots(
     target.surface, record?.capabilities?.family ?? target.family, record?.widgetSize,
     screen ? densityShortSideSlots(screen.width, screen.height, screen.dpr, dpiOf(target, record)) : undefined,
+    record?.gridSlots,
   );
   return {
     surface,
@@ -195,7 +196,7 @@ export function planPlacement(
   const capacity = dashboard
     ? { gridCols: dashboardColumns, pageRows: Math.max(DESKTOP_GRID_ROWS, layoutRowExtent(layout)) + sizeToSpan(size).rows }
     : panelCapacity(target, record);
-  const appended = appendWidget(layout, fresh, capacity, { singlePage: dashboard || !surfaceAllowsPages(surface, deviceTouch) });
+  const appended = appendWidget(layout, fresh, capacity, { singlePage: dashboard || !surfaceAllowsPages(surface, deviceTouch, !!record?.displayId) });
   const page = appended.pages.find(p => p.widgets.some(w => w.id === fresh.id));
   const widget = page?.widgets.find(w => w.id === fresh.id);
   if (!page || !widget) return null;

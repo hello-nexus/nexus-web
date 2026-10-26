@@ -149,6 +149,7 @@ export function PanelTouchCell({
   onUpdate,
   editorPreview = false,
   movable: movableProp,
+  locked = false,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -183,6 +184,8 @@ export function PanelTouchCell({
   editorPreview?: boolean;
   // Overrides the touch rule: the device-page preview drags on any multi-widget panel.
   movable?: boolean;
+  // A locked widget registers no drag.
+  locked?: boolean;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -215,7 +218,7 @@ export function PanelTouchCell({
     isDragging,
   } = useSortable({
     id: widget.id,
-    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion),
+    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || locked,
   });
 
   // The cell renders into cellHost and its card + label into contentHost, so

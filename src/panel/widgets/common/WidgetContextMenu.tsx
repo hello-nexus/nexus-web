@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Lock, Maximize2, Monitor, MonitorOff, Pencil, Pin, PinOff, Scaling, Trash2, Unlock } from 'lucide-react';
+import { Check, ExternalLink, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, Trash2, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -23,14 +23,11 @@ interface WidgetContextMenuProps {
   // Optional - only shown when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
-  // Optional - only shown when the widget type supports the desktop surface
-  // and we're invoked from the dashboard (not from a remote panel preview).
-  // Pins a copy of the widget onto the floating desktop overlay.
-  onAddToDesktop?: () => void;
-  // Inverse of onAddToDesktop; shown when at least one overlay widget of
-  // this type exists. Click removes every instance of this type from the
-  // overlay. Caller wires one of the two per state, never both at once.
-  onRemoveFromDesktop?: () => void;
+  // Dashboard only: the active display panels a copy of the widget can be added to.
+  displayTargets?: { id: string; name: string }[];
+  onAddToDisplay?: (displayId: string) => void;
+  // Opens the add-widget catalog; offered on panels edited with a mouse.
+  onAddWidget?: () => void;
   // Optional - only shown when the widget is one of the pinnable desktop
   // apps (matches isPinnableAppKey in app/sidebarAppKeys) AND isn't already
   // pinned. Pins this widget's "app page" onto the desktop sidebar.
@@ -73,7 +70,7 @@ export function WidgetContextMenu({
   themeMode = 'dark',
   themeStyle,
   onResize, onResizeMode, onEdit, onRemove, onImmersive,
-  onAddToDesktop, onRemoveFromDesktop,
+  displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
   onClose,
   removeLabel,
@@ -188,6 +185,7 @@ export function WidgetContextMenu({
       data-theme={themeMode}
       data-surface={surface}
       data-state={closing ? 'closing' : 'open'}
+      data-panel-hit="true"
       style={menuStyle}
     >
       {sizes.length > 1 && !locked && (
@@ -269,17 +267,17 @@ export function WidgetContextMenu({
         </button>
       )}
 
-      {onAddToDesktop && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onAddToDesktop)}>
+      {onAddToDisplay && displayTargets?.map(target => (
+        <button key={target.id} type="button" className={styles.item} onClick={() => runAndClose(() => onAddToDisplay(target.id))}>
           <Monitor size={14} />
-          <span>{t('panel.widget.menu.addToDesktop')}</span>
+          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: target.name }) : t('panel.widget.menu.addToDisplay')}</span>
         </button>
-      )}
+      ))}
 
-      {onRemoveFromDesktop && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onRemoveFromDesktop)}>
-          <MonitorOff size={14} />
-          <span>{t('panel.widget.menu.removeFromDesktop')}</span>
+      {onAddWidget && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onAddWidget)}>
+          <Plus size={14} />
+          <span>{t('panel.widget.menu.addWidget')}</span>
         </button>
       )}
 
