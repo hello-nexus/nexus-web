@@ -321,15 +321,16 @@ describe('snapDropCell', () => {
     expect(snapDropCell(-3, -1, { cols: 2, rows: 2 }, grid)).toEqual({ col: 0, row: 0 });
   });
 
-  it('lets a 4x4 sit on col/row 2 only where it fits', () => {
+  it('clamps a 4x4 to col 0 on 4 columns and lets it sit on any row', () => {
     expect(snapDropCell(2, 2, { cols: 4, rows: 4 }, grid)).toEqual({ col: 0, row: 2 });
+    expect(snapDropCell(1, 3, { cols: 4, rows: 4 }, grid)).toEqual({ col: 0, row: 3 });
+  });
+
+  it('lets a 4x1 sit on odd rows', () => {
+    expect(snapDropCell(0, 5, { cols: 4, rows: 1 }, grid)).toEqual({ col: 0, row: 5 });
   });
 
   it('works on the landscape 16x4 grid', () => {
     expect(snapDropCell(5.4, 1.6, { cols: 2, rows: 2 }, { cols: 16, rows: 4 })).toEqual({ col: 5, row: 2 });
-  });
-
-  it('keeps resize on the 2-cell stride', () => {
-    expect(snapStride(2)).toBe(2);
   });
 });

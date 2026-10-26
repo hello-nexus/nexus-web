@@ -107,9 +107,9 @@ export function sizeToSpan(size: PanelWidgetSize | string): GridSpan {
   }
 }
 
-// Cell stride a widget snaps to on each axis. 1x1 snaps every cell;
-// every multi-cell widget snaps in 2-cell increments so a 4x4 can
-// land at col/row 2 instead of being locked to multiples of 4.
+// Cell stride used by placement scans and freeform resize (not by drops,
+// which land on any cell). 1x1 steps every cell; every multi-cell widget
+// steps in 2-cell increments so a 4x4 can land at col/row 2.
 export function snapStride(span: number): number {
   return span <= 1 ? 1 : 2;
 }

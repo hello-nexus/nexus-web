@@ -272,4 +272,23 @@ describe('previewDrag', () => {
       }
     });
   });
+
+  it('refuses an odd target on a full page when the reflow would land the widget elsewhere', () => {
+    const widgets: PanelWidget[] = [];
+    for (let r = 0; r < 16; r += 2) {
+      widgets.push(widget(`l${r}`, '2x2', 0, r), widget(`r${r}`, '2x2', 2, r));
+    }
+    const l = layout([widgets]);
+    const result = previewDrag(l, 'r2', 'p1', 1, 1, { gridCols: 4, pageRows: 16 });
+    if (result) {
+      expect(findWidget(result, 'r2')!.widget).toMatchObject({ col: 1, row: 1 });
+      expectNoOverlap(result);
+    }
+  });
+
+  it('accepts an odd target on a page with free space', () => {
+    const l = layout([[widget('a', '2x2', 0, 0)]]);
+    const result = previewDrag(l, 'a', 'p1', 1, 1, { gridCols: 4, pageRows: 16 });
+    expect(findWidget(result!, 'a')!.widget).toMatchObject({ col: 1, row: 1 });
+  });
 });

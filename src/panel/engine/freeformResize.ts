@@ -20,7 +20,7 @@ export function spanToSize(span: GridSpan): PanelWidgetSize {
   return `${span.cols}x${span.rows}`;
 }
 
-// A moved origin must land on the regular drag's stride grid; an origin that does not move is left as it is.
+// A moved origin must land on the placement stride grid (resize stays even-aligned); an origin that does not move is left as it is.
 function originOnStride(start: FreeformRect, col: number, row: number, span: GridSpan): boolean {
   return (col === start.col || col % snapStride(span.cols) === 0)
     && (row === start.row || row % snapStride(span.rows) === 0);

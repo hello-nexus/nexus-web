@@ -283,7 +283,7 @@ describe('cornerRoom with a placement check', () => {
   });
 });
 
-describe('corner origin stride rules shared with the regular drag', () => {
+describe('corner origin stride rules', () => {
   const bounds = { cols: 8, rows: 8 };
   const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
 

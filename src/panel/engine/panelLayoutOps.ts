@@ -361,10 +361,13 @@ export function previewDrag(
   if (overlapping.length === 0) return cascaded;
 
   const shifted = shiftPreview(layout, sourceId, sourcePageIdx, targetPageIdx, placed, cols, rows);
-  if (!cascaded) return shifted;
   if (!shifted) return cascaded;
   const landed = shifted.pages[targetPageIdx].widgets.find(w => w.id === sourceId);
-  if (!landed || landed.col !== col || landed.row !== row) return cascaded;
+  // The reflow scans even cells first, so it can move the source off an odd
+  // target; the highlight shows the target, so refuse rather than land elsewhere.
+  const onTarget = landed !== undefined && landed.col === col && landed.row === row;
+  if (!cascaded) return onTarget ? shifted : null;
+  if (!onTarget) return cascaded;
   // Ties go to the shift: it keeps the siblings' reading order, where the
   // cascade may leapfrog one past another into the vacated cell.
   return siblingTravel(layout, shifted, sourceId) <= siblingTravel(layout, cascaded, sourceId) ? shifted : cascaded;
