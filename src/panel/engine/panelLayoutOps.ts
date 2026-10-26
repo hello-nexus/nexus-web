@@ -1,6 +1,6 @@
 import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../types';
 import { firstFreeRect, rectsOverlap, type PaginateCapacity } from './paginate';
-import { sizeToSpan, snapStride, strideScanSteps } from './grid';
+import { sizeToSpan } from './grid';
 import { createUuid } from '../../lib/uuid';
 import { clampFreeformSize } from './freeformResize';
 
@@ -333,23 +333,17 @@ export function previewDrag(
     const span = sizeToSpan(w.size);
     const colSpan = Math.max(1, Math.min(span.cols, cols));
     const rowSpan = Math.max(1, span.rows);
-    // Stride-aligned slots first (mirrors the active widget's snap
-    // grid), then a stride-1 pass so a displaced widget still homes
-    // into off-stride free space instead of refusing the whole drop.
     let found: { col: number; row: number } | null = null;
-    for (const step of strideScanSteps(colSpan, rowSpan)) {
-      for (let r = 0; r + rowSpan <= rows && !found; r += step.row) {
-        for (let c = 0; c + colSpan <= cols && !found; c += step.col) {
-          let fits = true;
-          for (let rr = r; rr < r + rowSpan && fits; rr++) {
-            for (let cc = c; cc < c + colSpan && fits; cc++) {
-              if (occupied[rr][cc]) fits = false;
-            }
+    for (let r = 0; r + rowSpan <= rows && !found; r++) {
+      for (let c = 0; c + colSpan <= cols && !found; c++) {
+        let fits = true;
+        for (let rr = r; rr < r + rowSpan && fits; rr++) {
+          for (let cc = c; cc < c + colSpan && fits; cc++) {
+            if (occupied[rr][cc]) fits = false;
           }
-          if (fits) found = { col: c, row: r };
         }
+        if (fits) found = { col: c, row: r };
       }
-      if (found) break;
     }
     if (!found) { displaced.length = 0; break; }
     mark({ col: found.col, row: found.row, colSpan, rowSpan });
@@ -479,19 +473,16 @@ function shiftPreview(
     const colSpan = Math.max(1, Math.min(span.cols, cols));
     const rowSpan = Math.max(1, span.rows);
     let found: { col: number; row: number } | null = null;
-    for (const step of strideScanSteps(colSpan, rowSpan)) {
-      for (let r = 0; r + rowSpan <= rows && !found; r += step.row) {
-        for (let c = 0; c + colSpan <= cols && !found; c += step.col) {
-          let fits = true;
-          for (let rr = r; rr < r + rowSpan && fits; rr++) {
-            for (let cc = c; cc < c + colSpan && fits; cc++) {
-              if (occupied[rr][cc]) fits = false;
-            }
+    for (let r = 0; r + rowSpan <= rows && !found; r++) {
+      for (let c = 0; c + colSpan <= cols && !found; c++) {
+        let fits = true;
+        for (let rr = r; rr < r + rowSpan && fits; rr++) {
+          for (let cc = c; cc < c + colSpan && fits; cc++) {
+            if (occupied[rr][cc]) fits = false;
           }
-          if (fits) found = { col: c, row: r };
         }
+        if (fits) found = { col: c, row: r };
       }
-      if (found) break;
     }
     if (!found) return null;
     mark({ col: found.col, row: found.row, colSpan, rowSpan });
@@ -548,12 +539,8 @@ export function tryResizeWidget(
   // Hard refusal: the size itself doesn't fit on any page.
   if (newRowSpan > rows) return null;
   // Slide left / up so the resized rect stays in bounds.
-  // The 4x1 is the only multi-cell size with a single-row stride; growing it
-  // returns the widget to the coarser grid the larger size snaps to.
-  const fromRowStrip = source.size === '4x1';
-  const snapDown = (value: number, span: number) => fromRowStrip ? value - (value % snapStride(span)) : value;
-  const placedCol = Math.max(0, Math.min(at ? at.col : snapDown(source.col, newColSpan), cols - newColSpan));
-  const placedRow = Math.max(0, Math.min(at ? at.row : snapDown(source.row, newRowSpan), rows - newRowSpan));
+  const placedCol = Math.max(0, Math.min(at ? at.col : source.col, cols - newColSpan));
+  const placedRow = Math.max(0, Math.min(at ? at.row : source.row, rows - newRowSpan));
   const placed: PanelWidget = { ...source, size: newSize, col: placedCol, row: placedRow };
   const placedRect: WidgetRect = { col: placedCol, row: placedRow, colSpan: newColSpan, rowSpan: newRowSpan };
 
@@ -595,25 +582,20 @@ export function tryResizeWidget(
     a.row !== b.row ? a.row - b.row : a.col - b.col,
   );
 
-  // Stride-aligned slots first, then a stride-1 pass so displaced
-  // widgets home into off-stride free space before spilling to the
-  // next page (or failing the resize outright).
   const findFitOnPage = (
     occupied: boolean[][],
     colSpan: number,
     rowSpan: number,
   ): { col: number; row: number } | null => {
-    for (const step of strideScanSteps(colSpan, rowSpan)) {
-      for (let r = 0; r + rowSpan <= rows; r += step.row) {
-        for (let c = 0; c + colSpan <= cols; c += step.col) {
-          let fits = true;
-          for (let rr = r; rr < r + rowSpan && fits; rr++) {
-            for (let cc = c; cc < c + colSpan && fits; cc++) {
-              if (occupied[rr][cc]) fits = false;
-            }
+    for (let r = 0; r + rowSpan <= rows; r++) {
+      for (let c = 0; c + colSpan <= cols; c++) {
+        let fits = true;
+        for (let rr = r; rr < r + rowSpan && fits; rr++) {
+          for (let cc = c; cc < c + colSpan && fits; cc++) {
+            if (occupied[rr][cc]) fits = false;
           }
-          if (fits) return { col: c, row: r };
         }
+        if (fits) return { col: c, row: r };
       }
     }
     return null;

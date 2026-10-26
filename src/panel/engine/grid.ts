@@ -107,16 +107,9 @@ export function sizeToSpan(size: PanelWidgetSize | string): GridSpan {
   }
 }
 
-// Cell stride used by placement scans and freeform resize (not by drops,
-// which land on any cell). 1x1 steps every cell; every multi-cell widget
-// steps in 2-cell increments so a 4x4 can land at col/row 2.
-export function snapStride(span: number): number {
-  return span <= 1 ? 1 : 2;
-}
-
 // Where a dragged widget drops: the top-left cell index rounded to the nearest
-// cell and clamped so the rect stays inside the grid. Drops are not stride-limited,
-// so a 2-cell widget can start on any column or row.
+// cell and clamped so the rect stays inside the grid, so a multi-cell widget
+// can start on any column or row.
 export function snapDropCell(
   continuousCol: number,
   continuousRow: number,
@@ -129,17 +122,6 @@ export function snapDropCell(
     col: Math.min(Math.max(0, Math.round(continuousCol)), maxCol),
     row: Math.min(Math.max(0, Math.round(continuousRow)), maxRow),
   };
-}
-
-// Scan passes for placement searches: stride-aligned first (snap
-// aesthetics), then every cell so off-stride free space (left by 1x1
-// neighbours or a tight repack) still accepts the widget instead of
-// the search reporting "no room" while blank cells are visible.
-export function strideScanSteps(colSpan: number, rowSpan: number): { col: number; row: number }[] {
-  const col = snapStride(colSpan);
-  const row = snapStride(rowSpan);
-  if (col === 1 && row === 1) return [{ col, row }];
-  return [{ col, row }, { col: 1, row: 1 }];
 }
 
 export function panelGridCapacityForCanvas(

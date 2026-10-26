@@ -8,7 +8,6 @@ import {
   resolvePanelSpacing,
   sizeToSpan,
   snapDropCell,
-  snapStride,
   PANEL_GRID_COLS,
   PANEL_WIDGET_PADDING_DEFAULT_PERCENT,
   PANEL_WIDGET_PADDING_MAX_RATIO,
@@ -184,18 +183,6 @@ describe('sizeToSpan', () => {
     expect([dell24, uhd32, laptop156]).toEqual([12, 16, 8]);
     expect(columnsForPhysicalSize(682, 2560, 337, undefined)).toBe(PANEL_GRID_COLS);
     expect(panelGridCapacityForCanvas(1920, 1200, { surface: 'monitor', dpi: 94.1 })).toMatchObject({ rows: 12 });
-  });
-});
-
-describe('snapStride', () => {
-  it('returns 1 for a 1-cell span so 1x1 widgets walk every cell', () => {
-    expect(snapStride(1)).toBe(1);
-  });
-
-  it('returns 2 for any multi-cell span so 4x4 lands on 2-cell increments', () => {
-    expect(snapStride(2)).toBe(2);
-    expect(snapStride(4)).toBe(2);
-    expect(snapStride(8)).toBe(2);
   });
 });
 

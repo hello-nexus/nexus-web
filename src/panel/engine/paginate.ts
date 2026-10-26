@@ -1,5 +1,5 @@
 import type { PanelLayout, PanelPage, PanelWidget } from '../types';
-import { sizeToSpan, strideScanSteps } from './grid';
+import { sizeToSpan } from './grid';
 import { createUuid } from '../../lib/uuid';
 
 export interface PaginateCapacity {
@@ -42,17 +42,11 @@ export function firstFreeRect(
   const cs = Math.max(1, Math.min(colSpan, cols));
   const rs = Math.max(1, rowSpan);
   const rects = existing.map(w => widgetRect(w, cols));
-  // Snap-to-stride rule: new widgets prefer (col, row) that are
-  // multiples of `snapStride(span)`. A second stride-1 pass catches
-  // off-stride holes so the widget lands in visible blank space
-  // instead of spilling to another page.
-  for (const step of strideScanSteps(cs, rs)) {
-    for (let r = 0; r + rs <= rows; r += step.row) {
-      for (let c = 0; c + cs <= cols; c += step.col) {
-        const candidate = { col: c, row: r, colSpan: cs, rowSpan: rs };
-        if (!rects.some(rect => rectsOverlap(rect, candidate))) {
-          return { col: c, row: r };
-        }
+  for (let r = 0; r + rs <= rows; r++) {
+    for (let c = 0; c + cs <= cols; c++) {
+      const candidate = { col: c, row: r, colSpan: cs, rowSpan: rs };
+      if (!rects.some(rect => rectsOverlap(rect, candidate))) {
+        return { col: c, row: r };
       }
     }
   }
@@ -84,9 +78,8 @@ export function pageFitsGrid(widgets: readonly PanelWidget[], cols: number, rows
  * First free rect for a span, scanned in the grid's long-axis order.
  * `columnMajor` walks top-to-bottom within a column before moving right
  * (landscape flow); otherwise left-to-right within a row before moving
- * down (portrait flow). Stride 1 (every cell) for the tightest fit -
- * repacking prioritises no-clip over snap aesthetics. Null if nothing
- * fits inside (cols, rows).
+ * down (portrait flow). Scans every cell for the tightest fit. Null if
+ * nothing fits inside (cols, rows).
  */
 function firstFitCell(
   occupied: WidgetRect[],
