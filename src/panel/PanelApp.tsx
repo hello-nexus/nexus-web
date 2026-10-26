@@ -116,7 +116,8 @@ import {
   type PanelWidgetSize,
   type ForcedGrid,
 } from './types';
-import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, sizeForLegacyGridSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
+import { recordWidgetSizeOf } from './engine/recordWidgetSize';
+import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -264,12 +265,10 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   const caps = record?.capabilities;
   const resolved = useMemo(() => {
     const glassSurface = (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface;
-    // A record from before the size choice replaced grid density reads as the nearest size.
-    const generic = glassSurface === 'monitor' && !caps?.family && !!record?.displayId;
-    const densityEstimate = caps?.cssWidth && caps.cssHeight
-      ? densityShortSideSlots(caps.cssWidth, caps.cssHeight, caps.dpr || 1, caps.dpi ?? estimateRuntimePanelDpi(glassSurface))
-      : undefined;
-    const widgetSize = record?.widgetSize ?? (generic ? sizeForLegacyGridSlots(record?.gridSlots, densityEstimate) : undefined);
+    const widgetSize = recordWidgetSizeOf(
+      { widgetSize: record?.widgetSize, gridSlots: record?.gridSlots, displayId: record?.displayId, capabilities: { family: caps?.family, cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr, dpi: caps?.dpi } },
+      glassSurface,
+    );
     const surface = panelLayoutSurface(glassSurface, caps?.family, widgetSize);
     const relaid = surface !== glassSurface;
     const dpi = panelLayoutDpi(glassSurface, caps?.family, widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);

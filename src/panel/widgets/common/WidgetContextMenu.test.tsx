@@ -8,6 +8,10 @@ import type { TopologyDisplay } from '../../../api/displays';
 import { displayTargetsOf } from '../../engine/useDisplayTargets';
 import { WidgetContextMenu } from './WidgetContextMenu';
 
+vi.mock('../../../lib/i18n', () => ({
+  useTranslation: () => ({ t: (key: string, params?: { name?: string }) => (params?.name ? `${key} ${params.name}` : key) }),
+}));
+
 function menu(key: number, onClose: () => void) {
   return (
     <WidgetContextMenu
@@ -146,6 +150,28 @@ describe('WidgetContextMenu always on top', () => {
   });
 });
 
+describe('WidgetContextMenu order', () => {
+  const props = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const, '4x2' as const], hasConfig: true, surface: 'desktop' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn(), onResizeMode: vi.fn() };
+  const sequence = (container: HTMLElement) =>
+    Array.from(container.firstElementChild!.children).map(c => (c.className.includes('divider') ? '|' : c.className.includes('sizeRow') ? 'chips' : (c.textContent ?? '')));
+
+  it('orders chips, widget items, toggles, then panel items with single dividers', () => {
+    const { container } = render(<WidgetContextMenu {...props} onToggleLock={vi.fn()} onToggleAlwaysOnTop={vi.fn()} onAddWidget={vi.fn()} onOpenPanelActions={vi.fn()} />);
+    expect(sequence(container)).toEqual([
+      'chips', '|', 'panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove',
+      '|', 'panel.widget.menu.lockWidgets', 'panel.widget.menu.alwaysOnTop',
+      '|', 'panel.widget.menu.addWidget', 'panel.actions.label',
+    ]);
+  });
+
+  it('drops empty groups without stray dividers', () => {
+    const { container } = render(<WidgetContextMenu {...props} sizes={['2x2']} onAddWidget={vi.fn()} />);
+    expect(sequence(container)).toEqual(['panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove', '|', 'panel.widget.menu.addWidget']);
+    const bare = render(<WidgetContextMenu {...props} sizes={['2x2']} />);
+    expect(sequence(bare.container)).toEqual(['panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove']);
+  });
+});
+
 describe('WidgetContextMenu add to display', () => {
   const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: true, surface: 'desktop' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
 
@@ -167,6 +193,17 @@ describe('WidgetContextMenu add to display', () => {
     expect(items).toHaveLength(2);
     fireEvent.click(items[0]);
     expect(onAdd).toHaveBeenCalledWith('side');
+  });
+
+  it('numbers several entries and leaves a single entry plain', () => {
+    const two = [{ id: 'a', name: 'DEL A0B8', number: '1' }, { id: 'b', name: 'DEL A0B8', number: '2' }];
+    const { unmount } = render(<WidgetContextMenu {...base} displayTargets={two} onAddToDisplay={vi.fn()} />);
+    expect(screen.getByText(/1\. DEL A0B8/)).toBeTruthy();
+    expect(screen.getByText(/2\. DEL A0B8/)).toBeTruthy();
+    unmount();
+    render(<WidgetContextMenu {...base} displayTargets={[two[0]]} onAddToDisplay={vi.fn()} />);
+    expect(screen.getByText('panel.widget.menu.addToDisplay')).toBeTruthy();
+    expect(screen.queryByText(/DEL A0B8/)).toBeNull();
   });
 
   it('shows no item without a handler', () => {

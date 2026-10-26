@@ -122,6 +122,7 @@
   cursor: pointer;
   transition: background var(--ease-fast), color var(--ease-fast);
   text-align: left;
+  white-space: nowrap;
 
   &:hover:not(:disabled) {
     background: var(--panel-element-bg-hover);
@@ -153,6 +154,8 @@
   font-weight: var(--weight-body);
   color: var(--text-dim);
   opacity: 0.85;
+  white-space: normal;
+  max-width: 240px;
 }
 
 .itemDanger {

@@ -24,7 +24,7 @@ interface WidgetContextMenuProps {
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
   // Dashboard only: the active display panels a copy of the widget can be added to.
-  displayTargets?: { id: string; name: string }[];
+  displayTargets?: { id: string; name: string; number: string }[];
   onAddToDisplay?: (displayId: string) => void;
   // Opens the add-widget catalog; offered on panels edited with a mouse.
   onAddWidget?: () => void;
@@ -155,7 +155,7 @@ export function WidgetContextMenu({
   return (
     <div
       ref={menuRef}
-      className={`panel-root ${styles.menu}`}
+      className={`panel-root ${styles.menu} ${styles.menuAutoWidth}`}
       data-theme={themeMode}
       data-surface={surface}
       data-state={closing ? 'closing' : 'open'}
@@ -210,7 +210,7 @@ export function WidgetContextMenu({
       {onAddToDisplay && displayTargets?.map(target => (
         <button key={target.id} type="button" className={styles.item} onClick={() => runAndClose(() => onAddToDisplay(target.id))}>
           <Monitor size={14} />
-          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: target.name }) : t('panel.widget.menu.addToDisplay')}</span>
+          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: `${target.number}. ${target.name}` }) : t('panel.widget.menu.addToDisplay')}</span>
         </button>
       ))}
 
@@ -233,23 +233,8 @@ export function WidgetContextMenu({
         <span>{t('panel.widget.menu.remove')}</span>
       </button>
 
-
-      {/* Panel-wide items follow the widget's own, after a divider. */}
-      {(onAddWidget || onOpenPanelActions || onToggleLock || onToggleAlwaysOnTop) && <div className={styles.divider} />}
-
-      {onAddWidget && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onAddWidget)}>
-          <Plus size={14} />
-          <span>{t('panel.widget.menu.addWidget')}</span>
-        </button>
-      )}
-
-      {onOpenPanelActions && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onOpenPanelActions)}>
-          <SlidersHorizontal size={14} />
-          <span>{t('panel.actions.label')}</span>
-        </button>
-      )}
+      {/* Groups in order: widget items, view toggles, panel-wide items; a divider only between non-empty groups. */}
+      {(onToggleLock || onToggleAlwaysOnTop) && <div className={styles.divider} />}
 
       {onToggleLock && (
         <button
@@ -273,6 +258,22 @@ export function WidgetContextMenu({
           <Pin size={14} />
           <span>{t('panel.widget.menu.alwaysOnTop')}</span>
           {alwaysOnTop && <Check size={14} className={styles.itemCheck} />}
+        </button>
+      )}
+
+      {(onAddWidget || onOpenPanelActions) && <div className={styles.divider} />}
+
+      {onAddWidget && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onAddWidget)}>
+          <Plus size={14} />
+          <span>{t('panel.widget.menu.addWidget')}</span>
+        </button>
+      )}
+
+      {onOpenPanelActions && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onOpenPanelActions)}>
+          <SlidersHorizontal size={14} />
+          <span>{t('panel.actions.label')}</span>
         </button>
       )}
     </div>

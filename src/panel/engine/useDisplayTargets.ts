@@ -6,9 +6,10 @@ import { useDisplayTopology } from '../../hooks/useDisplayTopology';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import type { PanelWidget } from '../types';
 import { lookupApp } from '../widgets/registry';
+import { displayNumberLabel } from '../../components/views/DisplaysView/monitorMapLayout';
 import { displayIdForWindow } from './windowDisplay';
 
-export interface DisplayTarget { id: string; name: string }
+export interface DisplayTarget { id: string; name: string; number: string }
 
 /**
  * Where the dashboard can add a widget: displays hosting a multi-widget panel that is on, plus every
@@ -21,15 +22,16 @@ export function displayTargetsOf(
 ): DisplayTarget[] {
   if (!topology) return [];
   const targets: DisplayTarget[] = [];
-  for (const d of topology.displays) {
-    if (d.isY70) continue;
+  topology.displays.forEach((d, index) => {
+    const number = displayNumberLabel(d, index);
+    if (d.isY70) return;
     if (d.assignedPanelDeviceId) {
       const r = records.find(rec => rec.id === d.assignedPanelDeviceId);
-      if (r && r.enabled !== false && r.capabilities?.surface === 'monitor') targets.push({ id: d.id, name: r.displayName });
+      if (r && r.enabled !== false && r.capabilities?.surface === 'monitor') targets.push({ id: d.id, name: r.displayName, number });
     } else if (topology.hostingSupported && d.hostingSupported) {
-      targets.push({ id: d.id, name: d.name });
+      targets.push({ id: d.id, name: d.name, number });
     }
-  }
+  });
   const current = targets.findIndex(t => t.id === currentDisplayId);
   return current > 0 ? [targets[current], ...targets.slice(0, current), ...targets.slice(current + 1)] : targets;
 }

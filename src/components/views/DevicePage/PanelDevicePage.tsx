@@ -28,6 +28,7 @@ import {
 } from '../../../panel/engine/widgetPlaylist';
 import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
+import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -462,10 +463,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const layoutSurfaceOf = useCallback((record: PanelDeviceRecord | null | undefined, touch: boolean | undefined) => {
     const caps = record?.capabilities;
     const family = caps?.family ?? device?.family;
-    const laidOut = panelLayoutSurface(glassSurface, family, record?.widgetSize);
+    const sizeOf = recordWidgetSizeOf(record, glassSurface);
+    const laidOut = panelLayoutSurface(glassSurface, family, sizeOf);
     // Same canvas the editor grid reads: the record's own, else the device entry's.
     const canvas = caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight } : device?.previewSize;
-    const dpi = panelLayoutDpi(glassSurface, family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI)
+    const dpi = panelLayoutDpi(glassSurface, family, sizeOf, caps?.dpi, DEFAULT_SURFACE_DPI)
       ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
     const canvasDensitySlots = canvas
       ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (caps?.cssWidth ? caps.dpr : device?.previewDpr) || 1, dpi)
@@ -474,7 +476,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       surface: laidOut,
       touch: record?.displayId ? true : laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
-        panelShortSideSlots(glassSurface, family, record?.widgetSize, canvasDensitySlots),
+        panelShortSideSlots(glassSurface, family, sizeOf, canvasDensitySlots),
         isLandscapeCanvas(canvas),
       ),
     };
@@ -710,7 +712,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
       setMatchedFamily(match?.capabilities?.family);
-      setRecordWidgetSize(match?.widgetSize ?? null);
+      setRecordWidgetSize(recordWidgetSizeOf(match, glassSurface) ?? null);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       setRecordTouch(match?.capabilities?.touch);
       const loaded = layoutSurfaceOf(match, match?.capabilities?.touch ?? device?.capabilities.touch);
@@ -876,11 +878,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // and persists against.
       if (writeSeqRef.current !== seq) return;
       // Widget size is written with the layout, so it goes stale the same way.
-      setRecordWidgetSize(record.widgetSize ?? null);
+      setRecordWidgetSize(recordWidgetSizeOf(record, glassSurface) ?? null);
       const synced = layoutSurfaceOf(record, record.capabilities?.touch ?? glassTouch);
       setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid, !!record.displayId));
     }).catch(() => {});
-  }, [editingDeviceId, glassTouch, layoutSurfaceOf]);
+  }, [editingDeviceId, glassSurface, glassTouch, layoutSurfaceOf]);
 
   // Every broadcast-driven read goes through this. A write of ours in flight
   // must defer rather than apply, or the echo reverts a controlled field

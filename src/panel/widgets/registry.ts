@@ -1,4 +1,4 @@
-import { Boxes } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import { appIconComponent } from '../../components/icons/AppIconImage';
 import { MarketplaceTouch, MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
@@ -227,7 +227,7 @@ export function makeMarketplaceAppManifest(
       // The app's own manifest mark when it ships one; the generic catalog
       // glyph otherwise. Not gated on `preinstalled` - the OEM flag decides
       // whether an app auto-seeds, not which icon it draws.
-      icon: iconUrl ? appIconComponent(iconUrl) : Boxes,
+      icon: iconUrl ? appIconComponent(iconUrl) : LayoutDashboard,
       sizes: safeSizes,
       defaultSize,
       gridSizes: gridSizes.length > 0 ? gridSizes : undefined,
