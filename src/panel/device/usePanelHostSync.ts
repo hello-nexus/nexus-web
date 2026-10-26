@@ -93,6 +93,25 @@ export function usePanelRaise(active: boolean, raised: boolean): void {
   }, []);
 }
 
+/** Lets the host activate the kiosk so a text field can take the keyboard; released on close and on unmount. */
+export function usePanelActivatable(active: boolean, wanted: boolean): void {
+  const lastRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!active) {
+      lastRef.current = null;
+      return undefined;
+    }
+    if (lastRef.current !== wanted) {
+      lastRef.current = wanted;
+      postPanelHostMessage({ type: 'nexus.panel.activatable', value: wanted });
+    }
+    return onHostRequestHitTest(() => postPanelHostMessage({ type: 'nexus.panel.activatable', value: wanted }));
+  }, [active, wanted]);
+  useEffect(() => () => {
+    if (lastRef.current === true) postPanelHostMessage({ type: 'nexus.panel.activatable', value: false });
+  }, []);
+}
+
 const CARD_SELECTOR = '[data-panel-widget-id] .panel-card';
 
 function cardRadius(): number {

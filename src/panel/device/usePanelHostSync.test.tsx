@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LEASE_RENEW_MS, usePanelFrost, usePanelHitTest, usePanelRaise } from './usePanelHostSync';
+import { LEASE_RENEW_MS, usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './usePanelHostSync';
 
 const sent: Array<Record<string, unknown>> = [];
 const rootRef = { current: null };
@@ -131,5 +131,33 @@ describe('usePanelFrost', () => {
     renderHook(() => usePanelFrost(false, 70, true, false, rootRef, 'a'));
     await flush();
     expect(frosts()).toHaveLength(0);
+  });
+});
+
+describe('usePanelActivatable', () => {
+  const activations = () => sent.filter(m => m.type === 'nexus.panel.activatable').map(m => m.value);
+
+  it('asks for activation while a sheet is open and releases it on close', async () => {
+    const { rerender } = renderHook(({ open }) => usePanelActivatable(true, open), { initialProps: { open: false } });
+    await flush();
+    rerender({ open: true });
+    rerender({ open: true });
+    rerender({ open: false });
+    expect(activations()).toEqual([false, true, false]);
+  });
+
+  it('releases on unmount while still open, and re-sends on a host request', async () => {
+    const view = renderHook(() => usePanelActivatable(true, true));
+    await flush();
+    (window as unknown as { __nexusPanelHost: { requestHitTest(): void } }).__nexusPanelHost.requestHitTest();
+    expect(activations()).toEqual([true, true]);
+    view.unmount();
+    expect(activations().at(-1)).toBe(false);
+  });
+
+  it('stays silent on a panel with no host binding', async () => {
+    renderHook(() => usePanelActivatable(false, true));
+    await flush();
+    expect(activations()).toEqual([]);
   });
 });

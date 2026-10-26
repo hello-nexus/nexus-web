@@ -52,8 +52,9 @@ import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
 import { AdaptivePointerSensor, dragActivationFor } from './engine/pointerDragSensor';
 import { setAllWidgetsLocked, setWidgetLocked } from './engine/widgetLock';
 import { useDesktopImport } from './engine/useDesktopImport';
+import { editTargetGone, latestOr, useSyncLatestLayout } from './engine/latestLayout';
 import { useDisplayTargets } from './engine/useDisplayTargets';
-import { usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
+import { usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
 import { panelHostAvailable } from './device/panelHostBridge';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
@@ -874,7 +875,9 @@ export function PanelContent({
     () => ({ gridCols: gridColumns, pageRows }),
     [gridColumns, pageRows],
   );
+  const latestLayoutRef = useRef<PanelLayout | null>(null);
   const setLayout = useCallback((next: PanelLayout) => {
+    latestLayoutRef.current = next;
     setStoredLayout(fittedLayout !== layout ? restoreOverflowPositions(next, layout, fittedLayout) : next);
   }, [fittedLayout, layout, setStoredLayout]);
 
@@ -1239,6 +1242,7 @@ export function PanelContent({
     setLayout(setImmersiveOnLoadWidgetId(paginatedLayout, on ? widgetId : null));
   }, [paginatedLayout, setLayout]);
 
+  useSyncLatestLayout(latestLayoutRef, paginatedLayout);
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
   const editingWidgetSize = editingWidget?.size;
   // The edited widget's own grid tile (PanelTouchCell, in the page below) and
@@ -1453,6 +1457,13 @@ export function PanelContent({
   }, []);
 
    
+  // A widget removed elsewhere ends its edit session for good, so it cannot reopen the sheet if it returns.
+  useEffect(() => {
+    if (sheetMode === 'settings' && !sheetClosing && editTargetGone(editingWidgetId, editingWidget !== null, editingWidgetId !== null && playlistTypeOfWidgetId(editingWidgetId) !== undefined)) {
+      finishSheetClose();
+    }
+  }, [sheetMode, sheetClosing, editingWidgetId, editingWidget, finishSheetClose]);
+
   const closeSheet = useCallback(() => {
     if (!sheetMode) return;
     const closingWidget = editingWidgetId && editingWidgetSize
@@ -1620,13 +1631,15 @@ export function PanelContent({
   }, [activePageIndex, paginatedLayout, capacity, singlePage]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
+    // Built on the latest queued layout, so two edits before a render both land.
+    const base = latestOr(latestLayoutRef, paginatedLayout);
     const standInType = playlistTypeOfWidgetId(widgetId);
     if (standInType) {
-      setLayout(patchPlaylistWidgetConfig(paginatedLayout, standInType, config));
+      setLayout(patchPlaylistWidgetConfig(base, standInType, config));
       return;
     }
     setLayout(patchWidgetById(
-      paginatedLayout,
+      base,
       widgetId,
       w => ({ ...w, config: { ...w.config, ...config } }),
       capacity,
@@ -1792,6 +1805,8 @@ export function PanelContent({
     rootRef,
     `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${allFlatIds.join(',')}`,
   );
+  // Every sheet (widget edit, catalog, panel settings, pairing) can hold a text field.
+  usePanelActivatable(hostBound, Boolean(sheetMode));
   usePanelRaise(
     hostBound && menuAlwaysOnTop === false,
     Boolean(touch.ctxMenu || sheetMode || trayOpen || activeDragId || dragArmedId || freeformActive),

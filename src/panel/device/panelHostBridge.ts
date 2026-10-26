@@ -7,6 +7,8 @@ export type PanelHostMessage =
   // `lease`: a transient full that the host drops unless it is renewed.
   | { type: 'nexus.panel.hitTest'; mode: 'region' | 'full'; dpr: number; rects: HitRect[]; lease?: boolean }
   | { type: 'nexus.panel.raise'; value: boolean }
+  // The kiosk may take the keyboard while a surface with a text field is open.
+  | { type: 'nexus.panel.activatable'; value: boolean }
   // Card areas the host blurs natively behind a see-through panel; `none` when frost is off or the panel is opaque.
   | FrostMessage;
 
