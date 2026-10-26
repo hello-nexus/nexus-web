@@ -228,8 +228,10 @@ function loadDeviceOrder(): string[] {
   return [];
 }
 
-// three.js loads only when someone turns the 3D view on.
-const LightingScene3D = lazy(() => import('./scene/LightingScene3D'));
+// three.js loads only when someone turns the 3D view on. Dev-tools only: the raw defines fold in this module, so a distribution build drops the chunk; a shared const does not fold across modules.
+const LightingScene3D = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? lazy(() => import('./scene/LightingScene3D'))
+  : null;
 const ShaderStudio = lazy(() => import('./studio/ShaderStudio').then(m => ({ default: m.ShaderStudio })));
 const SavedEffectSections = lazy(() => import('./studio/CustomEffectsGrid').then(m => ({ default: m.SavedEffectSections })));
 const VIEW_2D = '2d' as const;
@@ -3011,7 +3013,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           )}
           {showCanvas && (
           <div className={styles.canvasArea}>
-            {scene3d ? (
+            {scene3d && LightingScene3D ? (
               <Suspense fallback={<div className={styles.scenePlaceholder} />}>
                 <LightingScene3D
                   api={sceneApi}
