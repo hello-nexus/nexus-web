@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Linked to {slots} fans",
   "cooling.case3d.linkedToOne": "Linked to {slot} fan",
   "cooling.case3d.noFans": "No fans are installed in this case.",
-  "cooling.case3d.noModel": "Showing the case outline. Open Build once to export the case model.",
   "cooling.case3d.noneLinked": "No fan linked",
   "cooling.case3d.position.bottom": "Bottom",
   "cooling.case3d.position.front": "Front",

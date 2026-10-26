@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Associato alle ventole {slots}",
   "cooling.case3d.linkedToOne": "Associato alla ventola {slot}",
   "cooling.case3d.noFans": "In questo case non sono installate ventole.",
-  "cooling.case3d.noModel": "Viene mostrato il contorno del case. Apri Build una volta per esportare il modello del case.",
   "cooling.case3d.noneLinked": "Nessuna ventola associata",
   "cooling.case3d.position.bottom": "Inferiore",
   "cooling.case3d.position.front": "Frontale",

@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Associât a lis ventulis {slots}",
   "cooling.case3d.linkedToOne": "Associât a la ventule {slot}",
   "cooling.case3d.noFans": "In chest case no son instaladis ventulis.",
-  "cooling.case3d.noModel": "Si mostre il profîl dal case. Vierç Build une volte par esportâ il model dal case.",
   "cooling.case3d.noneLinked": "Nissune ventule associade",
   "cooling.case3d.position.bottom": "Sot",
   "cooling.case3d.position.front": "Denant",

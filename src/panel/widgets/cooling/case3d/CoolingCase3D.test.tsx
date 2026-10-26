@@ -8,8 +8,6 @@ import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
 
 const h = vi.hoisted(() => ({
   flowSupported: true,
-  model: { bytes: null as ArrayBuffer | null, settled: true },
-  modelActive: [] as boolean[],
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   devTools: true,
@@ -21,7 +19,6 @@ const h = vi.hoisted(() => ({
 vi.mock('../../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
 vi.mock('../../../../api/pcSetup', async importOriginal => ({ ...(await importOriginal<typeof import('../../../../api/pcSetup')>()), patchPcSetupRadiator: (...args: unknown[]) => h.patch(...args) }));
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
-vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: (active: boolean) => { h.modelActive.push(active); return h.model; } }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
@@ -62,11 +59,9 @@ beforeEach(() => {
   h.setup = { record: null, loaded: false };
   h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
   h.renderers.length = 0;
-  h.modelActive.length = 0;
   h.patch = vi.fn();
   h.devTools = true;
   h.flowSupported = true;
-  h.model = { bytes: null, settled: true };
   vi.mocked(createCaseRenderer).mockClear();
   globalThis.ResizeObserver = class { observe() {} disconnect() {} unobserve() {} } as unknown as typeof ResizeObserver;
 });
@@ -152,7 +147,6 @@ describe('CoolingCase3D airflow case gate', () => {
     expect(screen.queryByText('cooling.case3d.unsupported.title')).toBeNull();
     expect(screen.getByRole('img', { name: 'cooling.case3d.canvas' })).toBeTruthy();
     expect(createCaseRenderer).toHaveBeenCalledTimes(1);
-    expect(h.modelActive.at(-1)).toBe(true);
   });
 
   it.each(['HYTE Y60', 'HYTE X50', 'Lian Li O11 Dynamic', null])('shows only the notice for %s and builds no renderer', name => {
@@ -162,7 +156,6 @@ describe('CoolingCase3D airflow case gate', () => {
     expect(screen.queryByRole('img', { name: 'cooling.case3d.canvas' })).toBeNull();
     expect(screen.queryByRole('group', { name: 'cooling.case3d.stats.label' })).toBeNull();
     expect(createCaseRenderer).not.toHaveBeenCalled();
-    expect(h.modelActive.every(active => !active)).toBe(true);
   });
 
   it('opens Build from the notice', () => {
@@ -722,34 +715,6 @@ describe('CoolingCase3D live fan speed', () => {
     expect(lastState().flow).toBe(first);
     rerender(<CoolingCase3D channels={rpmChannels(500)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
     expect(lastState().flow).not.toBe(first);
-  });
-});
-
-describe('CoolingCase3D case model', () => {
-  const mount = () => {
-    h.setup = { record: record(), loaded: true };
-    setLayout({ settled: true });
-    return render(ui());
-  };
-
-  it('hands Build\'s exported model to the scene and shows no hint', () => {
-    const bytes = new ArrayBuffer(8);
-    h.model = { bytes, settled: true };
-    mount();
-    expect(lastState().model).toBe(bytes);
-    expect(screen.queryByText('cooling.case3d.noModel')).toBeNull();
-  });
-
-  it('keeps the outline and says to open Build once when the service holds no model', () => {
-    mount();
-    expect(lastState().model).toBeNull();
-    expect(screen.getByText('cooling.case3d.noModel')).toBeTruthy();
-  });
-
-  it('shows no hint while the model is still being asked for', () => {
-    h.model = { bytes: null, settled: false };
-    mount();
-    expect(screen.queryByText('cooling.case3d.noModel')).toBeNull();
   });
 });
 

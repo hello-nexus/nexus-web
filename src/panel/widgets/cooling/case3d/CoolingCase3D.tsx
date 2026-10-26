@@ -19,7 +19,6 @@ import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNa
 import { COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE, type CoolingFlowMode } from '../../../../lib/settings';
 import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
-import { useCaseModel } from '../../../../hooks/useCaseModel';
 import { useComponentTemps } from '../../../../hooks/useComponentTemps';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { useTranslation } from '../../../../lib/i18n';
@@ -128,7 +127,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [flowSupported, setFlowSupported] = useState(true);
   // Only a listed case runs the view; any other keeps the notice and fetches no model.
   const airflowCase = supportsAirflow(parsedLayout?.caseModel);
-  const caseModel = useCaseModel(airflowCase, record?.rev ?? null);
   const temps = useComponentTemps(true);
 
   const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
@@ -189,9 +187,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   useEffect(() => {
     if (!caseLayout || !renderer) return;
-    renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, showCase, active, flow: flowInput, flowOptions, model: caseModel.bytes });
+    renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, showCase, active, flow: flowInput, flowOptions });
     setFlowSupported(renderer.flowSupported);
-  }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, flowInput, flowOptions, caseModel.bytes]);
+  }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, flowInput, flowOptions]);
 
   // Temperatures ride a path of their own: the renderer hands them to the live particle pass, so a sensor tick never rebuilds the scene.
   useEffect(() => { renderer?.setTemps(temps); }, [renderer, temps]);
@@ -324,7 +322,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       {!flowSupported && <Notice tone="info" role="status">{t('cooling.case3d.flow.unsupported')}</Notice>}
       {moveFailed && <Notice tone="warning" role="status">{t('cooling.case3d.radiator.error')}</Notice>}
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
-      {caseModel.settled && !caseModel.bytes && <Notice tone="info" role="status">{t('cooling.case3d.noModel')}</Notice>}
       {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
         <div className={`${styles.corner} ${styles.control}`}>
