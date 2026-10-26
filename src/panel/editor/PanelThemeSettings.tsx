@@ -255,8 +255,9 @@ export function PanelThemeSettings({
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
   // Frost blurs whatever the page itself paints, so it applies to the
   // redrawn wallpaper and to a shader/media layer. In see-through mode the
-  // page paints nothing and backdrop-filter has nothing to sample.
+  // page paints nothing, so the host blurs the desktop behind the cards.
   const frostApplies = theme.backdrop === 'wallpaper'
+    || theme.backdrop === 'desktop'
     || (theme.backdrop === 'theme' && theme.backgroundMode !== 'solid');
   // Built outside the JSX so the option keys read as data, matching the other
   // ChipGroup call sites (the i18n lint rule scans JSX only).

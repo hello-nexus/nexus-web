@@ -30,6 +30,8 @@ export interface SimulatorInitMessage {
   // set). The desktop see-through gate (supportsDesktopWallpaper) needs it,
   // or a 'monitor' preview never renders the wallpaper layer.
   displayBound?: boolean;
+  // The editor's classification, so the preview matches the kiosk for known devices.
+  genericDisplay?: boolean;
   layout: PanelLayout;
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
@@ -83,6 +85,7 @@ export interface SimulatorSetTouchMessage {
 export interface SimulatorSetDisplayBoundMessage {
   type: 'simulator/set-display-bound';
   displayBound?: boolean;
+  genericDisplay?: boolean;
 }
 
 export interface SimulatorSetThemeMessage {

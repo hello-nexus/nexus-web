@@ -74,14 +74,14 @@ vi.mock('../../../panel/editor/PanelThemeSettings', () => ({
 }));
 vi.mock('../../../panel/widgets/registry', () => ({
   lookupApp: (type: string) => ({
-    meta: { type, i18nKey: `name.${type}`, sizes: ['2x2', '2x4', '4x4'], defaultSize: '2x2', icon: () => null },
+    meta: { type, i18nKey: `name.${type}`, sizes: ['2x2', '2x4', '4x4'], defaultSize: '2x2', icon: () => null, touch: type === 'calculator' },
     Widget: () => <div data-testid="widget-preview" />,
     Settings: undefined,
   }),
   sizesForSurface: (_meta: unknown, surface: string, _touch?: boolean, slots?: number) => (
     slots !== undefined ? ['2x2', '2x4'] : surface === 'q60' ? ['2x4'] : ['2x2', '4x4']
   ),
-  appAvailableForSurface: () => true,
+  appAvailableForSurface: (meta: { touch?: boolean }, _surface: string, opts?: { deviceTouch?: boolean }) => !(meta.touch && opts?.deviceTouch !== true),
 }));
 vi.mock('./PanelEmbedFrame', () => ({
   PanelEmbedFrame: (props: { layout: PanelLayout; surface: string }) => (
@@ -191,6 +191,15 @@ describe('PanelDevicePage widget size', () => {
     expect(pushToastMock).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a pointer-required widget when a mouse-only display changes size', async () => {
+    await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'calculator', 0, 0, '2x4')], 'q60') });
+
+    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+
+    await waitFor(() => expect(patches()).toHaveLength(1));
+    expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['calculator']);
+  });
+
   it('shows no toast when the record write succeeds', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 
@@ -199,18 +208,17 @@ describe('PanelDevicePage widget size', () => {
     expect(pushToastMock).not.toHaveBeenCalled();
   });
 
-  it('keeps a non-touch panel on one page when its grid is full', async () => {
+  it('spills a full grid onto a second page for a display-bound panel without touch', async () => {
     const full = [0, 2, 4].flatMap(row => [widget(`l${row}`, 'clock', 0, row), widget(`r${row}`, 'weather', 2, row)]);
     await renderPage({ layout: layout(full) });
 
-    expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('false');
+    expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('unchecked');
     await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
 
-    expect(screen.getByTestId('embed').dataset.pageCount).toBe('1');
-    expect(patches().every(p => (p.layout?.pages.length ?? 1) === 1)).toBe(true);
+    expect(screen.getByTestId('embed').dataset.pageCount).toBe('2');
   });
 
-  it('on the Lian Li 8.8, large snaps 4-wide widgets and names the ones the single 2x8 page cannot hold', async () => {
+  it('on the Lian Li 8.8, large snaps 4-wide widgets and pages the ones the 2x8 grid cannot hold', async () => {
     const screen88 = {
       capabilities: { surface: 'monitor', family: 'lianli-screen88', cssWidth: 480, cssHeight: 1920, dpr: 1, dpi: 225, touch: false },
       layout: layout([
@@ -222,17 +230,13 @@ describe('PanelDevicePage widget size', () => {
 
     await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
 
-    expect(screen.getByText('devices.panels.widgetSize.confirmTitle')).toBeInTheDocument();
-    expect(screen.getByText('name.stocks')).toBeInTheDocument();
-    expect(screen.queryByText('name.weather')).not.toBeInTheDocument();
-
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.panels.widgetSize.confirm' })); });
-
+    // A display panel has a pager, so nothing is dropped and no confirmation is asked.
+    expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
     const written = patches()[0].layout?.pages.flatMap(p => p.widgets) ?? [];
     expect(patches()[0].widgetSize).toBe('large');
-    expect(written.map(w => w.type)).toEqual(['clock', 'weather', 'media', 'monitoring']);
-    expect(written.every(w => w.size === '2x2' && w.col === 0)).toBe(true);
+    expect(written.map(w => w.type).sort()).toEqual(['clock', 'media', 'monitoring', 'stocks', 'weather']);
+    expect((patches()[0].layout?.pages.length ?? 0)).toBeGreaterThan(1);
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
   });
 });

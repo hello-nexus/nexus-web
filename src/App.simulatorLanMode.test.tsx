@@ -14,7 +14,6 @@ vi.mock('./app/windowActions', () => ({
   isMacAppShell: () => false,
 }));
 vi.mock('./app/PanelEntrypoint', () => ({
-  OverlayWrapper: () => null,
   PanelEntrypoint: () => <div data-testid="panel-entrypoint" />,
   PanelSimulatorWrapper: () => <div data-testid="panel-simulator" />,
 }));

@@ -1,3 +1,5 @@
+import { panelHostAvailable } from './device/panelHostBridge';
+
 // Canonical shape for the panel widget engine. Mirrors
 // nexus-service/Models/Panel/PanelLayoutDto.cs. Keep in sync.
 
@@ -82,7 +84,12 @@ export function isStreamedPanelSurface(surface: PanelSurface, displayBound = tru
 // is edited remotely from a desktop modal the operator's own keyboard applies,
 // not the target surface's.
 export function surfaceSupportsTextInput(surface: PanelSurface): boolean {
-  return surface === 'desktop' || surface === 'phone';
+  return surface === 'desktop' || surface === 'phone' || hostedDisplayKeyboard(surface);
+}
+
+// A PC display panel under a kiosk host takes the keyboard via nexus.panel.activatable; the Y70 is its own surface.
+export function hostedDisplayKeyboard(surface: PanelSurface): boolean {
+  return surface === 'monitor' && panelHostAvailable();
 }
 
 // Whether the operator editing a panel can type into free-text fields.
@@ -154,15 +161,22 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
   return singleWidgetSurfaceSize(surface) !== undefined;
 }
 
-// Pages are reached by swiping, so a panel without touch keeps one page.
-export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean): boolean {
-  return surfaceSupportsTouch(surface, deviceTouch);
+// Pages are reached by swiping, so a panel without touch keeps one page, except a
+// display-bound multi-widget panel, which has a clickable pager.
+export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean, displayBound = false, genericDisplay = false): boolean {
+  if (genericDisplay) return false;
+  return surfaceSupportsTouch(surface, deviceTouch) || (displayBound && !isSingleWidgetSurface(surface));
 }
 
-// Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid. A panel
-// that offers the switch lays out each size as another surface does, while its own
-// surface keeps driving the hardware (touch, render cost, offline behaviour).
-export const PANEL_WIDGET_SIZE_MODES = ['large', 'small'] as const;
+// An OS display promoted to a panel that no curated device claims (a curated one carries capabilities.family).
+export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string | undefined, displayBound: boolean): boolean {
+  return glassSurface === 'monitor' && displayBound && !family;
+}
+
+// Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid; 'xsmall' (plain OS
+// displays only) the densest. A panel that offers the switch lays out each size as another surface
+// does, while its own surface keeps driving the hardware (touch, render cost, offline behaviour).
+export const PANEL_WIDGET_SIZE_MODES = ['large', 'small', 'xsmall'] as const;
 export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 
 export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
@@ -172,7 +186,8 @@ export const ASUS_GLACIAL_LCD_FAMILY = 'asus-glacial-lcd';
 
 export interface PanelWidgetSizeOptions {
   default: PanelWidgetSizeMode;
-  layoutSurface: Readonly<Record<PanelWidgetSizeMode, PanelSurface>>;
+  // The sizes a panel offers; a size absent here is not offered.
+  layoutSurface: Readonly<Partial<Record<PanelWidgetSizeMode, PanelSurface>>>;
   // Physical px/inch of the glass, for a size laid out as a density-sized grid.
   dpi?: number;
   // Short-axis slot count a size forces, replacing the density-derived one.
@@ -183,7 +198,7 @@ export interface PanelWidgetSizeOptions {
 
 // The Q-series and the iCUE LINK 5" LCD share one portrait glass size: Large is the
 // Q-series' one full-screen tile, Small a monitor grid sized by the glass's density.
-const ONE_TILE_OR_GRID: Readonly<Record<PanelWidgetSizeMode, PanelSurface>> = { large: 'q60', small: 'monitor' };
+const ONE_TILE_OR_GRID: Readonly<Partial<Record<PanelWidgetSizeMode, PanelSurface>>> = { large: 'q60', small: 'monitor' };
 
 export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | null): PanelWidgetSizeOptions | undefined {
   if (surface === 'q60') return { default: 'large', layoutSurface: ONE_TILE_OR_GRID };
@@ -201,9 +216,9 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }
-  // A plain OS monitor: Large halves its density grid's short axis, so cells double.
+  // A plain OS monitor: Large halves its density grid's short axis so cells double, Tiny doubles it so they halve.
   if (surface === 'monitor' && !family) {
-    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, densitySlotShare: { large: 0.5 } };
+    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', xsmall: 'monitor' }, densitySlotShare: { large: 0.5, xsmall: 2 } };
   }
   return undefined;
 }
@@ -228,7 +243,33 @@ export function widgetSizeShortSideSlots(
   if (!options || !mode) return undefined;
   const share = options.densitySlotShare?.[mode];
   if (share === undefined) return options.shortSideSlots?.[mode];
-  return densitySlots === undefined ? undefined : Math.max(2, Math.round(densitySlots * share));
+  return densitySlots === undefined ? undefined : Math.min(GRID_SLOTS_MAX, Math.max(2, Math.round(densitySlots * share)));
+}
+
+// Short-axis cell counts a record's grid density may name; even, so a 2x2 tile always fits.
+export const GRID_SLOTS_MIN = 2;
+export const GRID_SLOTS_MAX = 64;
+
+/** The record's own grid density when valid, else undefined; zero is the wire's "unset". */
+export function normalizeGridSlots(value: number | null | undefined): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined;
+  const even = Math.round(value / 2) * 2;
+  return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, even));
+}
+
+/** The size whose short-axis count is nearest, by ratio, to a record's retired grid density. */
+export function sizeForLegacyGridSlots(gridSlots: number | null | undefined, densitySlots: number | undefined): PanelWidgetSizeMode | undefined {
+  const slots = normalizeGridSlots(gridSlots);
+  if (slots === undefined || !densitySlots) return undefined;
+  const options = panelWidgetSizeOptions('monitor', undefined);
+  let best: { mode: PanelWidgetSizeMode; err: number } | undefined;
+  for (const mode of PANEL_WIDGET_SIZE_MODES) {
+    const candidate = options ? widgetSizeShortSideSlots(options, mode, densitySlots) ?? densitySlots : undefined;
+    if (!candidate) continue;
+    const err = Math.abs(Math.log(slots / candidate));
+    if (!best || err < best.err - 1e-9) best = { mode, err };
+  }
+  return best?.mode;
 }
 
 export function panelShortSideSlots(
@@ -265,7 +306,8 @@ export function resolvePanelWidgetSize(
 ): PanelWidgetSizeMode | undefined {
   const options = panelWidgetSizeOptions(surface, family);
   if (!options) return undefined;
-  return widgetSize === 'large' || widgetSize === 'small' ? widgetSize : options.default;
+  const named = PANEL_WIDGET_SIZE_MODES.find(m => m === widgetSize);
+  return named && options.layoutSurface[named] ? named : options.default;
 }
 
 // The surface whose layout rules (grid, single tile, sizes, playlist) the panel follows.
@@ -276,7 +318,7 @@ export function panelLayoutSurface(
 ): PanelSurface {
   const options = panelWidgetSizeOptions(surface, family);
   const mode = resolvePanelWidgetSize(surface, family, widgetSize);
-  return options && mode ? options.layoutSurface[mode] : surface;
+  return (options && mode ? options.layoutSurface[mode] : undefined) ?? surface;
 }
 
 // A panel with no stored background starts solid, except a Q-series cooler, whose
@@ -285,11 +327,18 @@ export function surfaceDefaultsToAnimatedBackground(surface: PanelSurface): bool
   return surface === 'q60';
 }
 
+/** Input the widget registry sees: a display-bound panel always has its mouse. */
+export function widgetInputOf(deviceTouch: boolean | undefined, displayBound: boolean): boolean | undefined {
+  return displayBound ? true : deviceTouch;
+}
+
 // Whether a press on the canvas can drag, resize or remove widgets. The device-page
 // preview is edited with the dashboard's mouse, so any multi-widget panel qualifies
-// there; on the glass itself only a touch surface does.
-export function panelCanvasEditable(surface: PanelSurface, deviceTouch: boolean | undefined, preview: boolean): boolean {
-  return preview ? !isSingleWidgetSurface(surface) : surfaceSupportsTouch(surface, deviceTouch);
+// there; on the glass itself a touch surface does, and so does a display-bound
+// multi-widget panel, which its mouse edits.
+export function panelCanvasEditable(surface: PanelSurface, deviceTouch: boolean | undefined, preview: boolean, displayBound = false): boolean {
+  if (preview) return !isSingleWidgetSurface(surface);
+  return surfaceSupportsTouch(surface, deviceTouch) || (displayBound && !isSingleWidgetSurface(surface));
 }
 
 // Sizes reserved for single-widget surfaces. Multi-widget surfaces hide them
@@ -365,6 +414,8 @@ export interface PanelWidget {
   col: number;
   row: number;
   isImmersive?: boolean;
+  // A locked widget cannot be dragged, resized or edited until unlocked.
+  locked?: boolean;
   config?: Record<string, PanelConfigValue>;
 }
 

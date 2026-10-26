@@ -18,6 +18,28 @@
   opacity: 0;
 }
 
+// A clickable pager takes the pointer; the dots grow a hit area past what they paint.
+.indicator[data-interactive='true'] {
+  pointer-events: auto;
+}
+
+button.dot {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+button.dot::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  bottom: -8px;
+  left: -6px;
+}
+
 .dot {
   width: 9px;
   height: 9px;

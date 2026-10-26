@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, listSidebarAppKeys, sanitizePinnedTail, sanitizeRecents } from './sidebarApps';
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
 import { PAGE_ONLY_APPS } from './pageOnlyApps';
-import { Boxes, Film } from 'lucide-react';
+import { LayoutDashboard, Film } from 'lucide-react';
 import { appIconComponent, appIconMaskComponent } from '../components/icons/AppIconImage';
 import {
   _resetMarketplaceRegistryForTests,
@@ -67,13 +67,13 @@ describe('getSidebarAppMeta - SDK app manifest icon', () => {
     ]);
     const meta = getSidebarAppMeta(typeForMarketplace('com.hellonexus.plain'));
     expect(meta).not.toBeNull();
-    expect((meta!.icon as ReactElement).type).toBe(Boxes);
+    expect((meta!.icon as ReactElement).type).toBe(LayoutDashboard);
   });
 
   it('leaves a built-in app (e.g. clock) untouched', () => {
     const meta = getSidebarAppMeta('clock');
     expect(meta).not.toBeNull();
-    expect((meta!.icon as ReactElement).type).not.toBe(Boxes);
+    expect((meta!.icon as ReactElement).type).not.toBe(LayoutDashboard);
   });
 });
 

@@ -2,7 +2,6 @@ import { fetchService, postService, putService, deleteService, loopbackFetchInit
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
 import type { PanelGaugeGradientStopDto } from './panel';
-import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
 import type { TempUnit, TimeFormat, NumberFormat, DateFormat } from '../lib/units';
 import type { CoolingFlowMode } from '../lib/settings';
@@ -80,15 +79,6 @@ export interface PanelSettings {
   dashboardLayout?: PanelLayout;
   /** The desktop dashboard's gauge colour stops; absent = the client default. */
   dashboardGaugeGradient?: PanelGaugeGradientStopDto[] | null;
-}
-
-export interface OverlaySettings {
-  enabled: boolean;
-  alwaysOnTop: boolean;
-  scale: number;
-  opacity: number;
-  monitor: number;
-  layout: OverlayWidgetDto[];
 }
 
 // preferences.diagnostics - thresholds/notifications/component monitoring for
@@ -238,7 +228,6 @@ export interface FeaturesPrefs {
 export interface Preferences {
   theme: ThemeSettings;
   panel: PanelSettings;
-  overlay: OverlaySettings;
   monitoring: MonitoringSettings;
   cooling: CoolingPrefs;
   ui: UiPrefs;
@@ -263,7 +252,6 @@ export interface Preferences {
 export interface PreferencesPatch {
   theme?: Partial<ThemeSettings>;
   panel?: Partial<PanelSettings>;
-  overlay?: Partial<OverlaySettings>;
   monitoring?: Partial<MonitoringSettings>;
   cooling?: Partial<CoolingPrefs>;
   ui?: Partial<UiPrefs>;

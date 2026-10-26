@@ -22,6 +22,12 @@
   }
 }
 
+.filled {
+  background: var(--badge-color, var(--text));
+  color: var(--accent-text);
+  font-weight: var(--weight-heading);
+}
+
 .uppercase {
   text-transform: uppercase;
   letter-spacing: 0.04em;

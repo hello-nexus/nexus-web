@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Check, Pencil } from 'lucide-react';
+import { Check, Lock, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { useCallback, useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
@@ -12,6 +12,7 @@ import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBounda
 import { EditHint } from '../../components/common/EditHint/EditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
+import { useLockNotice } from './useLockNotice';
 import { surfaceSupportsTouch, type PanelLayout, type PanelSurface, type PanelWidget, type PanelConfigValue } from '../types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
 import type { EditorDockMotion } from '../editor/panelEditorDock';
@@ -149,6 +150,7 @@ export function PanelTouchCell({
   onUpdate,
   editorPreview = false,
   movable: movableProp,
+  locked = false,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -183,6 +185,8 @@ export function PanelTouchCell({
   editorPreview?: boolean;
   // Overrides the touch rule: the device-page preview drags on any multi-widget panel.
   movable?: boolean;
+  // A locked widget registers no drag.
+  locked?: boolean;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -215,8 +219,10 @@ export function PanelTouchCell({
     isDragging,
   } = useSortable({
     id: widget.id,
-    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion),
+    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || locked,
   });
+
+  const lockNotice = useLockNotice(locked);
 
   // The cell renders into cellHost and its card + label into contentHost, so
   // the editor dock and the drag overlay move the live widget instead of
@@ -378,8 +384,21 @@ export function PanelTouchCell({
   const dragMotionActive = Boolean(editorDockMotion) || Boolean(resizeMotion);
   const composedPointerHandlers = dragMotionActive ? {} : {
     ...cellPointers,
+    onPointerMove: (e: React.PointerEvent) => {
+      cellPointers.onPointerMove(e);
+      lockNotice.handlers.onPointerMove(e);
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      cellPointers.onPointerUp(e);
+      lockNotice.handlers.onPointerUp(e);
+    },
+    onPointerCancel: (e: React.PointerEvent) => {
+      cellPointers.onPointerCancel(e);
+      lockNotice.handlers.onPointerCancel();
+    },
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
+      lockNotice.handlers.onPointerDown(e);
       // Skip dnd-kit activation in scroll regions inside widgets (cellPointers
       // already bails there). Else a 500ms hold inside a scroll list would
       // start a sort-drag.
@@ -399,6 +418,7 @@ export function PanelTouchCell({
       data-cell-state={editorDockMotion ? 'docked' : undefined}
       data-clickthrough={clickthrough && !editorDockMotion ? 'true' : undefined}
       data-edit-hint={editHint ? 'true' : undefined}
+      data-lock-notice={lockNotice.visible ? 'true' : undefined}
       data-resize-selected={resizeSelected ? 'true' : undefined}
       data-immersive-on-load={immersiveOnLoad ? 'true' : undefined}
       className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
@@ -447,6 +467,7 @@ export function PanelTouchCell({
               />
             </div>
             {editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
+            {locked && <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />}
             {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
           </div>
           {immersiveOnLoad && (
@@ -544,6 +565,7 @@ export function PanelCatalogCell({
       ref={drag?.ref}
       {...drag?.listeners}
       data-panel-widget-id={widget.id}
+      data-panel-catalog=""
       className={[
         styles.cellWrap,
         styles.catalogCell,
@@ -653,6 +675,7 @@ export function PanelDragOverlayCell({
     >
       <div
         ref={slotRef}
+        data-panel-drag-overlay=""
         className={`${styles.cellWrap} ${styles.dragOverlayCell}`}
         style={{
           width: fixedWidth ? `${fixedWidth}px` : undefined,

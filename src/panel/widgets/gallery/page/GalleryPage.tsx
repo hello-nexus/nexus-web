@@ -375,7 +375,6 @@ export function GalleryPage() {
 
   const playlistUseLabel = (use: GalleryPlaylistUse) => {
     const where = use.surface === 'dashboard' ? t('gallery.page.usage.dashboard')
-      : use.surface === 'desktop' ? t('gallery.page.usage.desktop')
       : use.name || t('gallery.page.usage.panel');
     return use.count > 1 ? t(pluralKey('gallery.page.usage.count', language, use.count), { name: where, count: use.count }) : where;
   };

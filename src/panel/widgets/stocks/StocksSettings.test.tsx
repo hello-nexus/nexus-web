@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { StocksSettings } from './StocksSettings';
 import { DEFAULT_SYMBOLS } from './stocksUtils';
@@ -111,5 +111,15 @@ describe('StocksSettings', () => {
     render(<StocksSettings widget={stocksWidget()} surface="y70" onUpdate={vi.fn()} onResize={vi.fn()} />);
     expect(screen.queryByPlaceholderText(DEFAULT_SYMBOLS)).toBeNull();
     expect(screen.getByText('Full options available on desktop')).toBeInTheDocument();
+  });
+});
+
+describe('StocksSettings on a hosted display', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the free-text symbols field on a monitor panel under a kiosk host', () => {
+    vi.stubGlobal('chrome', { webview: { postMessage: () => {} } });
+    render(<StocksSettings widget={stocksWidget()} surface="monitor" onUpdate={vi.fn()} onResize={vi.fn()} />);
+    expect(screen.queryByText('Full options available on desktop')).toBeNull();
   });
 });

@@ -598,10 +598,9 @@ interface UiSettingsProviderProps {
   /**
    * Whether server-driven theme / accent / language changes apply to
    * `document.documentElement` and global i18n state. `true` (default) for
-   * the desktop dashboard. `false` for the kiosk panel, overlay process,
-   * and simulator iframe: those own their own theme/language pipelines
-   * (usePanelTheme, the overlay's theme manager, the parent modal's
-   * postMessage feed) and would fight a second writer.
+   * the desktop dashboard. `false` for the kiosk panel and simulator
+   * iframe: those own their own theme/language pipelines (usePanelTheme,
+   * the parent modal's postMessage feed) and would fight a second writer.
    */
   manageDom?: boolean;
 }
@@ -656,7 +655,7 @@ export function UiSettingsProvider({
     // client-scoped fields - short-circuit to skip a pointless POST.
     // startupDelaySeconds is a top-level number (0 is a valid value), so it is
     // checked for definedness rather than truthiness like the domain blocks.
-    const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
+    const anyBlock = serverPatch.theme || serverPatch.panel
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined

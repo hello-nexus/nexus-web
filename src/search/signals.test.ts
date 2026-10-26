@@ -27,9 +27,9 @@ describe('search signals', () => {
   it('drops a pending signal that outlived its TTL', () => {
     vi.useFakeTimers();
     const handler = vi.fn();
-    fireSearchSignal('desktop-widgets');
+    fireSearchSignal('add-widget');
     vi.advanceTimersByTime(10_000);
-    renderHook(() => useSearchSignal('desktop-widgets', handler));
+    renderHook(() => useSearchSignal('add-widget', handler));
     expect(handler).not.toHaveBeenCalled();
   });
 

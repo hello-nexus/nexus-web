@@ -122,45 +122,15 @@ async function openSettingsTab() {
 }
 
 describe('PanelDevicePage Y70 always on top', () => {
-  it('shows the toggle directly under Show Panel whatever Keep panel clear is set to', async () => {
+  it('offers no always on top toggle on the Y70, whatever the stored preference is', async () => {
     servePrefs({ reserveMonitor: true, alwaysOnTop: true });
-    render(<PanelDevicePage device={DEVICE} />);
-    await openSettingsTab();
-
-    const toggle = await screen.findByRole('switch', { name: TOGGLE_LABEL });
-    await waitFor(() => expect(toggle).toBeChecked());
-    const [autoLaunch, alwaysOnTop, reserve] = [AUTO_LAUNCH_LABEL, TOGGLE_LABEL, RESERVE_LABEL]
-      .map(name => screen.getByRole('switch', { name }));
-    const all = screen.getAllByRole('switch');
-    expect(all.indexOf(alwaysOnTop)).toBe(all.indexOf(autoLaunch) + 1);
-    expect(all.indexOf(reserve)).toBe(all.indexOf(alwaysOnTop) + 1);
-
-    fireEvent.click(reserve);
-    await waitFor(() => expect(reserve).not.toBeChecked());
-    expect(screen.getByRole('switch', { name: TOGGLE_LABEL })).toBeEnabled();
-  });
-
-  it('reads the stored value and saves the flip', async () => {
-    servePrefs({ reserveMonitor: true, alwaysOnTop: true });
-    render(<PanelDevicePage device={DEVICE} />);
-    await openSettingsTab();
-
-    const toggle = await screen.findByRole('switch', { name: TOGGLE_LABEL });
-    await waitFor(() => expect(toggle).toBeChecked());
-
-    fireEvent.click(toggle);
-
-    await waitFor(() => expect(savePreferencesMock).toHaveBeenCalledWith({ panel: { alwaysOnTop: false } }));
-    expect(toggle).not.toBeChecked();
-  });
-
-  it('hides the toggle when the host predates the setting', async () => {
-    servePrefs({ reserveMonitor: false });
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
     const reserve = await screen.findByRole('switch', { name: RESERVE_LABEL });
-    await waitFor(() => expect(reserve).not.toBeChecked());
+    await waitFor(() => expect(reserve).toBeChecked());
     expect(screen.queryByRole('switch', { name: TOGGLE_LABEL })).not.toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: AUTO_LAUNCH_LABEL })).toBeInTheDocument();
+    expect(savePreferencesMock).not.toHaveBeenCalledWith({ panel: { alwaysOnTop: expect.anything() } });
   });
 });

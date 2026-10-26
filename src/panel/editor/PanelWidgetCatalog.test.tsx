@@ -136,6 +136,32 @@ describe('PanelWidgetCatalog', () => {
     expect(search).not.toHaveFocus();
   });
 
+  describe('keyboard input on a hosted display', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const host = () => vi.stubGlobal('chrome', { webview: { postMessage: () => {} } });
+
+    it('shows a typable, focused search on a monitor panel under a kiosk host', () => {
+      host();
+      render(<PanelWidgetCatalog surface="monitor" onAdd={vi.fn()} />);
+      const search = screen.getByRole('textbox', { name: 'panel.add.searchPlaceholder' });
+      expect(search).toHaveFocus();
+      fireEvent.change(search, { target: { value: 'clo' } });
+      expect(screen.getByText('panel.widget.clock')).toBeInTheDocument();
+      expect(screen.queryByText('panel.widget.media')).toBeNull();
+    });
+
+    it('keeps the y70 searchless even under a kiosk host', () => {
+      host();
+      render(<PanelWidgetCatalog surface="y70" onAdd={vi.fn()} />);
+      expect(screen.queryByRole('textbox', { name: 'panel.add.searchPlaceholder' })).toBeNull();
+    });
+
+    it('keeps the search hidden on a monitor with no host', () => {
+      render(<PanelWidgetCatalog surface="monitor" onAdd={vi.fn()} />);
+      expect(screen.queryByRole('textbox', { name: 'panel.add.searchPlaceholder' })).toBeNull();
+    });
+  });
+
   it('hides touch-only widgets on the q60 surface', () => {
     render(<PanelWidgetCatalog surface="q60" onAdd={vi.fn()} />);
 

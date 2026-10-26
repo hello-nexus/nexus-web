@@ -1,16 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Monitor, Plus, Store } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { PanelEmbeddedContent } from '../../../panel/PanelApp';
 import { useDashboardLayout } from '../../../panel/engine/useDashboardLayout';
 import { useSearchSignal } from '../../../search/signals';
 import { ServiceRequired } from '../ServiceRequired';
-import { OverlayWidgetsModal } from './OverlayWidgetsModal';
 import { DashboardPresetToolbar } from './DashboardPresetToolbar';
-import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import styles from './AppsView.module.scss';
 
@@ -32,29 +29,10 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   const { settings } = useUiSettings();
   const layoutState = useDashboardLayout();
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
-  const [desktopModalOpen, setDesktopModalOpen] = useState(false);
-  const [desktopWidgetCount, setDesktopWidgetCount] = useState(0);
   const panelHostRef = useRef<HTMLDivElement>(null);
 
-  const refreshDesktopWidgetCount = useCallback(async () => {
-    const list = await listOverlayWidgets();
-    setDesktopWidgetCount(list.length);
-  }, []);
-
-  useEffect(() => {
-    // Initial fetch + refresh when the (stable) refresher changes. The
-    // refresher itself sets state; the lint rule sees that through the
-    // closure.
-
-    void refreshDesktopWidgetCount();
-  }, [refreshDesktopWidgetCount]);
-
-  useTopicCallback('prefs', true, () => { void refreshDesktopWidgetCount(); });
-
-  // Search entries open these from anywhere: the palette navigates to the
-  // dashboard first, then the pending signal lands here on mount.
+  // The palette navigates to the dashboard first, then the pending signal lands here on mount.
   useSearchSignal('add-widget', useCallback(() => setAddWidgetSignal((value) => value + 1), []));
-  useSearchSignal('desktop-widgets', useCallback(() => setDesktopModalOpen(true), []));
 
   return (
     <div className={styles.dashboard}>
@@ -71,13 +49,10 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
           <button
             type="button"
             className="chip-action"
-            onClick={() => setDesktopModalOpen(true)}
+            onClick={() => onSectionNavigate?.('devices', { tab: 'displays' })}
           >
             <Monitor size={14} aria-hidden />
-            <span>{t('dashboard.desktopWidgets')}</span>
-            {desktopWidgetCount > 0 && (
-              <span className={styles.widgetCountBadge}>{desktopWidgetCount}</span>
-            )}
+            <span>{t('dashboard.displayPanels')}</span>
           </button>
           <button
             type="button"
@@ -95,7 +70,6 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
           <PanelEmbeddedContent layoutState={layoutState} openCatalogSignal={addWidgetSignal} appAccentColor={settings.accentColor} onSectionNavigate={onSectionNavigate} />
         </div>
       </div>
-      <OverlayWidgetsModal open={desktopModalOpen} onClose={() => setDesktopModalOpen(false)} />
     </div>
   );
 }

@@ -31,6 +31,7 @@ export interface SimulatorRuntimeState {
   previewScale: number;
   // Display-bound record (see SimulatorInitMessage.displayBound).
   displayBound: boolean | undefined;
+  genericDisplay: boolean | undefined;
   layoutState: PanelLayoutState;
   theme: SimulatorTheme | null;
   themeMode: 'dark' | 'light';
@@ -76,6 +77,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [shortSideSlots, setShortSideSlots] = useState<number | undefined>(undefined);
   const [previewScale, setPreviewScale] = useState(1);
   const [displayBound, setDisplayBound] = useState<boolean | undefined>(undefined);
+  const [genericDisplay, setGenericDisplay] = useState<boolean | undefined>(undefined);
   const [layout, setLayoutLocal] = useState<PanelLayout>(SIMULATOR_FALLBACK_LAYOUT);
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
@@ -99,6 +101,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setShortSideSlots(data.shortSideSlots);
           setPreviewScale(prev => sanitizePreviewScale(data.previewScale) ?? prev);
           setDisplayBound(data.displayBound);
+          setGenericDisplay(data.genericDisplay);
           setLayoutLocal(data.layout);
           setTheme(data.theme);
           setThemeMode(data.themeMode);
@@ -129,6 +132,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         }
         case 'simulator/set-display-bound': {
           setDisplayBound(data.displayBound);
+          setGenericDisplay(data.genericDisplay);
           break;
         }
         case 'simulator/set-theme': {
@@ -192,6 +196,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     shortSideSlots,
     previewScale,
     displayBound,
+    genericDisplay,
     layoutState,
     theme,
     themeMode,

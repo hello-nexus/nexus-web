@@ -8,7 +8,7 @@ const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
   items: [] as { id: string; name: string; sourceId: string; kind?: 'image' | 'video' }[],
   playlists: [] as { id: string; name: string; createdAtUnixMs: number; sourceIds: string[]; itemIds: string[]; excludedIds: string[] }[],
-  uses: [] as { surface: 'dashboard' | 'panel' | 'desktop'; name: string; count: number }[] | null,
+  uses: [] as { surface: 'dashboard' | 'panel'; name: string; count: number }[] | null,
   bridgeAvailable: false,
   truncated: false,
 }));
@@ -396,7 +396,6 @@ describe('GalleryPage', () => {
       mockState.uses = [
         { surface: 'dashboard', name: '', count: 2 },
         { surface: 'panel', name: 'Y70 Touch', count: 1 },
-        { surface: 'desktop', name: '', count: 1 },
       ];
       render(<GalleryPage />);
       fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
@@ -405,7 +404,6 @@ describe('GalleryPage', () => {
       expect(await screen.findByText('gallery.page.deletePlaylistInUse:name=Desk')).toBeTruthy();
       expect(screen.getByText('gallery.page.usage.count.other:name=gallery.page.usage.dashboard:count=2')).toBeTruthy();
       expect(screen.getByText('Y70 Touch')).toBeTruthy();
-      expect(screen.getByText('gallery.page.usage.desktop')).toBeTruthy();
       // Nothing is deleted until the user confirms.
       expect(deleteGalleryPlaylist).not.toHaveBeenCalled();
     });

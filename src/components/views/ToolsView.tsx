@@ -193,7 +193,6 @@ const SECTIONS: SectionDef[] = [
   { key: 'theme' },
   { key: 'monitoring' },
   { key: 'panel' },
-  { key: 'overlay' },
   { key: 'lighting' },
   { key: 'y70' },
   { key: 'keeb' },

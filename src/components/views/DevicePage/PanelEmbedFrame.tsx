@@ -51,6 +51,8 @@ interface PanelEmbedFrameProps {
   // desktop see-through gate needs it or a 'monitor' preview renders the theme
   // background where the device shows the wallpaper.
   displayBound?: boolean;
+  // Precomputed by the editor from the record family, forwarded so the preview classifies like the kiosk.
+  genericDisplay?: boolean;
   canvasSize?: { width: number; height: number };
   // Device DPI. Converts native canvas dimensions into the CSS-pixel
   // viewport the device exposes to its WebView, so the iframe reproduces
@@ -229,6 +231,7 @@ export function PanelEmbedFrame({
   deviceId,
   deviceTouch,
   displayBound,
+  genericDisplay,
 }: PanelEmbedFrameProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -356,6 +359,7 @@ export function PanelEmbedFrame({
       surface,
       deviceTouch,
       displayBound,
+      genericDisplay,
       dpi: effectiveGridDpi,
       shortSideSlots,
       layout,
@@ -418,8 +422,8 @@ export function PanelEmbedFrame({
   // gate in the iframe needs it.
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-display-bound', displayBound });
-  }, [childReady, displayBound, post]);
+    post({ type: 'simulator/set-display-bound', displayBound, genericDisplay });
+  }, [childReady, displayBound, genericDisplay, post]);
 
   useEffect(() => {
     if (!childReady) return;

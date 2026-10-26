@@ -199,7 +199,7 @@ describe('buildEntries', () => {
     const ids = idsOf(false);
     for (const id of [
       'open:check-updates', 'open:about', 'open:discord-invite',
-      'open:add-widget', 'open:desktop-widgets', 'open:connected-devices', 'open:supported-devices',
+      'open:add-widget', 'open:connected-devices', 'open:supported-devices',
     ]) {
       expect(ids.has(id)).toBe(true);
     }

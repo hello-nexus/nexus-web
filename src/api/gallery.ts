@@ -148,7 +148,7 @@ export const updateGalleryPlaylist = (
 // in lockstep with GalleryPlaylistUseSurfaces in nexus-service
 // Models/Gallery/GalleryModels.cs.
 export interface GalleryPlaylistUse {
-  surface: 'dashboard' | 'panel' | 'desktop';
+  surface: 'dashboard' | 'panel';
   // The panel device's name; empty for the dashboard and desktop widgets.
   name: string;
   count: number;

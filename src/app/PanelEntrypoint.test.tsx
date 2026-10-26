@@ -22,7 +22,7 @@ vi.mock('../api/auth', () => ({
   getTokenSync: () => sessionToken,
 }));
 
-// PanelApp + simulator + overlay drag in the whole panel tree; replace with
+// PanelApp + simulator drag in the whole panel tree; replace with
 // sentinel divs so the test only exercises PanelEntrypoint's state machine.
 vi.mock('../panel/PanelApp', () => ({
   default: ({ deviceId }: { deviceId: string }) => (
@@ -32,10 +32,6 @@ vi.mock('../panel/PanelApp', () => ({
 
 vi.mock('../panel/embed/PanelSimulatorContent', () => ({
   PanelSimulatorContent: () => <div data-testid="panel-simulator" />,
-}));
-
-vi.mock('../overlay/OverlayShell', () => ({
-  default: () => <div data-testid="overlay-shell" />,
 }));
 
 vi.mock('../hooks/useMultiplexSocket', () => ({

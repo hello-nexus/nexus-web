@@ -10,7 +10,6 @@ export type SearchSignal =
   | 'update-modal'
   | 'about'
   | 'add-widget'
-  | 'desktop-widgets'
   | 'devices-connected'
   | 'devices-supported'
   | 'conflict-apps';
