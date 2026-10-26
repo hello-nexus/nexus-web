@@ -12,6 +12,7 @@ import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoToolt
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
+import { supportsAirflow } from '../../../../lib/cooling/airflowCases';
 import { patchPcSetupRadiator } from '../../../../api/pcSetup';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE, type CoolingFlowMode } from '../../../../lib/settings';
@@ -121,7 +122,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const particles = flowMode !== 'case';
   const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
-  const caseModel = useCaseModel(true, record?.rev ?? null);
+  // Only a listed case runs the view; any other keeps the notice and fetches no model.
+  const airflowCase = supportsAirflow(parsedLayout?.caseModel);
+  const caseModel = useCaseModel(airflowCase, record?.rev ?? null);
   const temps = useComponentTemps(true);
 
   const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
@@ -227,13 +230,13 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   if (!loaded || !layoutSettled) return <div className={styles.root} />;
 
-  if (!caseLayout) {
+  if (!caseLayout || !airflowCase) {
     return (
       <div className={styles.root}>
         <EmptyState
           icon={<Box size={28} strokeWidth={1.6} />}
-          title={t('cooling.case3d.empty.title')}
-          hint={t('cooling.case3d.empty.hint')}
+          title={t('cooling.case3d.unsupported.title')}
+          hint={t('cooling.case3d.unsupported.hint')}
           action={<Button tone="accent" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.empty.action')}</Button>}
         />
       </div>

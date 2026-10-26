@@ -2,12 +2,14 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import type { CoolingLayout } from '../../../../api/coolingLayout';
+import { onOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { CoolingCase3D } from './CoolingCase3D';
 import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
 
 const h = vi.hoisted(() => ({
   flowSupported: true,
   model: { bytes: null as ArrayBuffer | null, settled: true },
+  modelActive: [] as boolean[],
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   devTools: true,
@@ -19,7 +21,7 @@ const h = vi.hoisted(() => ({
 vi.mock('../../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
 vi.mock('../../../../api/pcSetup', async importOriginal => ({ ...(await importOriginal<typeof import('../../../../api/pcSetup')>()), patchPcSetupRadiator: (...args: unknown[]) => h.patch(...args) }));
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
-vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: () => h.model }));
+vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: (active: boolean) => { h.modelActive.push(active); return h.model; } }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
@@ -30,7 +32,8 @@ vi.mock('./coolingCaseRenderer', () => ({
   }),
 }));
 
-const caseLayout = () => ({
+const caseLayout = (caseModel = 'HYTE Y70') => ({
+  caseModel,
   size: [450, 230, 470],
   boxes: [],
   fanSlots: [
@@ -38,8 +41,8 @@ const caseLayout = () => ({
     { key: 'rear:120:0', position: 'rear', size: 120, index: 0, taken: 'fan', box: { min: [425, 10, 10], size: [25, 120, 120] }, axis: [-1, 0, 0] },
   ],
 });
-const record = (rev = 1, empty = false) => {
-  const layout = caseLayout();
+const record = (rev = 1, empty = false, caseModel = 'HYTE Y70') => {
+  const layout = caseLayout(caseModel);
   if (empty) layout.fanSlots = layout.fanSlots.map(s => ({ ...s, taken: null as never }));
   return { rev, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } };
 };
@@ -59,6 +62,7 @@ beforeEach(() => {
   h.setup = { record: null, loaded: false };
   h.layout = { layout: { directions: {}, bindings: [], tests: [] }, settled: false, failed: false, edit: vi.fn() };
   h.renderers.length = 0;
+  h.modelActive.length = 0;
   h.patch = vi.fn();
   h.devTools = true;
   h.flowSupported = true;
@@ -127,12 +131,63 @@ describe('CoolingCase3D renderer lifecycle', () => {
     expect(h.renderers.every(r => r.dispose.mock.calls.length === 1)).toBe(true);
   });
 
-  it('shows the empty state with no case layout', () => {
+  it('shows the airflow notice with no case layout', () => {
     h.setup = { record: { rev: 1, setup: { resolved: { objects: [] }, items: [] } }, loaded: true };
     setLayout({ settled: true });
     render(ui());
-    expect(screen.getByText('cooling.case3d.empty.title')).toBeTruthy();
+    expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();
     expect(createCaseRenderer).not.toHaveBeenCalled();
+  });
+});
+
+describe('CoolingCase3D airflow case gate', () => {
+  const mount = (caseModel: string | null) => {
+    h.setup = { record: caseModel === null ? { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: { ...caseLayout(), caseModel: undefined } } } } : record(1, false, caseModel), loaded: true };
+    setLayout({ settled: true });
+    return render(ui());
+  };
+
+  it.each(['HYTE Y70', 'HYTE Y50'])('runs the view for %s', name => {
+    mount(name);
+    expect(screen.queryByText('cooling.case3d.unsupported.title')).toBeNull();
+    expect(screen.getByRole('img', { name: 'cooling.case3d.canvas' })).toBeTruthy();
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+    expect(h.modelActive.at(-1)).toBe(true);
+  });
+
+  it.each(['HYTE Y60', 'HYTE X50', 'Lian Li O11 Dynamic', null])('shows only the notice for %s and builds no renderer', name => {
+    mount(name);
+    expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();
+    expect(screen.getByText('cooling.case3d.unsupported.hint')).toBeTruthy();
+    expect(screen.queryByRole('img', { name: 'cooling.case3d.canvas' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'cooling.case3d.stats.label' })).toBeNull();
+    expect(createCaseRenderer).not.toHaveBeenCalled();
+    expect(h.modelActive.every(active => !active)).toBe(true);
+  });
+
+  it('opens Build from the notice', () => {
+    const opened = vi.fn();
+    const off = onOpenBuild(opened);
+    mount('HYTE Y60');
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.empty.action' }));
+    off();
+    expect(opened).toHaveBeenCalledWith(encodeURIComponent('/builder'));
+  });
+
+  it('enables when a supported case arrives and disposes when it leaves', () => {
+    const { rerender } = mount('HYTE Y60');
+    expect(createCaseRenderer).not.toHaveBeenCalled();
+    h.setup = { record: record(2, false, 'HYTE Y50'), loaded: true };
+    rerender(ui());
+    expect(screen.queryByText('cooling.case3d.unsupported.title')).toBeNull();
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+    const live = h.renderers[0];
+    expect(live.dispose).not.toHaveBeenCalled();
+    h.setup = { record: record(3, false, 'HYTE X50'), loaded: true };
+    rerender(ui());
+    expect(live.dispose).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -234,6 +289,7 @@ describe('CoolingCase3D radiator fans', () => {
       resolved: {
         objects: [],
         caseLayout: {
+          caseModel: 'HYTE Y70',
           size: [450, 230, 470],
           boxes: [{ slot: 'cooler', role: 'part', min: [60, 400, 40], size: [360, 52, 120], fans: { axis: 'y', side: 'min', count: 3, diameter: 114, bothSides: true } }],
           fanSlots: [{ key: 'top:360:0', position: 'top', size: 360, index: 0, taken: 'radiator', box: { min: [60, 400, 40], size: [360, 52, 120] }, axis: [0, -1, 0], radiator: { fanCount: 3 } }],
@@ -269,6 +325,7 @@ describe('CoolingCase3D radiator position', () => {
       resolved: {
         objects: [],
         caseLayout: {
+          caseModel: 'HYTE Y70',
           size: [450, 230, 470],
           boxes: [topBox],
           fanSlots: [slots('radiator', 'top:120:0'), slots(null, 'right:120:0')],
@@ -564,6 +621,7 @@ describe('CoolingCase3D slots bound to a cooling device', () => {
 describe('CoolingCase3D overlapping mounts', () => {
   it('draws one fan for a 120 and a 140 mm slot at the same mount and links without adding one', () => {
     const layout = {
+      caseModel: 'HYTE Y70',
       size: [470, 320, 487],
       boxes: [],
       fanSlots: [

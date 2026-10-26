@@ -30,6 +30,7 @@ const record = {
     resolved: {
       objects: [],
       caseLayout: {
+        caseModel: 'HYTE Y70',
         size: [450, 230, 470],
         boxes: [
           { slot: 'gpu', role: 'part', min: [100, 20, 60], size: [300, 40, 120] },
