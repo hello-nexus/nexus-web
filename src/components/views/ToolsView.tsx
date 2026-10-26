@@ -17,7 +17,6 @@ const StorybookModal = (import.meta.env.DEV || __DEV_TOOLS__)
     )
   : null;
 import { PanelSimulatorCard } from './SimulatorsCard';
-import { FontDebugCard } from './FontDebugCard';
 import { AppTelemetryCard } from './AppTelemetryCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
 import { DevSimEventsCard } from './DevSimEventsCard';
@@ -67,7 +66,6 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <PawnIoCard />
             <PanelSimulatorCard />
             {DEV_TOOLS && <DevSimEventsCard />}
-            <FontDebugCard />
             <HelloGreetingCard />
           </div>
         </div>

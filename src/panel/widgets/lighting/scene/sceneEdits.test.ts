@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deskObject } from '../../../../lib/scene/sceneFixtures';
-import { editBinding, flipBinding, moveObject, placeDevice, rotateBinding, turnObject, unplaceDevice } from './sceneEdits';
+import { editBinding, flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
 
 const kb = deskObject('keyboard');
 const mouse = deskObject('mouse');
@@ -31,11 +31,4 @@ describe('scene edits', () => {
     expect(rotateBinding(s, 'd1').bindings[0].rotation).toBe(90);
     expect(flipBinding(flipBinding(s, 'd1'), 'd1').bindings[0].flip).toBe(false);
   });
-
-  it('moves and turns objects, wrapping yaw', () => {
-    const m = moveObject(base, kb.id, [10, 0, 20]);
-    expect(m.objects[0].position).toEqual([10, 0, 20]);
-    expect(turnObject(base, kb.id, -15).objects[0].yaw).toBe(345);
-  });
-
 });

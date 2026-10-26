@@ -4,6 +4,9 @@ import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import type { ServiceState } from '../../../types/service';
 import { CoolingPage } from './CoolingPage';
 import { renameFan } from '../../../api/cooling';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 

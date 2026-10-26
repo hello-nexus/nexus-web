@@ -1,4 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Color, Vector3, type Group } from 'three';
+import fixture from '../cooling/__fixtures__/y70-case-layout.json';
+import { parseCaseLayout, sceneLayout } from '../cooling/caseLayout';
+import { buildCase, type Dimmable } from './pcScene';
+import { applyHighlight, buildDeskBoxes } from './deskNodes';
+import { deskLegBoxes, deskSlabBoxes, placedItemBoxes } from './deskScene';
+import { sceneSignature } from './pcSceneSignature';
 import type { SceneBinding, SceneObject } from '../../api/lightingScene';
 import { caseObject, deskObject } from './sceneFixtures';
 import { deviceForPick, deviceForStack } from './pickDevice';
@@ -94,5 +101,110 @@ describe('scene pick path', () => {
     expect(at('mon-1')).toBeLessThan(at(kase.id));
     expect(deviceForPick(bindings, renderer.pickAt(400, 225))).toBeNull();
     expect(deviceForStack(bindings, stack)).toBe('argb-1');
+  });
+
+  describe('the case drawn by Build\'s scene code', () => {
+    const layout = parseCaseLayout(fixture)!;
+    const caseScene = { layout: sceneLayout(layout), windowRight: false };
+    const groupOf = (id: string) => (renderer as unknown as { objectGroups: Map<string, Group> }).objectGroups.get(id)!;
+
+    it('is the very scene buildCase makes for the layout, carried into the case object\'s frame', () => {
+      const kase = caseObject();
+      renderer.setCaseScene(caseScene);
+      renderer.setState(stateOf([kase], []));
+      const toScene = groupOf(kase.id).children[0];
+      const palette = { part: new Color(theme.accent), frame: new Color(theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+      const expected = buildCase(caseScene.layout, palette, [], [], [], true, false, true, true);
+      expect(sceneSignature(toScene.children[0].children[0])).toEqual(sceneSignature(expected));
+      // The layout's own corner lands where Build's export puts it: x = z - W/2, z = D/2 - x.
+      const [D, W] = layout.size;
+      const corner = new Vector3(0, 0, 0).applyMatrix4(toScene.matrix);
+      expect([corner.x, corner.y, corner.z].map(Math.round)).toEqual([-W / 2, 0, D / 2].map(Math.round));
+    });
+
+    it('mirrors x for a window on the right', () => {
+      const kase = caseObject();
+      renderer.setCaseScene({ ...caseScene, windowRight: true });
+      renderer.setState(stateOf([kase], []));
+      const [, W] = layout.size;
+      const corner = new Vector3(0, 0, 0).applyMatrix4(groupOf(kase.id).children[0].matrix);
+      expect(Math.round(corner.x)).toBe(Math.round(W / 2));
+    });
+
+    it('keeps the anchors pickable and the case grabbable on its bounds', () => {
+      const kase = caseObject();
+      const bindings = [bind('argb-1', kase.id, 'strip:front')];
+      renderer.setCaseScene(caseScene);
+      renderer.setState(stateOf([kase], bindings));
+      renderer.setCamera({ position: [0, 0, 1500], target: [0, 0, 0], fov: 40 });
+      settle(renderer);
+      expect(deviceForStack(bindings, renderer.pickStackAt(400, 225))).toBe('argb-1');
+    });
+
+    it('draws no scene of its own for a case when there is no layout', () => {
+      const kase = caseObject();
+      renderer.setCaseScene(null);
+      renderer.setState(stateOf([kase], []));
+      expect(groupOf(kase.id).children.some(c => c.matrixAutoUpdate === false)).toBe(false);
+    });
+  });
+  describe('the desk drawn by Build\'s scene code', () => {
+    const groupOf = (id: string) => (renderer as unknown as { objectGroups: Map<string, Group> }).objectGroups.get(id)!;
+    const palette = { part: new Color(theme.accent), frame: new Color(theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+    // Geometry, draw order and every material parameter, the opacities and colors included, match the shared module's own.
+    const shape = (o: Group) => sceneSignature(o);
+    const monitor = (): SceneObject => ({ id: 'mon-1', kind: 'monitor', label: null, source: 'build', position: [0, 0, 0], yaw: 0, size: [620, 450, 50], anchors: [] });
+
+    it('draws a plain item as the very box the desk scene makes for it', () => {
+      const keyboard = deskObject('keyboard');
+      renderer.setState(stateOf([keyboard], []));
+      const expected = buildDeskBoxes(placedItemBoxes({ id: keyboard.id, kind: 'keyboard', cx: 0, cz: 0, minY: 0, yaw: 0, size: keyboard.size }), palette, [], [], []);
+      expect(shape(groupOf(keyboard.id).children[0])).toEqual(shape(expected));
+    });
+
+    it('stands every monitor on its foot and neck, the very boxes the layout makes', () => {
+      renderer.setState(stateOf([monitor()], []));
+      const expected = buildDeskBoxes(placedItemBoxes({ id: 'mon-1', kind: 'monitor', cx: 0, cz: 0, minY: 0, yaw: 0, size: [620, 450, 50] }), palette, [], [], []);
+      expect(expected.children).toHaveLength(3);
+      expect(shape(groupOf('mon-1').children[0])).toEqual(shape(expected));
+    });
+
+    it('tints the selected item exactly as Build\'s desk view does and leaves the rest', () => {
+      const keyboard = deskObject('keyboard');
+      const mouse = deskObject('mouse');
+      renderer.setState({ ...stateOf([keyboard, mouse], []), selectedObjectId: keyboard.id });
+      const dimmables: Dimmable[] = [];
+      const expected = buildDeskBoxes([...placedItemBoxes({ id: keyboard.id, kind: 'keyboard', cx: 0, cz: 0, minY: 0, yaw: 0, size: keyboard.size }), ...placedItemBoxes({ id: mouse.id, kind: 'mouse', cx: 0, cz: 0, minY: 0, yaw: 0, size: mouse.size })], palette, [], [], dimmables);
+      applyHighlight(dimmables, keyboard.id, 'tint');
+      expect(shape(groupOf(keyboard.id).children[0].children[0] as Group)).toEqual(shape(expected.children[0] as Group));
+      expect(shape(groupOf(mouse.id).children[0].children[0] as Group)).toEqual(shape(expected.children[1] as Group));
+    });
+
+    it('draws a curved monitor through the shared curved panel', () => {
+      renderer.setState(stateOf([{ ...monitor(), curve: { radiusMm: 1800 } }], []));
+      const expected = buildDeskBoxes(placedItemBoxes({ id: 'mon-1', kind: 'monitor', cx: 0, cz: 0, minY: 0, yaw: 0, size: [620, 450, 50], curveRadius: 1800 }), palette, [], [], []);
+      expect(shape(groupOf('mon-1').children[0])).toEqual(shape(expected));
+      const flat = buildDeskBoxes(placedItemBoxes({ id: 'mon-1', kind: 'monitor', cx: 0, cz: 0, minY: 0, yaw: 0, size: [620, 450, 50] }), palette, [], [], []);
+      expect(shape(expected)).not.toEqual(shape(flat));
+    });
+
+    it('draws a desk object with its slab and four legs, picked as that object', () => {
+      const desk: SceneObject = { id: 'desk-1', kind: 'desk', label: null, source: 'build', position: [0, 0, 0], yaw: 0, size: [1600, 30, 800], anchors: [] };
+      renderer.setState(stateOf([desk], []));
+      const expected = buildDeskBoxes([...deskSlabBoxes({ x0: -800, x1: 800, z0: -400, z1: 400 }), ...deskLegBoxes({ x0: -800, x1: 800, z0: -400, z1: 400 })], palette, [], [], []);
+      expect(groupOf(desk.id).children[0].children).toHaveLength(expected.children.length);
+      renderer.setCamera({ position: [0, 900, 1400], target: [0, 0, 0], fov: 40 });
+      settle(renderer);
+      expect(renderer.pickAt(400, 330)).toEqual({ kind: 'object', objectId: desk.id });
+    });
+
+    it('draws an L desk as one set of legs on the main object and the far slab on the return', () => {
+      const main: SceneObject = { id: 'desk-1', kind: 'desk', label: null, source: 'build', position: [0, 0, 0], yaw: 0, size: [1400, 30, 700], anchors: [] };
+      const ret: SceneObject = { id: 'desk-1.return', kind: 'desk', label: null, source: 'build', position: [400, 0, 400], yaw: 0, size: [600, 30, 1500], anchors: [] };
+      renderer.setState(stateOf([main, ret], []));
+      const faces = (o: SceneObject) => groupOf(o.id).children[0].children.length;
+      expect(faces(main)).toBe(1 + 6);
+      expect(faces(ret)).toBe(1);
+    });
   });
 });

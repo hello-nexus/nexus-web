@@ -8,7 +8,6 @@ import { ContextMenuManager } from './components/common/ContextMenu/ContextMenuM
 import './styles/variables.scss';
 import './styles/global.scss';
 import { loadSettings, applyThemeMode, applyAccentColor, applyBackgroundMode, watchSystemTheme } from './lib/settings';
-import { bootDebugFont } from './lib/debugFont';
 import { preloadInstallDefaults } from './api/installDefaultsCache';
 import { isRemoteOrigin } from './api/service';
 import { initMemoryProbe } from './diag/memoryProbe';
@@ -25,7 +24,6 @@ applyThemeMode(general.themeMode);
 applyAccentColor(general.accentColor);
 applyBackgroundMode(general.backgroundMode);
 watchSystemTheme(general.themeMode);
-bootDebugFont();
 initHoverGuard();
 
 // Kick off the install-defaults fetch in parallel with React mount; the
