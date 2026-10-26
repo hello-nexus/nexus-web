@@ -1,9 +1,9 @@
 import {
-  ArrowHelper, BoxGeometry, BufferGeometry, Color, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
-  Box3, LineSegments, Material, Mesh, Object3D, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Texture, Vector2, Vector3, WebGLRenderer,
+  ArrowHelper, BoxGeometry, BufferGeometry, CatmullRomCurve3, Color, EdgesGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
+  Box3, LineSegments, Material, Mesh, Object3D, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Texture, TubeGeometry, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
+import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, type CaseBox, type CaseLayout, type CaseTube } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import { parseCaseModel, sceneToLayoutMatrix, STRUCTURE_LINE_DIM, styleCaseModel } from '../../../../lib/scene/caseModel';
@@ -136,6 +136,11 @@ export function hideMovedRadiator(root: Object3D, from: Pick<CaseBox, 'min' | 's
   return hidden;
 }
 
+/** An AIO hose as a solid tube of its own radius (layout mm) along the smooth curve through its points. */
+export function tubeGeometry(tube: CaseTube): TubeGeometry {
+  return new TubeGeometry(new CatmullRomCurve3(tube.points.map(p => new Vector3(...p))), 48, tube.radius, 12);
+}
+
 const modelKeyOf = (l: CaseLayout): string => `${l.size.join(',')}|${l.windowRight === true}`;
 
 export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler): CaseSceneRenderer {
@@ -149,7 +154,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const fanGroup = new Group();
   const flowGroup = new Group();
   const moveGroup = new Group();
-  scene.add(staticGroup, fanGroup, flowGroup, moveGroup);
+  const tubeGroup = new Group();
+  scene.add(staticGroup, fanGroup, flowGroup, moveGroup, tubeGroup);
   let flowLayer: FlowLayer | null = null;
   let flowInput: FlowInput | null = null;
   let temps: ComponentTemps = NO_TEMPS;
@@ -170,6 +176,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     if (modelGroup) modelGroup.visible = showCase && !collisionsOn;
     fanGroup.visible = showCase;
     moveGroup.visible = showCase && !!modelGroup && !collisionsOn;
+    tubeGroup.visible = showCase && !collisionsOn;
   };
 
   const clearModel = () => {
@@ -211,6 +218,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const token_ = (name: string, fallback: string) => token(canvas, name, fallback);
   const disposables: { dispose: () => void }[] = [];
   const moveDisposables: { dispose: () => void }[] = [];
+  const tubeDisposables: { dispose: () => void }[] = [];
   const fanDisposables: { dispose: () => void }[] = [];
   const raycaster = new Raycaster();
   let hitMeshes: Mesh[] = [];
@@ -307,6 +315,17 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     edges.position.set(to.min[0] + sx / 2, to.min[1] + sy / 2, to.min[2] + sz / 2);
     edges.rotation.y = to.rotationY ?? 0;
     moveGroup.add(edges);
+  };
+
+  // The model carries no hoses, so both the model and the plain outline get them drawn here, at the radiator's current mount.
+  const buildTubes = (l: CaseLayout) => {
+    clear(tubeGroup, tubeDisposables);
+    for (const tube of l.tubes ?? []) {
+      const geo = tubeGeometry(tube);
+      const material = new MeshBasicMaterial({ color: token(canvas, '--text-dim', '#8a93a6'), transparent: true, opacity: 0.6 * STRUCTURE_LINE_DIM + 0.1, depthWrite: false });
+      tubeDisposables.push(geo, material);
+      tubeGroup.add(new Mesh(geo, material));
+    }
   };
 
   const buildFans = (state: CaseSceneState) => {
@@ -430,6 +449,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         layout = state.layout;
         buildStatic(state.layout);
         buildMove(state.layout);
+        buildTubes(state.layout);
         if (modelGroup) hideMovedRadiator(modelGroup, state.layout.radiatorMove?.from ?? null);
         // The flow layer lives as long as the case shape: a fan edit changes the layout object but keeps the field and the particles.
         const extents = caseExtents(state.layout);
@@ -487,6 +507,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       clear(staticGroup, disposables);
       clear(fanGroup, fanDisposables);
       clear(moveGroup, moveDisposables);
+      clear(tubeGroup, tubeDisposables);
       renderer.forceContextLoss();
       renderer.dispose();
     },
