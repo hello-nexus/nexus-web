@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { Card } from '../common/Card/Card';
 import {
   DEBUG_FONTS,
   DEFAULT_FONT_ID,
   applyDebugFont,
-  ensureAllPreviewFonts,
   loadDebugFont,
   saveDebugFont,
   type DebugFontState,
@@ -16,8 +15,6 @@ import styles from './FontDebugCard.module.scss';
 export function FontDebugCard() {
   const { t } = useTranslation();
   const [state, setState] = useState<DebugFontState | null>(() => loadDebugFont());
-
-  useEffect(() => { ensureAllPreviewFonts(); }, []);
 
   const pickFont = (fontId: string) => {
     if (!DEBUG_FONTS.some(f => f.id === fontId)) return;

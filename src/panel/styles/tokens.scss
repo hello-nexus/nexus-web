@@ -4,8 +4,8 @@
 // the browser silently drops the whole rule block if it sees it here.
 
 // Lexend is the unified default; the @font-face is loaded once from
-// global.scss. The Tools > Debug font picker fetches alternatives on
-// demand if the user picks one.
+// global.scss. The Tools > Debug font picker swaps in self-hosted
+// alternatives.
 
 // Widgets draw in one font: mono call sites resolve to the panel font (the
 // theme's font override included) and align digits via tabular-nums. The
