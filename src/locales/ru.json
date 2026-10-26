@@ -4040,6 +4040,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Включить",
   "overlayWidgets.enableAria": "Включить виджеты рабочего стола",
+  "overlayWidgets.frost": "Матовое стекло",
+  "overlayWidgets.frostAria": "Размывать рабочий стол за виджетами",
   "overlayWidgets.loading": "Загрузка…",
   "overlayWidgets.monitorAria": "Монитор виджета рабочего стола",
   "overlayWidgets.opacity": "Непрозрачность",

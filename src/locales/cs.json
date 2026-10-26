@@ -4040,6 +4040,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Povolit",
   "overlayWidgets.enableAria": "Povolit widgety na ploše",
+  "overlayWidgets.frost": "Matné sklo",
+  "overlayWidgets.frostAria": "Rozmazat plochu za widgety na ploše",
   "overlayWidgets.loading": "Načítání…",
   "overlayWidgets.monitorAria": "Monitor widgetů na ploše",
   "overlayWidgets.opacity": "Krytí",

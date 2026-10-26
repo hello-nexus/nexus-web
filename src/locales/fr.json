@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Activer",
   "overlayWidgets.enableAria": "Activer les widgets de bureau",
+  "overlayWidgets.frost": "Verre dépoli",
+  "overlayWidgets.frostAria": "Flouter le bureau derrière les widgets de bureau",
   "overlayWidgets.loading": "Chargement...",
   "overlayWidgets.monitorAria": "Écran des widgets de bureau",
   "overlayWidgets.opacity": "Opacité",

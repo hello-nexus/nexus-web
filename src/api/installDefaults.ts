@@ -33,7 +33,7 @@ export interface InstallDefaultsDocument {
       }[];
     }>;
   };
-  overlay: { enabled: boolean; alwaysOnTop: boolean; scale: number; opacity: number; monitor: number };
+  overlay: { enabled: boolean; alwaysOnTop: boolean; scale: number; opacity: number; frost?: boolean; monitor: number };
   lighting: {
     sync: string;
     brightnessEnabled: boolean;

@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": "。",
   "overlayWidgets.enable": "啟用",
   "overlayWidgets.enableAria": "啟用桌面小工具",
+  "overlayWidgets.frost": "毛玻璃",
+  "overlayWidgets.frostAria": "模糊桌面小工具後方的桌面",
   "overlayWidgets.loading": "載入中…",
   "overlayWidgets.monitorAria": "桌面小工具螢幕",
   "overlayWidgets.opacity": "不透明度",

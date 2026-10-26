@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Activar",
   "overlayWidgets.enableAria": "Activar widgets de escritorio",
+  "overlayWidgets.frost": "Cristal esmerilado",
+  "overlayWidgets.frostAria": "Desenfocar el escritorio detrás de los widgets de escritorio",
   "overlayWidgets.loading": "Cargando…",
   "overlayWidgets.monitorAria": "Monitor de widgets de escritorio",
   "overlayWidgets.opacity": "Opacidad",

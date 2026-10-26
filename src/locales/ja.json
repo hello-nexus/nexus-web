@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": "。",
   "overlayWidgets.enable": "有効化",
   "overlayWidgets.enableAria": "デスクトップウィジェットを有効化",
+  "overlayWidgets.frost": "すりガラス",
+  "overlayWidgets.frostAria": "デスクトップウィジェットの背後のデスクトップをぼかす",
   "overlayWidgets.loading": "読み込み中...",
   "overlayWidgets.monitorAria": "デスクトップウィジェットのモニター",
   "overlayWidgets.opacity": "不透明度",

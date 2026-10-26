@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Enable",
   "overlayWidgets.enableAria": "Enable desktop widgets",
+  "overlayWidgets.frost": "Frosted glass",
+  "overlayWidgets.frostAria": "Blur the desktop behind desktop widgets",
   "overlayWidgets.loading": "Loading…",
   "overlayWidgets.monitorAria": "Desktop widget monitor",
   "overlayWidgets.opacity": "Opacity",

@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Aktivieren",
   "overlayWidgets.enableAria": "Desktop-Widgets aktivieren",
+  "overlayWidgets.frost": "Milchglas",
+  "overlayWidgets.frostAria": "Desktop hinter Desktop-Widgets weichzeichnen",
   "overlayWidgets.loading": "Wird geladen…",
   "overlayWidgets.monitorAria": "Desktop-Widget-Monitor",
   "overlayWidgets.opacity": "Deckkraft",

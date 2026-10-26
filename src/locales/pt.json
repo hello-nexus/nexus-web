@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Ativar",
   "overlayWidgets.enableAria": "Ativar widgets de ambiente de trabalho",
+  "overlayWidgets.frost": "Vidro fosco",
+  "overlayWidgets.frostAria": "Desfocar o ambiente de trabalho atrás dos widgets",
   "overlayWidgets.loading": "A carregar…",
   "overlayWidgets.monitorAria": "Monitor dos widgets de ambiente de trabalho",
   "overlayWidgets.opacity": "Opacidade",

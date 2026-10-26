@@ -10,6 +10,7 @@ import { APP_REGISTRY } from '../../../panel/widgets/registry';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
+import { isMacAppShell } from '../../../app/windowActions';
 import styles from './DesktopWidgetsModal.module.scss';
 
 // Subset of the nested `Preferences` payload returned by GET /preferences
@@ -20,6 +21,7 @@ interface ServerPrefs {
     enabled?: boolean;
     scale?: number;
     opacity?: number;
+    frost?: boolean;
     monitor?: number;
   };
 }
@@ -47,6 +49,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
   const [enabled, setEnabled] = useState(false);
   const [scale, setScale] = useState(SCALE_DEFAULT);
   const [opacity, setOpacity] = useState(OPACITY_DEFAULT);
+  const [frost, setFrost] = useState(false);
   // 0-based monitor index. Legacy installs may persist -1 (the old
   // "primary fallback" sentinel); we display that as monitor 0 in the
   // dropdown and the next user pick writes a real index.
@@ -73,6 +76,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
         ? Math.round(overlay.opacity * 100)
         : OPACITY_DEFAULT);
     }
+    setFrost(overlay?.frost === true);
     // Legacy -1 sentinel collapses to 0 for display.
     const persisted = typeof overlay?.monitor === 'number'
       ? overlay.monitor : 0;
@@ -144,6 +148,11 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
     }
     isDraggingOpacityRef.current = false;
     await postService('/preferences', { overlay: { opacity: clampedPct / 100 } });
+  }, []);
+
+  const handleFrostChange = useCallback(async (next: boolean) => {
+    setFrost(next);
+    await postService('/preferences', { overlay: { frost: next } });
   }, []);
 
   const handleMonitorChange = useCallback(async (value: string) => {
@@ -248,6 +257,17 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
               ariaLabel={t('overlayWidgets.opacityAria')}
               trackFill
             />
+            {/* The macOS host has no native blur plate, so the toggle would do nothing there. */}
+            {!isMacAppShell() && (
+              <div className={styles.row}>
+                <span className={styles.rowLabel}>{t('overlayWidgets.frost')}</span>
+                <Toggle
+                  checked={frost}
+                  onChange={(next) => { void handleFrostChange(next); }}
+                  ariaLabel={t('overlayWidgets.frostAria')}
+                />
+              </div>
+            )}
           </section>
 
           <section className={styles.section}>

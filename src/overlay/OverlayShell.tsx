@@ -32,6 +32,7 @@ interface ServerPrefs {
     alwaysOnTop?: boolean;
     scale?: number;
     opacity?: number;
+    frost?: boolean;
     monitor?: number;
   };
 }
@@ -143,6 +144,7 @@ export default function OverlayShell() {
   const [loading, setLoading] = useState(true);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [widgetOpacity, setWidgetOpacity] = useState(1);
+  const [frost, setFrost] = useState(false);
   const [menu, setMenu] = useState<ContextMenuState | null>(null);
   // Effective rendered rect of the open context menu, populated by the
   // menu component once it has measured itself and clamped to viewport
@@ -215,6 +217,7 @@ export default function OverlayShell() {
       setScale(Math.max(50, Math.min(200, Math.round(overlay.scale))));
     }
     setWidgetOpacity(normalizeOpacity(overlay?.opacity));
+    setFrost(overlay?.frost === true);
     if (theme?.accentColor) {
       applyAccentColor(theme.accentColor);
       setAccentColor(theme.accentColor);
@@ -451,6 +454,13 @@ export default function OverlayShell() {
   useEffect(() => {
     postToHost({ type: 'setAlwaysOnTop', value: raised || alwaysOnTop });
   }, [raised, alwaysOnTop]);
+
+  // Frosted glass: the host blurs the desktop behind each widget card. CSS
+  // backdrop-filter cannot reach the desktop from this transparent window, so
+  // the blur is native. A host without the message ignores it.
+  useEffect(() => {
+    postToHost({ type: 'setFrost', value: frost });
+  }, [frost]);
 
   // Reset the slot picker any time we open the editor on a new widget,
   // matching PanelApp's expected starting state (slot 0).

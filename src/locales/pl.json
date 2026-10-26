@@ -4040,6 +4040,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Włącz",
   "overlayWidgets.enableAria": "Włącz widżety pulpitu",
+  "overlayWidgets.frost": "Matowe szkło",
+  "overlayWidgets.frostAria": "Rozmyj pulpit za widżetami pulpitu",
   "overlayWidgets.loading": "Ładowanie…",
   "overlayWidgets.monitorAria": "Monitor widżetów pulpitu",
   "overlayWidgets.opacity": "Nieprzezroczystość",

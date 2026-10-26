@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Etkinleştir",
   "overlayWidgets.enableAria": "Masaüstü widget'larını etkinleştir",
+  "overlayWidgets.frost": "Buzlu cam",
+  "overlayWidgets.frostAria": "Masaüstü widget'larının arkasındaki masaüstünü bulanıklaştır",
   "overlayWidgets.loading": "Yükleniyor…",
   "overlayWidgets.monitorAria": "Masaüstü widget monitörü",
   "overlayWidgets.opacity": "Opaklık",

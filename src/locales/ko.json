@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "활성화",
   "overlayWidgets.enableAria": "데스크톱 위젯 활성화",
+  "overlayWidgets.frost": "프로스티드 글래스",
+  "overlayWidgets.frostAria": "데스크톱 위젯 뒤의 바탕화면을 흐리게 처리",
   "overlayWidgets.loading": "로드 중…",
   "overlayWidgets.monitorAria": "데스크톱 위젯 모니터",
   "overlayWidgets.opacity": "불투명도",

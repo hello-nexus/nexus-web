@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Inschakelen",
   "overlayWidgets.enableAria": "Bureaubladwidgets inschakelen",
+  "overlayWidgets.frost": "Matglas",
+  "overlayWidgets.frostAria": "Bureaublad achter bureaubladwidgets vervagen",
   "overlayWidgets.loading": "Laden…",
   "overlayWidgets.monitorAria": "Monitor voor bureaubladwidgets",
   "overlayWidgets.opacity": "Dekking",

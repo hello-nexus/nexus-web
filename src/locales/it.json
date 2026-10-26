@@ -3996,6 +3996,8 @@
   "overlayWidgets.emptySuffix": ".",
   "overlayWidgets.enable": "Attiva",
   "overlayWidgets.enableAria": "Attiva i widget del desktop",
+  "overlayWidgets.frost": "Vetro smerigliato",
+  "overlayWidgets.frostAria": "Sfoca il desktop dietro i widget del desktop",
   "overlayWidgets.loading": "Caricamento…",
   "overlayWidgets.monitorAria": "Monitor dei widget del desktop",
   "overlayWidgets.opacity": "Opacità",
