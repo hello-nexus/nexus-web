@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Color, Vector3, type Group } from 'three';
+import fixture from '../cooling/__fixtures__/y70-case-layout.json';
+import { parseCaseLayout, sceneLayout } from '../cooling/caseLayout';
+import { buildCase } from './pcScene';
+import { sceneSignature } from './pcSceneSignature';
 import type { SceneBinding, SceneObject } from '../../api/lightingScene';
 import { caseObject, deskObject } from './sceneFixtures';
 import { deviceForPick, deviceForStack } from './pickDevice';
@@ -94,5 +99,51 @@ describe('scene pick path', () => {
     expect(at('mon-1')).toBeLessThan(at(kase.id));
     expect(deviceForPick(bindings, renderer.pickAt(400, 225))).toBeNull();
     expect(deviceForStack(bindings, stack)).toBe('argb-1');
+  });
+
+  describe('the case drawn by Build\'s scene code', () => {
+    const layout = parseCaseLayout(fixture)!;
+    const caseScene = { layout: sceneLayout(layout), windowRight: false };
+    const groupOf = (id: string) => (renderer as unknown as { objectGroups: Map<string, Group> }).objectGroups.get(id)!;
+
+    it('is the very scene buildCase makes for the layout, carried into the case object\'s frame', () => {
+      const kase = caseObject();
+      renderer.setCaseScene(caseScene);
+      renderer.setState(stateOf([kase], []));
+      const toScene = groupOf(kase.id).children[0];
+      const palette = { part: new Color(theme.accent), frame: new Color(theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+      const expected = buildCase(caseScene.layout, palette, [], [], [], true, false, true, true);
+      expect(sceneSignature(toScene.children[0].children[0])).toEqual(sceneSignature(expected));
+      // The layout's own corner lands where Build's export puts it: x = z - W/2, z = D/2 - x.
+      const [D, W] = layout.size;
+      const corner = new Vector3(0, 0, 0).applyMatrix4(toScene.matrix);
+      expect([corner.x, corner.y, corner.z].map(Math.round)).toEqual([-W / 2, 0, D / 2].map(Math.round));
+    });
+
+    it('mirrors x for a window on the right', () => {
+      const kase = caseObject();
+      renderer.setCaseScene({ ...caseScene, windowRight: true });
+      renderer.setState(stateOf([kase], []));
+      const [, W] = layout.size;
+      const corner = new Vector3(0, 0, 0).applyMatrix4(groupOf(kase.id).children[0].matrix);
+      expect(Math.round(corner.x)).toBe(Math.round(W / 2));
+    });
+
+    it('keeps the anchors pickable and the case grabbable on its bounds', () => {
+      const kase = caseObject();
+      const bindings = [bind('argb-1', kase.id, 'strip:front')];
+      renderer.setCaseScene(caseScene);
+      renderer.setState(stateOf([kase], bindings));
+      renderer.setCamera({ position: [0, 0, 1500], target: [0, 0, 0], fov: 40 });
+      settle(renderer);
+      expect(deviceForStack(bindings, renderer.pickStackAt(400, 225))).toBe('argb-1');
+    });
+
+    it('draws no scene of its own for a case when there is no layout', () => {
+      const kase = caseObject();
+      renderer.setCaseScene(null);
+      renderer.setState(stateOf([kase], []));
+      expect(groupOf(kase.id).children.some(c => c.matrixAutoUpdate === false)).toBe(false);
+    });
   });
 });

@@ -4,7 +4,7 @@ import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
 import type { LightingScene, SceneCamera } from '../../../../api/lightingScene';
 import type { EffectState } from '../../../../types/lighting';
 import { CanvasBackground } from '../../../../components/common/DeviceCanvas/DeviceCanvas';
-import { SceneRenderer, type ScenePick, type SceneTheme } from '../../../../lib/scene/sceneRenderer';
+import { SceneRenderer, type CaseScene, type ScenePick, type SceneTheme } from '../../../../lib/scene/sceneRenderer';
 import { setScenePoints } from '../../../../lib/scene/scenePointsStore';
 import { useTranslation } from '../../../../lib/i18n';
 import styles from './Scene.module.scss';
@@ -17,6 +17,7 @@ export type Backdrop = 'full' | 'dim' | 'off';
 interface SceneViewportProps {
   scene: LightingScene;
   model: ArrayBuffer | null;
+  caseScene: CaseScene | null;
   leds: Map<string, Float32Array>;
   selectedDeviceId: string | null;
   placing: boolean;
@@ -48,7 +49,7 @@ function cssColor(el: Element, name: string, fallback: string): string {
 }
 
 export function SceneViewport({
-  scene, model, leds, selectedDeviceId, placing, backdrop,
+  scene, model, caseScene, leds, selectedDeviceId, placing, backdrop,
   shaderEffect, shaderState, shaderPaused, audioRef,
   onPick, onCamera, onDropDevice, hoverLabel, publishPoints, rendererRef, className, children,
 }: SceneViewportProps) {
@@ -116,6 +117,10 @@ export function SceneViewport({
   useEffect(() => {
     void rendererInst.current?.setModel(model).catch(() => { /* a broken model leaves the case drawn as its box */ });
   }, [model]);
+
+  useEffect(() => {
+    rendererInst.current?.setCaseScene(caseScene);
+  }, [caseScene]);
 
   useEffect(() => {
     rendererInst.current?.setState({

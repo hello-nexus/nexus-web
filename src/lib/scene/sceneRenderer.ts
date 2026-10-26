@@ -28,7 +28,9 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { parseCaseModel, STRUCTURE_LINE_DIM } from './caseModel';
+import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { parseCaseModel, sceneToLayoutMatrix, STRUCTURE_LINE_DIM } from './caseModel';
+import { buildCase, type Palette, type SceneLayout } from './pcScene';
 import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
@@ -123,6 +125,12 @@ function outline(a: SceneAnchor): BufferGeometry {
   return g;
 }
 
+/** Build's case layout as its scene draws it, and the side its glass is on. */
+export interface CaseScene {
+  layout: SceneLayout;
+  windowRight: boolean;
+}
+
 export class SceneRenderer {
   readonly camera: PerspectiveCamera;
   private readonly renderer: WebGLRenderer;
@@ -132,6 +140,8 @@ export class SceneRenderer {
   private readonly objectsGroup = new Group();
   private readonly anchorsGroup = new Group();
   private model: Group | null = null;
+  private caseScene: CaseScene | null = null;
+  private caseLines: LineMaterial[] = [];
   private dots: Points | null = null;
   private readonly dotMap = dotTexture();
   private readonly raycaster = new Raycaster();
@@ -250,6 +260,13 @@ export class SceneRenderer {
     this.publishProjection();
   }
 
+  /** Draws the case with Build's own scene code from its layout; without one the exported model stands in. */
+  setCaseScene(next: CaseScene | null): void {
+    if (this.disposed || next === this.caseScene) return;
+    this.caseScene = next;
+    if (this.state) this.rebuild();
+  }
+
   async setModel(bytes: ArrayBuffer | null): Promise<void> {
     const token = ++this.modelToken;
     const parsed = bytes ? await parseCaseModel(bytes) : null;
@@ -310,6 +327,7 @@ export class SceneRenderer {
     // The aspect stays the canvas's own: the viewport is styled to it, and the hardware samples through it.
     this.camera.aspect = CANVAS_W / CANVAS_H;
     this.camera.updateProjectionMatrix();
+    this.sizeCaseLines();
     this.dirty = true;
   }
 
@@ -416,6 +434,7 @@ export class SceneRenderer {
     if (!state) return;
     this.clearGroup(this.objectsGroup);
     this.clearGroup(this.anchorsGroup);
+    this.caseLines = [];
     this.anchorLines.clear();
     this.objectGroups.clear();
     this.clearDots();
@@ -425,7 +444,10 @@ export class SceneRenderer {
       const g = new Group();
       g.position.set(...obj.position);
       g.rotation.y = (obj.yaw * Math.PI) / 180;
-      if (obj.kind === 'case' && obj.hasModel && this.model) {
+      if (obj.kind === 'case' && this.caseScene) {
+        g.add(this.buildCaseGroup(this.caseScene));
+        g.add(this.pickBox(obj));
+      } else if (obj.kind === 'case' && obj.hasModel && this.model) {
         const model = this.model.clone(true);
         g.add(model);
         // The model is drawn, but picking uses the case's bounds so it can be grabbed anywhere.
@@ -455,6 +477,29 @@ export class SceneRenderer {
     }
     this.restyle();
     this.publishProjection();
+  }
+
+  // Build's case in layout space, carried into the exported model's scene space, which is where the case object's anchors are.
+  private buildCaseGroup({ layout, windowRight }: CaseScene): Group {
+    const palette: Palette = { part: new Color(this.theme.accent), frame: new Color(this.theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+    const [D, W, H] = layout.size;
+    const built = buildCase(layout, palette, this.caseLines, [], [], true, false, true, true);
+    // buildCase centers the case on the origin; the layout-to-scene matrix expects the layout's own corner there.
+    const corner = new Group();
+    corner.position.set(D / 2, H / 2, W / 2);
+    corner.add(built);
+    const toScene = new Group();
+    toScene.matrixAutoUpdate = false;
+    toScene.matrix.copy(sceneToLayoutMatrix(layout.size, windowRight).invert());
+    toScene.add(corner);
+    this.sizeCaseLines();
+    return toScene;
+  }
+
+  private sizeCaseLines(): void {
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    for (const m of this.caseLines) m.resolution.set(w, h);
   }
 
   private buildDesk(objects: SceneObject[]): Group {

@@ -13,6 +13,8 @@ import {
 } from '../../../../api/lightingScene';
 import { fetchPcSetup, PC_SETUP_TOPIC, type PcSetupRecord } from '../../../../api/pcSetup';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { parseCaseLayout, sceneLayout } from '../../../../lib/cooling/caseLayout';
+import type { CaseScene } from '../../../../lib/scene/sceneRenderer';
 import { healBindings } from '../../../../lib/scene/pickDevice';
 import { presetCamera } from '../../../../lib/scene/scenePresets';
 
@@ -40,6 +42,8 @@ export interface SceneEdit {
 export interface LightingSceneApi {
   scene: LightingScene | null;
   model: ArrayBuffer | null;
+  /** Build's case layout from the shared PC setup, as its scene draws it; null until Build saves one. */
+  caseScene: CaseScene | null;
   update: (mutate: (current: SceneEdit) => SceneEdit) => void;
   setEnabled: (enabled: boolean) => Promise<void>;
   /** Resolves once a final camera is saved, so a preset snapshot taken after it sees the new view. */
@@ -62,6 +66,12 @@ export function useLightingScene(active: boolean): LightingSceneApi {
   const [setup, setSetup] = useState<PcSetupRecord | null>(null);
   const setupRef = useRef<PcSetupRecord | null>(null);
   setupRef.current = setup;
+  // Parsed once per distinct layout: a setup ping that changes nothing here keeps the same object, so the renderer does not rebuild the case.
+  const layoutText = JSON.stringify(setup?.setup.resolved.caseLayout ?? null);
+  const caseScene = useMemo<CaseScene | null>(() => {
+    const layout = parseCaseLayout(JSON.parse(layoutText));
+    return layout ? { layout: sceneLayout(layout), windowRight: layout.windowRight === true } : null;
+  }, [layoutText]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Saves still on the wire: until they land, a refresh must not put the older server copy back.
   const saving = useRef(0);
@@ -191,7 +201,7 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     draftTimer.current = setTimeout(sendDraft, wait);
   }, [sendView, sendDraft]);
 
-  return { scene: viewScene, model, update, setEnabled, setCamera, refreshView };
+  return { scene: viewScene, model, caseScene, update, setEnabled, setCamera, refreshView };
 }
 
 /** LED maps of the placed devices, refetched when a device's LED count changes. */

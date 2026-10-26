@@ -205,6 +205,7 @@ export default function LightingScene3D({
         className={styles.viewportInline}
         scene={scene}
         model={api.model}
+        caseScene={api.caseScene}
         leds={leds}
         selectedDeviceId={selectedDeviceId}
         placing={placing !== null || (selectedDeviceId !== null && !selectedBinding)}

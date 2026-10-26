@@ -16,6 +16,7 @@ vi.mock('../../../../api/lighting', () => ({ fetchLedMap: vi.fn() }));
 import { fetchLightingScene, putLightingScene, putSceneView, type LightingScene } from '../../../../api/lightingScene';
 import { fetchPcSetup, type PcSetup, type PcSetupRecord } from '../../../../api/pcSetup';
 import type { SceneObject } from '../../../../api/lightingScene';
+import fixture from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { useLightingScene } from './useLightingScene';
 
 const cam = (x: number) => ({ position: [x, 0, 1000] as [number, number, number], target: [0, 0, 0] as [number, number, number], fov: 40 });
@@ -133,6 +134,23 @@ describe('useLightingScene', () => {
       vi.mocked(fetchLightingScene).mockResolvedValue({ ...baseScene(), objects });
       vi.mocked(fetchPcSetup).mockResolvedValue(record(rev, objects, ids));
     };
+
+    it('hands out Build\'s case scene from the record\'s layout, and none without one', async () => {
+      const none = await mounted();
+      expect(none.result.current.caseScene).toBeNull();
+      none.unmount();
+
+      const withLayout = record(2, [pc, kb], ['kb-1']);
+      withLayout.setup.resolved.caseLayout = fixture;
+      vi.mocked(fetchLightingScene).mockResolvedValue({ ...baseScene(), objects: [pc, kb] });
+      vi.mocked(fetchPcSetup).mockResolvedValue(withLayout);
+      const { result } = await mounted();
+      await waitFor(() => expect(result.current.caseScene).not.toBeNull());
+      const first = result.current.caseScene!;
+      expect(first.layout.size).toEqual(fixture.size);
+      await act(async () => { await result.current.refreshView(); });
+      expect(result.current.caseScene).toBe(first);
+    });
 
     it('sends bindings only once a record owns the objects, and keeps hand-placed objects riding along before one', async () => {
       withRecord(2, [pc, kb], ['kb-1']);
