@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { resolveEffectivePanelTheme } from './panelTheme';
+import { buildOverlayCardVars, resolveEffectivePanelTheme } from './panelTheme';
 import type { PanelThemeState } from './panelTheme';
 
 const baseTheme: PanelThemeState = {
@@ -57,5 +57,19 @@ describe('resolveEffectivePanelTheme', () => {
     expect(effective.widgetLabels).toBe(baseTheme.widgetLabels);
     expect(effective.widgetOpacity).toBe(baseTheme.widgetOpacity);
     expect(effective.backgroundFrost).toBe(baseTheme.backgroundFrost);
+  });
+});
+
+describe('buildOverlayCardVars', () => {
+  it('fills from the opaque surface so full opacity is a solid card', () => {
+    const vars = buildOverlayCardVars(1) as Record<string, string>;
+    expect(vars['--panel-card-fill']).toBe('var(--panel-card-fill-opaque)');
+    expect(vars['--panel-card-bg-opacity']).toBe('100%');
+  });
+
+  it('maps lower slider values to a proportional card alpha', () => {
+    const vars = buildOverlayCardVars(0.5) as Record<string, string>;
+    expect(vars['--panel-card-fill']).toBe('var(--panel-card-fill-opaque)');
+    expect(vars['--panel-card-bg-opacity']).toBe('50%');
   });
 });

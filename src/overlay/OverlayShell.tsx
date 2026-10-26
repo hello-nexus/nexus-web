@@ -12,7 +12,7 @@ import { sizesForSurface, APP_REGISTRY } from '../panel/widgets/registry';
 import { purgePanelOnlyOverlayWidgets } from './overlayWidgetPurge';
 import type { DeckEditView } from '../panel/widgets/types';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
-import { buildEmbeddedPanelThemeVars } from '../panel/theme/panelTheme';
+import { buildEmbeddedPanelThemeVars, buildOverlayCardVars } from '../panel/theme/panelTheme';
 import { applyAccentColor, applyThemeMode, resolveTheme, type ThemeMode } from '../lib/settings';
 import { useTranslation } from '../lib/i18n';
 import { WidgetContextMenu } from '../panel/widgets/common/WidgetContextMenu';
@@ -290,7 +290,7 @@ export default function OverlayShell() {
       // Drives panel-card surface alpha (same token the panel UI uses).
       // Both desktop overlay hosts composite per-pixel alpha against the
       // wallpaper, so this takes visible effect immediately.
-      '--panel-card-bg-opacity': `${Math.round(widgetOpacity * 100)}%`,
+      ...buildOverlayCardVars(widgetOpacity),
     } as CSSProperties;
   }, [accentColor, resolvedTheme, widgetOpacity]);
 
