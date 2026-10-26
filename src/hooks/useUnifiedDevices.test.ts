@@ -30,7 +30,7 @@ vi.mock('../lib/i18n', () => ({
   }),
 }));
 
-import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, deviceTitle, type UnifiedDevice } from './useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, deviceTitle, flexShortName, type UnifiedDevice } from './useUnifiedDevices';
 
 function makeHandlerRow(over: Partial<DeviceListItem> = {}): DeviceListItem {
   return {
@@ -656,5 +656,12 @@ describe('useUnifiedDevices - simulator beside a real Y70', () => {
     expect(simulated.nexusControlEnabled).toBe(true);
     expect(simulated.supportsNexusControl).toBe(false);
     expect(simulated.panelDevice?.sourceId).toBe('y70');
+  });
+});
+
+describe('flexShortName', () => {
+  it('keeps the LCD Flex label unless the service names the handler for P28 V2', () => {
+    expect(flexShortName('Lian Li LCD Flex Fans')).toBe('Lian Li LCD Flex');
+    expect(flexShortName('Lian Li P28 V2')).toBe('Lian Li P28 V2');
   });
 });

@@ -380,10 +380,20 @@ describe('Select action row button look', () => {
     const { rerender } = render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', onAction: vi.fn() }]} />);
     let row = within(open()).getByRole('option', { name: 'Load' });
     expect(within(row).queryByRole('img', { hidden: true })).toBeNull();
-    rerender(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Loading', onAction: vi.fn(), busy: true }]} />);
+    rerender(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', busyLabel: 'Loading', onAction: vi.fn(), busy: true }]} />);
     row = within(screen.getByRole('listbox')).getByRole('option', { name: 'Loading' });
     expect(within(row).getByRole('img', { hidden: true })).toBeTruthy();
     expect(row.getAttribute('aria-busy')).toBe('true');
+    expect(row.getAttribute('aria-selected')).toBe('false');
+    expect(row.getAttribute('aria-describedby')).toBeNull();
+    // The idle label stays in the DOM (hidden by CSS) to hold the button size.
+    const label = within(row).getByText('Load');
+    expect(label.parentElement?.className).toMatch(/actionButtonBusy/);
+  });
+
+  it('falls back to the label as the busy accessible name', () => {
+    render(<Select value="a" onChange={vi.fn()} ariaLabel="fruit" options={[...OPTIONS, { value: '', label: 'Load', onAction: vi.fn(), busy: true }]} />);
+    expect(within(open()).getByRole('option', { name: 'Load' }).getAttribute('aria-busy')).toBe('true');
   });
 });
 

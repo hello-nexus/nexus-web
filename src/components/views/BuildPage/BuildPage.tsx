@@ -7,7 +7,7 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveTheme, currentAccentColor } from '../../../lib/settings';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
-import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
+import { buildFpsSignatureParams, primaryGpuCard } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
 import { PC_SETUP_TOPIC } from '../../../api/pcSetup';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -21,6 +21,7 @@ import { relaySceneExport } from './buildScene';
 import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import styles from './BuildPage.module.scss';
 
+const SYSTEM_CASE_TOPIC = 'system/case';
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
 const DEFAULT_PATH = '/builder';
 const READY_TIMEOUT_MS = 8000;
@@ -185,6 +186,16 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
     return () => { cancelled = true; };
   }, []);
 
+  // The service pings this topic when the case changes (a manual pick or the Y70 display auto-assign), so an open page follows it; the hello below re-sends with the new caseId.
+  useTopicCallback(SYSTEM_CASE_TOPIC, !isRemoteOrigin, useCallback(() => {
+    void (async () => {
+      const res = await fetchService<{ caseId?: string | null }>('/system/case');
+      if (!res) return;
+      caseTouchedRef.current = true;
+      setCaseId(typeof res.caseId === 'string' && isValidCaseId(res.caseId) ? res.caseId : null);
+    })();
+  }, []));
+
   // Detected coolers, fans and controllers. An older service answers 404 (null here), which just leaves it out.
   const [devices, setDevices] = useState<BuildDevice[]>([]);
   useEffect(() => {
@@ -348,7 +359,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform }: B
     const sig = buildFpsSignatureParams(specs);
     return {
       processor: specs.processor || undefined,
-      primaryGpu: primaryGpuModel(specs),
+      primaryGpu: primaryGpuCard(specs),
       memory: specs.memory || undefined,
       motherboard: specs.motherboard || undefined,
       storage: specs.storage || undefined,

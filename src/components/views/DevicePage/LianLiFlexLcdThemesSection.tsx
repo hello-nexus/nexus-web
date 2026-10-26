@@ -85,6 +85,7 @@ export function LianLiFlexLcdThemesSection({ reloadKey = '' }: {
 
   return (<>
     {data.chains.map(chain => {
+      if (chain.family === 'p28v2') return null;
       const typeLabel = t(chain.family === 'slInfFlex' ? 'devices.lianli-wireless.fanTypeSlInfFlex' : 'devices.lianli-wireless.fanTypeTlFlex');
       const multiple = data.chains.filter(c => c.family === chain.family).length > 1;
       return (<Fragment key={chain.mac}>
