@@ -7,8 +7,11 @@ export const LOCK_NOTICE_MS = 1400;
 const INTERACTIVE = 'button,a,input,select,textarea,summary,[role="button"],[role="slider"],[role="switch"],[role="tab"],[data-panel-scrollable="true"]';
 
 /** True when the press landed on a widget's own control, which keeps working on a locked widget. */
-export function isOwnControl(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest(INTERACTIVE) !== null;
+export function isOwnControl(target: EventTarget | null, cell: Element | null = null): boolean {
+  if (!(target instanceof Element)) return false;
+  const hit = target.closest(INTERACTIVE);
+  // The sortable cell carries role="button" itself; only a control inside it counts.
+  return hit !== null && hit !== cell;
 }
 
 export function exceedsDragThreshold(dx: number, dy: number): boolean {
@@ -46,7 +49,7 @@ export function useLockNotice(locked: boolean) {
   }, []);
 
   const onPointerDown = useCallback((e: PointerEvent) => {
-    if (!locked || isOwnControl(e.target)) return;
+    if (!locked || isOwnControl(e.target, e.currentTarget as Element)) return;
     start.current = { x: e.clientX, y: e.clientY };
     clearHold();
     holdTimer.current = window.setTimeout(show, LOCK_HOLD_MS);

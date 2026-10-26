@@ -8,6 +8,17 @@ function Probe({ locked }: { locked: boolean }) {
   return (
     <div data-testid="body" data-visible={visible ? 'yes' : 'no'} {...handlers}>
       <button type="button">inner</button>
+      <span data-testid="face">12:00</span>
+    </div>
+  );
+}
+
+// The sortable cell wrapper is role="button", as dnd-kit's attributes make it.
+function SortableProbe({ locked }: { locked: boolean }) {
+  const { visible, handlers } = useLockNotice(locked);
+  return (
+    <div role="button" tabIndex={0} data-testid="cell" data-visible={visible ? 'yes' : 'no'} {...handlers}>
+      <span data-testid="face">12:00</span>
     </div>
   );
 }
@@ -80,6 +91,19 @@ describe('useLockNotice', () => {
   });
 });
 
+describe('useLockNotice on a sortable cell', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('shows when the widget face is dragged, though the cell itself is role=button', () => {
+    const { getByTestId } = render(<SortableProbe locked />);
+    const cell = getByTestId('cell');
+    fireEvent.pointerDown(getByTestId('face'), { clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(getByTestId('face'), { clientX: 60, clientY: 10 });
+    expect(visible(cell)).toBe(true);
+  });
+});
+
 describe('helpers', () => {
   it('measures the drag threshold', () => {
     expect(exceedsDragThreshold(3, 3)).toBe(false);
@@ -90,5 +114,11 @@ describe('helpers', () => {
     expect(isOwnControl(b)).toBe(true);
     expect(isOwnControl(document.createElement('div'))).toBe(false);
     expect(isOwnControl(null)).toBe(false);
+    const cell = document.createElement('div');
+    cell.setAttribute('role', 'button');
+    const face = document.createElement('span');
+    cell.appendChild(face);
+    expect(isOwnControl(face, cell)).toBe(false);
+    expect(isOwnControl(face)).toBe(true);
   });
 });
