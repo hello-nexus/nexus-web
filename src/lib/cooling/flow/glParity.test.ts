@@ -15,6 +15,8 @@ import { createServer } from 'vite';
 import { describe, expect, it } from 'vitest';
 
 const enabled = process.env.FLOW_GL === '1';
+/** Software GL is slow on a loaded box: FLOW_GL_TIMEOUT_MS raises the limit. */
+const LIMIT_MS = Number(process.env.FLOW_GL_TIMEOUT_MS ?? 900000);
 const GL_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 
 describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
@@ -28,7 +30,7 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
     try {
       const page = await browser.newPage();
       await page.goto(`http://localhost:${port}/src/lib/cooling/flow/glParity.harness.html${process.env.FLOW_GL_FRAMES ? `?frames=${process.env.FLOW_GL_FRAMES}` : ''}`, { waitUntil: 'commit' });
-      await page.waitForFunction(() => document.title === 'done', null, { timeout: 880000 });
+      await page.waitForFunction(() => document.title === 'done', null, { timeout: LIMIT_MS - 20000 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const r: Record<string, any> = await page.evaluate(() => (window as unknown as { __flowGl: Record<string, unknown> }).__flowGl);
       expect(r.exception).toBeUndefined();
@@ -68,5 +70,5 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
       await browser.close();
       await server.close();
     }
-  }, 900000);
+  }, LIMIT_MS);
 });
