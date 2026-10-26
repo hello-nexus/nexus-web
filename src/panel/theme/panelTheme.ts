@@ -141,8 +141,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
   const vars: Record<string, string> = {
     ...accentVars,
     '--panel-card-bg': 'var(--surface)',
-    '--panel-card-fill': 'var(--panel-card-fill-opaque)',
-    '--panel-card-bg-opacity': `${widgetOpacityPct}%`,
+    ...(buildOverlayCardVars(widgetOpacityPct / 100) as Record<string, string>),
     '--panel-card-bg-alpha': String(widgetOpacityPct / 100),
     '--panel-accent': accentVars['--accent'],
     '--panel-accent-glow': accentVars['--accent-glow'],

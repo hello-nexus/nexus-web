@@ -78,9 +78,9 @@
     calc(min(var(--panel-cell-size), var(--panel-row-size, var(--panel-cell-size))) * 0.14),
     40px
   );
-  // The .panel-card fill. Defaults to translucent --surface so embedded hosts
-  // (desktop dashboard, floating overlay - both buildEmbeddedPanelThemeVars)
-  // keep their frosted look. Live device panels (buildPanelThemeVars) swap in
+  // The .panel-card fill. Defaults to translucent --surface so the embedded
+  // desktop dashboard (buildEmbeddedPanelThemeVars) keeps its frosted look. Live
+  // device panels and the floating overlay (buildOverlayCardVars) swap in
   // --panel-card-fill-opaque so the widget-opacity slider is the sole source of
   // card transparency there: 100% renders a solid box, 0% is fully clear.
   --panel-card-fill: var(--surface);
@@ -91,7 +91,7 @@
   // User-controlled widget surface alpha. Applied via color-mix on
   // .panel-card so only the background, border, and shadow fade with the
   // slider; contents (text, icons, charts) stay fully opaque. Written as
-  // a percentage string by buildPanelThemeVars in PanelApp.tsx; the value
+  // a percentage string by buildOverlayCardVars (live panels and the overlay); the value
   // here is the pre-runtime fallback.
   --panel-card-bg-opacity: 100%;
   // Widgets are flat at rest - no resting border. The editor selection ring
