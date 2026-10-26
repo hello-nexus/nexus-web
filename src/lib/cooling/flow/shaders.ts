@@ -136,7 +136,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uEmitterCount; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
+uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -144,6 +144,13 @@ const SPAWN_DEFINE = `#define SPAWN_TRIES ${SPAWN_TRIES}\n`;
 
 // Particle state: xyz cell coordinates, w age. One pass moves, recycles and respawns.
 export const PARTICLE_STATE = SPAWN_DEFINE + PARTICLE_COMMON + /* glsl */ `
+uniform sampler2D F; // xyz target velocity, w fan cell
+// The velocity a particle feels: a fan cell's own target, else the solved field.
+vec3 pvel(vec3 q) {
+  ivec3 c = cellAtPos(q);
+  if (inside(c)) { vec4 f = texelFetch(F, tc(c), 0); if (f.w > 0.5) return f.xyz; }
+  return sampleU(q);
+}
 void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
   vec4 s = texelFetch(PA, f, 0);
@@ -160,8 +167,8 @@ void main() {
     // Sub-steps keep each move under a cell; one axis at a time, so a blocked axis slides along the surface instead of entering it.
     for (int k = 0; k < 8; k++) {
       if (float(k) >= uSubsteps) break;
-      vec3 k1 = sampleU(q);
-      vec3 d = sampleU(q + 0.5 * h * k1) * h;
+      vec3 k1 = pvel(q);
+      vec3 d = pvel(q + 0.5 * h * k1) * h;
       vec3 t = q + vec3(d.x, 0.0, 0.0); if (!solidAt(cellAtPos(t))) q = t;
       t = q + vec3(0.0, d.y, 0.0); if (!solidAt(cellAtPos(t))) q = t;
       t = q + vec3(0.0, 0.0, d.z); if (!solidAt(cellAtPos(t))) q = t;
@@ -171,8 +178,8 @@ void main() {
     age += length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0;
     p = q;
     ivec3 c = cellAtPos(p);
-    // Nothing lives outside the case's own box: a particle that leaves it is recycled.
-    respawn = any(lessThan(p, uCaseMin)) || any(greaterThan(p, uCaseMax)) || mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
+    // Nothing lives past the outside reach of the case box: a particle that leaves it is recycled.
+    respawn = any(lessThan(p, uBoundsMin)) || any(greaterThan(p, uBoundsMax)) || mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
   }
   if (respawn) {
     bool found = false;
@@ -182,13 +189,14 @@ void main() {
       if (uEmitterCount < 1.0) break;
       float sd = uSeed + float(t) * 17.31;
       int e = min(int(hash(gl_FragCoord.xy + sd) * uEmitterCount), int(uEmitterCount) - 1);
-      vec4 a = texelFetch(EM, ivec2(e * 3, 0), 0);
-      vec4 b = texelFetch(EM, ivec2(e * 3 + 1, 0), 0);
-      vec4 c2 = texelFetch(EM, ivec2(e * 3 + 2, 0), 0);
+      vec4 a = texelFetch(EM, ivec2(e * 4, 0), 0);
+      vec4 b = texelFetch(EM, ivec2(e * 4 + 1, 0), 0);
+      vec4 c2 = texelFetch(EM, ivec2(e * 4 + 2, 0), 0);
+      vec4 d2 = texelFetch(EM, ivec2(e * 4 + 3, 0), 0);
       vec3 e2 = cross(b.xyz, c2.xyz);
       float r = sqrt(a.w * a.w + (b.w * b.w - a.w * a.w) * hash(gl_FragCoord.xy * 1.3 + sd));
       float th = 6.2831853 * hash(gl_FragCoord.xy * 2.1 + sd);
-      float back = c2.w;
+      float back = c2.w + d2.x * hash(gl_FragCoord.xy * 3.3 + sd);
       vec3 cand = a.xyz + c2.xyz * (r * cos(th)) + e2 * (r * sin(th)) - b.xyz * back;
       if (!solidAt(cellAtPos(cand))) { np = cand; found = true; break; }
     }
@@ -235,7 +243,7 @@ void main() {
   vec3 world = (s.xyz + 0.5) * uCell - uOrigin;
   vec3 over = max(max(-world, world - uCaseExtent), 0.0);
   float outside = length(over);
-  float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.35, uMargin, outside));
+  float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
   vColor = h < 0.5 ? mix(uCool, uWarm, h * 2.0) : mix(uWarm, uHot, (h - 0.5) * 2.0);
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha;
   vec4 mv = modelViewMatrix * vec4(world, 1.0);

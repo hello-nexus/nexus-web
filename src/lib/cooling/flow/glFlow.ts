@@ -131,6 +131,7 @@ export class GlFlow {
   private readonly fanTex: WebGLTexture;
   private readonly velWrap: ExternalTexture[];
   private readonly maskWrap: ExternalTexture;
+  private readonly fanWrap: ExternalTexture;
   /** Scratch objects reused by every pass, so a solver step allocates none. */
   private readonly viewport = new Vector4();
   private readonly uniforms = {
@@ -185,6 +186,7 @@ export class GlFlow {
     const wrap = (t: WebGLTexture) => new ExternalTexture(t);
     this.velWrap = this.vel.map(t => wrap(t.texture));
     this.maskWrap = wrap(this.maskTex);
+    this.fanWrap = wrap(this.fanTex);
     this.upload();
     this.reset();
   }
@@ -288,6 +290,11 @@ export class GlFlow {
 
   get maskTexture(): Texture {
     return this.maskWrap;
+  }
+
+  /** Fan targets: xyz target velocity, w the fan cell flag. */
+  get fanTexture(): Texture {
+    return this.fanWrap;
   }
 
   private encodeFloats(data: Float32Array): Float32Array | Uint16Array {
@@ -474,6 +481,6 @@ export class GlFlow {
     for (const p of Object.values(this.programs)) gl.deleteProgram(p.program);
     gl.deleteBuffer(this.quad);
     gl.deleteVertexArray(this.vao);
-    for (const w of [...this.velWrap, this.maskWrap]) w.dispose();
+    for (const w of [...this.velWrap, this.maskWrap, this.fanWrap]) w.dispose();
   }
 }

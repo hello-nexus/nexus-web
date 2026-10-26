@@ -10,6 +10,7 @@ import { buildCollisionShapes, obstacleGeometry } from './collisionShapes';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
 import { buildFlowScene } from './gridScene';
+import { EMITTER_STRIDE, OUTSIDE_REACH_MM } from './flowParams';
 import { hullCuts } from './hull';
 import { obstaclesOf } from './obstacles';
 
@@ -69,7 +70,7 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
     expect(sizeSet.size).toBeGreaterThan(0);
   });
 
-  it('gives every fan slot a fan that moves air, and every intake spawn particles on its fan plane', () => {
+  it('gives every fan slot a fan that moves air, and every intake spawn particles outside its face', () => {
     const slots = shown.fanSlots.filter(s => s.taken !== 'radiator');
     const run = derive([sim(1500, slots.map(s => s.key))]);
     const fanned = run.layout.fanSlots.filter(s => s.taken === 'fan');
@@ -83,19 +84,21 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
       expect(run.scene.emitterCounts[s.key], s.key).toBeGreaterThan(0);
     }
     expect(intakes).toBeGreaterThan(0);
-    // Each emitter entry (12 floats) sits at the center of a fanned slot, in cell coordinates, and a case fan's has no offset off the plane.
+    // Each emitter entry sits at the center of a fanned slot, in cell coordinates; a fan on a case face starts its particles out past that face, a card or radiator fan does not.
     const e = run.scene.emitters;
     const cell = run.scene.cellMm;
     const centers = new Map(fanned.map(s => [s.key, [0, 1, 2].map(a => (centerOf(s)[a] + run.scene.origin[a]) / cell - 0.5)]));
-    for (let o = 0; o < e.length; o += 12) {
+    for (let o = 0; o < e.length; o += EMITTER_STRIDE) {
       const hit = [...centers.entries()].find(([, c]) => [0, 1, 2].every(a => Math.abs(c[a] - e[o + a]) < 1e-3));
       expect(hit, 'emitter on a fan center').toBeDefined();
       const slot = fanned.find(s => s.key === hit![0])!;
-      if (slot.position !== 'gpu') expect(e[o + 11]).toBe(0);
+      if (slot.position === 'gpu' || slot.key.startsWith('rad:')) continue;
+      expect(e[o + 11] * cell).toBeGreaterThan(0);
+      expect((e[o + 11] + e[o + 12]) * cell).toBeLessThan(OUTSIDE_REACH_MM + 80);
     }
   });
 
-  it('keeps every particle inside the case box and out of solid cells', () => {
+  it('keeps every particle within the outside reach of the case box and out of solid cells', () => {
     const run = derive([sim(1500, withBoundFans(withCard(), []).fanSlots.filter(s => s.taken !== 'radiator').map(s => s.key))], withCard());
     const flow = new CpuFlow(run.scene);
     for (let i = 0; i < 150; i++) flow.step();
@@ -109,8 +112,8 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
         seen++;
         for (let a = 0; a < 3; a++) {
           const mm = (particles.pos[i * 3 + a] + 0.5) * run.scene.cellMm - run.scene.origin[a];
-          expect(mm).toBeGreaterThan(-0.01);
-          expect(mm).toBeLessThan(size[a] + 0.01);
+          expect(mm).toBeGreaterThan(-OUTSIDE_REACH_MM - run.scene.cellMm);
+          expect(mm).toBeLessThan(size[a] + OUTSIDE_REACH_MM + run.scene.cellMm);
         }
         expect(run.scene.solid[particles.cellAt(particles.pos[i * 3], particles.pos[i * 3 + 1], particles.pos[i * 3 + 2])]).toBe(0);
       }

@@ -52,7 +52,7 @@ describe('buildFlowScene', () => {
     expect(shellFluid).toBe(intake + exhaust);
   });
 
-  it('spawns intake particles on the fan plane inside the case box, in open cells', () => {
+  it('spawns intake particles outside the case face within the reach, in open cells', () => {
     expect(scene.spawns.length / 3).toBeGreaterThan(50);
     let outside = 0;
     for (let m = 0; m < scene.spawns.length / 3; m++) {
@@ -61,7 +61,7 @@ describe('buildFlowScene', () => {
       expect(scene.solid[idx(scene, i, j, k)]).toBe(0);
       if (i < scene.caseMin[0] || i > scene.caseMax[0] || j < scene.caseMin[1] || j > scene.caseMax[1] || k < scene.caseMin[2] || k > scene.caseMax[2]) outside++;
     }
-    expect(outside).toBe(0);
+    expect(outside).toBeGreaterThan(scene.spawns.length / 3 / 2);
   });
 
   it('flips a fan target with its direction and spawns only for intake', () => {
@@ -209,8 +209,8 @@ describe('CpuParticles', () => {
     }
     expect(inSolid).toBe(0);
     expect(wallCrossings).toBe(0);
-    // Intake particles start inside the case, so none arrives from outside.
-    expect(entries).toBe(0);
+    // Intake particles start outside the case and are drawn in, only ever through an opening (counted above).
+    expect(entries).toBeGreaterThan(0);
     expect(exits).toBeGreaterThan(0);
     expect(badExit).toBe(0);
   }, 120000);

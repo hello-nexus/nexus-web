@@ -5,6 +5,7 @@ import { fanGeometries, parseCaseLayout, type CaseBox, type CaseLayout } from '.
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
 import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
+import { EMITTER_STRIDE, OUTSIDE_REACH_MM } from './flowParams';
 import { hullCuts } from './hull';
 import { obstaclesOf } from './obstacles';
 import { boxContains } from './voxelize';
@@ -193,7 +194,7 @@ describe('particles on the Y70', () => {
   const cut = hullCuts(layout)[0];
   const gpu = layout.boxes.find(b => b.slot === 'gpu')!;
   const shrunk = (b: CaseBox, by: number): CaseBox => ({ ...b, min: [b.min[0] + by, b.min[1] + by, b.min[2] + by], size: [b.size[0] - 2 * by, b.size[1] - 2 * by, b.size[2] - 2 * by] });
-  it('never enter the chamfer prism, a solid cell or the card, and never lie outside the case box', () => {
+  it('never enter the chamfer prism, a solid cell or the card, and never lie past the outside reach of the case box', () => {
     expect(scene.fanCount).toBeGreaterThan(0);
     const size = [layout.size[0], layout.size[2], layout.size[1]];
     let seen = 0;
@@ -207,8 +208,8 @@ describe('particles on the Y70', () => {
         expect(boxContains(shrunk(gpu, scene.cellMm), mm, 0)).toBe(false);
         expect(scene.solid[particles.cellAt(particles.pos[i * 3], particles.pos[i * 3 + 1], particles.pos[i * 3 + 2])]).toBe(0);
         for (let a = 0; a < 3; a++) {
-          expect(mm[a]).toBeGreaterThan(-0.01);
-          expect(mm[a]).toBeLessThan(size[a] + 0.01);
+          expect(mm[a]).toBeGreaterThan(-OUTSIDE_REACH_MM - scene.cellMm);
+          expect(mm[a]).toBeLessThan(size[a] + OUTSIDE_REACH_MM + scene.cellMm);
         }
       }
     }
@@ -243,7 +244,7 @@ describe('particles on the Y70', () => {
     expect(nearDiagonal).toBeGreaterThan(0);
   });
 
-  it('from the bottom intakes rise into the case from the fan plane', () => {
+  it('from the bottom intakes start below the floor and rise into the case', () => {
     const bottom = y70([], ['bottom:120:0', 'bottom:120:1']);
     const sc = buildFlowScene(inputOf(bottom), LOW);
     const flow = new CpuFlow(sc);
@@ -256,20 +257,21 @@ describe('particles on the Y70', () => {
       return sum / n;
     };
     const start = meanY();
-    // The fan plane sits just inside the floor, never below it.
-    expect(start).toBeGreaterThan(0);
+    // Intake air starts outside the floor, within the reach.
+    expect(start).toBeLessThan(0);
+    expect(start).toBeGreaterThan(-OUTSIDE_REACH_MM - sc.cellMm);
     for (let s = 0; s < 25; s++) group.step();
     expect(meanY()).toBeGreaterThan(start + 5);
     for (let s = 0; s < 400; s++) {
       group.step();
-      for (let i = 0; i < group.count; i++) if (group.pos[i * 3] > -1e5) expect(mmOf(sc, group.pos, i * 3)[1]).toBeGreaterThan(-0.01);
+      for (let i = 0; i < group.count; i++) if (group.pos[i * 3] > -1e5) expect(mmOf(sc, group.pos, i * 3)[1]).toBeGreaterThan(-OUTSIDE_REACH_MM - sc.cellMm);
     }
   }, 120000);
 
   it('start on a fan ring, off the hub, and never inside the card', () => {
     const e = scene.emitters;
     expect(e.length).toBeGreaterThan(0);
-    for (let o = 0; o < e.length; o += 12) expect(e[o + 3]).toBeGreaterThan(0);
+    for (let o = 0; o < e.length; o += EMITTER_STRIDE) expect(e[o + 3]).toBeGreaterThan(0);
     expect(scene.spawns.length).toBeGreaterThan(0);
     for (let i = 0; i < scene.spawns.length; i += 3) {
       const mm = mmOf(scene, scene.spawns, i);

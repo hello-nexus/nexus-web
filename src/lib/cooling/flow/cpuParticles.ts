@@ -70,8 +70,16 @@ export class CpuParticles {
   }
 
   private inCase(x: number, y: number, z: number): boolean {
-    const { min, max } = this.flow.scene.caseBounds;
+    const { min, max } = this.flow.scene.particleBounds;
     return x >= min[0] && x <= max[0] && y >= min[1] && y <= max[1] && z >= min[2] && z <= max[2];
+  }
+
+  /** The velocity a particle feels: a fan cell's own target, so the fan's stream is not eaten by the pressure of a closed case, else the solved field. */
+  private velocityAt(x: number, y: number, z: number, out: number[]) {
+    const c = this.cellAt(x, y, z);
+    const { fanCell, target } = this.flow.scene;
+    if (c >= 0 && fanCell[c]) { out[0] = target[c * 3]; out[1] = target[c * 3 + 1]; out[2] = target[c * 3 + 2]; return; }
+    this.flow.sample(x, y, z, out);
   }
 
   /** Advances every particle one step. `onMove(i, fromCell, toCell)` sees each move that changes cell. */
@@ -98,8 +106,8 @@ export class CpuParticles {
       const h = speed / subs;
       const x0 = x, y0 = y, z0 = z;
       for (let k = 0; k < subs; k++) {
-        this.flow.sample(x, y, z, v);
-        this.flow.sample(x + 0.5 * h * v[0], y + 0.5 * h * v[1], z + 0.5 * h * v[2], v);
+        this.velocityAt(x, y, z, v);
+        this.velocityAt(x + 0.5 * h * v[0], y + 0.5 * h * v[1], z + 0.5 * h * v[2], v);
         tryMove(x + h * v[0], y, z);
         tryMove(x, y + h * v[1], z);
         tryMove(x, y, z + h * v[2]);
