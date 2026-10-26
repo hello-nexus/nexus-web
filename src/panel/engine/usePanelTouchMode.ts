@@ -67,13 +67,24 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
   const pressFeedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const movedDuringDragRef = useRef(false);
   const ctxSeqRef = useRef(0);
-  // Widget whose menu a host-reported right-click opened; any press on the page ends that click.
-  const hostOpenedRef = useRef<string | null>(null);
+  // A host-reported right-click opened the menu on its press; its release reaches the page as a contextmenu once the native view hides.
+  const hostOpenedRef = useRef(false);
 
   useEffect(() => {
-    const clear = () => { hostOpenedRef.current = null; };
+    const clear = () => { hostOpenedRef.current = false; };
+    // Window capture runs before React's root listeners, so neither a widget nor the background sees the release.
+    const swallow = (e: MouseEvent) => {
+      if (!hostOpenedRef.current) return;
+      hostOpenedRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
     window.addEventListener('pointerdown', clear, true);
-    return () => window.removeEventListener('pointerdown', clear, true);
+    window.addEventListener('contextmenu', swallow, true);
+    return () => {
+      window.removeEventListener('pointerdown', clear, true);
+      window.removeEventListener('contextmenu', swallow, true);
+    };
   }, []);
 
   const clearPressFeedback = useCallback(() => {
@@ -112,23 +123,18 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
   const handleContextMenu = useCallback((e: React.MouseEvent, widget: PanelWidget) => {
     e.preventDefault();
     e.stopPropagation();
-    // The host opened this menu on the press; the release lands here once its native view hides, which is the same click.
-    if (hostOpenedRef.current === widget.id) {
-      hostOpenedRef.current = null;
-      return;
-    }
     clearPressFeedback();
     setCtxMenu({ widget, x: e.clientX, y: e.clientY, target: e.target, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const openCtxMenu = useCallback((widget: PanelWidget, x: number, y: number) => {
     clearPressFeedback();
-    hostOpenedRef.current = widget.id;
+    hostOpenedRef.current = true;
     setCtxMenu({ widget, x, y, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const closeCtxMenu = useCallback(() => {
-    hostOpenedRef.current = null;
+    hostOpenedRef.current = false;
     clearPressFeedback();
     setCtxMenu(null);
   }, [clearPressFeedback]);

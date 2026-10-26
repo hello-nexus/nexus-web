@@ -113,19 +113,63 @@ describe('usePanelTouchMode', () => {
     expect(result.current.ctxMenu?.seq).not.toBe(firstSeq);
   });
 
-  it('keeps a host-opened menu when the same click releases on the page, and reopens on a new press', () => {
-    const { result } = renderHook(() => usePanelTouchMode({}));
-    act(() => { result.current.openCtxMenu(widget, 50, 60); });
-    const hostSeq = result.current.ctxMenu?.seq;
-    const release = contextMenuEvent();
-    act(() => { result.current.handleContextMenu(release, widget); });
-    expect(release.preventDefault).toHaveBeenCalled();
-    expect(result.current.ctxMenu).toMatchObject({ x: 50, y: 60, seq: hostSeq });
+  describe('host-opened menu', () => {
+    // The release of the host-reported click must reach neither a widget nor the background handler.
+    function setup() {
+      const tileB = document.createElement('div');
+      tileB.setAttribute('data-panel-widget-id', 'widget-2');
+      document.body.appendChild(tileB);
+      const tileSeen = vi.fn();
+      const backgroundSeen = vi.fn();
+      tileB.addEventListener('contextmenu', tileSeen);
+      document.body.addEventListener('contextmenu', backgroundSeen);
+      const hook = renderHook(() => usePanelTouchMode({}));
+      act(() => { hook.result.current.openCtxMenu(widget, 50, 60); });
+      const cleanup = () => {
+        document.body.removeEventListener('contextmenu', backgroundSeen);
+        tileB.remove();
+        hook.unmount();
+      };
+      return { hook, tileB, tileSeen, backgroundSeen, cleanup };
+    }
+    const release = (target: EventTarget) => {
+      const e = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 });
+      act(() => { target.dispatchEvent(e); });
+      return e;
+    };
 
-    act(() => { window.dispatchEvent(new Event('pointerdown')); });
-    act(() => { result.current.handleContextMenu(contextMenuEvent({ clientX: 300 }), widget); });
-    expect(result.current.ctxMenu?.x).toBe(300);
-    expect(result.current.ctxMenu?.seq).not.toBe(hostSeq);
+    it('drops a release over another tile and keeps the menu', () => {
+      const { hook, tileB, tileSeen, backgroundSeen, cleanup } = setup();
+      const seq = hook.result.current.ctxMenu?.seq;
+      expect(release(tileB).defaultPrevented).toBe(true);
+      expect(tileSeen).not.toHaveBeenCalled();
+      expect(backgroundSeen).not.toHaveBeenCalled();
+      expect(hook.result.current.ctxMenu).toMatchObject({ widget: { id: widget.id }, x: 50, y: 60, seq });
+      cleanup();
+    });
+
+    it('drops a release over empty space', () => {
+      const { backgroundSeen, cleanup } = setup();
+      expect(release(document.body).defaultPrevented).toBe(true);
+      expect(backgroundSeen).not.toHaveBeenCalled();
+      cleanup();
+    });
+
+    it('lets a right-click that starts with a page press through', () => {
+      const { tileB, tileSeen, cleanup } = setup();
+      act(() => { window.dispatchEvent(new Event('pointerdown')); });
+      release(tileB);
+      expect(tileSeen).toHaveBeenCalledTimes(1);
+      cleanup();
+    });
+
+    it('drops only one release', () => {
+      const { tileB, tileSeen, cleanup } = setup();
+      release(tileB);
+      release(tileB);
+      expect(tileSeen).toHaveBeenCalledTimes(1);
+      cleanup();
+    });
   });
 
   describe('press feedback', () => {
