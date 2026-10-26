@@ -49,7 +49,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, effectiveClickThrough, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -1748,8 +1748,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { reserveMonitor: next }).catch(() => {});
                       }}
                       keepCursorOff={monitorGuards ? recordKeepCursorOff : null}
-                      clickThrough={isMonitorPanel && theme.backdrop === 'desktop' ? recordClickThrough : null}
+                      clickThrough={isMonitorPanel && theme.backdrop === 'desktop' ? effectiveClickThrough(recordClickThrough, recordAlwaysOnTop, genericDisplay) : null}
+                      clickThroughForced={genericDisplay && recordAlwaysOnTop}
                       onClickThroughToggle={() => {
+                        if (genericDisplay && recordAlwaysOnTop) return;
                         const next = !recordClickThrough;
                         setRecordClickThrough(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { clickThrough: next }).catch(() => {});
@@ -2590,6 +2592,8 @@ interface MonitorSettingsPanelProps {
   onKeepCursorOffToggle: () => void;
   // Null hides the row: click-through only exists with the Desktop background.
   clickThrough: boolean | null;
+  // Always on top holds click-through on: the row shows on and disabled.
+  clickThroughForced?: boolean;
   onClickThroughToggle: () => void;
   // Short-axis cell count of the grid; null hides the slider.
   // Corsair Xeneon Edge native settings (brightness/backlight/contrast/RGB).
@@ -2617,7 +2621,7 @@ function MonitorSettingsPanel({
   alwaysOnTop, onAlwaysOnTopToggle, widgetsLocked, onWidgetsLockedToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
-  clickThrough, onClickThroughToggle,
+  clickThrough, clickThroughForced, onClickThroughToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
   hardwareResetBusy,
   touchPermissionNeeded, onOpenTouchPermission,
@@ -2751,6 +2755,7 @@ function MonitorSettingsPanel({
           label={t('devices.panels.clickThrough')}
           description={t('devices.panels.clickThroughHint')}
           checked={clickThrough}
+          disabled={clickThroughForced}
           onChange={onClickThroughToggle}
         />
       )}

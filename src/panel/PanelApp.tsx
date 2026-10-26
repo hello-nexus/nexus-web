@@ -116,7 +116,7 @@ import {
   type PanelWidgetSize,
   type ForcedGrid,
 } from './types';
-import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, sizeForLegacyGridSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
+import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, sizeForLegacyGridSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, effectiveClickThrough } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -1831,7 +1831,7 @@ export function PanelContent({
 
   // Host sync: a see-through, click-through display window takes input only where the panel draws.
   const hostBound = kioskBehavior && displayBound && panelHostAvailable();
-  const clickThrough = seeThrough && recordState.record?.clickThrough === true;
+  const clickThrough = seeThrough && effectiveClickThrough(recordState.record?.clickThrough === true, menuAlwaysOnTop === true, genericDisplay);
   const hitFull = Boolean(sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
     || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
   // Position and size, so a remote edit that keeps the ids still remeasures.

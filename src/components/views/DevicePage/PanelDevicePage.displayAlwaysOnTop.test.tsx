@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const fetchPanelDevicesMock = vi.fn();
 const patchPanelDeviceMock = vi.fn();
 const fetchDisplayTopologyMock = vi.fn();
+const themeState = vi.hoisted(() => ({ backdrop: undefined as string | undefined }));
 
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
@@ -41,7 +42,7 @@ vi.mock('../../../panel/engine/panelSync', () => ({
 }));
 vi.mock('../../../panel/theme/panelTheme', () => ({
   usePanelTheme: () => ({
-    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [] },
+    theme: { backdrop: themeState.backdrop, themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [] },
     commitThemeSync: vi.fn(), commitThemeMode: vi.fn(), commitAccentSync: vi.fn(),
     previewAccent: vi.fn(), commitAccent: vi.fn(), previewBackground: vi.fn(),
     commitBackground: vi.fn(), commitBackgroundMode: vi.fn(), commitBackgroundEffect: vi.fn(),
@@ -90,6 +91,7 @@ const DEVICE: PanelDevice = {
 } as PanelDevice;
 
 beforeEach(() => {
+  themeState.backdrop = undefined;
   fetchPanelDevicesMock.mockReset();
   patchPanelDeviceMock.mockReset().mockResolvedValue({ ok: true });
   fetchDisplayTopologyMock.mockReset().mockResolvedValue({
@@ -187,5 +189,48 @@ describe('PanelDevicePage promoted display always on top', () => {
     await screen.findByRole('switch', { name: RESERVE_LABEL });
     expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'panel.widget.menu.lockWidgets' })).not.toBeInTheDocument();
+  });
+});
+
+describe('PanelDevicePage generic display click-through', () => {
+  const CLICK_THROUGH_LABEL = 'devices.panels.clickThrough';
+
+  it('shows click-through on and disabled while always on top, whatever is stored', async () => {
+    themeState.backdrop = 'desktop';
+    serveRecord({ alwaysOnTop: true, clickThrough: false });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: CLICK_THROUGH_LABEL });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+    expect(toggle).toBeDisabled();
+    fireEvent.click(toggle);
+    expect(patchPanelDeviceMock).not.toHaveBeenCalledWith('rec1', expect.objectContaining({ clickThrough: expect.anything() }));
+  });
+
+  it('restores the stored choice and enables the toggle once always on top is off', async () => {
+    themeState.backdrop = 'desktop';
+    serveRecord({ alwaysOnTop: true, clickThrough: false });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    fireEvent.click(await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL }));
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { alwaysOnTop: false }));
+    const toggle = screen.getByRole('switch', { name: CLICK_THROUGH_LABEL });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(toggle).not.toBeDisabled();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { clickThrough: true }));
+  });
+
+  it('leaves a known device click-through free under always on top', async () => {
+    themeState.backdrop = 'desktop';
+    serveRecord({ family: 'xeneon-edge', alwaysOnTop: true, clickThrough: false });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: CLICK_THROUGH_LABEL });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(toggle).not.toBeDisabled();
   });
 });

@@ -171,6 +171,11 @@ export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string
   return glassSurface === 'monitor' && displayBound && !family;
 }
 
+// An always-on-top generic display covers the work area, so it passes empty-space clicks whatever the stored choice.
+export function effectiveClickThrough(stored: boolean, alwaysOnTop: boolean, genericDisplay: boolean): boolean {
+  return stored || (genericDisplay && alwaysOnTop);
+}
+
 // Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid; 'xsmall' (plain OS
 // displays only) the densest. A panel that offers the switch lays out each size as another surface
 // does, while its own surface keeps driving the hardware (touch, render cost, offline behaviour).
