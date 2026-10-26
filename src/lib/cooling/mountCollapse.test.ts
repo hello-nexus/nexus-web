@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import t1Layout5080 from './__fixtures__/t1-y70-5080-case-layout.json';
 import { channelOfSlot, collapseMounts, normalizeBindings, parseCaseLayout, linkChannelToSlot, type CaseLayout } from './caseLayout';
 import { Y70_FAN_SLOTS, Y70_SIZE } from './y70Slots.fixture';
 
@@ -102,5 +103,22 @@ describe('binding a device', () => {
     const { canonOf } = collapseMounts(layout, boundOf(T1_BINDINGS));
     const n = normalizeBindings([{ channelId: 'c', slotKeys: ['top:120:1', 'top:140:0'] }], canonOf);
     expect(n[0].slotKeys).toEqual(['top:140:0']);
+  });
+});
+
+describe('graphics card fans on the real T1 layout (RTX 5080, three fans)', () => {
+  const t1 = parseCaseLayout(t1Layout5080) as CaseLayout;
+  const gpuKeys = (l: CaseLayout) => l.fanSlots.filter(s => s.position === 'gpu').map(s => s.key);
+
+  it('parses all three card fans, their frames overlapping by the padding', () => {
+    expect(gpuKeys(t1)).toEqual(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']);
+    const [a, b] = t1.fanSlots.filter(s => s.position === 'gpu').map(s => s.box!);
+    expect(a.min[0] < b.min[0] + b.size[0]).toBe(true);
+  });
+
+  it('keeps every card fan drawn, each standing for itself', () => {
+    const c = collapseMounts(t1, []);
+    expect(gpuKeys(c.layout)).toEqual(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']);
+    expect(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2'].map(c.canonOf)).toEqual(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']);
   });
 });
