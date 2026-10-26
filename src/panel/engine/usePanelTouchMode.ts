@@ -67,6 +67,14 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
   const pressFeedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const movedDuringDragRef = useRef(false);
   const ctxSeqRef = useRef(0);
+  // Widget whose menu a host-reported right-click opened; any press on the page ends that click.
+  const hostOpenedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const clear = () => { hostOpenedRef.current = null; };
+    window.addEventListener('pointerdown', clear, true);
+    return () => window.removeEventListener('pointerdown', clear, true);
+  }, []);
 
   const clearPressFeedback = useCallback(() => {
     if (pressFeedbackTimerRef.current) {
@@ -104,16 +112,23 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
   const handleContextMenu = useCallback((e: React.MouseEvent, widget: PanelWidget) => {
     e.preventDefault();
     e.stopPropagation();
+    // The host opened this menu on the press; the release lands here once its native view hides, which is the same click.
+    if (hostOpenedRef.current === widget.id) {
+      hostOpenedRef.current = null;
+      return;
+    }
     clearPressFeedback();
     setCtxMenu({ widget, x: e.clientX, y: e.clientY, target: e.target, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const openCtxMenu = useCallback((widget: PanelWidget, x: number, y: number) => {
     clearPressFeedback();
+    hostOpenedRef.current = widget.id;
     setCtxMenu({ widget, x, y, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const closeCtxMenu = useCallback(() => {
+    hostOpenedRef.current = null;
     clearPressFeedback();
     setCtxMenu(null);
   }, [clearPressFeedback]);

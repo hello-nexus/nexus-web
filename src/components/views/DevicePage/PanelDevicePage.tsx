@@ -325,7 +325,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // to null when the id no longer exists also closes the pane when the widget
   // is removed on the device.
   const configuringWidget = configuringWidgetId ? findWidgetById(layout, configuringWidgetId) ?? null : null;
-  // A tap on the display's widget opened this page for it: its settings, and the tapped deck key, open first.
+  // The display's widget menu Open item opened this page for it: its settings, and the right-clicked deck key, open first.
   const [linkedTarget, setLinkedTarget] = useState<PanelEditorTarget | null>(null);
   useEffect(() => {
     if (!editingDeviceId) return;

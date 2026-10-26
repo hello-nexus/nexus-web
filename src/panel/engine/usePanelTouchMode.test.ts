@@ -113,6 +113,21 @@ describe('usePanelTouchMode', () => {
     expect(result.current.ctxMenu?.seq).not.toBe(firstSeq);
   });
 
+  it('keeps a host-opened menu when the same click releases on the page, and reopens on a new press', () => {
+    const { result } = renderHook(() => usePanelTouchMode({}));
+    act(() => { result.current.openCtxMenu(widget, 50, 60); });
+    const hostSeq = result.current.ctxMenu?.seq;
+    const release = contextMenuEvent();
+    act(() => { result.current.handleContextMenu(release, widget); });
+    expect(release.preventDefault).toHaveBeenCalled();
+    expect(result.current.ctxMenu).toMatchObject({ x: 50, y: 60, seq: hostSeq });
+
+    act(() => { window.dispatchEvent(new Event('pointerdown')); });
+    act(() => { result.current.handleContextMenu(contextMenuEvent({ clientX: 300 }), widget); });
+    expect(result.current.ctxMenu?.x).toBe(300);
+    expect(result.current.ctxMenu?.seq).not.toBe(hostSeq);
+  });
+
   describe('press feedback', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());

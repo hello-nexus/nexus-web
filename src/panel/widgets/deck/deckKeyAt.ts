@@ -1,4 +1,4 @@
-/** The deck key under a tap, read from the attributes DeckWidget and DeckGrid render; undefined off a key. */
+/** The deck key under a right-click, read from the attributes DeckWidget and DeckGrid render; undefined off a key. */
 export function deckKeyAt(target: EventTarget | null): { page: number; folderPath: number[]; slot: number } | undefined {
   if (!(target instanceof Element)) return undefined;
   const slotEl = target.closest<HTMLElement>('[data-deck-slot-index]');
