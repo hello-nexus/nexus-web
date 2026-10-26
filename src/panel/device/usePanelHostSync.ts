@@ -49,6 +49,7 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
     if (root && observer) observer.observe(root);
     // Boxes settle only when their transitions and keyframes end.
     document.addEventListener('transitionend', schedule, true);
+    document.addEventListener('transitioncancel', schedule, true);
     document.addEventListener('animationend', schedule, true);
     window.addEventListener('resize', schedule);
     return () => {
@@ -56,6 +57,7 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
       offRequest();
       observer?.disconnect();
       document.removeEventListener('transitionend', schedule, true);
+      document.removeEventListener('transitioncancel', schedule, true);
       document.removeEventListener('animationend', schedule, true);
       window.removeEventListener('resize', schedule);
     };

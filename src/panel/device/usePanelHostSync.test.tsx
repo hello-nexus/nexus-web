@@ -43,6 +43,22 @@ describe('usePanelHitTest', () => {
     expect(sent.length).toBe(after);
   });
 
+  it('re-sends the region when a remote edit moves a widget under the same id', async () => {
+    const cell = document.createElement('div');
+    cell.setAttribute('data-panel-widget-id', 'w1');
+    let rect = { left: 10, top: 20, right: 110, bottom: 90 };
+    cell.getBoundingClientRect = () => rect as DOMRect;
+    document.body.appendChild(cell);
+    const { rerender } = renderHook(({ sig }) => usePanelHitTest(true, true, false, rootRef, sig), { initialProps: { sig: 'w1@5,3,1' } });
+    await flush();
+    expect(sent.at(-1)).toMatchObject({ mode: 'region', rects: [{ x: 10, y: 20, w: 100, h: 70 }] });
+    rect = { left: 10, top: 200, right: 110, bottom: 270 };
+    rerender({ sig: 'w1@5,5,1' });
+    await flush();
+    expect(sent.at(-1)).toMatchObject({ mode: 'region', rects: [{ x: 10, y: 200, w: 100, h: 70 }] });
+    cell.remove();
+  });
+
   it('re-sends on a host request and stays silent when inactive', async () => {
     renderHook(() => usePanelHitTest(true, true, false, rootRef, 'a'));
     await flush();

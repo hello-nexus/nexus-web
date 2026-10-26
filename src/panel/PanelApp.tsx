@@ -1788,15 +1788,15 @@ export function PanelContent({
   const clickThrough = seeThrough && recordState.record?.clickThrough === true;
   const hitFull = Boolean(sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
     || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
+  // Position and size, so a remote edit that keeps the ids still remeasures.
+  const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
   usePanelHitTest(
     hostBound && seeThrough,
     clickThrough,
     hitFull,
     rootRef,
-    `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${allFlatIds.join(',')}`,
+    `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
   );
-  // Position and size, so a remote edit that keeps the ids still remeasures.
-  const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
   // The host blurs the desktop behind the cards: CSS cannot sample it.
   usePanelFrost(
     hostBound,
