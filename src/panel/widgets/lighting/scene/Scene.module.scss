@@ -16,9 +16,32 @@
   user-select: none;
 }
 
-.viewportLarge {
+// The canvas with the device panel docked beside it; the panel drops under the canvas when the pane is narrow.
+.inlineLayout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
   width: 100%;
-  max-height: 100%;
+}
+
+.viewportInline {
+  flex: 1 1 24rem;
+  width: auto;
+  max-width: calc(440px * 5 / 3);
+}
+
+.devicePanel {
+  @include scrollbar-visible;
+  flex: 0 1 15rem;
+  min-width: 12rem;
+  max-height: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
 }
 
 .backdrop {
@@ -63,7 +86,7 @@
   background: rgb(0 0 0 / var(--alpha-strong));
 }
 
-// Floating chrome over the viewport: always over the 3D canvas, never over modals.
+// Floating chrome over the viewport.
 .overlayTop {
   position: absolute;
   top: 0.4rem;
@@ -176,72 +199,6 @@
   @include text-body;
   max-width: 28rem;
   color: rgb(255 255 255 / var(--alpha-strong));
-}
-
-// Editor modal: viewport on the left, setup panel on the right.
-.editorSurface {
-  width: min(96vw, 1500px);
-  height: min(92vh, 900px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--bg-elevated);
-}
-
-.editorHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  border-bottom: var(--border-width) solid var(--border);
-}
-
-.editorTitle {
-  @include text-heading;
-  color: var(--text);
-}
-
-.editorHeaderSpacer { flex: 1; }
-
-.editorBody {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.editorStage {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.editorStageInner {
-  position: relative;
-  width: 100%;
-  max-height: 100%;
-  aspect-ratio: 5 / 3;
-}
-
-.sidebar {
-  @include scrollbar-visible;
-  width: 320px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  overflow-y: auto;
-  padding-right: 0.25rem;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .sectionHeader {

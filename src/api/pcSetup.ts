@@ -49,14 +49,6 @@ export interface PcSetupRecord {
   setup: PcSetup;
 }
 
-/** An item id, or `case`, and its new footprint center and yaw. */
-export interface PcSetupPlacement {
-  id: string;
-  x: number;
-  z: number;
-  yaw: number;
-}
-
 export type PcSetupWrite =
   | { kind: 'saved'; rev: number }
   | { kind: 'conflict'; record: PcSetupRecord }
@@ -103,10 +95,6 @@ export async function fetchPcSetup(): Promise<PcSetupRecord | null> {
 
 /** Build's whole-record write. */
 export const putPcSetup = (baseRev: number, setup: PcSetup) => write('/system/setup', 'PUT', { baseRev, setup });
-
-/** Lighting's write: moves and turns existing items; the service updates the matching resolved objects itself. */
-export const patchPcSetupPlacements = (baseRev: number, places: PcSetupPlacement[]) =>
-  write('/system/setup/placements', 'PATCH', { baseRev, places });
 
 /** Cooling's write: the radiator's mount (a face name, or null to return to Build's default); the service touches only that field. */
 export const patchPcSetupRadiator = (baseRev: number, mount: string | null) =>

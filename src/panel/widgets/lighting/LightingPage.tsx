@@ -490,7 +490,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [studioTarget, setStudioTarget] = useState<{ id: string | null } | null>(null);
   const [effectQuery, setEffectQuery] = useState('');
   const sceneApi = useLightingScene(SCENE_3D);
-  const [sceneEditorOpen, setSceneEditorOpen] = useState(false);
   // The scene answers once loaded; until then the stored choice stands, so a page that last used 3D opens on 3D without a 2D frame first.
   const scene3d = effectiveView3d(sceneApi.scene ? sceneApi.scene.view.enabled : uiSettings.lightingView3d, SCENE_3D);
   // Canvas hides the frame for any device whose LEDs are off. The device
@@ -2886,10 +2885,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 value={scene3d ? VIEW_3D : VIEW_2D}
                 labels={{ '2d': t('lighting.view.layout'), '3d': t('lighting.view.desk') }}
                 onChange={next => {
-                  const firstTime = next === VIEW_3D && (sceneApi.scene?.bindings.length ?? 0) === 0;
                   void sceneApi.setEnabled(next === VIEW_3D);
                   updateUiSettings({ lightingView3d: next === VIEW_3D });
-                  if (firstTime) setSceneEditorOpen(true);
                 }}
               />
             )}
@@ -3025,8 +3022,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   shaderState={shaderMode ? previewShaderState : null}
                   shaderPaused={paused}
                   audioRef={audioRef}
-                  editorOpen={sceneEditorOpen}
-                  onEditorOpenChange={setSceneEditorOpen}
                   onIdentify={id => { identifyLightingDevice(id).catch(() => { /* silent */ }); }}
                   onLayoutCommit={handleLayoutCommit}
                 />
