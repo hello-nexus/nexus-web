@@ -15,7 +15,6 @@ vi.mock('../../../../lib/i18n', async importOriginal => ({
 }));
 vi.mock('../../../../hooks/useComponentTemps', () => ({ useComponentTemps: () => ({ cpu: null, gpu: null }) }));
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
-vi.mock('../../../../hooks/useCaseModel', () => ({ useCaseModel: () => ({ bytes: null, settled: true }) }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn(() => ({ setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true })),

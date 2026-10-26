@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Associé aux ventilateurs {slots}",
   "cooling.case3d.linkedToOne": "Associé au ventilateur {slot}",
   "cooling.case3d.noFans": "Aucun ventilateur n'est installé dans ce boîtier.",
-  "cooling.case3d.noModel": "Affichage du contour du boîtier. Ouvrez Build une fois pour exporter le modèle du boîtier.",
   "cooling.case3d.noneLinked": "Aucun ventilateur associé",
   "cooling.case3d.position.bottom": "Bas",
   "cooling.case3d.position.front": "Avant",

@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "{slots}のファンに割り当て済み",
   "cooling.case3d.linkedToOne": "{slot}のファンに割り当て済み",
   "cooling.case3d.noFans": "このケースにはファンが取り付けられていません。",
-  "cooling.case3d.noModel": "ケースの輪郭を表示しています。Buildを一度開くと、ケースのモデルが書き出されます。",
   "cooling.case3d.noneLinked": "ファンは割り当てられていません",
   "cooling.case3d.position.bottom": "底面",
   "cooling.case3d.position.front": "前面",

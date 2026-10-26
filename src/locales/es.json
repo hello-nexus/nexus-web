@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "Asociado a los ventiladores {slots}",
   "cooling.case3d.linkedToOne": "Asociado al ventilador {slot}",
   "cooling.case3d.noFans": "No hay ventiladores instalados en esta caja.",
-  "cooling.case3d.noModel": "Se muestra el contorno de la caja. Abre Build una vez para exportar el modelo de la caja.",
   "cooling.case3d.noneLinked": "Ningún ventilador asociado",
   "cooling.case3d.position.bottom": "Inferior",
   "cooling.case3d.position.front": "Frontal",

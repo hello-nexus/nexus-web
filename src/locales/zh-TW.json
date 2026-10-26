@@ -417,7 +417,6 @@
   "cooling.case3d.linkedToMany": "已綁定到{slots}風扇",
   "cooling.case3d.linkedToOne": "已綁定到{slot}風扇",
   "cooling.case3d.noFans": "此機殼未安裝風扇。",
-  "cooling.case3d.noModel": "正在顯示機殼輪廓。開啟一次 Build 即可匯出機殼模型。",
   "cooling.case3d.noneLinked": "未綁定風扇",
   "cooling.case3d.position.bottom": "底部",
   "cooling.case3d.position.front": "前方",
