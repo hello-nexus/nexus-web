@@ -1837,8 +1837,8 @@ export function PanelContent({
   // refs are read via the closure. The useMemo body never dereferences
   // `.current` - only the returned function does, at call time.
   const panelCollisionDetection = useMemo(
-    () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef),
-    [activePageIndexRef],
+    () => buildPanelCollisionDetection(dragGestureRef, activePageIndexRef, displayBound),
+    [activePageIndexRef, displayBound],
   );
 
   // Tick incremented when the over target changes. The highlight overlay
@@ -1882,10 +1882,11 @@ export function PanelContent({
       target.col,
       target.row,
       capacity,
+      displayBound,
     );
     setPreviewLayout(preview);
     setDropRefused(preview === null);
-  }, [overIdTick, activeDragId, dragLayout, capacity, widgetById]);
+  }, [overIdTick, activeDragId, dragLayout, capacity, widgetById, displayBound]);
 
   const handleDndDragStart = useCallback((event: DragStartEvent) => {
     const id = String(event.active.id);
@@ -2043,6 +2044,7 @@ export function PanelContent({
           target.col,
           target.row,
           capacity,
+          displayBound,
         );
         if (!preview) {
           // Refused drop (displaced widgets have nowhere to go, or a 1x1

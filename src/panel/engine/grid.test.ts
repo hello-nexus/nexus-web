@@ -7,6 +7,7 @@ import {
   panelWidgetPaddingRatio,
   resolvePanelSpacing,
   sizeToSpan,
+  snapDropCell,
   snapStride,
   PANEL_GRID_COLS,
   PANEL_WIDGET_PADDING_DEFAULT_PERCENT,
@@ -183,6 +184,22 @@ describe('sizeToSpan', () => {
     expect([dell24, uhd32, laptop156]).toEqual([12, 16, 8]);
     expect(columnsForPhysicalSize(682, 2560, 337, undefined)).toBe(PANEL_GRID_COLS);
     expect(panelGridCapacityForCanvas(1920, 1200, { surface: 'monitor', dpi: 94.1 })).toMatchObject({ rows: 12 });
+  });
+});
+
+describe('snapDropCell fine snapping', () => {
+  const grid = { cols: 16, rows: 10 };
+  const span = { cols: 2, rows: 2 };
+
+  it('moves a 2x2 in whole cells when fine, and in even steps otherwise', () => {
+    expect(snapDropCell(5.4, 3.4, span, grid, true)).toEqual({ col: 5, row: 3 });
+    expect(snapDropCell(6.2, 4.2, span, grid, true)).toEqual({ col: 6, row: 4 });
+    expect(snapDropCell(5.4, 3.4, span, grid)).toEqual({ col: 6, row: 4 });
+  });
+
+  it('clamps inside the grid when fine', () => {
+    expect(snapDropCell(40, 40, span, grid, true)).toEqual({ col: 14, row: 8 });
+    expect(snapDropCell(-3, -3, span, grid, true)).toEqual({ col: 0, row: 0 });
   });
 });
 

@@ -121,9 +121,11 @@ export function snapDropCell(
   continuousRow: number,
   span: GridSpan,
   grid: { cols: number; rows: number },
+  // Land on every cell whatever the widget's size.
+  fine = false,
 ): { col: number; row: number } {
-  const colStep = snapStride(span.cols);
-  const rowStep = snapStride(span.rows);
+  const colStep = fine ? 1 : snapStride(span.cols);
+  const rowStep = fine ? 1 : snapStride(span.rows);
   const maxCol = Math.max(0, Math.floor((grid.cols - span.cols) / colStep) * colStep);
   const maxRow = Math.max(0, Math.floor((grid.rows - span.rows) / rowStep) * rowStep);
   return {

@@ -265,6 +265,8 @@ export function previewDrag(
   col: number,
   row: number,
   capacity: PaginateCapacity,
+  // A displaced widget takes the free cell nearest its old one (display panels), not the first free one from the top.
+  nearestFree = false,
 ): PanelLayout | null {
   const cols = Math.max(1, capacity.gridCols);
   const rows = Math.max(1, capacity.pageRows);
@@ -337,19 +339,35 @@ export function previewDrag(
     // grid), then a stride-1 pass so a displaced widget still homes
     // into off-stride free space instead of refusing the whole drop.
     let found: { col: number; row: number } | null = null;
-    for (const step of strideScanSteps(colSpan, rowSpan)) {
-      for (let r = 0; r + rowSpan <= rows && !found; r += step.row) {
-        for (let c = 0; c + colSpan <= cols && !found; c += step.col) {
+    if (nearestFree) {
+      let best = Infinity;
+      for (let r = 0; r + rowSpan <= rows; r++) {
+        for (let c = 0; c + colSpan <= cols; c++) {
           let fits = true;
           for (let rr = r; rr < r + rowSpan && fits; rr++) {
             for (let cc = c; cc < c + colSpan && fits; cc++) {
               if (occupied[rr][cc]) fits = false;
             }
           }
-          if (fits) found = { col: c, row: r };
+          const dist = (c - w.col) ** 2 + (r - w.row) ** 2;
+          if (fits && dist < best) { best = dist; found = { col: c, row: r }; }
         }
       }
-      if (found) break;
+    } else {
+      for (const step of strideScanSteps(colSpan, rowSpan)) {
+        for (let r = 0; r + rowSpan <= rows && !found; r += step.row) {
+          for (let c = 0; c + colSpan <= cols && !found; c += step.col) {
+            let fits = true;
+            for (let rr = r; rr < r + rowSpan && fits; rr++) {
+              for (let cc = c; cc < c + colSpan && fits; cc++) {
+                if (occupied[rr][cc]) fits = false;
+              }
+            }
+            if (fits) found = { col: c, row: r };
+          }
+        }
+        if (found) break;
+      }
     }
     if (!found) { displaced.length = 0; break; }
     mark({ col: found.col, row: found.row, colSpan, rowSpan });
@@ -358,7 +376,7 @@ export function previewDrag(
   const cascaded = displaced.length === sorted.length
     ? withTargetPage(layout, sourceId, sourcePageIdx, targetPageIdx, [...stationary, placed, ...displaced])
     : null;
-  if (overlapping.length === 0) return cascaded;
+  if (overlapping.length === 0 || nearestFree) return cascaded;
 
   const shifted = shiftPreview(layout, sourceId, sourcePageIdx, targetPageIdx, placed, cols, rows);
   if (!cascaded) return shifted;

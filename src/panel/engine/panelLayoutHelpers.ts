@@ -166,6 +166,8 @@ export function readCellMetrics(root: HTMLElement | null): { cellSize: number; r
 export function buildPanelCollisionDetection(
   gestureRef: { current: DragGestureState },
   activePageIndexRef: { current: number },
+  // Display panels drop on any whole cell; other surfaces snap multi-cell widgets to even cells.
+  fineSnap = false,
 ): CollisionDetection {
   return (args) => {
     const { droppableContainers, active, pointerCoordinates } = args;
@@ -240,6 +242,7 @@ export function buildPanelCollisionDetection(
       continuousRow,
       { cols: activeColSpan, rows: activeRowSpan },
       { cols: totalCols, rows: totalRows },
+      fineSnap,
     );
 
     const pageId = pageEl.dataset.panelPageId;
