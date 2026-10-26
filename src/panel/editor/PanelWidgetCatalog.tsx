@@ -8,7 +8,7 @@ import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useTranslation } from '../../lib/i18n';
-import { singleWidgetSurfaceSize, surfaceSupportsTextInput, type ForcedGrid, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
+import { hostedDisplayKeyboard, singleWidgetSurfaceSize, surfaceSupportsTextInput, type ForcedGrid, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
 import { sizeToSpan } from '../engine/grid';
 import { catalogRowSizeForGlass } from './catalogTileAspect';
 import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
@@ -410,7 +410,7 @@ export function PanelWidgetCatalog({
               // the desktop modal and the desktop dashboard's add-widget sheet.
               // The phone renders the field but stays unfocused so the on-screen
               // keyboard doesn't pop up.
-              autoFocus={variant === 'desktop-modal' || surface === 'desktop'}
+              autoFocus={variant === 'desktop-modal' || surface === 'desktop' || hostedDisplayKeyboard(surface)}
             />
           )}
           {showSizeChips && (

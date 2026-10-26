@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  canEditFreeText, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
   surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
@@ -206,6 +206,26 @@ describe('canEditFreeText', () => {
     withWindow({});
     expect(canEditFreeText('desktop')).toBe(true);
     expect(canEditFreeText('phone')).toBe(true);
+  });
+});
+
+describe('hostedDisplayKeyboard', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is the one rule behind free text, the catalog search and the editor', () => {
+    vi.stubGlobal('window', { chrome: { webview: { postMessage: () => {} } } });
+    expect(hostedDisplayKeyboard('monitor')).toBe(true);
+    expect(surfaceSupportsTextInput('monitor')).toBe(true);
+    for (const s of ['y70', 'q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(hostedDisplayKeyboard(s)).toBe(false);
+      expect(surfaceSupportsTextInput(s)).toBe(false);
+    }
+  });
+
+  it('is off without a kiosk host', () => {
+    vi.stubGlobal('window', {});
+    expect(hostedDisplayKeyboard('monitor')).toBe(false);
+    expect(surfaceSupportsTextInput('monitor')).toBe(false);
   });
 });
 
