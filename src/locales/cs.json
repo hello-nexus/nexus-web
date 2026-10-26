@@ -1379,7 +1379,7 @@
   "devices.panels.widgetSize.label": "Měřítko widgetů",
   "devices.panels.widgetSize.large": "Velké",
   "devices.panels.widgetSize.small": "Malé",
-  "devices.panels.widgetSize.xsmall": "Velmi malé",
+  "devices.panels.widgetSize.xsmall": "Drobné",
   "devices.q60.coolingFirmwareSection": "Firmware chlazení",
   "devices.q60.curveHint": "Tvar křivky upravíte přetažením bodů.",
   "devices.q60.curveUnsupported": "Upravitelné křivky vyžadují novější firmware chladiče.",

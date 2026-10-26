@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "Widget scale",
   "devices.panels.widgetSize.large": "Large",
   "devices.panels.widgetSize.small": "Small",
-  "devices.panels.widgetSize.xsmall": "Extra small",
+  "devices.panels.widgetSize.xsmall": "Tiny",
   "devices.q60.coolingFirmwareSection": "Cooling firmware",
   "devices.q60.curveHint": "Drag the points to shape the curve.",
   "devices.q60.curveUnsupported": "Editable curves require newer cooler firmware.",

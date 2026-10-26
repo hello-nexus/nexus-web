@@ -217,7 +217,7 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }
-  // A plain OS monitor: Large halves its density grid's short axis so cells double, Extra small doubles it so they halve.
+  // A plain OS monitor: Large halves its density grid's short axis so cells double, Tiny doubles it so they halve.
   if (surface === 'monitor' && !family) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', xsmall: 'monitor' }, densitySlotShare: { large: 0.5, xsmall: 2 } };
   }

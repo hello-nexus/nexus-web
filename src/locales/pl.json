@@ -1379,7 +1379,7 @@
   "devices.panels.widgetSize.label": "Skala widżetów",
   "devices.panels.widgetSize.large": "Duże",
   "devices.panels.widgetSize.small": "Małe",
-  "devices.panels.widgetSize.xsmall": "Bardzo małe",
+  "devices.panels.widgetSize.xsmall": "Malutkie",
   "devices.q60.coolingFirmwareSection": "Oprogramowanie chłodzenia",
   "devices.q60.curveHint": "Przeciągnij punkty, aby ukształtować krzywą.",
   "devices.q60.curveUnsupported": "Edytowalne krzywe wymagają nowszego firmware chłodnicy.",

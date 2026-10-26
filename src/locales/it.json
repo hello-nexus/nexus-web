@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "Scala dei widget",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Piccola",
-  "devices.panels.widgetSize.xsmall": "Molto piccola",
+  "devices.panels.widgetSize.xsmall": "Minuscola",
   "devices.q60.coolingFirmwareSection": "Firmware di raffreddamento",
   "devices.q60.curveHint": "Trascina i punti per modellare la curva.",
   "devices.q60.curveUnsupported": "Le curve modificabili richiedono un firmware più recente del dissipatore.",

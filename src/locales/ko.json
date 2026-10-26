@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "위젯 배율",
   "devices.panels.widgetSize.large": "크게",
   "devices.panels.widgetSize.small": "작게",
-  "devices.panels.widgetSize.xsmall": "매우 작게",
+  "devices.panels.widgetSize.xsmall": "아주 작게",
   "devices.q60.coolingFirmwareSection": "쿨링 펌웨어",
   "devices.q60.curveHint": "점을 드래그하여 곡선을 조정하세요.",
   "devices.q60.curveUnsupported": "편집 가능한 곡선에는 최신 쿨러 펌웨어가 필요합니다.",

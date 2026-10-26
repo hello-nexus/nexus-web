@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "ウィジェットのスケール",
   "devices.panels.widgetSize.large": "大",
   "devices.panels.widgetSize.small": "小",
-  "devices.panels.widgetSize.xsmall": "極小",
+  "devices.panels.widgetSize.xsmall": "ミニ",
   "devices.q60.coolingFirmwareSection": "冷却ファームウェア",
   "devices.q60.curveHint": "ポイントをドラッグしてカーブを調整します。",
   "devices.q60.curveUnsupported": "編集可能なカーブには、より新しいクーラーのファームウェアが必要です。",

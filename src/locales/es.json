@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "Escala de widgets",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Pequeño",
-  "devices.panels.widgetSize.xsmall": "Muy pequeño",
+  "devices.panels.widgetSize.xsmall": "Diminuto",
   "devices.q60.coolingFirmwareSection": "Firmware de refrigeración",
   "devices.q60.curveHint": "Arrastra los puntos para dar forma a la curva.",
   "devices.q60.curveUnsupported": "Las curvas editables requieren un firmware más reciente del sistema de refrigeración.",

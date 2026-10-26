@@ -1379,7 +1379,7 @@
   "devices.panels.widgetSize.label": "Масштаб виджетов",
   "devices.panels.widgetSize.large": "Крупные",
   "devices.panels.widgetSize.small": "Мелкие",
-  "devices.panels.widgetSize.xsmall": "Очень мелкие",
+  "devices.panels.widgetSize.xsmall": "Крошечные",
   "devices.q60.coolingFirmwareSection": "Прошивка охлаждения",
   "devices.q60.curveHint": "Перетаскивайте точки, чтобы задать форму кривой.",
   "devices.q60.curveUnsupported": "Редактируемые кривые требуют более новой прошивки системы охлаждения.",

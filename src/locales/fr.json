@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "Échelle des widgets",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Petite",
-  "devices.panels.widgetSize.xsmall": "Très petite",
+  "devices.panels.widgetSize.xsmall": "Minuscule",
   "devices.q60.coolingFirmwareSection": "Micrologiciel de refroidissement",
   "devices.q60.curveHint": "Faites glisser les points pour façonner la courbe.",
   "devices.q60.curveUnsupported": "Les courbes modifiables nécessitent un firmware de refroidisseur plus récent.",

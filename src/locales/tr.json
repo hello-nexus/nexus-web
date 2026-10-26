@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "Widget ölçeği",
   "devices.panels.widgetSize.large": "Büyük",
   "devices.panels.widgetSize.small": "Küçük",
-  "devices.panels.widgetSize.xsmall": "Çok küçük",
+  "devices.panels.widgetSize.xsmall": "Minik",
   "devices.q60.coolingFirmwareSection": "Soğutma bellenimi",
   "devices.q60.curveHint": "Eğriyi şekillendirmek için noktaları sürükleyin.",
   "devices.q60.curveUnsupported": "Düzenlenebilir eğriler daha yeni bir soğutucu yazılımı gerektirir.",

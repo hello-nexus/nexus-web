@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "小工具縮放",
   "devices.panels.widgetSize.large": "大",
   "devices.panels.widgetSize.small": "小",
-  "devices.panels.widgetSize.xsmall": "超小",
+  "devices.panels.widgetSize.xsmall": "微型",
   "devices.q60.coolingFirmwareSection": "散熱韌體",
   "devices.q60.curveHint": "拖曳點以調整曲線。",
   "devices.q60.curveUnsupported": "可編輯曲線需要較新的散熱器韌體。",

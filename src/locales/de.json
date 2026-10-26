@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "Widget-Skalierung",
   "devices.panels.widgetSize.large": "Groß",
   "devices.panels.widgetSize.small": "Klein",
-  "devices.panels.widgetSize.xsmall": "Sehr klein",
+  "devices.panels.widgetSize.xsmall": "Winzig",
   "devices.q60.coolingFirmwareSection": "Kühlungs-Firmware",
   "devices.q60.curveHint": "Ziehe die Punkte, um die Kurve zu formen.",
   "devices.q60.curveUnsupported": "Bearbeitbare Kurven erfordern eine neuere Kühler-Firmware.",

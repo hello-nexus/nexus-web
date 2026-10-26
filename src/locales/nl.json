@@ -1372,7 +1372,7 @@
   "devices.panels.widgetSize.label": "Schaal van widgets",
   "devices.panels.widgetSize.large": "Groot",
   "devices.panels.widgetSize.small": "Klein",
-  "devices.panels.widgetSize.xsmall": "Extra klein",
+  "devices.panels.widgetSize.xsmall": "Piepklein",
   "devices.q60.coolingFirmwareSection": "Koelingsfirmware",
   "devices.q60.curveHint": "Sleep de punten om de curve vorm te geven.",
   "devices.q60.curveUnsupported": "Bewerkbare curves vereisen nieuwere koelerfirmware.",
