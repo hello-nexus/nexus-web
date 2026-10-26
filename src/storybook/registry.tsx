@@ -1183,6 +1183,18 @@ function PreviewEffectCard() {
           onDelete={() => { /* preview */ }}
           deleteAriaLabel="Delete"
         />
+        {/* Disabled while another item talks to the device: dimmed, no hover, clicks and delete ignored. */}
+        <EffectCard
+          asDiv
+          label="Nebula"
+          thumbUrl={null}
+          active={false}
+          disabled
+          onClick={() => {}}
+          meta="2.1s"
+          onDelete={() => { /* preview */ }}
+          deleteAriaLabel="Delete"
+        />
       </div>
     </div>
   );
@@ -1723,7 +1735,7 @@ function PreviewThermalGuardSetting() {
 
 function PreviewFlashProgress() {
   return (
-    <FlashProgress status={{ active: true, deviceType: 'q60', version: '1.0.0', phase: 'downloading', percent: 42, message: 'Downloading', success: false, error: '' }} />
+    <FlashProgress status={{ percent: 42, message: 'Downloading' }} />
   );
 }
 
@@ -2995,7 +3007,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'EffectCard', category: 'cards',
     filePath: 'src/components/common/EffectCard/EffectCard.tsx',
     description: 'The one shared thumbnail card: lighting shader browser, panel Theme animation picker, media library, and the lighting widget tile all use it. overlay=true gives a full-bleed thumbnail with the label stroked over the lower third (both shader pickers); default layout is thumbnail-above-caption with optional meta line + hover-reveal delete X (media library).', Preview: PreviewEffectCard,
-    notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. Pass nonInteractive for a display-only card (plain div, no hover ring / cursor) - the lighting widget tile. thumbUrl=null renders a shimmer skeleton.',
+    notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. Pass nonInteractive for a display-only card (plain div, no hover ring / cursor) - the lighting widget tile. Pass disabled to dim the card and ignore its clicks and delete while the device is busy - the DeepCool Mystique media tiles. thumbUrl=null renders a shimmer skeleton.',
   },
   {
     name: 'AdvancedModeCta', category: 'cards',
