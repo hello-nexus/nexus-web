@@ -1,5 +1,5 @@
 import type { FanChannel } from '../../api/cooling';
-import { defaultDirection, NONE_CHANNEL, type CaseFanSlot, type FanBinding } from './caseLayout';
+import { defaultDirection, NONE_CHANNEL, SIM_RPM_UNASSIGNED, simChannelId, type CaseFanSlot, type FanBinding } from './caseLayout';
 import { scaledSpec, simRpm, speedFraction, type SlotSpeed } from './fanSpeed';
 import { slotModelFans, type CatalogFanSpec } from './fanSpecs';
 import { solveCasePressure, type FanDirection, type PressureFan } from './pressureModel';
@@ -17,23 +17,30 @@ export function slotFanKeys(slot: Pick<CaseFanSlot, 'key' | 'taken'>): string[] 
   return slot.taken === 'radiator' ? [] : [slot.key];
 }
 
-/** The stored bindings plus a derived one for every GPU fan slot and AIO radiator fan no binding names: the card's or cooler's own fan channels in order, the last one shared when fans outnumber channels. A stored binding, including a `none` one, always wins; a binding on a case slot the radiator covers drives nothing. The derived ones are never written back. */
+/** The stored bindings plus a derived one for every installed fan no binding names: a GPU fan or AIO radiator fan takes the card's or cooler's own fan channels in order (the last one shared when fans outnumber channels); every other installed fan, and any of those two with no channel to take, is simulated at SIM_RPM_UNASSIGNED. A stored binding, including a `none` one, always wins; empty mounts and case slots the radiator covers get none. The derived ones are never written back. */
 export function withDefaultBindings(bindings: readonly FanBinding[], slots: readonly Pick<CaseFanSlot, 'key' | 'taken'>[], channels: readonly Pick<FanChannel, 'id' | 'isGpu' | 'isAio' | 'kind'>[]): FanBinding[] {
   const named = new Set(bindings.flatMap(b => b.slotKeys));
   const derived = new Map<string, string[]>();
+  const add = (id: string, key: string) => derived.set(id, [...(derived.get(id) ?? []), key]);
+  const simulated = simChannelId(SIM_RPM_UNASSIGNED);
   // A fan's owner follows its place among all of its group's fans, named or not, so unlinking one never shifts the others onto another channel.
   const assign = (fans: { key: string; free: boolean }[], owners: readonly Pick<FanChannel, 'id'>[]) => {
-    if (owners.length === 0) return;
     fans.forEach(({ key, free }, i) => {
       if (!free) return;
-      const id = owners[Math.min(i, owners.length - 1)].id;
-      derived.set(id, [...(derived.get(id) ?? []), key]);
+      add(owners.length === 0 ? simulated : owners[Math.min(i, owners.length - 1)].id, key);
     });
   };
   const fans = (own: (c: Pick<FanChannel, 'isGpu' | 'isAio'>) => boolean) => channels.filter(c => own(c) && (c.kind ?? 'Fan') !== 'Pump');
   assign(slots.filter(sl => isGpuSlotKey(sl.key)).map(sl => sl.key).sort((a, b) => gpuIndex(a) - gpuIndex(b)).map(key => ({ key, free: !named.has(key) })), fans(c => !!c.isGpu));
   assign(slots.filter(isAioSlot).flatMap(sl => slotFanKeys(sl).map(key => ({ key, free: !named.has(key) }))), fans(c => !!c.isAio));
-  return [...bindings, ...[...derived].map(([channelId, keys]) => ({ channelId, slotKeys: keys }))];
+  for (const sl of slots) {
+    if (isGpuSlotKey(sl.key) || isAioSlot(sl) || sl.taken !== 'fan' || named.has(sl.key)) continue;
+    add(simulated, sl.key);
+  }
+  // A derived group joins a stored binding on the same channel, so a channel id never appears twice.
+  const merged = bindings.map(b => ({ ...b, slotKeys: [...b.slotKeys, ...(derived.get(b.channelId) ?? [])] }));
+  const stored = new Set(bindings.map(b => b.channelId));
+  return [...merged, ...[...derived].filter(([id]) => !stored.has(id)).map(([channelId, keys]) => ({ channelId, slotKeys: keys }))];
 }
 
 /** Each slot's direction: the user's override, else the GPU's fans blow into the card (intake), else the position's default. */
@@ -45,7 +52,7 @@ export function slotDirections(slots: readonly Pick<CaseFanSlot, 'key' | 'positi
 
 type LiveChannel = Pick<FanChannel, 'id' | 'rpm' | 'dutyPercent' | 'maxRpm' | 'rpmUnavailable'>;
 
-/** Live speed of each fan that has a device bound, keyed by fan key: a channel's tach or a simulated `sim:<rpm>` id, both through the same share-of-top-speed rule. A fan with no device bound, or an explicit `none`, is not turning: it reads as a 0 rpm fan. */
+/** Live speed of each fan that has a device bound, keyed by fan key: a channel's tach or a simulated `sim:<rpm>` id, both through the same share-of-top-speed rule. A fan with no binding left (an empty mount) or an explicit `none` is not turning: it reads as a 0 rpm fan. */
 export function slotSpeeds(slots: readonly CaseFanSlot[], bindings: readonly FanBinding[], channels: readonly LiveChannel[]): Map<string, SlotSpeed> {
   const out = new Map<string, SlotSpeed>();
   for (const slot of slots) {

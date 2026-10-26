@@ -97,19 +97,20 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   useEffect(() => {
     if (pendingMove?.rev != null && record && record.rev >= pendingMove.rev) setPendingMove(null);
   }, [record, pendingMove]);
-  // The stored bindings plus the derived default for each GPU fan and AIO radiator slot; the stored layout never carries the default.
+  // Collapsing follows the stored bindings alone: derived defaults sit on installed and own-channel slots, which never collapse.
   const storedBindings = coolingLayout.bindings;
-  const effectiveBindings = useMemo(() => withDefaultBindings(storedBindings, parsedLayout?.fanSlots ?? [], channels), [storedBindings, parsedLayout, channels]);
+  // Installed case fans carry a derived default, so unlinking one stores the `none` marker instead of letting the default return.
+  const installedKeys = useMemo(() => new Set((parsedLayout?.fanSlots ?? []).filter(s => s.taken === 'fan').map(s => s.key)), [parsedLayout]);
   // A slot bound to a cooling device has a physical fan, whether or not the setup record lists one there.
-  const boundKeys = useMemo(() => boundSlotKeys(effectiveBindings, channels), [effectiveBindings, channels]);
+  const boundKeys = useMemo(() => boundSlotKeys(storedBindings, channels), [storedBindings, channels]);
   const boundKeyText = [...new Set(boundKeys)].sort().join('\n');
   const collapsed = useMemo(() => (parsedLayout ? collapseMounts(parsedLayout, boundKeyText ? boundKeyText.split('\n') : []) : null), [parsedLayout, boundKeyText]);
   const caseLayout = collapsed?.layout ?? null;
   const canonOf = collapsed?.canonOf;
-  // Bindings as the view shows them: each on the one drawn fan of its mount.
+  // Bindings as the view shows them: each on the one drawn fan of its mount, plus the derived default for each installed fan nothing names; the stored layout never carries the default.
   // A simulated speed being dragged shows in the stats and the particles at once; it is saved once, when the drag ends.
   const [simPreview, setSimPreview] = useState<{ key: string; rpm: number } | null>(null);
-  const savedBindings = useMemo(() => (canonOf ? normalizeBindings(effectiveBindings, canonOf) : effectiveBindings), [effectiveBindings, canonOf]);
+  const savedBindings = useMemo(() => withDefaultBindings(canonOf ? normalizeBindings(storedBindings, canonOf) : storedBindings, caseLayout?.fanSlots ?? [], channels), [storedBindings, canonOf, caseLayout, channels]);
   const bindings = useMemo(() => (simPreview ? linkChannelToSlot(savedBindings, simChannelId(simPreview.rpm), simPreview.key, false) : savedBindings), [savedBindings, simPreview]);
   const [active, setActive] = useState<string | null>(null);
   // A drag that was never finished must not leave its speed showing once another fan is chosen or the controls close.
@@ -135,7 +136,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
 
-  // Live speed of each drawn fan: the bound channel's tach (or simulated rpm) over the fan's top speed. A fan with no device linked, or an explicit none, reads stopped like a 0 rpm fan.
+  // Live speed of each drawn fan: the bound channel's tach (or simulated rpm) over the fan's top speed. A fan with an explicit none, or an empty mount, reads stopped like a 0 rpm fan.
   const speeds = useMemo(() => slotSpeeds(caseLayout?.fanSlots ?? [], bindings, channels), [caseLayout, bindings, channels]);
 
   const model = useMemo(() => (caseLayout ? lumpedModel(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, directions, speeds]);
@@ -175,8 +176,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   // Flows that moved little keep their old values, so tach jitter never restarts the solve.
   const rawFlow = useMemo(() => {
-    if (!model || !caseLayout || model.fanCount === 0) return null;
+    if (!model || !caseLayout) return null;
     const v = visualFlow(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions);
+    if (Object.keys(v.fanCfm).length === 0) return null;
     return { [VENT_KEY]: v.ventCfm, [REF_KEY]: v.referenceCfm, ...v.fanCfm };
   }, [model, caseLayout, record, speeds, directions]);
   const [settledFlow, setSettledFlow] = useState<Readonly<Record<string, number>> | null>(null);
@@ -211,10 +213,10 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     edit(l => ({ ...l, directions: withDirection(l.directions, { key, position }, direction) }));
   }, [edit]);
 
-  // Choosing a device links it to this fan: the fan's earlier device is replaced, and the device keeps its other fans. Unlinking a fan that has a derived default (GPU and AIO fans) stores the `none` marker.
+  // Choosing a device links it to this fan: the fan's earlier device is replaced, and the device keeps its other fans. Unlinking a fan that has a derived default (GPU, AIO and installed case fans) stores the `none` marker.
   const linkChannel = useCallback((channelId: string, key: string) => {
-    edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key, hasDerivedLink(key)) }));
-  }, [edit, canonOf]);
+    edit(l => ({ ...l, bindings: linkChannelToSlot(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, key, hasDerivedLink(key) || installedKeys.has(key)) }));
+  }, [edit, canonOf, installedKeys]);
 
   // The service's write is by record rev. Each move carries a sequence number and only the latest may retry or touch the pending and error state.
   // A stale rev answers with the current record: retry once on its rev unless it holds a mount this view did not write, which is another writer's pick and is left alone.
@@ -340,14 +342,13 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
         <div className={`${styles.corner} ${styles.control}`}>
           <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
-          <Button size="sm" tone="ghost" icon={<Box size={14} strokeWidth={1.8} />} title={t('cooling.case3d.build.customize')} aria-label={t('cooling.case3d.build.customize')} onClick={() => requestOpenBuild('/builder')} />
         </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
         {result && model && (
           <div className={`${styles.overlay} ${styles.overlayTop}`}>
             <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>
-              {model.fanCount === 0 ? (
+              {model.fanCount === 0 && !caseLayout.fanSlots.some(slot => slot.taken === 'fan') ? (
                 <span className={styles.statNote}>{t('cooling.case3d.noFans')}</span>
               ) : (
                 <>
@@ -362,39 +363,42 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
           </div>
         )}
         <div className={`${styles.overlay} ${styles.overlayBottom}`}>
-          <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
-            <ChipGroup
-              className={styles.control}
-              ariaLabel={t('cooling.case3d.flow.mode.label')}
-              options={COOLING_FLOW_MODES.map(key => ({ key, label: t(`cooling.case3d.flow.mode.${key}`) }))}
-              activeKey={flowMode}
-              onChange={next => {
-                const mode = COOLING_FLOW_MODES.find(m => m === next) ?? DEFAULT_COOLING_FLOW_MODE;
-                setFlowMode(mode);
-                onFlowModeChange?.(mode);
-                if (mode === 'airflow') setActive(null);
-              }}
-            />
-            {DEV_TOOLS && showCase && (
-              <label className={`${styles.flowToggle} ${styles.control}`}>
-                <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
-                <span>{t('cooling.case3d.flow.collisions')}</span>
-              </label>
-            )}
-            {particles && (
-              <label className={`${styles.flowToggle} ${styles.control}`}>
-                <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
-                <span>{t('cooling.case3d.flow.slowMo')}</span>
-              </label>
+          <div className={styles.bottomMain}>
+            <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
+              <ChipGroup
+                className={styles.control}
+                ariaLabel={t('cooling.case3d.flow.mode.label')}
+                options={COOLING_FLOW_MODES.map(key => ({ key, label: t(`cooling.case3d.flow.mode.${key}`) }))}
+                activeKey={flowMode}
+                onChange={next => {
+                  const mode = COOLING_FLOW_MODES.find(m => m === next) ?? DEFAULT_COOLING_FLOW_MODE;
+                  setFlowMode(mode);
+                  onFlowModeChange?.(mode);
+                  if (mode === 'airflow') setActive(null);
+                }}
+              />
+              {DEV_TOOLS && showCase && (
+                <label className={`${styles.flowToggle} ${styles.control}`}>
+                  <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
+                  <span>{t('cooling.case3d.flow.collisions')}</span>
+                </label>
+              )}
+              {particles && (
+                <label className={`${styles.flowToggle} ${styles.control}`}>
+                  <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
+                  <span>{t('cooling.case3d.flow.slowMo')}</span>
+                </label>
+              )}
+            </div>
+            {particles && flowSupported && (
+              <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend')}>
+                <span>{t('cooling.case3d.flow.cooler')}</span>
+                <span className={styles.legendBar} aria-hidden="true" />
+                <span>{t('cooling.case3d.flow.warmer')}</span>
+              </div>
             )}
           </div>
-          {particles && flowSupported && (
-            <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend')}>
-              <span>{t('cooling.case3d.flow.cooler')}</span>
-              <span className={styles.legendBar} aria-hidden="true" />
-              <span>{t('cooling.case3d.flow.warmer')}</span>
-            </div>
-          )}
+          <Button className={styles.control} size="sm" tone="neutral" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
         </div>
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {radiatorPicked && !activeSlot && (
