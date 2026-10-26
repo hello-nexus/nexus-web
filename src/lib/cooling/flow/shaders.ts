@@ -39,7 +39,8 @@ vec3 sampleU(vec3 p) {
 
 export const ADVECT = COMMON + /* glsl */ `
 uniform sampler2D F; // xyz target velocity, w fan cell
-uniform float uBlend; uniform float uDamp; uniform float uVmax;
+uniform sampler2D T; // r degrees above room temperature
+uniform float uBlend; uniform float uDamp; uniform float uVmax; uniform float uBuoy;
 void main() {
   ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
   if (c.z >= N.z) { gl_FragColor = vec4(0.0); return; }
@@ -47,12 +48,48 @@ void main() {
   if (m.r > 0.5) { gl_FragColor = vec4(0.0); return; }
   vec3 u = texelFetch(U, tc(c), 0).xyz;
   vec3 a = sampleU(vec3(c) - u);
+  a.y += uBuoy * texelFetch(T, tc(c), 0).r;
   vec4 f = texelFetch(F, tc(c), 0);
   if (f.w > 0.5) a += (f.xyz - a) * uBlend;
   a *= uDamp / (1.0 + m.g);
   float l = length(a);
   if (l > uVmax) a *= uVmax / l;
   gl_FragColor = vec4(a, 0.0);
+}`;
+
+// Temperature: degrees above room temperature, carried with the final velocity.
+const TEMP_COMMON = /* glsl */ `
+uniform sampler2D T;
+// Trilinear value at cell coordinates, averaged over the fluid cells only so a wall does not cool the air beside it.
+float sampleT(vec3 p) {
+  p = clamp(p, vec3(0.0), vec3(N - 1));
+  ivec3 b = ivec3(floor(p));
+  vec3 f = p - vec3(b);
+  float acc = 0.0; float wsum = 0.0;
+  for (int dz = 0; dz < 2; dz++) for (int dy = 0; dy < 2; dy++) for (int dx = 0; dx < 2; dx++) {
+    float w = (dx == 1 ? f.x : 1.0 - f.x) * (dy == 1 ? f.y : 1.0 - f.y) * (dz == 1 ? f.z : 1.0 - f.z);
+    ivec3 n = min(b + ivec3(dx, dy, dz), N - 1);
+    if (w == 0.0 || solidAt(n)) continue;
+    acc += w * texelFetch(T, tc(n), 0).r; wsum += w;
+  }
+  return wsum > 0.0 ? acc / wsum : 0.0;
+}
+`;
+
+export const TEMPERATURE = COMMON + TEMP_COMMON + /* glsl */ `
+uniform vec3 uSrc; uniform float uCoupling;
+void main() {
+  ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
+  if (c.z >= N.z) { gl_FragColor = vec4(0.0); return; }
+  vec4 m = mask(c);
+  int id = int(m.a + 0.5);
+  // Solid cells, the open boundary and room air (an intake's cells and the outside in front of it) hold zero.
+  if (m.r > 0.5 || m.b > 0.5 || id == 3) { gl_FragColor = vec4(0.0); return; }
+  vec3 u = texelFetch(U, tc(c), 0).xyz;
+  float t = sampleT(vec3(c) - u);
+  float src = id == 1 ? uSrc.y : (id == 2 ? uSrc.z : -1.0);
+  if (src >= 0.0) t += uCoupling * (src - t);
+  gl_FragColor = vec4(t, 0.0, 0.0, 0.0);
 }`;
 
 export const DIVERGE = COMMON + /* glsl */ `
@@ -207,24 +244,13 @@ void main() {
   gl_FragColor = vec4(p, age);
 }`;
 
-// Particle heat, degrees above ambient: in a heat cell the air closes a share of its gap to that part's temperature; resets when the particle respawns.
-// uSrc holds each source's rise above ambient by cell id (index 1 GPU, 2 CPU); negative means that part heats nothing.
-export const PARTICLE_HEAT = PARTICLE_COMMON + /* glsl */ `
-uniform sampler2D PB;
-uniform vec3 uSrc; uniform float uCoupling;
+// Particle heat, degrees above room temperature: the temperature field sampled at the particle; zero until it is born.
+export const PARTICLE_HEAT = PARTICLE_COMMON + TEMP_COMMON + /* glsl */ `
 void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
   vec4 s = texelFetch(PA, f, 0);
-  float h = texelFetch(PB, f, 0).r;
-  if (s.w < 1.0 || s.x < -1.0e5) h = 0.0;
-  else {
-    ivec3 c = cellAtPos(s.xyz);
-    if (inside(c)) {
-      int id = int(mask(c).a + 0.5);
-      float src = id == 1 ? uSrc.y : (id == 2 ? uSrc.z : -1.0);
-      if (src >= 0.0) h += min(1.0, uCoupling * uSpeed) * (src - h);
-    }
-  }
+  float h = 0.0;
+  if (!(s.w < 1.0 || s.x < -1.0e5) && inside(cellAtPos(s.xyz))) h = sampleT(s.xyz);
   gl_FragColor = vec4(h, 0.0, 0.0, 0.0);
 }`;
 

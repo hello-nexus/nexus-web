@@ -26,7 +26,7 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
     try {
       const page = await browser.newPage();
       await page.goto(`http://localhost:${port}/src/lib/cooling/flow/glParity.harness.html`, { waitUntil: 'commit' });
-      await page.waitForFunction(() => document.title === 'done', null, { timeout: 460000 });
+      await page.waitForFunction(() => document.title === 'done', null, { timeout: 880000 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const r: Record<string, any> = await page.evaluate(() => (window as unknown as { __flowGl: Record<string, unknown> }).__flowGl);
       expect(r.exception).toBeUndefined();
@@ -36,6 +36,16 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
       expect(r.glError).toBe(0);
       if (r.float32) expect(r.velocity.maxDiff).toBeLessThan(1e-3);
       expect(r.velocity.maxCpu).toBeGreaterThan(0.1);
+      // Buoyancy on both sides: the temperature field and the velocity it bends agree with the CPU reference.
+      expect(r.temperature.maxCpu).toBeGreaterThan(5);
+      if (r.float32) {
+        expect(r.temperature.maxDiff).toBeLessThan(0.05);
+        expect(r.temperature.velocityDiff).toBeLessThan(2e-3);
+      }
+      // With every fan stopped, a hot GPU still starts warm plume particles; at room temperature none start.
+      expect(r.plume.hot.alive).toBeGreaterThan(50);
+      expect(r.plume.hot.warm).toBeGreaterThan(0);
+      expect(r.plume.cold.alive).toBe(0);
       expect(Number.isFinite(r.measure.u)).toBe(true);
       expect(r.measure.u).toBeGreaterThan(0.1);
       expect(r.particles.checked).toBeGreaterThan(1000);
@@ -54,5 +64,5 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
       await browser.close();
       await server.close();
     }
-  }, 480000);
+  }, 900000);
 });

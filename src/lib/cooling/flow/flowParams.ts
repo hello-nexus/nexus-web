@@ -18,11 +18,21 @@ export const MIN_FAN_HALF_THICKNESS_CELLS = 1;
 export const DOMAIN_MARGIN_MM = 100;
 /** A fan or vent within this distance of a case face puts its margin on that side. */
 export const MOUNT_REACH_MM = 60;
-/** Air entering the case, C: every particle starts here. */
-export const AMBIENT_C = 25;
-/** Share of the gap between a part and the air that the air closes per step inside the part's heat cells, at unit particle speed. The air never passes the part's own temperature, and air already warm gains less. */
+/** Average room air, C: all intake and outside air is this warm, and it is the reference the buoyancy force is measured from. */
+export const ROOM_TEMP_C = 22;
+/** Share of the gap between a part and the air that the air closes per solver step inside the part's heat cells. The air never passes the part's own temperature, and air already warm gains less. */
 export const HEAT_COUPLING = 0.05;
-/** Air this many degrees above ambient is drawn in the full hot color. */
+/** Boussinesq coefficient: upward acceleration, in cells per step squared, per degree the air is above room temperature (cooler air sinks by the same law). Small enough that a fan's own stream still dominates. */
+export const BUOYANCY = 0.00002;
+/** A part this many degrees above room temperature counts as hot: with no fan running it still drives a rising plume. */
+export const BUOYANCY_MIN_RISE_K = 1;
+/** A hot part's temperature must move this many degrees before an idle solve wakes again. */
+export const TEMP_RESUME_DELTA_K = 3;
+/** Fewest solver steps after an edit or a temperature change before a hot case may count as settled: the temperature field settles slower than the velocity. */
+export const TEMP_SETTLE_STEPS = 600;
+/** Most plume emitter entries over a hot part's top cells. */
+export const PLUME_EMITTERS_MAX = 24;
+/** Air this many degrees above room temperature is drawn in the full hot color. */
 export const HEAT_COLOR_SPAN_C = 40;
 /** Fluid cells this close to a heat-source solid are its heat cells. */
 export const HEAT_REACH_CELLS = 2;

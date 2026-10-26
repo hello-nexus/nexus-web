@@ -1,7 +1,7 @@
-import { AMBIENT_C, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
+import { PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, ROOM_TEMP_C, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
 import { sampleSpawn } from './gridScene';
-import { NO_TEMPS, heatStep, sourceRises, type ComponentTemps } from './heatModel';
+import type { ComponentTemps } from './heatModel';
 
 /** A particle's lifetime in steps from a uniform sample. */
 export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTER + 2 * PARTICLE_LIFE_JITTER * u);
@@ -10,9 +10,8 @@ export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTE
 export class CpuParticles {
   readonly pos: Float32Array;
   readonly age: Float32Array;
-  /** Degrees above ambient each particle has picked up. */
+  /** Degrees above room temperature of the air at each particle: the solver's temperature field sampled at its position. */
   readonly heat: Float32Array;
-  private rises = sourceRises(NO_TEMPS);
   readonly count: number;
   private readonly flow: CpuFlow;
   /** Respawns so far, for checks on how evenly particles are recycled. */
@@ -37,14 +36,14 @@ export class CpuParticles {
     }
   }
 
-  /** New part temperatures: read by the next step, nothing restarts. */
+  /** New part temperatures, handed to the solver: read by its next step, nothing restarts. */
   setTemps(temps: ComponentTemps) {
-    this.rises = sourceRises(temps);
+    this.flow.setTemps(temps);
   }
 
   /** A particle's temperature, C. */
   tempC(i: number): number {
-    return AMBIENT_C + this.heat[i];
+    return ROOM_TEMP_C + this.heat[i];
   }
 
   private rand(): number {
@@ -56,7 +55,9 @@ export class CpuParticles {
     this.age[i] = 0;
     this.heat[i] = 0;
     this.respawns++;
-    const q = sampleSpawn(this.flow.scene, () => this.rand());
+    const { emitters, plumeEmitters } = this.flow.scene;
+    // With no fan moving air, a hot part's own warm air starts the particles.
+    const q = sampleSpawn(this.flow.scene, () => this.rand(), emitters.length > 0 ? emitters : this.flow.hot ? plumeEmitters : emitters);
     if (!q) { this.pos[i * 3] = -1e6; return; }
     this.pos[i * 3] = q[0]; this.pos[i * 3 + 1] = q[1]; this.pos[i * 3 + 2] = q[2];
   }
@@ -84,7 +85,7 @@ export class CpuParticles {
 
   /** Advances every particle one step. `onMove(i, fromCell, toCell)` sees each move that changes cell. */
   step(onMove?: (i: number, from: number, to: number) => void, speed: number = PARTICLE_SPEED_SCALE): void {
-    const { solid, open, heat } = this.flow.scene;
+    const { solid, open } = this.flow.scene;
     const v = [0, 0, 0];
     for (let i = 0; i < this.count; i++) {
       const o = i * 3;
@@ -118,7 +119,7 @@ export class CpuParticles {
       this.age[i] += Math.hypot(x - x0, y - y0, z - z0) < STUCK_MOVE_CELLS * speed ? STUCK_AGE_RATE : 1;
       const cell = this.cellAt(x, y, z);
       if (cell !== from) onMove?.(i, from, cell);
-      if (cell >= 0) this.heat[i] = heatStep(this.heat[i], this.rises[heat[cell]], speed);
+      this.heat[i] = cell >= 0 ? this.flow.riseAt(x, y, z) : 0;
       if (open[cell] || this.age[i] > this.life[i] || !this.inCase(x, y, z)) this.respawn(i);
     }
   }

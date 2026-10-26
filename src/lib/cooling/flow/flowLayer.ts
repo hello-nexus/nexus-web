@@ -3,11 +3,11 @@ import {
   NearestFilter, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COUPLING, HEAT_COLOR_SPAN_C } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, sourceRises, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
-import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
+import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
@@ -76,6 +76,9 @@ export class FlowLayer {
   private options: FlowOptions = { particles: true, collisions: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
   private temps: ComponentTemps = NO_TEMPS;
+  /** Source temperatures the solve was last woken at, and whether the scene has any heat cell to care about them. */
+  private wakeRises: number[] = [];
+  private heatCells = false;
   private coldStart = false;
   private readonly gate = new SteadyGate();
   private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
@@ -140,16 +143,32 @@ export class FlowLayer {
     if (options.collisions !== this.collisionsShown) this.syncCollisions();
   }
 
-  /** New part temperatures: only the heat pass's uniforms change, so the solver, the grid and every particle carry on. */
+  /** New part temperatures: only the temperature pass's uniforms change, so the grid and every particle carry on. A settled solve wakes again when a part has moved enough. */
   setTemps(temps: ComponentTemps) {
     this.temps = temps;
     this.applyTemps();
   }
 
   private applyTemps() {
-    if (!this.heatMat) return;
-    const [, gpu, cpu] = sourceRises(this.temps);
-    (this.heatMat.uniforms.uSrc.value as Vector3).set(0, gpu, cpu);
+    const flow = this.flow;
+    const scene = this.fscene;
+    if (!flow || !scene) return;
+    const wasHot = flow.hot;
+    flow.setTemps(this.temps);
+    // With no fan moving air, a hot part's plume particles start only while it is hot.
+    if (wasHot !== flow.hot) this.uploadSpawns(scene);
+    if (!this.heatCells) return;
+    const rises = sourceRises(this.temps);
+    const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K);
+    if (moved || wasHot !== flow.hot) this.wake(rises);
+  }
+
+  /** Solves again from the current fields: the temperature field has a new target. */
+  private wake(rises: number[]) {
+    this.wakeRises = rises;
+    this.solving = true;
+    this.stepsSinceEdit = 0;
+    this.gate.invalidate();
   }
 
   /** New edit: rebuilds the voxel scene and re-solves from the current field. Null clears the layer. */
@@ -174,18 +193,23 @@ export class FlowLayer {
       this.coldStart = true;
     }
     this.fscene = scene;
+    this.flow.setTemps(this.temps);
+    this.wakeRises = sourceRises(this.temps);
+    this.heatCells = scene.heat.some(v => v === SOURCE_GPU || v === SOURCE_CPU);
     if (this.collisionsShown) this.syncCollisions(true);
     this.uploadSpawns(scene);
     this.updateUniforms();
     this.stepsSinceEdit = 0;
     this.gate.invalidate();
-    this.solving = scene.fanCount > 0;
+    // A hot part drives a plume on its own, so a case with every fan stopped still solves.
+    this.solving = scene.fanCount > 0 || (this.heatCells && this.flow.hot);
   }
 
   private uploadSpawns(scene: FlowScene) {
-    const entries = scene.emitters.length / EMITTER_STRIDE;
+    const source = scene.emitters.length > 0 ? scene.emitters : this.flow?.hot ? scene.plumeEmitters : scene.emitters;
+    const entries = source.length / EMITTER_STRIDE;
     const data = new Float32Array(Math.max(1, entries) * EMITTER_STRIDE);
-    data.set(scene.emitters);
+    data.set(source);
     this.spawnTex?.dispose();
     this.spawnTex = new DataTexture(data, Math.max(1, entries) * (EMITTER_STRIDE / 4), 1, RGBAFormat, FloatType);
     this.spawnTex.minFilter = NearestFilter;
@@ -204,8 +228,7 @@ export class FlowLayer {
       PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: this.options.speed }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
-    this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown }, uSrc: { value: new Vector3(0, -1, -1) }, uCoupling: { value: HEAT_COUPLING } });
-    this.applyTemps();
+    this.heatMat = pass(PARTICLE_HEAT, { ...base(), T: { value: null as unknown } });
 
     const geometry = new BufferGeometry();
     const refs = new Float32Array(w * h * 2);
@@ -324,7 +347,7 @@ export class FlowLayer {
         this.stateMat.uniforms.uSeed.value = (this.seed = (this.seed + 1) % 9973) * 0.137;
         this.runner.run(this.stateMat, this.stateTargets[next]);
         this.heatMat.uniforms.PA.value = this.stateTargets[next].texture;
-        this.heatMat.uniforms.PB.value = this.heatTargets[this.stateCur].texture;
+        this.heatMat.uniforms.T.value = flow.temperature;
         this.runner.run(this.heatMat, this.heatTargets[next]);
         this.stateCur = next;
       }
@@ -384,7 +407,9 @@ export class FlowLayer {
   private pollSteady(flow: GlFlow) {
     const r = flow.pollMeasure();
     if (!r) return;
-    if (this.gate.settles(r.du, r.u, STEADY_RATIO) || this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
+    // A hot part's temperature field settles slower than the velocity, so it gets a minimum of steps before the velocity may call the solve steady.
+    const minSteps = this.heatCells && flow.hot ? TEMP_SETTLE_STEPS : 0;
+    if ((this.gate.settles(r.du, r.u, STEADY_RATIO) && this.stepsSinceEdit >= minSteps) || this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
   }
 
   /** Particle positions (cell coordinates) and heat read back from the GPU; for checks that none sit in a solid cell. */

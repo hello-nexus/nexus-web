@@ -1,6 +1,6 @@
 import { Color, Group, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { CpuFlow } from './cpuSolver';
-import { caseWithGpuAndShroud, defaultDir, fronts, inputFor, rear } from './flowFixtures';
+import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, rear } from './flowFixtures';
 import { FlowLayer } from './flowLayer';
 import { GlFlow, floatSupport } from './glFlow';
 import { buildFlowScene } from './gridScene';
@@ -53,6 +53,19 @@ async function main() {
   let maxCpu = 0;
   for (let i = 0; i < cpu.u.length; i++) { maxDiff = Math.max(maxDiff, Math.abs(g[i] - cpu.u[i])); maxCpu = Math.max(maxCpu, Math.abs(cpu.u[i])); }
   out.velocity = { maxDiff, maxCpu };
+  // Buoyancy and the temperature field: the same hot GPU on both, more steps, then compare the temperature and the velocity it bends.
+  gl.setTemps({ gpu: 75, cpu: null });
+  cpu.setTemps({ gpu: 75, cpu: null });
+  for (let i = 0; i < 80; i++) { gl.step(1); cpu.step(); }
+  const gt = gl.readTemperature();
+  const gv = gl.readVelocity();
+  let tDiff = 0;
+  let tMax = 0;
+  for (let i = 0; i < cpu.t.length; i++) { tDiff = Math.max(tDiff, Math.abs(gt[i] - cpu.t[i])); tMax = Math.max(tMax, cpu.t[i]); }
+  let hotVelDiff = 0;
+  for (let i = 0; i < cpu.u.length; i++) hotVelDiff = Math.max(hotVelDiff, Math.abs(gv[i] - cpu.u[i]));
+  out.temperature = { maxDiff: tDiff, maxCpu: tMax, velocityDiff: hotVelDiff };
+  err('temperature');
   gl.beginMeasure();
   let measured = gl.pollMeasure();
   while (!measured) { await new Promise(r => requestAnimationFrame(r)); measured = gl.pollMeasure(); }
@@ -93,6 +106,33 @@ async function main() {
   }
   out.afterTierDrop = { checked: afterChecked, inSolidOrOutside: afterWorst, tier: layer.currentTier, dims: layer.scene!.dims };
   layer.dispose();
+
+  // Every fan stopped and a hot GPU: the layer still solves and starts plume particles at the part; at room temperature none start.
+  const stillInput = inputFor([fronts[0], fronts[1], rear], [gpuBox], defaultDir, 0);
+  const plumeAt = async (gpu: number) => {
+    const hostP = new Group();
+    const scP = new Scene();
+    scP.add(hostP);
+    const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
+      cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+    });
+    // The coarsest tier keeps the software renderer quick; particles start once the first solve settles.
+    l.dropTier();
+    l.dropTier();
+    l.setTemps({ gpu, cpu: null });
+    l.setInput(stillInput);
+    l.setOptions({ particles: true, collisions: false, speed: 1.5 });
+    let frames = 0;
+    while (!l.settled && frames < 3000) { l.frame(performance.now(), cam, 240); renderer.render(scP, cam); if (++frames % 40 === 0) await new Promise(r => setTimeout(r, 0)); }
+    for (let f = 0; f < 150; f++) { l.frame(performance.now(), cam, 240); renderer.render(scP, cam); }
+    const { pos, heat } = l.readParticles();
+    let alive = 0;
+    let warm = 0;
+    for (let i = 0; i < pos.length / 4; i++) if (pos[i * 4] > -1e5 && pos[i * 4 + 3] > 0) { alive++; if (heat[i * 4] > 2) warm++; }
+    l.dispose();
+    return { alive, warm, frames };
+  };
+  out.plume = { hot: await plumeAt(75), cold: await plumeAt(22) };
 
   // What the user sees: per-frame displacement of the particles within one fan diameter downstream of a slow and a fast fan on one face.
   const pair = inputFor([fronts[0], fronts[1], rear], [], defaultDir, 60);
