@@ -179,6 +179,18 @@ export async function repairTouchMapping(): Promise<TouchMappingRepairResponse |
 // The wizard endpoint replies 202 with no body (the wizard runs on the host,
 // not over this request), so it is checked by status rather than parsed as
 // JSON like the other mutators here.
+export interface IdentifyDisplayEntry {
+  displayId: string;
+  label: string;
+  name: string;
+}
+
+/** Shows each label large on its physical display for a few seconds. False when the service predates the call. */
+export async function identifyDisplays(displays: IdentifyDisplayEntry[]): Promise<boolean> {
+  const { status } = await authFetchWithStatus('/displays/identify', { method: 'POST', body: { displays } });
+  return status === 204 || status === 200;
+}
+
 export async function launchTouchSetupWizard(): Promise<boolean> {
   const { status } = await authFetchWithStatus('/displays/touch-mapping/setup-wizard', { method: 'POST', body: {} });
   return status === 202;

@@ -4645,6 +4645,7 @@
   "panel.widget.home-assistant.settings.allViews": "Все представления",
   "panel.widget.home-assistant.settings.view": "Представление",
   "panel.widget.lighting": "Подсветка",
+  "panel.widget.locked": "Виджет заблокирован",
   "panel.widget.media": "Медиа",
   "panel.widget.menu.addToDisplay": "Добавить на дисплей",
   "panel.widget.menu.addToDisplayNamed": "Добавить на {name}",

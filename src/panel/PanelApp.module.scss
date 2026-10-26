@@ -2038,6 +2038,11 @@
 }
 
 
+// Fades in when someone tries to move or edit a locked widget (useLockNotice).
+.cellWrap[data-lock-notice='true'] .cell > .cellLockNotice {
+  opacity: 1;
+}
+
 // Preview cells read as buttons, and only a real pointer can hover.
 @media (hover: hover) {
   // In the device page's canvas preview (simulator) a widget is click-to-edit

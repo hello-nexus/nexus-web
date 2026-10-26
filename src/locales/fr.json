@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "Toutes les vues",
   "panel.widget.home-assistant.settings.view": "Vue",
   "panel.widget.lighting": "Éclairage",
+  "panel.widget.locked": "Widget verrouillé",
   "panel.widget.media": "Média",
   "panel.widget.menu.addToDisplay": "Ajouter à l'écran",
   "panel.widget.menu.addToDisplayNamed": "Ajouter à {name}",

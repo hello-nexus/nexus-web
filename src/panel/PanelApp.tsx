@@ -36,7 +36,7 @@ import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { panelWidgetPaddingRatio, sizeToSpan, type GridSpan } from './engine/grid';
-import { layoutRowExtent, overflowLayout, repaginatePanelLayout, restoreOverflowPositions, type PaginateCapacity } from './engine/paginate';
+import { firstPageView, foldIntoFirstPage, heldPages, layoutRowExtent, overflowLayout, repaginatePanelLayout, restoreOverflowPositions, withHeldPages, type PaginateCapacity } from './engine/paginate';
 import {
   BLANK_PAGE_ID,
   allCellsForPage,
@@ -115,7 +115,7 @@ import {
   type PanelWidgetSize,
   type ForcedGrid,
 } from './types';
-import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -488,7 +488,15 @@ export function PanelContent({
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
-  const { layout, loaded, saveForbidden, hydrated, setLayout: setStoredLayout } = layoutState;
+  const { layout: fullLayout, loaded, saveForbidden, hydrated, setLayout: setFullLayout } = layoutState;
+  // A generic display panel renders its first page only; later stored pages are written back untouched.
+  const genericDisplay = isGenericDisplayPanel(glassSurface, recordState.record?.capabilities?.family, displayBound);
+  const heldLayoutPages = useMemo(() => (genericDisplay ? heldPages(fullLayout) : []), [genericDisplay, fullLayout]);
+  const layout = useMemo(() => (genericDisplay ? firstPageView(fullLayout) : fullLayout), [genericDisplay, fullLayout]);
+  const setStoredLayout = useCallback(
+    (next: PanelLayout) => setFullLayout(genericDisplay ? withHeldPages(next, heldLayoutPages) : next),
+    [genericDisplay, heldLayoutPages, setFullLayout],
+  );
   const panelTheme = usePanelTheme(recordState, deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state
@@ -905,7 +913,13 @@ export function PanelContent({
   );
 
   // The dashboard has one page by design; a panel without touch has no way to swipe.
-  const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch, displayBound && kioskBehavior);
+  const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch, displayBound && kioskBehavior, genericDisplay);
+  // Stored pages beyond the first fold onto page 1; a widget with no free cell stays held, never deleted.
+  useEffect(() => {
+    if (!genericDisplay || !hydrated || fullLayout.pages.length <= 1) return;
+    const folded = foldIntoFirstPage(fullLayout, capacity);
+    if (folded.changed) setFullLayout(folded.layout);
+  }, [capacity, fullLayout, genericDisplay, hydrated, setFullLayout]);
 
   // Resize mode is entered from the widget context menu.
   // Hovering a tile with a mouse shows the same corners without the mode.
@@ -916,10 +930,11 @@ export function PanelContent({
   const resizeCols = Math.max(1, capacity.gridCols);
   const resizeRows = Math.max(1, capacity.pageRows);
   const resizeBounds = useMemo(() => ({ cols: resizeCols, rows: resizeRows }), [resizeCols, resizeRows]);
+  const lockedOf = (w: { locked?: boolean }) => genericDisplay && Boolean(w.locked);
   const canResizeType = (type: string, locked?: boolean) => dragEditable && !locked && resizeSpansForType(type, surface, widgetTouch, forcedGrid, resizeBounds).length > 1;
-  const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type, freeformWidget.locked));
+  const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type, lockedOf(freeformWidget)));
   const hoverWidget = !freeformId && hoverResizeId ? findWidgetById(paginatedLayout, hoverResizeId) : undefined;
-  const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type, hoverWidget.locked));
+  const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type, lockedOf(hoverWidget)));
   const cornerTarget = freeformActive ? freeformWidget : hoverActive ? hoverWidget : undefined;
   const cornerTargetId = cornerTarget?.id;
   const cornerType = cornerTarget?.type;
@@ -1771,11 +1786,13 @@ export function PanelContent({
   );
 
   // Lock applies wherever a widget can be arranged, except the phone's own gesture set.
-  const lockAvailable = dragEditable && surface !== 'phone';
+  const lockAvailable = dragEditable && genericDisplay;
   // Always on top: a display panel keeps it on its record (absent = on), the Y70 in the global panel prefs.
   const displayRecord = displayBound && kioskBehavior ? recordState.record : null;
   const y70OnTop = glassSurface === 'y70' && !displayBound && kioskBehavior ? panelTheme.prefs?.panel?.alwaysOnTop : undefined;
-  const menuAlwaysOnTop = displayRecord ? displayRecord.alwaysOnTop ?? true : y70OnTop;
+  const layeredOnTop = displayRecord ? displayRecord.alwaysOnTop ?? true : y70OnTop;
+  // Only a generic display lets the user change it; a known device keeps its stored value, unshown.
+  const menuAlwaysOnTop = genericDisplay ? layeredOnTop : undefined;
   const toggleAlwaysOnTop = useCallback(() => {
     if (menuAlwaysOnTop === undefined) return;
     const next = !menuAlwaysOnTop;
@@ -1809,7 +1826,7 @@ export function PanelContent({
   // Every sheet (widget edit, catalog, panel settings, pairing) can hold a text field.
   usePanelActivatable(hostBound, Boolean(sheetMode));
   usePanelRaise(
-    hostBound && menuAlwaysOnTop === false,
+    hostBound && layeredOnTop === false,
     Boolean(touch.ctxMenu || sheetMode || trayOpen || activeDragId || dragArmedId || freeformActive),
   );
 
@@ -1823,6 +1840,7 @@ export function PanelContent({
     layout: importLayout,
     paddingPercent: effectiveTheme.widgetPadding,
     grid: runtimeGrid,
+    singlePage: genericDisplay,
   });
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
@@ -2231,7 +2249,7 @@ export function PanelContent({
                               editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               movable={dragEditable}
-                              locked={Boolean(w.locked)}
+                              locked={lockedOf(w)}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
@@ -2433,7 +2451,7 @@ export function PanelContent({
             themeMode={resolvedThemeMode}
             themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
-            onResizeMode={canResizeType(ctxWidget.type, ctxWidget.locked) ? () => setFreeformId(ctxWidget.id) : undefined}
+            onResizeMode={canResizeType(ctxWidget.type, lockedOf(ctxWidget)) ? () => setFreeformId(ctxWidget.id) : undefined}
             // The preview edits in the device page's settings pane, as a plain click does.
             onEdit={() => (simulator ? onSimulatorWidgetClicked?.(ctxWidget.id) : openWidgetSettings(ctxWidget, ctxPoint))}
             onRemove={() => removeWidget(ctxWidget.id)}
@@ -2443,7 +2461,7 @@ export function PanelContent({
             onAddWidget={mouseEditable ? () => openSheet('catalog') : undefined}
             alwaysOnTop={menuAlwaysOnTop}
             onToggleAlwaysOnTop={menuAlwaysOnTop === undefined ? undefined : toggleAlwaysOnTop}
-            locked={Boolean(ctxWidget.locked)}
+            locked={lockedOf(ctxWidget)}
             onToggleLock={lockAvailable ? () => setLayout(setWidgetLocked(paginatedLayout, ctxWidget.id, !ctxWidget.locked)) : undefined}
             onLockAll={lockAvailable ? () => setLayout(setAllWidgetsLocked(paginatedLayout, true)) : undefined}
             onUnlockAll={lockAvailable ? () => setLayout(setAllWidgetsLocked(paginatedLayout, false)) : undefined}

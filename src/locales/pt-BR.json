@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "Todas as visualizações",
   "panel.widget.home-assistant.settings.view": "Visualização",
   "panel.widget.lighting": "Iluminação",
+  "panel.widget.locked": "Widget bloqueado",
   "panel.widget.media": "Midia",
   "panel.widget.menu.addToDisplay": "Adicionar à tela",
   "panel.widget.menu.addToDisplayNamed": "Adicionar a {name}",

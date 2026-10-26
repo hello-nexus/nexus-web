@@ -141,6 +141,7 @@ export function planDesktopImport(
   layout: PanelLayout,
   currentGrid?: RuntimeGrid,
   snapSize?: SizeSnapper,
+  singlePage = false,
 ): DesktopImportPlan {
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
   const unit = imp.cellUnits === 'device' ? dpr : 1;
@@ -192,7 +193,7 @@ export function planDesktopImport(
       ...(legacy.locked ? { locked: true } : {}),
       ...(legacy.config ? { config: legacy.config } : {}),
     };
-    placeWidget(pages, widget, span, grid);
+    placeWidget(pages, widget, span, grid, singlePage ? 1 : MAX_PANEL_PAGES);
   }
 
   return {
@@ -204,8 +205,8 @@ export function planDesktopImport(
   };
 }
 
-function placeWidget(pages: PanelPage[], widget: PanelWidget, span: { cols: number; rows: number }, grid: ImportGrid): void {
-  for (let i = 0; i < MAX_PANEL_PAGES; i++) {
+function placeWidget(pages: PanelPage[], widget: PanelWidget, span: { cols: number; rows: number }, grid: ImportGrid, maxPages: number): void {
+  for (let i = 0; i < maxPages; i++) {
     if (!pages[i]) pages.push({ id: createUuid(), widgets: [] });
     const page = pages[i];
     const wanted: Rect = { col: widget.col, row: widget.row, colSpan: span.cols, rowSpan: span.rows };
@@ -219,8 +220,8 @@ function placeWidget(pages: PanelPage[], widget: PanelWidget, span: { cols: numb
       return;
     }
   }
-  // Every page is full: stack on the last one and let the render-time repack sort it out.
-  pages[pages.length - 1].widgets.push(widget);
+  // Every allowed page is full: stack on the last one and let the render-time repack sort it out.
+  pages[Math.min(pages.length, maxPages) - 1].widgets.push(widget);
 }
 
 /** A panel that already holds widgets keeps them and their grid; density is chosen only for an empty one. */

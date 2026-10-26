@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "모든 보기",
   "panel.widget.home-assistant.settings.view": "보기",
   "panel.widget.lighting": "조명",
+  "panel.widget.locked": "위젯이 잠겨 있습니다",
   "panel.widget.media": "미디어",
   "panel.widget.menu.addToDisplay": "디스플레이에 추가",
   "panel.widget.menu.addToDisplayNamed": "{name}에 추가",

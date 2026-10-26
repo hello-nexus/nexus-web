@@ -23,7 +23,7 @@ export function importKey(imp: DesktopImportDto | null | undefined): string {
  * host is still refitting never feeds the plan. A later resize, host message, record change or the
  * page becoming visible restarts a wait that gave up.
  */
-export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout, paddingPercent, grid }: {
+export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout, paddingPercent, grid, singlePage = false }: {
   enabled: boolean;
   hostReady: () => boolean;
   deviceId: string | undefined;
@@ -31,6 +31,7 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
   layout: PanelLayout;
   paddingPercent: number;
   grid: RuntimeGrid;
+  singlePage?: boolean;
 }): void {
   // Set while a save is in flight; holds the effect instance that sent it.
   const busyRef = useRef<object | null>(null);
@@ -38,8 +39,8 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
   const kickRef = useRef<(() => void) | null>(null);
   // The import a save already went through for, until the record stops carrying it.
   const placedKeyRef = useRef('');
-  const latestRef = useRef({ pending, layout, paddingPercent, grid, hostReady });
-  useEffect(() => { latestRef.current = { pending, layout, paddingPercent, grid, hostReady }; });
+  const latestRef = useRef({ pending, layout, paddingPercent, grid, hostReady, singlePage });
+  useEffect(() => { latestRef.current = { pending, layout, paddingPercent, grid, hostReady, singlePage }; });
 
   const key = importKey(pending);
   const active = enabled && !!deviceId && key !== '';
@@ -87,7 +88,7 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
       busyRef.current = token;
       const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
       const { imp, base } = importBase(latest.pending, latest.layout);
-      const plan = planDesktopImport(imp, { w, h, dpr, ...origin }, latest.paddingPercent, base, latest.grid, snapLegacySize);
+      const plan = planDesktopImport(imp, { w, h, dpr, ...origin }, latest.paddingPercent, base, latest.grid, snapLegacySize, latest.singlePage);
       const failed = () => {
         if (busyRef.current === token) busyRef.current = null;
         if (!alive) {

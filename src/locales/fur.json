@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "Dutis lis viodudis",
   "panel.widget.home-assistant.settings.view": "Viodude",
   "panel.widget.lighting": "Iluminazion",
+  "panel.widget.locked": "Widget blocât",
   "panel.widget.media": "Media",
   "panel.widget.menu.addToDisplay": "Zonte al visôr",
   "panel.widget.menu.addToDisplayNamed": "Zonte a {name}",

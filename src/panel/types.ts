@@ -160,8 +160,15 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
 
 // Pages are reached by swiping, so a panel without touch keeps one page, except a
 // display-bound multi-widget panel, which has a clickable pager.
-export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean, displayBound = false): boolean {
+export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean, displayBound = false, genericDisplay = false): boolean {
+  if (genericDisplay) return false;
   return surfaceSupportsTouch(surface, deviceTouch) || (displayBound && !isSingleWidgetSurface(surface));
+}
+
+// An OS display promoted to a Nexus panel that no curated device entry claims (a curated one carries
+// capabilities.family). Only these are single-page and offer widget locking.
+export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string | undefined, displayBound: boolean): boolean {
+  return glassSurface === 'monitor' && displayBound && !family;
 }
 
 // Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid. A panel

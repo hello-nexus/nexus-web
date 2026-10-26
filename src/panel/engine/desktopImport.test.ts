@@ -180,3 +180,12 @@ describe('kiosk origin', () => {
     expect(edge.layout.pages[0].widgets[0]).toMatchObject({ col: 0, row: 0 });
   });
 });
+
+describe('single page', () => {
+  it('keeps a full import on page 1 instead of spilling to a second page', () => {
+    const many = Array.from({ length: 400 }, (_, i) => widget(`w${i}`, (i % 40) * 1, Math.floor(i / 40), '4x4'));
+    const plan = planDesktopImport(imp(many), { w: 2560, h: 1440, dpr: 1 }, PAD, emptyLayout(), undefined, undefined, true);
+    expect(plan.layout.pages).toHaveLength(1);
+    expect(plan.layout.pages[0].widgets).toHaveLength(400);
+  });
+});

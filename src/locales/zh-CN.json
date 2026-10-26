@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "所有视图",
   "panel.widget.home-assistant.settings.view": "视图",
   "panel.widget.lighting": "灯效",
+  "panel.widget.locked": "小组件已锁定",
   "panel.widget.media": "媒体",
   "panel.widget.menu.addToDisplay": "添加到显示器",
   "panel.widget.menu.addToDisplayNamed": "添加到 {name}",

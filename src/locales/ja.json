@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "すべてのビュー",
   "panel.widget.home-assistant.settings.view": "ビュー",
   "panel.widget.lighting": "ライティング",
+  "panel.widget.locked": "ウィジェットはロックされています",
   "panel.widget.media": "メディア",
   "panel.widget.menu.addToDisplay": "ディスプレイに追加",
   "panel.widget.menu.addToDisplayNamed": "{name} に追加",

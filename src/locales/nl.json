@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "Alle weergaven",
   "panel.widget.home-assistant.settings.view": "Weergave",
   "panel.widget.lighting": "Verlichting",
+  "panel.widget.locked": "Widget vergrendeld",
   "panel.widget.media": "Media",
   "panel.widget.menu.addToDisplay": "Aan scherm toevoegen",
   "panel.widget.menu.addToDisplayNamed": "Aan {name} toevoegen",

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  canEditFreeText, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  canEditFreeText, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
   surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
@@ -215,5 +215,26 @@ describe('canEditFreeText', () => {
     withWindow({});
     expect(canEditFreeText('desktop')).toBe(true);
     expect(canEditFreeText('phone')).toBe(true);
+  });
+});
+
+describe('isGenericDisplayPanel and pages', () => {
+  it('is true only for a display-bound monitor with no curated family', () => {
+    expect(isGenericDisplayPanel('monitor', undefined, true)).toBe(true);
+    expect(isGenericDisplayPanel('monitor', 'xeneon-edge', true)).toBe(false);
+    expect(isGenericDisplayPanel('monitor', 'icue-link-lcd5', true)).toBe(false);
+    expect(isGenericDisplayPanel('monitor', undefined, false)).toBe(false);
+    for (const s of ['y70', 'q60', 'phone', 'desktop', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(isGenericDisplayPanel(s, undefined, true)).toBe(false);
+    }
+  });
+
+  it('gives a generic display one page and leaves a known display its pages', () => {
+    expect(surfaceAllowsPages('monitor', true, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', false, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', false, true, false)).toBe(true);
+    expect(surfaceAllowsPages('monitor', true, true, false)).toBe(true);
+    expect(surfaceAllowsPages('y70', undefined, false, false)).toBe(true);
+    expect(surfaceAllowsPages('phone', undefined, false, false)).toBe(true);
   });
 });

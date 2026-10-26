@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { Check, LayoutGrid, Plus, Replace } from 'lucide-react';
+import { Check, LayoutDashboard, Plus, Replace } from 'lucide-react';
 import classNames from 'classnames';
 import { Overlay } from '../../common/Overlay/Overlay';
 import { Button } from '../../common/Button/Button';
@@ -140,7 +140,7 @@ function PlacementPreview({ plan, screenshot, iconSrc }: {
 }
 
 function TargetIcon({ iconSrc }: { iconSrc: string | null }) {
-  if (!iconSrc) return <span className={styles.targetIcon}><LayoutGrid size={22} /></span>;
+  if (!iconSrc) return <span className={styles.targetIcon}><LayoutDashboard size={22} /></span>;
   return (
     <span className={styles.targetIcon}>
       <span className={styles.deviceGlyph} style={{ ['--device-icon' as string]: `url(${iconSrc})` }} />

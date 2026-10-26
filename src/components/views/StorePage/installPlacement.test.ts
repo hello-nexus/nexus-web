@@ -179,7 +179,7 @@ describe('planPlacement', () => {
     expect(planPlacement(screen88, { layout: layoutOf('monitor', []), record }, TYPE, { ...tall, sizes: ['2x4' as const, '4x4' as const] }, 6)).toBeNull();
   });
 
-  it('sizes a display panel by its own grid density and gives it pages', () => {
+  it('sizes a display panel by its own grid density; a generic display stays on one page', () => {
     const record = {
       id: 'rec-d', displayName: 'Display', firstSeenAt: 0, lastSeenAt: 0, displayId: 'disp-1', gridSlots: 12,
       capabilities: { surface: 'monitor', touch: false, cssWidth: 2560, cssHeight: 1440, dpr: 1, dpi: 110 },
@@ -197,7 +197,15 @@ describe('planPlacement', () => {
       type: 'clock', size: '2x2' as const, col: (i % (gridCols / 2)) * 2, row: Math.floor(i / (gridCols / 2)) * 2,
     }));
     const spilled = planPlacement(display, { layout: layoutOf('monitor', cells), record: { ...record, gridSlots: 4 } }, TYPE, wide, 6);
-    expect(spilled?.layout.pages).toHaveLength(2);
+    expect(spilled).toBeNull();
+
+    // A curated device display (a family on its record) keeps its pages.
+    const known = { ...record, gridSlots: 4, capabilities: { ...record.capabilities, family: 'xeneon-edge', touch: true } } as PanelDeviceRecord;
+    const pagedCells = Array.from({ length: (gridCols / 2) * (pageRows / 2) }, (_, i) => ({
+      type: 'clock', size: '2x2' as const, col: (i % (gridCols / 2)) * 2, row: Math.floor(i / (gridCols / 2)) * 2,
+    }));
+    const knownSpill = planPlacement({ ...display, family: 'xeneon-edge' }, { layout: layoutOf('monitor', pagedCells), record: known }, TYPE, wide, 6);
+    expect(knownSpill?.layout.pages.length).toBeGreaterThan(1);
   });
 
   it('copies the source widget size and config onto a display, keeping the default size when it does not fit', () => {

@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "所有檢視",
   "panel.widget.home-assistant.settings.view": "檢視",
   "panel.widget.lighting": "燈效",
+  "panel.widget.locked": "小工具已鎖定",
   "panel.widget.media": "媒體",
   "panel.widget.menu.addToDisplay": "新增到顯示器",
   "panel.widget.menu.addToDisplayNamed": "新增到 {name}",

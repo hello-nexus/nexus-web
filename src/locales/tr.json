@@ -4600,6 +4600,7 @@
   "panel.widget.home-assistant.settings.allViews": "Tüm görünümler",
   "panel.widget.home-assistant.settings.view": "Görünüm",
   "panel.widget.lighting": "Aydınlatma",
+  "panel.widget.locked": "Widget kilitli",
   "panel.widget.media": "Medya",
   "panel.widget.menu.addToDisplay": "Ekrana ekle",
   "panel.widget.menu.addToDisplayNamed": "{name} ekranına ekle",

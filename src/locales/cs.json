@@ -4645,6 +4645,7 @@
   "panel.widget.home-assistant.settings.allViews": "Všechna zobrazení",
   "panel.widget.home-assistant.settings.view": "Zobrazení",
   "panel.widget.lighting": "Osvětlení",
+  "panel.widget.locked": "Widget je uzamčen",
   "panel.widget.media": "Média",
   "panel.widget.menu.addToDisplay": "Přidat na displej",
   "panel.widget.menu.addToDisplayNamed": "Přidat na {name}",

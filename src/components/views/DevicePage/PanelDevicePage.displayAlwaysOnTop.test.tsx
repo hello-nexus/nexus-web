@@ -123,8 +123,8 @@ function serveRecord(extra: Record<string, unknown> = {}) {
     devices: [{
       id: 'rec1',
       displayId: 'disp1',
-      capabilities: { surface: 'monitor', touch: true, family: 'xeneon-edge', orientation: 'Landscape' },
-      ...extra,
+      capabilities: { surface: 'monitor', touch: true, orientation: 'Landscape', ...(extra.family ? { family: extra.family } : {}) },
+      ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'family')),
     }],
   });
 }
@@ -175,5 +175,14 @@ describe('PanelDevicePage promoted display always on top', () => {
     // The window level applies on every host that hosts panels; only the window guards are Windows-only.
     await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL });
     expect(screen.queryByRole('switch', { name: 'devices.y70.reserveMonitor' })).not.toBeInTheDocument();
+  });
+
+  it('is not offered on a known device display such as the Xeneon Edge', async () => {
+    serveRecord({ family: 'xeneon-edge' });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: RESERVE_LABEL });
+    expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
   });
 });

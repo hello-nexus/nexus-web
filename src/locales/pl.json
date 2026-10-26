@@ -4645,6 +4645,7 @@
   "panel.widget.home-assistant.settings.allViews": "Wszystkie widoki",
   "panel.widget.home-assistant.settings.view": "Widok",
   "panel.widget.lighting": "Podświetlenie",
+  "panel.widget.locked": "Widżet jest zablokowany",
   "panel.widget.media": "Multimedia",
   "panel.widget.menu.addToDisplay": "Dodaj do wyświetlacza",
   "panel.widget.menu.addToDisplayNamed": "Dodaj do {name}",

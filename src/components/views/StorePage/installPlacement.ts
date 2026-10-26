@@ -24,7 +24,7 @@ import { appendWidget, swapSingleWidget } from '../../../panel/engine/panelLayou
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import {
-  isSingleWidgetSurface, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsTouch,
+  isSingleWidgetSurface, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsTouch,
   type ForcedGrid, type PanelLayout, type PanelPage, type PanelSurface, type PanelWidget, type PanelWidgetSize,
 } from '../../../panel/types';
 import { appAvailableForSurface, pickerSizeFor, sizesForSurface } from '../../../panel/widgets/registry';
@@ -205,7 +205,7 @@ export function planPlacement(
   const capacity = dashboard
     ? { gridCols: dashboardColumns, pageRows: Math.max(DESKTOP_GRID_ROWS, layoutRowExtent(layout)) + sizeToSpan(size).rows }
     : panelCapacity(target, record);
-  const appended = appendWidget(layout, fresh, capacity, { singlePage: dashboard || !surfaceAllowsPages(surface, deviceTouch, !!record?.displayId) });
+  const appended = appendWidget(layout, fresh, capacity, { singlePage: dashboard || !surfaceAllowsPages(surface, deviceTouch, !!record?.displayId, isGenericDisplayPanel(target.surface, record?.capabilities?.family ?? target.family, !!record?.displayId)) });
   const page = appended.pages.find(p => p.widgets.some(w => w.id === fresh.id));
   const widget = page?.widgets.find(w => w.id === fresh.id);
   if (!page || !widget) return null;

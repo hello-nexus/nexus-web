@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
@@ -48,7 +48,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { GRID_SLOTS_MAX, GRID_SLOTS_MIN, normalizeGridSlots, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { GRID_SLOTS_MAX, GRID_SLOTS_MIN, normalizeGridSlots, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -320,7 +320,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
-  const [panelAlwaysOnTop, setPanelAlwaysOnTop] = useState<boolean | undefined>(undefined);
   const [qSeriesBrightness, setQSeriesBrightness] = useState(100);
   const [qSeriesScreenOff, setQSeriesScreenOff] = useState(false);
   const [qSeriesSleepWithHost, setQSeriesSleepWithHost] = useState(true);
@@ -441,7 +440,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // keeps its own input.
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
-  const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel);
+  const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
+  const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel, genericDisplay);
   const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
   // Physical px = canvas x dpr. liveCanvas and a real record's previewSize are CSS px
@@ -719,7 +719,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       if (prefs) {
         setAutoLaunch(prefs.panel?.autoLaunch ?? true);
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
-        setPanelAlwaysOnTop(prefs.panel?.alwaysOnTop);
       }
       setLoaded(true);
       // Non-Xeneon panels re-enable the hardware-reset button once these
@@ -1173,11 +1172,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
       targetSlots,
     );
-    const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel)
+    const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay)
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, isMonitorPanel, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
+  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);
@@ -1361,7 +1360,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   }, [editingDeviceId, pushToast, t]);
 
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
-    { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
+    { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutDashboard size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
     { key: 'background', label: t('devices.y70.theme.background'), icon: <Wallpaper size={14} /> },
     ...(settingsAvailable
@@ -1749,7 +1748,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordAutoOrient(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { autoOrient: next }).catch(() => {});
                       }}
-                      alwaysOnTop={isMonitorPanel ? recordAlwaysOnTop : null}
+                      alwaysOnTop={genericDisplay ? recordAlwaysOnTop : null}
                       onAlwaysOnTopToggle={() => {
                         const next = !recordAlwaysOnTop;
                         setRecordAlwaysOnTop(next);
@@ -1836,14 +1835,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (!supportsAutoLaunch) return;
                         savePreferences({ panel: { reserveMonitor: next } }).catch(() => {});
                       }}
-                      alwaysOnTop={panelAlwaysOnTop}
-                      onAlwaysOnTopToggle={() => {
-                        if (panelAlwaysOnTop === undefined) return;
-                        const next = !panelAlwaysOnTop;
-                        setPanelAlwaysOnTop(next);
-                        if (!supportsAutoLaunch) return;
-                        savePreferences({ panel: { alwaysOnTop: next } }).catch(() => {});
-                      }}
+                      alwaysOnTop={undefined}
+                      onAlwaysOnTopToggle={() => {}}
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
                       usbDisconnected={usbDisconnected}
