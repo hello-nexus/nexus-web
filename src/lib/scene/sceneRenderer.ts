@@ -30,12 +30,12 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { parseCaseModel, sceneToLayoutMatrix, STRUCTURE_LINE_DIM } from './caseModel';
-import { buildCase, type Palette, type SceneLayout } from './pcScene';
+import { buildCase, type Dimmable, type Palette, type SceneLayout } from './pcScene';
 import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
 import { curveRadius } from './curvedPanel';
-import { buildDeskBoxes } from './deskNodes';
+import { applyHighlight, buildDeskBoxes } from './deskNodes';
 import { deskLegBoxes, deskSlabBoxes, lDeskRect, placedItemBoxes, type DeskBox, type DeskKind as ItemKind, type DeskRect, type Rect } from './deskScene';
 import { CANVAS_H, CANVAS_W, rotateYaw, toWorld } from './sceneMath';
 
@@ -148,6 +148,8 @@ export class SceneRenderer {
   private caseScene: CaseScene | null = null;
   private fatLines: LineMaterial[] = [];
   private deskBoxes = new Map<string, DeskBox[]>();
+  // The desk items' materials, which the selection tints the way Build's desk view does.
+  private deskDimmables: Dimmable[] = [];
   private dots: Points | null = null;
   private readonly dotMap = dotTexture();
   private readonly raycaster = new Raycaster();
@@ -445,6 +447,7 @@ export class SceneRenderer {
     this.objectGroups.clear();
     this.clearDots();
 
+    this.deskDimmables = [];
     this.deskBoxes = this.deskSurfaces(state.objects);
     this.objectsGroup.add(this.fittedDesk(state.objects));
     for (const obj of state.objects) {
@@ -488,7 +491,7 @@ export class SceneRenderer {
 
   // Build's case in layout space, carried into the exported model's scene space, which is where the case object's anchors are.
   private buildCaseGroup({ layout, windowRight }: CaseScene): Group {
-    const palette: Palette = { part: new Color(this.theme.accent), frame: new Color(this.theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+    const palette = this.palette();
     const [D, W, H] = layout.size;
     const built = buildCase(layout, palette, this.fatLines, [], [], true, false, true, true);
     // buildCase centers the case on the origin; the layout-to-scene matrix expects the layout's own corner there.
@@ -509,15 +512,17 @@ export class SceneRenderer {
     for (const m of this.fatLines) m.resolution.set(w, h);
   }
 
-  private readonly deskPalette = (): Palette => ({ part: new Color(this.theme.line), frame: new Color(this.theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') });
+  // The palette Build draws with: parts in the accent, the frame in the face tone. The case here is drawn in it too.
+  private palette(): Palette {
+    return { part: new Color(this.theme.accent), frame: new Color(this.theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+  }
 
   // Desk items and surfaces are Build's own desk boxes, drawn by the shared desk scene: the same nodes, in the object's frame.
   private deskNodes(obj: SceneObject, boxes: DeskBox[], offset: Vec3 = [0, 0, 0]): Group {
     const faces: Mesh[] = [];
-    const g = buildDeskBoxes(boxes, this.deskPalette(), this.fatLines, faces, []);
+    const g = buildDeskBoxes(boxes.map(b => ({ ...b, id: obj.id })), this.palette(), this.fatLines, faces, this.deskDimmables);
     g.position.set(...offset);
     for (const face of faces) face.userData = { pick: 'object', objectId: obj.id, role: 'face' };
-    g.traverse(o => { if ((o as { isLineSegments2?: boolean }).isLineSegments2) o.userData.role = 'edges'; });
     this.sizeFatLines();
     return g;
   }
@@ -527,9 +532,7 @@ export class SceneRenderer {
       // The desk's boxes are in the scene's frame; the object's group stands at its top, so they are carried back by it.
       return this.deskNodes(obj, this.deskBoxes.get(obj.id) ?? [], [-obj.position[0], -obj.position[1], -obj.position[2]]);
     }
-    // A monitor Build exported stands on its foot, which its height includes; one placed here is the panel alone.
-    const stand = obj.kind === 'monitor' && obj.source === 'build';
-    return this.deskNodes(obj, placedItemBoxes({ id: obj.id, kind: ITEM_KIND[obj.kind] ?? 'other', cx: 0, cz: 0, minY: 0, yaw: 0, size: obj.size, curveRadius: curveRadius(obj), stand }));
+    return this.deskNodes(obj, placedItemBoxes({ id: obj.id, kind: ITEM_KIND[obj.kind] ?? 'other', cx: 0, cz: 0, minY: 0, yaw: 0, size: obj.size, curveRadius: curveRadius(obj) }));
   }
 
   /** The boxes of each desk object: the main one holds the slab and the legs, an L's return the slab beyond the main arm. */
@@ -562,8 +565,7 @@ export class SceneRenderer {
       rect.z0 = Math.min(rect.z0, o.position[2] - r - 40);
       rect.z1 = Math.max(rect.z1, o.position[2] + r + 40);
     }
-    const g = buildDeskBoxes([...deskSlabBoxes(rect), ...deskLegBoxes(rect)], this.deskPalette(), this.fatLines, [], []);
-    g.traverse(o => { if ((o as { isLineSegments2?: boolean }).isLineSegments2) o.userData.role = 'fitted'; });
+    const g = buildDeskBoxes([...deskSlabBoxes(rect), ...deskLegBoxes(rect)], this.palette(), this.fatLines, [], []);
     this.sizeFatLines();
     return g;
   }
@@ -626,16 +628,7 @@ export class SceneRenderer {
       mat.opacity = opacity;
       if (pickMat) pickMat.opacity = fill;
     }
-    for (const [id, g] of this.objectGroups) {
-      const selected = id === state.selectedObjectId;
-      g.traverse(o => {
-        if (o.userData.role === 'edges') {
-          const mat = (o as LineSegments).material as LineBasicMaterial;
-          mat.color.copy(selected ? accent : line);
-          mat.opacity = selected ? 1 : 0.6 * STRUCTURE_LINE_DIM;
-        }
-      });
-    }
+    applyHighlight(this.deskDimmables, state.selectedObjectId, 'tint');
   }
 
   private readonly onPointerDown = (e: PointerEvent) => {

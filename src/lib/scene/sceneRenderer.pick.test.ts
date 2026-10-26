@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Color, Vector3, type Group, type Mesh } from 'three';
+import { Color, Vector3, type Group } from 'three';
 import fixture from '../cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout, sceneLayout } from '../cooling/caseLayout';
-import { buildCase } from './pcScene';
-import { buildDeskBoxes } from './deskNodes';
+import { buildCase, type Dimmable } from './pcScene';
+import { applyHighlight, buildDeskBoxes } from './deskNodes';
 import { deskLegBoxes, deskSlabBoxes, placedItemBoxes } from './deskScene';
 import { sceneSignature } from './pcSceneSignature';
 import type { SceneBinding, SceneObject } from '../../api/lightingScene';
@@ -150,10 +150,10 @@ describe('scene pick path', () => {
   });
   describe('the desk drawn by Build\'s scene code', () => {
     const groupOf = (id: string) => (renderer as unknown as { objectGroups: Map<string, Group> }).objectGroups.get(id)!;
-    const palette = { part: new Color(theme.line), frame: new Color(theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
-    // The selection tint restyles opacity and color; the geometry and draw order are the shared scene's.
-    const shape = (o: Group) => JSON.parse(JSON.stringify(sceneSignature(o), (k, v) => (k === 'opacity' || k === 'color' ? undefined : v)));
-    const monitor = (source: 'build' | 'user'): SceneObject => ({ id: 'mon-1', kind: 'monitor', label: null, source, position: [0, 0, 0], yaw: 0, size: [620, 450, 50], anchors: [] });
+    const palette = { part: new Color(theme.accent), frame: new Color(theme.face), bad: new Color('#ef4444'), limit: new Color('#f59e0b') };
+    // Geometry, draw order and every material parameter, the opacities and colors included, match the shared module's own.
+    const shape = (o: Group) => sceneSignature(o);
+    const monitor = (): SceneObject => ({ id: 'mon-1', kind: 'monitor', label: null, source: 'build', position: [0, 0, 0], yaw: 0, size: [620, 450, 50], anchors: [] });
 
     it('draws a plain item as the very box the desk scene makes for it', () => {
       const keyboard = deskObject('keyboard');
@@ -162,19 +162,30 @@ describe('scene pick path', () => {
       expect(shape(groupOf(keyboard.id).children[0])).toEqual(shape(expected));
     });
 
-    it('stands a monitor Build exported on its foot and neck, and a placed one is the panel alone', () => {
-      renderer.setState(stateOf([monitor('build')], []));
-      const standing = groupOf('mon-1').children[0].children.length;
-      renderer.setState(stateOf([monitor('user')], []));
-      expect(standing).toBe(3);
-      expect(groupOf('mon-1').children[0].children).toHaveLength(1);
+    it('stands every monitor on its foot and neck, the very boxes the layout makes', () => {
+      renderer.setState(stateOf([monitor()], []));
+      const expected = buildDeskBoxes(placedItemBoxes({ id: 'mon-1', kind: 'monitor', cx: 0, cz: 0, minY: 0, yaw: 0, size: [620, 450, 50] }), palette, [], [], []);
+      expect(expected.children).toHaveLength(3);
+      expect(shape(groupOf('mon-1').children[0])).toEqual(shape(expected));
+    });
+
+    it('tints the selected item exactly as Build\'s desk view does and leaves the rest', () => {
+      const keyboard = deskObject('keyboard');
+      const mouse = deskObject('mouse');
+      renderer.setState({ ...stateOf([keyboard, mouse], []), selectedObjectId: keyboard.id });
+      const dimmables: Dimmable[] = [];
+      const expected = buildDeskBoxes([...placedItemBoxes({ id: keyboard.id, kind: 'keyboard', cx: 0, cz: 0, minY: 0, yaw: 0, size: keyboard.size }), ...placedItemBoxes({ id: mouse.id, kind: 'mouse', cx: 0, cz: 0, minY: 0, yaw: 0, size: mouse.size })], palette, [], [], dimmables);
+      applyHighlight(dimmables, keyboard.id, 'tint');
+      expect(shape(groupOf(keyboard.id).children[0].children[0] as Group)).toEqual(shape(expected.children[0] as Group));
+      expect(shape(groupOf(mouse.id).children[0].children[0] as Group)).toEqual(shape(expected.children[1] as Group));
     });
 
     it('draws a curved monitor through the shared curved panel', () => {
-      renderer.setState(stateOf([{ ...monitor('user'), curve: { radiusMm: 1800 } }], []));
-      let face: Mesh | undefined;
-      groupOf('mon-1').traverse(o => { if (o.userData.role === 'face') face = o as Mesh; });
-      expect(face?.geometry.getAttribute('position').count).toBeGreaterThan(36);
+      renderer.setState(stateOf([{ ...monitor(), curve: { radiusMm: 1800 } }], []));
+      const expected = buildDeskBoxes(placedItemBoxes({ id: 'mon-1', kind: 'monitor', cx: 0, cz: 0, minY: 0, yaw: 0, size: [620, 450, 50], curveRadius: 1800 }), palette, [], [], []);
+      expect(shape(groupOf('mon-1').children[0])).toEqual(shape(expected));
+      const flat = buildDeskBoxes(placedItemBoxes({ id: 'mon-1', kind: 'monitor', cx: 0, cz: 0, minY: 0, yaw: 0, size: [620, 450, 50] }), palette, [], [], []);
+      expect(shape(expected)).not.toEqual(shape(flat));
     });
 
     it('draws a desk object with its slab and four legs, picked as that object', () => {
