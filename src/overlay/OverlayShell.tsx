@@ -9,7 +9,6 @@ import {
 import { fetchService, postService } from '../api/service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { sizesForSurface, APP_REGISTRY } from '../panel/widgets/registry';
-import { mergeWidgetConfig } from './overlayConfig';
 import { purgePanelOnlyOverlayWidgets } from './overlayWidgetPurge';
 import type { DeckEditView } from '../panel/widgets/types';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
@@ -141,7 +140,7 @@ export default function OverlayShell() {
   const scaleFactor = useMemo(() => scale / 100, [scale]);
   const cellPx = useMemo(() => Math.round(BASE_CELL_PX * scaleFactor), [scaleFactor]);
   const [layout, setLayout] = useState<OverlayWidgetDto[]>([]);
-  // Latest committed layout, so config merges read current state at call time.
+  // Rendered layout plus config merges not yet rendered, read by handleUpdateConfig.
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
   const [loading, setLoading] = useState(true);
@@ -413,11 +412,14 @@ export default function OverlayShell() {
     id: string,
     config: Record<string, PanelConfigValue>,
   ) => {
-    const result = mergeWidgetConfig(layoutRef.current, id, config);
-    layoutRef.current = result.layout;
-    setLayout(result.layout);
-    const merged = result.merged;
-    if (merged) await patchOverlayWidget(id, { config: merged });
+    // The PATCH payload is built outside the updater: React may defer an
+    // updater past this read, which skipped the PATCH.
+    const entry = layoutRef.current.find(w => w.id === id);
+    if (!entry) return;
+    const merged = { ...entry.config, ...config };
+    layoutRef.current = layoutRef.current.map(w => w.id === id ? { ...w, config: merged } : w);
+    setLayout(prev => prev.map(w => w.id === id ? { ...w, config: { ...w.config, ...config } } : w));
+    await patchOverlayWidget(id, { config: merged });
   }, []);
 
   const handleRemoveFromEditor = useCallback(async (id: string) => {
