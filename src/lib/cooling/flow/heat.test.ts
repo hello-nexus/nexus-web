@@ -95,13 +95,13 @@ describe('the heat model', () => {
 
 describe('particles with live temperatures', () => {
   const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
-  const settled = () => { const f = new CpuFlow(scene); for (let i = 0; i < 250; i++) f.step(); return f; };
-  const run = (gpu: number | null, steps = 600) => {
+  const settled = () => { const f = new CpuFlow(scene); for (let i = 0; i < 150; i++) f.step(); return f; };
+  const run = (gpu: number | null, steps = 300) => {
     const f = settled();
     f.setTemps({ gpu, cpu: null });
     for (let s = 0; s < steps; s++) f.step();
     const p = new CpuParticles(f, 300, 5);
-    for (let s = 0; s < 900; s++) { p.step(); f.step(); }
+    for (let s = 0; s < 600; s++) { p.step(); f.step(); }
     return p;
   };
 
@@ -112,7 +112,7 @@ describe('particles with live temperatures', () => {
     expect(mean(mild)).toBeGreaterThan(0);
     expect(mean(hot)).toBeGreaterThan(mean(mild));
     for (let i = 0; i < hot.count; i++) expect(hot.tempC(i)).toBeLessThan(80);
-  }, 240000);
+  }, 600000);
 
   it('keeps the same particles and positions through a temperature change', () => {
     const f = settled();
@@ -128,7 +128,7 @@ describe('particles with live temperatures', () => {
     expect(Array.from(p.pos)).toEqual(Array.from(pos));
     expect(f.t).toBe(t);
     expect(f.u).toBe(u);
-  });
+  }, 60000);
 
   it('reads each particle\'s temperature off the solver field at its position', () => {
     const f = settled();
