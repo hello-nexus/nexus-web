@@ -1314,8 +1314,6 @@
   "devices.openrgb.zoneUnset": "{value}, ayarlanmadı",
   "devices.page.notConnected": "Cihaz bağlı değil",
   "devices.page.title": "Cihaz",
-  "devices.panels.emptySpaceMenu": "Boş alan panel menüsünü açar",
-  "devices.panels.emptySpaceMenuHint": "Panelin arkasındaki masaüstüne ve uygulamalara yapılan tıklamaları engeller. Kapalıyken menüyü bir widget üzerinden açın.",
   "devices.panels.nextPage": "Sonraki sayfa",
   "devices.panels.phone": "Telefon veya tablet paneli",
   "devices.panels.prevPage": "Önceki sayfa",

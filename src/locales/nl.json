@@ -1314,8 +1314,6 @@
   "devices.openrgb.zoneUnset": "{value}, niet ingesteld",
   "devices.page.notConnected": "Apparaat niet verbonden",
   "devices.page.title": "Apparaat",
-  "devices.panels.emptySpaceMenu": "Lege ruimte opent het paneelmenu",
-  "devices.panels.emptySpaceMenuHint": "Blokkeert klikken naar je bureaublad en apps achter het paneel. Als dit uit staat, open je het menu via een widget.",
   "devices.panels.nextPage": "Volgende pagina",
   "devices.panels.phone": "Telefoon- of tabletpaneel",
   "devices.panels.prevPage": "Vorige pagina",

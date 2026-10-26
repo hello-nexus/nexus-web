@@ -1314,8 +1314,6 @@
   "devices.openrgb.zoneUnset": "{value}，未设置",
   "devices.page.notConnected": "设备未连接",
   "devices.page.title": "设备",
-  "devices.panels.emptySpaceMenu": "空白区域打开面板菜单",
-  "devices.panels.emptySpaceMenuHint": "阻止点击到达面板后方的桌面和应用。关闭时，请从小组件打开菜单。",
   "devices.panels.nextPage": "下一页",
   "devices.panels.phone": "手机或平板面板",
   "devices.panels.prevPage": "上一页",

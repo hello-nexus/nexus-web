@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelLayout } from './types';
 
-// With click-through on, empty space during a transient capture only dismisses; the widget menu reaches the panel menu.
+// A generic display's empty space never opens panel UI; the widget menu reaches the panel menu.
 
 const fetchMock = vi.fn();
 const patchMock = vi.fn();
@@ -107,9 +107,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('PanelApp empty space on a click-through display', () => {
-  it('opens the panel menu on an empty-space right-click when the panel takes empty space', async () => {
-    await mount({ clickThrough: false, alwaysOnTop: false });
+describe('PanelApp empty space on a generic display', () => {
+  it('opens the panel menu from empty space on a known display that takes empty space', async () => {
+    await mount({ clickThrough: false, alwaysOnTop: false, capabilities: { ...recordWith({}).capabilities, family: 'xeneon-edge' } });
     expect(tray()?.dataset.state).toBe('closed');
 
     fireEvent.contextMenu(emptySpace());
@@ -117,8 +117,8 @@ describe('PanelApp empty space on a click-through display', () => {
     await waitFor(() => expect(tray()?.dataset.state).toBe('open'));
   });
 
-  it('only dismisses the widget menu when empty space is right-clicked with click-through on', async () => {
-    await mount({ clickThrough: true, alwaysOnTop: false });
+  it('only dismisses the widget menu when empty space is right-clicked, whatever click-through is stored', async () => {
+    await mount({ clickThrough: false, alwaysOnTop: false });
 
     await rightClickWidgetThenEmptySpace();
 
@@ -126,16 +126,19 @@ describe('PanelApp empty space on a click-through display', () => {
     expect(screen.queryByRole('button', { name: 'panel.widget.menu.remove', hidden: true })).toBeNull();
   });
 
-  it('treats always on top as click-through on, whatever is stored', async () => {
-    await mount({ clickThrough: false, alwaysOnTop: true });
+  it('never opens the panel menu from empty space on a solid background either', async () => {
+    await mount({ backdrop: 'theme' });
 
-    await rightClickWidgetThenEmptySpace();
+    fireEvent.contextMenu(emptySpace());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
 
     expect(tray()?.dataset.state).not.toBe('open');
   });
 
-  it('reaches the panel menu from the widget menu while click-through is on', async () => {
-    await mount({ clickThrough: true, alwaysOnTop: false });
+  it('reaches the panel menu from the widget menu', async () => {
+    await mount({ backdrop: 'theme' });
 
     fireEvent.contextMenu(widget());
     fireEvent.click(await screen.findByRole('button', { name: 'panel.actions.label', hidden: true }));

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  canEditFreeText, effectiveClickThrough, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
   surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
 } from './types';
 
@@ -226,23 +226,6 @@ describe('hostedDisplayKeyboard', () => {
     vi.stubGlobal('window', {});
     expect(hostedDisplayKeyboard('monitor')).toBe(false);
     expect(surfaceSupportsTextInput('monitor')).toBe(false);
-  });
-});
-
-describe('effectiveClickThrough', () => {
-  it('forces click-through on a generic display while always on top', () => {
-    expect(effectiveClickThrough(false, true, true)).toBe(true);
-    expect(effectiveClickThrough(true, true, true)).toBe(true);
-  });
-
-  it('keeps the stored choice once always on top is off', () => {
-    expect(effectiveClickThrough(false, false, true)).toBe(false);
-    expect(effectiveClickThrough(true, false, true)).toBe(true);
-  });
-
-  it('leaves a known device on its stored choice', () => {
-    expect(effectiveClickThrough(false, true, false)).toBe(false);
-    expect(effectiveClickThrough(true, true, false)).toBe(true);
   });
 });
 
