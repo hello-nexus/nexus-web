@@ -803,6 +803,27 @@ describe('CoolingCase3D info button', () => {
   });
 });
 
+describe('CoolingCase3D Build link', () => {
+  it.each(['both', 'case', 'airflow'] as const)('opens Build from the canvas in %s mode', mode => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    const opened = vi.fn();
+    const off = onOpenBuild(opened);
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} flowMode={mode} />);
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.build.customize' }));
+    off();
+    expect(opened).toHaveBeenCalledWith(encodeURIComponent('/builder'));
+  });
+
+  it('stays with the collision view on', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} flowMode="case" collisionShapes />);
+    expect(screen.getByRole('button', { name: 'cooling.case3d.build.customize' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'cooling.case3d.hint.label' })).toBeTruthy();
+  });
+});
+
 describe('CoolingCase3D simulated fans', () => {
   const mountReady = (bindings: CoolingLayout['bindings'] = []) => {
     h.setup = { record: record(), loaded: true };

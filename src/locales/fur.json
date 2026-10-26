@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Control firmware",
   "cooling.card.manual": "Manuâl",
   "cooling.card.mode": "Modalitât ventilatôr",
+  "cooling.case3d.build.customize": "Personalize i components in Build",
   "cooling.case3d.canvas": "Viodude 3D dal to case cu lis ventulis e la direzion dal flus di aiar",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Dispositîf associât",

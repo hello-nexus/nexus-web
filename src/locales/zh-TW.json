@@ -389,6 +389,7 @@
   "cooling.card.firmware": "韌體控制",
   "cooling.card.manual": "手動",
   "cooling.card.mode": "風扇模式",
+  "cooling.case3d.build.customize": "在 Build 中自訂零件",
   "cooling.case3d.canvas": "顯示風扇與氣流方向的機殼 3D 檢視",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "已綁定裝置",

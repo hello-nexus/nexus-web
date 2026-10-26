@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Управление прошивкой",
   "cooling.card.manual": "Вручную",
   "cooling.card.mode": "Режим вентилятора",
+  "cooling.case3d.build.customize": "Настроить компоненты в Build",
   "cooling.case3d.canvas": "3D-вид вашего корпуса с вентиляторами и направлением воздушного потока",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Привязанное устройство",

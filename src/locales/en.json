@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Firmware control",
   "cooling.card.manual": "Manual",
   "cooling.card.mode": "Fan mode",
+  "cooling.case3d.build.customize": "Customize parts in Build",
   "cooling.case3d.canvas": "3D view of your case with fans and airflow direction",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Linked device",
