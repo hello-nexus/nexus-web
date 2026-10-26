@@ -430,6 +430,24 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
         }
       }
     }
+    // A face fan's force reaches the same distance on its case side as outside, so a fast and a slow fan on one face keep their speeds in proportion instead of the case's suction reshaping them. A solid or another fan's cell ends it.
+    if (speed > 0 && faceDistance(p, extents) !== null) {
+      const k = axisIndex(axis);
+      const inward = axis[k] > 0 ? 1 : -1;
+      const stride = [1, NX, NX * NY][k];
+      const reachCells = Math.ceil(OUTSIDE_REACH_MM / cellMm);
+      const own = (o: number) => fanCell[o] === 1 && target[o * 3] === Math.fround(vel[0]) && target[o * 3 + 1] === Math.fround(vel[1]) && target[o * 3 + 2] === Math.fround(vel[2]);
+      for (const c of cells.annulus) {
+        const ijk = [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
+        if (!onCaseShell(ijk[0], ijk[1], ijk[2]) || ijk[k] !== (axis[k] > 0 ? caseMin[k] : caseMax[k])) continue;
+        for (let n = 1; n <= reachCells; n++) {
+          const o = c + inward * n * stride;
+          if (solid[o] || outside[o] || (fanCell[o] && !own(o))) break;
+          target[o * 3] = vel[0]; target[o * 3 + 1] = vel[1]; target[o * 3 + 2] = vel[2];
+          fanCell[o] = 1;
+        }
+      }
+    }
     if (speed > 0) {
       fanCount++;
       if (p.direction === 'intake') addSpawns(p, p.cfm);
