@@ -451,6 +451,11 @@ export default function OverlayShell() {
   // with no sheet to close, so editing follows the entry the sheet renders.
   const editingEntry = editingWidgetId ? layout.find(w => w.id === editingWidgetId) : undefined;
   const editing = !!editingEntry && !!APP_REGISTRY[editingEntry.type];
+  // Cleared, not just ignored: a failed reload lists no widgets, and the sheet
+  // must not reopen over a game when the next reload brings the widget back.
+  useEffect(() => {
+    if (!loading && editingWidgetId !== null && !editing) setEditingWidgetId(null);
+  }, [loading, editingWidgetId, editing]);
   const raised = menu !== null || editing || dragOverride !== null;
   useEffect(() => {
     postToHost({ type: 'setAlwaysOnTop', value: raised || alwaysOnTop });

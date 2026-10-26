@@ -82,4 +82,17 @@ describe('OverlayShell activation', () => {
     await vi.waitFor(() => expect(activatable()).toEqual([false, true, false]));
     expect(screen.queryByText('close')).toBeNull();
   });
+
+  it('keeps the sheet closed when a vanished widget comes back', async () => {
+    await openEditor();
+    const entry = widgets.list[0];
+    widgets.list = [];
+    await act(async () => { widgets.onPrefs?.(); });
+    await vi.waitFor(() => expect(activatable()).toEqual([false, true, false]));
+    widgets.list = [entry];
+    await act(async () => { widgets.onPrefs?.(); });
+    await vi.waitFor(() => expect(document.querySelector('[data-widget-id="w1"]')).not.toBeNull());
+    expect(screen.queryByText('close')).toBeNull();
+    expect(activatable()).toEqual([false, true, false]);
+  });
 });
