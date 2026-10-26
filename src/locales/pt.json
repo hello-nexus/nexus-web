@@ -389,6 +389,7 @@
   "cooling.card.firmware": "Controlo do Firmware",
   "cooling.card.manual": "Manual",
   "cooling.card.mode": "Modo da ventoinha",
+  "cooling.case3d.build.customize": "Personalizar componentes no Build",
   "cooling.case3d.canvas": "Vista 3D da sua caixa com as ventoinhas e a direção do fluxo de ar",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.device.label": "Dispositivo associado",
