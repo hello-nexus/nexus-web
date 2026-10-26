@@ -199,15 +199,14 @@ describe('PanelDevicePage widget size', () => {
     expect(pushToastMock).not.toHaveBeenCalled();
   });
 
-  it('keeps a non-touch panel on one page when its grid is full', async () => {
+  it('spills a full grid onto a second page for a display-bound panel without touch', async () => {
     const full = [0, 2, 4].flatMap(row => [widget(`l${row}`, 'clock', 0, row), widget(`r${row}`, 'weather', 2, row)]);
     await renderPage({ layout: layout(full) });
 
-    expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('false');
+    expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('unchecked');
     await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
 
-    expect(screen.getByTestId('embed').dataset.pageCount).toBe('1');
-    expect(patches().every(p => (p.layout?.pages.length ?? 1) === 1)).toBe(true);
+    expect(screen.getByTestId('embed').dataset.pageCount).toBe('2');
   });
 
   it('on the Lian Li 8.8, large snaps 4-wide widgets and names the ones the single 2x8 page cannot hold', async () => {

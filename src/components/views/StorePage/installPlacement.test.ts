@@ -179,6 +179,27 @@ describe('planPlacement', () => {
     expect(planPlacement(screen88, { layout: layoutOf('monitor', []), record }, TYPE, { ...tall, sizes: ['2x4' as const, '4x4' as const] }, 6)).toBeNull();
   });
 
+  it('sizes a display panel by its own grid density and gives it pages', () => {
+    const record = {
+      id: 'rec-d', displayName: 'Display', firstSeenAt: 0, lastSeenAt: 0, displayId: 'disp-1', gridSlots: 12,
+      capabilities: { surface: 'monitor', touch: false, cssWidth: 2560, cssHeight: 1440, dpr: 1, dpi: 110 },
+    } as PanelDeviceRecord;
+    const display: PlacementTarget = { key: 'display', name: 'Display', iconSrc: null, surface: 'monitor' };
+    const wide = { ...meta, singleInstance: false };
+
+    const dense = planPlacement(display, { layout: layoutOf('monitor', []), record }, TYPE, wide, 6);
+    const coarse = planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, gridSlots: 4 } }, TYPE, wide, 6);
+    expect(dense?.capacity.pageRows).toBe(12);
+    expect(coarse?.capacity.pageRows).toBe(4);
+
+    const { gridCols, pageRows } = coarse!.capacity;
+    const cells = Array.from({ length: (gridCols / 2) * (pageRows / 2) }, (_, i) => ({
+      type: 'clock', size: '2x2' as const, col: (i % (gridCols / 2)) * 2, row: Math.floor(i / (gridCols / 2)) * 2,
+    }));
+    const spilled = planPlacement(display, { layout: layoutOf('monitor', cells), record: { ...record, gridSlots: 4 } }, TYPE, wide, 6);
+    expect(spilled?.layout.pages).toHaveLength(2);
+  });
+
   it('shows the page a multi-widget panel lands it on', () => {
     const full = Array.from({ length: 8 }, (_, r) => ({ type: 'clock', size: '4x2' as const, col: 0, row: r * 2 }));
 

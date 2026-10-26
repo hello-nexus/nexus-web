@@ -163,7 +163,7 @@ describe('PanelDevicePage promoted display always on top', () => {
     await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'false'));
   });
 
-  it('is hidden when the host cannot reserve monitors', async () => {
+  it('is offered even when the host cannot reserve monitors', async () => {
     serveRecord();
     fetchDisplayTopologyMock.mockResolvedValue({
       hostingSupported: true, rotationSupported: true, reserveSupported: false,
@@ -172,9 +172,8 @@ describe('PanelDevicePage promoted display always on top', () => {
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
-    // Positive anchor: the record-driven auto-orient toggle renders whenever
-    // monitor settings have loaded, independent of reserveSupported.
-    await screen.findByRole('switch', { name: 'devices.xeneonEdge.autoOrient' });
-    expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
+    // The window level applies on every host that hosts panels; only the window guards are Windows-only.
+    await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL });
+    expect(screen.queryByRole('switch', { name: 'devices.y70.reserveMonitor' })).not.toBeInTheDocument();
   });
 });

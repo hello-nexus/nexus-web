@@ -2760,8 +2760,8 @@ function MonitorSettingsPanel({
       )}
       {clickThrough !== null && (
         <SettingToggle
-          label={t('devices.panel.clickThrough')}
-          description={t('devices.panel.clickThroughHint')}
+          label={t('devices.panels.clickThrough')}
+          description={t('devices.panels.clickThroughHint')}
           checked={clickThrough}
           onChange={onClickThroughToggle}
         />
@@ -2770,8 +2770,8 @@ function MonitorSettingsPanel({
         <SettingSlider
           editable
           trackFill
-          label={t('devices.panel.gridDensity')}
-          description={t('devices.panel.gridDensityHint')}
+          label={t('devices.panels.gridDensity')}
+          description={t('devices.panels.gridDensityHint')}
           descriptionBelow
           value={slotsDraft ?? gridSlots}
           min={GRID_SLOTS_MIN}

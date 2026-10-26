@@ -1,16 +1,10 @@
-// Messages from a display-bound panel to the kiosk host that owns its window.
-// The Windows host is a WebView2 (`window.chrome.webview`, structured payloads);
-// the macOS host is a WKWebView whose `nexusPanel` script handler receives the
-// body verbatim, so the payload is stringified for it.
+// Panel to kiosk-host messages: WebView2 takes objects, the WKWebView `nexusPanel` handler takes a JSON string.
 
 export interface HitRect { x: number; y: number; w: number; h: number }
 
 export type PanelHostMessage =
-  // CSS px. `region`: only these rects take input and the rest of the window
-  // passes through. `full`: the whole window takes input (a sheet, drag or
-  // immersive view is open).
+  // CSS px. `region`: only these rects take input; `full`: the whole window does.
   | { type: 'nexus.panel.hitTest'; mode: 'region' | 'full'; dpr: number; rects: HitRect[] }
-  // Lift a not-on-top window above other windows while a menu, sheet or drag is open.
   | { type: 'nexus.panel.raise'; value: boolean };
 
 interface HostPoster {
@@ -19,8 +13,7 @@ interface HostPoster {
   removeEventListener?(type: 'message', listener: (event: Event) => void): void;
 }
 
-// Cast at the call site: other surfaces attach their own narrow
-// webkit.messageHandlers shapes, so a global Window augmentation would clash.
+// Cast at the call site: other surfaces declare their own webkit.messageHandlers shape.
 interface PanelBridgeWindow {
   chrome?: { webview?: HostPoster };
   webkit?: { messageHandlers?: { nexusPanel?: HostPoster } };
@@ -47,11 +40,7 @@ export function postPanelHostMessage(msg: PanelHostMessage): void {
 
 interface Measurable { getBoundingClientRect(): { left: number; top: number; right: number; bottom: number } }
 
-/**
- * The rects of `elements` that are on screen, as rounded CSS-px boxes clipped to
- * the viewport. An element scrolled or paged out of view, or collapsed, adds
- * nothing, so a widget on another page never carves input out of the desktop.
- */
+/** On-screen boxes of `elements` as whole CSS px clipped to the viewport; a paged-out widget adds nothing. */
 export function collectHitRects(
   elements: Iterable<Measurable>,
   viewport: { width: number; height: number },
@@ -97,10 +86,7 @@ function isRequestMessage(data: unknown): boolean {
   return typeof data === 'object' && data !== null && (data as { type?: unknown }).type === REQUEST_HIT_TEST;
 }
 
-/**
- * Runs `cb` when the host asks the page to report again: the macOS helper calls
- * `window.__nexusPanelHost.requestHitTest()`, the Windows host posts a message event.
- */
+/** Runs `cb` when the host asks for a re-report: macOS calls `__nexusPanelHost.requestHitTest()`, Windows posts a message. */
 export function onHostRequestHitTest(cb: () => void): () => void {
   if (typeof window === 'undefined') return () => {};
   const w = window as unknown as HostWindow;

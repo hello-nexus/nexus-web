@@ -13,8 +13,9 @@ export function setAllWidgetsLocked(layout: PanelLayout, locked: boolean): Panel
 function withLock<T extends { locked?: boolean }>(widget: T, locked: boolean): T {
   if (Boolean(widget.locked) === locked) return widget;
   if (locked) return { ...widget, locked: true };
-  const { locked: _unused, ...rest } = widget;
-  return rest as T;
+  const rest = { ...widget };
+  delete rest.locked;
+  return rest;
 }
 
 function mapWidgets(layout: PanelLayout, fn: (w: PanelLayout['pages'][number]['widgets'][number]) => PanelLayout['pages'][number]['widgets'][number]): PanelLayout {

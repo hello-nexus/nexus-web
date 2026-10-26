@@ -31,10 +31,8 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
   const panelHostRef = useRef<HTMLDivElement>(null);
 
-  // Search entries open these from anywhere: the palette navigates to the
-  // dashboard first, then the pending signal lands here on mount.
+  // The palette navigates to the dashboard first, then the pending signal lands here on mount.
   useSearchSignal('add-widget', useCallback(() => setAddWidgetSignal((value) => value + 1), []));
-  useSearchSignal('desktop-widgets', useCallback(() => onSectionNavigate?.('devices', { tab: 'displays' }), [onSectionNavigate]));
 
   return (
     <div className={styles.dashboard}>

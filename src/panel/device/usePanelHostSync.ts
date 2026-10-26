@@ -3,11 +3,7 @@ import { collectHitRects, hitTestMessage, onHostRequestHitTest, postPanelHostMes
 
 const HIT_SELECTOR = '[data-panel-widget-id], [data-panel-hit]';
 
-/**
- * Tells the kiosk host which parts of the window take input while the panel is
- * see-through and click-through. `full` hands it the whole window; otherwise only
- * the widget cards and chrome count. `signature` changes whenever layout may have moved.
- */
+/** Reports which parts of a see-through, click-through window take input; `signature` changes when layout may have moved. */
 export function usePanelHitTest(active: boolean, full: boolean, rootRef: RefObject<HTMLElement | null>, signature: string): void {
   const lastRef = useRef('');
   useEffect(() => {
@@ -32,7 +28,6 @@ export function usePanelHitTest(active: boolean, full: boolean, rootRef: RefObje
       if (!frame) frame = requestAnimationFrame(send);
     };
     schedule();
-    // A host that reset its region asks for the current state again.
     const offRequest = onHostRequestHitTest(() => {
       lastRef.current = '';
       if (frame) cancelAnimationFrame(frame);
@@ -41,7 +36,7 @@ export function usePanelHitTest(active: boolean, full: boolean, rootRef: RefObje
     const root = rootRef.current;
     const observer = root && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
     if (root && observer) observer.observe(root);
-    // Cells and menus move through CSS transitions and keyframes; their final box is what counts.
+    // Boxes settle only when their transitions and keyframes end.
     document.addEventListener('transitionend', schedule, true);
     document.addEventListener('animationend', schedule, true);
     window.addEventListener('resize', schedule);
