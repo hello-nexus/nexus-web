@@ -174,7 +174,7 @@ async function main() {
   // What the user sees: per-frame displacement of the particles within one fan diameter downstream of a slow and a fast fan on one face.
   const pair = inputFor([fronts[0], fronts[1], rear], [], defaultDir, 60);
   // A rear exhaust takes what the two intakes bring, so neither intake is blocked by the other.
-  pair.fanCfm = { [fronts[0].key]: 33.6, [fronts[1].key]: 60, [rear.key]: 93.6 };
+  pair.fanCfm = { [fronts[0].key]: 26.4, [fronts[1].key]: 60, [rear.key]: 86.4 };
   pair.referenceCfm = 60;
   const host2 = new Group();
   const sc2 = new Scene();

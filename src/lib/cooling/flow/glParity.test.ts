@@ -59,13 +59,13 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
       expect(r.afterTierDrop.tier).toBe(r.particles.tier + 1);
       expect(r.afterTierDrop.checked).toBeGreaterThan(1000);
       expect(r.afterTierDrop.inSolidOrOutside).toBe(0);
-      // The visible speed: particles within a fan diameter downstream of a 500 rpm fan move 0.45 to 0.6 as far per frame as those of a 2500 rpm fan on the same face.
+      // The visible speed: particles within a fan diameter downstream of a 500 rpm fan move 0.38 to 0.52 as far per frame as those of a 2500 rpm fan on the same face.
       expect(r.visibleSpeed.centers).toBe(2);
       expect(r.visibleSpeed.counts[0]).toBeGreaterThan(100);
       expect(r.visibleSpeed.counts[1]).toBeGreaterThan(100);
       expect(r.visibleSpeed.means[0]).toBeGreaterThan(0.02);
-      expect(r.visibleSpeed.means[0] / r.visibleSpeed.means[1]).toBeGreaterThan(0.45);
-      expect(r.visibleSpeed.means[0] / r.visibleSpeed.means[1]).toBeLessThan(0.6);
+      expect(r.visibleSpeed.means[0] / r.visibleSpeed.means[1]).toBeGreaterThan(0.38);
+      expect(r.visibleSpeed.means[0] / r.visibleSpeed.means[1]).toBeLessThan(0.52);
     } finally {
       await browser.close();
       await server.close();
