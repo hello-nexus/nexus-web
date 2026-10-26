@@ -108,9 +108,6 @@ export function useShaderRenderer(
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Bumped when the browser restores a lost GL context: every GPU resource died
-  // with it, so the init and compile effects below run again on the same canvas.
-  const [contextRev, setContextRev] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -118,20 +115,6 @@ export function useShaderRenderer(
     const gl = canvas.getContext('webgl2', { antialias: false, alpha: false });
     if (!gl) { setError('WebGL2 not supported'); return; }
     glRef.current = gl;
-
-    // preventDefault asks the browser to restore the context rather than leave
-    // the canvas blank for good (a window z-order or compositor change can drop it).
-    const onLost = (e: Event) => {
-      e.preventDefault();
-      cancelAnimationFrame(rafRef.current);
-      epochRef.current++;
-      programRef.current = null;
-      compiledRef.current = null;
-      setReady(false);
-    };
-    const onRestored = () => setContextRev(r => r + 1);
-    canvas.addEventListener('webglcontextlost', onLost);
-    canvas.addEventListener('webglcontextrestored', onRestored);
 
     const quadVerts = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
     const vao = gl.createVertexArray()!;
@@ -145,8 +128,6 @@ export function useShaderRenderer(
     vaoRef.current = vao;
 
     return () => {
-      canvas.removeEventListener('webglcontextlost', onLost);
-      canvas.removeEventListener('webglcontextrestored', onRestored);
       cancelAnimationFrame(rafRef.current);
       if (programRef.current) gl.deleteProgram(programRef.current);
       gl.deleteVertexArray(vao);
@@ -156,7 +137,7 @@ export function useShaderRenderer(
       compiledRef.current = null;
       setReady(false);
     };
-  }, [canvasRef, contextRev]);
+  }, [canvasRef]);
 
   // Bumped when this effect's source is replaced (a saved custom effect), forcing a recompile under the same key.
   const [sourceRev, setSourceRev] = useState(0);
@@ -410,7 +391,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, sourceRev, contextRev, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, options?.paletteRef, options?.audioTime, sensorSignal, options?.sensorSweep, audioRef]);
+  }, [effect, sourceRev, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, options?.paletteRef, options?.audioTime, sensorSignal, options?.sensorSweep, audioRef]);
 
   return { ready, loading, error };
 }

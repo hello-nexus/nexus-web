@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useShaderRenderer } from './useShaderRenderer';
 import type { EffectState } from '../types/lighting';
@@ -42,27 +42,5 @@ describe('useShaderRenderer', () => {
     canvasRef.current = null;
     expect(() => frames[1](32)).not.toThrow();
     expect(frames.length).toBe(2);
-  });
-
-  it('recompiles and draws again after a lost GL context is restored', async () => {
-    const canvas = document.createElement('canvas');
-    vi.spyOn(canvas, 'getContext').mockReturnValue(fakeGl() as unknown as WebGL2RenderingContext);
-    const canvasRef = { current: canvas as HTMLCanvasElement | null };
-    const stateRef = { current: { params: {} } as unknown as EffectState };
-    const { result } = renderHook(() => useShaderRenderer(canvasRef, 'fx', stateRef));
-    await waitFor(() => expect(frames.length).toBe(1));
-    act(() => { frames[0](16); });
-    await waitFor(() => expect(result.current.ready).toBe(true));
-
-    const lost = new Event('webglcontextlost', { cancelable: true });
-    act(() => { canvas.dispatchEvent(lost); });
-    expect(lost.defaultPrevented).toBe(true);
-    expect(result.current.ready).toBe(false);
-
-    const before = frames.length;
-    act(() => { canvas.dispatchEvent(new Event('webglcontextrestored')); });
-    await waitFor(() => expect(frames.length).toBeGreaterThan(before));
-    act(() => { frames[frames.length - 1](48); });
-    await waitFor(() => expect(result.current.ready).toBe(true));
   });
 });
