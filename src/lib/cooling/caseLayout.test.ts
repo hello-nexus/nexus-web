@@ -254,7 +254,7 @@ describe('radiator fan slots', () => {
 
   it('lands the default AIO bindings on rad:N', () => {
     const out = withDefaultBindings([], layout.fanSlots, [{ id: 'aio', isAio: true, isGpu: false, kind: 'Fan' }]);
-    expect(out).toEqual([{ channelId: 'aio', slotKeys: ['rad:0', 'rad:1', 'rad:2'] }]);
+    expect(out.find(b => b.channelId === 'aio')?.slotKeys).toEqual(['rad:0', 'rad:1', 'rad:2']);
   });
 
   it('never collapses a rad: slot into a case slot, nor the other way round', () => {

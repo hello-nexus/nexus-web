@@ -393,12 +393,14 @@ export const MAX_SLOT_KEYS_PER_BINDING = 16;
 export const SIM_RPM_MIN = 0;
 export const SIM_RPM_STEP = 100;
 export const SIM_RPM_DEFAULT = 1500;
+/** The speed an installed fan with no link of its own is simulated at until the user links one. */
+export const SIM_RPM_UNASSIGNED = 500;
 export const MAX_BINDINGS = 64;
 export const simChannelId = (rpm: number): string => `${SIM_PREFIX}${rpm}`;
 export const isSimChannel = (channelId: string): boolean => channelId.startsWith(SIM_PREFIX);
 /** The binding that marks a fan with a derived default as deliberately unlinked, so the default stays off it. */
 export const NONE_CHANNEL = 'none';
-/** GPU and AIO fan slots get a derived default link, so unlinking one stores an explicit override. */
+/** GPU and AIO fan slots always get a derived default link, so unlinking one stores an explicit override; installed case fans have one too, which callers pass as `derivedDefault`. */
 export const hasDerivedLink = (slotKey: string): boolean => slotKey.startsWith('gpu:') || slotKey.startsWith('rad:');
 
 /** `channelId` drives `slotKey` afterwards and the slot leaves whatever channel held it. A channel keeps its other slots, since one device can drive several fans; a channel already at the per-binding cap, or a new binding past the service's binding cap, changes nothing. An empty `channelId` unlinks the fan; on a slot with a derived default (`derivedDefault`, GPU and radiator slots by key) that stores the `none` marker instead of nothing. */

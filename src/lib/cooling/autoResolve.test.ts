@@ -21,6 +21,14 @@ describe('layoutNeedsResolve', () => {
     expect(layoutNeedsResolve(record(2, { caseModel: 'HYTE Y70', inputKey: 'k1' }), 'k1', 'hyte-y70')).toBe(false);
   });
 
+  it('needs one again when the PC has a card the layout does not draw, until it draws one', () => {
+    const key = 'case=c|cpu=x|gpu=Gigabyte GeForce RTX 3070|board=y';
+    const bare = { caseModel: 'HYTE Y70', inputKey: key, boxes: [{ slot: 'psu', role: 'part' }, { slot: 'gpu', role: 'detail' }] };
+    expect(layoutNeedsResolve(record(2, bare), key, 'hyte-y70')).toBe(true);
+    expect(layoutNeedsResolve(record(2, { ...bare, boxes: [...bare.boxes, { slot: 'gpu', role: 'part' }] }), key, 'hyte-y70')).toBe(false);
+    expect(layoutNeedsResolve(record(2, { ...bare, inputKey: 'case=c|gpu=' }), 'case=c|gpu=', 'hyte-y70')).toBe(false);
+  });
+
   it('needs none without a record, a key, or a case to lay out', () => {
     expect(layoutNeedsResolve(null, 'k1', 'hyte-y70')).toBe(false);
     expect(layoutNeedsResolve(record(0), null, 'hyte-y70')).toBe(false);

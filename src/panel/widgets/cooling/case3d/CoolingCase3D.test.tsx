@@ -198,10 +198,18 @@ describe('CoolingCase3D device dropdown', () => {
   const mutate = () => h.layout.edit.mock.calls.at(-1)![0] as (l: CoolingLayout) => CoolingLayout;
   const base = (bindings: CoolingLayout['bindings']): CoolingLayout => ({ directions: {}, bindings, tests: [] });
 
-  it('titles an unlinked fan by its position and a linked one by the device name', () => {
-    mountReady(null);
+  it('titles an unlinked fan by its position', () => {
+    mountReady(null, [{ channelId: 'none', slotKeys: ['front:120:0'] }]);
     act(() => h.pick.current?.('front:120:0', 10, 10));
     expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.position.front');
+  });
+
+  it('shows a fan with no link of its own as simulated at the default speed, with its slider', () => {
+    mountReady(null);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.sim.fan');
+    const slider = screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' }) as HTMLInputElement;
+    expect(slider.value).toBe('500');
   });
 
   it('titles a linked fan by the device name from the left-hand list', () => {
@@ -237,7 +245,8 @@ describe('CoolingCase3D device dropdown', () => {
     mountReady(null, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
     open();
     fireEvent.click(screen.getByRole('option', { name: /cooling\.case3d\.noneLinked/ }));
-    expect(mutate()(base([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }])).bindings).toEqual([]);
+    // An installed fan has a derived default, so unlinking it stores the none marker.
+    expect(mutate()(base([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }])).bindings).toEqual([{ channelId: 'none', slotKeys: ['front:120:0'] }]);
   });
 
   it('marks a device already on another fan and adds this fan to it, keeping the other', () => {
@@ -255,7 +264,7 @@ describe('CoolingCase3D device dropdown', () => {
     mountReady(null, start);
     open();
     fireEvent.click(screen.getByRole('option', { name: /cooling\.case3d\.noneLinked/ }));
-    expect(mutate()(base(start)).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
+    expect(mutate()(base(start)).bindings).toEqual([{ channelId: 'fan-b', slotKeys: ['rear:120:0'] }, { channelId: 'none', slotKeys: ['front:120:0'] }]);
   });
 
   it('disables a device whose binding is full, unless it already holds this fan', () => {
@@ -498,8 +507,10 @@ describe('CoolingCase3D airflow controls', () => {
     const state = lastState();
     expect(state.flow.layout.fanSlots).toHaveLength(2);
     expect(Object.keys(state.flow.fanCfm).sort()).toEqual(['front:120:0', 'rear:120:0']);
-    // No fan is linked, so both read as 0 rpm fans.
-    expect(state.flow.fanCfm).toEqual({ 'front:120:0': 0, 'rear:120:0': 0 });
+    // No fan is linked, so both run at the simulated default speed.
+    expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
+    expect(state.flow.fanCfm['rear:120:0']).toBeGreaterThan(0);
+    expect(new Set(state.simulated)).toEqual(new Set(['front:120:0', 'rear:120:0']));
     expect(state.flowOptions).toEqual({ particles: true, collisions: false, speed: 1 });
   });
 
@@ -647,13 +658,16 @@ describe('CoolingCase3D live fan speed', () => {
     expect(cfm['front:120:0']).toBeLessThan(cfm['rear:120:0'] * 0.8);
     cleanup();
     mount(750, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }]);
+    expect((lastState().flow.fanCfm as Record<string, number>)['rear:120:0']).toBeGreaterThan(0);
+    cleanup();
+    mount(750, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }, { channelId: 'none', slotKeys: ['rear:120:0'] }]);
     expect((lastState().flow.fanCfm as Record<string, number>)['rear:120:0']).toBe(0);
   });
 
   it('starts and stops a fan in place when a device is linked and unlinked', () => {
     h.setup = { record: record(), loaded: true };
     const withBinding = (bindings: CoolingLayout['bindings']) => ({ settled: true, layout: { directions: {}, bindings, tests: [] } });
-    setLayout(withBinding([]));
+    setLayout(withBinding([{ channelId: 'none', slotKeys: ['front:120:0'] }]));
     const { rerender } = render(<CoolingCase3D channels={rpmChannels(1500)} selectedChannelId={null} onSelectChannel={vi.fn()} />);
     const idle = lastState();
     expect(idle.flow.fanCfm['front:120:0']).toBe(0);
@@ -787,6 +801,18 @@ describe('CoolingCase3D Build link', () => {
     expect(screen.getByRole('button', { name: 'cooling.case3d.build.customize' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'cooling.case3d.hint.label' })).toBeTruthy();
   });
+
+  it('shows the Build button with its label beside the bottom controls, apart from the info button', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    const build = screen.getByRole('button', { name: 'cooling.case3d.build.customize' });
+    expect(build.textContent).toContain('cooling.case3d.build.customize');
+    const controls = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
+    expect(build.parentElement?.contains(controls)).toBe(true);
+    expect(controls.contains(build)).toBe(false);
+    expect(build.parentElement?.contains(screen.getByRole('button', { name: 'cooling.case3d.hint.label' }))).toBe(false);
+  });
 });
 
 describe('CoolingCase3D simulated fans', () => {
@@ -812,7 +838,7 @@ describe('CoolingCase3D simulated fans', () => {
   });
 
   it('starts a slot at the default simulated speed and keeps the other simulated slots', () => {
-    const start = [{ channelId: 'sim:1500', slotKeys: ['rear:120:0'] }];
+    const start = [{ channelId: 'sim:1500', slotKeys: ['rear:120:0'] }, { channelId: 'none', slotKeys: ['front:120:0'] }];
     mountReady(start);
     open();
     fireEvent.click(screen.getAllByRole('option').find(o => o.textContent?.includes('cooling.case3d.sim.fan'))!);
@@ -1017,12 +1043,39 @@ describe('CoolingCase3D GPU fan slots', () => {
     const layout = caseLayout();
     layout.fanSlots.push({ key: 'gpu:fan:0', position: 'gpu', size: 90, index: 0, taken: 'fan', box: { min: [150, 20, 10], size: [90, 10, 90] }, axis: [0, 1, 0] } as never);
     h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } }, loaded: true };
-    setLayout({ settled: true });
+    setLayout({ settled: true, layout: { directions: {}, bindings: [{ channelId: 'none', slotKeys: ['gpu:fan:0'] }], tests: [] } });
     render(ui());
     expect(lastState().layout.fanSlots.map((s: { key: string }) => s.key)).toContain('gpu:fan:0');
     expect(lastState().directions['gpu:fan:0']).toBeDefined();
     act(() => h.pick.current?.('gpu:fan:0', 10, 10));
     expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.position.gpu');
+  });
+
+  it('binds the card fans to the GPU fan channel with no stored binding and runs them at its live speed', () => {
+    const layout = caseLayout();
+    layout.fanSlots = [0, 1, 2].map(i => ({ key: `gpu:fan:${i}`, position: 'gpu', size: 90, index: i, taken: 'fan', box: { min: [150 + i * 95, 20, 10], size: [90, 10, 90] }, axis: [0, 1, 0] })) as never;
+    const gpu = [{ id: 'gpu-1', name: 'GPU Fan 1', rpm: 1858, dutyPercent: 40, isGpu: true }, { id: 'gpu-2', name: 'GPU Fan 2', rpm: 1858, dutyPercent: 40, isGpu: true }] as FanChannel[];
+    h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } }, loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={gpu} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const state = lastState();
+    expect([...state.bound].sort()).toEqual(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']);
+    expect(state.simulated.size).toBe(0);
+    expect(screen.queryByText('cooling.case3d.noFans')).toBeNull();
+    for (const k of ['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']) expect(state.flow.fanCfm[k]).toBeGreaterThan(0);
+    act(() => h.pick.current?.('gpu:fan:2', 10, 10));
+    expect(screen.getByRole('dialog').textContent).toContain('GPU Fan 2');
+    expect(h.layout.edit).not.toHaveBeenCalled();
+  });
+
+  it('reads stopped GPU fans as idle', () => {
+    const layout = caseLayout();
+    layout.fanSlots = [{ key: 'gpu:fan:0', position: 'gpu', size: 90, index: 0, taken: 'fan', box: { min: [150, 20, 10], size: [90, 10, 90] }, axis: [0, 1, 0] }] as never;
+    const gpu = [{ id: 'gpu-1', name: 'GPU Fan 1', rpm: 0, dutyPercent: 0, isGpu: true }] as FanChannel[];
+    h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: layout } } }, loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={gpu} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    expect(lastState().flow.fanCfm['gpu:fan:0']).toBe(0);
   });
 });
 

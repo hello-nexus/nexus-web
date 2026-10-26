@@ -18,13 +18,23 @@ const layoutOf = (record: PcSetupRecord): { caseModel?: unknown; inputKey?: unkn
 
 /**
  * Whether Build has to resolve this PC's layout again: it has not yet (the record holds none), or it did for other inputs (the case, board,
- * memory, processor, card, or the coolers and fans detected changed since). A PC with no case known has nothing to lay out.
+ * memory, processor, card, or the coolers and fans detected changed since), or it draws no card though the PC has one: Build may place the
+ * card only once its catalog or its layout learns it, and the same key then gives a different layout. A PC with no case known has nothing to lay out.
  */
 export function layoutNeedsResolve(record: PcSetupRecord | null, key: string | null, caseId: string | undefined): boolean {
   if (!record || !key || !caseId) return false;
   const layout = layoutOf(record);
-  return !layout || layout.inputKey !== key;
+  return !layout || layout.inputKey !== key || (namesGpu(key) && !holdsGpu(layout));
 }
+
+/** The key names a graphics card (its `gpu=` part is not empty). */
+const namesGpu = (key: string): boolean => key.split('|').some(part => part.startsWith('gpu=') && part.length > 'gpu='.length);
+
+/** The layout draws a graphics card box. */
+const holdsGpu = (layout: object): boolean => {
+  const boxes = (layout as { boxes?: unknown }).boxes;
+  return Array.isArray(boxes) && boxes.some(b => !!b && typeof b === 'object' && (b as { slot?: unknown; role?: unknown }).slot === 'gpu' && (b as { role?: unknown }).role === 'part');
+};
 
 export type ResolveOutcome = 'waiting' | 'done' | 'failed';
 
