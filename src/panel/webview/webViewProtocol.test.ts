@@ -51,9 +51,14 @@ describe('detectTransport', () => {
 
 describe('parseInbound', () => {
   it('parses caps from an object or a JSON string', () => {
-    const caps = { type: 'nexus.webview.caps', version: 1, supported: true, maxViews: 4, interactive: false };
+    const caps = { type: 'nexus.webview.caps', version: 1, supported: true, maxViews: 4, interactive: false, contextMenu: true };
     expect(parseInbound(caps)).toEqual(caps);
     expect(parseInbound(JSON.stringify(caps))).toEqual(caps);
+  });
+
+  it('parses a host-reported right-click and rejects non-finite coordinates', () => {
+    expect(parseInbound({ type: 'nexus.webview.contextmenu', id: 'w1', x: 10.5, y: 20 })).toEqual({ type: 'nexus.webview.contextmenu', id: 'w1', x: 10.5, y: 20 });
+    expect(parseInbound({ type: 'nexus.webview.contextmenu', id: 'w1', x: 'a', y: 20 })).toBeNull();
   });
 
   it('reads interactive as true only when it is exactly true', () => {

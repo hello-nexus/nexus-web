@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -46,6 +46,8 @@ interface WidgetContextMenuProps {
   // "Lock widgets" row; while `locked`, the edit/resize/immersive items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
+  // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
+  onOpen?: () => void;
   onClose: () => void;
 }
 
@@ -60,6 +62,7 @@ export function WidgetContextMenu({
   displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
   onOpenPanelActions,
+  onOpen,
   onClose,
   alwaysOnTop,
   alwaysOnTopDisabled,
@@ -162,6 +165,16 @@ export function WidgetContextMenu({
       data-panel-hit="true"
       style={menuStyle}
     >
+      {onOpen && (
+        <>
+          <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
+            <ExternalLink size={14} />
+            <span>{t('search.kind.open')}</span>
+          </button>
+          <div className={styles.divider} />
+        </>
+      )}
+
       {sizes.length > 1 && !locked && (
         <>
           <div className={styles.sizeRow}>

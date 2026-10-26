@@ -53,6 +53,7 @@ import { onOpenFramesGame } from '../panel/widgets/frames/framesNav';
 import { onOpenBuild, useBuildFrameHistory } from '../components/views/BuildPage/buildNav';
 import { requestBenchmarkStart, takeBenchmarkStartRequest } from '../panel/widgets/benchmark/benchmarkNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
+import { stashPanelEditorTarget } from '../panel/engine/panelEditorLink';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices, deviceTitle } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
@@ -351,6 +352,8 @@ function ConflictOnboardingGate({
 }
 
 export function Dashboard() {
+  // Before useRoute: its canonical-path redirect drops the query this reads.
+  useState(() => stashPanelEditorTarget(window.location.pathname, window.location.search));
   const {
     section, view, subtab,
     navigate, setView, setSubtab,

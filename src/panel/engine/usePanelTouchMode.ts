@@ -30,6 +30,8 @@ export interface ContextMenuState {
   widget: PanelWidget;
   x: number;
   y: number;
+  /** The element right-clicked; absent for a long-press or a host-reported click. */
+  target?: EventTarget | null;
   // Bumped on every open. PanelApp keys the menu on it so a right-click
   // on another widget while a menu is up remounts a fresh menu instead of
   // re-rendering the one whose outside-pointerdown close timer is already
@@ -103,7 +105,12 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     e.preventDefault();
     e.stopPropagation();
     clearPressFeedback();
-    setCtxMenu({ widget, x: e.clientX, y: e.clientY, seq: ++ctxSeqRef.current });
+    setCtxMenu({ widget, x: e.clientX, y: e.clientY, target: e.target, seq: ++ctxSeqRef.current });
+  }, [clearPressFeedback]);
+
+  const openCtxMenu = useCallback((widget: PanelWidget, x: number, y: number) => {
+    clearPressFeedback();
+    setCtxMenu({ widget, x, y, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const closeCtxMenu = useCallback(() => {
@@ -236,6 +243,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     pressedWidgetId,
     closeCtxMenu,
     handleContextMenu,
+    openCtxMenu,
     handleDragStart,
     handleDragMove,
     handleDragEnd,

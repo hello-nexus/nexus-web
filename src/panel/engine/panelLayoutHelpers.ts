@@ -5,6 +5,8 @@ import type { PanelLayout, PanelWidget } from '../types';
 import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
 import { APP_REGISTRY } from '../widgets/registry';
+import { marketplaceIdFromType } from '../../widgets/marketplaceRegistry';
+import { panelEditorRoute, type PanelEditorTarget } from './panelEditorLink';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
 // off the App registry (manifest.Page) like the sidebar pin list. Adding a
@@ -38,9 +40,15 @@ export function isDashboardClickthroughType(type: string): type is DashboardWidg
   return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
 }
 
-/** The dashboard path a widget tap opens in the app window: its own page when it has one, else the dashboard. */
-export function appRouteForWidget(type: string): string {
-  return `/system/${isDashboardClickthroughType(type) ? type : 'dashboard'}`;
+/** The app path a widget's Open item goes to: its own page or editor, null when it has neither. */
+export function appRouteForWidget(widget: Pick<PanelWidget, 'id' | 'type'>, recordId?: string, deckKey?: PanelEditorTarget['deckKey']): string | null {
+  const { type } = widget;
+  if (type === 'deck') return recordId ? panelEditorRoute({ recordId, widgetId: widget.id, deckKey }) : null;
+  if (type === 'displays') return '/system/devices/displays';
+  if (!isDashboardClickthroughType(type)) return null;
+  // An SDK app type carries a colon, which the open-app route rejects; useRoute maps /system/app/<id> back.
+  const appId = marketplaceIdFromType(type);
+  return appId ? `/system/app/${appId}` : `/system/${type}`;
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }

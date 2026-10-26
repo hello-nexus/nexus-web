@@ -27,6 +27,7 @@ import {
   widgetPlaylistOf,
 } from '../../../panel/engine/widgetPlaylist';
 import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
+import { takePanelEditorTarget, type PanelEditorTarget } from '../../../panel/engine/panelEditorLink';
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
 import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
 import { monitorGridCapacity, recordCanvasOf } from '../../../panel/engine/recordCanvas';
@@ -324,6 +325,18 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // to null when the id no longer exists also closes the pane when the widget
   // is removed on the device.
   const configuringWidget = configuringWidgetId ? findWidgetById(layout, configuringWidgetId) ?? null : null;
+  // A tap on the display's widget opened this page for it: its settings, and the tapped deck key, open first.
+  const [linkedTarget, setLinkedTarget] = useState<PanelEditorTarget | null>(null);
+  useEffect(() => {
+    if (!editingDeviceId) return;
+    const target = takePanelEditorTarget(editingDeviceId);
+    if (!target) return;
+    setLinkedTarget(target);
+    setConfiguringWidgetId(target.widgetId);
+  }, [editingDeviceId]);
+  useEffect(() => {
+    if (linkedTarget && configuringWidgetId !== linkedTarget.widgetId) setLinkedTarget(null);
+  }, [configuringWidgetId, linkedTarget]);
   // Types already on this panel, across pages, for the single-instance gate.
   const placedTypes = useMemo(
     () => [...new Set(layout.pages.flatMap(p => p.widgets.map(w => w.type)))],
@@ -1512,6 +1525,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               <InlineWidgetSettings
                 key={configuringWidget.id}
                 widget={configuringWidget}
+                initialDeckKey={linkedTarget?.widgetId === configuringWidget.id ? linkedTarget.deckKey : undefined}
                 surface={surface}
                 deviceTouch={registryTouch}
                 forcedGrid={forcedGrid}
@@ -2290,6 +2304,7 @@ interface InlineWidgetSettingsProps {
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
   onRemove: (widgetId: string) => void;
+  initialDeckKey?: PanelEditorTarget['deckKey'];
   // Whether this widget can be marked immersive-on-load: a first-page widget
   // with an immersive view in the panel's current orientation.
   immersiveOnLoadAvailable?: boolean;
@@ -2298,7 +2313,7 @@ interface InlineWidgetSettingsProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, initialDeckKey, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -2311,8 +2326,8 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
   const slotLayoutOptions = isMonitoringWidget ? slotLayoutOptionsForSize(widget.size) : [];
   const slotLayout = resolvedSlotLayout(widget.size, widget.config);
-  const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
-  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: 0, folderPath: [] });
+  const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(initialDeckKey?.slot ?? 0);
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: initialDeckKey?.page ?? 0, folderPath: initialDeckKey?.folderPath ?? [] });
 
   // The preview tile (draggable in edit mode) and DeckSettings below it both
   // bind to this same instance; sharing one useDeckInstance call through

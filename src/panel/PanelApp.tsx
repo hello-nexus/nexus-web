@@ -196,6 +196,7 @@ import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
 import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
 import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
+import { deckKeyAt } from './widgets/deck/deckKeyAt';
 
 // Window during which the closing keyframe (or hand-driven swipe glide) plays
 // before the editor sheet unmounts. Matches the SETTLE_MS / settling transition
@@ -1342,11 +1343,8 @@ export function PanelContent({
       }
       return;
     }
-    // A generic display has no immersive view: a tap opens the app at that widget's page, never while editing.
-    if (genericDisplay) {
-      if (!sheetMode && lookupApp(w.type)) void openAppAt(appRouteForWidget(w.type));
-      return;
-    }
+    // A generic display's widgets act only through their own controls; the app opens from the menu's Open.
+    if (genericDisplay) return;
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
     // An immersive view closes by touch, so a mouse-only display never opens one.
@@ -1354,7 +1352,7 @@ export function PanelContent({
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
     if (!def.meta.supportsImmersive[orientationKey]) return;
     enterImmersive(w.id);
-  }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, sheetMode, simulator, surface]);
+  }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
   // macOS delivers touchscreen contacts as mouse pointers (see
   // engine/touchViaPointer); only under that flag does a mouse get the
   // touch gesture model.
@@ -1398,6 +1396,20 @@ export function PanelContent({
     webViewHost.setSuppressed(webViewSuppressed);
     return () => webViewHost.setSuppressed(false);
   }, [webViewSuppressed]);
+  // A generic display's Web View tiles take the mouse; the host reports their right-clicks for the widget menu.
+  const interactiveWebTiles = genericDisplay && !simulator && !embedded;
+  useEffect(() => {
+    webViewHost.setInteractiveTiles(interactiveWebTiles);
+    return () => webViewHost.setInteractiveTiles(false);
+  }, [interactiveWebTiles]);
+  const openCtxMenu = touch.openCtxMenu;
+  useEffect(() => {
+    if (!interactiveWebTiles || !dragEditable) return undefined;
+    return webViewHost.onContextMenu((id, x, y) => {
+      const widget = findWidgetById(paginatedLayout, id);
+      if (widget) openCtxMenu(widget, x, y);
+    });
+  }, [interactiveWebTiles, dragEditable, paginatedLayout, openCtxMenu]);
   const hoverResizeBusy = freeformActive || Boolean(activeDragId) || Boolean(dragArmedId) || Boolean(sheetMode) || Boolean(touch.ctxMenu) || touch.rearranging;
   useEffect(() => {
     if (hoverResizeBusy && !resizeGestureRef.current) setHoverResizeId(null);
@@ -2494,6 +2506,9 @@ export function PanelContent({
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
         const onDesktopSurface = embedded && surface === 'desktop';
+        const openRoute = genericDisplay && !simulator && !embedded
+          ? appRouteForWidget(ctxWidget, deviceId, ctxWidget.type === 'deck' ? deckKeyAt(touch.ctxMenu.target ?? null) : undefined)
+          : null;
 
         // Sidebar pin toggle, only for pinnable types (isPinnableAppKey):
         // "Pin to Sidebar" when not pinned, "Unpin from Sidebar" when pinned.
@@ -2538,6 +2553,7 @@ export function PanelContent({
                 pinnedSidebarApps: pinnedTail.filter(k => k !== pinnableKey),
               });
             } : undefined}
+            onOpen={openRoute ? () => { void openAppAt(openRoute); } : undefined}
             onClose={touch.closeCtxMenu}
           />
         );
