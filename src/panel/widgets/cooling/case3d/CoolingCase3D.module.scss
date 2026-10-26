@@ -8,6 +8,12 @@
   height: 100%;
 }
 
+.emptyActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
 .stats {
   display: flex;
   flex-wrap: wrap;

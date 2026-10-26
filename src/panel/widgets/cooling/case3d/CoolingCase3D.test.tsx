@@ -1060,3 +1060,54 @@ describe('CoolingCase3D GPU fan slots', () => {
     expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.position.gpu');
   });
 });
+
+describe('CoolingCase3D while Build resolves the layout out of sight', () => {
+  const withResolve = (phase: 'idle' | 'resolving' | 'failed', retry = vi.fn()) => (
+    <CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} autoResolve={{ phase, retry }} />
+  );
+  const emptyRecord = { rev: 0, setup: { version: 1, case: {}, items: [], resolved: { objects: [] } } };
+
+  beforeEach(() => {
+    setLayout({ settled: true });
+  });
+
+  it('says the view is being prepared, with no spinner left once it is drawn', () => {
+    h.setup = { record: emptyRecord, loaded: true };
+    const { rerender } = render(withResolve('resolving'));
+    expect(screen.getByText('cooling.case3d.resolving.title')).toBeTruthy();
+    expect(screen.queryByText('cooling.case3d.unsupported.title')).toBeNull();
+    expect(createCaseRenderer).not.toHaveBeenCalled();
+    h.setup = { record: record(1), loaded: true };
+    rerender(withResolve('resolving'));
+    expect(screen.queryByText('cooling.case3d.resolving.title')).toBeNull();
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the notice of a case the view does not draw, once the resolve is over', () => {
+    h.setup = { record: record(1, false, 'HYTE Y60'), loaded: true };
+    render(withResolve('idle'));
+    expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();
+  });
+
+  it('says it could not prepare the view, and retries or opens Build on request', () => {
+    h.setup = { record: emptyRecord, loaded: true };
+    const retry = vi.fn();
+    const opened = vi.fn();
+    const off = onOpenBuild(opened);
+    render(withResolve('failed', retry));
+    expect(screen.getByText('cooling.case3d.resolveFailed.title')).toBeTruthy();
+    expect(screen.getByText('cooling.case3d.resolveFailed.hint')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.resolveFailed.retry' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.empty.action' }));
+    expect(opened).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it('draws an older layout while a failed resolve is behind it', () => {
+    h.setup = { record: record(1), loaded: true };
+    render(withResolve('failed'));
+    expect(screen.queryByText('cooling.case3d.resolveFailed.title')).toBeNull();
+    expect(createCaseRenderer).toHaveBeenCalledTimes(1);
+  });
+});

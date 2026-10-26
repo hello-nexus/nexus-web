@@ -36,3 +36,15 @@
   gap: 0.5rem;
   justify-content: center;
 }
+
+// Out of sight but laid out at a real size, so the frame loads and runs like a visible one.
+.headless {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 1024px;
+  height: 768px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
