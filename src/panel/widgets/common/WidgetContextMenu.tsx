@@ -48,6 +48,8 @@ interface WidgetContextMenuProps {
   onToggleLock?: () => void;
   // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
   onOpen?: () => void;
+  // Dashboard order: Edit, Resize and Remove sit last, under the display and sidebar items.
+  widgetItemsLast?: boolean;
   onClose: () => void;
 }
 
@@ -63,6 +65,7 @@ export function WidgetContextMenu({
   onPinToSidebar, onUnpinFromSidebar,
   onOpenPanelActions,
   onOpen,
+  widgetItemsLast,
   onClose,
   alwaysOnTop,
   alwaysOnTopDisabled,
@@ -147,6 +150,25 @@ export function WidgetContextMenu({
     requestClose();
   }, [requestClose]);
 
+  const editItems = (
+    <>
+      {hasConfig && !locked && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
+          <Pencil size={14} />
+          <span>{t('panel.widget.menu.edit')}</span>
+        </button>
+      )}
+
+      {onResizeMode && !locked && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onResizeMode)}>
+          <Scaling size={14} />
+          <span>{t('panel.widget.menu.resize')}</span>
+        </button>
+      )}
+    </>
+  );
+  const hasMiddleItems = Boolean((onImmersive && !locked) || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+
   const menuStyle = {
     ...themeStyle,
     left: pos.x,
@@ -199,19 +221,7 @@ export function WidgetContextMenu({
         </>
       )}
 
-      {hasConfig && !locked && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
-          <Pencil size={14} />
-          <span>{t('panel.widget.menu.edit')}</span>
-        </button>
-      )}
-
-      {onResizeMode && !locked && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onResizeMode)}>
-          <Scaling size={14} />
-          <span>{t('panel.widget.menu.resize')}</span>
-        </button>
-      )}
+      {!widgetItemsLast && editItems}
 
       {onImmersive && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
@@ -240,6 +250,9 @@ export function WidgetContextMenu({
           <span>{t('sidebar.unpin')}</span>
         </button>
       )}
+
+      {widgetItemsLast && hasMiddleItems && <div className={styles.divider} />}
+      {widgetItemsLast && editItems}
 
       <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
         <Trash2 size={14} />

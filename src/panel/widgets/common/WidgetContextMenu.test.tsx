@@ -170,6 +170,19 @@ describe('WidgetContextMenu order', () => {
     const bare = render(<WidgetContextMenu {...props} sizes={['2x2']} />);
     expect(sequence(bare.container)).toEqual(['panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove']);
   });
+
+  it('puts Edit, Resize and Remove last on the dashboard, one divider above them', () => {
+    const targets = [{ id: 'd1', name: 'Desk', number: '1' }];
+    const { container } = render(<WidgetContextMenu {...props} widgetItemsLast displayTargets={targets} onAddToDisplay={vi.fn()} onUnpinFromSidebar={vi.fn()} />);
+    expect(sequence(container)).toEqual([
+      'chips', '|', 'panel.widget.menu.addToDisplay', 'sidebar.unpin',
+      '|', 'panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove',
+    ]);
+    const empty = render(<WidgetContextMenu {...props} widgetItemsLast />);
+    expect(sequence(empty.container)).toEqual(['chips', '|', 'panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove']);
+    const bare = render(<WidgetContextMenu {...props} sizes={['2x2']} widgetItemsLast />);
+    expect(sequence(bare.container)).toEqual(['panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove']);
+  });
 });
 
 describe('WidgetContextMenu add to display', () => {

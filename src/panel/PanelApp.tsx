@@ -2554,6 +2554,7 @@ export function PanelContent({
               });
             } : undefined}
             onOpen={openRoute ? () => { void openAppAt(openRoute); } : undefined}
+            widgetItemsLast={onDesktopSurface}
             onClose={touch.closeCtxMenu}
           />
         );
