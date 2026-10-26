@@ -378,3 +378,42 @@ describe('radiator mount choice', () => {
     expect(moved.boxes.some(b => b.min[1] === 422.93)).toBe(false);
   });
 });
+
+describe('AIO hoses', () => {
+  const y70 = y70Layout as unknown as { boxes: unknown[]; fanSlots: unknown[] };
+  const topBox = { slot: 'cooler', role: 'part', min: [73, 422.9, 58], size: [360, 52, 120] };
+  const rightBox = { slot: 'cooler', role: 'part', min: [27, 69, 245.2], size: [120, 360, 52] };
+  const tube = (z: number) => ({ radius: 6, points: [[100, 300, z], [100, 325, z], [43, 440, z + 20], [73, 449, z + 20]] });
+  const hoseLine = (z: number) => ({ slot: 'cooler', role: 'part', ...tube(z) });
+  const raw = {
+    ...y70,
+    radiatorMount: 'top',
+    lines: [hoseLine(60), hoseLine(90), { slot: 'cooler', role: 'detail', points: [[0, 0, 0], [1, 1, 1]] }],
+    radiatorOptions: [
+      { mount: 'top', box: topBox, radiator: [], fans: [], tubes: [tube(60), tube(90)] },
+      { mount: 'right', box: rightBox, radiator: [], fans: [], tubes: [tube(10), tube(20)] },
+    ],
+  };
+
+  it('reads the resolved mount\'s hoses from the record\'s lines, skipping hairlines', () => {
+    const l = parseCaseLayout(raw) as CaseLayout;
+    expect(l.tubes).toHaveLength(2);
+    expect(l.tubes![0].radius).toBe(6);
+  });
+
+  it('takes the chosen mount\'s hoses when the radiator moves', () => {
+    const l = parseCaseLayout(raw, 'right') as CaseLayout;
+    expect(l.tubes!.map(t => t.points[0][2])).toEqual([10, 20]);
+  });
+
+  it('draws none for a moved radiator whose option carries no hoses, and for a record without any', () => {
+    const noTubes = { ...raw, radiatorOptions: raw.radiatorOptions.map(o => ({ mount: o.mount, box: o.box, radiator: o.radiator, fans: o.fans })) };
+    expect((parseCaseLayout(noTubes, 'right') as CaseLayout).tubes).toBeUndefined();
+    expect((parseCaseLayout({ ...noTubes, lines: [] }) as CaseLayout).tubes).toBeUndefined();
+  });
+
+  it('drops malformed hoses', () => {
+    const bad = { ...raw, lines: [{ radius: -1, points: [[0, 0, 0], [1, 1, 1]] }, { radius: 6, points: [[0, 0, 0]] }, { radius: 6, points: [[0, 0, 'x'], [1, 1, 1]] }] };
+    expect((parseCaseLayout(bad) as CaseLayout).tubes).toBeUndefined();
+  });
+});

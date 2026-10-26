@@ -4,6 +4,7 @@ import { caseWithGpuAndShroud, defaultDir, fronts, inputFor, rear } from './flow
 import { FlowLayer } from './flowLayer';
 import { GlFlow, floatSupport } from './glFlow';
 import { buildFlowScene } from './gridScene';
+import { EMITTER_STRIDE } from './flowParams';
 
 declare global { interface Window { __flowGl: Record<string, unknown> } }
 
@@ -109,7 +110,7 @@ async function main() {
   const fs2 = slowFast.scene!;
   const centers: number[][] = [];
   const e = fs2.emitters;
-  for (let o = 0; o < e.length; o += 12) if (!centers.some(c => c[0] === e[o] && c[1] === e[o + 1] && c[2] === e[o + 2])) centers.push([e[o], e[o + 1], e[o + 2], e[o + 4], e[o + 5], e[o + 6], e[o + 7]]);
+  for (let o = 0; o < e.length; o += EMITTER_STRIDE) if (!centers.some(c => c[0] === e[o] && c[1] === e[o + 1] && c[2] === e[o + 2])) centers.push([e[o], e[o + 1], e[o + 2], e[o + 4], e[o + 5], e[o + 6], e[o + 7]]);
   const sums = centers.map(() => 0);
   const counts = centers.map(() => 0);
   let prev: Float32Array | null = null;

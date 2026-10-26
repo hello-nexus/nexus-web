@@ -125,3 +125,15 @@ describe('one transform from layout mm', () => {
     r.dispose();
   });
 });
+
+describe('tubeGeometry', () => {
+  it('is a tube of the hose radius around the curve', async () => {
+    const { tubeGeometry } = await import('./coolingCaseRenderer');
+    const geo = tubeGeometry({ radius: 6, points: [[0, 0, 0], [0, 25, 0], [50, 40, 0], [60, 40, 0]] });
+    geo.computeBoundingBox();
+    const box = geo.boundingBox!;
+    // The z extent is the tube's diameter: the curve stays in one plane.
+    expect(box.max.z - box.min.z).toBeCloseTo(12, 0);
+    expect(box.min.z).toBeLessThan(0);
+  });
+});

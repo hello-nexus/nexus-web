@@ -7,6 +7,7 @@ import { visualFlow } from '../visualFlow';
 import { CpuParticles } from './cpuParticles';
 import { CpuFlow } from './cpuSolver';
 import { buildFlowScene } from './gridScene';
+import { EMITTER_STRIDE } from './flowParams';
 
 const raw = JSON.parse(readFileSync(new URL('../__fixtures__/y70-case-layout.json', import.meta.url), 'utf8')) as { fanSlots: { key: string }[] };
 const LOW = 32 * 24 * 48;
@@ -146,7 +147,7 @@ describe('visual flow compression', () => {
     // Each spinning fan holds emitter entries near its own ring.
     const e = scene.emitters;
     const owners = new Set<string>();
-    for (let o = 0; o < e.length; o += 12) owners.add(`${Math.round(e[o])},${Math.round(e[o + 1])},${Math.round(e[o + 2])}`);
+    for (let o = 0; o < e.length; o += EMITTER_STRIDE) owners.add(`${Math.round(e[o])},${Math.round(e[o + 1])},${Math.round(e[o + 2])}`);
     expect(owners.size).toBeGreaterThanOrEqual(3);
     expect(mean).toBeGreaterThan(0.005);
   }, 120000);

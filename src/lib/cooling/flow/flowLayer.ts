@@ -3,7 +3,7 @@ import {
   NearestFilter, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COUPLING, HEAT_COLOR_SPAN_C } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COUPLING, HEAT_COLOR_SPAN_C } from './flowParams';
 import { NO_TEMPS, sourceRises, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
@@ -183,15 +183,15 @@ export class FlowLayer {
   }
 
   private uploadSpawns(scene: FlowScene) {
-    const entries = scene.emitters.length / 12;
-    const data = new Float32Array(Math.max(1, entries) * 12);
+    const entries = scene.emitters.length / EMITTER_STRIDE;
+    const data = new Float32Array(Math.max(1, entries) * EMITTER_STRIDE);
     data.set(scene.emitters);
     this.spawnTex?.dispose();
-    this.spawnTex = new DataTexture(data, Math.max(1, entries) * 3, 1, RGBAFormat, FloatType);
+    this.spawnTex = new DataTexture(data, Math.max(1, entries) * (EMITTER_STRIDE / 4), 1, RGBAFormat, FloatType);
     this.spawnTex.minFilter = NearestFilter;
     this.spawnTex.magFilter = NearestFilter;
     this.spawnTex.needsUpdate = true;
-    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; this.stateMat.uniforms.uCaseMin.value = scene.caseBounds.min; this.stateMat.uniforms.uCaseMax.value = scene.caseBounds.max; }
+    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; this.stateMat.uniforms.uBoundsMin.value = scene.particleBounds.min; this.stateMat.uniforms.uBoundsMax.value = scene.particleBounds.max; }
   }
 
   private ensureParticles() {
@@ -201,7 +201,7 @@ export class FlowLayer {
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uCaseMin: { value: [0, 0, 0] }, uCaseMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: this.options.speed }, uSubsteps: { value: substepsFor(this.options.speed) },
+      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: this.options.speed }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown }, uSrc: { value: new Vector3(0, -1, -1) }, uCoupling: { value: HEAT_COUPLING } });
@@ -212,10 +212,10 @@ export class FlowLayer {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { refs[(y * w + x) * 2] = x; refs[(y * w + x) * 2 + 1] = y; }
     geometry.setAttribute('ref', new BufferAttribute(refs, 2));
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(w * h * 3), 3));
-    geometry.setDrawRange(0, Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier]));
+    geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]));
     const pointUniforms = (alpha: number, size: number, minPx: number) => ({
       PA: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
-      uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: alpha },
+      uMargin: { value: OUTSIDE_REACH_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: alpha },
       uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
     });
     // Head and trail: additive soft sprites; the trail is fainter.
@@ -255,7 +255,7 @@ export class FlowLayer {
   dropTier() {
     if (this.tier >= FLOW_TIERS.length - 1) return;
     this.tier++;
-    this.points?.geometry.setDrawRange(0, Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier]));
+    this.points?.geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]));
     this.slowCount = 0;
     this.build(false);
   }
@@ -272,6 +272,7 @@ export class FlowLayer {
       m.uniforms.uTX.value = flow.tx;
       m.uniforms.M.value = flow.maskTexture;
     }
+    if (this.stateMat) this.stateMat.uniforms.F = { value: flow.fanTexture };
     for (const m of [this.pointMat, ...this.trailMats]) {
       if (!m) continue;
       m.uniforms.uCell.value = scene.cellMm;

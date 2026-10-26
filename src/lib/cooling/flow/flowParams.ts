@@ -56,3 +56,17 @@ export const MAX_EMITTERS_PER_FAN = 64;
 export const MIN_EMITTERS_PER_FAN = 4;
 /** Rejection-sampling attempts per spawn before the particle waits a frame. */
 export const SPAWN_TRIES = 6;
+
+/** Floats per emitter entry: centre xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset, outward spread, three unused. */
+export const EMITTER_STRIDE = 16;
+/** How far outside a case face the air is drawn, mm, about one fan diameter and under the domain margin. Intake particles start this far out and exhaust particles are recycled once they travel this far, and a fan's own force reaches this far out so the air outside follows it. */
+export const OUTSIDE_REACH_MM = 90;
+/** Share of an intake's outside reach, from the face, where its particles start: nearest and farthest. */
+export const OUTSIDE_SPAWN_FROM = 0.45;
+export const OUTSIDE_SPAWN_TO = 0.9;
+/** Share of the particle pool that is drawn; the rest is simulated but hidden, so the picture stays readable. */
+export const PARTICLE_DRAW_SHARE = 0.7;
+/** How many of a pool's particles are drawn at a tier's share of it. */
+export const drawnParticles = (pool: number, tierShare: number) => Math.round(pool * tierShare * PARTICLE_DRAW_SHARE);
+/** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */
+export const FAN_CLEARANCE_MM = 30;

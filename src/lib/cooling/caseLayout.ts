@@ -79,6 +79,14 @@ export interface RadiatorOption {
   box: CaseBox;
   radiator: string[];
   fans: string[];
+  /** The AIO hoses at this mount; absent in a record Build wrote before it carried them. */
+  tubes?: CaseTube[];
+}
+
+/** An AIO hose: a tube of `radius` mm through `points` (a smooth curve), in layout mm. */
+export interface CaseTube {
+  radius: number;
+  points: Vec3[];
 }
 
 export interface CaseLayout {
@@ -88,6 +96,8 @@ export interface CaseLayout {
   fanSlots: CaseFanSlot[];
   /** The glass is on the right as seen from the front; Build's exported model mirrors x for it. */
   windowRight?: boolean;
+  /** The AIO hoses at the radiator's current mount. */
+  tubes?: CaseTube[];
   /** The mount the radiator sits on in this layout: the chosen option's, else the one Build resolved. */
   radiatorMount?: string;
   /** Every mount the radiator can take, with the box it would fill; present with two or more. */
@@ -229,6 +239,21 @@ function parseSlot(raw: unknown): CaseFanSlot | null {
 }
 
 const MAX_OPTIONS = 8;
+const MAX_TUBES = 4;
+const MAX_TUBE_POINTS = 12;
+const MAX_TUBE_RADIUS_MM = 30;
+
+function parseTubes(raw: unknown): CaseTube[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CaseTube[] = [];
+  for (const t of raw.slice(0, MAX_TUBES) as Record<string, unknown>[]) {
+    if (!t || typeof t !== 'object' || !finite(t.radius) || t.radius <= 0 || t.radius > MAX_TUBE_RADIUS_MM) continue;
+    if (!Array.isArray(t.points) || t.points.length < 2 || t.points.length > MAX_TUBE_POINTS) continue;
+    const points = t.points.map(p => vec3(p, false));
+    if (points.every((p): p is Vec3 => p !== null)) out.push({ radius: t.radius, points });
+  }
+  return out;
+}
 
 /** The pick key of the radiator box itself, for a radiator with no fans to pick. */
 export const RADIATOR_PICK_KEY = 'radiator';
@@ -244,7 +269,8 @@ function parseOptions(raw: unknown): RadiatorOption[] {
     const box = o && typeof o === 'object' ? parseBox(o.box) : null;
     const radiator = o ? keys(o.radiator) : null;
     const fans = o ? keys(o.fans) : null;
-    if (box && radiator && fans && keyOf(o.mount) && !out.some(x => x.mount === o.mount)) out.push({ mount: o.mount, box, radiator, fans });
+    const tubes = o ? parseTubes(o.tubes) : [];
+    if (box && radiator && fans && keyOf(o.mount) && !out.some(x => x.mount === o.mount)) out.push({ mount: o.mount, box, radiator, fans, ...(tubes.length > 0 ? { tubes } : {}) });
   }
   return out;
 }
@@ -276,9 +302,12 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
     slots = slots.map(s => ({ ...s, taken: picked.radiator.includes(s.key) ? 'radiator' : picked.fans.includes(s.key) ? 'fan' : null }));
   }
   const mount = picked?.mount ?? resolvedMount;
+  // Build's hose lines are the resolved mount's; a moved radiator takes its option's, and none when the record has none.
+  const tubes = picked ? picked.tubes ?? [] : parseTubes(Array.isArray(r.lines) ? (r.lines as Record<string, unknown>[]).filter(l => l && typeof l === 'object' && l.radius !== undefined) : []);
   return {
     size,
     boxes,
+    ...(tubes.length > 0 ? { tubes } : {}),
     fanSlots: [...slots, ...gpuFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
     ...(mount ? { radiatorMount: mount } : {}),
     ...(options.length >= 2 ? { radiatorOptions: options } : {}),
@@ -394,14 +423,14 @@ export interface MountCollapse {
 
 /**
  * One drawn slot per physical mount, chosen greedily: installed first, then bound, then the larger size, then slot order.
- * Radiator fan slots (`rad:`) always stand alone. A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
+ * Radiator (`rad:`) and graphics card (`gpu:`) fan slots always stand alone: each is a real fan, never an alternative mount, and a card's neighbors can overlap by the frame padding. A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
  * Drawn slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
  */
 export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[]): MountCollapse {
   const slots = layout.fanSlots;
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
-  const own = (s: CaseFanSlot) => s.key.startsWith('rad:');
+  const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:');
   const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || slots[y].size - slots[x].size || x - y);
   const chosen: number[] = [];
   for (const i of order) if (chosen.every(j => planeOverlap(slots[i], slots[j]) === 0)) chosen.push(i);
