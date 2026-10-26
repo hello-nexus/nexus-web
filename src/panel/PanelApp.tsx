@@ -117,7 +117,7 @@ import {
   type ForcedGrid,
 } from './types';
 import { recordWidgetSizeOf } from './engine/recordWidgetSize';
-import { recordCanvasOf } from './engine/recordCanvas';
+import { kioskViewportSettled, recordCanvasOf } from './engine/recordCanvas';
 import { kioskViewportReporter } from './engine/kioskViewportReport';
 import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
@@ -327,8 +327,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   }, [connected, refetch]);
   useAppsChangedSync(refetch);
 
-  // A host-launched kiosk on a display-bound record is the only one that knows its real window (the work
-  // area, not the full display), so it reports that for the dashboard editor to size its preview from.
+  // Only a host-launched kiosk on a display-bound record knows its real window, so it reports that for the editor preview.
   const kioskViewportRef = useRef<{ cssWidth: number; cssHeight: number; dpr: number } | null>(null);
   kioskViewportRef.current = viewportWidth && viewportHeight ? { cssWidth: viewportWidth, cssHeight: viewportHeight, dpr: viewportDpr ?? 1 } : null;
   const reportsViewport = !!record?.displayId && resolved.glassSurface === 'monitor';
@@ -461,6 +460,7 @@ export function PanelContent({
   deviceDpi,
   shortSideSlots,
   displayBound = false,
+  genericDisplayOverride,
   layoutState,
   embedded = false,
   simulator = false,
@@ -493,6 +493,8 @@ export function PanelContent({
   // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
   // the desktop see-through gate.
   displayBound?: boolean;
+  // Simulator only: the editor's classification, since the inert record has no family.
+  genericDisplayOverride?: boolean;
   recordState?: PanelRecordState;
   layoutState: PanelLayoutState;
   embedded?: boolean;
@@ -526,7 +528,7 @@ export function PanelContent({
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
   const { layout: fullLayout, loaded, saveForbidden, hydrated, setLayout: setFullLayout } = layoutState;
   // A generic display panel renders its first page only; later stored pages are written back untouched.
-  const genericDisplay = isGenericDisplayPanel(glassSurface, recordState.record?.capabilities?.family, displayBound);
+  const genericDisplay = genericDisplayOverride ?? isGenericDisplayPanel(glassSurface, recordState.record?.capabilities?.family, displayBound);
   const heldLayoutPages = useMemo(() => (genericDisplay ? heldPages(fullLayout) : []), [genericDisplay, fullLayout]);
   const layout = useMemo(() => (genericDisplay ? firstPageView(fullLayout) : fullLayout), [genericDisplay, fullLayout]);
   const setStoredLayout = useCallback(
@@ -950,12 +952,13 @@ export function PanelContent({
 
   // The dashboard has one page by design; a panel without touch has no way to swipe.
   const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch, displayBound && kioskBehavior, genericDisplay);
-  // Stored pages beyond the first fold onto page 1; a widget with no free cell stays held, never deleted.
+  // Stored pages fold onto page 1 only from the host kiosk at its reported window size; a held widget is never deleted.
+  const foldPersists = kioskBehavior && displayBound && panelHostAvailable() && kioskViewportSettled(recordState.record?.kioskViewport, window);
   useEffect(() => {
-    if (!genericDisplay || !hydrated || fullLayout.pages.length <= 1) return;
+    if (!genericDisplay || !hydrated || !foldPersists || fullLayout.pages.length <= 1) return;
     const folded = foldIntoFirstPage(fullLayout, capacity);
     if (folded.changed) setFullLayout(folded.layout);
-  }, [capacity, fullLayout, genericDisplay, hydrated, setFullLayout]);
+  }, [capacity, foldPersists, fullLayout, genericDisplay, hydrated, setFullLayout]);
 
   // Resize mode is entered from the widget context menu.
   // Hovering a tile with a mouse shows the same corners without the mode.
@@ -1886,12 +1889,13 @@ export function PanelContent({
 
   // The stored layout, not the local seed: the seed holds starter widgets until the record hydrates it.
   const importLayout = recordState.record?.layout ?? EMPTY_IMPORT_LAYOUT;
-  const importCaps = recordState.record?.capabilities;
-  const importDensitySlots = importCaps?.cssWidth && importCaps.cssHeight
-    ? densityShortSideSlots(importCaps.cssWidth, importCaps.cssHeight, importCaps.dpr || 1, importCaps.dpi ?? estimateRuntimePanelDpi(glassSurface))
+  const importCanvas = recordCanvasOf(recordState.record);
+  const importDensitySlots = importCanvas
+    ? densityShortSideSlots(importCanvas.width, importCanvas.height, importCanvas.dpr, recordState.record?.capabilities?.dpi ?? estimateRuntimePanelDpi(glassSurface))
     : undefined;
+  // The legacy desktop overlay only ever ran on plain OS displays, so import is gated to generic ones.
   useDesktopImport({
-    enabled: kioskBehavior && !simulator && displayBound,
+    enabled: kioskBehavior && !simulator && genericDisplay,
     hostReady: panelHostAvailable,
     deviceId,
     pending: recordState.record?.desktopImport,

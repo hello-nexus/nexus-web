@@ -176,9 +176,6 @@ export async function repairTouchMapping(): Promise<TouchMappingRepairResponse |
   return postService<TouchMappingRepairResponse>('/displays/touch-mapping/repair', {});
 }
 
-// The wizard endpoint replies 202 with no body (the wizard runs on the host,
-// not over this request), so it is checked by status rather than parsed as
-// JSON like the other mutators here.
 /** Opens or focuses the app window at a dashboard path. */
 export function openAppAt(route: string) {
   return postService<{ error?: boolean }>('/service/open-app', { route });
@@ -196,6 +193,9 @@ export async function identifyDisplays(displays: IdentifyDisplayEntry[]): Promis
   return status === 204 || status === 200;
 }
 
+// The wizard endpoint replies 202 with no body (the wizard runs on the host,
+// not over this request), so it is checked by status rather than parsed as
+// JSON like the other mutators here.
 export async function launchTouchSetupWizard(): Promise<boolean> {
   const { status } = await authFetchWithStatus('/displays/touch-mapping/setup-wizard', { method: 'POST', body: {} });
   return status === 202;

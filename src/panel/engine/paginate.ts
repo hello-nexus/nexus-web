@@ -354,11 +354,13 @@ export function fitLayoutToSinglePage(
   };
 }
 
-/**
- * Moves every widget onto the first page at the nearest free cells. A widget with no free cell stays
- * in stored page data (its original page, never rendered on a single-page panel) instead of being dropped.
- * `changed` is false when there was nothing to move.
- */
+/** Like fitLayoutToSinglePage, but widgets without room stay in a held page after the first, never dropped. */
+export function fitLayoutToSinglePageHolding(layout: PanelLayout, capacity: PaginateCapacity): PanelLayout {
+  const { layout: fitted, dropped } = fitLayoutToSinglePage(layout, capacity);
+  return dropped.length === 0 ? fitted : { ...fitted, pages: [...fitted.pages, { id: createUuid(), widgets: dropped }] };
+}
+
+/** Moves every widget onto the first page at the nearest free cells; one with no free cell stays held on its page. */
 export function foldIntoFirstPage(layout: PanelLayout, capacity: PaginateCapacity): { layout: PanelLayout; changed: boolean } {
   if (layout.pages.length <= 1) return { layout, changed: false };
   const cols = Math.max(1, Math.floor(capacity.gridCols));
@@ -367,8 +369,10 @@ export function foldIntoFirstPage(layout: PanelLayout, capacity: PaginateCapacit
   const origin = new Map<string, string>();
   for (const page of layout.pages) for (const w of page.widgets) origin.set(w.id, page.id);
   const { placed, overflow } = fillPage(flattenPages(layout.pages), cols, rows);
-  const heldCount = layout.pages.slice(1).reduce((n, p) => n + p.widgets.length, 0);
-  if (placed.length === first.widgets.length && overflow.length === heldCount && layout.pages.every(p => p.widgets.length > 0 || p === first)) {
+  const heldIds = new Set(layout.pages.slice(1).flatMap(p => p.widgets.map(w => w.id)));
+  const sameFirst = placed.length === first.widgets.length
+    && placed.every(p => first.widgets.some(w => w.id === p.id && w.col === p.col && w.row === p.row));
+  if (sameFirst && overflow.length === heldIds.size && overflow.every(w => heldIds.has(w.id)) && layout.pages.every(p => p.widgets.length > 0 || p === first)) {
     return { layout, changed: false };
   }
   const held = layout.pages.slice(1)

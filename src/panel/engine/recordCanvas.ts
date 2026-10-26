@@ -17,6 +17,14 @@ export function recordCanvasOf(
   return caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight, dpr: caps.dpr || 1 } : null;
 }
 
+/** True when the record's reported kiosk viewport is the window's current size, so grid math from the window is not transient. */
+export function kioskViewportSettled(
+  viewport: { cssWidth: number; cssHeight: number } | null | undefined,
+  win: { innerWidth: number; innerHeight: number },
+): boolean {
+  return !!viewport && Math.abs(viewport.cssWidth - win.innerWidth) <= 1 && Math.abs(viewport.cssHeight - win.innerHeight) <= 1;
+}
+
 /** The monitor grid for a canvas in CSS px at the given device pixel ratio; the kiosk and the editor both size from it. */
 export function monitorGridCapacity(
   canvas: { width: number; height: number },

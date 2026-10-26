@@ -168,8 +168,7 @@ export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean,
   return surfaceSupportsTouch(surface, deviceTouch) || (displayBound && !isSingleWidgetSurface(surface));
 }
 
-// An OS display promoted to a Nexus panel that no curated device entry claims (a curated one carries
-// capabilities.family). Only these are single-page and offer widget locking.
+// An OS display promoted to a panel that no curated device claims (a curated one carries capabilities.family).
 export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string | undefined, displayBound: boolean): boolean {
   return glassSurface === 'monitor' && displayBound && !family;
 }
@@ -258,10 +257,7 @@ export function normalizeGridSlots(value: number | null | undefined): number | u
   return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, even));
 }
 
-/**
- * The size a record's retired grid density stands for: the option whose short-axis count is nearest,
- * by ratio, to the stored count against the glass's density-derived one.
- */
+/** The size whose short-axis count is nearest, by ratio, to a record's retired grid density. */
 export function sizeForLegacyGridSlots(gridSlots: number | null | undefined, densitySlots: number | undefined): PanelWidgetSizeMode | undefined {
   const slots = normalizeGridSlots(gridSlots);
   if (slots === undefined || !densitySlots) return undefined;

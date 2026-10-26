@@ -159,19 +159,24 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(() => { frame = 0; send(); });
     };
+    // Paging swipes animate through transitions: follow every frame while one runs.
+    // Counted per element, and an element removed mid-transition never fires its end event, so each frame drops those.
+    const running = new Map<EventTarget, number>();
     const follow = () => {
       send();
-      frame = requestAnimationFrame(follow);
+      for (const el of running.keys()) if (el instanceof Node && !el.isConnected) running.delete(el);
+      frame = dragging || running.size > 0 ? requestAnimationFrame(follow) : 0;
     };
-    // Paging swipes animate through transitions: follow every frame while one runs.
-    let running = 0;
-    const onRun = () => {
-      running += 1;
+    const onRun = (e: Event) => {
+      running.set(e.target ?? document, (running.get(e.target ?? document) ?? 0) + 1);
       if (!frame) frame = requestAnimationFrame(follow);
     };
-    const onEnd = () => {
-      running = Math.max(0, running - 1);
-      if (running === 0 && !dragging) {
+    const onEnd = (e: Event) => {
+      const key = e.target ?? document;
+      const left = (running.get(key) ?? 0) - 1;
+      if (left > 0) running.set(key, left);
+      else running.delete(key);
+      if (running.size === 0 && !dragging) {
         if (frame) cancelAnimationFrame(frame);
         frame = 0;
       }

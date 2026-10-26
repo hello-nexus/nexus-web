@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PanelDeviceRecord } from '../../api/panel';
 import { panelGridCapacityForCanvas } from './grid';
-import { monitorGridCapacity, recordCanvasOf } from './recordCanvas';
+import { kioskViewportSettled, monitorGridCapacity, recordCanvasOf } from './recordCanvas';
 
 const record = (over: Partial<PanelDeviceRecord>) => ({ displayId: 'd1', capabilities: { surface: 'monitor', cssWidth: 1920, cssHeight: 1200, dpr: 1, dpi: 94.1 }, ...over }) as PanelDeviceRecord;
 
@@ -22,5 +22,14 @@ describe('recordCanvasOf', () => {
     expect(editor.gridCols).toBe(20);
     const stale = recordCanvasOf(record({}))!;
     expect(monitorGridCapacity(stale, stale.dpr, 94.1, 0.08).gridCols).not.toBe(editor.gridCols);
+  });
+});
+
+describe('kioskViewportSettled', () => {
+  it('is true only when the reported viewport is the window size now', () => {
+    const win = { innerWidth: 1920, innerHeight: 1152 };
+    expect(kioskViewportSettled({ cssWidth: 1920, cssHeight: 1152 }, win)).toBe(true);
+    expect(kioskViewportSettled({ cssWidth: 1280, cssHeight: 720 }, win)).toBe(false);
+    expect(kioskViewportSettled(undefined, win)).toBe(false);
   });
 });
