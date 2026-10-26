@@ -6,7 +6,22 @@ export type PanelHostMessage =
   // CSS px. `region`: only these rects take input; `full`: the whole window does.
   // `lease`: a transient full that the host drops unless it is renewed.
   | { type: 'nexus.panel.hitTest'; mode: 'region' | 'full'; dpr: number; rects: HitRect[]; lease?: boolean }
-  | { type: 'nexus.panel.raise'; value: boolean };
+  | { type: 'nexus.panel.raise'; value: boolean }
+  // Card areas the host blurs natively behind a see-through panel; `none` when frost is off or the panel is opaque.
+  | FrostMessage;
+
+export type FrostLevel = 'light' | 'heavy' | 'none';
+
+export interface FrostMessage {
+  type: 'nexus.panel.frost';
+  level: FrostLevel;
+  // The panel's own strength, so a host can scale its blur finer than the two levels.
+  percent: number;
+  dpr: number;
+  // Card corner radius, CSS px.
+  radius: number;
+  rects: HitRect[];
+}
 
 interface HostPoster {
   postMessage(payload: unknown): void;
@@ -142,4 +157,16 @@ export function onHostRequestHitTest(cb: () => void): () => void {
 /** Runs `cb` when the host refits the kiosk and reports its new origin: macOS calls `__nexusPanelHost.setOrigin(...)`, Windows posts a message. */
 export function onHostOrigin(cb: (origin: KioskOrigin) => void): () => void {
   return subscribe(originSubscribers, cb);
+}
+
+/** Strength bands the host maps to a native blur radius. */
+export function frostLevelOf(percent: number): FrostLevel {
+  if (!(percent > 0)) return 'none';
+  return percent <= 50 ? 'light' : 'heavy';
+}
+
+export function frostMessage(percent: number, seeThrough: boolean, rects: HitRect[], dpr: number, radius: number): FrostMessage {
+  const level = seeThrough ? frostLevelOf(percent) : 'none';
+  if (level === 'none') return { type: 'nexus.panel.frost', level, percent: 0, dpr, radius: 0, rects: [] };
+  return { type: 'nexus.panel.frost', level, percent, dpr, radius, rects };
 }

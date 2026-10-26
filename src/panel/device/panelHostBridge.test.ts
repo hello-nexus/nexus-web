@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { collectHitRects, hitTestMessage, panelHostAvailable, postPanelHostMessage } from './panelHostBridge';
+import { collectHitRects, frostLevelOf, frostMessage, hitTestMessage, panelHostAvailable, postPanelHostMessage } from './panelHostBridge';
 
 const box = (left: number, top: number, right: number, bottom: number) => ({ getBoundingClientRect: () => ({ left, top, right, bottom }) });
 const viewport = { width: 1000, height: 600 };
@@ -129,5 +129,27 @@ describe('onHostOrigin', () => {
     expect((window as unknown as Record<string, unknown>).__nexusPanelHost).toBeDefined();
     offRequest();
     expect((window as unknown as Record<string, unknown>).__nexusPanelHost).toBeUndefined();
+  });
+});
+
+describe('frost message', () => {
+  const rects = [{ x: 1, y: 2, w: 30, h: 40 }];
+
+  it('bands the strength into light and heavy', () => {
+    expect(frostLevelOf(0)).toBe('none');
+    expect(frostLevelOf(10)).toBe('light');
+    expect(frostLevelOf(50)).toBe('light');
+    expect(frostLevelOf(60)).toBe('heavy');
+    expect(frostLevelOf(100)).toBe('heavy');
+  });
+
+  it('reports the card rects, radius and strength on a see-through panel', () => {
+    expect(frostMessage(70, true, rects, 1.25, 12)).toEqual({ type: 'nexus.panel.frost', level: 'heavy', percent: 70, dpr: 1.25, radius: 12, rects });
+  });
+
+  it('reports none, without rects, when frost is off or the panel is opaque', () => {
+    for (const msg of [frostMessage(0, true, rects, 1, 12), frostMessage(80, false, rects, 1, 12)]) {
+      expect(msg).toEqual({ type: 'nexus.panel.frost', level: 'none', percent: 0, dpr: 1, radius: 0, rects: [] });
+    }
   });
 });

@@ -53,7 +53,7 @@ import { AdaptivePointerSensor, dragActivationFor } from './engine/pointerDragSe
 import { setAllWidgetsLocked, setWidgetLocked } from './engine/widgetLock';
 import { useDesktopImport } from './engine/useDesktopImport';
 import { useDisplayTargets } from './engine/useDisplayTargets';
-import { usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
+import { usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
 import { panelHostAvailable } from './device/panelHostBridge';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
@@ -1782,6 +1782,15 @@ export function PanelContent({
     hitFull,
     rootRef,
     `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${allFlatIds.join(',')}`,
+  );
+  // The host blurs the desktop behind the cards: CSS cannot sample it.
+  usePanelFrost(
+    hostBound,
+    effectiveTheme.backgroundFrost,
+    seeThrough,
+    Boolean(activeDragId),
+    rootRef,
+    `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${allFlatIds.join(',')}`,
   );
   usePanelRaise(
     hostBound && menuAlwaysOnTop === false,

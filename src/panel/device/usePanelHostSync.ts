@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
-import { collectHitRects, hitTestMessage, onHostRequestHitTest, postPanelHostMessage } from './panelHostBridge';
+import { collectHitRects, frostMessage, hitTestMessage, onHostRequestHitTest, postPanelHostMessage } from './panelHostBridge';
 
 const HIT_SELECTOR = '[data-panel-widget-id], [data-panel-hit]';
 
@@ -91,4 +91,64 @@ export function usePanelRaise(active: boolean, raised: boolean): void {
   useEffect(() => () => {
     if (lastRef.current !== null) postPanelHostMessage({ type: 'nexus.panel.raise', value: false });
   }, []);
+}
+
+const CARD_SELECTOR = '[data-panel-widget-id] .panel-card';
+
+function cardRadius(): number {
+  const card = document.querySelector(CARD_SELECTOR);
+  if (!card) return 0;
+  const radius = Number.parseFloat(getComputedStyle(card).borderTopLeftRadius);
+  return Number.isFinite(radius) ? radius : 0;
+}
+
+/**
+ * Reports the card areas for the host's native blur on a see-through panel, and `none` otherwise.
+ * `dragging` re-measures every frame so the blur follows the card being moved; `signature` changes when layout may have moved.
+ */
+export function usePanelFrost(active: boolean, percent: number, seeThrough: boolean, dragging: boolean, rootRef: RefObject<HTMLElement | null>, signature: string): void {
+  const lastRef = useRef('');
+  useEffect(() => {
+    if (!active) {
+      lastRef.current = '';
+      return undefined;
+    }
+    let frame = 0;
+    const send = (force = false) => {
+      const frosted = seeThrough && percent > 0;
+      const rects = frosted
+        ? collectHitRects(document.querySelectorAll(CARD_SELECTOR), { width: window.innerWidth, height: window.innerHeight })
+        : [];
+      const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
+      const msg = frostMessage(percent, seeThrough, rects, dpr, frosted ? cardRadius() : 0);
+      const key = JSON.stringify(msg);
+      if (!force && key === lastRef.current) return;
+      lastRef.current = key;
+      postPanelHostMessage(msg);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; send(); });
+    };
+    const follow = () => {
+      send();
+      frame = requestAnimationFrame(follow);
+    };
+    if (dragging) frame = requestAnimationFrame(follow);
+    else schedule();
+    const offRequest = onHostRequestHitTest(() => { lastRef.current = ''; send(); });
+    const root = rootRef.current;
+    const observer = root && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
+    if (root && observer) observer.observe(root);
+    document.addEventListener('transitionend', schedule, true);
+    document.addEventListener('animationend', schedule, true);
+    window.addEventListener('resize', schedule);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      offRequest();
+      observer?.disconnect();
+      document.removeEventListener('transitionend', schedule, true);
+      document.removeEventListener('animationend', schedule, true);
+      window.removeEventListener('resize', schedule);
+    };
+  }, [active, percent, seeThrough, dragging, rootRef, signature]);
 }
