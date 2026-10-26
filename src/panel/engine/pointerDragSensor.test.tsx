@@ -18,7 +18,7 @@ describe('dragActivationFor', () => {
 const HOLD_MS = 400;
 const DISTANCE = 6;
 
-function Harness({ mouseAsTouch, onStart }: { mouseAsTouch: boolean; onStart: () => void }) {
+function Harness({ mouseAsTouch, onStart, onCancel, onEnd }: { mouseAsTouch: boolean; onStart: () => void; onCancel?: () => void; onEnd?: () => void }) {
   const sensor = useSensor(AdaptivePointerSensor, {
     activationConstraint: undefined,
     constraintFor: (e: PointerEvent) => (dragActivationFor(e.pointerType, mouseAsTouch) === 'distance'
@@ -27,7 +27,7 @@ function Harness({ mouseAsTouch, onStart }: { mouseAsTouch: boolean; onStart: ()
   });
   const sensors = useSensors(sensor);
   return (
-    <DndContext sensors={sensors} onDragStart={onStart}>
+    <DndContext sensors={sensors} onDragStart={onStart} onDragCancel={onCancel} onDragEnd={onEnd}>
       <Card />
     </DndContext>
   );
@@ -44,8 +44,8 @@ function press(el: Element, pointerType: string) {
   Object.assign(event, { pointerType, isPrimary: true, pointerId: 1 });
   act(() => { el.dispatchEvent(event); });
 }
-function move(pointerType: string, x: number) {
-  const event = new MouseEvent('pointermove', { bubbles: true, cancelable: true, clientX: x, clientY: 10 });
+function move(pointerType: string, x: number, buttons = 1) {
+  const event = new MouseEvent('pointermove', { bubbles: true, cancelable: true, clientX: x, clientY: 10, buttons });
   Object.assign(event, { pointerType, isPrimary: true, pointerId: 1 });
   act(() => { document.dispatchEvent(event); });
 }
@@ -78,5 +78,45 @@ describe('drag through DndContext', () => {
     press(screen.getByTestId('card'), 'mouse');
     move('mouse', 10 + DISTANCE + 2);
     expect(onStart).not.toHaveBeenCalled();
+  });
+
+  it('cancels a live drag when a move arrives with no button held', () => {
+    const onCancel = vi.fn();
+    render(<Harness mouseAsTouch={false} onStart={vi.fn()} onCancel={onCancel} />);
+    press(screen.getByTestId('card'), 'mouse');
+    move('mouse', 10 + DISTANCE + 2);
+    move('mouse', 40, 0);
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('cancels a live drag when the window loses focus', () => {
+    const onCancel = vi.fn();
+    render(<Harness mouseAsTouch={false} onStart={vi.fn()} onCancel={onCancel} />);
+    press(screen.getByTestId('card'), 'mouse');
+    move('mouse', 10 + DISTANCE + 2);
+    act(() => { window.dispatchEvent(new Event('blur')); });
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('cancels a live drag on pointercancel', () => {
+    const onCancel = vi.fn();
+    render(<Harness mouseAsTouch={false} onStart={vi.fn()} onCancel={onCancel} />);
+    press(screen.getByTestId('card'), 'mouse');
+    move('mouse', 10 + DISTANCE + 2);
+    act(() => { document.dispatchEvent(new Event('pointercancel')); });
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('stops watching once the drag ends', () => {
+    const onCancel = vi.fn();
+    const onEnd = vi.fn();
+    render(<Harness mouseAsTouch={false} onStart={vi.fn()} onCancel={onCancel} onEnd={onEnd} />);
+    press(screen.getByTestId('card'), 'mouse');
+    move('mouse', 10 + DISTANCE + 2);
+    act(() => { document.dispatchEvent(new MouseEvent('pointerup', { bubbles: true })); });
+    move('mouse', 40, 0);
+    act(() => { window.dispatchEvent(new Event('blur')); });
+    expect(onEnd).toHaveBeenCalledOnce();
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });
