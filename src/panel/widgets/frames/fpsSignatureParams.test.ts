@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFpsSignatureParams } from './fpsSignatureParams';
+import { buildFpsSignatureParams, primaryGpuCard } from './fpsSignatureParams';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 
 function specs(overrides: Partial<SystemSpecs> = {}): SystemSpecs {
@@ -91,5 +91,25 @@ describe('buildFpsSignatureParams', () => {
     const params = buildFpsSignatureParams(specs({ monitor: 'Dell U2723QE' }), '2560x1440');
     expect(params?.res).toBe('2560x1440');
     expect(params?.hz).toBeUndefined();
+  });
+});
+
+describe('primaryGpuCard', () => {
+  it('returns the edition segment for a single GPU', () => {
+    const s = specs({ graphicsCard: 'NVIDIA Founders Edition GeForce RTX 5080', primaryGpu: 'NVIDIA GeForce RTX 5080' });
+    expect(primaryGpuCard(s)).toBe('NVIDIA Founders Edition GeForce RTX 5080');
+  });
+
+  it('picks the matching segment when the primary is second', () => {
+    const s = specs({
+      graphicsCard: 'AMD Radeon(TM) Graphics + ASUS TUF Gaming GeForce RTX 5080',
+      primaryGpu: 'GEFORCE RTX 5080',
+    });
+    expect(primaryGpuCard(s)).toBe('ASUS TUF Gaming GeForce RTX 5080');
+  });
+
+  it('falls back to the chip when no segment contains it', () => {
+    const s = specs({ graphicsCard: 'AMD Radeon(TM) Graphics', primaryGpu: 'NVIDIA GeForce RTX 5080' });
+    expect(primaryGpuCard(s)).toBe('NVIDIA GeForce RTX 5080');
   });
 });

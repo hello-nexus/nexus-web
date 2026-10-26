@@ -30,7 +30,7 @@ export interface LianLiWirelessFan {
   pwmCableConnected?: boolean;
   /** A HydroShift II that is also on USB, whose screen has its own panel page. */
   usbConnected?: boolean;
-  /** Wired LCD Flex units only: "tlFlex" or "slInfFlex". */
+  /** Wired Flex units only: "tlFlex", "slInfFlex" or "p28v2" (no screen, no stored effects). */
   family?: string;
   /** Wired LCD Flex units only: serial of the paired screen, empty when none. */
   screenSerial?: string;
@@ -130,6 +130,8 @@ export interface LianLiWirelessLane {
 /** A bound wireless chain that can play an uploaded animation: a Strimer cable or a fan chain. */
 export interface LianLiWirelessChainLighting {
   mac: string;
+  /** Wired Flex chains only: "tlFlex", "slInfFlex" or "p28v2". */
+  family?: string;
   kind: 'strimer' | 'fans';
   devType: number;
   /** Strimer model name; empty for a fan chain, which is named from fanType. */
@@ -261,7 +263,7 @@ export interface LianLiFlexLcdChain {
   mac: string;
   /** TL chains only. */
   upDownSwap?: boolean | null;
-  family: 'tlFlex' | 'slInfFlex';
+  family: 'tlFlex' | 'slInfFlex' | 'p28v2';
   fanCount: number;
   enabled: boolean;
   brightness: number;

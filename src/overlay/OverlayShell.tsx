@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   listOverlayWidgets,
   patchOverlayWidget,
@@ -140,6 +140,9 @@ export default function OverlayShell() {
   const scaleFactor = useMemo(() => scale / 100, [scale]);
   const cellPx = useMemo(() => Math.round(BASE_CELL_PX * scaleFactor), [scaleFactor]);
   const [layout, setLayout] = useState<OverlayWidgetDto[]>([]);
+  // Rendered layout plus config merges not yet rendered, read by handleUpdateConfig.
+  const layoutRef = useRef(layout);
+  useLayoutEffect(() => { layoutRef.current = layout; }, [layout]);
   const [loading, setLoading] = useState(true);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [widgetOpacity, setWidgetOpacity] = useState(1);
@@ -409,13 +412,13 @@ export default function OverlayShell() {
     id: string,
     config: Record<string, PanelConfigValue>,
   ) => {
-    let merged: Record<string, PanelConfigValue> | undefined;
-    setLayout(prev => prev.map(entry => {
-      if (entry.id !== id) return entry;
-      merged = { ...entry.config, ...config };
-      return { ...entry, config: merged };
-    }));
-    if (merged) await patchOverlayWidget(id, { config: merged });
+    // Built outside the updater: React may run the updater after this reads it.
+    const entry = layoutRef.current.find(w => w.id === id);
+    if (!entry) return;
+    const merged = { ...entry.config, ...config };
+    layoutRef.current = layoutRef.current.map(w => w.id === id ? { ...w, config: merged } : w);
+    setLayout(prev => prev.map(w => w.id === id ? { ...w, config: { ...w.config, ...config } } : w));
+    await patchOverlayWidget(id, { config: merged });
   }, []);
 
   const handleRemoveFromEditor = useCallback(async (id: string) => {
@@ -447,10 +450,25 @@ export default function OverlayShell() {
   // host even with no interaction. A broadcast mid-interaction still posts true
   // because `raised` dominates, so it can't sink the window under the user. No
   // POST to /preferences here - the persisted setting is unchanged.
-  const raised = menu !== null || editingWidgetId !== null || dragOverride !== null;
+  // A widget deleted elsewhere (dashboard, purge) leaves editingWidgetId set
+  // with no sheet to close, so editing follows the entry the sheet renders.
+  const editingEntry = editingWidgetId ? layout.find(w => w.id === editingWidgetId) : undefined;
+  const editing = !!editingEntry && !!APP_REGISTRY[editingEntry.type];
+  // Cleared, not just ignored: a failed reload lists no widgets, and the sheet
+  // must not reopen over a game when the next reload brings the widget back.
+  useEffect(() => {
+    if (!loading && editingWidgetId !== null && !editing) setEditingWidgetId(null);
+  }, [loading, editingWidgetId, editing]);
+  const raised = menu !== null || editing || dragOverride !== null;
   useEffect(() => {
     postToHost({ type: 'setAlwaysOnTop', value: raised || alwaysOnTop });
   }, [raised, alwaysOnTop]);
+
+  // The Windows host keeps the overlay non-activating so widget clicks never
+  // take the foreground; text fields in the edit sheet need it to take focus.
+  useEffect(() => {
+    postToHost({ type: 'setActivatable', value: editing });
+  }, [editing]);
 
   // Reset the slot picker any time we open the editor on a new widget,
   // matching PanelApp's expected starting state (slot 0).

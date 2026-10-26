@@ -283,17 +283,17 @@ describe('cornerRoom with a placement check', () => {
   });
 });
 
-describe('corner origin stride rules shared with the regular drag', () => {
+describe('corner origin on any cell', () => {
   const bounds = { cols: 8, rows: 8 };
   const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
 
-  it('leaves a tile whose origin is off the stride grid where it is rather than moving the origin off-grid', () => {
-    // Growing from the top left of a 2x2 at col 3 would put the origin at col 1.
+  it('moves the origin of a tile on an odd cell and keeps even spans', () => {
+    // Growing from the top left of a 2x2 at col 3 puts the origin at col 1.
     const start = { col: 3, row: 2, cols: 2, rows: 2 };
-    expect(resizeRectFromCorner(start, 'tl', -2, -2, snap, bounds)).toEqual(start);
+    expect(resizeRectFromCorner(start, 'tl', -2, -2, snap, bounds)).toEqual({ col: 1, row: 0, cols: 4, rows: 4 });
   });
 
-  it('moves the origin to a stride aligned cell for an aligned tile', () => {
+  it('moves the origin of a tile on an even cell', () => {
     expect(resizeRectFromCorner({ col: 4, row: 4, cols: 2, rows: 2 }, 'tl', -2, -2, snap, bounds))
       .toEqual({ col: 2, row: 2, cols: 4, rows: 4 });
   });

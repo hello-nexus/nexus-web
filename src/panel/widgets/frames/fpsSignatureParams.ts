@@ -37,6 +37,26 @@ export function primaryGpuModel(specs: SystemSpecs): string | undefined {
 }
 
 /**
+ * The graphicsCard segment naming the primary chip, so a catalog match keeps the
+ * board partner or edition ("NVIDIA Founders Edition GeForce RTX 5080" for chip
+ * "NVIDIA GeForce RTX 5080"). Matches when every chip token appears in the
+ * segment, case-insensitively; falls back to the bare chip name.
+ */
+export function primaryGpuCard(specs: SystemSpecs): string | undefined {
+  const chip = primaryGpuModel(specs);
+  if (!chip) return undefined;
+  const tokens = chip.toLowerCase().split(/\s+/).filter(Boolean);
+  const segment = specs.graphicsCard
+    .split(' + ')
+    .map(seg => seg.trim())
+    .find(seg => {
+      const words = new Set(seg.toLowerCase().split(/\s+/));
+      return tokens.every(t => words.has(t));
+    });
+  return segment || chip;
+}
+
+/**
  * SystemSpecsCollector.cs's FormatGb renders the total as "{n} GB" or, at
  * >= 1000 GiB, "{n} TB" (n has at most 2 decimals, trailing zeros trimmed) -
  * only the leading figure is parsed back, ignoring any DDR generation / stick

@@ -13,10 +13,11 @@ import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
 import { slotLayoutLabelKey, slotLayoutOptionsForSize, slotLayoutPatch, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
+import { StreamFpsCapSetting } from './StreamFpsCapSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
 import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import type { TextColorMode } from '../theme/textColor';
-import type { PanelFontId } from '../theme/panelFont';
+import type { PanelFont } from '../theme/panelFont';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
@@ -90,6 +91,7 @@ export function PanelEditorSheet({
   onThemeWidgetPaddingPreview,
   onThemeWidgetPaddingCommit,
   showMediaTab = false,
+  showSystemFonts = false,
   deviceAspect,
   deviceW,
   deviceH,
@@ -174,9 +176,10 @@ export function PanelEditorSheet({
   onThemeTextColorModeCommit: (mode: TextColorMode) => void;
   onThemeTextColorPreview: (hex: string) => void;
   onThemeTextColorCommit: (hex: string) => void;
-  onThemeFontCommit: (font: PanelFontId | null) => void;
+  onThemeFontCommit: (font: PanelFont | null) => void;
   onThemeWidgetPaddingPreview: (percent: number) => void;
   onThemeWidgetPaddingCommit: (percent: number) => void;
+  showSystemFonts?: boolean;
   showMediaTab?: boolean;
   deviceAspect?: number;
   deviceW?: number;
@@ -453,6 +456,7 @@ export function PanelEditorSheet({
                 onCommit={onMachineNameCommit}
               />
             )}
+            {panelSettingsSection !== 'background' && <StreamFpsCapSetting />}
             <PanelThemeSettings
               sections={panelSettingsSection}
               theme={panelTheme}
@@ -483,6 +487,7 @@ export function PanelEditorSheet({
               onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
               onImmersiveBackdropCommit={onThemeImmersiveBackdropCommit}
               showMediaTab={showMediaTab}
+              showSystemFonts={showSystemFonts}
               deviceAspect={deviceAspect}
               roundDisplay={surfaceDisplayShape(surface) === 'round'}
               deviceW={deviceW}

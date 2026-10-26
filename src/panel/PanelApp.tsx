@@ -112,6 +112,8 @@ import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, forcedGridO
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
+import { isLocalPanelClient } from './background/panelAudio';
+import { panelSystemFontsAvailable } from './theme/panelFont';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { PanelBackgroundSolid } from './background/PanelBackgroundSolid';
@@ -2481,6 +2483,7 @@ export function PanelContent({
           onThemeBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
           onThemeBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
           showMediaTab={surface !== 'desktop' && !isTunnelActive()}
+          showSystemFonts={panelSystemFontsAvailable(glassSurface) && isLocalPanelClient()}
           deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
           deviceW={glassSurface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}
           deviceH={glassSurface === 'q60' ? 1280 : (typeof window !== 'undefined' ? Math.round(window.innerHeight * window.devicePixelRatio) : undefined)}
