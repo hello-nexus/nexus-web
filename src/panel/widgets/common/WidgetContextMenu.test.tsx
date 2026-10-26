@@ -99,3 +99,25 @@ describe('WidgetContextMenu on a scaled panel', () => {
     expect(screen.queryByText('panel.widget.menu.resize')).toBeNull();
   });
 });
+
+describe('WidgetContextMenu lock widgets', () => {
+  const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: true, surface: 'monitor' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+
+  it('offers one panel-wide item that toggles and hides edit while locked', () => {
+    const onToggleLock = vi.fn();
+    const { rerender } = render(<WidgetContextMenu {...base} locked={false} onToggleLock={onToggleLock} />);
+    expect(screen.queryByText('panel.widget.menu.unlock')).toBeNull();
+    expect(screen.queryByText('panel.widget.menu.lockAll')).toBeNull();
+    expect(screen.getByText('panel.widget.menu.edit')).toBeTruthy();
+    fireEvent.click(screen.getByText('panel.widget.menu.lockWidgets'));
+    expect(onToggleLock).toHaveBeenCalled();
+    rerender(<WidgetContextMenu {...base} locked onToggleLock={onToggleLock} />);
+    expect(screen.queryByText('panel.widget.menu.edit')).toBeNull();
+    expect(screen.getByText('panel.widget.menu.lockWidgets')).toBeTruthy();
+  });
+
+  it('shows no lock item where lock is not offered', () => {
+    render(<WidgetContextMenu {...base} />);
+    expect(screen.queryByText('panel.widget.menu.lockWidgets')).toBeNull();
+  });
+});

@@ -13,7 +13,7 @@ interface MonitorMapProps {
 }
 
 /**
- * Windows-display-settings-style monitor arrangement: one numbered,
+ * Display-settings-style monitor arrangement: one numbered,
  * selectable rectangle per monitor, positioned/scaled from the topology's
  * virtual-desktop bounds (or rowed when the platform reports none).
  */
@@ -34,6 +34,9 @@ export function MonitorMap({ displays, selectedId, onSelect }: MonitorMapProps) 
   }, []);
 
   const rects = layoutMonitorRects(displays, size.width, size.height);
+  // Glyph and number scale with the rectangle's short side, within bounds, so small and huge monitors both read.
+  const scaled = (rect: { width: number; height: number }, ratio: number, min: number, max: number) =>
+    Math.round(Math.min(max, Math.max(min, Math.min(rect.width, rect.height) * ratio)));
 
   return (
     <div ref={containerRef} className={styles.map} role="listbox" aria-label={t('displays.mapAria')}>
@@ -53,12 +56,12 @@ export function MonitorMap({ displays, selectedId, onSelect }: MonitorMapProps) 
             style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
             onClick={() => onSelect(display.id)}
           >
-            <span className={styles.number} aria-hidden>
+            <span className={styles.number} style={{ fontSize: scaled(rect, 0.3, 18, 56) }} aria-hidden>
               {displayNumberLabel(display, i)}
             </span>
             <span className={styles.badges}>
-              {display.isPrimary && <Star size={13} className={styles.primaryBadge} aria-label="primary" />}
-              {isPanel && <LayoutDashboard size={13} className={styles.panelBadge} aria-label="panel" />}
+              {display.isPrimary && <Star size={scaled(rect, 0.22, 16, 40)} className={styles.primaryBadge} aria-label="primary" />}
+              {isPanel && <LayoutDashboard size={scaled(rect, 0.22, 16, 40)} className={styles.panelBadge} aria-label="panel" />}
             </span>
           </button>
         );

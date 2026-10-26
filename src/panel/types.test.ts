@@ -168,15 +168,6 @@ describe('grid density override', () => {
     expect(normalizeGridSlots(null)).toBeUndefined();
     expect(normalizeGridSlots(Number.NaN)).toBeUndefined();
   });
-
-  it('replaces the Widget size count on a monitor grid only', () => {
-    expect(panelShortSideSlots('monitor', undefined, 'large', 12, 20)).toBe(20);
-    expect(panelShortSideSlots('monitor', undefined, null, 12, 20)).toBe(20);
-    expect(panelShortSideSlots('monitor', undefined, 'large', 12, null)).toBe(6);
-    expect(panelShortSideSlots('monitor', 'icue-link-lcd5', 'large', 12, 20)).toBeUndefined();
-    expect(panelShortSideSlots('q60', undefined, null, 12, 20)).toBeUndefined();
-    expect(panelShortSideSlots('y70', undefined, null, 12, 20)).toBeUndefined();
-  });
 });
 
 describe('surfaceDisplayShape', () => {
@@ -236,5 +227,36 @@ describe('isGenericDisplayPanel and pages', () => {
     expect(surfaceAllowsPages('monitor', true, true, false)).toBe(true);
     expect(surfaceAllowsPages('y70', undefined, false, false)).toBe(true);
     expect(surfaceAllowsPages('phone', undefined, false, false)).toBe(true);
+  });
+});
+
+describe('widget size options for a plain display', () => {
+  it('offers large, small and extra small, scaling the density grid', async () => {
+    const { panelWidgetSizeOptions, panelShortSideSlots, panelLayoutSurface, resolvePanelWidgetSize } = await import('./types');
+    const options = panelWidgetSizeOptions('monitor', undefined);
+    expect(Object.keys(options!.layoutSurface).sort()).toEqual(['large', 'small', 'xsmall']);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'small', 12)).toBeUndefined();
+    expect(panelShortSideSlots('monitor', undefined, 'xsmall', 12)).toBe(24);
+    expect(panelShortSideSlots('monitor', undefined, 'xsmall', 60)).toBe(64);
+    expect(resolvePanelWidgetSize('monitor', undefined, 'xsmall')).toBe('xsmall');
+    expect(panelLayoutSurface('monitor', undefined, 'xsmall')).toBe('monitor');
+  });
+
+  it('does not offer extra small on a curated display or a tile panel', async () => {
+    const { panelWidgetSizeOptions, resolvePanelWidgetSize } = await import('./types');
+    expect(panelWidgetSizeOptions('monitor', 'lianli-screen88')!.layoutSurface.xsmall).toBeUndefined();
+    expect(panelWidgetSizeOptions('q60')!.layoutSurface.xsmall).toBeUndefined();
+    expect(resolvePanelWidgetSize('q60', undefined, 'xsmall')).toBe('large');
+  });
+
+  it('maps a retired grid density to the nearest size', async () => {
+    const { sizeForLegacyGridSlots } = await import('./types');
+    expect(sizeForLegacyGridSlots(6, 12)).toBe('large');
+    expect(sizeForLegacyGridSlots(12, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(10, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(26, 12)).toBe('xsmall');
+    expect(sizeForLegacyGridSlots(0, 12)).toBeUndefined();
+    expect(sizeForLegacyGridSlots(12, undefined)).toBeUndefined();
   });
 });

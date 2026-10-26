@@ -8,12 +8,12 @@ export interface MonitorRect {
   height: number;
 }
 
-/** Windows-style seam between adjacent monitor rectangles. */
+/** Seam between adjacent monitor rectangles. */
 const RECT_INSET_PX = 2;
 const ROW_GAP_PX = 16;
 
 /**
- * Lay monitor rectangles out inside a container, Windows-display-settings
+ * Lay monitor rectangles out inside a container, Display-settings
  * style. Map mode (every display has bounds): uniform scale of the virtual
  * desktop's bounding box, centered. Row mode (any display lacks bounds -
  * Linux): aspect-correct rectangles in a horizontal row. Pure math, no DOM.
@@ -101,7 +101,7 @@ function inset(rect: MonitorRect): MonitorRect {
   };
 }
 
-/** Windows-settings-style number; array order when the OS gave none. */
+/** Settings-style number; array order when the OS gave none. */
 export function displayNumberLabel(display: TopologyDisplay, index: number): string {
   return String(display.number > 0 ? display.number : index + 1);
 }

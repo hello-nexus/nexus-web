@@ -141,6 +141,8 @@ export interface PanelDeviceRecord {
   displayId?: string;
   // Per-panel "always on top" (display-bound records). Absent/null = on.
   alwaysOnTop?: boolean;
+  // Generic display panels: no drag, resize or edit on any widget. Absent/null = unlocked.
+  widgetsLocked?: boolean | null;
   // Per-panel "keep panel clear of other windows" (display-bound records).
   reserveMonitor?: boolean;
   // Per-panel "keep the mouse off the panel" (display-bound records). Absent/null = off.
@@ -244,6 +246,8 @@ export interface PanelDevicePatch {
   coolingSelection?: string[];
   // Display-bound records only; ignored for other panels.
   alwaysOnTop?: boolean;
+  // Display-bound records only; ignored for other panels.
+  widgetsLocked?: boolean;
   // Display-bound records only; ignored for other panels.
   reserveMonitor?: boolean;
   // Display-bound records only; ignored for other panels.

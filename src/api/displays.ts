@@ -179,6 +179,11 @@ export async function repairTouchMapping(): Promise<TouchMappingRepairResponse |
 // The wizard endpoint replies 202 with no body (the wizard runs on the host,
 // not over this request), so it is checked by status rather than parsed as
 // JSON like the other mutators here.
+/** Opens or focuses the app window at a dashboard path. */
+export function openAppAt(route: string) {
+  return postService<{ error?: boolean }>('/service/open-app', { route });
+}
+
 export interface IdentifyDisplayEntry {
   displayId: string;
   label: string;

@@ -23,9 +23,9 @@ describe('density', () => {
     it(`matches the legacy visible cell on ${f.name}`, () => {
       const plan = planDesktopImport(imp([widget('a', 0, 0)]), f.vp, PAD, emptyLayout());
       // Reported so a regression in the match is visible in the run output.
-      console.info(`[desktopImport] ${f.name}: slots ${plan.gridSlots}, cell ${plan.grid.colSize.toFixed(2)} vs legacy ${plan.legacyCell.toFixed(2)}, error ${(plan.cellError * 100).toFixed(2)}%`);
+      console.info(`[desktopImport] ${f.name}: size ${plan.widgetSize}, cell ${plan.grid.colSize.toFixed(2)} vs legacy ${plan.legacyCell.toFixed(2)}, error ${(plan.cellError * 100).toFixed(2)}%`);
       expect(plan.cellError).toBeLessThanOrEqual(f.maxError);
-      expect(plan.gridSlots! % 2).toBe(0);
+      expect(plan.widgetSize).toBeDefined();
     });
   }
 
@@ -104,7 +104,7 @@ describe('merge and idempotence', () => {
     const current = planDesktopImport(imp([widget('x', 0, 0)]), vp, PAD, emptyLayout());
     const layout = current.layout;
     const merged = planDesktopImport(imp([widget('n', 4, 4)], { merge: true }), vp, PAD, layout, { ...current.grid, columns: 8, rows: 6, cellSize: 200, rowSize: 200 });
-    expect(merged.gridSlots).toBeUndefined();
+    expect(merged.widgetSize).toBeUndefined();
     expect(merged.grid.rowSize).toBe(200);
     expect(merged.layout.pages[0].widgets.map(w => w.id).sort()).toEqual(['n', 'x']);
   });
@@ -129,14 +129,14 @@ describe('importBase', () => {
     const { imp: merged, base } = importBase(imp([widget('legacy', 0, 0)], { merge: false }), edited.layout);
     expect(merged.merge).toBe(true);
     const plan = planDesktopImport(merged, vp, PAD, base, edited.grid);
-    expect(plan.gridSlots).toBeUndefined();
+    expect(plan.widgetSize).toBeUndefined();
     expect(plan.layout.pages.flatMap(p => p.widgets).map(w => w.id).sort()).toEqual(['legacy', 'mine']);
   });
 
   it('chooses density only for an empty layout, even when the record said merge', () => {
     const { imp: fresh } = importBase(imp([widget('a', 0, 0)], { merge: true }), emptyLayout());
     expect(fresh.merge).toBe(false);
-    expect(planDesktopImport(fresh, vp, PAD, emptyLayout()).gridSlots).toBeDefined();
+    expect(planDesktopImport(fresh, vp, PAD, emptyLayout()).widgetSize).toBeDefined();
   });
 });
 
@@ -184,8 +184,24 @@ describe('kiosk origin', () => {
 describe('single page', () => {
   it('keeps a full import on page 1 instead of spilling to a second page', () => {
     const many = Array.from({ length: 400 }, (_, i) => widget(`w${i}`, (i % 40) * 1, Math.floor(i / 40), '4x4'));
-    const plan = planDesktopImport(imp(many), { w: 2560, h: 1440, dpr: 1 }, PAD, emptyLayout(), undefined, undefined, true);
+    const plan = planDesktopImport(imp(many), { w: 2560, h: 1440, dpr: 1 }, PAD, emptyLayout(), undefined, undefined, { singlePage: true });
     expect(plan.layout.pages).toHaveLength(1);
     expect(plan.layout.pages[0].widgets).toHaveLength(400);
+  });
+});
+
+describe('size choice', () => {
+  const vp = { w: 2560, h: 1440, dpr: 1 };
+
+  it('picks the size whose cell is closest to the legacy cell and reports no density', () => {
+    const plan = planDesktopImport(imp([widget('a', 0, 0)]), vp, PAD, emptyLayout(), undefined, undefined, { densitySlots: 20 });
+    expect(['large', 'small', 'xsmall']).toContain(plan.widgetSize);
+  });
+
+  it('maps a legacy lock on every widget to the panel lock', () => {
+    const locked = planDesktopImport(imp([widget('a', 0, 0, '2x2', { locked: true }), widget('b', 4, 0, '2x2', { locked: true })]), vp, PAD, emptyLayout());
+    expect(locked.widgetsLocked).toBe(true);
+    const mixed = planDesktopImport(imp([widget('a', 0, 0, '2x2', { locked: true }), widget('b', 4, 0)]), vp, PAD, emptyLayout());
+    expect(mixed.widgetsLocked).toBe(false);
   });
 });

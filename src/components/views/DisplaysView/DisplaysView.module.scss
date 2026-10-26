@@ -130,3 +130,29 @@
   font-size: var(--type-small);
   font-weight: var(--weight-heading);
 }
+
+.mapCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.mapActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.panelToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+  font-size: var(--type-small);
+}

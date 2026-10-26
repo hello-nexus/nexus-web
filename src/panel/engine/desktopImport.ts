@@ -1,7 +1,7 @@
 import type { DesktopImportDto } from '../../api/panel';
 import { createUuid } from '../../lib/uuid';
-import type { PanelLayout, PanelPage, PanelWidget } from '../types';
-import { GRID_SLOTS_MAX, GRID_SLOTS_MIN } from '../types';
+import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSizeMode } from '../types';
+import { GRID_SLOTS_MAX, GRID_SLOTS_MIN, PANEL_WIDGET_SIZE_MODES, panelWidgetSizeOptions, widgetSizeShortSideSlots } from '../types';
 import { panelGridCapacityForCanvas, panelWidgetPaddingRatio, sizeToSpan } from './grid';
 import { rectsOverlap } from './paginate';
 import { MAX_PANEL_PAGES } from './panelGrid';
@@ -55,8 +55,12 @@ export type RuntimeGrid = Omit<ImportGrid, 'colSize'> & { cellSize: number };
 
 export interface DesktopImportPlan {
   layout: PanelLayout;
-  // The density chosen for a fresh panel; undefined when merging into the current grid.
+  // The widget size chosen for a fresh panel; undefined when merging into the current grid.
+  widgetSize: PanelWidgetSizeMode | undefined;
+  // The short-axis count that size resolves to, for fitting the plan; never stored.
   gridSlots: number | undefined;
+  // Every imported widget carried the legacy lock, which becomes the panel's lock.
+  widgetsLocked: boolean;
   grid: ImportGrid;
   // Visible cell the legacy layout drew, and the worst relative error of the chosen grid's column width or row height against it.
   legacyCell: number;
@@ -82,6 +86,26 @@ function gridFor(vp: ImportViewport, slots: number, paddingRatio: number): Impor
 
 function cellMismatch(grid: ImportGrid, legacyCell: number): number {
   return Math.max(Math.abs(grid.colSize - legacyCell), Math.abs(grid.rowSize - legacyCell)) / legacyCell;
+}
+
+/**
+ * The widget size whose grid draws the cell closest to the legacy one. Without the glass's density the
+ * even count that fits best is used and the size defaults to Small.
+ */
+export function bestSize(vp: ImportViewport, paddingRatio: number, legacyCell: number, densitySlots: number | undefined): { mode: PanelWidgetSizeMode; slots: number; grid: ImportGrid } {
+  if (!densitySlots) {
+    const fallback = bestGridSlots(vp, paddingRatio, legacyCell);
+    return { mode: 'small', ...fallback };
+  }
+  const options = panelWidgetSizeOptions('monitor', undefined);
+  let best: { mode: PanelWidgetSizeMode; slots: number; grid: ImportGrid; err: number } | null = null;
+  for (const mode of PANEL_WIDGET_SIZE_MODES) {
+    const slots = (options ? widgetSizeShortSideSlots(options, mode, densitySlots) : undefined) ?? densitySlots;
+    const grid = gridFor(vp, slots, paddingRatio);
+    const err = cellMismatch(grid, legacyCell);
+    if (!best || err < best.err - 1e-9) best = { mode, slots, grid, err };
+  }
+  return { mode: best!.mode, slots: best!.slots, grid: best!.grid };
 }
 
 /** The even short-axis count whose rendered column width and row height best match `legacyCell`; ties take the smaller count. */
@@ -141,8 +165,9 @@ export function planDesktopImport(
   layout: PanelLayout,
   currentGrid?: RuntimeGrid,
   snapSize?: SizeSnapper,
-  singlePage = false,
+  options: { singlePage?: boolean; densitySlots?: number } = {},
 ): DesktopImportPlan {
+  const singlePage = options.singlePage ?? false;
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
   const unit = imp.cellUnits === 'device' ? dpr : 1;
   const stride = imp.cellPx / unit;
@@ -151,13 +176,15 @@ export function planDesktopImport(
   const paddingRatio = panelWidgetPaddingRatio(paddingPercent);
 
   let slots: number | undefined;
+  let widgetSize: PanelWidgetSizeMode | undefined;
   let grid: ImportGrid;
   if (imp.merge && currentGrid) {
     grid = { ...currentGrid, colSize: columnWidth(vp, currentGrid) };
   } else {
-    const best = bestGridSlots(vp, paddingRatio, legacyCell);
-    slots = best.slots;
-    grid = best.grid;
+    const sized = bestSize(vp, paddingRatio, legacyCell, options.densitySlots);
+    widgetSize = sized.mode;
+    slots = sized.slots;
+    grid = sized.grid;
   }
 
   const colStride = grid.colSize + grid.gap;
@@ -198,7 +225,9 @@ export function planDesktopImport(
 
   return {
     layout: { ...layout, pages: pages.length > 0 ? pages : [{ id: createUuid(), widgets: [] }] },
+    widgetSize,
     gridSlots: slots,
+    widgetsLocked: imp.widgets.length > 0 && imp.widgets.every(w => w.locked),
     grid,
     legacyCell,
     cellError: cellMismatch(grid, legacyCell),

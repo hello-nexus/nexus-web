@@ -200,23 +200,6 @@ describe('PanelDevicePage widget size', () => {
     expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['calculator']);
   });
 
-  it('clears a set grid density when the widget size changes', async () => {
-    await renderPage({ gridSlots: 12, layout: layout([widget('a', 'clock', 0, 0)]) });
-
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
-    await act(async () => { fireEvent.click(screen.queryByRole('button', { name: 'devices.panels.widgetSize.confirm' }) ?? document.body); });
-
-    await waitFor(() => expect(patches().length).toBeGreaterThan(0));
-    expect((patches()[0] as { gridSlots?: number }).gridSlots).toBe(0);
-  });
-
-  it('writes no density clear when none was set', async () => {
-    await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
-    await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0]).not.toHaveProperty('gridSlots');
-  });
-
   it('shows no toast when the record write succeeds', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 

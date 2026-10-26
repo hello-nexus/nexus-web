@@ -139,7 +139,9 @@ describe('PanelDevicePage promoted display always on top', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     const all = screen.getAllByRole('switch');
     const reserve = screen.getByRole('switch', { name: RESERVE_LABEL });
-    expect(all.indexOf(reserve)).toBe(all.indexOf(toggle) + 1);
+    const lock = screen.getByRole('switch', { name: 'panel.widget.menu.lockWidgets' });
+    expect(all.indexOf(lock)).toBe(all.indexOf(toggle) + 1);
+    expect(all.indexOf(reserve)).toBe(all.indexOf(lock) + 1);
   });
 
   it('PATCHes alwaysOnTop:false when the default-on toggle is flipped', async () => {
@@ -184,5 +186,6 @@ describe('PanelDevicePage promoted display always on top', () => {
 
     await screen.findByRole('switch', { name: RESERVE_LABEL });
     expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'panel.widget.menu.lockWidgets' })).not.toBeInTheDocument();
   });
 });

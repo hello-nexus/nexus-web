@@ -23,7 +23,7 @@ export function importKey(imp: DesktopImportDto | null | undefined): string {
  * host is still refitting never feeds the plan. A later resize, host message, record change or the
  * page becoming visible restarts a wait that gave up.
  */
-export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout, paddingPercent, grid, singlePage = false }: {
+export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout, paddingPercent, grid, singlePage = false, densitySlots }: {
   enabled: boolean;
   hostReady: () => boolean;
   deviceId: string | undefined;
@@ -32,6 +32,8 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
   paddingPercent: number;
   grid: RuntimeGrid;
   singlePage?: boolean;
+  // The glass's density-derived short-axis count, which the size options scale.
+  densitySlots?: number;
 }): void {
   // Set while a save is in flight; holds the effect instance that sent it.
   const busyRef = useRef<object | null>(null);
@@ -39,8 +41,8 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
   const kickRef = useRef<(() => void) | null>(null);
   // The import a save already went through for, until the record stops carrying it.
   const placedKeyRef = useRef('');
-  const latestRef = useRef({ pending, layout, paddingPercent, grid, hostReady, singlePage });
-  useEffect(() => { latestRef.current = { pending, layout, paddingPercent, grid, hostReady, singlePage }; });
+  const latestRef = useRef({ pending, layout, paddingPercent, grid, hostReady, singlePage, densitySlots });
+  useEffect(() => { latestRef.current = { pending, layout, paddingPercent, grid, hostReady, singlePage, densitySlots }; });
 
   const key = importKey(pending);
   const active = enabled && !!deviceId && key !== '';
@@ -88,7 +90,7 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
       busyRef.current = token;
       const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
       const { imp, base } = importBase(latest.pending, latest.layout);
-      const plan = planDesktopImport(imp, { w, h, dpr, ...origin }, latest.paddingPercent, base, latest.grid, snapLegacySize, latest.singlePage);
+      const plan = planDesktopImport(imp, { w, h, dpr, ...origin }, latest.paddingPercent, base, latest.grid, snapLegacySize, { singlePage: latest.singlePage, densitySlots: latest.densitySlots });
       const failed = () => {
         if (busyRef.current === token) busyRef.current = null;
         if (!alive) {
@@ -104,7 +106,8 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
       };
       void patchPanelDevice(deviceId as string, {
         layout: plan.layout,
-        ...(plan.gridSlots !== undefined ? { gridSlots: plan.gridSlots } : {}),
+        ...(plan.widgetSize !== undefined ? { widgetSize: plan.widgetSize } : {}),
+        ...(plan.widgetsLocked ? { widgetsLocked: true } : {}),
         clearDesktopImport: true,
       }).then(saved => {
         if (!saved) failed();

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, Trash2, Unlock } from 'lucide-react';
+import { Check, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -38,14 +38,10 @@ interface WidgetContextMenuProps {
   // When provided, renders an "Always on top" item with a checkmark reflecting `alwaysOnTop`.
   alwaysOnTop?: boolean;
   onToggleAlwaysOnTop?: () => void;
-  // Lock controls. When onToggleLock is provided, the
-  // menu renders a Lock/Unlock row (per `locked`) plus a Lock all / Unlock
-  // all row; while `locked`, the move/edit/resize items (size row, Edit,
-  // Immersive) are hidden. Remove stays available.
+  // Panel-wide widget lock. When onToggleLock is provided the menu renders a checked
+  // "Lock widgets" row; while `locked`, the edit/resize/immersive items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
-  onLockAll?: () => void;
-  onUnlockAll?: () => void;
   onClose: () => void;
 }
 
@@ -64,8 +60,6 @@ export function WidgetContextMenu({
   onToggleAlwaysOnTop,
   locked,
   onToggleLock,
-  onLockAll,
-  onUnlockAll,
 }: WidgetContextMenuProps) {
   const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -199,25 +193,15 @@ export function WidgetContextMenu({
       )}
 
       {onToggleLock && (
-        <>
-          <button type="button" className={styles.item} onClick={() => runAndClose(onToggleLock)}>
-            {locked ? <Unlock size={14} /> : <Lock size={14} />}
-            <span>{t(locked ? 'panel.widget.menu.unlock' : 'panel.widget.menu.lock')}</span>
-          </button>
-          {locked
-            ? onUnlockAll && (
-                <button type="button" className={styles.item} onClick={() => runAndClose(onUnlockAll)}>
-                  <Unlock size={14} />
-                  <span>{t('panel.widget.menu.unlockAll')}</span>
-                </button>
-              )
-            : onLockAll && (
-                <button type="button" className={styles.item} onClick={() => runAndClose(onLockAll)}>
-                  <Lock size={14} />
-                  <span>{t('panel.widget.menu.lockAll')}</span>
-                </button>
-              )}
-        </>
+        <button
+          type="button"
+          className={`${styles.item} ${locked ? styles.itemChecked : ''}`}
+          onClick={() => runAndClose(onToggleLock)}
+        >
+          <Lock size={14} />
+          <span>{t('panel.widget.menu.lockWidgets')}</span>
+          {locked && <Check size={14} className={styles.itemCheck} />}
+        </button>
       )}
 
       {hasConfig && !locked && (

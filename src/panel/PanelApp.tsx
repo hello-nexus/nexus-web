@@ -50,7 +50,7 @@ import {
 } from './engine/panelLayoutOps';
 import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
 import { AdaptivePointerSensor, dragActivationFor } from './engine/pointerDragSensor';
-import { setAllWidgetsLocked, setWidgetLocked } from './engine/widgetLock';
+import { resolveWidgetsLocked } from './engine/widgetLock';
 import { useDesktopImport } from './engine/useDesktopImport';
 import { editTargetGone, latestOr, useSyncLatestLayout } from './engine/latestLayout';
 import { useDisplayTargets } from './engine/useDisplayTargets';
@@ -103,6 +103,7 @@ import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { PanelSentry } from './overlays/PanelSentry';
 import { useTranslation } from '../lib/i18n';
 import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
+import { openAppAt } from '../api/displays';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
@@ -115,7 +116,7 @@ import {
   type PanelWidgetSize,
   type ForcedGrid,
 } from './types';
-import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
+import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, sizeForLegacyGridSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -139,6 +140,7 @@ import {
   buildPanelCollisionDetection,
   findWidgetById,
   isDashboardClickthroughType,
+  appRouteForWidget,
   noopCellPointers,
   parseDragTarget,
 } from './engine/panelLayoutHelpers';
@@ -262,9 +264,15 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   const caps = record?.capabilities;
   const resolved = useMemo(() => {
     const glassSurface = (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface;
-    const surface = panelLayoutSurface(glassSurface, caps?.family, record?.widgetSize);
+    // A record from before the size choice replaced grid density reads as the nearest size.
+    const generic = glassSurface === 'monitor' && !caps?.family && !!record?.displayId;
+    const densityEstimate = caps?.cssWidth && caps.cssHeight
+      ? densityShortSideSlots(caps.cssWidth, caps.cssHeight, caps.dpr || 1, caps.dpi ?? estimateRuntimePanelDpi(glassSurface))
+      : undefined;
+    const widgetSize = record?.widgetSize ?? (generic ? sizeForLegacyGridSlots(record?.gridSlots, densityEstimate) : undefined);
+    const surface = panelLayoutSurface(glassSurface, caps?.family, widgetSize);
     const relaid = surface !== glassSurface;
-    const dpi = panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);
+    const dpi = panelLayoutDpi(glassSurface, caps?.family, widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);
     // A kiosk fills its monitor, so the record's size is the canvas the runtime grid
     // measures; it follows a resolution change.
     const densitySlots = caps?.cssWidth && caps.cssHeight
@@ -276,10 +284,21 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       // Touch and density belong to the glass, whichever surface it lays out as.
       touch: relaid ? surfaceSupportsTouch(glassSurface, caps?.touch) : caps?.touch,
       dpi,
-      shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, record?.widgetSize, densitySlots, record?.gridSlots),
+      shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, widgetSize, densitySlots),
+      densitySlots,
+      widgetSize,
       displayBound: !!record?.displayId,
     };
   }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, record?.widgetSize, record?.gridSlots, record?.displayId]);
+  // The size a retired grid density stood for is written once; the stored density is left in place.
+  const migratedSizeRef = useRef('');
+  const migrateId = record?.id;
+  const migrateSize = !record?.widgetSize && record?.gridSlots ? resolved.widgetSize : undefined;
+  useEffect(() => {
+    if (!migrateId || !migrateSize || migratedSizeRef.current === migrateId) return;
+    migratedSizeRef.current = migrateId;
+    void patchPanelDevice(migrateId, { widgetSize: migrateSize });
+  }, [migrateId, migrateSize]);
   const recordCapsRef = useRef<PanelDeviceCapabilitiesDto | null>(null);
   const hasCaps = !!caps;
   useEffect(() => { recordCapsRef.current = caps ?? null; }, [caps]);
@@ -930,11 +949,12 @@ export function PanelContent({
   const resizeCols = Math.max(1, capacity.gridCols);
   const resizeRows = Math.max(1, capacity.pageRows);
   const resizeBounds = useMemo(() => ({ cols: resizeCols, rows: resizeRows }), [resizeCols, resizeRows]);
-  const lockedOf = (w: { locked?: boolean }) => genericDisplay && Boolean(w.locked);
+  const widgetsLocked = genericDisplay && resolveWidgetsLocked(recordState.record?.widgetsLocked, fullLayout.pages.flatMap(p => p.widgets));
+  const lockedOf = () => widgetsLocked;
   const canResizeType = (type: string, locked?: boolean) => dragEditable && !locked && resizeSpansForType(type, surface, widgetTouch, forcedGrid, resizeBounds).length > 1;
-  const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type, lockedOf(freeformWidget)));
+  const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type, lockedOf()));
   const hoverWidget = !freeformId && hoverResizeId ? findWidgetById(paginatedLayout, hoverResizeId) : undefined;
-  const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type, lockedOf(hoverWidget)));
+  const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type, lockedOf()));
   const cornerTarget = freeformActive ? freeformWidget : hoverActive ? hoverWidget : undefined;
   const cornerTargetId = cornerTarget?.id;
   const cornerType = cornerTarget?.type;
@@ -1302,6 +1322,11 @@ export function PanelContent({
       }
       return;
     }
+    // A generic display has no immersive view: a tap opens the app at that widget's page, never while editing.
+    if (genericDisplay) {
+      if (!sheetMode && lookupApp(w.type)) void openAppAt(appRouteForWidget(w.type));
+      return;
+    }
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
     // An immersive view closes by touch, so a mouse-only display never opens one.
@@ -1309,7 +1334,7 @@ export function PanelContent({
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
     if (!def.meta.supportsImmersive[orientationKey]) return;
     enterImmersive(w.id);
-  }, [deviceTouch, embedded, enterImmersive, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
+  }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, sheetMode, simulator, surface]);
   // macOS delivers touchscreen contacts as mouse pointers (see
   // engine/touchViaPointer); only under that flag does a mouse get the
   // touch gesture model.
@@ -1793,6 +1818,10 @@ export function PanelContent({
   const layeredOnTop = displayRecord ? displayRecord.alwaysOnTop ?? true : y70OnTop;
   // Only a generic display lets the user change it; a known device keeps its stored value, unshown.
   const menuAlwaysOnTop = genericDisplay ? layeredOnTop : undefined;
+  const lockRecordId = recordState.record?.id;
+  const toggleWidgetsLocked = useCallback(() => {
+    if (lockRecordId) void patchPanelDevice(lockRecordId, { widgetsLocked: !widgetsLocked });
+  }, [lockRecordId, widgetsLocked]);
   const toggleAlwaysOnTop = useCallback(() => {
     if (menuAlwaysOnTop === undefined) return;
     const next = !menuAlwaysOnTop;
@@ -1832,6 +1861,10 @@ export function PanelContent({
 
   // The stored layout, not the local seed: the seed holds starter widgets until the record hydrates it.
   const importLayout = recordState.record?.layout ?? EMPTY_IMPORT_LAYOUT;
+  const importCaps = recordState.record?.capabilities;
+  const importDensitySlots = importCaps?.cssWidth && importCaps.cssHeight
+    ? densityShortSideSlots(importCaps.cssWidth, importCaps.cssHeight, importCaps.dpr || 1, importCaps.dpi ?? estimateRuntimePanelDpi(glassSurface))
+    : undefined;
   useDesktopImport({
     enabled: kioskBehavior && !simulator && displayBound,
     hostReady: panelHostAvailable,
@@ -1841,6 +1874,7 @@ export function PanelContent({
     paddingPercent: effectiveTheme.widgetPadding,
     grid: runtimeGrid,
     singlePage: genericDisplay,
+    densitySlots: importDensitySlots,
   });
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
@@ -2249,7 +2283,7 @@ export function PanelContent({
                               editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               movable={dragEditable}
-                              locked={lockedOf(w)}
+                              locked={lockedOf()}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
@@ -2451,7 +2485,7 @@ export function PanelContent({
             themeMode={resolvedThemeMode}
             themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
-            onResizeMode={canResizeType(ctxWidget.type, lockedOf(ctxWidget)) ? () => setFreeformId(ctxWidget.id) : undefined}
+            onResizeMode={canResizeType(ctxWidget.type, lockedOf()) ? () => setFreeformId(ctxWidget.id) : undefined}
             // The preview edits in the device page's settings pane, as a plain click does.
             onEdit={() => (simulator ? onSimulatorWidgetClicked?.(ctxWidget.id) : openWidgetSettings(ctxWidget, ctxPoint))}
             onRemove={() => removeWidget(ctxWidget.id)}
@@ -2461,10 +2495,8 @@ export function PanelContent({
             onAddWidget={mouseEditable ? () => openSheet('catalog') : undefined}
             alwaysOnTop={menuAlwaysOnTop}
             onToggleAlwaysOnTop={menuAlwaysOnTop === undefined ? undefined : toggleAlwaysOnTop}
-            locked={lockedOf(ctxWidget)}
-            onToggleLock={lockAvailable ? () => setLayout(setWidgetLocked(paginatedLayout, ctxWidget.id, !ctxWidget.locked)) : undefined}
-            onLockAll={lockAvailable ? () => setLayout(setAllWidgetsLocked(paginatedLayout, true)) : undefined}
-            onUnlockAll={lockAvailable ? () => setLayout(setAllWidgetsLocked(paginatedLayout, false)) : undefined}
+            locked={widgetsLocked}
+            onToggleLock={lockAvailable && recordState.record ? toggleWidgetsLocked : undefined}
             onPinToSidebar={pinAvailable && pinnableKey ? () => {
               updateUiSettings({
                 pinnedSidebarApps: [...pinnedTail, pinnableKey],

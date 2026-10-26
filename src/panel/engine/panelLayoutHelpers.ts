@@ -38,6 +38,11 @@ export function isDashboardClickthroughType(type: string): type is DashboardWidg
   return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
 }
 
+/** The dashboard path a widget tap opens in the app window: its own page when it has one, else the dashboard. */
+export function appRouteForWidget(type: string): string {
+  return `/system/${isDashboardClickthroughType(type) ? type : 'dashboard'}`;
+}
+
 export interface DragTarget { pageId: string; col: number; row: number; }
 
 // Cursor must move this far from the long-press origin before any widget

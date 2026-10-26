@@ -30,14 +30,14 @@ describe('useDesktopImport', () => {
     await settle();
     expect(patchMock).toHaveBeenCalledOnce();
     expect(patchMock.mock.calls[0][1]).toMatchObject({ clearDesktopImport: true });
-    expect(patchMock.mock.calls[0][1].gridSlots).toBeDefined();
+    expect(patchMock.mock.calls[0][1].widgetSize).toBeDefined();
   });
 
   it('keeps what the user already placed and the current grid', async () => {
     renderHook(() => useDesktopImport(args({ layout: layoutOf(['mine']) })));
     await settle();
     const patch = patchMock.mock.calls[0][1];
-    expect(patch.gridSlots).toBeUndefined();
+    expect(patch.widgetSize).toBeUndefined();
     expect((patch.layout as PanelLayout).pages.flatMap(p => p.widgets).map(w => w.id).sort()).toEqual(['legacy', 'mine']);
   });
 

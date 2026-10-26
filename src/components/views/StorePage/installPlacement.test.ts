@@ -179,30 +179,32 @@ describe('planPlacement', () => {
     expect(planPlacement(screen88, { layout: layoutOf('monitor', []), record }, TYPE, { ...tall, sizes: ['2x4' as const, '4x4' as const] }, 6)).toBeNull();
   });
 
-  it('sizes a display panel by its own grid density; a generic display stays on one page', () => {
+  it('sizes a display panel by its widget size; a generic display stays on one page', () => {
     const record = {
-      id: 'rec-d', displayName: 'Display', firstSeenAt: 0, lastSeenAt: 0, displayId: 'disp-1', gridSlots: 12,
+      id: 'rec-d', displayName: 'Display', firstSeenAt: 0, lastSeenAt: 0, displayId: 'disp-1', widgetSize: 'small',
       capabilities: { surface: 'monitor', touch: false, cssWidth: 2560, cssHeight: 1440, dpr: 1, dpi: 110 },
     } as PanelDeviceRecord;
     const display: PlacementTarget = { key: 'display', name: 'Display', iconSrc: null, surface: 'monitor' };
     const wide = { ...meta, singleInstance: false };
 
-    const dense = planPlacement(display, { layout: layoutOf('monitor', []), record }, TYPE, wide, 6);
-    const coarse = planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, gridSlots: 4 } }, TYPE, wide, 6);
-    expect(dense?.capacity.pageRows).toBe(12);
-    expect(coarse?.capacity.pageRows).toBe(4);
+    const rowsOf = (widgetSize: 'large' | 'small' | 'xsmall') =>
+      planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, widgetSize } }, TYPE, wide, 6)!.capacity.pageRows;
+    expect(rowsOf('large')).toBeLessThan(rowsOf('small'));
+    expect(rowsOf('small')).toBeLessThan(rowsOf('xsmall'));
 
+    const coarse = planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, widgetSize: 'large' } }, TYPE, wide, 6);
     const { gridCols, pageRows } = coarse!.capacity;
     const cells = Array.from({ length: (gridCols / 2) * (pageRows / 2) }, (_, i) => ({
       type: 'clock', size: '2x2' as const, col: (i % (gridCols / 2)) * 2, row: Math.floor(i / (gridCols / 2)) * 2,
     }));
-    const spilled = planPlacement(display, { layout: layoutOf('monitor', cells), record: { ...record, gridSlots: 4 } }, TYPE, wide, 6);
+    const spilled = planPlacement(display, { layout: layoutOf('monitor', cells), record: { ...record, widgetSize: 'large' } }, TYPE, wide, 6);
     expect(spilled).toBeNull();
 
     // A curated device display (a family on its record) keeps its pages.
-    const known = { ...record, gridSlots: 4, capabilities: { ...record.capabilities, family: 'xeneon-edge', touch: true } } as PanelDeviceRecord;
-    const pagedCells = Array.from({ length: (gridCols / 2) * (pageRows / 2) }, (_, i) => ({
-      type: 'clock', size: '2x2' as const, col: (i % (gridCols / 2)) * 2, row: Math.floor(i / (gridCols / 2)) * 2,
+    const known = { ...record, widgetSize: 'large', capabilities: { ...record.capabilities, family: 'xeneon-edge', touch: true } } as PanelDeviceRecord;
+    const knownCap = planPlacement({ ...display, family: 'xeneon-edge' }, { layout: layoutOf('monitor', []), record: known }, TYPE, wide, 6)!.capacity;
+    const pagedCells = Array.from({ length: (knownCap.gridCols / 2) * (knownCap.pageRows / 2) }, (_, i) => ({
+      type: 'clock', size: '2x2' as const, col: (i % (knownCap.gridCols / 2)) * 2, row: Math.floor(i / (knownCap.gridCols / 2)) * 2,
     }));
     const knownSpill = planPlacement({ ...display, family: 'xeneon-edge' }, { layout: layoutOf('monitor', pagedCells), record: known }, TYPE, wide, 6);
     expect(knownSpill?.layout.pages.length).toBeGreaterThan(1);

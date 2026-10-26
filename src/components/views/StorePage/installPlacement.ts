@@ -121,7 +121,6 @@ function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surfac
   const shortSideSlots = panelShortSideSlots(
     target.surface, record?.capabilities?.family ?? target.family, record?.widgetSize,
     screen ? densityShortSideSlots(screen.width, screen.height, screen.dpr, dpiOf(target, record)) : undefined,
-    record?.gridSlots,
   );
   return {
     surface,
