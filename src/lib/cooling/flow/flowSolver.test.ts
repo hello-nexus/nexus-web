@@ -216,8 +216,10 @@ describe('CpuParticles', () => {
   }, 120000);
 
   it('warms air that passes the heat sources: some particles leave warmer than they came', () => {
-    const particles = new CpuParticles(sim, 150, 11);
-    particles.setTemps({ gpu: 80, cpu: null });
+    const hot = settle(scene, 250);
+    hot.setTemps({ gpu: 80, cpu: null });
+    for (let s = 0; s < 400; s++) hot.step();
+    const particles = new CpuParticles(hot, 150, 11);
     for (let s = 0; s < 800; s++) particles.step();
     let warm = 0; let cool = 0;
     for (let i = 0; i < particles.count; i++) { if (particles.heat[i] > 0.1) warm++; if (particles.heat[i] === 0) cool++; }

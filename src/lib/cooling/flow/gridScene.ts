@@ -2,7 +2,7 @@ import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Ve
 import type { FanDirection } from '../pressureModel';
 import {
   CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES,
-  MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM, EMITTER_STRIDE, FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, OUTSIDE_SPAWN_FROM, OUTSIDE_SPAWN_TO,
+  MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM, EMITTER_STRIDE, FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, OUTSIDE_SPAWN_FROM, OUTSIDE_SPAWN_TO, PLUME_EMITTERS_MAX,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
 import { obstaclesOf, type Obstacle } from './obstacles';
@@ -14,6 +14,8 @@ const MM_PER_M = 1000;
 export const SOURCE_NONE = 0;
 export const SOURCE_GPU = 1;
 export const SOURCE_CPU = 2;
+/** Air held at room temperature: the intake fans' cells and the outside air in front of them. */
+export const SOURCE_ROOM = 3;
 /** Share of the ring width kept clear of the hub edge when spawning. */
 const SPAWN_HUB_MARGIN = 0.04;
 const SAMPLE_SPAWNS = 2048;
@@ -53,7 +55,7 @@ export interface FlowScene {
   /** Fixed-pressure cells: the fluid cells on the domain boundary. */
   open: Uint8Array;
   darcy: Float32Array;
-  /** Heat source of each cell, by `SOURCE_*`: the part whose temperature warms air passing through it. */
+  /** Heat source of each cell, by `SOURCE_*`: the part whose temperature warms air passing through it, or `SOURCE_ROOM` for cells that stay at room temperature. */
   heat: Float32Array;
   /** Target velocity of fan cells, cells per step, 3 floats per cell. */
   target: Float32Array;
@@ -65,6 +67,8 @@ export interface FlowScene {
    * center xyz, hub radius, axis xyz, tip radius, first ring axis xyz, outward offset, outward spread (`EMITTER_STRIDE` floats per entry). A case fan on a face starts its particles outside that face: the offset plus a random share of the spread out from the fan plane. A card's fans start just upstream of the card, with no spread. A stronger fan has more entries.
    */
   emitters: Float32Array;
+  /** Where a hot part's warm air starts particles when no fan moves air: entries like `emitters`, one per top heat cell. */
+  plumeEmitters: Float32Array;
   /** The case's own box in cell coordinates: min then max per axis. */
   caseBounds: { min: Vec3; max: Vec3 };
   /** The case box widened by the outside reach: a particle that leaves it is recycled. */
@@ -383,6 +387,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   for (const cells of cellsOf) for (const c of cells.blocked) solid[c] = 1;
   let fanCount = 0;
   let maxTarget = 0;
+  /** Cells whose air comes from the room: a face intake's ring and the reach outside it. */
+  const roomCells: number[] = [];
   plan.fans.forEach((p, n) => {
     const cells = cellsOf[n];
     const { axis } = p.disk;
@@ -391,6 +397,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     maxTarget = Math.max(maxTarget, speed);
     const sign = p.direction === 'intake' ? 1 : -1;
     const vel = scale(axis, sign * speed);
+    const roomIntake = speed > 0 && p.direction === 'intake' && faceDistance(p, extents) !== null;
     const kind = speed > 0 ? (p.direction === 'intake' ? OPENING_INTAKE : OPENING_EXHAUST) : p.porousBox ? OPENING_NONE : OPENING_VENT;
     for (const c of cells.annulus) {
       const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
@@ -400,6 +407,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
         target[c * 3] = vel[0]; target[c * 3 + 1] = vel[1]; target[c * 3 + 2] = vel[2];
         fanCell[c] = 1;
       }
+      if (roomIntake) roomCells.push(c);
     }
     // The fan's force carries on outside its face for the reach, so the air out there follows the fan: drawn in for an intake, pushed out for an exhaust.
     if (speed > 0 && faceDistance(p, extents) !== null) {
@@ -416,6 +424,25 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
           if (idx < 1 || idx > dim - 2) break;
           const o = c + outward * n * stride;
           if (solid[o] || outside[o]) break;
+          target[o * 3] = vel[0]; target[o * 3 + 1] = vel[1]; target[o * 3 + 2] = vel[2];
+          fanCell[o] = 1;
+          if (roomIntake) roomCells.push(o);
+        }
+      }
+    }
+    // A face fan's force reaches the same distance on its case side as outside, so a fast and a slow fan on one face keep their speeds in proportion instead of the case's suction reshaping them. A solid or another fan's cell ends it.
+    if (speed > 0 && faceDistance(p, extents) !== null) {
+      const k = axisIndex(axis);
+      const inward = axis[k] > 0 ? 1 : -1;
+      const stride = [1, NX, NX * NY][k];
+      const reachCells = Math.ceil(OUTSIDE_REACH_MM / cellMm);
+      const own = (o: number) => fanCell[o] === 1 && target[o * 3] === Math.fround(vel[0]) && target[o * 3 + 1] === Math.fround(vel[1]) && target[o * 3 + 2] === Math.fround(vel[2]);
+      for (const c of cells.annulus) {
+        const ijk = [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
+        if (!onCaseShell(ijk[0], ijk[1], ijk[2]) || ijk[k] !== (axis[k] > 0 ? caseMin[k] : caseMax[k])) continue;
+        for (let n = 1; n <= reachCells; n++) {
+          const o = c + inward * n * stride;
+          if (solid[o] || outside[o] || (fanCell[o] && !own(o))) break;
           target[o * 3] = vel[0]; target[o * 3 + 1] = vel[1]; target[o * 3 + 2] = vel[2];
           fanCell[o] = 1;
         }
@@ -442,13 +469,33 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     }
   }
 
+  for (const c of roomCells) if (heat[c] === SOURCE_NONE) heat[c] = SOURCE_ROOM;
+
+  // With no fan moving air a hot part's own warm air still rises: its top heat cells, each with fluid above, start the plume particles.
+  const plume: number[] = [];
+  {
+    const tops: number[] = [];
+    for (let k = 1; k < NZ - 1; k++) for (let j = 1; j < NY - 2; j++) for (let i = 1; i < NX - 1; i++) {
+      const c = id(i, j, k);
+      if (solid[c] || (heat[c] !== SOURCE_GPU && heat[c] !== SOURCE_CPU)) continue;
+      const above = id(i, j + 1, k);
+      if (!solid[above] && heat[above] === SOURCE_NONE) tops.push(c);
+    }
+    const every = Math.max(1, Math.ceil(tops.length / PLUME_EMITTERS_MAX));
+    const e1 = e1Of([0, 1, 0]);
+    for (let m = 0; m < tops.length; m += every) {
+      const c = tops[m];
+      plume.push(c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY)), 0, 0, 1, 0, 0.5, e1[0], e1[1], e1[2], 0, 0, 0, 0, 0);
+    }
+  }
+
   // The domain's own boundary is open air: fixed pressure wherever it is not a solid wall.
   for (let k = 0; k < NZ; k++) for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
     if ((i === 0 || j === 0 || k === 0 || i === NX - 1 || j === NY - 1 || k === NZ - 1) && !solid[id(i, j, k)]) open[id(i, j, k)] = 1;
   }
 
   const caseBounds = { min: [0, 1, 2].map(a => origin[a] / cellMm - 0.5) as Vec3, max: [0, 1, 2].map(a => (extents[a] + origin[a]) / cellMm - 0.5) as Vec3 };
-  const result: FlowScene = { dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), emitterCounts, caseBounds, particleBounds: { min: caseBounds.min.map(v => v - OUTSIDE_REACH_MM / cellMm) as Vec3, max: caseBounds.max.map(v => v + OUTSIDE_REACH_MM / cellMm) as Vec3 }, spawns: new Float32Array(0), fanCount };
+  const result: FlowScene = { dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), plumeEmitters: new Float32Array(plume), emitterCounts, caseBounds, particleBounds: { min: caseBounds.min.map(v => v - OUTSIDE_REACH_MM / cellMm) as Vec3, max: caseBounds.max.map(v => v + OUTSIDE_REACH_MM / cellMm) as Vec3 }, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -472,13 +519,13 @@ export function isSolidAt(scene: FlowScene, p: Vec3): boolean {
 }
 
 /** A start point, in cell coordinates, drawn from the scene's emitters: an entry at random, then a point area-uniform over its ring between hub and tip, set outward of the fan, and for a case fan on a face out past it. Null after a few tries that land in a solid. */
-export function sampleSpawn(scene: FlowScene, rnd: () => number): Vec3 | null {
-  const n = scene.emitters.length / EMITTER_STRIDE;
+export function sampleSpawn(scene: FlowScene, rnd: () => number, emitters: Float32Array = scene.emitters): Vec3 | null {
+  const n = emitters.length / EMITTER_STRIDE;
   if (n === 0) return null;
   const [NX, NY, NZ] = scene.dims;
   for (let t = 0; t < SPAWN_TRIES; t++) {
     const o = Math.min(n - 1, Math.floor(rnd() * n)) * EMITTER_STRIDE;
-    const e = scene.emitters;
+    const e = emitters;
     const hub = e[o + 3], tip = e[o + 7];
     const r = Math.sqrt(hub * hub + (tip * tip - hub * hub) * rnd());
     const th = 2 * Math.PI * rnd();

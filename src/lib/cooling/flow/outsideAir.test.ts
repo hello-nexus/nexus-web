@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseCaseLayout, withBoundFans, type CaseLayout, type FanBinding, type Vec3 } from '../caseLayout';
+import { fanGeometries, parseCaseLayout, withBoundFans, type CaseLayout, type FanBinding, type Vec3 } from '../caseLayout';
 import { boundSlotKeys, slotDirections, slotSpeeds } from '../slotFlow';
 import { visualFlow } from '../visualFlow';
 import { CpuFlow } from './cpuSolver';
@@ -10,6 +10,7 @@ import { FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, PARTICLE_DRAW_SHARE, STUCK_MOVE_CEL
 import { buildFlowScene } from './gridScene';
 import { fanRadii } from '../fanGeometry';
 import { boxContains } from './voxelize';
+import { defaultDir, fronts, inputFor, rear } from './flowFixtures';
 
 // The same five Build layouts as caseAgnostic.test.ts.
 const FIXTURES = ['y70', 'y50', 'y60', 'x50', 'lancool216'] as const;
@@ -236,5 +237,35 @@ describe('the drawn particle budget', () => {
   it('draws 70 percent of the pool at every grid tier, outside air included', () => {
     expect(PARTICLE_DRAW_SHARE).toBeCloseTo(0.7, 10);
     for (const tier of [1, 0.75, 0.5]) expect(drawnParticles(10752, tier)).toBe(Math.round(10752 * tier * 0.7));
+  });
+});
+
+describe('a face fan keeps its rated speed on both sides of its face', () => {
+  it('drives the cells inward of the face to the fan target, in proportion between a slow and a fast fan', () => {
+    const input = inputFor([fronts[0], fronts[1], rear], [], defaultDir, 60);
+    input.fanCfm = { [fronts[0].key]: 33.6, [fronts[1].key]: 60, [rear.key]: 93.6 };
+    input.referenceCfm = 60;
+    const scene = buildFlowScene(input, 64 * 48 * 96);
+    const [NX, NY] = scene.dims;
+    const targetAt = (mm: Vec3) => {
+      const c = [0, 1, 2].map(a => Math.floor((mm[a] + scene.origin[a]) / scene.cellMm));
+      const o = (c[0] + NX * (c[1] + NY * c[2])) * 3;
+      return Math.hypot(scene.target[o], scene.target[o + 1], scene.target[o + 2]);
+    };
+    // Layout mm: the centre of each fan, moved 60 mm in along its axis, inside the reach.
+    const geometry = fanGeometries(input.layout);
+    const inward = (key: string): Vec3 => {
+      const g = geometry.find(x => x.slot.key === key)!;
+      const axis = g.slot.axis ?? [0, 0, 0];
+      // Off the hub, on the open ring.
+      const lateral = [0, 1, 2].filter(a => Math.abs(axis[a]) < 0.5)[0];
+      return [0, 1, 2].map(a => g.box.min[a] + g.box.size[a] / 2 + axis[a] * 60 + (a === lateral ? 40 : 0)) as Vec3;
+    };
+    expect(OUTSIDE_REACH_MM).toBeGreaterThan(60);
+    const slow = targetAt(inward(fronts[0].key));
+    const fast = targetAt(inward(fronts[1].key));
+    expect(slow).toBeGreaterThan(0);
+    expect(slow / fast).toBeGreaterThan(0.45);
+    expect(slow / fast).toBeLessThan(0.6);
   });
 });

@@ -10,7 +10,7 @@ import { buildCollisionShapes, obstacleGeometry } from './collisionShapes';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
 import { buildFlowScene } from './gridScene';
-import { EMITTER_STRIDE, OUTSIDE_REACH_MM } from './flowParams';
+import { EMITTER_STRIDE, OUTSIDE_REACH_MM, ROOM_TEMP_C, VMAX_CELLS } from './flowParams';
 import { hullCuts } from './hull';
 import { obstaclesOf } from './obstacles';
 
@@ -132,7 +132,25 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
       ['change the fan speed', [sim(2400, [a])]],
     ];
     for (const [label, next] of edits) {
-      it(`${label} keeps the grid, the solver and the particle buffers`, () => {
+      it('stays stable with hot parts, fans spinning, slow and stopped: finite, under the velocity cap, every temperature between room and the part', () => {
+    const layout = withCard();
+    const keys = withBoundFans(layout, []).fanSlots.filter(s => s.taken !== 'radiator').map(s => s.key);
+    for (const rpm of [1500, 300, 0]) {
+      const flow = new CpuFlow(derive([sim(rpm, keys)], layout).scene);
+      flow.setTemps({ gpu: 85, cpu: 75 });
+      let peak = 0;
+      for (let i = 1; i <= 200; i++) { flow.step(); if (i % 25 === 0) peak = Math.max(peak, flow.maxSpeed()); }
+      expect(Number.isFinite(peak), `${rpm} rpm`).toBe(true);
+      expect(peak, `${rpm} rpm`).toBeLessThan(VMAX_CELLS * 0.9);
+      for (const v of flow.t) {
+        expect(Number.isFinite(v)).toBe(true);
+        expect(v).toBeGreaterThanOrEqual(-1e-4);
+        expect(v).toBeLessThanOrEqual(85 - ROOM_TEMP_C + 1e-3);
+      }
+    }
+  }, 240000);
+
+  it(`${label} keeps the grid, the solver and the particle buffers`, () => {
         const before = derive(base());
         const after = derive(next);
         expect(after.scene.dims).toEqual(before.scene.dims);

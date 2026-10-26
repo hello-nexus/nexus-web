@@ -2,9 +2,10 @@ import {
   DataUtils, ExternalTexture, FloatType, GLSL3, HalfFloatType, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, Scene, UnsignedByteType,
   ShaderMaterial, Vector4, WebGLRenderTarget, type Texture, type WebGLRenderer,
 } from 'three';
-import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
+import { BUOYANCY, DAMPING, FAN_BLEND, HEAT_COUPLING, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
 import type { FlowScene } from './gridScene';
-import { ADVECT, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT } from './shaders';
+import { isHot, sourceRises, type ComponentTemps } from './heatModel';
+import { ADVECT, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT, TEMPERATURE } from './shaders';
 
 export type FloatKind = typeof FloatType | typeof HalfFloatType;
 
@@ -121,9 +122,14 @@ export class GlFlow {
   private current: FlowScene;
   private readonly vao: WebGLVertexArrayObject;
   private readonly quad: WebGLBuffer;
-  private readonly programs: Record<'advect' | 'diverge' | 'jacobi' | 'gradient' | 'reduceFirst' | 'reduceNext' | 'encode', RawProgram>;
+  private readonly programs: Record<'advect' | 'diverge' | 'jacobi' | 'gradient' | 'temperature' | 'reduceFirst' | 'reduceNext' | 'encode', RawProgram>;
   private readonly vel: RawTarget[];
   private readonly pres: RawTarget[];
+  /** Temperature, degrees above room temperature, ping-ponged. */
+  private readonly temp: RawTarget[];
+  private readonly tempWrap: ExternalTexture[];
+  private tempCur = 0;
+  private hotNow = false;
   private readonly div: RawTarget;
   private readonly reduce: RawTarget[] = [];
   private readonly encoded: RawTarget;
@@ -135,7 +141,8 @@ export class GlFlow {
   /** Scratch objects reused by every pass, so a solver step allocates none. */
   private readonly viewport = new Vector4();
   private readonly uniforms = {
-    advect: { textures: {} as Record<string, WebGLTexture>, floats: { uBlend: FAN_BLEND, uDamp: DAMPING, uVmax: VMAX_CELLS } },
+    advect: { textures: {} as Record<string, WebGLTexture>, floats: { uBlend: FAN_BLEND, uDamp: DAMPING, uVmax: VMAX_CELLS, uBuoy: BUOYANCY } },
+    temperature: { textures: {} as Record<string, WebGLTexture>, floats: { uCoupling: HEAT_COUPLING }, vec3s: { uSrc: [0, -1, -1] as number[] } },
     diverge: { textures: {} as Record<string, WebGLTexture> },
     jacobi: { textures: {} as Record<string, WebGLTexture> },
     gradient: { textures: {} as Record<string, WebGLTexture>, floats: { uVmax: VMAX_CELLS } },
@@ -167,12 +174,13 @@ export class GlFlow {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
     this.programs = {
-      advect: this.build(ADVECT), diverge: this.build(DIVERGE), jacobi: this.build(JACOBI), gradient: this.build(GRADIENT),
+      advect: this.build(ADVECT), diverge: this.build(DIVERGE), jacobi: this.build(JACOBI), gradient: this.build(GRADIENT), temperature: this.build(TEMPERATURE),
       reduceFirst: this.build(REDUCE_FIRST), reduceNext: this.build(REDUCE_NEXT), encode: this.build(ENCODE),
     };
     this.vel = [0, 1, 2].map(() => this.makeTarget(this.w, this.h, false));
     this.pres = [0, 1].map(() => this.makeTarget(this.w, this.h, false));
     this.div = this.makeTarget(this.w, this.h, false);
+    this.temp = [0, 1].map(() => this.makeTarget(this.w, this.h, false));
     let rw = this.w;
     let rh = this.h;
     do {
@@ -185,6 +193,7 @@ export class GlFlow {
     this.fanTex = this.makeTexture(this.w, this.h, false);
     const wrap = (t: WebGLTexture) => new ExternalTexture(t);
     this.velWrap = this.vel.map(t => wrap(t.texture));
+    this.tempWrap = this.temp.map(t => wrap(t.texture));
     this.maskWrap = wrap(this.maskTex);
     this.fanWrap = wrap(this.fanTex);
     this.upload();
@@ -288,6 +297,24 @@ export class GlFlow {
     return this.velWrap[this.cur];
   }
 
+  /** The temperature field: degrees above room temperature in the red channel. */
+  get temperature(): Texture {
+    return this.tempWrap[this.tempCur];
+  }
+
+  /** New part temperatures: only the temperature pass's uniforms change, so the velocity and temperature fields carry on. */
+  setTemps(temps: ComponentTemps) {
+    const rises = sourceRises(temps);
+    const src = this.uniforms.temperature.vec3s.uSrc;
+    src[0] = 0; src[1] = rises[1]; src[2] = rises[2];
+    this.hotNow = isHot(rises);
+  }
+
+  /** Whether any part is hot enough to drive a plume on its own. */
+  get hot(): boolean {
+    return this.hotNow;
+  }
+
   get maskTexture(): Texture {
     return this.maskWrap;
   }
@@ -341,8 +368,9 @@ export class GlFlow {
   }
 
   reset() {
-    this.clear([...this.vel, ...this.pres, this.div]);
+    this.clear([...this.vel, ...this.pres, this.div, ...this.temp]);
     this.cur = 0;
+    this.tempCur = 0;
     this.presCur = 0;
   }
 
@@ -362,6 +390,7 @@ export class GlFlow {
     un.advect.textures.U = u0.texture;
     un.advect.textures.M = this.maskTex;
     un.advect.textures.F = this.fanTex;
+    un.advect.textures.T = this.temp[this.tempCur].texture;
     this.draw(p.advect, u1, un.advect);
     un.diverge.textures.U = u1.texture;
     un.diverge.textures.M = this.maskTex;
@@ -379,6 +408,12 @@ export class GlFlow {
     un.gradient.textures.P = this.pres[pi].texture;
     un.gradient.textures.M = this.maskTex;
     this.draw(p.gradient, u2, un.gradient);
+    // The temperature moves with the final velocity.
+    un.temperature.textures.U = u2.texture;
+    un.temperature.textures.T = this.temp[this.tempCur].texture;
+    un.temperature.textures.M = this.maskTex;
+    this.draw(p.temperature, this.temp[1 - this.tempCur], un.temperature);
+    this.tempCur = 1 - this.tempCur;
     this.prev = this.cur;
     this.cur = (this.cur + 2) % 3;
   }
@@ -402,6 +437,25 @@ export class GlFlow {
         const c = i + NX * (j + NY * k);
         for (let a = 0; a < 3; a++) out[c * 3 + a] = half ? f16(raw[o + a]) : raw[o + a];
       }
+    }
+    return out;
+  }
+
+  /** The whole temperature field, degrees above room temperature per cell, read back from the GPU; for checks against the CPU reference. */
+  readTemperature(): Float32Array {
+    const gl = this.gl;
+    const [NX, NY, NZ] = this.current.dims;
+    const half = this.type === HalfFloatType;
+    const raw = half ? new Uint16Array(this.w * this.h * 4) : new Float32Array(this.w * this.h * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.temp[this.tempCur].framebuffer);
+    gl.readPixels(0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, raw);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.renderer.resetState();
+    const out = new Float32Array(NX * NY * NZ);
+    for (let k = 0; k < NZ; k++) {
+      const ox = (k % this.tx) * NX;
+      const oy = Math.floor(k / this.tx) * NY;
+      for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) out[i + NX * (j + NY * k)] = half ? f16(raw[((oy + j) * this.w + ox + i) * 4]) : raw[((oy + j) * this.w + ox + i) * 4];
     }
     return out;
   }
@@ -472,7 +526,7 @@ export class GlFlow {
       gl.deleteBuffer(this.inFlight.buffer);
       this.inFlight = null;
     }
-    for (const t of [...this.vel, ...this.pres, this.div, ...this.reduce, this.encoded]) {
+    for (const t of [...this.vel, ...this.pres, this.div, ...this.temp, ...this.reduce, this.encoded]) {
       gl.deleteTexture(t.texture);
       gl.deleteFramebuffer(t.framebuffer);
     }
@@ -481,6 +535,6 @@ export class GlFlow {
     for (const p of Object.values(this.programs)) gl.deleteProgram(p.program);
     gl.deleteBuffer(this.quad);
     gl.deleteVertexArray(this.vao);
-    for (const w of [...this.velWrap, this.maskWrap, this.fanWrap]) w.dispose();
+    for (const w of [...this.velWrap, ...this.tempWrap, this.maskWrap, this.fanWrap]) w.dispose();
   }
 }

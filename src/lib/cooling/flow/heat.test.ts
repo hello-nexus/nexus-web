@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { AMBIENT_C } from './flowParams';
+import { ROOM_TEMP_C } from './flowParams';
 import { caseWithGpuAndShroud, defaultDir, gpuBox, inputFor, slotSpec, nineFans } from './flowFixtures';
 import { SOURCE_CPU, SOURCE_GPU, SOURCE_NONE, buildFlowScene, type FlowScene } from './gridScene';
 import { heatAnchors, heatStep, sourceRises } from './heatModel';
@@ -74,7 +74,7 @@ describe('the heat model', () => {
 
   it('warms air that crosses the GPU and leaves air that misses it at ambient', () => {
     expect(crossing(gpuCells, scene, { gpu: 80, cpu: null })).toBeGreaterThan(5);
-    expect(AMBIENT_C + crossing(gpuCells, scene, { gpu: 80, cpu: null })).toBeLessThan(80);
+    expect(ROOM_TEMP_C + crossing(gpuCells, scene, { gpu: 80, cpu: null })).toBeLessThan(80);
     expect(crossing(coldCells, scene, { gpu: 80, cpu: null })).toBe(0);
   });
 
@@ -82,8 +82,8 @@ describe('the heat model', () => {
     const at50 = crossing(gpuCells, scene, { gpu: 50, cpu: null });
     const at80 = crossing(gpuCells, scene, { gpu: 80, cpu: null });
     expect(at80).toBeGreaterThan(at50);
-    expect(at80).toBeLessThan(80 - AMBIENT_C);
-    expect(crossing(gpuCells, scene, { gpu: 80, cpu: null }, 5000)).toBeLessThanOrEqual(80 - AMBIENT_C);
+    expect(at80).toBeLessThan(80 - ROOM_TEMP_C);
+    expect(crossing(gpuCells, scene, { gpu: 80, cpu: null }, 5000)).toBeLessThanOrEqual(80 - ROOM_TEMP_C);
     expect(heatStep(30, 30, SPEED)).toBe(30);
   });
 
@@ -95,12 +95,13 @@ describe('the heat model', () => {
 
 describe('particles with live temperatures', () => {
   const scene = buildFlowScene(caseWithGpuAndShroud(), LOW);
-  const sim = new CpuFlow(scene);
-  for (let i = 0; i < 250; i++) sim.step();
-  const run = (gpu: number | null, steps = 1200) => {
-    const p = new CpuParticles(sim, 300, 5);
-    p.setTemps({ gpu, cpu: null });
-    for (let s = 0; s < steps; s++) p.step();
+  const settled = () => { const f = new CpuFlow(scene); for (let i = 0; i < 150; i++) f.step(); return f; };
+  const run = (gpu: number | null, steps = 300) => {
+    const f = settled();
+    f.setTemps({ gpu, cpu: null });
+    for (let s = 0; s < steps; s++) f.step();
+    const p = new CpuParticles(f, 300, 5);
+    for (let s = 0; s < 600; s++) { p.step(); f.step(); }
     return p;
   };
 
@@ -111,19 +112,39 @@ describe('particles with live temperatures', () => {
     expect(mean(mild)).toBeGreaterThan(0);
     expect(mean(hot)).toBeGreaterThan(mean(mild));
     for (let i = 0; i < hot.count; i++) expect(hot.tempC(i)).toBeLessThan(80);
-  }, 120000);
+  }, 600000);
 
   it('keeps the same particles and positions through a temperature change', () => {
-    const p = new CpuParticles(sim, 100, 3);
+    const f = settled();
+    const p = new CpuParticles(f, 100, 3);
     for (let s = 0; s < 50; s++) p.step();
     const pos = Float32Array.from(p.pos);
     const [heat, posRef] = [p.heat, p.pos];
+    const [t, u] = [f.t, f.u];
     p.setTemps({ gpu: 60, cpu: 40 });
     p.setTemps({ gpu: 61, cpu: 41 });
     expect(p.heat).toBe(heat);
     expect(p.pos).toBe(posRef);
     expect(Array.from(p.pos)).toEqual(Array.from(pos));
-  });
+    expect(f.t).toBe(t);
+    expect(f.u).toBe(u);
+  }, 60000);
+
+  it('reads each particle\'s temperature off the solver field at its position', () => {
+    const f = settled();
+    f.setTemps({ gpu: 70, cpu: null });
+    for (let s = 0; s < 300; s++) f.step();
+    const p = new CpuParticles(f, 200, 9);
+    for (let s = 0; s < 400; s++) { p.step(); f.step(); }
+    p.step();
+    let checked = 0;
+    for (let i = 0; i < p.count; i++) {
+      if (p.pos[i * 3] < -1e5 || p.age[i] <= 0) continue;
+      checked++;
+      expect(p.heat[i]).toBeCloseTo(f.riseAt(p.pos[i * 3], p.pos[i * 3 + 1], p.pos[i * 3 + 2]), 4);
+    }
+    expect(checked).toBeGreaterThan(50);
+  }, 120000);
 });
 
 describe('heat label anchors', () => {

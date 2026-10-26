@@ -1,5 +1,6 @@
-import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
-import type { FlowScene } from './gridScene';
+import { BUOYANCY, DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
+import { SOURCE_ROOM, type FlowScene } from './gridScene';
+import { NO_TEMPS, heatStep, isHot, sourceRises, type ComponentTemps } from './heatModel';
 
 /**
  * CPU reference of the GPU solver in `shaders.ts`: same equations and boundary rules, one step per call.
@@ -8,6 +9,11 @@ import type { FlowScene } from './gridScene';
 export class CpuFlow {
   readonly n: number;
   u: Float32Array;
+  /** Degrees each cell's air is above room temperature; below zero is cooler. */
+  t: Float32Array;
+  private tNext: Float32Array;
+  /** What each part's heat cells pull the air toward, as degrees above room temperature, by `SOURCE_*`; negative means that part heats nothing. */
+  private rises = sourceRises(NO_TEMPS);
   private next: Float32Array;
   private p: Float32Array;
   private p2: Float32Array;
@@ -28,6 +34,8 @@ export class CpuFlow {
     this.n = NX * NY * NZ;
     this.u = new Float32Array(this.n * 3);
     this.next = new Float32Array(this.n * 3);
+    this.t = new Float32Array(this.n);
+    this.tNext = new Float32Array(this.n);
     this.p = new Float32Array(this.n);
     this.p2 = new Float32Array(this.n);
     this.div = new Float32Array(this.n);
@@ -45,7 +53,18 @@ export class CpuFlow {
       if (!scene.solid[c]) continue;
       this.u[c * 3] = 0; this.u[c * 3 + 1] = 0; this.u[c * 3 + 2] = 0;
       this.p[c] = 0;
+      this.t[c] = 0;
     }
+  }
+
+  /** New part temperatures: read by the next step, nothing restarts. */
+  setTemps(temps: ComponentTemps): void {
+    this.rises = sourceRises(temps);
+  }
+
+  /** Whether any part is hot enough to drive a plume on its own. */
+  get hot(): boolean {
+    return isHot(this.rises);
   }
 
   private bind(scene: FlowScene): void {
@@ -80,6 +99,30 @@ export class CpuFlow {
     r[0] = ax; r[1] = ay; r[2] = az;
   }
 
+  /** Trilinear value of `field` at cell coordinates, averaged over the fluid cells only so a wall does not cool the air beside it. */
+  sampleScalar(field: Float32Array, px: number, py: number, pz: number): number {
+    const { NX, NY, NZ } = this;
+    const solid = this.scene.solid;
+    const x = Math.min(Math.max(px, 0), NX - 1), y = Math.min(Math.max(py, 0), NY - 1), z = Math.min(Math.max(pz, 0), NZ - 1);
+    const i0 = Math.floor(x), j0 = Math.floor(y), k0 = Math.floor(z);
+    const fx = x - i0, fy = y - j0, fz = z - k0;
+    const i1 = Math.min(i0 + 1, NX - 1), j1 = Math.min(j0 + 1, NY - 1), k1 = Math.min(k0 + 1, NZ - 1);
+    let acc = 0, wsum = 0;
+    for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+      const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+      if (w === 0) continue;
+      const c = (dx ? i1 : i0) + NX * ((dy ? j1 : j0) + NY * (dz ? k1 : k0));
+      if (solid[c]) continue;
+      acc += w * field[c]; wsum += w;
+    }
+    return wsum > 0 ? acc / wsum : 0;
+  }
+
+  /** Degrees above room temperature at cell coordinates. */
+  riseAt(px: number, py: number, pz: number): number {
+    return this.sampleScalar(this.t, px, py, pz);
+  }
+
   step(): void {
     const { NX, NY, NZ, scene } = this;
     const { solid, open, darcy, target, fanCell } = scene;
@@ -92,7 +135,7 @@ export class CpuFlow {
       const c = i + NX * (j + NY * k);
       if (solid[c]) { out[c * 3] = 0; out[c * 3 + 1] = 0; out[c * 3 + 2] = 0; continue; }
       this.sample(i - u[c * 3], j - u[c * 3 + 1], k - u[c * 3 + 2], a);
-      let x = a[0], y = a[1], z = a[2];
+      let x = a[0], y = a[1] + BUOYANCY * this.t[c], z = a[2];
       if (fanCell[c]) {
         x += (target[c * 3] - x) * FAN_BLEND; y += (target[c * 3 + 1] - y) * FAN_BLEND; z += (target[c * 3 + 2] - z) * FAN_BLEND;
       }
@@ -149,6 +192,27 @@ export class CpuFlow {
       }
       v[c * 3] = x; v[c * 3 + 1] = y; v[c * 3 + 2] = z;
     }
+    this.stepTemperature();
+  }
+
+  /** Carries the temperature with the final velocity, warms it in the heat cells and holds room air and the open boundary at zero. */
+  private stepTemperature(): void {
+    const { NX, NY, NZ } = this;
+    const { solid, open, heat } = this.scene;
+    const v = this.u;
+    const t = this.t;
+    const out = this.tNext;
+    for (let k = 0; k < NZ; k++) for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const c = i + NX * (j + NY * k);
+      const id = heat[c];
+      if (solid[c] || open[c] || id === SOURCE_ROOM) { out[c] = 0; continue; }
+      let r = this.sampleScalar(t, i - v[c * 3], j - v[c * 3 + 1], k - v[c * 3 + 2]);
+      const src = this.rises[id];
+      if (src >= 0) r = heatStep(r, src, 1);
+      out[c] = r;
+    }
+    this.tNext = t;
+    this.t = out;
   }
 
   /** Largest velocity magnitude over fluid cells, cells per step; NaN if any component is not finite. */
