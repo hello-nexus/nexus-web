@@ -1,6 +1,9 @@
-Sora is distributed by Google Fonts (https://fonts.google.com) under the
-SIL Open Font License, Version 1.1. See the family's upstream repository for
-its copyright line.
+Copyright 2019 The Sora Project Authors (https://github.com/sora-xor/sora-font)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+
+This license is copied below, and is also available with a FAQ at: https://scripts.sil.org/OFL
+
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

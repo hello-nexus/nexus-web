@@ -1,6 +1,9 @@
-Bricolage Grotesque is distributed by Google Fonts (https://fonts.google.com) under the
-SIL Open Font License, Version 1.1. See the family's upstream repository for
-its copyright line.
+Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+https://scripts.sil.org/OFL
+
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
