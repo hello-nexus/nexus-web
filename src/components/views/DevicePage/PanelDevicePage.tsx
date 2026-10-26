@@ -1157,7 +1157,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const planWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     if (!widgetSizeOptions) return { layout, removed: [] as PanelWidget[] };
     const target = widgetSizeOptions.layoutSurface[mode];
-    const targetTouch = target === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
+    const targetTouch = isMonitorPanel ? true : target === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
     const targetSlots = widgetSizeShortSideSlots(widgetSizeOptions, mode, densitySlots);
     const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)), isMonitorPanel);
     const kept = new Set(normalized.pages.flatMap(p => p.widgets.map(w => w.id)));
@@ -1173,7 +1173,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
       targetSlots,
     );
-    const fit = surfaceAllowsPages(target, targetTouch)
+    const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel)
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
@@ -1186,8 +1186,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     setRecordWidgetSize(mode);
     setConfiguringWidgetId(null);
     setLayout(next);
-    void writeRecordPatch(editingDeviceId, { widgetSize: mode, layout: next });
-  }, [editingDeviceId, planWidgetSize, writeRecordPatch]);
+    // The last control wins: a density the user set no longer applies once the size changes.
+    const clearsDensity = recordGridSlots !== null;
+    if (clearsDensity) setRecordGridSlots(null);
+    void writeRecordPatch(editingDeviceId, { widgetSize: mode, layout: next, ...(clearsDensity ? { gridSlots: 0 } : {}) });
+  }, [editingDeviceId, planWidgetSize, recordGridSlots, writeRecordPatch]);
   // Density changes the cell grid under every widget, so the layout is refitted in the same write.
   const applyGridSlots = useCallback((value: number) => {
     const slots = normalizeGridSlots(value);

@@ -12,34 +12,37 @@ export const LEASE_RENEW_MS = 2000;
  */
 export function usePanelHitTest(active: boolean, clickThrough: boolean, transientFull: boolean, rootRef: RefObject<HTMLElement | null>, signature: string): void {
   const lastRef = useRef('');
+  // Posts the report for the current state; `lease` false is the steady one.
+  const reportRef = useRef<((lease: boolean, force: boolean) => void) | null>(null);
   useEffect(() => {
     if (!active) {
       lastRef.current = '';
+      reportRef.current = null;
       return undefined;
     }
     let frame = 0;
-    const send = (force = false) => {
+    const report = (lease: boolean, force: boolean) => {
       frame = 0;
-      const full = transientFull || !clickThrough;
+      const full = lease || !clickThrough;
       const rects = full
         ? []
         : collectHitRects(document.querySelectorAll(HIT_SELECTOR), { width: window.innerWidth, height: window.innerHeight });
       const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
-      const msg = hitTestMessage(full, rects, dpr, transientFull);
+      const msg = hitTestMessage(full, rects, dpr, lease);
       const key = JSON.stringify(msg);
       if (!force && key === lastRef.current) return;
       lastRef.current = key;
       postPanelHostMessage(msg);
     };
+    reportRef.current = report;
     const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(() => send());
+      if (!frame) frame = requestAnimationFrame(() => report(transientFull, false));
     };
     schedule();
-    const renew = transientFull ? window.setInterval(() => send(true), LEASE_RENEW_MS) : 0;
     const offRequest = onHostRequestHitTest(() => {
       lastRef.current = '';
       if (frame) cancelAnimationFrame(frame);
-      send();
+      report(transientFull, false);
     });
     const root = rootRef.current;
     const observer = root && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
@@ -50,7 +53,6 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
-      if (renew) window.clearInterval(renew);
       offRequest();
       observer?.disconnect();
       document.removeEventListener('transitionend', schedule, true);
@@ -58,6 +60,18 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
       window.removeEventListener('resize', schedule);
     };
   }, [active, clickThrough, transientFull, rootRef, signature]);
+
+  // The renewal keeps its own cadence: a signature change must not restart the clock.
+  useEffect(() => {
+    if (!active || !transientFull) return undefined;
+    const timer = window.setInterval(() => reportRef.current?.(true, true), LEASE_RENEW_MS);
+    return () => window.clearInterval(timer);
+  }, [active, transientFull]);
+
+  // Unmounting hands the host the steady report so a lease does not outlive the page.
+  useEffect(() => () => {
+    if (reportRef.current) reportRef.current(false, true);
+  }, []);
 }
 
 /** Lifts a not-on-top window above others while a menu, sheet or drag is open. */
@@ -74,4 +88,7 @@ export function usePanelRaise(active: boolean, raised: boolean): void {
     }
     return onHostRequestHitTest(() => postPanelHostMessage({ type: 'nexus.panel.raise', value: raised }));
   }, [active, raised]);
+  useEffect(() => () => {
+    if (lastRef.current !== null) postPanelHostMessage({ type: 'nexus.panel.raise', value: false });
+  }, []);
 }

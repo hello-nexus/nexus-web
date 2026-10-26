@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LEASE_RENEW_MS, usePanelHitTest } from './usePanelHostSync';
+import { LEASE_RENEW_MS, usePanelHitTest, usePanelRaise } from './usePanelHostSync';
 
 const sent: Array<Record<string, unknown>> = [];
 const rootRef = { current: null };
@@ -53,5 +53,27 @@ describe('usePanelHitTest', () => {
     renderHook(() => usePanelHitTest(false, true, false, rootRef, 'a'));
     await flush();
     expect(sent).toHaveLength(0);
+  });
+
+  it('keeps the renewal cadence across signature changes', async () => {
+    const { rerender } = renderHook(({ sig }) => usePanelHitTest(true, true, true, rootRef, sig), { initialProps: { sig: 'a' } });
+    await flush();
+    sent.length = 0;
+    await act(async () => { await vi.advanceTimersByTimeAsync(LEASE_RENEW_MS - 500); });
+    rerender({ sig: 'b' });
+    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+    // The tick lands at the original cadence, not LEASE_RENEW_MS after the rerender.
+    expect(sent.filter(m => m.lease === true).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('sends the steady report and raise false on unmount', async () => {
+    const hit = renderHook(() => usePanelHitTest(true, true, true, rootRef, 'a'));
+    const raise = renderHook(() => usePanelRaise(true, true));
+    await flush();
+    sent.length = 0;
+    hit.unmount();
+    raise.unmount();
+    expect(sent.some(m => m.type === 'nexus.panel.hitTest' && m.mode === 'region' && m.lease === undefined)).toBe(true);
+    expect(sent.some(m => m.type === 'nexus.panel.raise' && m.value === false)).toBe(true);
   });
 });

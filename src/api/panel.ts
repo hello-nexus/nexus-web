@@ -62,7 +62,7 @@ export interface DesktopImportWidgetDto {
   id: string;
   type: string;
   size: string;
-  // Legacy overlay position in quarter-cell steps from the display's top-left.
+  // Legacy overlay position in cell units at 0.25 granularity from the display's top-left.
   col: number;
   row: number;
   locked?: boolean;
@@ -148,7 +148,7 @@ export interface PanelDeviceRecord {
   // Empty space passes clicks through to the desktop; only with the 'desktop'
   // backdrop. Absent/null = off.
   clickThrough?: boolean | null;
-  // Short-axis cell count (even, 2-64) replacing the density-derived one.
+  // Short-axis cell count replacing the density-derived one; even, within the grid limits.
   // Absent/null = the panel's own density.
   gridSlots?: number | null;
   // Whether the display hosts the panel when the host honors it; replaces
@@ -250,7 +250,7 @@ export interface PanelDevicePatch {
   keepCursorOff?: boolean;
   // Display-bound records only; ignored for other panels.
   clickThrough?: boolean;
-  // Even 2-64; monitor panels only.
+  // Even; monitor panels only. Zero clears the record's own density.
   gridSlots?: number;
   // Sent with the planned layout once a desktop import is placed.
   clearDesktopImport?: boolean;

@@ -195,6 +195,16 @@ function placeWidget(pages: PanelPage[], widget: PanelWidget, span: { cols: numb
   pages[pages.length - 1].widgets.push(widget);
 }
 
+/** A panel that already holds widgets keeps them and their grid; density is chosen only for an empty one. */
+export function importBase(imp: DesktopImportDto, layout: PanelLayout): { imp: DesktopImportDto; base: PanelLayout } {
+  const occupied = layout.pages.some(p => p.widgets.length > 0);
+  if (occupied) return { imp: { ...imp, merge: true }, base: layout };
+  return {
+    imp: { ...imp, merge: false },
+    base: { ...layout, pages: [{ id: layout.pages[0]?.id ?? 'page-1', widgets: [] }], activePageId: undefined },
+  };
+}
+
 /** True when the record carries a legacy layout this build has not placed yet. */
 export function hasPendingImport(imp: DesktopImportDto | null | undefined): imp is DesktopImportDto {
   return !!imp && imp.version === 1 && Array.isArray(imp.widgets);

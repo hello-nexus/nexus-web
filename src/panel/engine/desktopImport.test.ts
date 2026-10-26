@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DesktopImportDto, DesktopImportWidgetDto } from '../../api/panel';
 import type { PanelLayout } from '../types';
-import { bestGridSlots, hasPendingImport, planDesktopImport, type ImportViewport } from './desktopImport';
+import { bestGridSlots, hasPendingImport, importBase, planDesktopImport, type ImportViewport } from './desktopImport';
 import { panelWidgetPaddingRatio } from './grid';
 
 const PAD = 100;
@@ -118,5 +118,24 @@ describe('merge and idempotence', () => {
   it('detects a pending import', () => {
     expect(hasPendingImport(null)).toBe(false);
     expect(hasPendingImport(imp([]))).toBe(true);
+  });
+});
+
+describe('importBase', () => {
+  const vp = { w: 2560, h: 1440, dpr: 1 };
+
+  it('keeps a user-edited layout and its grid whatever the record said', () => {
+    const edited = planDesktopImport(imp([widget('mine', 3, 3)]), vp, PAD, emptyLayout());
+    const { imp: merged, base } = importBase(imp([widget('legacy', 0, 0)], { merge: false }), edited.layout);
+    expect(merged.merge).toBe(true);
+    const plan = planDesktopImport(merged, vp, PAD, base, edited.grid);
+    expect(plan.gridSlots).toBeUndefined();
+    expect(plan.layout.pages.flatMap(p => p.widgets).map(w => w.id).sort()).toEqual(['legacy', 'mine']);
+  });
+
+  it('chooses density only for an empty layout, even when the record said merge', () => {
+    const { imp: fresh } = importBase(imp([widget('a', 0, 0)], { merge: true }), emptyLayout());
+    expect(fresh.merge).toBe(false);
+    expect(planDesktopImport(fresh, vp, PAD, emptyLayout()).gridSlots).toBeDefined();
   });
 });

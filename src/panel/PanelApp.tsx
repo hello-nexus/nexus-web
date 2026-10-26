@@ -1777,7 +1777,7 @@ export function PanelContent({
   const hostBound = kioskBehavior && displayBound && panelHostAvailable();
   const clickThrough = seeThrough && recordState.record?.clickThrough === true;
   const hitFull = Boolean(sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
-    || freeformActive || touch.rearranging || connectionIntroHost || isOffline);
+    || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
   usePanelHitTest(
     hostBound && seeThrough,
     clickThrough,
@@ -1791,7 +1791,7 @@ export function PanelContent({
   );
 
   useDesktopImport({
-    enabled: kioskBehavior && !simulator && displayBound && loaded && hydrated !== false,
+    enabled: kioskBehavior && !simulator && displayBound && loaded && hydrated !== false && panelHostAvailable(),
     deviceId,
     pending: recordState.record?.desktopImport,
     layout: paginatedLayout,

@@ -232,13 +232,13 @@ export function widgetSizeShortSideSlots(
   return densitySlots === undefined ? undefined : Math.max(2, Math.round(densitySlots * share));
 }
 
-// Short-axis cell counts a record's grid density may name (even, so a 2x2 tile always fits).
+// Short-axis cell counts a record's grid density may name; even, so a 2x2 tile always fits.
 export const GRID_SLOTS_MIN = 2;
 export const GRID_SLOTS_MAX = 64;
 
-/** The record's own grid density when valid, else undefined. */
+/** The record's own grid density when valid, else undefined; zero is the wire's "unset". */
 export function normalizeGridSlots(value: number | null | undefined): number | undefined {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined;
   const even = Math.round(value / 2) * 2;
   return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, even));
 }

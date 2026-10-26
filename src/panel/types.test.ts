@@ -162,7 +162,8 @@ describe('grid density override', () => {
   it('rounds to an even count within 2 to 64', () => {
     expect(normalizeGridSlots(18)).toBe(18);
     expect(normalizeGridSlots(17)).toBe(18);
-    expect(normalizeGridSlots(0)).toBe(2);
+    expect(normalizeGridSlots(0)).toBeUndefined();
+    expect(normalizeGridSlots(1)).toBe(2);
     expect(normalizeGridSlots(500)).toBe(64);
     expect(normalizeGridSlots(null)).toBeUndefined();
     expect(normalizeGridSlots(Number.NaN)).toBeUndefined();
