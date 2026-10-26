@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Box3, Color, type Mesh } from 'three';
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-import { buildDeskBoxes, curvedPanel } from './deskNodes';
+import { applyHighlight, buildDeskBoxes, curvedPanel } from './deskNodes';
 import { DESK_ID, layoutDesk, monitorCurve, type DeskItem } from './deskScene';
 import type { Dimmable, Palette } from './pcScene';
 
@@ -76,5 +76,14 @@ describe('buildDeskBoxes', () => {
   it('gives each id its own dimmable', () => {
     const { dimmables } = draw();
     expect(new Set(dimmables.map((d) => d.id)).size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('tints the faces of the highlighted item only, and shows it through nothing else', () => {
+    const { dimmables } = draw();
+    applyHighlight(dimmables, 'desk:keyboard:0', 'tint');
+    const faceOpacity = (id: string) => dimmables.find((d) => d.id === id)!.materials.filter((m) => !('linewidth' in m)).map((m) => m.opacity);
+    const base = (id: string) => dimmables.find((d) => d.id === id)!.base.slice(0, faceOpacity(id).length);
+    expect(faceOpacity('desk:keyboard:0')[0]).toBeGreaterThan(base('desk:keyboard:0')[0]);
+    expect(faceOpacity('desk:monitor:0')).toEqual(base('desk:monitor:0'));
   });
 });

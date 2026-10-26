@@ -468,8 +468,6 @@ export interface PlacedItem {
   // The whole item's width, height and depth.
   size: Vec3;
   curveRadius?: number | null;
-  // The height includes a stand under the panel, as a layout's exported monitor does.
-  stand?: boolean;
 }
 
 /** The boxes that draw a placed item, the way the layout draws the same kind of item. */
@@ -477,7 +475,7 @@ export function placedItemBoxes(item: PlacedItem): DeskBox[] {
   const { id, kind, cx, cz, minY, yaw, size: [w, h, d] } = item;
   const boxes: DeskBox[] = [];
   const box = (part: DeskKind, min: Vec3, size: Vec3, extra: Partial<DeskBox> = {}) => boxes.push({ id, kind: part, min, size, ...(yaw ? { yaw } : {}), pivot: [cx, cz], ...extra });
-  if (kind === 'monitor' && item.stand && h > STAND_HEIGHT) {
+  if (kind === 'monitor' && h > STAND_HEIGHT) {
     box(kind, [cx - w / 2, minY + STAND_HEIGHT, cz - d / 2], [w, h - STAND_HEIGHT, d], item.curveRadius ? { curveRadius: item.curveRadius } : {});
     for (const [min, size] of monitorStand(cx, cz, minY, monitorBaseWidth(w))) box(kind, min, size);
   } else if (kind === 'laptop' && h > LAPTOP[1]) {

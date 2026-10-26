@@ -865,32 +865,26 @@ describe('an L-shaped desk', () => {
 
 describe('placed items draw as the layout draws them', () => {
   // The record Build exports for an item: its footprint center, the height of its lowest box, and the box that holds all its boxes.
-  const placed = (layout: ReturnType<typeof layoutDesk>, id: string, kind: DeskKind, stand: boolean) => {
+  const placed = (layout: ReturnType<typeof layoutDesk>, id: string, kind: DeskKind) => {
     const spot = layout.spots[id];
     const boxes = byId(layout, id);
     const bottom = Math.min(...boxes.map((b) => b.min[1]));
     const top = Math.max(...boxes.map((b) => b.min[1] + b.size[1]));
-    return placedItemBoxes({ id, kind, cx: spot.cx, cz: spot.cz, minY: bottom, yaw: spot.yaw, size: [spot.w, top - bottom, spot.d], stand });
+    return placedItemBoxes({ id, kind, cx: spot.cx, cz: spot.cz, minY: bottom, yaw: spot.yaw, size: [spot.w, top - bottom, spot.d] });
   };
   const items: DeskItem[] = [item('monitor', { screenSize: 27 }), item('laptop'), item('keyboard'), item('mouse'), item('speaker')];
   const layout = layoutDesk(items, null);
 
   it('a monitor keeps its panel, foot and neck', () => {
-    expect(placed(layout, 'desk:monitor:0', 'monitor', true)).toEqual(byId(layout, 'desk:monitor:0'));
+    expect(placed(layout, 'desk:monitor:0', 'monitor')).toEqual(byId(layout, 'desk:monitor:0'));
   });
 
   it('a laptop keeps its base and tilted lid', () => {
-    expect(placed(layout, 'desk:laptop:0', 'laptop', false)).toEqual(byId(layout, 'desk:laptop:0'));
+    expect(placed(layout, 'desk:laptop:0', 'laptop')).toEqual(byId(layout, 'desk:laptop:0'));
   });
 
   it('a plain item is the one box it was', () => {
-    for (const kind of ['keyboard', 'mouse', 'speaker'] as const) expect(placed(layout, `desk:${kind}:0`, kind, false)).toEqual(byId(layout, `desk:${kind}:0`));
-  });
-
-  it('a monitor without a stand is its panel alone', () => {
-    const boxes = placedItemBoxes({ id: 'm', kind: 'monitor', cx: 10, cz: 20, minY: 0, yaw: 0, size: [620, 380, 50] });
-    expect(boxes).toHaveLength(1);
-    expect(boxes[0].min).toEqual([-300, 0, -5]);
+    for (const kind of ['keyboard', 'mouse', 'speaker'] as const) expect(placed(layout, `desk:${kind}:0`, kind)).toEqual(byId(layout, `desk:${kind}:0`));
   });
 });
 
