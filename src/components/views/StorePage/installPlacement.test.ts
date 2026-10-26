@@ -200,6 +200,23 @@ describe('planPlacement', () => {
     expect(spilled?.layout.pages).toHaveLength(2);
   });
 
+  it('copies the source widget size and config onto a display, keeping the default size when it does not fit', () => {
+    const record = {
+      id: 'rec-c', displayName: 'Display', firstSeenAt: 0, lastSeenAt: 0, displayId: 'disp-1',
+      capabilities: { surface: 'monitor', touch: false, cssWidth: 2560, cssHeight: 1440, dpr: 1, dpi: 110 },
+    } as PanelDeviceRecord;
+    const display: PlacementTarget = { key: 'display', name: 'Display', iconSrc: null, surface: 'monitor' };
+    const wide = { ...meta, singleInstance: false };
+    const empty = layoutOf('monitor', []);
+
+    const copied = planPlacement(display, { layout: empty, record }, TYPE, wide, 6, { size: '4x4', config: { city: 'Oslo' } });
+    expect(copied?.widget.size).toBe('4x4');
+    expect(copied?.widget.config).toEqual({ city: 'Oslo' });
+
+    const notAllowed = planPlacement(display, { layout: empty, record }, TYPE, { ...wide, sizes: ['2x2' as const], defaultSize: '2x2' as const }, 6, { size: '4x4' });
+    expect(notAllowed?.widget.size).toBe('2x2');
+  });
+
   it('shows the page a multi-widget panel lands it on', () => {
     const full = Array.from({ length: 8 }, (_, r) => ({ type: 'clock', size: '4x2' as const, col: 0, row: r * 2 }));
 

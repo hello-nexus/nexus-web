@@ -303,6 +303,11 @@ export function surfaceDefaultsToAnimatedBackground(surface: PanelSurface): bool
   return surface === 'q60';
 }
 
+/** Input the widget registry sees: a display-bound panel always has its mouse. */
+export function widgetInputOf(deviceTouch: boolean | undefined, displayBound: boolean): boolean | undefined {
+  return displayBound ? true : deviceTouch;
+}
+
 // Whether a press on the canvas can drag, resize or remove widgets. The device-page
 // preview is edited with the dashboard's mouse, so any multi-widget panel qualifies
 // there; on the glass itself a touch surface does, and so does a display-bound

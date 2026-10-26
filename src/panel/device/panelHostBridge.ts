@@ -4,7 +4,8 @@ export interface HitRect { x: number; y: number; w: number; h: number }
 
 export type PanelHostMessage =
   // CSS px. `region`: only these rects take input; `full`: the whole window does.
-  | { type: 'nexus.panel.hitTest'; mode: 'region' | 'full'; dpr: number; rects: HitRect[] }
+  // `lease`: a transient full that the host drops unless it is renewed.
+  | { type: 'nexus.panel.hitTest'; mode: 'region' | 'full'; dpr: number; rects: HitRect[]; lease?: boolean }
   | { type: 'nexus.panel.raise'; value: boolean };
 
 interface HostPoster {
@@ -63,8 +64,10 @@ export function hitTestMessage(
   full: boolean,
   rects: HitRect[],
   dpr: number,
+  lease = false,
 ): Extract<PanelHostMessage, { type: 'nexus.panel.hitTest' }> {
-  return { type: 'nexus.panel.hitTest', mode: full ? 'full' : 'region', dpr, rects: full ? [] : rects };
+  if (!full) return { type: 'nexus.panel.hitTest', mode: 'region', dpr, rects };
+  return { type: 'nexus.panel.hitTest', mode: 'full', ...(lease ? { lease: true } : {}), dpr, rects: [] };
 }
 
 export const REQUEST_HIT_TEST = 'nexus.panel.requestHitTest';

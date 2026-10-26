@@ -9,6 +9,9 @@ import { MAX_PANEL_PAGES } from './panelGrid';
 // Legacy overlay widget card inset per side, in the overlay's own px.
 const LEGACY_INSET_PX = 6;
 
+/** Maps a legacy size to the one the display surface allows for that type; `slots` is the forced short-axis count when known. */
+export type SizeSnapper = (type: string, size: string, forced: { slots: number; landscape: boolean } | undefined) => string;
+
 export interface ImportViewport {
   // CSS px.
   w: number;
@@ -111,6 +114,7 @@ export function planDesktopImport(
   paddingPercent: number,
   layout: PanelLayout,
   currentGrid?: ImportGrid,
+  snapSize?: SizeSnapper,
 ): DesktopImportPlan {
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
   const unit = imp.cellUnits === 'device' ? dpr : 1;
@@ -141,7 +145,8 @@ export function planDesktopImport(
     if (existing.has(legacy.id)) continue;
     const id = used.has(legacy.id) ? createUuid() : legacy.id;
     used.add(id);
-    const span = sizeToSpan(legacy.size);
+    const size = snapSize ? snapSize(legacy.type, legacy.size, slots === undefined ? undefined : { slots, landscape: vp.w > vp.h }) : legacy.size;
+    const span = sizeToSpan(size);
     // The legacy window clamps a stored cell to the viewport before drawing it.
     const maxCol = Math.max(0, vp.w / stride - span.cols);
     const maxRow = Math.max(0, vp.h / stride - span.rows);
@@ -153,7 +158,7 @@ export function planDesktopImport(
     const widget: PanelWidget = {
       id,
       type: legacy.type,
-      size: legacy.size as PanelWidget['size'],
+      size: size as PanelWidget['size'],
       col,
       row,
       ...(legacy.locked ? { locked: true } : {}),

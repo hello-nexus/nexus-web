@@ -43,7 +43,7 @@ const sizeArea = (size: PanelWidgetSize): number => {
 // Pick the size from `allowed` closest in area to `requested`. Ties prefer
 // the smaller size so the widget shrinks-to-fit rather than blowing up. The
 // mapping is deterministic so re-normalizing a normalized layout is a no-op.
-function nearestAllowedSize(
+export function nearestAllowedSize(
   requested: PanelWidgetSize,
   allowed: readonly PanelWidgetSize[],
   fallback: PanelWidgetSize,

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchPanelDevices, type PanelDeviceRecord } from '../../api/panel';
 import { commitPlacement, type PlacementTarget } from '../../components/views/StorePage/installPlacement';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
+import type { PanelWidget } from '../types';
 import { lookupApp } from '../widgets/registry';
 
 export interface DisplayTarget { id: string; name: string }
@@ -23,9 +24,9 @@ export function useDisplayTargets(enabled: boolean) {
   }, [enabled, load]);
   useTopicCallback('panel/device', enabled, load);
 
-  const addToDisplay = useCallback(async (displayId: string, type: string): Promise<boolean> => {
+  const addToDisplay = useCallback(async (displayId: string, widget: Pick<PanelWidget, 'type' | 'size' | 'config'>): Promise<boolean> => {
     const record = records.find(r => r.id === displayId);
-    const meta = lookupApp(type)?.meta;
+    const meta = lookupApp(widget.type)?.meta;
     if (!record || !meta) return false;
     const target: PlacementTarget = {
       key: `display:${record.id}`,
@@ -36,7 +37,7 @@ export function useDisplayTargets(enabled: boolean) {
       family: record.capabilities?.family,
       deviceTouch: record.capabilities?.touch,
     };
-    return commitPlacement(target, type, meta, 0);
+    return commitPlacement(target, widget.type, meta, 0, { size: widget.size, config: widget.config });
   }, [records]);
 
   return { targets: displayTargetsOf(records), addToDisplay };

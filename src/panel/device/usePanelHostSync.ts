@@ -3,8 +3,14 @@ import { collectHitRects, hitTestMessage, onHostRequestHitTest, postPanelHostMes
 
 const HIT_SELECTOR = '[data-panel-widget-id], [data-panel-hit]';
 
-/** Reports which parts of a see-through, click-through window take input; `signature` changes when layout may have moved. */
-export function usePanelHitTest(active: boolean, full: boolean, rootRef: RefObject<HTMLElement | null>, signature: string): void {
+export const LEASE_RENEW_MS = 2000;
+
+/**
+ * Reports which parts of a see-through window take input. Click-through reports the widget rects;
+ * click-through off reports a steady full. `transientFull` (a sheet, drag or immersive view) reports
+ * a leased full renewed every LEASE_RENEW_MS. `signature` changes when layout may have moved.
+ */
+export function usePanelHitTest(active: boolean, clickThrough: boolean, transientFull: boolean, rootRef: RefObject<HTMLElement | null>, signature: string): void {
   const lastRef = useRef('');
   useEffect(() => {
     if (!active) {
@@ -12,22 +18,24 @@ export function usePanelHitTest(active: boolean, full: boolean, rootRef: RefObje
       return undefined;
     }
     let frame = 0;
-    const send = () => {
+    const send = (force = false) => {
       frame = 0;
+      const full = transientFull || !clickThrough;
       const rects = full
         ? []
         : collectHitRects(document.querySelectorAll(HIT_SELECTOR), { width: window.innerWidth, height: window.innerHeight });
       const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
-      const msg = hitTestMessage(full, rects, dpr);
+      const msg = hitTestMessage(full, rects, dpr, transientFull);
       const key = JSON.stringify(msg);
-      if (key === lastRef.current) return;
+      if (!force && key === lastRef.current) return;
       lastRef.current = key;
       postPanelHostMessage(msg);
     };
     const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(send);
+      if (!frame) frame = requestAnimationFrame(() => send());
     };
     schedule();
+    const renew = transientFull ? window.setInterval(() => send(true), LEASE_RENEW_MS) : 0;
     const offRequest = onHostRequestHitTest(() => {
       lastRef.current = '';
       if (frame) cancelAnimationFrame(frame);
@@ -42,13 +50,14 @@ export function usePanelHitTest(active: boolean, full: boolean, rootRef: RefObje
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
+      if (renew) window.clearInterval(renew);
       offRequest();
       observer?.disconnect();
       document.removeEventListener('transitionend', schedule, true);
       document.removeEventListener('animationend', schedule, true);
       window.removeEventListener('resize', schedule);
     };
-  }, [active, full, rootRef, signature]);
+  }, [active, clickThrough, transientFull, rootRef, signature]);
 }
 
 /** Lifts a not-on-top window above others while a menu, sheet or drag is open. */

@@ -95,3 +95,11 @@ describe('onHostRequestHitTest', () => {
     expect(cb).toHaveBeenCalledOnce();
   });
 });
+
+describe('hitTestMessage lease', () => {
+  it('marks only a leased full', () => {
+    expect(hitTestMessage(true, [], 1, true)).toMatchObject({ mode: 'full', lease: true });
+    expect(hitTestMessage(true, [], 1)).not.toHaveProperty('lease');
+    expect(hitTestMessage(false, [], 1, true)).not.toHaveProperty('lease');
+  });
+});

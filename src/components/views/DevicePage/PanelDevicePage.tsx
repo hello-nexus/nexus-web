@@ -442,6 +442,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
   const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel);
+  const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
   // Physical px = canvas x dpr. liveCanvas and a real record's previewSize are CSS px
   // (scaled by the record dpr), except the Q-series, whose WebView reports physical px;
@@ -470,7 +471,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       : undefined;
     return {
       surface: laidOut,
-      touch: laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
+      touch: record?.displayId ? true : laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
         panelShortSideSlots(glassSurface, family, record?.widgetSize, canvasDensitySlots, record?.gridSlots),
         isLandscapeCanvas(canvas),
@@ -935,8 +936,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // fallback guess: the bytes stay un-conformed and every render path
     // re-fits them at its own capacity.
     const normalized = editorCapacityDerived
-      ? repaginatePanelLayout(normalizePanelLayout(next, surface, deviceTouch, forcedGrid), editorCapacity)
-      : normalizePanelLayout(next, surface, deviceTouch, forcedGrid);
+      ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid), editorCapacity)
+      : normalizePanelLayout(next, surface, registryTouch, forcedGrid);
     setLayout(normalized);
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
@@ -956,7 +957,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, simulatorId, surface, glassSurface, deviceTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, editorCapacity, editorCapacityDerived, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -1031,8 +1032,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [previewPlaylist, setPreviewPlaylist] = useState<{ type: string | null; at: number }>({ type: null, at: 0 });
   const handlePlaylistShown = useCallback((type: string | null) => setPreviewPlaylist({ type, at: Date.now() }), []);
   const playingTypes = useMemo(
-    () => (playlistMode ? playingPlaylistTypes(layout, surface, deviceTouch) ?? [] : []),
-    [deviceTouch, layout, playlistMode, surface],
+    () => (playlistMode ? playingPlaylistTypes(layout, surface, registryTouch) ?? [] : []),
+    [registryTouch, layout, playlistMode, surface],
   );
   const stepPlaylist = useCallback((delta: 1 | -1) => {
     // A jump the preview has not reported yet is the newer position.
@@ -1554,7 +1555,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 key={configuringWidget.id}
                 widget={configuringWidget}
                 surface={surface}
-                deviceTouch={deviceTouch}
+                deviceTouch={registryTouch}
                 forcedGrid={forcedGrid}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
@@ -1606,7 +1607,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 onChange={on => updateLayout(setWidgetPlaylistEnabled(
                                   layout,
                                   on,
-                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
+                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch: registryTouch }).map(([type]) => type),
                                 ))}
                               />
                             )}
@@ -1620,7 +1621,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         )}
                         <PanelWidgetCatalog
                           surface={surface}
-                          deviceTouch={deviceTouch}
+                          deviceTouch={registryTouch}
                           forcedGrid={forcedGrid}
                           glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}

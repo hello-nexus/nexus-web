@@ -116,7 +116,8 @@ export function appAvailableForSurface(
   opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid },
 ): boolean {
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
-  if (meta.surfaces && !meta.surfaces.includes(surface)) return false;
+  // A desktop-limited widget can also sit on a monitor: a display panel replaces the legacy desktop overlay that hosted it.
+  if (meta.surfaces && !meta.surfaces.includes(surface) && !(surface === 'monitor' && meta.surfaces.includes('desktop'))) return false;
   // The phone surface only exists on remotely-connected panels, so it doubles
   // as the remote default for callers that don't carry the flag (layout
   // reconcile, PanelApp's render filter).
@@ -188,7 +189,7 @@ const MARKETPLACE_PREVIEWS: Record<string, AppManifest['Preview']> = {};
 // the listing's manifest so a 1x1 app stays 1x1 and a 4x2-only
 // weather stays 4x2. Anything the manifest declares that the panel
 // engine doesn't know about is filtered out.
-function makeMarketplaceAppManifest(
+export function makeMarketplaceAppManifest(
   id: string,
   label: string,
   manifestSizes: string[] | undefined,

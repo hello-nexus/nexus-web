@@ -114,7 +114,7 @@ import {
   type PanelWidgetSize,
   type ForcedGrid,
 } from './types';
-import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -397,7 +397,7 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
 function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; displayBound?: boolean }) {
   const landscape = useViewportLandscape();
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, landscape), [shortSideSlots, landscape]);
-  const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch, forcedGrid);
+  const layoutState = usePanelLayout(recordState, deviceId, surface, widgetInputOf(deviceTouch, !!displayBound), forcedGrid);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
@@ -861,6 +861,8 @@ export function PanelContent({
   // Widgets still get the device's own touch, so a display-only panel's widgets stay
   // non-interactive while its preview is edited by mouse.
   // A display-bound panel is edited on its display with the mouse, so it needs no touch digitizer.
+  // A display's mouse reaches widgets that need a pointer, as the legacy desktop overlay's did.
+  const widgetTouch = widgetInputOf(deviceTouch, displayBound);
   const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator, displayBound && kioskBehavior);
   const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch);
   // An editable canvas hoists the focused widget above the editor's scrim, else
@@ -910,7 +912,7 @@ export function PanelContent({
   const resizeCols = Math.max(1, capacity.gridCols);
   const resizeRows = Math.max(1, capacity.pageRows);
   const resizeBounds = useMemo(() => ({ cols: resizeCols, rows: resizeRows }), [resizeCols, resizeRows]);
-  const canResizeType = (type: string, locked?: boolean) => dragEditable && !locked && resizeSpansForType(type, surface, deviceTouch, forcedGrid, resizeBounds).length > 1;
+  const canResizeType = (type: string, locked?: boolean) => dragEditable && !locked && resizeSpansForType(type, surface, widgetTouch, forcedGrid, resizeBounds).length > 1;
   const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type, freeformWidget.locked));
   const hoverWidget = !freeformId && hoverResizeId ? findWidgetById(paginatedLayout, hoverResizeId) : undefined;
   const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type, hoverWidget.locked));
@@ -919,8 +921,8 @@ export function PanelContent({
   const cornerType = cornerTarget?.type;
   const freeformDef = cornerTarget ? lookupApp(cornerTarget.type) : undefined;
   const freeformSpans = useMemo(
-    () => (cornerType ? resizeSpansForType(cornerType, surface, deviceTouch, forcedGrid, resizeBounds) : NO_SPANS),
-    [cornerType, surface, deviceTouch, forcedGrid, resizeBounds],
+    () => (cornerType ? resizeSpansForType(cornerType, surface, widgetTouch, forcedGrid, resizeBounds) : NO_SPANS),
+    [cornerType, surface, widgetTouch, forcedGrid, resizeBounds],
   );
   // Computed from the layout the tile stands in (not a gesture's draft) and only for the tile showing corners,
   // since each corner solves a placement per candidate span.
@@ -1139,7 +1141,7 @@ export function PanelContent({
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
-          return appAvailableForSurface(def.meta, surface, { deviceTouch, forcedGrid });
+          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -1150,7 +1152,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, deviceTouch, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -1777,7 +1779,8 @@ export function PanelContent({
   const hitFull = Boolean(sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
     || freeformActive || touch.rearranging || connectionIntroHost || isOffline);
   usePanelHitTest(
-    hostBound && clickThrough,
+    hostBound && seeThrough,
+    clickThrough,
     hitFull,
     rootRef,
     `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${allFlatIds.join(',')}`,
@@ -2396,7 +2399,7 @@ export function PanelContent({
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
-            sizes={sizesForSurface(def.meta, surface, deviceTouch, forcedGrid)}
+            sizes={sizesForSurface(def.meta, surface, widgetTouch, forcedGrid)}
             hasConfig
             surface={surface}
             themeMode={resolvedThemeMode}
@@ -2408,7 +2411,7 @@ export function PanelContent({
             onRemove={() => removeWidget(ctxWidget.id)}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
             displayTargets={onDesktopSurface ? displayTargets : undefined}
-            onAddToDisplay={onDesktopSurface && displayTargets.length > 0 ? displayId => { void addToDisplay(displayId, ctxWidget.type); } : undefined}
+            onAddToDisplay={onDesktopSurface && displayTargets.length > 0 ? displayId => { void addToDisplay(displayId, ctxWidget); } : undefined}
             onAddWidget={mouseEditable ? () => openSheet('catalog') : undefined}
             alwaysOnTop={menuAlwaysOnTop}
             onToggleAlwaysOnTop={menuAlwaysOnTop === undefined ? undefined : toggleAlwaysOnTop}
@@ -2477,7 +2480,7 @@ export function PanelContent({
           mode={sheetMode}
           surface={surface}
           deviceId={deviceId}
-          deviceTouch={deviceTouch}
+          deviceTouch={widgetTouch}
           forcedGrid={forcedGrid}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}

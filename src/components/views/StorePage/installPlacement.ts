@@ -71,6 +71,12 @@ export interface PlacementPlan {
 
 type AppMeta = AppManifest['meta'];
 
+/** A widget being copied to another panel: its size is kept where the target allows it, its config always. */
+export interface WidgetCopy {
+  size?: PanelWidgetSize;
+  config?: PanelWidget['config'];
+}
+
 export function placementTargets(dashboardName: string, devices: readonly UnifiedDevice[]): PlacementTarget[] {
   const targets: PlacementTarget[] = [{ key: DASHBOARD_TARGET_KEY, name: dashboardName, iconSrc: null, surface: 'desktop' }];
   for (const device of devices) {
@@ -119,7 +125,8 @@ function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surfac
   );
   return {
     surface,
-    deviceTouch: surface === target.surface ? touch : surfaceSupportsTouch(target.surface, touch),
+    // A display's mouse reaches widgets that need a pointer.
+    deviceTouch: record?.displayId ? true : surface === target.surface ? touch : surfaceSupportsTouch(target.surface, touch),
     shortSideSlots,
     forcedGrid: forcedGridOf(shortSideSlots, !!screen && screen.width > screen.height),
   };
@@ -171,15 +178,17 @@ export function planPlacement(
   type: string,
   meta: AppMeta,
   dashboardColumns: number,
+  copyOf?: WidgetCopy,
 ): PlacementPlan | null {
   const { layout, record } = loaded;
   const { surface, deviceTouch, forcedGrid } = layoutOf(target, record);
   if (!appAvailableForSurface(meta, surface, { deviceTouch, forcedGrid })) return null;
-  const size = placementSize(meta, surface, deviceTouch, forcedGrid);
+  const copySize = copyOf?.size && sizesForSurface(meta, surface, deviceTouch, forcedGrid).includes(copyOf.size) ? copyOf.size : null;
+  const size = copySize ?? placementSize(meta, surface, deviceTouch, forcedGrid);
   if (!size) return null;
   if (meta.singleInstance && layout.pages.some(p => p.widgets.some(w => w.type === type))) return null;
   const screen = screenOf(target, record);
-  const fresh: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0 };
+  const fresh: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0, ...(copyOf?.config ? { config: copyOf.config } : {}) };
 
   if (isSingleWidgetSurface(surface)) {
     const current = layout.pages[0]?.widgets[0];
@@ -246,10 +255,11 @@ export async function commitPlacement(
   type: string,
   meta: AppMeta,
   dashboardColumns: number,
+  copyOf?: WidgetCopy,
 ): Promise<boolean> {
   const loaded = await loadTarget(target);
   if (!loaded) return false;
-  const plan = planPlacement(target, loaded, type, meta, dashboardColumns);
+  const plan = planPlacement(target, loaded, type, meta, dashboardColumns, copyOf);
   if (!plan) return false;
   if (target.key === DASHBOARD_TARGET_KEY) {
     const saved = await savePreferences({ panel: { dashboardLayout: plan.layout } });

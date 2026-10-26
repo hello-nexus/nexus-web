@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { patchPanelDevice, type DesktopImportDto } from '../../api/panel';
 import type { PanelLayout } from '../types';
+import { snapLegacySize } from './legacySize';
 import { hasPendingImport, planDesktopImport, type ImportGrid } from './desktopImport';
 
 /** Places a legacy desktop-widget layout once the panel has its real size, then clears the import. */
@@ -24,7 +25,7 @@ export function useDesktopImport({ enabled, deviceId, pending, layout, paddingPe
     const base: PanelLayout = pending.merge
       ? layout
       : { ...layout, pages: [{ id: layout.pages[0]?.id ?? 'page-1', widgets: [] }], activePageId: undefined };
-    const plan = planDesktopImport(pending, { w, h, dpr }, paddingPercent, base, grid);
+    const plan = planDesktopImport(pending, { w, h, dpr }, paddingPercent, base, grid, snapLegacySize);
     // Stays busy after a save until the cleared record arrives, so a stale render cannot place twice.
     void patchPanelDevice(deviceId, {
       layout: plan.layout,
