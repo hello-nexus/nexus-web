@@ -1,9 +1,9 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
-import { Box3, Group, Matrix4, Vector3 } from 'three';
+import { Box3, Color, Group, LessEqualDepth, LineSegments, Matrix4, Mesh, MeshBasicMaterial, Vector3, type Material } from 'three';
 import { describe, expect, it } from 'vitest';
 import { Y70_FAN_SLOTS, Y70_SIZE } from '../cooling/y70Slots.fixture';
-import { parseCaseModel, sceneToLayoutMatrix } from './caseModel';
+import { CASE_FACE_OPACITY, CASE_LINE_OPACITY, parseCaseModel, sceneToLayoutMatrix, styleCaseModel } from './caseModel';
 
 // The case model T1's service served for the HYTE Y70 (Build's export), and that case's fan slots from the same setup record.
 const load = async () => {
@@ -73,5 +73,32 @@ describe('the Y70 model in the layout frame', () => {
     Y70_FAN_SLOTS.forEach((s, i) => byFace.set(s.position, [...(byFace.get(s.position) ?? []), gaps[i]]));
     for (const [, g] of byFace) expect(Math.max(...g) - Math.min(...g)).toBeLessThan(0.5);
     expect(Math.max(...gaps)).toBeLessThan(15);
+  });
+});
+
+describe('styleCaseModel brightness', () => {
+  it('draws one tint per pixel through a depth-only prepass, at the opacities Build draws the case with', async () => {
+    const model = await load();
+    const meshCount = (() => { let n = 0; model.traverse(o => { if ((o as Mesh).isMesh) n++; }); return n; })();
+    styleCaseModel(model, new Color('#808080'), new Color('#808080'));
+    const faces: Mesh[] = [];
+    const prepasses: Mesh[] = [];
+    model.traverse(o => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh) return;
+      const m = mesh.material as MeshBasicMaterial;
+      (m.colorWrite ? faces : prepasses).push(mesh);
+    });
+    expect(faces).toHaveLength(meshCount);
+    expect(prepasses).toHaveLength(meshCount);
+    for (const mesh of prepasses) expect((mesh.material as Material).depthWrite).toBe(true);
+    for (const mesh of faces) {
+      const m = mesh.material as MeshBasicMaterial;
+      expect(m.depthFunc).toBe(LessEqualDepth);
+      expect(m.depthWrite).toBe(false);
+      expect(m.opacity).toBe(CASE_FACE_OPACITY);
+      const edges = mesh.children.find(c => (c as LineSegments).isLineSegments) as LineSegments;
+      expect((edges.material as Material).opacity).toBe(CASE_LINE_OPACITY);
+    }
   });
 });

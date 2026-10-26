@@ -6,7 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, type CaseBox, type CaseLayout, type CaseTube } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
-import { parseCaseModel, sceneToLayoutMatrix, STRUCTURE_LINE_DIM, styleCaseModel } from '../../../../lib/scene/caseModel';
+import { CASE_LINE_OPACITY, parseCaseModel, sceneToLayoutMatrix, styleCaseModel } from '../../../../lib/scene/caseModel';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
@@ -311,7 +311,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const [sx, sy, sz] = to.size;
     const geo = new EdgesGeometry(new BoxGeometry(Math.max(sx, 0.01), Math.max(sy, 0.01), Math.max(sz, 0.01)));
     moveDisposables.push(geo);
-    const edges = new LineSegments(geo, lineMaterial(token(canvas, '--text-dim', '#8a93a6'), 0.45 * STRUCTURE_LINE_DIM, moveDisposables));
+    const edges = new LineSegments(geo, lineMaterial(token(canvas, '--text-dim', '#8a93a6'), CASE_LINE_OPACITY, moveDisposables));
     edges.position.set(to.min[0] + sx / 2, to.min[1] + sy / 2, to.min[2] + sz / 2);
     edges.rotation.y = to.rotationY ?? 0;
     moveGroup.add(edges);
@@ -322,7 +322,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     clear(tubeGroup, tubeDisposables);
     for (const tube of l.tubes ?? []) {
       const geo = tubeGeometry(tube);
-      const material = new MeshBasicMaterial({ color: token(canvas, '--text-dim', '#8a93a6'), transparent: true, opacity: 0.6 * STRUCTURE_LINE_DIM + 0.1, depthWrite: false });
+      const material = new MeshBasicMaterial({ color: token(canvas, '--text-dim', '#8a93a6'), transparent: true, opacity: CASE_LINE_OPACITY, depthWrite: false });
       tubeDisposables.push(geo, material);
       tubeGroup.add(new Mesh(geo, material));
     }
