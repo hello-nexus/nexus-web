@@ -14,6 +14,7 @@ export const snakeApp: AppManifest = {
     hasConfig: false,
     touch: true,
     panelOnly: true,
+    portraitOnly: true,
   },
   Widget: SnakeWidget,
   Touch: SnakeTouch,

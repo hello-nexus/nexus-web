@@ -603,7 +603,7 @@
 // stylesheet order. Single-widget surfaces never carry data-widget-padding
 // (PanelApp.tsx), so they keep their radius.
 .panelRoot[data-surface][data-widget-padding='none'] {
-  --panel-card-radius: 0;
+  --panel-card-radius: 0px;
 }
 
 .panelRoot[data-surface='desktop'] {

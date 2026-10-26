@@ -165,6 +165,8 @@ export interface AppMetadata {
   // desktop overlay - never enters immersive, so the tile would be inert
   // there; set this to keep the widget on on-device panels only.
   panelOnly?: boolean;
+  // Plays only on a panel that can stand in portrait; a generic display panel cannot rotate, so it leaves the widget out.
+  portraitOnly?: boolean;
   // Whether the widget participates in slot selection during editing: the live
   // tile renders selectable cells and the edit sheet edits the selected slot
   // (monitoring, deck). When true, PanelApp/PanelEditorSheet

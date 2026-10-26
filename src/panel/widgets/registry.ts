@@ -113,8 +113,9 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
-  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean },
+  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean; genericDisplay?: boolean },
 ): boolean {
+  if (meta.portraitOnly && opts?.genericDisplay) return false;
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
   // A display panel replaces the legacy desktop overlay, so it also takes the widgets limited to the desktop.
   const desktopOnDisplay = opts?.displayBound === true && surface === 'monitor' && meta.surfaces?.includes('desktop') === true;

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { PanelWidget } from '../../types';
+import { widgetInputOf } from '../../types';
 import type { ProcessRow } from './processesData';
 
 const pingMock = vi.fn<() => Promise<{ platform: string } | null>>();
@@ -117,6 +118,13 @@ describe('ProcessesWidget', () => {
 
   it('keeps the sort headers pressable on a touch monitor', async () => {
     render(<ProcessesWidget widget={widget()} surface="monitor" deviceTouch />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: KEY.name }));
+    expect(renderedNames()).toEqual(['alpha', 'chrome', 'zebra']);
+  });
+
+  it('keeps the sort headers pressable on a display-bound monitor with no digitizer', async () => {
+    render(<ProcessesWidget widget={widget()} surface="monitor" deviceTouch={widgetInputOf(false, true)} />);
     await act(async () => {});
     fireEvent.click(screen.getByRole('button', { name: KEY.name }));
     expect(renderedNames()).toEqual(['alpha', 'chrome', 'zebra']);

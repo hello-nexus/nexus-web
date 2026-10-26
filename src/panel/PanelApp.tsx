@@ -105,7 +105,8 @@ import { useTranslation } from '../lib/i18n';
 import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
 import { openAppAt } from '../api/displays';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
-import { isRemotePaired, isTunnelActive } from '../api/service';
+import { isRemotePaired, isTunnelActive, postService } from '../api/service';
+import { webViewOpenUrl } from './widgets/web-view/webViewUrl';
 import { createUuid } from '../lib/uuid';
 import { spawnDropRing } from '../lib/dropRing';
 import {
@@ -1201,7 +1202,7 @@ export function PanelContent({
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
-          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound });
+          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound, genericDisplay });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -1212,7 +1213,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, genericDisplay, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2303,7 +2304,7 @@ export function PanelContent({
                               widget={w}
                               deviceId={deviceId}
                               surface={surface}
-                              deviceTouch={deviceTouch}
+                              deviceTouch={widgetTouch}
                               rearranging={touch.rearranging}
                               pressHint={!sheetMode && touch.pressedWidgetId === w.id}
                               dimmed={Boolean(contextMenuWidgetId) && contextMenuWidgetId !== w.id}
@@ -2509,6 +2510,7 @@ export function PanelContent({
         const openRoute = genericDisplay && !simulator && !embedded
           ? appRouteForWidget(ctxWidget, deviceId, ctxWidget.type === 'deck' ? deckKeyAt(touch.ctxMenu.target ?? null) : undefined)
           : null;
+        const openUrl = genericDisplay && !simulator && !embedded ? webViewOpenUrl(ctxWidget) : null;
 
         // Sidebar pin toggle, only for pinnable types (isPinnableAppKey):
         // "Pin to Sidebar" when not pinned, "Unpin from Sidebar" when pinned.
@@ -2553,7 +2555,7 @@ export function PanelContent({
                 pinnedSidebarApps: pinnedTail.filter(k => k !== pinnableKey),
               });
             } : undefined}
-            onOpen={openRoute ? () => { void openAppAt(openRoute); } : undefined}
+            onOpen={openRoute ? () => { void openAppAt(openRoute); } : openUrl ? () => { void postService('/system/open-url', { url: openUrl }); } : undefined}
             widgetItemsLast={onDesktopSurface}
             onClose={touch.closeCtxMenu}
           />
@@ -2608,6 +2610,7 @@ export function PanelContent({
           deviceId={deviceId}
           deviceTouch={widgetTouch}
           displayBound={displayBound}
+          genericDisplay={genericDisplay}
           forcedGrid={forcedGrid}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}

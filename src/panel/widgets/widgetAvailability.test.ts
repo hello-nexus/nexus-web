@@ -69,6 +69,18 @@ describe('appAvailableForSurface', () => {
     expect(appAvailableForSurface(lighting.meta, 'q60')).toBe(false);
   });
 
+  it('leaves the portrait-only games out of generic display panels only', () => {
+    const portraitOnly = Object.entries(APP_REGISTRY).filter(([, a]) => a.meta.portraitOnly).map(([k]) => k).sort();
+    expect(portraitOnly).toEqual(['blocks', 'snake']);
+    for (const key of portraitOnly) {
+      const { meta } = APP_REGISTRY[key];
+      expect(appAvailableForSurface(meta, 'monitor', { deviceTouch: true, displayBound: true, genericDisplay: true })).toBe(false);
+      expect(appAvailableForSurface(meta, 'monitor', { deviceTouch: true, displayBound: true })).toBe(true);
+      expect(appAvailableForSurface(meta, 'y70')).toBe(true);
+      expect(appAvailableForSurface(meta, 'phone')).toBe(true);
+    }
+  });
+
   it('shows non-touch widgets on every surface that fits a size', () => {
     const clock = APP_REGISTRY.clock;
     expect(appAvailableForSurface(clock.meta, 'y70')).toBe(true);
