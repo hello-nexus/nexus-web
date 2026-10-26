@@ -13,6 +13,7 @@ import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
 import { slotLayoutLabelKey, slotLayoutOptionsForSize, slotLayoutPatch, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
+import { StreamFpsCapSetting } from './StreamFpsCapSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
 import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import type { TextColorMode } from '../theme/textColor';
@@ -455,6 +456,7 @@ export function PanelEditorSheet({
                 onCommit={onMachineNameCommit}
               />
             )}
+            {panelSettingsSection !== 'background' && <StreamFpsCapSetting />}
             <PanelThemeSettings
               sections={panelSettingsSection}
               theme={panelTheme}
