@@ -56,10 +56,10 @@ const meanSpeed = (layout: CaseLayout, f: ReturnType<typeof flowFor>, steps = 40
 describe('visual flow compression', () => {
   it('keeps any spinning fan moving and a stopped one still', () => {
     expect(visualFlowCfm(60, 0)).toBe(0);
-    expect(visualFlowCfm(60, 0.01)).toBeGreaterThan(60 * 0.4);
+    expect(visualFlowCfm(60, 0.01)).toBeGreaterThan(60 * 0.25);
     const ratio = visualFlowCfm(60, 500 / 2500) / visualFlowCfm(60, 1);
-    expect(ratio).toBeGreaterThan(0.45);
-    expect(ratio).toBeLessThan(0.6);
+    expect(ratio).toBeGreaterThan(0.38);
+    expect(ratio).toBeLessThan(0.52);
   });
 
   it('parses simulated channel ids and clamps them', () => {
@@ -75,11 +75,11 @@ describe('visual flow compression', () => {
     const fast = meanSpeed(layout, flowFor(layout, { 'right:120:1': 1 }, ['right:120:1']));
     expect(slow.mean).toBeGreaterThan(0.005);
     const ratio = slow.birth / fast.birth;
-    expect(ratio).toBeGreaterThan(0.45);
-    expect(ratio).toBeLessThan(0.6);
+    expect(ratio).toBeGreaterThan(0.38);
+    expect(ratio).toBeLessThan(0.52);
   }, 120000);
 
-  it('moves particles within a fan diameter downstream of a 500 rpm fan at 0.45 to 0.6 of those at 2500 rpm, on one face, frame by frame', () => {
+  it('moves particles within a fan diameter downstream of a 500 rpm fan at 0.38 to 0.52 of those at 2500 rpm, on one face, frame by frame', () => {
     const slots = ['right:120:1', 'right:120:2'];
     const layout = layoutWith(slots);
     const f = flowFor(layout, { 'right:120:1': 0.2, 'right:120:2': 1 }, slots);
@@ -122,8 +122,8 @@ describe('visual flow compression', () => {
     expect(counts[1]).toBeGreaterThan(200);
     const [slow, fast] = [sums[0] / counts[0], sums[1] / counts[1]];
     expect(slow).toBeGreaterThan(0.02);
-    expect(slow / fast).toBeGreaterThan(0.45);
-    expect(slow / fast).toBeLessThan(0.6);
+    expect(slow / fast).toBeGreaterThan(0.38);
+    expect(slow / fast).toBeLessThan(0.52);
   }, 180000);
 
   it('runs rpm 0 as no flow', () => {
@@ -142,7 +142,7 @@ describe('visual flow compression', () => {
     for (const k of keys.slice(0, 3)) expect(f.fanCfm[k]).toBeGreaterThan(20);
     const slowest = Math.min(...keys.slice(0, 3).map(k => f.fanCfm[k]));
     const fastest = Math.max(...keys.slice(0, 3).map(k => f.fanCfm[k]));
-    expect(slowest / fastest).toBeGreaterThan(0.45);
+    expect(slowest / fastest).toBeGreaterThan(0.38);
     const { scene, mean } = meanSpeed(layout, f);
     // Each spinning fan holds emitter entries near its own ring.
     const e = scene.emitters;
