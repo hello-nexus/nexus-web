@@ -117,6 +117,8 @@ import {
   type ForcedGrid,
 } from './types';
 import { recordWidgetSizeOf } from './engine/recordWidgetSize';
+import { recordCanvasOf } from './engine/recordCanvas';
+import { kioskViewportReporter } from './engine/kioskViewportReport';
 import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
@@ -263,10 +265,15 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // The record's own capabilities where it has them; a viewport inference
   // keeps the panel mounting when the server has no record for this id.
   const caps = record?.capabilities;
+  const viewportWidth = record?.kioskViewport?.cssWidth;
+  const viewportHeight = record?.kioskViewport?.cssHeight;
+  const viewportDpr = record?.kioskViewport?.dpr;
   const resolved = useMemo(() => {
+    const kioskViewport = viewportWidth && viewportHeight ? { cssWidth: viewportWidth, cssHeight: viewportHeight, dpr: viewportDpr ?? 1 } : undefined;
+    const canvas = recordCanvasOf({ kioskViewport, capabilities: { cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr } });
     const glassSurface = (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface;
     const widgetSize = recordWidgetSizeOf(
-      { widgetSize: record?.widgetSize, gridSlots: record?.gridSlots, displayId: record?.displayId, capabilities: { family: caps?.family, cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr, dpi: caps?.dpi } },
+      { widgetSize: record?.widgetSize, gridSlots: record?.gridSlots, displayId: record?.displayId, kioskViewport, capabilities: { family: caps?.family, cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr, dpi: caps?.dpi } },
       glassSurface,
     );
     const surface = panelLayoutSurface(glassSurface, caps?.family, widgetSize);
@@ -274,8 +281,8 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
     const dpi = panelLayoutDpi(glassSurface, caps?.family, widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);
     // A kiosk fills its monitor, so the record's size is the canvas the runtime grid
     // measures; it follows a resolution change.
-    const densitySlots = caps?.cssWidth && caps.cssHeight
-      ? densityShortSideSlots(caps.cssWidth, caps.cssHeight, caps.dpr || 1, dpi ?? estimateRuntimePanelDpi(surface))
+    const densitySlots = canvas
+      ? densityShortSideSlots(canvas.width, canvas.height, canvas.dpr, dpi ?? estimateRuntimePanelDpi(surface))
       : runtimeDensityShortSideSlots(surface, dpi);
     return {
       surface,
@@ -288,7 +295,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       widgetSize,
       displayBound: !!record?.displayId,
     };
-  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, record?.widgetSize, record?.gridSlots, record?.displayId]);
+  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, viewportWidth, viewportHeight, viewportDpr, record?.widgetSize, record?.gridSlots, record?.displayId]);
   // The size a retired grid density stood for is written once; the stored density is left in place.
   const migratedSizeRef = useRef('');
   const migrateId = record?.id;
@@ -320,6 +327,17 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   }, [connected, refetch]);
   useAppsChangedSync(refetch);
 
+  // A host-launched kiosk on a display-bound record is the only one that knows its real window (the work
+  // area, not the full display), so it reports that for the dashboard editor to size its preview from.
+  const kioskViewportRef = useRef<{ cssWidth: number; cssHeight: number; dpr: number } | null>(null);
+  kioskViewportRef.current = viewportWidth && viewportHeight ? { cssWidth: viewportWidth, cssHeight: viewportHeight, dpr: viewportDpr ?? 1 } : null;
+  const reportsViewport = !!record?.displayId && resolved.glassSurface === 'monitor';
+  useEffect(() => {
+    if (!reportsViewport) return undefined;
+    return kioskViewportReporter(window, deviceId, () => kioskViewportRef.current, (id, viewport) => {
+      void patchPanelDevice(id, { kioskViewport: viewport });
+    });
+  }, [reportsViewport, deviceId]);
   // Keep the record's viewport facts truthful across a display rotation. The
   // Y70 record is not display-bound, so the promoted-monitor topology sync
   // never rewrites it - this kiosk is the only writer - and the device page

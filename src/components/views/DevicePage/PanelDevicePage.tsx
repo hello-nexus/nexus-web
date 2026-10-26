@@ -29,6 +29,7 @@ import {
 import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
 import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
+import { monitorGridCapacity, recordCanvasOf } from '../../../panel/engine/recordCanvas';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -42,7 +43,7 @@ import { panelSystemFontsAvailable } from '../../../panel/theme/panelFont';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
-import { fitLayoutToPages, fitLayoutToSinglePage, repaginatePanelLayout, type PaginateCapacity } from '../../../panel/engine/paginate';
+import { fitLayoutToPages, fitLayoutToSinglePage, repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { ensureSimulatedPanelRecord, getPanelGridSizingSettings, getSimulatedPanelRecordId } from '../../../lib/panelSimulation';
 import {
@@ -146,30 +147,6 @@ import styles from './PanelDevicePage.module.scss';
 
 function isLandscapeCanvas(canvas?: { width?: number | null; height?: number | null }): boolean {
   return !!canvas?.width && !!canvas.height && canvas.width > canvas.height;
-}
-
-// The runtime's monitor grid for a canvas in CSS px at the given device pixel ratio.
-function monitorGridCapacity(
-  canvas: { width: number; height: number },
-  dpr: number,
-  dpi: number,
-  paddingRatio: number,
-  shortSideSlots?: number,
-): PaginateCapacity {
-  const capacity = panelGridCapacityForCanvas(
-    Math.max(1, Math.round(canvas.width * dpr)),
-    Math.max(1, Math.round(canvas.height * dpr)),
-    {
-      surface: 'monitor',
-      dpi,
-      // The kiosk's readRuntimePanelGrid honors the dev sizing knob;
-      // omitting it here diverges the editor grid whenever it is set.
-      sizing: getPanelGridSizingSettings(),
-      shortSideSlots,
-      paddingRatio,
-    },
-  );
-  return { gridCols: capacity.columns, pageRows: capacity.rows };
 }
 
 const WIDGET_SIZE_LARGE: PanelWidgetSizeMode = 'large';
@@ -466,11 +443,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const sizeOf = recordWidgetSizeOf(record, glassSurface);
     const laidOut = panelLayoutSurface(glassSurface, family, sizeOf);
     // Same canvas the editor grid reads: the record's own, else the device entry's.
-    const canvas = caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight } : device?.previewSize;
+    const recordCanvas = recordCanvasOf(record);
+    const canvas = recordCanvas ? { width: recordCanvas.width, height: recordCanvas.height } : device?.previewSize;
     const dpi = panelLayoutDpi(glassSurface, family, sizeOf, caps?.dpi, DEFAULT_SURFACE_DPI)
       ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
     const canvasDensitySlots = canvas
-      ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (caps?.cssWidth ? caps.dpr : device?.previewDpr) || 1, dpi)
+      ? densityShortSideSlots(canvas.width, canvas.height, glassSurface === 'q60' ? 1 : (recordCanvas ? recordCanvas.dpr : device?.previewDpr) || 1, dpi)
       : undefined;
     return {
       surface: laidOut,
@@ -688,10 +666,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       if (tog) setScreenOn(!tog.toggle);
       const match = matchPanelRecord(devices?.devices, boundRecordId(), glassSurface, isSimulated);
       setEditingDeviceId(match?.id ?? null);
-      const cw = match?.capabilities?.cssWidth;
-      const ch = match?.capabilities?.cssHeight;
-      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
-      setLiveDpr(match?.capabilities?.dpr ?? null);
+      const canvas = recordCanvasOf(match);
+      setLiveCanvas(canvas ? { width: canvas.width, height: canvas.height } : null);
+      setLiveDpr(canvas?.dpr ?? null);
       setLiveDpi(match?.capabilities?.dpi ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
@@ -854,10 +831,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const seq = writeSeqRef.current;
     fetchPanelDevice(editingDeviceId).then(record => {
       if (!record) return;
-      const cw = record.capabilities?.cssWidth;
-      const ch = record.capabilities?.cssHeight;
-      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
-      setLiveDpr(record.capabilities?.dpr ?? null);
+      const canvas = recordCanvasOf(record);
+      setLiveCanvas(canvas ? { width: canvas.width, height: canvas.height } : null);
+      setLiveDpr(canvas?.dpr ?? null);
       setLiveDpi(record.capabilities?.dpi ?? null);
       // A physical rotation (Xeneon Edge auto-orient) rewrites the record's
       // orientation and broadcasts here. Without this the page keeps its

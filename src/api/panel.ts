@@ -25,6 +25,13 @@ export interface PanelStatus {
 // Per-device record: identity (deviceId), persisted layout, optional
 // per-device theme overrides, last-reported capabilities. Mirrors
 // nexus-service Models/Panel/PanelDeviceDto.cs.
+/** The window size the kiosk on a display-bound record measured, in CSS px. Reported by the kiosk; the topology sync never rewrites it. */
+export interface KioskViewportDto {
+  cssWidth: number;
+  cssHeight: number;
+  dpr: number;
+}
+
 export interface PanelDeviceCapabilitiesDto {
   surface?: PanelSurface;
   grid?: string;
@@ -136,6 +143,7 @@ export interface PanelDeviceRecord {
   firstSeenAt: number;
   lastSeenAt: number;
   capabilities?: PanelDeviceCapabilitiesDto;
+  kioskViewport?: KioskViewportDto;
   // Stable display id when this record was created by promoting an OS
   // monitor (POST /displays/{id}/panel). Absent on self-registered panels.
   displayId?: string;
@@ -274,6 +282,7 @@ export interface PanelDevicePatch {
   // Panels whose capabilities carry supportsRenderScale only; ignored for other panels.
   highResolution?: boolean;
   widgetSize?: PanelWidgetSizeMode;
+  kioskViewport?: KioskViewportDto;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 
