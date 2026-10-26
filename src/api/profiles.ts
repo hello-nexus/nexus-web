@@ -5,6 +5,7 @@ import type { PanelGaugeGradientStopDto } from './panel';
 import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
 import type { TempUnit, TimeFormat, NumberFormat, DateFormat } from '../lib/units';
+import type { CoolingFlowMode } from '../lib/settings';
 
 export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'panels', 'theme', 'dashboard', 'device'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
@@ -194,6 +195,10 @@ export interface UiPrefs {
   showUncontrolledDevices?: boolean;
   showUncontrolledLightingDevices?: boolean;
   showUncontrolledCoolingDevices?: boolean;
+  lightingView3d?: boolean;
+  coolingView3d?: boolean;
+  coolingFlowMode?: CoolingFlowMode;
+  coolingCollisionShapes?: boolean;
   hiddenSidebarDevices?: string[];
 }
 

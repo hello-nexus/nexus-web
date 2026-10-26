@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PcSetupItem } from '../../api/pcSetup';
 import type { CaseFanSlot } from './caseLayout';
-import { catalogFanSpecs, inferRadiatorFans, resolveFanSpec, slotModelFans } from './fanSpecs';
+import { catalogFanSpecs, resolveFanSpec, slotModelFans } from './fanSpecs';
 
 const item = (category: string, specs: Record<string, unknown>, owned = true): PcSetupItem => ({
   id: category, kind: category, owned, catalog: { category, partId: 'p', title: 't', specs },
@@ -53,34 +53,13 @@ describe('slotModelFans', () => {
     expect(slotModelFans(slot({}), [])[0]).toMatchObject({ cfm: 60, staticMmH2O: 1.8, estimated: true });
   });
 
-  it('skips empty slots and expands a radiator by its stated fan count', () => {
+  it('skips empty slots and the case slots a radiator covers', () => {
     expect(slotModelFans(slot({ taken: null }), [])).toEqual([]);
-    const fans = slotModelFans(slot({ taken: 'radiator', size: 360, radiator: { fanCount: 3, fanAirflowCfm: 55 } }), []);
-    expect(fans.map(f => f.key)).toEqual(['k', 'k#1', 'k#2']);
-    expect(fans[0]).toMatchObject({ cfm: 55, staticMmH2O: 1.8, estimated: true });
-  });
-});
-
-describe('radiator fan count inference', () => {
-  it.each([[120, 1, 120], [240, 2, 120], [360, 3, 120], [140, 1, 140], [280, 2, 140], [420, 3, 140], [200, 2, 120]])(
-    'a %i mm radiator has %i fans of %i mm', (length, count, size) => {
-      expect(inferRadiatorFans(length)).toEqual({ count, sizeMm: size });
-    });
-
-  it('infers the fans of a radiator slot with no fanCount and marks them estimates', () => {
-    const slot: CaseFanSlot = { key: 'top:360:0', position: 'top', size: 360, index: 0, taken: 'radiator', radiator: { fanAirflowCfm: 55, fanStaticPressureMmH2O: 2.2 } };
-    const fans = slotModelFans(slot, []);
-    expect(fans).toHaveLength(3);
-    expect(fans.every(f => f.cfm === 55 && f.staticMmH2O === 2.2 && f.estimated)).toBe(true);
+    expect(slotModelFans(slot({ taken: 'radiator', size: 360, radiator: { fanCount: 3, fanAirflowCfm: 55 } }), [])).toEqual([]);
   });
 
-  it('keeps a stated count exact when its specs are complete', () => {
-    const slot: CaseFanSlot = { key: 'r', position: 'top', size: 240, index: 0, taken: 'radiator', radiator: { fanCount: 2, fanAirflowCfm: 55, fanStaticPressureMmH2O: 2.2 } };
-    expect(slotModelFans(slot, []).every(f => !f.estimated)).toBe(true);
-  });
-
-  it('counts an AIO with no radiator record at all', () => {
-    const slot: CaseFanSlot = { key: 'r', position: 'rear', size: 240, index: 0, taken: 'radiator' };
-    expect(slotModelFans(slot, [])).toHaveLength(2);
+  it('takes a radiator fan slot\'s spec from the slot like any fan', () => {
+    const [fan] = slotModelFans(slot({ key: 'rad:1', fan: { airflowCfm: 55, staticPressureMmH2O: 2.2 } }), []);
+    expect(fan).toMatchObject({ key: 'rad:1', cfm: 55, staticMmH2O: 2.2, estimated: false });
   });
 });
