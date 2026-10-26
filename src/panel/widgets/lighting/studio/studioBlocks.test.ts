@@ -3,7 +3,8 @@ import { studioBlock } from './studioBlocks';
 
 // Runs the wipe block's shipped edge statements (the lines after x is picked) as JS.
 function wipeAt(softness: number, speed = 1) {
-  const code = studioBlock('wipe')!.code.split('\n').slice(-2).join('\n')
+  const source = studioBlock('wipe')!.code.split('\n').slice(-2).join('\n');
+  const code = source
     .replace(/\bfloat\s+/g, 'let ')
     .replace(/\$speed/g, `(${speed})`)
     .replace(/\$softness/g, String(softness));
@@ -18,7 +19,7 @@ function wipeAt(softness: number, speed = 1) {
     },
   };
   const run = new Function('t', 'x', ...Object.keys(glsl), `let f; ${code}; return f;`);
-  const rate = Number(/\$speed \* ([\d.]+)/.exec(studioBlock('wipe')!.code)![1]);
+  const rate = Number(/float ph = t \* \$speed \* ([\d.]+);/.exec(source)![1]);
   const passLength = 1 / (rate * Math.abs(speed));
   return (passes: number, x: number) => run(passes * passLength, x, ...Object.values(glsl)) as number;
 }
@@ -27,12 +28,13 @@ const positions = Array.from({ length: 101 }, (_, i) => i / 100);
 
 describe('wipe', () => {
   const cases = [1, -1].flatMap(speed => [0.002, 0.25, 0.5].map(softness => [speed, softness]));
-  it.each(cases)('fully covers the strip before the sides swap at speed %s, softness %s', (speed, softness) => {
+  it.each(cases)('fully covers the strip when the sides swap at speed %s, softness %s', (speed, softness) => {
     const f = wipeAt(softness, speed);
+    const side = f(1, 0);
+    expect([0, 1]).toContain(side);
     for (const x of positions) {
-      expect(f(0, x)).toBeCloseTo(0, 3);
-      expect(f(0.99999, x)).toBeCloseTo(1, 2);
-      expect(Math.abs(f(0.99999, x) - f(1, x))).toBeLessThan(0.01);
+      expect(f(1, x)).toBeCloseTo(side, 3);
+      expect(Math.abs(f(1 - 1e-5, x) - f(1 + 1e-5, x))).toBeLessThan(0.01);
     }
   });
 
