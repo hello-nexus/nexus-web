@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DesktopImportDto } from '../../api/panel';
 import type { PanelLayout } from '../types';
-import { IMPORT_RETRY_MS, useDesktopImport } from './useDesktopImport';
+import { IMPORT_RETRY_MS, IMPORT_SETTLE_MS, useDesktopImport } from './useDesktopImport';
 
 const patchMock = vi.fn();
 vi.mock('../../api/panel', () => ({ patchPanelDevice: (...a: unknown[]) => patchMock(...a) }));
@@ -15,12 +15,14 @@ const layoutOf = (ids: string[]): PanelLayout => ({
   pages: [{ id: 'p1', widgets: ids.map((id, i) => ({ id, type: 'clock', size: '2x2' as const, col: 4 + i * 2, row: 4 })) }],
 });
 const args = (over: Partial<Parameters<typeof useDesktopImport>[0]> = {}) =>
-  ({ enabled: true, deviceId: 'rec', pending, layout: layoutOf([]), paddingPercent: 100, grid, ...over });
+  ({ enabled: true, hostReady: () => true, deviceId: 'rec', pending, layout: layoutOf([]), paddingPercent: 100, grid, ...over });
 
 beforeEach(() => { vi.useFakeTimers(); patchMock.mockReset().mockResolvedValue({ id: 'rec' }); });
 afterEach(() => vi.useRealTimers());
 
-const settle = async (ms = 0) => { await vi.advanceTimersByTimeAsync(ms); };
+// One tick samples the size, one quiet interval later the import is placed.
+const SETTLED = IMPORT_SETTLE_MS * 2 + 10;
+const settle = async (ms = SETTLED) => { await vi.advanceTimersByTimeAsync(ms); };
 
 describe('useDesktopImport', () => {
   it('places the import once and clears it', async () => {
@@ -51,7 +53,7 @@ describe('useDesktopImport', () => {
     await settle();
     expect(patchMock).toHaveBeenCalledTimes(1);
     for (let i = 0; i < IMPORT_RETRY_MS.length; i++) {
-      await settle(IMPORT_RETRY_MS[i]);
+      await settle(IMPORT_RETRY_MS[i] + SETTLED);
       expect(patchMock).toHaveBeenCalledTimes(i + 2);
     }
     await settle(120_000);
@@ -84,13 +86,52 @@ describe('useDesktopImport', () => {
     patchMock.mockResolvedValue(null);
     const view = renderHook(({ p }) => useDesktopImport(args({ pending: p })), { initialProps: { p: pending } });
     await settle();
-    await settle(IMPORT_RETRY_MS[0]);
+    await settle(IMPORT_RETRY_MS[0] + SETTLED);
     expect(patchMock).toHaveBeenCalledTimes(2);
     // A refetch hands back an equal import in a new object: the schedule and attempt count carry on.
     view.rerender({ p: { ...pending, widgets: [...pending.widgets] } });
-    await settle(IMPORT_RETRY_MS[1]);
-    for (let i = 2; i < IMPORT_RETRY_MS.length; i++) await settle(IMPORT_RETRY_MS[i]);
+    await settle(IMPORT_RETRY_MS[1] + SETTLED);
+    for (let i = 2; i < IMPORT_RETRY_MS.length; i++) await settle(IMPORT_RETRY_MS[i] + SETTLED);
     await settle(120_000);
     expect(patchMock).toHaveBeenCalledTimes(IMPORT_RETRY_MS.length + 1);
+  });
+
+  it('waits for a window that has no size yet', async () => {
+    const original = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 0, configurable: true });
+    renderHook(() => useDesktopImport(args()));
+    await settle(2_000);
+    expect(patchMock).not.toHaveBeenCalled();
+    Object.defineProperty(window, 'innerWidth', { value: original, configurable: true });
+    await settle();
+    expect(patchMock).toHaveBeenCalledOnce();
+  });
+
+  it('waits for the host to start listening', async () => {
+    let ready = false;
+    renderHook(() => useDesktopImport(args({ hostReady: () => ready })));
+    await settle(2_000);
+    expect(patchMock).not.toHaveBeenCalled();
+    ready = true;
+    await settle();
+    expect(patchMock).toHaveBeenCalledOnce();
+  });
+
+  it('plans against the size the window settles at, not the one it opened with', async () => {
+    const set = (w: number, h: number) => {
+      Object.defineProperty(window, 'innerWidth', { value: w, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: h, configurable: true });
+    };
+    set(1920, 1080);
+    renderHook(() => useDesktopImport(args()));
+    await settle(IMPORT_SETTLE_MS - 100);
+    expect(patchMock).not.toHaveBeenCalled();
+    set(1920, 1055);
+    window.dispatchEvent(new Event('resize'));
+    await settle(SETTLED);
+    expect(patchMock).toHaveBeenCalledOnce();
+    const rows = (patchMock.mock.calls[0][1].layout as PanelLayout).pages[0].widgets.length;
+    expect(rows).toBeGreaterThan(0);
+    set(1024, 768);
   });
 });

@@ -198,6 +198,7 @@ import { hoverResizeAllowed, hoverTargetId } from './engine/hoverResize';
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
 const NO_SPANS: readonly GridSpan[] = [];
+const EMPTY_IMPORT_LAYOUT: PanelLayout = { layoutSchemaVersion: 2, surface: 'monitor', pages: [{ id: 'page-1', widgets: [] }] };
 const NO_ROOM = { tl: false, tr: false, bl: false, br: false };
 
 // Corners snap to a widget's declared sizes that fit; opted-in widgets also get the even spans beyond the declared sizes.
@@ -1787,11 +1788,14 @@ export function PanelContent({
     Boolean(touch.ctxMenu || sheetMode || trayOpen || activeDragId || dragArmedId || freeformActive),
   );
 
+  // The stored layout, not the local seed: the seed holds starter widgets until the record hydrates it.
+  const importLayout = recordState.record?.layout ?? EMPTY_IMPORT_LAYOUT;
   useDesktopImport({
-    enabled: kioskBehavior && !simulator && displayBound && loaded && hydrated !== false && panelHostAvailable(),
+    enabled: kioskBehavior && !simulator && displayBound,
+    hostReady: panelHostAvailable,
     deviceId,
     pending: recordState.record?.desktopImport,
-    layout: paginatedLayout,
+    layout: importLayout,
     paddingPercent: effectiveTheme.widgetPadding,
     grid: runtimeGrid,
   });
