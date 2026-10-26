@@ -84,7 +84,12 @@ export function isStreamedPanelSurface(surface: PanelSurface, displayBound = tru
 // is edited remotely from a desktop modal the operator's own keyboard applies,
 // not the target surface's.
 export function surfaceSupportsTextInput(surface: PanelSurface): boolean {
-  return surface === 'desktop' || surface === 'phone';
+  return surface === 'desktop' || surface === 'phone' || hostedDisplayKeyboard(surface);
+}
+
+// A PC display panel under a kiosk host takes the keyboard via nexus.panel.activatable; the Y70 is its own surface.
+export function hostedDisplayKeyboard(surface: PanelSurface): boolean {
+  return surface === 'monitor' && panelHostAvailable();
 }
 
 // Whether the operator editing a panel can type into free-text fields.
@@ -101,8 +106,6 @@ export function canEditFreeText(surface?: PanelSurface, desktopEditor?: boolean)
   const shell = w?.nexusShellPlatform;
   if (shell === 'windows-app' || shell === 'mac-app') return true;
   if (surface === undefined) return true;
-  // A PC display panel under a kiosk host takes the keyboard via nexus.panel.activatable; the Y70 is its own surface.
-  if (surface === 'monitor' && panelHostAvailable()) return true;
   return surfaceSupportsTextInput(surface);
 }
 
