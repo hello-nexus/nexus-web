@@ -60,7 +60,6 @@ The app routes a small set of top-level surfaces from the URL path:
 | `/` | **Host-dependent** in the standalone deployment: `my.*` hosts (my.hellonexus.com, my.localhost) get the dashboard; every other host gets the marketing page (`dist/site/index.html`). Embedded/dev builds always serve the dashboard. On a remote origin without a reachable local service the dashboard shows the launch/download gate (`app/ServiceGatePage.tsx`). |
 | `/panel/:deviceId` | Kiosk panel surface for embedded touchscreens. |
 | `/panel/phone` | Mobile remote surface (paired via QR). |
-| `/overlay` | Per-monitor overlay hosted by `nexus-overlay.exe`. |
 | `/r/pair` | iOS Universal Link landing page (App Store / browser fallback). |
 | `/auth/verify` | Email verification landing page. Browser-only. |
 | `/auth/recover` | Lost-password magic-link landing page. Browser-only. |

@@ -129,10 +129,8 @@ export function ensureAllPreviewFonts(): void {
 
 export function bootDebugFont(): void {
   applyDebugFont(loadDebugFont());
-  // The floating desktop overlay (OverlayShell, hosted in a separate WebView2
-  // per monitor) shares this origin's localStorage but not its DOM. Listen
-  // for cross-document storage writes so the overlay webviews re-apply the
-  // picked font when the main app updates the picker.
+  // Other webviews on this origin (the panel kiosks) share localStorage but not the DOM:
+  // re-apply the picked font when the main app updates the picker.
   window.addEventListener('storage', (e) => {
     if (e.key !== STORAGE_KEY) return;
     applyDebugFont(loadDebugFont());

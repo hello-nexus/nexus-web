@@ -35,8 +35,7 @@ export function OpenInAppBanner() {
     const path = window.location.pathname;
     const onAppPath = path.startsWith('/r/')
       || path === '/panel/phone'
-      || path.startsWith('/panel/phone/')
-      || path === '/overlay';
+      || path.startsWith('/panel/phone/');
     if (onAppPath) return;
 
     const ua = window.navigator.userAgent;

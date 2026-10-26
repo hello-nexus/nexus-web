@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
   SlidersHorizontal, UserRound, FlaskConical, FolderOpen, Info, MessageCircle, RefreshCw,
-  Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
+  Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, Crosshair,
   ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
@@ -598,11 +598,6 @@ const quickOpens: SearchSource = (ctx) => [
     title: ctx.t('devices.y70.editor.addWidget'), icon: <LayoutGrid size={18} />,
     keywords: ['widget', 'add', 'catalog', 'apps', 'install', 'dashboard', 'edit'],
     to: () => { ctx.host.goView('dashboard'); fireSearchSignal('add-widget'); },
-  }),
-  go('open:desktop-widgets', {
-    title: ctx.t('dashboard.displayPanels'), icon: <AppWindow size={18} />,
-    keywords: ['desktop', 'widgets', 'overlay', 'floating', 'display', 'panel'],
-    to: () => ctx.host.goView('devices', 'displays'),
   }),
   go('open:connected-devices', {
     title: ctx.t('devices.connected.browse'), icon: NAV_ICONS.devices,

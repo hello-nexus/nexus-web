@@ -3683,12 +3683,6 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewEmojiPicker,
   },
   {
-    name: 'WidgetEditSheet', category: 'panel-kit',
-    filePath: 'src/panel/widgets/common/WidgetEditSheet.tsx',
-    description: 'Anchored edit sheet for widget settings: positions itself beside the widget cell (flipping to fit the viewport), hosts the widget\'s settings pane + size selector.',
-    notes: 'No live preview - anchors to a real widget cell and edits live panel config.',
-  },
-  {
     name: 'StaticDeviceSelect', category: 'panel-kit',
     filePath: 'src/panel/widgets/lighting/effecteditor/StaticDeviceSelect.tsx',
     description: 'Devices tab of the immersive lighting editor, shown in Static mode only. Static assigns a colour per device, so a pick needs a target; this supplies one. Renders the lighting page\'s own ZoneCards in selectOnly mode (checkbox and card-tap selection, no per-card actions or context menu) over a Select all / Clear selection row. The selection is the page\'s - same localStorage key - so it is shared between the two surfaces.',

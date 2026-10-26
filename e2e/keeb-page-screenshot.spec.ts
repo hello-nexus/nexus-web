@@ -89,7 +89,6 @@ async function mockService(page: Page) {
         body: JSON.stringify({
           theme: { language: 'en', themeMode: 'dark', accentColor: '#3b82f6' },
           panel: { autoLaunch: false, themeSyncWithDesktop: true, themeMode: 'dark', accentSyncWithDesktop: true, backgroundMode: 'solid', backgroundEffect: 'none', backgroundTemplate: 0, backgroundOpacity: 1, widgetOpacity: 1, widgetLabels: true },
-          overlay: { enabled: false, alwaysOnTop: false, scale: 1, opacity: 1, monitor: 0, layout: [] },
           monitoring: { showMacStatusBarIcon: true, showWindowsTrayIcon: true, detailedCollapsed: [] },
           cooling: {},
           ui: { showConflictAlerts: true, pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'] },

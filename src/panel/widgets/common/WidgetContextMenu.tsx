@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, Trash2, Unlock } from 'lucide-react';
+import { Check, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, Trash2, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -35,15 +35,10 @@ interface WidgetContextMenuProps {
   // Inverse of onPinToSidebar; shown when the widget is already pinned.
   // Click removes the sidebar entry. Caller wires one of the two, never both.
   onUnpinFromSidebar?: () => void;
-  // Override for the danger button label. Defaults to "Remove"; the desktop
-  // overlay passes "Unpin" since the widget is being detached from the
-  // overlay rather than removed from the panel layout.
-  removeLabel?: string;
-  // Desktop-overlay-only checkbox row. When provided, renders an
-  // "Always on top" item with a checkmark reflecting `alwaysOnTop`.
+  // When provided, renders an "Always on top" item with a checkmark reflecting `alwaysOnTop`.
   alwaysOnTop?: boolean;
   onToggleAlwaysOnTop?: () => void;
-  // Desktop-overlay-only lock controls. When onToggleLock is provided, the
+  // Lock controls. When onToggleLock is provided, the
   // menu renders a Lock/Unlock row (per `locked`) plus a Lock all / Unlock
   // all row; while `locked`, the move/edit/resize items (size row, Edit,
   // Immersive) are hidden. Remove stays available.
@@ -51,14 +46,6 @@ interface WidgetContextMenuProps {
   onToggleLock?: () => void;
   onLockAll?: () => void;
   onUnlockAll?: () => void;
-  // Desktop-overlay-only bottom action. Renders a separator + "Open
-  // dashboard" shortcut at the foot of the menu when provided.
-  onOpenDashboard?: () => void;
-  // Desktop-overlay-only callback fired with the menu's measured viewport
-  // rect after it has clamped to the safe area, and again with `null` on
-  // unmount. The desktop host uses this to keep its SetWindowRgn carve-out
-  // aligned with the visible menu rather than the click point.
-  onBoundsChange?: (rect: { x: number; y: number; w: number; h: number } | null) => void;
   onClose: () => void;
 }
 
@@ -73,15 +60,12 @@ export function WidgetContextMenu({
   displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
   onClose,
-  removeLabel,
   alwaysOnTop,
   onToggleAlwaysOnTop,
   locked,
   onToggleLock,
   onLockAll,
   onUnlockAll,
-  onOpenDashboard,
-  onBoundsChange,
 }: WidgetContextMenuProps) {
   const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -89,11 +73,6 @@ export function WidgetContextMenu({
   const [pos, setPos] = useState({ x, y });
   const [origin, setOrigin] = useState({ x: 18, y: 18 });
   const [closing, setClosing] = useState(false);
-  // Stable callback ref so the bounds reporter doesn't refire on parent
-  // re-render (the parent reacts to bounds with a layout post-message, which
-  // would loop).
-  const onBoundsChangeRef = useRef(onBoundsChange);
-  useEffect(() => { onBoundsChangeRef.current = onBoundsChange; }, [onBoundsChange]);
 
   const requestClose = useCallback(() => {
     if (closeTimerRef.current) return;
@@ -135,12 +114,7 @@ export function WidgetContextMenu({
 
     setPos({ x: nx, y: ny });
     setOrigin({ x: ox, y: oy });
-    // offsetWidth/offsetHeight return the layout box without CSS transforms;
-    // the desktop overlay never scales the menu, so that is its resting size.
-    onBoundsChangeRef.current?.({ x: nx, y: ny, w: el.offsetWidth, h: el.offsetHeight });
   }, [x, y]);
-
-  useEffect(() => () => { onBoundsChangeRef.current?.(null); }, []);
 
   useEffect(() => {
     const handler = (e: PointerEvent) => {
@@ -297,18 +271,8 @@ export function WidgetContextMenu({
 
       <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
         <Trash2 size={14} />
-        <span>{removeLabel ?? t('panel.widget.menu.remove')}</span>
+        <span>{t('panel.widget.menu.remove')}</span>
       </button>
-
-      {onOpenDashboard && (
-        <>
-          <div className={styles.divider} />
-          <button type="button" className={styles.item} onClick={() => runAndClose(onOpenDashboard)}>
-            <ExternalLink size={14} />
-            <span>{t('panel.widget.menu.openDashboard')}</span>
-          </button>
-        </>
-      )}
     </div>
   );
 }

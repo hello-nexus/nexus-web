@@ -4,7 +4,6 @@ import { TelemetryReference } from './telemetry/reference/TelemetryReference';
 import { I18nProvider } from './lib/i18n';
 import { SIMULATOR_QUERY_FLAG } from './panel/embed/simulatorProtocol';
 import {
-  OverlayWrapper,
   PanelEntrypoint,
   PanelSimulatorWrapper,
 } from './app/PanelEntrypoint';
@@ -104,18 +103,6 @@ export default function App() {
     return (
       <I18nProvider>
         <TelemetryReference />
-      </I18nProvider>
-    );
-  }
-
-  // /overlay is hosted by nexus-overlay.exe (transparent layered window
-  // per monitor). Loads with ?monitor=N&token=... so each overlay renders
-  // its own slice of the shared overlayLayout.
-  if (path === '/overlay') {
-    consumeUrlToken(new URLSearchParams(window.location.search));
-    return (
-      <I18nProvider>
-        <OverlayWrapper />
       </I18nProvider>
     );
   }
