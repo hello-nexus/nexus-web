@@ -8,12 +8,18 @@
   height: 100%;
 }
 
+.emptyActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
 .stats {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem 1rem;
-  padding: 0.25rem 0.4rem;
+  gap: 0.2rem 1rem;
+  min-width: 0;
   @include text-body;
   color: var(--text);
 }
@@ -26,13 +32,10 @@
 }
 
 .statLabel,
-.statNote,
-.hint {
+.statNote {
   @include text-caption;
   color: var(--text-dim);
 }
-
-.hint { padding: 0 0.4rem; }
 
 .mode {
   @include text-button;
@@ -47,7 +50,8 @@
   min-height: 18rem;
   border-radius: var(--radius);
   overflow: hidden;
-  background: var(--bg-elevated);
+  // Build's stage fill.
+  background: linear-gradient(var(--surface), var(--surface)), var(--backdrop-base);
   touch-action: none;
 }
 
@@ -87,7 +91,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 1.2rem;
-  padding: 0 0.4rem;
 }
 
 .flowToggle {
@@ -98,20 +101,47 @@
   color: var(--text);
 }
 
-.legend {
+// Strips over the canvas: dark and translucent so their text reads over the scene; a press on one is not a press on empty canvas.
+.overlay {
   position: absolute;
-  left: 0.6rem;
-  bottom: 0.6rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.75rem;
+  background: rgb(0 0 0 / var(--alpha-strong));
+  backdrop-filter: blur(var(--blur-backdrop));
+  color: #fff;
+}
+
+.overlayTop {
+  top: 0;
+  // Clear of the info and Build buttons at the right end.
+  padding-right: 5.5rem;
+}
+
+.corner {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+}
+.overlayBottom { bottom: 0; }
+
+.control {
+  pointer-events: auto;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   @include text-caption;
   color: var(--text-dim);
-  pointer-events: none;
 }
 
 .legendBar {
@@ -119,4 +149,9 @@
   height: 0.5rem;
   border-radius: var(--radius-pill);
   background: linear-gradient(to right, var(--airflow-cool), var(--airflow-warm), var(--bad));
+}
+
+// A device already driving another fan: the move is visible before it is chosen.
+.linkedElsewhere {
+  color: var(--accent);
 }

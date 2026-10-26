@@ -3,6 +3,9 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { CoolingPage } from './CoolingPage';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
@@ -50,13 +53,45 @@ describe('CoolingPage canvas header', () => {
     expect(radios[1].textContent).not.toMatch(/[[\]]/);
   });
 
-  it('never changes the title when the view changes', async () => {
+  it('titles the pane Curves in 2D and Airflow in 3D, with no gap under the header in 3D', async () => {
     mount();
     const radios = within(await screen.findByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');
-    expect(screen.getAllByText('cooling.label.curves').length).toBeGreaterThan(0);
+    const header = radios[0].closest('[role="radiogroup"]')!.parentElement as HTMLElement;
+    expect(header.children[0].textContent).toBe('cooling.label.curves');
+    expect(header.className).not.toContain('paneHeaderFlush');
     fireEvent.click(radios[1]);
     await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
-    expect(screen.getAllByText('cooling.label.curves').length).toBeGreaterThan(0);
+    expect(header.children[0].textContent).toBe('cooling.view.airflow');
+    expect(header.className).toContain('paneHeaderFlush');
     expect(screen.queryByText('cooling.case3d.title')).toBeNull();
+  });
+
+  const mountWith = (general: Record<string, unknown>) => {
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { coolingDashboardMode: 'advanced', lightingDashboardMode: 'advanced', ...general } }));
+    return render(<UiSettingsProvider><CoolingPage serviceOnline serviceState={serviceState} /></UiSettingsProvider>);
+  };
+
+  it('opens on the stored 3D view straight away, with no 2D frame first', async () => {
+    mountWith({ coolingView3d: true });
+    const radios = within(await screen.findByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');
+    expect(radios[1].getAttribute('aria-checked')).toBe('true');
+    // The curve editor is the 2D view; it is never on screen.
+    expect(screen.queryByText('cooling.label.curveEditor')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
+  });
+
+  it('opens on 2D when only Lighting has a stored 3D view', async () => {
+    mountWith({ lightingView3d: true, coolingView3d: false });
+    const radios = within(await screen.findByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');
+    expect(radios[0].getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByTestId('case3d')).toBeNull();
+  });
+
+  it('stores the choice when the view is switched', async () => {
+    mountWith({});
+    const radios = within(await screen.findByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');
+    fireEvent.click(radios[1]);
+    await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
+    expect(radios[1].getAttribute('aria-checked')).toBe('true');
   });
 });

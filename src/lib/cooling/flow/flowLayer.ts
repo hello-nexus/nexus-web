@@ -1,58 +1,59 @@
 import {
-  AdditiveBlending, BackSide, BoxGeometry, BufferAttribute, BufferGeometry, Color, DataTexture, FloatType, GLSL3, Mesh,
-  NearestFilter, NormalBlending, Points, RGBAFormat, ShaderMaterial, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
+  AdditiveBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
+  Mesh, NearestFilter, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { SPAWN_BACK_SPAN_CELLS, DEAD_AGE_RATIO, DOMAIN_MARGIN_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_ADVECT_SUBSTEPS, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, STREAK_MIN_WIDTH_PX, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { NO_TEMPS, sourceRises, type ComponentTemps } from './heatModel';
+import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
-import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
-import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, POINT_FRAGMENT, POINT_VERTEX, VOLUME_FRAGMENT, VOLUME_VERTEX } from './shaders';
+import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
+import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT, STREAK_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
 export const FLOW_TIERS = [GRID_TARGET_CELLS, Math.round(GRID_TARGET_CELLS / 2), GRID_LOW_CELLS];
 /** Fixed particle pool; a coarser grid tier draws a share of it. */
 export const PARTICLE_TEXTURE = { w: 128, h: 84 };
 const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
-/** Positions kept per particle: the current one and this many older ones, drawn as a trail. */
-const TRAIL_AGES = 1;
-const RING = TRAIL_AGES + 1;
+/** Particle states kept: the current one and the one before it, whose difference is the streak. */
+const RING = 2;
 const MAX_PARTICLES = PARTICLE_TEXTURE.w * PARTICLE_TEXTURE.h;
 /** GPU time the solver may take per displayed frame. */
-const SOLVER_BUDGET_MS = 6;
-/** Without a GPU timer, frames longer than this (ms) pull the step count down, and frames this close to the vsync interval let it grow. */
+const SOLVER_BUDGET_MS = 8;
+/** Per-frame cost the solver may take while the particles are still waiting for the first solve. */
+const COLD_BUDGET_MS = 12;
+/** Frames longer than this (ms) pull the step count down while no GPU time is known. */
 const FRAME_SLOW_MS = 20;
-const FRAME_FAST_MS = 17.5;
 const TIMER_EMA = 0.3;
-const MAX_STEPS_PER_FRAME = 8;
+const MAX_STEPS_PER_FRAME = 24;
 const MIN_STEPS_PER_FRAME = 1;
 const PARTICLE_SUBSTEPS = 2;
-const AGE_STEPS_PER_FRAME = 16;
 const STEADY_CHECK_EVERY = 16;
 const STEADY_RATIO = 0.01;
 const MAX_SOLVE_STEPS = 1500;
 const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 24;
-/** Point size in mm at unit scale, the on-screen minimum in px, and the one trail copy's alpha and size share. */
-const POINT_SIZE = 6.5;
-const POINT_MIN_PX = 1;
-const TRAIL_MIN_PX = 1;
-const TRAIL_ALPHA = [0.286];
-const TRAIL_SIZE = [0.7];
+/** Peak alpha of a streak's head. */
+const STREAK_ALPHA = 0.78;
 
 export interface FlowColors {
   cool: Color;
   warm: Color;
   hot: Color;
-  /** Dead-zone volume tint. */
-  dead: Color;
+  /** Collision shapes: solid obstacles and porous ones. */
+  collision: Color;
+  porous: Color;
 }
 
 export interface FlowOptions {
   particles: boolean;
-  deadZones: boolean;
+  /** Draws the obstacles the solver rasterizes, as shapes, in place of the case model. */
+  collisions: boolean;
+  /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */
+  speed: number;
 }
 
-/** The airflow layer of the case view: solver, particles, dead-zone volume and the solid-voxel debug view, all on the renderer's own context. */
+/** The airflow layer of the case view: solver, particles and the collision shapes, all on the renderer's own context. */
 export class FlowLayer {
   readonly supported: boolean;
   private readonly kind: FloatKind | null;
@@ -67,8 +68,12 @@ export class FlowLayer {
   private stepsPerFrame = 4;
   private slowCount = 0;
   private lastFrameAt = 0;
-  private options: FlowOptions = { particles: true, deadZones: false};
+  private options: FlowOptions = { particles: true, collisions: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
+  private temps: ComponentTemps = NO_TEMPS;
+  /** Source temperatures the solve was last woken at, and whether the scene has any heat cell to care about them. */
+  private wakeRises: number[] = [];
+  private heatCells = false;
   private coldStart = false;
   private readonly gate = new SteadyGate();
   private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
@@ -79,13 +84,10 @@ export class FlowLayer {
   private stateMat: ShaderMaterial | null = null;
   private heatMat: ShaderMaterial | null = null;
   private spawnTex: DataTexture | null = null;
-  private points: Points | null = null;
-  private trails: Points[] = [];
-  private pointMat: ShaderMaterial | null = null;
-  private trailMats: ShaderMaterial[] = [];
-  private volume: Mesh | null = null;
-  private volumeMat: ShaderMaterial | null = null;
-  private ageRef = 1;
+  private streaks: Mesh | null = null;
+  private streakMat: ShaderMaterial | null = null;
+  private collisionsShown = false;
+  private collisions: { group: Group; dispose: () => void } | null = null;
 
   private readonly renderer: WebGLRenderer;
   private readonly extent: Vector3;
@@ -114,18 +116,51 @@ export class FlowLayer {
     return this.timer ? 'gpu-timer' : 'frame-delta';
   }
 
+  /** True once the solver has found the steady field and stopped stepping. */
+  get settled(): boolean {
+    return !!this.fscene && !this.solving;
+  }
+
   /** Whether the layer still has something to animate: a solve in progress, or particles drawn. */
   get active(): boolean {
-    return this.supported && !!this.fscene && (this.solving || this.options.particles || this.options.deadZones);
+    return this.supported && !!this.fscene && (this.solving || this.options.particles);
   }
 
   setOptions(options: FlowOptions) {
     this.options = options;
-    if (this.points) {
-      this.points.visible = options.particles;
-      for (const t of this.trails) t.visible = options.particles;
+    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = options.speed; m.uniforms.uSubsteps.value = substepsFor(options.speed); }
+    if (this.streaks) {
+      this.streaks.visible = options.particles;
     }
-    if (this.volume) this.volume.visible = options.deadZones;
+    if (options.collisions !== this.collisionsShown) this.syncCollisions();
+  }
+
+  /** New part temperatures: only the temperature pass's uniforms change, so the grid and every particle carry on. A settled solve wakes again when a part has moved enough. */
+  setTemps(temps: ComponentTemps) {
+    this.temps = temps;
+    this.applyTemps();
+  }
+
+  private applyTemps() {
+    const flow = this.flow;
+    const scene = this.fscene;
+    if (!flow || !scene) return;
+    const wasHot = flow.hot;
+    flow.setTemps(this.temps);
+    // With no fan moving air, a hot part's plume particles start only while it is hot.
+    if (wasHot !== flow.hot) this.uploadSpawns(scene);
+    if (!this.heatCells) return;
+    const rises = sourceRises(this.temps);
+    const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K);
+    if (moved || wasHot !== flow.hot) this.wake(rises);
+  }
+
+  /** Solves again from the current fields: the temperature field has a new target. */
+  private wake(rises: number[]) {
+    this.wakeRises = rises;
+    this.solving = true;
+    this.stepsSinceEdit = 0;
+    this.gate.invalidate();
   }
 
   /** New edit: rebuilds the voxel scene and re-solves from the current field. Null clears the layer. */
@@ -144,31 +179,35 @@ export class FlowLayer {
       this.flow.setScene(scene);
     } else {
       this.flow?.dispose();
-      this.flow = new GlFlow(this.renderer, this.runner, scene, this.kind);
+      this.flow = new GlFlow(this.renderer, scene, this.kind);
       this.ensureParticles();
       this.resetParticles();
       this.coldStart = true;
     }
     this.fscene = scene;
-    this.ageRef = Math.max(60, scene.residenceSteps);
+    this.flow.setTemps(this.temps);
+    this.wakeRises = sourceRises(this.temps);
+    this.heatCells = scene.heat.some(v => v === SOURCE_GPU || v === SOURCE_CPU);
+    if (this.collisionsShown) this.syncCollisions(true);
     this.uploadSpawns(scene);
     this.updateUniforms();
     this.stepsSinceEdit = 0;
     this.gate.invalidate();
-    this.solving = scene.fanCount > 0;
-    this.flow?.resetAge();
+    // A hot part drives a plume on its own, so a case with every fan stopped still solves.
+    this.solving = scene.fanCount > 0 || (this.heatCells && this.flow.hot);
   }
 
   private uploadSpawns(scene: FlowScene) {
-    const entries = scene.emitters.length / 12;
-    const data = new Float32Array(Math.max(1, entries) * 12);
-    data.set(scene.emitters);
+    const source = scene.emitters.length > 0 ? scene.emitters : this.flow?.hot ? scene.plumeEmitters : scene.emitters;
+    const entries = source.length / EMITTER_STRIDE;
+    const data = new Float32Array(Math.max(1, entries) * EMITTER_STRIDE);
+    data.set(source);
     this.spawnTex?.dispose();
-    this.spawnTex = new DataTexture(data, Math.max(1, entries) * 3, 1, RGBAFormat, FloatType);
+    this.spawnTex = new DataTexture(data, Math.max(1, entries) * (EMITTER_STRIDE / 4), 1, RGBAFormat, FloatType);
     this.spawnTex.minFilter = NearestFilter;
     this.spawnTex.magFilter = NearestFilter;
     this.spawnTex.needsUpdate = true;
-    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; }
+    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; this.stateMat.uniforms.uBoundsMin.value = scene.particleBounds.min; this.stateMat.uniforms.uBoundsMax.value = scene.particleBounds.max; }
   }
 
   private ensureParticles() {
@@ -178,50 +217,43 @@ export class FlowLayer {
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBackSpan: { value: SPAWN_BACK_SPAN_CELLS }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: PARTICLE_SPEED_SCALE }, uSubsteps: { value: PARTICLE_ADVECT_SUBSTEPS },
+      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: this.options.speed }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
-    this.heatMat = pass(PARTICLE_HEAT, { ...base(), PB: { value: null as unknown } });
+    this.heatMat = pass(PARTICLE_HEAT, { ...base(), T: { value: null as unknown } });
 
     const geometry = new BufferGeometry();
-    const refs = new Float32Array(w * h * 2);
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { refs[(y * w + x) * 2] = x; refs[(y * w + x) * 2 + 1] = y; }
+    // Four vertices per particle: tail and head, each on both sides of the line.
+    const refs = new Float32Array(w * h * 4 * 2);
+    const corners = new Float32Array(w * h * 4 * 2);
+    const index = new Uint32Array(w * h * 6);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const n = y * w + x;
+      for (let c = 0; c < 4; c++) {
+        refs[(n * 4 + c) * 2] = x; refs[(n * 4 + c) * 2 + 1] = y;
+        corners[(n * 4 + c) * 2] = c >> 1; corners[(n * 4 + c) * 2 + 1] = c & 1 ? 1 : -1;
+      }
+      index.set([n * 4, n * 4 + 1, n * 4 + 2, n * 4 + 1, n * 4 + 3, n * 4 + 2], n * 6);
+    }
     geometry.setAttribute('ref', new BufferAttribute(refs, 2));
-    geometry.setAttribute('position', new BufferAttribute(new Float32Array(w * h * 3), 3));
-    geometry.setDrawRange(0, Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier]));
-    const pointUniforms = (alpha: number, size: number, minPx: number) => ({
-      PA: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
-      uMargin: { value: DOMAIN_MARGIN_MM }, uSize: { value: size }, uScale: { value: 400 }, uMinPx: { value: minPx }, uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: alpha },
-      uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot },
-    });
-    // Head and trail: additive soft sprites; the trail is fainter.
-    this.pointMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(0.78, POINT_SIZE, POINT_MIN_PX),
-      transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending,
-    });
-    this.trailMats = TRAIL_ALPHA.map((alpha, i) => new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: POINT_VERTEX, fragmentShader: POINT_FRAGMENT, uniforms: pointUniforms(alpha, POINT_SIZE * TRAIL_SIZE[i], TRAIL_MIN_PX),
-      transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending,
-    }));
-    this.points = new Points(geometry, this.pointMat);
-    this.trails = this.trailMats.map(m => new Points(geometry, m));
-    for (const p of [this.points, ...this.trails]) { p.frustumCulled = false; this.group.add(p); }
-    this.points.renderOrder = 6;
-    this.trails.forEach((t, i) => { t.renderOrder = 5 - i; });
-
-    this.volumeMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: VOLUME_VERTEX, fragmentShader: VOLUME_FRAGMENT,
+    geometry.setAttribute('corner', new BufferAttribute(corners, 2));
+    geometry.setAttribute('position', new BufferAttribute(new Float32Array(w * h * 4 * 3), 3));
+    geometry.setIndex(new BufferAttribute(index, 1));
+    geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * 6);
+    this.streakMat = new ShaderMaterial({
+      glslVersion: GLSL3, vertexShader: STREAK_VERTEX, fragmentShader: STREAK_FRAGMENT,
       uniforms: {
-        uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown }, AG: { value: null as unknown },
-        uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() }, uAgeRef: { value: 1 }, uDeadAt: { value: DEAD_AGE_RATIO }, uColor: { value: this.colors.dead },
+        PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
+        uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: STREAK_WIDTH_MM }, uMinWidthPx: { value: STREAK_MIN_WIDTH_PX }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
+        uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: STREAK_ALPHA },
+        uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
-      transparent: true, depthWrite: false, depthTest: false, side: BackSide, blending: NormalBlending,
+      transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending, side: DoubleSide,
     });
-    this.volume = new Mesh(new BoxGeometry(this.extent.x, this.extent.y, this.extent.z), this.volumeMat);
-    this.volume.position.copy(this.extent).multiplyScalar(0.5);
-    this.volume.renderOrder = 3;
-    this.volume.visible = this.options.deadZones;
-    this.group.add(this.volume);
+    this.streaks = new Mesh(geometry, this.streakMat);
+    this.streaks.frustumCulled = false;
+    this.streaks.renderOrder = 6;
+    this.group.add(this.streaks);
   }
 
   /** Every particle starts over: positions are in cell coordinates, which mean something else on a new grid. */
@@ -245,7 +277,7 @@ export class FlowLayer {
   dropTier() {
     if (this.tier >= FLOW_TIERS.length - 1) return;
     this.tier++;
-    this.points?.geometry.setDrawRange(0, Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier]));
+    this.streaks?.geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * 6);
     this.slowCount = 0;
     this.build(false);
   }
@@ -256,21 +288,17 @@ export class FlowLayer {
     if (!flow || !scene) return;
     const n = new Vector3(...scene.dims);
     const origin = new Vector3(...scene.origin);
-    for (const m of [this.stateMat, this.heatMat, this.volumeMat]) {
+    for (const m of [this.stateMat, this.heatMat]) {
       if (!m) continue;
       (m.uniforms.uN.value as Vector3).copy(n);
       m.uniforms.uTX.value = flow.tx;
       m.uniforms.M.value = flow.maskTexture;
     }
-    for (const m of [this.pointMat, ...this.trailMats]) {
+    if (this.stateMat) this.stateMat.uniforms.F = { value: flow.fanTexture };
+    for (const m of [this.streakMat]) {
       if (!m) continue;
       m.uniforms.uCell.value = scene.cellMm;
       (m.uniforms.uOrigin.value as Vector3).copy(origin);
-    }
-    if (this.volumeMat) {
-      this.volumeMat.uniforms.uCell.value = scene.cellMm;
-      (this.volumeMat.uniforms.uOrigin.value as Vector3).copy(origin);
-      this.volumeMat.uniforms.uAgeRef.value = this.ageRef;
     }
   }
 
@@ -282,41 +310,35 @@ export class FlowLayer {
     const dt = this.lastFrameAt ? now - this.lastFrameAt : 0;
     this.lastFrameAt = now;
 
-    const wantsFlow = this.options.particles || this.options.deadZones;
+    const wantsFlow = this.options.particles;
     this.pollSteady(flow);
     if (this.solving && wantsFlow) {
       this.pollTimer();
       const gl = this.renderer.getContext() as WebGL2RenderingContext;
       const timed = this.timer && this.timer.pending.length < 4 ? gl.createQuery() : null;
       if (timed) gl.beginQuery(this.timer!.ext.TIME_ELAPSED_EXT, timed);
-      let ran = 0;
-      let check = false;
-      for (let i = 0; i < this.stepsPerFrame; i++) {
-        flow.step();
-        ran++;
-        this.stepsSinceEdit++;
-        if (this.stepsSinceEdit % STEADY_CHECK_EVERY === 0) check = true;
-      }
+      const start = performance.now();
+      const n = this.stepsPerFrame;
+      flow.step(n);
+      const before = this.stepsSinceEdit;
+      this.stepsSinceEdit += n;
+      const spent = performance.now() - start;
       if (timed) {
         gl.endQuery(this.timer!.ext.TIME_ELAPSED_EXT);
-        this.timer!.pending.push({ q: timed, steps: ran });
+        this.timer!.pending.push({ q: timed, steps: n });
       }
       // Outside the timed span: a PBO read inside an active query is an invalid operation.
-      if (check) this.checkSteady(flow);
-      this.paceSteps(dt);
+      if (Math.floor(this.stepsSinceEdit / STEADY_CHECK_EVERY) > Math.floor(before / STEADY_CHECK_EVERY)) this.checkSteady(flow);
+      this.paceSteps(dt, spent / n);
       this.slowCount = dt > SLOW_FRAME_MS ? this.slowCount + 1 : Math.max(0, this.slowCount - 1);
       if (this.slowCount >= SLOW_FRAMES && this.tier < FLOW_TIERS.length - 1 && this.stepsPerFrame <= MIN_STEPS_PER_FRAME + 1) {
         this.dropTier();
         return;
       }
     }
-    if (this.options.deadZones && !this.solving) {
-      for (let i = 0; i < AGE_STEPS_PER_FRAME; i++) flow.stepAge();
-      if (this.volumeMat) this.volumeMat.uniforms.AG.value = flow.ageTexture;
-    }
     if (!this.solving) this.coldStart = false;
     // Particles wait for the first solve: with no velocity yet they would sit on their spawn points.
-    if (this.options.particles && !(this.coldStart && this.solving) && this.stateMat && this.heatMat && this.points && this.spawnTex) {
+    if (this.options.particles && !(this.coldStart && this.solving) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
       for (let st = 0; st < PARTICLE_SUBSTEPS; st++) {
         const next = (this.stateCur + 1) % RING;
         this.stateMat.uniforms.U.value = flow.velocity;
@@ -324,20 +346,17 @@ export class FlowLayer {
         this.stateMat.uniforms.uSeed.value = (this.seed = (this.seed + 1) % 9973) * 0.137;
         this.runner.run(this.stateMat, this.stateTargets[next]);
         this.heatMat.uniforms.PA.value = this.stateTargets[next].texture;
-        this.heatMat.uniforms.PB.value = this.heatTargets[this.stateCur].texture;
+        this.heatMat.uniforms.T.value = flow.temperature;
         this.runner.run(this.heatMat, this.heatTargets[next]);
         this.stateCur = next;
       }
       const scale = viewportHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
-      this.pointMat!.uniforms.PA.value = this.stateTargets[this.stateCur].texture;
-      this.pointMat!.uniforms.PB.value = this.heatTargets[this.stateCur].texture;
-      this.pointMat!.uniforms.uScale.value = scale;
-      this.trailMats.forEach((m, a) => {
-        const at = (this.stateCur - 1 - a + 2 * RING) % RING;
-        m.uniforms.PA.value = this.stateTargets[at].texture;
-        m.uniforms.PB.value = this.heatTargets[at].texture;
-        m.uniforms.uScale.value = scale;
-      });
+      const u = this.streakMat!.uniforms;
+      u.PA.value = this.stateTargets[this.stateCur].texture;
+      u.PP.value = this.stateTargets[(this.stateCur + RING - 1) % RING].texture;
+      u.PB.value = this.heatTargets[this.stateCur].texture;
+      u.uScale.value = scale;
+      (u.uViewport.value as Vector2).set(viewportHeight * camera.aspect, viewportHeight);
     }
   }
 
@@ -359,12 +378,19 @@ export class FlowLayer {
     }
   }
 
-  // Sets the steps run per frame so the solver stays inside its GPU budget: from measured GPU time per step when the timer exists, else from frame deltas.
-  private paceSteps(dt: number) {
-    let next = this.stepsPerFrame;
-    if (this.timer && this.timer.msPerStep > 0) next = Math.floor(SOLVER_BUDGET_MS / this.timer.msPerStep);
-    else if (dt > FRAME_SLOW_MS) next = this.stepsPerFrame - 1;
-    else if (dt > 0 && dt < FRAME_FAST_MS) next = this.stepsPerFrame + 1;
+  // Sets the steps run per frame from what a step costs: the larger of its CPU submit time and its GPU time (timer query, else frame deltas), within the frame budget.
+  private paceSteps(dt: number, cpuMsPerStep: number) {
+    const budget = this.coldStart ? COLD_BUDGET_MS : SOLVER_BUDGET_MS;
+    const t = this.timer;
+    const gpu = t && t.msPerStep > 0 ? t.msPerStep : 0;
+    const cpuCap = Math.floor(budget / Math.max(cpuMsPerStep, 0.05));
+    let next: number;
+    if (gpu > 0) {
+      next = Math.min(cpuCap, Math.floor(budget / gpu), this.stepsPerFrame + 3);
+    } else {
+      // No GPU time yet: grow one step a frame while frames stay short, back off at once when they do not.
+      next = Math.min(cpuCap, dt > 0 && dt < FRAME_SLOW_MS ? this.stepsPerFrame + 1 : this.stepsPerFrame - 2);
+    }
     this.stepsPerFrame = Math.min(MAX_STEPS_PER_FRAME, Math.max(MIN_STEPS_PER_FRAME, next));
   }
 
@@ -377,7 +403,9 @@ export class FlowLayer {
   private pollSteady(flow: GlFlow) {
     const r = flow.pollMeasure();
     if (!r) return;
-    if (this.gate.settles(r.du, r.u, STEADY_RATIO) || this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
+    // A hot part's temperature field settles slower than the velocity, so it gets a minimum of steps before the velocity may call the solve steady.
+    const minSteps = this.heatCells && flow.hot ? TEMP_SETTLE_STEPS : 0;
+    if ((this.gate.settles(r.du, r.u, STEADY_RATIO) && this.stepsSinceEdit >= minSteps) || this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
   }
 
   /** Particle positions (cell coordinates) and heat read back from the GPU; for checks that none sit in a solid cell. */
@@ -394,23 +422,33 @@ export class FlowLayer {
     return this.fscene;
   }
 
+  // Rebuilds the collision shapes from the scene's own obstacle list; `force` redraws for a new scene.
+  private syncCollisions(force = false) {
+    if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
+    this.collisionsShown = this.options.collisions;
+    const scene = this.fscene;
+    if (!this.collisionsShown || !scene) { if (force) this.collisionsShown = this.options.collisions; return; }
+    this.collisions = buildCollisionShapes(scene.obstacles, this.colors.collision, this.colors.porous);
+    this.collisions.group.renderOrder = 1;
+    this.group.add(this.collisions.group);
+  }
+
   private teardown() {
+    if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
     this.flow?.dispose();
     this.flow = null;
     this.fscene = null;
     this.solving = false;
-    for (const p of [this.points, ...this.trails]) if (p) p.visible = false;
-    if (this.volume) this.volume.visible = false;
+    if (this.streaks) this.streaks.visible = false;
   }
 
   dispose() {
     this.teardown();
     for (const t of [...this.stateTargets, ...this.heatTargets]) t.dispose();
-    for (const m of [this.stateMat, this.heatMat, this.pointMat, ...this.trailMats, this.volumeMat]) m?.dispose();
+    for (const m of [this.stateMat, this.heatMat, this.streakMat]) m?.dispose();
     this.spawnTex?.dispose();
-    this.points?.geometry.dispose();
-    this.volume?.geometry.dispose();
-    for (const o of [this.points, ...this.trails, this.volume]) if (o) this.group.remove(o);
+    this.streaks?.geometry.dispose();
+    if (this.streaks) this.group.remove(this.streaks);
     if (this.timer) for (const { q } of this.timer.pending) (this.renderer.getContext() as WebGL2RenderingContext).deleteQuery(q);
     this.runner?.dispose();
     this.stateMat = null;

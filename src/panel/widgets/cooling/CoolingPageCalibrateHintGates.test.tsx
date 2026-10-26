@@ -3,6 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CoolingPage } from './CoolingPage';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 

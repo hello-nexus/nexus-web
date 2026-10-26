@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { Button } from '../Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { tooltipOpenDelay, notifyTooltipOpen, notifyTooltipClose } from '../tooltipDelay';
+import { usePortalRoot } from '../ThemeScope/ThemeScope';
 import { isRestoringModalFocus, onModalOpen } from '../Overlay/modalStack';
 import styles from './InfoTooltip.module.scss';
 
@@ -54,6 +55,7 @@ const VIEWPORT_MARGIN = 8;
  */
 export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, icon, tone, action }: InfoTooltipProps) {
   const { t } = useTranslation();
+  const portalRoot = usePortalRoot();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const rootRef = useRef<HTMLSpanElement>(null);
@@ -273,7 +275,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
             </Button>
           )}
         </span>,
-        document.body,
+        portalRoot,
       )}
     </span>
   );

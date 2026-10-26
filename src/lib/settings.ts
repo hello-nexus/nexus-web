@@ -59,6 +59,11 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
 export const THEME_MODES = ['system', 'dark', 'light'] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
+/** What the Cooling 3D view draws: case and airflow, the case alone, or the airflow alone. */
+export const COOLING_FLOW_MODES = ['both', 'case', 'airflow'] as const;
+export type CoolingFlowMode = (typeof COOLING_FLOW_MODES)[number];
+export const DEFAULT_COOLING_FLOW_MODE: CoolingFlowMode = 'both';
+
 // Dashboard background style. 'glass' = transparent backdrop revealing the
 // native OS frosted-glass material, 'gradient' = flowing accent ribbons,
 // 'flat' = solid theme color.
@@ -181,6 +186,13 @@ export interface GeneralSettings {
   // each seeded from the single pre-split ui.showUncontrolledDevices.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Whether the Lighting and Cooling pages open on their 3D view; one per page. Server-mirrored under ui.lightingView3d / ui.coolingView3d.
+  lightingView3d: boolean;
+  coolingView3d: boolean;
+  // What the Cooling 3D view draws: case and airflow, the case alone, or the airflow alone. Server-mirrored under ui.coolingFlowMode.
+  coolingFlowMode: CoolingFlowMode;
+  // Whether the Cooling 3D view draws the solver's collision shapes instead of the case model. Server-mirrored under ui.coolingCollisionShapes.
+  coolingCollisionShapes: boolean;
   // Sidebar DEVICES row keys the user hid. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
   // Display-unit choices. Server-mirrored under the preferences `units` block
@@ -255,6 +267,10 @@ export function getDefaultSettings(): NexusSettings {
       coolingDashboardMode: 'simple',
       showUncontrolledLightingDevices: true,
       showUncontrolledCoolingDevices: true,
+      lightingView3d: false,
+      coolingView3d: false,
+      coolingFlowMode: 'both',
+      coolingCollisionShapes: false,
       hiddenSidebarDevices: [],
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,

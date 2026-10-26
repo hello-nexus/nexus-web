@@ -20,6 +20,7 @@ const h = vi.hoisted(() => ({
   specs: null as unknown as SystemSpecs | null,
   gamesByKey: new Map<string, FpsGameSummary>(),
   serverCase: null as string | null,
+  serverCaseAuto: false,
   serverDevices: null as unknown[] | null,
   fetchService: vi.fn(),
   putService: vi.fn(),
@@ -90,10 +91,11 @@ beforeEach(() => {
   h.gamesByKey = new Map();
   h.openExternalUrl.mockClear();
   h.serverCase = null;
+  h.serverCaseAuto = false;
   h.serverDevices = null;
   h.fetchService.mockReset();
   h.fetchService.mockImplementation(async (path: string) => {
-    if (path === '/system/case') return { caseId: h.serverCase };
+    if (path === '/system/case') return { caseId: h.serverCase, auto: h.serverCaseAuto };
     if (path === '/system/devices' && h.serverDevices) return { devices: h.serverDevices };
     return null;
   });
@@ -403,6 +405,36 @@ describe('BuildPage', () => {
       act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
 
       expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('devices');
+    });
+
+    it('marks a detection-assigned case in the hello machine object and drops the mark once the user picks', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.serverCase = 'case-y70';
+      h.serverCaseAuto = true;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+      expect(helloPosts(postSpy)[0].machine).toMatchObject({ caseId: 'case-y70', caseAuto: true });
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: 'case-abc' }));
+      await flush();
+
+      expect(helloPosts(postSpy).at(-1)?.machine).not.toHaveProperty('caseAuto');
+    });
+
+    it('omits caseAuto when the service does not flag the case', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.serverCase = 'case-abc';
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('caseAuto');
     });
 
     it('omits caseId from the machine object when none is set', async () => {
@@ -782,5 +814,108 @@ describe('BuildPage preview relay', () => {
       }));
     });
     expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+});
+
+describe('BuildPage headless', () => {
+  const machine = { processor: 'AMD Ryzen 7 7800X3D', caseId: 'hyte-y70-touch-infinite' };
+  const headlessProp = (over: Partial<import('./BuildPage').HeadlessBuild> = {}) => ({ machine, layoutKey: 'case=hyte-y70-touch-infinite|cpu=AMD', onResolved: vi.fn(), onUnavailable: vi.fn(), ...over });
+  const helloOf = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+
+  it('sends the host\'s machine and key in hello, marked headless, and none of the page chrome flags', () => {
+    previewApi.devTools = true;
+    h.specs = SAMPLE_SPECS;
+    render(<BuildPage headless={headlessProp()} onOpenBenchmark={vi.fn()} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = helloOf(spy)!;
+    expect(hello).toMatchObject({ headless: true, layoutKey: 'case=hyte-y70-touch-infinite|cpu=AMD', machine, canSyncSetup: true });
+    expect(hello).not.toHaveProperty('canSavePreview');
+    previewApi.devTools = false;
+  });
+
+  it('offers no setup sync in a distribution build, headless or not', () => {
+    previewApi.devTools = false;
+    h.specs = SAMPLE_SPECS;
+    render(<BuildPage headless={headlessProp()} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(helloOf(spy)!).not.toHaveProperty('canSyncSetup');
+  });
+
+  it('renders the frame out of sight, flagged headless in its URL, with no fallback page', () => {
+    const { container } = render(<BuildPage headless={headlessProp()} />);
+    const wrap = container.firstElementChild as HTMLElement;
+    expect(wrap.getAttribute('aria-hidden')).toBe('true');
+    expect(getIframe().getAttribute('src')).toBe(`${BUILD_ORIGIN}/builder?headless=1`);
+    expect(screen.queryByText('build.offline.title')).toBeNull();
+  });
+
+  it('relays the resolved message to its host, only from the frame and only well formed', () => {
+    const prop = headlessProp();
+    render(<BuildPage headless={prop} />);
+    const iframe = getIframe();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:resolved', rev: 3, saved: true, hasLayout: true, model: false }));
+    expect(prop.onResolved).toHaveBeenCalledWith({ rev: 3, saved: true, hasLayout: true, model: false });
+    act(() => postFromFrame(iframe, { type: 'nexus-build:resolved', rev: '3', saved: true, hasLayout: true, model: false }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:resolved', rev: 4, saved: true, hasLayout: true, model: true }, 'https://evil.example'));
+    expect(prop.onResolved).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores resolved from a visible Build', () => {
+    render(<BuildPage path="/builder" />);
+    const iframe = getIframe();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(() => act(() => postFromFrame(iframe, { type: 'nexus-build:resolved', rev: 1, saved: true, hasLayout: true, model: true }))).not.toThrow();
+  });
+
+  it('opens nothing, moves no case, keeps no preview and leaves the top bar\'s history alone', () => {
+    previewApi.devTools = true;
+    const history = renderHook(() => useBuildFrameHistory());
+    render(<BuildPage headless={headlessProp()} />);
+    const iframe = getIframe();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:open-external', url: 'https://build.hellonexus.com/x' }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', caseId: 'other-case' }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'hyte-y70', png: new ArrayBuffer(4) }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:history', canGoBack: true, canGoForward: true }));
+    expect(h.openExternalUrl).not.toHaveBeenCalled();
+    expect(h.putService).not.toHaveBeenCalled();
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+    expect(history.result.current).toEqual({ canGoBack: false, canGoForward: false });
+    previewApi.devTools = false;
+  });
+
+  it('tells its host the frame never loaded when offline or when Build does not answer', () => {
+    const prop = headlessProp();
+    render(<BuildPage headless={prop} />);
+    expect(prop.onUnavailable).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(9000); });
+    expect(prop.onUnavailable).toHaveBeenCalled();
+    expect(document.querySelector('iframe')).toBeNull();
+  });
+
+  it('tells its host at once when the browser is offline', () => {
+    Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
+    const prop = headlessProp();
+    render(<BuildPage headless={prop} />);
+    expect(prop.onUnavailable).toHaveBeenCalled();
+  });
+
+  it('gives a visible Build the layout key only once the case and devices were read, and not before', async () => {
+    h.specs = SAMPLE_SPECS;
+    h.serverCase = 'hyte-y70-touch-infinite';
+    render(<BuildPage path="/builder" />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(helloOf(spy)).not.toHaveProperty('layoutKey');
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    const keyed = spy.mock.calls.map(([msg]) => msg as Record<string, unknown>).filter(m => m.type === 'nexus-build:hello' && m.layoutKey).at(-1);
+    expect(keyed?.layoutKey).toContain('case=hyte-y70-touch-infinite');
+    expect(keyed).not.toHaveProperty('headless');
   });
 });
