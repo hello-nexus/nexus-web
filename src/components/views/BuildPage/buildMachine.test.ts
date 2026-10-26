@@ -4,7 +4,7 @@ import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 const h = vi.hoisted(() => ({ fetchService: vi.fn() }));
 vi.mock('../../../api/service', () => ({ fetchService: (...args: unknown[]) => h.fetchService(...args) }));
 
-import { buildMachine, fetchMachineCase, fetchMachineDevices, isValidCaseId, layoutKeyOf, type BuildDevice } from './buildMachine';
+import { BUILD_LAYOUT_RULES, buildMachine, fetchMachineCase, fetchMachineDevices, isValidCaseId, layoutKeyOf, type BuildDevice } from './buildMachine';
 
 const SPECS: SystemSpecs = {
   pcName: 'rig', osBuild: '', processor: 'AMD Ryzen 7 7800X3D', motherboard: 'X670E', memory: '32 GB', storage: '2 TB',
@@ -24,6 +24,7 @@ describe('layoutKeyOf', () => {
 
   it('changes with the case, the parts, and the coolers and fans', () => {
     const key = layoutKeyOf(base());
+    expect(key.split('|')).toContain(`rules=${BUILD_LAYOUT_RULES}`);
     expect(layoutKeyOf(buildMachine(SPECS, 'hyte-y60', base().devices ?? []))).not.toBe(key);
     expect(layoutKeyOf(buildMachine({ ...SPECS, primaryGpu: 'RTX 5090' }, 'hyte-y70', base().devices ?? []))).not.toBe(key);
     expect(layoutKeyOf(buildMachine({ ...SPECS, motherboard: 'B650' }, 'hyte-y70', base().devices ?? []))).not.toBe(key);
