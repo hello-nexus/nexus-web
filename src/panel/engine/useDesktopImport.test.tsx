@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DesktopImportDto } from '../../api/panel';
 import type { PanelLayout } from '../types';
@@ -54,6 +54,42 @@ describe('useDesktopImport', () => {
       await settle(IMPORT_RETRY_MS[i]);
       expect(patchMock).toHaveBeenCalledTimes(i + 2);
     }
+    await settle(120_000);
+    expect(patchMock).toHaveBeenCalledTimes(IMPORT_RETRY_MS.length + 1);
+  });
+
+  it('arms no retry when the save rejects after the hook is gone', async () => {
+    let reject: () => void = () => {};
+    patchMock.mockReturnValue(new Promise((_, r) => { reject = () => r(new Error('late')); }));
+    const view = renderHook(() => useDesktopImport(args()));
+    await settle();
+    view.unmount();
+    await act(async () => { reject(); await vi.advanceTimersByTimeAsync(0); });
+    await settle(120_000);
+    expect(patchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('arms no retry when the hook is disabled before the save fails', async () => {
+    let resolve: (v: null) => void = () => {};
+    patchMock.mockReturnValue(new Promise(r => { resolve = r; }));
+    const view = renderHook(({ on }) => useDesktopImport(args({ enabled: on })), { initialProps: { on: true } });
+    await settle();
+    view.rerender({ on: false });
+    await act(async () => { resolve(null); await vi.advanceTimersByTimeAsync(0); });
+    await settle(120_000);
+    expect(patchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps one retry budget across refetches of the same import', async () => {
+    patchMock.mockResolvedValue(null);
+    const view = renderHook(({ p }) => useDesktopImport(args({ pending: p })), { initialProps: { p: pending } });
+    await settle();
+    await settle(IMPORT_RETRY_MS[0]);
+    expect(patchMock).toHaveBeenCalledTimes(2);
+    // A refetch hands back an equal import in a new object: the schedule and attempt count carry on.
+    view.rerender({ p: { ...pending, widgets: [...pending.widgets] } });
+    await settle(IMPORT_RETRY_MS[1]);
+    for (let i = 2; i < IMPORT_RETRY_MS.length; i++) await settle(IMPORT_RETRY_MS[i]);
     await settle(120_000);
     expect(patchMock).toHaveBeenCalledTimes(IMPORT_RETRY_MS.length + 1);
   });

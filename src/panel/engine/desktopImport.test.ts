@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DesktopImportDto, DesktopImportWidgetDto } from '../../api/panel';
 import type { PanelLayout } from '../types';
-import { bestGridSlots, hasPendingImport, importBase, planDesktopImport, type ImportViewport } from './desktopImport';
+import { bestGridSlots, hasPendingImport, importBase, kioskOriginFromSearch, planDesktopImport, type ImportViewport } from './desktopImport';
 import { panelWidgetPaddingRatio } from './grid';
 
 const PAD = 100;
@@ -137,5 +137,34 @@ describe('importBase', () => {
     const { imp: fresh } = importBase(imp([widget('a', 0, 0)], { merge: true }), emptyLayout());
     expect(fresh.merge).toBe(false);
     expect(planDesktopImport(fresh, vp, PAD, emptyLayout()).gridSlots).toBeDefined();
+  });
+});
+
+describe('kiosk origin', () => {
+  const base = { w: 2560, h: 1440, dpr: 1 };
+  const one = imp([widget('a', 4, 4, '1x1')]);
+
+  it('reads the origin params and defaults to a full-frame window', () => {
+    expect(kioskOriginFromSearch('?originX=80&originY=25')).toEqual({ originX: 80, originY: 25 });
+    expect(kioskOriginFromSearch('?x=1')).toEqual({ originX: 0, originY: 0 });
+    expect(kioskOriginFromSearch('?originX=oops')).toEqual({ originX: 0, originY: 0 });
+  });
+
+  it('shifts a widget up by a top menu bar offset', () => {
+    const flat = planDesktopImport(one, base, PAD, emptyLayout());
+    const shifted = planDesktopImport(one, { ...base, originY: 25 }, PAD, emptyLayout(), undefined);
+    const stride = flat.grid.rowSize + flat.grid.gap;
+    const legacyY = 4 * 86 + 6;
+    expect((legacyY - 25 - shifted.grid.padding) / stride).toBeCloseTo(shifted.layout.pages[0].widgets[0].row, 0);
+    expect(shifted.layout.pages[0].widgets[0].col).toBe(flat.layout.pages[0].widgets[0].col);
+  });
+
+  it('shifts a widget left by a side Dock offset and clamps at the edge', () => {
+    const dock = planDesktopImport(one, { ...base, originX: 120 }, PAD, emptyLayout());
+    const flat = planDesktopImport(one, base, PAD, emptyLayout());
+    const stride = flat.grid.colSize + flat.grid.gap;
+    expect(dock.layout.pages[0].widgets[0].col).toBe(Math.round((4 * 86 + 6 - 120 - dock.grid.padding) / stride));
+    const edge = planDesktopImport(imp([widget('e', 0, 0, '1x1')]), { ...base, originX: 120, originY: 25 }, PAD, emptyLayout());
+    expect(edge.layout.pages[0].widgets[0]).toMatchObject({ col: 0, row: 0 });
   });
 });

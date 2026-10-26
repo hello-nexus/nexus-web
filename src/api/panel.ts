@@ -62,7 +62,7 @@ export interface DesktopImportWidgetDto {
   id: string;
   type: string;
   size: string;
-  // Legacy overlay position in cell units at 0.25 granularity from the display's top-left.
+  // Legacy overlay position in fractional cell units from the display's top-left.
   col: number;
   row: number;
   locked?: boolean;

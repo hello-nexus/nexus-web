@@ -17,6 +17,19 @@ export interface ImportViewport {
   w: number;
   h: number;
   dpr: number;
+  // Kiosk window origin inside the monitor's full frame, CSS px; the legacy overlay covered the full frame.
+  originX?: number;
+  originY?: number;
+}
+
+/** The origin the host passes on the kiosk URL; missing or malformed means a full-frame window. */
+export function kioskOriginFromSearch(search: string): { originX: number; originY: number } {
+  const params = new URLSearchParams(search);
+  const read = (key: string) => {
+    const value = Number(params.get(key));
+    return Number.isFinite(value) ? value : 0;
+  };
+  return { originX: read('originX'), originY: read('originY') };
 }
 
 export interface ImportGrid {
@@ -153,10 +166,12 @@ export function planDesktopImport(
     const size = snapSize ? snapSize(legacy.type, legacy.size, slots === undefined ? undefined : { slots, landscape: vp.w > vp.h }) : legacy.size;
     const span = sizeToSpan(size);
     // The legacy window clamps a stored cell to the viewport before drawing it.
-    const maxCol = Math.max(0, vp.w / stride - span.cols);
-    const maxRow = Math.max(0, vp.h / stride - span.rows);
-    const x = clamp(legacy.col, 0, maxCol) * stride + inset;
-    const y = clamp(legacy.row, 0, maxRow) * stride + inset;
+    const originX = vp.originX ?? 0;
+    const originY = vp.originY ?? 0;
+    const maxCol = Math.max(0, (vp.w + originX) / stride - span.cols);
+    const maxRow = Math.max(0, (vp.h + originY) / stride - span.rows);
+    const x = clamp(legacy.col, 0, maxCol) * stride + inset - originX;
+    const y = clamp(legacy.row, 0, maxRow) * stride + inset - originY;
     const col = clamp(Math.round((x - grid.padding) / colStride), 0, Math.max(0, grid.columns - span.cols));
     const row = clamp(Math.round((y - grid.padding) / rowStride), 0, Math.max(0, grid.rows - span.rows));
 
