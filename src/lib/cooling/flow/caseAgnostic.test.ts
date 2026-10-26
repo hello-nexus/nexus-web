@@ -84,7 +84,7 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
       expect(run.scene.emitterCounts[s.key], s.key).toBeGreaterThan(0);
     }
     expect(intakes).toBeGreaterThan(0);
-    // Each emitter entry sits at the center of a fanned slot, in cell coordinates; a fan on a case face starts its particles out past that face, a card or radiator fan does not.
+    // Each emitter entry sits at the center of a fanned slot, in cell coordinates; a fan on a case face starts its particles out past that face; a card, radiator or shroud-mounted fan does not.
     const e = run.scene.emitters;
     const cell = run.scene.cellMm;
     const centers = new Map(fanned.map(s => [s.key, [0, 1, 2].map(a => (centerOf(s)[a] + run.scene.origin[a]) / cell - 0.5)]));
@@ -92,7 +92,7 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
       const hit = [...centers.entries()].find(([, c]) => [0, 1, 2].every(a => Math.abs(c[a] - e[o + a]) < 1e-3));
       expect(hit, 'emitter on a fan center').toBeDefined();
       const slot = fanned.find(s => s.key === hit![0])!;
-      if (slot.position === 'gpu' || slot.key.startsWith('rad:')) continue;
+      if (!['front', 'rear', 'top', 'bottom', 'left', 'right'].includes(slot.position) || slot.key.startsWith('rad:')) continue;
       expect(e[o + 11] * cell).toBeGreaterThan(0);
       expect((e[o + 11] + e[o + 12]) * cell).toBeLessThan(OUTSIDE_REACH_MM + 80);
     }
