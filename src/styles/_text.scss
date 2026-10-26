@@ -17,9 +17,8 @@
 // ancestor crops it there. Uppercase is not exempt: the accented capitals
 // of fr/pt/tr/vi reach as deep. text-display is the knowing exception at
 // 1.2, which costs 0.005em on a glyph nobody has reported. The two mono
-// styles are on --font-mono, where only digits and number punctuation come
-// from JetBrains Mono (no descenders) and every other character, the space
-// and the line metrics are Lexend, so the same floor applies. Locales that fall back to a
+// styles are on --font-mono (JetBrains Mono), not Lexend, but every
+// mono face in the stack fits inside 1.25 as well. Locales that fall back to a
 // system CJK face do not - those boxes run past 1.4em.
 //
 // The Storybook viewer (Tools > Debug Tools > Storybook > Foundation) renders
