@@ -18,6 +18,8 @@ export interface BuildMachine {
   hz?: number;
   ramGb?: number;
   caseId?: string;
+  // The case was filled in by detection (a Y70 display), not chosen; absent when the user chose it.
+  caseAuto?: true;
   devices?: BuildDevice[];
 }
 
@@ -42,7 +44,7 @@ export function isValidCaseId(value: unknown): value is string | null {
 }
 
 /** The `machine` of the Build hello: this PC's report, its case and its detected devices. */
-export function buildMachine(specs: SystemSpecs, caseId: string | null, devices: BuildDevice[]): BuildMachine {
+export function buildMachine(specs: SystemSpecs, caseId: string | null, devices: BuildDevice[], caseAuto = false): BuildMachine {
   const sig = buildFpsSignatureParams(specs);
   return {
     processor: specs.processor || undefined,
@@ -55,14 +57,21 @@ export function buildMachine(specs: SystemSpecs, caseId: string | null, devices:
     hz: sig?.hz,
     ramGb: sig?.ramBytes != null ? Math.round(sig.ramBytes / BYTES_PER_GIB) : undefined,
     ...(caseId ? { caseId } : {}),
+    ...(caseId && caseAuto ? { caseAuto: true as const } : {}),
     ...(devices.length > 0 ? { devices } : {}),
   };
 }
 
+/** The case the service keeps for this PC and whether detection filled it in; none when it keeps none or did not answer. */
+export async function fetchMachineCaseState(): Promise<{ caseId: string | null; auto: boolean }> {
+  const res = await fetchService<{ caseId?: string | null; auto?: boolean }>('/system/case');
+  if (!res || typeof res.caseId !== 'string' || !isValidCaseId(res.caseId)) return { caseId: null, auto: false };
+  return { caseId: res.caseId, auto: res.auto === true };
+}
+
 /** The case the service keeps for this PC; null when it keeps none or did not answer. */
 export async function fetchMachineCase(): Promise<string | null> {
-  const res = await fetchService<{ caseId?: string | null }>('/system/case');
-  return res && typeof res.caseId === 'string' && isValidCaseId(res.caseId) ? res.caseId : null;
+  return (await fetchMachineCaseState()).caseId;
 }
 
 /** Detected coolers, fans and controllers. An older service answers 404, which leaves the list empty. */

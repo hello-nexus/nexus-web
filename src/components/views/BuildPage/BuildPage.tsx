@@ -18,7 +18,7 @@ import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
 import { relayPreviewSave } from './buildPreview';
 import { relaySceneExport } from './buildScene';
 import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
-import { buildMachine, fetchMachineCase, fetchMachineDevices, isValidCaseId, layoutKeyOf, type BuildDevice, type BuildMachine } from './buildMachine';
+import { buildMachine, fetchMachineCaseState, fetchMachineDevices, isValidCaseId, layoutKeyOf, type BuildDevice, type BuildMachine } from './buildMachine';
 import styles from './BuildPage.module.scss';
 
 const SYSTEM_CASE_TOPIC = 'system/case';
@@ -170,6 +170,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   // service (machine-local, mirrored to the signed-in account) and picked in
   // the frame.
   const [caseId, setCaseId] = useState<string | null>(null);
+  const [caseAuto, setCaseAuto] = useState(false);
   const caseTouchedRef = useRef(false);
   // The answers of the two reads below are in (an answer of none counts): the layout key is only given once the machine is whole.
   const [caseRead, setCaseRead] = useState(false);
@@ -177,10 +178,13 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const id = await fetchMachineCase();
+      const state = await fetchMachineCaseState();
       if (cancelled) return;
       setCaseRead(true);
-      if (!caseTouchedRef.current && id) setCaseId(id);
+      if (!caseTouchedRef.current && state.caseId) {
+        setCaseId(state.caseId);
+        setCaseAuto(state.auto);
+      }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -188,10 +192,11 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   // The service pings this topic when the case changes (a manual pick or the Y70 display auto-assign), so an open page follows it; the hello below re-sends with the new caseId.
   useTopicCallback(SYSTEM_CASE_TOPIC, !isRemoteOrigin, useCallback(() => {
     void (async () => {
-      const res = await fetchService<{ caseId?: string | null }>('/system/case');
+      const res = await fetchService<{ caseId?: string | null; auto?: boolean }>('/system/case');
       if (!res) return;
       caseTouchedRef.current = true;
       setCaseId(typeof res.caseId === 'string' && isValidCaseId(res.caseId) ? res.caseId : null);
+      setCaseAuto(res.auto === true);
     })();
   }, []));
 
@@ -297,6 +302,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
             if (!res || res.error === true) return;
             caseTouchedRef.current = true;
             setCaseId(typeof res.caseId === 'string' && isValidCaseId(res.caseId) ? res.caseId : null);
+            // A pick through the frame is the user's choice.
+            setCaseAuto(false);
           })();
           break;
         }
@@ -355,7 +362,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
     };
   }, [post, learnSetupRev]);
 
-  const machine: BuildMachine | undefined = headless?.machine ?? (specs ? buildMachine(specs, caseId, devices) : undefined);
+  const machine: BuildMachine | undefined = headless?.machine ?? (specs ? buildMachine(specs, caseId, devices, caseAuto) : undefined);
   // The key is only given for a whole machine: a hello that carried a partial one would be answered with a layout kept under it.
   const layoutKey = headless?.layoutKey ?? (machine && caseRead && devicesRead ? layoutKeyOf(machine) : undefined);
 
