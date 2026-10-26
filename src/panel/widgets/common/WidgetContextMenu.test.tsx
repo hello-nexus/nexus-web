@@ -4,6 +4,8 @@
 // leave the new menu open: the old instance's timer dies with it.
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { TopologyDisplay } from '../../../api/displays';
+import { displayTargetsOf } from '../../engine/useDisplayTargets';
 import { WidgetContextMenu } from './WidgetContextMenu';
 
 function menu(key: number, onClose: () => void) {
@@ -141,5 +143,34 @@ describe('WidgetContextMenu always on top', () => {
     expect(item).toBeDisabled();
     fireEvent.click(item);
     expect(onToggle).not.toHaveBeenCalled();
+  });
+});
+
+describe('WidgetContextMenu add to display', () => {
+  const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: true, surface: 'desktop' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+
+  it('lists the window display first on a host with several unpromoted displays and adds to the chosen one', () => {
+    const onAdd = vi.fn();
+    const targets = displayTargetsOf(
+      {
+        hostingSupported: true, rotationSupported: true, reserveSupported: true, positionsAvailable: true, revision: 1, hint: '',
+        displays: [
+          { id: 'main', name: 'Main', assignedPanelDeviceId: null, hostingSupported: true, isY70: false },
+          { id: 'side', name: 'Side', assignedPanelDeviceId: null, hostingSupported: true, isY70: false },
+        ] as unknown as TopologyDisplay[],
+      },
+      [],
+      'side',
+    );
+    render(<WidgetContextMenu {...base} displayTargets={targets} onAddToDisplay={onAdd} />);
+    const items = screen.getAllByText(/panel.widget.menu.addToDisplayNamed/);
+    expect(items).toHaveLength(2);
+    fireEvent.click(items[0]);
+    expect(onAdd).toHaveBeenCalledWith('side');
+  });
+
+  it('shows no item without a handler', () => {
+    render(<WidgetContextMenu {...base} displayTargets={[{ id: 'a', name: 'A' }]} />);
+    expect(screen.queryByText(/addToDisplay/)).toBeNull();
   });
 });

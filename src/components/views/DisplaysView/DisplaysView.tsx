@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutDashboard, ScanEye, Star } from 'lucide-react';
+import { ScanEye } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDisplayTopology } from '../../../hooks/useDisplayTopology';
 import { demoteDisplayPanel, identifyDisplays, promoteDisplayToPanel, setDisplayDdc, type TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
-import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
 import { Notice } from '../../../components/common/Notice/Notice';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../ServiceRequired';
+import { DisplayDetailHeader } from './DisplayDetailHeader';
 import { MonitorMap } from './MonitorMap';
 import { identifyPayload, IDENTIFY_SHOWN_MS } from './identifyPayload';
 import styles from './DisplaysView.module.scss';
@@ -143,14 +143,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
 
           {selected && (
             <div className={styles.detail} data-testid="display-detail">
-              <div className={styles.detailHeader}>
-                <span className={styles.detailName}>{selected.name}</span>
-                {(selected.manufacturer || selected.model) && (
-                  <span className={styles.detailSub}>
-                    {[selected.manufacturer, selected.model].filter(Boolean).join(' - ')}
-                  </span>
-                )}
-              </div>
+              <DisplayDetailHeader display={selected} onDeviceSelect={onDeviceSelect} />
 
               <dl className={styles.facts}>
                 <div className={styles.factRow}>
@@ -166,9 +159,6 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
               </dl>
 
               <div className={styles.chips}>
-                {selected.isPrimary && (
-                  <span className={styles.chip}><Star size={12} /> {t('displays.primary')}</span>
-                )}
                 {selected.isInternal && (
                   <span className={styles.chip}>{t('displays.internal')}</span>
                 )}
@@ -196,32 +186,9 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
               </div>
               )}
 
-              <div className={styles.actions}>
-                {selected.isY70 ? (
-                  <>
-                    <Badge filled uppercase size="small" color="var(--accent)" icon={<LayoutDashboard size={14} />} label={t('displays.panel.activeAuto')} />
-                    <Button type="button" tone="neutral" size="sm" onClick={() => onDeviceSelect('panel-device:y70')}>
-                      {t('displays.panel.open')}
-                    </Button>
-                  </>
-                ) : selected.assignedPanelDeviceId ? (
-                  <>
-                    <Badge filled uppercase size="small" color="var(--accent)" icon={<LayoutDashboard size={14} />} label={t('displays.panel.active')} />
-                    <Button
-                      type="button"
-                      tone="neutral"
-                      size="sm"
-                      onClick={() => onDeviceSelect(`panel-display:${selected.assignedPanelDeviceId}`)}
-                    >
-                      {t('displays.panel.open')}
-                    </Button>
-                  </>
-                ) : (
-                  (!topology?.hostingSupported || !selected.hostingSupported) && (
-                    <span className={styles.hint}>{t('displays.panel.unsupportedHint')}</span>
-                  )
-                )}
-              </div>
+              {!selected.isY70 && !selected.assignedPanelDeviceId && (!topology?.hostingSupported || !selected.hostingSupported) && (
+                <span className={styles.hint}>{t('displays.panel.unsupportedHint')}</span>
+              )}
 
               {error && <div className={styles.error}>{error}</div>}
               {topology?.hint ? <div className={styles.hint}>{topology.hint}</div> : null}
