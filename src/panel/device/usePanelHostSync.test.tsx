@@ -127,6 +127,38 @@ describe('usePanelFrost', () => {
     cell.remove();
   });
 
+  it('releases the frost on unmount and when it goes inactive', async () => {
+    const cell = mountCard();
+    const view = renderHook(({ on }) => usePanelFrost(on, 70, true, false, rootRef, 'a'), { initialProps: { on: true } });
+    await flush();
+    view.rerender({ on: false });
+    expect(frosts().at(-1)).toMatchObject({ level: 'none', rects: [] });
+    view.rerender({ on: true });
+    await flush();
+    const before = frosts().length;
+    view.unmount();
+    expect(frosts().length).toBe(before + 1);
+    expect(frosts().at(-1)).toMatchObject({ level: 'none', rects: [] });
+    cell.remove();
+  });
+
+  it('frosts the drag overlay card but not a catalog preview', async () => {
+    const overlay = document.createElement('div');
+    overlay.setAttribute('data-panel-drag-overlay', '');
+    const card = document.createElement('div');
+    card.className = 'panel-card';
+    card.getBoundingClientRect = () => ({ left: 5, top: 6, right: 25, bottom: 36 }) as DOMRect;
+    overlay.appendChild(card);
+    const catalog = mountCard();
+    catalog.setAttribute('data-panel-catalog', '');
+    document.body.appendChild(overlay);
+    renderHook(() => usePanelFrost(true, 70, true, false, rootRef, 'a'));
+    await flush();
+    expect(frosts()[0]).toMatchObject({ rects: [{ x: 5, y: 6, w: 20, h: 30 }] });
+    overlay.remove();
+    catalog.remove();
+  });
+
   it('stays silent when inactive', async () => {
     renderHook(() => usePanelFrost(false, 70, true, false, rootRef, 'a'));
     await flush();

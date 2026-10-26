@@ -1456,7 +1456,6 @@ export function PanelContent({
     setEditorDockMotion(null);
   }, []);
 
-   
   // A widget removed elsewhere ends its edit session for good, so it cannot reopen the sheet if it returns.
   useEffect(() => {
     if (sheetMode === 'settings' && !sheetClosing && editTargetGone(editingWidgetId, editingWidget !== null, editingWidgetId !== null && playlistTypeOfWidgetId(editingWidgetId) !== undefined)) {
@@ -1796,6 +1795,8 @@ export function PanelContent({
     rootRef,
     `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${allFlatIds.join(',')}`,
   );
+  // Position and size, so a remote edit that keeps the ids still remeasures.
+  const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
   // The host blurs the desktop behind the cards: CSS cannot sample it.
   usePanelFrost(
     hostBound,
@@ -1803,7 +1804,7 @@ export function PanelContent({
     seeThrough,
     Boolean(activeDragId),
     rootRef,
-    `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${allFlatIds.join(',')}`,
+    `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
   );
   // Every sheet (widget edit, catalog, panel settings, pairing) can hold a text field.
   usePanelActivatable(hostBound, Boolean(sheetMode));

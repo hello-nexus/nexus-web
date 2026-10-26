@@ -112,7 +112,8 @@ export function usePanelActivatable(active: boolean, wanted: boolean): void {
   }, []);
 }
 
-const CARD_SELECTOR = '[data-panel-widget-id] .panel-card';
+// Catalog previews are not on the desktop; the drag overlay holds the card being moved.
+const CARD_SELECTOR = '[data-panel-widget-id]:not([data-panel-catalog]) .panel-card, [data-panel-drag-overlay] .panel-card';
 
 function cardRadius(): number {
   const card = document.querySelector(CARD_SELECTOR);
@@ -127,9 +128,17 @@ function cardRadius(): number {
  */
 export function usePanelFrost(active: boolean, percent: number, seeThrough: boolean, dragging: boolean, rootRef: RefObject<HTMLElement | null>, signature: string): void {
   const lastRef = useRef('');
+  const release = () => {
+    if (lastRef.current === '') return;
+    const msg = frostMessage(0, false, [], 1, 0);
+    if (JSON.stringify(msg) !== lastRef.current) postPanelHostMessage(msg);
+    lastRef.current = '';
+  };
+  const releaseRef = useRef(release);
+  releaseRef.current = release;
   useEffect(() => {
     if (!active) {
-      lastRef.current = '';
+      releaseRef.current();
       return undefined;
     }
     let frame = 0;
@@ -152,22 +161,41 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       send();
       frame = requestAnimationFrame(follow);
     };
+    // Paging swipes animate through transitions: follow every frame while one runs.
+    let running = 0;
+    const onRun = () => {
+      running += 1;
+      if (!frame) frame = requestAnimationFrame(follow);
+    };
+    const onEnd = () => {
+      running = Math.max(0, running - 1);
+      if (running === 0 && !dragging) {
+        if (frame) cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      schedule();
+    };
     if (dragging) frame = requestAnimationFrame(follow);
     else schedule();
     const offRequest = onHostRequestHitTest(() => { lastRef.current = ''; send(); });
     const root = rootRef.current;
     const observer = root && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
     if (root && observer) observer.observe(root);
-    document.addEventListener('transitionend', schedule, true);
+    document.addEventListener('transitionrun', onRun, true);
+    document.addEventListener('transitionend', onEnd, true);
+    document.addEventListener('transitioncancel', onEnd, true);
     document.addEventListener('animationend', schedule, true);
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
       offRequest();
       observer?.disconnect();
-      document.removeEventListener('transitionend', schedule, true);
+      document.removeEventListener('transitionrun', onRun, true);
+      document.removeEventListener('transitionend', onEnd, true);
+      document.removeEventListener('transitioncancel', onEnd, true);
       document.removeEventListener('animationend', schedule, true);
       window.removeEventListener('resize', schedule);
     };
   }, [active, percent, seeThrough, dragging, rootRef, signature]);
+  useEffect(() => () => releaseRef.current(), []);
 }

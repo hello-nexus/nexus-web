@@ -1,4 +1,5 @@
-import { renderHook } from '@testing-library/react';
+import { render, renderHook } from '@testing-library/react';
+import { useEffect } from 'react';
 import { describe, expect, it } from 'vitest';
 import type { PanelLayout } from '../types';
 import { editTargetGone, latestOr, useSyncLatestLayout } from './latestLayout';
@@ -19,6 +20,24 @@ describe('latest layout', () => {
     const c = layout('c');
     view.rerender({ rendered: c });
     expect(latestOr(ref, c)).toBe(c);
+  });
+
+  it('keeps a remote layout over a stale one when a child effect patches in the same commit', () => {
+    const ref = { current: null as PanelLayout | null };
+    const a = layout('a');
+    const remote = layout('remote');
+    let seen: PanelLayout | null = null;
+    const Child = ({ rendered }: { rendered: PanelLayout }) => {
+      useEffect(() => { seen = latestOr(ref, rendered); }, [rendered]);
+      return null;
+    };
+    const Parent = ({ rendered }: { rendered: PanelLayout }) => {
+      useSyncLatestLayout(ref, rendered);
+      return <Child rendered={rendered} />;
+    };
+    const view = render(<Parent rendered={a} />);
+    view.rerender(<Parent rendered={remote} />);
+    expect(seen).toBe(remote);
   });
 
   it('ends an edit session whose widget left the layout, except a playlist stand-in', () => {

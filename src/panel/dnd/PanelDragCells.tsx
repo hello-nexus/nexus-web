@@ -547,6 +547,7 @@ export function PanelCatalogCell({
       ref={drag?.ref}
       {...drag?.listeners}
       data-panel-widget-id={widget.id}
+      data-panel-catalog=""
       className={[
         styles.cellWrap,
         styles.catalogCell,
@@ -656,6 +657,7 @@ export function PanelDragOverlayCell({
     >
       <div
         ref={slotRef}
+        data-panel-drag-overlay=""
         className={`${styles.cellWrap} ${styles.dragOverlayCell}`}
         style={{
           width: fixedWidth ? `${fixedWidth}px` : undefined,
