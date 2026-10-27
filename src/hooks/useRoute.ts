@@ -82,6 +82,13 @@ function normalizeSystemRoute(route: Route): Route {
   if (route.section === 'system' && route.view === 'settings' && route.subtab === 'advanced') {
     return { ...route, subtab: DEFAULT_SETTINGS_SUBTAB };
   }
+  // Colon-free forms of a display panel's editor and an SDK app page, for the open-app route (see panelEditorLink).
+  if (route.section === 'system' && route.view === 'panel' && route.subtab) {
+    return { ...route, view: 'device', subtab: `panel-display:${route.subtab}` };
+  }
+  if (route.section === 'system' && route.view === 'app' && route.subtab) {
+    return { ...route, view: `app:${route.subtab}`, subtab: null };
+  }
   return route;
 }
 

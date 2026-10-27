@@ -26,6 +26,7 @@ export interface WebViewViewState {
 export interface WebViewHostSnapshot {
   status: WebViewHostStatus;
   interactive: boolean;
+  contextMenu: boolean;
   maxViews: number;
   views: Readonly<Record<string, WebViewViewState>>;
   /** Ids past the host's view limit: never synced, shown a placeholder. */
@@ -87,7 +88,10 @@ export class WebViewHost {
   private interactive = false;
   private maxViews = 0;
   private viewStates: Record<string, WebViewViewState> = {};
-  private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, maxViews: 0, views: {}, overLimit: [] };
+  private contextMenu = false;
+  private interactiveTiles = false;
+  private contextMenuListeners = new Set<(id: string, x: number, y: number) => void>();
+  private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, contextMenu: false, maxViews: 0, views: {}, overLimit: [] };
   private listeners = new Set<() => void>();
   private suppressed = false;
   private pageHidden = false;
@@ -147,6 +151,19 @@ export class WebViewHost {
         this.updateRefreshTimers();
       },
     };
+  }
+
+  /** Tiles take the mouse themselves; applies only on a host that reports right-clicks, so the widget menu stays reachable. */
+  setInteractiveTiles(value: boolean): void {
+    if (this.interactiveTiles === value) return;
+    this.interactiveTiles = value;
+    this.schedule();
+  }
+
+  /** A right-click the host saw on an interactive view. */
+  onContextMenu(listener: (id: string, x: number, y: number) => void): () => void {
+    this.contextMenuListeners.add(listener);
+    return () => { this.contextMenuListeners.delete(listener); };
   }
 
   /** Edit or drag mode: every native view hides while true. */
@@ -264,9 +281,14 @@ export class WebViewHost {
       this.status = msg.supported ? 'supported' : 'unsupported';
       if (this.status === 'unsupported') this.stopHeartbeat();
       this.interactive = msg.interactive;
+      this.contextMenu = msg.contextMenu;
       this.maxViews = msg.maxViews;
       this.emit();
       if (this.status === 'supported') this.flush(true);
+      return;
+    }
+    if (msg.type === 'nexus.webview.contextmenu') {
+      for (const l of [...this.contextMenuListeners]) l(msg.id, msg.x, msg.y);
       return;
     }
     this.viewStates = {
@@ -341,6 +363,7 @@ export class WebViewHost {
     this.snapshot = {
       status: this.status,
       interactive: this.interactive,
+      contextMenu: this.contextMenu,
       maxViews: this.maxViews,
       views: this.viewStates,
       overLimit: Array.from(this.overLimit),
@@ -417,7 +440,7 @@ export class WebViewHost {
         rect,
         radius,
         zoom: clampZoom(c.zoom),
-        interactive: c.immersive && this.interactive,
+        interactive: (c.immersive || (this.interactiveTiles && this.contextMenu)) && this.interactive,
         visible: computeVisible({
           supported,
           documentVisible,

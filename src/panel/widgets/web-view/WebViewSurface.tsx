@@ -48,7 +48,7 @@ export function WebViewSurface({ widget, surface, editorPreview, immersive }: We
     title = webViewSiteName(url);
     previewOnly = true;
   } else if (unsupported) {
-    title = t('panel.widget.web-view.unsupported');
+    title = t('panel.widget.unavailableOnDisplay');
     hint = webViewHostName(url);
   } else if (failed) {
     title = view?.state === 'crashed' ? t('panel.widget.web-view.crashed') : t('panel.widget.web-view.error');

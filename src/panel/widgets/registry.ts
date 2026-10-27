@@ -113,8 +113,9 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
-  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean },
+  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean; genericDisplay?: boolean },
 ): boolean {
+  if (meta.portraitOnly && opts?.genericDisplay) return false;
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
   // A display panel replaces the legacy desktop overlay, so it also takes the widgets limited to the desktop.
   const desktopOnDisplay = opts?.displayBound === true && surface === 'monitor' && meta.surfaces?.includes('desktop') === true;
@@ -149,7 +150,7 @@ export function lookupApp(type: string): AppManifest | undefined {
     return makeMarketplaceAppManifest(
       id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
       !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
-      !!listing.immersiveDoubleSwipe,
+      !!listing.immersiveDoubleSwipe, !!listing.freeform,
     );
   }
   return APP_REGISTRY[type];
@@ -169,7 +170,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
     makeMarketplaceAppManifest(
       listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
       !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
-      !!listing.immersiveDoubleSwipe,
+      !!listing.immersiveDoubleSwipe, !!listing.freeform,
     ),
   ]);
   return [...builtIns, ...marketplace];
@@ -202,6 +203,7 @@ export function makeMarketplaceAppManifest(
   manifestSurfaces?: string[],
   manifestGridSizes?: string[],
   immersiveDoubleSwipe = false,
+  freeform = false,
 ): AppManifest {
   // A manifest that names panel surfaces ("y70") is limited to them; the
   // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
@@ -239,6 +241,7 @@ export function makeMarketplaceAppManifest(
       // host's usual single-swipe close.
       immersiveDoubleSwipe,
       singleInstance,
+      freeform: freeform || undefined,
       hasConfig: true,
       touch: false,
       surfaces: surfaces.length > 0 ? surfaces : undefined,

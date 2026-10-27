@@ -9,7 +9,7 @@ import { displayTargetsOf } from '../../engine/useDisplayTargets';
 import { WidgetContextMenu } from './WidgetContextMenu';
 
 vi.mock('../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string, params?: { name?: string }) => (params?.name ? `${key} ${params.name}` : key) }),
+  useTranslation: () => ({ t: (key: string, params?: { name?: string; n?: string }) => (key === 'displays.numberedName' ? `${params?.name} (${params?.n})` : params?.name ? `${key} ${params.name}` : key) }),
 }));
 
 function menu(key: number, onClose: () => void) {
@@ -170,6 +170,19 @@ describe('WidgetContextMenu order', () => {
     const bare = render(<WidgetContextMenu {...props} sizes={['2x2']} />);
     expect(sequence(bare.container)).toEqual(['panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove']);
   });
+
+  it('puts Edit, Resize and Remove last on the dashboard, one divider above them', () => {
+    const targets = [{ id: 'd1', name: 'Desk', number: '1' }];
+    const { container } = render(<WidgetContextMenu {...props} widgetItemsLast displayTargets={targets} onAddToDisplay={vi.fn()} onUnpinFromSidebar={vi.fn()} />);
+    expect(sequence(container)).toEqual([
+      'chips', '|', 'panel.widget.menu.addToDisplay', 'sidebar.unpin',
+      '|', 'panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove',
+    ]);
+    const empty = render(<WidgetContextMenu {...props} widgetItemsLast />);
+    expect(sequence(empty.container)).toEqual(['chips', '|', 'panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove']);
+    const bare = render(<WidgetContextMenu {...props} sizes={['2x2']} widgetItemsLast />);
+    expect(sequence(bare.container)).toEqual(['panel.widget.menu.edit', 'panel.widget.menu.resize', 'panel.widget.menu.remove']);
+  });
 });
 
 describe('WidgetContextMenu add to display', () => {
@@ -198,8 +211,8 @@ describe('WidgetContextMenu add to display', () => {
   it('numbers several entries and leaves a single entry plain', () => {
     const two = [{ id: 'a', name: 'DEL A0B8', number: '1' }, { id: 'b', name: 'DEL A0B8', number: '2' }];
     const { unmount } = render(<WidgetContextMenu {...base} displayTargets={two} onAddToDisplay={vi.fn()} />);
-    expect(screen.getByText(/1\. DEL A0B8/)).toBeTruthy();
-    expect(screen.getByText(/2\. DEL A0B8/)).toBeTruthy();
+    expect(screen.getByText(/DEL A0B8 \(1\)/)).toBeTruthy();
+    expect(screen.getByText(/DEL A0B8 \(2\)/)).toBeTruthy();
     unmount();
     render(<WidgetContextMenu {...base} displayTargets={[two[0]]} onAddToDisplay={vi.fn()} />);
     expect(screen.getByText('panel.widget.menu.addToDisplay')).toBeTruthy();

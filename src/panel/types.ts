@@ -7,7 +7,7 @@ import { panelHostAvailable } from './device/panelHostBridge';
 // round glass (the Kraken LCD) and is reserved to those surfaces.
 export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x1', '4x2', '4x4', '2x2round'] as const;
 export type PanelBaseWidgetSize = typeof PANEL_WIDGET_SIZES[number];
-// A freeform widget span stored as '<cols>x<rows>' beyond the fixed enum. Only widgets whose manifest opts in (`freeform`) may carry one.
+// A freeform widget span stored as '<cols>x<rows>' beyond the fixed enum. Only widgets whose meta opts in (`freeform`, from a built-in's meta or an SDK app's manifest) may carry one.
 export type FreeformWidgetSize = `${number}x${number}`;
 export type PanelWidgetSize = PanelBaseWidgetSize | FreeformWidgetSize;
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
@@ -330,6 +330,11 @@ export function surfaceDefaultsToAnimatedBackground(surface: PanelSurface): bool
 /** Input the widget registry sees: a display-bound panel always has its mouse. */
 export function widgetInputOf(deviceTouch: boolean | undefined, displayBound: boolean): boolean | undefined {
   return displayBound ? true : deviceTouch;
+}
+
+/** Input a widget cell sees: a known display keeps its own digitizer answer, only a generic display's mouse counts as input. */
+export function cellInputOf(deviceTouch: boolean | undefined, genericDisplay: boolean): boolean | undefined {
+  return genericDisplay ? true : deviceTouch;
 }
 
 // Whether a press on the canvas can drag, resize or remove widgets. The device-page

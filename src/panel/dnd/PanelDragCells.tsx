@@ -13,6 +13,7 @@ import { EditHint } from '../../components/common/EditHint/EditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
 import { useLockNotice } from './useLockNotice';
+import type { DragActivation } from '../engine/pointerDragSensor';
 import { surfaceSupportsTouch, type PanelLayout, type PanelSurface, type PanelWidget, type PanelConfigValue } from '../types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
 import type { EditorDockMotion } from '../editor/panelEditorDock';
@@ -151,6 +152,8 @@ export function PanelTouchCell({
   editorPreview = false,
   movable: movableProp,
   locked = false,
+  lockActivationFor,
+  onLockDragChange,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -187,6 +190,10 @@ export function PanelTouchCell({
   movable?: boolean;
   // A locked widget registers no drag.
   locked?: boolean;
+  // How a press starts a move here; a locked widget is pulled the same way.
+  lockActivationFor?: (pointerType: string) => DragActivation;
+  // True while a locked widget is being pulled, so the host keeps delivering input outside its rects.
+  onLockDragChange?: (active: boolean) => void;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -222,7 +229,13 @@ export function PanelTouchCell({
     disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || locked,
   });
 
-  const lockNotice = useLockNotice(locked);
+  const lockNotice = useLockNotice(locked, lockActivationFor);
+  const lockDragging = lockNotice.dragging;
+  useEffect(() => {
+    if (!lockDragging) return undefined;
+    onLockDragChange?.(true);
+    return () => onLockDragChange?.(false);
+  }, [lockDragging, onLockDragChange]);
 
   // The cell renders into cellHost and its card + label into contentHost, so
   // the editor dock and the drag overlay move the live widget instead of
@@ -389,13 +402,16 @@ export function PanelTouchCell({
       lockNotice.handlers.onPointerMove(e);
     },
     onPointerUp: (e: React.PointerEvent) => {
-      cellPointers.onPointerUp(e);
-      lockNotice.handlers.onPointerUp(e);
+      // A pulled locked widget was dragged, not tapped.
+      if (lockNotice.handlers.up(e)) cellPointers.onPointerCancel(e);
+      else cellPointers.onPointerUp(e);
     },
     onPointerCancel: (e: React.PointerEvent) => {
       cellPointers.onPointerCancel(e);
-      lockNotice.handlers.onPointerCancel();
+      lockNotice.handlers.end();
     },
+    onLostPointerCapture: lockNotice.handlers.onLostPointerCapture,
+    onClickCapture: lockNotice.handlers.onClickCapture,
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
       lockNotice.handlers.onPointerDown(e);
@@ -430,8 +446,8 @@ export function PanelTouchCell({
         // on drop, so the transform snaps to 0 (transition 'none') in the same
         // paint the committed (col,row) lands. Otherwise the base jumps while
         // the stale transform animates back, overshooting (the drag flinch).
-        transform: !dragMotionActive && !isDragging ? previewTransform : undefined,
-        transition: dragMotionActive ? undefined : previewLayout ? previewTransition : 'none',
+        transform: lockNotice.offset ? `translate3d(${lockNotice.offset.x}px, ${lockNotice.offset.y}px, 0)` : !dragMotionActive && !isDragging ? previewTransform : undefined,
+        transition: dragMotionActive ? undefined : previewLayout || lockNotice.settling ? previewTransition : 'none',
         // Hold the z-index bump until rearrange visuals are on. dnd-kit sets
         // isDragging=true at the long-press mark before any movement; popping
         // the cell above the context menu then would fight that menu.

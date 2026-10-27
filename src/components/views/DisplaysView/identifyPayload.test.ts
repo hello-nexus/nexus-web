@@ -9,7 +9,7 @@ describe('identifyPayload', () => {
   it('labels each display as the diagram does and carries its name', () => {
     expect(identifyPayload([display('a', 'DELL U2720Q', 2), display('b', 'Xeneon Edge', 0)])).toEqual([
       { displayId: 'a', label: '2', name: 'DELL U2720Q' },
-      { displayId: 'b', label: '2', name: 'Xeneon Edge' },
+      { displayId: 'b', label: '1', name: 'Xeneon Edge' },
     ]);
   });
 

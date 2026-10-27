@@ -15,7 +15,7 @@ import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { usePanelPreview } from '../common/PanelPreviewContext';
-import { usePanelDisplayBound } from '../common/PanelDisplayBoundContext';
+import { usePanelDigitizer, usePanelDisplayBound, usePanelGenericDisplay } from '../common/PanelDisplayBoundContext';
 import { useReportOpaque } from '../common/PanelOpaqueContext';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import { isStreamedPanelSurface, surfaceInputMode, widgetDisplayShape, type PanelSurface, type PanelWidgetSize } from '../../types';
@@ -83,7 +83,12 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
   const glass = usePanelGlassSurface(surface);
   const streamed = glass != null && isStreamedPanelSurface(glass, displayBound);
   const displayShape = widgetDisplayShape(size);
-  const displayInput = surfaceInputMode(surface ?? 'desktop', deviceTouch);
+  const digitizer = usePanelDigitizer();
+  const genericDisplay = usePanelGenericDisplay();
+  // A generic display without a digitizer is driven by its mouse; a known display keeps its own answer.
+  const displayInput = genericDisplay && digitizer !== true
+    ? 'pointer'
+    : surfaceInputMode(surface ?? 'desktop', deviceTouch);
   // The fullscreen view has no grid span.
   const displayCells = useMemo(() => (sandboxSurface === 'immersive' ? undefined : sizeToSpan(size)), [sandboxSurface, size]);
 

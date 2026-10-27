@@ -418,6 +418,7 @@ export function buildPanelDevices({
       id: promotedMonitorDeviceId(record),
       panelRecordId: record.id,
       displayId: record.displayId,
+      genericDisplay: !family,
       name: isDefaultName ? (family && familyNames[family]) || branding.name : record.displayName,
       subtitle: !linkEnabled
         ? labels.linkOff

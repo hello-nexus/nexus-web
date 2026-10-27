@@ -258,6 +258,7 @@ function cmdValidate(appDir) {
           if (!m.sizes.includes(x)) errors.push(`manifest.grid_sizes entry "${x}" is not one of manifest.sizes`);
         }
       }
+      if (m.freeform != null && typeof m.freeform !== 'boolean') errors.push('manifest.freeform must be a boolean');
       if (m.settings != null) {
         if (!Array.isArray(m.settings)) errors.push('manifest.settings must be an array');
         else m.settings.forEach((entry, i) => {

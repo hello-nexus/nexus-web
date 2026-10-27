@@ -19,7 +19,7 @@ describe('WebViewWidget placeholder', () => {
     render(<WebViewWidget widget={widget('https://www.example.com/x')} surface="y70" editorPreview />);
     expect(screen.getByText('example.com')).toBeTruthy();
     expect(screen.getByText('panel.widget.web-view.previewOnly')).toBeTruthy();
-    expect(screen.queryByText('panel.widget.web-view.unsupported')).toBeNull();
+    expect(screen.queryByText('panel.widget.unavailableOnDisplay')).toBeNull();
   });
 
   it('shows only the site name in the catalog preview', () => {
@@ -30,7 +30,7 @@ describe('WebViewWidget placeholder', () => {
     );
     expect(screen.getByText('example.com')).toBeTruthy();
     expect(screen.getByText('panel.widget.web-view.previewOnly')).toBeTruthy();
-    expect(screen.queryByText('panel.widget.web-view.unsupported')).toBeNull();
+    expect(screen.queryByText('panel.widget.unavailableOnDisplay')).toBeNull();
   });
 
   it('shows only the site name outside the live panel page (device page preview)', () => {
@@ -38,7 +38,7 @@ describe('WebViewWidget placeholder', () => {
     render(<WebViewWidget widget={widget('https://example.com')} surface="y70" />);
     expect(screen.getByText('example.com')).toBeTruthy();
     expect(screen.getByText('panel.widget.web-view.previewOnly')).toBeTruthy();
-    expect(screen.queryByText('panel.widget.web-view.unsupported')).toBeNull();
+    expect(screen.queryByText('panel.widget.unavailableOnDisplay')).toBeNull();
   });
 
   it('draws no favicon image', () => {
@@ -55,7 +55,7 @@ describe('WebViewWidget placeholder', () => {
     window.history.pushState({}, '', '/panel/dev1');
     // jsdom has no native bridge, so the host settles on unsupported at once.
     render(<WebViewWidget widget={widget('https://example.com')} surface="y70" />);
-    expect(screen.getByText('panel.widget.web-view.unsupported')).toBeTruthy();
+    expect(screen.getByText('panel.widget.unavailableOnDisplay')).toBeTruthy();
     expect(screen.queryByText('panel.widget.web-view.previewOnly')).toBeNull();
     expect(webViewHost.getSnapshot().status).toBe('unsupported');
   });

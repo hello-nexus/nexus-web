@@ -48,6 +48,8 @@ export interface PanelDevice {
   modalKind?: PanelDeviceModalKind;
   sourceId?: string;
   displayId?: string;
+  // An OS display turned into a panel that no curated device claims; only these are "Nexus panel" in menus.
+  genericDisplay?: boolean;
   // Server-side PanelDeviceRecord id when this entry is backed directly by a
   // record (promoted monitors). The editor binds by this id instead of the
   // surface-match scan, which breaks with several same-surface records.

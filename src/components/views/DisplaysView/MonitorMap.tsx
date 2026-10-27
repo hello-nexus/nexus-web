@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { LayoutDashboard } from 'lucide-react';
 import type { TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
-import { displayNumberLabel, layoutMonitorRects } from './monitorMapLayout';
+import { displayNumberLabels, layoutMonitorRects } from './monitorMapLayout';
 import styles from './MonitorMap.module.scss';
 
 interface MonitorMapProps {
@@ -34,6 +34,7 @@ export function MonitorMap({ displays, selectedId, onSelect }: MonitorMapProps) 
   }, []);
 
   const rects = layoutMonitorRects(displays, size.width, size.height);
+  const numbers = displayNumberLabels(displays);
   // Glyph and number scale with the rectangle's short side, within bounds, so small and huge monitors both read.
   const scaled = (rect: { width: number; height: number }, ratio: number, min: number, max: number) =>
     Math.round(Math.min(max, Math.max(min, Math.min(rect.width, rect.height) * ratio)));
@@ -57,7 +58,7 @@ export function MonitorMap({ displays, selectedId, onSelect }: MonitorMapProps) 
             onClick={() => onSelect(display.id)}
           >
             <span className={styles.number} style={{ fontSize: scaled(rect, 0.3, 18, 56) }} aria-hidden>
-              {displayNumberLabel(display, i)}
+              {numbers[i]}
             </span>
             <span className={styles.badges}>
               {isPanel && <LayoutDashboard size={scaled(rect, 0.22, 16, 40)} className={styles.panelBadge} aria-label="panel" />}

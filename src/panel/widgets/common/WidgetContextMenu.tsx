@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -46,6 +46,10 @@ interface WidgetContextMenuProps {
   // "Lock widgets" row; while `locked`, the edit/resize/immersive items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
+  // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
+  onOpen?: () => void;
+  // Dashboard order: Edit, Resize and Remove sit last, under the display and sidebar items.
+  widgetItemsLast?: boolean;
   onClose: () => void;
 }
 
@@ -60,6 +64,8 @@ export function WidgetContextMenu({
   displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
   onOpenPanelActions,
+  onOpen,
+  widgetItemsLast,
   onClose,
   alwaysOnTop,
   alwaysOnTopDisabled,
@@ -144,6 +150,25 @@ export function WidgetContextMenu({
     requestClose();
   }, [requestClose]);
 
+  const editItems = (
+    <>
+      {hasConfig && !locked && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
+          <Pencil size={14} />
+          <span>{t('panel.widget.menu.edit')}</span>
+        </button>
+      )}
+
+      {onResizeMode && !locked && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onResizeMode)}>
+          <Scaling size={14} />
+          <span>{t('panel.widget.menu.resize')}</span>
+        </button>
+      )}
+    </>
+  );
+  const hasMiddleItems = Boolean((onImmersive && !locked) || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+
   const menuStyle = {
     ...themeStyle,
     left: pos.x,
@@ -162,6 +187,16 @@ export function WidgetContextMenu({
       data-panel-hit="true"
       style={menuStyle}
     >
+      {onOpen && (
+        <>
+          <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
+            <ExternalLink size={14} />
+            <span>{t('search.kind.open')}</span>
+          </button>
+          <div className={styles.divider} />
+        </>
+      )}
+
       {sizes.length > 1 && !locked && (
         <>
           <div className={styles.sizeRow}>
@@ -186,19 +221,7 @@ export function WidgetContextMenu({
         </>
       )}
 
-      {hasConfig && !locked && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
-          <Pencil size={14} />
-          <span>{t('panel.widget.menu.edit')}</span>
-        </button>
-      )}
-
-      {onResizeMode && !locked && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onResizeMode)}>
-          <Scaling size={14} />
-          <span>{t('panel.widget.menu.resize')}</span>
-        </button>
-      )}
+      {!widgetItemsLast && editItems}
 
       {onImmersive && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
@@ -210,7 +233,7 @@ export function WidgetContextMenu({
       {onAddToDisplay && displayTargets?.map(target => (
         <button key={target.id} type="button" className={styles.item} onClick={() => runAndClose(() => onAddToDisplay(target.id))}>
           <Monitor size={14} />
-          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: `${target.number}. ${target.name}` }) : t('panel.widget.menu.addToDisplay')}</span>
+          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: t('displays.numberedName', { name: target.name, n: target.number }) }) : t('panel.widget.menu.addToDisplay')}</span>
         </button>
       ))}
 
@@ -227,6 +250,9 @@ export function WidgetContextMenu({
           <span>{t('sidebar.unpin')}</span>
         </button>
       )}
+
+      {widgetItemsLast && hasMiddleItems && <div className={styles.divider} />}
+      {widgetItemsLast && editItems}
 
       <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
         <Trash2 size={14} />

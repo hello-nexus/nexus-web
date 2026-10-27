@@ -1,5 +1,9 @@
 import { PointerSensor, type PointerActivationConstraint, type PointerSensorOptions, type SensorProps } from '@dnd-kit/core';
 
+// Mouse travel that starts a drag, and the drift tolerated while a touch hold is arming.
+export const DRAG_DISTANCE_PX = 6;
+export const DRAG_HOLD_TOLERANCE_PX = 8;
+
 export type DragActivation = 'distance' | 'delay';
 
 /** A mouse drags after moving a short distance; touch, pen and a mouse standing in for touch hold first. */

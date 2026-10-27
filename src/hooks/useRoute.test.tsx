@@ -77,6 +77,25 @@ describe('useRoute', () => {
     expect(result.current.subtab).toBe('general');
     expect(window.location.pathname).toBe('/system/settings/general');
   });
+  it('opens a display panel editor from its colon-free open-app path', () => {
+    window.history.replaceState(null, '', '/system/panel/UWrndEqWfnJI?widget=w1');
+
+    const { result } = renderHook(() => useRoute());
+
+    expect(result.current.view).toBe('device');
+    expect(result.current.subtab).toBe('panel-display:UWrndEqWfnJI');
+    expect(window.location.pathname).toBe('/system/device/panel-display:UWrndEqWfnJI');
+  });
+
+  it('opens an SDK app page from its colon-free open-app path', () => {
+    window.history.replaceState(null, '', '/system/app/com.example.aquarium');
+
+    const { result } = renderHook(() => useRoute());
+
+    expect(result.current.view).toBe('app:com.example.aquarium');
+    expect(result.current.subtab).toBeNull();
+  });
+
   it('keeps the store at a top-level path rather than under /system', () => {
     const { result } = renderHook(() => useRoute());
 

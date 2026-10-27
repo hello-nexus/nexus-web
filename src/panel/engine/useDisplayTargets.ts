@@ -6,7 +6,7 @@ import { useDisplayTopology } from '../../hooks/useDisplayTopology';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import type { PanelWidget } from '../types';
 import { lookupApp } from '../widgets/registry';
-import { displayNumberLabel } from '../../components/views/DisplaysView/monitorMapLayout';
+import { displayNumberLabels } from '../../components/views/DisplaysView/monitorMapLayout';
 import { displayIdForWindow } from './windowDisplay';
 
 export interface DisplayTarget { id: string; name: string; number: string }
@@ -22,8 +22,9 @@ export function displayTargetsOf(
 ): DisplayTarget[] {
   if (!topology) return [];
   const targets: DisplayTarget[] = [];
+  const numbers = displayNumberLabels(topology.displays);
   topology.displays.forEach((d, index) => {
-    const number = displayNumberLabel(d, index);
+    const number = numbers[index];
     if (d.isY70) return;
     if (d.assignedPanelDeviceId) {
       const r = records.find(rec => rec.id === d.assignedPanelDeviceId);

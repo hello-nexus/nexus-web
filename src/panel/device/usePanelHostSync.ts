@@ -1,6 +1,11 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { collectHitRects, frostMessage, hitTestMessage, onHostRequestHitTest, postPanelHostMessage } from './panelHostBridge';
 
+/** A computed comma-separated CSS list as trimmed items. */
+function cssList(value: string | undefined): string[] {
+  return (value ?? '').split(',').map(v => v.trim()).filter(Boolean);
+}
+
 const HIT_SELECTOR = '[data-panel-widget-id], [data-panel-hit]';
 
 export const LEASE_RENEW_MS = 2000;
@@ -51,6 +56,7 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
     document.addEventListener('transitionend', schedule, true);
     document.addEventListener('transitioncancel', schedule, true);
     document.addEventListener('animationend', schedule, true);
+    document.addEventListener('animationcancel', schedule, true);
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
@@ -59,6 +65,7 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
       document.removeEventListener('transitionend', schedule, true);
       document.removeEventListener('transitioncancel', schedule, true);
       document.removeEventListener('animationend', schedule, true);
+      document.removeEventListener('animationcancel', schedule, true);
       window.removeEventListener('resize', schedule);
     };
   }, [active, clickThrough, transientFull, rootRef, signature]);
@@ -159,13 +166,22 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(() => { frame = 0; send(); });
     };
-    // Paging swipes animate through transitions: follow every frame while one runs.
+    // Paging swipes and entrance pops animate through transitions and keyframes: follow every frame while one runs.
     // Counted per element, and an element removed mid-transition never fires its end event, so each frame drops those.
     const running = new Map<EventTarget, number>();
+    // Finite keyframe animations (entrance pop, resize and dock motion) move cards and are followed by name.
+    // Looping ones (shimmers, pulses) never end and must not hold the loop.
+    const animating = new Map<Element, Set<string>>();
     const follow = () => {
       send();
       for (const el of running.keys()) if (el instanceof Node && !el.isConnected) running.delete(el);
-      frame = dragging || running.size > 0 ? requestAnimationFrame(follow) : 0;
+      // A name no longer applied (class removed before its end event, or an engine that skips the cancel event) stops being followed, even while another animation loops on the element.
+      for (const [el, names] of animating) {
+        const applied = el.isConnected ? cssList(getComputedStyle(el).animationName) : [];
+        for (const name of names) if (!applied.includes(name)) names.delete(name);
+        if (names.size === 0) animating.delete(el);
+      }
+      frame = dragging || running.size > 0 || animating.size > 0 ? requestAnimationFrame(follow) : 0;
     };
     const onRun = (e: Event) => {
       running.set(e.target ?? document, (running.get(e.target ?? document) ?? 0) + 1);
@@ -176,8 +192,35 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       const left = (running.get(key) ?? 0) - 1;
       if (left > 0) running.set(key, left);
       else running.delete(key);
-      if (running.size === 0 && !dragging) {
+      if (running.size === 0 && animating.size === 0 && !dragging) {
         if (frame) cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      schedule();
+    };
+    const onAnimationStart = (e: Event) => {
+      const el = e.target;
+      const name = (e as AnimationEvent).animationName;
+      if (!(el instanceof Element) || !name) return;
+      const style = getComputedStyle(el);
+      const at = cssList(style.animationName).indexOf(name);
+      const counts = cssList(style.animationIterationCount);
+      // The count list repeats to match the name list.
+      if (at >= 0 && counts.length > 0 && counts[at % counts.length] === 'infinite') return;
+      const names = animating.get(el) ?? new Set<string>();
+      names.add(name);
+      animating.set(el, names);
+      if (!frame) frame = requestAnimationFrame(follow);
+    };
+    const onAnimationEnd = (e: Event) => {
+      const el = e.target;
+      if (el instanceof Element) {
+        const names = animating.get(el);
+        names?.delete((e as AnimationEvent).animationName);
+        if (names?.size === 0) animating.delete(el);
+      }
+      if (running.size === 0 && animating.size === 0 && !dragging && frame) {
+        cancelAnimationFrame(frame);
         frame = 0;
       }
       schedule();
@@ -191,7 +234,9 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     document.addEventListener('transitionrun', onRun, true);
     document.addEventListener('transitionend', onEnd, true);
     document.addEventListener('transitioncancel', onEnd, true);
-    document.addEventListener('animationend', schedule, true);
+    document.addEventListener('animationstart', onAnimationStart, true);
+    document.addEventListener('animationend', onAnimationEnd, true);
+    document.addEventListener('animationcancel', onAnimationEnd, true);
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
@@ -200,7 +245,9 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       document.removeEventListener('transitionrun', onRun, true);
       document.removeEventListener('transitionend', onEnd, true);
       document.removeEventListener('transitioncancel', onEnd, true);
-      document.removeEventListener('animationend', schedule, true);
+      document.removeEventListener('animationstart', onAnimationStart, true);
+      document.removeEventListener('animationend', onAnimationEnd, true);
+      document.removeEventListener('animationcancel', onAnimationEnd, true);
       window.removeEventListener('resize', schedule);
     };
   }, [active, percent, seeThrough, dragging, rootRef, signature]);

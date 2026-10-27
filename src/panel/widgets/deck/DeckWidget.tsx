@@ -201,7 +201,7 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   }
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-deck-page={page} data-deck-folder={folderPath.join('.')}>
       {inFolder ? (
         <button type="button" className={styles.back} aria-label={t('panel.settings.deck.back')} onClick={e => { e.stopPropagation(); setFolderPath(folderPath.slice(0, -1)); }}>
           {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}

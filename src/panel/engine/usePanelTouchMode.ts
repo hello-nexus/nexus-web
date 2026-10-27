@@ -20,7 +20,11 @@ const PANEL_SCROLLABLE_SELECTOR = '[data-panel-scrollable="true"]';
 // etc.) - tapping one of these should fire its own action, not bubble
 // up to "tap-to-immersive".
 // `data-panel-interactive` marks an SDK app's tappable stage (an interactive Layer): its taps belong to the app.
-const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"], [data-panel-interactive="true"]';
+// Controls that handle their own press: a tap on one is theirs, and a drag on one is theirs too.
+export const CONTROL_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]';
+// What a locked widget lets drag: a tap-only stage does not consume a drag, only a grabbed manipulable does.
+export const DRAG_CONSUMER_SELECTOR = `${CONTROL_SELECTOR}, [data-layer-gestures="true"] [data-manipulable-id]`;
+export const INTERACTIVE_SELECTOR = `${CONTROL_SELECTOR}, [data-panel-interactive="true"]`;
 
 function isNonPrimaryMouseButton(e: React.PointerEvent): boolean {
   return e.pointerType === 'mouse' && e.button !== 0;
@@ -30,6 +34,8 @@ export interface ContextMenuState {
   widget: PanelWidget;
   x: number;
   y: number;
+  /** The element right-clicked; absent for a long-press or a host-reported click. */
+  target?: EventTarget | null;
   // Bumped on every open. PanelApp keys the menu on it so a right-click
   // on another widget while a menu is up remounts a fresh menu instead of
   // re-rendering the one whose outside-pointerdown close timer is already
@@ -65,6 +71,25 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
   const pressFeedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const movedDuringDragRef = useRef(false);
   const ctxSeqRef = useRef(0);
+  // A host-reported right-click opened the menu on its press; its release reaches the page as a contextmenu once the native view hides.
+  const hostOpenedRef = useRef(false);
+
+  useEffect(() => {
+    const clear = () => { hostOpenedRef.current = false; };
+    // Window capture runs before React's root listeners, so neither a widget nor the background sees the release.
+    const swallow = (e: MouseEvent) => {
+      if (!hostOpenedRef.current) return;
+      hostOpenedRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    window.addEventListener('pointerdown', clear, true);
+    window.addEventListener('contextmenu', swallow, true);
+    return () => {
+      window.removeEventListener('pointerdown', clear, true);
+      window.removeEventListener('contextmenu', swallow, true);
+    };
+  }, []);
 
   const clearPressFeedback = useCallback(() => {
     if (pressFeedbackTimerRef.current) {
@@ -103,10 +128,17 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     e.preventDefault();
     e.stopPropagation();
     clearPressFeedback();
-    setCtxMenu({ widget, x: e.clientX, y: e.clientY, seq: ++ctxSeqRef.current });
+    setCtxMenu({ widget, x: e.clientX, y: e.clientY, target: e.target, seq: ++ctxSeqRef.current });
+  }, [clearPressFeedback]);
+
+  const openCtxMenu = useCallback((widget: PanelWidget, x: number, y: number) => {
+    clearPressFeedback();
+    hostOpenedRef.current = true;
+    setCtxMenu({ widget, x, y, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const closeCtxMenu = useCallback(() => {
+    hostOpenedRef.current = false;
     clearPressFeedback();
     setCtxMenu(null);
   }, [clearPressFeedback]);
@@ -236,6 +268,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     pressedWidgetId,
     closeCtxMenu,
     handleContextMenu,
+    openCtxMenu,
     handleDragStart,
     handleDragMove,
     handleDragEnd,
