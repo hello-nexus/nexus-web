@@ -29,6 +29,7 @@ export class CpuFlow {
   scene: FlowScene;
   private readonly iterations: number;
 
+
   constructor(scene: FlowScene, iterations: number = JACOBI_ITERATIONS) {
     this.scene = scene;
     this.iterations = iterations;
@@ -198,7 +199,29 @@ export class CpuFlow {
       }
       v[c * 3] = x; v[c * 3 + 1] = y; v[c * 3 + 2] = z;
     }
+    this.copyBoundary();
     this.stepTemperature();
+  }
+
+  // Zero-gradient open boundary: a boundary cell takes its inner neighbor's velocity, so the projection of the next step reads a boundary that is consistent with the interior.
+  private copyBoundary(): void {
+    const { NX, NY, NZ } = this;
+    const { open, solid } = this.scene;
+    const v = this.u;
+    const stride = [1, NX, NX * NY];
+    const dims = [NX, NY, NZ];
+    for (let c = 0; c < this.n; c++) {
+      if (!open[c]) continue;
+      const idx = [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
+      for (let a = 0; a < 3; a++) {
+        if (idx[a] !== 0 && idx[a] !== dims[a] - 1) continue;
+        const inner = c + (idx[a] === 0 ? 1 : -1) * stride[a];
+        const ii = [inner % NX, Math.floor(inner / NX) % NY, Math.floor(inner / (NX * NY))];
+        if (solid[inner] || ii.some((x, ax) => x === 0 || x === dims[ax] - 1)) break;
+        v[c * 3] = v[inner * 3]; v[c * 3 + 1] = v[inner * 3 + 1]; v[c * 3 + 2] = v[inner * 3 + 2];
+        break;
+      }
+    }
   }
 
   /** Carries the temperature with the final velocity, warms it in the heat cells and holds room air and the open boundary at zero. */

@@ -220,6 +220,10 @@ export class FlowLayer {
       span = Math.min(HEAT_SPAN_MAX_K, Math.max(HEAT_SPAN_MIN_K, HEAT_SPAN_PER_EXHAUST_RISE * exhaustRiseK(total, exhaustFlowCfm(this.input))));
     }
     u.uHeatSpan.value = span;
+    if (DEV_TOOLS && this.input) {
+      const total = watts.reduce((n, w) => n + Math.max(0, w), 0);
+      (globalThis as { __nexusHeat?: unknown }).__nexusHeat = { watts, spanK: span, exhaustCfm: exhaustFlowCfm(this.input), exhaustRiseK: exhaustRiseK(total, exhaustFlowCfm(this.input)) };
+    }
   }
 
   /** Solves again from the current fields: the temperature field has a new target. */

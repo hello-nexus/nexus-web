@@ -140,13 +140,10 @@ void main() {
 
 export const GRADIENT = COMMON + PRESSURE + /* glsl */ `
 uniform float uVmax;
-void main() {
-  ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
-  if (c.z >= N.z) { gl_FragColor = vec4(0.0); return; }
+// The projected, clamped velocity of an interior fluid cell.
+vec3 projectedAt(ivec3 c) {
   vec4 m = mask(c);
   vec3 u = texelFetch(U, tc(c), 0).xyz;
-  if (m.r > 0.5) { gl_FragColor = vec4(0.0); return; }
-  if (onBoundary(c)) { gl_FragColor = vec4(u, 0.0); return; }
   float pc = m.b > 0.5 ? 0.0 : texelFetch(P, tc(c), 0).r;
   vec3 g = 0.5 * vec3(pn(c + ivec3(1,0,0), pc) - pn(c - ivec3(1,0,0), pc), pn(c + ivec3(0,1,0), pc) - pn(c - ivec3(0,1,0), pc), pn(c + ivec3(0,0,1), pc) - pn(c - ivec3(0,0,1), pc));
   u -= g;
@@ -156,7 +153,27 @@ void main() {
   if ((solidAt(c + ivec3(0,0,1)) && u.z > 0.0) || (solidAt(c - ivec3(0,0,1)) && u.z < 0.0)) u.z = 0.0;
   float l = length(u);
   if (!(l <= uVmax)) u *= (l > 0.0 && !isnan(l) && !isinf(l)) ? uVmax / l : 0.0;
-  gl_FragColor = vec4(u, 0.0);
+  return u;
+}
+void main() {
+  ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
+  if (c.z >= N.z) { gl_FragColor = vec4(0.0); return; }
+  vec4 m = mask(c);
+  vec3 u = texelFetch(U, tc(c), 0).xyz;
+  if (m.r > 0.5) { gl_FragColor = vec4(0.0); return; }
+  if (onBoundary(c)) {
+    // Zero-gradient open boundary: a fixed-pressure boundary cell takes the projected velocity of its inner neighbor along its first boundary axis, so the next projection reads a boundary consistent with the interior.
+    if (m.b > 0.5) {
+      ivec3 n = c;
+      if (c.x == 0) n.x = 1; else if (c.x == N.x - 1) n.x = N.x - 2;
+      else if (c.y == 0) n.y = 1; else if (c.y == N.y - 1) n.y = N.y - 2;
+      else if (c.z == 0) n.z = 1; else n.z = N.z - 2;
+      if (!solidAt(n) && !onBoundary(n)) { gl_FragColor = vec4(projectedAt(n), 0.0); return; }
+    }
+    gl_FragColor = vec4(u, 0.0);
+    return;
+  }
+  gl_FragColor = vec4(projectedAt(c), 0.0);
 }`;
 
 // Reduction: max |du| and max |u| per 4x4 block, then 4x4 of those down to one texel.
