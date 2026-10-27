@@ -155,6 +155,7 @@ export class GlFlow {
   private prev = 0;
   private presCur = 0;
   private inFlight: { fence: WebGLSync; buffer: WebGLBuffer } | null = null;
+  private tempFlight: { fence: WebGLSync; buffer: WebGLBuffer } | null = null;
 
   constructor(renderer: WebGLRenderer, scene: FlowScene, type: FloatKind) {
     this.renderer = renderer;
@@ -467,22 +468,73 @@ export class GlFlow {
     return out;
   }
 
-  /** The whole temperature field, degrees above room temperature per cell, read back from the GPU; for checks against the CPU reference. */
-  readTemperature(): Float32Array {
-    const gl = this.gl;
+  /** The red channel of a read-back temperature texture, one value per cell. */
+  private unpackTemperature(raw: Uint16Array | Float32Array): Float32Array {
     const [NX, NY, NZ] = this.current.dims;
     const half = this.type === HalfFloatType;
-    const raw = half ? new Uint16Array(this.w * this.h * 4) : new Float32Array(this.w * this.h * 4);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.temp[this.tempCur].framebuffer);
-    gl.readPixels(0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, raw);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    this.renderer.resetState();
     const out = new Float32Array(NX * NY * NZ);
     for (let k = 0; k < NZ; k++) {
       const ox = (k % this.tx) * NX;
       const oy = Math.floor(k / this.tx) * NY;
       for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) out[i + NX * (j + NY * k)] = half ? f16(raw[((oy + j) * this.w + ox + i) * 4]) : raw[((oy + j) * this.w + ox + i) * 4];
     }
+    return out;
+  }
+
+  /** The whole temperature field, degrees above room temperature per cell, read back from the GPU; for checks against the CPU reference. */
+  readTemperature(): Float32Array {
+    const gl = this.gl;
+    const half = this.type === HalfFloatType;
+    const raw = half ? new Uint16Array(this.w * this.h * 4) : new Float32Array(this.w * this.h * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.temp[this.tempCur].framebuffer);
+    gl.readPixels(0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, raw);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.renderer.resetState();
+    return this.unpackTemperature(raw);
+  }
+
+  /** Starts an asynchronous read of the temperature field through a PBO and fence, so no frame waits on it; false while one is in flight. */
+  beginTemperatureRead(): boolean {
+    if (this.tempFlight) return false;
+    const gl = this.gl;
+    const half = this.type === HalfFloatType;
+    let started = false;
+    this.raw(() => {
+      const buffer = gl.createBuffer()!;
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+      gl.bufferData(gl.PIXEL_PACK_BUFFER, this.w * this.h * 4 * (half ? 2 : 4), gl.STREAM_READ);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.temp[this.tempCur].framebuffer);
+      gl.readPixels(0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, 0);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      gl.flush();
+      if (!fence) { gl.deleteBuffer(buffer); return; }
+      this.tempFlight = { fence, buffer };
+      started = true;
+    });
+    return started;
+  }
+
+  /** The field of the read in flight once its fence has signaled, else null; call once per frame. */
+  pollTemperatureRead(): Float32Array | null {
+    const flight = this.tempFlight;
+    if (!flight) return null;
+    const gl = this.gl;
+    const status = gl.clientWaitSync(flight.fence, 0, 0);
+    if (status === gl.TIMEOUT_EXPIRED) return null;
+    this.tempFlight = null;
+    gl.deleteSync(flight.fence);
+    let out: Float32Array | null = null;
+    if (status !== gl.WAIT_FAILED) {
+      const half = this.type === HalfFloatType;
+      const raw = half ? new Uint16Array(this.w * this.h * 4) : new Float32Array(this.w * this.h * 4);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, flight.buffer);
+      gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, raw);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      this.renderer.resetState();
+      out = this.unpackTemperature(raw);
+    }
+    gl.deleteBuffer(flight.buffer);
     return out;
   }
 
@@ -551,6 +603,11 @@ export class GlFlow {
       gl.deleteSync(this.inFlight.fence);
       gl.deleteBuffer(this.inFlight.buffer);
       this.inFlight = null;
+    }
+    if (this.tempFlight) {
+      gl.deleteSync(this.tempFlight.fence);
+      gl.deleteBuffer(this.tempFlight.buffer);
+      this.tempFlight = null;
     }
     for (const t of [...this.vel, ...this.pres, this.div, ...this.temp, ...this.reduce, this.encoded]) {
       gl.deleteTexture(t.texture);

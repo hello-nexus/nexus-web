@@ -2,8 +2,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-/** The ramp the streaks draw: five token stops, each segment a straight OKLab mix. Pins the tokens to a ramp that never turns green or gray between blue and red. */
-const STOPS = ['--airflow-cool', '--airflow-pale', '--airflow-warm', '--airflow-orange', '--bad'] as const;
+/** The ramp the streaks draw: three token stops, each segment a straight OKLab mix. Pins the tokens to a ramp that goes blue, purple, red and never turns white, yellow, green or gray. */
+const STOPS = ['--airflow-cool', '--airflow-purple', '--bad'] as const;
 const lin = (v: number) => { const c = v / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const hex = (h: string) => [1, 3, 5].map(i => lin(parseInt(h.slice(i, i + 2), 16)));
 function lab([r, g, b]: number[]): number[] {
@@ -26,7 +26,7 @@ describe('heat ramp tokens', () => {
     for (const set of sets) for (const k of STOPS) expect(set[k], k).toMatch(/^#[0-9a-fA-F]{6}$/);
   });
 
-  it('never passes a green hue, and the light stop is near white, so blue to yellow is neither gray nor green', () => {
+  it('stays blue, purple, red: no green, no near-white, no gray, hue inside the blue to red band', () => {
     for (const set of sets) {
       const stops = STOPS.map(k => lab(hex(set[k])));
       for (let i = 0; i <= 200; i++) {
@@ -36,10 +36,20 @@ describe('heat ramp tokens', () => {
         const [L, a, b] = stops[s].map((v, c) => v + (stops[s + 1][c] - v) * t);
         const chroma = Math.hypot(a, b);
         const hue = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
-        if (chroma > 0.02) expect(hue < 105 || hue > 200, `hue ${hue.toFixed(0)} at ${i / 200}`).toBe(true);
-        // A mid-ramp color is either clearly colored or light: never a dull gray.
-        expect(chroma > 0.04 || L > 0.85 || L < 0.5, `gray at ${i / 200}`).toBe(true);
+        // The band rules out green (hue 105 to 200) by construction.
+        expect(hue >= 235 || hue <= 40, `hue ${hue.toFixed(0)} outside blue, purple, red at ${i / 200}`).toBe(true);
+        expect(L < 0.85, `near white at ${i / 200}`).toBe(true);
+        expect(chroma > 0.12, `dull at ${i / 200}: chroma ${chroma.toFixed(3)}`).toBe(true);
       }
+    }
+  });
+
+  it('has a purple midpoint between the blue and red hues', () => {
+    for (const set of sets) {
+      const [, a, b] = lab(hex(set['--airflow-purple']));
+      const hue = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+      expect(hue, 'purple hue').toBeGreaterThan(285);
+      expect(hue, 'purple hue').toBeLessThan(335);
     }
   });
 });

@@ -14,7 +14,7 @@ const h = vi.hoisted(() => ({
   devTools: true,
   patch: vi.fn(),
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
-  renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
+  renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; setSpanListener: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
 vi.mock('../../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
@@ -24,7 +24,7 @@ vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
     h.pick.current = onPick;
-    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
+    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
   }),
@@ -512,7 +512,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
     expect(state.flow.fanCfm['rear:120:0']).toBeGreaterThan(0);
     expect(new Set(state.simulated)).toEqual(new Set(['front:120:0', 'rear:120:0']));
-    expect(state.flowOptions).toEqual({ particles: true, collisions: false, grid: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
+    expect(state.flowOptions).toEqual({ particles: true, collisions: false, heat: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -539,7 +539,7 @@ describe('CoolingCase3D airflow controls', () => {
   it('has no speed slider and a fixed normal speed', () => {
     mountReady();
     expect(screen.queryByRole('slider')).toBeNull();
-    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, grid: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
+    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, heat: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
   });
 
   it('slow mo scales the particle step to a quarter without re-solving', () => {
@@ -578,17 +578,20 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().showCase).toBe(false);
   });
 
-  it('labels the legend cooler and warmer, with no degrees', () => {
+  it('labels the legend ends with the real air temperatures, and follows the span the renderer reports', () => {
     mountReady();
-    expect(screen.getByText('cooling.case3d.flow.cooler')).toBeTruthy();
-    expect(screen.getByText('cooling.case3d.flow.warmer')).toBeTruthy();
+    expect(screen.getByText('22 °C')).toBeTruthy();
+    expect(screen.getByText('37 °C')).toBeTruthy();
+    const listener = h.renderers[h.renderers.length - 1].setSpanListener.mock.calls.find(c => typeof c[0] === 'function')![0] as (k: number) => void;
+    act(() => listener(3.4));
+    expect(screen.getByText('25.4 °C')).toBeTruthy();
   });
 
   it('says so when the graphics setup cannot run the simulation', () => {
     h.flowSupported = false;
     mountReady();
     expect(screen.getByText('cooling.case3d.flow.unsupported')).toBeTruthy();
-    expect(screen.queryByText('cooling.case3d.flow.cooler')).toBeNull();
+    expect(screen.queryByText('22 °C')).toBeNull();
   });
 });
 
