@@ -22,10 +22,18 @@ export const DOMAIN_MARGIN_MM = 100;
 export const MOUNT_REACH_MM = 60;
 /** Average room air, C: all intake and outside air is this warm, and it is the reference the buoyancy force is measured from. */
 export const ROOM_TEMP_C = 22;
+/** Air at room conditions: density kg/m^3 and specific heat J/(kg K), for the heat a part adds per step. */
+export const AIR_DENSITY = 1.2;
+export const AIR_SPECIFIC_HEAT = 1005;
+/** Gravity, m/s^2, and the room temperature in kelvin: Boussinesq buoyancy accelerates air by g beta dT with beta = 1 / T. */
+export const GRAVITY = 9.81;
+export const ROOM_TEMP_K = 273.15 + ROOM_TEMP_C;
+/** Air in a heat cell never passes this many degrees above room temperature, so a stalled case stays finite. */
+export const MAX_RISE_K = 150;
+/** The drawn flow is slow motion: one second of real air takes this many seconds on screen, so a 1500 rpm fan glides across the case. Particle speed is set from the scene's own step length to keep this, whatever the case size. */
+export const VISUAL_TIME_SCALE = 0.09;
 /** Share of the gap between a part and the air that the air closes per solver step inside the part's heat cells. The air never passes the part's own temperature, and air already warm gains less. */
 export const HEAT_COUPLING = 0.05;
-/** Boussinesq coefficient: upward acceleration, in cells per step squared, per degree the air is above room temperature (cooler air sinks by the same law). Small enough that a fan's own stream still dominates. */
-export const BUOYANCY = 0.00002;
 /** A part this many degrees above room temperature counts as hot: with no fan running it still drives a rising plume. */
 export const BUOYANCY_MIN_RISE_K = 1;
 /** A hot part's temperature must move this many degrees before an idle solve wakes again. */
@@ -35,7 +43,13 @@ export const TEMP_SETTLE_STEPS = 600;
 /** Most plume emitter entries over a hot part's top cells. */
 export const PLUME_EMITTERS_MAX = 24;
 /** Air this many degrees above room temperature is drawn in the full hot color. */
-export const HEAT_COLOR_SPAN_C = 25;
+export const HEAT_COLOR_SPAN_C = 15;
+/** With power readings the color span follows the physics: this many times the air's rise at the exhaust (all the power over rho cp times the flow), within these bounds in degrees, so a calm case still shows its warm spots and a loaded one does not saturate. */
+export const HEAT_SPAN_PER_EXHAUST_RISE = 6;
+export const HEAT_SPAN_MIN_K = 4;
+export const HEAT_SPAN_MAX_K = 15;
+/** A part's power must move this many watts before the temperature field relaxes again. */
+export const POWER_RESUME_DELTA_W = 15;
 /** Fluid cells this close to a heat-source solid are its heat cells. */
 export const HEAT_REACH_CELLS = 2;
 /** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed or Slow mo never shortens a particle's life or its trail. */

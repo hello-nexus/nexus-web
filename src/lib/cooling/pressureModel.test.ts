@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultFanSpec, FAN_DEFAULTS, solveCasePressure, type PressureFan } from './pressureModel';
+import { scaledSpec } from './fanSpeed';
+import { defaultFanSpec, FAN_DEFAULTS, RADIATOR_LOSS_K, seriesLoss, solveCasePressure, type PressureFan } from './pressureModel';
 
 const fan = (key: string, direction: PressureFan['direction'], size = 120): PressureFan => ({ key, direction, ...defaultFanSpec(size) });
 
@@ -62,5 +63,49 @@ describe('solveCasePressure', () => {
   it('ignores fans with no usable spec', () => {
     const r = solveCasePressure([{ key: 'x', direction: 'intake', cfm: 0, staticMmH2O: 1.8 }]);
     expect(r.fans).toEqual([]);
+  });
+});
+
+describe('fan operating point', () => {
+  const PA = 9.80665;
+  const M3S = 0.000471947;
+
+  it('meets the fan curve and the vent orifice at one point', () => {
+    const f = fan('a', 'intake');
+    const r = solveCasePressure([f]);
+    const qFan = f.cfm * M3S * (1 - r.pressurePa / (f.staticMmH2O * PA));
+    const qVent = 0.6 * 0.012 * Math.sqrt((2 * r.pressurePa) / 1.2);
+    expect(r.pressurePa).toBeGreaterThan(0);
+    expect(qFan).toBeCloseTo(qVent, 6);
+    expect(r.fans[0].cfm * M3S).toBeCloseTo(qFan, 6);
+  });
+
+  it('follows the affinity laws: flow with rpm, pressure with rpm squared', () => {
+    const base = { cfm: 60, staticMmH2O: 1.8 };
+    const half = scaledSpec(base, 0.5);
+    expect(half.cfm).toBeCloseTo(30, 10);
+    expect(half.staticMmH2O).toBeCloseTo(0.45, 10);
+    // Against a quadratic case impedance the whole operating point scales with rpm: half the speed moves half the air at a quarter of the pressure.
+    const full = solveCasePressure([{ ...fan('a', 'intake'), ...base }]);
+    const slow = solveCasePressure([{ ...fan('a', 'intake'), ...half }]);
+    expect(slow.fans[0].cfm).toBeCloseTo(0.5 * full.fans[0].cfm, 6);
+    expect(slow.pressurePa).toBeCloseTo(0.25 * full.pressurePa, 6);
+  });
+
+  it('a radiator in series with a fan takes pressure off its curve and flow with it', () => {
+    const plain = solveCasePressure([fan('a', 'intake')]);
+    const behind = solveCasePressure([{ ...fan('a', 'intake'), loss: seriesLoss(RADIATOR_LOSS_K, 120) }]);
+    expect(behind.fans[0].cfm).toBeLessThan(plain.fans[0].cfm);
+    // Its flow still sits on the curve less the loss: P_fan(Q) - loss Q^2 equals the case pressure.
+    const f = { ...fan('a', 'intake'), loss: seriesLoss(RADIATOR_LOSS_K, 120) };
+    const q = behind.fans[0].cfm * M3S;
+    const ps = f.staticMmH2O * PA;
+    expect(ps * (1 - q / (f.cfm * M3S)) - f.loss * q * q).toBeCloseTo(behind.pressurePa, 4);
+  });
+
+  it('more fans in than out make the case positive, the reverse negative, and equal balanced', () => {
+    expect(solveCasePressure([fan('a', 'intake'), fan('b', 'intake'), fan('c', 'exhaust')]).mode).toBe('positive');
+    expect(solveCasePressure([fan('a', 'intake'), fan('b', 'exhaust'), fan('c', 'exhaust')]).mode).toBe('negative');
+    expect(solveCasePressure([fan('a', 'intake'), fan('b', 'exhaust')]).mode).toBe('balanced');
   });
 });

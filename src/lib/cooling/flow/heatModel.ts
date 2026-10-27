@@ -1,11 +1,16 @@
 import type { CaseBox, CaseLayout, Vec3 } from '../caseLayout';
-import { BUOYANCY_MIN_RISE_K, HEAT_COUPLING, ROOM_TEMP_C } from './flowParams';
+import { AIR_DENSITY, AIR_SPECIFIC_HEAT, BUOYANCY_MIN_RISE_K, HEAT_COUPLING, ROOM_TEMP_C } from './flowParams';
+
+const M3S_PER_CFM = 0.000471947;
 import { SOURCE_CPU, SOURCE_GPU } from './gridScene';
 
 /** Live temperatures of the parts that heat the air, C; null when the sensor is missing. */
 export interface ComponentTemps {
   cpu: number | null;
   gpu: number | null;
+  /** Live package power, W, from the part's power sensor; absent or null when there is none, and the heat then follows the part's temperature. */
+  cpuW?: number | null;
+  gpuW?: number | null;
 }
 
 export const NO_TEMPS: ComponentTemps = { cpu: null, gpu: null };
@@ -17,6 +22,21 @@ export function sourceRises(temps: ComponentTemps): [number, number, number] {
   out[SOURCE_GPU] = rise(temps.gpu);
   out[SOURCE_CPU] = rise(temps.cpu);
   return out;
+}
+
+/** Watts each part adds to the air, by `SOURCE_*`; negative when the part has no power reading. */
+export function sourceWatts(temps: ComponentTemps): [number, number, number] {
+  const w = (v: number | null | undefined) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : -1);
+  const out: [number, number, number] = [-1, -1, -1];
+  out[SOURCE_GPU] = w(temps.gpuW);
+  out[SOURCE_CPU] = w(temps.cpuW);
+  return out;
+}
+
+/** Degrees the air leaving the case is above room temperature: all the power over rho cp times the flow, the energy balance of the whole case. Zero for no flow. */
+export function exhaustRiseK(totalWatts: number, flowCfm: number): number {
+  const flow = flowCfm * M3S_PER_CFM;
+  return flow > 0 ? totalWatts / (AIR_DENSITY * AIR_SPECIFIC_HEAT * flow) : 0;
 }
 
 /** One step of the air in a heat cell: it closes a share of its gap to the part's temperature, so it never passes it. `speed` scales the step (1 for one solver step). */

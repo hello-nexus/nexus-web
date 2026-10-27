@@ -59,8 +59,9 @@ async function main() {
   for (let i = 0; i < cpu.u.length; i++) { maxDiff = Math.max(maxDiff, Math.abs(g[i] - cpu.u[i])); maxCpu = Math.max(maxCpu, Math.abs(cpu.u[i])); }
   out.velocity = { maxDiff, maxCpu };
   // Buoyancy and the temperature field: the same hot GPU on both, more steps, then compare the temperature and the velocity it bends.
-  gl.setTemps({ gpu: 75, cpu: null });
-  cpu.setTemps({ gpu: 75, cpu: null });
+  // With a power reading: the part's watts go in as energy, in the temperature pass and in the reference alike.
+  gl.setTemps({ gpu: 75, cpu: null, gpuW: 200 });
+  cpu.setTemps({ gpu: 75, cpu: null, gpuW: 200 });
   for (let i = 0; i < 80; i++) { gl.step(1); cpu.step(); }
   const gt = gl.readTemperature();
   const gv = gl.readVelocity();

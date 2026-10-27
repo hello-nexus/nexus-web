@@ -81,7 +81,7 @@ float sampleT(vec3 p) {
 `;
 
 export const TEMPERATURE = COMMON + TEMP_COMMON + /* glsl */ `
-uniform vec3 uSrc; uniform float uCoupling;
+uniform vec3 uSrc; uniform float uCoupling; uniform vec3 uPow; uniform float uMaxRise;
 #define TEMP_DIFFUSION ${glFloat(TEMP_DIFFUSION)}
 void main() {
   ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
@@ -98,7 +98,10 @@ void main() {
   for (int k = 0; k < 6; k++) { ivec3 n = c + D[k]; if (!solidAt(n)) { acc += texelFetch(T, tc(n), 0).r; cnt += 1.0; } }
   if (cnt > 0.0) t += TEMP_DIFFUSION * (acc / cnt - t);
   float src = id == 1 ? uSrc.y : (id == 2 ? uSrc.z : -1.0);
-  if (src >= 0.0) t += uCoupling * (src - t);
+  // A part with a power reading adds its watts as energy (degrees per step already worked out for this scene); without one the air closes on the part's temperature.
+  float pw = id == 1 ? uPow.y : (id == 2 ? uPow.z : -1.0);
+  if (pw >= 0.0) t = min(t + pw, uMaxRise);
+  else if (src >= 0.0) t += uCoupling * (src - t);
   gl_FragColor = vec4(t, 0.0, 0.0, 0.0);
 }`;
 

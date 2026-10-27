@@ -1,6 +1,6 @@
-import { BUOYANCY, DAMPING, FAN_BLEND, JACOBI_ITERATIONS, TEMP_DIFFUSION, VMAX_CELLS } from './flowParams';
-import { SOURCE_ROOM, type FlowScene } from './gridScene';
-import { NO_TEMPS, heatStep, isHot, sourceRises, type ComponentTemps } from './heatModel';
+import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, MAX_RISE_K, TEMP_DIFFUSION, VMAX_CELLS } from './flowParams';
+import { SOURCE_ROOM, powerRisePerStep, type FlowScene } from './gridScene';
+import { NO_TEMPS, heatStep, isHot, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 
 /**
  * CPU reference of the GPU solver in `shaders.ts`: same equations and boundary rules, one step per call.
@@ -14,6 +14,8 @@ export class CpuFlow {
   private tNext: Float32Array;
   /** What each part's heat cells pull the air toward, as degrees above room temperature, by `SOURCE_*`; negative means that part heats nothing. */
   private rises = sourceRises(NO_TEMPS);
+  /** Degrees per step each part's power adds to its heat cells, by `SOURCE_*`; negative falls back on the part's temperature. */
+  private powerRise: [number, number, number] = [-1, -1, -1];
   private next: Float32Array;
   private p: Float32Array;
   private p2: Float32Array;
@@ -60,6 +62,8 @@ export class CpuFlow {
   /** New part temperatures: read by the next step, nothing restarts. */
   setTemps(temps: ComponentTemps): void {
     this.rises = sourceRises(temps);
+    const watts = sourceWatts(temps);
+    this.powerRise = watts.map((w, source) => powerRisePerStep(this.scene, source, w)) as [number, number, number];
   }
 
   /** Whether any part is hot enough to drive a plume on its own. */
@@ -135,7 +139,7 @@ export class CpuFlow {
       const c = i + NX * (j + NY * k);
       if (solid[c]) { out[c * 3] = 0; out[c * 3 + 1] = 0; out[c * 3 + 2] = 0; continue; }
       this.sample(i - u[c * 3], j - u[c * 3 + 1], k - u[c * 3 + 2], a);
-      let x = a[0], y = a[1] + BUOYANCY * this.t[c], z = a[2];
+      let x = a[0], y = a[1] + this.scene.buoyancy * this.t[c], z = a[2];
       if (fanCell[c]) {
         x += (target[c * 3] - x) * FAN_BLEND; y += (target[c * 3 + 1] - y) * FAN_BLEND; z += (target[c * 3 + 2] - z) * FAN_BLEND;
       }
@@ -221,8 +225,10 @@ export class CpuFlow {
         cnt++;
       }
       if (cnt > 0) r += TEMP_DIFFUSION * (acc / cnt - r);
+      const power = this.powerRise[id];
       const src = this.rises[id];
-      if (src >= 0) r = heatStep(r, src, 1);
+      if (power >= 0) r = Math.min(MAX_RISE_K, r + power);
+      else if (src >= 0) r = heatStep(r, src, 1);
       out[c] = r;
     }
     this.tNext = t;

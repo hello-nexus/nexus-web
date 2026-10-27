@@ -3,11 +3,12 @@ import {
   Mesh, NearestFilter, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { DEV_TOOLS } from '../../devTools';
+import { isGpuSlotKey } from '../slotFlow';
 import { buildGridView, type GridView } from './gridView';
-import { ParticleClock } from './particleClock';
+import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
-import { NO_TEMPS, sourceRises, type ComponentTemps } from './heatModel';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_MAX_K, HEAT_SPAN_MIN_K, HEAT_SPAN_PER_EXHAUST_RISE, POWER_RESUME_DELTA_W, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
@@ -67,6 +68,8 @@ export interface FlowOptions {
   collisions: boolean;
   /** Dev tools: draws the grid cells and how they are used. */
   grid?: boolean;
+  /** Seconds of screen time per second of real time. When set, the particle speed comes from it and the scene's own step length, so the flow reads at this slow motion whatever the case size; `speed` then only serves a layer given no scale. */
+  timeScale?: number;
   /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */
   speed: number;
 }
@@ -94,6 +97,7 @@ export class FlowLayer {
   private temps: ComponentTemps = NO_TEMPS;
   /** Source temperatures the solve was last woken at, and whether the scene has any heat cell to care about them. */
   private wakeRises: number[] = [];
+  private wakeWatts: number[] = [];
   /** The input the field was solved for, and when: later speed changes only scale the drawn particle speed. */
   private solvedInput: FlowInput | null = null;
   private solvedAt = 0;
@@ -158,9 +162,16 @@ export class FlowLayer {
     return this.supported && !!this.fscene && (this.solving || this.options.particles);
   }
 
+  // Particle speed in cells per particle step: the options' time scale over the scene's own step (real seconds per solver step) at the fixed particle step rate, times the fans' mean speed change since the solve.
+  private drawnSpeed(): number {
+    const scale = this.options.timeScale;
+    const base = scale !== undefined && this.fscene ? scale / (PARTICLE_STEPS_PER_SECOND * this.fscene.stepSeconds) : this.options.speed;
+    return base * this.speedFactor;
+  }
+
   setOptions(options: FlowOptions) {
     this.options = options;
-    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = options.speed * this.speedFactor; m.uniforms.uSubsteps.value = substepsFor(options.speed * this.speedFactor); }
+    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = this.drawnSpeed(); m.uniforms.uSubsteps.value = substepsFor(this.drawnSpeed()); }
     if (this.streaks) {
       this.streaks.visible = options.particles;
     }
@@ -172,6 +183,7 @@ export class FlowLayer {
   setTemps(temps: ComponentTemps) {
     this.temps = temps;
     this.applyTemps();
+    this.updateSpan();
   }
 
   private applyTemps() {
@@ -184,10 +196,24 @@ export class FlowLayer {
     if (wasHot !== flow.hot) this.uploadSpawns(scene);
     if (!this.heatCells) return;
     const rises = sourceRises(this.temps);
-    const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K);
+    const watts = sourceWatts(this.temps);
+    const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K) || watts.some((w, i) => w >= 0 && Math.abs(w - (this.wakeWatts[i] ?? -1)) >= POWER_RESUME_DELTA_W);
     // With no fan, buoyancy is the only driver, so a part's temperature moving re-solves the velocity. Otherwise a temperature change never does: only the cheap temperature pass runs, on the frozen velocity.
     if (scene.fanCount === 0 && (moved || wasHot !== flow.hot)) this.wake(rises);
-    else if (moved) { this.wakeRises = rises; this.tempStepsLeft = TEMP_SETTLE_STEPS; }
+    else if (moved) { this.wakeRises = rises; this.wakeWatts = watts; this.tempStepsLeft = TEMP_SETTLE_STEPS; }
+  }
+
+  // The color span follows the physics when a part has a power reading: a multiple of the air's rise at the exhaust, all the power over rho cp times the flow.
+  private updateSpan() {
+    const u = this.streakMat?.uniforms;
+    if (!u) return;
+    const watts = sourceWatts(this.temps);
+    let span = HEAT_COLOR_SPAN_C;
+    if (this.input && watts.some(w => w >= 0)) {
+      const total = watts.reduce((n, w) => n + Math.max(0, w), 0);
+      span = Math.min(HEAT_SPAN_MAX_K, Math.max(HEAT_SPAN_MIN_K, HEAT_SPAN_PER_EXHAUST_RISE * exhaustRiseK(total, exhaustFlowCfm(this.input))));
+    }
+    u.uHeatSpan.value = span;
   }
 
   /** Solves again from the current fields: the temperature field has a new target. */
@@ -211,6 +237,7 @@ export class FlowLayer {
         this.resolveDue = drift.worst > RESOLVE_DRIFT;
         this.speedFactor = Math.min(SPEED_FACTOR_MAX, Math.max(SPEED_FACTOR_MIN, drift.mean));
         this.setOptions(this.options);
+        this.updateSpan();
         return;
       }
     }
@@ -233,6 +260,7 @@ export class FlowLayer {
     }
     this.fscene = scene;
     this.solvedInput = this.input;
+    if (DEV_TOOLS && this.input) (globalThis as { __nexusFlowInput?: unknown }).__nexusFlowInput = { fanCfm: this.input.fanCfm, ventCfm: this.input.ventCfm, referenceCfm: this.input.referenceCfm, stepSeconds: scene.stepSeconds, cellMm: scene.cellMm, buoyancy: scene.buoyancy, heatCells: scene.heatCellCount };
     this.solvedAt = performance.now();
     this.resolveDue = false;
     this.solveStartedAt = this.solvedAt;
@@ -240,11 +268,13 @@ export class FlowLayer {
     this.setOptions(this.options);
     this.flow.setTemps(this.temps);
     this.wakeRises = sourceRises(this.temps);
+    this.wakeWatts = sourceWatts(this.temps);
     this.heatCells = scene.heat.some(v => v === SOURCE_GPU || v === SOURCE_CPU);
     if (this.collisionsShown) this.syncCollisions(true);
     if (this.gridShown) this.syncGrid(true);
     this.uploadSpawns(scene);
     this.updateUniforms();
+    this.updateSpan();
     this.stepsSinceEdit = 0;
     this.gate.invalidate();
     // A hot part drives a plume on its own, so a case with every fan stopped still solves.
@@ -409,6 +439,7 @@ export class FlowLayer {
     if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
       // Particle steps follow real elapsed time, not frames: the drawn speed is the same at any frame rate and while the camera moves.
       const particleSteps = this.clock.advance(dt);
+      if (DEV_TOOLS) { const g = globalThis as { __nexusParticleSteps?: number; __nexusFrames?: number }; g.__nexusParticleSteps = (g.__nexusParticleSteps ?? 0) + particleSteps; g.__nexusFrames = (g.__nexusFrames ?? 0) + 1; }
       for (let st = 0; st < particleSteps; st++) {
         const next = (this.stateCur + 1) % RING;
         this.stateMat.uniforms.U.value = flow.velocity;
@@ -426,7 +457,7 @@ export class FlowLayer {
       u.PP.value = this.stateTargets[(this.stateCur + RING - 1) % RING].texture;
       u.PB.value = this.heatTargets[this.stateCur].texture;
       u.U.value = flow.velocity;
-      u.uRate.value = (this.options.speed * this.speedFactor) / PARTICLE_REFERENCE_SPEED;
+      u.uRate.value = this.drawnSpeed() / PARTICLE_REFERENCE_SPEED;
       u.uScale.value = scale;
       (u.uViewport.value as Vector2).set(viewportHeight * camera.aspect, viewportHeight);
     }
@@ -566,4 +597,14 @@ function speedDrift(solved: FlowInput, next: FlowInput): { mean: number; worst: 
   const mean = ratios.reduce((n, r) => n + r, 0) / ratios.length;
   const worst = Math.max(...ratios.map(r => Math.abs(r - mean) / mean));
   return { mean, worst };
+}
+
+/** Air leaving the case, CFM: the exhaust fans plus whatever the unfanned openings let out. GPU fans recirculate and are left out. */
+function exhaustFlowCfm(input: FlowInput): number {
+  let total = Math.max(0, input.ventCfm);
+  for (const key of Object.keys(input.fanCfm)) {
+    const slot = key.split('#')[0];
+    if (!isGpuSlotKey(slot) && input.directions[slot] === 'exhaust') total += input.fanCfm[key];
+  }
+  return total;
 }

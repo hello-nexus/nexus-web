@@ -93,7 +93,7 @@ describe('fan edit matrix on the T1 setup', () => {
   it('starts from spinning fans that all move and emit', () => {
     expect(before.lumped.result.intakeCfm).toBeGreaterThan(0);
     for (const k of ['right:120:1', 'right:120:2']) {
-      expect(before.visual.fanCfm[k]).toBeGreaterThan(20);
+      expect(before.visual.fanCfm[k]).toBeGreaterThan(10);
       expect(before.scene.emitterCounts[k]).toBeGreaterThan(0);
     }
   });
@@ -170,7 +170,9 @@ describe('one real channel on many slots', () => {
     const b = derive(three);
     const flows = slots3.map(k => b.visual.fanCfm[k]);
     expect(new Set(flows).size).toBe(1);
-    expect(flows[0]).toBe(a.visual.fanCfm['bottom:120:0']);
+    // Three fans on one case raise its pressure, so each runs no faster than the lone fan did.
+    expect(flows[0]).toBeGreaterThan(0);
+    expect(flows[0]).toBeLessThanOrEqual(a.visual.fanCfm['bottom:120:0']);
     expect(slots3.every(k => b.scene.emitterCounts[k] > 0)).toBe(true);
     expect(b.lumped.fanCount).toBe(a.lumped.fanCount + 2);
     expect(b.lumped.result.intakeCfm).toBeGreaterThan(a.lumped.result.intakeCfm);
