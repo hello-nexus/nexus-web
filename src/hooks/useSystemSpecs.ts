@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchService } from '../api/service';
 
+// The service omits a null leaf, so every leaf is optional.
 export interface HardwareIds {
-  gpus?: { vendor: string; device: string; subVendor: string; subDevice: string }[] | null;
-  ramModules?: { manufacturer: string; partNumber: string; capacityBytes: number; configuredSpeedMts: number }[] | null;
-  drives?: { vendor: string; model: string }[] | null;
-  board?: { manufacturer: string; product: string } | null;
-  monitors?: { manufacturer: string; productCode: string; name: string }[] | null;
+  gpus?: { vendor?: string; device?: string; subVendor?: string; subDevice?: string }[] | null;
+  ramModules?: { manufacturer?: string; partNumber?: string; capacityBytes?: number; configuredSpeedMts?: number }[] | null;
+  drives?: { vendor?: string; model?: string }[] | null;
+  board?: { manufacturer?: string; product?: string } | null;
+  monitors?: { manufacturer?: string; productCode?: string; name?: string }[] | null;
 }
 
 export interface SystemSpecs {

@@ -23,12 +23,36 @@ describe('buildMachine hardwareIds', () => {
     monitors: null,
   };
 
-  it('passes hardwareIds through as received', () => {
+  it('keeps every listed field and null sources', () => {
     expect(buildMachine({ ...SPECS, hardwareIds: ids }, null, []).hardwareIds).toEqual(ids);
+  });
+
+  it('drops any field that is not listed, such as a serial', () => {
+    const dirty = {
+      gpus: [{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e', serial: 'g1' }],
+      ramModules: [{ manufacturer: 'Kingston', partNumber: 'P', capacityBytes: 8, configuredSpeedMts: 6000, serial: 'r1' }],
+      drives: [{ vendor: 'Samsung', model: '990', serial: 'd1' }],
+      board: { manufacturer: 'ASUS', product: 'X', serial: 'b1' },
+      monitors: [{ manufacturer: 'DEL', productCode: 'A1', name: 'U', serial: 'm1' }],
+    };
+    const out = buildMachine({ ...SPECS, hardwareIds: dirty as never }, null, []).hardwareIds;
+    expect(JSON.stringify(out)).not.toContain('serial');
+    expect(out?.board).toEqual({ manufacturer: 'ASUS', product: 'X' });
+    expect(out?.ramModules?.[0]).toEqual({ manufacturer: 'Kingston', partNumber: 'P', capacityBytes: 8, configuredSpeedMts: 6000 });
   });
 
   it('omits hardwareIds when the service sent none', () => {
     expect('hardwareIds' in buildMachine(SPECS, null, [])).toBe(false);
+  });
+
+  it('lists every card in the report order, aligned with the ids', () => {
+    const machine = buildMachine({ ...SPECS, graphicsCard: 'ASUS GeForce RTX 4080 + AMD Radeon(TM) Graphics', hardwareIds: { gpus: [{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e' }, { vendor: '1002', device: '164e', subVendor: '1043', subDevice: '8877' }] } }, null, []);
+    expect(machine.gpus).toEqual(['ASUS GeForce RTX 4080', 'AMD Radeon(TM) Graphics']);
+    expect(machine.gpus?.length).toBe(machine.hardwareIds?.gpus?.length);
+  });
+
+  it('omits gpus when the report names no card', () => {
+    expect('gpus' in buildMachine({ ...SPECS, graphicsCard: '' }, null, []) && buildMachine({ ...SPECS, graphicsCard: '' }, null, []).gpus).toBeFalsy();
   });
 
   it('never carries the PC name', () => {
