@@ -2038,7 +2038,7 @@
 }
 
 
-// Fades in when someone tries to move or edit a locked widget (useLockNotice).
+// Fades in while a locked widget is pulled against its rubber band (useLockNotice).
 .cellWrap[data-lock-notice='true'] .cell > .cellLockNotice {
   opacity: 1;
 }

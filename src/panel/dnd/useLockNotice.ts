@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useCallback, useRef, useState, type PointerEvent } from 'react';
+import { PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
+import type { DragActivation } from '../engine/pointerDragSensor';
 
+// Same distance an unlocked widget needs to start a mouse drag.
 export const LOCK_DRAG_THRESHOLD_PX = 6;
-export const LOCK_HOLD_MS = 450;
-export const LOCK_NOTICE_MS = 1400;
+// Same drift an unlocked widget tolerates while a touch hold is still arming.
+const HOLD_TOLERANCE_PX = 8;
+// The tile never travels further than this from its cell.
+export const LOCK_DRAG_MAX_PX = 28;
 
 const INTERACTIVE = 'button,a,input,select,textarea,summary,[role="button"],[role="slider"],[role="switch"],[role="tab"],[data-panel-scrollable="true"]';
 
@@ -18,57 +23,86 @@ export function exceedsDragThreshold(dx: number, dy: number): boolean {
   return Math.hypot(dx, dy) > LOCK_DRAG_THRESHOLD_PX;
 }
 
-/**
- * Pointer handlers that surface a "locked" notice when someone tries to move or edit a locked widget:
- * a press dragged past the threshold, a hold, or a tap on the widget body. Pressing a control inside
- * the widget never triggers it. Inert when `locked` is false.
- */
-export function useLockNotice(locked: boolean) {
-  const [visible, setVisible] = useState(false);
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const holdTimer = useRef<number | undefined>(undefined);
-  const hideTimer = useRef<number | undefined>(undefined);
+/** Pointer travel mapped to tile travel: 1:1 at first, then ever stiffer, never past `cap`. */
+export function rubberBandOffset(dx: number, dy: number, cap = LOCK_DRAG_MAX_PX): { x: number; y: number } {
+  const dist = Math.hypot(dx, dy);
+  if (dist === 0) return { x: 0, y: 0 };
+  const scale = cap * (1 - Math.exp(-dist / cap)) / dist;
+  return { x: dx * scale, y: dy * scale };
+}
 
-  const clearHold = useCallback(() => {
-    window.clearTimeout(holdTimer.current);
-    holdTimer.current = undefined;
-  }, []);
-  const show = useCallback(() => {
-    setVisible(true);
-    window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setVisible(false), LOCK_NOTICE_MS);
+interface Press {
+  x: number;
+  y: number;
+  at: number;
+  pointerId: number;
+  activation: DragActivation;
+}
+
+/**
+ * Pointer handlers for a locked widget. A plain tap does nothing. A press that starts a move the way an
+ * unlocked widget's would (a short mouse drag, or a touch hold then move) pulls the tile along with
+ * rubber-band resistance and shows the locked notice until release, when the tile settles back.
+ * A press on a control inside the widget is ignored. Inert when `locked` is false.
+ */
+export function useLockNotice(locked: boolean, activationFor: (pointerType: string) => DragActivation = () => 'distance') {
+  const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
+  const [settling, setSettling] = useState(false);
+  const press = useRef<Press | null>(null);
+  const dragging = useRef(false);
+  const captured = useRef<{ el: Element; id: number } | null>(null);
+
+  const release = useCallback(() => {
+    const held = captured.current;
+    captured.current = null;
+    if (held?.el.hasPointerCapture?.(held.id)) held.el.releasePointerCapture(held.id);
   }, []);
   const end = useCallback(() => {
-    clearHold();
-    start.current = null;
-  }, [clearHold]);
-
-  useEffect(() => () => {
-    window.clearTimeout(holdTimer.current);
-    window.clearTimeout(hideTimer.current);
-  }, []);
+    const wasDragging = dragging.current;
+    press.current = null;
+    dragging.current = false;
+    release();
+    if (wasDragging) {
+      setOffset(null);
+      setSettling(true);
+    }
+    return wasDragging;
+  }, [release]);
 
   const onPointerDown = useCallback((e: PointerEvent) => {
-    if (!locked || isOwnControl(e.target, e.currentTarget as Element)) return;
-    start.current = { x: e.clientX, y: e.clientY };
-    clearHold();
-    holdTimer.current = window.setTimeout(show, LOCK_HOLD_MS);
-  }, [clearHold, locked, show]);
+    if (!locked || e.isPrimary === false) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (isOwnControl(e.target, e.currentTarget as Element)) return;
+    press.current = { x: e.clientX, y: e.clientY, at: Date.now(), pointerId: e.pointerId, activation: activationFor(e.pointerType) };
+    setSettling(false);
+  }, [activationFor, locked]);
   const onPointerMove = useCallback((e: PointerEvent) => {
-    const origin = start.current;
-    if (!locked || !origin) return;
-    if (exceedsDragThreshold(e.clientX - origin.x, e.clientY - origin.y)) {
-      clearHold();
-      show();
+    const origin = press.current;
+    if (!locked || !origin || e.pointerId !== origin.pointerId) return;
+    const dx = e.clientX - origin.x;
+    const dy = e.clientY - origin.y;
+    if (!dragging.current) {
+      if (origin.activation === 'delay' && Date.now() - origin.at < PANEL_CONTEXT_MENU_TRIGGER_MS) {
+        // Moving before the hold completes is a swipe or scroll, never a drag.
+        if (Math.hypot(dx, dy) > HOLD_TOLERANCE_PX) press.current = null;
+        return;
+      }
+      if (!exceedsDragThreshold(dx, dy)) return;
+      dragging.current = true;
+      const cell = e.currentTarget as Element;
+      cell.setPointerCapture?.(e.pointerId);
+      captured.current = { el: cell, id: e.pointerId };
     }
-  }, [clearHold, locked, show]);
-  const onPointerUp = useCallback((e: PointerEvent) => {
-    const origin = start.current;
-    end();
-    if (!locked || !origin) return;
-    // A press that never moved is a tap on the body; the hold timer already covered a long one.
-    if (!exceedsDragThreshold(e.clientX - origin.x, e.clientY - origin.y)) show();
-  }, [end, locked, show]);
+    setOffset(rubberBandOffset(dx, dy));
+  }, [locked]);
 
-  return { visible: locked && visible, handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: end } };
+  return {
+    /** True while a locked widget is being pulled; the notice shows for exactly that long. */
+    dragging: locked && offset !== null,
+    visible: locked && offset !== null,
+    offset: locked ? offset : null,
+    settling: locked && settling,
+    /** `end` closes the press on release or cancel and reports whether it was a drag, so the caller can withhold the tap. */
+    handlers: { onPointerDown, onPointerMove, end },
+  };
 }

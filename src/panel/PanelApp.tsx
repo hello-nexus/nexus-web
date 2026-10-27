@@ -941,6 +941,8 @@ export function PanelContent({
   //                    empty page without creating it first. Persisted only
   //                    if a widget lands on it; cleared on dragEnd/dragCancel.
   const [dragArmedId, setDragArmedId] = useState<string | null>(null);
+  // A locked widget is being pulled against its rubber band; nothing is lifted or persisted.
+  const [lockDragging, setLockDragging] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragExtraPageId, setDragExtraPageId] = useState<string | null>(null);
 
@@ -1860,6 +1862,10 @@ export function PanelContent({
     dragEditable && freeformActive && !desktopActivation ? resizeTileSensor : null,
   );
 
+  const lockActivationFor = useCallback(
+    (pointerType: string) => (desktopActivation ? 'distance' : dragActivationFor(pointerType, mouseAsTouch)),
+    [desktopActivation, mouseAsTouch],
+  );
   // Lock applies wherever a widget can be arranged, except the phone's own gesture set.
   const lockAvailable = dragEditable && genericDisplay;
   const lockRecordId = recordState.record?.id;
@@ -1875,7 +1881,7 @@ export function PanelContent({
 
   // Host sync: a see-through, click-through display window takes input only where the panel draws.
   const hostBound = kioskBehavior && displayBound && panelHostAvailable();
-  const hitFull = Boolean(sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
+  const hitFull = Boolean(lockDragging || sheetMode || trayOpen || controlCenterOpen || immersiveWidgetId || activeDragId || dragArmedId
     || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
   // Position and size, so a remote edit that keeps the ids still remeasures.
   const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
@@ -1891,7 +1897,7 @@ export function PanelContent({
     hostBound,
     effectiveTheme.backgroundFrost,
     seeThrough,
-    Boolean(activeDragId),
+    Boolean(activeDragId || lockDragging),
     rootRef,
     `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
   );
@@ -2330,6 +2336,8 @@ export function PanelContent({
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               movable={dragEditable}
                               locked={lockedOf()}
+                              lockActivationFor={lockActivationFor}
+                              onLockDragChange={setLockDragging}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
