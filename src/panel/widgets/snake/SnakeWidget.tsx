@@ -1,8 +1,9 @@
-import { Worm, Play } from 'lucide-react';
+import { Ban, Worm, Play } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
 import { PanelWidgetShell } from '../common/PanelWidgetChrome';
 import { useIsLandscape } from '../../device/panelPhone';
+import { usePanelGenericDisplay } from '../common/PanelDisplayBoundContext';
 import { RotatePrompt } from '../games-shared/RotatePrompt';
 import type { WidgetProps } from '../types';
 import styles from './SnakeWidget.module.scss';
@@ -10,6 +11,15 @@ import styles from './SnakeWidget.module.scss';
 export function SnakeWidget({ widget, surface }: WidgetProps) {
   const { t } = useTranslation();
   const isLandscape = useIsLandscape(surface ?? 'desktop');
+  const genericDisplay = usePanelGenericDisplay();
+
+  if (genericDisplay) {
+    return (
+      <PanelWidgetShell size={widget.size} className={styles.widget}>
+        <RotatePrompt compact icon={Ban} message={t('panel.widget.web-view.unsupported')} />
+      </PanelWidgetShell>
+    );
+  }
 
   if (isLandscape) {
     return (

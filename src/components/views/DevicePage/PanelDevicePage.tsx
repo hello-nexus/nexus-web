@@ -1580,7 +1580,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 onChange={on => updateLayout(setWidgetPlaylistEnabled(
                                   layout,
                                   on,
-                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch: registryTouch, displayBound: isMonitorPanel }).map(([type]) => type),
+                                  catalogEntriesFor(surface, { remote: remotePanel, deviceTouch: registryTouch, displayBound: isMonitorPanel, genericDisplay }).map(([type]) => type),
                                 ))}
                               />
                             )}
@@ -1596,6 +1596,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           surface={surface}
                           deviceTouch={registryTouch}
                           displayBound={isMonitorPanel}
+                          genericDisplay={genericDisplay}
                           forcedGrid={forcedGrid}
                           glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}

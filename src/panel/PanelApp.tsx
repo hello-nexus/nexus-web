@@ -9,7 +9,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { backdropHintFromUrl } from './background/panelBackground';
-import { PanelDisplayBoundProvider } from './widgets/common/PanelDisplayBoundContext';
+import { PanelDigitizerProvider, PanelDisplayBoundProvider, PanelGenericDisplayProvider } from './widgets/common/PanelDisplayBoundContext';
 import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -444,9 +444,13 @@ function PanelKioskContent({ recordState, deviceId, surface, glassSurface, devic
     >
       <PanelDeviceIdProvider value={deviceId}>
       <PanelDisplayBoundProvider value={!!displayBound}>
+      <PanelGenericDisplayProvider value={isGenericDisplayPanel(glassSurface, recordState.record?.capabilities?.family, !!displayBound)}>
+      <PanelDigitizerProvider value={deviceTouch}>
         <PanelGlassSurfaceProvider value={glassSurface}>
           <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} displayBound={displayBound} layoutState={layoutState} />
         </PanelGlassSurfaceProvider>
+      </PanelDigitizerProvider>
+      </PanelGenericDisplayProvider>
       </PanelDisplayBoundProvider>
       </PanelDeviceIdProvider>
     </ErrorBoundary>
@@ -1202,7 +1206,8 @@ export function PanelContent({
         .filter(w => {
           const def = lookupApp(w.type);
           if (!def) return true;
-          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound, genericDisplay });
+          // genericDisplay stays out: a stored portrait-only game keeps its tile (shown as unavailable) so it can be removed.
+          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -1213,7 +1218,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, genericDisplay, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
+  surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, type PanelSurface,
 } from './types';
 
 describe('surfaceInputMode', () => {
@@ -22,6 +22,23 @@ describe('surfaceInputMode', () => {
     for (const [surface, deviceTouch, expected] of cases) {
       expect(surfaceInputMode(surface, deviceTouch)).toBe(expected);
     }
+  });
+});
+
+describe('widgetInputOf', () => {
+  it('gives a display-bound panel input whatever the digitizer says', () => {
+    for (const touch of [undefined, false, true]) {
+      expect(widgetInputOf(touch, true)).toBe(true);
+      expect(surfaceSupportsTouch('monitor', widgetInputOf(touch, true))).toBe(true);
+      expect(surfaceInputMode('monitor', widgetInputOf(touch, true))).not.toBe('none');
+    }
+  });
+
+  it('passes the digitizer through off a display-bound panel', () => {
+    expect(widgetInputOf(undefined, false)).toBeUndefined();
+    expect(widgetInputOf(false, false)).toBe(false);
+    expect(widgetInputOf(true, false)).toBe(true);
+    expect(surfaceInputMode('q60', widgetInputOf(undefined, false))).toBe('none');
   });
 });
 
