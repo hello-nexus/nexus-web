@@ -52,6 +52,8 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   // The release of a pull is followed by one native click on the tile; it must not reach the widget.
   const swallowClick = useRef(false);
   const captured = useRef<{ el: Element; id: number } | null>(null);
+  // Who is pulling, so a second finger, a pen or a palm elsewhere on the page does not end the pull.
+  const puller = useRef<{ id: number; type: string } | null>(null);
 
   const release = useCallback(() => {
     const held = captured.current;
@@ -99,6 +101,7 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
       if (!exceedsDragThreshold(dx, dy)) return;
       dragging.current = true;
       pulled.current = true;
+      puller.current = { id: e.pointerId, type: e.pointerType };
       const cell = e.currentTarget as Element;
       cell.setPointerCapture?.(e.pointerId);
       captured.current = { el: cell, id: e.pointerId };
@@ -131,13 +134,20 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   const isPulled = locked && offset !== null;
   useEffect(() => {
     if (!isPulled) return undefined;
-    // A release outside the cell, or one the page missed (the next press), still ends the pull: a non-key macOS kiosk gets no hover moves.
+    // A release outside the cell, or one the page missed (the next mouse press), still ends the pull: a non-key macOS kiosk gets no hover moves.
+    // Other pointers are ignored; a mouse reuses its id, so any mouse press ends a mouse pull.
+    const onPointer = (e: globalThis.PointerEvent) => {
+      const who = puller.current;
+      if (!who) return;
+      const sameMouse = who.type === 'mouse' && e.pointerType === 'mouse';
+      if (e.pointerId === who.id || (e.type === 'pointerdown' && sameMouse)) end();
+    };
     const ends = ['pointerup', 'pointercancel', 'pointerdown'] as const;
     window.addEventListener('blur', end);
-    for (const type of ends) window.addEventListener(type, end, true);
+    for (const type of ends) window.addEventListener(type, onPointer, true);
     return () => {
       window.removeEventListener('blur', end);
-      for (const type of ends) window.removeEventListener(type, end, true);
+      for (const type of ends) window.removeEventListener(type, onPointer, true);
     };
   }, [end, isPulled]);
 

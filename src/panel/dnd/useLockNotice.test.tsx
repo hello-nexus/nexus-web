@@ -185,6 +185,35 @@ describe('useLockNotice', () => {
     expect(visible(body)).toBe(false);
   });
 
+  const windowPointer = (type: string, pointerId: number, pointerType: string) => act(() => {
+    window.dispatchEvent(Object.assign(new Event(type), { pointerId, pointerType }));
+  });
+
+  it('a second touch pointer neither ends nor cancels a touch pull, but its own release does', () => {
+    const { getByTestId } = render(<Probe locked activation="distance" />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10, pointerId: 1, pointerType: 'touch' });
+    expect(visible(body)).toBe(true);
+    windowPointer('pointerdown', 2, 'touch');
+    windowPointer('pointerup', 2, 'touch');
+    windowPointer('pointercancel', 2, 'touch');
+    windowPointer('pointerdown', 3, 'pen');
+    expect(visible(body)).toBe(true);
+    windowPointer('pointerup', 1, 'touch');
+    expect(visible(body)).toBe(false);
+  });
+
+  it('a mouse press anywhere ends a stuck mouse pull, though the mouse reuses its id', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10, pointerId: 1, pointerType: 'mouse', buttons: 1 });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10, pointerId: 1, pointerType: 'mouse', buttons: 1 });
+    expect(visible(body)).toBe(true);
+    windowPointer('pointerdown', 7, 'mouse');
+    expect(visible(body)).toBe(false);
+  });
+
   it('ends the pull when pointer capture is lost', () => {
     const { getByTestId } = render(<Probe locked />);
     const body = getByTestId('body');
