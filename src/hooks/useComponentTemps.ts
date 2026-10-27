@@ -6,10 +6,10 @@ import type { ComponentTemps } from '../lib/cooling/flow/heatModel';
 
 const finite = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-/** A part's package power sensor: the Power-type sensor named for the package, else its first Power sensor. */
+/** A part's whole-package power sensor: the Power-type sensor named for the package, else one named total or board. A partial rail never stands in for it, so a part without one falls back on its temperature. */
 function packagePower(sensors: readonly HardwareSensor[]): HardwareSensor | undefined {
   const power = sensors.filter(s => s.type === 'Power');
-  return power.find(s => /package/i.test(s.name)) ?? power[0];
+  return power.find(s => /package/i.test(s.name)) ?? power.find(s => /total|board/i.test(s.name));
 }
 
 /** Live CPU and GPU temperatures, C, and package power, W, from the sensor topic the Cooling and Monitoring pages read, with the sensors the user pinned; null while a sensor is missing. */
