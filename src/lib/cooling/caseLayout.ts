@@ -263,7 +263,7 @@ function parseSlot(raw: unknown): CaseFanSlot | null {
 
 const MAX_OPTIONS = 8;
 const MAX_TUBES = 4;
-const MAX_TUBE_POINTS = 12;
+const MAX_TUBE_POINTS = 256;
 const MAX_TUBE_RADIUS_MM = 30;
 const MAX_LINES = 64;
 const MAX_LINE_POINTS = 256;
