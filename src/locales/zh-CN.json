@@ -2423,6 +2423,8 @@
   "lighting.category.twotone": "双色",
   "lighting.colorTuning.blue": "蓝",
   "lighting.colorTuning.brightnessInfo": "仅调暗此设备的灯珠；画布预览仍保持全亮度。",
+  "lighting.colorTuning.colorOrder": "颜色顺序",
+  "lighting.colorTuning.colorOrderInfo": "如果红色和绿色显示颠倒，请使用此项。",
   "lighting.colorTuning.cool": "冷",
   "lighting.colorTuning.done": "完成",
   "lighting.colorTuning.effectiveBrightnessInfo": "主亮度将输出限制为 {master}%,因此此设备无法更亮。",

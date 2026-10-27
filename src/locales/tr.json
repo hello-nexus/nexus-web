@@ -2423,6 +2423,8 @@
   "lighting.category.twotone": "İki renk",
   "lighting.colorTuning.blue": "Mavi",
   "lighting.colorTuning.brightnessInfo": "Yalnızca bu cihazın LED'lerini karartır; tuval önizlemesi tam parlaklıkta kalır.",
+  "lighting.colorTuning.colorOrder": "Renk sırası",
+  "lighting.colorTuning.colorOrderInfo": "Kırmızı ile yeşil yer değiştirmiş görünüyorsa kullanın.",
   "lighting.colorTuning.cool": "Soğuk",
   "lighting.colorTuning.done": "Bitti",
   "lighting.colorTuning.effectiveBrightnessInfo": "Ana parlaklık çıkışı %{master} ile sınırlar, bu yüzden bu cihaz daha parlak olamaz.",
