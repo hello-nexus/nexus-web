@@ -51,6 +51,7 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
     document.addEventListener('transitionend', schedule, true);
     document.addEventListener('transitioncancel', schedule, true);
     document.addEventListener('animationend', schedule, true);
+    document.addEventListener('animationcancel', schedule, true);
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
@@ -59,6 +60,7 @@ export function usePanelHitTest(active: boolean, clickThrough: boolean, transien
       document.removeEventListener('transitionend', schedule, true);
       document.removeEventListener('transitioncancel', schedule, true);
       document.removeEventListener('animationend', schedule, true);
+      document.removeEventListener('animationcancel', schedule, true);
       window.removeEventListener('resize', schedule);
     };
   }, [active, clickThrough, transientFull, rootRef, signature]);
@@ -159,7 +161,7 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(() => { frame = 0; send(); });
     };
-    // Paging swipes animate through transitions: follow every frame while one runs.
+    // Paging swipes and entrance pops animate through transitions and keyframes: follow every frame while one runs.
     // Counted per element, and an element removed mid-transition never fires its end event, so each frame drops those.
     const running = new Map<EventTarget, number>();
     const follow = () => {
@@ -191,7 +193,9 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     document.addEventListener('transitionrun', onRun, true);
     document.addEventListener('transitionend', onEnd, true);
     document.addEventListener('transitioncancel', onEnd, true);
-    document.addEventListener('animationend', schedule, true);
+    document.addEventListener('animationstart', onRun, true);
+    document.addEventListener('animationend', onEnd, true);
+    document.addEventListener('animationcancel', onEnd, true);
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
@@ -200,7 +204,9 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       document.removeEventListener('transitionrun', onRun, true);
       document.removeEventListener('transitionend', onEnd, true);
       document.removeEventListener('transitioncancel', onEnd, true);
-      document.removeEventListener('animationend', schedule, true);
+      document.removeEventListener('animationstart', onRun, true);
+      document.removeEventListener('animationend', onEnd, true);
+      document.removeEventListener('animationcancel', onEnd, true);
       window.removeEventListener('resize', schedule);
     };
   }, [active, percent, seeThrough, dragging, rootRef, signature]);

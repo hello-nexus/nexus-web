@@ -143,6 +143,29 @@ describe('usePanelFrost', () => {
     cell.remove();
   });
 
+  it('follows a card every frame while a keyframe animation runs, and settles when it ends', async () => {
+    const cell = mountCard();
+    const card = cell.firstElementChild as HTMLElement;
+    renderHook(() => usePanelFrost(true, 40, true, false, rootRef, 'a'));
+    await flush();
+    act(() => { card.dispatchEvent(new Event('animationstart', { bubbles: true })); });
+    await flush();
+    const before = frosts().length;
+    card.getBoundingClientRect = () => ({ left: 50, top: 60, right: 150, bottom: 130 }) as DOMRect;
+    await flush();
+    expect(frosts().length).toBe(before + 1);
+    card.getBoundingClientRect = () => ({ left: 70, top: 80, right: 170, bottom: 150 }) as DOMRect;
+    await flush();
+    expect(frosts().at(-1)).toMatchObject({ rects: [{ x: 70, y: 80, w: 100, h: 70 }] });
+    act(() => { card.dispatchEvent(new Event('animationend', { bubbles: true })); });
+    await flush();
+    const after = frosts().length;
+    card.getBoundingClientRect = () => ({ left: 5, top: 5, right: 105, bottom: 75 }) as DOMRect;
+    await flush();
+    expect(frosts().length).toBe(after);
+    cell.remove();
+  });
+
   it('releases the frost on unmount and when it goes inactive', async () => {
     const cell = mountCard();
     const view = renderHook(({ on }) => usePanelFrost(on, 70, true, false, rootRef, 'a'), { initialProps: { on: true } });
