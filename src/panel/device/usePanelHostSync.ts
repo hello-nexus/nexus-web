@@ -1,6 +1,8 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { collectHitRects, frostMessage, hitTestMessage, onHostRequestHitTest, postPanelHostMessage } from './panelHostBridge';
 
+// Keyframes of the widget entrance pop (PanelApp.module.scss); CSS modules keep the name inside the scoped one.
+const ENTRANCE_ANIMATION = 'connectionIntroWidget';
 const HIT_SELECTOR = '[data-panel-widget-id], [data-panel-hit]';
 
 export const LEASE_RENEW_MS = 2000;
@@ -164,10 +166,14 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     // Paging swipes and entrance pops animate through transitions and keyframes: follow every frame while one runs.
     // Counted per element, and an element removed mid-transition never fires its end event, so each frame drops those.
     const running = new Map<EventTarget, number>();
+    // Only the widget entrance pop is followed: looping animations (shimmers, pulses) never end and must not hold the loop.
+    const animating = new Set<Element>();
     const follow = () => {
       send();
       for (const el of running.keys()) if (el instanceof Node && !el.isConnected) running.delete(el);
-      frame = dragging || running.size > 0 ? requestAnimationFrame(follow) : 0;
+      // An element whose class was removed before its end event (or on an engine that skips the cancel event) stops here.
+      for (const el of animating) if (!el.isConnected || getComputedStyle(el).animationName === 'none') animating.delete(el);
+      frame = dragging || running.size > 0 || animating.size > 0 ? requestAnimationFrame(follow) : 0;
     };
     const onRun = (e: Event) => {
       running.set(e.target ?? document, (running.get(e.target ?? document) ?? 0) + 1);
@@ -178,8 +184,21 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       const left = (running.get(key) ?? 0) - 1;
       if (left > 0) running.set(key, left);
       else running.delete(key);
-      if (running.size === 0 && !dragging) {
+      if (running.size === 0 && animating.size === 0 && !dragging) {
         if (frame) cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      schedule();
+    };
+    const onAnimationStart = (e: Event) => {
+      if (!(e.target instanceof Element) || !(e as AnimationEvent).animationName?.includes(ENTRANCE_ANIMATION)) return;
+      animating.add(e.target);
+      if (!frame) frame = requestAnimationFrame(follow);
+    };
+    const onAnimationEnd = (e: Event) => {
+      if (e.target instanceof Element) animating.delete(e.target);
+      if (running.size === 0 && animating.size === 0 && !dragging && frame) {
+        cancelAnimationFrame(frame);
         frame = 0;
       }
       schedule();
@@ -193,9 +212,9 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     document.addEventListener('transitionrun', onRun, true);
     document.addEventListener('transitionend', onEnd, true);
     document.addEventListener('transitioncancel', onEnd, true);
-    document.addEventListener('animationstart', onRun, true);
-    document.addEventListener('animationend', onEnd, true);
-    document.addEventListener('animationcancel', onEnd, true);
+    document.addEventListener('animationstart', onAnimationStart, true);
+    document.addEventListener('animationend', onAnimationEnd, true);
+    document.addEventListener('animationcancel', onAnimationEnd, true);
     window.addEventListener('resize', schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
@@ -204,9 +223,9 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       document.removeEventListener('transitionrun', onRun, true);
       document.removeEventListener('transitionend', onEnd, true);
       document.removeEventListener('transitioncancel', onEnd, true);
-      document.removeEventListener('animationstart', onRun, true);
-      document.removeEventListener('animationend', onEnd, true);
-      document.removeEventListener('animationcancel', onEnd, true);
+      document.removeEventListener('animationstart', onAnimationStart, true);
+      document.removeEventListener('animationend', onAnimationEnd, true);
+      document.removeEventListener('animationcancel', onAnimationEnd, true);
       window.removeEventListener('resize', schedule);
     };
   }, [active, percent, seeThrough, dragging, rootRef, signature]);

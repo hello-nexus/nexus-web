@@ -11,7 +11,7 @@ describe('widget entrance animation', () => {
     const selectors = rules.filter(r => r.includes('.cellEntrance') || r.includes('data-home-intro')).flatMap(r => r.split(','));
     expect(selectors.length).toBeGreaterThan(0);
     for (const sel of selectors) {
-      expect(sel.trim(), sel).toMatch(/ > (\.cellHost > \*|\.cell|\.cellLabelStrip)$/);
+      expect(sel.trim(), sel).toMatch(/ > (\.cellHost > \*|\.cell|\.cellLabelStrip|\.cellImmersiveFrameLabel)$/);
     }
   });
 });

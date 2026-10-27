@@ -52,6 +52,6 @@ describe('displayTargetsOf', () => {
     const list = displayTargetsOf(topo(displays), [], null);
     expect(list.map(t => t.name)).toEqual(['DEL A0B8', 'DEL A0B8']);
     expect(list.map(t => t.number)).toEqual(list.map(t => labels.get(t.id)));
-    expect(list.map(t => t.number)).toEqual(['2', '3']);
+    expect(list.map(t => t.number)).toEqual(['2', '1']);
   });
 });

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { TopologyDisplay } from '../../api/displays';
-import { displayListNumber, displayNumberLabel, layoutMonitorRects } from '../../components/views/DisplaysView/monitorMapLayout';
+import { displayListNumber, displayNumberLabels, layoutMonitorRects } from '../../components/views/DisplaysView/monitorMapLayout';
 
 function display(partial: Partial<TopologyDisplay> & { id: string }): TopologyDisplay {
   return {
@@ -106,10 +106,10 @@ describe('layoutMonitorRects', () => {
   });
 });
 
-describe('displayNumberLabel', () => {
-  it('prefers the OS number and falls back to array order', () => {
-    expect(displayNumberLabel(display({ id: 'a', number: 3 }), 0)).toBe('3');
-    expect(displayNumberLabel(display({ id: 'a', number: 0 }), 1)).toBe('2');
+describe('displayNumberLabels', () => {
+  it('keeps OS numbers and gives the rest the lowest unused numbers', () => {
+    expect(displayNumberLabels([display({ id: 'a', number: 3 })])).toEqual(['3']);
+    expect(displayNumberLabels([display({ id: 'a', number: 2 }), display({ id: 'b', number: 0 }), display({ id: 'c', number: 0 })])).toEqual(['2', '1', '3']);
   });
 });
 
@@ -117,7 +117,7 @@ describe('displayListNumber', () => {
   const pair = [display({ id: 'a', number: 2 }), display({ id: 'b', number: 0 })];
   it('uses the shared numbering for a list entry', () => {
     expect(displayListNumber(pair, 'a')).toBe('2');
-    expect(displayListNumber(pair, 'b')).toBe('2');
+    expect(displayListNumber(pair, 'b')).toBe('1');
   });
   it('gives no number for a single screen or an unknown display', () => {
     expect(displayListNumber([pair[0]], 'a')).toBeNull();

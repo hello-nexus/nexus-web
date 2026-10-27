@@ -148,7 +148,8 @@ describe('usePanelFrost', () => {
     const card = cell.firstElementChild as HTMLElement;
     renderHook(() => usePanelFrost(true, 40, true, false, rootRef, 'a'));
     await flush();
-    act(() => { card.dispatchEvent(new Event('animationstart', { bubbles: true })); });
+    card.style.setProperty('animation-name', '_connectionIntroWidget_x1');
+    act(() => { card.dispatchEvent(Object.assign(new Event('animationstart', { bubbles: true }), { animationName: '_connectionIntroWidget_x1' })); });
     await flush();
     const before = frosts().length;
     card.getBoundingClientRect = () => ({ left: 50, top: 60, right: 150, bottom: 130 }) as DOMRect;
@@ -157,12 +158,45 @@ describe('usePanelFrost', () => {
     card.getBoundingClientRect = () => ({ left: 70, top: 80, right: 170, bottom: 150 }) as DOMRect;
     await flush();
     expect(frosts().at(-1)).toMatchObject({ rects: [{ x: 70, y: 80, w: 100, h: 70 }] });
+    card.style.setProperty('animation-name', 'none');
     act(() => { card.dispatchEvent(new Event('animationend', { bubbles: true })); });
     await flush();
     const after = frosts().length;
     card.getBoundingClientRect = () => ({ left: 5, top: 5, right: 105, bottom: 75 }) as DOMRect;
     await flush();
     expect(frosts().length).toBe(after);
+    cell.remove();
+  });
+
+  it('ignores looping animations that are not the entrance pop', async () => {
+    const cell = mountCard();
+    const card = cell.firstElementChild as HTMLElement;
+    renderHook(() => usePanelFrost(true, 40, true, false, rootRef, 'a'));
+    await flush();
+    act(() => { card.dispatchEvent(Object.assign(new Event('animationstart', { bubbles: true }), { animationName: 'thumbShimmer' })); });
+    await flush();
+    const before = frosts().length;
+    card.getBoundingClientRect = () => ({ left: 50, top: 60, right: 150, bottom: 130 }) as DOMRect;
+    await flush();
+    expect(frosts().length).toBe(before);
+    cell.remove();
+  });
+
+  it('stops following when the animation is removed with no end or cancel event', async () => {
+    const cell = mountCard();
+    const card = cell.firstElementChild as HTMLElement;
+    renderHook(() => usePanelFrost(true, 40, true, false, rootRef, 'a'));
+    await flush();
+    card.style.setProperty('animation-name', '_connectionIntroWidget_x1');
+    act(() => { card.dispatchEvent(Object.assign(new Event('animationstart', { bubbles: true }), { animationName: '_connectionIntroWidget_x1' })); });
+    await flush();
+    card.style.setProperty('animation-name', 'none');
+    await flush();
+    await flush();
+    const settled = frosts().length;
+    card.getBoundingClientRect = () => ({ left: 5, top: 5, right: 105, bottom: 75 }) as DOMRect;
+    await flush();
+    expect(frosts().length).toBe(settled);
     cell.remove();
   });
 
