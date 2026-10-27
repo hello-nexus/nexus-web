@@ -131,8 +131,14 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   const isPulled = locked && offset !== null;
   useEffect(() => {
     if (!isPulled) return undefined;
+    // A release outside the cell, or one the page missed (the next press), still ends the pull: a non-key macOS kiosk gets no hover moves.
+    const ends = ['pointerup', 'pointercancel', 'pointerdown'] as const;
     window.addEventListener('blur', end);
-    return () => window.removeEventListener('blur', end);
+    for (const type of ends) window.addEventListener(type, end, true);
+    return () => {
+      window.removeEventListener('blur', end);
+      for (const type of ends) window.removeEventListener(type, end, true);
+    };
   }, [end, isPulled]);
 
   return {

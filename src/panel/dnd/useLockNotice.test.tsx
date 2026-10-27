@@ -142,6 +142,26 @@ describe('useLockNotice', () => {
     expect(visible(body)).toBe(false);
   });
 
+  it('ends the pull on a release outside the tile', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10 });
+    expect(visible(body)).toBe(true);
+    fireEvent.pointerUp(document.body, { clientX: 60, clientY: 10 });
+    expect(visible(body)).toBe(false);
+  });
+
+  it('ends a pull whose release never arrived on the next press anywhere', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10 });
+    expect(visible(body)).toBe(true);
+    fireEvent.pointerDown(document.body, { isPrimary: true, clientX: 500, clientY: 10 });
+    expect(visible(body)).toBe(false);
+  });
+
   it('keeps pulling when an inner element loses its capture', () => {
     const { getByTestId } = render(<Probe locked />);
     const body = getByTestId('body');
