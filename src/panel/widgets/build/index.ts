@@ -1,6 +1,5 @@
 import { Hammer } from 'lucide-react';
 import type { AppManifest } from '../types';
-import { DEV_TOOLS } from '../../../lib/devTools';
 import { BuildWidget } from './BuildWidget';
 
 export const buildApp: AppManifest = {
@@ -15,8 +14,8 @@ export const buildApp: AppManifest = {
     touch: false,
     surfaces: ['desktop'],
     localOnly: true,
-    // The page the tile opens is dev-tools only, so the picker offers the tile only there.
-    listed: DEV_TOOLS,
+    // The page the tile opens is dev-tools only; dev-tools builds browse delisted apps regardless.
+    listed: false,
   },
   Widget: BuildWidget,
 };
