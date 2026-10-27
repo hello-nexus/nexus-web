@@ -321,3 +321,47 @@ describe('fans Build places from the case maker', () => {
     expect(slots.filter(s => s.position === 'right').every(s => s.axis![2] === -1)).toBe(true);
   });
 });
+
+describe('HYTE X50 airflow with side intakes and a rear exhaust', () => {
+  const layout = parseCaseLayout(rawOf('x50')) as CaseLayout;
+  // The fixture's front mounts carry its AIO radiator, so the fans are the three side intakes and the rear exhaust.
+  const keys = ['right:120:0', 'right:120:1', 'right:120:2', 'rear:120:0'];
+  const run = () => {
+    const bound = withBoundFans(layout, keys);
+    const bindings = [sim(1500, keys)];
+    const speeds = slotSpeeds(bound.fanSlots, bindings, []);
+    const directions = slotDirections(bound.fanSlots, {});
+    const lumped = lumpedModel(bound.fanSlots, [], speeds, directions);
+    const visual = visualFlow(bound.fanSlots, [], speeds, directions);
+    const scene = buildFlowScene({ layout: bound, directions, fanCfm: visual.fanCfm, ventCfm: visual.ventCfm, referenceCfm: visual.referenceCfm }, LOW);
+    return { bound, directions, lumped, visual, scene };
+  };
+
+  it('has intake and exhaust fans placed, and none stalled', () => {
+    const r = run();
+    for (const k of keys.filter(x => x.startsWith('right'))) expect(r.directions[k], k).toBe('intake');
+    expect(r.directions['rear:120:0']).toBe('exhaust');
+    expect(keys.filter(k => !(r.visual.fanCfm[k] > 0))).toEqual([]);
+    expect(r.lumped.result.intakeCfm).toBeGreaterThan(0);
+    expect(r.lumped.result.exhaustCfm).toBeGreaterThan(0);
+  });
+
+  it('carries air to within reach of the rear exhaust fan', () => {
+    const r = run();
+    const flow = new CpuFlow(r.scene);
+    for (let i = 0; i < 150; i++) flow.step();
+    const particles = new CpuParticles(flow, 600, 3);
+    const cell = r.scene.cellMm;
+    const exhausts = r.bound.fanSlots.filter(s => r.directions[s.key] === 'exhaust' && keys.includes(s.key)).map(s => centerOf(s));
+    let near = 0;
+    for (let step = 0; step < 600; step++) {
+      particles.step();
+      for (let i = 0; i < particles.count; i++) {
+        if (particles.pos[i * 3] < -1e5) continue;
+        const mm = [0, 1, 2].map(a => (particles.pos[i * 3 + a] + 0.5) * cell - r.scene.origin[a]);
+        if (exhausts.some(c => Math.hypot(mm[0] - c[0], mm[1] - c[1], mm[2] - c[2]) < 90)) near++;
+      }
+    }
+    expect(near).toBeGreaterThan(0);
+  }, 120000);
+});

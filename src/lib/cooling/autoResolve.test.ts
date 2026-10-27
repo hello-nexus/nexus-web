@@ -92,6 +92,7 @@ describe('resolveOutcome', () => {
     expect(resolveOutcome(msg({ model: false }), record(2, { caseModel: 'HYTE Y70' }))).toBe('waiting');
     expect(resolveOutcome(msg({ model: true }), record(2, { caseModel: 'HYTE Y70' }))).toBe('done');
     expect(resolveOutcome(msg({ model: false }), record(2, { caseModel: 'HYTE Y50' }))).toBe('waiting');
+    expect(resolveOutcome(msg({ model: false }), record(2, { caseModel: 'HYTE X50' }))).toBe('waiting');
   });
 
   it('is done without the model for a case the view does not draw', () => {
