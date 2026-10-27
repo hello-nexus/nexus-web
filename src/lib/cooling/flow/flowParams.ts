@@ -14,9 +14,9 @@ export const MIN_REFERENCE_SPEED = 2;
 /** Cells whose axial distance to a fan disk center is within this many cells receive its force. */
 export const MIN_FAN_HALF_THICKNESS_CELLS = 1;
 
-/** Air outside the case is simulated this far past each side that has a fan or vent. */
 /** Share of the gap to the mean of its fluid neighbors that each air cell closes per step: warm air fades gradually instead of ending at a sharp front. */
 export const TEMP_DIFFUSION = 0.04;
+/** Air outside the case is simulated this far past each side that has a fan or vent. */
 export const DOMAIN_MARGIN_MM = 100;
 /** A fan or vent within this distance of a case face puts its margin on that side. */
 export const MOUNT_REACH_MM = 60;

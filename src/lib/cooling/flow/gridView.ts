@@ -23,7 +23,7 @@ export function buildGridView(scene: FlowScene): GridView {
     if (scene.solid[c]) color = SOLID;
     else if (scene.darcy[c] > 0) color = POROUS;
     else if (scene.fanCell[c]) color = FAN;
-    // Outside air is the bulk of the grid, so only every fourth cell of it is drawn.
+    // Outside air is the bulk of the grid, so it is thinned to a regular subset.
     else if ((i + j + k) % 4 === 0 && (i < caseMin[0] || i > caseMax[0] || j < caseMin[1] || j > caseMax[1] || k < caseMin[2] || k > caseMax[2])) color = OUTSIDE;
     if (!color) continue;
     positions.push((i + 0.5) * cellMm - origin[0], (j + 0.5) * cellMm - origin[1], (k + 0.5) * cellMm - origin[2]);

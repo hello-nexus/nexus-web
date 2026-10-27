@@ -54,7 +54,7 @@ export interface CaseSceneRenderer {
 export type PickHandler = (slotKey: string | null, x: number, y: number) => void;
 
 const CLICK_SLOP_PX = 4;
-/** A still camera for this long, and a settled flow, lets the view draw at half rate. */
+/** A still camera for this long, and a settled flow, lets the view draw at a reduced rate. */
 const IDLE_MS = 400;
 const CALM_FRAME_MS = 1000 / 30;
 const FRAME_SLACK_MS = 3;
@@ -151,7 +151,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     onProject(projected);
   };
 
-  // Once the air has settled and the camera is still, only the particles move: draw at half rate; the particle clock keeps their speed.
+  // Once the air has settled and the camera is still, only the particles move: draw at a reduced rate; the particle clock keeps their speed.
   let lastDraw = 0;
   let lastInteraction = 0;
   const render = (now: number) => {

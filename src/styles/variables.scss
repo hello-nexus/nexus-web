@@ -116,7 +116,7 @@
   --good: #10b981;
   --warn: #f59e0b;
   --bad: #ef4444;
-  // Airflow view: air temperature runs --airflow-cool (blue), then --airflow-warm (yellow), then --bad (red). Not the user accent.
+  // Airflow view: air temperature runs --airflow-cool, then --airflow-warm, then --bad. Not the user accent.
   --airflow-cool: #1e9bff;
   --airflow-warm: #ffd60a;
   // Notice levels (Notice.tsx): soft fills and borders. Fixed rgba, not color-mix (Chromium 83 panels).

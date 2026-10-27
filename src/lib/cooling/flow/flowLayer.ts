@@ -13,8 +13,7 @@ import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT, STREAK_VERTEX } from './shaders';
 
-/** Grid tiers by target cell count; a slow step drops one tier. */
-/** The grid sizes by tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
+/** The grid sizes by tier, each target cell count; a slow step drops one tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
 export const flowTiers = (): number[] => {
   let cells = GRID_TARGET_CELLS;
   if (DEV_TOOLS) {
@@ -99,6 +98,8 @@ export class FlowLayer {
   private solvedInput: FlowInput | null = null;
   private solvedAt = 0;
   private speedFactor = 1;
+  /** A speed mix drifted past the limit inside the minimum interval: solve again once it has passed. */
+  private resolveDue = false;
   /** Temperature-only passes still owed after a settle or a part's temperature move: the velocity stays frozen. */
   private tempStepsLeft = 0;
   private heatCells = false;
@@ -184,8 +185,8 @@ export class FlowLayer {
     if (!this.heatCells) return;
     const rises = sourceRises(this.temps);
     const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K);
-    // With no fan, buoyancy is the only driver, so a part going hot or cold re-solves the velocity. Otherwise a temperature change never does: only the cheap temperature pass runs, on the frozen velocity.
-    if (scene.fanCount === 0 && wasHot !== flow.hot) this.wake(rises);
+    // With no fan, buoyancy is the only driver, so a part's temperature moving re-solves the velocity. Otherwise a temperature change never does: only the cheap temperature pass runs, on the frozen velocity.
+    if (scene.fanCount === 0 && (moved || wasHot !== flow.hot)) this.wake(rises);
     else if (moved) { this.wakeRises = rises; this.tempStepsLeft = TEMP_SETTLE_STEPS; }
   }
 
@@ -203,10 +204,11 @@ export class FlowLayer {
     this.input = input;
     if (!this.supported) return;
     if (!input) { this.teardown(); return; }
-    // A speed change alone keeps the solved field: the particles speed up or slow down instead. A structural change, or a speed mix far from the solved one after a minute, solves again.
+    // A speed change alone keeps the solved field: the particles speed up or slow down instead. A structural change, or a speed mix far from the solved one once the minimum interval has passed, solves again.
     if (previous && this.flow && this.solvedInput && sameStructure(this.solvedInput, input)) {
       const drift = speedDrift(this.solvedInput, input);
       if (drift.worst <= RESOLVE_DRIFT || performance.now() - this.solvedAt < RESOLVE_MIN_INTERVAL_MS) {
+        this.resolveDue = drift.worst > RESOLVE_DRIFT;
         this.speedFactor = Math.min(SPEED_FACTOR_MAX, Math.max(SPEED_FACTOR_MIN, drift.mean));
         this.setOptions(this.options);
         return;
@@ -232,6 +234,7 @@ export class FlowLayer {
     this.fscene = scene;
     this.solvedInput = this.input;
     this.solvedAt = performance.now();
+    this.resolveDue = false;
     this.solveStartedAt = this.solvedAt;
     this.speedFactor = 1;
     this.setOptions(this.options);
@@ -358,6 +361,8 @@ export class FlowLayer {
       (m.uniforms.uN.value as Vector3).copy(n);
       m.uniforms.uTX.value = flow.tx;
       m.uniforms.M.value = flow.maskTexture;
+      // A new grid replaces the velocity texture: a stale one is a deleted GL name until a particle frame sets it.
+      m.uniforms.U.value = flow.velocity;
       (m.uniforms.uOrigin.value as Vector3).copy(origin);
     }
   }
@@ -371,6 +376,7 @@ export class FlowLayer {
     this.lastFrameAt = now;
 
     const wantsFlow = this.options.particles;
+    if (this.resolveDue && performance.now() - this.solvedAt >= RESOLVE_MIN_INTERVAL_MS) { this.build(true); return; }
     this.pollSteady(flow);
     if (this.solving && wantsFlow) {
       this.pollTimer();
@@ -544,7 +550,7 @@ const spinning = (input: FlowInput) => Object.keys(input.fanCfm).filter(k => inp
 
 /** True when two inputs differ only in how fast the spinning fans run: same layout, directions, spinning fans and vent direction. */
 function sameStructure(a: FlowInput, b: FlowInput): boolean {
-  if (a.layout !== b.layout || Math.sign(a.ventCfm) !== Math.sign(b.ventCfm)) return false;
+  if (a.layout !== b.layout || a.referenceCfm !== b.referenceCfm || Math.sign(a.ventCfm) !== Math.sign(b.ventCfm)) return false;
   const keys = new Set([...Object.keys(a.directions), ...Object.keys(b.directions)]);
   for (const k of keys) if (a.directions[k] !== b.directions[k]) return false;
   const sa = spinning(a);
