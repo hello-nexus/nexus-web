@@ -1,4 +1,4 @@
-import { PARTICLE_REFERENCE_SPEED, SPAWN_TRIES, TEMP_DIFFUSION, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_SEGMENTS, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
+import { SPAWN_TRIES, TEMP_DIFFUSION, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_SEGMENTS, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
 
 const glFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 
@@ -186,11 +186,11 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
+uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
-const SPAWN_DEFINE = `#define SPAWN_TRIES ${SPAWN_TRIES}\n#define REF_SPEED ${glFloat(PARTICLE_REFERENCE_SPEED)}\n`;
+const SPAWN_DEFINE = `#define SPAWN_TRIES ${SPAWN_TRIES}\n`;
 
 // Particle state: xyz cell coordinates, w age. One pass moves, recycles and respawns.
 export const PARTICLE_STATE = SPAWN_DEFINE + PARTICLE_COMMON + /* glsl */ `
@@ -206,7 +206,7 @@ void main() {
   vec4 s = texelFetch(PA, f, 0);
   vec3 p = s.xyz; float age = s.w;
   // Age runs in simulation time: a slower drawn speed or Slow mo ages a particle per step by the same share, so its path before recycling never shortens.
-  float rate = uSpeed / REF_SPEED;
+  float rate = uSpeed / uRefSpeed;
   bool respawn = age > uMaxAge * 4.0;
   bool fresh = respawn;
   // A warm update can close the cell a particle sits in: only those start over.
