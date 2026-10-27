@@ -412,6 +412,12 @@ describe('AIO hoses', () => {
     expect((parseCaseLayout({ ...noTubes, lines: [] }) as CaseLayout).tubes).toBeUndefined();
   });
 
+  it('keeps a moved radiator\'s hose that is routed through many points', () => {
+    const dense = { radius: 6, points: Array.from({ length: 100 }, (_, i) => [i, 300 + i, 10]) };
+    const l = parseCaseLayout({ ...raw, radiatorOptions: [raw.radiatorOptions[0], { ...raw.radiatorOptions[1], tubes: [dense, dense] }] }, 'right') as CaseLayout;
+    expect(l.tubes!.map(t => t.points.length)).toEqual([100, 100]);
+  });
+
   it('drops malformed hoses', () => {
     const bad = { ...raw, lines: [{ radius: -1, points: [[0, 0, 0], [1, 1, 1]] }, { radius: 6, points: [[0, 0, 0]] }, { radius: 6, points: [[0, 0, 'x'], [1, 1, 1]] }] };
     expect((parseCaseLayout(bad) as CaseLayout).tubes).toBeUndefined();

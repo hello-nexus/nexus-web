@@ -116,11 +116,9 @@
   --good: #10b981;
   --warn: #f59e0b;
   --bad: #ef4444;
-  // Airflow view: air temperature runs --airflow-cool, --airflow-pale, --airflow-warm, --airflow-orange, then --bad, in that order. Not the user accent.
+  // Airflow view: air temperature runs --airflow-cool, --airflow-purple, then --bad, in that order. Not the user accent.
   --airflow-cool: #1e9bff;
-  --airflow-pale: #f2f6ff;
-  --airflow-warm: #ffd60a;
-  --airflow-orange: #ff8a00;
+  --airflow-purple: #a53cff;
   // Notice levels (Notice.tsx): soft fills and borders. Fixed rgba, not color-mix (Chromium 83 panels).
   --info-soft: rgba(255, 255, 255, 0.05);
   --warn-soft: rgba(245, 158, 11, 0.12);
@@ -309,9 +307,7 @@
   --warn: #d97706;
   --bad: #dc2626;
   --airflow-cool: #0070e0;
-  --airflow-pale: #f2f6ff;
-  --airflow-warm: #e0a800;
-  --airflow-orange: #e65100;
+  --airflow-purple: #8a24e0;
   // Notice levels (Notice.tsx): soft fills and borders. Fixed rgba, not color-mix (Chromium 83 panels).
   --info-soft: rgba(0, 0, 0, 0.05);
   --warn-soft: rgba(217, 119, 6, 0.1);

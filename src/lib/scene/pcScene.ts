@@ -474,7 +474,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
       const base = 0.55;
       const material = new MeshBasicMaterial({ color: palette.part, transparent: true, opacity: base, depthWrite: false });
       dimmables.push({ id: line.slot, materials: [material], base: [base] });
-      const tube = new Mesh(new TubeGeometry(curve, 48, line.radius, 12), material);
+      const tube = new Mesh(new TubeGeometry(curve, 200, line.radius, 12), material);
       tube.renderOrder = 1;
       group.add(tube);
       continue;
