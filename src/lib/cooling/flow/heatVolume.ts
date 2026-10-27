@@ -48,7 +48,7 @@ const COMPOSITE_FRAGMENT = DEV_TOOLS ? FRAGMENT_OUT + /* glsl */ `
 uniform sampler2D V; uniform vec2 uRes;
 void main() { gl_FragColor = texture(V, gl_FragCoord.xy / uRes); }` : '';
 
-/** Dev tools: the temperature field as a volume. A half-size raymarch of the field over the case box, blue to purple to red like the streaks, drawn as one screen quad under the particles. */
+/** Dev tools: the temperature field as a volume. A reduced-resolution raymarch of the field over the case box, blue to purple to red like the streaks, drawn as one screen quad under the particles. */
 export class HeatVolume {
   private readonly target: WebGLRenderTarget;
   private readonly march: ShaderMaterial;

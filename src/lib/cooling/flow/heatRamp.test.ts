@@ -36,7 +36,7 @@ describe('heat ramp tokens', () => {
         const [L, a, b] = stops[s].map((v, c) => v + (stops[s + 1][c] - v) * t);
         const chroma = Math.hypot(a, b);
         const hue = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
-        // The band rules out green (hue 105 to 200) by construction.
+        // The band rules out green by construction.
         expect(hue >= 235 || hue <= 40, `hue ${hue.toFixed(0)} outside blue, purple, red at ${i / 200}`).toBe(true);
         expect(L < 0.85, `near white at ${i / 200}`).toBe(true);
         expect(chroma > 0.12, `dull at ${i / 200}: chroma ${chroma.toFixed(3)}`).toBe(true);

@@ -126,7 +126,7 @@ export class FlowLayer {
   private volume: HeatVolume | null = null;
   /** Counts the changes that can alter the temperature field, so the volume redraws only when it must. */
   private fieldVersion = 0;
-  /** The color span in degrees: eased toward the case air's own high percentile, read back from the GPU about once a second. */
+  /** The color span in degrees: eased toward the case air's own high percentile, read back from the GPU at the readback interval. */
   private spanK = HEAT_COLOR_SPAN_C;
   private spanTarget = HEAT_COLOR_SPAN_C;
   private spanSeeded = false;
@@ -235,7 +235,7 @@ export class FlowLayer {
     }
   }
 
-  // Ranks the case air by its rise over room temperature about once a second, from an asynchronous readback, and eases the span toward the result.
+  // Ranks the case air by its rise over room temperature at the readback interval, from an asynchronous readback, and eases the span toward the result.
   private trackSpan(flow: GlFlow, dtMs: number) {
     const rises = flow.pollTemperatureRead();
     if (rises && this.fluidCells) {
