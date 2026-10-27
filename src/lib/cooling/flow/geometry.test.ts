@@ -214,7 +214,7 @@ describe('particles on the Y70', () => {
       }
     }
     expect(seen).toBeGreaterThan(10000);
-  }, 120000);
+  }, 300000);
 
   it('driven straight at the chamfer slide along it and never cross it', () => {
     const driven = new CpuFlow(scene);

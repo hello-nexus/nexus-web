@@ -166,7 +166,7 @@ describe('streak path', () => {
   });
 
   it('bends where the field bends', () => {
-    const path = streakPath([50, 50, 50], d, cellMm, p => (p[0] < 48 ? [0, 1, 0] : [1, 0, 0]), () => false);
+    const path = streakPath([50, 50, 50], [6, 0, 0], cellMm, p => (p[0] < 48 ? [0, 1, 0] : [1, 0, 0]), () => false);
     const tail = path[STREAK_SEGMENTS];
     expect(tail[1]).toBeLessThan(50);
   });

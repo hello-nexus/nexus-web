@@ -511,7 +511,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
     expect(state.flow.fanCfm['rear:120:0']).toBeGreaterThan(0);
     expect(new Set(state.simulated)).toEqual(new Set(['front:120:0', 'rear:120:0']));
-    expect(state.flowOptions).toEqual({ particles: true, collisions: false, speed: 0.6 });
+    expect(state.flowOptions).toEqual({ particles: true, collisions: false, grid: false, speed: 0.6 });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -538,7 +538,7 @@ describe('CoolingCase3D airflow controls', () => {
   it('has no speed slider and a fixed normal speed', () => {
     mountReady();
     expect(screen.queryByRole('slider')).toBeNull();
-    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, speed: 0.6 });
+    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, grid: false, speed: 0.6 });
   });
 
   it('slow mo scales the particle step to a quarter without re-solving', () => {
