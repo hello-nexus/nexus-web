@@ -372,9 +372,23 @@ export function cachePreferencesLocally(prefs: {
 
 // ── Theme mode application ───────────────────────────────────────────────────
 
-/** Resolve effective theme: 'dark' or 'light'. */
+// The host OS theme published by the service (prefs theme.resolvedThemeMode).
+// '' until the service reports it (e.g. a Linux host); 'system' then falls back
+// to this browser's own media query.
+let hostThemeMode: '' | 'dark' | 'light' = '';
+
+/** Record the host OS theme; returns true when it changed. */
+export function setHostThemeMode(value: string | undefined): boolean {
+  const next = value === 'dark' || value === 'light' ? value : '';
+  if (next === hostThemeMode) return false;
+  hostThemeMode = next;
+  return true;
+}
+
+/** Resolve effective theme: 'dark' or 'light'. 'system' follows the host OS theme when known. */
 export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
   if (mode === 'system') {
+    if (hostThemeMode) return hostThemeMode;
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
   return mode;
