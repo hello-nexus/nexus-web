@@ -1,4 +1,4 @@
-import { PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, ROOM_TEMP_C, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
+import { PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, ROOM_TEMP_C, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor } from './flowParams';
 import type { CpuFlow } from './cpuSolver';
 import { sampleSpawn } from './gridScene';
 import { stepDisplacement, streakEnds, type Vec3 } from './streak';
@@ -11,6 +11,8 @@ export const lifeOf = (u: number) => PARTICLE_MAX_AGE * (1 - PARTICLE_LIFE_JITTE
 export class CpuParticles {
   readonly pos: Float32Array;
   readonly age: Float32Array;
+  /** Simulation time per step of the latest `step`: speed over the reference speed. */
+  rate = 1;
   /** Position and age before the latest step, for the streak. */
   private readonly prevPos: Float32Array;
   private readonly prevAge: Float32Array;
@@ -95,12 +97,14 @@ export class CpuParticles {
     const v = [0, 0, 0];
     this.prevPos.set(this.pos);
     this.prevAge.set(this.age);
+    const rate = speed / PARTICLE_REFERENCE_SPEED;
+    this.rate = rate;
     for (let i = 0; i < this.count; i++) {
       const o = i * 3;
       if (this.pos[o] < -1e5) { this.respawn(i); continue; }
       const here = this.cellAt(this.pos[o], this.pos[o + 1], this.pos[o + 2]);
       if (here >= 0 && solid[here]) { this.respawn(i); continue; }
-      if (this.age[i] < 0) { this.age[i] += 1; continue; }
+      if (this.age[i] < 0) { this.age[i] += rate; continue; }
       let x = this.pos[o], y = this.pos[o + 1], z = this.pos[o + 2];
       const from = this.cellAt(x, y, z);
       // Positions live in float32, so test the rounded point: a double just below a cell edge can round onto it.
@@ -124,7 +128,7 @@ export class CpuParticles {
         if (open[c]) break;
       }
       this.pos[o] = x; this.pos[o + 1] = y; this.pos[o + 2] = z;
-      this.age[i] += Math.hypot(x - x0, y - y0, z - z0) < STUCK_MOVE_CELLS * speed ? STUCK_AGE_RATE : 1;
+      this.age[i] += Math.hypot(x - x0, y - y0, z - z0) < STUCK_MOVE_CELLS * speed ? STUCK_AGE_RATE * rate : rate;
       const cell = this.cellAt(x, y, z);
       if (cell !== from) onMove?.(i, from, cell);
       this.heat[i] = cell >= 0 ? this.flow.riseAt(x, y, z) : 0;
@@ -136,6 +140,8 @@ export class CpuParticles {
   streak(i: number, cellMm: number): { head: Vec3; tail: Vec3 } {
     const o = i * 3;
     const d = stepDisplacement(this.prevPos.subarray(o, o + 3), this.pos.subarray(o, o + 3), this.prevAge[i], this.age[i], cellMm);
-    return streakEnds([(this.pos[o] + 0.5) * cellMm, (this.pos[o + 1] + 0.5) * cellMm, (this.pos[o + 2] + 0.5) * cellMm], d);
+    // Per unit of simulation time: a slower drawn speed moves the same trail more slowly instead of shortening it.
+    const r = this.rate > 0 ? this.rate : 1;
+    return streakEnds([(this.pos[o] + 0.5) * cellMm, (this.pos[o + 1] + 0.5) * cellMm, (this.pos[o + 2] + 0.5) * cellMm], [d[0] / r, d[1] / r, d[2] / r]);
   }
 }

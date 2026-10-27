@@ -44,8 +44,6 @@ export interface CaseSceneRenderer {
   setTemps: (temps: ComponentTemps) => void;
   /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. */
   setAnchors: (anchors: readonly HeatAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void) => void;
-  /** Called when the airflow solve starts or stops; null clears it. */
-  setCalculatingListener: (listener: ((calculating: boolean) => void) | null) => void;
   resize: () => void;
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
@@ -56,6 +54,10 @@ export interface CaseSceneRenderer {
 export type PickHandler = (slotKey: string | null, x: number, y: number) => void;
 
 const CLICK_SLOP_PX = 4;
+/** A still camera for this long, and a settled flow, lets the view draw at half rate. */
+const IDLE_MS = 400;
+const CALM_FRAME_MS = 1000 / 30;
+const FRAME_SLACK_MS = 3;
 const RING_SEGMENTS = 48;
 const FAN_OPACITY = 1;
 // Build's picked-part treatment: the pick reads in full and shows through, keeping its intake or exhaust color; the rest fall back to this fraction.
@@ -149,13 +151,15 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     onProject(projected);
   };
 
-  let wasCalculating = false;
-  let onCalculating: ((calculating: boolean) => void) | null = null;
+  // Once the air has settled and the camera is still, only the particles move: draw at half rate; the particle clock keeps their speed.
+  let lastDraw = 0;
+  let lastInteraction = 0;
   const render = (now: number) => {
     frame = 0;
+    const calm = !!flowLayer?.settled && now - lastInteraction > IDLE_MS;
+    if (calm && now - lastDraw < CALM_FRAME_MS - FRAME_SLACK_MS) { requestRender(); return; }
+    lastDraw = now;
     flowLayer?.frame(now, camera, canvas.clientHeight);
-    const calculating = flowLayer?.calculating ?? false;
-    if (calculating !== wasCalculating) { wasCalculating = calculating; onCalculating?.(calculating); }
     renderer.render(scene, camera);
     projectAnchors();
     // Particles keep moving after the solver settles; the loop runs only while the tab is visible.
@@ -164,7 +168,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const requestRender = () => {
     if (!frame) frame = requestAnimationFrame(render);
   };
-  controls.addEventListener('change', requestRender);
+  controls.addEventListener('change', () => { lastInteraction = performance.now(); requestRender(); });
   const onVisibility = () => { if (!document.hidden) requestRender(); };
   document.addEventListener('visibilitychange', onVisibility);
   // A canvas scrolled out of view stops drawing, and starts again when it returns.
@@ -357,9 +361,6 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         flowLayer?.setInput(state.flow);
       }
       requestRender();
-    },
-    setCalculatingListener(listener) {
-      onCalculating = listener;
     },
     setTemps(next) {
       temps = next;

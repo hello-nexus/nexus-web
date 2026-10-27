@@ -8,13 +8,12 @@ import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
 
 const h = vi.hoisted(() => ({
   flowSupported: true,
-  calculating: { current: null as null | ((calculating: boolean) => void) },
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   devTools: true,
   patch: vi.fn(),
   pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
-  renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; setCalculatingListener: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
+  renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
 vi.mock('../../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
@@ -24,7 +23,7 @@ vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
     h.pick.current = onPick;
-    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setCalculatingListener: vi.fn((cb: ((calculating: boolean) => void) | null) => { h.calculating.current = cb; }), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
+    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
   }),
@@ -588,45 +587,6 @@ describe('CoolingCase3D airflow controls', () => {
     mountReady();
     expect(screen.getByText('cooling.case3d.flow.unsupported')).toBeTruthy();
     expect(screen.queryByText('cooling.case3d.flow.cooler')).toBeNull();
-  });
-});
-
-describe('CoolingCase3D calculating notice', () => {
-  const mountReady = () => {
-    h.setup = { record: record(), loaded: true };
-    setLayout({ settled: true });
-    return render(ui());
-  };
-
-  it('shows after a short delay while the solver runs and hides once it settles', () => {
-    vi.useFakeTimers();
-    try {
-      mountReady();
-      expect(screen.queryByText('cooling.case3d.flow.calculating')).toBeNull();
-      act(() => h.calculating.current?.(true));
-      act(() => { vi.advanceTimersByTime(100); });
-      expect(screen.queryByText('cooling.case3d.flow.calculating')).toBeNull();
-      act(() => { vi.advanceTimersByTime(250); });
-      expect(screen.getByText('cooling.case3d.flow.calculating')).toBeTruthy();
-      act(() => h.calculating.current?.(false));
-      expect(screen.queryByText('cooling.case3d.flow.calculating')).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('never shows for a solve that ends inside the delay', () => {
-    vi.useFakeTimers();
-    try {
-      mountReady();
-      act(() => h.calculating.current?.(true));
-      act(() => { vi.advanceTimersByTime(150); });
-      act(() => h.calculating.current?.(false));
-      act(() => { vi.advanceTimersByTime(500); });
-      expect(screen.queryByText('cooling.case3d.flow.calculating')).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });
 

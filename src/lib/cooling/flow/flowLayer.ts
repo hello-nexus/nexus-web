@@ -2,8 +2,11 @@ import {
   NormalBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
   Mesh, NearestFilter, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
+import { DEV_TOOLS } from '../../devTools';
+import { buildGridView, type GridView } from './gridView';
+import { ParticleClock } from './particleClock';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, sourceRises, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
@@ -11,7 +14,14 @@ import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene 
 import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT, STREAK_VERTEX } from './shaders';
 
 /** Grid tiers by target cell count; a slow step drops one tier. */
-export const FLOW_TIERS = [GRID_TARGET_CELLS, Math.round(GRID_TARGET_CELLS / 2), GRID_LOW_CELLS];
+/** The grid sizes by tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
+export const flowTiers = (): number[] => {
+  let cells = GRID_TARGET_CELLS;
+  if (DEV_TOOLS) {
+    try { cells = Number(localStorage.getItem('nexus.dev.flowCells')) || cells; } catch { /* storage unavailable */ }
+  }
+  return [cells, Math.round(cells / 2), GRID_LOW_CELLS];
+};
 /** Fixed particle pool; a coarser grid tier draws a share of it. */
 export const PARTICLE_TEXTURE = { w: 128, h: 84 };
 const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
@@ -27,9 +37,8 @@ const COLD_PARTICLE_STEPS = 120;
 /** Frames longer than this (ms) pull the step count down while no GPU time is known. */
 const FRAME_SLOW_MS = 20;
 const TIMER_EMA = 0.3;
-const MAX_STEPS_PER_FRAME = 24;
+const MAX_STEPS_PER_FRAME = 12;
 const MIN_STEPS_PER_FRAME = 1;
-const PARTICLE_SUBSTEPS = 2;
 const STEADY_CHECK_EVERY = 16;
 const STEADY_RATIO = 0.01;
 const MAX_SOLVE_STEPS = 1500;
@@ -37,6 +46,12 @@ const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 24;
 /** Peak alpha of a streak's head. */
 const STREAK_ALPHA = 0.95;
+/** A speed change re-solves only when the fans' speed mix has drifted this far from the solved one, and at most this often. */
+const RESOLVE_DRIFT = 0.3;
+const RESOLVE_MIN_INTERVAL_MS = 60000;
+/** The drawn particle speed follows the fans' mean speed within these bounds of the solved one. */
+const SPEED_FACTOR_MIN = 0.2;
+const SPEED_FACTOR_MAX = 3;
 
 export interface FlowColors {
   cool: Color;
@@ -51,6 +66,8 @@ export interface FlowOptions {
   particles: boolean;
   /** Draws the obstacles the solver rasterizes, as shapes, in place of the case model. */
   collisions: boolean;
+  /** Dev tools: draws the grid cells and how they are used. */
+  grid?: boolean;
   /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */
   speed: number;
 }
@@ -65,6 +82,9 @@ export class FlowLayer {
   private tier = 0;
   private flow: GlFlow | null = null;
   private fscene: FlowScene | null = null;
+  private readonly tiers = flowTiers();
+  private readonly clock = new ParticleClock();
+  private solveStartedAt = 0;
   private stepsSinceEdit = 0;
   private solving = false;
   private stepsPerFrame = 4;
@@ -75,6 +95,12 @@ export class FlowLayer {
   private temps: ComponentTemps = NO_TEMPS;
   /** Source temperatures the solve was last woken at, and whether the scene has any heat cell to care about them. */
   private wakeRises: number[] = [];
+  /** The input the field was solved for, and when: later speed changes only scale the drawn particle speed. */
+  private solvedInput: FlowInput | null = null;
+  private solvedAt = 0;
+  private speedFactor = 1;
+  /** Temperature-only passes still owed after a settle or a part's temperature move: the velocity stays frozen. */
+  private tempStepsLeft = 0;
   private heatCells = false;
   private coldStart = false;
   private coldSteps = 0;
@@ -90,6 +116,8 @@ export class FlowLayer {
   private streaks: Mesh | null = null;
   private streakMat: ShaderMaterial | null = null;
   private collisionsShown = false;
+  private gridView: GridView | null = null;
+  private gridShown = false;
   private collisions: { group: Group; dispose: () => void } | null = null;
 
   private readonly renderer: WebGLRenderer;
@@ -124,11 +152,6 @@ export class FlowLayer {
     return !!this.fscene && !this.solving;
   }
 
-  /** True while the solver is stepping for a drawn airflow: a fresh or edited case that has not settled yet. */
-  get calculating(): boolean {
-    return this.supported && !!this.fscene && this.solving && this.options.particles;
-  }
-
   /** Whether the layer still has something to animate: a solve in progress, or particles drawn. */
   get active(): boolean {
     return this.supported && !!this.fscene && (this.solving || this.options.particles);
@@ -136,11 +159,12 @@ export class FlowLayer {
 
   setOptions(options: FlowOptions) {
     this.options = options;
-    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = options.speed; m.uniforms.uSubsteps.value = substepsFor(options.speed); }
+    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = options.speed * this.speedFactor; m.uniforms.uSubsteps.value = substepsFor(options.speed * this.speedFactor); }
     if (this.streaks) {
       this.streaks.visible = options.particles;
     }
     if (options.collisions !== this.collisionsShown) this.syncCollisions();
+    if (!!options.grid !== this.gridShown) this.syncGrid();
   }
 
   /** New part temperatures: only the temperature pass's uniforms change, so the grid and every particle carry on. A settled solve wakes again when a part has moved enough. */
@@ -160,7 +184,9 @@ export class FlowLayer {
     if (!this.heatCells) return;
     const rises = sourceRises(this.temps);
     const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K);
-    if (moved || wasHot !== flow.hot) this.wake(rises);
+    // With no fan, buoyancy is the only driver, so a part going hot or cold re-solves the velocity. Otherwise a temperature change never does: only the cheap temperature pass runs, on the frozen velocity.
+    if (scene.fanCount === 0 && wasHot !== flow.hot) this.wake(rises);
+    else if (moved) { this.wakeRises = rises; this.tempStepsLeft = TEMP_SETTLE_STEPS; }
   }
 
   /** Solves again from the current fields: the temperature field has a new target. */
@@ -173,15 +199,25 @@ export class FlowLayer {
 
   /** New edit: rebuilds the voxel scene and re-solves from the current field. Null clears the layer. */
   setInput(input: FlowInput | null) {
+    const previous = this.input;
     this.input = input;
     if (!this.supported) return;
     if (!input) { this.teardown(); return; }
+    // A speed change alone keeps the solved field: the particles speed up or slow down instead. A structural change, or a speed mix far from the solved one after a minute, solves again.
+    if (previous && this.flow && this.solvedInput && sameStructure(this.solvedInput, input)) {
+      const drift = speedDrift(this.solvedInput, input);
+      if (drift.worst <= RESOLVE_DRIFT || performance.now() - this.solvedAt < RESOLVE_MIN_INTERVAL_MS) {
+        this.speedFactor = Math.min(SPEED_FACTOR_MAX, Math.max(SPEED_FACTOR_MIN, drift.mean));
+        this.setOptions(this.options);
+        return;
+      }
+    }
     this.build(true);
   }
 
   private build(warm: boolean) {
     if (!this.input || !this.kind || !this.runner) return;
-    const scene = buildFlowScene(this.input, FLOW_TIERS[this.tier]);
+    const scene = buildFlowScene(this.input, this.tiers[this.tier]);
     const sameGrid = !!this.flow && !!this.fscene && this.fscene.dims.every((d, i) => d === scene.dims[i]);
     if (this.flow && sameGrid && warm) {
       this.flow.setScene(scene);
@@ -194,10 +230,16 @@ export class FlowLayer {
       this.coldSteps = 0;
     }
     this.fscene = scene;
+    this.solvedInput = this.input;
+    this.solvedAt = performance.now();
+    this.solveStartedAt = this.solvedAt;
+    this.speedFactor = 1;
+    this.setOptions(this.options);
     this.flow.setTemps(this.temps);
     this.wakeRises = sourceRises(this.temps);
     this.heatCells = scene.heat.some(v => v === SOURCE_GPU || v === SOURCE_CPU);
     if (this.collisionsShown) this.syncCollisions(true);
+    if (this.gridShown) this.syncGrid(true);
     this.uploadSpawns(scene);
     this.updateUniforms();
     this.stepsSinceEdit = 0;
@@ -259,7 +301,7 @@ export class FlowLayer {
       uniforms: {
         PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
         uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: STREAK_WIDTH_MM }, uMinWidthPx: { value: STREAK_MIN_WIDTH_PX }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
-        uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: STREAK_ALPHA }, uTailWidth: { value: STREAK_TAIL_WIDTH },
+        uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: STREAK_ALPHA }, uTailWidth: { value: STREAK_TAIL_WIDTH }, uRate: { value: 1 },
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
         uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
@@ -290,7 +332,7 @@ export class FlowLayer {
 
   /** Rebuilds the scene one grid tier coarser. */
   dropTier() {
-    if (this.tier >= FLOW_TIERS.length - 1) return;
+    if (this.tier >= this.tiers.length - 1) return;
     this.tier++;
     this.streaks?.geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * STREAK_SEGMENTS * 6);
     this.slowCount = 0;
@@ -350,15 +392,18 @@ export class FlowLayer {
       if (Math.floor(this.stepsSinceEdit / STEADY_CHECK_EVERY) > Math.floor(before / STEADY_CHECK_EVERY)) this.checkSteady(flow);
       this.paceSteps(dt, spent / n);
       this.slowCount = dt > SLOW_FRAME_MS ? this.slowCount + 1 : Math.max(0, this.slowCount - 1);
-      if (this.slowCount >= SLOW_FRAMES && this.tier < FLOW_TIERS.length - 1 && this.stepsPerFrame <= MIN_STEPS_PER_FRAME + 1) {
+      if (this.slowCount >= SLOW_FRAMES && this.tier < this.tiers.length - 1 && this.stepsPerFrame <= MIN_STEPS_PER_FRAME + 1) {
         this.dropTier();
         return;
       }
     }
     if (!this.solving) this.coldStart = false;
+    if (!this.solving && this.tempStepsLeft > 0 && wantsFlow) { flow.stepTemperature(); this.tempStepsLeft--; }
     // Particles wait for the first solver steps: with no velocity yet they would sit on their spawn points.
     if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
-      for (let st = 0; st < PARTICLE_SUBSTEPS; st++) {
+      // Particle steps follow real elapsed time, not frames: the drawn speed is the same at any frame rate and while the camera moves.
+      const particleSteps = this.clock.advance(dt);
+      for (let st = 0; st < particleSteps; st++) {
         const next = (this.stateCur + 1) % RING;
         this.stateMat.uniforms.U.value = flow.velocity;
         this.stateMat.uniforms.PA.value = this.stateTargets[this.stateCur].texture;
@@ -375,6 +420,7 @@ export class FlowLayer {
       u.PP.value = this.stateTargets[(this.stateCur + RING - 1) % RING].texture;
       u.PB.value = this.heatTargets[this.stateCur].texture;
       u.U.value = flow.velocity;
+      u.uRate.value = (this.options.speed * this.speedFactor) / PARTICLE_REFERENCE_SPEED;
       u.uScale.value = scale;
       (u.uViewport.value as Vector2).set(viewportHeight * camera.aspect, viewportHeight);
     }
@@ -423,9 +469,14 @@ export class FlowLayer {
   private pollSteady(flow: GlFlow) {
     const r = flow.pollMeasure();
     if (!r) return;
-    // A hot part's temperature field settles slower than the velocity, so it gets a minimum of steps before the velocity may call the solve steady.
-    const minSteps = this.heatCells && flow.hot ? TEMP_SETTLE_STEPS : 0;
-    if ((this.gate.settles(r.du, r.u, STEADY_RATIO) && this.stepsSinceEdit >= minSteps) || this.stepsSinceEdit >= MAX_SOLVE_STEPS) this.solving = false;
+    // With no fan the hot part's plume is the flow, so its temperature field must settle with the velocity.
+    const minSteps = this.heatCells && flow.hot && (this.fscene?.fanCount ?? 1) === 0 ? TEMP_SETTLE_STEPS : 0;
+    if ((this.gate.settles(r.du, r.u, STEADY_RATIO) && this.stepsSinceEdit >= minSteps) || this.stepsSinceEdit >= MAX_SOLVE_STEPS) {
+      this.solving = false;
+      if (DEV_TOOLS) (globalThis as { __nexusFlowStats?: unknown }).__nexusFlowStats = { cells: this.fscene ? this.fscene.dims[0] * this.fscene.dims[1] * this.fscene.dims[2] : 0, steps: this.stepsSinceEdit, ms: Math.round(performance.now() - this.solveStartedAt) };
+      // The temperature field catches up with the frozen velocity in cheap single passes.
+      if (this.heatCells) this.tempStepsLeft = TEMP_SETTLE_STEPS;
+    }
   }
 
   /** Particle positions (cell coordinates) and heat read back from the GPU; for checks that none sit in a solid cell. */
@@ -442,6 +493,17 @@ export class FlowLayer {
     return this.fscene;
   }
 
+  // Rebuilds the dev grid view for the current scene; `force` redraws it for a new one.
+  private syncGrid(force = false) {
+    if (this.gridView) { this.group.remove(this.gridView.group); this.gridView.dispose(); this.gridView = null; }
+    this.gridShown = !!this.options.grid;
+    const scene = this.fscene;
+    if (!this.gridShown || !scene) { if (force) this.gridShown = !!this.options.grid; return; }
+    this.gridView = buildGridView(scene);
+    this.gridView.group.renderOrder = 1;
+    this.group.add(this.gridView.group);
+  }
+
   // Rebuilds the collision shapes from the scene's own obstacle list; `force` redraws for a new scene.
   private syncCollisions(force = false) {
     if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
@@ -454,10 +516,13 @@ export class FlowLayer {
   }
 
   private teardown() {
+    if (this.gridView) { this.group.remove(this.gridView.group); this.gridView.dispose(); this.gridView = null; }
     if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
     this.flow?.dispose();
     this.flow = null;
     this.fscene = null;
+    this.solvedInput = null;
+    this.tempStepsLeft = 0;
     this.solving = false;
     if (this.streaks) this.streaks.visible = false;
   }
@@ -473,4 +538,26 @@ export class FlowLayer {
     this.runner?.dispose();
     this.stateMat = null;
   }
+}
+
+const spinning = (input: FlowInput) => Object.keys(input.fanCfm).filter(k => input.fanCfm[k] > 0).sort();
+
+/** True when two inputs differ only in how fast the spinning fans run: same layout, directions, spinning fans and vent direction. */
+function sameStructure(a: FlowInput, b: FlowInput): boolean {
+  if (a.layout !== b.layout || Math.sign(a.ventCfm) !== Math.sign(b.ventCfm)) return false;
+  const keys = new Set([...Object.keys(a.directions), ...Object.keys(b.directions)]);
+  for (const k of keys) if (a.directions[k] !== b.directions[k]) return false;
+  const sa = spinning(a);
+  const sb = spinning(b);
+  return sa.length === sb.length && sa.every((k, i) => k === sb[i]);
+}
+
+/** Mean speed ratio of the spinning fans against the solved input, and the worst fan's share of departure from that mean. */
+function speedDrift(solved: FlowInput, next: FlowInput): { mean: number; worst: number } {
+  const keys = spinning(solved);
+  if (keys.length === 0) return { mean: 1, worst: 0 };
+  const ratios = keys.map(k => next.fanCfm[k] / solved.fanCfm[k]);
+  const mean = ratios.reduce((n, r) => n + r, 0) / ratios.length;
+  const worst = Math.max(...ratios.map(r => Math.abs(r - mean) / mean));
+  return { mean, worst };
 }

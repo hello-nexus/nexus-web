@@ -132,15 +132,6 @@
   align-items: center;
   gap: 0.5rem;
 }
-.calculating {
-  position: absolute;
-  // Below the estimate bar that spans the top of the canvas.
-  top: 3rem;
-  left: 0.75rem;
-  z-index: 1;
-  pointer-events: none;
-}
-
 .overlayBottom {
   bottom: 0;
   flex-direction: row;

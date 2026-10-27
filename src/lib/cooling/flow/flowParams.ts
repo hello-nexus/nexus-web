@@ -2,7 +2,7 @@
 export const CFL_TARGET = 0.5;
 /** Hard velocity bound, below one cell per step so semi-Lagrangian backtraces stay inside one cell. */
 export const VMAX_CELLS = 0.9;
-export const JACOBI_ITERATIONS = 30;
+export const JACOBI_ITERATIONS = 20;
 /** Per-step blend of a fan cell's velocity toward its target; at most 1, so the penalization cannot overshoot. */
 export const FAN_BLEND = 0.6;
 /** Darcy drag per step inside a porous (radiator or cooler) cell. */
@@ -15,6 +15,8 @@ export const MIN_REFERENCE_SPEED = 2;
 export const MIN_FAN_HALF_THICKNESS_CELLS = 1;
 
 /** Air outside the case is simulated this far past each side that has a fan or vent. */
+/** Share of the gap to the mean of its fluid neighbors that each air cell closes per step: warm air fades gradually instead of ending at a sharp front. */
+export const TEMP_DIFFUSION = 0.04;
 export const DOMAIN_MARGIN_MM = 100;
 /** A fan or vent within this distance of a case face puts its margin on that side. */
 export const MOUNT_REACH_MM = 60;
@@ -33,10 +35,12 @@ export const TEMP_SETTLE_STEPS = 600;
 /** Most plume emitter entries over a hot part's top cells. */
 export const PLUME_EMITTERS_MAX = 24;
 /** Air this many degrees above room temperature is drawn in the full hot color. */
-export const HEAT_COLOR_SPAN_C = 40;
+export const HEAT_COLOR_SPAN_C = 25;
 /** Fluid cells this close to a heat-source solid are its heat cells. */
 export const HEAT_REACH_CELLS = 2;
-/** Particle age, in steps, after which it is recycled. */
+/** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed or Slow mo never shortens a particle's life or its trail. */
+export const PARTICLE_REFERENCE_SPEED = 1;
+/** Particle age, in simulation steps, after which it is recycled. */
 export const PARTICLE_MAX_AGE = 900;
 /** Each particle lives the max age times 1 plus or minus this share, so deaths and respawns spread evenly instead of arriving in waves. */
 export const PARTICLE_LIFE_JITTER = 0.5;
@@ -75,19 +79,19 @@ export const OUTSIDE_REACH_MM = 90;
 export const OUTSIDE_SPAWN_FROM = 0.45;
 export const OUTSIDE_SPAWN_TO = 0.9;
 /** Share of the particle pool that is drawn; the rest is simulated but hidden, so the picture stays readable. */
-export const PARTICLE_DRAW_SHARE = 0.15;
+export const PARTICLE_DRAW_SHARE = 0.1;
 /** How many of a pool's particles are drawn at a tier's share of it. */
 export const drawnParticles = (pool: number, tierShare: number) => Math.round(pool * tierShare * PARTICLE_DRAW_SHARE);
 /** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */
 export const FAN_CLEARANCE_MM = 30;
 
 /** Velocity streaks: each particle is drawn as a ribbon whose total length is its last step's displacement times this many steps. */
-export const STREAK_STEPS = 30;
+export const STREAK_STEPS = 10;
 /** Streak length bounds, scene mm: a stalled particle keeps the minimum, a fast one is capped at the maximum. */
-export const STREAK_MIN_MM = 6;
-export const STREAK_MAX_MM = 140;
+export const STREAK_MIN_MM = 3;
+export const STREAK_MAX_MM = 70;
 /** Streak width in scene mm, and the narrowest it is drawn on screen, px. */
-export const STREAK_WIDTH_MM = 5.5;
+export const STREAK_WIDTH_MM = 8.25;
 export const STREAK_MIN_WIDTH_PX = 2.5;
 /** The ribbon is this many segments long. Its tail follows the flow field backward from the particle, so it bends where the air bends. */
 export const STREAK_SEGMENTS = 8;

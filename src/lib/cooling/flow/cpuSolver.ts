@@ -1,4 +1,4 @@
-import { BUOYANCY, DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
+import { BUOYANCY, DAMPING, FAN_BLEND, JACOBI_ITERATIONS, TEMP_DIFFUSION, VMAX_CELLS } from './flowParams';
 import { SOURCE_ROOM, type FlowScene } from './gridScene';
 import { NO_TEMPS, heatStep, isHot, sourceRises, type ComponentTemps } from './heatModel';
 
@@ -207,6 +207,20 @@ export class CpuFlow {
       const id = heat[c];
       if (solid[c] || open[c] || id === SOURCE_ROOM) { out[c] = 0; continue; }
       let r = this.sampleScalar(t, i - v[c * 3], j - v[c * 3 + 1], k - v[c * 3 + 2]);
+      // Diffusion: close a small share of the gap to the mean of the fluid neighbors, as the temperature pass does.
+      let acc = 0;
+      let cnt = 0;
+      for (let a = 0; a < 6; a++) {
+        const ni = i + (a === 0 ? 1 : a === 1 ? -1 : 0);
+        const nj = j + (a === 2 ? 1 : a === 3 ? -1 : 0);
+        const nk = k + (a === 4 ? 1 : a === 5 ? -1 : 0);
+        if (ni < 0 || nj < 0 || nk < 0 || ni >= NX || nj >= NY || nk >= NZ) continue;
+        const nc = ni + NX * (nj + NY * nk);
+        if (solid[nc]) continue;
+        acc += t[nc];
+        cnt++;
+      }
+      if (cnt > 0) r += TEMP_DIFFUSION * (acc / cnt - r);
       const src = this.rises[id];
       if (src >= 0) r = heatStep(r, src, 1);
       out[c] = r;

@@ -381,6 +381,18 @@ export class GlFlow {
     });
   }
 
+  /** One temperature pass on the current, frozen velocity: the field moves toward its new sources without a velocity solve. */
+  stepTemperature() {
+    this.raw(() => {
+      const un = this.uniforms;
+      un.temperature.textures.U = this.vel[this.cur].texture;
+      un.temperature.textures.T = this.temp[this.tempCur].texture;
+      un.temperature.textures.M = this.maskTex;
+      this.draw(this.programs.temperature, this.temp[1 - this.tempCur], un.temperature);
+      this.tempCur = 1 - this.tempCur;
+    });
+  }
+
   private stepOnce() {
     const p = this.programs;
     const u0 = this.vel[this.cur];

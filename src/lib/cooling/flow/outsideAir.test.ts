@@ -234,9 +234,9 @@ describe('the Y70 bottom intakes', () => {
 });
 
 describe('the drawn particle budget', () => {
-  it('draws 15 percent of the pool at every grid tier, outside air included', () => {
-    expect(PARTICLE_DRAW_SHARE).toBeCloseTo(0.15, 10);
-    for (const tier of [1, 0.75, 0.5]) expect(drawnParticles(10752, tier)).toBe(Math.round(10752 * tier * 0.15));
+  it('draws 10 percent of the pool at every grid tier, outside air included', () => {
+    expect(PARTICLE_DRAW_SHARE).toBeCloseTo(0.1, 10);
+    for (const tier of [1, 0.75, 0.5]) expect(drawnParticles(10752, tier)).toBe(Math.round(10752 * tier * 0.1));
   });
 });
 

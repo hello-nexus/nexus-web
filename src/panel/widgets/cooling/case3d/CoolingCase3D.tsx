@@ -72,8 +72,6 @@ const POSITION_KEYS: Record<string, string> = {
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
 const NORMAL_SPEED = 0.6;
 const SLOW_MO_FACTOR = 0.25;
-/** A solve shorter than this never shows the calculating notice, so a quick one does not flicker. */
-const CALCULATING_NOTICE_DELAY_MS = 300;
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
@@ -124,6 +122,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [flowMode, setFlowMode] = useState<CoolingFlowMode>(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE);
   const [slowMo, setSlowMo] = useState(false);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
+  const [gridCells, setGridCells] = useState(false);
   // The saved choices can change after mount (the settings load, or another window edits them), so the view follows them.
   useEffect(() => { setFlowMode(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE); }, [savedFlowMode]);
   useEffect(() => { setCollisions(DEV_TOOLS && (savedCollisions ?? false)); }, [savedCollisions]);
@@ -193,7 +192,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, collisions, showCase, slowMo]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, grid: DEV_TOOLS && gridCells, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, collisions, gridCells, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -205,18 +204,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, showCase, active, flow: flowInput, flowOptions });
     setFlowSupported(renderer.flowSupported);
   }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, flowInput, flowOptions]);
-
-  const [calculating, setCalculating] = useState(false);
-  const [showCalculating, setShowCalculating] = useState(false);
-  useEffect(() => {
-    renderer?.setCalculatingListener(setCalculating);
-    return () => { renderer?.setCalculatingListener(null); setCalculating(false); };
-  }, [renderer]);
-  useEffect(() => {
-    if (!calculating) { setShowCalculating(false); return undefined; }
-    const timer = setTimeout(() => setShowCalculating(true), CALCULATING_NOTICE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [calculating]);
 
   // Temperatures ride a path of their own: the renderer hands them to the live particle pass, so a sensor tick never rebuilds the scene.
   useEffect(() => { renderer?.setTemps(temps); }, [renderer, temps]);
@@ -356,11 +343,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
-        {showCalculating && (
-          <div className={styles.calculating} role="status">
-            <Badge icon={<Spinner size={14} />} label={t('cooling.case3d.flow.calculating')} />
-          </div>
-        )}
         {result && model && (
           <div className={`${styles.overlay} ${styles.overlayTop}`}>
             <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>
@@ -397,6 +379,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 <label className={`${styles.flowToggle} ${styles.control}`}>
                   <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
                   <span>{t('cooling.case3d.flow.collisions')}</span>
+                </label>
+              )}
+              {DEV_TOOLS && particles && (
+                <label className={`${styles.flowToggle} ${styles.control}`}>
+                  <Toggle checked={gridCells} onChange={setGridCells} ariaLabel={t('cooling.case3d.flow.grid')} />
+                  <span>{t('cooling.case3d.flow.grid')}</span>
                 </label>
               )}
               {particles && (
