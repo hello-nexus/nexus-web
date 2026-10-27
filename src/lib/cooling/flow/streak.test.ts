@@ -147,7 +147,7 @@ describe('streaks of simulated particles', () => {
 describe('streak tuning', () => {
   it('pins the streak reach and the particle draw share', async () => {
     const { PARTICLE_DRAW_SHARE } = await import('./flowParams');
-    expect([STREAK_STEPS, STREAK_MAX_MM, STREAK_MIN_MM]).toEqual([10, 70, 3]);
+    expect([STREAK_STEPS, STREAK_MAX_MM, STREAK_MIN_MM]).toEqual([15, 105, 3]);
     expect(PARTICLE_DRAW_SHARE).toBe(0.1);
   });
 });

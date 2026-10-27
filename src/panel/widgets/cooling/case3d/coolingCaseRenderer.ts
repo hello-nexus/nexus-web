@@ -344,7 +344,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
           flowInput = null;
           const [ex, ey, ez] = extents;
           const colors: FlowColors = {
-            cool: token(canvas, '--airflow-cool', '#38bdf8'), pale: token(canvas, '--airflow-pale', '#f2f6ff'), warm: token(canvas, '--airflow-warm', '#ffd60a'), orange: token(canvas, '--airflow-orange', '#ff8a00'), hot: token(canvas, '--bad', '#ef4444'),
+            cool: token(canvas, '--airflow-cool', '#38bdf8'), purple: token(canvas, '--airflow-purple', '#a53cff'), hot: token(canvas, '--bad', '#ef4444'),
             collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
