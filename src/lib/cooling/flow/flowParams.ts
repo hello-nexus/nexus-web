@@ -53,6 +53,8 @@ export const HEAT_SPAN_FLOOR_K = 0.5;
 /** How often the temperature field is read back to rank it, ms, and the time constant the span eases toward each result, ms. */
 export const HEAT_SPAN_READ_MS = 1000;
 export const HEAT_SPAN_TAU_MS = 3000;
+/** A legend hears about the span only when it moves this many degrees, so easing never re-renders the view every frame. */
+export const HEAT_SPAN_REPORT_K = 0.1;
 /** A part's power must move this many watts before the temperature field relaxes again. */
 export const POWER_RESUME_DELTA_W = 15;
 /** Fluid cells this close to a heat-source solid are its heat cells. */

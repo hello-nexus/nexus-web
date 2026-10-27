@@ -21,11 +21,9 @@ describe('percentile span', () => {
   const rises = (f: (i: number) => number) => Float32Array.from({ length: 1000 }, (_, i) => f(i));
 
   it('reads the rank among the case cells, not the single hottest cell', () => {
-    // 1% of cells are 40 K hot, the rest rise linearly to 3 K: the 98th percentile ignores the hot spike.
+    // A small hot spike over a field that rises evenly: the rank lands on the even part.
     const field = rises(i => (i < 10 ? 40 : (i / 990) * 3));
-    const p = percentileRise(field, cells, 0.98);
-    expect(p).toBeGreaterThan(0.5);
-    expect(p).toBeLessThan(40);
+    expect(percentileRise(field, cells, 0.98)).toBeCloseTo(3, 0);
   });
 
   it('puts a uniformly warm case at its own rise', () => {

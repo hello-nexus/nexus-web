@@ -8,7 +8,7 @@ import { HeatVolume } from './heatVolume';
 import { caseFluidCells, easeSpan, percentileRise, spanFor } from './heatSpan';
 import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
@@ -131,6 +131,7 @@ export class FlowLayer {
   private spanTarget = HEAT_COLOR_SPAN_C;
   private spanSeeded = false;
   private spanReadAt = 0;
+  private spanReadVersion = -1;
   private spanReported = Number.NaN;
   private fluidCells: Uint32Array | null = null;
   /** Called when the span moves enough to matter to a legend. */
@@ -238,14 +239,19 @@ export class FlowLayer {
   private trackSpan(flow: GlFlow, dtMs: number) {
     const rises = flow.pollTemperatureRead();
     if (rises && this.fluidCells) {
-      this.spanTarget = spanFor(percentileRise(rises, this.fluidCells));
-      if (!this.spanSeeded) { this.spanSeeded = true; this.spanK = this.spanTarget; }
+      const rank = percentileRise(rises, this.fluidCells);
+      // A cold field still reads zero while it warms up: that is not the case's range yet, so it is taken only once the solve has settled.
+      if (rank > 0 || !this.solving) {
+        this.spanTarget = spanFor(rank);
+        if (!this.spanSeeded) { this.spanSeeded = true; this.spanK = this.spanTarget; }
+      }
     }
     if (this.spanSeeded) this.spanK = easeSpan(this.spanK, this.spanTarget, dtMs);
     const nowMs = performance.now();
-    if (nowMs - this.spanReadAt >= HEAT_SPAN_READ_MS && flow.beginTemperatureRead()) this.spanReadAt = nowMs;
+    // A read only follows a change of the field since the last one.
+    if (nowMs - this.spanReadAt >= HEAT_SPAN_READ_MS && this.fieldVersion !== this.spanReadVersion && flow.beginTemperatureRead()) { this.spanReadAt = nowMs; this.spanReadVersion = this.fieldVersion; }
     this.updateSpan();
-    if (!(Math.abs(this.spanK - this.spanReported) < 0.05)) { this.spanReported = this.spanK; this.onSpan?.(this.spanK); }
+    if (!(Math.abs(this.spanK - this.spanReported) < HEAT_SPAN_REPORT_K)) { this.spanReported = this.spanK; this.onSpan?.(this.spanK); }
   }
 
   /** Solves again from the current fields: the temperature field has a new target. */
@@ -305,7 +311,7 @@ export class FlowLayer {
     if (this.collisionsShown) this.syncCollisions(true);
     this.fluidCells = caseFluidCells(scene);
     this.fieldVersion++;
-    if (this.volume) this.syncVolume();
+    if (DEV_TOOLS && this.options.heat && !this.volume) this.syncVolume();
     this.uploadSpawns(scene);
     this.updateUniforms();
     this.updateSpan();
