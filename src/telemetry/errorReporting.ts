@@ -43,6 +43,10 @@ let installed = false;
 let reporting = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 
+// Stale-chunk errors waiting on a recovery that can take about a minute; a page that unloads meanwhile reports them from pagehide.
+interface Held { error: unknown; kind: ErrorKind; context?: string }
+const held = new Set<Held>();
+
 function cap(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) : value;
 }
@@ -138,7 +142,7 @@ function currentContext(extra?: string): string {
   return extra ? `${path} ${extra}` : path;
 }
 
-async function flush(): Promise<void> {
+async function flush(keepalive = false): Promise<void> {
   timer = null;
   const errors: ClientError[] = [];
   for (const fp of dirty) {
@@ -152,7 +156,7 @@ async function flush(): Promise<void> {
   if (dirty.size > 0) schedule();
   if (errors.length === 0) return;
   try {
-    await authFetchWithStatus(ENDPOINT, { method: 'POST', body: { errors } });
+    await authFetchWithStatus(ENDPOINT, { method: 'POST', body: { errors }, ...(keepalive ? { keepalive } : {}) });
   } catch {
     return;
   }
@@ -182,13 +186,16 @@ function isAppKind(kind: ErrorKind): boolean {
   return kind === 'app' || kind === 'app-log';
 }
 
-export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried = false, app?: AppErrorSource): void {
+// recoveryTried: true, or the reason a stale-chunk recovery did not reload (it leads the stored context so the cap cannot cut it).
+export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried: boolean | string = false, app?: AppErrorSource): void {
   if (!recoveryTried && installed && staleChunkMessageOf(error)) {
     // A reload onto a new build makes the error moot; otherwise report it as usual.
+    const entry: Held = { error, kind, context };
+    held.add(entry);
     void recoverFromStaleChunkNow().then((outcome) => {
-      if (outcome === 'reloaded') return;
-      // The reason lets the report show which guard stopped the reload.
-      reportError(error, kind, `${context ? `${context} ` : ''}no-reload:${outcome}`, true);
+      // Already reported by pagehide.
+      if (!held.delete(entry) || outcome === 'reloaded') return;
+      reportError(error, kind, context, outcome);
     });
     return;
   }
@@ -233,7 +240,7 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
       type: cap(d.type, CAPS.type),
       message,
       stack: cap(stack, CAPS.stack),
-      context: cap(stripUrlSecrets(currentContext(context)), CAPS.context),
+      context: cap(stripUrlSecrets(typeof recoveryTried === 'string' ? `no-reload:${recoveryTried} ${currentContext(context)}` : currentContext(context)), CAPS.context),
       ...(app ? { app: cap(app.tag, CAPS.context) } : {}),
       count: 1,
     } });
@@ -290,17 +297,27 @@ function onRejection(event: PromiseRejectionEvent): void {
   reportError(event.reason, 'unhandled-rejection');
 }
 
+function onPageHide(): void {
+  const pending = [...held];
+  held.clear();
+  for (const h of pending) reportError(h.error, h.kind, h.context, 'unload');
+  if (timer !== null) clearTimeout(timer);
+  void flush(true);
+}
+
 export function installGlobalErrorReporting(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
   window.addEventListener('error', onWindowError);
   window.addEventListener('unhandledrejection', onRejection);
+  window.addEventListener('pagehide', onPageHide);
 }
 
 export function resetErrorReportingForTests(): void {
   if (timer !== null) clearTimeout(timer);
   timer = null;
   records.clear();
+  held.clear();
   dirty.clear();
   hostGate.start = 0;
   hostGate.count = 0;
@@ -311,6 +328,7 @@ export function resetErrorReportingForTests(): void {
   if (installed && typeof window !== 'undefined') {
     window.removeEventListener('error', onWindowError);
     window.removeEventListener('unhandledrejection', onRejection);
+    window.removeEventListener('pagehide', onPageHide);
   }
   installed = false;
 }

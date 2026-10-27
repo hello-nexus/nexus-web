@@ -329,6 +329,29 @@ describe('stale chunk errors', () => {
     reportError(stale(), 'unhandled-rejection');
     await vi.advanceTimersByTimeAsync(5000);
     expect(sent()).toHaveLength(1);
-    expect(sent()[0].errors[0].context).toContain('no-reload:loop-guard');
+    expect(sent()[0].errors[0].context).toMatch(/^no-reload:loop-guard /);
+  });
+
+  it('reports a held stale chunk error once from pagehide, with keepalive', async () => {
+    recoverNow.mockReturnValueOnce(new Promise<string>(() => {}));
+    reportError(stale(), 'unhandled-rejection');
+    window.dispatchEvent(new Event('pagehide'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(postService).toHaveBeenCalledTimes(1);
+    expect((postService.mock.calls[0][1] as { keepalive?: boolean }).keepalive).toBe(true);
+    expect(sent()[0].errors[0].context).toMatch(/^no-reload:unload /);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(postService).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report again when the recovery settles after pagehide', async () => {
+    let settle: (v: string) => void = () => {};
+    recoverNow.mockReturnValueOnce(new Promise<string>((resolve) => { settle = resolve; }));
+    reportError(stale(), 'unhandled-rejection');
+    window.dispatchEvent(new Event('pagehide'));
+    await vi.advanceTimersByTimeAsync(0);
+    settle('noop');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(sent().flatMap((b) => b.errors)).toHaveLength(1);
   });
 });

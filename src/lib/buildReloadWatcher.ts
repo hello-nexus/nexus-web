@@ -83,19 +83,23 @@ export interface CheckDeps {
   log: (msg: string) => void;
 }
 
-export type CheckResult = 'noop' | 'same' | 'locked' | 'unverified' | 'reload';
+// 'disabled': this document can never be compared (dev server, one-shot token in the URL).
+// 'no-entry': index.html answered without a hashed entry (mid-copy or an error page).
+// 'noop': index.html could not be fetched.
+export type CheckResult = 'noop' | 'disabled' | 'no-entry' | 'same' | 'locked' | 'unverified' | 'reload';
 
 // One evaluation pass. The comparison + guard logic is deterministic; the I/O
 // (fetch, storage, reload, clock) is injected so it is fully unit-testable.
 export async function checkOnce(deps: CheckDeps): Promise<CheckResult> {
-  if (!deps.loaded || deps.oneShotToken) return 'noop';
+  if (!deps.loaded || deps.oneShotToken) return 'disabled';
 
   let res: { ok: boolean; text: string };
   try { res = await deps.fetchText('/index.html'); } catch { return 'noop'; }
   if (!res.ok) return 'noop';
 
   const served = extractEntry(res.text);
-  if (!served || served === deps.loaded) return 'same';
+  if (!served) return 'no-entry';
+  if (served === deps.loaded) return 'same';
 
   const { target, at } = deps.readTarget();
   if (target === served && deps.now - at < RELOAD_LOCK_MS) return 'locked';

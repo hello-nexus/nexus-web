@@ -26,10 +26,12 @@ export const STALE_CHUNK_RETRY_DELAYS_MS = [10_000, 20_000];
 // Why a recovery did not reload; the first value is the only success.
 export type RecoverOutcome = 'reloaded' | CheckResult | 'loop-guard' | 'timeout' | 'check-error' | 'storage-blocked';
 
-const RETRYABLE: ReadonlySet<RecoverOutcome> = new Set<RecoverOutcome>(['noop', 'unverified', 'timeout']);
+// Transient causes only: a final one ('disabled', 'same', 'locked') would just wait for nothing.
+const RETRYABLE: ReadonlySet<RecoverOutcome> = new Set<RecoverOutcome>(['noop', 'no-entry', 'unverified', 'timeout']);
 
 export interface RecoverDeps {
-  now: number;
+  // A function: a retried recovery reloads tens of seconds after it started, and the loop guard must stamp that moment.
+  now: () => number;
   // The build watcher's pass without its own reload: resolves 'reload' only
   // when a new build is served and all its assets are present.
   check: () => Promise<CheckResult>;
@@ -58,7 +60,7 @@ async function checkWithTimeout(deps: RecoverDeps): Promise<CheckResult | 'timeo
 // otherwise the reason it was not, and the error should surface as a real failure.
 export async function recoverFromStaleChunk(deps: RecoverDeps): Promise<RecoverOutcome> {
   const last = deps.readStamp();
-  if (last > 0 && deps.now >= last && deps.now - last < STALE_CHUNK_RELOAD_LOCK_MS) return 'loop-guard';
+  if (last > 0 && deps.now() >= last && deps.now() - last < STALE_CHUNK_RELOAD_LOCK_MS) return 'loop-guard';
   let result: RecoverOutcome = 'noop';
   for (let attempt = 0; attempt <= STALE_CHUNK_RETRY_DELAYS_MS.length; attempt += 1) {
     if (attempt > 0) await deps.sleep(STALE_CHUNK_RETRY_DELAYS_MS[attempt - 1]);
@@ -67,7 +69,7 @@ export async function recoverFromStaleChunk(deps: RecoverDeps): Promise<RecoverO
     if (!RETRYABLE.has(result)) break;
   }
   if (result !== 'reloaded') return result;
-  if (!deps.writeStamp(deps.now)) return 'storage-blocked';
+  if (!deps.writeStamp(deps.now())) return 'storage-blocked';
   deps.reload();
   return 'reloaded';
 }
@@ -75,8 +77,8 @@ export async function recoverFromStaleChunk(deps: RecoverDeps): Promise<RecoverO
 export function liveRecoverDeps(): RecoverDeps {
   const loaded = loadedEntry();
   return {
-    now: Date.now(),
-    check: () => (loaded ? checkOnce({ ...liveDeps(loaded), reload: () => {} }) : Promise.resolve('noop')),
+    now: () => Date.now(),
+    check: () => (loaded ? checkOnce({ ...liveDeps(loaded), reload: () => {} }) : Promise.resolve<CheckResult>('disabled')),
     readStamp: () => {
       try { return Number(sessionStorage.getItem(STAMP_KEY) ?? 0) || 0; } catch { return 0; }
     },

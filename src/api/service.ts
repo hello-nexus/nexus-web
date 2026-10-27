@@ -383,6 +383,8 @@ interface RequestOptions {
   headers?: Record<string, string>;
   signal?: AbortSignal;
   cache?: RequestCache;
+  /** Lets the request outlive the page (pagehide flushes); direct (non-tunneled) paths only. */
+  keepalive?: boolean;
   /** The HTTP cache may answer this route, so its response is no sign of life. */
   mayBeCached?: boolean;
 }
@@ -421,6 +423,7 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: opts.signal,
       cache: opts.cache,
+      keepalive: opts.keepalive,
     };
 
     let response = await serviceFetch(path, init, opts.mayBeCached);
