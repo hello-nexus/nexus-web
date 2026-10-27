@@ -2663,6 +2663,8 @@
   "lighting.category.twotone": "2色",
   "lighting.colorTuning.blue": "青",
   "lighting.colorTuning.brightnessInfo": "このデバイスの LED だけを暗くします。キャンバスのプレビューは最大の明るさのままです。",
+  "lighting.colorTuning.colorOrder": "色の順序",
+  "lighting.colorTuning.colorOrderInfo": "赤と緑が入れ替わって表示される場合に使用します。",
   "lighting.colorTuning.cool": "寒色",
   "lighting.colorTuning.done": "完了",
   "lighting.colorTuning.effectiveBrightnessInfo": "マスター明るさが出力を{master}%に制限するため、このデバイスはこれ以上明るくなりません。",

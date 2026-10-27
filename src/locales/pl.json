@@ -2677,6 +2677,8 @@
   "lighting.category.twotone": "Dwukolorowy",
   "lighting.colorTuning.blue": "Niebieski",
   "lighting.colorTuning.brightnessInfo": "Przyciemnia tylko diody tego urządzenia; podgląd kanwy pozostaje w pełnej jasności.",
+  "lighting.colorTuning.colorOrder": "Kolejność kolorów",
+  "lighting.colorTuning.colorOrderInfo": "Użyj, jeśli czerwony i zielony są zamienione miejscami.",
   "lighting.colorTuning.cool": "Chłodna",
   "lighting.colorTuning.done": "Gotowe",
   "lighting.colorTuning.effectiveBrightnessInfo": "Jasność główna ogranicza wyjście do {master}%, więc to urządzenie nie może być jaśniejsze.",
