@@ -14,6 +14,8 @@ export const buildApp: AppManifest = {
     touch: false,
     surfaces: ['desktop'],
     localOnly: true,
+    // The page the tile opens is dev-tools only; dev-tools builds browse delisted apps regardless.
+    listed: false,
   },
   Widget: BuildWidget,
 };
