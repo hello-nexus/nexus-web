@@ -85,6 +85,31 @@ describe('layoutKeyOf', () => {
     expect(layoutKeyOf(buildMachine({ ...SPECS, monitor: 'other', storage: '4 TB' }, 'hyte-y70', [...(base().devices ?? []), device('mouse-1', { category: 'mouse' })]))).toBe(key);
   });
 
+  describe('card PCI ids', () => {
+    const A = { vendor: '10DE', device: '2704', subVendor: '1043', subDevice: '889E' };
+    const B = { vendor: '1002', device: '164e', subVendor: '1043', subDevice: '8877' };
+    const withIds = (gpus: object[]) => layoutKeyOf(buildMachine({ ...SPECS, hardwareIds: { gpus } }, 'hyte-y70', base().devices ?? []));
+
+    it('is stable across card order and letter case, and lowercases the ids', () => {
+      expect(withIds([A, B])).toBe(withIds([B, A]));
+      expect(withIds([A])).toBe(withIds([{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e' }]));
+      expect(withIds([A])).toContain('|gpuids=10de:2704:1043:889e');
+    });
+
+    it('is unchanged when there are no ids', () => {
+      const key = layoutKeyOf(base());
+      expect(withIds([])).toBe(key);
+      expect(layoutKeyOf(buildMachine({ ...SPECS, hardwareIds: { gpus: null } }, 'hyte-y70', base().devices ?? []))).toBe(key);
+      expect(key).not.toContain('gpuids');
+    });
+
+    it('changes when the ids change, with the name kept', () => {
+      expect(withIds([A])).not.toBe(layoutKeyOf(base()));
+      expect(withIds([A])).not.toBe(withIds([{ ...A, subDevice: '0000' }]));
+      expect(withIds([A])).not.toBe(withIds([A, B]));
+    });
+  });
+
   it('reads an unknown case as empty', () => {
     expect(layoutKeyOf(buildMachine(SPECS, null, []))).toContain('case=|');
   });

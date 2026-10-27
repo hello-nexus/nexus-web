@@ -133,6 +133,11 @@ export function layoutKeyOf(machine: BuildMachine): string {
     .filter(d => LAYOUT_DEVICES.has(d.category))
     .map(d => `${d.key}:${d.count ?? ''}:${d.radiatorMm ?? ''}`)
     .sort();
+  const gpuIds = (machine.hardwareIds?.gpus ?? [])
+    .map(g => [g.vendor, g.device, g.subVendor, g.subDevice].map(v => (v ?? '').toLowerCase()).join(':'))
+    .filter(id => id !== ':::')
+    .sort()
+    .join(',');
   return [
     `case=${machine.caseId ?? ''}`,
     `cpu=${machine.processor ?? ''}`,
@@ -140,6 +145,8 @@ export function layoutKeyOf(machine: BuildMachine): string {
     `board=${machine.motherboard ?? ''}`,
     `mem=${machine.memory ?? ''}`,
     ...devices.map(d => `dev=${d}`),
+    // Only when ids exist, so a PC without them keeps its key and does not resolve again.
+    ...(gpuIds ? [`gpuids=${gpuIds}`] : []),
     `rules=${BUILD_LAYOUT_RULES}`,
   ].join('|');
 }
