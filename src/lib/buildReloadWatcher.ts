@@ -39,6 +39,19 @@ export const RELOAD_LOCK_MS = 60_000;
 // the 1Hz monitoring frames already crossing the tunnel.
 const POLL_MS = 60_000;
 
+let reloading = false;
+
+// True once this document has started navigating to a new build; held error
+// reports are moot then, whoever triggered the reload.
+export function isReloadingForBuild(): boolean {
+  return reloading;
+}
+
+export function reloadForBuild(): void {
+  reloading = true;
+  window.location.reload();
+}
+
 export function extractEntry(html: string): string | null {
   return html.match(ENTRY_RE)?.[0] ?? null;
 }
@@ -140,7 +153,7 @@ export function liveDeps(loaded: string): CheckDeps {
         sessionStorage.setItem(AT_KEY, String(at));
       } catch { /* storage blocked - loses the per-target cap, but a completed reload makes served == loaded (index.html is no-store), so the next pass returns 'same' and stops */ }
     },
-    reload: () => window.location.reload(),
+    reload: reloadForBuild,
     log: (m) => console.info(m),
   };
 }

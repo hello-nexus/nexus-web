@@ -423,7 +423,6 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: opts.signal,
       cache: opts.cache,
-      keepalive: opts.keepalive,
     };
 
     let response = await serviceFetch(path, init, opts.mayBeCached);
@@ -564,6 +563,7 @@ export async function authFetchWithStatus(path: string, opts: RequestOptions = {
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: opts.signal,
       cache: opts.cache,
+      keepalive: opts.keepalive,
     };
 
     let response = await serviceFetch(path, init, opts.mayBeCached);

@@ -7,6 +7,7 @@ const watcher = vi.hoisted(() => ({
 }));
 vi.mock('./buildReloadWatcher', () => ({
   loadedEntry: () => '/assets/index-abc.js',
+  reloadForBuild: () => {},
   liveDeps: () => ({ loaded: '/assets/index-abc.js', reload: watcher.reload }),
   checkOnce: (deps: { reload: () => void }) => {
     watcher.passedReload = deps.reload;

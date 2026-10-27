@@ -1,4 +1,4 @@
-import { checkOnce, liveDeps, loadedEntry, type CheckResult } from './buildReloadWatcher';
+import { checkOnce, liveDeps, loadedEntry, reloadForBuild, type CheckResult } from './buildReloadWatcher';
 
 // A service update swaps the hashed assets under an already-open page, so the
 // next lazy import or stylesheet preload of a removed chunk fails. Reloading
@@ -85,7 +85,7 @@ export function liveRecoverDeps(): RecoverDeps {
     writeStamp: (at) => {
       try { sessionStorage.setItem(STAMP_KEY, String(at)); return true; } catch { return false; }
     },
-    reload: () => window.location.reload(),
+    reload: reloadForBuild,
     sleep: (ms) => new Promise((resolve) => { setTimeout(resolve, ms); }),
   };
 }

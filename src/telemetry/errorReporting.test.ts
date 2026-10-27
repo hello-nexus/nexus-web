@@ -5,6 +5,12 @@ vi.mock('../api/service', () => ({
   authFetchWithStatus: (...a: unknown[]) => postService(...a),
 }));
 
+const reloading = vi.hoisted(() => ({ value: false }));
+vi.mock('../lib/buildReloadWatcher', async (orig) => ({
+  ...(await orig<typeof import('../lib/buildReloadWatcher')>()),
+  isReloadingForBuild: () => reloading.value,
+}));
+
 const recoverNow = vi.fn(async (): Promise<string> => 'noop');
 vi.mock('../lib/staleChunkRecovery', async (orig) => ({
   ...(await orig<typeof import('../lib/staleChunkRecovery')>()),
@@ -342,6 +348,16 @@ describe('stale chunk errors', () => {
     expect(sent()[0].errors[0].context).toMatch(/^no-reload:unload /);
     await vi.advanceTimersByTimeAsync(5000);
     expect(postService).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips held errors when a build reload caused the pagehide', async () => {
+    recoverNow.mockReturnValueOnce(new Promise<string>(() => {}));
+    reportError(stale(), 'unhandled-rejection');
+    reloading.value = true;
+    window.dispatchEvent(new Event('pagehide'));
+    await vi.advanceTimersByTimeAsync(5000);
+    reloading.value = false;
+    expect(postService).not.toHaveBeenCalled();
   });
 
   it('does not report again when the recovery settles after pagehide', async () => {

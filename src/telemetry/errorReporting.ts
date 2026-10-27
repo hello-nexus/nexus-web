@@ -1,4 +1,5 @@
 import { authFetchWithStatus } from '../api/service';
+import { isReloadingForBuild } from '../lib/buildReloadWatcher';
 import { isStaleChunkMessage, recoverFromStaleChunkNow } from '../lib/staleChunkRecovery';
 
 export type ErrorKind = 'window-error' | 'unhandled-rejection' | 'render' | 'app' | 'app-log';
@@ -300,7 +301,8 @@ function onRejection(event: PromiseRejectionEvent): void {
 function onPageHide(): void {
   const pending = [...held];
   held.clear();
-  for (const h of pending) reportError(h.error, h.kind, h.context, 'unload');
+  // A reload onto a new build caused this pagehide, so the held errors are moot.
+  if (!isReloadingForBuild()) for (const h of pending) reportError(h.error, h.kind, h.context, 'unload');
   if (timer !== null) clearTimeout(timer);
   void flush(true);
 }
