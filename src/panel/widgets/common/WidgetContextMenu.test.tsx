@@ -9,7 +9,7 @@ import { displayTargetsOf } from '../../engine/useDisplayTargets';
 import { WidgetContextMenu } from './WidgetContextMenu';
 
 vi.mock('../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string, params?: { name?: string }) => (params?.name ? `${key} ${params.name}` : key) }),
+  useTranslation: () => ({ t: (key: string, params?: { name?: string; n?: string }) => (key === 'displays.numberedName' ? `${params?.name} (${params?.n})` : params?.name ? `${key} ${params.name}` : key) }),
 }));
 
 function menu(key: number, onClose: () => void) {
@@ -211,8 +211,8 @@ describe('WidgetContextMenu add to display', () => {
   it('numbers several entries and leaves a single entry plain', () => {
     const two = [{ id: 'a', name: 'DEL A0B8', number: '1' }, { id: 'b', name: 'DEL A0B8', number: '2' }];
     const { unmount } = render(<WidgetContextMenu {...base} displayTargets={two} onAddToDisplay={vi.fn()} />);
-    expect(screen.getByText(/1\. DEL A0B8/)).toBeTruthy();
-    expect(screen.getByText(/2\. DEL A0B8/)).toBeTruthy();
+    expect(screen.getByText(/DEL A0B8 \(1\)/)).toBeTruthy();
+    expect(screen.getByText(/DEL A0B8 \(2\)/)).toBeTruthy();
     unmount();
     render(<WidgetContextMenu {...base} displayTargets={[two[0]]} onAddToDisplay={vi.fn()} />);
     expect(screen.getByText('panel.widget.menu.addToDisplay')).toBeTruthy();

@@ -233,7 +233,7 @@ export function WidgetContextMenu({
       {onAddToDisplay && displayTargets?.map(target => (
         <button key={target.id} type="button" className={styles.item} onClick={() => runAndClose(() => onAddToDisplay(target.id))}>
           <Monitor size={14} />
-          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: `${target.number}. ${target.name}` }) : t('panel.widget.menu.addToDisplay')}</span>
+          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: t('displays.numberedName', { name: target.name, n: target.number }) }) : t('panel.widget.menu.addToDisplay')}</span>
         </button>
       ))}
 

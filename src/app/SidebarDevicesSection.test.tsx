@@ -13,7 +13,7 @@ import type { PanelDevice } from '../panel/device/panelDevices';
 
 vi.mock('../lib/i18n', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, string>) => (key === 'displays.numberedName' && params ? `${params.name} (${params.n})` : key),
   }),
 }));
 
@@ -57,6 +57,10 @@ vi.mock('../api/conflicts', () => ({
 }));
 vi.mock('../hooks/useConflictApps', () => ({
   useConflictApps: () => ({ conflicts: [], ready: false }),
+}));
+let mockTopology: { displays: Array<{ id: string; number: number }> } | null = null;
+vi.mock('../hooks/useDisplayTopology', () => ({
+  useDisplayTopology: () => ({ topology: mockTopology, loading: false, refresh: vi.fn() }),
 }));
 let mockFirmwareUpdates: ReadonlySet<string> = new Set();
 vi.mock('../hooks/useFirmwareUpdates', () => ({
@@ -131,6 +135,59 @@ function renderSidebar() {
     />,
   );
 }
+
+describe('SidebarDevicesSection display numbers', () => {
+  afterEach(() => { mockTopology = null; });
+  const two = () => [
+    monitorDevice({ key: 'a', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:a', displayId: 'd1' }) }),
+    monitorDevice({ key: 'b', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:b', displayId: 'd2' }) }),
+  ];
+
+  it('suffixes identical display names with the shared display number', () => {
+    mockUnified = two();
+    mockTopology = { displays: [{ id: 'd1', number: 1 }, { id: 'd2', number: 2 }] };
+    renderSidebar();
+    expect(screen.getByText('DEL A0B8 (1)')).toBeTruthy();
+    expect(screen.getByText('DEL A0B8 (2)')).toBeTruthy();
+  });
+
+  it('shows no number when there is only one screen', () => {
+    mockUnified = [two()[0]];
+    mockTopology = { displays: [{ id: 'd1', number: 1 }] };
+    renderSidebar();
+    expect(screen.getByText('DEL A0B8')).toBeTruthy();
+  });
+});
+
+describe('SidebarDevicesSection panel toggle wording', () => {
+  const generic = (linkEnabled: boolean) => monitorDevice({
+    nexusControlEnabled: linkEnabled,
+    panelDevice: monitorPanelDevice({ linkEnabled, genericDisplay: true }),
+  });
+
+  it('calls the toggle on a generic display a Nexus panel and demotes through the Displays API', () => {
+    mockUnified = [generic(true)];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.queryByRole('menuitem', { name: 'lighting.devices.menuControlOff' })).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'sidebar.device.panelOff' }));
+    expect(demoteDisplayPanel).toHaveBeenCalledWith('disp1');
+  });
+
+  it('offers turning a generic display panel back on', () => {
+    mockUnified = [generic(false)];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.getByRole('menuitem', { name: 'sidebar.device.panelOn' })).toBeTruthy();
+  });
+
+  it('keeps Nexus Control wording for a branded display panel', () => {
+    mockUnified = [monitorDevice({ nexusControlEnabled: true, panelDevice: monitorPanelDevice({ linkEnabled: true }) })];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.getByRole('menuitem', { name: 'lighting.devices.menuControlOff' })).toBeTruthy();
+  });
+});
 
 describe('SidebarDevicesSection hidden devices', () => {
   const controlOn = () => monitorDevice({

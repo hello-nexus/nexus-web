@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { TopologyDisplay } from '../../api/displays';
-import { displayNumberLabel, layoutMonitorRects } from '../../components/views/DisplaysView/monitorMapLayout';
+import { displayListNumber, displayNumberLabel, layoutMonitorRects } from '../../components/views/DisplaysView/monitorMapLayout';
 
 function display(partial: Partial<TopologyDisplay> & { id: string }): TopologyDisplay {
   return {
@@ -110,5 +110,18 @@ describe('displayNumberLabel', () => {
   it('prefers the OS number and falls back to array order', () => {
     expect(displayNumberLabel(display({ id: 'a', number: 3 }), 0)).toBe('3');
     expect(displayNumberLabel(display({ id: 'a', number: 0 }), 1)).toBe('2');
+  });
+});
+
+describe('displayListNumber', () => {
+  const pair = [display({ id: 'a', number: 2 }), display({ id: 'b', number: 0 })];
+  it('uses the shared numbering for a list entry', () => {
+    expect(displayListNumber(pair, 'a')).toBe('2');
+    expect(displayListNumber(pair, 'b')).toBe('2');
+  });
+  it('gives no number for a single screen or an unknown display', () => {
+    expect(displayListNumber([pair[0]], 'a')).toBeNull();
+    expect(displayListNumber(pair, 'zzz')).toBeNull();
+    expect(displayListNumber(pair, undefined)).toBeNull();
   });
 });

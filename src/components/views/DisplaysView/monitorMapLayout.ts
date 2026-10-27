@@ -105,3 +105,10 @@ function inset(rect: MonitorRect): MonitorRect {
 export function displayNumberLabel(display: TopologyDisplay, index: number): string {
   return String(display.number > 0 ? display.number : index + 1);
 }
+
+/** The number to show beside a display's name in lists, or null when there is only one screen or the display is unknown. */
+export function displayListNumber(displays: readonly TopologyDisplay[], displayId: string | undefined): string | null {
+  if (displays.length < 2 || !displayId) return null;
+  const index = displays.findIndex(d => d.id === displayId);
+  return index < 0 ? null : displayNumberLabel(displays[index], index);
+}
