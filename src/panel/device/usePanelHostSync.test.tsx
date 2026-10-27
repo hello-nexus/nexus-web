@@ -143,58 +143,72 @@ describe('usePanelFrost', () => {
     cell.remove();
   });
 
-  it('follows a card every frame while a keyframe animation runs, and settles when it ends', async () => {
+  // jsdom has no animations, so the computed animation properties are scripted per element.
+  const applied = new Map<Element, { name: string; count: string }>();
+  const realComputed = window.getComputedStyle.bind(window);
+  beforeEach(() => {
+    vi.spyOn(window, 'getComputedStyle').mockImplementation(el => {
+      const a = applied.get(el);
+      return (a ? { borderTopLeftRadius: '0px', animationName: a.name, animationIterationCount: a.count } : realComputed(el)) as CSSStyleDeclaration;
+    });
+  });
+  afterEach(() => { applied.clear(); vi.mocked(window.getComputedStyle).mockRestore(); });
+  const start = (el: Element, name: string) => act(() => { el.dispatchEvent(Object.assign(new Event('animationstart', { bubbles: true }), { animationName: name })); });
+  const move = (card: HTMLElement, x: number) => { card.getBoundingClientRect = () => ({ left: x, top: 60, right: x + 100, bottom: 130 }) as DOMRect; };
+
+  it.each(['_connectionIntroWidget_x1', '_widgetEditorDockIn_x2'])('follows a card every frame while the finite keyframe %s runs, and settles when it ends', async name => {
     const cell = mountCard();
     const card = cell.firstElementChild as HTMLElement;
     renderHook(() => usePanelFrost(true, 40, true, false, rootRef, 'a'));
     await flush();
-    card.style.setProperty('animation-name', '_connectionIntroWidget_x1');
-    act(() => { card.dispatchEvent(Object.assign(new Event('animationstart', { bubbles: true }), { animationName: '_connectionIntroWidget_x1' })); });
+    applied.set(card, { name, count: '1' });
+    start(card, name);
     await flush();
     const before = frosts().length;
-    card.getBoundingClientRect = () => ({ left: 50, top: 60, right: 150, bottom: 130 }) as DOMRect;
+    move(card, 50);
     await flush();
     expect(frosts().length).toBe(before + 1);
-    card.getBoundingClientRect = () => ({ left: 70, top: 80, right: 170, bottom: 150 }) as DOMRect;
+    move(card, 70);
     await flush();
-    expect(frosts().at(-1)).toMatchObject({ rects: [{ x: 70, y: 80, w: 100, h: 70 }] });
-    card.style.setProperty('animation-name', 'none');
-    act(() => { card.dispatchEvent(new Event('animationend', { bubbles: true })); });
+    expect(frosts().at(-1)).toMatchObject({ rects: [{ x: 70, y: 60, w: 100, h: 70 }] });
+    applied.set(card, { name: 'none', count: '1' });
+    act(() => { card.dispatchEvent(Object.assign(new Event('animationend', { bubbles: true }), { animationName: name })); });
     await flush();
     const after = frosts().length;
-    card.getBoundingClientRect = () => ({ left: 5, top: 5, right: 105, bottom: 75 }) as DOMRect;
+    move(card, 5);
     await flush();
     expect(frosts().length).toBe(after);
     cell.remove();
   });
 
-  it('ignores looping animations that are not the entrance pop', async () => {
+  it('ignores an infinite animation', async () => {
     const cell = mountCard();
     const card = cell.firstElementChild as HTMLElement;
     renderHook(() => usePanelFrost(true, 40, true, false, rootRef, 'a'));
     await flush();
-    act(() => { card.dispatchEvent(Object.assign(new Event('animationstart', { bubbles: true }), { animationName: 'thumbShimmer' })); });
+    applied.set(card, { name: 'thumbShimmer', count: 'infinite' });
+    start(card, 'thumbShimmer');
     await flush();
     const before = frosts().length;
-    card.getBoundingClientRect = () => ({ left: 50, top: 60, right: 150, bottom: 130 }) as DOMRect;
+    move(card, 50);
     await flush();
     expect(frosts().length).toBe(before);
     cell.remove();
   });
 
-  it('stops following when the animation is removed with no end or cancel event', async () => {
+  it('drops an entrance removed with no end event even while another animation loops on the element', async () => {
     const cell = mountCard();
     const card = cell.firstElementChild as HTMLElement;
     renderHook(() => usePanelFrost(true, 40, true, false, rootRef, 'a'));
     await flush();
-    card.style.setProperty('animation-name', '_connectionIntroWidget_x1');
-    act(() => { card.dispatchEvent(Object.assign(new Event('animationstart', { bubbles: true }), { animationName: '_connectionIntroWidget_x1' })); });
+    applied.set(card, { name: '_connectionIntroWidget_x1, pulse', count: '1, infinite' });
+    start(card, '_connectionIntroWidget_x1');
     await flush();
-    card.style.setProperty('animation-name', 'none');
+    applied.set(card, { name: 'pulse', count: 'infinite' });
     await flush();
     await flush();
     const settled = frosts().length;
-    card.getBoundingClientRect = () => ({ left: 5, top: 5, right: 105, bottom: 75 }) as DOMRect;
+    move(card, 5);
     await flush();
     expect(frosts().length).toBe(settled);
     cell.remove();

@@ -1,8 +1,11 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { collectHitRects, frostMessage, hitTestMessage, onHostRequestHitTest, postPanelHostMessage } from './panelHostBridge';
 
-// Keyframes of the widget entrance pop (PanelApp.module.scss); CSS modules keep the name inside the scoped one.
-const ENTRANCE_ANIMATION = 'connectionIntroWidget';
+/** A computed comma-separated CSS list as trimmed items. */
+function cssList(value: string | undefined): string[] {
+  return (value ?? '').split(',').map(v => v.trim()).filter(Boolean);
+}
+
 const HIT_SELECTOR = '[data-panel-widget-id], [data-panel-hit]';
 
 export const LEASE_RENEW_MS = 2000;
@@ -166,13 +169,18 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
     // Paging swipes and entrance pops animate through transitions and keyframes: follow every frame while one runs.
     // Counted per element, and an element removed mid-transition never fires its end event, so each frame drops those.
     const running = new Map<EventTarget, number>();
-    // Only the widget entrance pop is followed: looping animations (shimmers, pulses) never end and must not hold the loop.
-    const animating = new Set<Element>();
+    // Finite keyframe animations (entrance pop, resize and dock motion) move cards and are followed by name.
+    // Looping ones (shimmers, pulses) never end and must not hold the loop.
+    const animating = new Map<Element, Set<string>>();
     const follow = () => {
       send();
       for (const el of running.keys()) if (el instanceof Node && !el.isConnected) running.delete(el);
-      // An element whose class was removed before its end event (or on an engine that skips the cancel event) stops here.
-      for (const el of animating) if (!el.isConnected || getComputedStyle(el).animationName === 'none') animating.delete(el);
+      // A name no longer applied (class removed before its end event, or an engine that skips the cancel event) stops being followed, even while another animation loops on the element.
+      for (const [el, names] of animating) {
+        const applied = el.isConnected ? cssList(getComputedStyle(el).animationName) : [];
+        for (const name of names) if (!applied.includes(name)) names.delete(name);
+        if (names.size === 0) animating.delete(el);
+      }
       frame = dragging || running.size > 0 || animating.size > 0 ? requestAnimationFrame(follow) : 0;
     };
     const onRun = (e: Event) => {
@@ -191,12 +199,26 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       schedule();
     };
     const onAnimationStart = (e: Event) => {
-      if (!(e.target instanceof Element) || !(e as AnimationEvent).animationName?.includes(ENTRANCE_ANIMATION)) return;
-      animating.add(e.target);
+      const el = e.target;
+      const name = (e as AnimationEvent).animationName;
+      if (!(el instanceof Element) || !name) return;
+      const style = getComputedStyle(el);
+      const at = cssList(style.animationName).indexOf(name);
+      const counts = cssList(style.animationIterationCount);
+      // The count list repeats to match the name list.
+      if (at >= 0 && counts.length > 0 && counts[at % counts.length] === 'infinite') return;
+      const names = animating.get(el) ?? new Set<string>();
+      names.add(name);
+      animating.set(el, names);
       if (!frame) frame = requestAnimationFrame(follow);
     };
     const onAnimationEnd = (e: Event) => {
-      if (e.target instanceof Element) animating.delete(e.target);
+      const el = e.target;
+      if (el instanceof Element) {
+        const names = animating.get(el);
+        names?.delete((e as AnimationEvent).animationName);
+        if (names?.size === 0) animating.delete(el);
+      }
       if (running.size === 0 && animating.size === 0 && !dragging && frame) {
         cancelAnimationFrame(frame);
         frame = 0;
