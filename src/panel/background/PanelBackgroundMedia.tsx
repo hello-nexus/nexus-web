@@ -2,7 +2,7 @@ import { type CSSProperties, useCallback, useEffect, useRef } from 'react';
 import { backgroundMediaFileUrl } from '../../api/panelBackgroundMedia';
 import styles from '../PanelApp.module.scss';
 
-const NULL_ERROR_GRACE_MS = 5_000;
+export const NULL_ERROR_GRACE_MS = 5_000;
 
 export function PanelBackgroundMedia({
   id,
@@ -43,6 +43,10 @@ export function PanelBackgroundMedia({
   const style = { '--panel-background-opacity': opacity } as CSSProperties;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const graceTimerRef = useRef(0);
+  const onFailedRef = useRef(onFailed);
+  useEffect(() => {
+    onFailedRef.current = onFailed;
+  });
 
   useEffect(() => {
     if (covered) videoRef.current?.pause();
@@ -98,14 +102,17 @@ export function PanelBackgroundMedia({
           onCanPlay={onLoaded}
           onError={e => {
             const video = e.currentTarget;
+            window.clearTimeout(graceTimerRef.current);
             if (video.error) {
-              onFailed?.();
+              onFailedRef.current?.();
               return;
             }
-            // Chrome 83 WebViews fire `error` with no MediaError on clips that then play, so wait before giving up.
-            window.clearTimeout(graceTimerRef.current);
+            // Chrome 83 WebViews fire `error` with no MediaError on clips that
+            // then play, so wait before giving up.
             graceTimerRef.current = window.setTimeout(() => {
-              if (videoRef.current === video && (video.error || video.readyState < 2)) onFailed?.();
+              if (videoRef.current === video && (video.error || video.readyState < 2)) {
+                onFailedRef.current?.();
+              }
             }, NULL_ERROR_GRACE_MS);
           }}
           onLoadedMetadata={onVideoMetadata ? e => onVideoMetadata(e.currentTarget) : undefined}
