@@ -128,6 +128,29 @@ describe('useLockNotice', () => {
     expect(visible(body)).toBe(false);
   });
 
+  it('keeps pulling when an inner element loses its capture', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    body.setPointerCapture = vi.fn();
+    body.hasPointerCapture = () => true;
+    body.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10, pointerId: 4 });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10, pointerId: 4 });
+    fireEvent.lostPointerCapture(getByTestId('face'), { pointerId: 4 });
+    expect(visible(body)).toBe(true);
+    fireEvent.lostPointerCapture(body, { pointerId: 4 });
+    expect(visible(body)).toBe(false);
+  });
+
+  it('drops a stale press when a mouse move reports no button held', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10, pointerType: 'mouse', buttons: 1 });
+    fireEvent.pointerMove(body, { clientX: 40, clientY: 10, pointerType: 'mouse', buttons: 0 });
+    fireEvent.pointerMove(body, { clientX: 80, clientY: 10, pointerType: 'mouse', buttons: 1 });
+    expect(visible(body)).toBe(false);
+  });
+
   it('ends the pull when pointer capture is lost', () => {
     const { getByTestId } = render(<Probe locked />);
     const body = getByTestId('body');

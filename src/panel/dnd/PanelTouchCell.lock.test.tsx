@@ -7,9 +7,10 @@ import type { PanelWidget } from '../types';
 import { LOCK_DRAG_MAX_PX } from './useLockNotice';
 
 const clicked = vi.fn();
+const bodyClicked = vi.fn();
 function Face() {
   return (
-    <div>
+    <div onClick={bodyClicked}>
       <span data-testid="face">face</span>
       <div data-panel-interactive="true"><span data-testid="stage">stage</span></div>
       <button type="button" data-testid="control" onClick={clicked}>go</button>
@@ -87,6 +88,32 @@ describe('locked widget in a cell', () => {
     expect(pointers.onPointerCancel).toHaveBeenCalledTimes(1);
     expect(wrap.dataset.panelCellCol).toBe('1');
     expect(wrap.dataset.panelCellRow).toBe('2');
+  });
+
+  it('withholds the tap on release even when the pull already ended on lost capture', () => {
+    const { wrap, getByTestId, pointers } = setup(true);
+    const face = getByTestId('face');
+    fireEvent.pointerDown(face, { isPrimary: true, clientX: 0, clientY: 0, pointerId: 2 });
+    fireEvent.pointerMove(face, { clientX: 100, clientY: 0, pointerId: 2 });
+    fireEvent.lostPointerCapture(wrap, { pointerId: 2 });
+    fireEvent.pointerUp(face, { clientX: 100, clientY: 0, pointerId: 2 });
+    expect(pointers.onPointerUp).not.toHaveBeenCalled();
+    expect(pointers.onPointerCancel).toHaveBeenCalled();
+  });
+
+  it('swallows the click that follows a pull and passes a later plain click', () => {
+    bodyClicked.mockClear();
+    const { getByTestId } = setup(true);
+    const face = getByTestId('face');
+    fireEvent.pointerDown(face, { isPrimary: true, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(face, { clientX: 100, clientY: 0 });
+    fireEvent.pointerUp(face, { clientX: 100, clientY: 0 });
+    fireEvent.click(face);
+    expect(bodyClicked).not.toHaveBeenCalled();
+    fireEvent.pointerDown(face, { isPrimary: true, clientX: 0, clientY: 0 });
+    fireEvent.pointerUp(face, { clientX: 0, clientY: 0 });
+    fireEvent.click(face);
+    expect(bodyClicked).toHaveBeenCalledTimes(1);
   });
 
   it('does not pull or capture a press inside an interactive stage', () => {

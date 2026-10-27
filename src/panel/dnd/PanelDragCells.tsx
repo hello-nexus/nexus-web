@@ -411,6 +411,7 @@ export function PanelTouchCell({
       lockNotice.handlers.end();
     },
     onLostPointerCapture: lockNotice.handlers.onLostPointerCapture,
+    onClickCapture: lockNotice.handlers.onClickCapture,
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
       lockNotice.handlers.onPointerDown(e);

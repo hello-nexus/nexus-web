@@ -1862,11 +1862,11 @@ export function PanelContent({
   );
 
   const touchCloseMenu = touch.closeCtxMenu;
-  const onLockDragChange = useCallback((active: boolean) => {
-    setLockDragging(active);
-    // A hold that opened the context menu leads into this pull; the menu would otherwise outlive it.
-    if (active) touchCloseMenu();
-  }, [touchCloseMenu]);
+  // A hold that opened the context menu leads into the pull, and a late long-press can open it mid-pull; neither may outlive the pull.
+  const lockPullMenuOpen = lockDragging && Boolean(touch.ctxMenu);
+  useEffect(() => {
+    if (lockPullMenuOpen) touchCloseMenu();
+  }, [lockPullMenuOpen, touchCloseMenu]);
   const lockActivationFor = useCallback(
     (pointerType: string) => (desktopActivation ? 'distance' : dragActivationFor(pointerType, mouseAsTouch)),
     [desktopActivation, mouseAsTouch],
@@ -2342,7 +2342,7 @@ export function PanelContent({
                               movable={dragEditable}
                               locked={lockedOf()}
                               lockActivationFor={lockActivationFor}
-                              onLockDragChange={onLockDragChange}
+                              onLockDragChange={setLockDragging}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}

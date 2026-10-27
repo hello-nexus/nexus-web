@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import { INTERACTIVE_SELECTOR, PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
 import { DRAG_DISTANCE_PX, DRAG_HOLD_TOLERANCE_PX, type DragActivation } from '../engine/pointerDragSensor';
 
@@ -47,6 +47,10 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   const [settling, setSettling] = useState(false);
   const press = useRef<Press | null>(null);
   const dragging = useRef(false);
+  // Set once a press became a pull and kept until the next press, so whichever release signal comes second still withholds the tap.
+  const pulled = useRef(false);
+  // The release of a pull is followed by one native click on the tile; it must not reach the widget.
+  const swallowClick = useRef(false);
   const captured = useRef<{ el: Element; id: number } | null>(null);
 
   const release = useCallback(() => {
@@ -63,7 +67,7 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
       setOffset(null);
       setSettling(true);
     }
-    return wasDragging;
+    return wasDragging || pulled.current;
   }, [release]);
 
   const onPointerDown = useCallback((e: PointerEvent) => {
@@ -71,13 +75,15 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isOwnControl(e.target, e.currentTarget as Element)) return;
     press.current = { x: e.clientX, y: e.clientY, at: Date.now(), pointerId: e.pointerId, activation: activationFor(e.pointerType) };
+    pulled.current = false;
+    swallowClick.current = false;
     setSettling(false);
   }, [activationFor, locked]);
   const onPointerMove = useCallback((e: PointerEvent) => {
     const origin = press.current;
     if (!locked || !origin || e.pointerId !== origin.pointerId) return;
     // A release the page never saw (a prompt, another app) shows as a move with no button held.
-    if (dragging.current && e.buttons === 0 && e.pointerType === 'mouse') {
+    if (e.buttons === 0 && e.pointerType === 'mouse') {
       end();
       return;
     }
@@ -91,12 +97,27 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
       }
       if (!exceedsDragThreshold(dx, dy)) return;
       dragging.current = true;
+      pulled.current = true;
+      swallowClick.current = true;
       const cell = e.currentTarget as Element;
       cell.setPointerCapture?.(e.pointerId);
       captured.current = { el: cell, id: e.pointerId };
     }
     setOffset(rubberBandOffset(dx, dy));
   }, [end, locked]);
+
+  // Only the cell's own capture counts; an inner element's lostpointercapture bubbles up when capture moves to the cell.
+  const onLostPointerCapture = useCallback((e: PointerEvent) => {
+    const held = captured.current;
+    if (held && e.target === e.currentTarget && e.pointerId === held.id) end();
+  }, [end]);
+
+  const onClickCapture = useCallback((e: MouseEvent) => {
+    if (!swallowClick.current) return;
+    swallowClick.current = false;
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   const isPulled = locked && offset !== null;
   useEffect(() => {
@@ -112,6 +133,6 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     offset: locked ? offset : null,
     settling: locked && settling,
     /** `end` closes the press on release or cancel and reports whether it was a drag, so the caller can withhold the tap. */
-    handlers: { onPointerDown, onPointerMove, end, onLostPointerCapture: end },
+    handlers: { onPointerDown, onPointerMove, end, onLostPointerCapture, onClickCapture },
   };
 }
