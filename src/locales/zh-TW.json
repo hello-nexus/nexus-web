@@ -2424,7 +2424,7 @@
   "lighting.colorTuning.blue": "藍",
   "lighting.colorTuning.brightnessInfo": "僅調暗此裝置的燈珠；畫布預覽仍維持全亮度。",
   "lighting.colorTuning.colorOrder": "顏色順序",
-  "lighting.colorTuning.colorOrderInfo": "如果紅色與綠色顯示顛倒，請使用此選項。",
+  "lighting.colorTuning.colorOrderInfo": "如果顏色顯示顛倒（例如紅色顯示為綠色），請使用此選項。",
   "lighting.colorTuning.cool": "冷",
   "lighting.colorTuning.done": "完成",
   "lighting.colorTuning.effectiveBrightnessInfo": "主亮度將輸出限制為 {master}%,因此此裝置無法更亮。",

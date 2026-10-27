@@ -2424,7 +2424,7 @@
   "lighting.colorTuning.blue": "Blu",
   "lighting.colorTuning.brightnessInfo": "Attenua solo i LED di questo dispositivo; l'anteprima del canvas resta alla massima luminosità.",
   "lighting.colorTuning.colorOrder": "Ordine dei colori",
-  "lighting.colorTuning.colorOrderInfo": "Usalo se il rosso e il verde appaiono invertiti.",
+  "lighting.colorTuning.colorOrderInfo": "Usalo se i colori appaiono invertiti, per esempio il rosso che appare verde.",
   "lighting.colorTuning.cool": "Freddo",
   "lighting.colorTuning.done": "Fatto",
   "lighting.colorTuning.effectiveBrightnessInfo": "La luminosità generale limita l'uscita al {master}%, quindi questo dispositivo non può essere più luminoso.",

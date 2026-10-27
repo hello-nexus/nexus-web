@@ -2438,7 +2438,7 @@
   "lighting.colorTuning.blue": "Синий",
   "lighting.colorTuning.brightnessInfo": "Приглушает только светодиоды этого устройства; предпросмотр холста остаётся на полной яркости.",
   "lighting.colorTuning.colorOrder": "Порядок цветов",
-  "lighting.colorTuning.colorOrderInfo": "Используйте, если красный и зелёный цвета поменялись местами.",
+  "lighting.colorTuning.colorOrderInfo": "Используйте, если цвета поменялись местами, например красный отображается как зелёный.",
   "lighting.colorTuning.cool": "Холодная",
   "lighting.colorTuning.done": "Готово",
   "lighting.colorTuning.effectiveBrightnessInfo": "Общая яркость ограничивает вывод до {master}%, поэтому это устройство не может быть ярче.",

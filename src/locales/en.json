@@ -2424,7 +2424,7 @@
   "lighting.colorTuning.blue": "Blue",
   "lighting.colorTuning.brightnessInfo": "Dims this device's LEDs only; the canvas preview stays at full brightness.",
   "lighting.colorTuning.colorOrder": "Color order",
-  "lighting.colorTuning.colorOrderInfo": "Use if red and green appear swapped.",
+  "lighting.colorTuning.colorOrderInfo": "Use if colors appear swapped, like red showing as green.",
   "lighting.colorTuning.cool": "Cool",
   "lighting.colorTuning.done": "Done",
   "lighting.colorTuning.effectiveBrightnessInfo": "Master brightness caps output at {master}%, so this device can't go any brighter.",
