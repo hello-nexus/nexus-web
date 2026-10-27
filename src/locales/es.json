@@ -2664,7 +2664,7 @@
   "lighting.colorTuning.blue": "Azul",
   "lighting.colorTuning.brightnessInfo": "Atenúa solo los LED de este dispositivo; la vista previa del lienzo se mantiene al brillo máximo.",
   "lighting.colorTuning.colorOrder": "Orden de color",
-  "lighting.colorTuning.colorOrderInfo": "Úsalo si el rojo y el verde aparecen intercambiados.",
+  "lighting.colorTuning.colorOrderInfo": "Úsalo si los colores aparecen intercambiados, por ejemplo el rojo se ve como verde.",
   "lighting.colorTuning.cool": "Frío",
   "lighting.colorTuning.done": "Listo",
   "lighting.colorTuning.effectiveBrightnessInfo": "El brillo maestro limita la salida al {master}%, por lo que este dispositivo no puede ser más brillante.",
