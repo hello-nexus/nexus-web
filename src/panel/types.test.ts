@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, type PanelSurface,
+  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, type PanelSurface,
 } from './types';
 
 describe('surfaceInputMode', () => {
@@ -39,6 +39,23 @@ describe('widgetInputOf', () => {
     expect(widgetInputOf(false, false)).toBe(false);
     expect(widgetInputOf(true, false)).toBe(true);
     expect(surfaceInputMode('q60', widgetInputOf(undefined, false))).toBe('none');
+  });
+});
+
+describe('cellInputOf', () => {
+  it('gives a generic display input, whatever the digitizer says', () => {
+    for (const touch of [undefined, false, true]) {
+      expect(cellInputOf(touch, isGenericDisplayPanel('monitor', undefined, true))).toBe(true);
+    }
+  });
+
+  it('keeps the digitizer answer of a known display (iCUE LINK 5" LCD, Xeneon Edge)', () => {
+    const lcd5 = isGenericDisplayPanel('monitor', 'icue-link-lcd5', true);
+    const xeneon = isGenericDisplayPanel('monitor', 'xeneon-edge', true);
+    expect(cellInputOf(false, lcd5)).toBe(false);
+    expect(surfaceInputMode('monitor', cellInputOf(false, lcd5))).toBe('none');
+    expect(cellInputOf(true, xeneon)).toBe(true);
+    expect(surfaceInputMode('monitor', cellInputOf(true, xeneon))).toBe('touch');
   });
 });
 

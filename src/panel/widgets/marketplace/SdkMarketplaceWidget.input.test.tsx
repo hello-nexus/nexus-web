@@ -1,8 +1,9 @@
-// The input mode an SDK app sees on a display-bound panel: a mouse-only display must read as interactive, not 'none'.
+// The input mode an SDK app sees on a monitor panel: a generic display driven by a mouse reads pointer, a known display keeps its own answer.
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
-import { widgetInputOf } from '../../types';
+import { cellInputOf, isGenericDisplayPanel } from '../../types';
+import { PanelDigitizerProvider, PanelGenericDisplayProvider } from '../common/PanelDisplayBoundContext';
 
 const sandboxProps = vi.fn();
 vi.mock('../../../api/service', () => ({
@@ -23,18 +24,32 @@ const listing = { id: 'com.example.app', name: 'Demo', capabilities: {} } as nev
 
 afterEach(() => { cleanup(); sandboxProps.mockClear(); });
 
-const inputFor = (deviceTouch: boolean | undefined) => {
-  render(<SdkMarketplaceWidget listing={listing} instanceId="inst-1" size="2x2" surface="monitor" deviceTouch={deviceTouch} />);
+// Mirrors PanelContent: the providers carry the raw digitizer, the cell gets cellInputOf.
+const inputFor = (family: string | undefined, digitizer: boolean | undefined) => {
+  const generic = isGenericDisplayPanel('monitor', family, true);
+  render(
+    <PanelGenericDisplayProvider value={generic}>
+      <PanelDigitizerProvider value={digitizer}>
+        <SdkMarketplaceWidget listing={listing} instanceId="inst-1" size="2x2" surface="monitor" deviceTouch={cellInputOf(digitizer, generic)} />
+      </PanelDigitizerProvider>
+    </PanelGenericDisplayProvider>,
+  );
   return (sandboxProps.mock.calls.at(-1)?.[0] as { displayInput: string }).displayInput;
 };
 
 describe('SDK display input on a monitor panel', () => {
-  it('is none without a digitizer when the panel is not display-bound', () => {
-    expect(inputFor(widgetInputOf(undefined, false))).toBe('none');
+  it('is pointer on a generic display with no digitizer', () => {
+    expect(inputFor(undefined, undefined)).toBe('pointer');
+    expect(inputFor(undefined, false)).toBe('pointer');
   });
 
-  it('is interactive on a display-bound panel with no digitizer', () => {
-    expect(inputFor(widgetInputOf(undefined, true))).not.toBe('none');
-    expect(inputFor(widgetInputOf(false, true))).not.toBe('none');
+  it('is touch on a generic display with a digitizer', () => {
+    expect(inputFor(undefined, true)).toBe('touch');
+  });
+
+  it('keeps the old answer on a known display', () => {
+    expect(inputFor('icue-link-lcd5', false)).toBe('none');
+    expect(inputFor('icue-link-lcd5', undefined)).toBe('none');
+    expect(inputFor('xeneon-edge', true)).toBe('touch');
   });
 });

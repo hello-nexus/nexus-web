@@ -120,7 +120,7 @@ import {
 import { recordWidgetSizeOf } from './engine/recordWidgetSize';
 import { kioskViewportSettled, recordCanvasOf } from './engine/recordCanvas';
 import { kioskViewportReporter } from './engine/kioskViewportReport';
-import { isSingleWidgetSurface, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
+import { isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -444,13 +444,9 @@ function PanelKioskContent({ recordState, deviceId, surface, glassSurface, devic
     >
       <PanelDeviceIdProvider value={deviceId}>
       <PanelDisplayBoundProvider value={!!displayBound}>
-      <PanelGenericDisplayProvider value={isGenericDisplayPanel(glassSurface, recordState.record?.capabilities?.family, !!displayBound)}>
-      <PanelDigitizerProvider value={deviceTouch}>
         <PanelGlassSurfaceProvider value={glassSurface}>
           <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} displayBound={displayBound} layoutState={layoutState} />
         </PanelGlassSurfaceProvider>
-      </PanelDigitizerProvider>
-      </PanelGenericDisplayProvider>
       </PanelDisplayBoundProvider>
       </PanelDeviceIdProvider>
     </ErrorBoundary>
@@ -917,6 +913,7 @@ export function PanelContent({
   // A display-bound panel is edited on its display with the mouse, so it needs no touch digitizer.
   // A display's mouse reaches widgets that need a pointer, as the legacy desktop overlay's did.
   const widgetTouch = widgetInputOf(deviceTouch, displayBound);
+  const cellTouch = cellInputOf(deviceTouch, genericDisplay);
   const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator, displayBound && kioskBehavior);
   const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch);
   // An editable canvas hoists the focused widget above the editor's scrim, else
@@ -2099,6 +2096,8 @@ export function PanelContent({
 
   return (
     <TouchViaPointerContext.Provider value={mouseAsTouch}>
+    <PanelGenericDisplayProvider value={genericDisplay}>
+    <PanelDigitizerProvider value={deviceTouch}>
     <PanelImmersiveOpenProvider value={immersiveWidgetId !== null}>
     <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DeckInstanceProvider value={editingDeckInstanceId ? { instanceId: editingDeckInstanceId, value: sharedDeckInstance } : null}>
@@ -2309,7 +2308,7 @@ export function PanelContent({
                               widget={w}
                               deviceId={deviceId}
                               surface={surface}
-                              deviceTouch={widgetTouch}
+                              deviceTouch={cellTouch}
                               rearranging={touch.rearranging}
                               pressHint={!sheetMode && touch.pressedWidgetId === w.id}
                               dimmed={Boolean(contextMenuWidgetId) && contextMenuWidgetId !== w.id}
@@ -2762,6 +2761,8 @@ export function PanelContent({
     </DeckInstanceProvider>
     </PanelGaugeGradientProvider>
     </PanelImmersiveOpenProvider>
+    </PanelDigitizerProvider>
+    </PanelGenericDisplayProvider>
     </TouchViaPointerContext.Provider>
   );
 }

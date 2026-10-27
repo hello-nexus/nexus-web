@@ -332,6 +332,11 @@ export function widgetInputOf(deviceTouch: boolean | undefined, displayBound: bo
   return displayBound ? true : deviceTouch;
 }
 
+/** Input a widget cell sees: a known display keeps its own digitizer answer, only a generic display's mouse counts as input. */
+export function cellInputOf(deviceTouch: boolean | undefined, genericDisplay: boolean): boolean | undefined {
+  return genericDisplay ? true : deviceTouch;
+}
+
 // Whether a press on the canvas can drag, resize or remove widgets. The device-page
 // preview is edited with the dashboard's mouse, so any multi-widget panel qualifies
 // there; on the glass itself a touch surface does, and so does a display-bound

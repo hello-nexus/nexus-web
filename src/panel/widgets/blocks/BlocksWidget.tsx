@@ -16,7 +16,7 @@ export function BlocksWidget({ widget, surface }: WidgetProps) {
   if (genericDisplay) {
     return (
       <PanelWidgetShell size={widget.size} className={styles.widget}>
-        <RotatePrompt compact icon={Ban} message={t('panel.widget.web-view.unsupported')} />
+        <RotatePrompt compact icon={Ban} message={t('panel.widget.unavailableOnDisplay')} />
       </PanelWidgetShell>
     );
   }

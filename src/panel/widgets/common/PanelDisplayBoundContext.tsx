@@ -24,10 +24,10 @@ export function usePanelGenericDisplay(): boolean {
 
 export const PanelGenericDisplayProvider = PanelGenericDisplayContext.Provider;
 
-// The display's own digitizer flag, null outside a kiosk panel. widgetInputOf folds a mouse display into touch for the widgets.
-const PanelDigitizerContext = createContext<boolean | undefined | null>(null);
+// The panel's own digitizer flag; generic-display widgets are handed input regardless of it.
+const PanelDigitizerContext = createContext<boolean | undefined>(undefined);
 
-export function usePanelDigitizer(): boolean | undefined | null {
+export function usePanelDigitizer(): boolean | undefined {
   return useContext(PanelDigitizerContext);
 }
 

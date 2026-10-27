@@ -16,7 +16,7 @@ export interface RotatePromptProps {
 export function RotatePrompt({ message, compact = false, icon: Icon = RotateCw }: RotatePromptProps) {
   return (
     <div className={styles.root} data-compact={compact ? 'true' : undefined} role="status">
-      <Icon size={compact ? 20 : 32} className={styles.icon} aria-hidden />
+      <Icon size={compact ? 20 : 32} className={Icon === RotateCw ? styles.icon : styles.iconStatic} aria-hidden />
       <p className={styles.message}>{message}</p>
     </div>
   );

@@ -14,11 +14,11 @@ const widget = (type: string) => ({ id: 'g1', type, size: '2x2', col: 0, row: 0,
 describe.each([['snake', SnakeWidget], ['blocks', BlocksWidget]] as const)('%s tile', (type, Widget) => {
   it('reads as unavailable on a generic display panel', () => {
     render(<PanelGenericDisplayProvider value><Widget widget={widget(type)} surface="monitor" /></PanelGenericDisplayProvider>);
-    expect(screen.getByText('panel.widget.web-view.unsupported')).toBeTruthy();
+    expect(screen.getByText('panel.widget.unavailableOnDisplay')).toBeTruthy();
   });
 
   it('shows the game tile elsewhere', () => {
     render(<Widget widget={widget(type)} surface="y70" />);
-    expect(screen.queryByText('panel.widget.web-view.unsupported')).toBeNull();
+    expect(screen.queryByText('panel.widget.unavailableOnDisplay')).toBeNull();
   });
 });
