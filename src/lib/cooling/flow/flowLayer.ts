@@ -55,7 +55,10 @@ const SPEED_FACTOR_MAX = 3;
 
 export interface FlowColors {
   cool: Color;
+  /** The ramp from cool to hot: cool, a pale light stop that keeps blue to yellow off gray and green, warm, orange, then hot. */
+  pale: Color;
   warm: Color;
+  orange: Color;
   hot: Color;
   /** Collision shapes: solid obstacles and porous ones. */
   collision: Color;
@@ -346,7 +349,7 @@ export class FlowLayer {
         uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: STREAK_WIDTH_MM }, uMinWidthPx: { value: STREAK_MIN_WIDTH_PX }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
         uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: STREAK_ALPHA }, uTailWidth: { value: STREAK_TAIL_WIDTH }, uRate: { value: 1 },
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-        uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
+        uCool: { value: this.colors.cool }, uPale: { value: this.colors.pale }, uWarm: { value: this.colors.warm }, uOrange: { value: this.colors.orange }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
       transparent: true, depthWrite: false, depthTest: false, premultipliedAlpha: true, blending: NormalBlending, side: DoubleSide,
     });

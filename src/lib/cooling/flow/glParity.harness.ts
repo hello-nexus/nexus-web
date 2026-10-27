@@ -115,7 +115,7 @@ async function main() {
 
   const host = new Group();
   const layer = new FlowLayer(renderer, host, new Vector3(480, 440, 360), {
-    cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+    cool: new Color('#38bdf8'), pale: new Color('#f2f6ff'), warm: new Color('#f59e0b'), orange: new Color('#ff8a00'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
   });
   const sc = new Scene();
   sc.add(host);
@@ -157,7 +157,7 @@ async function main() {
     const scP = new Scene();
     scP.add(hostP);
     const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
-      cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+      cool: new Color('#38bdf8'), pale: new Color('#f2f6ff'), warm: new Color('#f59e0b'), orange: new Color('#ff8a00'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
     });
     // The coarsest tier keeps the software renderer quick; particles start once the first solve settles.
     l.dropTier();
@@ -187,7 +187,7 @@ async function main() {
   const sc2 = new Scene();
   sc2.add(host2);
   const slowFast = new FlowLayer(renderer, host2, new Vector3(480, 440, 360), {
-    cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+    cool: new Color('#38bdf8'), pale: new Color('#f2f6ff'), warm: new Color('#f59e0b'), orange: new Color('#ff8a00'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
   });
   slowFast.setInput(pair);
   slowFast.setOptions({ particles: true, collisions: false, speed: 1.5 });

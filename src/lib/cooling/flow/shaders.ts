@@ -312,7 +312,7 @@ uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
 uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
-uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot; uniform float uHeatSpan;
+uniform vec3 uCool; uniform vec3 uPale; uniform vec3 uWarm; uniform vec3 uOrange; uniform vec3 uHot; uniform float uHeatSpan;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
 // Colors convert to OKLab from linear sRGB for the blend below.
@@ -326,17 +326,14 @@ vec3 fromLab(vec3 c) {
   l = l * l * l;
   return max(vec3(4.0767416621 * l.x - 3.3077115913 * l.y + 0.2309699292 * l.z, -1.2684380046 * l.x + 2.6097574011 * l.y - 0.3413193965 * l.z, -0.0041960863 * l.x - 0.7034186147 * l.y + 1.7076147010 * l.z), vec3(0.0));
 }
-// Blend in OKLCH: lightness and chroma mix linearly and the hue turns the short way round, so the ramp keeps its chroma between complementary ends instead of passing through the gray midpoint a straight Lab mix has. The hue turn is a rotation of the a,b direction by the signed angle between the ends; an end with no chroma has no hue, so that case is a plain mix. Out-of-gamut results clamp.
-vec3 mixLab(vec3 a, vec3 b, float t) {
-  vec3 la = toLab(a); vec3 lb = toLab(b);
-  float ca = length(la.yz); float cb = length(lb.yz);
-  float c = mix(ca, cb, t);
-  float lum = mix(la.x, lb.x, t);
-  if (ca < 1.0e-4 || cb < 1.0e-4) return fromLab(vec3(lum, mix(la.yz, lb.yz, t)));
-  vec2 da = la.yz / ca; vec2 db = lb.yz / cb;
-  float turn = atan(da.x * db.y - da.y * db.x, dot(da, db)) * t;
-  vec2 dir = vec2(da.x * cos(turn) - da.y * sin(turn), da.x * sin(turn) + da.y * cos(turn));
-  return fromLab(vec3(lum, dir * c));
+// The ramp runs through five stops, each segment blended in OKLab: cool, a pale light stop, warm, orange, hot. Going straight from cool to warm can only pass gray or green; the pale stop between them is light, so it reads as white, and the segments after it stay in yellow, orange and red.
+vec3 mixLab(vec3 a, vec3 b, float t) { return fromLab(mix(toLab(a), toLab(b), t)); }
+vec3 rampColor(float h) {
+  float x = clamp(h, 0.0, 1.0) * 4.0;
+  if (x < 1.0) return mixLab(uCool, uPale, x);
+  if (x < 2.0) return mixLab(uPale, uWarm, x - 1.0);
+  if (x < 3.0) return mixLab(uWarm, uOrange, x - 2.0);
+  return mixLab(uOrange, uHot, x - 3.0);
 }
 vec2 screenOf(vec3 cellPos, out float w) {
   vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
@@ -354,7 +351,7 @@ void main() {
   vec3 over = max(max(-head, head - uCaseExtent), 0.0);
   float outside = length(over);
   float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
-  vColor = h < 0.5 ? mixLab(uCool, uWarm, h * 2.0) : mixLab(uWarm, uHot, (h - 0.5) * 2.0);
+  vColor = rampColor(h);
   // A stable per-particle strength, so neighbors differ a little without flickering.
   float strength = mix(0.75, 1.0, hash(vec2(r) * 1.31 + 0.5));
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha * strength;

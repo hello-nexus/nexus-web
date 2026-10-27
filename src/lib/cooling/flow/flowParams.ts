@@ -47,7 +47,7 @@ export const PLUME_EMITTERS_MAX = 24;
 /** Air this many degrees above room temperature is drawn in the full hot color. */
 export const HEAT_COLOR_SPAN_C = 15;
 /** With power readings the color span follows the physics: this many times the air's rise at the exhaust (all the power over rho cp times the flow), within these bounds in degrees, so a calm case still shows its warm spots and a loaded one does not saturate. */
-export const HEAT_SPAN_PER_EXHAUST_RISE = 3;
+export const HEAT_SPAN_PER_EXHAUST_RISE = 2;
 export const HEAT_SPAN_MIN_K = 4;
 export const HEAT_SPAN_MAX_K = 15;
 /** A part's power must move this many watts before the temperature field relaxes again. */
