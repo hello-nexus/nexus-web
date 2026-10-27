@@ -122,7 +122,7 @@ export async function fetchMachineDevices(): Promise<BuildDevice[]> {
 const LAYOUT_DEVICES = new Set(['cooler', 'fan']);
 
 /** Raised whenever Build's layout rules change for unchanged inputs (default fans, a chip-only card), so a saved layout is resolved again once. */
-export const BUILD_LAYOUT_RULES = 2;
+export const BUILD_LAYOUT_RULES = 3;
 
 /**
  * What the case layout depends on among the machine's facts: the case, the board and memory, the processor and card, and the coolers and
