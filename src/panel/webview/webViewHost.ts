@@ -12,6 +12,7 @@ import {
   type WebViewSyncView,
   type WebViewTransport,
 } from './webViewProtocol';
+import { GESTURE_ENGAGE_PX } from '../engine/gestureThresholds';
 import { computeVisible, dragHidesTiles } from './webViewVisibility';
 import { measureTile } from './webViewMeasure';
 
@@ -92,6 +93,8 @@ export class WebViewHost {
   private maxViews = 0;
   private viewStates: Record<string, WebViewViewState> = {};
   private contextMenu = false;
+  private longPress = false;
+  private gestureEngagePx = GESTURE_ENGAGE_PX;
   private interactiveTiles = false;
   private contextMenuListeners = new Set<(id: string, x: number, y: number) => void>();
   private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, contextMenu: false, maxViews: 0, views: {}, overLimit: [] };
@@ -166,6 +169,18 @@ export class WebViewHost {
     if (this.interactiveTiles === value) return;
     this.interactiveTiles = value;
     this.schedule();
+  }
+
+  /** Finger travel, in CSS px, at which a vertical drag counts as a sheet pull and hides the tiles. */
+  setGestureEngagePx(px: number): void {
+    this.gestureEngagePx = Number.isFinite(px) && px > 0 ? px : GESTURE_ENGAGE_PX;
+  }
+
+  /** Whether the tile of widget `id` is a native view that takes the touch right now, so a tap on it never reaches the panel. */
+  tileTakesTouch(id: string): boolean {
+    const c = this.winnerOf(id);
+    if (!c || c.immersive || c.touchPage !== true || this.overLimit.has(id) || this.status !== 'supported') return false;
+    return this.viewInteractive(c) && this.viewStates[id]?.state === 'loaded';
   }
 
   /** A right-click the host saw on an interactive view. */
@@ -293,12 +308,15 @@ export class WebViewHost {
       if (this.status === 'unsupported') this.stopHeartbeat();
       this.interactive = msg.interactive;
       this.contextMenu = msg.contextMenu;
+      this.longPress = msg.longPress;
       this.maxViews = msg.maxViews;
       this.emit();
       if (this.status === 'supported') this.flush(true);
       return;
     }
     if (msg.type === 'nexus.webview.contextmenu') {
+      // An immersive claim owns the page: a hold inside it must not open the tile's menu.
+      if (this.winnerOf(msg.id)?.immersive) return;
       for (const l of [...this.contextMenuListeners]) l(msg.id, msg.x, msg.y);
       return;
     }
@@ -318,7 +336,7 @@ export class WebViewHost {
   private onPointerMove(e: PointerEvent): void {
     const p = this.pointers.get(e.pointerId);
     if (!p) return;
-    if (!p.moved && !p.scroller && dragHidesTiles(e.clientX - p.x, e.clientY - p.y)) {
+    if (!p.moved && !p.scroller && dragHidesTiles(e.clientX - p.x, e.clientY - p.y, this.gestureEngagePx)) {
       p.moved = true;
       this.gestureActive = true;
       this.flush(false);
@@ -430,6 +448,22 @@ export class WebViewHost {
     return changed;
   }
 
+  private winnerOf(id: string): ClaimRecord | undefined {
+    let win: ClaimRecord | undefined;
+    for (const c of this.claims.values()) {
+      if (c.id === id && (!win || (c.immersive && !win.immersive))) win = c;
+    }
+    return win;
+  }
+
+  // Touch in place needs both the host's long-press report and its menu path, so an older host keeps tap-to-open.
+  private viewInteractive(c: ClaimRecord): boolean {
+    if (!this.interactive) return false;
+    if (c.immersive) return true;
+    if (!this.contextMenu) return false;
+    return this.interactiveTiles || (c.touchPage === true && this.longPress);
+  }
+
   private buildViews(): WebViewSyncView[] {
     const supported = this.status === 'supported';
     const documentVisible = document.visibilityState !== 'hidden';
@@ -452,7 +486,7 @@ export class WebViewHost {
         rect,
         radius,
         zoom: clampZoom(c.zoom),
-        interactive: (c.immersive || ((this.interactiveTiles || c.touchPage === true) && this.contextMenu)) && this.interactive,
+        interactive: this.viewInteractive(c),
         visible: computeVisible({
           supported,
           documentVisible,

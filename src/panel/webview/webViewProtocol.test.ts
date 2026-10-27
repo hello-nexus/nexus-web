@@ -51,8 +51,9 @@ describe('detectTransport', () => {
 
 describe('parseInbound', () => {
   it('parses caps from an object or a JSON string', () => {
-    const caps = { type: 'nexus.webview.caps', version: 1, supported: true, maxViews: 4, interactive: false, contextMenu: true };
+    const caps = { type: 'nexus.webview.caps', version: 1, supported: true, maxViews: 4, interactive: false, contextMenu: true, longPress: true };
     expect(parseInbound(caps)).toEqual(caps);
+    expect(parseInbound({ ...caps, longPress: undefined })).toMatchObject({ longPress: false });
     expect(parseInbound(JSON.stringify(caps))).toEqual(caps);
   });
 

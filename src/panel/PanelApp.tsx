@@ -107,7 +107,6 @@ import { openAppAt } from '../api/displays';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive, postService } from '../api/service';
 import { webViewOpenUrl } from './widgets/web-view/webViewUrl';
-import { webViewTapOpensImmersive } from './widgets/web-view/webViewConfig';
 import { createUuid } from '../lib/uuid';
 import { spawnDropRing } from '../lib/dropRing';
 import {
@@ -154,6 +153,7 @@ import {
   DESKTOP_ACTION_TRAY_HEIGHT,
   MAX_PANEL_PAGES,
   PHONE_WIDGET_REFERENCE_CELL,
+  cssPxPerMm,
   densityShortSideSlots,
   estimateRuntimePanelDpi,
   runtimeDensityShortSideSlots,
@@ -162,6 +162,8 @@ import {
   useViewportLandscape,
   usePanelPageScrollLock,
 } from './engine/panelGrid';
+import { CONTROL_CENTER_ENGAGE_MM } from './engine/controlCenterGesture';
+import { TRAY_ENGAGE_TRAVEL_MM } from './engine/gestureThresholds';
 import {
   useIsLandscape,
   usePhoneContentScale,
@@ -1349,8 +1351,8 @@ export function PanelContent({
     if (genericDisplay) return;
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
-    // A Web View the user touches in place opens fullscreen from the menu's Open instead.
-    if (!webViewTapOpensImmersive(w)) return;
+    // A Web View tile that takes the touch itself opens fullscreen from the menu's Immersive mode item instead.
+    if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return;
     // An immersive view closes by touch, so a mouse-only display never opens one.
     if (!surfaceSupportsTouch(surface, deviceTouch)) return;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
@@ -1406,6 +1408,9 @@ export function PanelContent({
     webViewHost.setInteractiveTiles(interactiveWebTiles);
     return () => webViewHost.setInteractiveTiles(false);
   }, [interactiveWebTiles]);
+  useEffect(() => {
+    webViewHost.setGestureEngagePx(Math.min(CONTROL_CENTER_ENGAGE_MM, TRAY_ENGAGE_TRAVEL_MM) * cssPxPerMm(surface));
+  }, [surface]);
   const openCtxMenu = touch.openCtxMenu;
   // A touch panel's interactive Web View tiles report a long-press the same way, so the menu stays reachable.
   const reportsWebViewMenu = !simulator && !embedded && dragEditable;

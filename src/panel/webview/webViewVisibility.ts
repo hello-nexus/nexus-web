@@ -77,10 +77,10 @@ export function webViewSuppressedBy(state: WebViewSuppressors): boolean {
 }
 
 /**
- * True once a drag has become a vertical pull of the panel: past the same
- * engage distance and axis dominance the tray and control center use. A tap
+ * True once a drag has become a vertical pull of the panel: past the engage
+ * distance of the nearest sheet and the axis dominance the tray and control center use. A tap
  * with finger drift, or a horizontal page swipe, stays false.
  */
-export function dragHidesTiles(dx: number, dy: number): boolean {
-  return Math.abs(dy) > GESTURE_ENGAGE_PX && Math.abs(dy) > Math.abs(dx) * GESTURE_AXIS_DOMINANCE;
+export function dragHidesTiles(dx: number, dy: number, engagePx: number = GESTURE_ENGAGE_PX): boolean {
+  return Math.abs(dy) > engagePx && Math.abs(dy) > Math.abs(dx) * GESTURE_AXIS_DOMINANCE;
 }

@@ -122,6 +122,11 @@ describe('WidgetContextMenu lock widgets', () => {
     expect(screen.getByText('panel.widget.menu.lockWidgets')).toBeTruthy();
   });
 
+  it('keeps Immersive mode reachable while locked', () => {
+    render(<WidgetContextMenu {...base} locked onToggleLock={vi.fn()} onImmersive={vi.fn()} />);
+    expect(screen.getByText('panel.widget.menu.immersive')).toBeTruthy();
+  });
+
   it('shows no lock item where lock is not offered', () => {
     render(<WidgetContextMenu {...base} />);
     expect(screen.queryByText('panel.widget.menu.lockWidgets')).toBeNull();

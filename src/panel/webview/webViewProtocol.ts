@@ -55,6 +55,8 @@ export interface WebViewCaps {
   interactive: boolean;
   /** The host reports right-clicks on an interactive view, so a tile can take the mouse and keep its widget menu. */
   contextMenu: boolean;
+  /** The host reports a touch long-press on an interactive view as a context-menu request. */
+  longPress: boolean;
 }
 
 export type WebViewLoadState = 'loading' | 'loaded' | 'error' | 'crashed';
@@ -129,6 +131,7 @@ export function parseInbound(raw: unknown): WebViewInbound | null {
       maxViews: typeof m.maxViews === 'number' ? m.maxViews : 0,
       interactive: m.interactive === true,
       contextMenu: m.contextMenu === true,
+      longPress: m.longPress === true,
     };
   }
   if (m.type === 'nexus.webview.contextmenu' && typeof m.id === 'string'

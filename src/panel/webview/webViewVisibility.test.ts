@@ -114,6 +114,11 @@ describe('dragHidesTiles', () => {
     expect(dragHidesTiles(0, 16)).toBe(false);
   });
 
+  it('uses the given engage distance', () => {
+    expect(dragHidesTiles(0, 10, 8)).toBe(true);
+    expect(dragHidesTiles(0, 10, 12)).toBe(false);
+  });
+
   it('hides on a vertical pull', () => {
     expect(dragHidesTiles(2, 40)).toBe(true);
     expect(dragHidesTiles(0, -40)).toBe(true);

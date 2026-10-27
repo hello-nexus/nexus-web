@@ -217,13 +217,13 @@ describe('touchable tiles', () => {
 
   it('takes touch on a tile only when the claim asks and the host reports context menus', () => {
     tile(true);
-    bridge.push(caps({ contextMenu: true }));
+    bridge.push(caps({ contextMenu: true, longPress: true }));
     expect(syncs().at(-1)!.views[0].interactive).toBe(true);
   });
 
   it('stays non-interactive when the claim does not ask', () => {
     tile(false);
-    bridge.push(caps({ contextMenu: true }));
+    bridge.push(caps({ contextMenu: true, longPress: true }));
     expect(syncs().at(-1)!.views[0].interactive).toBe(false);
   });
 
@@ -233,10 +233,54 @@ describe('touchable tiles', () => {
     expect(syncs().at(-1)!.views[0].interactive).toBe(false);
   });
 
+  it('stays non-interactive on an overlay that cannot report a long-press', () => {
+    tile(true);
+    bridge.push(caps({ contextMenu: true }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+
+  it('reports touch taken only for a loaded, interactive tile', () => {
+    const host = tile(true);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    expect(host.tileTakesTouch('a')).toBe(false);
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(true);
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'error', code: '1', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(false);
+  });
+
+  it('does not take touch on an old overlay or for an unknown id', () => {
+    const old = tile(true);
+    bridge.push(caps({ contextMenu: true }));
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(old.tileTakesTouch('a')).toBe(false);
+    expect(old.tileTakesTouch('missing')).toBe(false);
+  });
+
+  it('does not take touch with the setting off', () => {
+    const host = tile(false);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(false);
+  });
+
+  it('ignores a long-press report while the widget is immersive, and forwards it otherwise', () => {
+    const host = makeHost();
+    const onMenu = vi.fn();
+    host.onContextMenu(onMenu);
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, touchPage: true });
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    bridge.push({ type: 'nexus.webview.contextmenu', id: 'a', x: 5, y: 6 });
+    expect(onMenu).toHaveBeenCalledWith('a', 5, 6);
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: true });
+    bridge.push({ type: 'nexus.webview.contextmenu', id: 'a', x: 5, y: 6 });
+    expect(onMenu).toHaveBeenCalledTimes(1);
+  });
+
   it('follows the setting live', () => {
     const host = makeHost();
     const claim = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, touchPage: true });
-    bridge.push(caps({ contextMenu: true }));
+    bridge.push(caps({ contextMenu: true, longPress: true }));
     claim.setTouchPage(false);
     frame();
     expect(syncs().at(-1)!.views[0].interactive).toBe(false);

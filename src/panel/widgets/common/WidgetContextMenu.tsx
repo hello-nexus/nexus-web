@@ -43,7 +43,7 @@ interface WidgetContextMenuProps {
   // Opens the panel menu from a widget, for panels whose empty space passes clicks through.
   onOpenPanelActions?: () => void;
   // Panel-wide widget lock. When onToggleLock is provided the menu renders a checked
-  // "Lock widgets" row; while `locked`, the edit/resize/immersive items are hidden.
+  // "Lock widgets" row; while `locked`, the edit and resize items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
   // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
@@ -167,7 +167,7 @@ export function WidgetContextMenu({
       )}
     </>
   );
-  const hasMiddleItems = Boolean((onImmersive && !locked) || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+  const hasMiddleItems = Boolean(onImmersive || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
 
   const menuStyle = {
     ...themeStyle,
@@ -223,7 +223,7 @@ export function WidgetContextMenu({
 
       {!widgetItemsLast && editItems}
 
-      {onImmersive && !locked && (
+      {onImmersive && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
           <Maximize2 size={14} />
           <span>{t('panel.widget.menu.immersive')}</span>
