@@ -5,7 +5,7 @@ vi.mock('../api/service', () => ({
   authFetchWithStatus: (...a: unknown[]) => postService(...a),
 }));
 
-const recoverNow = vi.fn(async () => false);
+const recoverNow = vi.fn(async (): Promise<string> => 'noop');
 vi.mock('../lib/staleChunkRecovery', async (orig) => ({
   ...(await orig<typeof import('../lib/staleChunkRecovery')>()),
   recoverFromStaleChunkNow: () => recoverNow(),
@@ -318,16 +318,17 @@ describe('stale chunk errors', () => {
   });
 
   it('are swallowed when the reload guard allowed a reload', async () => {
-    recoverNow.mockResolvedValueOnce(true);
+    recoverNow.mockResolvedValueOnce('reloaded');
     reportError(stale(), 'unhandled-rejection');
     await vi.advanceTimersByTimeAsync(5000);
     expect(postService).not.toHaveBeenCalled();
   });
 
   it('are still reported when the guard blocked the reload', async () => {
-    recoverNow.mockResolvedValueOnce(false);
+    recoverNow.mockResolvedValueOnce('loop-guard');
     reportError(stale(), 'unhandled-rejection');
     await vi.advanceTimersByTimeAsync(5000);
     expect(sent()).toHaveLength(1);
+    expect(sent()[0].errors[0].context).toContain('no-reload:loop-guard');
   });
 });

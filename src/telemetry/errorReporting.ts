@@ -185,8 +185,10 @@ function isAppKind(kind: ErrorKind): boolean {
 export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried = false, app?: AppErrorSource): void {
   if (!recoveryTried && installed && staleChunkMessageOf(error)) {
     // A reload onto a new build makes the error moot; otherwise report it as usual.
-    void recoverFromStaleChunkNow().then((reloaded) => {
-      if (!reloaded) reportError(error, kind, context, true);
+    void recoverFromStaleChunkNow().then((outcome) => {
+      if (outcome === 'reloaded') return;
+      // The reason lets the report show which guard stopped the reload.
+      reportError(error, kind, `${context ? `${context} ` : ''}no-reload:${outcome}`, true);
     });
     return;
   }

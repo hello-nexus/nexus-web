@@ -19,6 +19,15 @@ export function isStaleChunkMessage(message: string): boolean {
   return STALE_CHUNK_RE.test(message);
 }
 
+// Waits between check attempts. A service restarting during an update refuses
+// connections for a few seconds, so a first miss is retried before giving up.
+export const STALE_CHUNK_RETRY_DELAYS_MS = [10_000, 20_000];
+
+// Why a recovery did not reload; the first value is the only success.
+export type RecoverOutcome = 'reloaded' | CheckResult | 'loop-guard' | 'timeout' | 'check-error' | 'storage-blocked';
+
+const RETRYABLE: ReadonlySet<RecoverOutcome> = new Set<RecoverOutcome>(['noop', 'unverified', 'timeout']);
+
 export interface RecoverDeps {
   now: number;
   // The build watcher's pass without its own reload: resolves 'reload' only
@@ -28,29 +37,39 @@ export interface RecoverDeps {
   // False when the stamp could not be stored.
   writeStamp: (at: number) => boolean;
   reload: () => void;
+  sleep: (ms: number) => Promise<void>;
 }
 
-// True when a reload was triggered, so the caller can swallow the error; false
-// when it was not and the error should surface as a real failure.
-export async function recoverFromStaleChunk(deps: RecoverDeps): Promise<boolean> {
-  const last = deps.readStamp();
-  if (last > 0 && deps.now >= last && deps.now - last < STALE_CHUNK_RELOAD_LOCK_MS) return false;
-  let result: CheckResult;
+async function checkWithTimeout(deps: RecoverDeps): Promise<CheckResult | 'timeout' | 'check-error'> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    result = await Promise.race([
+    return await Promise.race([
       deps.check(),
-      new Promise<CheckResult>((resolve) => { timer = setTimeout(() => resolve('noop'), STALE_CHUNK_CHECK_TIMEOUT_MS); }),
+      new Promise<'timeout'>((resolve) => { timer = setTimeout(() => resolve('timeout'), STALE_CHUNK_CHECK_TIMEOUT_MS); }),
     ]);
   } catch {
-    return false;
+    return 'check-error';
   } finally {
     clearTimeout(timer);
   }
-  if (result !== 'reload') return false;
-  if (!deps.writeStamp(deps.now)) return false;
+}
+
+// 'reloaded' when a reload was triggered, so the caller can swallow the error;
+// otherwise the reason it was not, and the error should surface as a real failure.
+export async function recoverFromStaleChunk(deps: RecoverDeps): Promise<RecoverOutcome> {
+  const last = deps.readStamp();
+  if (last > 0 && deps.now >= last && deps.now - last < STALE_CHUNK_RELOAD_LOCK_MS) return 'loop-guard';
+  let result: RecoverOutcome = 'noop';
+  for (let attempt = 0; attempt <= STALE_CHUNK_RETRY_DELAYS_MS.length; attempt += 1) {
+    if (attempt > 0) await deps.sleep(STALE_CHUNK_RETRY_DELAYS_MS[attempt - 1]);
+    const checked = await checkWithTimeout(deps);
+    result = checked === 'reload' ? 'reloaded' : checked;
+    if (!RETRYABLE.has(result)) break;
+  }
+  if (result !== 'reloaded') return result;
+  if (!deps.writeStamp(deps.now)) return 'storage-blocked';
   deps.reload();
-  return true;
+  return 'reloaded';
 }
 
 export function liveRecoverDeps(): RecoverDeps {
@@ -65,14 +84,15 @@ export function liveRecoverDeps(): RecoverDeps {
       try { sessionStorage.setItem(STAMP_KEY, String(at)); return true; } catch { return false; }
     },
     reload: () => window.location.reload(),
+    sleep: (ms) => new Promise((resolve) => { setTimeout(resolve, ms); }),
   };
 }
 
 // One recovery at a time: a burst of chunk errors (several lazy pages, the
 // dashboard prefetches) shares a single index.html fetch and asset sweep.
-let inFlight: Promise<boolean> | null = null;
+let inFlight: Promise<RecoverOutcome> | null = null;
 
-export function recoverFromStaleChunkNow(): Promise<boolean> {
+export function recoverFromStaleChunkNow(): Promise<RecoverOutcome> {
   if (!inFlight) {
     inFlight = recoverFromStaleChunk(liveRecoverDeps()).finally(() => { inFlight = null; });
   }
