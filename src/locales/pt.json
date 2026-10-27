@@ -5871,6 +5871,7 @@
   "store.spec.widgetSizes": "Tamanhos do widget",
   "store.unavailable": "Marketplace indisponível",
   "store.update": "Atualizar",
+  "store.value.freeform": "qualquer tamanho par",
   "store.value.hasFeature": "Sim",
   "store.value.noFeature": "Não",
   "store.value.touchAny": "Não necessário",

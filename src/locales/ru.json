@@ -5922,6 +5922,7 @@
   "store.spec.widgetSizes": "Размеры виджета",
   "store.unavailable": "Marketplace недоступен",
   "store.update": "Обновить",
+  "store.value.freeform": "любой чётный размер",
   "store.value.hasFeature": "Есть",
   "store.value.noFeature": "Нет",
   "store.value.touchAny": "Не требуется",

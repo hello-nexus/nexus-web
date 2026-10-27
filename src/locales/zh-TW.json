@@ -5871,6 +5871,7 @@
   "store.spec.widgetSizes": "小工具尺寸",
   "store.unavailable": "Marketplace 無法使用",
   "store.update": "更新",
+  "store.value.freeform": "任意偶數尺寸",
   "store.value.hasFeature": "支援",
   "store.value.noFeature": "不支援",
   "store.value.touchAny": "非必要",
