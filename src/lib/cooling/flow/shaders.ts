@@ -14,7 +14,7 @@ layout(location = 0) out highp vec4 fragOut;
 #define gl_FragColor fragOut
 `;
 
-const GRID_COMMON = /* glsl */ `
+export const GRID_COMMON = /* glsl */ `
 uniform vec3 uN;
 uniform float uTX;
 #define N ivec3(uN)
@@ -62,7 +62,7 @@ void main() {
 }`;
 
 // Temperature: degrees above room temperature, carried with the final velocity.
-const TEMP_COMMON = /* glsl */ `
+export const TEMP_COMMON = /* glsl */ `
 uniform sampler2D T;
 // Trilinear value at cell coordinates, averaged over the fluid cells only so a wall does not cool the air beside it.
 float sampleT(vec3 p) {
@@ -305,16 +305,9 @@ vec4 streakOf(vec3 d) {
 }
 `;
 
-// A particle is a camera-facing ribbon of STREAK_SEGMENTS segments from its head back along the flow: each station steps backward through the solved velocity field, so the tail bends where the air bends. Per particle 2 vertices per station: corner.x is 1 at the head and 0 at the tail, corner.y the side.
-export const STREAK_VERTEX = LIFE + GRID_COMMON + STREAK_GLSL + /* glsl */ `
-#define STREAK_SEGMENTS ${STREAK_SEGMENTS}
-uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
-uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
-uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
-uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
-uniform vec3 uCool; uniform vec3 uPurple; uniform vec3 uHot; uniform float uHeatSpan;
-in vec2 ref; in vec2 corner;
-out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
+/** The heat ramp, shared by the streaks and the heat volume: three stops blended in OKLab, `h` 0 at the cool end and 1 at the hot end. */
+export const RAMP = /* glsl */ `
+uniform vec3 uCool; uniform vec3 uPurple; uniform vec3 uHot;
 // Colors convert to OKLab from linear sRGB for the blend below.
 vec3 toLab(vec3 c) {
   vec3 l = vec3(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b, 0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b, 0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
@@ -333,6 +326,19 @@ vec3 rampColor(float h) {
   if (x < 1.0) return mixLab(uCool, uPurple, x);
   return mixLab(uPurple, uHot, x - 1.0);
 }
+`;
+
+// A particle is a camera-facing ribbon of STREAK_SEGMENTS segments from its head back along the flow: each station steps backward through the solved velocity field, so the tail bends where the air bends. Per particle 2 vertices per station: corner.x is 1 at the head and 0 at the tail, corner.y the side.
+export const STREAK_VERTEX = LIFE + GRID_COMMON + STREAK_GLSL + /* glsl */ `
+#define STREAK_SEGMENTS ${STREAK_SEGMENTS}
+uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
+uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
+uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
+uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
+uniform float uHeatSpan;
+in vec2 ref; in vec2 corner;
+out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
+${RAMP}
 vec2 screenOf(vec3 cellPos, out float w) {
   vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
   vec4 c = projectionMatrix * modelViewMatrix * vec4(mm, 1.0);

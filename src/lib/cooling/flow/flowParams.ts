@@ -44,12 +44,15 @@ export const TEMP_RESUME_DELTA_K = 3;
 export const TEMP_SETTLE_STEPS = 600;
 /** Most plume emitter entries over a hot part's top cells. */
 export const PLUME_EMITTERS_MAX = 24;
-/** Air this many degrees above room temperature is drawn in the full hot color. */
+/** The color span before the first readback, degrees: air this far above room temperature is drawn in the full hot color. */
 export const HEAT_COLOR_SPAN_C = 15;
-/** With power readings the color span follows the physics: this many times the air's rise at the exhaust (all the power over rho cp times the flow), within these bounds in degrees, so a calm case still shows its warm spots and a loaded one does not saturate. */
-export const HEAT_SPAN_PER_EXHAUST_RISE = 2;
-export const HEAT_SPAN_MIN_K = 4;
-export const HEAT_SPAN_MAX_K = 15;
+/** The color span follows the case's own air: the full hot color is this share of the fluid cells inside the case, ranked by rise over room temperature, so the hottest air present reads hot even when it is only a few degrees warm. */
+export const HEAT_SPAN_PERCENTILE = 0.98;
+/** Smallest span in degrees, so a case with next to no rise stays mostly cool instead of amplifying noise. */
+export const HEAT_SPAN_FLOOR_K = 0.5;
+/** How often the temperature field is read back to rank it, ms, and the time constant the span eases toward each result, ms. */
+export const HEAT_SPAN_READ_MS = 1000;
+export const HEAT_SPAN_TAU_MS = 3000;
 /** A part's power must move this many watts before the temperature field relaxes again. */
 export const POWER_RESUME_DELTA_W = 15;
 /** Fluid cells this close to a heat-source solid are its heat cells. */

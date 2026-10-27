@@ -28,7 +28,9 @@ import {
 import { settleFlows, simRpm, SIM_RPM_CEILING } from '../../../../lib/cooling/fanSpeed';
 import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
 import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
-import { VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
+import { HEAT_COLOR_SPAN_C, ROOM_TEMP_C, VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
+import { convertTemperature, formatNumber, tempUnitSymbol } from '../../../../lib/units';
 import { visualFlow } from '../../../../lib/cooling/visualFlow';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
@@ -123,7 +125,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [flowMode, setFlowMode] = useState<CoolingFlowMode>(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE);
   const [slowMo, setSlowMo] = useState(false);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
-  const [gridCells, setGridCells] = useState(false);
+  const [heatVolume, setHeatVolume] = useState(false);
+  const [spanK, setSpanK] = useState<number | null>(null);
   // The saved choices can change after mount (the settings load, or another window edits them), so the view follows them.
   useEffect(() => { setFlowMode(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE); }, [savedFlowMode]);
   useEffect(() => { setCollisions(DEV_TOOLS && (savedCollisions ?? false)); }, [savedCollisions]);
@@ -193,7 +196,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, grid: DEV_TOOLS && gridCells, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slowMo ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE }), [particles, collisions, gridCells, showCase, slowMo]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, heat: DEV_TOOLS && heatVolume, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slowMo ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE }), [particles, collisions, heatVolume, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -205,6 +208,13 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, showCase, active, flow: flowInput, flowOptions });
     setFlowSupported(renderer.flowSupported);
   }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, flowInput, flowOptions]);
+
+  // The legend ends are the real air temperatures: room temperature, and room plus the color span the renderer measured.
+  useEffect(() => { renderer?.setSpanListener(setSpanK); return () => renderer?.setSpanListener(null); }, [renderer]);
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const legendTemp = (celsius: number) => `${formatNumber(convertTemperature(celsius, monitoringTempUnit), numberFormat, { maximumFractionDigits: 1 })} ${tempUnitSymbol(monitoringTempUnit)}`;
+  const legendFrom = legendTemp(ROOM_TEMP_C);
+  const legendTo = legendTemp(ROOM_TEMP_C + (spanK ?? HEAT_COLOR_SPAN_C));
 
   // Temperatures ride a path of their own: the renderer hands them to the live particle pass, so a sensor tick never rebuilds the scene.
   useEffect(() => { renderer?.setTemps(temps); }, [renderer, temps]);
@@ -384,8 +394,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               )}
               {DEV_TOOLS && particles && (
                 <label className={`${styles.flowToggle} ${styles.control}`}>
-                  <Toggle checked={gridCells} onChange={setGridCells} ariaLabel={t('cooling.case3d.flow.grid')} />
-                  <span>{t('cooling.case3d.flow.grid')}</span>
+                  <Toggle checked={heatVolume} onChange={setHeatVolume} ariaLabel={t('cooling.case3d.flow.heat')} />
+                  <span>{t('cooling.case3d.flow.heat')}</span>
                 </label>
               )}
               {particles && (
@@ -396,10 +406,10 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               )}
             </div>
             {particles && flowSupported && (
-              <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend')}>
-                <span>{t('cooling.case3d.flow.cooler')}</span>
+              <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend', { from: legendFrom, to: legendTo })}>
+                <span>{legendFrom}</span>
                 <span className={styles.legendBar} aria-hidden="true" />
-                <span>{t('cooling.case3d.flow.warmer')}</span>
+                <span>{legendTo}</span>
               </div>
             )}
           </div>

@@ -4,10 +4,11 @@ import {
 } from 'three';
 import { DEV_TOOLS } from '../../devTools';
 import { isGpuSlotKey } from '../slotFlow';
-import { buildGridView, type GridView } from './gridView';
+import { HeatVolume } from './heatVolume';
+import { caseFluidCells, easeSpan, percentileRise, spanFor } from './heatSpan';
 import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_MAX_K, HEAT_SPAN_MIN_K, HEAT_SPAN_PER_EXHAUST_RISE, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
@@ -67,8 +68,8 @@ export interface FlowOptions {
   particles: boolean;
   /** Draws the obstacles the solver rasterizes, as shapes, in place of the case model. */
   collisions: boolean;
-  /** Dev tools: draws the grid cells and how they are used. */
-  grid?: boolean;
+  /** Dev tools: draws the temperature field as a volume. */
+  heat?: boolean;
   /** Screen speed over real speed: below one is slow motion. When set, the particle speed comes from it and the scene's own step length, so the flow reads at this slow motion whatever the case size; `speed` then only serves a layer given no scale. */
   timeScale?: number;
   /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */
@@ -122,8 +123,18 @@ export class FlowLayer {
   private streaks: Mesh | null = null;
   private streakMat: ShaderMaterial | null = null;
   private collisionsShown = false;
-  private gridView: GridView | null = null;
-  private gridShown = false;
+  private volume: HeatVolume | null = null;
+  /** Counts the changes that can alter the temperature field, so the volume redraws only when it must. */
+  private fieldVersion = 0;
+  /** The color span in degrees: eased toward the case air's own high percentile, read back from the GPU about once a second. */
+  private spanK = HEAT_COLOR_SPAN_C;
+  private spanTarget = HEAT_COLOR_SPAN_C;
+  private spanSeeded = false;
+  private spanReadAt = 0;
+  private spanReported = Number.NaN;
+  private fluidCells: Uint32Array | null = null;
+  /** Called when the span moves enough to matter to a legend. */
+  onSpan: ((spanK: number) => void) | null = null;
   private collisions: { group: Group; dispose: () => void } | null = null;
 
   private readonly renderer: WebGLRenderer;
@@ -182,7 +193,7 @@ export class FlowLayer {
       this.streaks.visible = options.particles;
     }
     if (options.collisions !== this.collisionsShown) this.syncCollisions();
-    if (!!options.grid !== this.gridShown) this.syncGrid();
+    if (DEV_TOOLS && !!options.heat !== !!this.volume) this.syncVolume();
   }
 
   /** New part temperatures: only the temperature pass's uniforms change, so the grid and every particle carry on. A settled solve wakes again when a part has moved enough. */
@@ -198,6 +209,7 @@ export class FlowLayer {
     if (!flow || !scene) return;
     const wasHot = flow.hot;
     flow.setTemps(this.temps);
+    this.fieldVersion++;
     // With no fan moving air, a hot part's plume particles start only while it is hot.
     if (wasHot !== flow.hot) this.uploadSpawns(scene);
     if (!this.heatCells) return;
@@ -210,21 +222,30 @@ export class FlowLayer {
     else if (moved) { this.wakeRises = rises; this.wakeWatts = watts; this.tempStepsLeft = TEMP_SETTLE_STEPS; }
   }
 
-  // The color span follows the physics when a part has a power reading: a multiple of the air's rise at the exhaust, all the power over rho cp times the flow.
+  // Applies the eased span to the streaks and, in dev tools, publishes the readings the lab scripts probe.
   private updateSpan() {
     const u = this.streakMat?.uniforms;
     if (!u) return;
-    const watts = sourceWatts(this.temps);
-    let span = HEAT_COLOR_SPAN_C;
-    if (this.input && watts.some(w => w >= 0)) {
-      const total = watts.reduce((n, w) => n + Math.max(0, w), 0);
-      span = Math.min(HEAT_SPAN_MAX_K, Math.max(HEAT_SPAN_MIN_K, HEAT_SPAN_PER_EXHAUST_RISE * exhaustRiseK(total, exhaustFlowCfm(this.input))));
-    }
-    u.uHeatSpan.value = span;
+    u.uHeatSpan.value = this.spanK;
     if (DEV_TOOLS && this.input) {
+      const watts = sourceWatts(this.temps);
       const total = watts.reduce((n, w) => n + Math.max(0, w), 0);
-      (globalThis as { __nexusHeat?: unknown }).__nexusHeat = { watts, spanK: span, exhaustCfm: exhaustFlowCfm(this.input), exhaustRiseK: exhaustRiseK(total, exhaustFlowCfm(this.input)) };
+      (globalThis as { __nexusHeat?: unknown }).__nexusHeat = { watts, spanK: this.spanK, spanTargetK: this.spanTarget, exhaustCfm: exhaustFlowCfm(this.input), exhaustRiseK: exhaustRiseK(total, exhaustFlowCfm(this.input)) };
     }
+  }
+
+  // Ranks the case air by its rise over room temperature about once a second, from an asynchronous readback, and eases the span toward the result.
+  private trackSpan(flow: GlFlow, dtMs: number) {
+    const rises = flow.pollTemperatureRead();
+    if (rises && this.fluidCells) {
+      this.spanTarget = spanFor(percentileRise(rises, this.fluidCells));
+      if (!this.spanSeeded) { this.spanSeeded = true; this.spanK = this.spanTarget; }
+    }
+    if (this.spanSeeded) this.spanK = easeSpan(this.spanK, this.spanTarget, dtMs);
+    const nowMs = performance.now();
+    if (nowMs - this.spanReadAt >= HEAT_SPAN_READ_MS && flow.beginTemperatureRead()) this.spanReadAt = nowMs;
+    this.updateSpan();
+    if (!(Math.abs(this.spanK - this.spanReported) < 0.05)) { this.spanReported = this.spanK; this.onSpan?.(this.spanK); }
   }
 
   /** Solves again from the current fields: the temperature field has a new target. */
@@ -282,7 +303,9 @@ export class FlowLayer {
     this.wakeWatts = sourceWatts(this.temps);
     this.heatCells = scene.heat.some(v => v === SOURCE_GPU || v === SOURCE_CPU);
     if (this.collisionsShown) this.syncCollisions(true);
-    if (this.gridShown) this.syncGrid(true);
+    this.fluidCells = caseFluidCells(scene);
+    this.fieldVersion++;
+    if (this.volume) this.syncVolume();
     this.uploadSpawns(scene);
     this.updateUniforms();
     this.updateSpan();
@@ -427,6 +450,7 @@ export class FlowLayer {
       const start = performance.now();
       const n = this.stepsPerFrame;
       flow.step(n);
+      this.fieldVersion++;
       const before = this.stepsSinceEdit;
       this.stepsSinceEdit += n;
       this.coldSteps += n;
@@ -445,7 +469,7 @@ export class FlowLayer {
       }
     }
     if (!this.solving) this.coldStart = false;
-    if (!this.solving && this.tempStepsLeft > 0 && wantsFlow) { flow.stepTemperature(); this.tempStepsLeft--; }
+    if (!this.solving && this.tempStepsLeft > 0 && wantsFlow) { flow.stepTemperature(); this.fieldVersion++; this.tempStepsLeft--; }
     // Particles wait for the first solver steps: with no velocity yet they would sit on their spawn points.
     if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
       // Particle steps follow real elapsed time, not frames: the drawn speed is the same at any frame rate and while the camera moves.
@@ -472,6 +496,8 @@ export class FlowLayer {
       u.uScale.value = scale;
       (u.uViewport.value as Vector2).set(viewportHeight * camera.aspect, viewportHeight);
     }
+    if (this.options.particles || this.volume) this.trackSpan(flow, dt);
+    if (DEV_TOOLS && this.volume && this.runner) this.volume.update(this.renderer, this.runner, camera, scene, { velocity: flow.velocity, temperature: flow.temperature, mask: flow.maskTexture, tx: flow.tx }, this.spanK, this.fieldVersion);
   }
 
   // Collects finished GPU timer queries, oldest first; a disjoint result is dropped.
@@ -541,15 +567,13 @@ export class FlowLayer {
     return this.fscene;
   }
 
-  // Rebuilds the dev grid view for the current scene; `force` redraws it for a new one.
-  private syncGrid(force = false) {
-    if (this.gridView) { this.group.remove(this.gridView.group); this.gridView.dispose(); this.gridView = null; }
-    this.gridShown = !!this.options.grid;
-    const scene = this.fscene;
-    if (!this.gridShown || !scene) { if (force) this.gridShown = !!this.options.grid; return; }
-    this.gridView = buildGridView(scene);
-    this.gridView.group.renderOrder = 1;
-    this.group.add(this.gridView.group);
+  // Dev tools: builds or drops the heat volume to match the option; nothing is allocated while it is off.
+  private syncVolume() {
+    this.volume?.dispose();
+    this.volume = null;
+    if (!DEV_TOOLS || !this.options.heat || !this.fscene) return;
+    this.volume = new HeatVolume(this.group, this.colors);
+    this.fieldVersion++;
   }
 
   // Rebuilds the collision shapes from the scene's own obstacle list; `force` redraws for a new scene.
@@ -564,7 +588,8 @@ export class FlowLayer {
   }
 
   private teardown() {
-    if (this.gridView) { this.group.remove(this.gridView.group); this.gridView.dispose(); this.gridView = null; }
+    this.volume?.dispose();
+    this.volume = null;
     if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
     this.flow?.dispose();
     this.flow = null;

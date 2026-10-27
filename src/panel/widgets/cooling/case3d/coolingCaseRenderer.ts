@@ -44,6 +44,8 @@ export interface CaseSceneRenderer {
   setTemps: (temps: ComponentTemps) => void;
   /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. */
   setAnchors: (anchors: readonly HeatAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void) => void;
+  /** Receives the airflow color span in degrees whenever it moves enough to change a legend; null stops it. */
+  setSpanListener: (listener: ((spanK: number) => void) | null) => void;
   resize: () => void;
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
@@ -119,6 +121,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let anchors: readonly HeatAnchor[] = [];
   let onProject: ((positions: Record<string, ProjectedAnchor>) => void) | null = null;
   let collisionsOn = false;
+  let spanListener: ((spanK: number) => void) | null = null;
   let showCase = true;
   // The collision view stands in for the case; Airflow hides the case and the fans.
   const applyVisibility = () => {
@@ -348,6 +351,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
             collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
+          flowLayer.onSpan = spanListener;
           flowLayer.setTemps(temps);
         }
       }
@@ -373,6 +377,10 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       onProject = cb;
       for (const key of Object.keys(projected)) delete projected[key];
       requestRender();
+    },
+    setSpanListener(listener) {
+      spanListener = listener;
+      if (flowLayer) flowLayer.onSpan = listener;
     },
     get flowSupported() {
       return flowLayer?.supported ?? true;
