@@ -49,9 +49,9 @@ export type PanelThemeSettingsSection = 'all' | 'theme' | 'background';
 
 export interface PanelThemeSettingsState {
   appThemeMode: ThemeMode;
-  // Desktop app's resolved theme from prefs.theme.resolvedThemeMode. '' when the
-  // service/desktop hasn't published one; sync mode then falls back to
-  // appThemeMode. Concrete value here = follow the desktop OS, not the panel's.
+  // Host OS theme from prefs.theme.resolvedThemeMode, published by the service.
+  // '' when not published; a synced panel on 'system' then resolves against its
+  // own device. Only consulted while appThemeMode is 'system'.
   appResolvedThemeMode: '' | ResolvedPanelThemeMode;
   themeSyncWithDesktop: boolean;
   themeMode: ThemeMode;

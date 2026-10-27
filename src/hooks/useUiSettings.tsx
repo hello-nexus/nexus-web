@@ -683,14 +683,13 @@ export function UiSettingsProvider({
 
   const reload = useCallback((coalesceWithPendingWrite = false) => {
     if (!serviceOnline) return;
-    // The 'prefs' topic echoes our OWN writes back. A theme toggle makes two
-    // /preferences writes: themeMode (debounced 250ms via scheduleServerWrite)
-    // and a debounced themeMode write. An echo that arrives before the
-    // debounced write lands would re-hydrate the pre-toggle themeMode and
-    // re-apply it - the visible flicker: new theme → snaps back to old → tweens to new
-    // once the real write settles. Skip the round-trip while our own write is
-    // still pending; that write's echo reloads once it flushes, when the
-    // server is consistent. (Mount / profile-switch reloads pass false.)
+    // The 'prefs' topic echoes our OWN writes back. A theme toggle writes
+    // themeMode debounced via scheduleServerWrite, so an echo of an earlier
+    // write can arrive first and re-hydrate the pre-toggle themeMode - the
+    // visible flicker: new theme → snaps back to old → tweens to new once the
+    // real write settles. Skip the round-trip while our own write is still
+    // pending; that write's echo reloads once it flushes, when the server is
+    // consistent. (Mount / profile-switch reloads pass false.)
     if (coalesceWithPendingWrite && writeTimer.current) return;
     // Bounds the local HTTP request with an AbortSignal (network I/O, as for the Nexus 2 preview); a relay-tunneled read ignores the signal and is not covered.
     const mine = ++readGeneration.current;
