@@ -5,9 +5,9 @@ import { parseCaseLayout, type CaseLayout } from '../caseLayout';
 import { visualFlow } from '../visualFlow';
 import { CpuParticles } from './cpuParticles';
 import { CpuFlow } from './cpuSolver';
-import { STREAK_MAX_MM, STREAK_MIN_MM, STREAK_STEPS } from './flowParams';
+import { STREAK_MAX_MM, STREAK_MIN_MM, STREAK_SEGMENTS, STREAK_STEPS } from './flowParams';
 import { buildFlowScene } from './gridScene';
-import { stepDisplacement, streakEnds, streakOf, type Vec3 } from './streak';
+import { stepDisplacement, streakEnds, streakOf, streakPath, type Vec3 } from './streak';
 
 const norm = (v: Vec3) => Math.hypot(v[0], v[1], v[2]);
 
@@ -116,7 +116,34 @@ describe('streaks of simulated particles', () => {
 describe('streak tuning', () => {
   it('pins the streak reach and the particle draw share', async () => {
     const { PARTICLE_DRAW_SHARE } = await import('./flowParams');
-    expect([STREAK_STEPS, STREAK_MAX_MM, STREAK_MIN_MM]).toEqual([10, 70, 3]);
-    expect(PARTICLE_DRAW_SHARE).toBe(0.5);
+    expect([STREAK_STEPS, STREAK_MAX_MM, STREAK_MIN_MM]).toEqual([30, 140, 6]);
+    expect(PARTICLE_DRAW_SHARE).toBe(0.3);
+  });
+});
+
+describe('streak path', () => {
+  const cellMm = 10;
+  const d: Vec3 = [1, 0, 0];
+  const total = (path: Vec3[]) => path.slice(1).reduce((n, p, i) => n + Math.hypot(p[0] - path[i][0], p[1] - path[i][1], p[2] - path[i][2]), 0) * cellMm;
+
+  it('walks straight back through a uniform field, as long as the streak', () => {
+    const path = streakPath([50, 50, 50], d, cellMm, () => [1, 0, 0], () => false);
+    expect(path).toHaveLength(STREAK_SEGMENTS + 1);
+    expect(total(path)).toBeCloseTo(streakOf(d).length, 6);
+    expect(path[STREAK_SEGMENTS][1]).toBeCloseTo(50, 9);
+    expect(path[STREAK_SEGMENTS][0]).toBeLessThan(50);
+  });
+
+  it('bends where the field bends', () => {
+    const path = streakPath([50, 50, 50], d, cellMm, p => (p[0] < 48 ? [0, 1, 0] : [1, 0, 0]), () => false);
+    const tail = path[STREAK_SEGMENTS];
+    expect(tail[1]).toBeLessThan(50);
+  });
+
+  it('stays put against a solid and keeps its direction in dead air', () => {
+    const blocked = streakPath([50, 50, 50], d, cellMm, () => [1, 0, 0], () => true);
+    expect(blocked.every(p => p[0] === 50)).toBe(true);
+    const still = streakPath([50, 50, 50], d, cellMm, () => [0, 0, 0], () => false);
+    expect(still[STREAK_SEGMENTS][0]).toBeLessThan(50);
   });
 });

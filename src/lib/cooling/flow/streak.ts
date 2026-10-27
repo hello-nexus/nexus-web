@@ -1,4 +1,4 @@
-import { STREAK_MAX_MM, STREAK_MIN_MM, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
+import { STREAK_MAX_MM, STREAK_MIN_MM, STREAK_SEGMENTS, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
 
 export type Vec3 = [number, number, number];
 
@@ -22,4 +22,22 @@ export function streakOf(d: Vec3): { dir: Vec3; length: number } {
 export function streakEnds(head: Vec3, d: Vec3): { head: Vec3; tail: Vec3 } {
   const { dir, length } = streakOf(d);
   return { head, tail: [head[0] - dir[0] * length, head[1] - dir[1] * length, head[2] - dir[2] * length] };
+}
+
+/** Ribbon stations of a streak, head first: each station steps backward through the velocity field, so the tail bends where the air bends. Cell coordinates in, cell coordinates out. A station at rest keeps its last direction and a blocked step stays put. Mirrors the walk in the vertex shader. */
+export function streakPath(head: Vec3, d: Vec3, cellMm: number, velocityAt: (p: Vec3) => Vec3, solidAt: (p: Vec3) => boolean): Vec3[] {
+  const { dir, length } = streakOf(d);
+  const stepCells = length / STREAK_SEGMENTS / cellMm;
+  let back: Vec3 = [-dir[0], -dir[1], -dir[2]];
+  let cur = head;
+  const path: Vec3[] = [head];
+  for (let k = 0; k < STREAK_SEGMENTS; k++) {
+    const v = velocityAt(cur);
+    const vm = Math.hypot(v[0], v[1], v[2]);
+    if (vm > 1e-5) back = [-v[0] / vm, -v[1] / vm, -v[2] / vm];
+    const next: Vec3 = [cur[0] + back[0] * stepCells, cur[1] + back[1] * stepCells, cur[2] + back[2] * stepCells];
+    if (!solidAt(next)) cur = next;
+    path.push(cur);
+  }
+  return path;
 }

@@ -75,19 +75,23 @@ export const OUTSIDE_REACH_MM = 90;
 export const OUTSIDE_SPAWN_FROM = 0.45;
 export const OUTSIDE_SPAWN_TO = 0.9;
 /** Share of the particle pool that is drawn; the rest is simulated but hidden, so the picture stays readable. */
-export const PARTICLE_DRAW_SHARE = 0.5;
+export const PARTICLE_DRAW_SHARE = 0.3;
 /** How many of a pool's particles are drawn at a tier's share of it. */
 export const drawnParticles = (pool: number, tierShare: number) => Math.round(pool * tierShare * PARTICLE_DRAW_SHARE);
 /** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */
 export const FAN_CLEARANCE_MM = 30;
 
-/** Velocity streaks: each particle is drawn as a line along its last step's displacement, the tail this many steps of travel behind the head. */
-export const STREAK_STEPS = 10;
+/** Velocity streaks: each particle is drawn as a ribbon whose total length is its last step's displacement times this many steps. */
+export const STREAK_STEPS = 30;
 /** Streak length bounds, scene mm: a stalled particle keeps the minimum, a fast one is capped at the maximum. */
-export const STREAK_MIN_MM = 3;
-export const STREAK_MAX_MM = 70;
+export const STREAK_MIN_MM = 6;
+export const STREAK_MAX_MM = 140;
 /** Streak width in scene mm, and the narrowest it is drawn on screen, px. */
-export const STREAK_WIDTH_MM = 3;
-export const STREAK_MIN_WIDTH_PX = 1.5;
+export const STREAK_WIDTH_MM = 5.5;
+export const STREAK_MIN_WIDTH_PX = 2.5;
+/** The ribbon is this many segments long. Its tail follows the flow field backward from the particle, so it bends where the air bends. */
+export const STREAK_SEGMENTS = 8;
+/** Share of the head width the tail tapers to. */
+export const STREAK_TAIL_WIDTH = 0.35;
 /** Steps shorter than this many mm have no usable direction, so the streak takes a fixed axis. */
 export const STREAK_STALL_MM = 1e-4;

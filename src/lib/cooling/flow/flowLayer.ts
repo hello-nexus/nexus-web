@@ -1,9 +1,9 @@
 import {
-  AdditiveBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
+  NormalBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
   Mesh, NearestFilter, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, STREAK_MIN_WIDTH_PX, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, sourceRises, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
@@ -34,7 +34,7 @@ const MAX_SOLVE_STEPS = 1500;
 const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 24;
 /** Peak alpha of a streak's head. */
-const STREAK_ALPHA = 0.78;
+const STREAK_ALPHA = 0.95;
 
 export interface FlowColors {
   cool: Color;
@@ -223,32 +223,38 @@ export class FlowLayer {
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), T: { value: null as unknown } });
 
     const geometry = new BufferGeometry();
-    // Four vertices per particle: tail and head, each on both sides of the line.
-    const refs = new Float32Array(w * h * 4 * 2);
-    const corners = new Float32Array(w * h * 4 * 2);
-    const index = new Uint32Array(w * h * 6);
+    // A ribbon per particle: head to tail in STREAK_SEGMENTS segments, two vertices (one per side) at each of STREAK_SEGMENTS + 1 stations.
+    const V = (STREAK_SEGMENTS + 1) * 2;
+    const refs = new Float32Array(w * h * V * 2);
+    const corners = new Float32Array(w * h * V * 2);
+    const index = new Uint32Array(w * h * STREAK_SEGMENTS * 6);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const n = y * w + x;
-      for (let c = 0; c < 4; c++) {
-        refs[(n * 4 + c) * 2] = x; refs[(n * 4 + c) * 2 + 1] = y;
-        corners[(n * 4 + c) * 2] = c >> 1; corners[(n * 4 + c) * 2 + 1] = c & 1 ? 1 : -1;
+      for (let c = 0; c < V; c++) {
+        refs[(n * V + c) * 2] = x; refs[(n * V + c) * 2 + 1] = y;
+        // corner.x: 1 at the head, 0 at the tail; corner.y: the side.
+        corners[(n * V + c) * 2] = 1 - (c >> 1) / STREAK_SEGMENTS; corners[(n * V + c) * 2 + 1] = c & 1 ? 1 : -1;
       }
-      index.set([n * 4, n * 4 + 1, n * 4 + 2, n * 4 + 1, n * 4 + 3, n * 4 + 2], n * 6);
+      for (let k = 0; k < STREAK_SEGMENTS; k++) {
+        const a = n * V + k * 2;
+        index.set([a, a + 1, a + 2, a + 1, a + 3, a + 2], (n * STREAK_SEGMENTS + k) * 6);
+      }
     }
     geometry.setAttribute('ref', new BufferAttribute(refs, 2));
     geometry.setAttribute('corner', new BufferAttribute(corners, 2));
-    geometry.setAttribute('position', new BufferAttribute(new Float32Array(w * h * 4 * 3), 3));
+    geometry.setAttribute('position', new BufferAttribute(new Float32Array(w * h * V * 3), 3));
     geometry.setIndex(new BufferAttribute(index, 1));
-    geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * 6);
+    geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * STREAK_SEGMENTS * 6);
     this.streakMat = new ShaderMaterial({
       glslVersion: GLSL3, vertexShader: STREAK_VERTEX, fragmentShader: STREAK_FRAGMENT,
       uniforms: {
         PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
         uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: STREAK_WIDTH_MM }, uMinWidthPx: { value: STREAK_MIN_WIDTH_PX }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
-        uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: STREAK_ALPHA },
+        uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: STREAK_ALPHA }, uTailWidth: { value: STREAK_TAIL_WIDTH },
+        uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
         uCool: { value: this.colors.cool }, uWarm: { value: this.colors.warm }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
-      transparent: true, depthWrite: false, depthTest: false, blending: AdditiveBlending, side: DoubleSide,
+      transparent: true, depthWrite: false, depthTest: false, premultipliedAlpha: true, blending: NormalBlending, side: DoubleSide,
     });
     this.streaks = new Mesh(geometry, this.streakMat);
     this.streaks.frustumCulled = false;
@@ -277,7 +283,7 @@ export class FlowLayer {
   dropTier() {
     if (this.tier >= FLOW_TIERS.length - 1) return;
     this.tier++;
-    this.streaks?.geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * 6);
+    this.streaks?.geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * STREAK_SEGMENTS * 6);
     this.slowCount = 0;
     this.build(false);
   }
@@ -298,6 +304,9 @@ export class FlowLayer {
     for (const m of [this.streakMat]) {
       if (!m) continue;
       m.uniforms.uCell.value = scene.cellMm;
+      (m.uniforms.uN.value as Vector3).copy(n);
+      m.uniforms.uTX.value = flow.tx;
+      m.uniforms.M.value = flow.maskTexture;
       (m.uniforms.uOrigin.value as Vector3).copy(origin);
     }
   }
@@ -355,6 +364,7 @@ export class FlowLayer {
       u.PA.value = this.stateTargets[this.stateCur].texture;
       u.PP.value = this.stateTargets[(this.stateCur + RING - 1) % RING].texture;
       u.PB.value = this.heatTargets[this.stateCur].texture;
+      u.U.value = flow.velocity;
       u.uScale.value = scale;
       (u.uViewport.value as Vector2).set(viewportHeight * camera.aspect, viewportHeight);
     }

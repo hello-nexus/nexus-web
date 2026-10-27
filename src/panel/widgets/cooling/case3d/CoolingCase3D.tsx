@@ -70,7 +70,7 @@ const POSITION_KEYS: Record<string, string> = {
 };
 
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
-const NORMAL_SPEED = 1;
+const NORMAL_SPEED = 0.6;
 const SLOW_MO_FACTOR = 0.25;
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
