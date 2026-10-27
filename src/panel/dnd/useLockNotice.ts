@@ -1,15 +1,12 @@
-import { useCallback, useRef, useState, type PointerEvent } from 'react';
-import { PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
-import type { DragActivation } from '../engine/pointerDragSensor';
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import { INTERACTIVE_SELECTOR, PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
+import { DRAG_DISTANCE_PX, DRAG_HOLD_TOLERANCE_PX, type DragActivation } from '../engine/pointerDragSensor';
 
-// Same distance an unlocked widget needs to start a mouse drag.
-export const LOCK_DRAG_THRESHOLD_PX = 6;
-// Same drift an unlocked widget tolerates while a touch hold is still arming.
-const HOLD_TOLERANCE_PX = 8;
 // The tile never travels further than this from its cell.
 export const LOCK_DRAG_MAX_PX = 28;
 
-const INTERACTIVE = 'button,a,input,select,textarea,summary,[role="button"],[role="slider"],[role="switch"],[role="tab"],[data-panel-scrollable="true"]';
+// The cell's own control selector, plus scroll regions, which keep scrolling on a locked widget.
+const INTERACTIVE = `${INTERACTIVE_SELECTOR}, summary, [data-panel-scrollable="true"]`;
 
 /** True when the press landed on a widget's own control, which keeps working on a locked widget. */
 export function isOwnControl(target: EventTarget | null, cell: Element | null = null): boolean {
@@ -20,7 +17,7 @@ export function isOwnControl(target: EventTarget | null, cell: Element | null = 
 }
 
 export function exceedsDragThreshold(dx: number, dy: number): boolean {
-  return Math.hypot(dx, dy) > LOCK_DRAG_THRESHOLD_PX;
+  return Math.hypot(dx, dy) > DRAG_DISTANCE_PX;
 }
 
 /** Pointer travel mapped to tile travel: 1:1 at first, then ever stiffer, never past `cap`. */
@@ -79,12 +76,17 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   const onPointerMove = useCallback((e: PointerEvent) => {
     const origin = press.current;
     if (!locked || !origin || e.pointerId !== origin.pointerId) return;
+    // A release the page never saw (a prompt, another app) shows as a move with no button held.
+    if (dragging.current && e.buttons === 0 && e.pointerType === 'mouse') {
+      end();
+      return;
+    }
     const dx = e.clientX - origin.x;
     const dy = e.clientY - origin.y;
     if (!dragging.current) {
       if (origin.activation === 'delay' && Date.now() - origin.at < PANEL_CONTEXT_MENU_TRIGGER_MS) {
         // Moving before the hold completes is a swipe or scroll, never a drag.
-        if (Math.hypot(dx, dy) > HOLD_TOLERANCE_PX) press.current = null;
+        if (Math.hypot(dx, dy) > DRAG_HOLD_TOLERANCE_PX) press.current = null;
         return;
       }
       if (!exceedsDragThreshold(dx, dy)) return;
@@ -94,7 +96,14 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
       captured.current = { el: cell, id: e.pointerId };
     }
     setOffset(rubberBandOffset(dx, dy));
-  }, [locked]);
+  }, [end, locked]);
+
+  const isPulled = locked && offset !== null;
+  useEffect(() => {
+    if (!isPulled) return undefined;
+    window.addEventListener('blur', end);
+    return () => window.removeEventListener('blur', end);
+  }, [end, isPulled]);
 
   return {
     /** True while a locked widget is being pulled; the notice shows for exactly that long. */
@@ -103,6 +112,6 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     offset: locked ? offset : null,
     settling: locked && settling,
     /** `end` closes the press on release or cancel and reports whether it was a drag, so the caller can withhold the tap. */
-    handlers: { onPointerDown, onPointerMove, end },
+    handlers: { onPointerDown, onPointerMove, end, onLostPointerCapture: end },
   };
 }

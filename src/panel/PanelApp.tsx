@@ -49,7 +49,7 @@ import {
   tryResizeWidget,
 } from './engine/panelLayoutOps';
 import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
-import { AdaptivePointerSensor, dragActivationFor } from './engine/pointerDragSensor';
+import { AdaptivePointerSensor, DRAG_DISTANCE_PX, DRAG_HOLD_TOLERANCE_PX, dragActivationFor } from './engine/pointerDragSensor';
 import { resolveWidgetsLocked } from './engine/widgetLock';
 import { useDesktopImport } from './engine/useDesktopImport';
 import { editTargetGone, latestOr, useSyncLatestLayout } from './engine/latestLayout';
@@ -225,7 +225,6 @@ function resizeSpansForType(
 // A press that stays this close and ends within a hold is a tap, not the start of a drag.
 const FREEFORM_TAP_SLOP_PX = 4;
 const FREEFORM_TAP_MAX_MS = PANEL_CONTEXT_MENU_TRIGGER_MS;
-const DRAG_DISTANCE_PX = 6;
 // Waits before a failed background media is tried again; the last step repeats.
 const MEDIA_RETRY_MS = [5_000, 15_000, 60_000] as const;
 
@@ -1843,14 +1842,14 @@ export function PanelContent({
     PointerSensor,
     desktopActivation
       ? { activationConstraint: { distance: DRAG_DISTANCE_PX } }
-      : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
+      : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: DRAG_HOLD_TOLERANCE_PX } },
   );
   // A real mouse on the glass drags on distance; touch and a mouse standing in for touch hold first.
   const adaptiveSensor = useSensor(AdaptivePointerSensor, {
     activationConstraint: undefined,
     constraintFor: (e: PointerEvent) => (dragActivationFor(e.pointerType, mouseAsTouch) === 'distance'
       ? { distance: DRAG_DISTANCE_PX }
-      : { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 }),
+      : { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: DRAG_HOLD_TOLERANCE_PX }),
   });
   // The tile in resize mode is already selected, so on a hold-to-drag panel it drags on distance, like the desktop.
   const resizeTileSensor = useSensor(ResizeTilePointerSensor, { activationConstraint: { distance: DRAG_DISTANCE_PX } });
@@ -1862,6 +1861,12 @@ export function PanelContent({
     dragEditable && freeformActive && !desktopActivation ? resizeTileSensor : null,
   );
 
+  const touchCloseMenu = touch.closeCtxMenu;
+  const onLockDragChange = useCallback((active: boolean) => {
+    setLockDragging(active);
+    // A hold that opened the context menu leads into this pull; the menu would otherwise outlive it.
+    if (active) touchCloseMenu();
+  }, [touchCloseMenu]);
   const lockActivationFor = useCallback(
     (pointerType: string) => (desktopActivation ? 'distance' : dragActivationFor(pointerType, mouseAsTouch)),
     [desktopActivation, mouseAsTouch],
@@ -2337,7 +2342,7 @@ export function PanelContent({
                               movable={dragEditable}
                               locked={lockedOf()}
                               lockActivationFor={lockActivationFor}
-                              onLockDragChange={setLockDragging}
+                              onLockDragChange={onLockDragChange}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}

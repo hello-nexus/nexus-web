@@ -16,9 +16,11 @@ function Probe({ locked, activation = 'distance' }: { locked: boolean; activatio
       onPointerMove={handlers.onPointerMove}
       onPointerUp={handlers.end}
       onPointerCancel={handlers.end}
+      onLostPointerCapture={handlers.onLostPointerCapture}
     >
       <button type="button">inner</button>
       <span data-testid="face">12:00</span>
+      <div data-panel-interactive="true"><span data-testid="stage">stage</span></div>
     </div>
   );
 }
@@ -95,6 +97,43 @@ describe('useLockNotice', () => {
     fireEvent.pointerCancel(body);
     expect(visible(body)).toBe(false);
     fireEvent.pointerMove(body, { clientX: 120, clientY: 10 });
+    expect(visible(body)).toBe(false);
+  });
+
+  it('never starts a pull from a press inside an interactive stage', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const stage = getByTestId('stage');
+    fireEvent.pointerDown(stage, { isPrimary: true, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(stage, { clientX: 90, clientY: 10 });
+    expect(visible(getByTestId('body'))).toBe(false);
+  });
+
+  it('ends the pull when a mouse move reports no button held', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10, pointerType: 'mouse', buttons: 1 });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10, pointerType: 'mouse', buttons: 1 });
+    expect(visible(body)).toBe(true);
+    fireEvent.pointerMove(body, { clientX: 70, clientY: 10, pointerType: 'mouse', buttons: 0 });
+    expect(visible(body)).toBe(false);
+  });
+
+  it('ends the pull when the window loses focus', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10 });
+    expect(visible(body)).toBe(true);
+    act(() => { window.dispatchEvent(new Event('blur')); });
+    expect(visible(body)).toBe(false);
+  });
+
+  it('ends the pull when pointer capture is lost', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const body = getByTestId('body');
+    fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(body, { clientX: 60, clientY: 10 });
+    fireEvent.lostPointerCapture(body);
     expect(visible(body)).toBe(false);
   });
 

@@ -11,6 +11,7 @@ function Face() {
   return (
     <div>
       <span data-testid="face">face</span>
+      <div data-panel-interactive="true"><span data-testid="stage">stage</span></div>
       <button type="button" data-testid="control" onClick={clicked}>go</button>
     </div>
   );
@@ -86,6 +87,16 @@ describe('locked widget in a cell', () => {
     expect(pointers.onPointerCancel).toHaveBeenCalledTimes(1);
     expect(wrap.dataset.panelCellCol).toBe('1');
     expect(wrap.dataset.panelCellRow).toBe('2');
+  });
+
+  it('does not pull or capture a press inside an interactive stage', () => {
+    const { wrap, getByTestId, onLockDragChange, capture } = setup(true);
+    const stage = getByTestId('stage');
+    fireEvent.pointerDown(stage, { isPrimary: true, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(stage, { clientX: 300, clientY: 0 });
+    expect(wrap.dataset.lockNotice).toBeUndefined();
+    expect(capture.set).not.toHaveBeenCalled();
+    expect(onLockDragChange).not.toHaveBeenCalled();
   });
 
   it('leaves an unlocked widget alone', () => {
