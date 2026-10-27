@@ -402,6 +402,7 @@
   "cooling.case3d.flow.collisions": "碰撞形状",
   "cooling.case3d.flow.controls": "气流显示",
   "cooling.case3d.flow.cooler": "更冷",
+  "cooling.case3d.flow.grid": "网格单元",
   "cooling.case3d.flow.legend": "空气温度（定性）",
   "cooling.case3d.flow.mode.airflow": "气流",
   "cooling.case3d.flow.mode.both": "机箱 + 气流",

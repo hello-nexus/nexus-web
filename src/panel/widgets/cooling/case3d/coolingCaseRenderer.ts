@@ -54,6 +54,10 @@ export interface CaseSceneRenderer {
 export type PickHandler = (slotKey: string | null, x: number, y: number) => void;
 
 const CLICK_SLOP_PX = 4;
+/** A still camera for this long, and a settled flow, lets the view draw at a reduced rate. */
+const IDLE_MS = 400;
+const CALM_FRAME_MS = 1000 / 30;
+const FRAME_SLACK_MS = 3;
 const RING_SEGMENTS = 48;
 const FAN_OPACITY = 1;
 // Build's picked-part treatment: the pick reads in full and shows through, keeping its intake or exhaust color; the rest fall back to this fraction.
@@ -147,20 +151,33 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     onProject(projected);
   };
 
+  // Once the air has settled and the camera is still, only the particles move: draw at a reduced rate; the particle clock keeps their speed.
+  let lastDraw = 0;
+  let lastInteraction = 0;
   const render = (now: number) => {
     frame = 0;
+    const calm = !!flowLayer?.settled && now - lastInteraction > IDLE_MS;
+    if (calm && now - lastDraw < CALM_FRAME_MS - FRAME_SLACK_MS) { requestRender(); return; }
+    lastDraw = now;
     flowLayer?.frame(now, camera, canvas.clientHeight);
     renderer.render(scene, camera);
     projectAnchors();
     // Particles keep moving after the solver settles; the loop runs only while the tab is visible.
-    if (flowLayer?.active && !document.hidden) requestRender();
+    if (flowLayer?.active && !document.hidden && onScreen) requestRender();
   };
   const requestRender = () => {
     if (!frame) frame = requestAnimationFrame(render);
   };
-  controls.addEventListener('change', requestRender);
+  controls.addEventListener('change', () => { lastInteraction = performance.now(); requestRender(); });
   const onVisibility = () => { if (!document.hidden) requestRender(); };
   document.addEventListener('visibilitychange', onVisibility);
+  // A canvas scrolled out of view stops drawing, and starts again when it returns.
+  let onScreen = true;
+  const viewObserver = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => {
+    onScreen = entries[entries.length - 1].isIntersecting;
+    if (onScreen) requestRender();
+  });
+  viewObserver?.observe(canvas);
 
   const fit = (l: CaseLayout) => {
     const [ex, ey, ez] = caseExtents(l);
@@ -327,7 +344,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
           flowInput = null;
           const [ex, ey, ez] = extents;
           const colors: FlowColors = {
-            cool: token(canvas, '--airflow-cool', '#38bdf8'), warm: token(canvas, '--airflow-warm', '#f59e0b'), hot: token(canvas, '--bad', '#ef4444'),
+            cool: token(canvas, '--airflow-cool', '#38bdf8'), pale: token(canvas, '--airflow-pale', '#f2f6ff'), warm: token(canvas, '--airflow-warm', '#ffd60a'), orange: token(canvas, '--airflow-orange', '#ff8a00'), hot: token(canvas, '--bad', '#ef4444'),
             collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
@@ -366,6 +383,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointerup', onUp);
       document.removeEventListener('visibilitychange', onVisibility);
+      viewObserver?.disconnect();
       flowLayer?.dispose();
       flowLayer = null;
       controls.dispose();

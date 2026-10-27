@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { BUOYANCY, ROOM_TEMP_C, VMAX_CELLS } from './flowParams';
+import { GRAVITY, ROOM_TEMP_C, ROOM_TEMP_K, VMAX_CELLS } from './flowParams';
 import { defaultDir, gpuBox, inputFor, nineFans, shroudBox } from './flowFixtures';
 import { SOURCE_GPU, SOURCE_ROOM, buildFlowScene, sampleSpawn, type FlowScene } from './gridScene';
 
@@ -28,10 +28,22 @@ function topAndBottom(flow: CpuFlow): { top: number; bottom: number } {
   return { top: top / topN, bottom: bottom / bottomN };
 }
 
+describe('Boussinesq buoyancy', () => {
+  it('is g beta dt^2 over the cell size with beta = 1 / room temperature, in the scene\'s own units', () => {
+    const scene = sceneAt(60);
+    const cellM = scene.cellMm / 1000;
+    expect(scene.buoyancy).toBeCloseTo((GRAVITY / ROOM_TEMP_K) * scene.stepSeconds ** 2 / cellM, 12);
+    // Real air: a degree of rise accelerates it upward by g over the room temperature in kelvin.
+    const accel = (scene.buoyancy * cellM) / scene.stepSeconds ** 2;
+    expect(accel).toBeCloseTo(9.81 / 295.15, 6);
+  });
+});
+
 describe('room temperature', () => {
   it('is 22 C, and the buoyancy coefficient is small enough that a fan stream dominates', () => {
     expect(ROOM_TEMP_C).toBe(22);
-    expect(BUOYANCY * RISE * 100).toBeLessThan(VMAX_CELLS);
+    const scene = sceneAt(60);
+    expect(scene.buoyancy * RISE * 100).toBeLessThan(VMAX_CELLS);
   });
 
   it('holds an intake fan\'s cells and the outside air in front of it at room temperature, however hot the case', { timeout: 60000 }, () => {

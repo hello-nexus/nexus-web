@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { MAX_SUBSTEP_CELLS, VMAX_CELLS, substepsFor } from './flowParams';
+import { MAX_SUBSTEP_CELLS, PARTICLE_REFERENCE_SPEED, VMAX_CELLS, substepsFor } from './flowParams';
 import { OPENING_EXHAUST, OPENING_INTAKE, OPENING_VENT, buildFlowScene, gridFor, isSolidAt, type FlowScene } from './gridScene';
 import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, nineFans, slotSpec, tops } from './flowFixtures';
 
@@ -290,9 +290,10 @@ describe('the first particles', () => {
     const p = new CpuParticles(sim, 128 * 84, 5);
     const visible = () => { let n = 0; for (let i = 0; i < p.count; i++) if (p.age[i] >= 0) n++; return n; };
     expect(visible()).toBe(0);
-    for (let s = 0; s < 40; s++) p.step();
+    // Birth runs in simulation time: one step at the reference speed is one unit of age.
+    for (let s = 0; s < 40; s++) p.step(undefined, PARTICLE_REFERENCE_SPEED);
     expect(visible()).toBeLessThan(p.count * 0.2);
-    for (let s = 0; s < 300; s++) p.step();
+    for (let s = 0; s < 300; s++) p.step(undefined, PARTICLE_REFERENCE_SPEED);
     expect(visible()).toBeGreaterThan(p.count * 0.95);
   });
 });

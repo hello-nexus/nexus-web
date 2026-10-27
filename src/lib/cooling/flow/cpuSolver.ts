@@ -1,6 +1,6 @@
-import { BUOYANCY, DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
-import { SOURCE_ROOM, type FlowScene } from './gridScene';
-import { NO_TEMPS, heatStep, isHot, sourceRises, type ComponentTemps } from './heatModel';
+import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, MAX_RISE_K, TEMP_DIFFUSION, VMAX_CELLS } from './flowParams';
+import { SOURCE_ROOM, powerRisePerStep, type FlowScene } from './gridScene';
+import { NO_TEMPS, heatStep, isHot, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 
 /**
  * CPU reference of the GPU solver in `shaders.ts`: same equations and boundary rules, one step per call.
@@ -14,6 +14,9 @@ export class CpuFlow {
   private tNext: Float32Array;
   /** What each part's heat cells pull the air toward, as degrees above room temperature, by `SOURCE_*`; negative means that part heats nothing. */
   private rises = sourceRises(NO_TEMPS);
+  /** Degrees per step each part's power adds to its heat cells, by `SOURCE_*`; negative falls back on the part's temperature. */
+  private powerRise: [number, number, number] = [-1, -1, -1];
+  private watts: [number, number, number] = [-1, -1, -1];
   private next: Float32Array;
   private p: Float32Array;
   private p2: Float32Array;
@@ -25,6 +28,7 @@ export class CpuFlow {
   private readonly NZ: number;
   scene: FlowScene;
   private readonly iterations: number;
+
 
   constructor(scene: FlowScene, iterations: number = JACOBI_ITERATIONS) {
     this.scene = scene;
@@ -48,6 +52,7 @@ export class CpuFlow {
   setScene(scene: FlowScene): void {
     if (scene.dims.some((d, i) => d !== this.scene.dims[i])) throw new Error('setScene needs the same grid');
     this.scene = scene;
+    this.powerRise = this.watts.map((w, source) => powerRisePerStep(scene, source, w)) as [number, number, number];
     this.bind(scene);
     for (let c = 0; c < this.n; c++) {
       if (!scene.solid[c]) continue;
@@ -60,11 +65,13 @@ export class CpuFlow {
   /** New part temperatures: read by the next step, nothing restarts. */
   setTemps(temps: ComponentTemps): void {
     this.rises = sourceRises(temps);
+    this.watts = sourceWatts(temps);
+    this.powerRise = this.watts.map((w, source) => powerRisePerStep(this.scene, source, w)) as [number, number, number];
   }
 
   /** Whether any part is hot enough to drive a plume on its own. */
   get hot(): boolean {
-    return isHot(this.rises);
+    return isHot(this.rises, this.watts);
   }
 
   private bind(scene: FlowScene): void {
@@ -135,7 +142,7 @@ export class CpuFlow {
       const c = i + NX * (j + NY * k);
       if (solid[c]) { out[c * 3] = 0; out[c * 3 + 1] = 0; out[c * 3 + 2] = 0; continue; }
       this.sample(i - u[c * 3], j - u[c * 3 + 1], k - u[c * 3 + 2], a);
-      let x = a[0], y = a[1] + BUOYANCY * this.t[c], z = a[2];
+      let x = a[0], y = a[1] + this.scene.buoyancy * this.t[c], z = a[2];
       if (fanCell[c]) {
         x += (target[c * 3] - x) * FAN_BLEND; y += (target[c * 3 + 1] - y) * FAN_BLEND; z += (target[c * 3 + 2] - z) * FAN_BLEND;
       }
@@ -192,7 +199,29 @@ export class CpuFlow {
       }
       v[c * 3] = x; v[c * 3 + 1] = y; v[c * 3 + 2] = z;
     }
+    this.copyBoundary();
     this.stepTemperature();
+  }
+
+  // Zero-gradient open boundary: a boundary cell takes its inner neighbor's velocity, so the projection of the next step reads a boundary that is consistent with the interior.
+  private copyBoundary(): void {
+    const { NX, NY, NZ } = this;
+    const { open, solid } = this.scene;
+    const v = this.u;
+    const stride = [1, NX, NX * NY];
+    const dims = [NX, NY, NZ];
+    for (let c = 0; c < this.n; c++) {
+      if (!open[c]) continue;
+      const idx = [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
+      for (let a = 0; a < 3; a++) {
+        if (idx[a] !== 0 && idx[a] !== dims[a] - 1) continue;
+        const inner = c + (idx[a] === 0 ? 1 : -1) * stride[a];
+        const ii = [inner % NX, Math.floor(inner / NX) % NY, Math.floor(inner / (NX * NY))];
+        if (solid[inner] || ii.some((x, ax) => x === 0 || x === dims[ax] - 1)) break;
+        v[c * 3] = v[inner * 3]; v[c * 3 + 1] = v[inner * 3 + 1]; v[c * 3 + 2] = v[inner * 3 + 2];
+        break;
+      }
+    }
   }
 
   /** Carries the temperature with the final velocity, warms it in the heat cells and holds room air and the open boundary at zero. */
@@ -207,8 +236,25 @@ export class CpuFlow {
       const id = heat[c];
       if (solid[c] || open[c] || id === SOURCE_ROOM) { out[c] = 0; continue; }
       let r = this.sampleScalar(t, i - v[c * 3], j - v[c * 3 + 1], k - v[c * 3 + 2]);
+      // Diffusion: close a small share of the gap to the mean of the fluid neighbors, as the temperature pass does.
+      let acc = 0;
+      let cnt = 0;
+      for (let a = 0; a < 6; a++) {
+        const ni = i + (a === 0 ? 1 : a === 1 ? -1 : 0);
+        const nj = j + (a === 2 ? 1 : a === 3 ? -1 : 0);
+        const nk = k + (a === 4 ? 1 : a === 5 ? -1 : 0);
+        if (ni < 0 || nj < 0 || nk < 0 || ni >= NX || nj >= NY || nk >= NZ) continue;
+        const nc = ni + NX * (nj + NY * nk);
+        if (solid[nc]) continue;
+        acc += t[nc];
+        cnt++;
+      }
+      if (cnt > 0) r += TEMP_DIFFUSION * (acc / cnt - r);
+      const power = this.powerRise[id];
       const src = this.rises[id];
-      if (src >= 0) r = heatStep(r, src, 1);
+      // Power heats the air, but never past the part's own temperature when it is known, nor past the cap.
+      if (power >= 0) r = Math.min(src >= 0 ? Math.min(MAX_RISE_K, src) : MAX_RISE_K, r + power);
+      else if (src >= 0) r = heatStep(r, src, 1);
       out[c] = r;
     }
     this.tNext = t;

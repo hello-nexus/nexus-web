@@ -1,4 +1,6 @@
-import { SPAWN_TRIES, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
+import { SPAWN_TRIES, TEMP_DIFFUSION, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_SEGMENTS, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
+
+const glFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 
 /** GLSL for the grid solver and particles: a straight port of `cpuSolver.ts` and `cpuParticles.ts`. The 3D grid is packed into one 2D float texture, `TX` slices per row. */
 
@@ -12,7 +14,7 @@ layout(location = 0) out highp vec4 fragOut;
 #define gl_FragColor fragOut
 `;
 
-const COMMON = FRAGMENT_OUT + /* glsl */ `
+const GRID_COMMON = /* glsl */ `
 uniform vec3 uN;
 uniform float uTX;
 #define N ivec3(uN)
@@ -36,6 +38,8 @@ vec3 sampleU(vec3 p) {
   return mix(mix(mix(c000, c100, f.x), mix(c010, c110, f.x), f.y), mix(mix(c001, c101, f.x), mix(c011, c111, f.x), f.y), f.z);
 }
 `;
+
+const COMMON = FRAGMENT_OUT + GRID_COMMON;
 
 export const ADVECT = COMMON + /* glsl */ `
 uniform sampler2D F; // xyz target velocity, w fan cell
@@ -77,7 +81,8 @@ float sampleT(vec3 p) {
 `;
 
 export const TEMPERATURE = COMMON + TEMP_COMMON + /* glsl */ `
-uniform vec3 uSrc; uniform float uCoupling;
+uniform vec3 uSrc; uniform float uCoupling; uniform vec3 uPow; uniform float uMaxRise;
+#define TEMP_DIFFUSION ${glFloat(TEMP_DIFFUSION)}
 void main() {
   ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
   if (c.z >= N.z) { gl_FragColor = vec4(0.0); return; }
@@ -87,8 +92,16 @@ void main() {
   if (m.r > 0.5 || m.b > 0.5 || id == 3) { gl_FragColor = vec4(0.0); return; }
   vec3 u = texelFetch(U, tc(c), 0).xyz;
   float t = sampleT(vec3(c) - u);
+  // Diffusion: close a small share of the gap to the mean of the fluid neighbors.
+  float acc = 0.0; float cnt = 0.0;
+  const ivec3 D[6] = ivec3[6](ivec3(1,0,0), ivec3(-1,0,0), ivec3(0,1,0), ivec3(0,-1,0), ivec3(0,0,1), ivec3(0,0,-1));
+  for (int k = 0; k < 6; k++) { ivec3 n = c + D[k]; if (!solidAt(n)) { acc += texelFetch(T, tc(n), 0).r; cnt += 1.0; } }
+  if (cnt > 0.0) t += TEMP_DIFFUSION * (acc / cnt - t);
   float src = id == 1 ? uSrc.y : (id == 2 ? uSrc.z : -1.0);
-  if (src >= 0.0) t += uCoupling * (src - t);
+  // A part with a power reading adds its watts as energy (degrees per step already worked out for this scene); without one the air closes on the part's temperature.
+  float pw = id == 1 ? uPow.y : (id == 2 ? uPow.z : -1.0);
+  if (pw >= 0.0) t = min(t + pw, src >= 0.0 ? min(uMaxRise, src) : uMaxRise);
+  else if (src >= 0.0) t += uCoupling * (src - t);
   gl_FragColor = vec4(t, 0.0, 0.0, 0.0);
 }`;
 
@@ -127,13 +140,10 @@ void main() {
 
 export const GRADIENT = COMMON + PRESSURE + /* glsl */ `
 uniform float uVmax;
-void main() {
-  ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
-  if (c.z >= N.z) { gl_FragColor = vec4(0.0); return; }
+// The projected, clamped velocity of an interior fluid cell.
+vec3 projectedAt(ivec3 c) {
   vec4 m = mask(c);
   vec3 u = texelFetch(U, tc(c), 0).xyz;
-  if (m.r > 0.5) { gl_FragColor = vec4(0.0); return; }
-  if (onBoundary(c)) { gl_FragColor = vec4(u, 0.0); return; }
   float pc = m.b > 0.5 ? 0.0 : texelFetch(P, tc(c), 0).r;
   vec3 g = 0.5 * vec3(pn(c + ivec3(1,0,0), pc) - pn(c - ivec3(1,0,0), pc), pn(c + ivec3(0,1,0), pc) - pn(c - ivec3(0,1,0), pc), pn(c + ivec3(0,0,1), pc) - pn(c - ivec3(0,0,1), pc));
   u -= g;
@@ -143,7 +153,27 @@ void main() {
   if ((solidAt(c + ivec3(0,0,1)) && u.z > 0.0) || (solidAt(c - ivec3(0,0,1)) && u.z < 0.0)) u.z = 0.0;
   float l = length(u);
   if (!(l <= uVmax)) u *= (l > 0.0 && !isnan(l) && !isinf(l)) ? uVmax / l : 0.0;
-  gl_FragColor = vec4(u, 0.0);
+  return u;
+}
+void main() {
+  ivec3 c = cellOf(ivec2(gl_FragCoord.xy));
+  if (c.z >= N.z) { gl_FragColor = vec4(0.0); return; }
+  vec4 m = mask(c);
+  vec3 u = texelFetch(U, tc(c), 0).xyz;
+  if (m.r > 0.5) { gl_FragColor = vec4(0.0); return; }
+  if (onBoundary(c)) {
+    // Zero-gradient open boundary: a fixed-pressure boundary cell takes the projected velocity of its inner neighbor along its first boundary axis, so the next projection reads a boundary consistent with the interior.
+    if (m.b > 0.5) {
+      ivec3 n = c;
+      if (c.x == 0) n.x = 1; else if (c.x == N.x - 1) n.x = N.x - 2;
+      else if (c.y == 0) n.y = 1; else if (c.y == N.y - 1) n.y = N.y - 2;
+      else if (c.z == 0) n.z = 1; else n.z = N.z - 2;
+      if (!solidAt(n) && !onBoundary(n)) { gl_FragColor = vec4(projectedAt(n), 0.0); return; }
+    }
+    gl_FragColor = vec4(u, 0.0);
+    return;
+  }
+  gl_FragColor = vec4(projectedAt(c), 0.0);
 }`;
 
 // Reduction: max |du| and max |u| per 4x4 block, then 4x4 of those down to one texel.
@@ -173,7 +203,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
+uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -192,12 +222,14 @@ void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
   vec4 s = texelFetch(PA, f, 0);
   vec3 p = s.xyz; float age = s.w;
+  // Age runs in simulation time: a slower drawn speed or Slow mo ages a particle per step by the same share, so its path before recycling never shortens.
+  float rate = uSpeed / uRefSpeed;
   bool respawn = age > uMaxAge * 4.0;
   bool fresh = respawn;
   // A warm update can close the cell a particle sits in: only those start over.
   if (!respawn && p.x > -1.0e5 && solidAt(cellAtPos(p))) respawn = true;
   // Not yet born: wait unseen at the spawn point.
-  if (!respawn && age < 0.0) { gl_FragColor = vec4(p, age + 1.0); return; }
+  if (!respawn && age < 0.0) { gl_FragColor = vec4(p, age + rate); return; }
   if (!respawn) {
     vec3 q = p;
     float h = uSpeed / uSubsteps;
@@ -212,7 +244,7 @@ void main() {
       if (mask(cellAtPos(q)).b > 0.5) break;
     }
     // A particle that barely moves, in dead air or against a wall, ages fast and is soon recycled.
-    age += length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0;
+    age += (length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0) * rate;
     p = q;
     ivec3 c = cellAtPos(p);
     // Nothing lives past the outside reach of the case box: a particle that leaves it is recycled.
@@ -254,8 +286,6 @@ void main() {
   gl_FragColor = vec4(h, 0.0, 0.0, 0.0);
 }`;
 
-const glFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
-
 /** Streak geometry shared by the vertex shader and the parity pass; mirrors `stepDisplacement` and `streakOf` in streak.ts. */
 export const STREAK_GLSL = /* glsl */ `
 #define STREAK_STEPS ${glFloat(STREAK_STEPS)}
@@ -275,15 +305,42 @@ vec4 streakOf(vec3 d) {
 }
 `;
 
-// A particle is a camera-facing quad from its head back along its last step. Per particle 4 vertices: corner.x is 0 at the tail and 1 at the head, corner.y the side.
-export const STREAK_VERTEX = LIFE + STREAK_GLSL + /* glsl */ `
+// A particle is a camera-facing ribbon of STREAK_SEGMENTS segments from its head back along the flow: each station steps backward through the solved velocity field, so the tail bends where the air bends. Per particle 2 vertices per station: corner.x is 1 at the head and 0 at the tail, corner.y the side.
+export const STREAK_VERTEX = LIFE + GRID_COMMON + STREAK_GLSL + /* glsl */ `
+#define STREAK_SEGMENTS ${STREAK_SEGMENTS}
 uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
-uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha;
-uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot; uniform float uHeatSpan;
+uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
+uniform vec3 uCool; uniform vec3 uPale; uniform vec3 uWarm; uniform vec3 uOrange; uniform vec3 uHot; uniform float uHeatSpan;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
+// Colors convert to OKLab from linear sRGB for the blend below.
+vec3 toLab(vec3 c) {
+  vec3 l = vec3(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b, 0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b, 0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
+  l = pow(max(l, vec3(0.0)), vec3(1.0 / 3.0));
+  return vec3(0.2104542553 * l.x + 0.7936177850 * l.y - 0.0040720468 * l.z, 1.9779984951 * l.x - 2.4285922050 * l.y + 0.4505937099 * l.z, 0.0259040371 * l.x + 0.7827717662 * l.y - 0.8086757660 * l.z);
+}
+vec3 fromLab(vec3 c) {
+  vec3 l = vec3(c.x + 0.3963377774 * c.y + 0.2158037573 * c.z, c.x - 0.1055613458 * c.y - 0.0638541728 * c.z, c.x - 0.0894841775 * c.y - 1.2914855480 * c.z);
+  l = l * l * l;
+  return max(vec3(4.0767416621 * l.x - 3.3077115913 * l.y + 0.2309699292 * l.z, -1.2684380046 * l.x + 2.6097574011 * l.y - 0.3413193965 * l.z, -0.0041960863 * l.x - 0.7034186147 * l.y + 1.7076147010 * l.z), vec3(0.0));
+}
+// The ramp runs through five stops, each segment blended in OKLab: cool, a pale light stop, warm, orange, hot. Going straight from cool to warm can only pass gray or green; the pale stop between them is light, so it reads as white, and the segments after it stay in yellow, orange and red.
+vec3 mixLab(vec3 a, vec3 b, float t) { return fromLab(mix(toLab(a), toLab(b), t)); }
+vec3 rampColor(float h) {
+  float x = clamp(h, 0.0, 1.0) * 4.0;
+  if (x < 1.0) return mixLab(uCool, uPale, x);
+  if (x < 2.0) return mixLab(uPale, uWarm, x - 1.0);
+  if (x < 3.0) return mixLab(uWarm, uOrange, x - 2.0);
+  return mixLab(uOrange, uHot, x - 3.0);
+}
+vec2 screenOf(vec3 cellPos, out float w) {
+  vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
+  vec4 c = projectionMatrix * modelViewMatrix * vec4(mm, 1.0);
+  w = max(c.w, 1.0e-4);
+  return c.xy / w * 0.5 * uViewport;
+}
 void main() {
   ivec2 r = ivec2(ref);
   vec4 s = texelFetch(PA, r, 0);
@@ -294,27 +351,41 @@ void main() {
   vec3 over = max(max(-head, head - uCaseExtent), 0.0);
   float outside = length(over);
   float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
-  vColor = h < 0.5 ? mix(uCool, uWarm, h * 2.0) : mix(uWarm, uHot, (h - 0.5) * 2.0);
-  vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha;
-  vec4 sl = streakOf(stepDisplacement(p, s, uCell));
-  vec3 tail = head - sl.xyz * sl.w;
-  vec4 ch = projectionMatrix * modelViewMatrix * vec4(head, 1.0);
-  vec4 ct = projectionMatrix * modelViewMatrix * vec4(tail, 1.0);
-  float wh = max(ch.w, 1.0e-4);
-  float wt = max(ct.w, 1.0e-4);
-  vec2 ph = ch.xy / wh * 0.5 * uViewport;
-  vec2 pt = ct.xy / wt * 0.5 * uViewport;
-  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wh);
-  vec2 axis = ph - pt;
+  vColor = rampColor(h);
+  // A stable per-particle strength, so neighbors differ a little without flickering.
+  float strength = mix(0.75, 1.0, hash(vec2(r) * 1.31 + 0.5));
+  vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha * strength;
+  // Length from the displacement per unit of simulation time, so Slow mo shows the same trail moving slower.
+  vec4 sl = streakOf(stepDisplacement(p, s, uCell) / uRate);
+  float stepCells = sl.w / float(STREAK_SEGMENTS) / uCell;
+  int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
+  // Walk back from the head: a station at rest keeps the direction it had, a blocked step stays put. The tangent is the last step taken to reach the station (the first step for the head).
+  vec3 back = -sl.xyz;
+  vec3 cur = s.xyz;
+  vec3 lastBack = back * stepCells;
+  for (int k = 1; k <= STREAK_SEGMENTS; k++) {
+    if (k > max(station, 1)) break;
+    vec3 v = sampleU(cur);
+    float vm = length(v);
+    if (vm > 1.0e-5) back = -v / vm;
+    vec3 nxt = cur + back * stepCells;
+    if (!solidAt(ivec3(floor(nxt + 0.5)))) { lastBack = nxt - cur; cur = nxt; }
+  }
+  vec3 at = station == 0 ? s.xyz : cur;
+  float wa; float wb; float wp;
+  // A blocked last step keeps the direction of the last step that moved.
+  vec2 pa = screenOf(cur - lastBack, wa);
+  vec2 pb = screenOf(cur, wb);
+  vec2 pp = screenOf(at, wp);
+  float taper = mix(uTailWidth, 1.0, corner.x);
+  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
+  vec2 axis = pa - pb;
   float len = length(axis);
   axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
   vec2 side = vec2(-axis.y, axis.x);
-  // Caps extend each end by half the width, so a stalled streak is never shorter than it is wide.
-  bool isHead = corner.x > 0.5;
-  vec2 px = (isHead ? ph + axis * half_ : pt - axis * half_) + side * half_ * corner.y;
-  vec4 c = isHead ? ch : ct;
-  float cw = isHead ? wh : wt;
-  gl_Position = vec4(px / (0.5 * uViewport) * cw, c.z, c.w);
+  vec2 px = pp + side * half_ * corner.y;
+  vec4 c = projectionMatrix * modelViewMatrix * vec4((at + 0.5) * uCell - uOrigin, 1.0);
+  gl_Position = vec4(px / (0.5 * uViewport) * wp, c.z, c.w);
   vAlong = corner.x;
   vSide = corner.y;
 }`;
@@ -322,9 +393,12 @@ void main() {
 export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
 in vec3 vColor; in float vAlpha; in float vAlong; in float vSide;
 void main() {
-  float a = vAlpha * mix(0.1, 1.0, vAlong) * smoothstep(1.0, 0.25, abs(vSide));
+  // Strong head fading to a transparent tail; a darker rim around a bright core keeps the streak apart from both light and dark backgrounds.
+  float across = abs(vSide);
+  float a = vAlpha * pow(vAlong, 0.8) * (1.0 - smoothstep(0.8, 1.0, across));
   if (a < 0.003) discard;
-  gl_FragColor = vec4(vColor * a, a);
+  vec3 col = mix(vColor * 1.15, vColor * 0.3, smoothstep(0.55, 0.9, across));
+  gl_FragColor = vec4(col * a, a);
 }`;
 
 // Parity pass: per texel a previous and a current particle state (cell xyz, age), out the streak of their step: xyz direction and w length in mm.

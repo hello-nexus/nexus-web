@@ -36,6 +36,9 @@ const trail: string[] = [];
 async function main() {
   const canvas = document.getElementById('c') as HTMLCanvasElement;
   const renderer = new WebGLRenderer({ canvas, antialias: false, alpha: true });
+  // Particles advance with the frame clock the layer is given: a synthetic display clock keeps every fixed-count loop at the same frame time, whatever the software renderer's speed.
+  let displayMs = 0;
+  const nowMs = () => (displayMs += 1000 / 60);
   const err = (label: string) => { const e = renderer.getContext().getError(); if (e) trail.push(`${label}:${e}`); };
   const kind = floatSupport(renderer);
   err('floatSupport');
@@ -56,8 +59,9 @@ async function main() {
   for (let i = 0; i < cpu.u.length; i++) { maxDiff = Math.max(maxDiff, Math.abs(g[i] - cpu.u[i])); maxCpu = Math.max(maxCpu, Math.abs(cpu.u[i])); }
   out.velocity = { maxDiff, maxCpu };
   // Buoyancy and the temperature field: the same hot GPU on both, more steps, then compare the temperature and the velocity it bends.
-  gl.setTemps({ gpu: 75, cpu: null });
-  cpu.setTemps({ gpu: 75, cpu: null });
+  // With a power reading: the part's watts go in as energy, in the temperature pass and in the reference alike.
+  gl.setTemps({ gpu: 75, cpu: null, gpuW: 200 });
+  cpu.setTemps({ gpu: 75, cpu: null, gpuW: 200 });
   for (let i = 0; i < 80; i++) { gl.step(1); cpu.step(); }
   const gt = gl.readTemperature();
   const gv = gl.readVelocity();
@@ -111,7 +115,7 @@ async function main() {
 
   const host = new Group();
   const layer = new FlowLayer(renderer, host, new Vector3(480, 440, 360), {
-    cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+    cool: new Color('#38bdf8'), pale: new Color('#f2f6ff'), warm: new Color('#f59e0b'), orange: new Color('#ff8a00'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
   });
   const sc = new Scene();
   sc.add(host);
@@ -124,7 +128,7 @@ async function main() {
   let worst = 0;
   let checked = 0;
   for (let f = 0; f < FRAMES; f++) {
-    layer.frame(performance.now(), cam, 240);
+    layer.frame(nowMs(), cam, 240);
     err(`frame${f}`);
     renderer.render(sc, cam);
     err(`render${f}`);
@@ -137,12 +141,14 @@ async function main() {
   let afterWorst = 0;
   let afterChecked = 0;
   for (let f = 0; f < 120; f++) {
-    layer.frame(performance.now(), cam, 240);
+    layer.frame(nowMs(), cam, 240);
     renderer.render(sc, cam);
     if (f % 20 === 19) { const r = bad(layer); afterWorst += r.badCount; afterChecked += r.checked; }
   }
   out.afterTierDrop = { checked: afterChecked, inSolidOrOutside: afterWorst, tier: layer.currentTier, dims: layer.scene!.dims };
+  err('after tier drop');
   layer.dispose();
+  err('layer dispose');
 
   // Every fan stopped and a hot GPU: the layer still solves and starts plume particles at the part; at room temperature none start.
   const stillInput = inputFor([fronts[0], fronts[1], rear], [gpuBox], defaultDir, 0);
@@ -151,7 +157,7 @@ async function main() {
     const scP = new Scene();
     scP.add(hostP);
     const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
-      cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+      cool: new Color('#38bdf8'), pale: new Color('#f2f6ff'), warm: new Color('#f59e0b'), orange: new Color('#ff8a00'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
     });
     // The coarsest tier keeps the software renderer quick; particles start once the first solve settles.
     l.dropTier();
@@ -160,8 +166,8 @@ async function main() {
     l.setInput(stillInput);
     l.setOptions({ particles: true, collisions: false, speed: 1.5 });
     let frames = 0;
-    while (!l.settled && frames < 3000) { l.frame(performance.now(), cam, 240); renderer.render(scP, cam); if (++frames % 40 === 0) await new Promise(r => setTimeout(r, 0)); }
-    for (let f = 0; f < 150; f++) { l.frame(performance.now(), cam, 240); renderer.render(scP, cam); }
+    while (!l.settled && frames < 3000) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); if (++frames % 40 === 0) await new Promise(r => setTimeout(r, 0)); }
+    for (let f = 0; f < 150; f++) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); }
     const { pos, heat } = l.readParticles();
     let alive = 0;
     let warm = 0;
@@ -170,6 +176,7 @@ async function main() {
     return { alive, warm, frames };
   };
   out.plume = { hot: await plumeAt(75), cold: await plumeAt(22) };
+  err('plume');
 
   // What the user sees: per-frame displacement of the particles within one fan diameter downstream of a slow and a fast fan on one face.
   const pair = inputFor([fronts[0], fronts[1], rear], [], defaultDir, 60);
@@ -180,7 +187,7 @@ async function main() {
   const sc2 = new Scene();
   sc2.add(host2);
   const slowFast = new FlowLayer(renderer, host2, new Vector3(480, 440, 360), {
-    cool: new Color('#38bdf8'), warm: new Color('#f59e0b'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+    cool: new Color('#38bdf8'), pale: new Color('#f2f6ff'), warm: new Color('#f59e0b'), orange: new Color('#ff8a00'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
   });
   slowFast.setInput(pair);
   slowFast.setOptions({ particles: true, collisions: false, speed: 1.5 });
@@ -194,14 +201,16 @@ async function main() {
   // Warm up until the solver reports a steady field and the pool has lived through its birth spread, then measure.
   let framesToSteady = 0;
   while (!slowFast.settled && framesToSteady < 4000) {
-    slowFast.frame(performance.now(), cam, 240);
+    slowFast.frame(nowMs(), cam, 240);
     renderer.render(sc2, cam);
     framesToSteady++;
     if (framesToSteady % 50 === 0) await new Promise(r => setTimeout(r, 0));
   }
-  for (let f = 0; f < 200; f++) { slowFast.frame(performance.now(), cam, 240); renderer.render(sc2, cam); }
+  err('slowFast warmup');
+  for (let f = 0; f < 200; f++) { slowFast.frame(nowMs(), cam, 240); renderer.render(sc2, cam); }
+  err('slowFast birth');
   for (let f = 0; f < 100; f++) {
-    slowFast.frame(performance.now(), cam, 240);
+    slowFast.frame(nowMs(), cam, 240);
     renderer.render(sc2, cam);
     const { pos } = slowFast.readParticles();
     if (prev) {
@@ -220,6 +229,7 @@ async function main() {
     prev = pos;
   }
   out.visibleSpeed = { centers: centers.length, means: sums.map((s, n) => (counts[n] ? s / counts[n] : 0)), counts, tier: slowFast.currentTier, framesToSteady, settled: slowFast.settled };
+  err('slowFast measure');
   slowFast.dispose();
   out.glError = renderer.getContext().getError();
   out.trail = trail.slice(0, 8);

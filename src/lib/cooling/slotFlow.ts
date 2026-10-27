@@ -2,7 +2,7 @@ import type { FanChannel } from '../../api/cooling';
 import { defaultDirection, NONE_CHANNEL, SIM_RPM_UNASSIGNED, simChannelId, type CaseFanSlot, type FanBinding } from './caseLayout';
 import { scaledSpec, simRpm, speedFraction, type SlotSpeed } from './fanSpeed';
 import { slotModelFans, type CatalogFanSpec } from './fanSpecs';
-import { solveCasePressure, type FanDirection, type PressureFan } from './pressureModel';
+import { RADIATOR_LOSS_K, seriesLoss, solveCasePressure, type FanDirection, type PressureFan } from './pressureModel';
 
 export const GPU_FAN_PREFIX = 'gpu:fan:';
 export const AIO_FAN_PREFIX = 'rad:';
@@ -81,8 +81,8 @@ export function boundSlotKeys(bindings: readonly FanBinding[], channels: readonl
   return bindings.filter(b => present.has(b.channelId) || simRpm(b.channelId) !== null).flatMap(b => b.slotKeys);
 }
 
-/** The case-wide figures: fan laws on each fan's live speed, solved against the case's openings. GPU fans are left out: their air recirculates inside the case. */
-export function lumpedModel(slots: readonly CaseFanSlot[], catalog: readonly CatalogFanSpec[], speeds: ReadonlyMap<string, SlotSpeed>, directions: Readonly<Record<string, FanDirection>>) {
+/** The fans of the case-wide pressure model, each at its live speed by the fan laws (flow follows speed, pressure its square) and behind its radiator's loss. GPU fans are left out: their air recirculates inside the case. */
+export function pressureFans(slots: readonly CaseFanSlot[], catalog: readonly CatalogFanSpec[], speeds: ReadonlyMap<string, SlotSpeed>, directions: Readonly<Record<string, FanDirection>>): { fans: PressureFan[]; estimated: boolean } {
   let estimated = false;
   const fans: PressureFan[] = [];
   for (const slot of slots) {
@@ -91,8 +91,14 @@ export function lumpedModel(slots: readonly CaseFanSlot[], catalog: readonly Cat
       const speed = speeds.get(fan.key);
       const live = speed ? { ...scaledSpec(fan, speed.fraction), estimated: fan.estimated || speed.estimated } : fan;
       estimated ||= live.estimated;
-      fans.push({ key: fan.key, cfm: live.cfm, staticMmH2O: live.staticMmH2O, direction: directions[slot.key] });
+      fans.push({ key: fan.key, cfm: live.cfm, staticMmH2O: live.staticMmH2O, direction: directions[slot.key], ...(isAioSlot(slot) ? { loss: seriesLoss(RADIATOR_LOSS_K, slot.size) } : {}) });
     }
   }
+  return { fans, estimated };
+}
+
+/** The case-wide figures: fan laws on each fan's live speed, solved against the case's openings. GPU fans are left out: their air recirculates inside the case. */
+export function lumpedModel(slots: readonly CaseFanSlot[], catalog: readonly CatalogFanSpec[], speeds: ReadonlyMap<string, SlotSpeed>, directions: Readonly<Record<string, FanDirection>>) {
+  const { fans, estimated } = pressureFans(slots, catalog, speeds, directions);
   return { result: solveCasePressure(fans), estimated, fanCount: fans.length };
 }

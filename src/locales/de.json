@@ -402,6 +402,7 @@
   "cooling.case3d.flow.collisions": "Kollisionsformen",
   "cooling.case3d.flow.controls": "Luftstromanzeige",
   "cooling.case3d.flow.cooler": "Kühler",
+  "cooling.case3d.flow.grid": "Rasterzellen",
   "cooling.case3d.flow.legend": "Lufttemperatur, qualitativ",
   "cooling.case3d.flow.mode.airflow": "Luftstrom",
   "cooling.case3d.flow.mode.both": "Gehäuse + Luftstrom",

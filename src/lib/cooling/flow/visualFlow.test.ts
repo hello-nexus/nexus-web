@@ -139,7 +139,7 @@ describe('visual flow compression', () => {
     const layout = layoutWith(keys);
     const f = flowFor(layout, { 'bottom:120:1': 0.72, 'right:120:1': 0.39, 'right:120:2': 0.39, 'top:120:0': 0 }, keys.slice(0, 3));
     expect(f.fanCfm['top:120:0']).toBe(0);
-    for (const k of keys.slice(0, 3)) expect(f.fanCfm[k]).toBeGreaterThan(20);
+    for (const k of keys.slice(0, 3)) expect(f.fanCfm[k]).toBeGreaterThan(10);
     const slowest = Math.min(...keys.slice(0, 3).map(k => f.fanCfm[k]));
     const fastest = Math.max(...keys.slice(0, 3).map(k => f.fanCfm[k]));
     expect(slowest / fastest).toBeGreaterThan(0.38);

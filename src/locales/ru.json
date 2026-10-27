@@ -402,6 +402,7 @@
   "cooling.case3d.flow.collisions": "Формы столкновений",
   "cooling.case3d.flow.controls": "Отображение воздушного потока",
   "cooling.case3d.flow.cooler": "Холоднее",
+  "cooling.case3d.flow.grid": "Ячейки сетки",
   "cooling.case3d.flow.legend": "Температура воздуха, качественно",
   "cooling.case3d.flow.mode.airflow": "Воздушный поток",
   "cooling.case3d.flow.mode.both": "Корпус + воздушный поток",

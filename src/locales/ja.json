@@ -402,6 +402,7 @@
   "cooling.case3d.flow.collisions": "衝突形状",
   "cooling.case3d.flow.controls": "エアフロー表示",
   "cooling.case3d.flow.cooler": "低温",
+  "cooling.case3d.flow.grid": "グリッドセル",
   "cooling.case3d.flow.legend": "空気の温度(定性的)",
   "cooling.case3d.flow.mode.airflow": "気流",
   "cooling.case3d.flow.mode.both": "ケース + 気流",

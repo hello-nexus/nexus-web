@@ -2,9 +2,9 @@ import {
   DataUtils, ExternalTexture, FloatType, GLSL3, HalfFloatType, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, Scene, UnsignedByteType,
   ShaderMaterial, Vector4, WebGLRenderTarget, type Texture, type WebGLRenderer,
 } from 'three';
-import { BUOYANCY, DAMPING, FAN_BLEND, HEAT_COUPLING, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
-import type { FlowScene } from './gridScene';
-import { isHot, sourceRises, type ComponentTemps } from './heatModel';
+import { DAMPING, FAN_BLEND, HEAT_COUPLING, JACOBI_ITERATIONS, MAX_RISE_K, VMAX_CELLS } from './flowParams';
+import { SOURCE_CPU, SOURCE_GPU, powerRisePerStep, type FlowScene } from './gridScene';
+import { isHot, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { ADVECT, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT, TEMPERATURE } from './shaders';
 
 export type FloatKind = typeof FloatType | typeof HalfFloatType;
@@ -130,6 +130,7 @@ export class GlFlow {
   private readonly tempWrap: ExternalTexture[];
   private tempCur = 0;
   private hotNow = false;
+  private watts: [number, number, number] = [-1, -1, -1];
   private readonly div: RawTarget;
   private readonly reduce: RawTarget[] = [];
   private readonly encoded: RawTarget;
@@ -141,8 +142,8 @@ export class GlFlow {
   /** Scratch objects reused by every pass, so a solver step allocates none. */
   private readonly viewport = new Vector4();
   private readonly uniforms = {
-    advect: { textures: {} as Record<string, WebGLTexture>, floats: { uBlend: FAN_BLEND, uDamp: DAMPING, uVmax: VMAX_CELLS, uBuoy: BUOYANCY } },
-    temperature: { textures: {} as Record<string, WebGLTexture>, floats: { uCoupling: HEAT_COUPLING }, vec3s: { uSrc: [0, -1, -1] as number[] } },
+    advect: { textures: {} as Record<string, WebGLTexture>, floats: { uBlend: FAN_BLEND, uDamp: DAMPING, uVmax: VMAX_CELLS, uBuoy: 0 } },
+    temperature: { textures: {} as Record<string, WebGLTexture>, floats: { uCoupling: HEAT_COUPLING, uMaxRise: MAX_RISE_K }, vec3s: { uSrc: [0, -1, -1] as number[], uPow: [0, -1, -1] as number[] } },
     diverge: { textures: {} as Record<string, WebGLTexture> },
     jacobi: { textures: {} as Record<string, WebGLTexture> },
     gradient: { textures: {} as Record<string, WebGLTexture>, floats: { uVmax: VMAX_CELLS } },
@@ -160,6 +161,7 @@ export class GlFlow {
     this.gl = renderer.getContext() as WebGL2RenderingContext;
     const gl = this.gl;
     this.current = scene;
+    this.uniforms.advect.floats.uBuoy = scene.buoyancy;
     this.type = type;
     const layout = packLayout(scene.dims);
     this.tx = layout.tx;
@@ -290,6 +292,8 @@ export class GlFlow {
   /** Swaps in an edited scene of the same grid and keeps the velocity field as the starting point of the next solve. */
   setScene(scene: FlowScene) {
     this.current = scene;
+    this.uniforms.advect.floats.uBuoy = scene.buoyancy;
+    this.applyPower();
     this.upload();
   }
 
@@ -307,7 +311,17 @@ export class GlFlow {
     const rises = sourceRises(temps);
     const src = this.uniforms.temperature.vec3s.uSrc;
     src[0] = 0; src[1] = rises[1]; src[2] = rises[2];
-    this.hotNow = isHot(rises);
+    this.watts = sourceWatts(temps);
+    this.hotNow = isHot(rises, this.watts);
+    this.applyPower();
+  }
+
+  // Degrees per step each part's power adds to its heat cells, for the scene's own step and cell counts; negative falls back on the part's temperature.
+  private applyPower() {
+    const pow = this.uniforms.temperature.vec3s.uPow;
+    pow[0] = 0;
+    pow[1] = powerRisePerStep(this.current, SOURCE_GPU, this.watts[SOURCE_GPU]);
+    pow[2] = powerRisePerStep(this.current, SOURCE_CPU, this.watts[SOURCE_CPU]);
   }
 
   /** Whether any part is hot enough to drive a plume on its own. */
@@ -378,6 +392,18 @@ export class GlFlow {
   step(count = 1) {
     this.raw(() => {
       for (let n = 0; n < count; n++) this.stepOnce();
+    });
+  }
+
+  /** One temperature pass on the current, frozen velocity: the field moves toward its new sources without a velocity solve. */
+  stepTemperature() {
+    this.raw(() => {
+      const un = this.uniforms;
+      un.temperature.textures.U = this.vel[this.cur].texture;
+      un.temperature.textures.T = this.temp[this.tempCur].texture;
+      un.temperature.textures.M = this.maskTex;
+      this.draw(this.programs.temperature, this.temp[1 - this.tempCur], un.temperature);
+      this.tempCur = 1 - this.tempCur;
     });
   }
 

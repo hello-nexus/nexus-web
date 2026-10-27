@@ -402,6 +402,7 @@
   "cooling.case3d.flow.collisions": "Formes de collision",
   "cooling.case3d.flow.controls": "Affichage du flux d'air",
   "cooling.case3d.flow.cooler": "Plus frais",
+  "cooling.case3d.flow.grid": "Cellules de la grille",
   "cooling.case3d.flow.legend": "Température de l'air, qualitative",
   "cooling.case3d.flow.mode.airflow": "Flux d'air",
   "cooling.case3d.flow.mode.both": "Boîtier + flux d'air",

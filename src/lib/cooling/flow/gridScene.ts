@@ -1,7 +1,7 @@
 import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Vec3 } from '../caseLayout';
 import type { FanDirection } from '../pressureModel';
 import {
-  CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES,
+  AIR_DENSITY, AIR_SPECIFIC_HEAT, GRAVITY, ROOM_TEMP_K, CFL_TARGET, DARCY_K, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM, EMITTER_STRIDE, FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, OUTSIDE_SPAWN_FROM, OUTSIDE_SPAWN_TO, PLUME_EMITTERS_MAX,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
@@ -16,6 +16,13 @@ export const SOURCE_GPU = 1;
 export const SOURCE_CPU = 2;
 /** Air held at room temperature: the intake fans' cells and the outside air in front of them. */
 export const SOURCE_ROOM = 3;
+
+/** Degrees one step of `watts` adds to each of a part's heat cells: P dt / (rho cp V) over its cells, so the heat is energy-conserving whatever the grid. Negative when the part has no cells or no watts. */
+export function powerRisePerStep(scene: Pick<FlowScene, 'stepSeconds' | 'cellVolumeM3' | 'heatCellCount'>, source: number, watts: number): number {
+  const cells = scene.heatCellCount[source] ?? 0;
+  if (!(watts >= 0) || cells === 0) return -1;
+  return (watts * scene.stepSeconds) / (AIR_DENSITY * AIR_SPECIFIC_HEAT * scene.cellVolumeM3 * cells);
+}
 /** Share of the ring width kept clear of the hub edge when spawning. */
 const SPAWN_HUB_MARGIN = 0.04;
 const SAMPLE_SPAWNS = 2048;
@@ -49,6 +56,12 @@ export interface FlowScene {
   caseMax: [number, number, number];
   /** Physical seconds one solver step stands for. */
   stepSeconds: number;
+  /** Boussinesq buoyancy, cells per step squared per degree of rise: g beta dt^2 / cell size, from real gravity, beta = 1 / room temperature and this scene's own step. */
+  buoyancy: number;
+  /** Cells of each heat source, by `SOURCE_*`. */
+  heatCellCount: [number, number, number, number];
+  /** Volume of one cell, m^3. */
+  cellVolumeM3: number;
   /** Fastest fan target, cells per step. */
   maxTargetCells: number;
   solid: Uint8Array;
@@ -495,7 +508,11 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   }
 
   const caseBounds = { min: [0, 1, 2].map(a => origin[a] / cellMm - 0.5) as Vec3, max: [0, 1, 2].map(a => (extents[a] + origin[a]) / cellMm - 0.5) as Vec3 };
-  const result: FlowScene = { dims, cellMm, origin, caseMin, caseMax, stepSeconds, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), plumeEmitters: new Float32Array(plume), emitterCounts, caseBounds, particleBounds: { min: caseBounds.min.map(v => v - OUTSIDE_REACH_MM / cellMm) as Vec3, max: caseBounds.max.map(v => v + OUTSIDE_REACH_MM / cellMm) as Vec3 }, spawns: new Float32Array(0), fanCount };
+  const heatCellCount: [number, number, number, number] = [0, 0, 0, 0];
+  for (let c = 0; c < heat.length; c++) heatCellCount[heat[c]]++;
+  const cellM = cellMm / MM_PER_M;
+  const buoyancy = (GRAVITY / ROOM_TEMP_K) * stepSeconds * stepSeconds / cellM;
+  const result: FlowScene = { dims, cellMm, origin, caseMin, caseMax, stepSeconds, buoyancy, heatCellCount, cellVolumeM3: cellM ** 3, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), plumeEmitters: new Float32Array(plume), emitterCounts, caseBounds, particleBounds: { min: caseBounds.min.map(v => v - OUTSIDE_REACH_MM / cellMm) as Vec3, max: caseBounds.max.map(v => v + OUTSIDE_REACH_MM / cellMm) as Vec3 }, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };

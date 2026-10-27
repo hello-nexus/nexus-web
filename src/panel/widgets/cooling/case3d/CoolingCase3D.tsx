@@ -28,6 +28,7 @@ import {
 import { settleFlows, simRpm, SIM_RPM_CEILING } from '../../../../lib/cooling/fanSpeed';
 import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
 import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
+import { VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
 import { visualFlow } from '../../../../lib/cooling/visualFlow';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
@@ -70,7 +71,7 @@ const POSITION_KEYS: Record<string, string> = {
 };
 
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
-const NORMAL_SPEED = 1;
+const NORMAL_SPEED = 0.6;
 const SLOW_MO_FACTOR = 0.25;
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
@@ -122,6 +123,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [flowMode, setFlowMode] = useState<CoolingFlowMode>(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE);
   const [slowMo, setSlowMo] = useState(false);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
+  const [gridCells, setGridCells] = useState(false);
   // The saved choices can change after mount (the settings load, or another window edits them), so the view follows them.
   useEffect(() => { setFlowMode(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE); }, [savedFlowMode]);
   useEffect(() => { setCollisions(DEV_TOOLS && (savedCollisions ?? false)); }, [savedCollisions]);
@@ -191,7 +193,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED }), [particles, collisions, showCase, slowMo]);
+  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, grid: DEV_TOOLS && gridCells, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slowMo ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE }), [particles, collisions, gridCells, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -378,6 +380,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 <label className={`${styles.flowToggle} ${styles.control}`}>
                   <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
                   <span>{t('cooling.case3d.flow.collisions')}</span>
+                </label>
+              )}
+              {DEV_TOOLS && particles && (
+                <label className={`${styles.flowToggle} ${styles.control}`}>
+                  <Toggle checked={gridCells} onChange={setGridCells} ariaLabel={t('cooling.case3d.flow.grid')} />
+                  <span>{t('cooling.case3d.flow.grid')}</span>
                 </label>
               )}
               {particles && (

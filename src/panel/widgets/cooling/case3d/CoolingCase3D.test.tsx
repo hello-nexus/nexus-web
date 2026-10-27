@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import type { CoolingLayout } from '../../../../api/coolingLayout';
 import { onOpenBuild } from '../../../../components/views/BuildPage/buildNav';
+import { VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
 import { CoolingCase3D } from './CoolingCase3D';
 import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
 
@@ -511,7 +512,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
     expect(state.flow.fanCfm['rear:120:0']).toBeGreaterThan(0);
     expect(new Set(state.simulated)).toEqual(new Set(['front:120:0', 'rear:120:0']));
-    expect(state.flowOptions).toEqual({ particles: true, collisions: false, speed: 1 });
+    expect(state.flowOptions).toEqual({ particles: true, collisions: false, grid: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -535,20 +536,21 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().flow.directions['front:120:0']).toBe('exhaust');
   });
 
-  it('has no speed slider and a fixed 1x speed', () => {
+  it('has no speed slider and a fixed normal speed', () => {
     mountReady();
     expect(screen.queryByRole('slider')).toBeNull();
-    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, speed: 1 });
+    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, grid: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
   });
 
   it('slow mo scales the particle step to a quarter without re-solving', () => {
     mountReady();
     const flow = lastState().flow;
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
-    expect(lastState().flowOptions.speed).toBe(0.25);
+    expect(lastState().flowOptions.speed).toBe(0.15);
+    expect(lastState().flowOptions.timeScale).toBeCloseTo(VISUAL_TIME_SCALE * 0.25, 10);
     expect(lastState().flow).toBe(flow);
     fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
-    expect(lastState().flowOptions.speed).toBe(1);
+    expect(lastState().flowOptions.speed).toBe(0.6);
   });
 
   it('switches between case and airflow, and reports the choice to be remembered', () => {
