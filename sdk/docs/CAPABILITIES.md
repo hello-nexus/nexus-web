@@ -46,6 +46,10 @@ The TS shape lives in `src/widgets/types.ts`.
   // the nearest one that is when its layout next loads with the app known.
   "grid_sizes": ["4x4"],
 
+  // Optional, default false: lets the user resize the tile freely on panels,
+  // like the built-in Web View widget, instead of snapping to "sizes".
+  "freeform": false,
+
   // OEM bake-in: treat this app as active on a fresh profile (sidebar auto-pins
   // its page, no user "add" step needed).
   "preinstalled": false,
