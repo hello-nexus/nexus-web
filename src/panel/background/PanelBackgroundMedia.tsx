@@ -104,7 +104,7 @@ export function PanelBackgroundMedia({
             const video = e.currentTarget;
             window.clearTimeout(graceTimerRef.current);
             if (video.error) {
-              onFailedRef.current?.();
+              onFailed?.();
               return;
             }
             // Chrome 83 WebViews fire `error` with no MediaError on clips that
