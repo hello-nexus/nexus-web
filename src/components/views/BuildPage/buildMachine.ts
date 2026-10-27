@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchService } from '../../../api/service';
-import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
+import { useSystemSpecs, type HardwareIds, type SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { buildFpsSignatureParams, primaryGpuCard } from '../../../panel/widgets/frames/fpsSignatureParams';
 
 // Same rule as the cloud api's device case id: a catalog part id.
@@ -10,6 +10,8 @@ const BYTES_PER_GIB = 1024 ** 3;
 export interface BuildMachine {
   processor?: string;
   primaryGpu?: string;
+  // Every card in the service's order, the list hardwareIds.gpus lines up with; absent when the report names none.
+  gpus?: string[];
   memory?: string;
   motherboard?: string;
   storage?: string;
@@ -21,6 +23,8 @@ export interface BuildMachine {
   // The case was filled in by detection (a Y70 display), not chosen; absent when the user chose it.
   caseAuto?: true;
   devices?: BuildDevice[];
+  // The service's part identifiers, each source copied by field whitelist; absent on an older service.
+  hardwareIds?: HardwareIds;
 }
 
 /** One detected cooler, fan or controller from the service's `/system/devices`; passed through to the frame untouched. */
@@ -43,12 +47,41 @@ export function isValidCaseId(value: unknown): value is string | null {
   return value === null || (typeof value === 'string' && CASE_ID_PATTERN.test(value));
 }
 
+function pick<K extends string>(source: unknown, keys: readonly K[]): Partial<Record<K, never>> {
+  const out: Record<string, unknown> = {};
+  const from = (source ?? {}) as Record<string, unknown>;
+  for (const k of keys) if (from[k] !== undefined && from[k] !== null) out[k] = from[k];
+  return out as Partial<Record<K, never>>;
+}
+
+function pickList<K extends string>(list: unknown, keys: readonly K[]) {
+  if (list === null) return null;
+  return Array.isArray(list) ? list.map(item => pick(item, keys)) : undefined;
+}
+
+/** Copies only the listed fields of each source, so a field the service adds later is never forwarded. */
+export function whitelistHardwareIds(ids: HardwareIds): HardwareIds {
+  const out: HardwareIds = {};
+  const gpus = pickList(ids.gpus, ['vendor', 'device', 'subVendor', 'subDevice'] as const);
+  const ram = pickList(ids.ramModules, ['manufacturer', 'partNumber', 'capacityBytes', 'configuredSpeedMts'] as const);
+  const drives = pickList(ids.drives, ['vendor', 'model'] as const);
+  const monitors = pickList(ids.monitors, ['manufacturer', 'productCode', 'name'] as const);
+  if (gpus !== undefined) out.gpus = gpus as HardwareIds['gpus'];
+  if (ram !== undefined) out.ramModules = ram as HardwareIds['ramModules'];
+  if (drives !== undefined) out.drives = drives as HardwareIds['drives'];
+  if (ids.board === null) out.board = null;
+  else if (ids.board) out.board = pick(ids.board, ['manufacturer', 'product'] as const) as HardwareIds['board'];
+  if (monitors !== undefined) out.monitors = monitors as HardwareIds['monitors'];
+  return out;
+}
+
 /** The `machine` of the Build hello: this PC's report, its case and its detected devices. */
 export function buildMachine(specs: SystemSpecs, caseId: string | null, devices: BuildDevice[], caseAuto = false): BuildMachine {
   const sig = buildFpsSignatureParams(specs);
   return {
     processor: specs.processor || undefined,
     primaryGpu: primaryGpuCard(specs),
+    gpus: specs.graphicsCard ? specs.graphicsCard.split(' + ') : undefined,
     memory: specs.memory || undefined,
     motherboard: specs.motherboard || undefined,
     storage: specs.storage || undefined,
@@ -59,6 +92,7 @@ export function buildMachine(specs: SystemSpecs, caseId: string | null, devices:
     ...(caseId ? { caseId } : {}),
     ...(caseId && caseAuto ? { caseAuto: true as const } : {}),
     ...(devices.length > 0 ? { devices } : {}),
+    ...(specs.hardwareIds ? { hardwareIds: whitelistHardwareIds(specs.hardwareIds) } : {}),
   };
 }
 
@@ -99,6 +133,11 @@ export function layoutKeyOf(machine: BuildMachine): string {
     .filter(d => LAYOUT_DEVICES.has(d.category))
     .map(d => `${d.key}:${d.count ?? ''}:${d.radiatorMm ?? ''}`)
     .sort();
+  const gpuIds = (machine.hardwareIds?.gpus ?? [])
+    .map(g => [g.vendor, g.device, g.subVendor, g.subDevice].map(v => (v ?? '').toLowerCase()).join(':'))
+    .filter(id => id !== ':::')
+    .sort()
+    .join(',');
   return [
     `case=${machine.caseId ?? ''}`,
     `cpu=${machine.processor ?? ''}`,
@@ -106,6 +145,8 @@ export function layoutKeyOf(machine: BuildMachine): string {
     `board=${machine.motherboard ?? ''}`,
     `mem=${machine.memory ?? ''}`,
     ...devices.map(d => `dev=${d}`),
+    // Only when ids exist, so a PC without them keeps its key and does not resolve again.
+    ...(gpuIds ? [`gpuids=${gpuIds}`] : []),
     `rules=${BUILD_LAYOUT_RULES}`,
   ].join('|');
 }

@@ -8,6 +8,10 @@ import type { UseFpsGamesResult } from '../../../hooks/useFpsGames';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { FpsTableGameItem } from '../../../types/fps-estimates';
 
+// A live getter, so one file covers both the dev-tools build and the release shape.
+const devTools = vi.hoisted(() => ({ on: true }));
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return devTools.on; } }));
+
 const getFpsTrackingStatusMock = vi.fn();
 const setFpsTrackingEnabledMock = vi.fn();
 const fetchFpsGameSessionsMock = vi.fn();
@@ -93,6 +97,7 @@ const flush = () => act(async () => {
 });
 
 beforeEach(() => {
+  devTools.on = true;
   fpsGamesResult = { supported: true, gamesByKey: new Map(), refetch: refetchGamesMock };
   systemSpecs = null;
   fpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
@@ -262,6 +267,20 @@ describe('FramesPage - game detail', () => {
 
     expect(await screen.findByText('Counter-Strike 2')).toBeInTheDocument();
     expect(fetchFpsGameSessionsMock).toHaveBeenCalledWith('steam:730', 50);
+  });
+
+  it('offers Find upgrades on a game page only with dev tools on', async () => {
+    fetchFpsGameSessionsMock.mockResolvedValue({ sessions: [] });
+    const { unmount } = renderPage('steam:730');
+    await flush();
+    expect(await screen.findByRole('button', { name: 'frames.findUpgrades' })).toBeInTheDocument();
+    unmount();
+
+    devTools.on = false;
+    renderPage('steam:730');
+    await flush();
+    expect(await screen.findByText('Counter-Strike 2')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'frames.findUpgrades' })).toBeNull();
   });
 
   it('shows a retention note instead of fetching history for a session older than 7 days', async () => {

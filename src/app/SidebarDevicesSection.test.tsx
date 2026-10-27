@@ -67,8 +67,9 @@ vi.mock('../hooks/useFirmwareUpdates', () => ({
   useFirmwareUpdates: () => mockFirmwareUpdates,
 }));
 // Menu gating for the simulated-device remover; flipped per test.
-let devTools = true;
-vi.mock('../lib/devTools', () => ({ get DEV_TOOLS() { return devTools; } }));
+// Hoisted: the widget registry reads the flag while the mock is first resolved.
+const devToolsFlag = vi.hoisted(() => ({ on: true }));
+vi.mock('../lib/devTools', () => ({ get DEV_TOOLS() { return devToolsFlag.on; } }));
 
 // Hidden set and setter are driven per test; every other path sees an empty set.
 let mockHidden: readonly string[] = [];
@@ -344,7 +345,7 @@ describe('SidebarDevicesSection simulated badge', () => {
 
 describe('SidebarDevicesSection row context menu', () => {
   beforeEach(() => {
-    devTools = true;
+    devToolsFlag.on = true;
     vi.clearAllMocks();
   });
 
@@ -481,7 +482,7 @@ describe('SidebarDevicesSection row context menu', () => {
   // The remover is a dev-tools affordance: a release bundle must not offer it
   // even if a simulated record somehow reaches the list.
   it('hides the simulated remover in a release build', () => {
-    devTools = false;
+    devToolsFlag.on = false;
     mockUnified = [monitorDevice({
       key: 'curated-tryx-sim',
       shortName: 'Tryx Panorama',
@@ -503,7 +504,7 @@ describe('SidebarDevicesSection row context menu', () => {
 // that key comes back (same simulator re-enabled from Tools).
 describe('SidebarDevicesSection context menu staleness', () => {
   it('does not reopen the menu when a removed device returns', () => {
-    devTools = true;
+    devToolsFlag.on = true;
     const tryxSim = monitorDevice({
       key: 'curated-tryx-sim',
       shortName: 'Tryx Panorama',

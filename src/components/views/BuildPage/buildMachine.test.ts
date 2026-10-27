@@ -14,6 +14,54 @@ const device = (key: string, over: Partial<BuildDevice> = {}): BuildDevice => ({
 
 afterEach(() => h.fetchService.mockReset());
 
+describe('buildMachine hardwareIds', () => {
+  const ids = {
+    gpus: [{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e' }],
+    ramModules: null,
+    drives: [{ vendor: 'Samsung', model: '990 PRO' }],
+    board: { manufacturer: 'ASUS', product: 'X670E' },
+    monitors: null,
+  };
+
+  it('keeps every listed field and null sources', () => {
+    expect(buildMachine({ ...SPECS, hardwareIds: ids }, null, []).hardwareIds).toEqual(ids);
+  });
+
+  it('drops any field that is not listed, such as a serial', () => {
+    const dirty = {
+      gpus: [{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e', serial: 'g1' }],
+      ramModules: [{ manufacturer: 'Kingston', partNumber: 'P', capacityBytes: 8, configuredSpeedMts: 6000, serial: 'r1' }],
+      drives: [{ vendor: 'Samsung', model: '990', serial: 'd1' }],
+      board: { manufacturer: 'ASUS', product: 'X', serial: 'b1' },
+      monitors: [{ manufacturer: 'DEL', productCode: 'A1', name: 'U', serial: 'm1' }],
+    };
+    const out = buildMachine({ ...SPECS, hardwareIds: dirty as never }, null, []).hardwareIds;
+    expect(JSON.stringify(out)).not.toContain('serial');
+    expect(out?.board).toEqual({ manufacturer: 'ASUS', product: 'X' });
+    expect(out?.ramModules?.[0]).toEqual({ manufacturer: 'Kingston', partNumber: 'P', capacityBytes: 8, configuredSpeedMts: 6000 });
+  });
+
+  it('omits hardwareIds when the service sent none', () => {
+    expect('hardwareIds' in buildMachine(SPECS, null, [])).toBe(false);
+  });
+
+  it('lists every card in the report order, aligned with the ids', () => {
+    const machine = buildMachine({ ...SPECS, graphicsCard: 'ASUS GeForce RTX 4080 + AMD Radeon(TM) Graphics', hardwareIds: { gpus: [{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e' }, { vendor: '1002', device: '164e', subVendor: '1043', subDevice: '8877' }] } }, null, []);
+    expect(machine.gpus).toEqual(['ASUS GeForce RTX 4080', 'AMD Radeon(TM) Graphics']);
+    expect(machine.gpus?.length).toBe(machine.hardwareIds?.gpus?.length);
+  });
+
+  it('omits gpus when the report names no card', () => {
+    expect('gpus' in buildMachine({ ...SPECS, graphicsCard: '' }, null, []) && buildMachine({ ...SPECS, graphicsCard: '' }, null, []).gpus).toBeFalsy();
+  });
+
+  it('never carries the PC name', () => {
+    const machine = buildMachine({ ...SPECS, hardwareIds: ids }, 'hyte-y70', [device('fan-1')]);
+    expect(JSON.stringify(machine)).not.toContain(SPECS.pcName);
+    expect('pcName' in machine).toBe(false);
+  });
+});
+
 describe('layoutKeyOf', () => {
   const base = () => buildMachine(SPECS, 'hyte-y70', [device('fan-1', { count: 3 }), device('aio', { category: 'cooler', radiatorMm: 360 })]);
 
@@ -35,6 +83,31 @@ describe('layoutKeyOf', () => {
   it('ignores what the layout does not depend on: peripherals, the monitor, storage', () => {
     const key = layoutKeyOf(base());
     expect(layoutKeyOf(buildMachine({ ...SPECS, monitor: 'other', storage: '4 TB' }, 'hyte-y70', [...(base().devices ?? []), device('mouse-1', { category: 'mouse' })]))).toBe(key);
+  });
+
+  describe('card PCI ids', () => {
+    const A = { vendor: '10DE', device: '2704', subVendor: '1043', subDevice: '889E' };
+    const B = { vendor: '1002', device: '164e', subVendor: '1043', subDevice: '8877' };
+    const withIds = (gpus: object[]) => layoutKeyOf(buildMachine({ ...SPECS, hardwareIds: { gpus } }, 'hyte-y70', base().devices ?? []));
+
+    it('is stable across card order and letter case, and lowercases the ids', () => {
+      expect(withIds([A, B])).toBe(withIds([B, A]));
+      expect(withIds([A])).toBe(withIds([{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e' }]));
+      expect(withIds([A])).toContain('|gpuids=10de:2704:1043:889e');
+    });
+
+    it('is unchanged when there are no ids', () => {
+      const key = layoutKeyOf(base());
+      expect(withIds([])).toBe(key);
+      expect(layoutKeyOf(buildMachine({ ...SPECS, hardwareIds: { gpus: null } }, 'hyte-y70', base().devices ?? []))).toBe(key);
+      expect(key).not.toContain('gpuids');
+    });
+
+    it('changes when the ids change, with the name kept', () => {
+      expect(withIds([A])).not.toBe(layoutKeyOf(base()));
+      expect(withIds([A])).not.toBe(withIds([{ ...A, subDevice: '0000' }]));
+      expect(withIds([A])).not.toBe(withIds([A, B]));
+    });
   });
 
   it('reads an unknown case as empty', () => {

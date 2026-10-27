@@ -29,7 +29,10 @@ const ScreentimePage = lazy(() => import('../panel/widgets/screentime/Screentime
 const BenchmarkPage = lazy(() => import('../panel/widgets/benchmark/BenchmarkPage').then(m => ({ default: m.BenchmarkPage })));
 const DiagnosticsPage = lazy(() => import('../panel/widgets/diagnostics/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })));
 const FramesPage = lazy(() => import('../panel/widgets/frames/FramesPage').then(m => ({ default: m.FramesPage })));
-const BuildPage = lazy(() => import('../components/views/BuildPage/BuildPage').then(m => ({ default: m.BuildPage })));
+// Dev-tools only. The raw defines fold in this module, so a distribution build drops the chunk; a shared const does not fold across modules.
+const BuildPage = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? lazy(() => import('../components/views/BuildPage/BuildPage').then(m => ({ default: m.BuildPage })))
+  : null;
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
@@ -615,7 +618,7 @@ export function Dashboard() {
   // has no router access) to this surface's in-app Monitoring page.
   useEffect(() => onDeckOpenMonitoring(() => navigate('system', 'monitoring')), [navigate]);
   useEffect(() => onOpenFramesGame(gameKey => navigate('system', 'frames', gameKey)), [navigate]);
-  useEffect(() => onOpenBuild(path => navigate('system', 'build', path)), [navigate]);
+  useEffect(() => (DEV_TOOLS ? onOpenBuild(path => navigate('system', 'build', path)) : undefined), [navigate]);
 
   // Navigate to the held deck's editor and hand the target to the (possibly
   // about-to-mount) device page, which selects the held key.
@@ -1032,7 +1035,7 @@ export function Dashboard() {
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenCooling={() => navigate('system', 'cooling')} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} onOpenInLighting={key => { requestLightingEffect(key); navigate('system', 'lighting'); }} />;
-      case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} platform={status.ping?.platform ?? ''} />;
+      case 'build':      return BuildPage ? <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} platform={status.ping?.platform ?? ''} /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;

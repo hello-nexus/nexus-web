@@ -40,6 +40,19 @@ describe('layoutNeedsResolve', () => {
     expect(layoutNeedsResolve(record(2, bare), key.replace('Unlisted', 'Other'), 'hyte-y70')).toBe(true);
   });
 
+  it('re-resolves once when the key gains card ids, and not on a later load with the same key', () => {
+    const oldKey = 'case=c|cpu=x|gpu=Unlisted Card|board=y';
+    const newKey = `${oldKey}|gpuids=10de:2704:1043:889e`;
+    const bare = (inputKey: string) => ({ caseModel: 'HYTE Y70', inputKey, boxes: [{ slot: 'gpu', role: 'detail' }] });
+    // The earlier try marked the old key, which does not shield the new one.
+    markTried(oldKey);
+    expect(layoutNeedsResolve(record(2, bare(oldKey)), oldKey, 'hyte-y70')).toBe(false);
+    expect(layoutNeedsResolve(record(2, bare(oldKey)), newKey, 'hyte-y70')).toBe(true);
+    // The resolve saves the new key (card still unplaced) and marks it; a reload finds nothing to do.
+    markTried(newKey);
+    expect(layoutNeedsResolve(record(3, bare(newKey)), newKey, 'hyte-y70')).toBe(false);
+  });
+
   it('keeps a failed try out of storage, so the next load asks again', () => {
     const key = 'case=c|cpu=x|gpu=Unlisted Card|board=y';
     const bare = { caseModel: 'HYTE Y70', inputKey: key, boxes: [{ slot: 'gpu', role: 'detail' }] };
