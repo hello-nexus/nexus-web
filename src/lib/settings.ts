@@ -372,9 +372,9 @@ export function cachePreferencesLocally(prefs: {
 
 // ── Theme mode application ───────────────────────────────────────────────────
 
-// The host OS theme published by the service (prefs theme.resolvedThemeMode).
-// '' until the service reports it (e.g. a Linux host); 'system' then falls back
-// to this browser's own media query.
+// The host OS theme published by the service (prefs theme.resolvedThemeMode),
+// used only by applyThemeMode for the dashboard DOM. '' until reported (e.g. a
+// Linux host). Panels never read it: they pass the host theme explicitly.
 let hostThemeMode: '' | 'dark' | 'light' = '';
 
 /** Record the host OS theme; returns true when it changed. */
@@ -385,10 +385,13 @@ export function setHostThemeMode(value: string | undefined): boolean {
   return true;
 }
 
-/** Resolve effective theme: 'dark' or 'light'. 'system' follows the host OS theme when known. */
-export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
+/**
+ * Resolve effective theme: 'dark' or 'light'. 'system' follows `host` (the host
+ * OS theme) when given, else this browser's own media query.
+ */
+export function resolveTheme(mode: ThemeMode, host: '' | 'dark' | 'light' = ''): 'dark' | 'light' {
   if (mode === 'system') {
-    if (hostThemeMode) return hostThemeMode;
+    if (host) return host;
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
   return mode;
@@ -429,9 +432,18 @@ export function applyHtmlChromeTheme(resolved: 'dark' | 'light'): void {
   }
 }
 
+/**
+ * The mode a synced panel follows: the desktop's manual Light/Dark as is; for
+ * the desktop's 'system', the host OS theme the service publishes (not this
+ * device's own media query). Stays 'system' when unpublished.
+ */
+export function syncedAppThemeMode(appThemeMode: ThemeMode, appResolvedThemeMode: '' | 'dark' | 'light'): ThemeMode {
+  return appThemeMode === 'system' && appResolvedThemeMode ? appResolvedThemeMode : appThemeMode;
+}
+
 /** Apply the theme mode by toggling a data attribute on <html>. */
 export function applyThemeMode(mode: ThemeMode): void {
-  applyHtmlChromeTheme(resolveTheme(mode));
+  applyHtmlChromeTheme(resolveTheme(mode, hostThemeMode));
   // Re-derive accent shades for the newly effective theme mode.
   applyAccentColor(currentAccent);
 }

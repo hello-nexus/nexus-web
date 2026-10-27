@@ -156,15 +156,15 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   const [frameSrcPath, setFrameSrcPath] = useState(safePath);
   const [lastPath, setLastPath] = useState(safePath);
 
-  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => resolveTheme(settings.themeMode));
+  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => resolveTheme(settings.themeMode, settings.hostThemeMode));
   useEffect(() => {
-    setResolvedTheme(resolveTheme(settings.themeMode));
+    setResolvedTheme(resolveTheme(settings.themeMode, settings.hostThemeMode));
     if (settings.themeMode !== 'system') return;
     const mq = window.matchMedia('(prefers-color-scheme: light)');
-    const handler = () => setResolvedTheme(resolveTheme('system'));
+    const handler = () => setResolvedTheme(resolveTheme('system', settings.hostThemeMode));
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, [settings.themeMode]);
+  }, [settings.themeMode, settings.hostThemeMode]);
 
   // This machine's case, the one part the app cannot detect: saved by the
   // service (machine-local, mirrored to the signed-in account) and picked in
