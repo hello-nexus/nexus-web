@@ -21,6 +21,7 @@ function Probe({ locked, activation = 'distance' }: { locked: boolean; activatio
       <button type="button">inner</button>
       <span data-testid="face">12:00</span>
       <div data-panel-interactive="true"><span data-testid="stage">stage</span></div>
+      <div data-panel-interactive="true" data-layer-gestures="true"><span data-testid="item" data-manipulable-id="m">item</span><span data-testid="water">water</span></div>
     </div>
   );
 }
@@ -100,12 +101,25 @@ describe('useLockNotice', () => {
     expect(visible(body)).toBe(false);
   });
 
-  it('never starts a pull from a press inside an interactive stage', () => {
+  it('pulls from a body drag on a tap-only SDK stage', () => {
     const { getByTestId } = render(<Probe locked />);
     const stage = getByTestId('stage');
     fireEvent.pointerDown(stage, { isPrimary: true, clientX: 10, clientY: 10 });
     fireEvent.pointerMove(stage, { clientX: 90, clientY: 10 });
+    expect(visible(getByTestId('body'))).toBe(true);
+  });
+
+  it('never starts a pull from a grabbed manipulable of a gesture stage, but does from its empty water', () => {
+    const { getByTestId } = render(<Probe locked />);
+    const item = getByTestId('item');
+    fireEvent.pointerDown(item, { isPrimary: true, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(item, { clientX: 90, clientY: 10 });
     expect(visible(getByTestId('body'))).toBe(false);
+    fireEvent.pointerUp(item);
+    const water = getByTestId('water');
+    fireEvent.pointerDown(water, { isPrimary: true, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(water, { clientX: 90, clientY: 10 });
+    expect(visible(getByTestId('body'))).toBe(true);
   });
 
   it('ends the pull when a mouse move reports no button held', () => {

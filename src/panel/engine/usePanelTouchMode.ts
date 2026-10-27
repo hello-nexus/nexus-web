@@ -20,7 +20,11 @@ const PANEL_SCROLLABLE_SELECTOR = '[data-panel-scrollable="true"]';
 // etc.) - tapping one of these should fire its own action, not bubble
 // up to "tap-to-immersive".
 // `data-panel-interactive` marks an SDK app's tappable stage (an interactive Layer): its taps belong to the app.
-export const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"], [data-panel-interactive="true"]';
+// Controls that handle their own press: a tap on one is theirs, and a drag on one is theirs too.
+export const CONTROL_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]';
+// What a locked widget lets drag: a tap-only stage does not consume a drag, only a grabbed manipulable does.
+export const DRAG_CONSUMER_SELECTOR = `${CONTROL_SELECTOR}, [data-layer-gestures="true"] [data-manipulable-id]`;
+export const INTERACTIVE_SELECTOR = `${CONTROL_SELECTOR}, [data-panel-interactive="true"]`;
 
 function isNonPrimaryMouseButton(e: React.PointerEvent): boolean {
   return e.pointerType === 'mouse' && e.button !== 0;

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
-import { INTERACTIVE_SELECTOR, PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
+import { DRAG_CONSUMER_SELECTOR, PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
 import { DRAG_DISTANCE_PX, DRAG_HOLD_TOLERANCE_PX, type DragActivation } from '../engine/pointerDragSensor';
 
 // The tile never travels further than this from its cell.
 export const LOCK_DRAG_MAX_PX = 28;
 
-// The cell's own control selector, plus scroll regions, which keep scrolling on a locked widget.
-const INTERACTIVE = `${INTERACTIVE_SELECTOR}, summary, [data-panel-scrollable="true"]`;
+// Controls and grabbed manipulables keep their drag, as do scroll regions; a tap-only SDK stage does not, so the tile can still be pulled.
+const INTERACTIVE = `${DRAG_CONSUMER_SELECTOR}, summary, [data-panel-scrollable="true"]`;
 
 /** True when the press landed on a widget's own control, which keeps working on a locked widget. */
 export function isOwnControl(target: EventTarget | null, cell: Element | null = null): boolean {

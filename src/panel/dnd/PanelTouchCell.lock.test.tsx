@@ -13,6 +13,7 @@ function Face() {
     <div onClick={bodyClicked}>
       <span data-testid="face">face</span>
       <div data-panel-interactive="true"><span data-testid="stage">stage</span></div>
+      <div data-panel-interactive="true" data-layer-gestures="true"><span data-testid="item" data-manipulable-id="m">item</span></div>
       <button type="button" data-testid="control" onClick={clicked}>go</button>
     </div>
   );
@@ -116,11 +117,21 @@ describe('locked widget in a cell', () => {
     expect(bodyClicked).toHaveBeenCalledTimes(1);
   });
 
-  it('does not pull or capture a press inside an interactive stage', () => {
+  it('pulls and captures from a drag on a tap-only SDK stage', () => {
     const { wrap, getByTestId, onLockDragChange, capture } = setup(true);
     const stage = getByTestId('stage');
     fireEvent.pointerDown(stage, { isPrimary: true, clientX: 0, clientY: 0 });
     fireEvent.pointerMove(stage, { clientX: 300, clientY: 0 });
+    expect(wrap.dataset.lockNotice).toBe('true');
+    expect(capture.set).toHaveBeenCalledTimes(1);
+    expect(onLockDragChange).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps a gesture stage item\'s own capture: no pull, no capture', () => {
+    const { wrap, getByTestId, onLockDragChange, capture } = setup(true);
+    const item = getByTestId('item');
+    fireEvent.pointerDown(item, { isPrimary: true, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(item, { clientX: 300, clientY: 0 });
     expect(wrap.dataset.lockNotice).toBeUndefined();
     expect(capture.set).not.toHaveBeenCalled();
     expect(onLockDragChange).not.toHaveBeenCalled();
