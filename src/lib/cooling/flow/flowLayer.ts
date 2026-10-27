@@ -20,8 +20,10 @@ const RING = 2;
 const MAX_PARTICLES = PARTICLE_TEXTURE.w * PARTICLE_TEXTURE.h;
 /** GPU time the solver may take per displayed frame. */
 const SOLVER_BUDGET_MS = 8;
-/** Per-frame cost the solver may take while the particles are still waiting for the first solve. */
+/** Per-frame cost the solver may take while the particles are still waiting for their first solver steps. */
 const COLD_BUDGET_MS = 12;
+/** Solver steps a fresh field runs before the particles start: the fans' own cells drive them from the first step, so the air need not be steady first. */
+const COLD_PARTICLE_STEPS = 120;
 /** Frames longer than this (ms) pull the step count down while no GPU time is known. */
 const FRAME_SLOW_MS = 20;
 const TIMER_EMA = 0.3;
@@ -75,6 +77,7 @@ export class FlowLayer {
   private wakeRises: number[] = [];
   private heatCells = false;
   private coldStart = false;
+  private coldSteps = 0;
   private readonly gate = new SteadyGate();
   private readonly timer: { ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; pending: { q: WebGLQuery; steps: number }[]; msPerStep: number } | null;
 
@@ -119,6 +122,11 @@ export class FlowLayer {
   /** True once the solver has found the steady field and stopped stepping. */
   get settled(): boolean {
     return !!this.fscene && !this.solving;
+  }
+
+  /** True while the solver is stepping for a drawn airflow: a fresh or edited case that has not settled yet. */
+  get calculating(): boolean {
+    return this.supported && !!this.fscene && this.solving && this.options.particles;
   }
 
   /** Whether the layer still has something to animate: a solve in progress, or particles drawn. */
@@ -183,6 +191,7 @@ export class FlowLayer {
       this.ensureParticles();
       this.resetParticles();
       this.coldStart = true;
+      this.coldSteps = 0;
     }
     this.fscene = scene;
     this.flow.setTemps(this.temps);
@@ -331,6 +340,7 @@ export class FlowLayer {
       flow.step(n);
       const before = this.stepsSinceEdit;
       this.stepsSinceEdit += n;
+      this.coldSteps += n;
       const spent = performance.now() - start;
       if (timed) {
         gl.endQuery(this.timer!.ext.TIME_ELAPSED_EXT);
@@ -346,8 +356,8 @@ export class FlowLayer {
       }
     }
     if (!this.solving) this.coldStart = false;
-    // Particles wait for the first solve: with no velocity yet they would sit on their spawn points.
-    if (this.options.particles && !(this.coldStart && this.solving) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
+    // Particles wait for the first solver steps: with no velocity yet they would sit on their spawn points.
+    if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
       for (let st = 0; st < PARTICLE_SUBSTEPS; st++) {
         const next = (this.stateCur + 1) % RING;
         this.stateMat.uniforms.U.value = flow.velocity;

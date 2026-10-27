@@ -399,6 +399,7 @@
   "cooling.case3d.empty.action": "Otevřít Build",
   "cooling.case3d.estimate": "Odhad",
   "cooling.case3d.estimate.body": "Některé ventilátory nemají zveřejněné specifikace, proto se používají výchozí hodnoty podle velikosti. Tlak a průtok jsou odhady.",
+  "cooling.case3d.flow.calculating": "Výpočet proudění",
   "cooling.case3d.flow.collisions": "Kolizní tvary",
   "cooling.case3d.flow.controls": "Zobrazení proudění vzduchu",
   "cooling.case3d.flow.cooler": "Chladnější",

@@ -75,7 +75,7 @@ export const OUTSIDE_REACH_MM = 90;
 export const OUTSIDE_SPAWN_FROM = 0.45;
 export const OUTSIDE_SPAWN_TO = 0.9;
 /** Share of the particle pool that is drawn; the rest is simulated but hidden, so the picture stays readable. */
-export const PARTICLE_DRAW_SHARE = 0.3;
+export const PARTICLE_DRAW_SHARE = 0.15;
 /** How many of a pool's particles are drawn at a tier's share of it. */
 export const drawnParticles = (pool: number, tierShare: number) => Math.round(pool * tierShare * PARTICLE_DRAW_SHARE);
 /** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */

@@ -399,6 +399,7 @@
   "cooling.case3d.empty.action": "Apri Build",
   "cooling.case3d.estimate": "Stima",
   "cooling.case3d.estimate.body": "Alcune ventole non hanno specifiche pubblicate, quindi si usano valori predefiniti in base alla dimensione. Pressione e flusso sono stime.",
+  "cooling.case3d.flow.calculating": "Calcolo del flusso d'aria",
   "cooling.case3d.flow.collisions": "Forme di collisione",
   "cooling.case3d.flow.controls": "Visualizzazione del flusso d'aria",
   "cooling.case3d.flow.cooler": "Più fresca",

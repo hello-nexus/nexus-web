@@ -17,7 +17,7 @@ vi.mock('../../../../hooks/useComponentTemps', () => ({ useComponentTemps: () =>
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
-  createCaseRenderer: vi.fn(() => ({ setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true })),
+  createCaseRenderer: vi.fn(() => ({ setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setCalculatingListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true })),
 }));
 
 // T1's real state: the Y70 with a top radiator, a vertical card with two fans, and the channels the service listed.

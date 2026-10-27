@@ -399,6 +399,7 @@
   "cooling.case3d.empty.action": "Abrir Build",
   "cooling.case3d.estimate": "Estimación",
   "cooling.case3d.estimate.body": "Algunos ventiladores no tienen especificaciones publicadas, así que se usan valores por defecto según el tamaño. La presión y el caudal son estimaciones.",
+  "cooling.case3d.flow.calculating": "Calculando el flujo de aire",
   "cooling.case3d.flow.collisions": "Formas de colisión",
   "cooling.case3d.flow.controls": "Visualización del flujo de aire",
   "cooling.case3d.flow.cooler": "Más fresco",

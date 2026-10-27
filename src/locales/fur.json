@@ -399,6 +399,7 @@
   "cooling.case3d.empty.action": "Vierç Build",
   "cooling.case3d.estimate": "Stime",
   "cooling.case3d.estimate.body": "Cualchi ventule no à specifichis publicadis, duncje si dopre valôrs predefinîts secont la dimension. Pression e flus a son stimis.",
+  "cooling.case3d.flow.calculating": "Daûr a calcolâ il flus di aiar",
   "cooling.case3d.flow.collisions": "Formis di colision",
   "cooling.case3d.flow.controls": "Viodude dal flus di aiar",
   "cooling.case3d.flow.cooler": "Plui frescje",

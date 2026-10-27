@@ -399,6 +399,7 @@
   "cooling.case3d.empty.action": "Открыть Build",
   "cooling.case3d.estimate": "Оценка",
   "cooling.case3d.estimate.body": "У некоторых вентиляторов нет опубликованных характеристик, поэтому используются значения по умолчанию в зависимости от размера. Давление и расход являются оценками.",
+  "cooling.case3d.flow.calculating": "Расчёт воздушного потока",
   "cooling.case3d.flow.collisions": "Формы столкновений",
   "cooling.case3d.flow.controls": "Отображение воздушного потока",
   "cooling.case3d.flow.cooler": "Холоднее",

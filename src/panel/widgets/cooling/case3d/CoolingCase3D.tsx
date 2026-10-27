@@ -72,6 +72,8 @@ const POSITION_KEYS: Record<string, string> = {
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
 const NORMAL_SPEED = 0.6;
 const SLOW_MO_FACTOR = 0.25;
+/** A solve shorter than this never shows the calculating notice, so a quick one does not flicker. */
+const CALCULATING_NOTICE_DELAY_MS = 300;
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
@@ -203,6 +205,18 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, showCase, active, flow: flowInput, flowOptions });
     setFlowSupported(renderer.flowSupported);
   }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, flowInput, flowOptions]);
+
+  const [calculating, setCalculating] = useState(false);
+  const [showCalculating, setShowCalculating] = useState(false);
+  useEffect(() => {
+    renderer?.setCalculatingListener(setCalculating);
+    return () => { renderer?.setCalculatingListener(null); setCalculating(false); };
+  }, [renderer]);
+  useEffect(() => {
+    if (!calculating) { setShowCalculating(false); return undefined; }
+    const timer = setTimeout(() => setShowCalculating(true), CALCULATING_NOTICE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [calculating]);
 
   // Temperatures ride a path of their own: the renderer hands them to the live particle pass, so a sensor tick never rebuilds the scene.
   useEffect(() => { renderer?.setTemps(temps); }, [renderer, temps]);
@@ -342,6 +356,11 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
+        {showCalculating && (
+          <div className={styles.calculating} role="status">
+            <Badge icon={<Spinner size={14} />} label={t('cooling.case3d.flow.calculating')} />
+          </div>
+        )}
         {result && model && (
           <div className={`${styles.overlay} ${styles.overlayTop}`}>
             <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>

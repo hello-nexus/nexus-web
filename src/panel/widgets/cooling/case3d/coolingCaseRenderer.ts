@@ -44,6 +44,8 @@ export interface CaseSceneRenderer {
   setTemps: (temps: ComponentTemps) => void;
   /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. */
   setAnchors: (anchors: readonly HeatAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void) => void;
+  /** Called when the airflow solve starts or stops; null clears it. */
+  setCalculatingListener: (listener: ((calculating: boolean) => void) | null) => void;
   resize: () => void;
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
@@ -147,13 +149,17 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     onProject(projected);
   };
 
+  let wasCalculating = false;
+  let onCalculating: ((calculating: boolean) => void) | null = null;
   const render = (now: number) => {
     frame = 0;
     flowLayer?.frame(now, camera, canvas.clientHeight);
+    const calculating = flowLayer?.calculating ?? false;
+    if (calculating !== wasCalculating) { wasCalculating = calculating; onCalculating?.(calculating); }
     renderer.render(scene, camera);
     projectAnchors();
     // Particles keep moving after the solver settles; the loop runs only while the tab is visible.
-    if (flowLayer?.active && !document.hidden) requestRender();
+    if (flowLayer?.active && !document.hidden && onScreen) requestRender();
   };
   const requestRender = () => {
     if (!frame) frame = requestAnimationFrame(render);
@@ -161,6 +167,13 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   controls.addEventListener('change', requestRender);
   const onVisibility = () => { if (!document.hidden) requestRender(); };
   document.addEventListener('visibilitychange', onVisibility);
+  // A canvas scrolled out of view stops drawing, and starts again when it returns.
+  let onScreen = true;
+  const viewObserver = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => {
+    onScreen = entries[entries.length - 1].isIntersecting;
+    if (onScreen) requestRender();
+  });
+  viewObserver?.observe(canvas);
 
   const fit = (l: CaseLayout) => {
     const [ex, ey, ez] = caseExtents(l);
@@ -345,6 +358,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       }
       requestRender();
     },
+    setCalculatingListener(listener) {
+      onCalculating = listener;
+    },
     setTemps(next) {
       temps = next;
       flowLayer?.setTemps(next);
@@ -366,6 +382,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointerup', onUp);
       document.removeEventListener('visibilitychange', onVisibility);
+      viewObserver?.disconnect();
       flowLayer?.dispose();
       flowLayer = null;
       controls.dispose();

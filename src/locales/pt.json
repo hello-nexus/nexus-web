@@ -399,6 +399,7 @@
   "cooling.case3d.empty.action": "Abrir Build",
   "cooling.case3d.estimate": "Estimativa",
   "cooling.case3d.estimate.body": "Algumas ventoinhas não têm especificações publicadas, por isso são usados valores predefinidos com base no tamanho. A pressão e o caudal são estimativas.",
+  "cooling.case3d.flow.calculating": "A calcular o fluxo de ar",
   "cooling.case3d.flow.collisions": "Formas de colisão",
   "cooling.case3d.flow.controls": "Apresentação do fluxo de ar",
   "cooling.case3d.flow.cooler": "Mais frio",

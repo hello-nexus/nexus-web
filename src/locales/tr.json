@@ -399,6 +399,7 @@
   "cooling.case3d.empty.action": "Build'i aç",
   "cooling.case3d.estimate": "Tahmin",
   "cooling.case3d.estimate.body": "Bazı fanların yayımlanmış özellikleri olmadığından boyuta göre varsayılan değerler kullanılır. Basınç ve debi tahmindir.",
+  "cooling.case3d.flow.calculating": "Hava akışı hesaplanıyor",
   "cooling.case3d.flow.collisions": "Çarpışma şekilleri",
   "cooling.case3d.flow.controls": "Hava akışı görünümü",
   "cooling.case3d.flow.cooler": "Daha serin",

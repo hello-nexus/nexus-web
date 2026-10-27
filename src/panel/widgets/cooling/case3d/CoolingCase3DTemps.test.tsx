@@ -16,7 +16,7 @@ vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn(() => {
-    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true };
+    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setCalculatingListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true };
     h.renderers.push(r);
     return r;
   }),
