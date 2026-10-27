@@ -1,3 +1,4 @@
+import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from '../engine/gestureThresholds';
 import type { WebViewRect } from './webViewProtocol';
 
 type HitTest = (x: number, y: number) => Element | null;
@@ -73,4 +74,13 @@ export interface WebViewSuppressors {
 /** Any state that moves or covers tiles hides every native web view. */
 export function webViewSuppressedBy(state: WebViewSuppressors): boolean {
   return Object.values(state).some(Boolean);
+}
+
+/**
+ * True once a drag has become a vertical pull of the panel: past the same
+ * engage distance and axis dominance the tray and control center use. A tap
+ * with finger drift, or a horizontal page swipe, stays false.
+ */
+export function dragHidesTiles(dx: number, dy: number): boolean {
+  return Math.abs(dy) > GESTURE_ENGAGE_PX && Math.abs(dy) > Math.abs(dx) * GESTURE_AXIS_DOMINANCE;
 }

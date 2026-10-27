@@ -12,7 +12,7 @@ import {
   type WebViewSyncView,
   type WebViewTransport,
 } from './webViewProtocol';
-import { computeVisible } from './webViewVisibility';
+import { computeVisible, dragHidesTiles } from './webViewVisibility';
 import { measureTile } from './webViewMeasure';
 
 export type WebViewHostStatus = 'idle' | 'pending' | 'supported' | 'unsupported';
@@ -46,12 +46,15 @@ export interface WebViewClaimInput {
   zoom?: number;
   /** Tile claims only: reload every N minutes while the tile is what is shown. 0 or absent is off. */
   refreshMinutes?: number;
+  /** Tile claims only: the native view takes the touch, so the page can be used in place. */
+  touchPage?: boolean;
 }
 
 export interface WebViewClaimHandle {
   setUrl: (url: string) => void;
   setZoom: (zoom: number) => void;
   setRefreshMinutes: (minutes: number) => void;
+  setTouchPage: (touchPage: boolean) => void;
   release: () => void;
 }
 
@@ -64,8 +67,8 @@ interface ClaimRecord extends WebViewClaimInput {
 const BURST_MS = 600;
 // The most views any host accepts.
 const MAX_VIEWS = 4;
-// A finger travels this far before it counts as a swipe or pull.
-const GESTURE_SLOP_PX = 6;
+// Where a drag starts that belongs to a list or other scroller: never a pull or swipe of the panel.
+const SCROLLABLE_SELECTOR = '[data-panel-scrollable="true"]';
 // The panel's own click-through layers (hints, notices) mark themselves so
 // the topmost check, which skips them, can still hide the native view.
 const COVER_SELECTOR = '[data-webview-cover]';
@@ -108,7 +111,7 @@ export class WebViewHost {
   // immersive share one, and a re-register never reorders the others.
   private slotOrder: string[] = [];
   private overLimit = new Set<string>();
-  private pointers = new Map<number, { x: number; y: number; moved: boolean }>();
+  private pointers = new Map<number, { x: number; y: number; moved: boolean; scroller: boolean }>();
   private gestureActive = false;
   private refreshTimers = new Map<string, { minutes: number; handle: ReturnType<typeof setInterval> }>();
 
@@ -143,6 +146,11 @@ export class WebViewHost {
         if (rec.refreshMinutes === minutes) return;
         rec.refreshMinutes = minutes;
         this.updateRefreshTimers();
+      },
+      setTouchPage: (touchPage: boolean) => {
+        if ((rec.touchPage ?? false) === touchPage) return;
+        rec.touchPage = touchPage;
+        this.schedule();
       },
       release: () => {
         if (!this.claims.delete(rec.key)) return;
@@ -253,7 +261,10 @@ export class WebViewHost {
     this.on(window, 'transitionend', burst, true);
     this.on(window, 'animationstart', burst, true);
     this.on(window, 'animationend', burst, true);
-    this.on(window, 'pointerdown', e => { this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: false }); }, true);
+    this.on(window, 'pointerdown', e => {
+      const scroller = e.target instanceof Element && e.target.closest(SCROLLABLE_SELECTOR) !== null;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: false, scroller });
+    }, true);
     this.on(window, 'pointermove', e => this.onPointerMove(e), true);
     this.on(window, 'pointerup', e => this.onPointerEnd(e), true);
     this.on(window, 'pointercancel', e => this.onPointerEnd(e), true);
@@ -301,12 +312,13 @@ export class WebViewHost {
   }
 
   // Swipes and pulls move content with inline transforms, which no observer
-  // sees: re-measure on every move, and hide the tiles once a drag begins so
-  // none sits over a sheet being pulled in.
+  // sees: re-measure on every move. Tiles hide only once a drag is a vertical
+  // pull (the tray or control center sheets); taps, controls, scrolling lists
+  // and horizontal page swipes keep them shown, so a tile follows its page.
   private onPointerMove(e: PointerEvent): void {
     const p = this.pointers.get(e.pointerId);
     if (!p) return;
-    if (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) > GESTURE_SLOP_PX) {
+    if (!p.moved && !p.scroller && dragHidesTiles(e.clientX - p.x, e.clientY - p.y)) {
       p.moved = true;
       this.gestureActive = true;
       this.flush(false);
@@ -440,7 +452,7 @@ export class WebViewHost {
         rect,
         radius,
         zoom: clampZoom(c.zoom),
-        interactive: (c.immersive || (this.interactiveTiles && this.contextMenu)) && this.interactive,
+        interactive: (c.immersive || ((this.interactiveTiles || c.touchPage === true) && this.contextMenu)) && this.interactive,
         visible: computeVisible({
           supported,
           documentVisible,

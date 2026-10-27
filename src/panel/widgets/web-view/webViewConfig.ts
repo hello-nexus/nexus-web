@@ -18,3 +18,13 @@ export function resolveRefreshMinutes(raw: unknown): number {
 export function snapZoom(v: number): number {
   return clampZoom(Math.round(v / ZOOM_STEP) * ZOOM_STEP);
 }
+
+/** Config `interactive`: on unless explicitly stored as false, so instances saved before the setting existed take it. */
+export function resolveInteractive(raw: unknown): boolean {
+  return raw !== false;
+}
+
+/** Whether a tap on the tile opens the immersive view: only when the page itself is not what the touch lands on. */
+export function webViewTapOpensImmersive(widget: { type: string; config?: Record<string, unknown> }): boolean {
+  return widget.type !== 'web-view' || !resolveInteractive(widget.config?.interactive);
+}

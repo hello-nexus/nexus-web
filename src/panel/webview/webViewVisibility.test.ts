@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeVisible, isTopmost, probePoints, webViewSuppressedBy } from './webViewVisibility';
+import { computeVisible, dragHidesTiles, isTopmost, probePoints, webViewSuppressedBy } from './webViewVisibility';
 
 const rect = { x: 100, y: 200, w: 400, h: 300 };
 
@@ -105,5 +105,22 @@ describe('webViewSuppressedBy', () => {
     const { el, other } = setup();
     expect(computeVisible({ supported: true, documentVisible: true, suppressed: webViewSuppressedBy({ ...idle, resizing: true }), connected: true, loadFailed: false, rect, el, hit: () => el })).toBe(false);
     expect(computeVisible({ supported: true, documentVisible: true, suppressed: false, connected: true, loadFailed: false, rect, el, hit: () => other })).toBe(false);
+  });
+});
+
+describe('dragHidesTiles', () => {
+  it('ignores a tap with finger drift', () => {
+    expect(dragHidesTiles(6, 8)).toBe(false);
+    expect(dragHidesTiles(0, 16)).toBe(false);
+  });
+
+  it('hides on a vertical pull', () => {
+    expect(dragHidesTiles(2, 40)).toBe(true);
+    expect(dragHidesTiles(0, -40)).toBe(true);
+  });
+
+  it('keeps a horizontal or diagonal drag shown', () => {
+    expect(dragHidesTiles(80, 10)).toBe(false);
+    expect(dragHidesTiles(40, 40)).toBe(false);
   });
 });

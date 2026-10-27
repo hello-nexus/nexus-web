@@ -208,6 +208,41 @@ describe('sync stream', () => {
   });
 });
 
+describe('touchable tiles', () => {
+  const tile = (touchPage: boolean | undefined) => {
+    const host = makeHost();
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, touchPage });
+    return host;
+  };
+
+  it('takes touch on a tile only when the claim asks and the host reports context menus', () => {
+    tile(true);
+    bridge.push(caps({ contextMenu: true }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(true);
+  });
+
+  it('stays non-interactive when the claim does not ask', () => {
+    tile(false);
+    bridge.push(caps({ contextMenu: true }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+
+  it('stays non-interactive on a host that cannot report the menu', () => {
+    tile(true);
+    bridge.push(caps({ contextMenu: false }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+
+  it('follows the setting live', () => {
+    const host = makeHost();
+    const claim = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, touchPage: true });
+    bridge.push(caps({ contextMenu: true }));
+    claim.setTouchPage(false);
+    frame();
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+});
+
 describe('card geometry', () => {
   it('sends the card content box and radius, and treats the card as the hit target', () => {
     const host = makeHost();
@@ -513,6 +548,36 @@ describe('finger-driven moves', () => {
     pointer('pointerup', 100, 140);
     vi.advanceTimersByTime(40);
     expect(syncs().at(-1)!.views.find(v => v.id === 'a')!.visible).toBe(true);
+  });
+
+  it('keeps tiles shown through a tap with finger drift and a horizontal page swipe', () => {
+    const host = makeHost();
+    const a = makeEl();
+    host.register({ id: 'a', url: 'https://a.test/', element: a.el, immersive: false });
+    bridge.push(caps());
+    pointer('pointerdown', 100, 100);
+    pointer('pointermove', 109, 108);
+    expect(syncs().at(-1)!.views[0].visible).toBe(true);
+    pointer('pointerup', 109, 108);
+    pointer('pointerdown', 100, 100, 2);
+    a.moveTo({ x: -60, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 20, 112, 2);
+    frame();
+    const during = syncs().at(-1)!;
+    expect(during.views[0].visible).toBe(true);
+    expect(during.views[0].rect.x).toBe(-60);
+  });
+
+  it('keeps tiles shown while a vertical drag scrolls a list', () => {
+    const host = makeHost();
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
+    bridge.push(caps());
+    const list = document.createElement('span');
+    list.setAttribute('data-panel-scrollable', 'true');
+    document.body.appendChild(list);
+    list.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { clientX: 100, clientY: 100, bubbles: true }), { pointerId: 1 }));
+    pointer('pointermove', 100, 160);
+    expect(syncs().at(-1)!.views[0].visible).toBe(true);
   });
 
   it('hides every view while a click-through cover layer is in the document', () => {

@@ -107,6 +107,7 @@ import { openAppAt } from '../api/displays';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive, postService } from '../api/service';
 import { webViewOpenUrl } from './widgets/web-view/webViewUrl';
+import { webViewTapOpensImmersive } from './widgets/web-view/webViewConfig';
 import { createUuid } from '../lib/uuid';
 import { spawnDropRing } from '../lib/dropRing';
 import {
@@ -1348,6 +1349,8 @@ export function PanelContent({
     if (genericDisplay) return;
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
+    // A Web View the user touches in place opens fullscreen from the menu's Open instead.
+    if (!webViewTapOpensImmersive(w)) return;
     // An immersive view closes by touch, so a mouse-only display never opens one.
     if (!surfaceSupportsTouch(surface, deviceTouch)) return;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
@@ -1404,13 +1407,15 @@ export function PanelContent({
     return () => webViewHost.setInteractiveTiles(false);
   }, [interactiveWebTiles]);
   const openCtxMenu = touch.openCtxMenu;
+  // A touch panel's interactive Web View tiles report a long-press the same way, so the menu stays reachable.
+  const reportsWebViewMenu = !simulator && !embedded && dragEditable;
   useEffect(() => {
-    if (!interactiveWebTiles || !dragEditable) return undefined;
+    if (!reportsWebViewMenu) return undefined;
     return webViewHost.onContextMenu((id, x, y) => {
       const widget = findWidgetById(paginatedLayout, id);
       if (widget) openCtxMenu(widget, x, y);
     });
-  }, [interactiveWebTiles, dragEditable, paginatedLayout, openCtxMenu]);
+  }, [reportsWebViewMenu, paginatedLayout, openCtxMenu]);
   const hoverResizeBusy = freeformActive || Boolean(activeDragId) || Boolean(dragArmedId) || Boolean(sheetMode) || Boolean(touch.ctxMenu) || touch.rearranging;
   useEffect(() => {
     if (hoverResizeBusy && !resizeGestureRef.current) setHoverResizeId(null);
