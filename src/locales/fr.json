@@ -2521,6 +2521,8 @@
   "lighting.category.twotone": "Bicolore",
   "lighting.colorTuning.blue": "Bleu",
   "lighting.colorTuning.brightnessInfo": "N'atténue que les LED de cet appareil ; l'aperçu du canevas reste à pleine luminosité.",
+  "lighting.colorTuning.colorOrder": "Ordre des couleurs",
+  "lighting.colorTuning.colorOrderInfo": "À utiliser si le rouge et le vert semblent inversés.",
   "lighting.colorTuning.cool": "Froid",
   "lighting.colorTuning.done": "Terminé",
   "lighting.colorTuning.effectiveBrightnessInfo": "La luminosité générale plafonne la sortie à {master}%, donc cet appareil ne peut pas être plus lumineux.",

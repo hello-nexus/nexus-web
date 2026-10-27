@@ -732,10 +732,17 @@ export interface LightingColorAdjust {
   temperature: number;
   /** Saturation multiplier around luma, 0..2. 1 = untouched. */
   saturation: number;
+  /** Channel order the device expects, for hardware wired or firmwared with
+   *  swapped channels. A correction, not a look: the intended colors are
+   *  unchanged. */
+  colorOrder: ColorOrder;
 }
 
+export const COLOR_ORDERS = ['RGB', 'RBG', 'GRB', 'GBR', 'BRG', 'BGR'] as const;
+export type ColorOrder = typeof COLOR_ORDERS[number];
+
 export const NEUTRAL_COLOR_ADJUST: LightingColorAdjust = {
-  red: 1, green: 1, blue: 1, temperature: 0, saturation: 1,
+  red: 1, green: 1, blue: 1, temperature: 0, saturation: 1, colorOrder: 'RGB',
 };
 
 // Sparse: only cards the user actually trimmed come back, so a fresh install

@@ -2521,6 +2521,8 @@
   "lighting.category.twotone": "Tweekleurig",
   "lighting.colorTuning.blue": "Blauw",
   "lighting.colorTuning.brightnessInfo": "Dimt alleen de leds van dit apparaat; het canvasvoorbeeld blijft op volle helderheid.",
+  "lighting.colorTuning.colorOrder": "Kleurvolgorde",
+  "lighting.colorTuning.colorOrderInfo": "Gebruik dit als rood en groen verwisseld lijken.",
   "lighting.colorTuning.cool": "Koel",
   "lighting.colorTuning.done": "Klaar",
   "lighting.colorTuning.effectiveBrightnessInfo": "De hoofdhelderheid beperkt de uitvoer tot {master}%, dus dit apparaat kan niet helderder worden.",

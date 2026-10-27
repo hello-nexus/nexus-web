@@ -37,6 +37,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
+import { isColorAdjusted } from './page/colorTuning';
 import { buildDeviceBlocks, sortZonesWithinDevice, type ZoneBlock } from './page/deviceBlocks';
 import { usePins } from './page/usePins';
 import { canStack, isStackedSet, setStackLayout, stackDevices, stackOf, unstackDevices, withStacked, type DeviceStack } from './page/deviceStacks';
@@ -1672,7 +1673,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Brightness counts: it is one of the modal's controls, and Reset restores it
   // with the rest.
   const colorTunedIds = useMemo(
-    () => new Set(devices.filter(d => colorAdjusts[d.id] || (d.brightness ?? 100) < 100).map(d => d.id)),
+    () => new Set(devices.filter(d => isColorAdjusted(colorAdjusts[d.id]) || (d.brightness ?? 100) < 100).map(d => d.id)),
     [devices, colorAdjusts],
   );
   // Key reactions. The service lists every per-key keyboard card it can react
