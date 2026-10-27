@@ -257,6 +257,21 @@ describe('touchable tiles', () => {
     expect(old.tileTakesTouch('missing')).toBe(false);
   });
 
+  it('does not take touch while a cover layer hides the view', () => {
+    const host = tile(true);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(true);
+    const hint = document.createElement('span');
+    hint.setAttribute('data-webview-cover', '');
+    document.body.appendChild(hint);
+    vi.advanceTimersByTime(1000);
+    expect(host.tileTakesTouch('a')).toBe(false);
+    hint.remove();
+    vi.advanceTimersByTime(1000);
+    expect(host.tileTakesTouch('a')).toBe(true);
+  });
+
   it('does not take touch with the setting off', () => {
     const host = tile(false);
     bridge.push(caps({ contextMenu: true, longPress: true }));

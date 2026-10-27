@@ -116,6 +116,7 @@ export class WebViewHost {
   private overLimit = new Set<string>();
   private pointers = new Map<number, { x: number; y: number; moved: boolean; scroller: boolean }>();
   private gestureActive = false;
+  private sentViews = new Map<string, { visible: boolean; interactive: boolean }>();
   private refreshTimers = new Map<string, { minutes: number; handle: ReturnType<typeof setInterval> }>();
 
   readonly subscribe = (listener: () => void): (() => void) => {
@@ -176,11 +177,12 @@ export class WebViewHost {
     this.gestureEngagePx = Number.isFinite(px) && px > 0 ? px : GESTURE_ENGAGE_PX;
   }
 
-  /** Whether the tile of widget `id` is a native view that takes the touch right now, so a tap on it never reaches the panel. */
+  /** Whether the tile of widget `id` is a native view shown to the host as interactive right now, so a tap on it never reaches the panel. */
   tileTakesTouch(id: string): boolean {
     const c = this.winnerOf(id);
     if (!c || c.immersive || c.touchPage !== true || this.overLimit.has(id) || this.status !== 'supported') return false;
-    return this.viewInteractive(c) && this.viewStates[id]?.state === 'loaded';
+    const sent = this.sentViews.get(id);
+    return sent?.visible === true && sent.interactive && this.viewStates[id]?.state === 'loaded';
   }
 
   /** A right-click the host saw on an interactive view. */
@@ -469,14 +471,9 @@ export class WebViewHost {
     const documentVisible = document.visibilityState !== 'hidden';
     const hit = (x: number, y: number) => document.elementFromPoint(x, y);
     const covered = document.querySelector(COVER_SELECTOR) !== null;
-    const winners = new Map<string, ClaimRecord>();
-    for (const c of this.claims.values()) {
-      const cur = winners.get(c.id);
-      if (!cur || (c.immersive && !cur.immersive)) winners.set(c.id, c);
-    }
     const views: WebViewSyncView[] = [];
     for (const id of this.slotOrder) {
-      const c = winners.get(id);
+      const c = this.winnerOf(id);
       if (!c || this.overLimit.has(id)) continue;
       const { rect, target, radius } = measureTile(c.element);
       const st = this.viewStates[c.id]?.state;
@@ -523,6 +520,7 @@ export class WebViewHost {
 
   private send(views: WebViewSyncView[]): void {
     if (!this.transport) return;
+    this.sentViews = new Map(views.map(v => [v.id, { visible: v.visible, interactive: v.interactive }]));
     const msg: WebViewOutbound = {
       type: 'nexus.webview.sync',
       seq: ++this.seq,
