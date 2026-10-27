@@ -71,12 +71,13 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   }, [release]);
 
   const onPointerDown = useCallback((e: PointerEvent) => {
+    // Every new press starts clean, whether or not this widget takes it.
+    pulled.current = false;
+    swallowClick.current = false;
     if (!locked || e.isPrimary === false) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isOwnControl(e.target, e.currentTarget as Element)) return;
     press.current = { x: e.clientX, y: e.clientY, at: Date.now(), pointerId: e.pointerId, activation: activationFor(e.pointerType) };
-    pulled.current = false;
-    swallowClick.current = false;
     setSettling(false);
   }, [activationFor, locked]);
   const onPointerMove = useCallback((e: PointerEvent) => {
@@ -98,7 +99,6 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
       if (!exceedsDragThreshold(dx, dy)) return;
       dragging.current = true;
       pulled.current = true;
-      swallowClick.current = true;
       const cell = e.currentTarget as Element;
       cell.setPointerCapture?.(e.pointerId);
       captured.current = { el: cell, id: e.pointerId };
@@ -112,12 +112,21 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     if (held && e.target === e.currentTarget && e.pointerId === held.id) end();
   }, [end]);
 
+  // A real release ends the press; a mouse pull is then followed by one click on the tile, which must not reach the widget.
+  const up = useCallback((e: PointerEvent) => {
+    const wasPull = end();
+    if (wasPull && e.pointerType === 'mouse') swallowClick.current = true;
+    return wasPull;
+  }, [end]);
+
   const onClickCapture = useCallback((e: MouseEvent) => {
     if (!swallowClick.current) return;
     swallowClick.current = false;
+    // Keyboard activation has no pointer position and is never the release click; an unlocked widget takes every click.
+    if (!locked || e.detail === 0) return;
     e.preventDefault();
     e.stopPropagation();
-  }, []);
+  }, [locked]);
 
   const isPulled = locked && offset !== null;
   useEffect(() => {
@@ -133,6 +142,6 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     offset: locked ? offset : null,
     settling: locked && settling,
     /** `end` closes the press on release or cancel and reports whether it was a drag, so the caller can withhold the tap. */
-    handlers: { onPointerDown, onPointerMove, end, onLostPointerCapture, onClickCapture },
+    handlers: { onPointerDown, onPointerMove, end, up, onLostPointerCapture, onClickCapture },
   };
 }

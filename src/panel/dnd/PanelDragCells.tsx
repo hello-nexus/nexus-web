@@ -403,7 +403,7 @@ export function PanelTouchCell({
     },
     onPointerUp: (e: React.PointerEvent) => {
       // A pulled locked widget was dragged, not tapped.
-      if (lockNotice.handlers.end()) cellPointers.onPointerCancel(e);
+      if (lockNotice.handlers.up(e)) cellPointers.onPointerCancel(e);
       else cellPointers.onPointerUp(e);
     },
     onPointerCancel: (e: React.PointerEvent) => {

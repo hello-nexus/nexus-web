@@ -102,19 +102,68 @@ describe('locked widget in a cell', () => {
     expect(pointers.onPointerCancel).toHaveBeenCalled();
   });
 
-  it('swallows the click that follows a pull and passes a later plain click', () => {
+  const mousePull = (face: HTMLElement, upType = 'mouse') => {
+    fireEvent.pointerDown(face, { isPrimary: true, clientX: 0, clientY: 0, pointerType: upType, buttons: 1 });
+    fireEvent.pointerMove(face, { clientX: 100, clientY: 0, pointerType: upType, buttons: 1 });
+    fireEvent.pointerUp(face, { clientX: 100, clientY: 0, pointerType: upType });
+  };
+
+  it('swallows the click that follows a mouse pull and passes a later plain click', () => {
     bodyClicked.mockClear();
     const { getByTestId } = setup(true);
     const face = getByTestId('face');
+    mousePull(face);
+    fireEvent.click(face, { detail: 1 });
+    expect(bodyClicked).not.toHaveBeenCalled();
+    fireEvent.pointerDown(face, { isPrimary: true, clientX: 0, clientY: 0, pointerType: 'mouse' });
+    fireEvent.pointerUp(face, { clientX: 0, clientY: 0, pointerType: 'mouse' });
+    fireEvent.click(face, { detail: 1 });
+    expect(bodyClicked).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes a button tap after a touch pull', () => {
+    clicked.mockClear();
+    const { getByTestId } = setup(true);
+    mousePull(getByTestId('face'), 'touch');
+    const control = getByTestId('control');
+    fireEvent.pointerDown(control, { isPrimary: true, pointerType: 'touch' });
+    fireEvent.pointerUp(control, { pointerType: 'touch' });
+    fireEvent.click(control, { detail: 1 });
+    expect(clicked).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes a keyboard click after a mouse pull', () => {
+    clicked.mockClear();
+    const { getByTestId } = setup(true);
+    mousePull(getByTestId('face'));
+    fireEvent.click(getByTestId('control'), { detail: 0 });
+    expect(clicked).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the first click after unlocking', () => {
+    bodyClicked.mockClear();
+    const view = setup(true);
+    mousePull(view.getByTestId('face'));
+    view.rerender(
+      <DndContext>
+        <SortableContext items={['w1']}>
+          <PanelTouchCell widget={widget} rearranging={false} onContextMenu={() => {}} cellPointers={view.pointers} locked={false} />
+        </SortableContext>
+      </DndContext>,
+    );
+    fireEvent.click(view.getByTestId('face'), { detail: 1 });
+    expect(bodyClicked).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a cancelled pull leave the next press as a drag', () => {
+    const { getByTestId, pointers } = setup(true);
+    const face = getByTestId('face');
     fireEvent.pointerDown(face, { isPrimary: true, clientX: 0, clientY: 0 });
     fireEvent.pointerMove(face, { clientX: 100, clientY: 0 });
-    fireEvent.pointerUp(face, { clientX: 100, clientY: 0 });
-    fireEvent.click(face);
-    expect(bodyClicked).not.toHaveBeenCalled();
+    fireEvent.pointerCancel(face);
     fireEvent.pointerDown(face, { isPrimary: true, clientX: 0, clientY: 0 });
     fireEvent.pointerUp(face, { clientX: 0, clientY: 0 });
-    fireEvent.click(face);
-    expect(bodyClicked).toHaveBeenCalledTimes(1);
+    expect(pointers.onPointerUp).toHaveBeenCalledTimes(1);
   });
 
   it('pulls and captures from a drag on a tap-only SDK stage', () => {
