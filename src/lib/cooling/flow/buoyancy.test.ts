@@ -33,7 +33,7 @@ describe('Boussinesq buoyancy', () => {
     const scene = sceneAt(60);
     const cellM = scene.cellMm / 1000;
     expect(scene.buoyancy).toBeCloseTo((GRAVITY / ROOM_TEMP_K) * scene.stepSeconds ** 2 / cellM, 12);
-    // Real air: 1 K warmer accelerates upward by about 0.033 m/s^2.
+    // Real air: a degree of rise accelerates it upward by g over the room temperature in kelvin.
     const accel = (scene.buoyancy * cellM) / scene.stepSeconds ** 2;
     expect(accel).toBeCloseTo(9.81 / 295.15, 6);
   });

@@ -311,8 +311,8 @@ export class GlFlow {
     const rises = sourceRises(temps);
     const src = this.uniforms.temperature.vec3s.uSrc;
     src[0] = 0; src[1] = rises[1]; src[2] = rises[2];
-    this.hotNow = isHot(rises);
     this.watts = sourceWatts(temps);
+    this.hotNow = isHot(rises, this.watts);
     this.applyPower();
   }
 

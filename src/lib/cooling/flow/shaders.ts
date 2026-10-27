@@ -100,7 +100,7 @@ void main() {
   float src = id == 1 ? uSrc.y : (id == 2 ? uSrc.z : -1.0);
   // A part with a power reading adds its watts as energy (degrees per step already worked out for this scene); without one the air closes on the part's temperature.
   float pw = id == 1 ? uPow.y : (id == 2 ? uPow.z : -1.0);
-  if (pw >= 0.0) t = min(t + pw, uMaxRise);
+  if (pw >= 0.0) t = min(t + pw, src >= 0.0 ? min(uMaxRise, src) : uMaxRise);
   else if (src >= 0.0) t += uCoupling * (src - t);
   gl_FragColor = vec4(t, 0.0, 0.0, 0.0);
 }`;

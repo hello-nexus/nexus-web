@@ -16,6 +16,7 @@ export class CpuFlow {
   private rises = sourceRises(NO_TEMPS);
   /** Degrees per step each part's power adds to its heat cells, by `SOURCE_*`; negative falls back on the part's temperature. */
   private powerRise: [number, number, number] = [-1, -1, -1];
+  private watts: [number, number, number] = [-1, -1, -1];
   private next: Float32Array;
   private p: Float32Array;
   private p2: Float32Array;
@@ -50,6 +51,7 @@ export class CpuFlow {
   setScene(scene: FlowScene): void {
     if (scene.dims.some((d, i) => d !== this.scene.dims[i])) throw new Error('setScene needs the same grid');
     this.scene = scene;
+    this.powerRise = this.watts.map((w, source) => powerRisePerStep(scene, source, w)) as [number, number, number];
     this.bind(scene);
     for (let c = 0; c < this.n; c++) {
       if (!scene.solid[c]) continue;
@@ -62,13 +64,13 @@ export class CpuFlow {
   /** New part temperatures: read by the next step, nothing restarts. */
   setTemps(temps: ComponentTemps): void {
     this.rises = sourceRises(temps);
-    const watts = sourceWatts(temps);
-    this.powerRise = watts.map((w, source) => powerRisePerStep(this.scene, source, w)) as [number, number, number];
+    this.watts = sourceWatts(temps);
+    this.powerRise = this.watts.map((w, source) => powerRisePerStep(this.scene, source, w)) as [number, number, number];
   }
 
   /** Whether any part is hot enough to drive a plume on its own. */
   get hot(): boolean {
-    return isHot(this.rises);
+    return isHot(this.rises, this.watts);
   }
 
   private bind(scene: FlowScene): void {
@@ -227,7 +229,8 @@ export class CpuFlow {
       if (cnt > 0) r += TEMP_DIFFUSION * (acc / cnt - r);
       const power = this.powerRise[id];
       const src = this.rises[id];
-      if (power >= 0) r = Math.min(MAX_RISE_K, r + power);
+      // Power heats the air, but never past the part's own temperature when it is known, nor past the cap.
+      if (power >= 0) r = Math.min(src >= 0 ? Math.min(MAX_RISE_K, src) : MAX_RISE_K, r + power);
       else if (src >= 0) r = heatStep(r, src, 1);
       out[c] = r;
     }

@@ -82,9 +82,8 @@ export function boundSlotKeys(bindings: readonly FanBinding[], channels: readonl
 }
 
 /** The fans of the case-wide pressure model, each at its live speed by the fan laws (flow follows speed, pressure its square) and behind its radiator's loss. GPU fans are left out: their air recirculates inside the case. */
-export function pressureFans(slots: readonly CaseFanSlot[], catalog: readonly CatalogFanSpec[], speeds: ReadonlyMap<string, SlotSpeed>, directions: Readonly<Record<string, FanDirection>>): { fans: PressureFan[]; estimated: boolean; missingStatic: number } {
+export function pressureFans(slots: readonly CaseFanSlot[], catalog: readonly CatalogFanSpec[], speeds: ReadonlyMap<string, SlotSpeed>, directions: Readonly<Record<string, FanDirection>>): { fans: PressureFan[]; estimated: boolean } {
   let estimated = false;
-  let missingStatic = 0;
   const fans: PressureFan[] = [];
   for (const slot of slots) {
     if (isGpuSlotKey(slot.key)) continue;
@@ -92,15 +91,14 @@ export function pressureFans(slots: readonly CaseFanSlot[], catalog: readonly Ca
       const speed = speeds.get(fan.key);
       const live = speed ? { ...scaledSpec(fan, speed.fraction), estimated: fan.estimated || speed.estimated } : fan;
       estimated ||= live.estimated;
-      if (slot.fan?.staticPressureMmH2O === undefined && !catalog.some(c => c.sizeMm === slot.size && c.staticMmH2O)) missingStatic++;
       fans.push({ key: fan.key, cfm: live.cfm, staticMmH2O: live.staticMmH2O, direction: directions[slot.key], ...(isAioSlot(slot) ? { loss: seriesLoss(RADIATOR_LOSS_K, slot.size) } : {}) });
     }
   }
-  return { fans, estimated, missingStatic };
+  return { fans, estimated };
 }
 
 /** The case-wide figures: fan laws on each fan's live speed, solved against the case's openings. GPU fans are left out: their air recirculates inside the case. */
 export function lumpedModel(slots: readonly CaseFanSlot[], catalog: readonly CatalogFanSpec[], speeds: ReadonlyMap<string, SlotSpeed>, directions: Readonly<Record<string, FanDirection>>) {
-  const { fans, estimated, missingStatic } = pressureFans(slots, catalog, speeds, directions);
-  return { result: solveCasePressure(fans), estimated, fanCount: fans.length, missingStatic };
+  const { fans, estimated } = pressureFans(slots, catalog, speeds, directions);
+  return { result: solveCasePressure(fans), estimated, fanCount: fans.length };
 }

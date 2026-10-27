@@ -4,7 +4,7 @@ import { CpuFlow } from './cpuSolver';
 import { AIR_DENSITY, AIR_SPECIFIC_HEAT } from './flowParams';
 import { fronts, gpuBox, inputFor, rear } from './flowFixtures';
 import { buildFlowScene, powerRisePerStep, SOURCE_GPU } from './gridScene';
-import { exhaustRiseK } from './heatModel';
+import { exhaustRiseK, isHot } from './heatModel';
 
 const LOW = 32 * 24 * 48;
 const M3S_PER_CFM = 0.000471947;
@@ -61,9 +61,29 @@ describe('energy balance', () => {
     }
     expect(q).toBeGreaterThan(0);
     const measuredRise = watts / (RHO_CP * q);
-    // The fan is rated 60 CFM and nothing else leaves the case, so all of the power goes out through it.
+    // The fan runs at the rated flow the scene was built with and nothing else leaves the case, so all of the power goes out through it.
     const handRise = exhaustRiseK(power, 60);
     expect(measuredRise / handRise).toBeGreaterThan(0.8);
     expect(measuredRise / handRise).toBeLessThan(1.25);
+  });
+});
+
+describe('a part with power but no temperature', () => {
+  it('counts as hot from its watts, and a known temperature decides first', () => {
+    expect(isHot([-1, -1, -1], [-1, 150, -1])).toBe(true);
+    expect(isHot([-1, -1, -1], [-1, 5, -1])).toBe(false);
+    expect(isHot([-1, 0.2, -1], [-1, 300, -1])).toBe(false);
+    expect(isHot([-1, 30, -1], [-1, -1, -1])).toBe(true);
+  });
+
+  it('never heats the air past the part\'s own temperature', { timeout: 120000 }, () => {
+    const scene = scene60();
+    const flow = new CpuFlow(scene);
+    // No fan moves air in this stretch, a tiny rise cap: a large power cannot lift the cells above the part.
+    flow.setTemps({ cpu: null, gpu: 22 + 3, gpuW: 400 });
+    for (let i = 0; i < 400; i++) flow.step();
+    let max = 0;
+    for (let c = 0; c < flow.n; c++) if (scene.heat[c] === SOURCE_GPU) max = Math.max(max, flow.t[c]);
+    expect(max).toBeLessThanOrEqual(3 + 1e-6);
   });
 });

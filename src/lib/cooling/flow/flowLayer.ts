@@ -68,7 +68,7 @@ export interface FlowOptions {
   collisions: boolean;
   /** Dev tools: draws the grid cells and how they are used. */
   grid?: boolean;
-  /** Seconds of screen time per second of real time. When set, the particle speed comes from it and the scene's own step length, so the flow reads at this slow motion whatever the case size; `speed` then only serves a layer given no scale. */
+  /** Screen speed over real speed: below one is slow motion. When set, the particle speed comes from it and the scene's own step length, so the flow reads at this slow motion whatever the case size; `speed` then only serves a layer given no scale. */
   timeScale?: number;
   /** Visual time scale of the particles; the solve and the per-fan ratios are unchanged. */
   speed: number;
@@ -197,9 +197,10 @@ export class FlowLayer {
     if (!this.heatCells) return;
     const rises = sourceRises(this.temps);
     const watts = sourceWatts(this.temps);
-    const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K) || watts.some((w, i) => w >= 0 && Math.abs(w - (this.wakeWatts[i] ?? -1)) >= POWER_RESUME_DELTA_W);
+    // A reading that appears, vanishes or moves far enough counts, so the field never stays frozen on a stale source.
+    const moved = rises.some((r, i) => Math.abs(r - (this.wakeRises[i] ?? -1)) >= TEMP_RESUME_DELTA_K) || watts.some((w, i) => (w >= 0) !== ((this.wakeWatts[i] ?? -1) >= 0) || (w >= 0 && Math.abs(w - this.wakeWatts[i]) >= POWER_RESUME_DELTA_W));
     // With no fan, buoyancy is the only driver, so a part's temperature moving re-solves the velocity. Otherwise a temperature change never does: only the cheap temperature pass runs, on the frozen velocity.
-    if (scene.fanCount === 0 && (moved || wasHot !== flow.hot)) this.wake(rises);
+    if (scene.fanCount === 0 && (moved || wasHot !== flow.hot)) { this.wakeWatts = watts; this.wake(rises); }
     else if (moved) { this.wakeRises = rises; this.wakeWatts = watts; this.tempStepsLeft = TEMP_SETTLE_STEPS; }
   }
 

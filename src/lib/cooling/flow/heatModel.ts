@@ -1,7 +1,6 @@
 import type { CaseBox, CaseLayout, Vec3 } from '../caseLayout';
-import { AIR_DENSITY, AIR_SPECIFIC_HEAT, BUOYANCY_MIN_RISE_K, HEAT_COUPLING, ROOM_TEMP_C } from './flowParams';
-
-const M3S_PER_CFM = 0.000471947;
+import { AIR_DENSITY, AIR_SPECIFIC_HEAT, BUOYANCY_MIN_POWER_W, BUOYANCY_MIN_RISE_K, HEAT_COUPLING, ROOM_TEMP_C } from './flowParams';
+import { M3S_PER_CFM } from '../pressureModel';
 import { SOURCE_CPU, SOURCE_GPU } from './gridScene';
 
 /** Live temperatures of the parts that heat the air, C; null when the sensor is missing. */
@@ -44,7 +43,8 @@ export const heatStep = (rise: number, sourceRise: number, speed: number): numbe
   sourceRise < 0 ? rise : rise + Math.min(1, HEAT_COUPLING * speed) * (sourceRise - rise);
 
 /** Whether any part is warm enough to drive a plume on its own. */
-export const isHot = (rises: readonly number[]): boolean => rises.some(r => r >= BUOYANCY_MIN_RISE_K);
+export const isHot = (rises: readonly number[], watts: readonly number[] = []): boolean =>
+  rises.some((r, i) => (r >= 0 ? r >= BUOYANCY_MIN_RISE_K : (watts[i] ?? -1) >= BUOYANCY_MIN_POWER_W));
 
 export interface HeatAnchor {
   key: 'cpu' | 'gpu';

@@ -18,7 +18,7 @@ export const DEFAULT_VENT_AREA_M2 = 0.012;
 const DISCHARGE_COEFFICIENT = 0.6;
 const AIR_DENSITY = 1.2;
 const PA_PER_MMH2O = 9.80665;
-const M3S_PER_CFM = 0.000471947;
+export const M3S_PER_CFM = 0.000471947;
 // Gauge pressures inside this band read as balanced.
 const BALANCED_BAND_PA = 0.25;
 const BISECTION_STEPS = 60;
@@ -36,7 +36,7 @@ export interface PressureFan extends FanSpec {
   loss?: number;
 }
 
-/** Loss coefficient of an AIO radiator core, on the fan's frame area (about 25 Pa at 2 m/s). */
+/** Loss coefficient of an AIO radiator core, on the fan's frame area: the standard loss form 0.5 rho K v^2 for a dense core. */
 export const RADIATOR_LOSS_K = 10;
 /** Share of a fan's frame that is open to air. */
 const FRAME_OPEN_SHARE = 0.7;
