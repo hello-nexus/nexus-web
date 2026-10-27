@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PanelBackgroundMedia } from './PanelBackgroundMedia';
@@ -8,6 +8,7 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
 }));
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -71,5 +72,51 @@ describe('PanelBackgroundMedia', () => {
     unmount();
     expect(el.hasAttribute('src')).toBe(false);
     expect(load).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PanelBackgroundMedia error events', () => {
+  function mount(readyState: number, error: unknown) {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve());
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    const onFailed = vi.fn();
+    const { container, unmount } = render(
+      <PanelBackgroundMedia id="v" deviceId="d" type="animated" opacity={1} onFailed={onFailed} />,
+    );
+    const el = container.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(el, 'readyState', { value: readyState, configurable: true });
+    Object.defineProperty(el, 'error', { value: error, configurable: true });
+    return { el, onFailed, unmount };
+  }
+
+  it('fails at once on a real MediaError', () => {
+    const { el, onFailed } = mount(0, { code: 4 });
+    fireEvent.error(el);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the clip when an error event carries no MediaError and the element has data', () => {
+    const { el, onFailed } = mount(4, null);
+    fireEvent.error(el);
+    vi.advanceTimersByTime(10_000);
+    expect(onFailed).not.toHaveBeenCalled();
+  });
+
+  it('gives up after the grace period when an error with no MediaError leaves the element empty', () => {
+    const { el, onFailed } = mount(0, null);
+    fireEvent.error(el);
+    expect(onFailed).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(5_100);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels the pending give-up when the layer unmounts', () => {
+    const { el, onFailed, unmount } = mount(0, null);
+    fireEvent.error(el);
+    unmount();
+    vi.advanceTimersByTime(10_000);
+    expect(onFailed).not.toHaveBeenCalled();
   });
 });
