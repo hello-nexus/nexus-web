@@ -14,6 +14,30 @@ const device = (key: string, over: Partial<BuildDevice> = {}): BuildDevice => ({
 
 afterEach(() => h.fetchService.mockReset());
 
+describe('buildMachine hardwareIds', () => {
+  const ids = {
+    gpus: [{ vendor: '10de', device: '2704', subVendor: '1043', subDevice: '889e' }],
+    ramModules: null,
+    drives: [{ vendor: 'Samsung', model: '990 PRO' }],
+    board: { manufacturer: 'ASUS', product: 'X670E' },
+    monitors: null,
+  };
+
+  it('passes hardwareIds through as received', () => {
+    expect(buildMachine({ ...SPECS, hardwareIds: ids }, null, []).hardwareIds).toEqual(ids);
+  });
+
+  it('omits hardwareIds when the service sent none', () => {
+    expect('hardwareIds' in buildMachine(SPECS, null, [])).toBe(false);
+  });
+
+  it('never carries the PC name', () => {
+    const machine = buildMachine({ ...SPECS, hardwareIds: ids }, 'hyte-y70', [device('fan-1')]);
+    expect(JSON.stringify(machine)).not.toContain(SPECS.pcName);
+    expect('pcName' in machine).toBe(false);
+  });
+});
+
 describe('layoutKeyOf', () => {
   const base = () => buildMachine(SPECS, 'hyte-y70', [device('fan-1', { count: 3 }), device('aio', { category: 'cooler', radiatorMm: 360 })]);
 

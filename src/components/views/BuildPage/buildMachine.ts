@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchService } from '../../../api/service';
-import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
+import { useSystemSpecs, type HardwareIds, type SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { buildFpsSignatureParams, primaryGpuCard } from '../../../panel/widgets/frames/fpsSignatureParams';
 
 // Same rule as the cloud api's device case id: a catalog part id.
@@ -21,6 +21,8 @@ export interface BuildMachine {
   // The case was filled in by detection (a Y70 display), not chosen; absent when the user chose it.
   caseAuto?: true;
   devices?: BuildDevice[];
+  // The service's part identifiers, passed through as received; absent on an older service.
+  hardwareIds?: HardwareIds;
 }
 
 /** One detected cooler, fan or controller from the service's `/system/devices`; passed through to the frame untouched. */
@@ -59,6 +61,7 @@ export function buildMachine(specs: SystemSpecs, caseId: string | null, devices:
     ...(caseId ? { caseId } : {}),
     ...(caseId && caseAuto ? { caseAuto: true as const } : {}),
     ...(devices.length > 0 ? { devices } : {}),
+    ...(specs.hardwareIds ? { hardwareIds: specs.hardwareIds } : {}),
   };
 }
 

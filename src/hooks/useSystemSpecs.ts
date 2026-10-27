@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchService } from '../api/service';
 
+export interface HardwareIds {
+  gpus?: { vendor: string; device: string; subVendor: string; subDevice: string }[] | null;
+  ramModules?: { manufacturer: string; partNumber: string; capacityBytes: number; configuredSpeedMts: number }[] | null;
+  drives?: { vendor: string; model: string }[] | null;
+  board?: { manufacturer: string; product: string } | null;
+  monitors?: { manufacturer: string; productCode: string; name: string }[] | null;
+}
+
 export interface SystemSpecs {
   pcName: string;
   osBuild: string;
@@ -14,6 +22,8 @@ export interface SystemSpecs {
   monitor: string;
   soundCard: string;
   networkCard: string;
+  // Part identifiers per source; absent on a service older than it, null per source when it has none.
+  hardwareIds?: HardwareIds;
 }
 
 export interface UseSystemSpecs {
