@@ -339,14 +339,14 @@ describe('HYTE X50 airflow with side intakes and a rear exhaust', () => {
 
   it('has intake and exhaust fans placed, and none stalled', () => {
     const r = run();
-    expect(Object.values(r.directions).includes('intake')).toBe(true);
-    expect(Object.values(r.directions).includes('exhaust')).toBe(true);
+    for (const k of keys.filter(x => x.startsWith('right'))) expect(r.directions[k], k).toBe('intake');
+    expect(r.directions['rear:120:0']).toBe('exhaust');
     expect(keys.filter(k => !(r.visual.fanCfm[k] > 0))).toEqual([]);
     expect(r.lumped.result.intakeCfm).toBeGreaterThan(0);
     expect(r.lumped.result.exhaustCfm).toBeGreaterThan(0);
   });
 
-  it('carries particles from the intakes to within reach of an exhaust fan', () => {
+  it('carries air to within reach of the rear exhaust fan', () => {
     const r = run();
     const flow = new CpuFlow(r.scene);
     for (let i = 0; i < 150; i++) flow.step();
