@@ -142,14 +142,14 @@ describe('CoolingCase3D airflow case gate', () => {
     return render(ui());
   };
 
-  it.each(['HYTE Y70', 'HYTE Y50'])('runs the view for %s', name => {
+  it.each(['HYTE Y70', 'HYTE Y50', 'HYTE X50'])('runs the view for %s', name => {
     mount(name);
     expect(screen.queryByText('cooling.case3d.unsupported.title')).toBeNull();
     expect(screen.getByRole('img', { name: 'cooling.case3d.canvas' })).toBeTruthy();
     expect(createCaseRenderer).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['HYTE Y60', 'HYTE X50', 'Lian Li O11 Dynamic', null])('shows only the notice for %s and builds no renderer', name => {
+  it.each(['HYTE Y60', 'HYTE X50 Air', 'Lian Li O11 Dynamic', null])('shows only the notice for %s and builds no renderer', name => {
     mount(name);
     expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();
     expect(screen.getByText('cooling.case3d.unsupported.hint')).toBeTruthy();
@@ -176,7 +176,7 @@ describe('CoolingCase3D airflow case gate', () => {
     expect(createCaseRenderer).toHaveBeenCalledTimes(1);
     const live = h.renderers[0];
     expect(live.dispose).not.toHaveBeenCalled();
-    h.setup = { record: record(3, false, 'HYTE X50'), loaded: true };
+    h.setup = { record: record(3, false, 'HYTE Y60'), loaded: true };
     rerender(ui());
     expect(live.dispose).toHaveBeenCalledTimes(1);
     expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();
