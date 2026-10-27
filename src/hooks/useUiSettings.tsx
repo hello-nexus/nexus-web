@@ -6,7 +6,7 @@ import {
 } from 'react';
 import {
   loadSettings, saveSettings, cachePreferencesLocally,
-  applyThemeMode, applyAccentColor, applyBackgroundMode,
+  applyThemeMode, setHostThemeMode, applyAccentColor, applyBackgroundMode,
   type NexusSettings, type ThemeMode, type Language, type BackgroundMode, type AccentSource,
   type DashboardMode,
 } from '../lib/settings';
@@ -60,6 +60,8 @@ export interface UiSettingsValue {
   accentSource: AccentSource;
   language: Language;
   themeMode: ThemeMode;
+  // Host OS theme from the service; not persisted locally. '' = not reported.
+  hostThemeMode: '' | 'dark' | 'light';
   accentColor: string;
   // Last colour picked from the accent palette's custom slot; '' = never used.
   // Held apart from accentColor so the slot survives picking a preset.
@@ -226,6 +228,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     accentSource: src.general.accentSource,
     language: src.general.language,
     themeMode: src.general.themeMode,
+    hostThemeMode: '',
     accentColor: src.general.accentColor,
     customAccentColor: src.general.customAccentColor,
     showConflictAlerts: src.general.showConflictAlerts,
@@ -470,6 +473,8 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     ...base,
     language: (server.theme?.language as Language) ?? base.language,
     themeMode: (server.theme?.themeMode as ThemeMode) ?? base.themeMode,
+    hostThemeMode: server.theme?.resolvedThemeMode === 'dark' || server.theme?.resolvedThemeMode === 'light'
+      ? server.theme.resolvedThemeMode : '',
     accentColor: server.theme?.accentColor ?? base.accentColor,
     customAccentColor: server.theme?.customAccentColor ?? base.customAccentColor,
     // Empty (never written) falls back to the local value, so an upgraded
@@ -680,9 +685,8 @@ export function UiSettingsProvider({
     if (!serviceOnline) return;
     // The 'prefs' topic echoes our OWN writes back. A theme toggle makes two
     // /preferences writes: themeMode (debounced 250ms via scheduleServerWrite)
-    // and, through ResolvedThemeSync, resolvedThemeMode (immediate). The
-    // immediate write's echo arrives before the debounced themeMode write
-    // lands, so re-hydrating now reads the pre-toggle themeMode and re-applies
+    // and the debounced themeMode write lands after the echo of an earlier
+    // write, so re-hydrating now reads the pre-toggle themeMode and re-applies
     // it - the visible flicker: new theme → snaps back to old → tweens to new
     // once the real write settles. Skip the round-trip while our own write is
     // still pending; that write's echo reloads once it flushes, when the
@@ -696,13 +700,14 @@ export function UiSettingsProvider({
     fetchPreferences(abort.signal).finally(() => clearTimeout(bound)).then(prefs => {
       if (mine !== readGeneration.current) return;
       if (!prefs) { markFailed(); return; }
+      const hostThemeChanged = setHostThemeMode(prefs.theme?.resolvedThemeMode);
       setSettings(prev => {
         const next = { ...applyServerToLocal(prefs, prev), ...pendingLocalRef.current };
         persistLocal(next);
         // Re-apply theme/accent when server state differs (profile-switch
         // path). Same `manageDom` guard as update().
         if (manageDom) {
-          if (next.themeMode !== prev.themeMode) applyThemeMode(next.themeMode);
+          if (next.themeMode !== prev.themeMode || hostThemeChanged) applyThemeMode(next.themeMode);
           if (next.accentColor !== prev.accentColor) applyAccentColor(next.accentColor);
           if (next.language !== prev.language) setLanguage(next.language);
         }

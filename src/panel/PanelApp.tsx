@@ -168,6 +168,7 @@ import {
   usePanelLanguageSync,
   usePanelTheme,
   useResolvedPanelThemeMode,
+  syncedAppThemeMode,
 } from './theme/panelTheme';
 import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
@@ -493,11 +494,8 @@ export function PanelContent({
     return focusStaticMode ? withStaticBackground(theme) : theme;
   }, [baseTheme, surface, focusStaticMode]);
   usePanelLanguageSync(kioskBehavior, panelTheme.prefs);
-  // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
-  // tracking the desktop OS); fall back to appThemeMode when unpublished -
-  // 'system' there would re-resolve against THIS device's OS (the wrong OS).
   const effectiveThemeMode = effectiveTheme.themeSyncWithDesktop
-    ? (effectiveTheme.appResolvedThemeMode || effectiveTheme.appThemeMode)
+    ? syncedAppThemeMode(effectiveTheme.appThemeMode, effectiveTheme.appResolvedThemeMode)
     : effectiveTheme.themeMode;
   const panelResolvedThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   const desktopResolvedThemeMode = useDocumentResolvedThemeMode(embedded);

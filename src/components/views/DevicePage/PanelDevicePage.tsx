@@ -607,9 +607,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const panelRecord = usePanelRecord(editingDeviceId);
   const panelTheme = usePanelTheme(panelRecord, editingDeviceId);
   const theme = panelTheme.theme;
-  const effectiveThemeMode = theme.themeSyncWithDesktop
-    ? (theme.appResolvedThemeMode || theme.appThemeMode)
-    : theme.themeMode;
+  // The desktop's manual Light/Dark as is; its 'system' follows the host OS theme when published.
+  const syncedAppMode = theme.appThemeMode === 'system' && theme.appResolvedThemeMode
+    ? theme.appResolvedThemeMode
+    : theme.appThemeMode;
+  const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   // The monitoring settings pane edits the panel's gauge gradient in place; the
   // simulator iframe repaints from the same theme via the postMessage sync.
@@ -625,9 +627,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Desktop resolved mode from the app theme (concrete dark/light, not 'system').
   // Used for the widget preview in InlineWidgetSettings so it inherits the
   // desktop chrome's active theme instead of the panel theme.
-  const desktopResolvedThemeMode = useResolvedPanelThemeMode(
-    theme.appResolvedThemeMode || theme.appThemeMode,
-  );
+  const desktopResolvedThemeMode = useResolvedPanelThemeMode(syncedAppMode);
   // The widget preview + add-widget catalog render inside the desktop chrome,
   // where --accent is the desktop app's, not this panel's. Inject the panel's
   // accent vars (at the preview's own resolved mode) so previews highlight in

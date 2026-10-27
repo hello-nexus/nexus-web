@@ -49,6 +49,15 @@ export function normalizePanelDesktopSync(value?: boolean | null): boolean {
   return value !== false;
 }
 
+/**
+ * The mode a synced panel follows: the desktop's manual Light/Dark as is; for
+ * the desktop's 'system', the host OS theme the service publishes (not this
+ * device's own media query). Falls back to 'system' when unpublished.
+ */
+export function syncedAppThemeMode(appThemeMode: ThemeMode, appResolvedThemeMode: '' | ResolvedPanelThemeMode): ThemeMode {
+  return appThemeMode === 'system' && appResolvedThemeMode ? appResolvedThemeMode : appThemeMode;
+}
+
 export function useResolvedPanelThemeMode(mode: ThemeMode): ResolvedPanelThemeMode {
   const [resolved, setResolved] = useState<ResolvedPanelThemeMode>(() => resolveTheme(mode));
 
@@ -311,11 +320,8 @@ export function usePanelTheme(
     return hint && hint !== 'theme' ? { ...base, backdrop: hint, backgroundOpacity: 1 } : base;
   });
   const resolvedMode = useResolvedPanelThemeMode(
-    // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
-    // tracking the desktop OS). Fall back to appThemeMode when unpublished -
-    // 'system' there would re-resolve against THIS device's OS (wrong OS).
     theme.themeSyncWithDesktop
-      ? (theme.appResolvedThemeMode || theme.appThemeMode)
+      ? syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode)
       : theme.themeMode,
   );
   const resolvedModeRef = useRef<ResolvedPanelThemeMode>(resolvedMode);
