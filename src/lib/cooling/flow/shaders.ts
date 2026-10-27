@@ -315,7 +315,7 @@ uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform 
 uniform vec3 uCool; uniform vec3 uWarm; uniform vec3 uHot; uniform float uHeatSpan;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
-// Colors blend in OKLab (from linear sRGB), so blue to yellow to red passes through clean intermediates, not gray.
+// Colors convert to OKLab from linear sRGB for the blend below.
 vec3 toLab(vec3 c) {
   vec3 l = vec3(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b, 0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b, 0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
   l = pow(max(l, vec3(0.0)), vec3(1.0 / 3.0));
@@ -326,7 +326,18 @@ vec3 fromLab(vec3 c) {
   l = l * l * l;
   return max(vec3(4.0767416621 * l.x - 3.3077115913 * l.y + 0.2309699292 * l.z, -1.2684380046 * l.x + 2.6097574011 * l.y - 0.3413193965 * l.z, -0.0041960863 * l.x - 0.7034186147 * l.y + 1.7076147010 * l.z), vec3(0.0));
 }
-vec3 mixLab(vec3 a, vec3 b, float t) { return fromLab(mix(toLab(a), toLab(b), t)); }
+// Blend in OKLCH: lightness and chroma mix linearly and the hue turns the short way round, so the ramp keeps its chroma between complementary ends instead of passing through the gray midpoint a straight Lab mix has. The hue turn is a rotation of the a,b direction by the signed angle between the ends; an end with no chroma has no hue, so that case is a plain mix. Out-of-gamut results clamp.
+vec3 mixLab(vec3 a, vec3 b, float t) {
+  vec3 la = toLab(a); vec3 lb = toLab(b);
+  float ca = length(la.yz); float cb = length(lb.yz);
+  float c = mix(ca, cb, t);
+  float lum = mix(la.x, lb.x, t);
+  if (ca < 1.0e-4 || cb < 1.0e-4) return fromLab(vec3(lum, mix(la.yz, lb.yz, t)));
+  vec2 da = la.yz / ca; vec2 db = lb.yz / cb;
+  float turn = atan(da.x * db.y - da.y * db.x, dot(da, db)) * t;
+  vec2 dir = vec2(da.x * cos(turn) - da.y * sin(turn), da.x * sin(turn) + da.y * cos(turn));
+  return fromLab(vec3(lum, dir * c));
+}
 vec2 screenOf(vec3 cellPos, out float w) {
   vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
   vec4 c = projectionMatrix * modelViewMatrix * vec4(mm, 1.0);

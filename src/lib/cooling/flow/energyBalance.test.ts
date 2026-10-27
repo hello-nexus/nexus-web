@@ -35,7 +35,7 @@ describe('heat from power', () => {
   });
 });
 
-/** Net enthalpy flux (W) and volume flows (m^3/s, outward and inward) through the shell of cells `depth` in from the domain boundary, away from its edges. */
+/** Net enthalpy flux (W) and volume flows (m^3/s, outward and inward) through the shell of cells `depth` in from the domain boundary, away from its edges. A face without fans has no margin, so there the shell lies inside the case wall. */
 function shellBalance(flow: CpuFlow, depth: number) {
   const s = flow.scene;
   const dims = s.dims;
@@ -86,15 +86,15 @@ describe('energy balance', () => {
     const measuredRise = watts / (RHO_CP * q);
     // The fan runs at the rated flow the scene was built with and nothing else leaves the case, so all of the power goes out through it.
     const handRise = exhaustRiseK(power, 60);
-    expect(measuredRise / handRise).toBeGreaterThan(0.8);
-    expect(measuredRise / handRise).toBeLessThan(1.25);
+    expect(measuredRise / handRise).toBeGreaterThan(0.95);
+    expect(measuredRise / handRise).toBeLessThan(1.3);
 
-    // The same energy through the whole boundary: a shell around the case carries out the power put in, and the air in equals the air out. The enthalpy runs a little high, about a third, because the advection averages over fluid cells only beside the card's walls: the bounds are that accuracy, not slack.
+    // The same energy through shells of cells inside the domain boundary: the air in equals the air out, and the enthalpy leaving is the power put in, a little high because the advection averages over fluid cells only beside the card's walls. The band sits around that measured excess, so a broken boundary or a lost source falls outside it.
     for (const depth of [3, 5]) {
       const shell = shellBalance(flow, depth);
       expect(Math.abs(shell.out - shell.inn) / shell.out, `volume balance at depth ${depth}`).toBeLessThan(0.1);
-      expect(shell.watts / power, `enthalpy flux at depth ${depth}`).toBeGreaterThan(0.75);
-      expect(shell.watts / power, `enthalpy flux at depth ${depth}`).toBeLessThan(1.4);
+      expect(shell.watts / power, `enthalpy flux at depth ${depth}`).toBeGreaterThan(1.1);
+      expect(shell.watts / power, `enthalpy flux at depth ${depth}`).toBeLessThan(1.5);
     }
   });
 });
