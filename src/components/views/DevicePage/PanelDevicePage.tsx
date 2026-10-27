@@ -113,6 +113,7 @@ import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelRecord } from '../../../panel/engine/usePanelRecord';
+import { syncedAppThemeMode } from '../../../lib/settings';
 import { buildPanelThemeVars, panelAccentColor, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { resolveGaugeGradient } from '../../../panel/theme/gaugeGradient';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
@@ -607,10 +608,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const panelRecord = usePanelRecord(editingDeviceId);
   const panelTheme = usePanelTheme(panelRecord, editingDeviceId);
   const theme = panelTheme.theme;
-  // The desktop's manual Light/Dark as is; its 'system' follows the host OS theme when published.
-  const syncedAppMode = theme.appThemeMode === 'system' && theme.appResolvedThemeMode
-    ? theme.appResolvedThemeMode
-    : theme.appThemeMode;
+  const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
   const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   // The monitoring settings pane edits the panel's gauge gradient in place; the

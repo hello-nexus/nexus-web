@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../lib/i18n';
 import {
-  DEFAULT_ACCENT, LANGUAGES, THEME_MODES, deriveAccentOnVars, deriveAccentVars, resolveTheme,
+  DEFAULT_ACCENT, LANGUAGES, THEME_MODES, deriveAccentOnVars, deriveAccentVars, resolveTheme, syncedAppThemeMode,
   type Language, type ThemeMode,
 } from '../../lib/settings';
 import { fetchPreferences, type Preferences } from '../../api/profiles';
@@ -47,15 +47,6 @@ export function normalizePanelThemeMode(value?: string | null): ThemeMode {
 
 export function normalizePanelDesktopSync(value?: boolean | null): boolean {
   return value !== false;
-}
-
-/**
- * The mode a synced panel follows: the desktop's manual Light/Dark as is; for
- * the desktop's 'system', the host OS theme the service publishes (not this
- * device's own media query). Falls back to 'system' when unpublished.
- */
-export function syncedAppThemeMode(appThemeMode: ThemeMode, appResolvedThemeMode: '' | ResolvedPanelThemeMode): ThemeMode {
-  return appThemeMode === 'system' && appResolvedThemeMode ? appResolvedThemeMode : appThemeMode;
 }
 
 export function useResolvedPanelThemeMode(mode: ThemeMode): ResolvedPanelThemeMode {

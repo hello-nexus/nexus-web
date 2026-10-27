@@ -95,7 +95,7 @@ import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { PanelSentry } from './overlays/PanelSentry';
 import { useTranslation } from '../lib/i18n';
-import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
+import { DEFAULT_ACCENT, applyHtmlChromeTheme, syncedAppThemeMode } from '../lib/settings';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
@@ -168,7 +168,6 @@ import {
   usePanelLanguageSync,
   usePanelTheme,
   useResolvedPanelThemeMode,
-  syncedAppThemeMode,
 } from './theme/panelTheme';
 import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';

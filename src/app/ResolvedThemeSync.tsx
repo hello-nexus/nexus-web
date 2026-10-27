@@ -14,7 +14,7 @@ export function ResolvedThemeSync() {
   const hostMode = settings.hostThemeMode;
 
   useEffect(() => {
-    const publish = () => postResolvedTheme(resolveTheme(mode) === 'dark');
+    const publish = () => postResolvedTheme(resolveTheme(mode, hostMode) === 'dark');
     publish();
     if (mode !== 'system') return;
     const mq = window.matchMedia('(prefers-color-scheme: light)');

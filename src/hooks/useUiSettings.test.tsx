@@ -1,7 +1,7 @@
 import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UiSettingsProvider, useIgnoredComponents, useUiSettings, type UiSettingsContextValue } from './useUiSettings';
-import { applyThemeMode } from '../lib/settings';
+import { applyThemeMode, setHostThemeMode } from '../lib/settings';
 
 // Capture the 'prefs' topic callback and stub the network so the test can drive
 // a server echo by hand. vi.hoisted keeps the holder reachable from the hoisted
@@ -160,6 +160,45 @@ describe('UiSettingsProvider - prefs-topic reload', () => {
     await act(async () => { h.prefsCb?.(); });
     await flush();
     expect(h.fetchPreferences).toHaveBeenCalledTimes(fetchCalls + 1);
+  });
+});
+
+describe('UiSettingsProvider - host theme', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const withHost = (host: string) => ({
+    theme: { themeMode: 'system', accentColor: '#7c5cff', language: 'en', resolvedThemeMode: host },
+  });
+  const mount = (manageDom: boolean) => act(async () => {
+    render(
+      <UiSettingsProvider serviceOnline manageDom={manageDom}>
+        <Consumer />
+      </UiSettingsProvider>,
+    );
+  });
+
+  afterEach(() => { setHostThemeMode(''); });
+
+  it('exposes the host theme and re-applies the dashboard theme when a prefs push changes it', async () => {
+    h.fetchPreferences.mockResolvedValue(withHost('light'));
+    await mount(true);
+    await flush();
+    expect(captured.ctx!.settings.hostThemeMode).toBe('light');
+    const applyCalls = vi.mocked(applyThemeMode).mock.calls.length;
+
+    h.fetchPreferences.mockResolvedValue(withHost('dark'));
+    await act(async () => { h.prefsCb?.(); });
+    await flush();
+    expect(captured.ctx!.settings.hostThemeMode).toBe('dark');
+    expect(vi.mocked(applyThemeMode).mock.calls.length).toBe(applyCalls + 1);
+    expect(vi.mocked(applyThemeMode)).toHaveBeenLastCalledWith('system');
+  });
+
+  it('a panel provider (manageDom off) exposes the value but never records the page-global host theme', async () => {
+    h.fetchPreferences.mockResolvedValue(withHost('light'));
+    await mount(false);
+    await flush();
+    expect(captured.ctx!.settings.hostThemeMode).toBe('light');
+    expect(setHostThemeMode('')).toBe(false);
   });
 });
 

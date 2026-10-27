@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { resolveEffectivePanelTheme, syncedAppThemeMode } from './panelTheme';
+import { resolveEffectivePanelTheme } from './panelTheme';
 import type { PanelThemeState } from './panelTheme';
 
 const baseTheme: PanelThemeState = {
@@ -57,21 +57,5 @@ describe('resolveEffectivePanelTheme', () => {
     expect(effective.widgetLabels).toBe(baseTheme.widgetLabels);
     expect(effective.widgetOpacity).toBe(baseTheme.widgetOpacity);
     expect(effective.backgroundFrost).toBe(baseTheme.backgroundFrost);
-  });
-});
-
-describe('syncedAppThemeMode', () => {
-  it('keeps a manual desktop Light/Dark and ignores the host resolved theme', () => {
-    expect(syncedAppThemeMode('light', 'dark')).toBe('light');
-    expect(syncedAppThemeMode('dark', 'light')).toBe('dark');
-  });
-
-  it('follows the host resolved theme when the desktop is on system', () => {
-    expect(syncedAppThemeMode('system', 'light')).toBe('light');
-    expect(syncedAppThemeMode('system', 'dark')).toBe('dark');
-  });
-
-  it('stays system when the host theme is unpublished', () => {
-    expect(syncedAppThemeMode('system', '')).toBe('system');
   });
 });

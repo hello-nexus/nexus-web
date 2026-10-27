@@ -685,9 +685,9 @@ export function UiSettingsProvider({
     if (!serviceOnline) return;
     // The 'prefs' topic echoes our OWN writes back. A theme toggle makes two
     // /preferences writes: themeMode (debounced 250ms via scheduleServerWrite)
-    // and the debounced themeMode write lands after the echo of an earlier
-    // write, so re-hydrating now reads the pre-toggle themeMode and re-applies
-    // it - the visible flicker: new theme → snaps back to old → tweens to new
+    // and a debounced themeMode write. An echo that arrives before the
+    // debounced write lands would re-hydrate the pre-toggle themeMode and
+    // re-apply it - the visible flicker: new theme → snaps back to old → tweens to new
     // once the real write settles. Skip the round-trip while our own write is
     // still pending; that write's echo reloads once it flushes, when the
     // server is consistent. (Mount / profile-switch reloads pass false.)
@@ -700,7 +700,8 @@ export function UiSettingsProvider({
     fetchPreferences(abort.signal).finally(() => clearTimeout(bound)).then(prefs => {
       if (mine !== readGeneration.current) return;
       if (!prefs) { markFailed(); return; }
-      const hostThemeChanged = setHostThemeMode(prefs.theme?.resolvedThemeMode);
+      // Only the DOM-managing dashboard applies the host theme to the page.
+      const hostThemeChanged = manageDom && setHostThemeMode(prefs.theme?.resolvedThemeMode);
       setSettings(prev => {
         const next = { ...applyServerToLocal(prefs, prev), ...pendingLocalRef.current };
         persistLocal(next);
