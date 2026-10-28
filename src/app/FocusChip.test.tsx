@@ -137,9 +137,12 @@ describe('FocusChip', () => {
       reason: 'auto',
       games: [{ key: 'steam:2473350', name: 'Huntdown: Overtime', pid: 1, sinceMs: 0 }],
     });
-    render(<FocusChip online />, { container: header.appendChild(document.createElement('div')) });
+    const { unmount } = render(<FocusChip online />, { container: header.appendChild(document.createElement('div')) });
 
     expect(screen.getAllByText('Huntdown: Overtime')).toHaveLength(1);
+    // RTL cleanup only removes containers parented to body.
+    unmount();
+    header.remove();
   });
 
   it('lists every mode, then Off, then Settings', () => {
