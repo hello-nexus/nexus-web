@@ -1,11 +1,12 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot, Server } from 'lucide-react';
+import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, Globe, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot, Server } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Badge } from '../../common/Badge/Badge';
+import { Notice } from '../../common/Notice/Notice';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken,
@@ -188,6 +189,12 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
     );
   };
 
+  const toggleAllowRemote = () => {
+    if (!status) return;
+    const next = !status.allowRemote;
+    void runMutation({ ...status, allowRemote: next }, () => postAiConfig({ allowRemote: next }));
+  };
+
   const doRotateToken = async () => {
     const succeeded = await runMutation(null, rotateAiToken);
     // Rotation is a security action: a silent failure would let the user walk
@@ -368,6 +375,19 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                   disabled={!serviceOnline || mutating}
                 />
               ))}
+
+              <SettingToggle
+                label={t('settings.ai.remote.label')}
+                icon={<Globe />}
+                iconLeading="subtle"
+                description={t('settings.ai.remote.description')}
+                checked={status.allowRemote}
+                onChange={toggleAllowRemote}
+                disabled={!serviceOnline || mutating}
+              />
+              {status.allowRemote && (
+                <Notice tone="warning" role="status">{t('settings.ai.remote.warning')}</Notice>
+              )}
 
               <SettingRow
                 label={t('settings.ai.token.label')}
