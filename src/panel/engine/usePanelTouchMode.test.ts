@@ -174,7 +174,8 @@ describe('usePanelTouchMode', () => {
 
   describe('long-press menu', () => {
     beforeEach(() => vi.useFakeTimers());
-    afterEach(() => vi.useRealTimers());
+    let cleanup: () => void = () => {};
+    afterEach(() => { cleanup(); cleanup = () => {}; vi.useRealTimers(); });
 
     function setup(mouseLongPress = false) {
       const tile = document.createElement('div');
@@ -192,21 +193,39 @@ describe('usePanelTouchMode', () => {
         act(() => { tile.dispatchEvent(e); });
         return e;
       };
-      return { hook, tile, press, nativeMenu, cleanup: () => { tile.remove(); hook.unmount(); } };
+      cleanup = () => { tile.remove(); hook.unmount(); };
+      return { hook, tile, press, nativeMenu };
     }
 
     it('keeps the menu seq when the contextmenu that follows the hold arrives', () => {
-      const { hook, press, nativeMenu, cleanup } = setup();
+      const { hook, press, nativeMenu } = setup();
       press('touch');
       const seq = hook.result.current.ctxMenu?.seq;
       expect(seq).toBeDefined();
       expect(nativeMenu().defaultPrevented).toBe(true);
       expect(hook.result.current.ctxMenu?.seq).toBe(seq);
-      cleanup();
+    });
+
+    it('keeps the menu seq when contextmenu arrives mid-hold and the timer elapses after', () => {
+      const { hook, tile, nativeMenu } = setup();
+      act(() => {
+        hook.result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ pointerType: 'touch' }));
+        vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS - 1);
+      });
+      nativeMenu();
+      const seq = hook.result.current.ctxMenu?.seq;
+      expect(seq).toBeDefined();
+      act(() => { vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS); });
+      expect(hook.result.current.ctxMenu?.seq).toBe(seq);
+      // Nothing armed the swallow, so a later separate contextmenu still reopens.
+      act(() => { window.dispatchEvent(new Event('pointerdown')); });
+      nativeMenu();
+      expect(hook.result.current.ctxMenu?.seq).toBeGreaterThan(seq as number);
+      expect(tile.isConnected).toBe(true);
     });
 
     it('re-opens on a second long-press and on a later separate contextmenu', () => {
-      const { hook, press, nativeMenu, cleanup } = setup();
+      const { hook, press, nativeMenu } = setup();
       press('touch');
       nativeMenu();
       const first = hook.result.current.ctxMenu?.seq as number;
@@ -217,7 +236,6 @@ describe('usePanelTouchMode', () => {
       act(() => { window.dispatchEvent(new Event('pointerdown')); });
       nativeMenu();
       expect(hook.result.current.ctxMenu?.seq).toBeGreaterThan(second);
-      cleanup();
     });
   });
 

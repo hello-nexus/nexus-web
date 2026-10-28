@@ -129,8 +129,10 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     e.preventDefault();
     e.stopPropagation();
     clearPressFeedback();
+    // A host that fires contextmenu mid-hold already opened the menu; a pending long-press would reopen it as a new seq.
+    longPress.onPointerUp();
     setCtxMenu({ widget, x: e.clientX, y: e.clientY, target: e.target, seq: ++ctxSeqRef.current });
-  }, [clearPressFeedback]);
+  }, [clearPressFeedback, longPress]);
 
   const openCtxMenu = useCallback((widget: PanelWidget, x: number, y: number) => {
     clearPressFeedback();
