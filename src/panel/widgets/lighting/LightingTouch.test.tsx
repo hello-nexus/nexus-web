@@ -13,6 +13,8 @@ import type { PanelWidget } from '../types';
 // the subject is where a pick is routed (global, or a pin on the selection), and against which preset slot.
 // Static's picker rides in the widget's immersive canvas slot, so the stub has
 // to render what is handed to it or the subject disappears.
+const recorded = vi.hoisted(() => ({ recordColor: vi.fn(), recordAnimation: vi.fn() }));
+vi.mock('./useLightingRecents', () => ({ useLightingRecents: () => ({ colors: [], animations: [], ...recorded }) }));
 vi.mock('./LightingWidget', () => ({
   LightingWidget: ({ immersiveCanvas }: { immersiveCanvas?: React.ReactNode }) => <div>{immersiveCanvas}</div>,
 }));
@@ -191,6 +193,7 @@ describe('LightingTouch pins', () => {
     fireEvent.click(await screen.findByText('pick-custom'));
     await waitFor(() => expect(startStatic).toHaveBeenCalled());
     expect(vi.mocked(startStatic).mock.calls.at(-1)?.[8]).toBe('#123456');
+    expect(recorded.recordColor).toHaveBeenCalledWith('#123456');
     expect(setPins).not.toHaveBeenCalled();
     await waitFor(() => expect(pickerProps.current!.hex).toBe('#123456'));
   });
@@ -217,12 +220,14 @@ describe('LightingTouch pins', () => {
   });
 
   it('pins a custom color on the selected devices', async () => {
+    recorded.recordColor.mockClear();
     render(<LightingTouch widget={widget} />);
     await select(['dev-a']);
     fireEvent.click(await screen.findByText('pick-custom'));
     await waitFor(() => expect(setPins).toHaveBeenCalled());
     expect(lastPins()[0]).toEqual(['dev-a']);
     expect(lastPins()[1]).toMatchObject({ kind: 'static', effect: 'flat', color: '#123456' });
+    expect(recorded.recordColor).not.toHaveBeenCalled();
   });
 
   // The browsed effect is not what the devices wear: leaving the grid keyed on

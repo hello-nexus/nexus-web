@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { collectHitRects, frostLevelOf, frostMessage, hitTestMessage, panelHostAvailable, postPanelHostMessage } from './panelHostBridge';
+import { collectHitRects, frostLevelOf, frostMessage, hitTestMessage, panelHitTestBound, panelHostAvailable, postPanelHostMessage } from './panelHostBridge';
 
 const box = (left: number, top: number, right: number, bottom: number) => ({ getBoundingClientRect: () => ({ left, top, right, bottom }) });
 const viewport = { width: 1000, height: 600 };
@@ -151,5 +151,19 @@ describe('frost message', () => {
     for (const msg of [frostMessage(0, true, rects, 1, 12), frostMessage(80, false, rects, 1, 12)]) {
       expect(msg).toEqual({ type: 'nexus.panel.frost', level: 'none', percent: 0, dpr: 1, radius: 0, rects: [] });
     }
+  });
+});
+
+describe('panelHitTestBound', () => {
+  it('reports for the Y70 kiosk without a display id', () => {
+    expect(panelHitTestBound(true, false, 'y70', true)).toBe(true);
+  });
+  it('reports for a display-bound panel of any surface', () => {
+    expect(panelHitTestBound(true, true, 'monitor', true)).toBe(true);
+  });
+  it('stays off for other unbound surfaces, embedded views and a missing host', () => {
+    expect(panelHitTestBound(true, false, 'monitor', true)).toBe(false);
+    expect(panelHitTestBound(false, false, 'y70', true)).toBe(false);
+    expect(panelHitTestBound(true, false, 'y70', false)).toBe(false);
   });
 });

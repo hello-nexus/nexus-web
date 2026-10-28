@@ -44,6 +44,7 @@ import { CustomEffectsGrid } from './CustomEffectsGrid';
 import pageStyles from '../LightingPage.module.scss';
 import mapStyles from '../page/LedMapEditor.module.scss';
 import styles from './ShaderStudio.module.scss';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 
 const STACKED = 'stacked' as const;
 
@@ -573,10 +574,12 @@ export function ShaderStudio({ open, effectId, username, gpuAvailable = true, on
                 action={(
                   <span className={styles.previewActions}>
                     {usesAudio && (
-                      <span className={styles.toggleItem} title={t('lighting.studio.simulateMusicHint')}>
-                        <Toggle checked={simulateMusic} onChange={setSimulateMusic} ariaLabelledBy={simulateLabelId} />
-                        <span id={simulateLabelId}>{t('lighting.studio.simulateMusic')}</span>
-                      </span>
+                      <HoverTooltip body={t('lighting.studio.simulateMusicHint')}>
+                        <span className={styles.toggleItem}>
+                          <Toggle checked={simulateMusic} onChange={setSimulateMusic} ariaLabelledBy={simulateLabelId} />
+                          <span id={simulateLabelId}>{t('lighting.studio.simulateMusic')}</span>
+                        </span>
+                      </HoverTooltip>
                     )}
                     <Badge label={`${t(`lighting.studio.cost.${costLevel}`)} ${cost}/${STUDIO_COST_BUDGET}`} compact />
                   </span>

@@ -3,6 +3,7 @@ import { Store, X } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { dismissDashboardBanner, fetchDashboardBanner } from '../../../api/onboarding';
 import styles from './DashboardBanner.module.scss';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 
 // One banner per release. A closed banner stays closed until a release ships
 // a new key, so change the key only when the banner changes.
@@ -101,15 +102,16 @@ export function DashboardBanner({ gridHostRef, onOpen }: DashboardBannerProps) {
         </span>
         <span className={styles.cta}>{t('dashboard.banner.marketplace.open')}</span>
       </button>
-      <button
-        type="button"
-        className={styles.close}
-        aria-label={t('dashboard.banner.dismiss')}
-        title={t('dashboard.banner.dismiss')}
-        onClick={dismiss}
-      >
-        <X size={16} aria-hidden />
-      </button>
+      <HoverTooltip body={t('dashboard.banner.dismiss')}>
+        <button
+          type="button"
+          className={styles.close}
+          aria-label={t('dashboard.banner.dismiss')}
+          onClick={dismiss}
+        >
+          <X size={16} aria-hidden />
+        </button>
+      </HoverTooltip>
     </div>
   );
 }

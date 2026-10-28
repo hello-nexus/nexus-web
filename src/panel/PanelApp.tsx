@@ -55,7 +55,7 @@ import { useDesktopImport } from './engine/useDesktopImport';
 import { editTargetGone, latestOr, useSyncLatestLayout } from './engine/latestLayout';
 import { useDisplayTargets } from './engine/useDisplayTargets';
 import { usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
-import { panelHostAvailable } from './device/panelHostBridge';
+import { panelHostAvailable, panelHitTestBound } from './device/panelHostBridge';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
 import { PanelActionsTray } from './chrome/PanelActionsTray';
@@ -83,6 +83,8 @@ import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { PanelDeviceIdProvider } from './widgets/common/PanelDeviceIdContext';
 import { PanelImmersiveOpenProvider } from './widgets/common/PanelImmersiveContext';
+import { PanelOpenWidgetProvider } from './widgets/common/PanelOpenWidgetContext';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { PanelOpaqueProvider } from './widgets/common/PanelOpaqueContext';
 import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
@@ -1341,31 +1343,30 @@ export function PanelContent({
   // only the remote end (a phone reaching a PC) has other PCs to switch between.
   const pairedPcsAvailable = surface === 'phone';
 
-  const onCellTap = useCallback((w: PanelWidget) => {
-    if (simulator) {
-      // Simulator: a tap opens this widget's settings in the parent modal.
-      onSimulatorWidgetClicked?.(w.id);
-      return;
-    }
+  // What a tap on the widget's cell does on this surface, or null when it does nothing.
+  const cellTapAction = useCallback((w: PanelWidget): (() => void) | null => {
+    // Simulator: a tap opens this widget's settings in the parent modal.
+    if (simulator) return () => onSimulatorWidgetClicked?.(w.id);
     if (embedded) {
       if (surface === 'desktop' && onSectionNavigate && isDashboardClickthroughType(w.type)) {
-        onSectionNavigate(w.type);
+        return () => onSectionNavigate(w.type);
       }
-      return;
+      return null;
     }
     // A generic display's widgets act only through their own controls; the app opens from the menu's Open.
-    if (genericDisplay) return;
+    if (genericDisplay) return null;
     const def = lookupApp(w.type);
-    if (!def?.Touch) return;
-    if (restricted && !restrictedAllowsWidget(w.type)) return;
+    if (!def?.Touch) return null;
+    if (restricted && !restrictedAllowsWidget(w.type)) return null;
     // A Web View tile that takes the touch itself opens fullscreen from the menu's Immersive mode item instead.
-    if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return;
+    if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return null;
     // An immersive view closes by touch, so a mouse-only display never opens one.
-    if (!surfaceSupportsTouch(surface, deviceTouch)) return;
+    if (!surfaceSupportsTouch(surface, deviceTouch)) return null;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
-    if (!def.meta.supportsImmersive[orientationKey]) return;
-    enterImmersive(w.id);
+    if (!def.meta.supportsImmersive[orientationKey]) return null;
+    return () => enterImmersive(w.id);
   }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, restricted, simulator, surface]);
+  const onCellTap = useCallback((w: PanelWidget) => { cellTapAction(w)?.(); }, [cellTapAction]);
   // macOS delivers touchscreen contacts as mouse pointers (see
   // engine/touchViaPointer); only under that flag does a mouse get the
   // touch gesture model.
@@ -1929,8 +1930,9 @@ export function PanelContent({
     || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
   // Position and size, so a remote edit that keeps the ids still remeasures.
   const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
+  // The Y70 kiosk never has a display record, yet its see-through window still starts with an empty input region.
   usePanelHitTest(
-    hostBound && seeThrough,
+    panelHitTestBound(kioskBehavior, displayBound, glassSurface, panelHostAvailable()) && seeThrough,
     clickThrough,
     hitFull,
     rootRef,
@@ -2150,6 +2152,7 @@ export function PanelContent({
     <PanelGenericDisplayProvider value={genericDisplay}>
     <PanelDigitizerProvider value={deviceTouch}>
     <PanelImmersiveOpenProvider value={immersiveWidgetId !== null}>
+    <PanelOpenWidgetProvider value={cellTapAction}>
     <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DeckInstanceProvider value={editingDeckInstanceId ? { instanceId: editingDeckInstanceId, value: sharedDeckInstance } : null}>
     <DndContext
@@ -2539,15 +2542,16 @@ export function PanelContent({
               </>
             )}
             {kioskBehavior && !connectionIntroHost && relayConnected && (
-              <div
-                className={styles.relayBadge}
-                role="status"
-                aria-label={relayModeLabel}
-                title={relayModeLabel}
-              >
-                {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-                <SatelliteDish size={15} aria-hidden="true" />
-              </div>
+              <HoverTooltip body={relayModeLabel}>
+                <div
+                  className={styles.relayBadge}
+                  role="status"
+                  aria-label={relayModeLabel}
+                >
+                  {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+                  <SatelliteDish size={15} aria-hidden="true" />
+                </div>
+              </HoverTooltip>
             )}
           </>
         )}
@@ -2821,6 +2825,7 @@ export function PanelContent({
     </DndContext>
     </DeckInstanceProvider>
     </PanelGaugeGradientProvider>
+    </PanelOpenWidgetProvider>
     </PanelImmersiveOpenProvider>
     </PanelDigitizerProvider>
     </PanelGenericDisplayProvider>

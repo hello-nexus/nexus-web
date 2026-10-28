@@ -178,9 +178,9 @@ test('walks every Keeb page tab', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Key Assignment' })).toBeVisible();
   await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-01-assignment-initial.png') });
 
-  // Pick the F1 key on the main keyboard (title carries the function name),
+  // Pick the F1 key on the main keyboard (data-func carries the function name),
   // then open the Mouse category so the tile grid renders enabled.
-  await page.locator('button[title="F1"]').first().click();
+  await page.locator('button[data-func="F1"]').first().click();
   await page.getByRole('tab', { name: 'Mouse' }).click();
   await page.waitForTimeout(300);
   await expect(page.getByRole('radio', { name: 'Left Click' })).toBeEnabled();

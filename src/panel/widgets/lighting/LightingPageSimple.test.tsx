@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
+import { loadSettings } from '../../../lib/settings';
 import { PALETTE } from '../../../types/lightingPalette';
 import * as lightingApi from '../../../api/lighting';
 import { LightingPage } from './LightingPage';
@@ -217,6 +218,20 @@ describe('LightingPage simple mode', () => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
     });
     expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
+  });
+
+  it('records a picked color and a picked animation as recents', async () => {
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-palette-id="red-3"]') as HTMLButtonElement);
+    fireEvent.click(container.querySelector('[data-effect-key="sweepbars"]') as HTMLButtonElement);
+    await waitFor(() => {
+      const general = loadSettings().general;
+      expect(general.recentStaticColors).toEqual([PALETTE.find(p => p.id === 'red-3')!.hex]);
+      expect(general.recentAnimations).toEqual(['sweepbars']);
+    });
   });
 
   it('offers the animation row under the palette, one tile per sweep', () => {

@@ -91,6 +91,8 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       coolingFlowMode: ui.coolingFlowMode,
       coolingCollisionShapes: ui.coolingCollisionShapes,
       hiddenSidebarDevices: ui.hiddenSidebarDevices,
+      recentStaticColors: ui.recentStaticColors,
+      recentAnimations: ui.recentAnimations,
       monitoringTempUnit: ui.monitoringTempUnit,
       timeFormat: ui.timeFormat,
       numberFormat: ui.numberFormat,

@@ -19,6 +19,7 @@ import classNames from 'classnames';
 import { Spinner } from '../Spinner/Spinner';
 import buttonStyles from '../Button/Button.module.scss';
 import styles from './Select.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 /**
  * Themed select. Renders a button trigger and, when open, a listbox portaled to
@@ -483,25 +484,26 @@ export function Select({
     <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, !!leadingAction && styles.hasLeading, className)}>
       {/* Before the trigger so tab order matches the left-to-right look. */}
       {!!leadingAction && <span className={styles.leadingAction}>{leadingAction}</span>}
-      <button
-        ref={triggerRef}
-        type="button"
-        className={styles.trigger}
-        style={height != null ? { height } : undefined}
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={open ? listboxId : undefined}
-        aria-label={ariaLabel}
-        title={triggerIconOnly && selectedIcon && selectedLabel ? selectedLabel : undefined}
-        onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
-        onKeyDown={onTriggerKeyDown}
-      >
-        <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
-          {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
-          {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
-        </span>
-      </button>
+      <HoverTooltip body={triggerIconOnly && selectedIcon && selectedLabel ? selectedLabel : undefined}>
+        <button
+          ref={triggerRef}
+          type="button"
+          className={styles.trigger}
+          style={height != null ? { height } : undefined}
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={open ? listboxId : undefined}
+          aria-label={ariaLabel}
+          onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
+          onKeyDown={onTriggerKeyDown}
+        >
+          <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
+            {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
+            {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
+          </span>
+        </button>
+      </HoverTooltip>
       {!triggerIconOnly && (
         <ChevronDown
           className={styles.chevron}

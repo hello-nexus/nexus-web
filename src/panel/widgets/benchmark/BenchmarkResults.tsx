@@ -67,7 +67,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
         {localizeNumbers(s.rawValue.toFixed(1), numberFormat)}{' '}
         <span className={styles.subUnit}>{s.rawUnit}</span>
       </div>
-      {model && <div className={styles.subModel} title={model}>{model}</div>}
+      {model && <HoverTooltip body={model}><div className={styles.subModel}>{model}</div></HoverTooltip>}
     </Card>
   );
 }

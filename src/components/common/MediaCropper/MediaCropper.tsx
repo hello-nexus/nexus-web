@@ -17,6 +17,7 @@ import {
   rotateCw,
 } from './mediaCrop';
 import styles from './MediaCropper.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export type { NormalizedCrop } from './mediaCrop';
 
@@ -355,18 +356,26 @@ export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, 
         )}
       </div>
       <div className={styles.toolbar}>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCcw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCcw')} title={t('cropper.rotateCcw')}>
-          <RotateCcw size={16} />
-        </button>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCw')} title={t('cropper.rotateCw')}>
-          <RotateCw size={16} />
-        </button>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipHorizontal(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipH')} title={t('cropper.flipH')}>
-          <FlipHorizontal2 size={16} />
-        </button>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipVertical(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipV')} title={t('cropper.flipV')}>
-          <FlipVertical2 size={16} />
-        </button>
+        <HoverTooltip body={t('cropper.rotateCcw')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCcw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCcw')}>
+            <RotateCcw size={16} />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip body={t('cropper.rotateCw')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCw')}>
+            <RotateCw size={16} />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip body={t('cropper.flipH')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipHorizontal(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipH')}>
+            <FlipHorizontal2 size={16} />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip body={t('cropper.flipV')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipVertical(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipV')}>
+            <FlipVertical2 size={16} />
+          </button>
+        </HoverTooltip>
         {allowFit && (
           <label className={styles.keepAlpha}>
             <input

@@ -57,6 +57,16 @@ const SLIDER_WIDTH_BAN = [
   },
 ]
 
+// Native `title` on a DOM element paints the browser tooltip; hover hints go
+// through HoverTooltip. Component props named `title` are not matched (only
+// lowercase tags). <iframe title> is the frame's accessible name: allowed.
+const NATIVE_TITLE_BAN = [
+  {
+    selector: "JSXOpeningElement[name.name=/^(?!iframe$)[a-z]/] > JSXAttribute[name.name='title']",
+    message: "Native title= shows the browser tooltip. Wrap the element in <HoverTooltip body={...}> (components/common/HoverTooltip) and keep aria-label for the accessible name.",
+  },
+]
+
 export default defineConfig([
   // Build artifacts. The sandbox harness bundle is generated from harness/app.tsx
   // by the SDK build and gitignored; linting it reports rules its own inlined
@@ -108,7 +118,7 @@ export default defineConfig([
   {
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/components/common/Slider/Slider.tsx', 'src/components/common/SettingRow/SettingRow.tsx'],
-    rules: { 'no-restricted-syntax': ['error', ...SLIDER_WIDTH_BAN] },
+    rules: { 'no-restricted-syntax': ['error', ...SLIDER_WIDTH_BAN, ...NATIVE_TITLE_BAN] },
   },
   {
     // Internal / developer-only surfaces that never ship as end-user UI: test
