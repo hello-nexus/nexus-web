@@ -133,6 +133,10 @@ describe('Widget size', () => {
     expect(panelShortSideSlots('monitor', 'lianli-screen88', 'small')).toBeUndefined();
     expect(panelShortSideSlots('monitor', 'lianli-screen88', null)).toBeUndefined();
     expect(panelLayoutSurface('monitor', 'lianli-screen88', 'large')).toBe('monitor');
+    expect(panelShortSideSlots('monitor', 'hyte-y60', 'large')).toBe(2);
+    expect(panelShortSideSlots('monitor', 'hyte-y60', 'small')).toBeUndefined();
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')).toMatchObject({ default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' } });
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')!.layoutSurface.xsmall).toBeUndefined();
     expect(panelShortSideSlots('monitor', 'icue-link-lcd5', 'large')).toBeUndefined();
     expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });

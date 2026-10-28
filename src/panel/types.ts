@@ -182,6 +182,7 @@ export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
 export const HYDROSHIFT2_CURVE_FAMILY = 'lianli-hydroshift2-curve';
 export const LIANLI_SCREEN88_FAMILY = 'lianli-screen88';
+export const HYTE_Y60_FAMILY = 'hyte-y60';
 export const ASUS_GLACIAL_LCD_FAMILY = 'asus-glacial-lcd';
 
 export interface PanelWidgetSizeOptions {
@@ -214,6 +215,11 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   }
   // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
+    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
+  }
+  // HYTE Y60 display: a 1920x515 bar, usually rotated to portrait. The forced count applies to the
+  // short axis in either orientation, so Large gives fewer, bigger cells; Small is the density grid.
+  if (surface === 'monitor' && family === HYTE_Y60_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }
   // A plain OS monitor: Large halves its density grid's short axis so cells double, Tiny doubles it so they halve.
