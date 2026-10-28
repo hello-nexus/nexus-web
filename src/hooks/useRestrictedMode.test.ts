@@ -41,4 +41,21 @@ describe('useRestrictedMode', () => {
     expect(frame).toBeNull();
     expect(result.current).toBe(false);
   });
+
+  it('ORs the panel record flag with the session flag', () => {
+    const { result, rerender } = renderHook(({ flag }) => useRestrictedMode(true, flag), { initialProps: { flag: false } });
+    expect(result.current).toBe(false);
+    rerender({ flag: true });
+    expect(result.current).toBe(true);
+    act(() => frame?.({ restricted: true }));
+    rerender({ flag: false });
+    expect(result.current).toBe(true);
+    act(() => frame?.({ restricted: false }));
+    expect(result.current).toBe(false);
+  });
+
+  it('never restricts a non-kiosk surface even with the record flag', () => {
+    const { result } = renderHook(() => useRestrictedMode(false, true));
+    expect(result.current).toBe(false);
+  });
 });

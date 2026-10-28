@@ -530,7 +530,7 @@ export function PanelContent({
   // parent's window scroll.
   const kioskBehavior = !embedded && !simulator;
   // Restricted mode (active while Windows is in OOBE) on a kiosk panel, never the phone app: only lighting, media and volume stay live.
-  const restricted = useRestrictedMode(kioskBehavior && surface !== 'phone');
+  const restricted = useRestrictedMode(kioskBehavior && surface !== 'phone', recordState.record?.restrictedMode === true);
   usePanelViewportLock(kioskBehavior);
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');

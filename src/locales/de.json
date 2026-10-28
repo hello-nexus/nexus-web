@@ -1723,6 +1723,8 @@
   "devices.y70.panelAutoLaunchHint": "Wenn aus, wird das Panel ausgeblendet und stattdessen der Desktop angezeigt.",
   "devices.y70.reserveMonitor": "Panel frei von anderen Fenstern halten",
   "devices.y70.reserveMonitorHint": "Wenn an, werden Fenster, die sich auf dem Panel öffnen oder dorthin bewegen, zurück auf deinen Hauptmonitor verschoben.",
+  "devices.y70.restrictedMode": "Eingeschränkter Modus",
+  "devices.y70.restrictedModeHint": "Auf dem Panel funktionieren nur Beleuchtung, Medien und Lautstärke. Während der Windows-Einrichtung immer aktiv.",
   "devices.y70.screen": "Bildschirm",
   "devices.y70.tab.settings": "Einstellungen",
   "devices.y70.tab.theme": "Design",

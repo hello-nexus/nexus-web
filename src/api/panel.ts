@@ -155,6 +155,8 @@ export interface PanelDeviceRecord {
   reserveMonitor?: boolean;
   // Per-panel "keep the mouse off the panel" (display-bound records). Absent/null = off.
   keepCursorOff?: boolean;
+  // Restricted mode on this panel: only lighting, media and volume work. Absent = off.
+  restrictedMode?: boolean;
   // Empty space passes clicks through to the desktop; only with the 'desktop'
   // backdrop. Absent/null = off.
   clickThrough?: boolean | null;
@@ -260,6 +262,7 @@ export interface PanelDevicePatch {
   reserveMonitor?: boolean;
   // Display-bound records only; ignored for other panels.
   keepCursorOff?: boolean;
+  restrictedMode?: boolean;
   // Display-bound records only; ignored for other panels.
   clickThrough?: boolean;
   // Even; monitor panels only. Zero clears the record's own density.

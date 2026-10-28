@@ -1723,6 +1723,8 @@
   "devices.y70.panelAutoLaunchHint": "Lorsque désactivé, le panneau est masqué et le bureau est affiché à la place.",
   "devices.y70.reserveMonitor": "Garder le panneau libre des autres fenêtres",
   "devices.y70.reserveMonitorHint": "Lorsque activé, les fenêtres qui s'ouvrent ou se déplacent sur le panneau sont renvoyées vers votre écran principal.",
+  "devices.y70.restrictedMode": "Mode restreint",
+  "devices.y70.restrictedModeHint": "Seuls l'éclairage, les médias et le volume fonctionnent sur le panneau. Toujours activé pendant la configuration de Windows.",
   "devices.y70.screen": "Écran",
   "devices.y70.tab.settings": "Paramètres",
   "devices.y70.tab.theme": "Thème",

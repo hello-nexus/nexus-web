@@ -1723,6 +1723,8 @@
   "devices.y70.panelAutoLaunchHint": "Quando desativado, o painel fica oculto e a área de trabalho é exibida.",
   "devices.y70.reserveMonitor": "Manter o painel livre de outras janelas",
   "devices.y70.reserveMonitorHint": "Quando ativado, janelas que abrem ou se movem para o painel são enviadas de volta ao seu monitor principal.",
+  "devices.y70.restrictedMode": "Modo restrito",
+  "devices.y70.restrictedModeHint": "No painel, só funcionam iluminação, mídia e volume. Sempre ativado durante a configuração do Windows.",
   "devices.y70.screen": "Tela",
   "devices.y70.tab.settings": "Configurações",
   "devices.y70.tab.theme": "Tema",

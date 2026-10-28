@@ -1723,6 +1723,8 @@
   "devices.y70.panelAutoLaunchHint": "When off, the panel is hidden and the desktop is shown instead.",
   "devices.y70.reserveMonitor": "Keep panel clear of other windows",
   "devices.y70.reserveMonitorHint": "When on, windows that open or move onto the panel are sent back to your main monitor.",
+  "devices.y70.restrictedMode": "Restricted mode",
+  "devices.y70.restrictedModeHint": "Only lighting, media and volume work on the panel. Always on during Windows setup.",
   "devices.y70.screen": "Screen",
   "devices.y70.tab.settings": "Settings",
   "devices.y70.tab.theme": "Theme",

@@ -1723,6 +1723,8 @@
   "devices.y70.panelAutoLaunchHint": "Cuando está desactivado, el panel se oculta y se muestra el escritorio en su lugar.",
   "devices.y70.reserveMonitor": "Mantener el panel libre de otras ventanas",
   "devices.y70.reserveMonitorHint": "Cuando está activado, las ventanas que se abren o se mueven al panel se devuelven a tu monitor principal.",
+  "devices.y70.restrictedMode": "Modo restringido",
+  "devices.y70.restrictedModeHint": "En el panel solo funcionan la iluminación, los medios y el volumen. Siempre activado durante la configuración de Windows.",
   "devices.y70.screen": "Pantalla",
   "devices.y70.tab.settings": "Ajustes",
   "devices.y70.tab.theme": "Tema",
