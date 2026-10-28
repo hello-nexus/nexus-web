@@ -293,7 +293,7 @@ describe('usePanelTouchMode', () => {
     });
   });
 
-  describe('menuDisabled (Windows OOBE)', () => {
+  describe('menuDisabled (Restricted mode)', () => {
     beforeEach(() => { vi.useFakeTimers(); });
     afterEach(() => { vi.useRealTimers(); });
 

@@ -53,7 +53,7 @@ interface PanelTouchModeOpts {
   // surface's touch support: on a touch surface the hold is the gesture
   // regardless of what the OS calls the pointer.
   mouseLongPress?: boolean;
-  // Windows OOBE: no widget context menu opens by any path.
+  // Restricted mode: no widget context menu opens by any path.
   menuDisabled?: boolean;
 }
 

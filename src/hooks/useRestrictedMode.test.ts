@@ -10,34 +10,34 @@ vi.mock('./useMultiplexSocket', () => ({
   },
 }));
 
-import { useOobeRestricted } from './useOobeRestricted';
+import { useRestrictedMode } from './useRestrictedMode';
 
-describe('useOobeRestricted', () => {
+describe('useRestrictedMode', () => {
   beforeEach(() => { frame = null; topic.mockClear(); });
 
   it('is false until a frame arrives', () => {
-    const { result } = renderHook(() => useOobeRestricted(true));
+    const { result } = renderHook(() => useRestrictedMode(true));
     expect(result.current).toBe(false);
     expect(topic).toHaveBeenCalledWith('system/session', true);
   });
 
-  it('follows the oobe flag on each frame', () => {
-    const { result } = renderHook(() => useOobeRestricted(true));
-    act(() => frame?.({ oobe: true }));
+  it('follows the restricted flag on each frame', () => {
+    const { result } = renderHook(() => useRestrictedMode(true));
+    act(() => frame?.({ restricted: true }));
     expect(result.current).toBe(true);
-    act(() => frame?.({ oobe: false }));
+    act(() => frame?.({ restricted: false }));
     expect(result.current).toBe(false);
   });
 
   it('ignores a malformed frame', () => {
-    const { result } = renderHook(() => useOobeRestricted(true));
-    act(() => frame?.({ oobe: true }));
+    const { result } = renderHook(() => useRestrictedMode(true));
+    act(() => frame?.({ restricted: true }));
     act(() => frame?.(null));
     expect(result.current).toBe(false);
   });
 
   it('never restricts a surface that did not opt in', () => {
-    const { result } = renderHook(() => useOobeRestricted(false));
+    const { result } = renderHook(() => useRestrictedMode(false));
     expect(frame).toBeNull();
     expect(result.current).toBe(false);
   });

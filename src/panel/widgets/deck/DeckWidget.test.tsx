@@ -20,10 +20,10 @@ const mockUseRecentApps = vi.fn();
 vi.mock('./useRecentApps', () => ({ useRecentApps: (enabled: boolean) => mockUseRecentApps(enabled) }));
 
 import { DeckWidget } from './DeckWidget';
-import { PanelOobeProvider } from '../../engine/PanelOobeContext';
+import { PanelRestrictedProvider } from '../../engine/PanelRestrictedContext';
 import { innerGridForSize } from './deckLayout';
 import type { PanelWidget } from '../../types';
-import type { DeckPage } from './types';
+import type { DeckAction, DeckPage } from './types';
 
 function widget(size: PanelWidget['size'] = '2x2'): PanelWidget {
   return { id: 'w1', type: 'deck', size, col: 0, row: 0, config: {} };
@@ -90,7 +90,7 @@ describe('DeckWidget', () => {
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' });
   });
 
-  it('under Windows OOBE dispatches lighting and volume keys but not anything else', () => {
+  it('in Restricted mode dispatches lighting and volume keys but not anything else', () => {
     const deck: DeckPage[] = [{ slots: [
       { action: { type: 'nexus', action: { op: 'lightingPowerToggle' } } },
       { action: { type: 'system', action: { op: 'muteToggle' } } },
@@ -98,11 +98,24 @@ describe('DeckWidget', () => {
       { action: { type: 'openUrl', url: 'https://x.com' } },
     ] }];
     mockDeck(deck);
-    const { container } = render(<PanelOobeProvider value><DeckWidget widget={widget()} /></PanelOobeProvider>);
+    const { container } = render(<PanelRestrictedProvider value><DeckWidget widget={widget()} /></PanelRestrictedProvider>);
     for (const i of [0, 1, 2, 3]) fireEvent.click(container.querySelector(`[data-deck-slot-index="${i}"]`)!);
     expect(executeDeckAction).toHaveBeenCalledTimes(2);
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'nexus', action: { op: 'lightingPowerToggle' } });
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'system', action: { op: 'muteToggle' } });
+  });
+
+  it('in Restricted mode a toggle with a blocked branch neither dispatches nor flips', () => {
+    const on: DeckAction = { type: 'power', action: 'sleep' };
+    const off: DeckAction = { type: 'system', action: { op: 'muteToggle' } };
+    const deck: DeckPage[] = [{ slots: [{ action: { type: 'toggle', on, off, state: { kind: 'internal' } } }] }];
+    mockDeck(deck);
+    const { container } = render(<PanelRestrictedProvider value><DeckWidget widget={widget()} /></PanelRestrictedProvider>);
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    fireEvent.click(cell);
+    expect(executeDeckAction).not.toHaveBeenCalled();
+    fireEvent.click(cell);
+    expect(executeDeckAction).not.toHaveBeenCalled();
   });
 
   it('does not dispatch an empty slot', () => {

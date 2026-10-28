@@ -129,6 +129,12 @@ export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: 
   );
 }
 
+// Restricted mode: keyboard and synthetic clicks must not reach a blocked widget's controls; Tab still moves past.
+function swallowClick(e: React.MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
 export function PanelTouchCell({
   widget,
   deviceId,
@@ -196,7 +202,7 @@ export function PanelTouchCell({
   // True while a locked widget is being pulled, so the host keeps delivering input outside its rects.
   onLockDragChange?: (active: boolean) => void;
   clickthrough?: boolean;
-  // Windows OOBE: the widget renders but takes no input; a tap on the cell still reaches the host.
+  // Restricted mode: the widget renders but takes no input; a tap on the cell still reaches the host.
   inert?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -220,6 +226,8 @@ export function PanelTouchCell({
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
+  // A blocked cell reads as locked: a drag attempt pulls it, and a tap, click or key press nudges it, with the same notice.
+  const lockedLook = locked || inert;
   // dnd-kit must already be tracking pointerdowns when the long-press fires,
   // or a hold+drag can't convert to a sort-drag (it only tracks via its own
   // onPointerDown). Disable only during transitional motion states where a
@@ -229,10 +237,22 @@ export function PanelTouchCell({
     isDragging,
   } = useSortable({
     id: widget.id,
-    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || locked,
+    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || lockedLook,
   });
 
-  const lockNotice = useLockNotice(locked, lockActivationFor);
+  const lockNotice = useLockNotice(lockedLook, lockActivationFor);
+  const onInertKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'Enter' || e.key === ' ') lockNotice.pulse();
+  };
+  const onInertClick = (e: React.MouseEvent) => {
+    lockNotice.handlers.onClickCapture(e);
+    const pulled = e.isPropagationStopped();
+    swallowClick(e);
+    if (!pulled) lockNotice.pulse();
+  };
   const lockDragging = lockNotice.dragging;
   useEffect(() => {
     if (!lockDragging) return undefined;
@@ -414,7 +434,7 @@ export function PanelTouchCell({
       lockNotice.handlers.end();
     },
     onLostPointerCapture: lockNotice.handlers.onLostPointerCapture,
-    onClickCapture: lockNotice.handlers.onClickCapture,
+    onClickCapture: inert ? onInertClick : lockNotice.handlers.onClickCapture,
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
       lockNotice.handlers.onPointerDown(e);
@@ -458,6 +478,8 @@ export function PanelTouchCell({
       }}
       onContextMenu={dragMotionActive ? e => e.preventDefault() : onContextMenu}
       onClick={onSimulatorClick}
+      onKeyDownCapture={inert ? onInertKey : undefined}
+      data-restricted-inert={inert ? 'true' : undefined}
       {...(dragMotionActive ? {} : attributes)}
       {...composedPointerHandlers}
     >
@@ -468,7 +490,7 @@ export function PanelTouchCell({
             data-size={widget.size}
             data-widget-type={widget.type}
           >
-            <div className={styles.cellScaler} style={inert ? { pointerEvents: 'none' } : undefined}>
+            <div className={styles.cellScaler} data-testid={inert ? 'restricted-inert-scaler' : undefined} style={inert ? { pointerEvents: 'none' } : undefined}>
               <Comp
                 widget={widget}
                 deviceId={deviceId}
@@ -486,7 +508,7 @@ export function PanelTouchCell({
               />
             </div>
             {editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
-            {locked && <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />}
+            {lockedLook && <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />}
             {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
           </div>
           {immersiveOnLoad && (

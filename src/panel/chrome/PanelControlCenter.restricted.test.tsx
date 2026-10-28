@@ -62,7 +62,7 @@ const SYSTEM_TILES = [
   'panel.controlCenter.screenSleep',
 ];
 
-describe('PanelControlCenter restricted (Windows OOBE)', () => {
+describe('PanelControlCenter restricted (Restricted mode)', () => {
   it('shows every entry when not restricted', async () => {
     renderCenter(false);
     for (const label of SYSTEM_TILES) expect(screen.getByText(label)).toBeTruthy();

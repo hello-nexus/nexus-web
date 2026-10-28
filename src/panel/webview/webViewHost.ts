@@ -177,7 +177,7 @@ export class WebViewHost {
     this.schedule();
   }
 
-  /** Windows OOBE: no view takes touch or mouse, so a tile is only its placeholder. */
+  /** Restricted mode: no view takes input; the native view stays visible. */
   setRestricted(value: boolean): void {
     if (this.restricted === value) return;
     this.restricted = value;

@@ -154,7 +154,7 @@ describe('PanelActionsTray swipe-to-open', () => {
     expect(tray).toHaveAttribute('data-state', 'dragging');
   });
 
-  // Windows OOBE passes disabled: the swipe never engages.
+  // Restricted mode passes disabled: the swipe never engages.
   it('stays closed under a swipe while disabled', () => {
     render(<Harness surface="y70" disabled />);
     const surface = screen.getByTestId('surface');

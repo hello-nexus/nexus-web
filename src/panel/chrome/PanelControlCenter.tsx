@@ -58,7 +58,7 @@ interface PanelControlCenterProps {
   rearranging: boolean;
   dragArmed: boolean;
   asleep: boolean;
-  // Windows OOBE: only media and volume stay.
+  // Restricted mode: only media and volume stay.
   restricted?: boolean;
 }
 

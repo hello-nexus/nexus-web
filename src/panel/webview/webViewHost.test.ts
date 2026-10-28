@@ -237,7 +237,7 @@ describe('touchable tiles', () => {
     expect(syncs().at(-1)!.views[0].interactive).toBe(true);
   });
 
-  it('goes non-interactive under Windows OOBE, even an immersive claim, and returns after', () => {
+  it('goes non-interactive in Restricted mode, even an immersive claim, and returns after', () => {
     const host = tile(true);
     bridge.push(caps({ contextMenu: true, longPress: true }));
     host.setRestricted(true);

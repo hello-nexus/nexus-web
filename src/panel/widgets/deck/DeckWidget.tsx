@@ -11,8 +11,8 @@ import { ensureListedAppIds } from '../common/listedApps';
 import { useDeckLiveState } from './useDeckState';
 import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 import { usePanelPreview } from '../common/PanelPreviewContext';
-import { usePanelOobeRestricted } from '../../engine/PanelOobeContext';
-import { oobeAllowsDeckAction } from '../../engine/oobeRestriction';
+import { usePanelRestricted } from '../../engine/PanelRestrictedContext';
+import { restrictedAllowsDeckAction } from '../../engine/restrictedMode';
 import { DECK_PREVIEW_CONFIG } from './deckPreviewData';
 import { useRecentApps } from './useRecentApps';
 import { paginateRecentApps, stableRecentAppsOrder } from './recentAppsView';
@@ -25,7 +25,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editView, onEditViewChange }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
-  const oobeRestricted = usePanelOobeRestricted();
+  const restricted = usePanelRestricted();
   const { cols, rows, count } = innerGridForSize(widget.size);
   const editing = typeof onSelectSlot === 'function';
   const instanceId = preview ? null : `widget:${widget.id}`;
@@ -129,7 +129,7 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   }, [hasDirectKey]);
 
   const dispatchAction = (action: DeckAction, i: number, branch?: 'on' | 'off') => {
-    if (oobeRestricted && !oobeAllowsDeckAction(action)) return;
+    if (restricted && !restrictedAllowsDeckAction(action)) return;
     if (hasDirectLaunchApp(action)) void ensureListedAppIds();
     if (deviceId && isPrivilegedDeckAction(action)) {
       const location = { deviceId, widgetId: widget.id, page, folderPath, slot: i };
@@ -150,6 +150,7 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
     if (a.type === 'toggle') {
       const key = keyFor(i);
       const target = !toggleOn(a, key);
+      if (restricted && !restrictedAllowsDeckAction(target ? a.on : a.off)) return;
       if (live.isOn(a.state) === undefined) setFlips(prev => ({ ...prev, [key]: target }));
       dispatchAction(target ? a.on : a.off, i, target ? 'on' : 'off');
       return;
@@ -197,7 +198,7 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
           // Recent Apps has nothing to edit per key (the layout is dynamic,
           // not authored), so a tap while arranging the panel must not
           // switch to or launch an app.
-          onPress={editing ? () => {} : processKey => { if (!oobeRestricted) void recentApps.activate(processKey); }}
+          onPress={editing ? () => {} : processKey => { if (!restricted) void recentApps.activate(processKey); }}
           ariaLabel={t('panel.settings.deck.mode.recentApps')}
         />
       </div>

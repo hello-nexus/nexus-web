@@ -4,6 +4,9 @@ import { DRAG_DISTANCE_PX, DRAG_HOLD_TOLERANCE_PX, type DragActivation } from '.
 
 // The tile never travels further than this from its cell.
 export const LOCK_DRAG_MAX_PX = 28;
+// A tap on a locked widget nudges the tile this far and shows the notice for this long.
+export const LOCK_PULSE_PX = 8;
+export const LOCK_PULSE_MS = 700;
 
 // Controls and grabbed manipulables keep their drag, as do scroll regions; a tap-only SDK stage does not, so the tile can still be pulled.
 const INTERACTIVE = `${DRAG_CONSUMER_SELECTOR}, summary, [data-panel-scrollable="true"]`;
@@ -131,6 +134,21 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     e.stopPropagation();
   }, [locked]);
 
+  const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (pulseTimer.current) clearTimeout(pulseTimer.current); }, []);
+  /** Same pull and notice as a drag attempt, for a tap, click or key press that has nothing to act on. */
+  const pulse = useCallback(() => {
+    if (!locked || dragging.current) return;
+    if (pulseTimer.current) clearTimeout(pulseTimer.current);
+    setSettling(false);
+    setOffset({ x: 0, y: -LOCK_PULSE_PX });
+    pulseTimer.current = setTimeout(() => {
+      pulseTimer.current = null;
+      setOffset(null);
+      setSettling(true);
+    }, LOCK_PULSE_MS);
+  }, [locked]);
+
   const isPulled = locked && offset !== null;
   useEffect(() => {
     if (!isPulled) return undefined;
@@ -157,6 +175,7 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     visible: locked && offset !== null,
     offset: locked ? offset : null,
     settling: locked && settling,
+    pulse,
     /** `end` closes the press on release or cancel and reports whether it was a drag, so the caller can withhold the tap. */
     handlers: { onPointerDown, onPointerMove, end, up, onLostPointerCapture, onClickCapture },
   };

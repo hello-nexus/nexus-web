@@ -90,9 +90,9 @@ import { savePreferences } from '../api/profiles';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic } from '../hooks/useMultiplexSocket';
-import { useOobeRestricted } from '../hooks/useOobeRestricted';
-import { oobeAllowsWidget } from './engine/oobeRestriction';
-import { PanelOobeProvider } from './engine/PanelOobeContext';
+import { useRestrictedMode } from '../hooks/useRestrictedMode';
+import { restrictedAllowsWidget } from './engine/restrictedMode';
+import { PanelRestrictedProvider } from './engine/PanelRestrictedContext';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGrace } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
@@ -529,8 +529,8 @@ export function PanelContent({
   // iframe must not duplicate them - a second viewport lock fights the
   // parent's window scroll.
   const kioskBehavior = !embedded && !simulator;
-  // Windows OOBE on a kiosk panel (never the phone app): only lighting, media and volume stay live.
-  const restricted = useOobeRestricted(kioskBehavior && surface !== 'phone');
+  // Restricted mode (active while Windows is in OOBE) on a kiosk panel, never the phone app: only lighting, media and volume stay live.
+  const restricted = useRestrictedMode(kioskBehavior && surface !== 'phone');
   usePanelViewportLock(kioskBehavior);
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
@@ -1357,7 +1357,7 @@ export function PanelContent({
     if (genericDisplay) return;
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
-    if (restricted && !oobeAllowsWidget(w.type)) return;
+    if (restricted && !restrictedAllowsWidget(w.type)) return;
     // A Web View tile that takes the touch itself opens fullscreen from the menu's Immersive mode item instead.
     if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return;
     // An immersive view closes by touch, so a mouse-only display never opens one.
@@ -1374,9 +1374,9 @@ export function PanelContent({
   const canEnterImmersive = !embedded && !simulator && surfaceSupportsImmersiveOnLoad(surface, deviceTouch);
   const touch = usePanelTouchMode({ onCellTap, mouseLongPress: mouseAsTouch, menuDisabled: restricted });
   usePanelDragScroll(mouseAsTouch);
-  // OOBE can arrive after the panel is up: put away anything it forbids.
+  // Restricted mode can arrive after the panel is up: put away anything it forbids.
   const restrictedBlockedImmersive = restricted && immersiveWidgetId !== null
-    && !oobeAllowsWidget(findWidgetById(paginatedLayout, immersiveWidgetId)?.type ?? '');
+    && !restrictedAllowsWidget(findWidgetById(paginatedLayout, immersiveWidgetId)?.type ?? '');
   const closeCtxMenuNow = touch.closeCtxMenu;
   useEffect(() => {
     if (!restricted) return;
@@ -1582,6 +1582,16 @@ export function PanelContent({
       finishSheetClose();
     }
   }, [sheetMode, sheetClosing, editingWidgetId, editingWidget, finishSheetClose]);
+
+  // Restricted mode arriving mid-session ends any open sheet and resize mode.
+  useEffect(() => {
+    if (!restricted) return;
+    if (sheetMode) {
+      clearCloseTimer();
+      finishSheetClose();
+    }
+    exitFreeform();
+  }, [restricted, sheetMode, clearCloseTimer, finishSheetClose, exitFreeform]);
 
   const closeSheet = useCallback(() => {
     if (!sheetMode) return;
@@ -2136,7 +2146,7 @@ export function PanelContent({
 
   return (
     <TouchViaPointerContext.Provider value={mouseAsTouch}>
-    <PanelOobeProvider value={restricted}>
+    <PanelRestrictedProvider value={restricted}>
     <PanelGenericDisplayProvider value={genericDisplay}>
     <PanelDigitizerProvider value={deviceTouch}>
     <PanelImmersiveOpenProvider value={immersiveWidgetId !== null}>
@@ -2373,7 +2383,7 @@ export function PanelContent({
                               locked={lockedOf()}
                               lockActivationFor={lockActivationFor}
                               onLockDragChange={setLockDragging}
-                              inert={restricted && !oobeAllowsWidget(w.type)}
+                              inert={restricted && !restrictedAllowsWidget(w.type)}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
@@ -2394,7 +2404,7 @@ export function PanelContent({
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
-                              onEnterImmersiveWidget={canEnterImmersive && (!restricted || oobeAllowsWidget(w.type)) && widgetSupportsImmersiveOnLoad(w.type, isLandscape)
+                              onEnterImmersiveWidget={canEnterImmersive && (!restricted || restrictedAllowsWidget(w.type)) && widgetSupportsImmersiveOnLoad(w.type, isLandscape)
                                 ? (widget) => enterImmersive(widget.id) : undefined}
                             />
                           </ErrorBoundary>
@@ -2814,7 +2824,7 @@ export function PanelContent({
     </PanelImmersiveOpenProvider>
     </PanelDigitizerProvider>
     </PanelGenericDisplayProvider>
-    </PanelOobeProvider>
+    </PanelRestrictedProvider>
     </TouchViaPointerContext.Provider>
   );
 }
