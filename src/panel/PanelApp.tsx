@@ -84,6 +84,7 @@ import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widg
 import { PanelDeviceIdProvider } from './widgets/common/PanelDeviceIdContext';
 import { PanelImmersiveOpenProvider } from './widgets/common/PanelImmersiveContext';
 import { PanelOpenWidgetProvider } from './widgets/common/PanelOpenWidgetContext';
+import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { PanelOpaqueProvider } from './widgets/common/PanelOpaqueContext';
 import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
@@ -2505,15 +2506,16 @@ export function PanelContent({
               </>
             )}
             {kioskBehavior && !connectionIntroHost && relayConnected && (
-              <div
-                className={styles.relayBadge}
-                role="status"
-                aria-label={relayModeLabel}
-                title={relayModeLabel}
-              >
-                {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-                <SatelliteDish size={15} aria-hidden="true" />
-              </div>
+              <HoverTooltip body={relayModeLabel}>
+                <div
+                  className={styles.relayBadge}
+                  role="status"
+                  aria-label={relayModeLabel}
+                >
+                  {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+                  <SatelliteDish size={15} aria-hidden="true" />
+                </div>
+              </HoverTooltip>
             )}
           </>
         )}
