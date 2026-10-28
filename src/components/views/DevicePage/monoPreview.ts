@@ -11,10 +11,13 @@ export const MONO_LUMA_THRESHOLD = 96;
 export const MONO_LUMA_WEIGHTS = { r: 77 / 256, g: 150 / 256, b: 29 / 256 } as const;
 
 /** Slope steep enough that the filter output is 0 or 1 at every 8-bit luma. */
-export const MONO_STEP_SLOPE = 1000;
+export const MONO_STEP_SLOPE = 100000;
 
-/** Intercept placing the step midway between the last unlit and first lit luma. */
-export const MONO_STEP_INTERCEPT = -MONO_STEP_SLOPE * (MONO_LUMA_THRESHOLD - 0.5) / 255;
+/** Shifts luma down half a step so an 8-bit rounding of it floors, as the service's integer luma does. */
+export const MONO_LUMA_OFFSET = -0.5 / 255;
+
+/** Intercept placing the step just under the midpoint, so the shifted cutoff luma itself lights. */
+export const MONO_STEP_INTERCEPT = -MONO_STEP_SLOPE * (MONO_LUMA_THRESHOLD - 0.51) / 255;
 
 export const MONO_FILTER_ID = 'nexus-mono-preview';
 

@@ -76,20 +76,19 @@ vi.mock('../../../panel/widgets/registry', () => ({
   appAvailableForSurface: () => true,
 }));
 vi.mock('./PanelEmbedFrame', () => ({
-  PanelEmbedFrame: () => <div data-testid="embed" />,
+  PanelEmbedFrame: (p: { monoFilterId?: string }) => <div data-testid="embed" data-mono-filter={p.monoFilterId} />,
 }));
 
 import { PanelDevicePage } from './PanelDevicePage';
 import type { PanelDevice } from '../../../panel/device/panelDevices';
 
-const apex = (family: string, previewSize: { width: number; height: number }): PanelDevice => ({
-  id: `stream:${family}`,
+const apex = (previewSize: { width: number; height: number }): PanelDevice => ({
+  id: 'stream:rec1',
   name: 'SteelSeries Apex Pro TKL OLED',
   connectionKind: 'usb',
   surfaceProfileKey: 'lcd-wide',
   runtimeSurface: 'lcd-wide',
   panelRecordId: 'rec1',
-  family,
   previewSize,
   capabilities: {
     layout: true, theme: true, displayControls: false, launchClose: false,
@@ -106,14 +105,14 @@ beforeEach(() => {
 });
 
 describe('PanelDevicePage Apex OLED preview', () => {
-  it('keeps the preview in the right column with the 1-bit filter', async () => {
+  it('keeps the preview in the right column with the 1-bit filter, family known only from the record', async () => {
     fetchPanelDevicesMock.mockResolvedValue(record('steelseries-apex-oled'));
-    const { container } = render(<PanelDevicePage device={apex('steelseries-apex-oled', { width: 128, height: 40 })} />);
+    const { container } = render(<PanelDevicePage device={apex({ width: 128, height: 40 })} />);
 
     const embed = await screen.findByTestId('embed');
     const pane = embed.closest('[data-family]') as HTMLElement;
     expect(pane.getAttribute('data-family')).toBe('steelseries-apex-oled');
-    expect(pane.hasAttribute('data-mono')).toBe(true);
+    expect(embed.getAttribute('data-mono-filter')).toBe('nexus-mono-preview');
     expect(container.querySelector('[data-layout="columns"]')).not.toBeNull();
     expect(container.querySelector('[data-layout="stacked"]')).toBeNull();
     expect(pane.previousElementSibling?.className).toMatch(/leftPane/);
@@ -123,9 +122,10 @@ describe('PanelDevicePage Apex OLED preview', () => {
 
   it('still docks another wide strip glass under the options, unfiltered', async () => {
     fetchPanelDevicesMock.mockResolvedValue(record('thermalright-lcd'));
-    const { container } = render(<PanelDevicePage device={apex('thermalright-lcd', { width: 1920, height: 462 })} />);
+    const { container } = render(<PanelDevicePage device={apex({ width: 1920, height: 462 })} />);
 
-    await screen.findByTestId('embed');
+    const embed = await screen.findByTestId('embed');
+    expect(embed.hasAttribute('data-mono-filter')).toBe(false);
     expect(container.querySelector('[data-layout="stacked"]')).not.toBeNull();
     expect(screen.queryByTestId('mono-preview-filter')).toBeNull();
   });

@@ -199,6 +199,10 @@ describe('buildPanelDevices streamed panels', () => {
     expect(device.capabilities.touch).toBe(false);
   });
 
+  it('stamps the record family so the page knows it on first paint', () => {
+    expect(firstDevice(krakenRecord()).family).toBe('nzxt-kraken');
+  });
+
   it('brands a Lian Li cooler LCD by its family', () => {
     const device = firstDevice({
       ...krakenRecord(),

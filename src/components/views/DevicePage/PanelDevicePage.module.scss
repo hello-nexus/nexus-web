@@ -105,11 +105,6 @@
   margin-bottom: 0.75rem;
 }
 
-// 1-bit glass: the stage shows the frame after the service's luma cutoff.
-.previewPane[data-mono] .previewStage {
-  filter: url('#nexus-mono-preview');
-}
-
 // Wrapper the PanelEmbedFrame ResizeObserver measures. Mirrors the pane
 // dimensions so the iframe's fit-height math reflects the visible canvas
 // region exactly.

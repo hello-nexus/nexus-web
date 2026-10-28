@@ -393,6 +393,7 @@ export function buildPanelDevices({
       managementMode: 'managed',
       surfaceProfileKey: `stream-${record.id}`,
       runtimeSurface: surface,
+      family,
       previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
       previewDpr: record.capabilities?.dpr,
       iconSrc: (family ? STREAMED_FAMILY_ICONS[family] : undefined) ?? PANEL_MONITOR_ICON,

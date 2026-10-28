@@ -101,7 +101,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
 import { MonoPreviewFilter } from './MonoPreviewFilter';
-import { isMonoFamily, keepsSidePreview } from './monoPreview';
+import { MONO_FILTER_ID, isMonoFamily, keepsSidePreview } from './monoPreview';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
 import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
 import { saveBlobToFile } from '../../../lib/saveFile';
@@ -2115,7 +2115,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             className={styles.previewPane}
             data-surface={glassSurface}
             data-family={recordFamily}
-            data-mono={isMonoFamily(recordFamily) || undefined}
             data-playlist-nav={showPlaylistArrows || undefined}
             data-troubleshoot={showPreviewTroubleshoot || undefined}
           >
@@ -2184,6 +2183,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 shortSideSlots={shortSideSlots}
                 displayBound={!!device?.displayId}
                 genericDisplay={genericDisplay}
+                monoFilterId={isMonoFamily(recordFamily) ? MONO_FILTER_ID : undefined}
                 onPlaylistShown={handlePlaylistShown}
               />
               {isHydroShift2CurvePanel && curveScreen.playingClip && (

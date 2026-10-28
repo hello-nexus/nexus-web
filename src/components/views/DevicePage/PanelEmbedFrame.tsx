@@ -28,6 +28,8 @@ export interface PanelEmbedFrameHandle {
 }
 
 interface PanelEmbedFrameProps {
+  /** SVG filter id applied to the frame, for 1-bit glass. */
+  monoFilterId?: string;
   surface: PanelSurface;
   captureRef?: Ref<PanelEmbedFrameHandle>;
   layout: PanelLayout;
@@ -221,6 +223,7 @@ export function PanelEmbedFrame({
   onBackgroundClicked,
   onPlaylistShown,
   canvasSize,
+  monoFilterId,
   canvasDpi,
   canvasIsCssPixels,
   gridDpi,
@@ -530,6 +533,7 @@ export function PanelEmbedFrame({
           width: canvasW,
           height: canvasH,
           transform: `scale(${measured.scale})`,
+          ...(monoFilterId ? { filter: `url(#${monoFilterId})`, imageRendering: 'pixelated' as const } : {}),
         }}
       />
     </div>
