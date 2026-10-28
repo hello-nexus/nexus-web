@@ -122,6 +122,11 @@ describe('WidgetContextMenu lock widgets', () => {
     expect(screen.getByText('panel.widget.menu.lockWidgets')).toBeTruthy();
   });
 
+  it('keeps Immersive mode reachable while locked', () => {
+    render(<WidgetContextMenu {...base} locked onToggleLock={vi.fn()} onImmersive={vi.fn()} />);
+    expect(screen.getByText('panel.widget.menu.immersive')).toBeTruthy();
+  });
+
   it('shows no lock item where lock is not offered', () => {
     render(<WidgetContextMenu {...base} />);
     expect(screen.queryByText('panel.widget.menu.lockWidgets')).toBeNull();
@@ -222,5 +227,36 @@ describe('WidgetContextMenu add to display', () => {
   it('shows no item without a handler', () => {
     render(<WidgetContextMenu {...base} displayTargets={[{ id: 'a', name: 'A' }]} />);
     expect(screen.queryByText(/addToDisplay/)).toBeNull();
+  });
+});
+
+describe('WidgetContextMenu web view navigation', () => {
+  const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const, '4x2' as const], hasConfig: true, surface: 'y70' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+  const labels = () => Array.from(document.querySelectorAll('button')).map(b => b.textContent);
+
+  it('shows no group and no extra separator when nothing applies', () => {
+    const { container } = render(<WidgetContextMenu {...base} />);
+    expect(screen.queryByText('panel.widget.web-view.back')).toBeNull();
+    expect(screen.queryByText('panel.widget.web-view.forward')).toBeNull();
+    expect(screen.queryByText('panel.widget.web-view.home')).toBeNull();
+    const first = container.querySelector('[data-panel-hit]')!.firstElementChild!;
+    expect(first.className).not.toContain('divider');
+  });
+
+  it('puts Back, Forward, Home first, then a separator before the sizes', () => {
+    const { container } = render(<WidgetContextMenu {...base} onWebBack={vi.fn()} onWebForward={vi.fn()} onWebHome={vi.fn()} />);
+    const order = labels();
+    expect(order.slice(0, 3)).toEqual(['panel.widget.web-view.back', 'panel.widget.web-view.forward', 'panel.widget.web-view.home']);
+    const kids = Array.from(container.querySelector('[data-panel-hit]')!.children);
+    expect(kids[3].className).toContain('divider');
+    expect(kids[4].className).toContain('sizeRow');
+  });
+
+  it('shows only the items offered and runs them', () => {
+    const onWebForward = vi.fn();
+    render(<WidgetContextMenu {...base} onWebForward={onWebForward} />);
+    expect(screen.queryByText('panel.widget.web-view.back')).toBeNull();
+    fireEvent.click(screen.getByText('panel.widget.web-view.forward'));
+    expect(onWebForward).toHaveBeenCalled();
   });
 });

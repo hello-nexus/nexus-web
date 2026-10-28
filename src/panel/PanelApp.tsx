@@ -153,6 +153,7 @@ import {
   DESKTOP_ACTION_TRAY_HEIGHT,
   MAX_PANEL_PAGES,
   PHONE_WIDGET_REFERENCE_CELL,
+  cssPxPerMm,
   densityShortSideSlots,
   estimateRuntimePanelDpi,
   runtimeDensityShortSideSlots,
@@ -161,6 +162,8 @@ import {
   useViewportLandscape,
   usePanelPageScrollLock,
 } from './engine/panelGrid';
+import { CONTROL_CENTER_ENGAGE_MM } from './engine/controlCenterGesture';
+import { TRAY_ENGAGE_TRAVEL_MM } from './engine/gestureThresholds';
 import {
   useIsLandscape,
   usePhoneContentScale,
@@ -1348,6 +1351,8 @@ export function PanelContent({
     if (genericDisplay) return;
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
+    // A Web View tile that takes the touch itself opens fullscreen from the menu's Immersive mode item instead.
+    if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return;
     // An immersive view closes by touch, so a mouse-only display never opens one.
     if (!surfaceSupportsTouch(surface, deviceTouch)) return;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
@@ -1403,14 +1408,19 @@ export function PanelContent({
     webViewHost.setInteractiveTiles(interactiveWebTiles);
     return () => webViewHost.setInteractiveTiles(false);
   }, [interactiveWebTiles]);
-  const openCtxMenu = touch.openCtxMenu;
   useEffect(() => {
-    if (!interactiveWebTiles || !dragEditable) return undefined;
+    webViewHost.setGestureEngagePx(Math.min(CONTROL_CENTER_ENGAGE_MM, TRAY_ENGAGE_TRAVEL_MM) * cssPxPerMm(surface));
+  }, [surface]);
+  const openCtxMenu = touch.openCtxMenu;
+  // A touch panel's interactive Web View tiles report a long-press the same way, so the menu stays reachable.
+  const reportsWebViewMenu = !simulator && !embedded && dragEditable;
+  useEffect(() => {
+    if (!reportsWebViewMenu) return undefined;
     return webViewHost.onContextMenu((id, x, y) => {
       const widget = findWidgetById(paginatedLayout, id);
       if (widget) openCtxMenu(widget, x, y);
     });
-  }, [interactiveWebTiles, dragEditable, paginatedLayout, openCtxMenu]);
+  }, [reportsWebViewMenu, paginatedLayout, openCtxMenu]);
   const hoverResizeBusy = freeformActive || Boolean(activeDragId) || Boolean(dragArmedId) || Boolean(sheetMode) || Boolean(touch.ctxMenu) || touch.rearranging;
   useEffect(() => {
     if (hoverResizeBusy && !resizeGestureRef.current) setHoverResizeId(null);
@@ -2525,6 +2535,9 @@ export function PanelContent({
           ? appRouteForWidget(ctxWidget, deviceId, ctxWidget.type === 'deck' ? deckKeyAt(touch.ctxMenu.target ?? null) : undefined)
           : null;
         const openUrl = genericDisplay && !simulator && !embedded ? webViewOpenUrl(ctxWidget) : null;
+        const webSnap = webViewHost.getSnapshot();
+        const webView = ctxWidget.type === 'web-view' && !simulator && !embedded && webSnap.status === 'supported' ? webSnap.views[ctxWidget.id] : undefined;
+        const webNav = { back: webView?.canGoBack === true, forward: webSnap.navControls && webView?.canGoForward === true, home: webSnap.navControls && webView?.away === true };
 
         // Sidebar pin toggle, only for pinnable types (isPinnableAppKey):
         // "Pin to Sidebar" when not pinned, "Unpin from Sidebar" when pinned.
@@ -2550,6 +2563,9 @@ export function PanelContent({
             onEdit={() => (simulator ? onSimulatorWidgetClicked?.(ctxWidget.id) : openWidgetSettings(ctxWidget, ctxPoint))}
             onRemove={() => removeWidget(ctxWidget.id)}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
+            onWebBack={webNav.back ? () => webViewHost.sendCommand(ctxWidget.id, 'back') : undefined}
+            onWebForward={webNav.forward ? () => webViewHost.sendCommand(ctxWidget.id, 'forward') : undefined}
+            onWebHome={webNav.home ? () => webViewHost.sendCommand(ctxWidget.id, 'home') : undefined}
             displayTargets={onDesktopSurface ? displayTargets : undefined}
             onAddToDisplay={onDesktopSurface && displayTargets.length > 0 ? displayId => { void addToDisplay(displayId, ctxWidget); } : undefined}
             onAddWidget={mouseEditable ? () => openSheet('catalog') : undefined}

@@ -4,8 +4,8 @@ import type { WidgetSettingsProps } from '../types';
 import { Slider } from '../../../components/common/Slider/Slider';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { canEditFreeText } from '../../types';
-import { SettingsHint, SettingsInput, SettingsRow, SettingsSection, SettingsSelect } from '../common/SettingsRow/SettingsRow';
-import { REFRESH_CHOICES, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP, resolveRefreshMinutes, resolveZoom, snapZoom } from './webViewConfig';
+import { SettingsHint, SettingsInput, SettingsRow, SettingsSection, SettingsSelect, SettingsToggle } from '../common/SettingsRow/SettingsRow';
+import { REFRESH_CHOICES, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP, resolveInteractive, resolveRefreshMinutes, resolveZoom, snapZoom } from './webViewConfig';
 import { normalizeWebViewUrl } from './webViewUrl';
 
 export function WebViewSettings({ widget, surface, desktopEditor, onUpdate }: WidgetSettingsProps) {
@@ -60,6 +60,12 @@ export function WebViewSettings({ widget, surface, desktopEditor, onUpdate }: Wi
       )}
     </SettingsSection>
     <SettingsSection>
+      <SettingsToggle
+        label={t('panel.widget.web-view.settings.interactive')}
+        description={t('panel.widget.web-view.settings.interactiveHint')}
+        checked={resolveInteractive(widget.config?.interactive)}
+        onChange={value => onUpdate({ interactive: value })}
+      />
       <Slider
         label={t('panel.widget.web-view.settings.zoom')}
         value={dragZoom ?? savedZoom}

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { WebViewSettings } from './WebViewSettings';
@@ -34,5 +34,22 @@ describe('WebViewSettings URL field on a hosted display', () => {
     render(<WebViewSettings {...base} surface="monitor" />);
     expect(screen.getByDisplayValue('https://example.com/')).toBeTruthy();
     expect(screen.queryByText('common.desktopOnly')).toBeNull();
+  });
+});
+
+describe('WebViewSettings touch the page', () => {
+  it('is on for an instance with no stored value and saves off when switched', () => {
+    const onUpdate = vi.fn();
+    render(<WebViewSettings {...base} onUpdate={onUpdate} surface="phone" />);
+    const toggle = screen.getByRole('switch', { name: /web-view\.settings\.interactive/ });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(toggle);
+    expect(onUpdate).toHaveBeenCalledWith({ interactive: false });
+  });
+
+  it('reads off from the stored value', () => {
+    const off = { ...widget, config: { url: 'https://example.com/', interactive: false } } as PanelWidget;
+    render(<WebViewSettings {...base} widget={off} surface="phone" />);
+    expect(screen.getByRole('switch', { name: /web-view\.settings\.interactive/ }).getAttribute('aria-checked')).toBe('false');
   });
 });

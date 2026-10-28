@@ -12,7 +12,8 @@ import {
   type WebViewSyncView,
   type WebViewTransport,
 } from './webViewProtocol';
-import { computeVisible } from './webViewVisibility';
+import { GESTURE_ENGAGE_PX } from '../engine/gestureThresholds';
+import { computeVisible, dragHidesTiles } from './webViewVisibility';
 import { measureTile } from './webViewMeasure';
 
 export type WebViewHostStatus = 'idle' | 'pending' | 'supported' | 'unsupported';
@@ -21,12 +22,15 @@ export interface WebViewViewState {
   state: WebViewLoadState;
   code?: string;
   canGoBack: boolean;
+  canGoForward?: boolean;
+  away?: boolean;
 }
 
 export interface WebViewHostSnapshot {
   status: WebViewHostStatus;
   interactive: boolean;
   contextMenu: boolean;
+  navControls: boolean;
   maxViews: number;
   views: Readonly<Record<string, WebViewViewState>>;
   /** Ids past the host's view limit: never synced, shown a placeholder. */
@@ -46,12 +50,15 @@ export interface WebViewClaimInput {
   zoom?: number;
   /** Tile claims only: reload every N minutes while the tile is what is shown. 0 or absent is off. */
   refreshMinutes?: number;
+  /** Tile claims only: the native view takes the touch, so the page can be used in place. */
+  touchPage?: boolean;
 }
 
 export interface WebViewClaimHandle {
   setUrl: (url: string) => void;
   setZoom: (zoom: number) => void;
   setRefreshMinutes: (minutes: number) => void;
+  setTouchPage: (touchPage: boolean) => void;
   release: () => void;
 }
 
@@ -64,8 +71,8 @@ interface ClaimRecord extends WebViewClaimInput {
 const BURST_MS = 600;
 // The most views any host accepts.
 const MAX_VIEWS = 4;
-// A finger travels this far before it counts as a swipe or pull.
-const GESTURE_SLOP_PX = 6;
+// Where a drag starts that belongs to a list or other scroller: never a pull or swipe of the panel.
+const SCROLLABLE_SELECTOR = '[data-panel-scrollable="true"]';
 // The panel's own click-through layers (hints, notices) mark themselves so
 // the topmost check, which skips them, can still hide the native view.
 const COVER_SELECTOR = '[data-webview-cover]';
@@ -89,9 +96,12 @@ export class WebViewHost {
   private maxViews = 0;
   private viewStates: Record<string, WebViewViewState> = {};
   private contextMenu = false;
+  private longPress = false;
+  private navControls = false;
+  private gestureEngagePx = GESTURE_ENGAGE_PX;
   private interactiveTiles = false;
   private contextMenuListeners = new Set<(id: string, x: number, y: number) => void>();
-  private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, contextMenu: false, maxViews: 0, views: {}, overLimit: [] };
+  private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, contextMenu: false, navControls: false, maxViews: 0, views: {}, overLimit: [] };
   private listeners = new Set<() => void>();
   private suppressed = false;
   private pageHidden = false;
@@ -108,8 +118,9 @@ export class WebViewHost {
   // immersive share one, and a re-register never reorders the others.
   private slotOrder: string[] = [];
   private overLimit = new Set<string>();
-  private pointers = new Map<number, { x: number; y: number; moved: boolean }>();
+  private pointers = new Map<number, { x: number; y: number; moved: boolean; scroller: boolean }>();
   private gestureActive = false;
+  private sentViews = new Map<string, { visible: boolean; interactive: boolean }>();
   private refreshTimers = new Map<string, { minutes: number; handle: ReturnType<typeof setInterval> }>();
 
   readonly subscribe = (listener: () => void): (() => void) => {
@@ -144,6 +155,11 @@ export class WebViewHost {
         rec.refreshMinutes = minutes;
         this.updateRefreshTimers();
       },
+      setTouchPage: (touchPage: boolean) => {
+        if ((rec.touchPage ?? false) === touchPage) return;
+        rec.touchPage = touchPage;
+        this.schedule();
+      },
       release: () => {
         if (!this.claims.delete(rec.key)) return;
         this.resizeObserver?.unobserve(rec.element);
@@ -158,6 +174,19 @@ export class WebViewHost {
     if (this.interactiveTiles === value) return;
     this.interactiveTiles = value;
     this.schedule();
+  }
+
+  /** Finger travel, in CSS px, at which a vertical drag counts as a sheet pull and hides the tiles. */
+  setGestureEngagePx(px: number): void {
+    this.gestureEngagePx = Number.isFinite(px) && px > 0 ? px : GESTURE_ENGAGE_PX;
+  }
+
+  /** Whether the tile of widget `id` is a native view shown to the host as interactive right now, so a tap on it never reaches the panel. */
+  tileTakesTouch(id: string): boolean {
+    const c = this.winnerOf(id);
+    if (!c || c.immersive || c.touchPage !== true || this.overLimit.has(id) || this.status !== 'supported') return false;
+    const sent = this.sentViews.get(id);
+    return sent?.visible === true && sent.interactive && this.viewStates[id]?.state === 'loaded';
   }
 
   /** A right-click the host saw on an interactive view. */
@@ -253,7 +282,10 @@ export class WebViewHost {
     this.on(window, 'transitionend', burst, true);
     this.on(window, 'animationstart', burst, true);
     this.on(window, 'animationend', burst, true);
-    this.on(window, 'pointerdown', e => { this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: false }); }, true);
+    this.on(window, 'pointerdown', e => {
+      const scroller = e.target instanceof Element && e.target.closest(SCROLLABLE_SELECTOR) !== null;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: false, scroller });
+    }, true);
     this.on(window, 'pointermove', e => this.onPointerMove(e), true);
     this.on(window, 'pointerup', e => this.onPointerEnd(e), true);
     this.on(window, 'pointercancel', e => this.onPointerEnd(e), true);
@@ -282,18 +314,22 @@ export class WebViewHost {
       if (this.status === 'unsupported') this.stopHeartbeat();
       this.interactive = msg.interactive;
       this.contextMenu = msg.contextMenu;
+      this.longPress = msg.longPress;
+      this.navControls = msg.navControls;
       this.maxViews = msg.maxViews;
       this.emit();
       if (this.status === 'supported') this.flush(true);
       return;
     }
     if (msg.type === 'nexus.webview.contextmenu') {
+      // An immersive claim owns the page: a hold inside it must not open the tile's menu.
+      if (this.winnerOf(msg.id)?.immersive) return;
       for (const l of [...this.contextMenuListeners]) l(msg.id, msg.x, msg.y);
       return;
     }
     this.viewStates = {
       ...this.viewStates,
-      [msg.id]: { state: msg.state, code: msg.code, canGoBack: msg.canGoBack },
+      [msg.id]: { state: msg.state, code: msg.code, canGoBack: msg.canGoBack, canGoForward: msg.canGoForward, away: msg.away },
     };
     this.emit();
     // An error or crash hides the native view, so the placeholder shows.
@@ -301,12 +337,13 @@ export class WebViewHost {
   }
 
   // Swipes and pulls move content with inline transforms, which no observer
-  // sees: re-measure on every move, and hide the tiles once a drag begins so
-  // none sits over a sheet being pulled in.
+  // sees: re-measure on every move. Tiles hide only once a drag is a vertical
+  // pull (the tray or control center sheets); taps, controls, scrolling lists
+  // and horizontal page swipes keep them shown, so a tile follows its page.
   private onPointerMove(e: PointerEvent): void {
     const p = this.pointers.get(e.pointerId);
     if (!p) return;
-    if (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) > GESTURE_SLOP_PX) {
+    if (!p.moved && !p.scroller && dragHidesTiles(e.clientX - p.x, e.clientY - p.y, this.gestureEngagePx)) {
       p.moved = true;
       this.gestureActive = true;
       this.flush(false);
@@ -364,6 +401,7 @@ export class WebViewHost {
       status: this.status,
       interactive: this.interactive,
       contextMenu: this.contextMenu,
+      navControls: this.navControls,
       maxViews: this.maxViews,
       views: this.viewStates,
       overLimit: Array.from(this.overLimit),
@@ -418,19 +456,30 @@ export class WebViewHost {
     return changed;
   }
 
+  private winnerOf(id: string): ClaimRecord | undefined {
+    let win: ClaimRecord | undefined;
+    for (const c of this.claims.values()) {
+      if (c.id === id && (!win || (c.immersive && !win.immersive))) win = c;
+    }
+    return win;
+  }
+
+  // Touch in place needs both the host's long-press report and its menu path, so an older host keeps tap-to-open.
+  private viewInteractive(c: ClaimRecord): boolean {
+    if (!this.interactive) return false;
+    if (c.immersive) return true;
+    if (!this.contextMenu) return false;
+    return this.interactiveTiles || (c.touchPage === true && this.longPress);
+  }
+
   private buildViews(): WebViewSyncView[] {
     const supported = this.status === 'supported';
     const documentVisible = document.visibilityState !== 'hidden';
     const hit = (x: number, y: number) => document.elementFromPoint(x, y);
     const covered = document.querySelector(COVER_SELECTOR) !== null;
-    const winners = new Map<string, ClaimRecord>();
-    for (const c of this.claims.values()) {
-      const cur = winners.get(c.id);
-      if (!cur || (c.immersive && !cur.immersive)) winners.set(c.id, c);
-    }
     const views: WebViewSyncView[] = [];
     for (const id of this.slotOrder) {
-      const c = winners.get(id);
+      const c = this.winnerOf(id);
       if (!c || this.overLimit.has(id)) continue;
       const { rect, target, radius } = measureTile(c.element);
       const st = this.viewStates[c.id]?.state;
@@ -440,7 +489,7 @@ export class WebViewHost {
         rect,
         radius,
         zoom: clampZoom(c.zoom),
-        interactive: (c.immersive || (this.interactiveTiles && this.contextMenu)) && this.interactive,
+        interactive: this.viewInteractive(c),
         visible: computeVisible({
           supported,
           documentVisible,
@@ -477,6 +526,7 @@ export class WebViewHost {
 
   private send(views: WebViewSyncView[]): void {
     if (!this.transport) return;
+    this.sentViews = new Map(views.map(v => [v.id, { visible: v.visible, interactive: v.interactive }]));
     const msg: WebViewOutbound = {
       type: 'nexus.webview.sync',
       seq: ++this.seq,
