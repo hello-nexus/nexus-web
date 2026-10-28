@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { effectThumbnailPath } from '../../../api/lighting';
 import { fetchServiceBlob } from '../../../api/service';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
-import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
+import { Ellipsis } from 'lucide-react';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import type { EffectTemplateBundle } from '../../../types/lighting';
 import { slotThumbSignature } from '../../../types/lightingTemplates';
@@ -79,7 +80,6 @@ export function LightingSwatches({
   );
   const thumbs = useEffectThumbs(effectTiles, templates, kind === 'animate' && !preview);
   const openLabel = t('lighting.widget.openLighting');
-  const OpenIcon = LIGHTING_MODE_ICONS[kind];
 
   return (
     <div className={styles.swatchInset}>
@@ -123,17 +123,18 @@ export function LightingSwatches({
           ))}
         {onOpen && (
           <div className={styles.swatchCell}>
-            <button
-              type="button"
-              data-swatch-open="true"
-              className={styles.swatchOpen}
-              onClick={onOpen}
-              aria-label={openLabel}
-              title={openLabel}
-            >
-              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-              <OpenIcon className={styles.swatchOpenIcon} aria-hidden="true" />
-            </button>
+            <HoverTooltip body={openLabel} side="top">
+              <button
+                type="button"
+                data-swatch-open="true"
+                className={styles.swatchOpen}
+                onClick={onOpen}
+                aria-label={openLabel}
+              >
+                {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+                <Ellipsis className={styles.swatchOpenIcon} aria-hidden="true" />
+              </button>
+            </HoverTooltip>
           </div>
         )}
       </div>
