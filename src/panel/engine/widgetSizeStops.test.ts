@@ -1,39 +1,46 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { nearestWidgetSizeStop, widgetSizeStops } from './widgetSizeStops';
-import { DEFAULT_SURFACE_DPI } from './panelGrid';
-import { panelWidgetSizeOptions } from '../types';
+import { panelWidgetSizeOptions, type PanelSurface } from '../types';
 
-const dpiOf = (surface: 'y70' | 'monitor') => () => DEFAULT_SURFACE_DPI[surface];
+const stopsOf = (surface: PanelSurface, family?: string) => widgetSizeStops(panelWidgetSizeOptions(surface, family)!).map(s => `${s.mode}:${s.percent}`);
 
 describe('widgetSizeStops', () => {
-  it('labels the Y70 stops 100 / 75 / 50', () => {
-    const options = panelWidgetSizeOptions('y70', undefined)!;
-    const stops = widgetSizeStops(options, { width: 682, height: 2560 }, 1, dpiOf('y70'), 0.1, 4);
-    expect(stops.map(s => s.mode)).toEqual(['large', 'small', 'xsmall']);
-    expect(stops.map(s => s.percent)).toEqual([100, 75, 50]);
+  it('labels the Y70 and plain displays 100 / 75 / 50', () => {
+    expect(stopsOf('y70')).toEqual(['large:100', 'small:75', 'xsmall:50']);
+    expect(stopsOf('monitor')).toEqual(['small:100', 'medium:75', 'xsmall:50']);
   });
 
-  it('computes a plain display per display, from its own density', () => {
-    const options = panelWidgetSizeOptions('monitor', undefined)!;
-    const hd = widgetSizeStops(options, { width: 1920, height: 1080 }, 1, dpiOf('monitor'), 0.1, 8);
-    const uhd = widgetSizeStops(options, { width: 3840, height: 2160 }, 1, dpiOf('monitor'), 0.1, 16);
-    expect(hd.map(s => s.mode)).toEqual(['large', 'small', 'xsmall']);
-    expect(hd[1].percent).toBeLessThan(100);
-    expect(hd[2].percent).toBeLessThan(hd[1].percent);
-    expect(uhd[1].percent).toBeLessThan(100);
+  it('gives device screens two stops, 100 and 50', () => {
+    expect(stopsOf('q60')).toEqual(['large:100', 'small:50']);
+    expect(stopsOf('lcd-square', 'asus-glacial-lcd')).toEqual(['large:100', 'small:50']);
+    expect(stopsOf('lcd-wide', 'lianli-hydroshift2-curve')).toEqual(['large:100', 'small:50']);
+    expect(stopsOf('monitor', 'icue-link-lcd5')).toEqual(['small:100', 'xsmall:50']);
+    expect(stopsOf('monitor', 'lianli-screen88')).toEqual(['small:100', 'xsmall:50']);
+    expect(stopsOf('monitor', 'hyte-y60')).toEqual(['small:100', 'xsmall:50']);
   });
 
-  it('offers only the sizes a panel has', () => {
-    const options = panelWidgetSizeOptions('monitor', 'lianli-screen88')!;
-    expect(widgetSizeStops(options, { width: 1920, height: 480 }, 1, dpiOf('monitor'), 0.1, 8).map(s => s.mode)).toEqual(['large', 'small']);
+  it('only ever shows 25, 50, 75 or 100, and every surface has a 100 baseline', () => {
+    const panels: Array<[PanelSurface, string | undefined]> = [
+      ['y70', undefined], ['q60', undefined], ['monitor', undefined], ['monitor', 'icue-link-lcd5'], ['monitor', 'lianli-screen88'],
+      ['monitor', 'hyte-y60'], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve'],
+    ];
+    for (const [surface, family] of panels) {
+      const options = panelWidgetSizeOptions(surface, family)!;
+      const percents = widgetSizeStops(options).map(s => s.percent);
+      expect(percents.length).toBeGreaterThan(1);
+      for (const p of percents) expect([25, 50, 75, 100]).toContain(p);
+      expect(percents).toContain(100);
+      // The default size is the 100% baseline, or a tile Large that is.
+      expect(options.percentLabels?.[options.default]).toBe(100);
+    }
   });
 
   it('snaps a typed percent to the nearest stop and ties to the larger', () => {
-    const stops = [{ mode: 'large', percent: 100 }, { mode: 'small', percent: 60 }, { mode: 'xsmall', percent: 40 }] as const;
+    const stops = [{ mode: 'large', percent: 100 }, { mode: 'small', percent: 75 }, { mode: 'xsmall', percent: 50 }] as const;
     expect(nearestWidgetSizeStop(stops, 90)?.mode).toBe('large');
-    expect(nearestWidgetSizeStop(stops, 70)?.mode).toBe('small');
-    expect(nearestWidgetSizeStop(stops, 50)?.mode).toBe('small');
+    expect(nearestWidgetSizeStop(stops, 80)?.mode).toBe('small');
+    expect(nearestWidgetSizeStop(stops, 62.5)?.mode).toBe('small');
     expect(nearestWidgetSizeStop(stops, 5)?.mode).toBe('xsmall');
   });
 });

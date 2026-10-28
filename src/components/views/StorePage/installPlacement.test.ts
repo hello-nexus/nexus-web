@@ -187,17 +187,19 @@ describe('planPlacement', () => {
     const display: PlacementTarget = { key: 'display', name: 'Display', iconSrc: null, surface: 'monitor' };
     const wide = { ...meta, singleInstance: false };
 
-    const rowsOf = (widgetSize: 'large' | 'small' | 'xsmall') =>
+    const rowsOf = (widgetSize: 'large' | 'small' | 'medium' | 'xsmall') =>
       planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, widgetSize } }, TYPE, wide, 6)!.capacity.pageRows;
-    expect(rowsOf('large')).toBeLessThan(rowsOf('small'));
-    expect(rowsOf('small')).toBeLessThan(rowsOf('xsmall'));
+    // 100% is the default grid, 75% and 50% add columns and rows; a stored large reads as 100%.
+    expect(rowsOf('large')).toBe(rowsOf('small'));
+    expect(rowsOf('small')).toBeLessThan(rowsOf('medium'));
+    expect(rowsOf('medium')).toBeLessThan(rowsOf('xsmall'));
 
-    const coarse = planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, widgetSize: 'large' } }, TYPE, wide, 6);
+    const coarse = planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, widgetSize: 'small' } }, TYPE, wide, 6);
     const { gridCols, pageRows } = coarse!.capacity;
     const cells = Array.from({ length: (gridCols / 2) * (pageRows / 2) }, (_, i) => ({
       type: 'clock', size: '2x2' as const, col: (i % (gridCols / 2)) * 2, row: Math.floor(i / (gridCols / 2)) * 2,
     }));
-    const spilled = planPlacement(display, { layout: layoutOf('monitor', cells), record: { ...record, widgetSize: 'large' } }, TYPE, wide, 6);
+    const spilled = planPlacement(display, { layout: layoutOf('monitor', cells), record: { ...record, widgetSize: 'small' } }, TYPE, wide, 6);
     expect(spilled).toBeNull();
 
     // A curated device display (a family on its record) keeps its pages.
