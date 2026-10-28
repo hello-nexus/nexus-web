@@ -16,6 +16,10 @@ describe('swatches', () => {
     expect(ANIMATE_SWATCHES.every(e => !!e.labelKey)).toBe(true);
   });
 
+  it('leads with the primaries so small widgets show them', () => {
+    expect(STATIC_SWATCHES.slice(0, 5).map(c => c.id)).toEqual(['white-1', 'red-3', 'blue-3', 'green-3', 'yellow-3']);
+  });
+
   it('has a fixed grid per size and neither list runs out at 4x4', () => {
     expect(swatchGrid('2x2')).toEqual({ cols: 2, rows: 2, slots: 3 });
     expect(swatchGrid('4x2')).toEqual({ cols: 3, rows: 2, slots: 5 });

@@ -18,8 +18,8 @@ export function swatchGrid(size: PanelWidget['size'], withOpenTile = true): { co
 export interface StaticTile { hex: string; name: string | null; nameKey: string | null; shade: number }
 
 const STATIC_SWATCH_IDS = [
-  'white-1', 'red-3', 'orange-3', 'yellow-3', 'green-3', 'cyan-3',
-  'blue-3', 'violet-3', 'magenta-3', 'pink-3', 'lime-3', 'teal-3',
+  'white-1', 'red-3', 'blue-3', 'green-3', 'yellow-3', 'violet-3',
+  'orange-3', 'cyan-3', 'magenta-3', 'pink-3', 'lime-3', 'teal-3',
   'azure-3', 'indigo-3', 'red-4', 'orange-2', 'yellow-2', 'green-2',
   'cyan-2', 'blue-2', 'violet-2', 'pink-2', 'white-3', 'green-4',
 ];

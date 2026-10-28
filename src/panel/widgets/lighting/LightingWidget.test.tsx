@@ -366,6 +366,54 @@ describe('LightingWidget', () => {
       expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('aurora');
     });
 
+    const heldOrder = () => [...document.querySelectorAll('[data-swatch-hex]')].map(e => e.getAttribute('data-swatch-hex'));
+
+    it('shows a pick made elsewhere at once', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      const view = renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      mockUiSettings.recentStaticColors = ['#123456'];
+      view.rerender(
+        <PanelOpenWidgetProvider value={() => () => {}}><LightingWidget widget={lightingWidget('4x2')} /></PanelOpenWidgetProvider>,
+      );
+      expect(heldOrder()[0]).toBe('#123456');
+    });
+
+    it('holds the order after a tap here, then reorders when the taps go idle', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+        const view = renderLighting(lightingWidget('4x2'));
+        await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+        const before = heldOrder();
+        fireEvent.click(document.querySelector(`[data-swatch-hex="${before[3]}"]`) as HTMLElement);
+        mockUiSettings.recentStaticColors = [before[3]!];
+        view.rerender(
+          <PanelOpenWidgetProvider value={() => () => {}}><LightingWidget widget={lightingWidget('4x2')} /></PanelOpenWidgetProvider>,
+        );
+        expect(heldOrder()).toEqual(before);
+        await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+        expect(heldOrder()[0]).toBe(before[3]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('reorders when the pointer leaves the grid after a tap here', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      const view = renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      const before = heldOrder();
+      fireEvent.click(document.querySelector(`[data-swatch-hex="${before[2]}"]`) as HTMLElement);
+      mockUiSettings.recentStaticColors = [before[2]!];
+      view.rerender(
+        <PanelOpenWidgetProvider value={() => () => {}}><LightingWidget widget={lightingWidget('4x2')} /></PanelOpenWidgetProvider>,
+      );
+      expect(heldOrder()).toEqual(before);
+      fireEvent.pointerLeave(document.querySelector('[class*="swatchGrid"]') as HTMLElement);
+      expect(heldOrder()[0]).toBe(before[2]);
+    });
+
     it('Off ignores history and shows the fixed order', async () => {
       mockUiSettings.recentAnimations = ['aurora'];
       renderLighting(lightingWidget('4x2', { showRecents: false }));
