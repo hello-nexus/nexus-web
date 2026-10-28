@@ -62,8 +62,8 @@ describe('AstralDevicePage', () => {
     s.cards[0].state = 'overcurrent';
     await mount(s);
     openPower();
-    expect(screen.getByText('13.0 A')).toBeInTheDocument();
-    expect(screen.queryByText('99.0 A')).toBeNull();
+    expect(screen.getByText('13.00 A')).toBeInTheDocument();
+    expect(screen.queryByText('99.00 A')).toBeNull();
     const pin3 = screen.getByRole('group', { name: /devices.astral.pinLabel:\{"n":3/ });
     expect(pin3.getAttribute('aria-label')).toContain('devices.astral.state.overcurrent');
     expect(screen.getByRole('group', { name: /"n":1,/ }).getAttribute('aria-label')).toContain('devices.astral.state.ok');

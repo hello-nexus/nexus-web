@@ -184,8 +184,8 @@ interface ConnectorProps {
  * ground pins under them, the four sense pins at the bottom and the pin numbers below.
  */
 export function AstralConnector({ pins, label }: ConnectorProps) {
-  const cell = 74;
-  const gap = 14;
+  const cell = 84;
+  const gap = 8;
   const x0 = 320 - (6 * cell + 5 * gap) / 2;
   const values = [0, 1, 2, 3, 4, 5].map(i => (Number.isFinite(pins[i]?.amps) ? pins[i].amps : 0));
   const states = [0, 1, 2, 3, 4, 5].map(i => pins[i]?.tone ?? 'green');
@@ -216,7 +216,7 @@ export function AstralConnector({ pins, label }: ConnectorProps) {
             <g key={i} role="group" aria-label={pins[i]?.label}>
               <rect x={x} y="46" width={cell} height="72" rx="8" fill={fill} fillOpacity="0.16" stroke={fill} strokeWidth="2.5" />
               <text x={x + cell / 2} y="77" textAnchor="middle" fontFamily={FONT} fontSize="15" fill="#cbd2db">{PIN_RAIL}</text>
-              <text x={x + cell / 2} y="104" textAnchor="middle" fontFamily={FONT} fontSize="20" fontWeight="700" fill="#f3f4f6">{`${v.toFixed(1)} A`}</text>
+              <text x={x + cell / 2} y="104" textAnchor="middle" fontFamily={FONT} fontSize="20" fontWeight="700" fill="#f3f4f6">{`${v.toFixed(2)} A`}</text>
               <rect x={x} y="128" width={cell} height="64" rx="8" fill="#2a2e35" stroke="#3a3f47" strokeWidth="2" />
               <rect x={x + cell / 2 - 13} y="147" width="26" height="26" rx="4" fill="#0b0c0f" />
               <text x={x + cell / 2} y="268" textAnchor="middle" fontFamily={FONT} fontSize="17" fill="#9ca3af">{i + 1}</text>
