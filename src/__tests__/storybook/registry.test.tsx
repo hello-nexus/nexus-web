@@ -33,6 +33,7 @@ const PANEL_KIT_EXCLUSIONS: Record<string, string> = {
   PanelDisplayBoundContext: 'context provider for the real-display vs streamed-capture signal, nothing to preview',
   PanelGlassSurfaceContext: 'context provider for the physical glass behind a Widget size layout, nothing to preview',
   PanelOpaqueContext: 'context provider for opaque-tile reports, nothing to preview',
+  PanelOpenWidgetContext: 'context provider for the panel cell-tap handler, nothing to preview',
 };
 
 // First path segment under the prefix, .tsx stripped - so a dir entry

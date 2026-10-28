@@ -90,7 +90,7 @@ export const CurveSelector = memo(function CurveSelector({
         })}
         {curves.length >= MAX_CURVES ? (
           <div className={styles.curveBtnCell}>
-            <HoverTooltip body={t('cooling.curves.maxReached')} side="top">
+            <HoverTooltip body={t('cooling.curves.maxReached', { max: MAX_CURVES })} side="top">
               <button type="button" className={`chip-action ${styles.curveAddBtn}`} disabled>
                 <Plus size={14} aria-hidden />
                 <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>

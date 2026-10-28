@@ -101,6 +101,7 @@ import { effectEditEnabled } from './page/effectEdit';
 import { StaticPalette } from './page/StaticPalette';
 import { SimpleAnimationRow } from './page/SimpleAnimationRow';
 import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
+import { useLightingRecents } from './useLightingRecents';
 import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, snapToSegment, pickerHexAt, pickerPointFor } from './page/staticPickerField';
 import { useColorWriteQueue } from './page/useColorWriteQueue';
@@ -253,6 +254,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const isWindows = platform === 'windows';
   const gameSyncNoticeHint = useOnboardingHint(GAME_SYNC_NOTICE_HINT_ID, isWindows && gameSyncRemovedNotice);
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  const { recordColor, recordAnimation } = useLightingRecents();
   const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
   // Off / simple / advanced live behind the first tab (see modeTabs). The
   // popover anchors on the tab row, which is why the ref sits on the element
@@ -1153,6 +1155,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (modeRef.current === 'none') {
       setCustomStaticColor(hex);
       setSelectionTab(null);
+      recordColor(hex);
       void resumeLightingRef.current('static').then(() => {
         setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       });
@@ -1163,6 +1166,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const ids = [...selectedDeviceIds];
     // Nothing selected: the color is the exact global flat color.
     if (ids.length === 0) {
+      recordColor(hex);
       setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       return;
     }
@@ -1171,7 +1175,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const pin = colorPin(hex);
     recordPins(ids, pin);
     queueColorWrite(pin, ids);
-  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope]);
+  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope, recordColor]);
 
   // Records as well as writes: the marks and the device cards read the pin, so
   // a drag has to move them with the pointer, not on release.
@@ -2119,9 +2123,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Simple mode has no device rail, so a color is the exact global flat color.
   // Static has to own the output first.
   const handleSimplePaletteSelect = useCallback(async (color: PaletteColor) => {
+    recordColor(color.hex);
     if (mode !== 'static') await handleModeChange('static');
     setGlobalColor(color.hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, color.hex));
-  }, [mode, handleModeChange, setGlobalColor]);
+  }, [mode, handleModeChange, setGlobalColor, recordColor]);
 
   // Simple mode has no per-device toggle, so a device left un-driven or dark on
   // the advanced page would sit black here with nothing on the page saying why.
@@ -2246,6 +2251,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // catalogue key there marks that cell selected and draws its shader on the
   // canvas while the hardware runs this one.
   const handleSimpleAnimationSelect = useCallback(async (key: string) => {
+    recordAnimation(key);
     claimAllDevices(false);
     unpinAll();
     setActiveEffect('');
@@ -2264,7 +2270,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
     } catch { /* the sync poll reconciles */ }
-  }, [claimAllDevices, paused, setMode, setPausedState, setRawSync, simpleReversed, unpinAll]);
+  }, [claimAllDevices, paused, setMode, setPausedState, setRawSync, simpleReversed, unpinAll, recordAnimation]);
 
   // The running sweep, which is also what marks a tile.
   const simpleAnimation = synced && mode === 'animate' && isSimpleAnimation(rawSync)
@@ -2524,6 +2530,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const openDock = useCallback(() => setDockCollapsed(false), [setDockCollapsed]);
   const handleEffectPick = (key: string) => {
     if (!(key === gridEffect && selectedDeviceIds.size === 0)) pulsePick();
+    if (viewMode === 'animate') recordAnimation(key);
     handleEffectSelect(key);
   };
   // The colour the selection wears, which is where its dots sit on the field.

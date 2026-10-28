@@ -9,7 +9,6 @@ import {
   fetchCurrentSync,
   fetchLightingStatus,
   fetchScreenEffect,
-  fetchLightingDevices,
   fetchStaticSettings,
   startAnimate,
   startStatic,
@@ -33,7 +32,6 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
-import { pluralKey } from '../../../lib/pluralKey';
 import {
   ANIMATE_EFFECTS,
   DEFAULT_STATIC_EFFECT,
@@ -54,6 +52,9 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewRainbowUri } from '../common/previewAssets';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
+import { LightingSwatches } from './LightingSwatches';
+import { useLightingRecents } from './useLightingRecents';
+import { usePanelOpenWidget } from '../common/PanelOpenWidgetContext';
 import { type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
@@ -67,16 +68,21 @@ const LIGHTING_PREVIEW_EFFECT = 'sweeprainbow';
 const LIGHTING_PREVIEW_THUMBS: Record<string, string> = { [LIGHTING_PREVIEW_EFFECT]: previewRainbowUri() };
 
 export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
   const flags = useFeatureFlags();
+  const openWidget = usePanelOpenWidget();
+  const recents = useLightingRecents();
+  const showRecents = widget.config?.showRecents !== false;
+  // The panel's cell-tap action where it acts, else the dashboard's section link, else no open tile.
+  const openAction = openWidget?.(widget) ?? (onSectionNavigate ? () => onSectionNavigate('lighting') : null);
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [mode, setMode] = useState<LightingMode>(preview ? LIGHTING_PREVIEW_MODE : 'none');
   const [gpuAvailable, setGpuAvailable] = useState(true);
   const [gpuState, setGpuState] = useState<GpuState | undefined>(undefined);
-  const [activeDeviceCount, setActiveDeviceCount] = useState(0);
+  const [activeColor, setActiveColor] = useState('');
   // WS-synced from /lighting/current (re-hydrated on the 'lighting' topic), so
   // the shader preview freezes when lighting is paused from any surface.
   const [paused, setPaused] = useState(false);
@@ -139,22 +145,18 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const hydrateSeqRef = useRef(0);
   const hydrate = useCallback(async () => {
     const seq = ++hydrateSeqRef.current;
-    const [sync, animate, staticSettings, screen, lightStatus, defaults, deviceList] = await Promise.all([
+    const [sync, animate, staticSettings, screen, lightStatus, defaults] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
       fetchStaticSettings(),
       fetchScreenEffect(),
       fetchLightingStatus(),
       fetchAnimateDefaults(),
-      fetchLightingDevices(),
     ]);
     if (seq !== hydrateSeqRef.current) return;
     setGpuAvailable(lightStatus?.gpuAvailable ?? true);
     setGpuState(lightStatus?.gpuState);
-    // Static drives devices individually, so the widget reports how many are
-    // lit rather than naming one effect.
-    setActiveDeviceCount((deviceList?.devices ?? [])
-      .filter(d => d.ledsOn && d.controlled !== false).length);
+    setActiveColor((staticSettings?.color ?? '').toLowerCase());
 
     const nextTemplates: Record<string, EffectTemplateBundle> = {};
     for (const effect of EFFECTS) {
@@ -334,6 +336,15 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     publishLighting('static', 'static', { effect: effectKey, effectState: next });
   }, [publishLighting, templates]);
 
+  const applyColor = useCallback(async (hex: string) => {
+    setActiveColor(hex.toLowerCase());
+    setActiveEffect(DEFAULT_STATIC_EFFECT);
+    staticEffectRef.current = DEFAULT_STATIC_EFFECT;
+    setMode('static');
+    await startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex);
+    publishLighting('static', 'static', { effect: DEFAULT_STATIC_EFFECT });
+  }, [publishLighting]);
+
   const applyMirror = useCallback(async () => {
     setMode('screen');
     // The mirror's look is service-side state: StartScreen ignores the
@@ -354,6 +365,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   const onStaticButton = useCallback(() => {
     const effect = isStaticEffect(activeEffect) ? activeEffect : staticEffectRef.current;
+    setActiveColor('');
     void applyStatic(effect);
   }, [activeEffect, applyStatic]);
 
@@ -403,13 +415,11 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     const prev = () => cycleMode(-1);
     const next = () => cycleMode(1);
 
-    // Static assigns a colour per device, so there is no one selection to
-    // picture - the icon plus how many devices are lit is the whole truth.
     if (mode === 'static') {
       return {
         kind: 'icon',
         icon: LIGHTING_MODE_ICONS.static,
-        label: t(pluralKey('lighting.devices.activeCount', language, activeDeviceCount), { count: activeDeviceCount }),
+        label: t('lighting.mode.static'),
         onPrev: prev,
         onNext: next,
       };
@@ -458,7 +468,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     }
     // mode === 'none' (off).
     return { kind: 'icon', icon: Lightbulb, muted: true, label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
+  }, [mode, activeEffect, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
 
   // The flash stands in for a thumbnail that has not painted yet, so the tile
   // only flashes where a thumbnail renders. Off, Static, Mirror and
@@ -562,12 +572,36 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     );
   }
 
-  // Simple mode: same UX at every size - center icon/label + arrows, no
+  const swatches = mode === 'static' || mode === 'animate'
+    ? (
+      <LightingSwatches
+        key={`${mode}:${showRecents}`}
+        kind={mode}
+        size={widget.size}
+        activeEffect={activeEffect}
+        activeColor={activeColor}
+        templates={templates}
+        preview={preview}
+        previewThumb={LIGHTING_PREVIEW_THUMBS[LIGHTING_PREVIEW_EFFECT]}
+        showRecents={showRecents}
+        recentColors={recents.colors}
+        recentAnimations={recents.animations}
+        onColor={hex => { recents.recordColor(hex); void applyColor(hex); }}
+        onEffect={key => {
+          recents.recordAnimation(key);
+          void applyEffect(key, isSimpleAnimation(key) ? simpleAnimationState(false) : undefined);
+        }}
+        onOpen={openAction}
+      />
+    )
+    : undefined;
+
+  // Simple mode: same UX at every size - center content + arrows, no
   // mode-buttons row. The arrows switch mode (see cycleMode).
   if (simpleMode) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">
-        <SingleItemView view={view} t={t} showArrows overlay={thumbFlash} framed />
+        <SingleItemView view={view} t={t} showArrows overlay={thumbFlash} framed swatches={swatches} />
       </div>
     );
   }
@@ -575,7 +609,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   if (compact) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-        <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed />
+        <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed swatches={swatches} />
       </div>
     );
   }
@@ -583,7 +617,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   return (
     <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
       {/* The mode buttons below pick the mode, so no arrows here. */}
-      <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed />
+      <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed swatches={swatches} />
       <div className={styles.modeGrid}>
         {MODES.map(m => {
           const Icon = LIGHTING_MODE_ICONS[m.key];
@@ -609,11 +643,11 @@ type SingleView =
   | { kind: 'thumb'; thumbUrl: string | null; label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'icon';  icon: LucideIcon; muted?: boolean; label: string; onPrev?: () => void; onNext?: () => void };
 
-function SingleItemView({ view, t, showArrows, overlay, framed }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode; framed?: boolean }) {
+function SingleItemView({ view, t, showArrows, overlay, framed, swatches }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode; framed?: boolean; swatches?: ReactNode }) {
   const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
   return (
     <div className={styles.thumbBox}>
-      {view.kind === 'thumb' && framed ? (
+      {swatches ? swatches : view.kind === 'thumb' && framed ? (
         // Same card as the animation browser (EffectCard overlay), centered
         // at the browser's 16/9 aspect instead of stretched edge-to-edge.
         <div className={styles.thumbCardBox}>
