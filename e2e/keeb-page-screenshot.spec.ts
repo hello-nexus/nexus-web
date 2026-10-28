@@ -169,7 +169,7 @@ test('walks every Keeb page tab', async ({ page }) => {
   const sidebar = page.locator('[class*="sidebarColumn"]');
   await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
-  const keebBtn = sidebar.locator('button[data-func="Keeb"], button:has-text("Keeb")').first();
+  const keebBtn = sidebar.locator('button[aria-label="Keeb"], button:has-text("Keeb")').first();
   await expect(keebBtn).toBeVisible({ timeout: 10_000 });
   await keebBtn.click();
   await page.waitForTimeout(1000);
@@ -222,7 +222,7 @@ test.describe('small window', () => {
 
     const sidebar = page.locator('[class*="sidebarColumn"]');
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
-    const keebBtn = sidebar.locator('button[data-func="Keeb"], button:has-text("Keeb")').first();
+    const keebBtn = sidebar.locator('button[aria-label="Keeb"], button:has-text("Keeb")').first();
     await expect(keebBtn).toBeVisible({ timeout: 10_000 });
     await keebBtn.click();
     await page.waitForTimeout(1000);
