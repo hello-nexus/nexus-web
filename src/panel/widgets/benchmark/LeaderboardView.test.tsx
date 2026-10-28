@@ -1,10 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// A live getter, so one file covers both the dev-tools build and the release shape.
-const devTools = vi.hoisted(() => ({ on: true }));
-vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return devTools.on; } }));
-
 const getLeaderboardMock = vi.fn();
 const getBenchmarkVersionsMock = vi.fn();
 const getLastSubmissionIdMock = vi.fn();
@@ -50,7 +46,6 @@ function mkEntry(overrides: Partial<Record<string, unknown>> = {}) {
 }
 
 beforeEach(() => {
-  devTools.on = true;
   getLeaderboardMock.mockReset();
   getBenchmarkVersionsMock.mockReset();
   getLastSubmissionIdMock.mockReset().mockReturnValue(null);
@@ -268,21 +263,5 @@ describe('LeaderboardView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ryzen 9/ }));
     expect(await screen.findByText('DDR5')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-  });
-
-  it('offers Open in Build on an entry page only with dev tools on', async () => {
-    getBenchmarkVersionsMock.mockResolvedValue(null);
-    getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry()] });
-
-    const { unmount } = render(<LeaderboardView />);
-    fireEvent.click(await screen.findByRole('button', { name: /Ryzen 9/ }));
-    expect(await screen.findByRole('button', { name: 'benchmark.detail.openInBuilder' })).toBeInTheDocument();
-    unmount();
-
-    devTools.on = false;
-    render(<LeaderboardView />);
-    fireEvent.click(await screen.findByRole('button', { name: /Ryzen 9/ }));
-    expect(await screen.findByText('DDR5')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'benchmark.detail.openInBuilder' })).toBeNull();
   });
 });

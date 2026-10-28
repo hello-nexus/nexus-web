@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, ChartLine, Compass, Film, Gamepad2, History, Trash2, Users, Wrench } from 'lucide-react';
-import { DEV_TOOLS } from '../../../lib/devTools';
 import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
 import { EpicIcon, SteamIcon } from '../../../components/icons/PlatformIcons';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -319,16 +318,14 @@ function GameDetail({
           {t('steam.action.back')}
         </Button>
         <h2 className={styles.detailTitle}>{title}</h2>
-        {DEV_TOOLS && (
-          <Button
-            size="sm"
-            tone="neutral"
-            icon={<Wrench size={14} />}
-            onClick={() => requestOpenBuild(`/upgrade?game=${encodeURIComponent(gameKey)}`)}
-          >
-            {t('frames.findUpgrades')}
-          </Button>
-        )}
+        <Button
+          size="sm"
+          tone="neutral"
+          icon={<Wrench size={14} />}
+          onClick={() => requestOpenBuild(`/upgrade?game=${encodeURIComponent(gameKey)}`)}
+        >
+          {t('frames.findUpgrades')}
+        </Button>
         <Button
           size="sm"
           tone="danger"

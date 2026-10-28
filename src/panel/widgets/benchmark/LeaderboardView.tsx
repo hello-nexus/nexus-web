@@ -8,7 +8,6 @@ import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
 import { Pager } from '../../../components/common/Pager/Pager';
-import { DEV_TOOLS } from '../../../lib/devTools';
 import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
 import { publicProfileUrl } from '../../../lib/publicProfile';
 import { LeaderboardList } from './LeaderboardList';
@@ -156,11 +155,9 @@ export function LeaderboardView({ ownSubmissionIds, onRemoved }: LeaderboardView
                   onRemoved={() => handleRemoved(selected.id)}
                 />
               )}
-              {DEV_TOOLS && (
-                <Button tone="accent" onClick={() => requestOpenBuild(`/builder?bench=${encodeURIComponent(selected.id)}`)}>
-                  {t('benchmark.detail.openInBuilder')}
-                </Button>
-              )}
+              <Button tone="accent" onClick={() => requestOpenBuild(`/builder?bench=${encodeURIComponent(selected.id)}`)}>
+                {t('benchmark.detail.openInBuilder')}
+              </Button>
             </>
           )}
         />
