@@ -14,7 +14,7 @@ export interface StoreVersion {
   hasPage: boolean;
   requiresTouch: boolean;
   sizes: string[];
-  /** The app lets the user resize its widget to any even span of 4 or more cells per side, beyond the declared sizes. */
+  /** The app's widget resizes freely beyond the declared sizes. */
   freeform?: boolean;
   surfaces: string[];
   releasedAt: string;
