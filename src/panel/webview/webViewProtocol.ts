@@ -26,6 +26,8 @@ export interface WebViewSyncView {
   radius?: number;
   /** Page zoom factor, clamped to the zoom range. Changing it never reloads the view. */
   zoom?: number;
+  /** Set only for the immersive claim; the overlay hides its in-page back disc then. */
+  immersive?: boolean;
 }
 
 export interface WebViewHello { type: 'nexus.webview.hello'; version: number }

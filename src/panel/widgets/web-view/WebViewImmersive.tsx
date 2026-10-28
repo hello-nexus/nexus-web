@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { ArrowLeft, RotateCw, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCw, X } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { useImmersiveExit } from '../../overlays/immersiveExit';
@@ -18,6 +18,7 @@ export function WebViewImmersive({ widget, surface, editorPreview }: WidgetProps
   const exit = useImmersiveExit();
   const snapshot = useSyncExternalStore(webViewHost.subscribe, webViewHost.getSnapshot);
   const canGoBack = snapshot.status === 'supported' && snapshot.views[widget.id]?.canGoBack === true;
+  const canGoForward = snapshot.status === 'supported' && snapshot.navControls && snapshot.views[widget.id]?.canGoForward === true;
   const controlsLive = snapshot.status === 'supported';
 
   return (
@@ -37,6 +38,13 @@ export function WebViewImmersive({ widget, surface, editorPreview }: WidgetProps
           title={t('panel.widget.web-view.back')}
           disabled={!canGoBack}
           onClick={() => webViewHost.sendCommand(widget.id, 'back')}
+        />
+        <Button
+          icon={<ArrowRight size={18} />}
+          aria-label={t('panel.widget.web-view.forward')}
+          title={t('panel.widget.web-view.forward')}
+          disabled={!canGoForward}
+          onClick={() => webViewHost.sendCommand(widget.id, 'forward')}
         />
         <Button
           icon={<RotateCw size={18} />}

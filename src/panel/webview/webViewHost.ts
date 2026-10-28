@@ -490,6 +490,7 @@ export class WebViewHost {
         radius,
         zoom: clampZoom(c.zoom),
         interactive: this.viewInteractive(c),
+        immersive: c.immersive || undefined,
         visible: computeVisible({
           supported,
           documentVisible,

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { WebViewWidget } from './WebViewWidget';
+import { WebViewImmersive } from './WebViewImmersive';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
 import { webViewHost } from '../../webview/webViewHost';
 
@@ -119,5 +120,36 @@ describe('WebViewWidget error recovery', () => {
     expect(screen.queryByText('panel.widget.web-view.home')).toBeNull();
     fireEvent.click(screen.getByText('panel.widget.web-view.retry'));
     expect(send).toHaveBeenCalledWith('w1', 'reload');
+  });
+});
+
+describe('WebViewImmersive forward control', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const renderStrip = (navControls: boolean, canGoForward: boolean) => {
+    window.history.pushState({}, '', '/panel/dev');
+    vi.spyOn(webViewHost, 'getSnapshot').mockReturnValue({
+      status: 'supported', interactive: true, contextMenu: true, navControls, maxViews: 4,
+      views: { w1: { state: 'loaded' as const, canGoBack: true, canGoForward } }, overLimit: [],
+    });
+    const send = vi.spyOn(webViewHost, 'sendCommand').mockImplementation(() => {});
+    render(<WebViewImmersive widget={widget('https://example.com')} surface="y70" />);
+    return send;
+  };
+
+  const forward = () => screen.getByRole('button', { name: 'panel.widget.web-view.forward' }) as HTMLButtonElement;
+
+  it('sends forward when the view can step forward and the host has nav controls', () => {
+    const send = renderStrip(true, true);
+    fireEvent.click(forward());
+    expect(send).toHaveBeenCalledWith('w1', 'forward');
+  });
+
+  it('is disabled with nothing to go forward to, and on a host without nav controls', () => {
+    renderStrip(true, false);
+    expect(forward().disabled).toBe(true);
+    cleanup();
+    renderStrip(false, true);
+    expect(forward().disabled).toBe(true);
   });
 });
