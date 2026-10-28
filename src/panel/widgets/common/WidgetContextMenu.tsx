@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, ExternalLink, Home, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -23,6 +23,9 @@ interface WidgetContextMenuProps {
   // Optional - only shown when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
+  // Web View only, offered while the page can step back or is away from its address.
+  onWebBack?: () => void;
+  onWebHome?: () => void;
   // Dashboard only: the active display panels a copy of the widget can be added to.
   displayTargets?: { id: string; name: string; number: string }[];
   onAddToDisplay?: (displayId: string) => void;
@@ -60,7 +63,7 @@ export function WidgetContextMenu({
   surface,
   themeMode = 'dark',
   themeStyle,
-  onResize, onResizeMode, onEdit, onRemove, onImmersive,
+  onResize, onResizeMode, onEdit, onRemove, onImmersive, onWebBack, onWebHome,
   displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
   onOpenPanelActions,
@@ -167,7 +170,7 @@ export function WidgetContextMenu({
       )}
     </>
   );
-  const hasMiddleItems = Boolean(onImmersive || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+  const hasMiddleItems = Boolean(onImmersive || onWebBack || onWebHome || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
 
   const menuStyle = {
     ...themeStyle,
@@ -222,6 +225,19 @@ export function WidgetContextMenu({
       )}
 
       {!widgetItemsLast && editItems}
+
+      {onWebBack && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onWebBack)}>
+          <ArrowLeft size={14} />
+          <span>{t('panel.widget.web-view.back')}</span>
+        </button>
+      )}
+      {onWebHome && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onWebHome)}>
+          <Home size={14} />
+          <span>{t('panel.widget.web-view.home')}</span>
+        </button>
+      )}
 
       {onImmersive && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>

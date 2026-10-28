@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "Sluiten",
   "panel.widget.web-view.crashed": "Deze pagina werkt niet meer",
   "panel.widget.web-view.error": "Deze pagina kon niet worden geladen",
+  "panel.widget.web-view.home": "Startpagina",
   "panel.widget.web-view.loading": "Laden",
   "panel.widget.web-view.previewOnly": "Wordt alleen op het scherm weergegeven",
   "panel.widget.web-view.reload": "Opnieuw laden",

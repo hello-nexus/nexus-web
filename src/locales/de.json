@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "Schließen",
   "panel.widget.web-view.crashed": "Diese Seite funktioniert nicht mehr",
   "panel.widget.web-view.error": "Diese Seite konnte nicht geladen werden",
+  "panel.widget.web-view.home": "Startseite",
   "panel.widget.web-view.loading": "Wird geladen",
   "panel.widget.web-view.previewOnly": "Wird nur auf dem Display angezeigt",
   "panel.widget.web-view.reload": "Neu laden",

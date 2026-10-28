@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "Fechar",
   "panel.widget.web-view.crashed": "Esta página deixou de funcionar",
   "panel.widget.web-view.error": "Não foi possível carregar esta página",
+  "panel.widget.web-view.home": "Início",
   "panel.widget.web-view.loading": "A carregar",
   "panel.widget.web-view.previewOnly": "Só aparece no ecrã",
   "panel.widget.web-view.reload": "Recarregar",

@@ -51,10 +51,15 @@ describe('detectTransport', () => {
 
 describe('parseInbound', () => {
   it('parses caps from an object or a JSON string', () => {
-    const caps = { type: 'nexus.webview.caps', version: 1, supported: true, maxViews: 4, interactive: false, contextMenu: true, longPress: true };
+    const caps = { type: 'nexus.webview.caps', version: 1, supported: true, maxViews: 4, interactive: false, contextMenu: true, longPress: true, navControls: true };
     expect(parseInbound(caps)).toEqual(caps);
     expect(parseInbound({ ...caps, longPress: undefined })).toMatchObject({ longPress: false });
     expect(parseInbound(JSON.stringify(caps))).toEqual(caps);
+  });
+
+  it('reads away on a state message only when exactly true', () => {
+    expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: true, away: true })).toMatchObject({ away: true });
+    expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: true })).toMatchObject({ away: false });
   });
 
   it('parses a host-reported right-click and rejects non-finite coordinates', () => {
@@ -71,7 +76,7 @@ describe('parseInbound', () => {
 
   it('parses a state frame and drops unknown states', () => {
     expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'error', code: 'x', canGoBack: true }))
-      .toEqual({ type: 'nexus.webview.state', id: 'a', state: 'error', code: 'x', canGoBack: true });
+      .toEqual({ type: 'nexus.webview.state', id: 'a', state: 'error', code: 'x', canGoBack: true, away: false });
     expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'weird', canGoBack: false })).toBeNull();
   });
 

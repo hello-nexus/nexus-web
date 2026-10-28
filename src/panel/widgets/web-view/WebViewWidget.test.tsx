@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { WebViewWidget } from './WebViewWidget';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
@@ -87,5 +87,37 @@ describe('web-view over the view limit', () => {
     } finally {
       delete (window as unknown as { chrome?: unknown }).chrome;
     }
+  });
+});
+
+describe('WebViewWidget error recovery', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const failedSnapshot = (canGoBack: boolean, navControls: boolean) => ({
+    status: 'supported' as const, interactive: true, contextMenu: true, navControls, maxViews: 4,
+    views: { w1: { state: 'error' as const, canGoBack } }, overLimit: [],
+  });
+
+  const renderFailed = (canGoBack: boolean, navControls: boolean) => {
+    window.history.pushState({}, '', '/panel/dev');
+    vi.spyOn(webViewHost, 'getSnapshot').mockReturnValue(failedSnapshot(canGoBack, navControls));
+    const send = vi.spyOn(webViewHost, 'sendCommand').mockImplementation(() => {});
+    render(<WebViewWidget widget={widget('https://example.com')} surface="y70" />);
+    return send;
+  };
+
+  it('offers Back when the view can step back, and Home when the host supports it', () => {
+    const send = renderFailed(true, true);
+    expect(screen.queryByText('panel.widget.web-view.retry')).toBeNull();
+    fireEvent.click(screen.getByText('panel.widget.web-view.back'));
+    fireEvent.click(screen.getByText('panel.widget.web-view.home'));
+    expect(send.mock.calls).toEqual([['w1', 'back'], ['w1', 'home']]);
+  });
+
+  it('offers Reload when there is nothing to go back to, and no Home on an older host', () => {
+    const send = renderFailed(false, false);
+    expect(screen.queryByText('panel.widget.web-view.home')).toBeNull();
+    fireEvent.click(screen.getByText('panel.widget.web-view.retry'));
+    expect(send).toHaveBeenCalledWith('w1', 'reload');
   });
 });

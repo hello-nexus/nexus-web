@@ -229,3 +229,22 @@ describe('WidgetContextMenu add to display', () => {
     expect(screen.queryByText(/addToDisplay/)).toBeNull();
   });
 });
+
+describe('WidgetContextMenu web view navigation', () => {
+  const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: true, surface: 'y70' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+
+  it('shows Back and Home only when offered', () => {
+    const { rerender } = render(<WidgetContextMenu {...base} />);
+    expect(screen.queryByText('panel.widget.web-view.back')).toBeNull();
+    expect(screen.queryByText('panel.widget.web-view.home')).toBeNull();
+    const onWebBack = vi.fn();
+    const onWebHome = vi.fn();
+    rerender(<WidgetContextMenu {...base} onWebBack={onWebBack} onWebHome={onWebHome} />);
+    fireEvent.click(screen.getByText('panel.widget.web-view.back'));
+    expect(onWebBack).toHaveBeenCalled();
+    rerender(<WidgetContextMenu {...base} onWebHome={onWebHome} />);
+    expect(screen.queryByText('panel.widget.web-view.back')).toBeNull();
+    fireEvent.click(screen.getByText('panel.widget.web-view.home'));
+    expect(onWebHome).toHaveBeenCalled();
+  });
+});

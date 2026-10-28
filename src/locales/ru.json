@@ -5017,6 +5017,7 @@
   "panel.widget.web-view.close": "Закрыть",
   "panel.widget.web-view.crashed": "Эта страница перестала работать",
   "panel.widget.web-view.error": "Не удалось загрузить эту страницу",
+  "panel.widget.web-view.home": "Домой",
   "panel.widget.web-view.loading": "Загрузка",
   "panel.widget.web-view.previewOnly": "Отображается только на дисплее",
   "panel.widget.web-view.reload": "Обновить",

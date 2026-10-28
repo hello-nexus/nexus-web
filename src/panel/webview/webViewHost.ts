@@ -22,12 +22,14 @@ export interface WebViewViewState {
   state: WebViewLoadState;
   code?: string;
   canGoBack: boolean;
+  away?: boolean;
 }
 
 export interface WebViewHostSnapshot {
   status: WebViewHostStatus;
   interactive: boolean;
   contextMenu: boolean;
+  navControls: boolean;
   maxViews: number;
   views: Readonly<Record<string, WebViewViewState>>;
   /** Ids past the host's view limit: never synced, shown a placeholder. */
@@ -94,10 +96,11 @@ export class WebViewHost {
   private viewStates: Record<string, WebViewViewState> = {};
   private contextMenu = false;
   private longPress = false;
+  private navControls = false;
   private gestureEngagePx = GESTURE_ENGAGE_PX;
   private interactiveTiles = false;
   private contextMenuListeners = new Set<(id: string, x: number, y: number) => void>();
-  private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, contextMenu: false, maxViews: 0, views: {}, overLimit: [] };
+  private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, contextMenu: false, navControls: false, maxViews: 0, views: {}, overLimit: [] };
   private listeners = new Set<() => void>();
   private suppressed = false;
   private pageHidden = false;
@@ -311,6 +314,7 @@ export class WebViewHost {
       this.interactive = msg.interactive;
       this.contextMenu = msg.contextMenu;
       this.longPress = msg.longPress;
+      this.navControls = msg.navControls;
       this.maxViews = msg.maxViews;
       this.emit();
       if (this.status === 'supported') this.flush(true);
@@ -324,7 +328,7 @@ export class WebViewHost {
     }
     this.viewStates = {
       ...this.viewStates,
-      [msg.id]: { state: msg.state, code: msg.code, canGoBack: msg.canGoBack },
+      [msg.id]: { state: msg.state, code: msg.code, canGoBack: msg.canGoBack, away: msg.away },
     };
     this.emit();
     // An error or crash hides the native view, so the placeholder shows.
@@ -396,6 +400,7 @@ export class WebViewHost {
       status: this.status,
       interactive: this.interactive,
       contextMenu: this.contextMenu,
+      navControls: this.navControls,
       maxViews: this.maxViews,
       views: this.viewStates,
       overLimit: Array.from(this.overLimit),

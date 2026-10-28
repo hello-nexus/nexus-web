@@ -1,4 +1,4 @@
-import { Globe, RotateCw } from 'lucide-react';
+import { ArrowLeft, Globe, Home, RotateCw } from 'lucide-react';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
@@ -66,10 +66,23 @@ export function WebViewSurface({ widget, surface, editorPreview, immersive }: We
         <span className={styles.title}>{title}</span>
         {hint && <span className={styles.hint}>{hint}</span>}
         {previewOnly && <Badge label={t('panel.widget.web-view.previewOnly')} />}
-        {failed && immersive && (
-          <Button size="sm" icon={<RotateCw size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'reload')}>
-            {t('panel.widget.web-view.retry')}
-          </Button>
+        {failed && (
+          <div className={styles.actions}>
+            {view?.canGoBack ? (
+              <Button size="sm" icon={<ArrowLeft size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'back')}>
+                {t('panel.widget.web-view.back')}
+              </Button>
+            ) : (
+              <Button size="sm" icon={<RotateCw size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'reload')}>
+                {t('panel.widget.web-view.retry')}
+              </Button>
+            )}
+            {snapshot.navControls && (
+              <Button size="sm" icon={<Home size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'home')}>
+                {t('panel.widget.web-view.home')}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </div>
