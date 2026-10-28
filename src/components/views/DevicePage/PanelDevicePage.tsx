@@ -52,7 +52,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, genericSinglePage, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -1159,7 +1159,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
       targetSlots,
     );
-    if (genericDisplay) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
+    if (genericSinglePage(genericDisplay, glassSurface, glassTouch)) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
     const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay)
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);

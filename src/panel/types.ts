@@ -164,8 +164,13 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
 // Pages are reached by swiping, so a panel without touch keeps one page, except a
 // display-bound multi-widget panel, which has a clickable pager.
 export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean, displayBound = false, genericDisplay = false): boolean {
-  if (genericDisplay) return false;
+  if (genericSinglePage(genericDisplay, surface, deviceTouch)) return false;
   return surfaceSupportsTouch(surface, deviceTouch) || (displayBound && !isSingleWidgetSurface(surface));
+}
+
+// A mouse-only generic display keeps one page and no tap-to-immersive; a touch one swipes and taps like any touch panel.
+export function genericSinglePage(genericDisplay: boolean, surface: PanelSurface, deviceTouch?: boolean): boolean {
+  return genericDisplay && !surfaceSupportsTouch(surface, deviceTouch);
 }
 
 // An OS display promoted to a panel that no curated device claims (a curated one carries capabilities.family).

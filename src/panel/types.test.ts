@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
+  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages, genericSinglePage, isSingleWidgetSurface, LIANLI_SCREEN88_FAMILY,
   cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, type PanelSurface,
 } from './types';
 
@@ -278,13 +278,64 @@ describe('isGenericDisplayPanel and pages', () => {
     }
   });
 
-  it('gives a generic display one page and leaves a known display its pages', () => {
-    expect(surfaceAllowsPages('monitor', true, true, true)).toBe(false);
+  it('gives a mouse-only generic display one page, a touch one its pages, and a known display its pages', () => {
+    expect(surfaceAllowsPages('monitor', true, true, true)).toBe(true);
     expect(surfaceAllowsPages('monitor', false, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', undefined, true, true)).toBe(false);
     expect(surfaceAllowsPages('monitor', false, true, false)).toBe(true);
     expect(surfaceAllowsPages('monitor', true, true, false)).toBe(true);
     expect(surfaceAllowsPages('y70', undefined, false, false)).toBe(true);
     expect(surfaceAllowsPages('phone', undefined, false, false)).toBe(true);
+  });
+});
+
+describe('genericSinglePage', () => {
+  it('holds only a mouse-only generic display to its first page', () => {
+    expect(genericSinglePage(true, 'monitor', true)).toBe(false);
+    expect(genericSinglePage(true, 'monitor', false)).toBe(true);
+    expect(genericSinglePage(true, 'monitor', undefined)).toBe(true);
+    expect(genericSinglePage(false, 'monitor', false)).toBe(false);
+  });
+});
+
+// Every non-touch-generic panel must keep its pre-change answer; only a generic display with touch:true changes.
+describe('generic display touch rule across panel kinds', () => {
+  const legacyAllowsPages = (surface: PanelSurface, touch: boolean | undefined, displayBound: boolean, generic: boolean) =>
+    !generic && (surfaceSupportsTouch(surface, touch) || (displayBound && !isSingleWidgetSurface(surface)));
+  type Kind = { name: string; surface: PanelSurface; family?: string; displayBound: boolean; touch: boolean | undefined; changes?: true };
+  const kinds: Kind[] = [
+    { name: 'Y70', surface: 'y70', family: 'y70', displayBound: false, touch: true },
+    { name: 'Y70 bound to a display', surface: 'y70', family: 'y70', displayBound: true, touch: true },
+    { name: 'Q60', surface: 'q60', family: 'q60', displayBound: false, touch: true },
+    { name: 'Q80', surface: 'q60', family: 'q80', displayBound: false, touch: false },
+    { name: 'Universal Screen', surface: 'monitor', family: LIANLI_SCREEN88_FAMILY, displayBound: true, touch: true },
+    { name: 'Universal Screen without touch', surface: 'monitor', family: LIANLI_SCREEN88_FAMILY, displayBound: true, touch: false },
+    { name: 'Xeneon Edge', surface: 'monitor', family: 'xeneon-edge', displayBound: true, touch: true },
+    { name: 'phone', surface: 'phone', displayBound: false, touch: undefined },
+    { name: 'browser panel without a device', surface: 'desktop', displayBound: false, touch: undefined },
+    { name: 'monitor without a display', surface: 'monitor', displayBound: false, touch: true },
+    { name: 'generic display touch false', surface: 'monitor', displayBound: true, touch: false },
+    { name: 'generic display touch missing', surface: 'monitor', displayBound: true, touch: undefined },
+    { name: 'generic display touch true', surface: 'monitor', displayBound: true, touch: true, changes: true },
+  ];
+
+  it.each(kinds)('$name', ({ surface, family, displayBound, touch, changes }) => {
+    const generic = isGenericDisplayPanel(surface, family, displayBound);
+    const oneBefore = generic;
+    const oneNow = genericSinglePage(generic, surface, touch);
+    const allowsBefore = legacyAllowsPages(surface, touch, displayBound, generic);
+    const allowsNow = surfaceAllowsPages(surface, touch, displayBound, generic);
+    // Fold, held pages and tap suppression all key on oneNow; PanelApp's cell tap otherwise needs surfaceSupportsTouch.
+    if (changes) {
+      expect(generic).toBe(true);
+      expect(oneBefore).toBe(true);
+      expect(oneNow).toBe(false);
+      expect(allowsBefore).toBe(false);
+      expect(allowsNow).toBe(true);
+    } else {
+      expect(oneNow).toBe(oneBefore);
+      expect(allowsNow).toBe(allowsBefore);
+    }
   });
 });
 
