@@ -217,7 +217,7 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }
-  // HYTE Y60 display: a 1920x515 bar, usually rotated to portrait. The forced count applies to the
+  // HYTE Y60 display: a wide bar that usually runs rotated to portrait. The forced count applies to the
   // short axis in either orientation, so Large gives fewer, bigger cells; Small is the density grid.
   if (surface === 'monitor' && family === HYTE_Y60_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };

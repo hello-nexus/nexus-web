@@ -182,6 +182,9 @@ export function SidebarDevicesSection({
     if (ctxMenu && !hasCtxItems) setCtxMenu(null);
   }, [ctxMenu, hasCtxItems]);
 
+  const nameCounts = new Map<string, number>();
+  for (const d of sorted) nameCounts.set(sidebarDeviceName(d), (nameCounts.get(sidebarDeviceName(d)) ?? 0) + 1);
+
   return (
     <section className={styles.section}>
       {compact ? <HoverTooltip body={label} side="right">{headerBtn}</HoverTooltip> : headerBtn}
@@ -195,8 +198,10 @@ export function SidebarDevicesSection({
           const isActive = device.key === activeDeviceKey || claimsKey(device, activeDeviceKey);
           const isSimulated = isSimulatedDevice(device);
           const controlOff = device.supportsNexusControl && !device.nexusControlEnabled;
-          const displayNumber = displayListNumber(topology?.displays ?? [], device.kind === 'panel' && device.panelDevice?.genericDisplay ? device.panelDevice.displayId : undefined);
           const baseName = sidebarDeviceName(device);
+          // A branded panel is numbered only to tell apart same-named siblings.
+          const numbered = device.kind === 'panel' && (device.panelDevice?.genericDisplay || (nameCounts.get(baseName) ?? 0) > 1);
+          const displayNumber = displayListNumber(topology?.displays ?? [], numbered ? device.panelDevice?.displayId : undefined);
           const name = displayNumber ? t('displays.numberedName', { name: baseName, n: displayNumber }) : baseName;
           const tooltip = isSimulated
             ? `${name} (${t('devices.simulated')})`

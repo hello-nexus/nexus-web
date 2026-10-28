@@ -166,6 +166,17 @@ describe('SidebarDevicesSection display numbers', () => {
     renderSidebar();
     expect(screen.getByText('Xeneon Edge')).toBeTruthy();
   });
+
+  it('numbers branded panels that share a name', () => {
+    mockUnified = [
+      monitorDevice({ key: 'c', panelDevice: monitorPanelDevice({ id: 'display:c', displayId: 'd1' }) }),
+      monitorDevice({ key: 'd', panelDevice: monitorPanelDevice({ id: 'display:d', displayId: 'd2' }) }),
+    ];
+    mockTopology = { displays: [{ id: 'd1', number: 1 }, { id: 'd2', number: 2 }] };
+    renderSidebar();
+    expect(screen.getAllByText(/Xeneon Edge/)).toHaveLength(2);
+    expect(screen.queryByText('Xeneon Edge')).toBeNull();
+  });
 });
 
 describe('SidebarDevicesSection panel toggle wording', () => {
