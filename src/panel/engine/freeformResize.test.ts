@@ -39,7 +39,7 @@ describe('freeformSnapSpans', () => {
   });
 });
 
-describe('freeformSnapSpans without the even spans', () => {
+describe('freeformSnapSpans with declared sizes only', () => {
   it('offers only the declared sizes that fit the grid', () => {
     const declared = ['2x2', '4x2', '4x4'] as const;
     expect(names(freeformSnapSpans(declared, { cols: 8, rows: 8 }, false))).toEqual(['2x2', '4x2', '4x4']);
