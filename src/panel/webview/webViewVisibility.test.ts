@@ -70,6 +70,11 @@ describe('isTopmost', () => {
     expect(isTopmost(el, sliding, (x, y) => (x < 0 ? null : y > 480 ? other : el), vp)).toBe(false);
   });
 
+  it('fails when a partly off-screen tile is covered only in its left visible band', () => {
+    const { el, other } = setup();
+    expect(isTopmost(el, { x: -250, y: 200, w: 400, h: 300 }, (x, y) => (x < 0 || y < 0 ? null : x < 20 ? other : el), vp)).toBe(false);
+  });
+
   it('fails when no probe point is on screen', () => {
     const { el } = setup();
     expect(isTopmost(el, { x: -500, y: 200, w: 400, h: 300 }, () => el, vp)).toBe(false);

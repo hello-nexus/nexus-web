@@ -679,7 +679,7 @@ describe('finger-driven moves', () => {
     for (const x of [-150, -90, -40, 10]) {
       a.moveTo({ x, y: 20, w: 300, h: 300 });
       frame();
-      expect(syncs().at(-1)!.views[0].rect.x).toBe(x);
+      expect(syncs().at(-1)!.views[0]).toMatchObject({ visible: true, rect: { x } });
     }
   });
 
