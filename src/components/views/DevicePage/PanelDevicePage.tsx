@@ -100,6 +100,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
+import { MonoPreviewFilter } from './MonoPreviewFilter';
+import { isMonoFamily, keepsSidePreview } from './monoPreview';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
 import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
 import { saveBlobToFile } from '../../../lib/saveFile';
@@ -588,7 +590,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const isStripPanel = !!previewCanvas && previewCanvas.width > 0 && previewCanvas.height > 0
     && Math.max(previewCanvas.width, previewCanvas.height)
        / Math.min(previewCanvas.width, previewCanvas.height) >= STRIP_ASPECT_MIN;
-  const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height;
+  const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height && !keepsSidePreview(recordFamily);
   // The panel's live orientation, read from the same canvas the preview frame
   // renders, so the immersive-on-load toggle offers exactly the immersive views
   // the device can actually open.
@@ -2113,9 +2115,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             className={styles.previewPane}
             data-surface={glassSurface}
             data-family={recordFamily}
+            data-mono={isMonoFamily(recordFamily) || undefined}
             data-playlist-nav={showPlaylistArrows || undefined}
             data-troubleshoot={showPreviewTroubleshoot || undefined}
           >
+            {isMonoFamily(recordFamily) && <MonoPreviewFilter />}
             <div className={styles.previewStage}>
               {recordSecondaryMonitor ? (
                 <div className={styles.secondaryMonitorPreview}>
