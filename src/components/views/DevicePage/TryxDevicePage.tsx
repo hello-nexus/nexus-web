@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { Monitor, MonitorOff, Film, Download, Sparkles } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -16,9 +16,9 @@ import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/Med
 import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useSensors } from '../../../hooks/useSensors';
-import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
+import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
-import { buildNetworkSensors } from '../../../panel/widgets/monitoring/networkSensors';
+import { buildNicNetworkSensors } from '../../../panel/widgets/monitoring/networkSensors';
 import { sensorsForCategory } from '../../../panel/widgets/monitoring/sensorCategories';
 import { stageKlipy, type KlipyGif } from '../../../api/klipy';
 import { cancelMediaStage, fetchStagedFile, mediaStagePreviewUrl, mediaStageRawUrl, stagePreviewFor } from '../../../api/mediaLibrary';
@@ -191,8 +191,9 @@ export function TryxDevicePage() {
   const sensors = useSensors(true);
   const usesNetworkSensor = overlayItems.some(item => item.device === 'network');
   const usesFpsSensor = overlayItems.some(item => item.device === 'fps');
-  const network = useNetworkMonitor(usesNetworkSensor);
-  const networkSensors = buildNetworkSensors(network);
+  // The device reads the NIC aggregate service-side, so the preview sums the same extras topic.
+  const extras = useSensorExtras(usesNetworkSensor);
+  const networkSensors = useMemo(() => buildNicNetworkSensors(extras.nics), [extras.nics]);
   const fpsSensors = useFpsSensors(usesFpsSensor);
   const sensorsByGroup: TryxSensorsByGroup = {
     quick: sensorsForCategory('quick', sensors, networkSensors, fpsSensors),
