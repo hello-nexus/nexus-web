@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-  DEVICE_HOSTNAME_MAX_LENGTH, generateManualInstallId, isValidDeviceHostname, trimDeviceSpecs,
+  DEVICE_HOSTNAME_MAX_LENGTH, generateManualInstallId, isValidDeviceHostname, systemSpecsToDeviceSpecs, trimDeviceSpecs,
 } from './deviceUtils';
+import type { SystemSpecs } from '../../../../hooks/useSystemSpecs';
 
 describe('generateManualInstallId', () => {
   it('generates a "manual-" prefix followed by 32 hex characters', () => {
@@ -46,5 +47,18 @@ describe('trimDeviceSpecs', () => {
 
   it('returns an empty object when every field is blank', () => {
     expect(trimDeviceSpecs({ processor: '', memory: '' })).toEqual({});
+  });
+});
+
+describe('systemSpecsToDeviceSpecs', () => {
+  it('copies string fields and ignores the non-string hardwareIds object', () => {
+    const specs = {
+      pcName: 'DESKTOP-1', osBuild: '', processor: 'CPU',
+      hardwareIds: { board: { manufacturer: 'Acme', product: 'B1' }, gpus: [{ vendor: '10de' }] },
+    } as unknown as SystemSpecs;
+
+    const result = systemSpecsToDeviceSpecs(specs);
+
+    expect(result).toEqual({ pcName: 'DESKTOP-1', processor: 'CPU' });
   });
 });
