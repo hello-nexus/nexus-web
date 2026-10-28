@@ -1178,7 +1178,9 @@ export function PanelContent({
   // stored (addWidget creates it), though activePageId can point at it so every
   // surface shows the same page. A drag mints its own trailing page.
   const [blankPageId] = useState(createUuid);
-  const blankPageEligible = (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable)))
+  // A click-through generic display has no input region on an empty page, so a swipe onto it could not swipe back.
+  const blankPageEligible = !(genericDisplay && seeThrough)
+    && (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable)))
     && !singlePage
     && !isSingleWidgetSurface(surface)
     && !activeDragId
@@ -1348,7 +1350,7 @@ export function PanelContent({
       }
       return null;
     }
-    // A generic display's widgets act only through their own controls; the app opens from the menu's Open.
+    // A mouse-only generic display's widgets act only through their own controls; the app opens from the menu's Open.
     if (genericOnePage) return null;
     const def = lookupApp(w.type);
     if (!def?.Touch) return null;

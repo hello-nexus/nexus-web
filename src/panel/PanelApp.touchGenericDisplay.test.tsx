@@ -42,15 +42,15 @@ const layout: PanelLayout = {
   pages: [{ id: 'p0', widgets: [clock('w0')] }, { id: 'p1', widgets: [clock('w1')] }],
 };
 
-const recordWith = (touch: boolean) => ({
+const recordWith = (touch: boolean, backdrop = 'desktop', family?: string) => ({
   id: 'disp-rec',
   displayName: 'Touch bar',
   firstSeenAt: 0,
   lastSeenAt: 0,
   displayId: 'disp1',
-  backdrop: 'desktop',
+  backdrop,
   layout,
-  capabilities: { surface: 'monitor', touch, orientation: 'Landscape', dpi: 94, cssWidth: 1920, cssHeight: 515, dpr: 1 },
+  capabilities: { surface: 'monitor', touch, orientation: 'Landscape', dpi: 94, cssWidth: 1920, cssHeight: 515, dpr: 1, ...(family ? { family } : {}) },
 });
 
 function setViewport(width: number, height: number) {
@@ -62,8 +62,8 @@ function setViewport(width: number, height: number) {
   }));
 }
 
-async function mount(touch: boolean) {
-  const record = recordWith(touch);
+async function mount(touch: boolean, backdrop = 'desktop', family?: string) {
+  const record = recordWith(touch, backdrop, family);
   fetchMock.mockResolvedValue({ found: true, record });
   patchMock.mockResolvedValue({ ok: true, record });
   render(
@@ -109,12 +109,24 @@ afterEach(() => {
 });
 
 describe('PanelApp generic display with touch', () => {
-  it('shows every stored page, plus the trailing blank page, without folding', async () => {
+  it('shows every stored page without folding, and no blank page while click-through', async () => {
     await mount(true);
 
-    expect(renderedPages().length).toBeGreaterThanOrEqual(2);
+    expect(renderedPages()).toHaveLength(2);
     expect(widget('w1')).not.toBeNull();
     for (const written of writtenLayouts()) expect(written.pages).toHaveLength(2);
+  });
+
+  it('keeps the trailing blank page on an opaque backdrop', async () => {
+    await mount(true, 'theme');
+
+    expect(renderedPages()).toHaveLength(3);
+  });
+
+  it('keeps the trailing blank page on a known display over the desktop', async () => {
+    await mount(true, 'desktop', 'xeneon-edge');
+
+    expect(renderedPages()).toHaveLength(3);
   });
 
   it('enters immersive on a tap', async () => {
