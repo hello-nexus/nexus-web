@@ -55,7 +55,7 @@ import { useDesktopImport } from './engine/useDesktopImport';
 import { editTargetGone, latestOr, useSyncLatestLayout } from './engine/latestLayout';
 import { useDisplayTargets } from './engine/useDisplayTargets';
 import { usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
-import { panelHostAvailable } from './device/panelHostBridge';
+import { panelHostAvailable, panelHitTestBound } from './device/panelHostBridge';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
 import { PanelActionsTray } from './chrome/PanelActionsTray';
@@ -1898,8 +1898,9 @@ export function PanelContent({
     || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
   // Position and size, so a remote edit that keeps the ids still remeasures.
   const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
+  // The Y70 kiosk never has a display record, yet its see-through window still starts with an empty input region.
   usePanelHitTest(
-    hostBound && seeThrough,
+    panelHitTestBound(kioskBehavior, displayBound, glassSurface, panelHostAvailable()) && seeThrough,
     clickThrough,
     hitFull,
     rootRef,

@@ -42,7 +42,7 @@ export function trimDeviceSpecs(specs: Record<string, string>): Record<string, s
 export function systemSpecsToDeviceSpecs(specs: SystemSpecs): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(specs)) {
-    if (value) result[key] = value.slice(0, DEVICE_SPEC_VALUE_MAX_LENGTH);
+    if (typeof value === 'string' && value) result[key] = value.slice(0, DEVICE_SPEC_VALUE_MAX_LENGTH);
   }
   return result;
 }

@@ -508,7 +508,7 @@
   "cooling.curves.add": "Nová křivka",
   "cooling.curves.delete": "Smazat",
   "cooling.curves.empty": "Nejsou definovány žádné křivky. Vytvořte křivku pro řízení ventilátorů.",
-  "cooling.curves.maxReached": "Dosažen limit: max. 10 křivek. Chcete-li přidat další, jednu smažte.",
+  "cooling.curves.maxReached": "Dosažen limit: max. {max} křivek. Chcete-li přidat další, jednu smažte.",
   "cooling.curves.noCurveSelected": "Není vybrána žádná křivka. Vyberte křivku výše a použijte ji na výběr.",
   "cooling.curves.removeBtn": "Odebrat křivku",
   "cooling.curves.rename": "Přejmenovat",

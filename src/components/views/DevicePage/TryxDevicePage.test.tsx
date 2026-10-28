@@ -36,10 +36,11 @@ vi.mock('../../../hooks/useSensors', () => ({
   useSensors: () => mockSensors,
 }));
 
-vi.mock('../../../hooks/useNetworkMonitor', () => ({
-  useNetworkMonitor: () => ({
-    series: [], sampleCount: 0, totalRate: 0, totalRateIn: 0, totalRateOut: 0, entries: [],
-  }),
+const mockExtras = {
+  batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [],
+};
+vi.mock('../../../hooks/useSensorExtras', () => ({
+  useSensorExtras: () => mockExtras,
 }));
 
 const mockGetTryxStatus = vi.fn();
