@@ -1148,6 +1148,7 @@ export function Dashboard() {
                   onDeviceSelect={k => navigate('system', 'device', k)}
                   onDevicesHeaderClick={() => navigate('system', 'devices')}
                   devicesHeaderActive={section === 'system' && activeView === 'devices'}
+                  onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
                 />
               )}
 
