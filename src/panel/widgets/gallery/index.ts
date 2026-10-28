@@ -24,6 +24,8 @@ export const galleryApp: AppManifest = {
     // surfaces.
     sizes: ['2x2', '2x4', '4x2', '4x4', '2x2round'],
     defaultSize: '4x4',
+    // The viewer fills its box (cover/contain) and sizes fetches from the painted width, so any span works.
+    freeform: true,
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: false,

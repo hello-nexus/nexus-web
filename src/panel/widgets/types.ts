@@ -124,7 +124,7 @@ export interface AppMetadata {
   gridSizes?: PanelWidgetSize[];
   /**
    * Opts the widget into freeform resizing in the panel editor: beyond `sizes` it may take
-   * any even span from the freeform minimum side up that the device grid holds. Its content must lay out at any span.
+   * any span from the freeform minimum side up that the device grid holds. Its content must lay out at any span.
    * Built-ins set it in their meta; an SDK app sets it with `"freeform": true` in its manifest.
    */
   freeform?: boolean;

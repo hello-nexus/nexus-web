@@ -15,18 +15,17 @@ import { isFreeformWidgetSize, normalizePanelWidgetSize, parseWidgetSizeSpan } f
 const names = (spans: { cols: number; rows: number }[]) => spans.map(spanToSize).sort();
 
 describe('freeformSnapSpans', () => {
-  it('offers the declared sizes plus even spans of at least 4 on a 4 wide grid', () => {
+  it('offers the declared sizes plus every span of at least 4 on a 4 wide grid', () => {
     const spans = freeformSnapSpans(['4x2', '4x4'], { cols: 4, rows: 8 });
-    expect(names(spans)).toEqual(['4x2', '4x4', '4x6', '4x8']);
+    expect(names(spans)).toEqual(['4x2', '4x4', '4x5', '4x6', '4x7', '4x8']);
   });
 
   it('adds the wide spans on an 8 wide grid', () => {
     const spans = names(freeformSnapSpans(['4x2', '4x4'], { cols: 8, rows: 8 }));
-    expect(spans).toEqual([
-      '4x2', '4x4', '4x6', '4x8',
-      '6x4', '6x6', '6x8',
-      '8x4', '8x6', '8x8',
-    ].sort());
+    const every = ['4x2'];
+    for (let c = 4; c <= 8; c++) for (let r = 4; r <= 8; r++) every.push(`${c}x${r}`);
+    expect(spans).toEqual(every.sort());
+    expect(spans).toEqual(expect.arrayContaining(['5x4', '4x5', '5x5', '4x6']));
   });
 
   it('caps every span by the grid, declared sizes included', () => {
@@ -40,7 +39,7 @@ describe('freeformSnapSpans', () => {
   });
 });
 
-describe('freeformSnapSpans without the even spans', () => {
+describe('freeformSnapSpans with declared sizes only', () => {
   it('offers only the declared sizes that fit the grid', () => {
     const declared = ['2x2', '4x2', '4x4'] as const;
     expect(names(freeformSnapSpans(declared, { cols: 8, rows: 8 }, false))).toEqual(['2x2', '4x2', '4x4']);
@@ -86,12 +85,12 @@ describe('freeformSnapSpans without the even spans', () => {
       expect(r).toEqual({ col: 4, row: 0, cols: 4, rows: 4 });
     });
 
-    it('keeps the ratio with even spans where plain snapping would not', () => {
+    it('keeps the ratio with any span where plain snapping would not', () => {
       const bounds = { cols: 12, rows: 8 };
       const snap = freeformSnapSpans([], bounds, true);
       const start = { col: 0, row: 0, cols: 6, rows: 4 };
-      expect(resizeRectFromCorner(start, 'br', 2, 4 / 3, snap, bounds, noCheck, false)).toEqual({ col: 0, row: 0, cols: 8, rows: 6 });
-      expect(resizeRectFromCorner(start, 'br', 2, 4 / 3, snap, bounds, noCheck, true)).toEqual(start);
+      expect(resizeRectFromCorner(start, 'br', 2, 4 / 3, snap, bounds, noCheck, false)).toEqual({ col: 0, row: 0, cols: 8, rows: 5 });
+      expect(resizeRectFromCorner(start, 'br', 2, 4 / 3, snap, bounds, noCheck, true)).toEqual({ col: 0, row: 0, cols: 9, rows: 6 });
       expect(resizeRectFromCorner(start, 'br', 6, 0, snap, bounds, noCheck, true)).toEqual({ col: 0, row: 0, cols: 12, rows: 8 });
     });
 
@@ -157,7 +156,7 @@ describe('resizeRectFromCorner', () => {
 
   it('snaps to the nearest span instead of following the pointer exactly', () => {
     expect(resizeRectFromCorner(start, 'br', 0.4, 0.4, snap, bounds)).toEqual(start);
-    expect(resizeRectFromCorner(start, 'br', 1.2, 0, snap, bounds)).toEqual({ col: 2, row: 2, cols: 6, rows: 4 });
+    expect(resizeRectFromCorner(start, 'br', 1.6, 0, snap, bounds)).toEqual({ col: 2, row: 2, cols: 6, rows: 4 });
   });
 
   it('never leaves the grid: a span that would cross an edge is not a candidate', () => {
@@ -171,7 +170,7 @@ describe('resizeRectFromCorner', () => {
   });
 
   it('prefers the smaller span on a tie', () => {
-    const tied = resizeRectFromCorner({ col: 0, row: 0, cols: 4, rows: 4 }, 'br', 1, 0, snap, bounds);
+    const tied = resizeRectFromCorner({ col: 0, row: 0, cols: 4, rows: 4 }, 'br', 0.5, 0, snap, bounds);
     expect(tied).toEqual({ col: 0, row: 0, cols: 4, rows: 4 });
   });
 });
@@ -247,7 +246,7 @@ describe('stepRectFromCorner', () => {
   const at = (cols: number, rows: number) => ({ col: 0, row: 0, cols, rows });
 
   it('steps a corner outward to the next span on the stepped axis', () => {
-    expect(stepRectFromCorner(at(4, 4), 'br', 1, 0, snap, bounds)).toEqual(at(6, 4));
+    expect(stepRectFromCorner(at(4, 4), 'br', 1, 0, snap, bounds)).toEqual(at(5, 4));
     expect(stepRectFromCorner(at(2, 2), 'br', 1, 0, snap, bounds)).toEqual(at(4, 2));
     expect(stepRectFromCorner(at(4, 2), 'br', 0, 1, snap, bounds)).toEqual(at(4, 4));
   });
@@ -255,7 +254,7 @@ describe('stepRectFromCorner', () => {
   it('steps inward to shrink and moves the origin for a left or top corner', () => {
     expect(stepRectFromCorner(at(4, 4), 'br', -1, 0, snap, bounds)).toEqual(at(2, 2));
     const moved = stepRectFromCorner({ col: 2, row: 2, cols: 4, rows: 4 }, 'tl', -1, 0, snap, bounds);
-    expect(moved).toEqual({ col: 0, row: 2, cols: 6, rows: 4 });
+    expect(moved).toEqual({ col: 1, row: 2, cols: 5, rows: 4 });
   });
 
   it('stays put when no span lies that way', () => {
@@ -287,7 +286,7 @@ describe('corner origin on any cell', () => {
   const bounds = { cols: 8, rows: 8 };
   const snap = freeformSnapSpans(['2x2', '4x2', '4x4'], bounds, false);
 
-  it('moves the origin of a tile on an odd cell and keeps even spans', () => {
+  it('moves the origin of a tile on an odd cell and keeps the span', () => {
     // Growing from the top left of a 2x2 at col 3 puts the origin at col 1.
     const start = { col: 3, row: 2, cols: 2, rows: 2 };
     expect(resizeRectFromCorner(start, 'tl', -2, -2, snap, bounds)).toEqual({ col: 1, row: 0, cols: 4, rows: 4 });
