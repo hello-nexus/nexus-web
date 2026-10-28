@@ -1,18 +1,20 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Maximize2 } from 'lucide-react';
 import { effectThumbnailPath } from '../../../api/lighting';
 import { fetchServiceBlob } from '../../../api/service';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { useTranslation } from '../../../lib/i18n';
-import { paletteFamilyKey, type PaletteColor } from '../../../types/lightingPalette';
 import type { EffectTemplateBundle } from '../../../types/lighting';
 import { slotThumbSignature } from '../../../types/lightingTemplates';
 import type { PanelWidget } from '../../types';
-import { ANIMATE_SWATCHES, STATIC_SWATCHES, defaultSwatchCount, fitSwatchGrid, type SwatchEffect, type SwatchGrid } from './swatches';
+import {
+  TILE_ASPECT, pickAnimationTiles, pickStaticTiles, swatchGrid, tileGridWidth,
+  type StaticTile, type SwatchEffect,
+} from './swatches';
 import styles from './LightingWidget.module.scss';
 
-const ANIMATE_ASPECT = 16 / 9;
 const GRID_PAD = 4;
+const RATIO = `${(100 / TILE_ASPECT).toFixed(3)}%`;
 
 interface Props {
   kind: 'static' | 'animate';
@@ -22,30 +24,32 @@ interface Props {
   templates: Record<string, EffectTemplateBundle>;
   preview: boolean;
   previewThumb?: string;
-  onColor: (color: PaletteColor) => void;
+  showRecents: boolean;
+  recentColors: readonly string[];
+  recentAnimations: readonly string[];
+  onColor: (hex: string) => void;
   onEffect: (key: string) => void;
+  onOpen: () => void;
 }
 
-function useFit(kind: Props['kind'], size: Props['size']) {
+function useGridWidth(cols: number, rows: number) {
   const ref = useRef<HTMLDivElement>(null);
-  const [grid, setGrid] = useState<SwatchGrid | null>(null);
+  const [width, setWidth] = useState<number | null>(null);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const max = kind === 'static' ? STATIC_SWATCHES.length : ANIMATE_SWATCHES.length;
-    const aspect = kind === 'static' ? 1 : ANIMATE_ASPECT;
     const measure = () => {
       const r = el.getBoundingClientRect();
       const w = r.width - GRID_PAD * 2;
       const h = r.height - GRID_PAD * 2;
-      if (w > 0 && h > 0) setGrid(fitSwatchGrid(w, h, aspect, max));
+      if (w > 0 && h > 0) setWidth(tileGridWidth(w, h, cols, rows));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [kind, size]);
-  return { ref, grid };
+  }, [cols, rows]);
+  return { ref, width };
 }
 
 function useEffectThumbs(effects: readonly SwatchEffect[], templates: Record<string, EffectTemplateBundle>, enabled: boolean) {
@@ -79,40 +83,57 @@ function useEffectThumbs(effects: readonly SwatchEffect[], templates: Record<str
   return thumbs;
 }
 
-export function LightingSwatches({ kind, size, activeEffect, activeColor, templates, preview, previewThumb, onColor, onEffect }: Props) {
+export function LightingSwatches({
+  kind, size, activeEffect, activeColor, templates, preview, previewThumb,
+  showRecents, recentColors, recentAnimations, onColor, onEffect, onOpen,
+}: Props) {
   const { t } = useTranslation();
-  const { ref, grid } = useFit(kind, size);
-  const count = grid?.count ?? defaultSwatchCount(size);
-  const cols = grid?.cols ?? (size === '2x2' ? 2 : size === '4x2' ? 3 : 4);
-  const visibleEffects = useMemo(() => ANIMATE_SWATCHES.slice(0, count), [count]);
-  const thumbs = useEffectThumbs(visibleEffects, templates, kind === 'animate' && !preview);
+  const { cols, rows, slots } = swatchGrid(size);
+  // Taps record into recents, so the order is held for this mount and a quick second tap lands on the same tile.
+  const [heldColors] = useState(recentColors);
+  const [heldAnimations] = useState(recentAnimations);
+  const { ref, width } = useGridWidth(cols, rows);
+  const staticTiles = useMemo(
+    () => (kind === 'static' ? pickStaticTiles(heldColors, showRecents, slots) : []),
+    [kind, heldColors, showRecents, slots],
+  );
+  const effectTiles = useMemo(
+    () => (kind === 'animate' ? pickAnimationTiles(heldAnimations, showRecents, slots) : []),
+    [kind, heldAnimations, showRecents, slots],
+  );
+  const thumbs = useEffectThumbs(effectTiles, templates, kind === 'animate' && !preview);
+  const cell = { '--swatch-ratio': RATIO } as CSSProperties;
+  const openLabel = t('lighting.widget.openLighting');
 
   return (
     <div ref={ref} className={styles.swatchInset}>
       <div
         className={styles.swatchGrid}
         data-kind={kind}
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        data-cols={cols}
+        data-rows={rows}
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: width === null ? '100%' : `${width + GRID_PAD * 2}px` }}
       >
         {kind === 'static'
-          ? STATIC_SWATCHES.slice(0, count).map(color => {
-            const name = `${t(paletteFamilyKey(color.family))} ${color.shade}`;
+          ? staticTiles.map((tile: StaticTile) => {
+            const name = tile.nameKey ? `${t(tile.nameKey)}${tile.shade ? ` ${tile.shade}` : ''}` : tile.name ?? tile.hex;
+            const active = tile.hex.toLowerCase() === activeColor;
             return (
-              <div key={color.id} className={styles.swatchCell} style={{ '--swatch-ratio': '100%' } as CSSProperties}>
+              <div key={tile.hex.toLowerCase()} className={styles.swatchCell} style={cell}>
                 <button
                   type="button"
-                  data-palette-id={color.id}
-                  className={`${styles.swatchColor} ${color.hex.toLowerCase() === activeColor ? styles.swatchActive : ''}`}
-                  style={{ backgroundColor: color.hex }}
-                  onClick={() => onColor(color)}
+                  data-swatch-hex={tile.hex}
+                  className={`${styles.swatchColor} ${active ? styles.swatchActive : ''}`}
+                  style={{ backgroundColor: tile.hex }}
+                  onClick={() => onColor(tile.hex)}
                   aria-label={name}
-                  aria-pressed={color.hex.toLowerCase() === activeColor}
+                  aria-pressed={active}
                 />
               </div>
             );
           })
-          : visibleEffects.map(fx => (
-            <div key={fx.key} className={styles.swatchCell} style={{ '--swatch-ratio': '56.25%' } as CSSProperties}>
+          : effectTiles.map(fx => (
+            <div key={fx.key} className={styles.swatchCell} style={cell}>
               <EffectCard
                 overlay
                 hideLabel
@@ -124,6 +145,19 @@ export function LightingSwatches({ kind, size, activeEffect, activeColor, templa
               />
             </div>
           ))}
+        <div className={styles.swatchCell} style={cell}>
+          <button
+            type="button"
+            data-swatch-open="true"
+            className={styles.swatchOpen}
+            onClick={onOpen}
+            aria-label={openLabel}
+            title={openLabel}
+          >
+            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+            <Maximize2 className={styles.swatchOpenIcon} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import {
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { CONTROL_SELECTOR } from '../../engine/usePanelTouchMode';
+import { PanelOpenWidgetProvider } from '../common/PanelOpenWidgetContext';
 import { paletteColor } from '../../../types/lightingPalette';
 import { LightingWidget } from './LightingWidget';
 
@@ -86,20 +87,22 @@ vi.mock('../../../lib/i18n', () => ({
 // Default to advanced (rich) mode here - these assertions cover the
 // rich UI (mode buttons + per-mode arrows). Simple mode has its own
 // test block below.
-const mockUiSettings = vi.hoisted(() => ({ widgetAdvancedMode: true }));
+const mockUiSettings = vi.hoisted(() => ({ widgetAdvancedMode: true, recentStaticColors: [] as string[], recentAnimations: [] as string[] }));
+const mockUpdate = vi.hoisted(() => vi.fn());
 const mockFlags = vi.hoisted(() => ({ lighting: true, cooling: true, monitoring: true, diagnostics: true }));
 vi.mock('../../../hooks/useUiSettings', () => ({
-  useUiSettings: () => ({ settings: mockUiSettings, update: vi.fn(), reload: vi.fn() }),
+  useUiSettings: () => ({ settings: mockUiSettings, update: mockUpdate, reload: vi.fn() }),
   useFeatureFlags: () => mockFlags,
 }));
 
-function lightingWidget(size: PanelWidget['size']): PanelWidget {
+function lightingWidget(size: PanelWidget['size'], config?: Record<string, unknown>): PanelWidget {
   return {
     id: `lighting-${size}`,
     type: 'lighting',
     size,
     col: 0,
     row: 0,
+    ...(config ? { config } : {}),
   };
 }
 
@@ -203,58 +206,92 @@ describe('LightingWidget', () => {
     expect(document.querySelector(`[class*="thumbIconWrap"] .${iconClass}`)).toBeInTheDocument();
   });
 
-  it('shows Static as a row of color swatches with no device count and no text', async () => {
+  const tileCount = () => document.querySelectorAll('[data-swatch-hex], [data-effect-key], [data-swatch-open]').length;
+  const gridDims = () => {
+    const g = document.querySelector('[class*="swatchGrid"]') as HTMLElement;
+    return `${g.dataset.cols}x${g.dataset.rows}`;
+  };
+
+  it('shows Static as unlabeled color swatches with no device count', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
     vi.mocked(fetchServiceBlob).mockClear();
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
-    await waitFor(() => expect(document.querySelectorAll('[data-palette-id]')).toHaveLength(6));
+    await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
     expect(screen.queryByText(/activeCount/)).not.toBeInTheDocument();
     expect(document.querySelector('[class*="thumbIconWrap"]')).not.toBeInTheDocument();
-    for (const el of document.querySelectorAll('[data-palette-id]')) expect(el.textContent).toBe('');
+    for (const el of document.querySelectorAll('[data-swatch-hex]')) expect(el.textContent).toBe('');
     const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
     expect(paths.some(p => p.includes('simplewhite'))).toBe(false);
   });
 
-  it.each([
-    ['2x2', 4],
-    ['4x2', 6],
-    ['4x4', 12],
-  ] as const)('shows %s Static with %i swatches', async (size, count) => {
-    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
-    render(<LightingWidget widget={lightingWidget(size)} />);
-    await waitFor(() => expect(document.querySelectorAll('[data-palette-id]')).toHaveLength(count));
+  // [size, columns x rows, tiles including the open tile]
+  const GRID_CASES = [['2x2', '2x2', 4], ['4x2', '3x2', 6], ['4x4', '3x5', 15]] as const;
+
+  describe.each([['with mode buttons', true], ['without mode buttons', false]] as const)('grid %s', (_name, advanced) => {
+    beforeEach(() => { mockUiSettings.widgetAdvancedMode = advanced; });
+    afterEach(() => { mockUiSettings.widgetAdvancedMode = true; });
+
+    it.each(GRID_CASES)('%s Static is %s with %i tiles ending in the open tile', async (size, dims, total) => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      render(<LightingWidget widget={lightingWidget(size)} />);
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(total - 1));
+      expect(gridDims()).toBe(dims);
+      expect(tileCount()).toBe(total);
+      const grid = document.querySelector('[class*="swatchGrid"]') as HTMLElement;
+      expect(grid.lastElementChild?.querySelector('[data-swatch-open]')).not.toBeNull();
+    });
+
+    it.each(GRID_CASES)('%s Animation is %s with %i tiles ending in the open tile', async (size, dims, total) => {
+      render(<LightingWidget widget={lightingWidget(size)} />);
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(total - 1));
+      expect(gridDims()).toBe(dims);
+      expect(tileCount()).toBe(total);
+      expect(document.querySelector('[class*="labelOverlay"]')).not.toBeInTheDocument();
+      const grid = document.querySelector('[class*="swatchGrid"]') as HTMLElement;
+      expect(grid.lastElementChild?.querySelector('[data-swatch-open]')).not.toBeNull();
+    });
   });
 
-  it.each([
-    ['2x2', 4],
-    ['4x2', 6],
-    ['4x4', 12],
-  ] as const)('shows %s Animation with %i unlabeled thumbnails', async (size, count) => {
-    render(<LightingWidget widget={lightingWidget(size)} />);
-    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(count));
-    expect(document.querySelector('[class*="labelOverlay"]')).not.toBeInTheDocument();
+  it('opens Lighting through the panel cell-tap handler from the open tile', async () => {
+    const onOpen = vi.fn();
+    const widget = lightingWidget('4x2');
+    render(<PanelOpenWidgetProvider value={onOpen}><LightingWidget widget={widget} /></PanelOpenWidgetProvider>);
+    const open = await waitFor(() => {
+      const el = document.querySelector('[data-swatch-open]') as HTMLElement;
+      expect(el).not.toBeNull();
+      return el;
+    });
+    expect(open.matches(CONTROL_SELECTOR)).toBe(true);
+    expect(open).toHaveAttribute('aria-label', 'lighting.widget.openLighting');
+    fireEvent.click(open);
+    expect(onOpen).toHaveBeenCalledWith(widget);
+    expect(startAnimate).not.toHaveBeenCalled();
   });
 
-  it('applies a tapped color immediately as the global flat color', async () => {
+  it('applies a tapped color immediately as the global flat color and records it', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
     vi.mocked(startStatic).mockClear();
+    mockUpdate.mockClear();
     render(<LightingWidget widget={lightingWidget('4x2')} />);
-    await waitFor(() => expect(document.querySelectorAll('[data-palette-id]')).toHaveLength(6));
+    await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
 
-    const swatch = document.querySelector('[data-palette-id="red-3"]') as HTMLElement;
+    const hex = paletteColor('red-3')!.hex;
+    const swatch = document.querySelector(`[data-swatch-hex="${hex}"]`) as HTMLElement;
     fireEvent.click(swatch);
     await waitFor(() => expect(startStatic).toHaveBeenCalled());
     const args = vi.mocked(startStatic).mock.calls[0];
     expect(args[0]).toBe('gradientlinear');
-    expect(args[8]).toBe(paletteColor('red-3')!.hex);
+    expect(args[8]).toBe(hex);
+    expect(mockUpdate).toHaveBeenCalledWith({ recentStaticColors: [hex] });
     await waitFor(() => expect(swatch).toHaveAttribute('aria-pressed', 'true'));
   });
 
   it('leads with Rainbow and applies it with the simple sweep look', async () => {
     vi.mocked(startAnimate).mockClear();
+    mockUpdate.mockClear();
     render(<LightingWidget widget={lightingWidget('2x2')} />);
-    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(4));
+    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(3));
 
     const first = document.querySelectorAll('[data-effect-key]')[0] as HTMLElement;
     expect(first.getAttribute('data-effect-key')).toBe('sweeprainbow');
@@ -262,6 +299,46 @@ describe('LightingWidget', () => {
     await waitFor(() => expect(startAnimate).toHaveBeenCalled());
     expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('sweeprainbow');
     expect(vi.mocked(startAnimate).mock.calls[0][1]).toBe(50);
+    expect(mockUpdate).toHaveBeenCalledWith({ recentAnimations: ['sweeprainbow'] });
+  });
+
+  describe('recently used', () => {
+    afterEach(() => {
+      mockUiSettings.recentStaticColors = [];
+      mockUiSettings.recentAnimations = [];
+    });
+
+    it('Off ignores history and shows the fixed order', async () => {
+      mockUiSettings.recentAnimations = ['aurora'];
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
+      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('sweeprainbow');
+    });
+
+    it('On shows recent animations first, then the fixed order without repeats', async () => {
+      mockUiSettings.recentAnimations = ['aurora', 'sweeprainbow'];
+      render(<LightingWidget widget={lightingWidget('4x2', { showRecents: true })} />);
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
+      const keys = [...document.querySelectorAll('[data-effect-key]')].map(e => e.getAttribute('data-effect-key'));
+      expect(keys).toEqual(['aurora', 'sweeprainbow', 'plasma', 'fire', 'sweepliquid']);
+    });
+
+    it('On shows recent colors first, then the fixed palette without repeats', async () => {
+      const first = paletteColor('white-1')!.hex;
+      mockUiSettings.recentStaticColors = ['#123456', first];
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      render(<LightingWidget widget={lightingWidget('4x2', { showRecents: true })} />);
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      const hexes = [...document.querySelectorAll('[data-swatch-hex]')].map(e => e.getAttribute('data-swatch-hex'));
+      expect(hexes.slice(0, 2)).toEqual(['#123456', first]);
+      expect(new Set(hexes.map(h => h!.toLowerCase())).size).toBe(5);
+    });
+
+    it('On with no history is the fixed list', async () => {
+      render(<LightingWidget widget={lightingWidget('4x2', { showRecents: true })} />);
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
+      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('sweeprainbow');
+    });
   });
 
   // The panel opens the app page (desktop) or immersive view (touch) on a tap
@@ -287,7 +364,7 @@ describe('LightingWidget', () => {
   it('applies a tapped animation immediately', async () => {
     vi.mocked(startAnimate).mockClear();
     render(<LightingWidget widget={lightingWidget('4x2')} />);
-    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(6));
+    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
 
     const target = document.querySelectorAll('[data-effect-key]')[2] as HTMLElement;
     fireEvent.click(target);

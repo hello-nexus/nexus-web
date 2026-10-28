@@ -53,7 +53,8 @@ import { previewRainbowUri } from '../common/previewAssets';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
 import { LightingSwatches } from './LightingSwatches';
-import type { PaletteColor } from '../../../types/lightingPalette';
+import { useLightingRecents } from './useLightingRecents';
+import { usePanelOpenWidget } from '../common/PanelOpenWidgetContext';
 import { type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
@@ -70,6 +71,9 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
   const flags = useFeatureFlags();
+  const openWidget = usePanelOpenWidget();
+  const recents = useLightingRecents();
+  const showRecents = widget.config?.showRecents === true;
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
@@ -330,12 +334,12 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     publishLighting('static', 'static', { effect: effectKey, effectState: next });
   }, [publishLighting, templates]);
 
-  const applyColor = useCallback(async (color: PaletteColor) => {
-    setActiveColor(color.hex.toLowerCase());
+  const applyColor = useCallback(async (hex: string) => {
+    setActiveColor(hex.toLowerCase());
     setActiveEffect(DEFAULT_STATIC_EFFECT);
     staticEffectRef.current = DEFAULT_STATIC_EFFECT;
     setMode('static');
-    await startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, color.hex);
+    await startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex);
     publishLighting('static', 'static', { effect: DEFAULT_STATIC_EFFECT });
   }, [publishLighting]);
 
@@ -569,6 +573,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const swatches = mode === 'static' || mode === 'animate'
     ? (
       <LightingSwatches
+        key={`${mode}:${showRecents}`}
         kind={mode}
         size={widget.size}
         activeEffect={activeEffect}
@@ -576,8 +581,15 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         templates={templates}
         preview={preview}
         previewThumb={LIGHTING_PREVIEW_THUMBS[LIGHTING_PREVIEW_EFFECT]}
-        onColor={color => { void applyColor(color); }}
-        onEffect={key => { void applyEffect(key, isSimpleAnimation(key) ? simpleAnimationState(false) : undefined); }}
+        showRecents={showRecents}
+        recentColors={recents.colors}
+        recentAnimations={recents.animations}
+        onColor={hex => { recents.recordColor(hex); void applyColor(hex); }}
+        onEffect={key => {
+          recents.recordAnimation(key);
+          void applyEffect(key, isSimpleAnimation(key) ? simpleAnimationState(false) : undefined);
+        }}
+        onOpen={() => openWidget?.(widget)}
       />
     )
     : undefined;

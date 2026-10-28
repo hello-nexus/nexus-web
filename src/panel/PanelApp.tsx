@@ -83,6 +83,7 @@ import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { PanelDeviceIdProvider } from './widgets/common/PanelDeviceIdContext';
 import { PanelImmersiveOpenProvider } from './widgets/common/PanelImmersiveContext';
+import { PanelOpenWidgetProvider } from './widgets/common/PanelOpenWidgetContext';
 import { PanelOpaqueProvider } from './widgets/common/PanelOpaqueContext';
 import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
@@ -2117,6 +2118,7 @@ export function PanelContent({
     <PanelGenericDisplayProvider value={genericDisplay}>
     <PanelDigitizerProvider value={deviceTouch}>
     <PanelImmersiveOpenProvider value={immersiveWidgetId !== null}>
+    <PanelOpenWidgetProvider value={onCellTap}>
     <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DeckInstanceProvider value={editingDeckInstanceId ? { instanceId: editingDeckInstanceId, value: sharedDeckInstance } : null}>
     <DndContext
@@ -2786,6 +2788,7 @@ export function PanelContent({
     </DndContext>
     </DeckInstanceProvider>
     </PanelGaugeGradientProvider>
+    </PanelOpenWidgetProvider>
     </PanelImmersiveOpenProvider>
     </PanelDigitizerProvider>
     </PanelGenericDisplayProvider>

@@ -129,6 +129,8 @@ export interface UiSettingsValue {
   // Sidebar DEVICES row keys the user hid; a row is omitted only while its
   // Nexus Control is also off. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
+  recentStaticColors: string[];
+  recentAnimations: string[];
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -273,6 +275,8 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     coolingFlowMode: COOLING_FLOW_MODES.find(m => m === src.general.coolingFlowMode) ?? DEFAULT_COOLING_FLOW_MODE,
     coolingCollisionShapes: src.general.coolingCollisionShapes,
     hiddenSidebarDevices: src.general.hiddenSidebarDevices,
+    recentStaticColors: src.general.recentStaticColors,
+    recentAnimations: src.general.recentAnimations,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
@@ -349,6 +353,8 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       coolingFlowMode: src.coolingFlowMode,
       coolingCollisionShapes: src.coolingCollisionShapes,
       hiddenSidebarDevices: src.hiddenSidebarDevices,
+      recentStaticColors: src.recentStaticColors,
+      recentAnimations: src.recentAnimations,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
@@ -396,7 +402,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; lightingView3d: boolean; coolingView3d: boolean; coolingFlowMode: CoolingFlowMode; coolingCollisionShapes: boolean; hiddenSidebarDevices: string[] }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; lightingView3d: boolean; coolingView3d: boolean; coolingFlowMode: CoolingFlowMode; coolingCollisionShapes: boolean; hiddenSidebarDevices: string[]; recentStaticColors: string[]; recentAnimations: string[] }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.notifyConflictLaunches !== undefined) ui.notifyConflictLaunches = patch.notifyConflictLaunches;
@@ -414,6 +420,8 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.coolingFlowMode !== undefined) ui.coolingFlowMode = patch.coolingFlowMode;
   if (patch.coolingCollisionShapes !== undefined) ui.coolingCollisionShapes = patch.coolingCollisionShapes;
   if (patch.hiddenSidebarDevices !== undefined) ui.hiddenSidebarDevices = patch.hiddenSidebarDevices;
+  if (patch.recentStaticColors !== undefined) ui.recentStaticColors = patch.recentStaticColors;
+  if (patch.recentAnimations !== undefined) ui.recentAnimations = patch.recentAnimations;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -529,6 +537,8 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     coolingFlowMode: COOLING_FLOW_MODES.find(m => m === server.ui?.coolingFlowMode) ?? base.coolingFlowMode,
     coolingCollisionShapes: server.ui?.coolingCollisionShapes ?? base.coolingCollisionShapes,
     hiddenSidebarDevices: server.ui?.hiddenSidebarDevices ?? base.hiddenSidebarDevices,
+    recentStaticColors: server.ui?.recentStaticColors ?? base.recentStaticColors,
+    recentAnimations: server.ui?.recentAnimations ?? base.recentAnimations,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,

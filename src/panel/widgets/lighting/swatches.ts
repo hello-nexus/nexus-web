@@ -1,17 +1,44 @@
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
 import { simpleAnimationLabelKey } from './simpleAnimations';
-import { paletteColor, type PaletteColor } from '../../../types/lightingPalette';
+import { PALETTE, paletteColor } from '../../../types/lightingPalette';
 import type { PanelWidget } from '../../types';
+
+/** One tile shape for colors, animations and the open tile. */
+export const TILE_ASPECT = 4 / 3;
+export const TILE_GAP = 8;
+
+/** Columns and rows per widget size, open tile included; identical with and without mode buttons. */
+const GRIDS: Partial<Record<PanelWidget['size'], { cols: number; rows: number }>> = {
+  '2x2': { cols: 2, rows: 2 },
+  '4x2': { cols: 3, rows: 2 },
+  '4x4': { cols: 3, rows: 5 },
+};
+
+export function swatchGrid(size: PanelWidget['size']): { cols: number; rows: number; slots: number } {
+  const g = GRIDS[size] ?? { cols: 3, rows: 5 };
+  return { ...g, slots: g.cols * g.rows - 1 };
+}
+
+/** Width in px of a cols x rows grid of equal tiles that fits a box, centered by the caller. */
+export function tileGridWidth(boxW: number, boxH: number, cols: number, rows: number): number {
+  const byWidth = boxW;
+  const rowH = (boxH - TILE_GAP * (rows - 1)) / rows;
+  const byHeight = rowH * TILE_ASPECT * cols + TILE_GAP * (cols - 1);
+  return Math.max(0, Math.min(byWidth, byHeight));
+}
+
+export interface StaticTile { hex: string; name: string | null; nameKey: string | null; shade: number }
 
 const STATIC_SWATCH_IDS = [
   'white-1', 'red-3', 'orange-3', 'yellow-3', 'green-3', 'cyan-3',
   'blue-3', 'violet-3', 'magenta-3', 'pink-3', 'lime-3', 'teal-3',
-  'azure-3', 'indigo-3', 'white-3', 'red-4',
+  'azure-3', 'indigo-3', 'red-4', 'orange-2', 'yellow-2', 'green-2',
+  'cyan-2', 'blue-2', 'violet-2', 'pink-2', 'white-3', 'green-4',
 ];
 
-export const STATIC_SWATCHES: readonly PaletteColor[] = STATIC_SWATCH_IDS
+export const STATIC_SWATCHES = STATIC_SWATCH_IDS
   .map(paletteColor)
-  .filter((c): c is PaletteColor => !!c);
+  .filter((c): c is NonNullable<ReturnType<typeof paletteColor>> => !!c);
 
 export interface SwatchEffect { key: string; labelKey: string }
 
@@ -23,39 +50,55 @@ export const DEFAULT_ANIMATION_KEYS = [
   'cybertunnel', 'crystaltunnel',
 ];
 
-const MAX_SWATCHES = 20;
+const MAX_SWATCHES = 32;
 
-function swatchEffects(): SwatchEffect[] {
-  const byKey = new Map<string, SwatchEffect>(ANIMATE_EFFECTS.map(e => [e.key, e]));
+const EFFECT_BY_KEY = new Map<string, SwatchEffect>(ANIMATE_EFFECTS.map(e => [e.key, e]));
+
+function effectFor(key: string): SwatchEffect | null {
+  const fx = EFFECT_BY_KEY.get(key);
+  if (fx) return fx;
+  const labelKey = key.startsWith('sweep') ? simpleAnimationLabelKey(key) : undefined;
+  return labelKey ? { key, labelKey } : null;
+}
+
+function defaultEffects(): SwatchEffect[] {
   const out: SwatchEffect[] = [];
   for (const key of DEFAULT_ANIMATION_KEYS) {
-    const fx = byKey.get(key);
+    const fx = effectFor(key);
     if (fx) out.push(fx);
-    else if (key.startsWith('sweep')) out.push({ key, labelKey: simpleAnimationLabelKey(key) });
   }
   for (const e of ANIMATE_EFFECTS) if (!out.some(o => o.key === e.key)) out.push(e);
   return out.slice(0, MAX_SWATCHES);
 }
 
-export const ANIMATE_SWATCHES: readonly SwatchEffect[] = swatchEffects();
+export const ANIMATE_SWATCHES: readonly SwatchEffect[] = defaultEffects();
 
-const MIN_CELL_W = 52;
-const GAP = 8;
+const HEX = /^#[0-9a-f]{6}$/i;
 
-/** Count shown before the widget is measured, and wherever layout is unavailable. */
-export function defaultSwatchCount(size: PanelWidget['size']): number {
-  if (size === '2x2') return 4;
-  if (size === '4x2') return 6;
-  return 12;
+/** Recent colors first (when on), then the fixed palette, one tile per distinct color. */
+export function pickStaticTiles(recents: readonly string[], useRecents: boolean, slots: number): StaticTile[] {
+  const out: StaticTile[] = [];
+  const seen = new Set<string>();
+  const add = (t: StaticTile) => {
+    const k = t.hex.toLowerCase();
+    if (!seen.has(k)) { seen.add(k); out.push(t); }
+  };
+  if (useRecents) {
+    for (const hex of recents) {
+      if (!HEX.test(hex)) continue;
+      const known = PALETTE.find(c => c.hex.toLowerCase() === hex.toLowerCase());
+      add({ hex, name: known ? null : hex, nameKey: known ? `lighting.palette.${known.family}` : null, shade: known?.shade ?? 0 });
+    }
+  }
+  for (const c of STATIC_SWATCHES) add({ hex: c.hex, name: null, nameKey: `lighting.palette.${c.family}`, shade: c.shade });
+  return out.slice(0, slots);
 }
 
-export interface SwatchGrid { cols: number; rows: number; count: number }
-
-/** Largest whole-cell grid of at-least-minimum cells that fits the box, capped at `max`. */
-export function fitSwatchGrid(width: number, height: number, cellAspect: number, max: number): SwatchGrid {
-  if (width <= 0 || height <= 0) return { cols: 1, rows: 1, count: 1 };
-  const cols = Math.max(1, Math.floor((width + GAP) / (MIN_CELL_W + GAP)));
-  const cellW = (width - GAP * (cols - 1)) / cols;
-  const rows = Math.max(1, Math.floor((height + GAP) / (cellW / cellAspect + GAP)));
-  return { cols, rows, count: Math.min(max, cols * rows) };
+/** Recent animations first (when on), then the fixed order, deduped. */
+export function pickAnimationTiles(recents: readonly string[], useRecents: boolean, slots: number): SwatchEffect[] {
+  const out: SwatchEffect[] = [];
+  const add = (fx: SwatchEffect | null) => { if (fx && !out.some(o => o.key === fx.key)) out.push(fx); };
+  if (useRecents) for (const key of recents) add(effectFor(key));
+  for (const fx of ANIMATE_SWATCHES) add(fx);
+  return out.slice(0, slots);
 }
