@@ -3,10 +3,6 @@ import { simpleAnimationLabelKey } from './simpleAnimations';
 import { PALETTE, paletteColor } from '../../../types/lightingPalette';
 import type { PanelWidget } from '../../types';
 
-/** One tile shape for colors, animations and the open tile. */
-export const TILE_ASPECT = 4 / 3;
-export const TILE_GAP = 8;
-
 /** Columns and rows per widget size, open tile included; identical with and without mode buttons. */
 const GRIDS: Partial<Record<PanelWidget['size'], { cols: number; rows: number }>> = {
   '2x2': { cols: 2, rows: 2 },
@@ -17,14 +13,6 @@ const GRIDS: Partial<Record<PanelWidget['size'], { cols: number; rows: number }>
 export function swatchGrid(size: PanelWidget['size'], withOpenTile = true): { cols: number; rows: number; slots: number } {
   const g = GRIDS[size] ?? { cols: 3, rows: 5 };
   return { ...g, slots: g.cols * g.rows - (withOpenTile ? 1 : 0) };
-}
-
-/** Width in px of a cols x rows grid of equal tiles that fits a box, centered by the caller. */
-export function tileGridWidth(boxW: number, boxH: number, cols: number, rows: number): number {
-  const byWidth = boxW;
-  const rowH = (boxH - TILE_GAP * (rows - 1)) / rows;
-  const byHeight = rowH * TILE_ASPECT * cols + TILE_GAP * (cols - 1);
-  return Math.max(0, Math.min(byWidth, byHeight));
 }
 
 export interface StaticTile { hex: string; name: string | null; nameKey: string | null; shade: number }

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { effectThumbnailPath } from '../../../api/lighting';
 import { fetchServiceBlob } from '../../../api/service';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
@@ -8,13 +8,10 @@ import type { EffectTemplateBundle } from '../../../types/lighting';
 import { slotThumbSignature } from '../../../types/lightingTemplates';
 import type { PanelWidget } from '../../types';
 import {
-  TILE_ASPECT, pickAnimationTiles, pickStaticTiles, swatchGrid, tileGridWidth,
+  pickAnimationTiles, pickStaticTiles, swatchGrid,
   type StaticTile, type SwatchEffect,
 } from './swatches';
 import styles from './LightingWidget.module.scss';
-
-const GRID_PAD = 4;
-const RATIO = `${(100 / TILE_ASPECT).toFixed(3)}%`;
 
 interface Props {
   kind: 'static' | 'animate';
@@ -30,26 +27,6 @@ interface Props {
   onColor: (hex: string) => void;
   onEffect: (key: string) => void;
   onOpen: (() => void) | null;
-}
-
-function useGridWidth(cols: number, rows: number) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState<number | null>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const measure = () => {
-      const r = el.getBoundingClientRect();
-      const w = r.width - GRID_PAD * 2;
-      const h = r.height - GRID_PAD * 2;
-      if (w > 0 && h > 0) setWidth(tileGridWidth(w, h, cols, rows));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [cols, rows]);
-  return { ref, width };
 }
 
 function useEffectThumbs(effects: readonly SwatchEffect[], templates: Record<string, EffectTemplateBundle>, enabled: boolean) {
@@ -92,7 +69,6 @@ export function LightingSwatches({
   // Taps record into recents, so the order is held for this mount and a quick second tap lands on the same tile.
   const [heldColors] = useState(recentColors);
   const [heldAnimations] = useState(recentAnimations);
-  const { ref, width } = useGridWidth(cols, rows);
   const staticTiles = useMemo(
     () => (kind === 'static' ? pickStaticTiles(heldColors, showRecents, slots) : []),
     [kind, heldColors, showRecents, slots],
@@ -102,25 +78,24 @@ export function LightingSwatches({
     [kind, heldAnimations, showRecents, slots],
   );
   const thumbs = useEffectThumbs(effectTiles, templates, kind === 'animate' && !preview);
-  const cell = { '--swatch-ratio': RATIO } as CSSProperties;
   const openLabel = t('lighting.widget.openLighting');
   const OpenIcon = LIGHTING_MODE_ICONS[kind];
 
   return (
-    <div ref={ref} className={styles.swatchInset}>
+    <div className={styles.swatchInset}>
       <div
         className={styles.swatchGrid}
         data-kind={kind}
         data-cols={cols}
         data-rows={rows}
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: width === null ? '100%' : `${width + GRID_PAD * 2}px` }}
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
       >
         {kind === 'static'
           ? staticTiles.map((tile: StaticTile) => {
             const name = tile.nameKey ? `${t(tile.nameKey)}${tile.shade ? ` ${tile.shade}` : ''}` : tile.name ?? tile.hex;
             const active = tile.hex.toLowerCase() === activeColor;
             return (
-              <div key={tile.hex.toLowerCase()} className={styles.swatchCell} style={cell}>
+              <div key={tile.hex.toLowerCase()} className={styles.swatchCell}>
                 <button
                   type="button"
                   data-swatch-hex={tile.hex}
@@ -134,7 +109,7 @@ export function LightingSwatches({
             );
           })
           : effectTiles.map(fx => (
-            <div key={fx.key} className={styles.swatchCell} style={cell}>
+            <div key={fx.key} className={styles.swatchCell}>
               <EffectCard
                 overlay
                 hideLabel
@@ -147,7 +122,7 @@ export function LightingSwatches({
             </div>
           ))}
         {onOpen && (
-          <div className={styles.swatchCell} style={cell}>
+          <div className={styles.swatchCell}>
             <button
               type="button"
               data-swatch-open="true"

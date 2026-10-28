@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ANIMATE_SWATCHES, DEFAULT_ANIMATION_KEYS, STATIC_SWATCHES, pickAnimationTiles, pickStaticTiles,
-  swatchGrid, tileGridWidth,
+  swatchGrid,
 } from './swatches';
 
 describe('swatches', () => {
@@ -23,13 +23,6 @@ describe('swatches', () => {
     expect(swatchGrid('4x4', false).slots).toBe(15);
     expect(STATIC_SWATCHES.length).toBeGreaterThanOrEqual(14);
     expect(ANIMATE_SWATCHES.length).toBeGreaterThanOrEqual(14);
-  });
-
-  it('sizes the grid by the tighter of width and height', () => {
-    expect(tileGridWidth(300, 1000, 3, 2)).toBe(300);
-    const short = tileGridWidth(300, 60, 3, 2);
-    expect(short).toBeLessThan(300);
-    expect(tileGridWidth(0, 0, 3, 2)).toBe(0);
   });
 
   it('puts recent colors first, deduped against the palette, and ignores bad entries', () => {

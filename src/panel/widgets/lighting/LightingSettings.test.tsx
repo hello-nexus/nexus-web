@@ -20,13 +20,13 @@ describe('LightingSettings', () => {
     expect(onUpdate).toHaveBeenCalledWith({ advancedMode: true });
   });
 
-  it('offers Show recently used, off by default, and saves it in the widget config', () => {
+  it('offers Show recently used, on by default, and saves it in the widget config', () => {
     const onUpdate = vi.fn();
     render(<LightingSettings widget={{ ...widget, config: { advancedMode: true } }} onUpdate={onUpdate} />);
     expect(screen.getByText('panel.widget.showRecentlyUsed')).toBeInTheDocument();
     const toggles = screen.getAllByRole('switch');
-    expect(toggles[1]).toHaveAttribute('aria-checked', 'false');
+    expect(toggles[1]).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggles[1]);
-    expect(onUpdate).toHaveBeenCalledWith({ advancedMode: true, showRecents: true });
+    expect(onUpdate).toHaveBeenCalledWith({ advancedMode: true, showRecents: false });
   });
 });

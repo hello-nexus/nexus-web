@@ -14,7 +14,7 @@ export function LightingSettings(props: WidgetSettingsProps) {
       <SettingsSection>
         <SettingsToggle
           label={t('panel.widget.showRecentlyUsed')}
-          checked={widget.config?.showRecents === true}
+          checked={widget.config?.showRecents !== false}
           onChange={value => onUpdate({ ...widget.config, showRecents: value })}
         />
       </SettingsSection>

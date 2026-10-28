@@ -258,6 +258,16 @@ describe('LightingWidget', () => {
     });
   });
 
+  it.each(GRID_CASES)('%s fills its box with 1fr tracks and no measured pixel size', async (size, dims) => {
+    renderLighting(lightingWidget(size));
+    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]').length).toBeGreaterThan(0));
+    const grid = document.querySelector('[class*="swatchGrid"]') as HTMLElement;
+    const [cols, rows] = dims.split('x');
+    expect(grid.style.gridTemplateColumns).toBe(`repeat(${cols}, minmax(0, 1fr))`);
+    expect(grid.style.gridTemplateRows).toBe(`repeat(${rows}, minmax(0, 1fr))`);
+    expect(grid.style.width).toBe('');
+  });
+
   it('opens Lighting through the panel cell-tap handler from the open tile', async () => {
     const onOpen = vi.fn();
     const widget = lightingWidget('4x2');
@@ -348,9 +358,16 @@ describe('LightingWidget', () => {
       mockUiSettings.recentAnimations = [];
     });
 
-    it('Off ignores history and shows the fixed order', async () => {
+    it('shows recents when the widget has no saved choice', async () => {
       mockUiSettings.recentAnimations = ['aurora'];
       renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
+      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('aurora');
+    });
+
+    it('Off ignores history and shows the fixed order', async () => {
+      mockUiSettings.recentAnimations = ['aurora'];
+      renderLighting(lightingWidget('4x2', { showRecents: false }));
       await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
       expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('sweeprainbow');
     });

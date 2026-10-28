@@ -73,7 +73,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const flags = useFeatureFlags();
   const openWidget = usePanelOpenWidget();
   const recents = useLightingRecents();
-  const showRecents = widget.config?.showRecents === true;
+  const showRecents = widget.config?.showRecents !== false;
   // The panel's cell-tap action where it acts, else the dashboard's section link, else no open tile.
   const openAction = openWidget?.(widget) ?? (onSectionNavigate ? () => onSectionNavigate('lighting') : null);
   const preview = usePanelPreview();
