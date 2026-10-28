@@ -85,6 +85,21 @@
   pointer-events: none;
 }
 
+.orderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.orderLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  @include text-label;
+  color: var(--text);
+}
+
 // Info (i) stacked above the master-brightness caret inside the slider track;
 // shrink the trigger so the indicator group stays compact.
 .markerInfo button {

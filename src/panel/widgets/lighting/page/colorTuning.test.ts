@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { NEUTRAL_COLOR_ADJUST, type LightingColorAdjust } from '../../../../api/lighting';
-import { RIBBON_SAMPLES, applyColorAdjust, toCss } from './colorTuning';
+import { RIBBON_SAMPLES, applyColorAdjust, isColorAdjusted, toCss } from './colorTuning';
 
 const adjust = (patch: Partial<LightingColorAdjust>): LightingColorAdjust =>
   ({ ...NEUTRAL_COLOR_ADJUST, ...patch });
@@ -64,5 +64,20 @@ describe('RIBBON_SAMPLES', () => {
 
   it('renders as css rgb triples', () => {
     expect(toCss([1, 2, 3])).toBe('rgb(1, 2, 3)');
+  });
+});
+
+describe('isColorAdjusted', () => {
+  it('reads absent and neutral trims as untouched', () => {
+    expect(isColorAdjusted(undefined)).toBe(false);
+    expect(isColorAdjusted(NEUTRAL_COLOR_ADJUST)).toBe(false);
+  });
+
+  it('counts a non-default color order as tuned', () => {
+    expect(isColorAdjusted(adjust({ colorOrder: 'GRB' }))).toBe(true);
+  });
+
+  it('counts a moved gain as tuned', () => {
+    expect(isColorAdjusted(adjust({ red: 1.2 }))).toBe(true);
   });
 });
