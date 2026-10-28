@@ -29,7 +29,7 @@ interface Props {
   recentAnimations: readonly string[];
   onColor: (hex: string) => void;
   onEffect: (key: string) => void;
-  onOpen: () => void;
+  onOpen: (() => void) | null;
 }
 
 function useGridWidth(cols: number, rows: number) {
@@ -88,7 +88,7 @@ export function LightingSwatches({
   showRecents, recentColors, recentAnimations, onColor, onEffect, onOpen,
 }: Props) {
   const { t } = useTranslation();
-  const { cols, rows, slots } = swatchGrid(size);
+  const { cols, rows, slots } = swatchGrid(size, onOpen !== null);
   // Taps record into recents, so the order is held for this mount and a quick second tap lands on the same tile.
   const [heldColors] = useState(recentColors);
   const [heldAnimations] = useState(recentAnimations);
@@ -145,19 +145,21 @@ export function LightingSwatches({
               />
             </div>
           ))}
-        <div className={styles.swatchCell} style={cell}>
-          <button
-            type="button"
-            data-swatch-open="true"
-            className={styles.swatchOpen}
-            onClick={onOpen}
-            aria-label={openLabel}
-            title={openLabel}
-          >
-            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-            <Maximize2 className={styles.swatchOpenIcon} aria-hidden="true" />
-          </button>
-        </div>
+        {onOpen && (
+          <div className={styles.swatchCell} style={cell}>
+            <button
+              type="button"
+              data-swatch-open="true"
+              className={styles.swatchOpen}
+              onClick={onOpen}
+              aria-label={openLabel}
+              title={openLabel}
+            >
+              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+              <Maximize2 className={styles.swatchOpenIcon} aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ describe('swatches', () => {
     expect(swatchGrid('2x2')).toEqual({ cols: 2, rows: 2, slots: 3 });
     expect(swatchGrid('4x2')).toEqual({ cols: 3, rows: 2, slots: 5 });
     expect(swatchGrid('4x4')).toEqual({ cols: 3, rows: 5, slots: 14 });
+    expect(swatchGrid('4x4', false).slots).toBe(15);
     expect(STATIC_SWATCHES.length).toBeGreaterThanOrEqual(14);
     expect(ANIMATE_SWATCHES.length).toBeGreaterThanOrEqual(14);
   });

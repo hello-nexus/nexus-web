@@ -1336,30 +1336,29 @@ export function PanelContent({
   // only the remote end (a phone reaching a PC) has other PCs to switch between.
   const pairedPcsAvailable = surface === 'phone';
 
-  const onCellTap = useCallback((w: PanelWidget) => {
-    if (simulator) {
-      // Simulator: a tap opens this widget's settings in the parent modal.
-      onSimulatorWidgetClicked?.(w.id);
-      return;
-    }
+  // What a tap on the widget's cell does on this surface, or null when it does nothing.
+  const cellTapAction = useCallback((w: PanelWidget): (() => void) | null => {
+    // Simulator: a tap opens this widget's settings in the parent modal.
+    if (simulator) return () => onSimulatorWidgetClicked?.(w.id);
     if (embedded) {
       if (surface === 'desktop' && onSectionNavigate && isDashboardClickthroughType(w.type)) {
-        onSectionNavigate(w.type);
+        return () => onSectionNavigate(w.type);
       }
-      return;
+      return null;
     }
     // A generic display's widgets act only through their own controls; the app opens from the menu's Open.
-    if (genericDisplay) return;
+    if (genericDisplay) return null;
     const def = lookupApp(w.type);
-    if (!def?.Touch) return;
+    if (!def?.Touch) return null;
     // A Web View tile that takes the touch itself opens fullscreen from the menu's Immersive mode item instead.
-    if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return;
+    if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return null;
     // An immersive view closes by touch, so a mouse-only display never opens one.
-    if (!surfaceSupportsTouch(surface, deviceTouch)) return;
+    if (!surfaceSupportsTouch(surface, deviceTouch)) return null;
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
-    if (!def.meta.supportsImmersive[orientationKey]) return;
-    enterImmersive(w.id);
+    if (!def.meta.supportsImmersive[orientationKey]) return null;
+    return () => enterImmersive(w.id);
   }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
+  const onCellTap = useCallback((w: PanelWidget) => { cellTapAction(w)?.(); }, [cellTapAction]);
   // macOS delivers touchscreen contacts as mouse pointers (see
   // engine/touchViaPointer); only under that flag does a mouse get the
   // touch gesture model.
@@ -2118,7 +2117,7 @@ export function PanelContent({
     <PanelGenericDisplayProvider value={genericDisplay}>
     <PanelDigitizerProvider value={deviceTouch}>
     <PanelImmersiveOpenProvider value={immersiveWidgetId !== null}>
-    <PanelOpenWidgetProvider value={onCellTap}>
+    <PanelOpenWidgetProvider value={cellTapAction}>
     <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DeckInstanceProvider value={editingDeckInstanceId ? { instanceId: editingDeckInstanceId, value: sharedDeckInstance } : null}>
     <DndContext

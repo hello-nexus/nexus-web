@@ -1,10 +1,12 @@
 import { createContext, useContext } from 'react';
 import type { PanelWidget } from '../../types';
 
-// PanelApp's cell-tap handler, so a control inside a widget does what a tap on the cell does on this surface. Null outside PanelApp.
-const PanelOpenWidgetContext = createContext<((widget: PanelWidget) => void) | null>(null);
+type CellTapResolver = (widget: PanelWidget) => (() => void) | null;
 
-export function usePanelOpenWidget(): ((widget: PanelWidget) => void) | null {
+// Resolves what a tap on a widget's cell does on this surface (the action, or null when nothing). Null outside PanelApp.
+const PanelOpenWidgetContext = createContext<CellTapResolver | null>(null);
+
+export function usePanelOpenWidget(): CellTapResolver | null {
   return useContext(PanelOpenWidgetContext);
 }
 

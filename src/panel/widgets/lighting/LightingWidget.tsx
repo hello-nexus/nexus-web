@@ -74,6 +74,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const openWidget = usePanelOpenWidget();
   const recents = useLightingRecents();
   const showRecents = widget.config?.showRecents === true;
+  // The panel's cell-tap action where it acts, else the dashboard's section link, else no open tile.
+  const openAction = openWidget?.(widget) ?? (onSectionNavigate ? () => onSectionNavigate('lighting') : null);
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
@@ -589,7 +591,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
           recents.recordAnimation(key);
           void applyEffect(key, isSimpleAnimation(key) ? simpleAnimationState(false) : undefined);
         }}
-        onOpen={() => openWidget?.(widget)}
+        onOpen={openAction}
       />
     )
     : undefined;

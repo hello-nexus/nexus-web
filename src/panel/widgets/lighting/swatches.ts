@@ -14,9 +14,9 @@ const GRIDS: Partial<Record<PanelWidget['size'], { cols: number; rows: number }>
   '4x4': { cols: 3, rows: 5 },
 };
 
-export function swatchGrid(size: PanelWidget['size']): { cols: number; rows: number; slots: number } {
+export function swatchGrid(size: PanelWidget['size'], withOpenTile = true): { cols: number; rows: number; slots: number } {
   const g = GRIDS[size] ?? { cols: 3, rows: 5 };
-  return { ...g, slots: g.cols * g.rows - 1 };
+  return { ...g, slots: g.cols * g.rows - (withOpenTile ? 1 : 0) };
 }
 
 /** Width in px of a cols x rows grid of equal tiles that fits a box, centered by the caller. */
