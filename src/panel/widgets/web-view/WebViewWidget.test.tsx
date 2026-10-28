@@ -126,11 +126,11 @@ describe('WebViewWidget error recovery', () => {
 describe('WebViewImmersive forward control', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  const renderStrip = (navControls: boolean, canGoForward: boolean) => {
+  const renderStrip = (navControls: boolean, canGoForward: boolean, away = false) => {
     window.history.pushState({}, '', '/panel/dev');
     vi.spyOn(webViewHost, 'getSnapshot').mockReturnValue({
       status: 'supported', interactive: true, contextMenu: true, navControls, maxViews: 4,
-      views: { w1: { state: 'loaded' as const, canGoBack: true, canGoForward } }, overLimit: [],
+      views: { w1: { state: 'loaded' as const, canGoBack: true, canGoForward, away } }, overLimit: [],
     });
     const send = vi.spyOn(webViewHost, 'sendCommand').mockImplementation(() => {});
     render(<WebViewImmersive widget={widget('https://example.com')} surface="y70" />);
@@ -151,5 +151,19 @@ describe('WebViewImmersive forward control', () => {
     cleanup();
     renderStrip(false, true);
     expect(forward().disabled).toBe(true);
+  });
+
+  const home = () => screen.getByRole('button', { name: 'panel.widget.web-view.home' }) as HTMLButtonElement;
+
+  it('sends home only while away from the configured page and the host has nav controls', () => {
+    const send = renderStrip(true, false, true);
+    fireEvent.click(home());
+    expect(send).toHaveBeenCalledWith('w1', 'home');
+    cleanup();
+    renderStrip(true, false, false);
+    expect(home().disabled).toBe(true);
+    cleanup();
+    renderStrip(false, false, true);
+    expect(home().disabled).toBe(true);
   });
 });
