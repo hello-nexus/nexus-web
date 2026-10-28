@@ -138,6 +138,7 @@ const WIDGET_PANEL_IDS = new Set(Object.keys(WIDGET_PANEL_PROFILES));
 const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: string; defaultNames: readonly string[]; experimental?: boolean }>> = {
   'xeneon-edge': { name: 'Corsair Xeneon Edge', icon: '/assets/devices/corsair.svg', defaultNames: ['crx ed00', 'xeneon edge'] },
   'icue-link-lcd5': { name: 'Corsair iCUE LINK 5" LCD', icon: '/assets/devices/corsair.svg', defaultNames: ['xmd 00ea', "icue link 5''"], experimental: true },
+  'hyte-y60': { name: 'HYTE Y60 Display', icon: '/assets/devices/hyte.svg', defaultNames: ['rtk bc32', 'rtk fhd hdr'] },
 };
 
 export function simulatedPanelIcon(panel: Pick<SimulatedPanelDefinition, 'id' | 'family'>): string {
