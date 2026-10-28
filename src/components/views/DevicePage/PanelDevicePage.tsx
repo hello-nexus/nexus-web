@@ -30,7 +30,8 @@ import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { takePanelEditorTarget, type PanelEditorTarget } from '../../../panel/engine/panelEditorLink';
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
 import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
-import { monitorGridCapacity, recordCanvasOf } from '../../../panel/engine/recordCanvas';
+import { nearestWidgetSizeStop, widgetSizeStops as widgetSizeStops_ } from '../../../panel/engine/widgetSizeStops';
+import { monitorGridCapacity, recordCanvasOf, y70GridCapacity } from '../../../panel/engine/recordCanvas';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -52,7 +53,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, Y70_PERCENT_STOPS, y70SizeForPercent, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { largeChromeGrid, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -141,7 +142,6 @@ import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevi
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog, catalogEntriesFor } from '../../../panel/editor/PanelWidgetCatalog';
 import { WidgetPlaylistEditor } from '../../../panel/editor/WidgetPlaylistEditor';
-import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { Card } from '../../common/Card/Card';
 import '../../../panel/styles/tokens.scss';
 import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
@@ -151,9 +151,6 @@ function isLandscapeCanvas(canvas?: { width?: number | null; height?: number | n
   return !!canvas?.width && !!canvas.height && canvas.width > canvas.height;
 }
 
-const WIDGET_SIZE_LARGE: PanelWidgetSizeMode = 'large';
-const WIDGET_SIZE_SMALL: PanelWidgetSizeMode = 'small';
-const WIDGET_SIZE_XSMALL: PanelWidgetSizeMode = 'xsmall';
 
 interface PanelDevicePageProps {
   device: PanelDevice;
@@ -400,8 +397,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const recordFamily = matchedFamily ?? device?.family;
   const [recordWidgetSize, setRecordWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
   const [pendingWidgetSize, setPendingWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
-  // The Y70 size slider's snapped stop while it is being dragged or typed, before it commits.
-  const [y70PercentDraft, setY70PercentDraft] = useState<number | null>(null);
+  // The size slider's snapped stop while it is being dragged or typed, before it commits.
+  const [widgetSizeDraft, setWidgetSizeDraft] = useState<PanelWidgetSizeMode | null>(null);
   // The glass drives hardware settings and record matching; `surface` is the one whose
   // layout rules the panel follows, which Widget size can swap.
   const glassSurface = device?.runtimeSurface ?? 'y70';
@@ -449,6 +446,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     ? densityShortSideSlots(editorCanvas.width, editorCanvas.height, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor)
     : undefined;
   const shortSideSlots = panelShortSideSlots(glassSurface, recordFamily, recordWidgetSize, densitySlots);
+  const chromeGrid = useMemo(
+    () => largeChromeGrid(glassSurface, recordFamily, liveDpi, DEFAULT_SURFACE_DPI, densitySlots),
+    [glassSurface, recordFamily, liveDpi, densitySlots],
+  );
   const gridLandscape = isLandscapeCanvas(liveCanvas ?? device?.previewSize);
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, gridLandscape), [shortSideSlots, gridLandscape]);
   // The layout surface and input a fetched record implies, for normalizing its
@@ -621,6 +622,21 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const panelRecord = usePanelRecord(editingDeviceId);
   const panelTheme = usePanelTheme(panelRecord, editingDeviceId);
   const theme = panelTheme.theme;
+  const widgetSizeStops = useMemo(() => {
+    const options = panelWidgetSizeOptions(glassSurface, recordFamily);
+    if (!options) return [];
+    return widgetSizeStops_(
+      options,
+      editorCanvas,
+      canvasDpr,
+      (_mode, layoutSurface) => (layoutSurface === glassSurface
+        ? (liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI[glassSurface])
+        : (options.dpi ?? DEFAULT_SURFACE_DPI[glassSurface])),
+      panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
+      densitySlots,
+    );
+  }, [glassSurface, recordFamily, editorCanvas, canvasDpr, liveDpi, device?.previewDpi, theme.widgetPadding, densitySlots]);
+  const widgetSizePercentOf = (mode: PanelWidgetSizeMode) => widgetSizeStops.find(stop => stop.mode === mode)?.percent ?? 100;
   const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
   const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
@@ -790,6 +806,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             surface,
             dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70,
             sizing: getPanelGridSizingSettings(),
+            shortSideSlots,
             paddingRatio,
           },
         );
@@ -1154,19 +1171,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // panel can swipe, else they go.
     const canvas = liveCanvas ?? device?.previewSize;
     if (targetSlots === undefined || !canvas) return { layout: normalized, removed };
-    const capacity = monitorGridCapacity(
-      canvas,
-      canvasDpr,
-      layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor,
-      panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
-      targetSlots,
-    );
+    const paddingRatio = panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding));
+    const capacity = target === 'y70'
+      ? y70GridCapacity(canvas, canvasDpr, liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70, paddingRatio, targetSlots)
+      : monitorGridCapacity(canvas, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor, paddingRatio, targetSlots);
     if (genericDisplay) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
     const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay)
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
+  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, liveDpi, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);
@@ -1559,36 +1573,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       >
                         {((widgetSizeOptions && widgetSizeMode) || widgetPlaylist) && (
                           <Card compact className={styles.playlistPanel}>
-                            {widgetSizeOptions && widgetSizeMode && glassSurface === 'y70' && (
+                            {widgetSizeOptions && widgetSizeMode && widgetSizeStops.length > 1 && (
                               <SettingSlider
                                 editable
                                 trackFill
                                 label={t('devices.panels.widgetSize.label')}
-                                value={y70PercentDraft ?? Y70_PERCENT_STOPS[widgetSizeMode]}
-                                min={Y70_PERCENT_STOPS.xsmall}
-                                max={Y70_PERCENT_STOPS.large}
+                                value={widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode)}
+                                min={Math.min(...widgetSizeStops.map(stop => stop.percent))}
+                                max={Math.max(...widgetSizeStops.map(stop => stop.percent))}
                                 formatValue={v => `${v}%`}
                                 disabled={!editingDeviceId}
-                                onChange={value => setY70PercentDraft(Y70_PERCENT_STOPS[y70SizeForPercent(value)])}
+                                onChange={value => setWidgetSizeDraft(nearestWidgetSizeStop(widgetSizeStops, value)?.mode ?? null)}
                                 onCommit={value => {
-                                  setY70PercentDraft(null);
-                                  requestWidgetSize(y70SizeForPercent(value));
+                                  setWidgetSizeDraft(null);
+                                  const stop = nearestWidgetSizeStop(widgetSizeStops, value);
+                                  if (stop) requestWidgetSize(stop.mode);
                                 }}
                               />
-                            )}
-                            {widgetSizeOptions && widgetSizeMode && glassSurface !== 'y70' && (
-                              <SettingRow label={t('devices.panels.widgetSize.label')}>
-                                <ChipGroup
-                                  ariaLabel={t('devices.panels.widgetSize.label')}
-                                  activeKey={widgetSizeMode}
-                                  onChange={requestWidgetSize}
-                                  options={[
-                                    { key: WIDGET_SIZE_LARGE, label: t('devices.panels.widgetSize.large'), disabled: !editingDeviceId },
-                                    { key: WIDGET_SIZE_SMALL, label: t('devices.panels.widgetSize.small'), disabled: !editingDeviceId },
-                                    ...(widgetSizeOptions.layoutSurface.xsmall ? [{ key: WIDGET_SIZE_XSMALL, label: t('devices.panels.widgetSize.xsmall'), disabled: !editingDeviceId }] : []),
-                                  ]}
-                                />
-                              </SettingRow>
                             )}
                             {widgetPlaylist && (
                               <SettingToggle
@@ -2197,6 +2198,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
                 shortSideSlots={shortSideSlots}
+                chromeGrid={chromeGrid}
                 displayBound={!!device?.displayId}
                 genericDisplay={genericDisplay}
                 onPlaylistShown={handlePlaylistShown}

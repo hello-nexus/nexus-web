@@ -116,11 +116,12 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
   type ForcedGrid,
+  type ChromeGrid,
 } from './types';
 import { recordWidgetSizeOf } from './engine/recordWidgetSize';
 import { kioskViewportSettled, recordCanvasOf } from './engine/recordCanvas';
 import { kioskViewportReporter } from './engine/kioskViewportReport';
-import { isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
+import { largeChromeGrid, isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -296,6 +297,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       dpi,
       shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, widgetSize, densitySlots),
       densitySlots,
+      chromeGrid: largeChromeGrid(glassSurface, caps?.family, caps?.dpi, DEFAULT_SURFACE_DPI, densitySlots),
       widgetSize,
       displayBound: !!record?.displayId,
     };
@@ -405,6 +407,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       deviceTouch={resolved.touch}
       deviceDpi={resolved.dpi}
       shortSideSlots={resolved.shortSideSlots}
+      chromeGrid={resolved.chromeGrid}
       displayBound={resolved.displayBound}
     />
   );
@@ -435,7 +438,7 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
   );
 }
 
-function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; displayBound?: boolean }) {
+function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, chromeGrid, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; chromeGrid?: ChromeGrid; displayBound?: boolean }) {
   const landscape = useViewportLandscape();
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, landscape), [shortSideSlots, landscape]);
   const layoutState = usePanelLayout(recordState, deviceId, surface, widgetInputOf(deviceTouch, !!displayBound), forcedGrid);
@@ -447,7 +450,7 @@ function PanelKioskContent({ recordState, deviceId, surface, glassSurface, devic
       <PanelDeviceIdProvider value={deviceId}>
       <PanelDisplayBoundProvider value={!!displayBound}>
         <PanelGlassSurfaceProvider value={glassSurface}>
-          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} displayBound={displayBound} layoutState={layoutState} />
+          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} chromeGrid={chromeGrid} displayBound={displayBound} layoutState={layoutState} />
         </PanelGlassSurfaceProvider>
       </PanelDisplayBoundProvider>
       </PanelDeviceIdProvider>
@@ -463,6 +466,7 @@ export function PanelContent({
   deviceTouch,
   deviceDpi,
   shortSideSlots,
+  chromeGrid,
   displayBound = false,
   genericDisplayOverride,
   layoutState,
@@ -493,6 +497,8 @@ export function PanelContent({
   deviceDpi?: number;
   // Short-axis slot count Widget size forces on the grid.
   shortSideSlots?: number;
+  // The Large-size grid that sizes floating chrome; absent = the grid in use.
+  chromeGrid?: ChromeGrid;
   // True when the record is display-bound (promoted OS monitor, displayId
   // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
   // the desktop see-through gate.
@@ -705,6 +711,8 @@ export function PanelContent({
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots);
+  // Floating chrome (menus, sheets, tray) sizes from the Large grid, so a finer Widget size never shrinks it.
+  const chromeRuntimeGrid = useRuntimePanelGrid(chromeGrid?.surface ?? surface, rootRef, simulator, chromeGrid ? chromeGrid.dpi : deviceDpi, widgetPaddingRatio, chromeGrid ? chromeGrid.shortSideSlots : shortSideSlots);
   // The runtime grid already follows the canvas, so its shape gives the forced axis.
   const runtimeLandscape = runtimeGrid.columns > runtimeGrid.rows;
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, runtimeLandscape), [shortSideSlots, runtimeLandscape]);
@@ -739,6 +747,9 @@ export function PanelContent({
   const webkitSafePanelScale = surface !== 'phone'
     ? runtimeGrid.contentScale / PHONE_WIDGET_REFERENCE_CELL
     : null;
+  const webkitSafeChromeScale = surface !== 'phone'
+    ? chromeRuntimeGrid.contentScale / PHONE_WIDGET_REFERENCE_CELL
+    : null;
   const panelThemeVars = useMemo(
     () => embedded ? buildEmbeddedPanelThemeVars(appAccentColor, resolvedThemeMode) : buildPanelThemeVars(effectiveTheme, resolvedThemeMode),
     [appAccentColor, embedded, effectiveTheme, resolvedThemeMode],
@@ -771,9 +782,9 @@ export function PanelContent({
   // parent page).
   const editorSheetThemeStyle = useMemo(
     () => (touchPanelChrome && webkitSafePanelScale != null
-      ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale, '--panel-editor-blur-scale': webkitSafePanelScale } as CSSProperties
+      ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale, '--panel-chrome-scale': webkitSafeChromeScale ?? webkitSafePanelScale, '--panel-editor-blur-scale': webkitSafePanelScale } as CSSProperties
       : { ...panelThemeVars, '--panel-editor-blur-scale': webkitSafePanelScale ?? 1 } as CSSProperties),
-    [touchPanelChrome, webkitSafePanelScale, panelThemeVars],
+    [touchPanelChrome, webkitSafePanelScale, webkitSafeChromeScale, panelThemeVars],
   );
   const backdrop = wallpaperBackgroundAvailable && showPanelBackground
     ? effectiveTheme.backdrop
@@ -862,7 +873,7 @@ export function PanelContent({
       // 1 everywhere but the device page's canvas preview.
       '--panel-preview-scale': previewScale,
       '--panel-preview-upscale': 1 / previewScale,
-      ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
+      ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale, '--panel-chrome-scale': webkitSafeChromeScale ?? webkitSafePanelScale } : {}),
       ...(surface === 'desktop' ? {
         '--panel-cell-size': `${runtimeGrid.cellSize}px`,
         '--panel-row-size': `${runtimeGrid.rowSize}px`,
@@ -872,6 +883,7 @@ export function PanelContent({
     }) as CSSProperties,
     [
       panelSolidColor,
+      webkitSafeChromeScale,
       themeBackdrop,
       panelThemeVars,
       runtimeGrid.cellSize,
@@ -2560,7 +2572,7 @@ export function PanelContent({
             hasConfig
             surface={surface}
             themeMode={resolvedThemeMode}
-            themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
+            themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale, '--panel-chrome-scale': webkitSafeChromeScale ?? webkitSafePanelScale } as CSSProperties : panelThemeVars}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
             onResizeMode={canResizeType(ctxWidget.type, lockedOf()) ? () => setFreeformId(ctxWidget.id) : undefined}
             // The preview edits in the device page's settings pane, as a plain click does.

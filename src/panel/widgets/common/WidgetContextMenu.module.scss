@@ -197,7 +197,7 @@
 // Monitor-attached panel chrome scaling (everything except phone +
 // desktop). The keyframes hold the resting scale via their `both` fill.
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']).menu {
-  --_menu-scale: var(--panel-scale, 1);
+  --_menu-scale: var(--panel-chrome-scale, var(--panel-scale, 1));
 }
 
 // On the desktop device-canvas surface the panel hover token

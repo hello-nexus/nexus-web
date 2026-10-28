@@ -179,7 +179,8 @@ export function panelGridCapacityForCanvas(
     : y70Landscape
       ? shortAxisSlots
       : surface === 'y70' && height >= width
-        ? PANEL_Y70_LONG_AXIS_CELLS
+        // A forced column count (Widget size) keeps the cells square, so the rows follow from the height.
+        ? (shortSideSlots === undefined ? PANEL_Y70_LONG_AXIS_CELLS : undefined)
         : undefined;
   const fixedRows = rows ?? defaultRows;
   const canvasW = Math.max(1, width);

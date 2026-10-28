@@ -66,10 +66,10 @@
 // Sizes are CSS px x scale, never DPR, so display scaling can't distort them.
 .exitHint {
   position: absolute;
-  top: max(env(safe-area-inset-top), calc(5px * var(--panel-scale, 1)));
+  top: max(env(safe-area-inset-top), calc(5px * var(--panel-chrome-scale, var(--panel-scale, 1))));
   left: 50%;
   transform: translateX(-50%);
-  width: calc(120px * var(--panel-scale, 1));
+  width: calc(120px * var(--panel-chrome-scale, var(--panel-scale, 1)));
   height: var(--immersive-notch-height);
   display: flex;
   align-items: flex-start;
@@ -92,8 +92,8 @@
 
   &::before {
     content: '';
-    width: calc(80px * var(--panel-scale, 1));
-    height: calc(4px * var(--panel-scale, 1));
+    width: calc(80px * var(--panel-chrome-scale, var(--panel-scale, 1)));
+    height: calc(4px * var(--panel-chrome-scale, var(--panel-scale, 1)));
     border-radius: var(--radius-pill);
     background: color-mix(in srgb, white 38%, transparent);
     opacity: 0.7;
@@ -113,7 +113,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: calc(env(safe-area-inset-top) + var(--immersive-inset) * var(--panel-scale, 1));
+  height: calc(env(safe-area-inset-top) + var(--immersive-inset) * var(--panel-chrome-scale, var(--panel-scale, 1)));
   z-index: 209;
 }
 
