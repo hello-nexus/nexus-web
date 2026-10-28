@@ -18,6 +18,7 @@ const STATUS = {
   token: 'mcp-token-abc',
   lastError: null,
   capabilities: { telemetry: true, cooling: true, lighting: true, profiles: true, history: true },
+  allowRemote: false,
 };
 
 beforeEach(() => {
@@ -62,6 +63,16 @@ describe('postAiConfig', () => {
     expect(url).toContain('/ai/config');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toEqual({ enabled: true });
+  });
+
+  it('sends allowRemote alone', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, STATUS));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await postAiConfig({ allowRemote: true });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ allowRemote: true });
   });
 
   it('sends a capability subset without touching the others', async () => {

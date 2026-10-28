@@ -133,6 +133,7 @@ function renderSidebar() {
       onSelect={() => {}}
       onHeaderClick={() => {}}
       headerActive={false}
+      onOpenFirmware={() => {}}
     />,
   );
 }
@@ -314,14 +315,36 @@ describe('SidebarDevicesSection warning and update glyphs', () => {
     mockUnified = [deck(true)];
     renderSidebar();
     expect(screen.getByRole('img', { name: 'devices.warning.elgatoSoftwareRunning' })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'devices.firmwareUpdate.tooltip' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.firmwareUpdate.tooltip' })).toBeInTheDocument();
+  });
+
+  it('opens Firmware Updates from the glyph without selecting the row', () => {
+    mockUnified = [deck(true)];
+    const onSelect = vi.fn();
+    const onOpenFirmware = vi.fn();
+    render(
+      <SidebarDevicesSection
+        serviceOnline
+        activeDeviceKey=""
+        compact={false}
+        onSelect={onSelect}
+        onHeaderClick={() => {}}
+        headerActive={false}
+        onOpenFirmware={onOpenFirmware}
+      />,
+    );
+    const glyph = screen.getByRole('button', { name: 'devices.firmwareUpdate.tooltip' });
+    fireEvent.click(glyph);
+    fireEvent.keyDown(glyph, { key: 'Enter' });
+    expect(onOpenFirmware).toHaveBeenCalledTimes(2);
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('hides both glyphs while Nexus Control is off', () => {
     mockUnified = [deck(false)];
     renderSidebar();
     expect(screen.queryByRole('img', { name: 'devices.warning.elgatoSoftwareRunning' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'devices.firmwareUpdate.tooltip' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.firmwareUpdate.tooltip' })).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'devices.nexusControlOff.sidebarTooltip' })).toBeInTheDocument();
   });
 });
@@ -520,9 +543,9 @@ describe('SidebarDevicesSection context menu staleness', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'sidebar.device.removeSimulated' }));
 
     mockUnified = [];
-    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     mockUnified = [tryxSim];
-    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
@@ -543,7 +566,7 @@ describe('SidebarDevicesSection context menu staleness', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 
     mockUnified = [{ ...keeb, supportsNexusControl: true }];
-    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });
@@ -594,7 +617,7 @@ describe('SidebarDevicesSection cooler LCD rows', () => {
       shortName: 'Lian Li HydroShift II LCD-S',
       curatedId: 'lianli-hydroshift2',
     })];
-    render(<SidebarDevicesSection serviceOnline activeDeviceKey="curated-lianli-hydroshift2" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    render(<SidebarDevicesSection serviceOnline activeDeviceKey="curated-lianli-hydroshift2" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     expect(screen.getByText('Lian Li HydroShift II LCD-S').closest('button')?.className).toMatch(/active/);
   });
 });

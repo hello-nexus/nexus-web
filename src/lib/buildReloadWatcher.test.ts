@@ -80,14 +80,14 @@ describe('loadedEntry', () => {
 describe('checkOnce', () => {
   it('no-ops when the running entry is unknown (dev server)', async () => {
     const deps = makeDeps({ loaded: null });
-    expect(await checkOnce(deps)).toBe('noop');
+    expect(await checkOnce(deps)).toBe('disabled');
     expect(deps.fetchText).not.toHaveBeenCalled();
     expect(deps.reload).not.toHaveBeenCalled();
   });
 
   it('no-ops (never reloads) while a one-shot pairing token is in the URL', async () => {
     const deps = makeDeps({ oneShotToken: true });
-    expect(await checkOnce(deps)).toBe('noop');
+    expect(await checkOnce(deps)).toBe('disabled');
     expect(deps.reload).not.toHaveBeenCalled();
   });
 
@@ -100,6 +100,12 @@ describe('checkOnce', () => {
   it('no-ops when the index.html fetch throws (service mid-restart)', async () => {
     const deps = makeDeps({ fetchText: vi.fn(async () => { throw new Error('down'); }) });
     expect(await checkOnce(deps)).toBe('noop');
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('reports an index.html without a hashed entry as no-entry', async () => {
+    const deps = makeDeps({ fetchText: vi.fn(async () => ({ ok: true, text: '<html></html>' })) });
+    expect(await checkOnce(deps)).toBe('no-entry');
     expect(deps.reload).not.toHaveBeenCalled();
   });
 

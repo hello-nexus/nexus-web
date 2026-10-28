@@ -74,6 +74,7 @@ interface SidebarColumnProps {
   // landing page. Dashboard maps this to the existing DevicesPage.
   onDevicesHeaderClick: () => void;
   devicesHeaderActive: boolean;
+  onOpenFirmware: () => void;
 }
 
 export function SidebarColumn({
@@ -92,6 +93,7 @@ export function SidebarColumn({
   onDeviceSelect,
   onDevicesHeaderClick,
   devicesHeaderActive,
+  onOpenFirmware,
 }: SidebarColumnProps) {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
@@ -292,6 +294,7 @@ export function SidebarColumn({
             onSelect={onDeviceSelect}
             onHeaderClick={onDevicesHeaderClick}
             headerActive={devicesHeaderActive}
+            onOpenFirmware={onOpenFirmware}
           />
         }
       />
