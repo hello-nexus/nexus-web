@@ -8,6 +8,9 @@ export interface WidgetSizeStop {
   percent: number;
 }
 
+// The Y70's 4 / 6 / 8 column stops are labelled as even steps, by product decision, not as cell ratios.
+const Y70_PERCENT: Record<PanelWidgetSizeMode, number> = { large: 100, small: 75, xsmall: 50 };
+
 // Canvas used when the glass has not reported one, so the stops still come from real grid math.
 const NOMINAL_CANVAS = { width: 1000, height: 1000 };
 
@@ -40,9 +43,11 @@ export function widgetSizeStops(
     ).cellSize;
   };
   const large = cellOf('large');
+  const y70 = options.layoutSurface.large === 'y70';
   return PANEL_WIDGET_SIZE_MODES.flatMap(mode => {
     const cell = cellOf(mode);
     if (cell === undefined || !large) return [];
+    if (y70) return [{ mode, percent: Y70_PERCENT[mode] }];
     return [{ mode, percent: mode === 'large' ? 100 : Math.max(1, Math.round((100 * cell) / large)) }];
   });
 }
