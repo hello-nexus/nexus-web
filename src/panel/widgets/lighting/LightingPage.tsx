@@ -1155,6 +1155,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (modeRef.current === 'none') {
       setCustomStaticColor(hex);
       setSelectionTab(null);
+      recordColor(hex);
       void resumeLightingRef.current('static').then(() => {
         setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       });
@@ -1165,6 +1166,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const ids = [...selectedDeviceIds];
     // Nothing selected: the color is the exact global flat color.
     if (ids.length === 0) {
+      recordColor(hex);
       setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       return;
     }
@@ -1173,7 +1175,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const pin = colorPin(hex);
     recordPins(ids, pin);
     queueColorWrite(pin, ids);
-  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope]);
+  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope, recordColor]);
 
   // Records as well as writes: the marks and the device cards read the pin, so
   // a drag has to move them with the pointer, not on release.
