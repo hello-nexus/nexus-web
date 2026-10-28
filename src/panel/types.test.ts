@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, Y70_PERCENT_STOPS, y70SizeForPercent, type PanelSurface,
+  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, largeChromeGrid, type PanelSurface,
 } from './types';
 import { panelGridCapacityForCanvas } from './engine/grid';
 
@@ -170,26 +170,38 @@ describe('Widget size on the Y70', () => {
     expect(panelLayoutDpi('y70', undefined, undefined, null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
   });
 
-  it('lays Small and Tiny out as a finer density grid at the Y70 glass density', () => {
-    expect(panelLayoutSurface('y70', undefined, 'small')).toBe('monitor');
-    expect(panelLayoutSurface('y70', undefined, 'xsmall')).toBe('monitor');
+  it('forces 6 and 8 columns on the y70 surface at 6 and 8 columns', () => {
+    expect(panelLayoutSurface('y70', undefined, 'small')).toBe('y70');
+    expect(panelLayoutSurface('y70', undefined, 'xsmall')).toBe('y70');
     expect(panelShortSideSlots('y70', undefined, 'small', 4)).toBe(6);
     expect(panelShortSideSlots('y70', undefined, 'xsmall', 4)).toBe(8);
     expect(panelShortSideSlots('y70', undefined, 'xsmall')).toBe(8);
-    expect(panelLayoutDpi('y70', undefined, 'xsmall', null, { y70: 337 } as Record<PanelSurface, number>)).toBe(337);
+    expect(panelLayoutDpi('y70', undefined, 'xsmall', null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
   });
 });
 
-describe('Y70 size slider stops', () => {
-  it('shows 4, 6 and 8 columns as 100, 67 and 50 percent and snaps to the nearest', () => {
-    expect(Y70_PERCENT_STOPS).toEqual({ large: 100, small: 67, xsmall: 50 });
-    expect(y70SizeForPercent(100)).toBe('large');
-    expect(y70SizeForPercent(80)).toBe('small');
-    expect(y70SizeForPercent(90)).toBe('large');
-    expect(y70SizeForPercent(60)).toBe('small');
-    expect(y70SizeForPercent(55)).toBe('xsmall');
-    expect(y70SizeForPercent(10)).toBe('xsmall');
-    expect(y70SizeForPercent(250)).toBe('large');
+describe('Y70 at 6 and 8 columns', () => {
+  const sizes = [undefined, 'large', 'small', 'xsmall'] as const;
+
+  it('resolves every surface-keyed choice exactly as at 4 columns', () => {
+    for (const size of sizes) {
+      // Backdrop, theme, touch and catalog all key on the layout surface and the glass; neither moves.
+      expect(panelLayoutSurface('y70', undefined, size)).toBe('y70');
+      expect(panelLayoutDpi('y70', undefined, size, null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
+      expect(surfaceSupportsTouch(panelLayoutSurface('y70', undefined, size), true)).toBe(surfaceSupportsTouch('y70', true));
+      expect(isGenericDisplayPanel('y70', undefined, true)).toBe(false);
+    }
+  });
+
+  it('changes only the column count, with square cells and rows from the height', () => {
+    const at = (cols: number | undefined) => panelGridCapacityForCanvas(682, 2560, { surface: 'y70', dpi: 337, paddingRatio: 0.1, shortSideSlots: cols });
+    expect(at(undefined)).toMatchObject({ columns: 4, rows: 16 });
+    for (const cols of [6, 8]) {
+      const cap = at(cols);
+      expect(cap.columns).toBe(cols);
+      expect(cap.rows).toBeGreaterThan(16);
+      expect(Math.abs(cap.rowSize - cap.cellSize)).toBeLessThan(cap.cellSize * 0.1);
+    }
   });
 });
 
@@ -356,5 +368,20 @@ describe('widget size options for a plain display', () => {
     expect(sizeForLegacyGridSlots(26, 12)).toBe('xsmall');
     expect(sizeForLegacyGridSlots(0, 12)).toBeUndefined();
     expect(sizeForLegacyGridSlots(12, undefined)).toBeUndefined();
+  });
+});
+
+describe('largeChromeGrid', () => {
+  const dpis = { y70: 337, monitor: 110, q60: 220 } as Record<PanelSurface, number>;
+
+  it('keeps chrome on the Large grid whatever size is stored', () => {
+    expect(largeChromeGrid('y70', undefined, null, dpis, 4)).toEqual({ surface: 'y70', shortSideSlots: undefined, dpi: undefined });
+    expect(largeChromeGrid('monitor', undefined, null, dpis, 8)).toEqual({ surface: 'monitor', shortSideSlots: 4, dpi: undefined });
+    expect(largeChromeGrid('monitor', 'icue-link-lcd5', null, dpis, 4)).toEqual({ surface: 'q60', shortSideSlots: undefined, dpi: 110 });
+  });
+
+  it('is absent where no size choice exists, so chrome follows the grid in use', () => {
+    expect(largeChromeGrid('phone', undefined, null, dpis)).toBeUndefined();
+    expect(largeChromeGrid('monitor', 'xeneon-edge', null, dpis)).toBeUndefined();
   });
 });

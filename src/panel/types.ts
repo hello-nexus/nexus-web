@@ -222,10 +222,10 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'monitor' && family === HYTE_Y60_FAMILY) {
     return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
   }
-  // HYTE Y70: Large is the fixed Y70 grid it always had. Small and Tiny force more columns of square
-  // cells, so small widgets fit side by side.
+  // HYTE Y70: every size stays the y70 surface, so backdrop, theme, touch, frost and hit-test never change.
+  // Large is the fixed grid it always had; Small and Tiny force more columns, and the rows follow from square cells.
   if (surface === 'y70') {
-    return { default: 'large', layoutSurface: { large: 'y70', small: 'monitor', xsmall: 'monitor' }, shortSideSlots: { small: Y70_COLUMN_STOPS.small, xsmall: Y70_COLUMN_STOPS.xsmall } };
+    return { default: 'large', layoutSurface: { large: 'y70', small: 'y70', xsmall: 'y70' }, shortSideSlots: { small: Y70_COLUMN_STOPS.small, xsmall: Y70_COLUMN_STOPS.xsmall } };
   }
   // A plain OS monitor: Large halves its density grid's short axis so cells double, Tiny doubles it so they halve.
   if (surface === 'monitor' && !family) {
@@ -236,22 +236,6 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
 
 // The Y70 offers three column counts on its slider: its own grid (Large), then 6 and 8.
 export const Y70_COLUMN_STOPS: Readonly<Record<PanelWidgetSizeMode, number>> = { large: 4, small: 6, xsmall: 8 };
-
-// Widget size as shown on the slider: the share of today's cell width, rounded to whole percent.
-export const Y70_PERCENT_STOPS: Readonly<Record<PanelWidgetSizeMode, number>> = {
-  large: 100,
-  small: Math.round(100 * Y70_COLUMN_STOPS.large / Y70_COLUMN_STOPS.small),
-  xsmall: Math.round(100 * Y70_COLUMN_STOPS.large / Y70_COLUMN_STOPS.xsmall),
-};
-
-/** The Y70 stop nearest a typed or dragged percent; a tie takes the larger size. */
-export function y70SizeForPercent(percent: number): PanelWidgetSizeMode {
-  let best: PanelWidgetSizeMode = 'large';
-  for (const mode of PANEL_WIDGET_SIZE_MODES) {
-    if (Math.abs(Y70_PERCENT_STOPS[mode] - percent) < Math.abs(Y70_PERCENT_STOPS[best] - percent)) best = mode;
-  }
-  return best;
-}
 
 // A grid whose short axis a Widget size forces; landscape means the short axis is its rows.
 export interface ForcedGrid {
@@ -300,6 +284,30 @@ export function sizeForLegacyGridSlots(gridSlots: number | null | undefined, den
     if (!best || err < best.err - 1e-9) best = { mode, err };
   }
   return best?.mode;
+}
+
+// The grid whose cell sizes the panel's floating chrome (menus, sheets, tray), so chrome keeps the size
+// the Large widget size gives it whatever size is chosen. Undefined where the panel offers no size choice.
+export interface ChromeGrid {
+  surface: PanelSurface;
+  shortSideSlots?: number;
+  dpi?: number;
+}
+
+export function largeChromeGrid(
+  surface: PanelSurface,
+  family: string | null | undefined,
+  recordDpi: number | null | undefined,
+  surfaceDpi: Readonly<Record<PanelSurface, number>>,
+  densitySlots?: number,
+): ChromeGrid | undefined {
+  const options = panelWidgetSizeOptions(surface, family);
+  if (!options) return undefined;
+  return {
+    surface: options.layoutSurface.large ?? surface,
+    shortSideSlots: widgetSizeShortSideSlots(options, 'large', densitySlots),
+    dpi: panelLayoutDpi(surface, family, 'large', recordDpi, surfaceDpi),
+  };
 }
 
 export function panelShortSideSlots(

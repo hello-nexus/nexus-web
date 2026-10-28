@@ -137,18 +137,30 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
+const sizeSlider = () => screen.getByRole('slider', { name: 'devices.panels.widgetSize.label' }) as HTMLInputElement;
+// The two-size panels here offer Large at the slider's top and Small at its bottom.
+async function pickSize(mode: 'large' | 'small') {
+  const slider = sizeSlider();
+  await act(async () => {
+    fireEvent.change(slider, { target: { value: mode === 'large' ? slider.max : slider.min } });
+    fireEvent.keyUp(slider);
+  });
+  // The slider defers its drag-end commit one tick.
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); });
+}
+
 async function renderPage(rec: Record<string, unknown>) {
   fetchPanelDevicesMock.mockResolvedValue({ devices: [record(rec)] });
   render(<PanelDevicePage device={DEVICE} />);
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })).not.toBeDisabled());
+  await waitFor(() => expect(sizeSlider()).not.toBeDisabled());
 }
 
 describe('PanelDevicePage widget size', () => {
   it('names the widgets that will not fit before switching to large, then writes size and layout together', async () => {
     await renderPage({ layout: layout([widget('a', 'clock', 0, 0), widget('b', 'weather', 2, 0)]) });
-    expect(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })).toHaveAttribute('aria-checked', 'true');
+    expect(sizeSlider().value).toBe(sizeSlider().min);
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+    await pickSize('large');
 
     expect(screen.getByText('devices.panels.widgetSize.confirmTitle')).toBeInTheDocument();
     expect(screen.getByText('name.weather')).toBeInTheDocument();
@@ -168,7 +180,7 @@ describe('PanelDevicePage widget size', () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
     expect(screen.getByTestId('embed').dataset.surface).toBe('q60');
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('small');
 
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
@@ -181,12 +193,12 @@ describe('PanelDevicePage widget size', () => {
     patchPanelDeviceMock.mockResolvedValue(null);
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('small');
     await waitFor(() => expect(pushToastMock).toHaveBeenCalledTimes(1));
     expect(pushToastMock).toHaveBeenCalledWith({ title: 'devices.panels.saveFailedTitle', body: 'devices.panels.saveFailedBody' });
 
     patchPanelDeviceMock.mockRejectedValue(new Error('network'));
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+    await pickSize('large');
     await waitFor(() => expect(patches().length).toBeGreaterThan(1));
     expect(pushToastMock).toHaveBeenCalledTimes(1);
   });
@@ -194,7 +206,7 @@ describe('PanelDevicePage widget size', () => {
   it('keeps a pointer-required widget when a mouse-only display changes size', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'calculator', 0, 0, '2x4')], 'q60') });
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('small');
 
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['calculator']);
@@ -203,7 +215,7 @@ describe('PanelDevicePage widget size', () => {
   it('shows no toast when the record write succeeds', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('small');
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(pushToastMock).not.toHaveBeenCalled();
   });
@@ -228,7 +240,7 @@ describe('PanelDevicePage widget size', () => {
     };
     await renderPage(screen88);
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+    await pickSize('large');
 
     // A display panel has a pager, so nothing is dropped and no confirmation is asked.
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
