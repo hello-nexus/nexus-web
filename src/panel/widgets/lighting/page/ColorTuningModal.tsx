@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { Button } from '../../../../components/common/Button/Button';
-import { Select } from '../../../../components/common/Select/Select';
+import { SettingSelect } from '../../../../components/common/SettingRow/SettingRow';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { useThrottle } from '../../../../hooks/cadence';
@@ -335,20 +335,15 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
             />
           </div>
 
-          <div className={styles.orderRow}>
-            <span className={styles.orderLabel}>
-              {t('lighting.colorTuning.colorOrder')}
-              <InfoTooltip message={t('lighting.colorTuning.colorOrderInfo')} side="bottom" />
-            </span>
-            <Select
-              ariaLabel={t('lighting.colorTuning.colorOrder')}
-              options={orderOptions}
-              value={orderValue}
-              placeholder={t('lighting.colorTuning.mixed')}
-              disabled={empty}
-              onChange={v => write({ colorOrder: v as ColorOrder }, true)}
-            />
-          </div>
+          <SettingSelect
+            label={t('lighting.colorTuning.colorOrder')}
+            description={t('lighting.colorTuning.colorOrderInfo')}
+            options={orderOptions}
+            value={orderValue}
+            placeholder={t('lighting.colorTuning.mixed')}
+            disabled={empty}
+            onChange={v => write({ colorOrder: v as ColorOrder }, true)}
+          />
         </section>
 
         <div className={styles.actions}>

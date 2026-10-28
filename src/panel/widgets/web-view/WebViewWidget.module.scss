@@ -32,6 +32,17 @@
   white-space: nowrap;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: -4px;
+
+  > * {
+    margin: 4px;
+  }
+}
+
 .hint {
   @include text-caption;
   max-width: 100%;

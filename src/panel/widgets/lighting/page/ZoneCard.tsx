@@ -503,6 +503,7 @@ export function ZoneCard({
     return organise;
   };
 
+  const tunableCount = bulk ? bulk.tunableCount : (zoneCardSelectable(device) ? 1 : 0);
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
     // The engine's rows (Customize, tuning, power, pins) cannot act while
@@ -537,7 +538,6 @@ export function ZoneCard({
     // trimming eight strips to match each other is the point. The modal scopes
     // itself to the cards a trim can reach and drops the rest, so the row counts
     // THOSE: a selection may hold dark and un-driven cards it will not touch.
-    const tunableCount = bulk ? bulk.tunableCount : (zoneCardSelectable(device) ? 1 : 0);
     if (onOpenColorTuning && tunableCount > 0) {
       editors.push({
         key: 'colorTuning',
@@ -699,9 +699,21 @@ export function ZoneCard({
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
         {colorTuned && (
           <HoverTooltip body={t('lighting.colorTuning.title')} side="top">
-            <span className={styles.deviceTuneBadge} role="img" aria-label={t('lighting.colorTuning.title')}>
-              <Blend size={12} aria-hidden />
-            </span>
+            {onOpenColorTuning && !toggleMode && !selectOnly && !unavailable && !firmwareControlled && zoneCardSelectable(device) && tunableCount > 0 ? (
+              <button
+                type="button"
+                className={`${styles.deviceSettingsBtn} ${styles.deviceBadgeBtn} ${styles.deviceTuneBtn}`}
+                aria-label={t('lighting.colorTuning.title')}
+                data-no-dnd
+                onClick={e => { e.stopPropagation(); onOpenColorTuning(); }}
+              >
+                <Blend aria-hidden />
+              </button>
+            ) : (
+              <span className={styles.deviceTuneBadge} role="img" aria-label={t('lighting.colorTuning.title')}>
+                <Blend size={12} aria-hidden />
+              </span>
+            )}
           </HoverTooltip>
         )}
         {inStack && (
