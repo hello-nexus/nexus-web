@@ -141,8 +141,8 @@ function renderSidebar() {
 describe('SidebarDevicesSection display numbers', () => {
   afterEach(() => { mockTopology = null; });
   const two = () => [
-    monitorDevice({ key: 'a', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:a', displayId: 'd1' }) }),
-    monitorDevice({ key: 'b', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:b', displayId: 'd2' }) }),
+    monitorDevice({ key: 'a', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:a', displayId: 'd1', genericDisplay: true }) }),
+    monitorDevice({ key: 'b', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:b', displayId: 'd2', genericDisplay: true }) }),
   ];
 
   it('suffixes identical display names with the shared display number', () => {
@@ -158,6 +158,13 @@ describe('SidebarDevicesSection display numbers', () => {
     mockTopology = { displays: [{ id: 'd1', number: 1 }] };
     renderSidebar();
     expect(screen.getByText('DEL A0B8')).toBeTruthy();
+  });
+
+  it('shows no number on a branded panel', () => {
+    mockUnified = [two()[0], monitorDevice({ key: 'c', panelDevice: monitorPanelDevice({ id: 'display:c', displayId: 'd2' }) })];
+    mockTopology = { displays: [{ id: 'd1', number: 1 }, { id: 'd2', number: 2 }] };
+    renderSidebar();
+    expect(screen.getByText('Xeneon Edge')).toBeTruthy();
   });
 });
 

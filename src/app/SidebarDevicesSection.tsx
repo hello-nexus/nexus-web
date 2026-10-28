@@ -195,7 +195,7 @@ export function SidebarDevicesSection({
           const isActive = device.key === activeDeviceKey || claimsKey(device, activeDeviceKey);
           const isSimulated = isSimulatedDevice(device);
           const controlOff = device.supportsNexusControl && !device.nexusControlEnabled;
-          const displayNumber = displayListNumber(topology?.displays ?? [], device.kind === 'panel' ? device.panelDevice?.displayId : undefined);
+          const displayNumber = displayListNumber(topology?.displays ?? [], device.kind === 'panel' && device.panelDevice?.genericDisplay ? device.panelDevice.displayId : undefined);
           const baseName = sidebarDeviceName(device);
           const name = displayNumber ? t('displays.numberedName', { name: baseName, n: displayNumber }) : baseName;
           const tooltip = isSimulated
