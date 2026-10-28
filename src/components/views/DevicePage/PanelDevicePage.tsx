@@ -435,13 +435,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
   const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
-  // Touch-capable panels only; the phone is never a device page.
-  const restrictedToggleShown = !!device?.panelRecordId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);
-  const toggleRestricted = () => {
-    const next = !recordRestricted;
-    setRecordRestricted(next);
-    if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { restrictedMode: next }).catch(() => {});
-  };
+  // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
+  const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);
   const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel, genericDisplay);
   const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
@@ -867,6 +862,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
+      setRecordRestricted(record.restrictedMode ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
@@ -922,6 +918,25 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         }
       });
   }, [refetchDeviceRecord, reportWriteFailed]);
+
+  const toggleRestricted = useCallback(() => {
+    if (!editingDeviceId) return;
+    const next = !recordRestricted;
+    const revert = () => { setRecordRestricted(!next); reportWriteFailed(); };
+    setRecordRestricted(next);
+    pendingWritesRef.current += 1;
+    writeSeqRef.current += 1;
+    patchPanelDevice(editingDeviceId, { restrictedMode: next })
+      .then(saved => { if (saved === null) revert(); })
+      .catch(revert)
+      .finally(() => {
+        pendingWritesRef.current -= 1;
+        if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
+          missedBroadcastRef.current = false;
+          refetchDeviceRecord();
+        }
+      });
+  }, [editingDeviceId, recordRestricted, refetchDeviceRecord, reportWriteFailed]);
 
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
