@@ -209,7 +209,7 @@ const NO_SPANS: readonly GridSpan[] = [];
 const EMPTY_IMPORT_LAYOUT: PanelLayout = { layoutSchemaVersion: 2, surface: 'monitor', pages: [{ id: 'page-1', widgets: [] }] };
 const NO_ROOM = { tl: false, tr: false, bl: false, br: false };
 
-// Corners snap to a widget's declared sizes that fit; opted-in widgets also get the even spans beyond the declared sizes.
+// Corners snap to a widget's declared sizes that fit; opted-in widgets also get every span of at least 4x4 beyond the declared sizes.
 function resizeSpansForType(
   type: string,
   surface: PanelSurface,
