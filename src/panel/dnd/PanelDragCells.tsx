@@ -130,6 +130,16 @@ export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: 
   );
 }
 
+// A mouse click focuses the badge button too, which would leave it showing after
+// the pointer moved to another widget; only keyboard focus keeps it up.
+function keyboardFocused(el: EventTarget): boolean {
+  try {
+    return el instanceof Element && el.matches(':focus-visible');
+  } catch {
+    return false;
+  }
+}
+
 export function PanelTouchCell({
   widget,
   deviceId,
@@ -468,7 +478,7 @@ export function PanelTouchCell({
       onClick={onSimulatorClick}
       onPointerEnter={moreActions ? () => setHovered(true) : undefined}
       onPointerLeave={moreActions ? () => setHovered(false) : undefined}
-      onFocus={moreActions ? () => setFocused(true) : undefined}
+      onFocus={moreActions ? e => setFocused(keyboardFocused(e.target)) : undefined}
       onBlur={moreActions ? () => setFocused(false) : undefined}
       {...(dragMotionActive ? {} : attributes)}
       {...composedPointerHandlers}

@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 .arrow {
   display: flex;
   align-items: center;
@@ -58,33 +60,38 @@
 .inCard { left: calc(100% + var(--border-width)); }
 .inHeader { left: 100%; }
 
-// Round badge centered on the visible card's top-right corner, ringed with the
-// page background so it reads over a neighbor. Fixed and portaled to the body
-// (MenuArrowButton positions left/top from the card's rect), so it takes no
-// layout space and the pager's overflow cannot clip it. The host decides when
-// it mounts, so it is fully opaque. A touch-first screen never renders it.
+// Round badge centered on the visible card's top-right corner. Fixed and
+// portaled into the panel root, beside the context menu (MenuArrowButton
+// positions left/top from the card's rect), so it takes no layout space, the
+// pager's overflow cannot clip it, and the menu's z-index outranks it. Styled
+// as the shared neutral Button tone (Button.module.scss .tone-neutral) with the
+// shared focus ring. A touch-first screen never renders it.
 .inCorner {
   --_size: 26px;
-  // Pulls the badge in from the exact corner point, toward the card.
-  --_inset: 4px;
+  // Pulls the badge in from the exact corner point, toward the card; the
+  // component sets it from the live gutter so the badge never reaches a neighbor.
+  --_inset: 0px;
   position: fixed;
   z-index: var(--z-floating);
   width: var(--_size);
   height: var(--_size);
   margin: calc(var(--_size) / -2 + var(--_inset)) 0 0 calc(var(--_size) / -2 - var(--_inset));
   opacity: 1;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  color: var(--text);
-  box-shadow: 0 0 0 3px var(--backdrop-base), 0 2px 6px rgb(0 0 0 / 40%);
+  border: var(--border-width) solid var(--control-border);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--text-dim);
 
   // The hover strip across a gutter has no meaning for a corner badge.
   &::before { content: none; }
 
   &:hover {
-    color: var(--accent-text);
-    background: var(--accent);
+    background: var(--bg-card-hover);
+    border-color: var(--control-border-strong);
+    color: var(--text);
   }
+
+  &:focus-visible { @include focus-ring; }
 
   svg { width: 16px; height: 16px; }
 }

@@ -129,6 +129,7 @@ describe('PanelTouchCell', () => {
       const onOpen = vi.fn();
       const onClose = vi.fn();
       render(cell({ moreActions: { open: true, onOpen, onClose } }));
+      fireEvent.pointerDown(badge()!);
       fireEvent.click(badge()!);
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(onOpen).not.toHaveBeenCalled();

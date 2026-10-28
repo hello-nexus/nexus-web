@@ -29,9 +29,18 @@ interface MenuArrowButtonProps {
 export function MenuArrowButton({ label, tooltip, open, onOpen, onClose, variant, anchor }: MenuArrowButtonProps) {
   const corner = variant === 'corner';
   const btnRef = useRef<HTMLButtonElement>(null);
+  // `open` as of the press: the menu's outside-pointerdown close and the host's
+  // pointerup have already run by the click, so a re-read there would reopen.
+  const openAtPressRef = useRef(false);
   useLayoutEffect(() => {
     if (!corner || !anchor) return undefined;
     let raf = 0;
+    // Keep the badge's outer edge inside the gutter between cards: its center
+    // sits half a badge in from the gutter's far edge, so a narrow gutter pulls
+    // the badge toward its own card and never over a neighbor.
+    const size = btnRef.current?.offsetWidth ?? 0;
+    const gap = Number.parseFloat(getComputedStyle(anchor.closest('[data-surface]') ?? anchor).getPropertyValue('--panel-gap')) || 0;
+    btnRef.current?.style.setProperty('--_inset', `${Math.min(size, Math.max(0, size / 2 - gap + 0.5))}px`);
     const place = () => {
       const el = btnRef.current;
       if (el) {
@@ -56,11 +65,13 @@ export function MenuArrowButton({ label, tooltip, open, onOpen, onClose, variant
         aria-haspopup="menu"
         aria-expanded={open}
         data-no-dnd
+        onPointerDown={corner ? e => { openAtPressRef.current = open; e.stopPropagation(); } : undefined}
+        onPointerUp={corner ? e => e.stopPropagation() : undefined}
         onClick={e => {
           e.stopPropagation();
           // Explicit toggle: the button is its own close affordance, and the
           // menu's outside-pointerdown close has already run.
-          if (open) { onClose(); return; }
+          if (corner ? openAtPressRef.current : open) { onClose(); return; }
           const r = e.currentTarget.getBoundingClientRect();
           if (corner) onOpen(r.left, r.bottom + 4);
           else onOpen(r.right + 4, r.top);
@@ -70,5 +81,7 @@ export function MenuArrowButton({ label, tooltip, open, onOpen, onClose, variant
       </button>
     </HoverTooltip>
   );
-  return corner ? createPortal(node, document.body) : node;
+  // Same layer as the context menu (the panel root), so the menu's z-index
+  // outranks the badge; the body is a different stacking context and sat above it.
+  return corner ? createPortal(node, anchor?.closest<HTMLElement>('[data-surface]') ?? document.body) : node;
 }
