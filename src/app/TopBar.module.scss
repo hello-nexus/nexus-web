@@ -27,8 +27,10 @@
   background: transparent;
   border-bottom: none;
   // Width of the centered search pill; shared with the arrow offset below so
-  // the arrows always sit just left of the pill's edge.
-  --search-w: 460px;
+  // the arrows always sit just left of the pill's edge. Fixed up to a window
+  // width breakpoint, then grows at half the extra width up to a cap. The bar
+  // spans the whole window, so viewport width is the right base.
+  --search-w: clamp(460px, calc(460px + (100vw - 1280px) * 0.5), 760px);
 }
 
 // Windows --app shell: empty areas of the bar drag the window. Implemented via

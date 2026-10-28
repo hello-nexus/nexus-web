@@ -119,6 +119,29 @@ describe('FocusChip', () => {
     expect(screen.getAllByText('Huntdown: Overtime')).toHaveLength(1);
   });
 
+  it('measures the rendered search pill, not a CSS variable, for the room it leaves', () => {
+    // A zero-width pill would leave room for the label; the stubbed wide pill
+    // pushes the boundary left of the chip, so the label must hide.
+    const header = document.body.appendChild(document.createElement('header'));
+    const search = header.appendChild(document.createElement('div'));
+    search.setAttribute('data-topbar-search', '');
+    Element.prototype.getBoundingClientRect = function () {
+      const el = this as HTMLElement;
+      if (el.tagName === 'HEADER') return { left: 0, right: 1000, width: 1000, top: 0, bottom: 40, height: 40, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+      if (el.hasAttribute('data-topbar-search')) return { left: 50, right: 950, width: 900, top: 0, bottom: 34, height: 34, x: 50, y: 0, toJSON: () => ({}) } as DOMRect;
+      const w = el.getAttribute('aria-hidden') === 'true' ? 90 : 60;
+      return { left: 0, right: w, width: w, top: 0, bottom: 28, height: 28, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    };
+    status = statusFor({
+      activeModeId: 'game',
+      reason: 'auto',
+      games: [{ key: 'steam:2473350', name: 'Huntdown: Overtime', pid: 1, sinceMs: 0 }],
+    });
+    render(<FocusChip online />, { container: header.appendChild(document.createElement('div')) });
+
+    expect(screen.getAllByText('Huntdown: Overtime')).toHaveLength(1);
+  });
+
   it('lists every mode, then Off, then Settings', () => {
     status = statusFor();
     render(<FocusChip online />);

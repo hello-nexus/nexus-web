@@ -260,7 +260,7 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
     : null;
 
   return (
-    <div className={styles.dock} ref={dockRef} data-no-window-drag>
+    <div className={styles.dock} ref={dockRef} data-no-window-drag data-topbar-search>
       {isOpen ? (
         <div className={classNames(styles.pill, styles.pillActive, assistantQuery.usable && styles.pillAi)} ref={pillRef}>
           <Search size={15} className={styles.glyph} aria-hidden />
