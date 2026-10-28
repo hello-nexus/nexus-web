@@ -269,9 +269,22 @@ describe('LightingWidget', () => {
     });
     expect(open.matches(CONTROL_SELECTOR)).toBe(true);
     expect(open).toHaveAttribute('aria-label', 'lighting.widget.openLighting');
+    expect(open.querySelector('.lucide-sparkles')).not.toBeNull();
     fireEvent.click(open);
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(startAnimate).not.toHaveBeenCalled();
+  });
+
+  it('shows the current mode icon on a colorless open tile', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+    renderLighting(lightingWidget('4x2'));
+    const open = await waitFor(() => {
+      const el = document.querySelector('[data-swatch-open]') as HTMLElement;
+      expect(el).not.toBeNull();
+      return el;
+    });
+    expect(open.querySelector('.lucide-palette')).not.toBeNull();
+    expect(open.querySelector('.lucide-maximize-2')).toBeNull();
   });
 
   it('falls back to the dashboard section link when the cell tap does nothing', async () => {

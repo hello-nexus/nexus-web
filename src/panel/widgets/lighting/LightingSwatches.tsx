@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Maximize2 } from 'lucide-react';
 import { effectThumbnailPath } from '../../../api/lighting';
 import { fetchServiceBlob } from '../../../api/service';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
+import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
 import type { EffectTemplateBundle } from '../../../types/lighting';
 import { slotThumbSignature } from '../../../types/lightingTemplates';
@@ -104,6 +104,7 @@ export function LightingSwatches({
   const thumbs = useEffectThumbs(effectTiles, templates, kind === 'animate' && !preview);
   const cell = { '--swatch-ratio': RATIO } as CSSProperties;
   const openLabel = t('lighting.widget.openLighting');
+  const OpenIcon = LIGHTING_MODE_ICONS[kind];
 
   return (
     <div ref={ref} className={styles.swatchInset}>
@@ -156,7 +157,7 @@ export function LightingSwatches({
               title={openLabel}
             >
               {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-              <Maximize2 className={styles.swatchOpenIcon} aria-hidden="true" />
+              <OpenIcon className={styles.swatchOpenIcon} aria-hidden="true" />
             </button>
           </div>
         )}
