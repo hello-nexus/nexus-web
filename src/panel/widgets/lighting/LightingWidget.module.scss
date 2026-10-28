@@ -40,6 +40,50 @@
   container-type: size;
 }
 
+// Swatch grid area: same inset as the framed card, so the arrows keep their
+// gutter in simple mode and advanced mode (no arrows) gets the full width.
+.swatchInset {
+  position: absolute;
+  inset: 12px 54px;
+  display: flex;
+  align-items: center;
+}
+
+.swatchGrid {
+  width: 100%;
+  max-height: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 4px;
+  box-sizing: border-box;
+  align-content: center;
+}
+
+.swatchEffect {
+  aspect-ratio: 16 / 9;
+  min-width: 0;
+
+  > * {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.swatchColor {
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 2px solid rgb(255 255 255 / 0.18);
+  border-radius: var(--radius);
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.swatchActive {
+  border-color: var(--text);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.25);
+}
+
 // Largest 16/9 card that fits the box: full width when the box is taller than
 // 16/9, height-derived width otherwise.
 .thumbCardFit {
@@ -284,7 +328,8 @@
   }
 
   // Simple mode: matches this size's larger arrow gutter (offset + width + gap).
-  .thumbCardBox {
+  .thumbCardBox,
+  .swatchInset {
     inset: 12px 66px;
   }
 
@@ -303,7 +348,8 @@
 }
 
 // Advanced mode has no arrows, so its card drops the arrow gutter.
-.lighting:not([data-simple='true']) .thumbCardBox {
+.lighting:not([data-simple='true']) .thumbCardBox,
+.lighting:not([data-simple='true']) .swatchInset {
   inset: 12px;
 }
 
@@ -317,9 +363,14 @@
     margin: -10px;
   }
 
-  .thumbCardBox {
+  .thumbCardBox,
+  .swatchInset {
     inset: 10px;
   }
+}
+
+.lighting[data-size='2x2'][data-simple='true'] .swatchInset {
+  inset: 10px 34px;
 }
 
 // 2x2 simple mode: arrows render at this size, so shrink the

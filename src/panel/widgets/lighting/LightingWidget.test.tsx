@@ -7,6 +7,7 @@ import {
 } from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
+import { paletteColor } from '../../../types/lightingPalette';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
@@ -101,6 +102,8 @@ function lightingWidget(size: PanelWidget['size']): PanelWidget {
   };
 }
 
+const waitForMode = (mode: string) => waitFor(() => expect(document.querySelector(`[data-mode="${mode}"]`)).toBeInTheDocument());
+
 describe('LightingWidget', () => {
   it('2x2 has no arrows and no mode buttons - thumbnail only', async () => {
     render(<LightingWidget widget={lightingWidget('2x2')} />);
@@ -187,19 +190,6 @@ describe('LightingWidget', () => {
     expect(document.querySelector('[data-state-flash]')).not.toBeInTheDocument();
   });
 
-  it('flashes inside the thumbnail when the mode changes', async () => {
-    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
-    render(<LightingWidget widget={lightingWidget('4x2')} />);
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /static/i }).getAttribute('data-active')).toBe('true');
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Animation' }));
-    await waitFor(() => {
-      expect(document.querySelector('[data-state-flash]')).toBeInTheDocument();
-    });
-  });
-
   it.each([
     ['none', 'lucide-lightbulb', 'Off'],
     ['gif', 'lucide-film', 'Media'],
@@ -212,39 +202,89 @@ describe('LightingWidget', () => {
     expect(document.querySelector(`[class*="thumbIconWrap"] .${iconClass}`)).toBeInTheDocument();
   });
 
-  // Static colours are assigned per device, so there is no one effect to
-  // picture - the mode icon and the lit-device count are the whole tile.
-  it('shows Static as an icon and a device count, with no effect thumbnail', async () => {
+  it('shows Static as a row of color swatches with no device count and no text', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
     vi.mocked(fetchServiceBlob).mockClear();
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
-    await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
-    // The icon view, not the framed effect card the animate tile uses.
-    expect(document.querySelector('[class*="thumbIconWrap"]')).toBeInTheDocument();
-    expect(document.querySelector('[class*="thumbCardBox"]')).not.toBeInTheDocument();
-    expect(document.querySelector('[data-state-flash]')).not.toBeInTheDocument();
-    // The pre-hydrate default fetch is for the animate key; no static effect's
-    // thumbnail is ever requested, because none is rendered.
+    await waitFor(() => expect(document.querySelectorAll('[data-palette-id]')).toHaveLength(6));
+    expect(screen.queryByText(/activeCount/)).not.toBeInTheDocument();
+    expect(document.querySelector('[class*="thumbIconWrap"]')).not.toBeInTheDocument();
+    for (const el of document.querySelectorAll('[data-palette-id]')) expect(el.textContent).toBe('');
     const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
     expect(paths.some(p => p.includes('simplewhite'))).toBe(false);
   });
 
+  it.each([
+    ['2x2', 4],
+    ['4x2', 6],
+    ['4x4', 12],
+  ] as const)('shows %s Static with %i swatches', async (size, count) => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+    render(<LightingWidget widget={lightingWidget(size)} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-palette-id]')).toHaveLength(count));
+  });
+
+  it.each([
+    ['2x2', 4],
+    ['4x2', 6],
+    ['4x4', 12],
+  ] as const)('shows %s Animation with %i unlabeled thumbnails', async (size, count) => {
+    render(<LightingWidget widget={lightingWidget(size)} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(count));
+    expect(document.querySelector('[class*="labelOverlay"]')).not.toBeInTheDocument();
+  });
+
+  it('applies a tapped color immediately as the global flat color', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+    vi.mocked(startStatic).mockClear();
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-palette-id]')).toHaveLength(6));
+
+    const swatch = document.querySelector('[data-palette-id="red-3"]') as HTMLElement;
+    fireEvent.click(swatch);
+    await waitFor(() => expect(startStatic).toHaveBeenCalled());
+    const args = vi.mocked(startStatic).mock.calls[0];
+    expect(args[0]).toBe('gradientlinear');
+    expect(args[8]).toBe(paletteColor('red-3')!.hex);
+    await waitFor(() => expect(swatch).toHaveAttribute('aria-pressed', 'true'));
+  });
+
+  it('leads with Rainbow and applies it with the simple sweep look', async () => {
+    vi.mocked(startAnimate).mockClear();
+    render(<LightingWidget widget={lightingWidget('2x2')} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(4));
+
+    const first = document.querySelectorAll('[data-effect-key]')[0] as HTMLElement;
+    expect(first.getAttribute('data-effect-key')).toBe('sweeprainbow');
+    fireEvent.click(first);
+    await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+    expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('sweeprainbow');
+    expect(vi.mocked(startAnimate).mock.calls[0][1]).toBe(50);
+  });
+
+  it('applies a tapped animation immediately', async () => {
+    vi.mocked(startAnimate).mockClear();
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+    await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(6));
+
+    const target = document.querySelectorAll('[data-effect-key]')[2] as HTMLElement;
+    fireEvent.click(target);
+    await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+    expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe(target.getAttribute('data-effect-key'));
+  });
+
   // A simple-mode sweep drives the LEDs without a catalogue entry: the tile
   // has to picture that, not fall back to the last catalogue effect.
-  it('names and pictures a running simple-mode sweep', async () => {
+  it('pictures a running simple-mode sweep in the immersive view', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'sweepcycle' });
     vi.mocked(fetchServiceBlob).mockClear();
-    render(<LightingWidget widget={lightingWidget('4x2')} />);
+    render(<LightingWidget widget={lightingWidget('4x2')} immersive />);
 
-    await waitFor(() => expect(screen.getByText('lighting.simple.anim.colorCycle')).toBeInTheDocument());
-    // The thumbnail fetch is a second round trip, so it can still be in flight
-    // when the name lands.
     await waitFor(() => {
       const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
       expect(paths.some(p => p.includes('sweepcycle'))).toBe(true);
     });
-    expect(screen.queryByText('lighting.controls.rainbow')).not.toBeInTheDocument();
   });
 
   // Static assigns per device, so no single preview can state what it is doing:
@@ -254,7 +294,7 @@ describe('LightingWidget', () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
     render(<LightingWidget widget={lightingWidget('4x2')} immersive />);
 
-    await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('lighting.mode.static')).toBeInTheDocument());
     expect(screen.queryByTestId('shader-preview')).not.toBeInTheDocument();
     expect(screen.queryByTestId('live-preview')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'lighting.fullscreen' })).not.toBeInTheDocument();
@@ -297,7 +337,7 @@ describe('LightingWidget', () => {
       vi.mocked(startStatic).mockClear();
       vi.mocked(startAnimate).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
+      await waitForMode('static');
 
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
       await waitFor(() => expect(startAnimate).toHaveBeenCalled());
@@ -309,7 +349,7 @@ describe('LightingWidget', () => {
       vi.mocked(stopLighting).mockClear();
       vi.mocked(startStatic).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
+      await waitForMode('static');
 
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
       await waitFor(() => expect(stopLighting).toHaveBeenCalled());
@@ -324,7 +364,7 @@ describe('LightingWidget', () => {
       vi.mocked(startAnimate).mockClear();
       vi.mocked(startStatic).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('lighting.controls.nebula')).toBeInTheDocument());
+      await waitForMode('animate');
 
       // MODES order: off, static, animate, gif, screen.
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
@@ -342,7 +382,7 @@ describe('LightingWidget', () => {
       vi.mocked(startAnimate).mockClear();
       vi.mocked(startStatic).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('lighting.controls.nebula')).toBeInTheDocument());
+      await waitForMode('animate');
 
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
       await waitFor(() => expect(startStatic).toHaveBeenCalled());
@@ -362,7 +402,7 @@ describe('LightingWidget', () => {
       vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
       vi.mocked(startStatic).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
+      await waitForMode('static');
 
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
       await waitFor(() => expect(stopLighting).toHaveBeenCalled());
