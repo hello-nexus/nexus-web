@@ -5878,6 +5878,7 @@
   "store.spec.widgetSizes": "小组件尺寸",
   "store.unavailable": "Marketplace 不可用",
   "store.update": "更新",
+  "store.value.freeform": "自由调整大小",
   "store.value.hasFeature": "支持",
   "store.value.noFeature": "不支持",
   "store.value.touchAny": "非必需",

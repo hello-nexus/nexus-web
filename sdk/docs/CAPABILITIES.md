@@ -47,8 +47,8 @@ The TS shape lives in `src/widgets/types.ts`.
   "grid_sizes": ["4x4"],
 
   // Optional, default false: besides "sizes", lets the user drag a corner of
-  // the tile to any span whose width and height are both even and at least 4
-  // cells, as far as the panel's grid reaches. The widget must lay out
+  // the tile to any span whose width and height are both at least 4 cells,
+  // as far as the panel's grid reaches. The widget must lay out
   // correctly at every span, since it can end up at any ratio.
   "freeform": false,
 

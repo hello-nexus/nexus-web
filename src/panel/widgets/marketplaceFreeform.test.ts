@@ -1,4 +1,4 @@
-// An SDK app that declares `freeform` resizes to any even span, like Web View; one that does not keeps its declared sizes.
+// An SDK app that declares `freeform` resizes to any span, like Web View; one that does not keeps its declared sizes.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { lookupApp, sizesForSurface } from './registry';
 import { freeformSnapSpans } from '../engine/freeformResize';
@@ -21,7 +21,7 @@ beforeEach(() => _resetMarketplaceRegistryForTests());
 afterEach(() => _resetMarketplaceRegistryForTests());
 
 describe('SDK app freeform', () => {
-  it('gets every even span the grid holds when its manifest declares freeform', () => {
+  it('gets every span the grid holds when its manifest declares freeform', () => {
     _seedMarketplaceRegistryForTests([listing('com.example.free', true)]);
     const meta = lookupApp('app:com.example.free')!.meta;
     expect(meta.freeform).toBe(true);

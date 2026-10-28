@@ -208,6 +208,22 @@ describe('sync stream', () => {
   });
 });
 
+describe('immersive flag', () => {
+  it('marks the synced view immersive only while an immersive claim wins, so the overlay can hide its disc', () => {
+    const host = makeHost();
+    const tile = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
+    bridge.push(caps());
+    expect(syncs().at(-1)!.views[0].immersive).toBeUndefined();
+    const imm = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: true });
+    frame();
+    expect(syncs().at(-1)!.views[0].immersive).toBe(true);
+    imm.release();
+    frame();
+    expect(syncs().at(-1)!.views[0].immersive).toBeUndefined();
+    tile.release();
+  });
+});
+
 describe('touchable tiles', () => {
   const tile = (touchPage: boolean | undefined) => {
     const host = makeHost();

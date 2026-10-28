@@ -6,10 +6,10 @@ import { freeformSnapSpans } from '../../engine/freeformResize';
 import type { PanelLayout } from '../../types';
 
 describe('whiteboard freeform resizing', () => {
-  it('opts in, so it snaps to the even spans past 4x4 as well as its declared sizes', () => {
+  it('opts in, so it snaps to any span past 4x4 as well as its declared sizes', () => {
     expect(whiteboardApp.meta.freeform).toBe(true);
     const names = freeformSnapSpans(whiteboardApp.meta.sizes, { cols: 8, rows: 8 }).map(s => `${s.cols}x${s.rows}`);
-    expect(names).toEqual(expect.arrayContaining(['2x2', '4x2', '4x4', '6x4', '4x6', '8x8']));
+    expect(names).toEqual(expect.arrayContaining(['2x2', '4x2', '4x4', '5x4', '4x5', '5x5', '6x4', '4x6', '8x8']));
   });
 
   it('keeps the widget id and config through a resize, so its stored board stays attached', () => {

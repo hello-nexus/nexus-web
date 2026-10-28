@@ -25,7 +25,7 @@ function stepOnce(h: ReturnType<typeof setup>, cols: number, rows: number) {
 
 describe('useFreeformResize keyboard steps', () => {
   it.each([
-    ['4x4', 1, 0, '6x4'],
+    ['4x4', 1, 0, '5x4'],
     ['2x2', 1, 0, '4x2'],
     ['4x2', 0, 1, '4x4'],
   ] as const)('%s steps (%i, %i) to %s', (size, dc, dr, expected) => {

@@ -289,6 +289,16 @@ describe('StorePage app page layout', () => {
     expect(screen.queryByText(/2x2round/)).not.toBeInTheDocument();
   });
 
+  it('appends the free-resize note to the sizes of a freeform app', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      latest: { ...version, sizes: ['2x2', '4x2'], freeform: true },
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('2x2, 4x2, store.value.freeform')).toBeInTheDocument();
+  });
+
   it('omits the sizes cell for an app that declares no widget', async () => {
     fetchStoreApp.mockResolvedValue({
       ...detail,
