@@ -205,3 +205,42 @@ describe('size choice', () => {
     expect(mixed.widgetsLocked).toBe(false);
   });
 });
+
+describe('Y70 density', () => {
+  const vp: ImportViewport = { w: 682, h: 2560, dpr: 1 };
+
+  it('keeps the fixed Y70 grid for a legacy cell it already matches', () => {
+    const plan = planDesktopImport(imp([widget('a', 0, 0)], { cellPx: 170 + 12 }), vp, PAD, emptyLayout(), undefined, undefined, { densitySlots: 4, glassSurface: 'y70' });
+    expect(plan.widgetSize).toBe('large');
+    expect(plan.gridSlots).toBeUndefined();
+    expect(plan.grid.columns).toBe(4);
+    expect(plan.grid.rows).toBe(16);
+  });
+
+  it('picks a finer size when the legacy Scale made the cell small', () => {
+    const plan = planDesktopImport(imp([widget('a', 0, 0, '1x1')], { cellPx: 86 * 0.5 }), vp, PAD, emptyLayout(), undefined, undefined, { densitySlots: 4, glassSurface: 'y70' });
+    expect(plan.widgetSize).toBe('xsmall');
+    expect(plan.gridSlots).toBe(8);
+    expect(plan.grid.columns).toBe(8);
+  });
+
+  it('leaves the plain-display choice untouched when no glass is named', () => {
+    const named = planDesktopImport(imp([widget('a', 0, 0)]), { w: 2560, h: 1440, dpr: 1 }, PAD, emptyLayout(), undefined, undefined, { densitySlots: 8, glassSurface: 'monitor' });
+    const unnamed = planDesktopImport(imp([widget('a', 0, 0)]), { w: 2560, h: 1440, dpr: 1 }, PAD, emptyLayout(), undefined, undefined, { densitySlots: 8 });
+    expect(named.widgetSize).toBe(unnamed.widgetSize);
+    expect(named.gridSlots).toBe(unnamed.gridSlots);
+  });
+
+  it('sets the size from the legacy cell when merging into a Y70 with no stored size, keeping its widgets', () => {
+    const existing: PanelLayout = { ...emptyLayout(), pages: [{ id: 'p1', widgets: [{ id: 'old', type: 'clock', size: '2x2', col: 0, row: 0 }] }] };
+    const merge = imp([widget('a', 0, 0, '1x1')], { cellPx: 86 * 0.5, merge: true });
+    const grid = { columns: 4, rows: 16, cellSize: 160, gap: 4, padding: 4 };
+    const kept = planDesktopImport(merge, vp, PAD, existing, grid, undefined, { densitySlots: 4, glassSurface: 'y70' });
+    expect(kept.widgetSize).toBeUndefined();
+    const sized = planDesktopImport(merge, vp, PAD, existing, grid, undefined, { densitySlots: 4, glassSurface: 'y70', sizeOnMerge: true });
+    expect(sized.widgetSize).toBe('xsmall');
+    const widgets = sized.layout.pages.flatMap(p => p.widgets);
+    expect(widgets.map(w => w.id).sort()).toEqual(['a', 'old']);
+    expect(widgets.find(w => w.id === 'old')).toMatchObject({ col: 0, row: 0, size: '2x2' });
+  });
+});

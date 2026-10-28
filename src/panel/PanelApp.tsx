@@ -1927,9 +1927,10 @@ export function PanelContent({
   const importDensitySlots = importCanvas
     ? densityShortSideSlots(importCanvas.width, importCanvas.height, importCanvas.dpr, recordState.record?.capabilities?.dpi ?? estimateRuntimePanelDpi(glassSurface))
     : undefined;
-  // The legacy desktop overlay only ever ran on plain OS displays, so import is gated to generic ones.
+  // The legacy desktop overlay ran on plain OS displays, and its widgets of a Y70 are merged into the Y70 record.
+  const y70Import = glassSurface === 'y70';
   useDesktopImport({
-    enabled: kioskBehavior && !simulator && genericDisplay,
+    enabled: kioskBehavior && !simulator && (genericDisplay || y70Import),
     hostReady: panelHostAvailable,
     deviceId,
     pending: recordState.record?.desktopImport,
@@ -1938,6 +1939,8 @@ export function PanelContent({
     grid: runtimeGrid,
     singlePage: genericDisplay,
     densitySlots: importDensitySlots,
+    glassSurface: y70Import ? 'y70' : undefined,
+    sizeOnMerge: y70Import && !recordState.record?.widgetSize,
   });
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
