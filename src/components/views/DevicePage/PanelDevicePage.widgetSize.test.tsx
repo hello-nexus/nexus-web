@@ -105,6 +105,18 @@ function layout(widgets: PanelWidget[], surface: PanelLayout['surface'] = 'monit
   return { layoutSchemaVersion: 2, surface, pages: [{ id: 'p1', widgets }], activePageId: 'p1' };
 }
 
+const GLACIAL_DEVICE: PanelDevice = {
+  id: 'lcd-square:glacial',
+  name: 'Glacial',
+  connectionKind: 'attached-monitor',
+  surfaceProfileKey: 'lcd-square',
+  runtimeSurface: 'lcd-square',
+  panelRecordId: 'lcd5',
+  displayId: 'XMD00EA-1',
+  previewSize: { width: 480, height: 480 },
+  capabilities: { surface: 'lcd-square', touch: false } as PanelDevice['capabilities'],
+} as PanelDevice;
+
 const DEVICE: PanelDevice = {
   id: 'monitor:lcd5',
   name: 'iCUE LINK 5" LCD',
@@ -138,29 +150,33 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 const sizeSlider = () => screen.getByRole('slider', { name: 'devices.panels.widgetSize.label' }) as HTMLInputElement;
-// The two-size panels here offer Large at the slider's top and Small at its bottom.
-async function pickSize(mode: 'large' | 'small') {
+// Device screens offer two stops: 100% at the slider's top, 50% at its bottom.
+async function pickSize(mode: 'max' | 'min') {
   const slider = sizeSlider();
   await act(async () => {
-    fireEvent.change(slider, { target: { value: mode === 'large' ? slider.max : slider.min } });
+    fireEvent.change(slider, { target: { value: mode === 'max' ? slider.max : slider.min } });
     fireEvent.keyUp(slider);
   });
   // The slider defers its drag-end commit one tick.
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); });
 }
 
-async function renderPage(rec: Record<string, unknown>) {
+async function renderPage(rec: Record<string, unknown>, device: PanelDevice = DEVICE) {
   fetchPanelDevicesMock.mockResolvedValue({ devices: [record(rec)] });
-  render(<PanelDevicePage device={DEVICE} />);
+  render(<PanelDevicePage device={device} />);
   await waitFor(() => expect(sizeSlider()).not.toBeDisabled());
 }
 
 describe('PanelDevicePage widget size', () => {
-  it('names the widgets that will not fit before switching to large, then writes size and layout together', async () => {
-    await renderPage({ layout: layout([widget('a', 'clock', 0, 0), widget('b', 'weather', 2, 0)]) });
+  it('names the widgets that will not fit before switching to the one-tile size, then writes size and layout together', async () => {
+    await renderPage({
+      capabilities: { surface: 'lcd-square', family: 'asus-glacial-lcd', cssWidth: 480, cssHeight: 480, dpr: 1, dpi: 210, touch: false },
+      widgetSize: 'small',
+      layout: layout([widget('a', 'clock', 0, 0), widget('b', 'weather', 2, 0)]),
+    }, GLACIAL_DEVICE);
     expect(sizeSlider().value).toBe(sizeSlider().min);
 
-    await pickSize('large');
+    await pickSize('max');
 
     expect(screen.getByText('devices.panels.widgetSize.confirmTitle')).toBeInTheDocument();
     expect(screen.getByText('name.weather')).toBeInTheDocument();
@@ -171,20 +187,18 @@ describe('PanelDevicePage widget size', () => {
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0].widgetSize).toBe('large');
     expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['clock']);
-    await waitFor(() => expect(screen.getByTestId('embed').dataset.surface).toBe('q60'));
-    // The one-widget size carries the Q-series playlist switch.
-    expect(screen.getByRole('switch', { name: 'panel.playlist.playlist' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('embed').dataset.surface).toBe('lcd-square'));
   });
 
-  it('switches straight to small when everything fits', async () => {
+  it('switches straight to the half size when everything fits, from a stored one-tile Large', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
     expect(screen.getByTestId('embed').dataset.surface).toBe('q60');
 
-    await pickSize('small');
+    await pickSize('min');
 
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0].widgetSize).toBe('small');
+    expect(patches()[0].widgetSize).toBe('xsmall');
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
     expect(screen.queryByRole('switch', { name: 'panel.playlist.playlist' })).not.toBeInTheDocument();
   });
@@ -193,12 +207,12 @@ describe('PanelDevicePage widget size', () => {
     patchPanelDeviceMock.mockResolvedValue(null);
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 
-    await pickSize('small');
+    await pickSize('min');
     await waitFor(() => expect(pushToastMock).toHaveBeenCalledTimes(1));
     expect(pushToastMock).toHaveBeenCalledWith({ title: 'devices.panels.saveFailedTitle', body: 'devices.panels.saveFailedBody' });
 
     patchPanelDeviceMock.mockRejectedValue(new Error('network'));
-    await pickSize('large');
+    await pickSize('max');
     await waitFor(() => expect(patches().length).toBeGreaterThan(1));
     expect(pushToastMock).toHaveBeenCalledTimes(1);
   });
@@ -206,7 +220,7 @@ describe('PanelDevicePage widget size', () => {
   it('keeps a pointer-required widget when a mouse-only display changes size', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'calculator', 0, 0, '2x4')], 'q60') });
 
-    await pickSize('small');
+    await pickSize('min');
 
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['calculator']);
@@ -215,7 +229,7 @@ describe('PanelDevicePage widget size', () => {
   it('shows no toast when the record write succeeds', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 
-    await pickSize('small');
+    await pickSize('min');
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(pushToastMock).not.toHaveBeenCalled();
   });
@@ -230,7 +244,7 @@ describe('PanelDevicePage widget size', () => {
     expect(screen.getByTestId('embed').dataset.pageCount).toBe('2');
   });
 
-  it('on the Lian Li 8.8, large snaps 4-wide widgets and pages the ones the 2x8 grid cannot hold', async () => {
+  it('on the Lian Li 8.8, 50% doubles the short-axis count and keeps every widget', async () => {
     const screen88 = {
       capabilities: { surface: 'monitor', family: 'lianli-screen88', cssWidth: 480, cssHeight: 1920, dpr: 1, dpi: 225, touch: false },
       layout: layout([
@@ -239,16 +253,15 @@ describe('PanelDevicePage widget size', () => {
       ]),
     };
     await renderPage(screen88);
+    expect(sizeSlider().value).toBe(sizeSlider().max);
 
-    await pickSize('large');
+    await pickSize('min');
 
-    // A display panel has a pager, so nothing is dropped and no confirmation is asked.
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
     const written = patches()[0].layout?.pages.flatMap(p => p.widgets) ?? [];
-    expect(patches()[0].widgetSize).toBe('large');
+    expect(patches()[0].widgetSize).toBe('xsmall');
     expect(written.map(w => w.type).sort()).toEqual(['clock', 'media', 'monitoring', 'stocks', 'weather']);
-    expect((patches()[0].layout?.pages.length ?? 0)).toBeGreaterThan(1);
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
   });
 });

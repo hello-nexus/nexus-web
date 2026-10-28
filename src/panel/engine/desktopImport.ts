@@ -101,7 +101,7 @@ export function bestSize(vp: ImportViewport, paddingRatio: number, legacyCell: n
   }
   let best: { mode: PanelWidgetSizeMode; slots: number | undefined; grid: ImportGrid; err: number } | null = null;
   for (const mode of PANEL_WIDGET_SIZE_MODES) {
-    if (glassSurface !== 'monitor' && !options?.layoutSurface[mode]) continue;
+    if (options && !options.layoutSurface[mode]) continue;
     const forced = options ? widgetSizeShortSideSlots(options, mode, densitySlots) : undefined;
     const target = options?.layoutSurface[mode] ?? 'monitor';
     // A size that forces nothing keeps its surface's own columns, except on the monitor grid, which takes the density count.

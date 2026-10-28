@@ -624,18 +624,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const theme = panelTheme.theme;
   const widgetSizeStops = useMemo(() => {
     const options = panelWidgetSizeOptions(glassSurface, recordFamily);
-    if (!options) return [];
-    return widgetSizeStops_(
-      options,
-      editorCanvas,
-      canvasDpr,
-      (_mode, layoutSurface) => (layoutSurface === glassSurface
-        ? (liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI[glassSurface])
-        : (options.dpi ?? DEFAULT_SURFACE_DPI[glassSurface])),
-      panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
-      densitySlots,
-    );
-  }, [glassSurface, recordFamily, editorCanvas, canvasDpr, liveDpi, device?.previewDpi, theme.widgetPadding, densitySlots]);
+    return options ? widgetSizeStops_(options) : [];
+  }, [glassSurface, recordFamily]);
   const widgetSizePercentOf = (mode: PanelWidgetSizeMode) => widgetSizeStops.find(stop => stop.mode === mode)?.percent ?? 100;
   const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
   const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;

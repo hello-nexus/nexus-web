@@ -286,16 +286,17 @@ export function columnsForPhysicalSize(
   dpi: number | undefined,
   sizing: PanelGridSizing | undefined,
 ): number {
-  if (!Number.isFinite(dpi) || !dpi || dpi <= 0) return PANEL_GRID_COLS;
+  if (!Number.isFinite(dpi) || !dpi || dpi <= 0) return toEvenRound(PANEL_GRID_COLS);
   const configuredJumpAtInches = sizing?.shortSideJumpAtInches;
   const jumpAtInches = configuredJumpAtInches !== undefined && Number.isFinite(configuredJumpAtInches)
     ? Math.max(1, configuredJumpAtInches)
     : DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES;
   const physical = panelPhysicalSize(width, height, dpi);
-  if (physical.shortSideInches < jumpAtInches) return PANEL_GRID_COLS;
+  if (physical.shortSideInches < jumpAtInches) return toEvenRound(PANEL_GRID_COLS);
   // Steps of four keep a Widget size half of the count even.
   const step = PANEL_GRID_COLS * PANEL_GRID_CELL_INCHES;
-  return Math.max(PANEL_LARGE_GRID_COLS, PANEL_GRID_COLS * Math.round(physical.shortSideInches / step));
+  // Never odd, so a 2x2 tile always fits.
+  return toEvenRound(Math.max(PANEL_LARGE_GRID_COLS, PANEL_GRID_COLS * Math.round(physical.shortSideInches / step)));
 }
 
 function toEvenRound(value: number): number {
