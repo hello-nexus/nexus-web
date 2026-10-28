@@ -150,6 +150,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     if (seq !== hydrateSeqRef.current) return;
     setGpuAvailable(lightStatus?.gpuAvailable ?? true);
     setGpuState(lightStatus?.gpuState);
+    setActiveColor((staticSettings?.color ?? '').toLowerCase());
 
     const nextTemplates: Record<string, EffectTemplateBundle> = {};
     for (const effect of EFFECTS) {
@@ -330,7 +331,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   }, [publishLighting, templates]);
 
   const applyColor = useCallback(async (color: PaletteColor) => {
-    setActiveColor(color.hex);
+    setActiveColor(color.hex.toLowerCase());
     setActiveEffect(DEFAULT_STATIC_EFFECT);
     staticEffectRef.current = DEFAULT_STATIC_EFFECT;
     setMode('static');
@@ -358,6 +359,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   const onStaticButton = useCallback(() => {
     const effect = isStaticEffect(activeEffect) ? activeEffect : staticEffectRef.current;
+    setActiveColor('');
     void applyStatic(effect);
   }, [activeEffect, applyStatic]);
 
@@ -564,7 +566,6 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     );
   }
 
-  // Static and Animate show a grid of tappable swatches instead of one preview.
   const swatches = mode === 'static' || mode === 'animate'
     ? (
       <LightingSwatches
@@ -575,7 +576,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         templates={templates}
         preview={preview}
         previewThumb={LIGHTING_PREVIEW_THUMBS[LIGHTING_PREVIEW_EFFECT]}
-        onColor={applyColor}
+        onColor={color => { void applyColor(color); }}
         onEffect={key => { void applyEffect(key, isSimpleAnimation(key) ? simpleAnimationState(false) : undefined); }}
       />
     )

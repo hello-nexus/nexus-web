@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { effectThumbnailPath } from '../../../api/lighting';
 import { fetchServiceBlob } from '../../../api/service';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
@@ -11,6 +12,7 @@ import { ANIMATE_SWATCHES, STATIC_SWATCHES, defaultSwatchCount, fitSwatchGrid, t
 import styles from './LightingWidget.module.scss';
 
 const ANIMATE_ASPECT = 16 / 9;
+const GRID_PAD = 4;
 
 interface Props {
   kind: 'static' | 'animate';
@@ -34,7 +36,9 @@ function useFit(kind: Props['kind'], size: Props['size']) {
     const aspect = kind === 'static' ? 1 : ANIMATE_ASPECT;
     const measure = () => {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) setGrid(fitSwatchGrid(r.width, r.height, aspect, max));
+      const w = r.width - GRID_PAD * 2;
+      const h = r.height - GRID_PAD * 2;
+      if (w > 0 && h > 0) setGrid(fitSwatchGrid(w, h, aspect, max));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -57,7 +61,8 @@ function useEffectThumbs(effects: readonly SwatchEffect[], templates: Record<str
         const sig = b && b.slots.length > 0 ? slotThumbSignature(b.slots[Math.min(Math.max(slot, 0), b.slots.length - 1)]) : '0';
         if (cacheRef.current[fx.key]?.sig === sig) continue;
         const blob = await fetchServiceBlob(effectThumbnailPath(fx.key, slot, sig), { mayBeCached: true });
-        if (cancelled || !blob) continue;
+        if (cancelled) return;
+        if (!blob) continue;
         const url = URL.createObjectURL(blob);
         const prev = cacheRef.current[fx.key];
         cacheRef.current = { ...cacheRef.current, [fx.key]: { url, sig } };
@@ -79,13 +84,12 @@ export function LightingSwatches({ kind, size, activeEffect, activeColor, templa
   const { ref, grid } = useFit(kind, size);
   const count = grid?.count ?? defaultSwatchCount(size);
   const cols = grid?.cols ?? (size === '2x2' ? 2 : size === '4x2' ? 3 : 4);
-  const visibleEffects = ANIMATE_SWATCHES.slice(0, count);
+  const visibleEffects = useMemo(() => ANIMATE_SWATCHES.slice(0, count), [count]);
   const thumbs = useEffectThumbs(visibleEffects, templates, kind === 'animate' && !preview);
 
   return (
-    <div className={styles.swatchInset}>
+    <div ref={ref} className={styles.swatchInset}>
       <div
-        ref={ref}
         className={styles.swatchGrid}
         data-kind={kind}
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -94,20 +98,21 @@ export function LightingSwatches({ kind, size, activeEffect, activeColor, templa
           ? STATIC_SWATCHES.slice(0, count).map(color => {
             const name = `${t(paletteFamilyKey(color.family))} ${color.shade}`;
             return (
-              <button
-                key={color.id}
-                type="button"
-                data-palette-id={color.id}
-                className={`${styles.swatchColor} ${color.hex === activeColor ? styles.swatchActive : ''}`}
-                style={{ backgroundColor: color.hex }}
-                onClick={() => onColor(color)}
-                aria-label={name}
-                aria-pressed={color.hex === activeColor}
-              />
+              <div key={color.id} className={styles.swatchCell} style={{ '--swatch-ratio': '100%' } as CSSProperties}>
+                <button
+                  type="button"
+                  data-palette-id={color.id}
+                  className={`${styles.swatchColor} ${color.hex.toLowerCase() === activeColor ? styles.swatchActive : ''}`}
+                  style={{ backgroundColor: color.hex }}
+                  onClick={() => onColor(color)}
+                  aria-label={name}
+                  aria-pressed={color.hex.toLowerCase() === activeColor}
+                />
+              </div>
             );
           })
           : visibleEffects.map(fx => (
-            <div key={fx.key} className={styles.swatchEffect}>
+            <div key={fx.key} className={styles.swatchCell} style={{ '--swatch-ratio': '56.25%' } as CSSProperties}>
               <EffectCard
                 overlay
                 hideLabel

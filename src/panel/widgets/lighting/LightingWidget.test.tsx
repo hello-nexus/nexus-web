@@ -7,6 +7,7 @@ import {
 } from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
+import { CONTROL_SELECTOR } from '../../engine/usePanelTouchMode';
 import { paletteColor } from '../../../types/lightingPalette';
 import { LightingWidget } from './LightingWidget';
 
@@ -261,6 +262,26 @@ describe('LightingWidget', () => {
     await waitFor(() => expect(startAnimate).toHaveBeenCalled());
     expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('sweeprainbow');
     expect(vi.mocked(startAnimate).mock.calls[0][1]).toBe(50);
+  });
+
+  // The panel opens the app page (desktop) or immersive view (touch) on a tap
+  // that lands outside every control (usePanelTouchMode), so swatches own their
+  // taps while the grid's gaps and margins stay open-the-page surface.
+  describe.each([['advanced', true], ['simple', false]] as const)('page entry in %s layout', (_name, advanced) => {
+    beforeEach(() => { mockUiSettings.widgetAdvancedMode = advanced; });
+    afterEach(() => { mockUiSettings.widgetAdvancedMode = true; });
+
+    it.each(['2x2', '4x2', '4x4'] as const)('keeps a non-control tap surface around the %s swatches', async size => {
+      render(<LightingWidget widget={lightingWidget(size)} />);
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key]').length).toBeGreaterThan(0));
+      for (const card of document.querySelectorAll('[data-effect-key]')) {
+        expect(card.matches(CONTROL_SELECTOR)).toBe(true);
+      }
+      const grid = document.querySelector('[class*="swatchGrid"]') as HTMLElement;
+      expect(grid.matches(CONTROL_SELECTOR)).toBe(false);
+      expect((grid.parentElement as HTMLElement).matches(CONTROL_SELECTOR)).toBe(false);
+      expect(grid.closest(CONTROL_SELECTOR)).toBeNull();
+    });
   });
 
   it('applies a tapped animation immediately', async () => {
