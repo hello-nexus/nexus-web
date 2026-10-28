@@ -7,15 +7,11 @@ import { panelWidgetSizeOptions } from '../types';
 const dpiOf = (surface: 'y70' | 'monitor') => () => DEFAULT_SURFACE_DPI[surface];
 
 describe('widgetSizeStops', () => {
-  it('shows the Y70 stops as the real cell ratio against Large', () => {
+  it('labels the Y70 stops 100 / 75 / 50', () => {
     const options = panelWidgetSizeOptions('y70', undefined)!;
     const stops = widgetSizeStops(options, { width: 682, height: 2560 }, 1, dpiOf('y70'), 0.1, 4);
     expect(stops.map(s => s.mode)).toEqual(['large', 'small', 'xsmall']);
-    expect(stops[0].percent).toBe(100);
-    expect(stops[1].percent).toBeGreaterThanOrEqual(64);
-    expect(stops[1].percent).toBeLessThanOrEqual(69);
-    expect(stops[2].percent).toBeGreaterThanOrEqual(48);
-    expect(stops[2].percent).toBeLessThanOrEqual(52);
+    expect(stops.map(s => s.percent)).toEqual([100, 75, 50]);
   });
 
   it('computes a plain display per display, from its own density', () => {
