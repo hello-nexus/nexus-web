@@ -508,7 +508,7 @@
   "cooling.curves.add": "Nowa krzywa",
   "cooling.curves.delete": "Usun",
   "cooling.curves.empty": "Brak zdefiniowanych krzywych. Utworz jedna, aby sterowac wentylatorami.",
-  "cooling.curves.maxReached": "Osiągnięto limit: maks. 10 krzywych. Usuń jedną, by dodać więcej.",
+  "cooling.curves.maxReached": "Osiągnięto limit: maks. {max} krzywych. Usuń jedną, by dodać więcej.",
   "cooling.curves.noCurveSelected": "Nie wybrano krzywej. Wybierz jedną powyżej, aby zastosować ją do zaznaczenia.",
   "cooling.curves.removeBtn": "Usun krzywa",
   "cooling.curves.rename": "Zmień nazwę",
