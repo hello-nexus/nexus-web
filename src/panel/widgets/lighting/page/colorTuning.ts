@@ -1,4 +1,4 @@
-import type { LightingColorAdjust } from '../../../../api/lighting';
+import { NEUTRAL_COLOR_ADJUST, type LightingColorAdjust } from '../../../../api/lighting';
 
 export type Rgb = readonly [number, number, number];
 
@@ -63,3 +63,11 @@ export const RIBBON_SAMPLES: Rgb[] = [
   [125, 125, 125],
   [70, 70, 70],
 ];
+
+/** True when the trim differs from neutral anywhere, a non-default color order
+ *  included. */
+export function isColorAdjusted(adjust: LightingColorAdjust | undefined): boolean {
+  if (!adjust) return false;
+  return (Object.keys(NEUTRAL_COLOR_ADJUST) as (keyof LightingColorAdjust)[])
+    .some(k => (adjust[k] ?? NEUTRAL_COLOR_ADJUST[k]) !== NEUTRAL_COLOR_ADJUST[k]);
+}

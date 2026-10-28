@@ -135,7 +135,38 @@ describe('ColorTuningModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lighting.colorTuning.reset' }));
 
     expect(setAdjust.mock.calls.at(-1)![1]).toEqual({
-      red: 1, green: 1, blue: 1, temperature: 0, saturation: 1, brightness: 100,
+      red: 1, green: 1, blue: 1, temperature: 0, saturation: 1, colorOrder: 'RGB', brightness: 100,
     });
+  });
+
+  it('sends only colorOrder when the dropdown changes', async () => {
+    await renderModal(['a', 'b']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.colorTuning.colorOrder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'GRB' }));
+
+    const [ids, patch] = setAdjust.mock.calls.at(-1)!;
+    expect(ids).toEqual(['a', 'b']);
+    expect(patch).toEqual({ colorOrder: 'GRB' });
+  });
+
+  it('shows Mixed when the scoped devices disagree on color order', async () => {
+    fetchAdjust.mockResolvedValue({
+      adjustments: { a: { red: 1, green: 1, blue: 1, temperature: 0, saturation: 1, colorOrder: 'BGR' } },
+    });
+    await renderModal(['a', 'b']);
+
+    const trigger = screen.getByRole('button', { name: 'lighting.colorTuning.colorOrder' });
+    expect(trigger.textContent).toContain('lighting.colorTuning.mixed');
+  });
+
+  it('shows the stored order when the scope agrees', async () => {
+    fetchAdjust.mockResolvedValue({
+      adjustments: { a: { red: 1, green: 1, blue: 1, temperature: 0, saturation: 1, colorOrder: 'BGR' } },
+    });
+    await renderModal(['a']);
+
+    const trigger = screen.getByRole('button', { name: 'lighting.colorTuning.colorOrder' });
+    expect(trigger.textContent).toContain('BGR');
   });
 });

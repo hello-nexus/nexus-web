@@ -2663,6 +2663,8 @@
   "lighting.category.twotone": "투톤",
   "lighting.colorTuning.blue": "파랑",
   "lighting.colorTuning.brightnessInfo": "이 기기의 LED만 어둡게 합니다. 캔버스 미리 보기는 최대 밝기를 유지합니다.",
+  "lighting.colorTuning.colorOrder": "색상 순서",
+  "lighting.colorTuning.colorOrderInfo": "색상이 뒤바뀌어 보일 때(예: 빨간색이 초록색으로 표시됨) 사용하세요.",
   "lighting.colorTuning.cool": "차갑게",
   "lighting.colorTuning.done": "완료",
   "lighting.colorTuning.effectiveBrightnessInfo": "마스터 밝기가 출력을 {master}%로 제한하므로 이 장치는 더 밝아질 수 없습니다.",

@@ -2663,6 +2663,8 @@
   "lighting.category.twotone": "Duas cores",
   "lighting.colorTuning.blue": "Azul",
   "lighting.colorTuning.brightnessInfo": "Escurece apenas os LED deste dispositivo; a pré-visualização da tela fica no brilho máximo.",
+  "lighting.colorTuning.colorOrder": "Ordem das cores",
+  "lighting.colorTuning.colorOrderInfo": "Utilize se as cores aparecerem trocadas, por exemplo o vermelho a surgir como verde.",
   "lighting.colorTuning.cool": "Fria",
   "lighting.colorTuning.done": "Concluído",
   "lighting.colorTuning.effectiveBrightnessInfo": "O brilho geral limita a saída a {master}%, por isso este dispositivo não pode ficar mais brilhante.",

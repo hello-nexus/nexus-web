@@ -2663,6 +2663,8 @@
   "lighting.category.twotone": "Zweifarbig",
   "lighting.colorTuning.blue": "Blau",
   "lighting.colorTuning.brightnessInfo": "Dimmt nur die LEDs dieses Geräts; die Canvas-Vorschau bleibt bei voller Helligkeit.",
+  "lighting.colorTuning.colorOrder": "Farbreihenfolge",
+  "lighting.colorTuning.colorOrderInfo": "Verwenden Sie diese Option, wenn Farben vertauscht erscheinen, zum Beispiel Rot als Grün.",
   "lighting.colorTuning.cool": "Kühl",
   "lighting.colorTuning.done": "Fertig",
   "lighting.colorTuning.effectiveBrightnessInfo": "Die Gesamthelligkeit begrenzt die Ausgabe auf {master}%, sodass dieses Gerät nicht heller werden kann.",

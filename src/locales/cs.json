@@ -2677,6 +2677,8 @@
   "lighting.category.twotone": "Dvoubarevné",
   "lighting.colorTuning.blue": "Modrá",
   "lighting.colorTuning.brightnessInfo": "Ztlumí jen LED tohoto zařízení, náhled plátna zůstane na plném jasu.",
+  "lighting.colorTuning.colorOrder": "Pořadí barev",
+  "lighting.colorTuning.colorOrderInfo": "Použijte, pokud jsou barvy prohozené, například červená se zobrazuje jako zelená.",
   "lighting.colorTuning.cool": "Studená",
   "lighting.colorTuning.done": "Hotovo",
   "lighting.colorTuning.effectiveBrightnessInfo": "Hlavní jas omezuje výstup na {master}%, takže toto zařízení nemůže svítit jasněji.",
