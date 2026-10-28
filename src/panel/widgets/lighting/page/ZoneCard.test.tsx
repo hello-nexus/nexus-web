@@ -969,6 +969,25 @@ describe('ZoneCard color tuning badge', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['toggle mode', { toggleMode: true }],
+    ['unavailable', { device: { ...baseDevice, ledCount: 0 } }],
+    ['firmware-owned', { firmwareControlled: true }],
+    ['not selectable', { device: { ...baseDevice, ledsOn: false } }],
+  ] as const)('stays a plain mark when the card is %s', (_name, extra) => {
+    const onOpenColorTuning = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        colorTuned onOpenColorTuning={onOpenColorTuning}
+        {...(extra as object)}
+      />,
+    );
+    expect(badge()).toBeNull();
+    expect(screen.getByRole('img', { name: 'lighting.colorTuning.title' })).toBeTruthy();
+  });
+
   it('stays a plain mark when nothing can open the modal', () => {
     render(
       <ZoneCard

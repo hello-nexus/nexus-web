@@ -1457,14 +1457,19 @@
 // corner, as wide as the menu button below it so the two glyphs share a column.
 // The color-tuning mark sits just left of it, same size and dimming.
 .deviceStackBadge,
-.deviceTuneBadge {
+.deviceTuneBadge,
+.deviceTuneBtn {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 20px;
   margin-top: 0.15rem;
   margin-left: auto;
+}
+
+.deviceStackBadge,
+.deviceTuneBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-dim);
   opacity: var(--alpha-medium);
   transition: color var(--ease-fast), opacity var(--ease-fast);
@@ -1476,11 +1481,11 @@
   .deviceCardSelected & { color: var(--text); opacity: 1; }
 }
 
-// The press-to-open form of the tune mark: the LED colors badge button's look,
-// seated in the name row's corner.
+// The press-to-open form of the tune mark: the LED colors badge button's look
+// (deviceSettingsBtn + deviceBadgeBtn) in the corner slot. The negative bottom
+// margin keeps its taller box from growing the name row.
 .deviceTuneBtn {
-  margin-top: 0.15rem;
-  margin-left: auto;
+  margin-bottom: -0.5rem;
 }
 
 // Only the first mark takes the free space, so the two sit side by side.
