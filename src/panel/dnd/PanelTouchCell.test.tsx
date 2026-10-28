@@ -1,11 +1,12 @@
 // The editor dock and the drag overlay move the live widget; a remount would
 // drop whatever the widget holds only in its own state (chat backlog, album art).
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { DndContext } from '@dnd-kit/core';
 import { SortableContext } from '@dnd-kit/sortable';
 import { StrictMode, useEffect } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../types';
+import { showWidgetMoreActions } from '../engine/panelLayoutHelpers';
 
 const mounts = vi.fn();
 function Probe() {
@@ -103,5 +104,50 @@ describe('PanelTouchCell', () => {
     unmount();
 
     expect(slot.childNodes).toHaveLength(0);
+  });
+
+  describe('More actions corner badge', () => {
+    const badge = (c: HTMLElement) => c.querySelector('button[aria-label="lighting.devices.moreActions"]');
+
+    it('renders only when moreActions is passed, and opens the menu at the button', () => {
+      const { container, rerender } = render(cell({}));
+      expect(badge(container)).toBeNull();
+      const onOpen = vi.fn();
+      rerender(cell({ moreActions: { open: false, onOpen, onClose: () => {} } }));
+      const btn = badge(container)!;
+      expect(btn).not.toBeNull();
+      fireEvent.click(btn);
+      expect(onOpen).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes instead of reopening while the menu is open', () => {
+      const onOpen = vi.fn();
+      const onClose = vi.fn();
+      const { container } = render(cell({ moreActions: { open: true, onOpen, onClose } }));
+      fireEvent.click(badge(container)!);
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onOpen).not.toHaveBeenCalled();
+    });
+
+    it('is absent while the cell is in resize mode', () => {
+      const { container } = render(cell({ resizeSelected: true, moreActions: { open: false, onOpen: () => {}, onClose: () => {} } }));
+      expect(badge(container)).toBeNull();
+    });
+  });
+});
+
+describe('showWidgetMoreActions', () => {
+  const base = { embedded: true, surface: 'desktop', simulator: false, editable: true, busy: false };
+  it('is on for the home dashboard only', () => {
+    expect(showWidgetMoreActions(base)).toBe(true);
+    expect(showWidgetMoreActions({ ...base, embedded: false })).toBe(false);
+    expect(showWidgetMoreActions({ ...base, simulator: true })).toBe(false);
+    for (const surface of ['y70', 'q60', 'phone', 'monitor']) {
+      expect(showWidgetMoreActions({ ...base, surface })).toBe(false);
+    }
+  });
+  it('is off while a sheet, resize or drag is busy', () => {
+    expect(showWidgetMoreActions({ ...base, busy: true })).toBe(false);
+    expect(showWidgetMoreActions({ ...base, editable: false })).toBe(false);
   });
 });

@@ -57,3 +57,37 @@
 // Past the card's border, level with a borderless header's edge.
 .inCard { left: calc(100% + var(--border-width)); }
 .inHeader { left: 100%; }
+
+// Round badge straddling the host's top-right corner, ringed with the page
+// background so it reads over a neighbor. It sits outside the host's box, so
+// the host's overflow must not clip it. A touch-first screen has no hover to
+// reveal it and the badge would crowd the layout, so it never renders there.
+.inCorner {
+  top: calc(var(--corner-badge-size, 22px) / -2);
+  right: calc(var(--corner-badge-size, 22px) / -2);
+  bottom: auto;
+  left: auto;
+  z-index: 3;
+  width: var(--corner-badge-size, 22px);
+  height: var(--corner-badge-size, 22px);
+  border-radius: 50%;
+  background: var(--panel-card-bg, var(--bg-elevated, var(--backdrop-base)));
+  color: var(--text);
+  box-shadow: 0 0 0 3px var(--backdrop-base), 0 2px 6px rgb(0 0 0 / 40%);
+
+  // The hover strip across a gutter has no meaning for a corner badge.
+  &::before { content: none; }
+
+  &:hover {
+    color: var(--accent-text);
+    background: var(--accent);
+  }
+
+  svg { width: 14px; height: 14px; }
+}
+
+:global([data-menu-arrow-host]:focus-within) .inCorner { opacity: 1; }
+
+@media (hover: none), (pointer: coarse) {
+  .inCorner { display: none; }
+}

@@ -9,6 +9,7 @@ import type { DeckEditView } from '../widgets/types';
 import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
 import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
+import { MenuArrowButton } from '../../components/common/DeviceCanvas/MenuArrowButton';
 import { EditHint } from '../../components/common/EditHint/EditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
@@ -165,6 +166,7 @@ export function PanelTouchCell({
   onSectionNavigate,
   onConfigureWidget,
   onEnterImmersiveWidget,
+  moreActions,
 }: {
   widget: PanelWidget;
   deviceId?: string;
@@ -213,6 +215,9 @@ export function PanelTouchCell({
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
   onEnterImmersiveWidget?: (widget: PanelWidget) => void;
+  // Home dashboard only: a hover corner badge that opens the widget's context
+  // menu at the button. Omitted on every other surface.
+  moreActions?: { open: boolean; onOpen: (x: number, y: number) => void; onClose: () => void };
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
@@ -437,6 +442,7 @@ export function PanelTouchCell({
       data-lock-notice={lockNotice.visible ? 'true' : undefined}
       data-resize-selected={resizeSelected ? 'true' : undefined}
       data-immersive-on-load={immersiveOnLoad ? 'true' : undefined}
+      data-menu-arrow-host={moreActions && !editorDockMotion && !resizeSelected ? '' : undefined}
       className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
       style={{
         ...wrapStyle,
@@ -492,6 +498,16 @@ export function PanelTouchCell({
           <div className={styles.cellLabelStrip}>
             <WidgetCellLabel label={labelText} />
           </div>
+          {moreActions && !editorDockMotion && !resizeSelected && !isDragging && (
+            <MenuArrowButton
+              variant="corner"
+              label={t('lighting.devices.moreActions')}
+              tooltip={t('lighting.devices.moreActions')}
+              open={moreActions.open}
+              onOpen={moreActions.onOpen}
+              onClose={moreActions.onClose}
+            />
+          )}
         </>,
       )}
     </div>

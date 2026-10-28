@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './MenuArrowButton.module.scss';
 
@@ -9,17 +9,23 @@ interface MenuArrowButtonProps {
   /** Viewport coords for the menu's top-left: beside the arrow, flyout style. */
   onOpen: (x: number, y: number) => void;
   onClose: () => void;
-  /** Offsets past a bordered card's edge (`card`) or a borderless header's (`header`). */
-  variant: 'card' | 'header';
+  /**
+   * Offsets past a bordered card's edge (`card`) or a borderless header's
+   * (`header`). `corner` is a round badge centered on the host's top-right
+   * corner with a down chevron; its menu opens below the badge.
+   */
+  variant: 'card' | 'header' | 'corner';
 }
 
 /** Opens a card's or group header's context menu; hidden until its `data-menu-arrow-host` ancestor is hovered. */
 export function MenuArrowButton({ label, tooltip, open, onOpen, onClose, variant }: MenuArrowButtonProps) {
+  const corner = variant === 'corner';
+  const Icon = corner ? ChevronDown : ChevronRight;
   return (
     <HoverTooltip body={tooltip} side="top">
       <button
         type="button"
-        className={`${styles.arrow} ${variant === 'card' ? styles.inCard : styles.inHeader}`}
+        className={`${styles.arrow} ${variant === 'card' ? styles.inCard : corner ? styles.inCorner : styles.inHeader}`}
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -30,10 +36,11 @@ export function MenuArrowButton({ label, tooltip, open, onOpen, onClose, variant
           // menu's outside-pointerdown close has already run.
           if (open) { onClose(); return; }
           const r = e.currentTarget.getBoundingClientRect();
-          onOpen(r.right + 4, r.top);
+          if (corner) onOpen(r.left, r.bottom + 4);
+          else onOpen(r.right + 4, r.top);
         }}
       >
-        <ChevronRight aria-hidden />
+        <Icon aria-hidden />
       </button>
     </HoverTooltip>
   );

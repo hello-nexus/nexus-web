@@ -149,6 +149,7 @@ import {
   appRouteForWidget,
   noopCellPointers,
   parseDragTarget,
+  showWidgetMoreActions,
 } from './engine/panelLayoutHelpers';
 import {
   DEFAULT_SURFACE_DPI,
@@ -2373,6 +2374,11 @@ export function PanelContent({
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
+                              moreActions={showWidgetMoreActions({ embedded, surface, simulator, editable: dragEditable, busy: Boolean(sheetMode) || freeformActive || Boolean(activeDragId) || Boolean(dragArmedId) }) ? {
+                                open: touch.ctxMenu?.widget.id === w.id,
+                                onOpen: (x, y) => touch.openCtxMenu(w, x, y),
+                                onClose: touch.closeCtxMenu,
+                              } : undefined}
                               onEnterImmersiveWidget={canEnterImmersive && widgetSupportsImmersiveOnLoad(w.type, isLandscape)
                                 ? (widget) => enterImmersive(widget.id) : undefined}
                             />
