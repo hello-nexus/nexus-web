@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "Close",
   "panel.widget.web-view.crashed": "This page stopped working",
   "panel.widget.web-view.error": "This page could not be loaded",
+  "panel.widget.web-view.forward": "Forward",
   "panel.widget.web-view.home": "Home",
   "panel.widget.web-view.loading": "Loading",
   "panel.widget.web-view.previewOnly": "Only renders on display",

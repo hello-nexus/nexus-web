@@ -2537,7 +2537,7 @@ export function PanelContent({
         const openUrl = genericDisplay && !simulator && !embedded ? webViewOpenUrl(ctxWidget) : null;
         const webSnap = webViewHost.getSnapshot();
         const webView = ctxWidget.type === 'web-view' && !simulator && !embedded && webSnap.status === 'supported' ? webSnap.views[ctxWidget.id] : undefined;
-        const webNav = { back: webView?.canGoBack === true, home: webSnap.navControls && webView?.away === true };
+        const webNav = { back: webView?.canGoBack === true, forward: webSnap.navControls && webView?.canGoForward === true, home: webSnap.navControls && webView?.away === true };
 
         // Sidebar pin toggle, only for pinnable types (isPinnableAppKey):
         // "Pin to Sidebar" when not pinned, "Unpin from Sidebar" when pinned.
@@ -2564,6 +2564,7 @@ export function PanelContent({
             onRemove={() => removeWidget(ctxWidget.id)}
             onImmersive={!embedded && immersiveAvailable ? () => enterImmersive(ctxWidget.id) : undefined}
             onWebBack={webNav.back ? () => webViewHost.sendCommand(ctxWidget.id, 'back') : undefined}
+            onWebForward={webNav.forward ? () => webViewHost.sendCommand(ctxWidget.id, 'forward') : undefined}
             onWebHome={webNav.home ? () => webViewHost.sendCommand(ctxWidget.id, 'home') : undefined}
             displayTargets={onDesktopSurface ? displayTargets : undefined}
             onAddToDisplay={onDesktopSurface && displayTargets.length > 0 ? displayId => { void addToDisplay(displayId, ctxWidget); } : undefined}

@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "닫기",
   "panel.widget.web-view.crashed": "이 페이지가 작동을 멈췄습니다",
   "panel.widget.web-view.error": "이 페이지를 불러오지 못했습니다",
+  "panel.widget.web-view.forward": "앞으로",
   "panel.widget.web-view.home": "홈",
   "panel.widget.web-view.loading": "불러오는 중",
   "panel.widget.web-view.previewOnly": "디스플레이에서만 표시됩니다",

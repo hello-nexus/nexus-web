@@ -5017,6 +5017,7 @@
   "panel.widget.web-view.close": "Zamknij",
   "panel.widget.web-view.crashed": "Ta strona przestała działać",
   "panel.widget.web-view.error": "Nie udało się załadować tej strony",
+  "panel.widget.web-view.forward": "Dalej",
   "panel.widget.web-view.home": "Strona główna",
   "panel.widget.web-view.loading": "Ładowanie",
   "panel.widget.web-view.previewOnly": "Wyświetlane tylko na wyświetlaczu",

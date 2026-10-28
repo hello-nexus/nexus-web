@@ -37,7 +37,7 @@ export interface WebViewSync {
   views: WebViewSyncView[];
 }
 
-export type WebViewCommandName = 'back' | 'reload' | 'home';
+export type WebViewCommandName = 'back' | 'forward' | 'reload' | 'home';
 
 export interface WebViewCommand {
   type: 'nexus.webview.command';
@@ -69,6 +69,7 @@ export interface WebViewStateMessage {
   state: WebViewLoadState;
   code?: string;
   canGoBack: boolean;
+  canGoForward?: boolean;
   /** The view is away from its configured page. */
   away?: boolean;
 }
@@ -152,6 +153,7 @@ export function parseInbound(raw: unknown): WebViewInbound | null {
       state: s,
       code: typeof m.code === 'string' ? m.code : undefined,
       canGoBack: m.canGoBack === true,
+      canGoForward: m.canGoForward === true,
       away: m.away === true,
     };
   }

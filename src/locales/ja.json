@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "閉じる",
   "panel.widget.web-view.crashed": "このページは動作を停止しました",
   "panel.widget.web-view.error": "このページを読み込めませんでした",
+  "panel.widget.web-view.forward": "進む",
   "panel.widget.web-view.home": "ホーム",
   "panel.widget.web-view.loading": "読み込み中",
   "panel.widget.web-view.previewOnly": "ディスプレイ上でのみ表示されます",

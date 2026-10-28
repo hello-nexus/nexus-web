@@ -231,20 +231,32 @@ describe('WidgetContextMenu add to display', () => {
 });
 
 describe('WidgetContextMenu web view navigation', () => {
-  const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: true, surface: 'y70' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+  const base = { x: 100, y: 100, currentSize: '2x2' as const, sizes: ['2x2' as const, '4x2' as const], hasConfig: true, surface: 'y70' as const, onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+  const labels = () => Array.from(document.querySelectorAll('button')).map(b => b.textContent);
 
-  it('shows Back and Home only when offered', () => {
-    const { rerender } = render(<WidgetContextMenu {...base} />);
+  it('shows no group and no extra separator when nothing applies', () => {
+    const { container } = render(<WidgetContextMenu {...base} />);
     expect(screen.queryByText('panel.widget.web-view.back')).toBeNull();
+    expect(screen.queryByText('panel.widget.web-view.forward')).toBeNull();
     expect(screen.queryByText('panel.widget.web-view.home')).toBeNull();
-    const onWebBack = vi.fn();
-    const onWebHome = vi.fn();
-    rerender(<WidgetContextMenu {...base} onWebBack={onWebBack} onWebHome={onWebHome} />);
-    fireEvent.click(screen.getByText('panel.widget.web-view.back'));
-    expect(onWebBack).toHaveBeenCalled();
-    rerender(<WidgetContextMenu {...base} onWebHome={onWebHome} />);
+    const first = container.querySelector('[data-panel-hit]')!.firstElementChild!;
+    expect(first.className).not.toContain('divider');
+  });
+
+  it('puts Back, Forward, Home first, then a separator before the sizes', () => {
+    const { container } = render(<WidgetContextMenu {...base} onWebBack={vi.fn()} onWebForward={vi.fn()} onWebHome={vi.fn()} />);
+    const order = labels();
+    expect(order.slice(0, 3)).toEqual(['panel.widget.web-view.back', 'panel.widget.web-view.forward', 'panel.widget.web-view.home']);
+    const kids = Array.from(container.querySelector('[data-panel-hit]')!.children);
+    expect(kids[3].className).toContain('divider');
+    expect(kids[4].className).toContain('sizeRow');
+  });
+
+  it('shows only the items offered and runs them', () => {
+    const onWebForward = vi.fn();
+    render(<WidgetContextMenu {...base} onWebForward={onWebForward} />);
     expect(screen.queryByText('panel.widget.web-view.back')).toBeNull();
-    fireEvent.click(screen.getByText('panel.widget.web-view.home'));
-    expect(onWebHome).toHaveBeenCalled();
+    fireEvent.click(screen.getByText('panel.widget.web-view.forward'));
+    expect(onWebForward).toHaveBeenCalled();
   });
 });

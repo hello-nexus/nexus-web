@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "关闭",
   "panel.widget.web-view.crashed": "此页面已停止工作",
   "panel.widget.web-view.error": "无法加载此页面",
+  "panel.widget.web-view.forward": "前进",
   "panel.widget.web-view.home": "主页",
   "panel.widget.web-view.loading": "正在加载",
   "panel.widget.web-view.previewOnly": "仅在显示屏上显示",

@@ -22,6 +22,7 @@ export interface WebViewViewState {
   state: WebViewLoadState;
   code?: string;
   canGoBack: boolean;
+  canGoForward?: boolean;
   away?: boolean;
 }
 
@@ -328,7 +329,7 @@ export class WebViewHost {
     }
     this.viewStates = {
       ...this.viewStates,
-      [msg.id]: { state: msg.state, code: msg.code, canGoBack: msg.canGoBack, away: msg.away },
+      [msg.id]: { state: msg.state, code: msg.code, canGoBack: msg.canGoBack, canGoForward: msg.canGoForward, away: msg.away },
     };
     this.emit();
     // An error or crash hides the native view, so the placeholder shows.

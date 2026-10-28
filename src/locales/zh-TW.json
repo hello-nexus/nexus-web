@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "關閉",
   "panel.widget.web-view.crashed": "此頁面已停止運作",
   "panel.widget.web-view.error": "無法載入此頁面",
+  "panel.widget.web-view.forward": "前進",
   "panel.widget.web-view.home": "首頁",
   "panel.widget.web-view.loading": "載入中",
   "panel.widget.web-view.previewOnly": "僅在顯示器上顯示",

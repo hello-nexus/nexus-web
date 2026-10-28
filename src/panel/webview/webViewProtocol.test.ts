@@ -57,6 +57,11 @@ describe('parseInbound', () => {
     expect(parseInbound(JSON.stringify(caps))).toEqual(caps);
   });
 
+  it('reads canGoForward only when exactly true', () => {
+    expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false, canGoForward: true })).toMatchObject({ canGoForward: true });
+    expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false })).toMatchObject({ canGoForward: false });
+  });
+
   it('reads away on a state message only when exactly true', () => {
     expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: true, away: true })).toMatchObject({ away: true });
     expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: true })).toMatchObject({ away: false });
@@ -76,7 +81,7 @@ describe('parseInbound', () => {
 
   it('parses a state frame and drops unknown states', () => {
     expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'error', code: 'x', canGoBack: true }))
-      .toEqual({ type: 'nexus.webview.state', id: 'a', state: 'error', code: 'x', canGoBack: true, away: false });
+      .toEqual({ type: 'nexus.webview.state', id: 'a', state: 'error', code: 'x', canGoBack: true, away: false, canGoForward: false });
     expect(parseInbound({ type: 'nexus.webview.state', id: 'a', state: 'weird', canGoBack: false })).toBeNull();
   });
 

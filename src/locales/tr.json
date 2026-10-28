@@ -4972,6 +4972,7 @@
   "panel.widget.web-view.close": "Kapat",
   "panel.widget.web-view.crashed": "Bu sayfa çalışmayı durdurdu",
   "panel.widget.web-view.error": "Bu sayfa yüklenemedi",
+  "panel.widget.web-view.forward": "İleri",
   "panel.widget.web-view.home": "Ana sayfa",
   "panel.widget.web-view.loading": "Yükleniyor",
   "panel.widget.web-view.previewOnly": "Yalnızca ekranda görüntülenir",
