@@ -31,14 +31,23 @@ export function probePoints(rect: WebViewRect): Array<[number, number]> {
   return pts;
 }
 
+export interface ViewportSize {
+  w: number;
+  h: number;
+}
+
 /**
  * True only when `el` is what the user would see at every probe point: a menu,
  * sheet, toast or control center above it makes the hit land elsewhere, which
- * hides the native view without enumerating those layers.
+ * hides the native view without enumerating those layers. Points outside the
+ * viewport are skipped (the host clips the view there), so a tile sliding in
+ * or out with a page swipe stays shown; a tile with no point on screen hides.
  */
-export function isTopmost(el: Element, rect: WebViewRect, hit: HitTest): boolean {
+export function isTopmost(el: Element, rect: WebViewRect, hit: HitTest, viewport: ViewportSize): boolean {
   if (rect.w <= 0 || rect.h <= 0) return false;
-  return probePoints(rect).every(([x, y]) => {
+  const onScreen = probePoints(rect).filter(([x, y]) => x >= 0 && y >= 0 && x < viewport.w && y < viewport.h);
+  if (onScreen.length === 0) return false;
+  return onScreen.every(([x, y]) => {
     const found = hit(x, y);
     return found !== null && (found === el || el.contains(found));
   });
@@ -53,11 +62,12 @@ export interface VisibilityInput {
   rect: WebViewRect;
   el: Element;
   hit: HitTest;
+  viewport: ViewportSize;
 }
 
 export function computeVisible(i: VisibilityInput): boolean {
   if (!i.supported || !i.documentVisible || i.suppressed || !i.connected || i.loadFailed) return false;
-  return isTopmost(i.el, i.rect, i.hit);
+  return isTopmost(i.el, i.rect, i.hit, i.viewport);
 }
 
 export interface WebViewSuppressors {

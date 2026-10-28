@@ -643,6 +643,46 @@ describe('finger-driven moves', () => {
     expect(during.views[0].rect.x).toBe(-60);
   });
 
+  it('keeps a tile shown with its full size while a swipe slides it past the viewport edge, and hides it once fully off', () => {
+    const host = makeHost();
+    const a = makeEl();
+    host.register({ id: 'a', url: 'https://a.test/', element: a.el, immersive: false });
+    bridge.push(caps());
+    // Like a real hit test: nothing is hit outside the viewport.
+    document.elementFromPoint = (x: number, y: number) =>
+      (x < 0 || y < 0 || x >= window.innerWidth || y >= window.innerHeight ? null : a.el);
+    pointer('pointerdown', 500, 100);
+    a.moveTo({ x: -200, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 290, 104);
+    frame();
+    expect(syncs().at(-1)!.views[0]).toMatchObject({ visible: true, rect: { x: -200, y: 20, w: 300, h: 300 } });
+    a.moveTo({ x: window.innerWidth - 100, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 300, 104);
+    frame();
+    expect(syncs().at(-1)!.views[0]).toMatchObject({ visible: true, rect: { x: window.innerWidth - 100, w: 300 } });
+    a.moveTo({ x: -400, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 310, 104);
+    frame();
+    expect(syncs().at(-1)!.views[0].visible).toBe(false);
+  });
+
+  it('follows the settle animation after release', () => {
+    const host = makeHost();
+    const a = makeEl();
+    host.register({ id: 'a', url: 'https://a.test/', element: a.el, immersive: false });
+    bridge.push(caps());
+    pointer('pointerdown', 500, 100);
+    a.moveTo({ x: -200, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 290, 104);
+    frame();
+    pointer('pointerup', 290, 104);
+    for (const x of [-150, -90, -40, 10]) {
+      a.moveTo({ x, y: 20, w: 300, h: 300 });
+      frame();
+      expect(syncs().at(-1)!.views[0].rect.x).toBe(x);
+    }
+  });
+
   it('keeps tiles shown while a vertical drag scrolls a list', () => {
     const host = makeHost();
     host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
