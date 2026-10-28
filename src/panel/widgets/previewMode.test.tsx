@@ -206,13 +206,27 @@ describe('widget preview mode', () => {
     expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
   });
 
-  for (const type of ['media', 'lighting']) {
+  for (const type of ['media']) {
     it(`${type} preview renders an inline data-URI thumbnail`, () => {
       const { container } = renderPreview(type, pickerSizeFor(APP_REGISTRY[type].meta));
       const img = container.querySelector('img');
       expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
     });
   }
+});
+
+describe('lighting preview tiles', () => {
+  it.each(['2x2', '4x2', '4x4'] as const)('renders distinct gradient tiles plus a trailing open tile at %s', size => {
+    const { container } = renderPreview('lighting', size);
+    const grid = container.querySelector('[data-cols]') as HTMLElement;
+    const cells = Array.from(grid.children) as HTMLElement[];
+    expect(cells.length).toBe(Number(grid.dataset.cols) * Number(grid.dataset.rows));
+    const tiles = cells.slice(0, -1).map(c => (c.firstElementChild as HTMLElement).style.backgroundImage);
+    expect(tiles.every(b => b.startsWith('linear-gradient('))).toBe(true);
+    expect(new Set(tiles).size).toBe(tiles.length);
+    expect(cells[cells.length - 1].querySelector('button')).toBeNull();
+    expect(container.querySelector('img')).toBeNull();
+  });
 });
 
 // The panel keeps a widget mounted through drag and edit, so a size change must

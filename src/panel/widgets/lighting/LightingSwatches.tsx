@@ -4,6 +4,7 @@ import { fetchServiceBlob } from '../../../api/service';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { Ellipsis } from 'lucide-react';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { previewTileGradients } from '../common/previewAssets';
 import { useTranslation } from '../../../lib/i18n';
 import type { EffectTemplateBundle } from '../../../types/lighting';
 import { slotThumbSignature } from '../../../types/lightingTemplates';
@@ -23,7 +24,6 @@ interface Props {
   activeColor: string;
   templates: Record<string, EffectTemplateBundle>;
   preview: boolean;
-  previewThumb?: string;
   showRecents: boolean;
   recentColors: readonly string[];
   recentAnimations: readonly string[];
@@ -64,11 +64,11 @@ function useEffectThumbs(effects: readonly SwatchEffect[], templates: Record<str
 }
 
 export function LightingSwatches({
-  kind, size, activeEffect, activeColor, templates, preview, previewThumb,
+  kind, size, activeEffect, activeColor, templates, preview,
   showRecents, recentColors, recentAnimations, onColor, onEffect, onOpen,
 }: Props) {
   const { t } = useTranslation();
-  const { cols, rows, slots } = swatchGrid(size, onOpen !== null);
+  const { cols, rows, slots } = swatchGrid(size, preview || onOpen !== null);
   // A tap here records into recents; the order is held until the taps go idle or the pointer leaves, so the grid never shuffles under a finger. Picks made elsewhere show at once.
   const [held, setHeld] = useState<{ colors: readonly string[]; animations: readonly string[] } | null>(null);
   const idleRef = useRef<number | null>(null);
@@ -93,6 +93,7 @@ export function LightingSwatches({
     () => (kind === 'animate' ? pickAnimationTiles(shownAnimations, showRecents, slots) : []),
     [kind, shownAnimations, showRecents, slots],
   );
+  const previewGradients = useMemo(() => previewTileGradients(), []);
   const thumbs = useEffectThumbs(effectTiles, templates, kind === 'animate' && !preview);
   const openLabel = t('lighting.widget.openLighting');
 
@@ -106,7 +107,13 @@ export function LightingSwatches({
         onPointerLeave={release}
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
       >
-        {kind === 'static'
+        {preview
+          ? previewGradients.slice(0, slots).map(bg => (
+            <div key={bg} className={styles.swatchCell}>
+              <div className={styles.swatchPreviewTile} style={{ backgroundImage: bg }} />
+            </div>
+          ))
+          : kind === 'static'
           ? staticTiles.map((tile: StaticTile) => {
             const name = tile.nameKey ? `${t(tile.nameKey)}${tile.shade ? ` ${tile.shade}` : ''}` : tile.name ?? tile.hex;
             const active = tile.hex.toLowerCase() === activeColor;
@@ -130,14 +137,22 @@ export function LightingSwatches({
                 overlay
                 hideLabel
                 label={t(fx.labelKey)}
-                thumbUrl={preview ? previewThumb ?? null : thumbs[fx.key] ?? null}
+                thumbUrl={thumbs[fx.key] ?? null}
                 active={fx.key === activeEffect}
                 dataEffectKey={fx.key}
                 onClick={() => { holdForTap(); onEffect(fx.key); }}
               />
             </div>
           ))}
-        {onOpen && (
+        {preview && (
+          <div className={styles.swatchCell}>
+            <div className={`${styles.swatchOpen} ${styles.swatchPreviewTile}`}>
+              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+              <Ellipsis className={styles.swatchOpenIcon} aria-hidden="true" />
+            </div>
+          </div>
+        )}
+        {!preview && onOpen && (
           <div className={styles.swatchCell}>
             <HoverTooltip body={openLabel} side="top">
               <button
