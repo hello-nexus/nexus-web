@@ -1476,8 +1476,16 @@
   .deviceCardSelected & { color: var(--text); opacity: 1; }
 }
 
+// The press-to-open form of the tune mark: the LED colors badge button's look,
+// seated in the name row's corner.
+.deviceTuneBtn {
+  margin-top: 0.15rem;
+  margin-left: auto;
+}
+
 // Only the first mark takes the free space, so the two sit side by side.
-.deviceTuneBadge + .deviceStackBadge { margin-left: 0; }
+.deviceTuneBadge + .deviceStackBadge,
+.deviceTuneBtn + .deviceStackBadge { margin-left: 0; }
 
 // The (i) notice icon at the end of a device label or group title. Bare icon
 // (no button) so it can nest inside the group-header toggle; HoverTooltip owns

@@ -699,9 +699,21 @@ export function ZoneCard({
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
         {colorTuned && (
           <HoverTooltip body={t('lighting.colorTuning.title')} side="top">
-            <span className={styles.deviceTuneBadge} role="img" aria-label={t('lighting.colorTuning.title')}>
-              <Blend size={12} aria-hidden />
-            </span>
+            {onOpenColorTuning && !toggleMode && !unavailable ? (
+              <button
+                type="button"
+                className={`${styles.deviceSettingsBtn} ${styles.deviceBadgeBtn} ${styles.deviceTuneBtn}`}
+                aria-label={t('lighting.colorTuning.title')}
+                data-no-dnd
+                onClick={e => { e.stopPropagation(); onOpenColorTuning(); }}
+              >
+                <Blend aria-hidden />
+              </button>
+            ) : (
+              <span className={styles.deviceTuneBadge} role="img" aria-label={t('lighting.colorTuning.title')}>
+                <Blend size={12} aria-hidden />
+              </span>
+            )}
           </HoverTooltip>
         )}
         {inStack && (

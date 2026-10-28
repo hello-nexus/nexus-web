@@ -951,6 +951,37 @@ describe('ZoneCard LED colours badge', () => {
   });
 });
 
+describe('ZoneCard color tuning badge', () => {
+  const badge = () => screen.queryByRole('button', { name: 'lighting.colorTuning.title' });
+
+  it('opens color tuning without selecting the card', () => {
+    const onOpenColorTuning = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={onSelect}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        colorTuned onOpenColorTuning={onOpenColorTuning}
+      />,
+    );
+    fireEvent.click(badge()!);
+    expect(onOpenColorTuning).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('stays a plain mark when nothing can open the modal', () => {
+    render(
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        colorTuned
+      />,
+    );
+    expect(badge()).toBeNull();
+    expect(screen.getByRole('img', { name: 'lighting.colorTuning.title' })).toBeTruthy();
+  });
+});
+
 describe('ZoneCard key reactions row', () => {
   const openMenu = (props: { onOpenKeyReactions?: () => void; bulk?: BulkSelection }) => {
     render(
