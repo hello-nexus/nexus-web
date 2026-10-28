@@ -9,8 +9,8 @@ describe('swatches', () => {
 
   it('leads with the default animation order, then the catalog', () => {
     expect(ANIMATE_SWATCHES.slice(0, DEFAULT_ANIMATION_KEYS.length).map(e => e.key)).toEqual(DEFAULT_ANIMATION_KEYS);
-    expect(ANIMATE_SWATCHES).toHaveLength(16);
-    expect(new Set(ANIMATE_SWATCHES.map(e => e.key)).size).toBe(16);
+    expect(ANIMATE_SWATCHES).toHaveLength(20);
+    expect(new Set(ANIMATE_SWATCHES.map(e => e.key)).size).toBe(20);
     expect(ANIMATE_SWATCHES.every(e => !!e.labelKey)).toBe(true);
   });
 

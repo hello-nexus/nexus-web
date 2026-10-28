@@ -17,11 +17,13 @@ export interface SwatchEffect { key: string; labelKey: string }
 
 /** Animation swatch order; the rest of ANIMATE_EFFECTS follows in catalog order. */
 export const DEFAULT_ANIMATION_KEYS = [
-  'sweeprainbow', 'sharplines', 'breathing', 'plasma', 'fire',
-  'aurora', 'spiral', 'crystaltunnel', 'cybertunnel',
+  'sweeprainbow', 'plasma', 'fire', 'sweepliquid', 'sweepcomet',
+  'sweepbreathing', 'watercolor', 'sweepcycle', 'contourbands', 'oilslick',
+  'matrix', 'jellyfish', 'aurora', 'sharplines', 'spiral',
+  'cybertunnel', 'crystaltunnel',
 ];
 
-const MAX_SWATCHES = 16;
+const MAX_SWATCHES = 20;
 
 function swatchEffects(): SwatchEffect[] {
   const byKey = new Map<string, SwatchEffect>(ANIMATE_EFFECTS.map(e => [e.key, e]));
