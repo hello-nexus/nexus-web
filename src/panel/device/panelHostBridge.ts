@@ -52,7 +52,7 @@ export function panelHostAvailable(): boolean {
   return hostPoster() !== null;
 }
 
-/** Whether this kiosk must report its input region: display-bound panels, and the legacy Y70 kiosk that has no display id. */
+/** Whether this kiosk must report its input region: display-bound panels, and the Y70 kiosk, which never has a display id. */
 export function panelHitTestBound(kioskBehavior: boolean, displayBound: boolean, glassSurface: string, hostAvailable: boolean): boolean {
   return kioskBehavior && hostAvailable && (displayBound || glassSurface === 'y70');
 }

@@ -155,7 +155,7 @@ describe('frost message', () => {
 });
 
 describe('panelHitTestBound', () => {
-  it('reports for a legacy Y70 kiosk without a display id', () => {
+  it('reports for the Y70 kiosk without a display id', () => {
     expect(panelHitTestBound(true, false, 'y70', true)).toBe(true);
   });
   it('reports for a display-bound panel of any surface', () => {
