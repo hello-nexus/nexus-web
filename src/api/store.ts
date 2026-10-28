@@ -14,6 +14,8 @@ export interface StoreVersion {
   hasPage: boolean;
   requiresTouch: boolean;
   sizes: string[];
+  /** The app's widget resizes freely beyond the declared sizes. */
+  freeform?: boolean;
   surfaces: string[];
   releasedAt: string;
   /** The version manifest's capabilities as published; author-supplied JSON, so every field is unchecked. */

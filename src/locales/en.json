@@ -5878,6 +5878,7 @@
   "store.spec.widgetSizes": "Widget sizes",
   "store.unavailable": "Marketplace unavailable",
   "store.update": "Update",
+  "store.value.freeform": "Freeform",
   "store.value.hasFeature": "Yes",
   "store.value.noFeature": "No",
   "store.value.touchAny": "Not required",
