@@ -58,20 +58,21 @@
 .inCard { left: calc(100% + var(--border-width)); }
 .inHeader { left: 100%; }
 
-// Round badge straddling the host's top-right corner, ringed with the page
-// background so it reads over a neighbor. It sits outside the host's box, so
-// the host's overflow must not clip it. A touch-first screen has no hover to
-// reveal it and the badge would crowd the layout, so it never renders there.
+// Round badge centered on the visible card's top-right corner, ringed with the
+// page background so it reads over a neighbor. Fixed and portaled to the body
+// (MenuArrowButton positions left/top from the card's rect), so it takes no
+// layout space and the pager's overflow cannot clip it. The host decides when
+// it mounts, so it is fully opaque. A touch-first screen never renders it.
 .inCorner {
-  top: calc(var(--corner-badge-size, 22px) / -2);
-  right: calc(var(--corner-badge-size, 22px) / -2);
-  bottom: auto;
-  left: auto;
-  z-index: 3;
-  width: var(--corner-badge-size, 22px);
-  height: var(--corner-badge-size, 22px);
+  --_size: 22px;
+  position: fixed;
+  z-index: var(--z-floating);
+  width: var(--_size);
+  height: var(--_size);
+  margin: calc(var(--_size) / -2) 0 0 calc(var(--_size) / -2);
+  opacity: 1;
   border-radius: 50%;
-  background: var(--panel-card-bg, var(--bg-elevated, var(--backdrop-base)));
+  background: var(--bg-elevated);
   color: var(--text);
   box-shadow: 0 0 0 3px var(--backdrop-base), 0 2px 6px rgb(0 0 0 / 40%);
 
@@ -85,8 +86,6 @@
 
   svg { width: 14px; height: 14px; }
 }
-
-:global([data-menu-arrow-host]:focus-within) .inCorner { opacity: 1; }
 
 @media (hover: none), (pointer: coarse) {
   .inCorner { display: none; }

@@ -234,6 +234,12 @@ export function PanelTouchCell({
     disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || locked,
   });
 
+  // Home dashboard "More actions" badge: shown while the cell is hovered or
+  // focused, centered on the visible card (the .cell surface).
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [cardEl, setCardEl] = useState<HTMLElement | null>(null);
+
   const lockNotice = useLockNotice(locked, lockActivationFor);
   const lockDragging = lockNotice.dragging;
   useEffect(() => {
@@ -442,7 +448,6 @@ export function PanelTouchCell({
       data-lock-notice={lockNotice.visible ? 'true' : undefined}
       data-resize-selected={resizeSelected ? 'true' : undefined}
       data-immersive-on-load={immersiveOnLoad ? 'true' : undefined}
-      data-menu-arrow-host={moreActions && !editorDockMotion && !resizeSelected ? '' : undefined}
       className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
       style={{
         ...wrapStyle,
@@ -461,12 +466,17 @@ export function PanelTouchCell({
       }}
       onContextMenu={dragMotionActive ? e => e.preventDefault() : onContextMenu}
       onClick={onSimulatorClick}
+      onPointerEnter={moreActions ? () => setHovered(true) : undefined}
+      onPointerLeave={moreActions ? () => setHovered(false) : undefined}
+      onFocus={moreActions ? () => setFocused(true) : undefined}
+      onBlur={moreActions ? () => setFocused(false) : undefined}
       {...(dragMotionActive ? {} : attributes)}
       {...composedPointerHandlers}
     >
       {hosted(
         <>
           <div
+            ref={setCardEl}
             className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
             data-size={widget.size}
             data-widget-type={widget.type}
@@ -498,9 +508,10 @@ export function PanelTouchCell({
           <div className={styles.cellLabelStrip}>
             <WidgetCellLabel label={labelText} />
           </div>
-          {moreActions && !editorDockMotion && !resizeSelected && !isDragging && (
+          {moreActions && (hovered || focused || moreActions.open) && !editorDockMotion && !resizeSelected && !isDragging && (
             <MenuArrowButton
               variant="corner"
+              anchor={cardEl}
               label={t('lighting.devices.moreActions')}
               tooltip={t('lighting.devices.moreActions')}
               open={moreActions.open}

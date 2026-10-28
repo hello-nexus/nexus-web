@@ -107,15 +107,20 @@ describe('PanelTouchCell', () => {
   });
 
   describe('More actions corner badge', () => {
-    const badge = (c: HTMLElement) => c.querySelector('button[aria-label="lighting.devices.moreActions"]');
+    const badge = () => document.body.querySelector('button[aria-label="lighting.devices.moreActions"]');
+    const hover = (c: HTMLElement) => fireEvent.pointerEnter(c.querySelector('[data-panel-widget-id]')!);
 
-    it('renders only when moreActions is passed, and opens the menu at the button', () => {
+    it('mounts on hover only when moreActions is passed, portaled out of the cell, and opens the menu', () => {
       const { container, rerender } = render(cell({}));
-      expect(badge(container)).toBeNull();
+      hover(container);
+      expect(badge()).toBeNull();
       const onOpen = vi.fn();
       rerender(cell({ moreActions: { open: false, onOpen, onClose: () => {} } }));
-      const btn = badge(container)!;
+      expect(badge()).toBeNull();
+      hover(container);
+      const btn = badge()!;
       expect(btn).not.toBeNull();
+      expect(container.contains(btn)).toBe(false);
       fireEvent.click(btn);
       expect(onOpen).toHaveBeenCalledTimes(1);
     });
@@ -123,15 +128,16 @@ describe('PanelTouchCell', () => {
     it('closes instead of reopening while the menu is open', () => {
       const onOpen = vi.fn();
       const onClose = vi.fn();
-      const { container } = render(cell({ moreActions: { open: true, onOpen, onClose } }));
-      fireEvent.click(badge(container)!);
+      render(cell({ moreActions: { open: true, onOpen, onClose } }));
+      fireEvent.click(badge()!);
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(onOpen).not.toHaveBeenCalled();
     });
 
     it('is absent while the cell is in resize mode', () => {
       const { container } = render(cell({ resizeSelected: true, moreActions: { open: false, onOpen: () => {}, onClose: () => {} } }));
-      expect(badge(container)).toBeNull();
+      hover(container);
+      expect(badge()).toBeNull();
     });
   });
 });
