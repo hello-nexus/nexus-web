@@ -110,6 +110,7 @@ export const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'corsair-capellix-lcd': '/assets/devices/corsair.svg',
   'lianli-screen88': '/assets/devices/lianli.svg',
   'zmatrices-lcd': PANEL_MONITOR_ICON,
+  'steelseries-apex-oled': '/assets/devices/keyboard.svg',
 };
 
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
