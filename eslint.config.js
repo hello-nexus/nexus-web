@@ -57,12 +57,9 @@ const SLIDER_WIDTH_BAN = [
   },
 ]
 
-// A native `title` attribute on a DOM element paints the browser's own hover
-// tooltip: different timing, different look, no touch support. Every hover
-// hint goes through HoverTooltip (shared open delay, scan mode). `title` on a
-// component (Button, Card, ...) is a prop those components handle themselves,
-// so only lowercase DOM tags are matched. <iframe title> is not a tooltip: it
-// is the frame's accessible name, so it is the one allowed DOM tag.
+// Native `title` on a DOM element paints the browser tooltip; hover hints go
+// through HoverTooltip. Component props named `title` are not matched (only
+// lowercase tags). <iframe title> is the frame's accessible name: allowed.
 const NATIVE_TITLE_BAN = [
   {
     selector: "JSXOpeningElement[name.name=/^(?!iframe$)[a-z]/] > JSXAttribute[name.name='title']",
@@ -126,7 +123,7 @@ export default defineConfig([
   {
     // PanelApp's relay badge still carries a native title; it is being moved to
     // HoverTooltip on the lighting-widget-swatches branch. Drop this block
-    // (and its entry in the rule above) once that branch lands.
+    // once that branch lands.
     files: ['src/panel/PanelApp.tsx'],
     rules: { 'no-restricted-syntax': ['error', ...SLIDER_WIDTH_BAN] },
   },

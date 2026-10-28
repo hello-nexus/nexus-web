@@ -111,7 +111,7 @@ export function KeebKeyboard({
           type="button"
           className={cls}
           style={style}
-          aria-label={func}
+          data-func={func}
           disabled={disabled}
           aria-pressed={isSelected}
           onClick={() => onSelect?.({ kind: 'key', x, y })}

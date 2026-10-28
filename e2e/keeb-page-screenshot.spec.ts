@@ -169,7 +169,7 @@ test('walks every Keeb page tab', async ({ page }) => {
   const sidebar = page.locator('[class*="sidebarColumn"]');
   await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
-  const keebBtn = sidebar.locator('button[aria-label="Keeb"], button:has-text("Keeb")').first();
+  const keebBtn = sidebar.locator('button[data-func="Keeb"], button:has-text("Keeb")').first();
   await expect(keebBtn).toBeVisible({ timeout: 10_000 });
   await keebBtn.click();
   await page.waitForTimeout(1000);
@@ -178,9 +178,9 @@ test('walks every Keeb page tab', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Key Assignment' })).toBeVisible();
   await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-01-assignment-initial.png') });
 
-  // Pick the F1 key on the main keyboard (aria-label carries the function name),
+  // Pick the F1 key on the main keyboard (data-func carries the function name),
   // then open the Mouse category so the tile grid renders enabled.
-  await page.locator('button[aria-label="F1"]').first().click();
+  await page.locator('button[data-func="F1"]').first().click();
   await page.getByRole('tab', { name: 'Mouse' }).click();
   await page.waitForTimeout(300);
   await expect(page.getByRole('radio', { name: 'Left Click' })).toBeEnabled();
@@ -222,7 +222,7 @@ test.describe('small window', () => {
 
     const sidebar = page.locator('[class*="sidebarColumn"]');
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
-    const keebBtn = sidebar.locator('button[aria-label="Keeb"], button:has-text("Keeb")').first();
+    const keebBtn = sidebar.locator('button[data-func="Keeb"], button:has-text("Keeb")').first();
     await expect(keebBtn).toBeVisible({ timeout: 10_000 });
     await keebBtn.click();
     await page.waitForTimeout(1000);
