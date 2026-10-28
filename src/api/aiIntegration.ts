@@ -1,5 +1,6 @@
 // AI Integration (MCP) settings API client. The local service hosts a
-// separate loopback-only MCP endpoint that AI agents connect to; this module
+// separate MCP endpoint that AI agents connect to (loopback by default, all
+// interfaces while allowRemote is on); this module
 // is the dashboard's control surface for it (GET /ai/status, POST
 // /ai/config, POST /ai/token/rotate). All three endpoints return the same
 // AiStatusResponse envelope so a caller can always apply the response
@@ -30,11 +31,13 @@ export interface AiStatusResponse {
   token: string;
   lastError: string | null;
   capabilities: AiCapabilities;
+  allowRemote: boolean;
 }
 
 export interface AiConfigPatch {
   enabled?: boolean;
   capabilities?: Partial<AiCapabilities>;
+  allowRemote?: boolean;
 }
 
 export const fetchAiStatus = () =>
