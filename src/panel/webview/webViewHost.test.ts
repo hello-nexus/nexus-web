@@ -237,6 +237,17 @@ describe('touchable tiles', () => {
     expect(syncs().at(-1)!.views[0].interactive).toBe(true);
   });
 
+  it('goes non-interactive under Windows OOBE, even an immersive claim, and returns after', () => {
+    const host = tile(true);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    host.setRestricted(true);
+    frame();
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+    host.setRestricted(false);
+    frame();
+    expect(syncs().at(-1)!.views[0].interactive).toBe(true);
+  });
+
   it('stays non-interactive when the claim does not ask', () => {
     tile(false);
     bridge.push(caps({ contextMenu: true, longPress: true }));

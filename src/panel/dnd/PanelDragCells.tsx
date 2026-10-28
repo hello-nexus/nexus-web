@@ -155,6 +155,7 @@ export function PanelTouchCell({
   lockActivationFor,
   onLockDragChange,
   clickthrough = false,
+  inert = false,
   onContextMenu,
   cellPointers,
   onSimulatorClick,
@@ -195,6 +196,8 @@ export function PanelTouchCell({
   // True while a locked widget is being pulled, so the host keeps delivering input outside its rects.
   onLockDragChange?: (active: boolean) => void;
   clickthrough?: boolean;
+  // Windows OOBE: the widget renders but takes no input; a tap on the cell still reaches the host.
+  inert?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
     onPointerDown: (e: React.PointerEvent) => void;
@@ -465,7 +468,7 @@ export function PanelTouchCell({
             data-size={widget.size}
             data-widget-type={widget.type}
           >
-            <div className={styles.cellScaler}>
+            <div className={styles.cellScaler} style={inert ? { pointerEvents: 'none' } : undefined}>
               <Comp
                 widget={widget}
                 deviceId={deviceId}

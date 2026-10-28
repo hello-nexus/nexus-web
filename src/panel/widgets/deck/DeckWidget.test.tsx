@@ -20,6 +20,7 @@ const mockUseRecentApps = vi.fn();
 vi.mock('./useRecentApps', () => ({ useRecentApps: (enabled: boolean) => mockUseRecentApps(enabled) }));
 
 import { DeckWidget } from './DeckWidget';
+import { PanelOobeProvider } from '../../engine/PanelOobeContext';
 import { innerGridForSize } from './deckLayout';
 import type { PanelWidget } from '../../types';
 import type { DeckPage } from './types';
@@ -87,6 +88,21 @@ describe('DeckWidget', () => {
     const { container } = render(<DeckWidget widget={widget()} />);
     fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' });
+  });
+
+  it('under Windows OOBE dispatches lighting and volume keys but not anything else', () => {
+    const deck: DeckPage[] = [{ slots: [
+      { action: { type: 'nexus', action: { op: 'lightingPowerToggle' } } },
+      { action: { type: 'system', action: { op: 'muteToggle' } } },
+      { action: { type: 'power', action: 'shutdown' } },
+      { action: { type: 'openUrl', url: 'https://x.com' } },
+    ] }];
+    mockDeck(deck);
+    const { container } = render(<PanelOobeProvider value><DeckWidget widget={widget()} /></PanelOobeProvider>);
+    for (const i of [0, 1, 2, 3]) fireEvent.click(container.querySelector(`[data-deck-slot-index="${i}"]`)!);
+    expect(executeDeckAction).toHaveBeenCalledTimes(2);
+    expect(executeDeckAction).toHaveBeenCalledWith({ type: 'nexus', action: { op: 'lightingPowerToggle' } });
+    expect(executeDeckAction).toHaveBeenCalledWith({ type: 'system', action: { op: 'muteToggle' } });
   });
 
   it('does not dispatch an empty slot', () => {

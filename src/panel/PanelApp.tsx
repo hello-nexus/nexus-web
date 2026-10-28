@@ -90,6 +90,9 @@ import { savePreferences } from '../api/profiles';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic } from '../hooks/useMultiplexSocket';
+import { useOobeRestricted } from '../hooks/useOobeRestricted';
+import { oobeAllowsWidget } from './engine/oobeRestriction';
+import { PanelOobeProvider } from './engine/PanelOobeContext';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass, panelOfflineGrace } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
@@ -526,6 +529,8 @@ export function PanelContent({
   // iframe must not duplicate them - a second viewport lock fights the
   // parent's window scroll.
   const kioskBehavior = !embedded && !simulator;
+  // Windows OOBE on a kiosk panel (never the phone app): only lighting, media and volume stay live.
+  const restricted = useOobeRestricted(kioskBehavior && surface !== 'phone');
   usePanelViewportLock(kioskBehavior);
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
@@ -914,7 +919,7 @@ export function PanelContent({
   const widgetTouch = widgetInputOf(deviceTouch, displayBound);
   const cellTouch = cellInputOf(deviceTouch, genericDisplay);
   const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator, displayBound && kioskBehavior);
-  const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch);
+  const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch) && !restricted;
   // An editable canvas hoists the focused widget above the editor's scrim, else
   // the edited widget reads dimmed under it. See .cellEditorDocked rules.
   const editorDockSupported = dragEditable;
@@ -975,7 +980,7 @@ export function PanelContent({
   const resizeBounds = useMemo(() => ({ cols: resizeCols, rows: resizeRows }), [resizeCols, resizeRows]);
   const widgetsLocked = genericDisplay && resolveWidgetsLocked(recordState.record?.widgetsLocked, fullLayout.pages.flatMap(p => p.widgets));
   const lockedOf = () => widgetsLocked;
-  const canResizeType = (type: string, locked?: boolean) => dragEditable && !locked && resizeSpansForType(type, surface, widgetTouch, forcedGrid, resizeBounds).length > 1;
+  const canResizeType = (type: string, locked?: boolean) => dragEditable && !restricted && !locked && resizeSpansForType(type, surface, widgetTouch, forcedGrid, resizeBounds).length > 1;
   const freeformActive = Boolean(freeformWidget && canResizeType(freeformWidget.type, lockedOf()));
   const hoverWidget = !freeformId && hoverResizeId ? findWidgetById(paginatedLayout, hoverResizeId) : undefined;
   const hoverActive = Boolean(hoverWidget && canResizeType(hoverWidget.type, lockedOf()));
@@ -1179,6 +1184,7 @@ export function PanelContent({
     && !singlePage
     && !isSingleWidgetSurface(surface)
     && !activeDragId
+    && !restricted
     && paginatedLayout.pages.length < MAX_PANEL_PAGES;
 
   const allFiltered = useMemo(() => {
@@ -1351,6 +1357,7 @@ export function PanelContent({
     if (genericDisplay) return;
     const def = lookupApp(w.type);
     if (!def?.Touch) return;
+    if (restricted && !oobeAllowsWidget(w.type)) return;
     // A Web View tile that takes the touch itself opens fullscreen from the menu's Immersive mode item instead.
     if (w.type === 'web-view' && webViewHost.tileTakesTouch(w.id)) return;
     // An immersive view closes by touch, so a mouse-only display never opens one.
@@ -1358,15 +1365,25 @@ export function PanelContent({
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
     if (!def.meta.supportsImmersive[orientationKey]) return;
     enterImmersive(w.id);
-  }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
+  }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, restricted, simulator, surface]);
   // macOS delivers touchscreen contacts as mouse pointers (see
   // engine/touchViaPointer); only under that flag does a mouse get the
   // touch gesture model.
   const mouseAsTouch = useTouchViaPointer() && surfaceSupportsTouch(surface, deviceTouch);
   // An app may open its own immersive view only where a person could by touch, never from a preview.
   const canEnterImmersive = !embedded && !simulator && surfaceSupportsImmersiveOnLoad(surface, deviceTouch);
-  const touch = usePanelTouchMode({ onCellTap, mouseLongPress: mouseAsTouch });
+  const touch = usePanelTouchMode({ onCellTap, mouseLongPress: mouseAsTouch, menuDisabled: restricted });
   usePanelDragScroll(mouseAsTouch);
+  // OOBE can arrive after the panel is up: put away anything it forbids.
+  const restrictedBlockedImmersive = restricted && immersiveWidgetId !== null
+    && !oobeAllowsWidget(findWidgetById(paginatedLayout, immersiveWidgetId)?.type ?? '');
+  const closeCtxMenuNow = touch.closeCtxMenu;
+  useEffect(() => {
+    if (!restricted) return;
+    setTrayOpen(false);
+    closeCtxMenuNow();
+    if (restrictedBlockedImmersive) handleImmersiveExit();
+  }, [restricted, restrictedBlockedImmersive, closeCtxMenuNow, handleImmersiveExit]);
   // On the document, not the root: the editor sheet and immersive overlay
   // mount outside the root, and the pointer is the finger there too.
   useEffect(() => {
@@ -1405,6 +1422,10 @@ export function PanelContent({
   // A generic display's Web View tiles take the mouse; the host reports their right-clicks for the widget menu.
   const interactiveWebTiles = genericDisplay && !simulator && !embedded;
   useEffect(() => {
+    webViewHost.setRestricted(restricted);
+    return () => webViewHost.setRestricted(false);
+  }, [restricted]);
+  useEffect(() => {
     webViewHost.setInteractiveTiles(interactiveWebTiles);
     return () => webViewHost.setInteractiveTiles(false);
   }, [interactiveWebTiles]);
@@ -1413,7 +1434,7 @@ export function PanelContent({
   }, [surface]);
   const openCtxMenu = touch.openCtxMenu;
   // A touch panel's interactive Web View tiles report a long-press the same way, so the menu stays reachable.
-  const reportsWebViewMenu = !simulator && !embedded && dragEditable;
+  const reportsWebViewMenu = !simulator && !embedded && dragEditable && !restricted;
   useEffect(() => {
     if (!reportsWebViewMenu) return undefined;
     return webViewHost.onContextMenu((id, x, y) => {
@@ -1451,7 +1472,7 @@ export function PanelContent({
   const homeIntroActive = useHomeIntro(embedded && surface === 'desktop' && loaded);
   // Same surfaces as the tray; the connection intro blocks it so the two never stack.
   const swipeOnboarding = usePanelSwipeOnboarding({
-    enabled: kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && hasTouchInput(mouseAsTouch) && loaded && !isOffline,
+    enabled: kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && hasTouchInput(mouseAsTouch) && loaded && !isOffline && !restricted,
     blocked: connectionIntroBlocked || Boolean(connectionIntroHost),
     trayOpen,
   });
@@ -1508,6 +1529,7 @@ export function PanelContent({
     || Boolean(dragArmedId)
     || isOffline
     || touch.rearranging
+    || restricted
     || emptySpaceInert;
   const handleBackgroundPointerDown = useCallback((e: React.PointerEvent) => {
     if (backgroundPressBlocked) return;
@@ -1863,9 +1885,9 @@ export function PanelContent({
   // A panel that can't be drag-edited (single-widget glass; display-only glass outside
   // the preview) registers no drag sensor, so a pointer press never lifts a cell.
   const sensors = useSensors(
-    dragEditable && desktopActivation ? pointerSensor : null,
-    dragEditable && !desktopActivation ? adaptiveSensor : null,
-    dragEditable && freeformActive && !desktopActivation ? resizeTileSensor : null,
+    dragEditable && !restricted && desktopActivation ? pointerSensor : null,
+    dragEditable && !restricted && !desktopActivation ? adaptiveSensor : null,
+    dragEditable && !restricted && freeformActive && !desktopActivation ? resizeTileSensor : null,
   );
 
   const touchCloseMenu = touch.closeCtxMenu;
@@ -2114,6 +2136,7 @@ export function PanelContent({
 
   return (
     <TouchViaPointerContext.Provider value={mouseAsTouch}>
+    <PanelOobeProvider value={restricted}>
     <PanelGenericDisplayProvider value={genericDisplay}>
     <PanelDigitizerProvider value={deviceTouch}>
     <PanelImmersiveOpenProvider value={immersiveWidgetId !== null}>
@@ -2350,6 +2373,7 @@ export function PanelContent({
                               locked={lockedOf()}
                               lockActivationFor={lockActivationFor}
                               onLockDragChange={setLockDragging}
+                              inert={restricted && !oobeAllowsWidget(w.type)}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
@@ -2370,7 +2394,7 @@ export function PanelContent({
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
-                              onEnterImmersiveWidget={canEnterImmersive && widgetSupportsImmersiveOnLoad(w.type, isLandscape)
+                              onEnterImmersiveWidget={canEnterImmersive && (!restricted || oobeAllowsWidget(w.type)) && widgetSupportsImmersiveOnLoad(w.type, isLandscape)
                                 ? (widget) => enterImmersive(widget.id) : undefined}
                             />
                           </ErrorBoundary>
@@ -2452,7 +2476,7 @@ export function PanelContent({
                 pairSheetAvailable={localPairAvailable || pairedPcsAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
-                disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId || controlCenterOpen || freeformActive}
+                disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId || controlCenterOpen || freeformActive || restricted}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}
                 onSentry={surface === 'phone' && sentrySupported ? () => setSentryOpenRequest((n) => n + 1) : undefined}
@@ -2478,6 +2502,7 @@ export function PanelContent({
                 rearranging={touch.rearranging}
                 dragArmed={dragInProgress || freeformActive}
                 asleep={screenAsleep}
+                restricted={restricted}
               />
             )}
             {swipeOnboarding.hintVisible && <PanelSwipeHint />}
@@ -2789,6 +2814,7 @@ export function PanelContent({
     </PanelImmersiveOpenProvider>
     </PanelDigitizerProvider>
     </PanelGenericDisplayProvider>
+    </PanelOobeProvider>
     </TouchViaPointerContext.Provider>
   );
 }

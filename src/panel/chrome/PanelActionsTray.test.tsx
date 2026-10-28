@@ -5,7 +5,7 @@ import { PanelActionsTray } from './PanelActionsTray';
 import { resetGestureAxis } from '../engine/gestureAxisLock';
 import type { PanelSurface } from '../types';
 
-function Harness({ surface = 'phone' }: { surface?: PanelSurface }) {
+function Harness({ surface = 'phone', disabled = false }: { surface?: PanelSurface; disabled?: boolean }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   return (
     <div ref={surfaceRef} data-testid="surface" style={{ height: 800 }}>
@@ -17,6 +17,7 @@ function Harness({ surface = 'phone' }: { surface?: PanelSurface }) {
         pairAvailable={false}
         surfaceRef={surfaceRef}
         surface={surface}
+        disabled={disabled}
       />
     </div>
   );
@@ -151,6 +152,20 @@ describe('PanelActionsTray swipe-to-open', () => {
     });
 
     expect(tray).toHaveAttribute('data-state', 'dragging');
+  });
+
+  // Windows OOBE passes disabled: the swipe never engages.
+  it('stays closed under a swipe while disabled', () => {
+    render(<Harness surface="y70" disabled />);
+    const surface = screen.getByTestId('surface');
+    const tray = screen.getByLabelText('panel.actions.label');
+
+    act(() => {
+      dispatchTouch(surface, 'touchstart', 100, 700, 0);
+      dispatchTouch(surface, 'touchmove', 100, 650, 16);
+    });
+
+    expect(tray).toHaveAttribute('data-state', 'closed');
   });
 
   // The phone's system home-indicator band keeps its bottom edge.
