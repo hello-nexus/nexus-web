@@ -121,13 +121,6 @@ export default defineConfig([
     rules: { 'no-restricted-syntax': ['error', ...SLIDER_WIDTH_BAN, ...NATIVE_TITLE_BAN] },
   },
   {
-    // PanelApp's relay badge still carries a native title; it is being moved to
-    // HoverTooltip on the lighting-widget-swatches branch. Drop this block
-    // once that branch lands.
-    files: ['src/panel/PanelApp.tsx'],
-    rules: { 'no-restricted-syntax': ['error', ...SLIDER_WIDTH_BAN] },
-  },
-  {
     // Internal / developer-only surfaces that never ship as end-user UI: test
     // files, the component storybook, the in-app SDK + telemetry reference
     // pages (dense API docs), the component sandbox, and the SDK sandbox's
