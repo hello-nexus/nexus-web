@@ -2,8 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, type PanelSurface,
+  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, Y70_PERCENT_STOPS, y70SizeForPercent, type PanelSurface,
 } from './types';
+import { panelGridCapacityForCanvas } from './engine/grid';
 
 describe('surfaceInputMode', () => {
   it('maps every surface to its input method', () => {
@@ -155,9 +156,48 @@ describe('Widget size', () => {
 
   it('is not offered elsewhere, whatever a record carries', () => {
     expect(panelWidgetSizeOptions('monitor', 'xeneon-edge')).toBeUndefined();
-    expect(panelWidgetSizeOptions('y70', undefined)).toBeUndefined();
-    expect(panelLayoutSurface('y70', undefined, 'small')).toBe('y70');
     expect(resolvePanelWidgetSize('phone', undefined, 'large')).toBeUndefined();
+  });
+});
+
+describe('Widget size on the Y70', () => {
+  it('keeps the fixed Y70 grid by default and for a stored Large', () => {
+    expect(resolvePanelWidgetSize('y70', undefined, undefined)).toBe('large');
+    expect(panelLayoutSurface('y70', undefined, undefined)).toBe('y70');
+    expect(panelLayoutSurface('y70', undefined, 'large')).toBe('y70');
+    expect(panelShortSideSlots('y70', undefined, undefined, 4)).toBeUndefined();
+    expect(panelShortSideSlots('y70', undefined, 'large', 4)).toBeUndefined();
+    expect(panelLayoutDpi('y70', undefined, undefined, null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
+  });
+
+  it('lays Small and Tiny out as a finer density grid at the Y70 glass density', () => {
+    expect(panelLayoutSurface('y70', undefined, 'small')).toBe('monitor');
+    expect(panelLayoutSurface('y70', undefined, 'xsmall')).toBe('monitor');
+    expect(panelShortSideSlots('y70', undefined, 'small', 4)).toBe(6);
+    expect(panelShortSideSlots('y70', undefined, 'xsmall', 4)).toBe(8);
+    expect(panelShortSideSlots('y70', undefined, 'xsmall')).toBe(8);
+    expect(panelLayoutDpi('y70', undefined, 'xsmall', null, { y70: 337 } as Record<PanelSurface, number>)).toBe(337);
+  });
+});
+
+describe('Y70 size slider stops', () => {
+  it('shows 4, 6 and 8 columns as 100, 67 and 50 percent and snaps to the nearest', () => {
+    expect(Y70_PERCENT_STOPS).toEqual({ large: 100, small: 67, xsmall: 50 });
+    expect(y70SizeForPercent(100)).toBe('large');
+    expect(y70SizeForPercent(80)).toBe('small');
+    expect(y70SizeForPercent(90)).toBe('large');
+    expect(y70SizeForPercent(60)).toBe('small');
+    expect(y70SizeForPercent(55)).toBe('xsmall');
+    expect(y70SizeForPercent(10)).toBe('xsmall');
+    expect(y70SizeForPercent(250)).toBe('large');
+  });
+});
+
+describe('Y70 default column count', () => {
+  it('is 4 on the 682x2560 glass at its density, which Large keeps', () => {
+    const cap = panelGridCapacityForCanvas(682, 2560, { surface: 'y70', dpi: 337, paddingRatio: 0.1 });
+    expect(cap.columns).toBe(4);
+    expect(cap.rows).toBe(16);
   });
 });
 

@@ -52,7 +52,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, Y70_PERCENT_STOPS, y70SizeForPercent, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -400,6 +400,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const recordFamily = matchedFamily ?? device?.family;
   const [recordWidgetSize, setRecordWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
   const [pendingWidgetSize, setPendingWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
+  // The Y70 size slider's snapped stop while it is being dragged or typed, before it commits.
+  const [y70PercentDraft, setY70PercentDraft] = useState<number | null>(null);
   // The glass drives hardware settings and record matching; `surface` is the one whose
   // layout rules the panel follows, which Widget size can swap.
   const glassSurface = device?.runtimeSurface ?? 'y70';
@@ -1557,7 +1559,24 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       >
                         {((widgetSizeOptions && widgetSizeMode) || widgetPlaylist) && (
                           <Card compact className={styles.playlistPanel}>
-                            {widgetSizeOptions && widgetSizeMode && (
+                            {widgetSizeOptions && widgetSizeMode && glassSurface === 'y70' && (
+                              <SettingSlider
+                                editable
+                                trackFill
+                                label={t('devices.panels.widgetSize.label')}
+                                value={y70PercentDraft ?? Y70_PERCENT_STOPS[widgetSizeMode]}
+                                min={Y70_PERCENT_STOPS.xsmall}
+                                max={Y70_PERCENT_STOPS.large}
+                                formatValue={v => `${v}%`}
+                                disabled={!editingDeviceId}
+                                onChange={value => setY70PercentDraft(Y70_PERCENT_STOPS[y70SizeForPercent(value)])}
+                                onCommit={value => {
+                                  setY70PercentDraft(null);
+                                  requestWidgetSize(y70SizeForPercent(value));
+                                }}
+                              />
+                            )}
+                            {widgetSizeOptions && widgetSizeMode && glassSurface !== 'y70' && (
                               <SettingRow label={t('devices.panels.widgetSize.label')}>
                                 <ChipGroup
                                   ariaLabel={t('devices.panels.widgetSize.label')}
