@@ -46,7 +46,7 @@ vi.mock('../../../components/common/IconLabelButton/IconLabelButton', () => ({
     label?: ReactNode; active?: boolean; onPress?: () => void; className?: string;
     ariaLabel?: string; title?: string;
   }) => (
-    <button type="button" className={className} aria-label={ariaLabel} title={title} aria-pressed={active} onClick={onPress}>{label}</button>
+    <button type="button" className={className} aria-label={ariaLabel} data-tooltip={title} aria-pressed={active} onClick={onPress}>{label}</button>
   ),
 }));
 

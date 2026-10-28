@@ -53,7 +53,7 @@ describe('KeebKeyboard - render', () => {
 
   it('applies the middle-button visual class to the RGB-cycle key (row 0, col 0)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
-    const rgb = container.querySelector('button[title="RGBEffectLoop"]') as HTMLButtonElement;
+    const rgb = container.querySelector('button[aria-label="RGBEffectLoop"]') as HTMLButtonElement;
     expect(rgb).not.toBeNull();
     expect(rgb.className).toMatch(/keyMiddle/);
   });
@@ -62,7 +62,7 @@ describe('KeebKeyboard - render', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     const media = ['Stop', 'ScanPreviousTrack', 'PlayAndPause', 'ScanNextTrack', 'Mute'];
     for (const fn of media) {
-      const btn = container.querySelector(`button[title="${fn}"]`) as HTMLButtonElement;
+      const btn = container.querySelector(`button[aria-label="${fn}"]`) as HTMLButtonElement;
       expect(btn, fn).not.toBeNull();
       expect(btn.className, fn).toMatch(/keyMedia/);
     }
@@ -71,14 +71,14 @@ describe('KeebKeyboard - render', () => {
   it('renders none of the phantom media keys (volume/seek were never physical switches)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     for (const fn of ['VolumeUp', 'VolumeDown', 'Rewind', 'FastForward']) {
-      expect(container.querySelector(`button[title="${fn}"]`), fn).toBeNull();
+      expect(container.querySelector(`button[aria-label="${fn}"]`), fn).toBeNull();
     }
   });
 
   it('does NOT apply media/middle class to row 2+ keys (Esc, F1, Tab, etc.)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     for (const fn of ['Escape', 'F1', 'Tab', 'A', 'LeftShift', 'Space']) {
-      const btn = container.querySelector(`button[title="${fn}"]`) as HTMLButtonElement;
+      const btn = container.querySelector(`button[aria-label="${fn}"]`) as HTMLButtonElement;
       expect(btn, fn).not.toBeNull();
       expect(btn.className, fn).not.toMatch(/keyMedia|keyMiddle/);
     }
@@ -86,17 +86,17 @@ describe('KeebKeyboard - render', () => {
 
   it('strips position:absolute and left: from row-0 cell styles (RGBEffectLoop)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
-    const rgb = container.querySelector('button[title="RGBEffectLoop"]') as HTMLButtonElement;
+    const rgb = container.querySelector('button[aria-label="RGBEffectLoop"]') as HTMLButtonElement;
     expect(rgb.style.position).toBe('');
     expect(rgb.style.left).toBe('');
   });
 
   it('forwards inline width/margin from the layout data (e.g. Backspace, Tab, Space, RightShift)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
-    const bs = container.querySelector('button[title="Backspace"]') as HTMLButtonElement;
-    const tab = container.querySelector('button[title="Tab"]') as HTMLButtonElement;
-    const space = container.querySelector('button[title="Space"]') as HTMLButtonElement;
-    const rshift = container.querySelector('button[title="RightShift"]') as HTMLButtonElement;
+    const bs = container.querySelector('button[aria-label="Backspace"]') as HTMLButtonElement;
+    const tab = container.querySelector('button[aria-label="Tab"]') as HTMLButtonElement;
+    const space = container.querySelector('button[aria-label="Space"]') as HTMLButtonElement;
+    const rshift = container.querySelector('button[aria-label="RightShift"]') as HTMLButtonElement;
     expect(bs.style.width).toBe('205px');
     expect(bs.style.marginRight).toBe('30px');
     expect(tab.style.width).toBe('140px');
@@ -106,13 +106,13 @@ describe('KeebKeyboard - render', () => {
 
   it('renders ANSI Backslash on row 4, ISO Return instead', () => {
     const { container: ansi } = render(<KeebKeyboard state={buildState({ layout: 'ANSI' })} />);
-    expect(ansi.querySelector('button[title="Backslash"]')).not.toBeNull();
+    expect(ansi.querySelector('button[aria-label="Backslash"]')).not.toBeNull();
 
     const { container: iso } = render(<KeebKeyboard state={buildState({ layout: 'ISO' })} />);
     // ISO has a Return on row 4 (the wide enter top half) AND no row-4 Backslash.
-    expect(iso.querySelectorAll('button[title="Return"]').length).toBeGreaterThanOrEqual(1);
+    expect(iso.querySelectorAll('button[aria-label="Return"]').length).toBeGreaterThanOrEqual(1);
     // ISO has one fewer Backslash than ANSI (still keeps NonUsBackslash on row 6).
-    expect(iso.querySelector('button[title="Backslash"]')).toBeNull();
+    expect(iso.querySelector('button[aria-label="Backslash"]')).toBeNull();
   });
 
   it('overlay appears when offlineCopy is set AND state.isConnected is false', () => {
@@ -136,7 +136,7 @@ describe('KeebKeyboard - render', () => {
     ];
     const { container } = render(<KeebKeyboard state={buildState({ keys })} />);
     // The button at row 2 col 1 should show Macro1, not F1.
-    const buttons = container.querySelectorAll('button[title="Macro1"]');
+    const buttons = container.querySelectorAll('button[aria-label="Macro1"]');
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -150,8 +150,8 @@ describe('KeebKeyboard - render', () => {
     ];
     const { container } = render(<KeebKeyboard state={buildState({ keys })} useDefaults />);
     // F1 default should still render at (2, 1); the Macro1 override is suppressed.
-    expect(container.querySelector('button[title="F1"]')).not.toBeNull();
-    expect(container.querySelector('button[title="Macro1"]')).toBeNull();
+    expect(container.querySelector('button[aria-label="F1"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Macro1"]')).toBeNull();
   });
 });
 
@@ -159,7 +159,7 @@ describe('KeebKeyboard - selection', () => {
   it('fires onSelect with the (x, y) when a key is clicked', () => {
     const onSelect = vi.fn();
     const { container } = render(<KeebKeyboard state={buildState()} onSelect={onSelect} />);
-    const a = container.querySelector('button[title="A"]') as HTMLButtonElement;
+    const a = container.querySelector('button[aria-label="A"]') as HTMLButtonElement;
     fireEvent.click(a);
     // A is on row 5 col 1 in ANSI (CapsLock at col 0).
     expect(onSelect).toHaveBeenCalledWith({ kind: 'key', x: 5, y: 1 });
@@ -177,10 +177,10 @@ describe('KeebKeyboard - selection', () => {
   it('marks the selected key visually (and only that key)', () => {
     const selected: KeebSelection = { kind: 'key', x: 5, y: 1 };
     const { container } = render(<KeebKeyboard state={buildState()} selected={selected} />);
-    const a = container.querySelector('button[title="A"]') as HTMLButtonElement;
+    const a = container.querySelector('button[aria-label="A"]') as HTMLButtonElement;
     expect(a.className).toMatch(/keySelected/);
     // Other keys should NOT carry the selected class.
-    const escape = container.querySelector('button[title="Escape"]') as HTMLButtonElement;
+    const escape = container.querySelector('button[aria-label="Escape"]') as HTMLButtonElement;
     expect(escape.className).not.toMatch(/keySelected/);
   });
 

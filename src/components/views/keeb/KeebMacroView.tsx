@@ -10,6 +10,7 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebMacroView.module.scss';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 
 const MACRO_COUNT = 16;
 type DelayMode = 'record' | 'custom';
@@ -274,12 +275,11 @@ export function KeebMacroView({ loadMacro, saveMacro }: KeebMacroViewProps) {
           </div>
 
           <div className={styles.actions}>
-            <span
-              className={`${styles.budget} ${used > BUDGET_BYTES ? styles.budgetOver : ''}`}
-              title={used > BUDGET_BYTES ? t('keeb.macro.overBudget') : undefined}
-            >
-              {t('keeb.macro.budget', { used, max: BUDGET_BYTES })}
-            </span>
+            <HoverTooltip body={used > BUDGET_BYTES ? t('keeb.macro.overBudget') : undefined}>
+              <span className={`${styles.budget} ${used > BUDGET_BYTES ? styles.budgetOver : ''}`}>
+                {t('keeb.macro.budget', { used, max: BUDGET_BYTES })}
+              </span>
+            </HoverTooltip>
             {recordings.length > 0 && !isRecording && (
               <Button
                 size="sm"

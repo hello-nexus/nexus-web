@@ -20,6 +20,7 @@ import { deviceForPick, pickForStack } from '../../../../lib/scene/pickDevice';
 import { flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 
 export interface LightingScene3DProps {
   api: LightingSceneApi;
@@ -100,15 +101,16 @@ function CameraPresets({ objects, fov, onCamera }: { objects: SceneObject[]; fov
 function BackdropButton({ value, onChange }: { value: Backdrop; onChange: (next: Backdrop) => void }) {
   const { t } = useTranslation();
   return (
-    <button
-      type="button"
-      className={styles.iconButton}
-      onClick={() => onChange(BACKDROP_NEXT[value])}
-      aria-label={t(`lighting.scene.backdrop.${value}`)}
-      title={t(`lighting.scene.backdrop.${value}`)}
-    >
-      {value === 'off' ? <EyeOff size={15} strokeWidth={1.6} /> : <Eye size={15} strokeWidth={1.6} />}
-    </button>
+    <HoverTooltip body={t(`lighting.scene.backdrop.${value}`)}>
+      <button
+        type="button"
+        className={styles.iconButton}
+        onClick={() => onChange(BACKDROP_NEXT[value])}
+        aria-label={t(`lighting.scene.backdrop.${value}`)}
+      >
+        {value === 'off' ? <EyeOff size={15} strokeWidth={1.6} /> : <Eye size={15} strokeWidth={1.6} />}
+      </button>
+    </HoverTooltip>
   );
 }
 

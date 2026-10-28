@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { getKeyGlyph, type KeebLayoutKind } from './keebGlyphs';
 import { getKeebLayoutRows } from './keebLayout';
 import styles from './KeebKeyboard.module.scss';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 
 /// Width of the fixed-pixel render at zoom 1: the widest layout row (cell
 /// widths + margins + flex gaps) plus the chassis padding and border, with a
@@ -105,18 +106,19 @@ export function KeebKeyboard({
       style = { ...(cell.style ?? {}) };
     }
     return (
-      <button
-        type="button"
-        key={`${x}-${y}-${cell.function}`}
-        className={cls}
-        style={style}
-        title={func}
-        disabled={disabled}
-        aria-pressed={isSelected}
-        onClick={() => onSelect?.({ kind: 'key', x, y })}
-      >
-        {glyph}
-      </button>
+      <HoverTooltip key={`${x}-${y}-${cell.function}`} body={func}>
+        <button
+          type="button"
+          className={cls}
+          style={style}
+          aria-label={func}
+          disabled={disabled}
+          aria-pressed={isSelected}
+          onClick={() => onSelect?.({ kind: 'key', x, y })}
+        >
+          {glyph}
+        </button>
+      </HoverTooltip>
     );
   };
 

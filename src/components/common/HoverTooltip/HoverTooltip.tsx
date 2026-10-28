@@ -172,8 +172,12 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  if (!isValidElement(children)) {
-    // Not a single element (fragment/string): render as-is, no tooltip.
+  // An empty body (undefined / null / false / '') means "no tooltip right now":
+  // the trigger renders untouched, so callers can pass a conditional body
+  // without swapping the wrapper in and out of the tree.
+  const hasBody = body !== undefined && body !== null && body !== false && body !== '';
+  if (!hasBody || !isValidElement(children)) {
+    // Not a single element (fragment/string), or nothing to say: render as-is.
     return <>{children}</>;
   }
 
