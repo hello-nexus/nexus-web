@@ -1482,10 +1482,12 @@
 }
 
 // The press-to-open form of the tune mark: the LED colors badge button's look
-// (deviceSettingsBtn + deviceBadgeBtn) in the corner slot. The negative bottom
-// margin keeps its taller box from growing the name row.
+// (deviceSettingsBtn + deviceBadgeBtn). Its box is one name line tall and
+// centered on that line, so the glyph aligns with the stack badge and the row
+// neither grows nor reaches into the meta row below.
 .deviceTuneBtn {
-  margin-bottom: -0.5rem;
+  height: 1rem;
+  margin-top: 0.05rem;
 }
 
 // Only the first mark takes the free space, so the two sit side by side.

@@ -699,7 +699,7 @@ export function ZoneCard({
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
         {colorTuned && (
           <HoverTooltip body={t('lighting.colorTuning.title')} side="top">
-            {onOpenColorTuning && !toggleMode && !unavailable && !firmwareControlled && tunableCount > 0 ? (
+            {onOpenColorTuning && !toggleMode && !selectOnly && !unavailable && !firmwareControlled && zoneCardSelectable(device) && tunableCount > 0 ? (
               <button
                 type="button"
                 className={`${styles.deviceSettingsBtn} ${styles.deviceBadgeBtn} ${styles.deviceTuneBtn}`}
