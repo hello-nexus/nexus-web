@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BuildPage, BUILD_ORIGIN, sanitizeBuildPath } from './BuildPage';
 import { useBuildFrameHistory } from './buildNav';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import fullSpecs from '../../../hooks/__fixtures__/systemSpecs.json';
 import type { FpsGameSummary } from '../../../api/fps';
 
 vi.mock('../../../lib/i18n', () => ({
@@ -60,6 +61,7 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 }));
 
 const SAMPLE_SPECS: SystemSpecs = {
+  ...fullSpecs,
   pcName: 'rig', osBuild: '', processor: 'AMD Ryzen 7 7800X3D', motherboard: 'X670E',
   memory: '32 GB', storage: '2 TB', graphicsCard: 'RTX 4080', primaryGpu: 'RTX 4080',
   monitor: '2560×1440 @ 165 Hz', soundCard: '', networkCard: '',

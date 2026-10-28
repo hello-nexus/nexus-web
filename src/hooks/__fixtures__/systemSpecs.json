@@ -1,0 +1,31 @@
+{
+  "pcName": "LAB-PC",
+  "osBuild": "Windows 11 Pro 24H2 (26100.4349)",
+  "processor": "AMD Ryzen 7 9800X3D 8-Core Processor",
+  "motherboard": "ASUS ROG STRIX X870E-E GAMING WIFI",
+  "memory": "32 GB DDR5-6000",
+  "storage": "Samsung SSD 990 PRO 2TB + WD Black SN850X 1TB",
+  "graphicsCard": "NVIDIA GeForce RTX 5080 + AMD Radeon(TM) Graphics",
+  "primaryGpu": "NVIDIA GeForce RTX 5080",
+  "monitor": "3440x1440 @ 165 Hz",
+  "soundCard": "Realtek USB Audio",
+  "networkCard": "Intel(R) Ethernet Controller I226-V",
+  "hardwareIds": {
+    "gpus": [
+      { "vendor": "10de", "device": "2c02", "subVendor": "1043", "subDevice": "89f1" },
+      { "vendor": "1002", "device": "13c0" }
+    ],
+    "ramModules": [
+      { "manufacturer": "G.Skill", "partNumber": "F5-6000J3038F16G", "capacityBytes": 17179869184, "configuredSpeedMts": 6000 },
+      { "manufacturer": "G.Skill", "partNumber": "F5-6000J3038F16G", "capacityBytes": 17179869184, "configuredSpeedMts": 6000 }
+    ],
+    "drives": [
+      { "vendor": "Samsung", "model": "Samsung SSD 990 PRO 2TB" },
+      { "model": "WD_BLACK SN850X 1000GB" }
+    ],
+    "board": { "manufacturer": "ASUSTeK COMPUTER INC.", "product": "ROG STRIX X870E-E GAMING WIFI" },
+    "monitors": [
+      { "manufacturer": "DEL", "productCode": "41B7", "name": "AW3423DWF" }
+    ]
+  }
+}

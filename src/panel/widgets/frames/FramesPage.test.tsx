@@ -6,6 +6,7 @@ import type { FpsGameSummary, FpsSessionsResponse } from '../../../api/fps';
 import type { UseFpsEstimatesResult } from '../../../hooks/useFpsEstimates';
 import type { UseFpsGamesResult } from '../../../hooks/useFpsGames';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import fullSpecs from '../../../hooks/__fixtures__/systemSpecs.json';
 import type { FpsTableGameItem } from '../../../types/fps-estimates';
 
 const getFpsTrackingStatusMock = vi.fn();
@@ -399,6 +400,7 @@ describe('FramesPage - deleting all recordings for a game', () => {
 describe('FramesPage - Discover tab', () => {
   beforeEach(() => {
     systemSpecs = {
+      ...fullSpecs,
       pcName: 'Nexus-PC', osBuild: '26100', processor: 'Ryzen 9 9950X3D', motherboard: 'X670E',
       memory: '32 GB', storage: '2 TB NVMe', graphicsCard: 'RTX 5080', monitor: '2560x1440 @ 165Hz',
       soundCard: 'Realtek', networkCard: 'Intel',

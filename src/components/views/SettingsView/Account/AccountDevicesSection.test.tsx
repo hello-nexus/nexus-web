@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../../common/Toast/Toast';
 import { AccountDevicesSection } from './AccountDevicesSection';
 import type { AccountDeviceItem, AuthBackend } from '../../../../api/authBackend';
+import fullSpecs from '../../../../hooks/__fixtures__/systemSpecs.json';
 
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -58,10 +59,7 @@ function renderSection(backend: AuthBackend, prefillFromLocalSpecs = false, show
   return render(<ToastProvider><AccountDevicesSection backend={backend} prefillFromLocalSpecs={prefillFromLocalSpecs} showThisSystem={showThisSystem} /></ToastProvider>);
 }
 
-const LOCAL_SPECS = {
-  pcName: 'THIS-PC', osBuild: '', processor: 'Ryzen 7 9800X3D', motherboard: '',
-  memory: '', storage: '', graphicsCard: '', monitor: '', soundCard: '', networkCard: '',
-};
+const LOCAL_SPECS = { ...fullSpecs, pcName: 'THIS-PC', processor: 'Ryzen 7 9800X3D' };
 
 describe('AccountDevicesSection', () => {
   beforeEach(() => {
@@ -218,10 +216,7 @@ describe('AccountDevicesSection', () => {
 
   it('prefills a new device\'s spec fields from the local service when prefillFromLocalSpecs is set', async () => {
     useSystemSpecsMock.mockReturnValue({
-      specs: {
-        pcName: 'RIG-01', osBuild: '', processor: 'Ryzen 9 9800X3D', motherboard: '',
-        memory: '', storage: '', graphicsCard: '', monitor: '', soundCard: '', networkCard: '',
-      },
+      specs: { ...fullSpecs, pcName: 'RIG-01', processor: 'Ryzen 9 9800X3D' },
     });
     const listDevices = vi.fn().mockResolvedValue([]);
     renderSection(makeBackend({ listDevices, upsertDevice: vi.fn() }), true);
@@ -235,10 +230,7 @@ describe('AccountDevicesSection', () => {
 
   it('keeps in-progress add-device input across a parent re-render (e.g. a background poll)', async () => {
     useSystemSpecsMock.mockReturnValue({
-      specs: {
-        pcName: 'RIG-01', osBuild: '', processor: 'Ryzen 9 9800X3D', motherboard: '',
-        memory: '', storage: '', graphicsCard: '', monitor: '', soundCard: '', networkCard: '',
-      },
+      specs: { ...fullSpecs, pcName: 'RIG-01', processor: 'Ryzen 9 9800X3D' },
     });
     const listDevices = vi.fn().mockResolvedValue([]);
     const backend = makeBackend({ listDevices, upsertDevice: vi.fn() });
