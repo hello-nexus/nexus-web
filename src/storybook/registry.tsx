@@ -2889,7 +2889,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'RowGlyph', category: 'status',
     filePath: 'src/components/common/RowGlyph/RowGlyph.tsx',
-    description: 'Right-aligned status glyph with a hover label on a device or nav row; bare (non-focusable) so it can sit inside a row button. tone="dim" (default) or "accent". NexusControlOffIcon and DeviceUpdateIcon wrap it.',
+    description: 'Right-aligned status glyph with a hover label on a device or nav row; non-focusable by default so it can sit inside a row button; with `onActivate` it becomes a focusable role="button" that does not trigger the row click. tone="dim" (default) or "accent". NexusControlOffIcon and DeviceUpdateIcon wrap it.',
     Preview: PreviewRowGlyph,
   },
   {

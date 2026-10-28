@@ -53,6 +53,8 @@ interface SidebarDevicesSectionProps {
   // SidebarColumn owns the exact destination.
   onHeaderClick: () => void;
   headerActive: boolean;
+  // The row's update glyph opens the Devices > Firmware Updates tab.
+  onOpenFirmware: () => void;
 }
 
 export function SidebarDevicesSection({
@@ -62,6 +64,7 @@ export function SidebarDevicesSection({
   onSelect,
   onHeaderClick,
   headerActive,
+  onOpenFirmware,
 }: SidebarDevicesSectionProps) {
   const { t } = useTranslation();
   const { push } = useToastSafe();
@@ -231,7 +234,7 @@ export function SidebarDevicesSection({
                     </HoverTooltip>
                   )}
                   {device.warning && !controlOff && <DeviceWarningIcon code={device.warning} />}
-                  {!isSimulated && !controlOff && device.curatedId && firmwareUpdates.has(device.curatedId) && <DeviceUpdateIcon />}
+                  {!isSimulated && !controlOff && device.curatedId && firmwareUpdates.has(device.curatedId) && <DeviceUpdateIcon onActivate={onOpenFirmware} />}
                   {controlOff && <NexusControlOffIcon className={styles.controlOff} />}
                 </>
               )}
