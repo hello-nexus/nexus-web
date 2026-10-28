@@ -64,12 +64,14 @@
 // layout space and the pager's overflow cannot clip it. The host decides when
 // it mounts, so it is fully opaque. A touch-first screen never renders it.
 .inCorner {
-  --_size: 22px;
+  --_size: 26px;
+  // Pulls the badge in from the exact corner point, toward the card.
+  --_inset: 4px;
   position: fixed;
   z-index: var(--z-floating);
   width: var(--_size);
   height: var(--_size);
-  margin: calc(var(--_size) / -2) 0 0 calc(var(--_size) / -2);
+  margin: calc(var(--_size) / -2 + var(--_inset)) 0 0 calc(var(--_size) / -2 - var(--_inset));
   opacity: 1;
   border-radius: 50%;
   background: var(--bg-elevated);
@@ -84,7 +86,7 @@
     background: var(--accent);
   }
 
-  svg { width: 14px; height: 14px; }
+  svg { width: 16px; height: 16px; }
 }
 
 @media (hover: none), (pointer: coarse) {
