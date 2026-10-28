@@ -71,7 +71,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
   const pressFeedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const movedDuringDragRef = useRef(false);
   const ctxSeqRef = useRef(0);
-  // A host-reported right-click opened the menu on its press; its release reaches the page as a contextmenu once the native view hides.
+  // The menu opened ahead of its native contextmenu: a host-reported right-click (that event arrives on release once the native view hides) or a long-press (the browser's own contextmenu follows). The next one is swallowed so the menu does not remount.
   const hostOpenedRef = useRef(false);
 
   useEffect(() => {
@@ -118,6 +118,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     clearPressFeedback();
     if (w) {
       triggerHaptic('medium');
+      hostOpenedRef.current = true;
       setCtxMenu({ widget: w, x, y, seq: ++ctxSeqRef.current });
     }
   }, [clearPressFeedback]);
@@ -128,8 +129,10 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     e.preventDefault();
     e.stopPropagation();
     clearPressFeedback();
+    // A host that fires contextmenu mid-hold already opened the menu; a pending long-press would reopen it as a new seq.
+    longPress.onPointerUp();
     setCtxMenu({ widget, x: e.clientX, y: e.clientY, target: e.target, seq: ++ctxSeqRef.current });
-  }, [clearPressFeedback]);
+  }, [clearPressFeedback, longPress]);
 
   const openCtxMenu = useCallback((widget: PanelWidget, x: number, y: number) => {
     clearPressFeedback();
