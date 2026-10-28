@@ -123,7 +123,7 @@ import {
 import { recordWidgetSizeOf } from './engine/recordWidgetSize';
 import { kioskViewportSettled, recordCanvasOf } from './engine/recordCanvas';
 import { kioskViewportReporter } from './engine/kioskViewportReport';
-import { largeChromeGrid, isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel } from './types';
+import { largeChromeGrid, isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, genericSinglePage } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -539,13 +539,14 @@ export function PanelContent({
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
   const { layout: fullLayout, loaded, saveForbidden, hydrated, setLayout: setFullLayout } = layoutState;
-  // A generic display panel renders its first page only; later stored pages are written back untouched.
   const genericDisplay = genericDisplayOverride ?? isGenericDisplayPanel(glassSurface, recordState.record?.capabilities?.family, displayBound);
-  const heldLayoutPages = useMemo(() => (genericDisplay ? heldPages(fullLayout) : []), [genericDisplay, fullLayout]);
-  const layout = useMemo(() => (genericDisplay ? firstPageView(fullLayout) : fullLayout), [genericDisplay, fullLayout]);
+  // A mouse-only generic display renders its first page only; later stored pages are written back untouched.
+  const genericOnePage = genericSinglePage(genericDisplay, surface, deviceTouch);
+  const heldLayoutPages = useMemo(() => (genericOnePage ? heldPages(fullLayout) : []), [genericOnePage, fullLayout]);
+  const layout = useMemo(() => (genericOnePage ? firstPageView(fullLayout) : fullLayout), [genericOnePage, fullLayout]);
   const setStoredLayout = useCallback(
-    (next: PanelLayout) => setFullLayout(genericDisplay ? withHeldPages(next, heldLayoutPages) : next),
-    [genericDisplay, heldLayoutPages, setFullLayout],
+    (next: PanelLayout) => setFullLayout(genericOnePage ? withHeldPages(next, heldLayoutPages) : next),
+    [genericOnePage, heldLayoutPages, setFullLayout],
   );
   const panelTheme = usePanelTheme(recordState, deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
@@ -973,10 +974,10 @@ export function PanelContent({
   // Stored pages fold onto page 1 only from the host kiosk at its reported window size; a held widget is never deleted.
   const foldPersists = kioskBehavior && displayBound && panelHostAvailable() && kioskViewportSettled(recordState.record?.kioskViewport, window);
   useEffect(() => {
-    if (!genericDisplay || !hydrated || !foldPersists || fullLayout.pages.length <= 1) return;
+    if (!genericOnePage || !hydrated || !foldPersists || fullLayout.pages.length <= 1) return;
     const folded = foldIntoFirstPage(fullLayout, capacity);
     if (folded.changed) setFullLayout(folded.layout);
-  }, [capacity, foldPersists, fullLayout, genericDisplay, hydrated, setFullLayout]);
+  }, [capacity, foldPersists, fullLayout, genericOnePage, hydrated, setFullLayout]);
 
   // Resize mode is entered from the widget context menu.
   // Hovering a tile with a mouse shows the same corners without the mode.
@@ -1189,7 +1190,9 @@ export function PanelContent({
   // stored (addWidget creates it), though activePageId can point at it so every
   // surface shows the same page. A drag mints its own trailing page.
   const [blankPageId] = useState(createUuid);
-  const blankPageEligible = (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable)))
+  // A click-through generic display has no input region on an empty page, so a swipe onto it could not swipe back.
+  const blankPageEligible = !(genericDisplay && seeThrough)
+    && (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable)))
     && !singlePage
     && !isSingleWidgetSurface(surface)
     && !activeDragId
@@ -1359,8 +1362,8 @@ export function PanelContent({
       }
       return null;
     }
-    // A generic display's widgets act only through their own controls; the app opens from the menu's Open.
-    if (genericDisplay) return null;
+    // A mouse-only generic display's widgets act only through their own controls; the app opens from the menu's Open.
+    if (genericOnePage) return null;
     const def = lookupApp(w.type);
     if (!def?.Touch) return null;
     // A Web View tile that takes the touch itself opens fullscreen from the menu's Immersive mode item instead.
@@ -1370,7 +1373,7 @@ export function PanelContent({
     const orientationKey = isLandscape ? 'landscape' : 'portrait';
     if (!def.meta.supportsImmersive[orientationKey]) return null;
     return () => enterImmersive(w.id);
-  }, [deviceTouch, embedded, enterImmersive, genericDisplay, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
+  }, [deviceTouch, embedded, enterImmersive, genericOnePage, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
   const onCellTap = useCallback((w: PanelWidget) => { cellTapAction(w)?.(); }, [cellTapAction]);
   // macOS delivers touchscreen contacts as mouse pointers (see
   // engine/touchViaPointer); only under that flag does a mouse get the
@@ -1950,7 +1953,7 @@ export function PanelContent({
     layout: importLayout,
     paddingPercent: effectiveTheme.widgetPadding,
     grid: runtimeGrid,
-    singlePage: genericDisplay,
+    singlePage: genericOnePage,
     densitySlots: importDensitySlots,
     glassSurface: y70Import ? 'y70' : undefined,
     sizeOnMerge: y70Import && !recordState.record?.widgetSize,

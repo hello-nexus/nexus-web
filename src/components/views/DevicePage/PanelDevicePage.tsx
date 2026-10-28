@@ -53,7 +53,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { largeChromeGrid, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { largeChromeGrid, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, genericSinglePage, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -1165,7 +1165,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const capacity = target === 'y70'
       ? y70GridCapacity(canvas, canvasDpr, liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70, paddingRatio, targetSlots)
       : monitorGridCapacity(canvas, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor, paddingRatio, targetSlots);
-    if (genericDisplay) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
+    if (genericSinglePage(genericDisplay, glassSurface, glassTouch)) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
     const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay)
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);

@@ -277,7 +277,7 @@ export function TopBar({
       {!fullscreen && (palette ? (
         <TopSearch pageTitle={pageTitle} online={online} platform={platform} />
       ) : (
-        <div className={styles.searchBar}>
+        <div className={styles.searchBar} data-topbar-search>
           <h1 className={styles.searchTitle}>{pageTitle}</h1>
         </div>
       ))}

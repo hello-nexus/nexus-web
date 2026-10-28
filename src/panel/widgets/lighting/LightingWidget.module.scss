@@ -84,6 +84,18 @@
   transition: box-shadow var(--ease-fast);
 }
 
+// Gallery preview tile: same radius and clip as the live tiles, not interactive.
+.swatchPreviewTile {
+  box-sizing: border-box;
+  border-radius: var(--radius);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.swatchOpen.swatchPreviewTile {
+  background: var(--panel-element-bg);
+}
+
 .swatchColor:hover {
   box-shadow: 0 0 0 4px var(--border-strong);
 }
