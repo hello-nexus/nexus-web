@@ -23,7 +23,7 @@ interface WidgetContextMenuProps {
   // Optional - only shown when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
-  // Web View only, offered while the page can step back or is away from its address.
+  // Web View only, each offered while its history step or return home applies.
   onWebBack?: () => void;
   onWebForward?: () => void;
   onWebHome?: () => void;
