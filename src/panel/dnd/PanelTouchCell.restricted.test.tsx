@@ -18,11 +18,11 @@ import { PanelTouchCell } from './PanelDragCells';
 const widget: PanelWidget = { id: 'w1', type: 'cooling', size: '2x2', col: 0, row: 0, config: {} } as PanelWidget;
 const pointers = { onPointerDown: () => {}, onPointerMove: () => {}, onPointerUp: () => {}, onPointerCancel: () => {} };
 
-function cell(inert: boolean) {
+function cell(inert: boolean, onLockDragChange?: (a: boolean) => void) {
   return (
     <DndContext>
       <SortableContext items={['w1']}>
-        <PanelTouchCell widget={widget} rearranging={false} inert={inert} onContextMenu={() => {}} cellPointers={pointers} />
+        <PanelTouchCell widget={widget} rearranging={false} inert={inert} onLockDragChange={onLockDragChange} onContextMenu={() => {}} cellPointers={pointers} />
       </SortableContext>
     </DndContext>
   );
@@ -41,6 +41,33 @@ describe('PanelTouchCell inert (Restricted mode)', () => {
     expect(wrapOf(container).dataset.lockNotice).toBe('true');
     expect(wrapOf(container).style.transform).toMatch(/translate3d/);
     act(() => { vi.advanceTimersByTime(1000); });
+    expect(wrapOf(container).dataset.lockNotice).toBeUndefined();
+  });
+
+  it('a pulse is not a drag: the host is never told a pull started', () => {
+    vi.useFakeTimers();
+    const onLockDragChange = vi.fn();
+    const { getByTestId } = render(cell(true, onLockDragChange));
+    fireEvent.click(getByTestId('preset'));
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(onLockDragChange).not.toHaveBeenCalled();
+  });
+
+  it('a drag that starts during a pulse is not cut short by the pulse timer', () => {
+    vi.useFakeTimers();
+    const { container, getByTestId } = render(cell(true));
+    const wrap = wrapOf(container);
+    wrap.setPointerCapture = () => {};
+    fireEvent.click(getByTestId('preset'));
+    fireEvent.pointerDown(wrap, { isPrimary: true, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 1, clientX: 5, clientY: 5 });
+    fireEvent.pointerMove(wrap, { pointerId: 1, pointerType: 'mouse', buttons: 1, clientX: 60, clientY: 5 });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(wrap.dataset.lockNotice).toBe('true');
+  });
+
+  it('Escape passes through the key guard', () => {
+    const { container, getByTestId } = render(cell(true));
+    fireEvent.keyDown(getByTestId('preset'), { key: 'Escape' });
     expect(wrapOf(container).dataset.lockNotice).toBeUndefined();
   });
 

@@ -40,7 +40,7 @@ interface Press {
 }
 
 /**
- * Pointer handlers for a locked widget. A plain tap does nothing. A press that starts a move the way an
+ * Pointer handlers for a locked widget. A plain tap does nothing to the widget; the host may call `pulse()` for a short nudge and notice. A press that starts a move the way an
  * unlocked widget's would (a short mouse drag, or a touch hold then move) pulls the tile along with
  * rubber-band resistance and shows the locked notice until release, when the tile settles back.
  * A press on a control inside the widget is ignored. Inert when `locked` is false.
@@ -48,6 +48,8 @@ interface Press {
 export function useLockNotice(locked: boolean, activationFor: (pointerType: string) => DragActivation = () => 'distance') {
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
   const [settling, setSettling] = useState(false);
+  // A tap's nudge. Separate from `offset` so it never reads as a drag to the host.
+  const [pulsing, setPulsing] = useState(false);
   const press = useRef<Press | null>(null);
   const dragging = useRef(false);
   // Set once a press became a pull and kept until the next press, so whichever release signal comes second still withholds the tap.
@@ -57,6 +59,15 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   const captured = useRef<{ el: Element; id: number } | null>(null);
   // Who is pulling, so a second finger, a pen or a palm elsewhere on the page does not end the pull.
   const puller = useRef<{ id: number; type: string } | null>(null);
+
+  // Declared ahead of the handlers that stop a pulse when a real pull begins.
+  const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (pulseTimer.current) clearTimeout(pulseTimer.current); }, []);
+  const cancelPulse = useCallback(() => {
+    if (pulseTimer.current) clearTimeout(pulseTimer.current);
+    pulseTimer.current = null;
+    setPulsing(false);
+  }, []);
 
   const release = useCallback(() => {
     const held = captured.current;
@@ -82,9 +93,10 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     if (!locked || e.isPrimary === false) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isOwnControl(e.target, e.currentTarget as Element)) return;
+    cancelPulse();
     press.current = { x: e.clientX, y: e.clientY, at: Date.now(), pointerId: e.pointerId, activation: activationFor(e.pointerType) };
     setSettling(false);
-  }, [activationFor, locked]);
+  }, [activationFor, locked, cancelPulse]);
   const onPointerMove = useCallback((e: PointerEvent) => {
     const origin = press.current;
     if (!locked || !origin || e.pointerId !== origin.pointerId) return;
@@ -102,6 +114,7 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
         return;
       }
       if (!exceedsDragThreshold(dx, dy)) return;
+      cancelPulse();
       dragging.current = true;
       pulled.current = true;
       puller.current = { id: e.pointerId, type: e.pointerType };
@@ -110,7 +123,7 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
       captured.current = { el: cell, id: e.pointerId };
     }
     setOffset(rubberBandOffset(dx, dy));
-  }, [end, locked]);
+  }, [end, locked, cancelPulse]);
 
   // Only the cell's own capture counts; an inner element's lostpointercapture bubbles up when capture moves to the cell.
   const onLostPointerCapture = useCallback((e: PointerEvent) => {
@@ -134,17 +147,15 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     e.stopPropagation();
   }, [locked]);
 
-  const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (pulseTimer.current) clearTimeout(pulseTimer.current); }, []);
   /** Same pull and notice as a drag attempt, for a tap, click or key press that has nothing to act on. */
   const pulse = useCallback(() => {
     if (!locked || dragging.current) return;
     if (pulseTimer.current) clearTimeout(pulseTimer.current);
     setSettling(false);
-    setOffset({ x: 0, y: -LOCK_PULSE_PX });
+    setPulsing(true);
     pulseTimer.current = setTimeout(() => {
       pulseTimer.current = null;
-      setOffset(null);
+      setPulsing(false);
       setSettling(true);
     }, LOCK_PULSE_MS);
   }, [locked]);
@@ -172,8 +183,8 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
   return {
     /** True while a locked widget is being pulled; the notice shows for exactly that long. */
     dragging: locked && offset !== null,
-    visible: locked && offset !== null,
-    offset: locked ? offset : null,
+    visible: locked && (offset !== null || pulsing),
+    offset: locked ? (offset ?? (pulsing ? { x: 0, y: -LOCK_PULSE_PX } : null)) : null,
     settling: locked && settling,
     pulse,
     /** `end` closes the press on release or cancel and reports whether it was a drag, so the caller can withhold the tap. */

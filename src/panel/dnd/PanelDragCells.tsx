@@ -242,7 +242,7 @@ export function PanelTouchCell({
 
   const lockNotice = useLockNotice(lockedLook, lockActivationFor);
   const onInertKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Tab') return;
+    if (e.key === 'Tab' || e.key === 'Escape') return;
     e.preventDefault();
     e.stopPropagation();
     if (e.key === 'Enter' || e.key === ' ') lockNotice.pulse();
@@ -418,7 +418,7 @@ export function PanelTouchCell({
   // delay. Intent (tap / long-press / long-press-then-drag) is disambiguated
   // by which timer fires and whether movement follows.
   const dragMotionActive = Boolean(editorDockMotion) || Boolean(resizeMotion);
-  const composedPointerHandlers = dragMotionActive ? {} : {
+  const composedPointerHandlers = dragMotionActive ? { onClickCapture: inert ? onInertClick : undefined } : {
     ...cellPointers,
     onPointerMove: (e: React.PointerEvent) => {
       cellPointers.onPointerMove(e);
