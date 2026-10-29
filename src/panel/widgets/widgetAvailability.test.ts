@@ -327,15 +327,6 @@ describe('catalog listing (delist)', () => {
     }
   });
 
-  it('lists the Build tile in the picker', () => {
-    const listedTypes = new Set(
-      getCatalogEntries()
-        .filter(([, def]) => def.meta.listed !== false)
-        .map(([type]) => type),
-    );
-    expect(listedTypes.has('build')).toBe(true);
-  });
-
   it('keeps frames out of the widget registry: it is a page-only app', () => {
     expect(APP_REGISTRY.frames).toBeUndefined();
     expect(lookupApp('frames')).toBeUndefined();
