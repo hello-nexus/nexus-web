@@ -57,7 +57,7 @@ describe('WidgetContextMenu', () => {
 describe('WidgetContextMenu name row', () => {
   const base = { x: 0, y: 0, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: false, title: 'Clock', onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
 
-  it('is the Open action when the widget can open, with a chevron and no separate Open item', () => {
+  it('is the Open action when the widget can open, with an arrow and no separate Open item', () => {
     const onOpen = vi.fn();
     const { container } = render(<WidgetContextMenu {...base} onOpen={onOpen} />);
     const row = screen.getByRole('button', { name: 'featureDisabled.widget.open' });
@@ -69,7 +69,7 @@ describe('WidgetContextMenu name row', () => {
     expect(container.firstElementChild!.children[1].className).toContain('divider');
   });
 
-  it('is an inert label without a chevron when there is nothing to open', () => {
+  it('is an inert label without an arrow when there is nothing to open', () => {
     const { container } = render(<WidgetContextMenu {...base} />);
     const label = screen.getByText('Clock');
     const row = label.parentElement!;
