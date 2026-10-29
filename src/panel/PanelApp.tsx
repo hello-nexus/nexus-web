@@ -2564,7 +2564,6 @@ export function PanelContent({
             sizes={sizesForSurface(def.meta, surface, widgetTouch, forcedGrid)}
             hasConfig
             title={t(def.meta.i18nKey) || ctxWidget.type}
-            icon={def.meta.icon}
             surface={surface}
             themeMode={resolvedThemeMode}
             themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}

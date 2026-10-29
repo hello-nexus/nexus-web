@@ -91,21 +91,6 @@
   user-select: none;
   cursor: default;
   color: var(--text);
-
-  .nameIcon {
-    color: var(--text-dim);
-  }
-}
-
-.nameIcon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  background: var(--panel-element-bg);
-  color: var(--panel-accent);
 }
 
 .nameLabel {

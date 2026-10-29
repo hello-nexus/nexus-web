@@ -4,7 +4,6 @@ import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelSurface, PanelWidgetSize } from '../../types';
-import type { AppIcon } from '../types';
 import styles from './WidgetContextMenu.module.scss';
 
 interface WidgetContextMenuProps {
@@ -13,9 +12,8 @@ interface WidgetContextMenuProps {
   currentSize: PanelWidgetSize;
   sizes: PanelWidgetSize[];
   hasConfig: boolean;
-  // Widget name, shown with its catalog icon as the first row. The row runs onImmersive when set, else onOpen, else it is a plain title.
+  // Widget name, shown as the first row. The row runs onImmersive when set, else onOpen, else it is a plain title.
   title?: string;
-  icon?: AppIcon;
   surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
@@ -67,7 +65,6 @@ export function WidgetContextMenu({
   currentSize, sizes,
   hasConfig,
   title,
-  icon: TitleIcon,
   surface,
   themeMode = 'dark',
   themeStyle,
@@ -204,13 +201,11 @@ export function WidgetContextMenu({
         <>
           {nameAction ? (
             <button type="button" className={`${styles.item} ${styles.nameRow}`} aria-label={onImmersive ? t('panel.widget.menu.immersive') : t('featureDisabled.widget.open', { feature: title })} onClick={() => runAndClose(nameAction)}>
-              {TitleIcon && <span className={styles.nameIcon}><TitleIcon size={15} aria-hidden /></span>}
               <span className={styles.nameLabel}>{title}</span>
               <ArrowUpRight size={15} className={styles.nameChevron} aria-hidden />
             </button>
           ) : (
             <div role="presentation" className={`${styles.nameRow} ${styles.nameRowStatic}`}>
-              {TitleIcon && <span className={styles.nameIcon}><TitleIcon size={15} aria-hidden /></span>}
               <span className={styles.nameLabel}>{title}</span>
             </div>
           )}
