@@ -1,5 +1,5 @@
 // Documentation catalog for the product-telemetry events the app emits to
-// PostHog. This is the human-readable mirror of the service's authoritative
+// nexus-api. This is the human-readable mirror of the service's authoritative
 // list in nexus-service `src/Telemetry/TelemetryEvents.cs` - keep `name`
 // values in sync with the constants there. Rendered at /telemetry-reference
 // (Settings → Dev tools → Telemetry events).
@@ -14,7 +14,7 @@ export interface TelemetryParam {
 }
 
 export interface TelemetryEventDoc {
-  /** Event name sent to PostHog. Must match TelemetryEvents.cs. */
+  /** Event name sent to nexus-api. Must match TelemetryEvents.cs. */
   name: string;
   title: string;
   /** 'live' = wired and emitting today. 'planned' = name reserved, not emitted yet. */
@@ -26,15 +26,13 @@ export interface TelemetryEventDoc {
   params: TelemetryParam[];
 }
 
-// Properties PostHog attaches to EVERY event - you never pass these yourself.
+// Envelope fields nexus-api receives with EVERY event - you never pass these yourself.
 export const AUTO_PROPERTIES: TelemetryParam[] = [
-  { name: 'distinct_id', type: 'string', required: true, description: 'Anonymous per-install id (no PII). Shared with the fleet heartbeat.' },
-  { name: '$lib', type: 'string', required: true, description: 'Always "nexus-service" for service-emitted events.' },
-  { name: '$lib_version', type: 'string', required: true, description: 'Build version (BuildInfo.Version).' },
-  { name: 'os', type: 'string', required: true, description: 'win | mac | linux | other.' },
+  { name: 'installId', type: 'string', required: true, description: 'Anonymous per-install id (no PII). Shared with the fleet heartbeat.' },
+  { name: 'version', type: 'string', required: true, description: 'Build version (BuildInfo.Version).' },
 ];
 
-// Attached to the anonymous person via PostHog $set (never to a single
+// Sent as a separate profile event (never on a single
 // event), refreshed only when the value actually changes. The hardware half
 // is what makes every event above breakable down by machine; the usage half
 // is the current-state census that layout_snapshot mirrors over time.
@@ -379,7 +377,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Install',
     status: 'live',
     source: 'service',
-    description: 'Delivered once per install id - reaches virtually every fresh install under the default-on consent default, plus existing opted-in installs once as a backfill on upgrade. Retried at boot and hourly until nexus-api acknowledges it (a persisted delivered flag prevents re-delivery); PostHog gets a single best-effort attempt alongside it. The nexus-api envelope additionally carries os, osVersion, arch, and deviceType.',
+    description: 'Delivered once per install id - reaches virtually every fresh install under the default-on consent default, plus existing opted-in installs once as a backfill on upgrade. Retried at boot and hourly until nexus-api acknowledges it (a persisted delivered flag prevents re-delivery); the usage sink gets a single best-effort copy alongside it. The nexus-api envelope additionally carries os, osVersion, arch, and deviceType.',
     params: [
       { name: 'version', type: 'string', required: true, description: 'Nexus build version (BuildInfo.Version).' },
     ],
@@ -389,7 +387,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Hardware specs',
     status: 'live',
     source: 'service',
-    description: 'Fires once while opted in, then again only when the hardware summary hash changes (e.g. a component swap); skipped and retried next pass on a cold boot with no processor or GPU data yet. Upserts the latest snapshot per install id in nexus-api rather than appending, and reaches PostHog only once nexus-api has accepted it.',
+    description: 'Fires once while opted in, then again only when the hardware summary hash changes (e.g. a component swap); skipped and retried next pass on a cold boot with no processor or GPU data yet. Upserts the latest snapshot per install id in nexus-api rather than appending.',
     params: [
       { name: 'cpu', type: 'string', required: true, description: 'CPU model name.' },
       { name: 'gpu', type: 'array', required: false, description: 'GPU model name(s); more than one entry on a multi-GPU system.' },
@@ -402,7 +400,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Opted out',
     status: 'live',
     source: 'service',
-    description: 'Fires on a true-to-false consent transition, from either the welcome screen or Settings. The one event still delivered after opting out: nexus-api retries it hourly until delivered once, and PostHog gets a single best-effort attempt alongside it. Appended, not deduped - the latest status wins.',
+    description: 'Fires on a true-to-false consent transition, from either the welcome screen or Settings. The one event still delivered after opting out: nexus-api retries it hourly until delivered once, and the usage sink gets a single best-effort copy alongside it. Appended, not deduped - the latest status wins.',
     params: [
       { name: 'version', type: 'string', required: true, description: 'Nexus build version at the time of the transition.' },
     ],
@@ -412,7 +410,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Opted in',
     status: 'live',
     source: 'service',
-    description: 'Fires on a false-to-true consent transition from Settings, after a prior opt-out - not the initial welcome-screen confirmation, since posting the same value the fresh-install default already holds is not a transition. Delivered the same way as opt_out: nexus-api retries until it lands once, PostHog gets a single best-effort attempt. Appended, not deduped - the latest status wins.',
+    description: 'Fires on a false-to-true consent transition from Settings, after a prior opt-out - not the initial welcome-screen confirmation, since posting the same value the fresh-install default already holds is not a transition. Delivered the same way as opt_out: nexus-api retries until it lands once, the usage sink gets a single best-effort copy. Appended, not deduped - the latest status wins.',
     params: [
       { name: 'version', type: 'string', required: true, description: 'Nexus build version at the time of the transition.' },
     ],

@@ -1,6 +1,6 @@
 // Docs-style reference for product telemetry, routed at /telemetry-reference
 // (Settings → Dev tools → Telemetry events). Lists every event the app emits
-// to PostHog, what it means, when it fires, and its parameters - an API
+// to nexus-api, what it means, when it fires, and its parameters - an API
 // lookup in the form of docs. Catalog lives in ./events.ts.
 
 import { useMemo, useState } from 'react';
@@ -35,7 +35,7 @@ export function TelemetryReference() {
       <header className={styles.header}>
         <h1>Telemetry events</h1>
         <p className={styles.sub}>
-          Every product-analytics event the app sends to PostHog. {liveCount} live,{' '}
+          Every product-analytics event the app sends. {liveCount} live,{' '}
           {TELEMETRY_EVENTS.length - liveCount} planned. Events are anonymous (no PII) and
           gated by the “collect anonymous data” setting.
         </p>
