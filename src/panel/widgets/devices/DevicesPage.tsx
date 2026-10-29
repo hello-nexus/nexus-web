@@ -397,7 +397,8 @@ function DeviceCard({
       {device.warning && !(runningConflict && isRunningAppWarning(device.warning)) && <DeviceWarningIcon code={device.warning} chip />}
       {updateAvailable && <DeviceUpdateIcon chip />}
       {runningConflict && <ConflictRunningBadge appName={runningConflict.displayName} />}
-      {device.writeHealth === 'failing' && device.nexusControlEnabled && onFixLighting && <NotRespondingBadge onClick={onFixLighting} />}
+      {/* A running competing app explains the failed writes, so its chip takes the slot. */}
+      {device.writeHealth === 'failing' && device.nexusControlEnabled && device.connected && !runningConflict && onFixLighting && <NotRespondingBadge onClick={onFixLighting} />}
       {device.experimental && <ExperimentalBadge />}
       {onToggleControl && (
         // Stop click + keydown so toggling the control doesn't also fire the

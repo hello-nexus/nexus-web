@@ -123,4 +123,24 @@ describe('FixLightingModal', () => {
     expect(localStorage.getItem('nexus_post_restart_lighting')).not.toBeNull();
     await screen.findByText('lighting.fix.step2.restarted');
   });
+
+  it('returns to idle when the wait itself throws', async () => {
+    restartServiceMock.mockResolvedValue(null);
+    waitMock.mockRejectedValue(new Error('bad json'));
+    render(<FixLightingModal open onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    await waitFor(() => expect(screen.queryByText('lighting.fix.step2.restarting')).toBeNull());
+    expect(screen.queryByText('lighting.fix.step2.restarted')).toBeNull();
+    expect(screen.getByRole('button', { name: 'lighting.fix.step2.title' })).not.toBeDisabled();
+  });
+
+  it('clears the reopen mark once the wait ends in this window', async () => {
+    restartServiceMock.mockResolvedValue(null);
+    waitMock.mockResolvedValue(true);
+    render(<FixLightingModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    await screen.findByText('lighting.fix.step2.restarted');
+    expect(localStorage.getItem('nexus_post_restart_lighting')).toBeNull();
+  });
 });

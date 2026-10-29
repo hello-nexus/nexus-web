@@ -1,30 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
 import { waitForServiceRestart } from './waitForRestart';
 
-const OPTIONS = { intervalMs: 1000, graceMs: 3000, timeoutMs: 10_000 };
+const OPTIONS = { intervalMs: 1000, timeoutMs: 10_000 };
 const sleep = () => Promise.resolve();
+const UP = { initialized: true };
 
 describe('waitForServiceRestart', () => {
-  it('resolves when the service goes down and comes back', async () => {
+  it('resolves when the service goes down and comes back initialized', async () => {
     const ping = vi.fn()
-      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce(UP)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({});
+      .mockResolvedValueOnce(UP);
     expect(await waitForServiceRestart(ping, OPTIONS, sleep)).toBe(true);
     expect(ping).toHaveBeenCalledTimes(4);
   });
 
-  it('gives up waiting for a drop after the grace window', async () => {
-    const ping = vi.fn().mockResolvedValue({});
+  it('keeps waiting while the restarted service is not initialized yet', async () => {
+    const ping = vi.fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ initialized: false })
+      .mockResolvedValueOnce(UP);
     expect(await waitForServiceRestart(ping, OPTIONS, sleep)).toBe(true);
     expect(ping).toHaveBeenCalledTimes(3);
   });
 
-  it('stops at the timeout while the service stays down', async () => {
-    const ping = vi.fn().mockResolvedValue(null);
+  it('reports false when the service is never seen down', async () => {
+    const ping = vi.fn().mockResolvedValue(UP);
     expect(await waitForServiceRestart(ping, OPTIONS, sleep)).toBe(false);
     expect(ping).toHaveBeenCalledTimes(10);
+  });
+
+  it('reports false when the service stays down', async () => {
+    const ping = vi.fn().mockResolvedValue(null);
+    expect(await waitForServiceRestart(ping, OPTIONS, sleep)).toBe(false);
   });
 
   it('stops when cancelled', async () => {

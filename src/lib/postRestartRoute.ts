@@ -18,3 +18,8 @@ export function consumeLightingRestart(now: number = Date.now()): boolean {
     return false;
   }
 }
+
+/** Drops the mark: the window that set it stayed open, so nothing needs to reopen on Lighting. */
+export function clearLightingRestart(): void {
+  try { localStorage.removeItem(KEY); } catch { /* storage unavailable */ }
+}

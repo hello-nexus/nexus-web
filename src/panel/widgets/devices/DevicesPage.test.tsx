@@ -543,4 +543,18 @@ describe('DevicesPage not-responding chip', () => {
     expect(screen.getByTestId('fix-lighting').getAttribute('data-device')).toBe('Stream Deck');
     expect(onDeviceSelect).not.toHaveBeenCalled();
   });
+
+  it('hides the chip for a disconnected device', () => {
+    mockUnified = [curatedRow({ writeHealth: 'failing', connected: false })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.queryByRole('button', { name: chipName })).toBeNull();
+  });
+
+  it('yields to the running-app chip', () => {
+    mockConflicts = [L_CONNECT];
+    mockUnified = [lianLiRow({ writeHealth: 'failing', nexusControlEnabled: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.queryByRole('button', { name: chipName })).toBeNull();
+    expect(screen.getByRole('img', { name: /devices\.conflictRunning\.tooltip\.title/ })).toBeInTheDocument();
+  });
 });

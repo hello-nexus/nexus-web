@@ -6,7 +6,7 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import { useTranslation } from '../../../lib/i18n';
-import { markLightingRestart } from '../../../lib/postRestartRoute';
+import { clearLightingRestart, markLightingRestart } from '../../../lib/postRestartRoute';
 import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { Button } from '../Button/Button';
 import { Card } from '../Card/Card';
@@ -17,8 +17,7 @@ import { TroubleshootLink } from '../TroubleshootLink/TroubleshootLink';
 import { waitForServiceRestart } from './waitForRestart';
 import styles from './FixLightingModal.module.scss';
 
-const RESTART_POLL_MS = 1000;
-const RESTART_GRACE_MS = 8000;
+const RESTART_POLL_MS = 500;
 const RESTART_TIMEOUT_MS = 60_000;
 const STEP_ICON_SIZE = 14;
 const sleep = (ms: number) => new Promise<void>(resolve => { setTimeout(resolve, ms); });
@@ -73,13 +72,18 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
     setRestarted(false);
     markLightingRestart();
     try { await restartService(); } catch { /* the socket drops as the service restarts */ }
-    const back = await waitForServiceRestart(
-      pingService,
-      { intervalMs: RESTART_POLL_MS, graceMs: RESTART_GRACE_MS, timeoutMs: RESTART_TIMEOUT_MS },
-      sleep,
-      () => !mountedRef.current,
-    );
+    let back = false;
+    try {
+      back = await waitForServiceRestart(
+        pingService,
+        { intervalMs: RESTART_POLL_MS, timeoutMs: RESTART_TIMEOUT_MS },
+        sleep,
+        () => !mountedRef.current,
+      );
+    } catch { /* a failed probe leaves the step idle */ }
     if (!mountedRef.current) return;
+    // The window survived the restart, so there is nothing to reopen on Lighting.
+    clearLightingRestart();
     setRestarting(false);
     setRestarted(back);
   };
