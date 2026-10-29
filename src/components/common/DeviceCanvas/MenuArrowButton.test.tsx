@@ -37,4 +37,33 @@ describe('MenuArrowButton corner badge', () => {
     expect(raf).not.toHaveBeenCalled();
     scroller.remove();
   });
+
+  it('follows a card that moves without resizing: on hover, on a motion end, and per frame while open', () => {
+    const card = document.createElement('div');
+    document.body.appendChild(card);
+    let cardTop = 50;
+    vi.spyOn(card, 'getBoundingClientRect').mockImplementation(() => rect(cardTop));
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => frames.push(cb));
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+    const props = { variant: 'corner' as const, anchor: card, label: 'More', tooltip: 'More', onOpen: () => {}, onClose: () => {} };
+    const { rerender } = render(<MenuArrowButton {...props} open={false} />);
+    const badge = screen.getByRole('button', { name: 'More' });
+
+    cardTop = 80;
+    act(() => { fireEvent.pointerMove(card); });
+    expect(badge.style.top).toBe('80px');
+
+    cardTop = 90;
+    act(() => { window.dispatchEvent(new Event('transitionend')); });
+    expect(badge.style.top).toBe('90px');
+    expect(frames).toHaveLength(0);
+
+    rerender(<MenuArrowButton {...props} open />);
+    cardTop = 120;
+    act(() => { frames.shift()?.(0); });
+    expect(badge.style.top).toBe('120px');
+    card.remove();
+  });
 });

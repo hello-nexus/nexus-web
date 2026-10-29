@@ -170,7 +170,7 @@ export function planDesktopImport(
   layout: PanelLayout,
   currentGrid?: RuntimeGrid,
   snapSize?: SizeSnapper,
-  options: { singlePage?: boolean; densitySlots?: number; glassSurface?: PanelSurface; sizeOnMerge?: boolean } = {},
+  options: { singlePage?: boolean; densitySlots?: number; glassSurface?: PanelSurface } = {},
 ): DesktopImportPlan {
   const singlePage = options.singlePage ?? false;
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
@@ -183,12 +183,13 @@ export function planDesktopImport(
   let slots: number | undefined;
   let widgetSize: PanelWidgetSizeMode | undefined;
   let grid: ImportGrid;
-  // A merge keeps the current grid, unless the panel has no stored size yet and the import is to set it.
-  if (imp.merge && currentGrid && !options.sizeOnMerge) {
+  // A Y70 import never writes a size: it fills the current grid and the size stays the user's.
+  const y70 = options.glassSurface === 'y70';
+  if (currentGrid && (imp.merge || y70)) {
     grid = { ...currentGrid, colSize: columnWidth(vp, currentGrid) };
   } else {
     const sized = bestSize(vp, paddingRatio, legacyCell, options.densitySlots, options.glassSurface);
-    widgetSize = sized.mode;
+    widgetSize = y70 ? undefined : sized.mode;
     slots = sized.slots;
     grid = sized.grid;
   }

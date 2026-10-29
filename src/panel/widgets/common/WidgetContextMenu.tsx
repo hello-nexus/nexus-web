@@ -197,10 +197,10 @@ export function WidgetContextMenu({
       data-panel-hit="true"
       style={menuStyle}
     >
-      {title && (
+      {(title || onImmersive) && (
         <>
           {nameAction ? (
-            <button type="button" className={`${styles.item} ${styles.nameRow}`} aria-label={onImmersive ? t('panel.widget.menu.immersive') : t('featureDisabled.widget.open', { feature: title })} onClick={() => runAndClose(nameAction)}>
+            <button type="button" className={`${styles.item} ${styles.nameRow}`} aria-label={title ? t('featureDisabled.widget.open', { feature: title }) : t('panel.widget.menu.immersive')} onClick={() => runAndClose(nameAction)}>
               <span className={styles.nameLabel}>{title}</span>
               <ArrowUpRight size={15} className={styles.nameChevron} aria-hidden />
             </button>

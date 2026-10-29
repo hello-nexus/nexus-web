@@ -1959,7 +1959,6 @@ export function PanelContent({
     singlePage: genericOnePage,
     densitySlots: importDensitySlots,
     glassSurface: y70Import ? 'y70' : undefined,
-    sizeOnMerge: y70Import && !recordState.record?.widgetSize,
   });
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
@@ -2566,7 +2565,7 @@ export function PanelContent({
           : null;
         const openUrl = genericDisplay && !simulator && !embedded ? webViewOpenUrl(ctxWidget) : null;
         // The dashboard opens the widget's page, as a tap on its tile does.
-        const dashboardOpen = onDesktopSurface && onSectionNavigate && isDashboardClickthroughType(ctxWidget.type) ? () => onSectionNavigate(ctxWidget.type) : undefined;
+        const dashboardOpen = onDesktopSurface && !simulator && onSectionNavigate && isDashboardClickthroughType(ctxWidget.type) ? cellTapAction(ctxWidget) ?? undefined : undefined;
         const webSnap = webViewHost.getSnapshot();
         const webView = ctxWidget.type === 'web-view' && !simulator && !embedded && webSnap.status === 'supported' ? webSnap.views[ctxWidget.id] : undefined;
         const webNav = { back: webView?.canGoBack === true, forward: webSnap.navControls && webView?.canGoForward === true, home: webSnap.navControls && webView?.away === true };

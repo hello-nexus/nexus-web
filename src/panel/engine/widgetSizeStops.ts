@@ -6,11 +6,7 @@ export interface WidgetSizeStop {
   percent: number;
 }
 
-/**
- * The sizes a panel offers on its slider, each with its fixed label from `percentLabels`. Given the glass's
- * density-derived count, a stop that scales it is offered only when its count is at least 2 and its grid (surface
- * and count) differs from the next stop toward 100%, so no two stops draw the same grid.
- */
+/** The slider stops of a panel, dropping any whose grid equals the next stop toward 100%. */
 export function widgetSizeStops(options: PanelWidgetSizeOptions, densitySlots?: number): WidgetSizeStop[] {
   const labelled = PANEL_WIDGET_SIZE_MODES.flatMap(mode => {
     const percent = options.percentLabels?.[mode];

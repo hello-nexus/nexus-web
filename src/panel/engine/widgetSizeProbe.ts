@@ -1,7 +1,4 @@
-// Test support: resolves a stored Widget size to the layout a panel draws, through the same
-// chain the kiosk uses (record size, layout surface, density, forced axis, grid capacity). It
-// imports only what exists on both sides of the Widget scale work, so one file records the
-// baseline fixture from an older checkout and replays it against the current code.
+// Test support: resolves a stored Widget size to the layout the kiosk draws.
 
 import { recordWidgetSizeOf } from './recordWidgetSize';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, estimateRuntimePanelDpi } from './panelGrid';

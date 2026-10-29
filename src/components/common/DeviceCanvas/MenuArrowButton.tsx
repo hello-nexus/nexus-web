@@ -17,13 +17,7 @@ interface MenuArrowButtonProps {
    * corner with a down chevron; its menu opens below the badge.
    */
   variant: 'card' | 'header' | 'corner';
-  /**
-   * `corner` only: the visible card the badge is centered on. The badge is
-   * portaled to the closest `[data-surface]` element (the body when there is none)
-   * and placed from this element's rect on show, scroll, resize and anchor resize,
-   * so it takes no layout space and no ancestor's overflow clips it. It is hidden
-   * while the card's corner is scrolled out of its scrolling ancestor.
-   */
+  /** `corner` only: the card the badge is portaled beside (placed from its rect, hidden while its corner is scrolled out). */
   anchor?: HTMLElement | null;
 }
 
@@ -62,16 +56,27 @@ export function MenuArrowButton({ label, tooltip, open, onOpen, onClose, variant
       el.style.visibility = clip && (r.top < clip.top || r.top > clip.bottom) ? 'hidden' : '';
     };
     place();
+    // A card can move without resizing (reflow, pager or press transforms), so also re-place on hover, on motion ends, and per frame while the menu is open.
+    let frame = 0;
+    const follow = () => { place(); frame = requestAnimationFrame(follow); };
+    if (open) frame = requestAnimationFrame(follow);
     window.addEventListener('scroll', place, true);
     window.addEventListener('resize', place);
+    window.addEventListener('transitionend', place, true);
+    window.addEventListener('animationend', place, true);
+    anchor.addEventListener('pointermove', place);
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(place);
     observer?.observe(anchor);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener('scroll', place, true);
       window.removeEventListener('resize', place);
+      window.removeEventListener('transitionend', place, true);
+      window.removeEventListener('animationend', place, true);
+      anchor.removeEventListener('pointermove', place);
       observer?.disconnect();
     };
-  }, [corner, anchor]);
+  }, [corner, anchor, open]);
   if (corner && !anchor) return null;
   const Icon = corner ? ChevronDown : ChevronRight;
   const node = (

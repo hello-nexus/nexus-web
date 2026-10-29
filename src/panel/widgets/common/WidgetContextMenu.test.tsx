@@ -77,6 +77,13 @@ describe('WidgetContextMenu name row', () => {
   it('runs the immersive handler from the name row when immersive is available', () => {
     const onImmersive = vi.fn();
     render(<WidgetContextMenu {...base} onImmersive={onImmersive} />);
+    fireEvent.click(screen.getByRole('button', { name: 'featureDisabled.widget.open' }));
+    expect(onImmersive).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the immersive row without a title', () => {
+    const onImmersive = vi.fn();
+    render(<WidgetContextMenu {...base} title={undefined} onImmersive={onImmersive} />);
     fireEvent.click(screen.getByRole('button', { name: 'panel.widget.menu.immersive' }));
     expect(onImmersive).toHaveBeenCalledTimes(1);
   });
@@ -179,7 +186,7 @@ describe('WidgetContextMenu lock widgets', () => {
 
   it('keeps the immersive name row reachable while locked', () => {
     render(<WidgetContextMenu {...base} title="Clock" locked onToggleLock={vi.fn()} onImmersive={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'panel.widget.menu.immersive' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'featureDisabled.widget.open' })).toBeTruthy();
   });
 
   it('shows no lock item where lock is not offered', () => {

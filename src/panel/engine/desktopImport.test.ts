@@ -211,7 +211,7 @@ describe('Y70 density', () => {
 
   it('keeps the fixed Y70 grid for a legacy cell it already matches', () => {
     const plan = planDesktopImport(imp([widget('a', 0, 0)], { cellPx: 170 + 12 }), vp, PAD, emptyLayout(), undefined, undefined, { densitySlots: 4, glassSurface: 'y70' });
-    expect(plan.widgetSize).toBe('large');
+    expect(plan.widgetSize).toBeUndefined();
     expect(plan.gridSlots).toBeUndefined();
     expect(plan.grid.columns).toBe(4);
     expect(plan.grid.rows).toBe(16);
@@ -219,7 +219,7 @@ describe('Y70 density', () => {
 
   it('picks a finer size when the legacy Scale made the cell small', () => {
     const plan = planDesktopImport(imp([widget('a', 0, 0, '1x1')], { cellPx: 86 * 0.5 }), vp, PAD, emptyLayout(), undefined, undefined, { densitySlots: 4, glassSurface: 'y70' });
-    expect(plan.widgetSize).toBe('compact');
+    expect(plan.widgetSize).toBeUndefined();
     expect(plan.gridSlots).toBe(8);
     expect(plan.grid.columns).toBe(8);
   });
@@ -231,16 +231,17 @@ describe('Y70 density', () => {
     expect(named.gridSlots).toBe(unnamed.gridSlots);
   });
 
-  it('sets the size from the legacy cell when merging into a Y70 with no stored size, keeping its widgets', () => {
+  it('never writes a size for a Y70, merge or not, and fills its current grid', () => {
     const existing: PanelLayout = { ...emptyLayout(), pages: [{ id: 'p1', widgets: [{ id: 'old', type: 'clock', size: '2x2', col: 0, row: 0 }] }] };
-    const merge = imp([widget('a', 0, 0, '1x1')], { cellPx: 86 * 0.5, merge: true });
     const grid = { columns: 4, rows: 16, cellSize: 160, gap: 4, padding: 4 };
-    const kept = planDesktopImport(merge, vp, PAD, existing, grid, undefined, { densitySlots: 4, glassSurface: 'y70' });
-    expect(kept.widgetSize).toBeUndefined();
-    const sized = planDesktopImport(merge, vp, PAD, existing, grid, undefined, { densitySlots: 4, glassSurface: 'y70', sizeOnMerge: true });
-    expect(sized.widgetSize).toBe('compact');
-    const widgets = sized.layout.pages.flatMap(p => p.widgets);
-    expect(widgets.map(w => w.id).sort()).toEqual(['a', 'old']);
-    expect(widgets.find(w => w.id === 'old')).toMatchObject({ col: 0, row: 0, size: '2x2' });
+    for (const merge of [true, false]) {
+      const plan = planDesktopImport(imp([widget('a', 0, 0, '1x1')], { cellPx: 86 * 0.5, merge }), vp, PAD, existing, grid, undefined, { densitySlots: 4, glassSurface: 'y70' });
+      expect(plan.widgetSize).toBeUndefined();
+      expect(plan.gridSlots).toBeUndefined();
+      expect(plan.grid.columns).toBe(4);
+      const widgets = plan.layout.pages.flatMap(p => p.widgets);
+      expect(widgets.map(w => w.id).sort()).toEqual(['a', 'old']);
+      expect(widgets.find(w => w.id === 'old')).toMatchObject({ col: 0, row: 0, size: '2x2' });
+    }
   });
 });

@@ -23,7 +23,7 @@ export function importKey(imp: DesktopImportDto | null | undefined): string {
  * host is still refitting never feeds the plan. A later resize, host message, record change or the
  * page becoming visible restarts a wait that gave up.
  */
-export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout, paddingPercent, grid, singlePage = false, densitySlots, glassSurface, sizeOnMerge = false }: {
+export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout, paddingPercent, grid, singlePage = false, densitySlots, glassSurface }: {
   enabled: boolean;
   hostReady: () => boolean;
   deviceId: string | undefined;
@@ -37,7 +37,6 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
   // The glass whose Widget size options choose the grid; a plain OS display when absent.
   glassSurface?: PanelSurface;
   // A merge into an existing layout still chooses the Widget size from the legacy cell.
-  sizeOnMerge?: boolean;
 }): void {
   // Set while a save is in flight; holds the effect instance that sent it.
   const busyRef = useRef<object | null>(null);
@@ -45,8 +44,8 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
   const kickRef = useRef<(() => void) | null>(null);
   // The import a save already went through for, until the record stops carrying it.
   const placedKeyRef = useRef('');
-  const latestRef = useRef({ pending, layout, paddingPercent, grid, hostReady, singlePage, densitySlots, glassSurface, sizeOnMerge });
-  useEffect(() => { latestRef.current = { pending, layout, paddingPercent, grid, hostReady, singlePage, densitySlots, glassSurface, sizeOnMerge }; });
+  const latestRef = useRef({ pending, layout, paddingPercent, grid, hostReady, singlePage, densitySlots, glassSurface });
+  useEffect(() => { latestRef.current = { pending, layout, paddingPercent, grid, hostReady, singlePage, densitySlots, glassSurface }; });
 
   const key = importKey(pending);
   const active = enabled && !!deviceId && key !== '';
@@ -94,7 +93,7 @@ export function useDesktopImport({ enabled, hostReady, deviceId, pending, layout
       busyRef.current = token;
       const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
       const { imp, base } = importBase(latest.pending, latest.layout);
-      const plan = planDesktopImport(imp, { w, h, dpr, ...origin }, latest.paddingPercent, base, latest.grid, snapLegacySize, { singlePage: latest.singlePage, densitySlots: latest.densitySlots, glassSurface: latest.glassSurface, sizeOnMerge: latest.sizeOnMerge });
+      const plan = planDesktopImport(imp, { w, h, dpr, ...origin }, latest.paddingPercent, base, latest.grid, snapLegacySize, { singlePage: latest.singlePage, densitySlots: latest.densitySlots, glassSurface: latest.glassSurface });
       const failed = () => {
         if (busyRef.current === token) busyRef.current = null;
         if (!alive) {

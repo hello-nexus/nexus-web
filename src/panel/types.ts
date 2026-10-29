@@ -178,11 +178,7 @@ export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string
   return glassSurface === 'monitor' && displayBound && !family;
 }
 
-// Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid; 'xsmall' (plain OS
-// displays) the densest. 'medium', 'midlarge' and 'compact' are stops added later: a panel whose
-// older builds ignored a stored 'small' or 'xsmall' uses 'medium' or 'compact' for its new stops,
-// so a record holding an old value draws what it always drew. A panel that offers the switch lays out each size as another surface
-// does, while its own surface keeps driving the hardware (touch, render cost, offline behaviour).
+// A panel offering the Widget size switch lays out each size as another surface does, while its own surface keeps driving the hardware.
 export const PANEL_WIDGET_SIZE_MODES = ['large', 'midlarge', 'small', 'medium', 'xsmall', 'compact'] as const;
 export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 
@@ -212,7 +208,7 @@ const ONE_TILE_OR_GRID: Readonly<Partial<Record<PanelWidgetSizeMode, PanelSurfac
 // Where the default is a single tile the existing density grid is the 50% stop; where it is a grid, 50% doubles its count.
 const TILE_AND_GRID_LABELS = { large: 100, small: 50 } as const;
 const GRID_AND_DOUBLE_LABELS = { small: 100, compact: 50 } as const;
-// Large is a single tile (iCUE LCD5) or a forced two-column grid (Y60); either way it is the stop above the default, the 200% label.
+// Large is a single tile (iCUE LCD5) or a forced two-column grid (Y60), the stop above the default.
 const LARGE_ABOVE_GRID_LABELS = { large: 200, ...GRID_AND_DOUBLE_LABELS } as const;
 
 export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | null): PanelWidgetSizeOptions | undefined {
@@ -259,8 +255,7 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   return undefined;
 }
 
-// Y70 column counts per size.
-export const Y70_COLUMN_STOPS = { large: 4, medium: 6, compact: 8 } as const;
+export const Y70_COLUMN_STOPS = { medium: 6, compact: 8 } as const;
 
 // A grid whose short axis a Widget size forces; landscape means the short axis is its rows.
 export interface ForcedGrid {
@@ -346,11 +341,7 @@ export function largeChromeGrid(
   };
 }
 
-/**
- * The chrome grid on the device-page preview's density basis. The preview lays widgets out in CSS px
- * (`gridDpi`), so a native-px chrome density is divided by the canvas DPR, and an unset one follows the grid's
- * density when both use the same surface; otherwise the iframe's own estimate would read the host's DPR.
- */
+/** The chrome grid on the preview's CSS px density basis: a native-px chrome density is divided by the canvas DPR. */
 export function previewChromeGrid(
   chrome: ChromeGrid | undefined,
   layoutSurface: PanelSurface,
