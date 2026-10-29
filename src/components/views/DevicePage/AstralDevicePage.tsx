@@ -23,7 +23,7 @@ import {
 } from './AstralArt';
 import {
   CALIBRATE_SECONDS, CRITICAL_SECONDS, LIMITS, TIME_CHOICES, WARN_DEG, alertTone, clock, finite, fitStage, levelStatus, pinTone, pollDelayMs,
-  pinGroups, secondsLeft, sensorId, withTimeout, signedDegrees, tiltDirection, tiltWord, unitScale, withCurrent, type StageExtent,
+  POLL_FAILS_BEFORE_NOTICE, WRITE_TIMEOUT_MS, pinGroups, secondsLeft, sensorId, withTimeout, signedDegrees, tiltDirection, tiltWord, unitScale, withCurrent, type StageExtent,
 } from './astralUtils';
 import styles from './AstralDevicePage.module.scss';
 
@@ -119,6 +119,8 @@ export function AstralDevicePage() {
   const writeEpoch = useRef(0);
   const writing = useRef(0);
   const writeCtls = useRef(new Set<AbortController>());
+  const pollFails = useRef(0);
+  const loaded = useRef(false);
 
   useEffect(() => {
     alive.current = true;
@@ -136,7 +138,7 @@ export function AstralDevicePage() {
   }, []);
 
   // Slow while nothing moves; fast while a countdown, calibration or fault is live, or the pin readout is shown. A failed poll keeps retrying.
-  const delay = pollDelayMs(state, tab === 'power');
+  const delay = pollDelayMs(state, state !== null && state.cards.length > 0 && tab === 'power');
   useEffect(() => {
     const ctl = new AbortController();
     let busy = false;
@@ -148,9 +150,11 @@ export function AstralDevicePage() {
       void withTimeout(signal => fetchAstral(signal), ctl.signal).then(next => {
         busy = false;
         if (ctl.signal.aborted || !alive.current) return;
-        setLoadFailed(!next);
+        pollFails.current = next ? 0 : pollFails.current + 1;
+        setLoadFailed(!next && (!loaded.current || pollFails.current >= POLL_FAILS_BEFORE_NOTICE));
         if (next && id > appliedSeq.current && epoch === writeEpoch.current && writing.current === 0) {
           appliedSeq.current = id;
+          loaded.current = true;
           commit(next);
         }
       });
@@ -186,7 +190,7 @@ export function AstralDevicePage() {
     writing.current += 1;
     let next: AstralState | null = null;
     try {
-      next = await withTimeout(send, ctl.signal);
+      next = await withTimeout(send, ctl.signal, WRITE_TIMEOUT_MS);
     } finally {
       writing.current -= 1;
       writeEpoch.current += 1;
@@ -200,6 +204,7 @@ export function AstralDevicePage() {
     if (id <= appliedSeq.current) return;
     appliedSeq.current = id;
     setFailed(null);
+    loaded.current = true;
     commit(next);
   }, [commit]);
 

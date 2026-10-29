@@ -156,6 +156,12 @@ export function unitScale(extent: StageExtent, aspect: number): number {
 /** A request that has not answered by then counts as failed. */
 export const REQUEST_TIMEOUT_MS = 8000;
 
+/** Writes wait longer than the relay and direct-channel transports' own 20 s request timeout, so a failure is never reported for a write that can still land. */
+export const WRITE_TIMEOUT_MS = 25000;
+
+/** Failed polls in a row before the load notice shows over a page that has loaded. */
+export const POLL_FAILS_BEFORE_NOTICE = 3;
+
 /** Runs a request with its own abort signal, linked to `parent`; resolves null on a throw, a timeout or an abort, whatever the transport does with the signal. */
 export function withTimeout<T>(
   send: (signal: AbortSignal) => Promise<T | null>,
@@ -171,7 +177,7 @@ export function withTimeout<T>(
     timer = setTimeout(() => { ctl.abort(); resolve(null); }, ms);
     ctl.signal.addEventListener('abort', () => resolve(null));
   });
-  const request = ctl.signal.aborted ? Promise.resolve(null) : send(ctl.signal).catch(() => null);
+  const request = ctl.signal.aborted ? Promise.resolve(null) : Promise.resolve().then(() => send(ctl.signal)).catch(() => null);
   return Promise.race([request, stop]).finally(() => {
     clearTimeout(timer);
     parent?.removeEventListener('abort', abort);

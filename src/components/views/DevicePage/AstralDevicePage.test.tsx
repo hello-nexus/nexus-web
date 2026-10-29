@@ -302,7 +302,7 @@ describe('AstralDevicePage', () => {
     openPower();
     await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
     expect(screen.queryByText('devices.astral.failed')).toBeNull();
-    await act(async () => { await vi.advanceTimersByTimeAsync(8100); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(25100); });
     expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.failed');
     api.fetchAstral.mockResolvedValue(base({ settings: { ...base().settings, equalizer: true } }));
     await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
@@ -320,6 +320,31 @@ describe('AstralDevicePage', () => {
     vi.useRealTimers();
     expect(api.fetchAstral).toHaveBeenCalledTimes(2);
     expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.loadFailed');
+  });
+
+  it('keeps a loaded page free of the load notice until three polls in a row fail', async () => {
+    vi.useFakeTimers();
+    api.fetchAstral.mockResolvedValueOnce(base()).mockResolvedValue(null);
+    await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.queryByText('devices.astral.loadFailed')).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.queryByText('devices.astral.loadFailed')).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.getByText('devices.astral.loadFailed')).toBeInTheDocument();
+    api.fetchAstral.mockResolvedValue(base());
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    vi.useRealTimers();
+    expect(screen.queryByText('devices.astral.loadFailed')).toBeNull();
+  });
+
+  it('polls at the slow rate when there are no cards', async () => {
+    vi.useFakeTimers();
+    api.fetchAstral.mockResolvedValue(base({ cards: [] }));
+    await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    vi.useRealTimers();
+    expect(api.fetchAstral).toHaveBeenCalledTimes(1);
   });
 
   it('aborts the in-flight poll on unmount', async () => {

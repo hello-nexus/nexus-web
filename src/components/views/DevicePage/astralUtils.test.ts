@@ -140,6 +140,9 @@ describe('withTimeout', () => {
     expect(await withTimeout(async () => 5)).toBe(5);
     expect(await withTimeout(async () => { throw new Error('x'); })).toBeNull();
   });
+  it('resolves null when send throws synchronously', async () => {
+    expect(await withTimeout<number>(() => { throw new Error('x'); })).toBeNull();
+  });
   it('resolves null and aborts the request once the time is up', async () => {
     vi.useFakeTimers();
     let seen: AbortSignal | undefined;
