@@ -140,6 +140,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
       key: o.key, shortName: o.name, name: o.name, subtitle: '', category: o.iconType ?? '', iconSrc: '',
       connected: true, kind: 'app-device', navigable: false, nexusControlEnabled: o.controlled,
       supportsNexusControl: true, experimental: false, requiresBeta: false, conflictAppId: runningConflict?.id,
+      writeHealth: o.writeHealth,
     };
     const zoneDevice = zoneDeviceFor(openRgbZones.devices, o.deviceId);
     return (
@@ -149,6 +150,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
           icon={<DeviceGroupIcon id={o.deviceId} iconType={o.iconType} className={styles.rowGlyph} />}
           runningConflict={runningConflict}
           onClick={() => undefined}
+          onFixLighting={() => setFixLightingFor(o.name)}
           onToggleControl={next => {
             const apply = () => void setOpenRgbControlled(o.cardIds, next);
             if (next) void requestEnable(device, apply);

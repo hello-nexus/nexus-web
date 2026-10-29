@@ -6,6 +6,7 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import { useTranslation } from '../../../lib/i18n';
+import { markLightingRestart } from '../../../lib/postRestartRoute';
 import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { Button } from '../Button/Button';
 import { Card } from '../Card/Card';
@@ -70,8 +71,9 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
     if (restarting) return;
     setRestarting(true);
     setRestarted(false);
+    markLightingRestart();
     try { await restartService(); } catch { /* the socket drops as the service restarts */ }
-    await waitForServiceRestart(
+    const back = await waitForServiceRestart(
       pingService,
       { intervalMs: RESTART_POLL_MS, graceMs: RESTART_GRACE_MS, timeoutMs: RESTART_TIMEOUT_MS },
       sleep,
@@ -79,7 +81,7 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
     );
     if (!mountedRef.current) return;
     setRestarting(false);
-    setRestarted(true);
+    setRestarted(back);
   };
 
   if (!open) return null;

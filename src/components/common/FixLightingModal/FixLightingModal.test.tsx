@@ -81,25 +81,46 @@ describe('FixLightingModal', () => {
 
   it('restarts through restartService, waits for the service, then marks the step done', async () => {
     restartServiceMock.mockResolvedValue(null);
-    let release: () => void = () => {};
-    waitMock.mockReturnValue(new Promise<void>(resolve => { release = resolve; }));
+    let release: (back: boolean) => void = () => {};
+    waitMock.mockReturnValue(new Promise<boolean>(resolve => { release = resolve; }));
     render(<FixLightingModal open onClose={() => {}} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
     expect(restartServiceMock).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('lighting.fix.step2.restarting')).toBeInTheDocument();
 
-    release();
+    release(true);
     expect(await screen.findByText('lighting.fix.step2.restarted')).toBeInTheDocument();
   });
 
   it('treats the socket drop as expected: a rejected restart call still waits and finishes', async () => {
     restartServiceMock.mockRejectedValue(new Error('socket closed'));
-    waitMock.mockResolvedValue(undefined);
+    waitMock.mockResolvedValue(true);
     render(<FixLightingModal open onClose={() => {}} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
     await waitFor(() => expect(screen.getByText('lighting.fix.step2.restarted')).toBeInTheDocument());
     expect(waitMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never sticks on Restarting: a wait that times out returns the button to idle without claiming success', async () => {
+    restartServiceMock.mockResolvedValue(null);
+    waitMock.mockResolvedValue(false);
+    render(<FixLightingModal open onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    await waitFor(() => expect(screen.queryByText('lighting.fix.step2.restarting')).toBeNull());
+    expect(screen.queryByText('lighting.fix.step2.restarted')).toBeNull();
+    expect(screen.getByRole('button', { name: 'lighting.fix.step2.title' })).not.toBeDisabled();
+  });
+
+  it('marks the lighting return before restarting', async () => {
+    restartServiceMock.mockResolvedValue(null);
+    waitMock.mockResolvedValue(true);
+    localStorage.clear();
+    render(<FixLightingModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    expect(localStorage.getItem('nexus_post_restart_lighting')).not.toBeNull();
+    await screen.findByText('lighting.fix.step2.restarted');
   });
 });

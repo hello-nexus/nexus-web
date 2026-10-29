@@ -5,13 +5,13 @@ export interface RestartWaitOptions {
   timeoutMs: number;
 }
 
-/** Resolves once the service has gone down and answered again, or when the grace or timeout window ends. */
+/** Resolves true once the service has gone down and answered again (or never went down within the grace window), false on timeout or cancel. */
 export async function waitForServiceRestart(
   ping: () => Promise<unknown>,
   options: RestartWaitOptions,
   sleep: (ms: number) => Promise<void>,
   cancelled: () => boolean = () => false,
-): Promise<void> {
+): Promise<boolean> {
   let elapsed = 0;
   let sawDown = false;
   while (elapsed < options.timeoutMs && !cancelled()) {
@@ -19,7 +19,7 @@ export async function waitForServiceRestart(
     elapsed += options.intervalMs;
     const alive = (await ping()) !== null;
     if (!alive) sawDown = true;
-    else if (sawDown) return;
-    else if (elapsed >= options.graceMs) return;
+    else if (sawDown || elapsed >= options.graceMs) return true;
   }
+  return false;
 }
