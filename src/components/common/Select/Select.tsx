@@ -103,6 +103,10 @@ export interface SelectProps {
   /** A control drawn inside the box, left of the value, as a sibling of the
    *  trigger so it can be a real button. Pressing it does not open the menu. */
   leadingAction?: ReactNode;
+  /** Draws the trigger's content for the selected option in place of its icon
+   *  and label (e.g. a larger name followed by a status chip). Not called when
+   *  no option is selected, where the placeholder shows. The menu is unchanged. */
+  renderValue?: (option: SelectOption) => ReactNode;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -197,7 +201,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, accentValue, placeholder, height,
-  triggerIconOnly, leadingAction,
+  triggerIconOnly, leadingAction, renderValue,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
@@ -499,8 +503,12 @@ export function Select({
           onKeyDown={onTriggerKeyDown}
         >
           <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
-            {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
-            {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
+            {renderValue && selectedIndex >= 0 ? renderValue(resolved[selectedIndex]) : (
+              <>
+                {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
+                {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
+              </>
+            )}
           </span>
         </button>
       </HoverTooltip>

@@ -31,6 +31,28 @@ describe('Select leadingAction', () => {
   });
 });
 
+describe('Select renderValue', () => {
+  it('draws custom trigger content for the selected option and leaves the menu rows alone', () => {
+    render(
+      <Select
+        value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit"
+        renderValue={option => <><strong>{option.label}</strong><em>chip</em></>}
+      />,
+    );
+    const trigger = screen.getByRole('button', { name: 'fruit' });
+    expect(trigger).toHaveTextContent('Bananachip');
+    open();
+    expect(screen.getByRole('option', { name: 'Cherry' })).toBeInTheDocument();
+  });
+
+  it('shows the placeholder, not the callback, when nothing is selected', () => {
+    const renderValue = vi.fn();
+    render(<Select value="" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" placeholder="Pick" renderValue={renderValue} />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Pick');
+    expect(renderValue).not.toHaveBeenCalled();
+  });
+});
+
 describe('Select', () => {
   it('shows the selected option label on the trigger', () => {
     render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" />);
