@@ -74,8 +74,9 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
     setRestarting(true);
     setRestarted(false);
     setUnconfirmed(false);
-    // The window reopens on the page the user is on, since the restart closes it on some platforms.
-    try { await restartService(window.location.pathname); } catch { /* the socket drops as the service restarts */ }
+    // The restart closes the window on some platforms; the service refuses the restart for a non-dashboard path.
+    const path = window.location.pathname;
+    try { await restartService(path.startsWith('/system/') ? path : undefined); } catch { /* the socket drops as the service restarts */ }
     let back = false;
     try {
       back = await waitForServiceRestart(

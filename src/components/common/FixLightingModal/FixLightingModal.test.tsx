@@ -132,13 +132,26 @@ describe('FixLightingModal', () => {
   });
 
 
-  it('asks the service to reopen on the current page after the restart', async () => {
+  it('asks the service to reopen on the current dashboard page after the restart', async () => {
+    window.history.pushState({}, '', '/system/lighting');
     restartServiceMock.mockResolvedValue(null);
     waitMock.mockResolvedValue(true);
     render(<FixLightingModal open onClose={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
-    expect(restartServiceMock).toHaveBeenCalledWith(window.location.pathname);
+    expect(restartServiceMock).toHaveBeenCalledWith('/system/lighting');
     await screen.findByText('lighting.fix.step2.restarted');
+    window.history.pushState({}, '', '/');
+  });
+
+  it('sends no reopen page outside the dashboard routes', async () => {
+    window.history.pushState({}, '', '/panel/phone');
+    restartServiceMock.mockResolvedValue(null);
+    waitMock.mockResolvedValue(true);
+    render(<FixLightingModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    expect(restartServiceMock).toHaveBeenCalledWith(undefined);
+    await screen.findByText('lighting.fix.step2.restarted');
+    window.history.pushState({}, '', '/');
   });
 
   it('says so when the restart was not confirmed', async () => {
