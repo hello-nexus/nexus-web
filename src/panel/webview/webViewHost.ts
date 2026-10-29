@@ -485,6 +485,7 @@ export class WebViewHost {
     const documentVisible = document.visibilityState !== 'hidden';
     const hit = (x: number, y: number) => document.elementFromPoint(x, y);
     const covered = document.querySelector(COVER_SELECTOR) !== null;
+    const viewport = { w: window.innerWidth, h: window.innerHeight };
     const views: WebViewSyncView[] = [];
     for (const id of this.slotOrder) {
       const c = this.winnerOf(id);
@@ -508,6 +509,7 @@ export class WebViewHost {
           rect,
           el: target,
           hit,
+          viewport,
         }),
       });
     }

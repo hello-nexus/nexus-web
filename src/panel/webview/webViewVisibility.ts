@@ -31,14 +31,19 @@ export function probePoints(rect: WebViewRect): Array<[number, number]> {
   return pts;
 }
 
-/**
- * True only when `el` is what the user would see at every probe point: a menu,
- * sheet, toast or control center above it makes the hit land elsewhere, which
- * hides the native view without enumerating those layers.
- */
-export function isTopmost(el: Element, rect: WebViewRect, hit: HitTest): boolean {
-  if (rect.w <= 0 || rect.h <= 0) return false;
-  return probePoints(rect).every(([x, y]) => {
+export interface ViewportSize {
+  w: number;
+  h: number;
+}
+
+/** True only when `el` is what the user sees at every probe point of the rect's on-screen part (the host clips the rest). */
+export function isTopmost(el: Element, rect: WebViewRect, hit: HitTest, viewport: ViewportSize): boolean {
+  const x0 = Math.max(rect.x, 0);
+  const y0 = Math.max(rect.y, 0);
+  const x1 = Math.min(rect.x + rect.w, viewport.w);
+  const y1 = Math.min(rect.y + rect.h, viewport.h);
+  if (x1 <= x0 || y1 <= y0) return false;
+  return probePoints({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }).every(([x, y]) => {
     const found = hit(x, y);
     return found !== null && (found === el || el.contains(found));
   });
@@ -53,11 +58,12 @@ export interface VisibilityInput {
   rect: WebViewRect;
   el: Element;
   hit: HitTest;
+  viewport: ViewportSize;
 }
 
 export function computeVisible(i: VisibilityInput): boolean {
   if (!i.supported || !i.documentVisible || i.suppressed || !i.connected || i.loadFailed) return false;
-  return isTopmost(i.el, i.rect, i.hit);
+  return isTopmost(i.el, i.rect, i.hit, i.viewport);
 }
 
 export interface WebViewSuppressors {

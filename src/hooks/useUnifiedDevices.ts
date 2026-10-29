@@ -169,6 +169,7 @@ const CURATED_ICONS: Record<string, string> = {
   'asus-ryujin-lcd': '/assets/devices/asus.svg',
   'asus-slc4-lcd': '/assets/devices/asus.svg',
   'asus-glacial-lcd': '/assets/devices/asus.svg',
+  'asus-astral': '/assets/devices/asus.svg',
   'asiahorse-umbra': '/assets/devices/asiahorse.svg',
 };
 
@@ -199,6 +200,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'nzxt-kraken': 'NZXT Kraken',
   'asiahorse-umbra': 'Asiahorse Umbra V2',
   'asus-glacial-lcd': 'ROG Crosshair X870E Glacial',
+  'asus-astral': 'ROG Astral',
   'deepcool-mystique': 'DeepCool Mystique',
 };
 

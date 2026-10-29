@@ -49,7 +49,6 @@ import { useFeatureFlags, useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
-import { previewRainbowUri } from '../common/previewAssets';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
 import { LightingSwatches } from './LightingSwatches';
@@ -59,13 +58,12 @@ import { type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNot
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
-// Catalog preview pins Animate on the stock simple-mode Rainbow, with a generic
-// rainbow thumbnail in place of the service-rendered one, so the tile renders
-// with zero fetch/socket/blob traffic. Keep in sync with the simple-mode
-// render; previewMode.test.tsx is the fixture-sync gate.
+// Catalog preview pins Animate on the stock simple-mode Rainbow. LightingSwatches
+// draws gradient tiles in preview instead of service-rendered thumbnails, so the
+// tile renders with zero fetch/socket/blob traffic. Keep in sync with the
+// simple-mode render; previewMode.test.tsx is the fixture-sync gate.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'animate';
 const LIGHTING_PREVIEW_EFFECT = 'sweeprainbow';
-const LIGHTING_PREVIEW_THUMBS: Record<string, string> = { [LIGHTING_PREVIEW_EFFECT]: previewRainbowUri() };
 
 export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
   const { t } = useTranslation();
@@ -97,7 +95,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   // Direction of a running simple-mode sweep, read from its stored speed sign.
   const [sweepReversed, setSweepReversed] = useState(false);
-  const [thumbs, setThumbs] = useState<Record<string, string>>(preview ? LIGHTING_PREVIEW_THUMBS : {});
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [mediaThumbs, setMediaThumbs] = useState<Record<string, string>>({});
@@ -582,7 +580,6 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         activeColor={activeColor}
         templates={templates}
         preview={preview}
-        previewThumb={LIGHTING_PREVIEW_THUMBS[LIGHTING_PREVIEW_EFFECT]}
         showRecents={showRecents}
         recentColors={recents.colors}
         recentAnimations={recents.animations}

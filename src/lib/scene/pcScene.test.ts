@@ -52,6 +52,24 @@ function sceneLayoutOf(raw: unknown): SceneLayout {
   return sceneLayout(parseCaseLayout(raw)!);
 }
 
+describe('a flat cable line', () => {
+  const ribbonLayout = (): SceneLayout => ({
+    size: [400, 300, 200],
+    boxes: [],
+    lines: [{ slot: 'gpu', role: 'part', points: [[10, 10, 10], [10, 60, 10], [10, 110, 10]], ribbon: { width: 40, thickness: 10, across: [[1, 0, 0], [1, 0, 0], [1, 0, 0]] } }],
+  });
+
+  it('draws one translucent band that writes no depth, plus its four rim lines', () => {
+    const group = draw(ribbonLayout());
+    const bands = surfaces(group);
+    expect(bands).toHaveLength(1);
+    const material = bands[0].material as MeshBasicMaterial;
+    expect(material.transparent).toBe(true);
+    expect(material.depthWrite).toBe(false);
+    expect(meshes(group).length - bands.length).toBe(4);
+  });
+});
+
 describe('the setup record draws what Build draws', () => {
   it.each([['the Y70 fixture', fixture], ['a record with hoses, estimated fans, an on-shell plate and a CAD solid', richRaw]])('builds the same scene graph from %s through the record parser and from the raw layout', (_name, raw) => {
     const direct = draw({ lines: [], ...(raw as object) } as SceneLayout);

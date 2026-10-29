@@ -19,6 +19,7 @@ import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { AsiahorseUmbraDevicePage } from './AsiahorseUmbraDevicePage';
 import { AsusGlacialLcdDevicePage } from './AsusGlacialLcdDevicePage';
+import { AstralDevicePage } from './AstralDevicePage';
 import { DeepCoolMystiqueDevicePage } from './DeepCoolMystiqueDevicePage';
 import { GlacialPanelRoute } from './GlacialPanelRoute';
 import { KrakenDevicePage } from './KrakenDevicePage';
@@ -277,6 +278,10 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
 
   if (device.curatedId === 'asus-glacial-lcd') {
     return <AsusGlacialLcdDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'asus-astral') {
+    return <AstralDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'deepcool-mystique') {

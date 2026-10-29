@@ -78,7 +78,7 @@ $extent-down: $arrow-h + $gap + $hand + 2 * $backdrop-y;
   // The surface's content scale, so the hand is not tiny on a dense Y70 strip,
   // capped so the drawing and backdrop stay clear of the top edge on a short
   // landscape panel.
-  --hint-u: min(calc(var(--panel-scale, 1) * 1px), calc((100vh - #{$anchor + $edge-margin}) / #{$extent-up}));
+  --hint-u: min(calc(var(--panel-chrome-scale, var(--panel-scale, 1)) * 1px), calc((100vh - #{$anchor + $edge-margin}) / #{$extent-up}));
   transform: translateX(-50%);
   animation: swipeHintFade calc(var(--swipe-hint-cycle) * var(--swipe-hint-cycles)) ease both;
 }
@@ -151,7 +151,7 @@ $extent-down: $arrow-h + $gap + $hand + 2 * $backdrop-y;
   bottom: auto;
   // Above the immersive content, below the close notch.
   z-index: 205;
-  --hint-u: min(calc(var(--panel-scale, 1) * 1px), calc((100vh - #{2 * $edge-margin}) / #{$extent-down}));
+  --hint-u: min(calc(var(--panel-chrome-scale, var(--panel-scale, 1)) * 1px), calc((100vh - #{2 * $edge-margin}) / #{$extent-down}));
   transform: translate(-50%, -50%);
 
   .arrow {

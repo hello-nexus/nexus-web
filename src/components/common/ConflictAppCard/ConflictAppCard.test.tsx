@@ -356,4 +356,23 @@ describe('ConflictAppCard auto start', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('conflicts.modal.autostartFailed:iCUE');
     expect(screen.getByRole('button', { name: 'conflicts.modal.disableAutostart' })).toBeInTheDocument();
   });
+
+  it('renders a setting entry as a Windows setting with Turn off, and no executable or PID', async () => {
+    mockKillConflict.mockResolvedValue({ killed: true });
+    const dynamicLighting = {
+      id: 'windows-dynamic-lighting', displayName: 'Windows Dynamic Lighting', category: 'lighting', processName: '', pid: 0, isSetting: true,
+    };
+    render(<ConflictAppCard conflict={dynamicLighting} />);
+
+    expect(screen.getByText('Windows Dynamic Lighting')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.windowsSetting')).toBeInTheDocument();
+    expect(screen.queryByText(/conflicts\.modal\.pid/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'conflicts.modal.endTask' })).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.turnOff' }));
+    });
+
+    expect(mockKillConflict).toHaveBeenCalledWith('windows-dynamic-lighting');
+  });
 });
