@@ -181,7 +181,7 @@ export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string
 // Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid; 'xsmall' (plain OS
 // displays only) the densest. A panel that offers the switch lays out each size as another surface
 // does, while its own surface keeps driving the hardware (touch, render cost, offline behaviour).
-export const PANEL_WIDGET_SIZE_MODES = ['large', 'small', 'medium', 'xsmall'] as const;
+export const PANEL_WIDGET_SIZE_MODES = ['large', 'midlarge', 'small', 'medium', 'xsmall'] as const;
 export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 
 export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
@@ -238,14 +238,14 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'y70') {
     return { default: 'large', layoutSurface: { large: 'y70', small: 'y70', xsmall: 'y70' }, shortSideSlots: { small: Y70_COLUMN_STOPS.small, xsmall: Y70_COLUMN_STOPS.xsmall }, percentLabels: { large: 100, small: 75, xsmall: 50 } };
   }
-  // A plain OS monitor: 100% is its density grid, 75% and 50% take 1.5x and 2x the short-axis count, so cells
-  // shrink. A stored Large (the retired half-count size) is not offered and reads as the default.
+  // A plain OS monitor: 100% is its density grid. 75% and 50% take 1.5x and 2x the short-axis count, so cells
+  // shrink; 150% and 200% (the original half-count Large) take 1/1.5 and 1/2 of it, so cells grow.
   if (surface === 'monitor' && !family) {
     return {
       default: 'small',
-      layoutSurface: { small: 'monitor', medium: 'monitor', xsmall: 'monitor' },
-      densitySlotShare: { medium: 1.5, xsmall: 2 },
-      percentLabels: { small: 100, medium: 75, xsmall: 50 },
+      layoutSurface: { large: 'monitor', midlarge: 'monitor', small: 'monitor', medium: 'monitor', xsmall: 'monitor' },
+      densitySlotShare: { large: 0.5, midlarge: 1 / 1.5, medium: 1.5, xsmall: 2 },
+      percentLabels: { large: 200, midlarge: 150, small: 100, medium: 75, xsmall: 50 },
     };
   }
   return undefined;

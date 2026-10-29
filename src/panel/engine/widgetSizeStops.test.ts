@@ -5,10 +5,24 @@ import { panelWidgetSizeOptions, type PanelSurface } from '../types';
 
 const stopsOf = (surface: PanelSurface, family?: string) => widgetSizeStops(panelWidgetSizeOptions(surface, family)!).map(s => `${s.mode}:${s.percent}`);
 
+const plain0 = (surface: PanelSurface, family?: string) => surface === 'monitor' && !family;
+
 describe('widgetSizeStops', () => {
   it('labels the Y70 and plain displays 100 / 75 / 50', () => {
     expect(stopsOf('y70')).toEqual(['large:100', 'small:75', 'xsmall:50']);
-    expect(stopsOf('monitor')).toEqual(['small:100', 'medium:75', 'xsmall:50']);
+    expect(stopsOf('monitor')).toEqual(['large:200', 'midlarge:150', 'small:100', 'medium:75', 'xsmall:50']);
+  });
+
+  it('offers a plain-display stop only when its even count fits and differs from its neighbor', () => {
+    const options = panelWidgetSizeOptions('monitor')!;
+    const at = (density: number) => widgetSizeStops(options, density).map(s => s.percent);
+    expect(at(24)).toEqual([200, 150, 100, 75, 50]);
+    expect(at(12)).toEqual([200, 150, 100, 75, 50]);
+    expect(at(8)).toEqual([200, 150, 100, 75, 50]);
+    // At 4 the 150% and 200% counts are both 2: only the first of the pair is a stop.
+    expect(at(4)).toEqual([150, 100, 75, 50]);
+    // At 2 the larger stops equal 100%, and 50% (4) equals 75% (4).
+    expect(at(2)).toEqual([100, 75]);
   });
 
   it('gives device screens two stops, 100 and 50', () => {
@@ -29,7 +43,9 @@ describe('widgetSizeStops', () => {
       const options = panelWidgetSizeOptions(surface, family)!;
       const percents = widgetSizeStops(options).map(s => s.percent);
       expect(percents.length).toBeGreaterThan(1);
-      for (const p of percents) expect([25, 50, 75, 100]).toContain(p);
+      expect(Math.max(...percents) > 100).toBe(plain0(surface, family));
+      const plain = surface === 'monitor' && !family;
+      for (const p of percents) expect(plain ? [25, 50, 75, 100, 150, 200] : [25, 50, 75, 100]).toContain(p);
       expect(percents).toContain(100);
       // The default size is the 100% baseline, or a tile Large that is.
       expect(options.percentLabels?.[options.default]).toBe(100);

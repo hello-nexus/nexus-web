@@ -143,12 +143,14 @@ describe('Widget size', () => {
     expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });
 
-  it('starts a plain monitor on its density grid, and reads a stored Large as that same 100%', () => {
+  it('starts a plain monitor on its density grid, and a stored Large is its original half-count 200%', () => {
     expect(resolvePanelWidgetSize('monitor', undefined, null)).toBe('small');
     expect(resolvePanelWidgetSize('monitor', null, 'small')).toBe('small');
-    expect(resolvePanelWidgetSize('monitor', null, 'large')).toBe('small');
+    expect(resolvePanelWidgetSize('monitor', null, 'large')).toBe('large');
     expect(panelShortSideSlots('monitor', undefined, null, 12)).toBeUndefined();
-    expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBeUndefined();
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 8)).toBe(4);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 4)).toBe(2);
     expect(panelLayoutSurface('monitor', undefined, 'large')).toBe('monitor');
     expect(panelLayoutDpi('monitor', undefined, 'large', null, { monitor: 110 } as Record<PanelSurface, number>)).toBeUndefined();
   });
@@ -391,11 +393,16 @@ describe('generic display touch rule across panel kinds', () => {
 });
 
 describe('widget size options for a plain display', () => {
-  it('offers 100, 75 and 50 percent as the density grid, 1.5x and 2x its short-axis count', async () => {
+  it('offers 200, 150, 100, 75 and 50 percent around the density grid', async () => {
     const { panelWidgetSizeOptions, panelShortSideSlots, panelLayoutSurface, resolvePanelWidgetSize } = await import('./types');
     const options = panelWidgetSizeOptions('monitor', undefined);
-    expect(Object.keys(options!.layoutSurface).sort()).toEqual(['medium', 'small', 'xsmall']);
-    expect(options!.percentLabels).toEqual({ small: 100, medium: 75, xsmall: 50 });
+    expect(Object.keys(options!.layoutSurface).sort()).toEqual(['large', 'medium', 'midlarge', 'small', 'xsmall']);
+    expect(options!.percentLabels).toEqual({ large: 200, midlarge: 150, small: 100, medium: 75, xsmall: 50 });
+    // 200% halves and 150% takes two thirds of the count, each to an even number.
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'midlarge', 12)).toBe(8);
+    expect(panelShortSideSlots('monitor', undefined, 'midlarge', 16)).toBe(10);
+    expect(panelShortSideSlots('monitor', undefined, 'midlarge', 24)).toBe(16);
     expect(panelShortSideSlots('monitor', undefined, 'small', 12)).toBeUndefined();
     expect(panelShortSideSlots('monitor', undefined, 'medium', 12)).toBe(18);
     expect(panelShortSideSlots('monitor', undefined, 'medium', 4)).toBe(6);
@@ -418,10 +425,11 @@ describe('widget size options for a plain display', () => {
 
   it('maps a retired grid density to the nearest size', async () => {
     const { sizeForLegacyGridSlots } = await import('./types');
-    expect(sizeForLegacyGridSlots(6, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(6, 12)).toBe('large');
     expect(sizeForLegacyGridSlots(12, 12)).toBe('small');
     expect(sizeForLegacyGridSlots(10, 12)).toBe('small');
     expect(sizeForLegacyGridSlots(18, 12)).toBe('medium');
+    expect(sizeForLegacyGridSlots(8, 12)).toBe('midlarge');
     expect(sizeForLegacyGridSlots(26, 12)).toBe('xsmall');
     expect(sizeForLegacyGridSlots(0, 12)).toBeUndefined();
     expect(sizeForLegacyGridSlots(12, undefined)).toBeUndefined();
@@ -454,10 +462,10 @@ describe('stored widget size per device', () => {
     return `${mode}/${panelLayoutSurface(surface, family, stored)}/${panelShortSideSlots(surface, family, stored, 4) ?? '-'}`;
   };
 
-  it('leaves every existing stored value where it was, and sends the retired plain-display Large to 100%', () => {
-    // Plain display: unset and small are 100%, xsmall stays 50%, a stored large reads as the default 100%.
-    expect(['small', undefined, 'large', 'xsmall', 'medium'].map(v => resolved('monitor', undefined, v))).toEqual([
-      'small/monitor/-', 'small/monitor/-', 'small/monitor/-', 'xsmall/monitor/8', 'medium/monitor/6',
+  it('leaves every existing stored value where it was, including the plain-display Large at its original 200%', () => {
+    // Plain display: unset and small are 100%, xsmall stays 50%, large is its original half-count 200%.
+    expect(['small', undefined, 'large', 'xsmall', 'medium', 'midlarge'].map(v => resolved('monitor', undefined, v))).toEqual([
+      'small/monitor/-', 'small/monitor/-', 'large/monitor/2', 'xsmall/monitor/8', 'medium/monitor/6', 'midlarge/monitor/2',
     ]);
     // Y70: unset and large are the fixed grid; small and xsmall keep 6 and 8 columns.
     expect(['large', undefined, 'small', 'xsmall'].map(v => resolved('y70', undefined, v))).toEqual([
