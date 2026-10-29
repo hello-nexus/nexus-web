@@ -78,6 +78,28 @@ describe('Select embeddedActions', () => {
   });
 });
 
+describe('Select focus leaving the menu', () => {
+  it('closes when focus moves out of an embedded button, and stays open for focus inside the menu', () => {
+    render(
+      <>
+        <button type="button">outside</button>
+        <Select
+          value="a" onChange={vi.fn()} ariaLabel="fruit"
+          options={[{ value: 'a', label: 'Apple', embeddedActions: [{ label: 'Peel', onClick: vi.fn() }] }, { value: 'b', label: 'Banana' }]}
+        />
+      </>,
+    );
+    const list = open();
+    const peel = within(list).getByRole('button', { name: 'Peel' });
+    fireEvent.focusOut(peel, { relatedTarget: list });
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    fireEvent.focusOut(peel, { relatedTarget: null });
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    fireEvent.focusOut(peel, { relatedTarget: screen.getByRole('button', { name: 'outside' }) });
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+});
+
 describe('Select renderValue', () => {
   it('draws custom trigger content for the selected option and leaves the menu rows alone', () => {
     render(

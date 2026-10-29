@@ -535,6 +535,10 @@ export function Select({
           ref={menuRef}
           className={styles.menu}
           data-select-menu=""
+          // Tab or Shift+Tab walking focus out of the menu (past the last embedded button, or back out the
+          // front) closes it. A null target is a click on a non-focusable part of the menu or the window
+          // losing focus, which must not close it.
+          onBlur={e => { if (e.relatedTarget && !menuRef.current?.contains(e.relatedTarget as Node)) close(); }}
           style={{
             position: 'fixed',
             top: coords?.top ?? 0,
