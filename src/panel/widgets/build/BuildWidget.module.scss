@@ -63,3 +63,47 @@
   min-height: 1.25em;
   color: var(--text-dim);
 }
+
+// Case-less state of the large tile: the detected parts turning in a dashed empty case, a call to action, and a two line parts strip.
+.widget[data-caseless='true'] {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  color: var(--text);
+}
+
+.scene {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+}
+
+.sceneCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pickCase {
+  flex: none;
+}
+
+.strip {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  color: var(--text-dim);
+  @include text-caption;
+}
+
+.stripLine {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
