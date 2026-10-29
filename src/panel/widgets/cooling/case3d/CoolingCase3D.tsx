@@ -13,7 +13,7 @@ import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoToolt
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
-import { supportsAirflow } from '../../../../lib/cooling/airflowCases';
+import { isFullySupportedCase } from '../../../../lib/cooling/supportedCases';
 import { patchPcSetupRadiator } from '../../../../api/pcSetup';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE, type CoolingFlowMode } from '../../../../lib/settings';
@@ -134,7 +134,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const showCase = flowMode !== 'airflow';
   const [flowSupported, setFlowSupported] = useState(true);
   // Only a listed case runs the view; any other keeps the notice and fetches no model.
-  const airflowCase = supportsAirflow(parsedLayout?.caseModel);
+  const airflowCase = isFullySupportedCase(parsedLayout?.caseModel);
   const temps = useComponentTemps(true);
 
   const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);

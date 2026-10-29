@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PcSetupRecord } from '../../../../api/pcSetup';
 import type { HeadlessBuild } from '../../../../components/views/BuildPage/BuildPage';
-import { supportsAirflow } from '../../../../lib/cooling/airflowCases';
+import { isFullySupportedCase } from '../../../../lib/cooling/supportedCases';
 import { resetTried } from '../../../../lib/cooling/autoResolve';
 import { CoolingAutoResolve, RESOLVE_TIMEOUT_MS, type AutoResolveState } from './CoolingAutoResolve';
 
@@ -71,7 +71,7 @@ describe('CoolingAutoResolve', () => {
     h.setup = { record: record(1, { caseModel: 'HYTE Y70', inputKey: 'k1' }), loaded: true };
     rerender(view());
     expect(frame()).not.toBeNull();
-    expect(supportsAirflow((h.setup.record as PcSetupRecord).setup.resolved.caseLayout && ((h.setup.record as PcSetupRecord).setup.resolved.caseLayout as { caseModel: string }).caseModel)).toBe(true);
+    expect(isFullySupportedCase((h.setup.record as PcSetupRecord).setup.resolved.caseLayout && ((h.setup.record as PcSetupRecord).setup.resolved.caseLayout as { caseModel: string }).caseModel)).toBe(true);
 
     act(() => h.headless!.onResolved({ rev: 2, saved: true, hasLayout: true, model: true }));
     h.setup = { record: record(2, { caseModel: 'HYTE Y70', inputKey: 'k1' }), loaded: true };
