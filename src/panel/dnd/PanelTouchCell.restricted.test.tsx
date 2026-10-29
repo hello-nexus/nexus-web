@@ -109,6 +109,36 @@ describe('PanelTouchCell inert (Restricted mode)', () => {
     expect(wrapOf(container).dataset.lockNotice).toBeUndefined();
   });
 
+  it('a hold that showed the notice is not delivered as a tap on release', () => {
+    vi.useFakeTimers();
+    const spies = { onPointerDown: vi.fn(), onPointerMove: vi.fn(), onPointerUp: vi.fn(), onPointerCancel: vi.fn() };
+    const { container } = render(
+      <DndContext>
+        <SortableContext items={['w1']}>
+          <PanelTouchCell widget={widget} rearranging={false} restricted onContextMenu={() => {}} cellPointers={spies} />
+        </SortableContext>
+      </DndContext>,
+    );
+    const wrap = wrapOf(container);
+    fireEvent.pointerDown(wrap, { isPrimary: true, pointerId: 1, pointerType: 'mouse', button: 0, clientX: 5, clientY: 5 });
+    act(() => { vi.advanceTimersByTime(700); });
+    fireEvent.pointerUp(wrap, { pointerId: 1, pointerType: 'mouse', clientX: 5, clientY: 5 });
+    expect(spies.onPointerUp).not.toHaveBeenCalled();
+    fireEvent.pointerDown(wrap, { isPrimary: true, pointerId: 2, pointerType: 'mouse', button: 0, clientX: 5, clientY: 5 });
+    fireEvent.pointerUp(wrap, { pointerId: 2, pointerType: 'mouse', clientX: 5, clientY: 5 });
+    expect(spies.onPointerUp).toHaveBeenCalledTimes(1);
+  });
+
+  it('a right-button or secondary pointer press does not arm the hold', () => {
+    vi.useFakeTimers();
+    const { container } = render(cell(false, undefined, true));
+    const wrap = wrapOf(container);
+    fireEvent.pointerDown(wrap, { isPrimary: true, pointerId: 1, pointerType: 'mouse', button: 2, clientX: 5, clientY: 5 });
+    fireEvent.pointerDown(wrap, { isPrimary: false, pointerId: 2, pointerType: 'touch', clientX: 5, clientY: 5 });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(wrap.dataset.lockNotice).toBeUndefined();
+  });
+
   it('an allowed cell shows no notice on a tap', () => {
     const { container, getByTestId } = render(cell(false));
     fireEvent.click(getByTestId('preset'));

@@ -455,8 +455,9 @@ export function PanelTouchCell({
     },
     onPointerUp: (e: React.PointerEvent) => {
       holdPress.onPointerUp();
-      // A pulled locked widget was dragged, not tapped.
-      if (lockNotice.handlers.up(e)) cellPointers.onPointerCancel(e);
+      // A pulled locked widget was dragged, not tapped, and a hold that showed the notice is no tap either.
+      const held = holdPress.firedRef.current;
+      if (lockNotice.handlers.up(e) || held) cellPointers.onPointerCancel(e);
       else cellPointers.onPointerUp(e);
     },
     onPointerCancel: (e: React.PointerEvent) => {
@@ -468,7 +469,9 @@ export function PanelTouchCell({
     onClickCapture: inert ? onInertClick : lockNotice.handlers.onClickCapture,
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
-      if (restricted && !isOwnControl(e.target, e.currentTarget as Element)) holdPress.onPointerDown(e);
+      holdPress.firedRef.current = false;
+      const primaryPress = e.isPrimary !== false && (e.pointerType !== 'mouse' || e.button === 0);
+      if (restricted && primaryPress && !isOwnControl(e.target, e.currentTarget as Element)) holdPress.onPointerDown(e);
       lockNotice.handlers.onPointerDown(e);
       // Skip dnd-kit activation in scroll regions inside widgets (cellPointers
       // already bails there). Else a 500ms hold inside a scroll list would

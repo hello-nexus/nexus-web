@@ -146,6 +146,60 @@ export function PanelActionsTray({
     return () => observer.disconnect();
   }, [tileCount]);
 
+  const trayBody = restricted ? <RestrictedIndicator /> : (
+    <>
+    {onSentry && (
+      <button
+        type="button"
+        className={`${styles.connectedTo} ${styles.sentryRow}`}
+        onClick={() => { onSentry(); onClose(); }}
+      >
+        <ShieldAlert size={14} className={styles.connectedLock} />
+        <span className={styles.connectedName}>{t('sentry.card.title')}</span>
+      </button>
+    )}
+    {machineName && remotePaired && (
+      <div className={styles.connectedTo}>
+        <span className={styles.connectedLabel}>{t('panel.connectedTo')}</span>
+        <span className={styles.connectedName}>{machineName}</span>
+        <Lock size={12} className={styles.connectedLock} aria-label={t('panel.actions.e2eEncrypted')} />
+      </div>
+    )}
+    <div ref={rowRef} className={styles.actionRow} data-compact={compact ? 'true' : undefined}>
+      <IconLabelButton
+        className={styles.tile}
+        icon={<Plus />}
+        label={t('panel.actions.addWidget')}
+        onPress={() => { onAddWidget(); onClose(); }}
+      />
+      {onTheme && (
+        <IconLabelButton
+          className={styles.tile}
+          icon={<Palette />}
+          label={t('panel.actions.theme')}
+          onPress={() => { onTheme(); onClose(); }}
+        />
+      )}
+      {onBackground && (
+        <IconLabelButton
+          className={styles.tile}
+          icon={<Image />}
+          label={t('panel.actions.background')}
+          onPress={() => { onBackground(); onClose(); }}
+        />
+      )}
+      {pairAction && (
+        <IconLabelButton
+          className={styles.tile}
+          icon={nativeApp ? <Settings /> : <QrCode />}
+          label={t(nativeApp ? 'panel.actions.settings' : 'panel.actions.pairing')}
+          onPress={() => { pairAction(); onClose(); }}
+        />
+      )}
+    </div>
+    </>
+  );
+
   return (
     <>
       {showScrim && (
@@ -176,57 +230,7 @@ export function PanelActionsTray({
         }
         aria-label={t('panel.actions.label')}
       >
-        {restricted ? <RestrictedIndicator /> : (<>
-        {onSentry && (
-          <button
-            type="button"
-            className={`${styles.connectedTo} ${styles.sentryRow}`}
-            onClick={() => { onSentry(); onClose(); }}
-          >
-            <ShieldAlert size={14} className={styles.connectedLock} />
-            <span className={styles.connectedName}>{t('sentry.card.title')}</span>
-          </button>
-        )}
-        {machineName && remotePaired && (
-          <div className={styles.connectedTo}>
-            <span className={styles.connectedLabel}>{t('panel.connectedTo')}</span>
-            <span className={styles.connectedName}>{machineName}</span>
-            <Lock size={12} className={styles.connectedLock} aria-label={t('panel.actions.e2eEncrypted')} />
-          </div>
-        )}
-        <div ref={rowRef} className={styles.actionRow} data-compact={compact ? 'true' : undefined}>
-          <IconLabelButton
-            className={styles.tile}
-            icon={<Plus />}
-            label={t('panel.actions.addWidget')}
-            onPress={() => { onAddWidget(); onClose(); }}
-          />
-          {onTheme && (
-            <IconLabelButton
-              className={styles.tile}
-              icon={<Palette />}
-              label={t('panel.actions.theme')}
-              onPress={() => { onTheme(); onClose(); }}
-            />
-          )}
-          {onBackground && (
-            <IconLabelButton
-              className={styles.tile}
-              icon={<Image />}
-              label={t('panel.actions.background')}
-              onPress={() => { onBackground(); onClose(); }}
-            />
-          )}
-          {pairAction && (
-            <IconLabelButton
-              className={styles.tile}
-              icon={nativeApp ? <Settings /> : <QrCode />}
-              label={t(nativeApp ? 'panel.actions.settings' : 'panel.actions.pairing')}
-              onPress={() => { pairAction(); onClose(); }}
-            />
-          )}
-        </div>
-        </>)}
+        {trayBody}
       </aside>
     </>
   );

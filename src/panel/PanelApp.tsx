@@ -1266,6 +1266,7 @@ export function PanelContent({
   // so overIndex stays -1 and the memo doesn't reliably re-fire. Use a no-op
   // strategy and project widgets via React state below.
   const projectedLayoutStrategy = useMemo<SortingStrategy>(() => () => null, []);
+  const restrictedPageIds = useMemo(() => (restricted ? allFiltered.map(p => p.id) : undefined), [restricted, allFiltered]);
   const { activePageIndex, setActivePageIndex, activePageIndexRef, pageCountRef, handlePageChange } = usePageSync({
     // `loaded` flips a render before the stored layout replaces the seed; the
     // boot must read the stored page or the kiosk's first-page reset never runs.
@@ -1277,6 +1278,7 @@ export function PanelContent({
     pageCount,
     pageDragging: Boolean(activeDragId || dragArmedId),
     blankPageIndex: allFiltered.findIndex(p => p.id === blankPageId),
+    shownPageIds: restrictedPageIds,
   });
   // Frozen snapshot of the dragged cell's pixel size + runtime CSS vars at
   // drag start. Captured once in onDragStart and reused every overlay render
