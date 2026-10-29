@@ -9,6 +9,7 @@ import type { DeckEditView } from '../widgets/types';
 import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
 import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
+import { MenuArrowButton } from '../../components/common/DeviceCanvas/MenuArrowButton';
 import { EditHint } from '../../components/common/EditHint/EditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
@@ -129,6 +130,16 @@ export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: 
   );
 }
 
+// A mouse click focuses the badge button too, which would leave it showing after
+// the pointer moved to another widget; only keyboard focus keeps it up.
+function keyboardFocused(el: EventTarget): boolean {
+  try {
+    return el instanceof Element && el.matches(':focus-visible');
+  } catch {
+    return false;
+  }
+}
+
 export function PanelTouchCell({
   widget,
   deviceId,
@@ -165,6 +176,7 @@ export function PanelTouchCell({
   onSectionNavigate,
   onConfigureWidget,
   onEnterImmersiveWidget,
+  moreActions,
 }: {
   widget: PanelWidget;
   deviceId?: string;
@@ -213,6 +225,9 @@ export function PanelTouchCell({
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
   onEnterImmersiveWidget?: (widget: PanelWidget) => void;
+  // Home dashboard only: a hover corner badge that opens the widget's context
+  // menu at the button. Omitted on every other surface.
+  moreActions?: { open: boolean; onOpen: (x: number, y: number) => void; onClose: () => void };
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
@@ -228,6 +243,12 @@ export function PanelTouchCell({
     id: widget.id,
     disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || locked,
   });
+
+  // Home dashboard "More actions" badge: shown while the cell is hovered or
+  // focused, centered on the visible card (the .cell surface).
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [cardEl, setCardEl] = useState<HTMLElement | null>(null);
 
   const lockNotice = useLockNotice(locked, lockActivationFor);
   const lockDragging = lockNotice.dragging;
@@ -455,12 +476,17 @@ export function PanelTouchCell({
       }}
       onContextMenu={dragMotionActive ? e => e.preventDefault() : onContextMenu}
       onClick={onSimulatorClick}
+      onPointerEnter={moreActions ? () => setHovered(true) : undefined}
+      onPointerLeave={moreActions ? () => setHovered(false) : undefined}
+      onFocus={moreActions ? e => setFocused(keyboardFocused(e.target)) : undefined}
+      onBlur={moreActions ? () => setFocused(false) : undefined}
       {...(dragMotionActive ? {} : attributes)}
       {...composedPointerHandlers}
     >
       {hosted(
         <>
           <div
+            ref={setCardEl}
             className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
             data-size={widget.size}
             data-widget-type={widget.type}
@@ -492,6 +518,17 @@ export function PanelTouchCell({
           <div className={styles.cellLabelStrip}>
             <WidgetCellLabel label={labelText} />
           </div>
+          {moreActions && (hovered || focused || moreActions.open) && !editorDockMotion && !resizeSelected && !isDragging && (
+            <MenuArrowButton
+              variant="corner"
+              anchor={cardEl}
+              label={t('lighting.devices.moreActions')}
+              tooltip={t('lighting.devices.moreActions')}
+              open={moreActions.open}
+              onOpen={moreActions.onOpen}
+              onClose={moreActions.onClose}
+            />
+          )}
         </>,
       )}
     </div>

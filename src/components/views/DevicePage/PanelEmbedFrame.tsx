@@ -16,7 +16,7 @@ import {
   type SimulatorParentToChild,
   type SimulatorTheme,
 } from '../../../panel/embed/simulatorProtocol';
-import type { PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
+import type { ChromeGrid, PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
 import { simulatedPanelCssViewport } from '../../../panel/embed/simulatedPanelViewport';
 import { playlistTypeOfWidgetId, playlistWidget } from '../../../panel/engine/widgetPlaylist';
 import { useTranslation } from '../../../lib/i18n';
@@ -80,6 +80,8 @@ interface PanelEmbedFrameProps {
   gridDpi?: number;
   // Short-axis slot count Widget size forces on the grid, forwarded with the density.
   shortSideSlots?: number;
+  // The Large-size grid that sizes floating chrome in the preview.
+  chromeGrid?: ChromeGrid;
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
@@ -225,6 +227,7 @@ export function PanelEmbedFrame({
   canvasIsCssPixels,
   gridDpi,
   shortSideSlots,
+  chromeGrid,
   brightness,
   screenOn,
   showPanel,
@@ -362,6 +365,7 @@ export function PanelEmbedFrame({
       genericDisplay,
       dpi: effectiveGridDpi,
       shortSideSlots,
+      chromeGrid,
       layout,
       theme,
       themeMode,
@@ -408,8 +412,8 @@ export function PanelEmbedFrame({
   // fetch races the iframe boot), so mirror it like the other props.
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi, shortSideSlots });
-  }, [childReady, effectiveGridDpi, shortSideSlots, post]);
+    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi, shortSideSlots, chromeGrid });
+  }, [childReady, effectiveGridDpi, shortSideSlots, chromeGrid, post]);
 
   // Touch capability can resolve after init the same way (record fetch),
   // so mirror it too - the preview's drag sensor gates on it.

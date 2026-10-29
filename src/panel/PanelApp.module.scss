@@ -430,7 +430,7 @@
 // Display-scaled surfaces size the dots with the panel, as the actions tray
 // does: zoom, not a transform, so they rasterize at the size shown.
 .panelRoot:not([data-surface='phone']):not([data-surface='desktop']) .panelPageIndicatorPosition {
-  zoom: var(--panel-scale, 1);
+  zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
 }
 
 .panelRoot[data-surface='y70'] {
@@ -1246,6 +1246,7 @@
 // treatment, sheets scaled as panel content.
 .editorBackdrop[data-surface='monitor']:not([data-touch-chrome='true']) {
   --panel-scale: 1;
+  --panel-chrome-scale: 1;
 }
 
 .editorBackdrop[data-surface='desktop'] {
@@ -1261,6 +1262,7 @@
   // own --panel-scale
   // for its preview cells (a closer ancestor), so those still scale correctly.
   --panel-scale: 1;
+  --panel-chrome-scale: 1;
   background: color-mix(in srgb, var(--bg) 58%, transparent);
   // Cover the whole app incl. the top bar (like modal Overlays). z-modal lifts
   // the scrim + sheet header above the top bar (z 40) so they stay clickable,
@@ -1620,18 +1622,18 @@
 // changing layout on a surface this change was not measured against.
 @mixin editorBottomSheetScaled {
   .editorSheet {
-    zoom: var(--panel-scale, 1);
-    --sheet-zoom: var(--panel-scale, 1);
+    zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
+    --sheet-zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
     width: 100%;
     // The viewport terms keep the division: vw/dvh ARE multiplied by the
     // zoom, so an undivided cap would come out a factor too large. A
     // percentage is not, so width needs no division.
-    max-height: calc(min(300vw, 100dvh) / var(--panel-scale, 1));
+    max-height: calc(min(300vw, 100dvh) / var(--panel-chrome-scale, var(--panel-scale, 1)));
     margin-inline: auto;
   }
 
   &[data-docked='true'] .editorSheet {
-    height: calc((100dvh - var(--panel-editor-dock-clear-bottom)) / var(--panel-scale, 1));
+    height: calc((100dvh - var(--panel-editor-dock-clear-bottom)) / var(--panel-chrome-scale, var(--panel-scale, 1)));
     max-height: none;
   }
 }
@@ -1673,11 +1675,11 @@
     justify-content: flex-end;
 
     .editorSheet {
-      zoom: var(--panel-scale, 1);
-      --sheet-zoom: var(--panel-scale, 1);
+      zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
+      --sheet-zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
       // The px term is multiplied by the zoom, which is what the drawer
       // wants; the vw cap is divided because it would be multiplied too.
-      width: min(380px, calc(88vw / var(--panel-scale, 1)));
+      width: min(380px, calc(88vw / var(--panel-chrome-scale, var(--panel-scale, 1))));
       height: 100%;
       max-height: none;
       border-left: 1px solid var(--panel-border);
