@@ -242,6 +242,13 @@
   flex-direction: column;
 }
 
+.embeddedActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
 .optionDescription {
   margin-top: 0.15rem;
   color: var(--text-dim);

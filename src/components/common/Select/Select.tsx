@@ -17,6 +17,7 @@ import { usePortalRoot } from '../ThemeScope/ThemeScope';
 import { useTranslation } from '../../../lib/i18n';
 import classNames from 'classnames';
 import { Spinner } from '../Spinner/Spinner';
+import { Button } from '../Button/Button';
 import buttonStyles from '../Button/Button.module.scss';
 import styles from './Select.module.scss';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
@@ -75,6 +76,12 @@ export interface SelectOption {
   // Action rows only: accessible name while busy. The visible label stays in
   // layout, hidden, so the button keeps its idle size under the spinner.
   busyLabel?: string;
+  // Small buttons drawn inside this option's own row, under its text, so they
+  // share its background (e.g. a Resync beside the selected item). Pressing one
+  // runs its onClick and neither selects the option nor closes the menu. They
+  // are real buttons: focus reaches them with Tab from the list, and Enter or
+  // Space presses them. `hint` shows as a tooltip.
+  embeddedActions?: { label: string; onClick: () => void; disabled?: boolean; hint?: string }[];
 }
 
 export interface SelectProps {
@@ -282,7 +289,7 @@ export function Select({
       const optionEls = Array.from(list.children) as HTMLElement[];
       for (const o of optionEls) o.style.overflow = 'visible';
       // Descriptions wrap to the menu width the labels set; they never size it.
-      const descEls = Array.from(list.querySelectorAll<HTMLElement>('[data-option-description]'));
+      const descEls = Array.from(list.querySelectorAll<HTMLElement>('[data-option-description], [data-option-actions]'));
       for (const d of descEls) d.style.display = 'none';
       menu.style.width = 'max-content';
       menu.style.minWidth = `${baseWidth}px`;
@@ -472,7 +479,8 @@ export function Select({
         break;
       }
       case 'Escape': e.preventDefault(); close(true); break;
-      case 'Tab': close(); break;
+      // Tab walks on to the active row's embedded buttons when it has any.
+      case 'Tab': if (!visible[activeIndex]?.embeddedActions?.length) close(); break;
       default:
         if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
           const now = Date.now();
@@ -629,6 +637,22 @@ export function Select({
                       <span id={`${optionId(i)}-desc`} data-option-description="true" className={styles.optionDescription}>{opt.description}</span>
                     </span>
                   ) : opt.label}
+                  {!opt.onAction && opt.embeddedActions && opt.embeddedActions.length > 0 && (
+                    // Keys other than Escape stay here so Enter and Space press the button instead of
+                    // committing the row; clicks stay here so the row is not chosen.
+                    <span
+                      className={styles.embeddedActions}
+                      data-option-actions="true"
+                      onClick={e => e.stopPropagation()}
+                      onKeyDown={e => { if (e.key !== 'Escape') e.stopPropagation(); }}
+                    >
+                      {opt.embeddedActions.map(action => (
+                        <Button key={action.label} size="sm" tone="neutral" title={action.hint} disabled={action.disabled} onClick={action.onClick}>
+                          {action.label}
+                        </Button>
+                      ))}
+                    </span>
+                  )}
                 </li>
               ))
             )}

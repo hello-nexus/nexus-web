@@ -39,6 +39,45 @@ describe('Select description lines', () => {
   });
 });
 
+describe('Select embeddedActions', () => {
+  const withAction = (onClick: () => void, onChange = vi.fn()) => render(
+    <Select
+      value="a" onChange={onChange} ariaLabel="fruit"
+      options={[{ value: 'a', label: 'Apple', embeddedActions: [{ label: 'Peel', onClick, hint: 'Peel it' }] }, { value: 'b', label: 'Banana' }]}
+    />,
+  );
+
+  it('presses inside the row without choosing it or closing the list', () => {
+    const onClick = vi.fn();
+    const onChange = vi.fn();
+    withAction(onClick, onChange);
+    const list = open();
+    fireEvent.click(within(list).getByRole('button', { name: 'Peel' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+  });
+
+  it('keeps Enter on the button from committing the active row', () => {
+    const onClick = vi.fn();
+    const onChange = vi.fn();
+    withAction(onClick, onChange);
+    const list = open();
+    fireEvent.keyDown(within(list).getByRole('button', { name: 'Peel' }), { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps the list open on Tab when the active row has buttons, and closes it otherwise', () => {
+    withAction(vi.fn());
+    const list = open();
+    fireEvent.keyDown(list, { key: 'Tab' });
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    fireEvent.keyDown(list, { key: 'ArrowDown' });
+    fireEvent.keyDown(list, { key: 'Tab' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+});
+
 describe('Select renderValue', () => {
   it('draws custom trigger content for the selected option and leaves the menu rows alone', () => {
     render(
