@@ -54,6 +54,25 @@ describe('WidgetContextMenu', () => {
   });
 });
 
+describe('WidgetContextMenu title', () => {
+  it('renders the widget name as a non-focusable presentation line', () => {
+    render(<WidgetContextMenu x={0} y={0} currentSize="2x2" sizes={['2x2']} hasConfig={false} title="Clock" onResize={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} onClose={vi.fn()} />);
+    const label = screen.getByText('Clock');
+    expect(label.getAttribute('role')).toBe('presentation');
+    expect(label.hasAttribute('tabindex')).toBe(false);
+    expect(label.closest('button')).toBeNull();
+    // Tab order holds only the real items.
+    const focusable = Array.from(document.querySelectorAll('button, [tabindex]'));
+    expect(focusable.length).toBeGreaterThan(0);
+    expect(focusable.every(el => !el.contains(label) && el !== label)).toBe(true);
+  });
+
+  it('renders no label without a title', () => {
+    render(menu(1, vi.fn()));
+    expect(document.querySelector('[role="presentation"]')).toBeNull();
+  });
+});
+
 // A panel scales the menu up; it scales about --menu-origin, so the layout box
 // must sit where the painted (scaled) box ends up clamped inside the viewport.
 describe('WidgetContextMenu on a scaled panel', () => {

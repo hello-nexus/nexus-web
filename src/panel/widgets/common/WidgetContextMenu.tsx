@@ -12,6 +12,8 @@ interface WidgetContextMenuProps {
   currentSize: PanelWidgetSize;
   sizes: PanelWidgetSize[];
   hasConfig: boolean;
+  // Widget name shown as a quiet, non-interactive first line.
+  title?: string;
   surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
@@ -61,6 +63,7 @@ export function WidgetContextMenu({
   x, y,
   currentSize, sizes,
   hasConfig,
+  title,
   surface,
   themeMode = 'dark',
   themeStyle,
@@ -191,6 +194,8 @@ export function WidgetContextMenu({
       data-panel-hit="true"
       style={menuStyle}
     >
+      {title && <div role="presentation" className={styles.title}>{title}</div>}
+
       {(onWebBack || onWebForward || onWebHome) && (
         <>
           {onWebBack && (
