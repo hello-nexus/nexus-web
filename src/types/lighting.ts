@@ -301,6 +301,8 @@ export const EFFECTS: EffectDef[] = [
   { key: 'rainbow',     labelKey: 'lighting.controls.rainbow',     params: [
       { name: 'u_density',  label: 'Density', labelKey: 'lighting.controls.param.density' },
       { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+      { name: 'u_tempo',    label: 'Tempo', labelKey: 'lighting.controls.param.tempo' },
+      { name: 'u_aspect',   label: 'Match aspect ratio', labelKey: 'lighting.controls.param.aspect', toggle: true },
   ]},
   // Rainbow's hard-edged sibling: flat hue bars with black between them.
   // Position slides the colour/black split inside each bar, so it thickens the
@@ -314,11 +316,15 @@ export const EFFECTS: EffectDef[] = [
      colors: [{ id: 'a', labelKey: 'lighting.controls.color1', range: true }, { id: 'b', labelKey: 'lighting.controls.color2', range: true }], params: [
       { name: 'u_sharpness', label: 'Sharpness', labelKey: 'lighting.controls.param.sharpness' },
   ]},
-  { key: 'sweepcycle',   labelKey: 'lighting.controls.sweepcycle',  params: [] },
+  { key: 'sweepcycle',   labelKey: 'lighting.controls.sweepcycle',  params: [
+      { name: 'u_span', label: 'Span', labelKey: 'lighting.controls.param.span' },
+      { name: 'u_dip',  label: 'Dip', labelKey: 'lighting.controls.param.dip' },
+  ]},
   { key: 'sweepbrush',   labelKey: 'lighting.controls.sweepbrush',  params: [
       { name: 'u_strokes', label: 'Strokes', labelKey: 'lighting.controls.param.strokes' },
       { name: 'u_feather', label: 'Feather', labelKey: 'lighting.controls.param.feather' },
       { name: 'u_fill',    label: 'Fill', labelKey: 'lighting.controls.param.fill' },
+      { name: 'u_step',    label: 'Hue step', labelKey: 'lighting.controls.param.step' },
   ]},
   { key: 'sweepliquid',  labelKey: 'lighting.controls.sweepliquid', params: [
       { name: 'u_warp',  label: 'Warp', labelKey: 'lighting.controls.param.warp' },
@@ -327,6 +333,8 @@ export const EFFECTS: EffectDef[] = [
   { key: 'sweepcomet',   labelKey: 'lighting.controls.sweepcomet',  params: [
       { name: 'u_comets', label: 'Comets', labelKey: 'lighting.controls.param.comets' },
       { name: 'u_tail',   label: 'Tail', labelKey: 'lighting.controls.param.tail' },
+      { name: 'u_color',  label: 'Color', labelKey: 'lighting.controls.param.color' },
+      { name: 'u_head',   label: 'Head', labelKey: 'lighting.controls.param.head' },
   ]},
   // Sweeps around like a clock hand, the two colors taking turns, for fans and rings.
   { key: 'clockfill',    labelKey: 'lighting.controls.clockfill',
@@ -854,7 +862,11 @@ export const DEFAULT_STATIC_EFFECT = 'gradientlinear';
  * purpose-built for a held frame - the patterns have no clock to run - so they
  * must not appear here or Animation can select one and sit motionless.
  */
-export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS.filter(e => !STATIC_KEY_SET.has(e.key));
+export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS
+  .filter(e => !STATIC_KEY_SET.has(e.key))
+  // Category order, then catalogue order within a category (the sort is stable),
+  // so flat lists such as a dropdown lead with the Patterns like the browser does.
+  .sort((a, b) => EFFECT_CATEGORIES.indexOf(categoryOf(a.key)) - EFFECT_CATEGORIES.indexOf(categoryOf(b.key)));
 
 /**
  * Simple-mode browse pool: the flat colours, rendered as

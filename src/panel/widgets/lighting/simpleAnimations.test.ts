@@ -38,6 +38,13 @@ describe('simple-mode animations', () => {
     expect(new Set(labels).size).toBe(labels.length);
   });
 
+  // Flat lists (the Deck key dropdown, the widget fallback) read ANIMATE_EFFECTS directly.
+  it('lists the seven first in the flat animate pool', () => {
+    expect(ANIMATE_EFFECTS.slice(0, SIMPLE_ANIMATION_KEYS.length).map(e => e.key)).toEqual([...SIMPLE_ANIMATION_KEYS]);
+    const ranks = ANIMATE_EFFECTS.map(e => EFFECT_CATEGORIES.indexOf(categoryOf(e.key)));
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+  });
+
   it('puts Patterns first in the category order', () => {
     expect(EFFECT_CATEGORIES[0]).toBe('pattern');
     expect(new Set(EFFECT_CATEGORIES).size).toBe(EFFECT_CATEGORIES.length);
