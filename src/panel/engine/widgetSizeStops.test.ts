@@ -5,11 +5,12 @@ import { panelWidgetSizeOptions, type PanelSurface } from '../types';
 
 const stopsOf = (surface: PanelSurface, family?: string) => widgetSizeStops(panelWidgetSizeOptions(surface, family)!).map(s => `${s.mode}:${s.percent}`);
 
-const plain0 = (surface: PanelSurface, family?: string) => surface === 'monitor' && !family;
+// Panels whose older Large is a stop above the default.
+const above100 = (surface: PanelSurface) => surface === 'monitor';
 
 describe('widgetSizeStops', () => {
   it('labels the Y70 and plain displays 100 / 75 / 50', () => {
-    expect(stopsOf('y70')).toEqual(['large:100', 'small:75', 'xsmall:50']);
+    expect(stopsOf('y70')).toEqual(['large:100', 'medium:75', 'compact:50']);
     expect(stopsOf('monitor')).toEqual(['large:200', 'midlarge:150', 'small:100', 'medium:75', 'xsmall:50']);
   });
 
@@ -25,13 +26,13 @@ describe('widgetSizeStops', () => {
     expect(at(2)).toEqual([100, 75]);
   });
 
-  it('gives device screens 100 and 50, and the Lian Li 8.8 also 75', () => {
+  it('gives device screens 100 and 50, a Large stop where they had one, and the Lian Li 8.8 also 75', () => {
     expect(stopsOf('q60')).toEqual(['large:100', 'small:50']);
     expect(stopsOf('lcd-square', 'asus-glacial-lcd')).toEqual(['large:100', 'small:50']);
     expect(stopsOf('lcd-wide', 'lianli-hydroshift2-curve')).toEqual(['large:100', 'small:50']);
-    expect(stopsOf('monitor', 'icue-link-lcd5')).toEqual(['small:100', 'xsmall:50']);
-    expect(stopsOf('monitor', 'lianli-screen88')).toEqual(['small:100', 'medium:75', 'xsmall:50']);
-    expect(stopsOf('monitor', 'hyte-y60')).toEqual(['small:100', 'xsmall:50']);
+    expect(stopsOf('monitor', 'icue-link-lcd5')).toEqual(['large:200', 'small:100', 'compact:50']);
+    expect(stopsOf('monitor', 'lianli-screen88')).toEqual(['large:200', 'small:100', 'medium:75', 'compact:50']);
+    expect(stopsOf('monitor', 'hyte-y60')).toEqual(['large:200', 'small:100', 'compact:50']);
   });
 
   it('only ever shows 25, 50, 75 or 100, and every surface has a 100 baseline', () => {
@@ -43,9 +44,8 @@ describe('widgetSizeStops', () => {
       const options = panelWidgetSizeOptions(surface, family)!;
       const percents = widgetSizeStops(options).map(s => s.percent);
       expect(percents.length).toBeGreaterThan(1);
-      expect(Math.max(...percents) > 100).toBe(plain0(surface, family));
-      const plain = surface === 'monitor' && !family;
-      for (const p of percents) expect(plain ? [25, 50, 75, 100, 150, 200] : [25, 50, 75, 100]).toContain(p);
+      expect(Math.max(...percents) > 100).toBe(above100(surface));
+      for (const p of percents) expect([25, 50, 75, 100, 150, 200]).toContain(p);
       expect(percents).toContain(100);
       // The default size is the 100% baseline, or a tile Large that is.
       expect(options.percentLabels?.[options.default]).toBe(100);
@@ -67,9 +67,10 @@ describe('widgetSizeStops', () => {
     expect(at(4)).toBe(150);
     expect(at(2)).toBe(100);
     expect(at(12)).toBe(200);
+    // A device whose older Large is a stop of its own shows it as that stop.
     const lianli = panelWidgetSizeOptions('monitor', 'lianli-screen88')!;
-    expect(stopForWidgetSize(lianli, widgetSizeStops(lianli, 8), 'large', 8)?.percent).toBe(100);
+    expect(stopForWidgetSize(lianli, widgetSizeStops(lianli, 8), 'large', 8)?.percent).toBe(200);
     const lcd5 = panelWidgetSizeOptions('monitor', 'icue-link-lcd5')!;
-    expect(stopForWidgetSize(lcd5, widgetSizeStops(lcd5, 8), 'large', 8)?.percent).toBe(100);
+    expect(stopForWidgetSize(lcd5, widgetSizeStops(lcd5, 8), 'large', 8)?.percent).toBe(200);
   });
 });

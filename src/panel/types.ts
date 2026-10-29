@@ -179,9 +179,11 @@ export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string
 }
 
 // Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid; 'xsmall' (plain OS
-// displays only) the densest. A panel that offers the switch lays out each size as another surface
+// displays) the densest. 'medium', 'midlarge' and 'compact' are stops added later: a panel whose
+// older builds ignored a stored 'small' or 'xsmall' uses 'medium' or 'compact' for its new stops,
+// so a record holding an old value draws what it always drew. A panel that offers the switch lays out each size as another surface
 // does, while its own surface keeps driving the hardware (touch, render cost, offline behaviour).
-export const PANEL_WIDGET_SIZE_MODES = ['large', 'midlarge', 'small', 'medium', 'xsmall'] as const;
+export const PANEL_WIDGET_SIZE_MODES = ['large', 'midlarge', 'small', 'medium', 'xsmall', 'compact'] as const;
 export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 
 export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
@@ -200,7 +202,7 @@ export interface PanelWidgetSizeOptions {
   shortSideSlots?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
   // Share of the density-derived short-axis slot count a size keeps.
   densitySlotShare?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
-  // Fixed slider label per size; a size without one is not offered and resolves to the default.
+  // Fixed slider label per size. A size a record holds is always laid out; its label gives it a slider stop.
   percentLabels?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
 }
 
@@ -209,11 +211,13 @@ export interface PanelWidgetSizeOptions {
 const ONE_TILE_OR_GRID: Readonly<Partial<Record<PanelWidgetSizeMode, PanelSurface>>> = { large: 'q60', small: 'monitor' };
 // Where the default is a single tile the existing density grid is the 50% stop; where it is a grid, 50% doubles its count.
 const TILE_AND_GRID_LABELS = { large: 100, small: 50 } as const;
-const GRID_AND_DOUBLE_LABELS = { small: 100, xsmall: 50 } as const;
+const GRID_AND_DOUBLE_LABELS = { small: 100, compact: 50 } as const;
+// Large is a single tile (iCUE LCD5) or a forced two-column grid (Y60); either way it is the stop above the default, the 200% label.
+const LARGE_ABOVE_GRID_LABELS = { large: 200, ...GRID_AND_DOUBLE_LABELS } as const;
 
 export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | null): PanelWidgetSizeOptions | undefined {
   if (surface === 'q60') return { default: 'large', layoutSurface: ONE_TILE_OR_GRID, percentLabels: TILE_AND_GRID_LABELS };
-  if (surface === 'monitor' && family === ICUE_LINK_LCD5_FAMILY) return { default: 'small', layoutSurface: { ...ONE_TILE_OR_GRID, xsmall: 'monitor' }, densitySlotShare: { xsmall: 2 }, percentLabels: GRID_AND_DOUBLE_LABELS };
+  if (surface === 'monitor' && family === ICUE_LINK_LCD5_FAMILY) return { default: 'small', layoutSurface: { ...ONE_TILE_OR_GRID, compact: 'monitor' }, densitySlotShare: { compact: 2 }, percentLabels: LARGE_ABOVE_GRID_LABELS };
   // HydroShift II OLED Curved: Large is its one wide tile, Small a landscape grid
   // sized by the glass's physical density at its rendered resolution.
   if (surface === 'lcd-wide' && family === HYDROSHIFT2_CURVE_FAMILY) {
@@ -227,21 +231,21 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
     return {
       default: 'small',
-      layoutSurface: { large: 'monitor', small: 'monitor', medium: 'monitor', xsmall: 'monitor' },
+      layoutSurface: { large: 'monitor', small: 'monitor', medium: 'monitor', compact: 'monitor' },
       shortSideSlots: { large: 2 },
-      densitySlotShare: { medium: 1.5, xsmall: 2 },
-      percentLabels: { small: 100, medium: 75, xsmall: 50 },
+      densitySlotShare: { medium: 1.5, compact: 2 },
+      percentLabels: { large: 200, small: 100, medium: 75, compact: 50 },
     };
   }
   // HYTE Y60 display: a wide bar that usually runs rotated to portrait. The forced count applies to the
   // short axis in either orientation, so Large gives fewer, bigger cells; Small is the density grid.
   if (surface === 'monitor' && family === HYTE_Y60_FAMILY) {
-    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', xsmall: 'monitor' }, shortSideSlots: { large: 2 }, densitySlotShare: { xsmall: 2 }, percentLabels: GRID_AND_DOUBLE_LABELS };
+    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', compact: 'monitor' }, shortSideSlots: { large: 2 }, densitySlotShare: { compact: 2 }, percentLabels: LARGE_ABOVE_GRID_LABELS };
   }
   // HYTE Y70: every size stays the y70 surface, so backdrop, theme, touch, frost and hit-test never change.
-  // Large is the fixed grid it always had; Small and Tiny force more columns, and the rows follow from square cells.
+  // Large is the fixed grid it always had; Medium and Compact force more columns, and the rows follow from square cells.
   if (surface === 'y70') {
-    return { default: 'large', layoutSurface: { large: 'y70', small: 'y70', xsmall: 'y70' }, shortSideSlots: { small: Y70_COLUMN_STOPS.small, xsmall: Y70_COLUMN_STOPS.xsmall }, percentLabels: { large: 100, small: 75, xsmall: 50 } };
+    return { default: 'large', layoutSurface: { large: 'y70', medium: 'y70', compact: 'y70' }, shortSideSlots: { medium: Y70_COLUMN_STOPS.medium, compact: Y70_COLUMN_STOPS.compact }, percentLabels: { large: 100, medium: 75, compact: 50 } };
   }
   // A plain OS monitor: 100% is its density grid; stops above it divide the short-axis count, stops below multiply it.
   if (surface === 'monitor' && !family) {
@@ -256,7 +260,7 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
 }
 
 // Y70 column counts per size.
-export const Y70_COLUMN_STOPS = { large: 4, small: 6, xsmall: 8 } as const;
+export const Y70_COLUMN_STOPS = { large: 4, medium: 6, compact: 8 } as const;
 
 // A grid whose short axis a Widget size forces; landscape means the short axis is its rows.
 export interface ForcedGrid {
@@ -393,8 +397,7 @@ export function resolvePanelWidgetSize(
   const options = panelWidgetSizeOptions(surface, family);
   if (!options) return undefined;
   const named = PANEL_WIDGET_SIZE_MODES.find(m => m === widgetSize);
-  const offered = named && options.layoutSurface[named] && (!options.percentLabels || options.percentLabels[named] !== undefined);
-  return named && offered ? named : options.default;
+  return named && options.layoutSurface[named] ? named : options.default;
 }
 
 // The surface whose layout rules (grid, single tile, sizes, playlist) the panel follows.

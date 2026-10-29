@@ -99,8 +99,8 @@ describe('Widget size', () => {
     expect(panelLayoutSurface('q60', undefined, null)).toBe('q60');
     expect(panelLayoutSurface('q60', undefined, 'small')).toBe('monitor');
     expect(panelLayoutSurface('monitor', 'icue-link-lcd5', null)).toBe('monitor');
-    // A stored Large the LCD5 slider no longer offers lays out as its default grid.
-    expect(panelLayoutSurface('monitor', 'icue-link-lcd5', 'large')).toBe('monitor');
+    // A stored Large stays the single tile it always was.
+    expect(panelLayoutSurface('monitor', 'icue-link-lcd5', 'large')).toBe('q60');
   });
 
   it('defaults each panel to the size it has always had', () => {
@@ -130,16 +130,16 @@ describe('Widget size', () => {
     expect(panelWidgetSizeOptions('lcd-square', 'asus-ryujin-lcd')).toBeUndefined();
   });
 
-  it('lays a stored coarse Large out as the default on the Lian Li 8.8 and HYTE Y60, and adds a doubled-columns 50%', () => {
-    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'large')).toBeUndefined();
+  it('keeps a stored coarse Large at two columns on the Lian Li 8.8 and HYTE Y60, and adds a doubled-columns 50%', () => {
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'large')).toBe(2);
     expect(panelShortSideSlots('monitor', 'lianli-screen88', 'small')).toBeUndefined();
     expect(panelShortSideSlots('monitor', 'lianli-screen88', null)).toBeUndefined();
     expect(panelLayoutSurface('monitor', 'lianli-screen88', 'large')).toBe('monitor');
-    expect(panelShortSideSlots('monitor', 'hyte-y60', 'large')).toBeUndefined();
+    expect(panelShortSideSlots('monitor', 'hyte-y60', 'large')).toBe(2);
     expect(panelShortSideSlots('monitor', 'hyte-y60', 'small')).toBeUndefined();
-    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')).toMatchObject({ default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', xsmall: 'monitor' } });
-    expect(panelShortSideSlots('monitor', 'hyte-y60', 'xsmall', 4)).toBe(8);
-    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'xsmall', 6)).toBe(12);
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')).toMatchObject({ default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', compact: 'monitor' } });
+    expect(panelShortSideSlots('monitor', 'hyte-y60', 'compact', 4)).toBe(8);
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'compact', 6)).toBe(12);
     expect(panelShortSideSlots('monitor', 'icue-link-lcd5', 'large')).toBeUndefined();
     expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });
@@ -173,12 +173,15 @@ describe('Widget size on the Y70', () => {
   });
 
   it('forces 6 and 8 columns on the y70 surface at 6 and 8 columns', () => {
-    expect(panelLayoutSurface('y70', undefined, 'small')).toBe('y70');
-    expect(panelLayoutSurface('y70', undefined, 'xsmall')).toBe('y70');
-    expect(panelShortSideSlots('y70', undefined, 'small', 4)).toBe(6);
-    expect(panelShortSideSlots('y70', undefined, 'xsmall', 4)).toBe(8);
-    expect(panelShortSideSlots('y70', undefined, 'xsmall')).toBe(8);
-    expect(panelLayoutDpi('y70', undefined, 'xsmall', null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
+    expect(panelLayoutSurface('y70', undefined, 'medium')).toBe('y70');
+    expect(panelLayoutSurface('y70', undefined, 'compact')).toBe('y70');
+    expect(panelShortSideSlots('y70', undefined, 'medium', 4)).toBe(6);
+    expect(panelShortSideSlots('y70', undefined, 'compact', 4)).toBe(8);
+    expect(panelShortSideSlots('y70', undefined, 'compact')).toBe(8);
+    // The older sizes a Y70 never offered still draw the fixed grid.
+    expect(panelShortSideSlots('y70', undefined, 'small', 4)).toBeUndefined();
+    expect(panelShortSideSlots('y70', undefined, 'xsmall', 4)).toBeUndefined();
+    expect(panelLayoutDpi('y70', undefined, 'compact', null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
   });
 });
 
@@ -446,10 +449,10 @@ describe('widget size options for a plain display', () => {
     expect(panelShortSideSlots('monitor', undefined, size, 4)).toBe(8);
   });
 
-  it('resolves a stored size without a slider label to the default', () => {
-    expect(resolvePanelWidgetSize('monitor', 'lianli-screen88', 'large')).toBe('small');
-    expect(resolvePanelWidgetSize('monitor', 'hyte-y60', 'large')).toBe('small');
-    expect(resolvePanelWidgetSize('monitor', 'icue-link-lcd5', 'large')).toBe('small');
+  it('keeps every older stored size on a stop of its own', () => {
+    expect(resolvePanelWidgetSize('monitor', 'lianli-screen88', 'large')).toBe('large');
+    expect(resolvePanelWidgetSize('monitor', 'hyte-y60', 'large')).toBe('large');
+    expect(resolvePanelWidgetSize('monitor', 'icue-link-lcd5', 'large')).toBe('large');
     expect(resolvePanelWidgetSize('y70', undefined, 'large')).toBe('large');
   });
 
@@ -493,17 +496,17 @@ describe('stored widget size per device', () => {
     expect(['small', undefined, 'large', 'xsmall', 'medium', 'midlarge'].map(v => resolved('monitor', undefined, v))).toEqual([
       'small/monitor/-', 'small/monitor/-', 'large/monitor/2', 'xsmall/monitor/8', 'medium/monitor/6', 'midlarge/monitor/2',
     ]);
-    // Y70: unset and large are the fixed grid; small and xsmall keep 6 and 8 columns.
-    expect(['large', undefined, 'small', 'xsmall'].map(v => resolved('y70', undefined, v))).toEqual([
-      'large/y70/-', 'large/y70/-', 'small/y70/6', 'xsmall/y70/8',
+    // Y70: unset, large and the older sizes it never offered are the fixed grid; medium and compact force 6 and 8 columns.
+    expect(['large', undefined, 'small', 'xsmall', 'medium', 'compact'].map(v => resolved('y70', undefined, v))).toEqual([
+      'large/y70/-', 'large/y70/-', 'large/y70/-', 'large/y70/-', 'medium/y70/6', 'compact/y70/8',
     ]);
     // Tile devices: large is the tile (100%), small the grid (50%); xsmall is not offered.
     for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve']] as const) {
       expect([undefined, 'large', 'small', 'xsmall'].map(v => resolvePanelWidgetSize(surface, family, v))).toEqual(['large', 'large', 'small', 'large']);
     }
-    // Grid devices: unset and small are 100%, a stored large has no stop so it resolves to 100%, xsmall is the 50%.
+    // Grid devices: unset and small are 100%, a stored large keeps its own 200% stop, xsmall was never offered so it stays the default, compact is the 50%.
     for (const family of ['lianli-screen88', 'hyte-y60', 'icue-link-lcd5']) {
-      expect([undefined, 'small', 'large', 'xsmall'].map(v => resolvePanelWidgetSize('monitor', family, v))).toEqual(['small', 'small', 'small', 'xsmall']);
+      expect([undefined, 'small', 'large', 'xsmall', 'compact'].map(v => resolvePanelWidgetSize('monitor', family, v))).toEqual(['small', 'small', 'large', 'small', 'compact']);
     }
   });
 });

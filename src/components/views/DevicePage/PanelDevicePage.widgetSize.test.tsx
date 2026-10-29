@@ -150,7 +150,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 const sizeSlider = () => screen.getByRole('slider', { name: 'devices.panels.widgetSize.label' }) as HTMLInputElement;
-// Device screens offer two stops: 100% at the slider's top, 50% at its bottom.
+// 'max' and 'min' are the slider's ends.
 async function pickSize(mode: 'max' | 'min') {
   const slider = sizeSlider();
   await act(async () => {
@@ -257,14 +257,16 @@ describe('PanelDevicePage widget size', () => {
       ]),
     };
     await renderPage(screen88);
-    expect(sizeSlider().value).toBe(sizeSlider().max);
+    // The default is 100%; the older forced two-column Large keeps its own 200% stop above it.
+    expect(sizeSlider().value).toBe('100');
+    expect(sizeSlider().max).toBe('200');
 
     await pickSize('min');
 
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
     const written = patches()[0].layout?.pages.flatMap(p => p.widgets) ?? [];
-    expect(patches()[0].widgetSize).toBe('xsmall');
+    expect(patches()[0].widgetSize).toBe('compact');
     expect(written.map(w => w.type).sort()).toEqual(['clock', 'media', 'monitoring', 'stocks', 'weather']);
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
   });
