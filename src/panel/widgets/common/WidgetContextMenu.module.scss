@@ -69,6 +69,48 @@
   }
 }
 
+.nameRow {
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  min-width: 0;
+}
+
+// Beats .item, which is declared later and would set the muted item color.
+.item.nameRow {
+  color: var(--text);
+}
+
+// Nothing to open: same look as the Open row, but inert.
+.nameRowStatic {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  font-family: var(--panel-font);
+  user-select: none;
+  cursor: default;
+  color: var(--text);
+}
+
+.nameLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nameChevron {
+  flex: none;
+  color: var(--text-dim);
+  transition: color var(--ease-fast);
+}
+
+.nameRow:hover .nameChevron {
+  color: var(--text);
+}
+
 .sizeRow {
   display: flex;
   align-items: center;
@@ -197,7 +239,7 @@
 // Monitor-attached panel chrome scaling (everything except phone +
 // desktop). The keyframes hold the resting scale via their `both` fill.
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']).menu {
-  --_menu-scale: var(--panel-scale, 1);
+  --_menu-scale: var(--panel-chrome-scale, var(--panel-scale, 1));
 }
 
 // On the desktop device-canvas surface the panel hover token

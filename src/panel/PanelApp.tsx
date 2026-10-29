@@ -118,11 +118,12 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
   type ForcedGrid,
+  type ChromeGrid,
 } from './types';
 import { recordWidgetSizeOf } from './engine/recordWidgetSize';
 import { kioskViewportSettled, recordCanvasOf } from './engine/recordCanvas';
 import { kioskViewportReporter } from './engine/kioskViewportReport';
-import { isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, genericSinglePage } from './types';
+import { largeChromeGrid, isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, genericSinglePage } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -146,9 +147,11 @@ import {
   buildPanelCollisionDetection,
   findWidgetById,
   isDashboardClickthroughType,
+  widgetOpenTab,
   appRouteForWidget,
   noopCellPointers,
   parseDragTarget,
+  showWidgetMoreActions,
 } from './engine/panelLayoutHelpers';
 import {
   DEFAULT_SURFACE_DPI,
@@ -298,6 +301,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       dpi,
       shortSideSlots: panelShortSideSlots(glassSurface, caps?.family, widgetSize, densitySlots),
       densitySlots,
+      chromeGrid: largeChromeGrid(glassSurface, caps?.family, caps?.dpi, DEFAULT_SURFACE_DPI, densitySlots),
       widgetSize,
       displayBound: !!record?.displayId,
     };
@@ -407,6 +411,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       deviceTouch={resolved.touch}
       deviceDpi={resolved.dpi}
       shortSideSlots={resolved.shortSideSlots}
+      chromeGrid={resolved.chromeGrid}
       displayBound={resolved.displayBound}
     />
   );
@@ -437,7 +442,7 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
   );
 }
 
-function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; displayBound?: boolean }) {
+function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, chromeGrid, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; chromeGrid?: ChromeGrid; displayBound?: boolean }) {
   const landscape = useViewportLandscape();
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, landscape), [shortSideSlots, landscape]);
   const layoutState = usePanelLayout(recordState, deviceId, surface, widgetInputOf(deviceTouch, !!displayBound), forcedGrid);
@@ -449,7 +454,7 @@ function PanelKioskContent({ recordState, deviceId, surface, glassSurface, devic
       <PanelDeviceIdProvider value={deviceId}>
       <PanelDisplayBoundProvider value={!!displayBound}>
         <PanelGlassSurfaceProvider value={glassSurface}>
-          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} displayBound={displayBound} layoutState={layoutState} />
+          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} chromeGrid={chromeGrid} displayBound={displayBound} layoutState={layoutState} />
         </PanelGlassSurfaceProvider>
       </PanelDisplayBoundProvider>
       </PanelDeviceIdProvider>
@@ -465,6 +470,7 @@ export function PanelContent({
   deviceTouch,
   deviceDpi,
   shortSideSlots,
+  chromeGrid,
   displayBound = false,
   genericDisplayOverride,
   layoutState,
@@ -495,6 +501,8 @@ export function PanelContent({
   deviceDpi?: number;
   // Short-axis slot count Widget size forces on the grid.
   shortSideSlots?: number;
+  // The Large-size grid that sizes floating chrome; absent = the grid in use.
+  chromeGrid?: ChromeGrid;
   // True when the record is display-bound (promoted OS monitor, displayId
   // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
   // the desktop see-through gate.
@@ -708,6 +716,8 @@ export function PanelContent({
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots);
+  // Floating chrome (menus, sheets, tray) sizes from the Large grid, so a finer Widget size never shrinks it.
+  const chromeRuntimeGrid = useRuntimePanelGrid(chromeGrid?.surface ?? surface, rootRef, simulator, chromeGrid ? chromeGrid.dpi : deviceDpi, widgetPaddingRatio, chromeGrid ? chromeGrid.shortSideSlots : shortSideSlots);
   // The runtime grid already follows the canvas, so its shape gives the forced axis.
   const runtimeLandscape = runtimeGrid.columns > runtimeGrid.rows;
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, runtimeLandscape), [shortSideSlots, runtimeLandscape]);
@@ -742,6 +752,9 @@ export function PanelContent({
   const webkitSafePanelScale = surface !== 'phone'
     ? runtimeGrid.contentScale / PHONE_WIDGET_REFERENCE_CELL
     : null;
+  const webkitSafeChromeScale = surface !== 'phone'
+    ? chromeRuntimeGrid.contentScale / PHONE_WIDGET_REFERENCE_CELL
+    : null;
   const panelThemeVars = useMemo(
     () => embedded ? buildEmbeddedPanelThemeVars(appAccentColor, resolvedThemeMode) : buildPanelThemeVars(effectiveTheme, resolvedThemeMode),
     [appAccentColor, embedded, effectiveTheme, resolvedThemeMode],
@@ -774,9 +787,9 @@ export function PanelContent({
   // parent page).
   const editorSheetThemeStyle = useMemo(
     () => (touchPanelChrome && webkitSafePanelScale != null
-      ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale, '--panel-editor-blur-scale': webkitSafePanelScale } as CSSProperties
+      ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale, '--panel-chrome-scale': webkitSafeChromeScale ?? webkitSafePanelScale, '--panel-editor-blur-scale': webkitSafePanelScale } as CSSProperties
       : { ...panelThemeVars, '--panel-editor-blur-scale': webkitSafePanelScale ?? 1 } as CSSProperties),
-    [touchPanelChrome, webkitSafePanelScale, panelThemeVars],
+    [touchPanelChrome, webkitSafePanelScale, webkitSafeChromeScale, panelThemeVars],
   );
   const backdrop = wallpaperBackgroundAvailable && showPanelBackground
     ? effectiveTheme.backdrop
@@ -865,7 +878,7 @@ export function PanelContent({
       // 1 everywhere but the device page's canvas preview.
       '--panel-preview-scale': previewScale,
       '--panel-preview-upscale': 1 / previewScale,
-      ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
+      ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale, '--panel-chrome-scale': webkitSafeChromeScale ?? webkitSafePanelScale } : {}),
       ...(surface === 'desktop' ? {
         '--panel-cell-size': `${runtimeGrid.cellSize}px`,
         '--panel-row-size': `${runtimeGrid.rowSize}px`,
@@ -875,6 +888,7 @@ export function PanelContent({
     }) as CSSProperties,
     [
       panelSolidColor,
+      webkitSafeChromeScale,
       themeBackdrop,
       panelThemeVars,
       runtimeGrid.cellSize,
@@ -1346,7 +1360,8 @@ export function PanelContent({
     if (simulator) return () => onSimulatorWidgetClicked?.(w.id);
     if (embedded) {
       if (surface === 'desktop' && onSectionNavigate && isDashboardClickthroughType(w.type)) {
-        return () => onSectionNavigate(w.type);
+        const tab = widgetOpenTab(w);
+        return () => onSectionNavigate(w.type, tab ? { tab } : undefined);
       }
       return null;
     }
@@ -1931,9 +1946,10 @@ export function PanelContent({
   const importDensitySlots = importCanvas
     ? densityShortSideSlots(importCanvas.width, importCanvas.height, importCanvas.dpr, recordState.record?.capabilities?.dpi ?? estimateRuntimePanelDpi(glassSurface))
     : undefined;
-  // The legacy desktop overlay only ever ran on plain OS displays, so import is gated to generic ones.
+  // The legacy desktop overlay ran on plain OS displays, and its widgets of a Y70 are merged into the Y70 record.
+  const y70Import = glassSurface === 'y70';
   useDesktopImport({
-    enabled: kioskBehavior && !simulator && genericDisplay,
+    enabled: kioskBehavior && !simulator && (genericDisplay || y70Import),
     hostReady: panelHostAvailable,
     deviceId,
     pending: recordState.record?.desktopImport,
@@ -1942,6 +1958,7 @@ export function PanelContent({
     grid: runtimeGrid,
     singlePage: genericOnePage,
     densitySlots: importDensitySlots,
+    glassSurface: y70Import ? 'y70' : undefined,
   });
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
@@ -2376,6 +2393,11 @@ export function PanelContent({
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
+                              moreActions={showWidgetMoreActions({ embedded, surface, simulator, editable: dragEditable, busy: Boolean(sheetMode) || freeformActive || Boolean(activeDragId) || Boolean(dragArmedId) }) ? {
+                                open: touch.ctxMenu?.widget.id === w.id,
+                                onOpen: (x, y) => touch.openCtxMenu(w, x, y),
+                                onClose: touch.closeCtxMenu,
+                              } : undefined}
                               onEnterImmersiveWidget={canEnterImmersive && widgetSupportsImmersiveOnLoad(w.type, isLandscape)
                                 ? (widget) => enterImmersive(widget.id) : undefined}
                             />
@@ -2542,6 +2564,8 @@ export function PanelContent({
           ? appRouteForWidget(ctxWidget, deviceId, ctxWidget.type === 'deck' ? deckKeyAt(touch.ctxMenu.target ?? null) : undefined)
           : null;
         const openUrl = genericDisplay && !simulator && !embedded ? webViewOpenUrl(ctxWidget) : null;
+        // The dashboard opens the widget's page, as a tap on its tile does.
+        const dashboardOpen = onDesktopSurface && !simulator && onSectionNavigate && isDashboardClickthroughType(ctxWidget.type) ? cellTapAction(ctxWidget) ?? undefined : undefined;
         const webSnap = webViewHost.getSnapshot();
         const webView = ctxWidget.type === 'web-view' && !simulator && !embedded && webSnap.status === 'supported' ? webSnap.views[ctxWidget.id] : undefined;
         const webNav = { back: webView?.canGoBack === true, forward: webSnap.navControls && webView?.canGoForward === true, home: webSnap.navControls && webView?.away === true };
@@ -2561,9 +2585,10 @@ export function PanelContent({
             currentSize={ctxWidget.size}
             sizes={sizesForSurface(def.meta, surface, widgetTouch, forcedGrid)}
             hasConfig
+            title={t(def.meta.i18nKey) || ctxWidget.type}
             surface={surface}
             themeMode={resolvedThemeMode}
-            themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
+            themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale, '--panel-chrome-scale': webkitSafeChromeScale ?? webkitSafePanelScale } as CSSProperties : panelThemeVars}
             onResize={size => resizeWidget(ctxWidget.id, size, { animateFromContextMenu: true })}
             onResizeMode={canResizeType(ctxWidget.type, lockedOf()) ? () => setFreeformId(ctxWidget.id) : undefined}
             // The preview edits in the device page's settings pane, as a plain click does.
@@ -2592,7 +2617,7 @@ export function PanelContent({
                 pinnedSidebarApps: pinnedTail.filter(k => k !== pinnableKey),
               });
             } : undefined}
-            onOpen={openRoute ? () => { void openAppAt(openRoute); } : openUrl ? () => { void postService('/system/open-url', { url: openUrl }); } : undefined}
+            onOpen={dashboardOpen ? dashboardOpen : openRoute ? () => { void openAppAt(openRoute); } : openUrl ? () => { void postService('/system/open-url', { url: openUrl }); } : undefined}
             widgetItemsLast={onDesktopSurface}
             onClose={touch.closeCtxMenu}
           />

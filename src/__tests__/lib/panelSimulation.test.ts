@@ -257,13 +257,13 @@ describe('panelSimulation', () => {
     });
 
     it('heals a layout-less record at the surface its stored Widget size lays out as', async () => {
-      setSimulatedPanelConnected('icue-link-lcd5', true);
-      const id = await ensureSimulatedPanelRecord('icue-link-lcd5');
-      Object.assign(service.get(id!)!, { layout: null, widgetSize: 'large' });
+      setSimulatedPanelConnected('q60', true);
+      const id = await ensureSimulatedPanelRecord('q60');
+      Object.assign(service.get(id!)!, { layout: null, widgetSize: 'small' });
 
-      await ensureSimulatedPanelRecord('icue-link-lcd5');
+      await ensureSimulatedPanelRecord('q60');
 
-      expect((service.get(id!)!.layout as StoredLayout).surface).toBe('q60');
+      expect((service.get(id!)!.layout as StoredLayout).surface).toBe('monitor');
     });
 
     it('allocates and writes the default once for concurrent callers', async () => {

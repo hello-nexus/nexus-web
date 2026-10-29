@@ -187,10 +187,13 @@ describe('planPlacement', () => {
     const display: PlacementTarget = { key: 'display', name: 'Display', iconSrc: null, surface: 'monitor' };
     const wide = { ...meta, singleInstance: false };
 
-    const rowsOf = (widgetSize: 'large' | 'small' | 'xsmall') =>
+    const rowsOf = (widgetSize: 'large' | 'midlarge' | 'small' | 'medium' | 'xsmall') =>
       planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, widgetSize } }, TYPE, wide, 6)!.capacity.pageRows;
-    expect(rowsOf('large')).toBeLessThan(rowsOf('small'));
-    expect(rowsOf('small')).toBeLessThan(rowsOf('xsmall'));
+    // 100% is the default grid, 75% and 50% add columns and rows; 150% and 200% (large) take fewer.
+    expect(rowsOf('large')).toBeLessThan(rowsOf('midlarge'));
+    expect(rowsOf('midlarge')).toBeLessThan(rowsOf('small'));
+    expect(rowsOf('small')).toBeLessThan(rowsOf('medium'));
+    expect(rowsOf('medium')).toBeLessThan(rowsOf('xsmall'));
 
     const coarse = planPlacement(display, { layout: layoutOf('monitor', []), record: { ...record, widgetSize: 'large' } }, TYPE, wide, 6);
     const { gridCols, pageRows } = coarse!.capacity;

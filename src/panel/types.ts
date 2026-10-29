@@ -178,10 +178,8 @@ export function isGenericDisplayPanel(glassSurface: PanelSurface, family: string
   return glassSurface === 'monitor' && displayBound && !family;
 }
 
-// Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid; 'xsmall' (plain OS
-// displays only) the densest. A panel that offers the switch lays out each size as another surface
-// does, while its own surface keeps driving the hardware (touch, render cost, offline behaviour).
-export const PANEL_WIDGET_SIZE_MODES = ['large', 'small', 'xsmall'] as const;
+// A panel offering the Widget size switch lays out each size as another surface does, while its own surface keeps driving the hardware.
+export const PANEL_WIDGET_SIZE_MODES = ['large', 'midlarge', 'small', 'medium', 'xsmall', 'compact'] as const;
 export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
 
 export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
@@ -200,39 +198,64 @@ export interface PanelWidgetSizeOptions {
   shortSideSlots?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
   // Share of the density-derived short-axis slot count a size keeps.
   densitySlotShare?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
+  // Fixed slider label per size. A size a record holds is always laid out; its label gives it a slider stop.
+  percentLabels?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
 }
 
 // The Q-series and the iCUE LINK 5" LCD share one portrait glass size: Large is the
 // Q-series' one full-screen tile, Small a monitor grid sized by the glass's density.
 const ONE_TILE_OR_GRID: Readonly<Partial<Record<PanelWidgetSizeMode, PanelSurface>>> = { large: 'q60', small: 'monitor' };
+// Where the default is a single tile the existing density grid is the 50% stop; where it is a grid, 50% doubles its count.
+const TILE_AND_GRID_LABELS = { large: 100, small: 50 } as const;
+const GRID_AND_DOUBLE_LABELS = { small: 100, compact: 50 } as const;
+// Large is a single tile (iCUE LCD5) or a forced two-column grid (Y60), the stop above the default.
+const LARGE_ABOVE_GRID_LABELS = { large: 200, ...GRID_AND_DOUBLE_LABELS } as const;
 
 export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | null): PanelWidgetSizeOptions | undefined {
-  if (surface === 'q60') return { default: 'large', layoutSurface: ONE_TILE_OR_GRID };
-  if (surface === 'monitor' && family === ICUE_LINK_LCD5_FAMILY) return { default: 'small', layoutSurface: ONE_TILE_OR_GRID };
+  if (surface === 'q60') return { default: 'large', layoutSurface: ONE_TILE_OR_GRID, percentLabels: TILE_AND_GRID_LABELS };
+  if (surface === 'monitor' && family === ICUE_LINK_LCD5_FAMILY) return { default: 'small', layoutSurface: { ...ONE_TILE_OR_GRID, compact: 'monitor' }, densitySlotShare: { compact: 2 }, percentLabels: LARGE_ABOVE_GRID_LABELS };
   // HydroShift II OLED Curved: Large is its one wide tile, Small a landscape grid
   // sized by the glass's physical density at its rendered resolution.
   if (surface === 'lcd-wide' && family === HYDROSHIFT2_CURVE_FAMILY) {
-    return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, dpi: 379 };
+    return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, dpi: 379, percentLabels: TILE_AND_GRID_LABELS };
   }
   // ASUS Glacial LCD: Large is its one full-glass tile, Small a monitor grid sized by density.
   if (surface === 'lcd-square' && family === ASUS_GLACIAL_LCD_FAMILY) {
-    return { default: 'large', layoutSurface: { large: 'lcd-square', small: 'monitor' } };
+    return { default: 'large', layoutSurface: { large: 'lcd-square', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
   }
   // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
-    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
+    return {
+      default: 'small',
+      layoutSurface: { large: 'monitor', small: 'monitor', medium: 'monitor', compact: 'monitor' },
+      shortSideSlots: { large: 2 },
+      densitySlotShare: { medium: 1.5, compact: 2 },
+      percentLabels: { large: 200, small: 100, medium: 75, compact: 50 },
+    };
   }
   // HYTE Y60 display: a wide bar that usually runs rotated to portrait. The forced count applies to the
   // short axis in either orientation, so Large gives fewer, bigger cells; Small is the density grid.
   if (surface === 'monitor' && family === HYTE_Y60_FAMILY) {
-    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' }, shortSideSlots: { large: 2 } };
+    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', compact: 'monitor' }, shortSideSlots: { large: 2 }, densitySlotShare: { compact: 2 }, percentLabels: LARGE_ABOVE_GRID_LABELS };
   }
-  // A plain OS monitor: Large halves its density grid's short axis so cells double, Tiny doubles it so they halve.
+  // HYTE Y70: every size stays the y70 surface, so backdrop, theme, touch, frost and hit-test never change.
+  // Large is the fixed grid it always had; Medium and Compact force more columns, and the rows follow from square cells.
+  if (surface === 'y70') {
+    return { default: 'large', layoutSurface: { large: 'y70', medium: 'y70', compact: 'y70' }, shortSideSlots: { medium: Y70_COLUMN_STOPS.medium, compact: Y70_COLUMN_STOPS.compact }, percentLabels: { large: 100, medium: 75, compact: 50 } };
+  }
+  // A plain OS monitor: 100% is its density grid; stops above it divide the short-axis count, stops below multiply it.
   if (surface === 'monitor' && !family) {
-    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', xsmall: 'monitor' }, densitySlotShare: { large: 0.5, xsmall: 2 } };
+    return {
+      default: 'small',
+      layoutSurface: { large: 'monitor', midlarge: 'monitor', small: 'monitor', medium: 'monitor', xsmall: 'monitor' },
+      densitySlotShare: { large: 0.5, midlarge: 1 / 1.5, medium: 1.5, xsmall: 2 },
+      percentLabels: { large: 200, midlarge: 150, small: 100, medium: 75, xsmall: 50 },
+    };
   }
   return undefined;
 }
+
+export const Y70_COLUMN_STOPS = { medium: 6, compact: 8 } as const;
 
 // A grid whose short axis a Widget size forces; landscape means the short axis is its rows.
 export interface ForcedGrid {
@@ -253,8 +276,16 @@ export function widgetSizeShortSideSlots(
 ): number | undefined {
   if (!options || !mode) return undefined;
   const share = options.densitySlotShare?.[mode];
-  if (share === undefined) return options.shortSideSlots?.[mode];
-  return densitySlots === undefined ? undefined : Math.min(GRID_SLOTS_MAX, Math.max(2, Math.round(densitySlots * share)));
+  if (share === undefined) {
+    const forced = options.shortSideSlots?.[mode];
+    return forced === undefined ? undefined : evenCount(forced);
+  }
+  return densitySlots === undefined ? undefined : evenCount(densitySlots * share);
+}
+
+/** The nearest even count, ties up, within the grid limits: a column count is never odd, so a 2x2 tile always fits. */
+export function evenCount(value: number): number {
+  return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, Math.round(value / 2) * 2));
 }
 
 // Short-axis cell counts a record's grid density may name; even, so a 2x2 tile always fits.
@@ -268,19 +299,58 @@ export function normalizeGridSlots(value: number | null | undefined): number | u
   return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, even));
 }
 
+// Records written before Widget size had stops only ever resolved to these three sizes, so the migration keeps to them.
+const LEGACY_SIZE_SHARE = { large: 0.5, small: 1, xsmall: 2 } as const;
+
 /** The size whose short-axis count is nearest, by ratio, to a record's retired grid density. */
 export function sizeForLegacyGridSlots(gridSlots: number | null | undefined, densitySlots: number | undefined): PanelWidgetSizeMode | undefined {
   const slots = normalizeGridSlots(gridSlots);
   if (slots === undefined || !densitySlots) return undefined;
-  const options = panelWidgetSizeOptions('monitor', undefined);
   let best: { mode: PanelWidgetSizeMode; err: number } | undefined;
-  for (const mode of PANEL_WIDGET_SIZE_MODES) {
-    const candidate = options ? widgetSizeShortSideSlots(options, mode, densitySlots) ?? densitySlots : undefined;
-    if (!candidate) continue;
+  for (const mode of ['large', 'small', 'xsmall'] as const) {
+    const candidate = Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, Math.round(densitySlots * LEGACY_SIZE_SHARE[mode])));
     const err = Math.abs(Math.log(slots / candidate));
     if (!best || err < best.err - 1e-9) best = { mode, err };
   }
   return best?.mode;
+}
+
+// The grid whose cell sizes the panel's floating chrome (menus, sheets, tray), so chrome keeps the size
+// the default widget size gives it whatever size is chosen. Undefined where the panel offers no size choice.
+export interface ChromeGrid {
+  surface: PanelSurface;
+  shortSideSlots?: number;
+  dpi?: number;
+}
+
+export function largeChromeGrid(
+  surface: PanelSurface,
+  family: string | null | undefined,
+  recordDpi: number | null | undefined,
+  surfaceDpi: Readonly<Record<PanelSurface, number>>,
+  densitySlots?: number,
+): ChromeGrid | undefined {
+  const options = panelWidgetSizeOptions(surface, family);
+  if (!options) return undefined;
+  // The size the panel defaults to (its 100%), so chrome is the size it always was at the default.
+  const reference = options.default;
+  return {
+    surface: options.layoutSurface[reference] ?? surface,
+    shortSideSlots: widgetSizeShortSideSlots(options, reference, densitySlots),
+    dpi: panelLayoutDpi(surface, family, reference, recordDpi, surfaceDpi),
+  };
+}
+
+/** The chrome grid on the preview's CSS px density basis: a native-px chrome density is divided by the canvas DPR. */
+export function previewChromeGrid(
+  chrome: ChromeGrid | undefined,
+  layoutSurface: PanelSurface,
+  gridDpi: number | undefined,
+  canvasDpr: number,
+): ChromeGrid | undefined {
+  if (!chrome) return undefined;
+  if (chrome.dpi) return { ...chrome, dpi: chrome.dpi / canvasDpr };
+  return chrome.surface === layoutSurface && gridDpi ? { ...chrome, dpi: gridDpi } : chrome;
 }
 
 export function panelShortSideSlots(

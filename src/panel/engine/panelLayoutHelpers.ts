@@ -6,6 +6,8 @@ import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
 import { APP_REGISTRY } from '../widgets/registry';
 import { marketplaceIdFromType } from '../../widgets/marketplaceRegistry';
+import type { WeatherLocation } from '../../api/weather';
+import { weatherPlaceRouteTab } from '../widgets/weather/WeatherLocationList';
 import { panelEditorRoute, type PanelEditorTarget } from './panelEditorLink';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
@@ -40,15 +42,23 @@ export function isDashboardClickthroughType(type: string): type is DashboardWidg
   return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
 }
 
+/** Sub-route a widget's open carries so the page lands on the widget's own state; undefined when it has none. */
+export function widgetOpenTab(widget: Pick<PanelWidget, 'type'> & Partial<Pick<PanelWidget, 'config'>>): string | undefined {
+  if (widget.type !== 'weather') return undefined;
+  return weatherPlaceRouteTab(widget.config?.location as WeatherLocation | null | undefined) ?? undefined;
+}
+
 /** The app path a widget's Open item goes to: its own page or editor, null when it has neither. */
-export function appRouteForWidget(widget: Pick<PanelWidget, 'id' | 'type'>, recordId?: string, deckKey?: PanelEditorTarget['deckKey']): string | null {
+export function appRouteForWidget(widget: Pick<PanelWidget, 'id' | 'type'> & Partial<Pick<PanelWidget, 'config'>>, recordId?: string, deckKey?: PanelEditorTarget['deckKey']): string | null {
   const { type } = widget;
   if (type === 'deck') return recordId ? panelEditorRoute({ recordId, widgetId: widget.id, deckKey }) : null;
   if (type === 'displays') return '/system/devices/displays';
   if (!isDashboardClickthroughType(type)) return null;
   // An SDK app type carries a colon, which the open-app route rejects; useRoute maps /system/app/<id> back.
   const appId = marketplaceIdFromType(type);
-  return appId ? `/system/app/${appId}` : `/system/${type}`;
+  if (appId) return `/system/app/${appId}`;
+  const tab = widgetOpenTab(widget);
+  return tab ? `/system/${type}/${tab}` : `/system/${type}`;
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }
@@ -267,4 +277,17 @@ export function buildPanelCollisionDetection(
     }
     return [];
   };
+}
+
+// The hover "More actions" corner badge belongs to the home dashboard grid
+// alone: the embedded desktop panel, not a device-page preview, and not while a
+// sheet, a resize or a drag owns the grid.
+export function showWidgetMoreActions(o: {
+  embedded: boolean;
+  surface: string;
+  simulator: boolean;
+  editable: boolean;
+  busy: boolean;
+}): boolean {
+  return o.embedded && o.surface === 'desktop' && !o.simulator && o.editable && !o.busy;
 }
