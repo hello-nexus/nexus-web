@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
 import { isMacAppShell } from '../../../app/windowActions';
@@ -8,6 +9,8 @@ import { BuildCaseSilhouette } from './BuildCaseSilhouette';
 import { buildNoticeKey, selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState';
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import styles from './BuildWidget.module.scss';
+
+const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
 interface BuildWidgetViewProps {
   view: BuildWidgetView;
@@ -40,5 +43,11 @@ export function BuildWidget({ widget }: WidgetProps) {
   let view: BuildWidgetView;
   if (preview) view = !DEV_TOOLS && isMacAppShell() ? 'mac' : 'no-case';
   else view = selectBuildWidgetView({ isMac, loaded: live.loaded, caseId: live.caseId, previewUrl: live.previewUrl });
-  return <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} />;
+  const seed = DEV_TOOLS && !preview && view === 'no-preview' && live.caseId;
+  return (
+    <>
+      <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} />
+      {seed && <Suspense fallback={null}><BuildPreviewSeed key={seed} caseId={seed} /></Suspense>}
+    </>
+  );
 }

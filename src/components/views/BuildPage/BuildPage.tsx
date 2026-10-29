@@ -16,12 +16,12 @@ import { DEV_TOOLS } from '../../../lib/devTools';
 import { isMacAppShell } from '../../../app/windowActions';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
 import { relayPreviewSave } from './buildPreview';
+import { SYSTEM_CASE_TOPIC } from '../../../api/systemPreview';
 import { relaySceneExport } from './buildScene';
 import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import { buildMachine, fetchMachineCaseState, fetchMachineDevices, isValidCaseId, layoutKeyOf, type BuildDevice, type BuildMachine } from './buildMachine';
 import styles from './BuildPage.module.scss';
 
-const SYSTEM_CASE_TOPIC = 'system/case';
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
 const DEFAULT_PATH = '/builder';
 const HEADLESS_PATH = '/builder?headless=1';
@@ -103,6 +103,8 @@ export interface HeadlessBuild {
   onResolved: (state: BuildResolved) => void;
   /** The frame never loaded: offline, or Build did not answer in time. */
   onUnavailable: () => void;
+  /** Also lets the frame render this PC's case image and store it for the dashboard tile. */
+  preview?: boolean;
 }
 
 function isBuildResolved(data: FrameMessage): data is FrameMessage & BuildResolved {
@@ -129,7 +131,8 @@ interface BuildPageProps {
 export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, headless }: BuildPageProps) {
   const headlessRef = useRef(headless);
   useEffect(() => { headlessRef.current = headless; }, [headless]);
-  const canSavePreview = !headless && !isRemoteOrigin && (DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
+  // A headless frame saves the preview only when its host asked; the host decided it is offered.
+  const canSavePreview = !isRemoteOrigin && (headless ? headless.preview === true : DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);

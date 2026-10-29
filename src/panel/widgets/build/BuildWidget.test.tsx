@@ -15,13 +15,20 @@ const h = vi.hoisted(() => ({
   ping: vi.fn(),
   caseId: vi.fn(),
   preview: vi.fn(),
+  onCaseSignal: null as null | (() => void),
 }));
 
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (_topic: string, _enabled: boolean, cb: () => void) => { h.onCaseSignal = cb; },
+}));
+
+vi.mock('./BuildPreviewSeed', () => ({ default: ({ caseId }: { caseId: string }) => <div data-testid="seed" data-case={caseId} /> }));
 vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
 vi.mock('../../../app/windowActions', () => ({ isMacAppShell: () => h.macShell }));
 vi.mock('../../../api/service', () => ({ pingService: () => h.ping() }));
 vi.mock('../../../api/systemPreview', () => ({
   SYSTEM_PREVIEW_CHANGED_EVENT: 'nexus-system-preview-changed',
+  SYSTEM_CASE_TOPIC: 'system/case',
   fetchSystemCaseId: () => h.caseId(),
   fetchSystemPreview: (etag?: string | null) => h.preview(etag),
 }));
@@ -90,6 +97,27 @@ describe('BuildWidget', () => {
     expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:preview-1');
     expect(container.querySelector('svg')).toBeNull();
     expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
+  });
+
+  it('a dev-tools tile with a case and no image mounts the seed for that case; no case, an image, or a release build mounts none', async () => {
+    h.devTools = true;
+    h.caseId.mockResolvedValue('hyte-y70');
+    const seeded = await renderWidget('4x4');
+    expect(screen.getByTestId('seed').getAttribute('data-case')).toBe('hyte-y70');
+    seeded.unmount();
+    h.preview.mockResolvedValue(image());
+    const stored = await renderWidget('4x4');
+    expect(screen.queryByTestId('seed')).toBeNull();
+    stored.unmount();
+    h.preview.mockResolvedValue({ kind: 'none' });
+    h.caseId.mockResolvedValue(null);
+    const caseless = await renderWidget('4x4');
+    expect(screen.queryByTestId('seed')).toBeNull();
+    caseless.unmount();
+    h.devTools = false;
+    h.caseId.mockResolvedValue('hyte-y70');
+    await renderWidget('4x4');
+    expect(screen.queryByTestId('seed')).toBeNull();
   });
 
   it('names the tile and carries the notice in its accessible text', async () => {
@@ -205,6 +233,17 @@ describe('useBuildPreview', () => {
     const { result } = renderHook(() => useBuildPreview(true));
     await flush();
     expect(result.current).toMatchObject({ loaded: true, previewUrl: null });
+  });
+
+  it('refetches the case when the service signals it changed', async () => {
+    h.caseId.mockResolvedValue(null);
+    const { result } = renderHook(() => useBuildPreview(true));
+    await flush();
+    expect(result.current.caseId).toBeNull();
+    h.caseId.mockResolvedValue('y70');
+    await act(async () => { h.onCaseSignal?.(); });
+    await flush();
+    expect(result.current.caseId).toBe('y70');
   });
 
   it('keeps the current image when a later fetch fails', async () => {
