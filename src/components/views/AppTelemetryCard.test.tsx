@@ -7,7 +7,7 @@ vi.mock('../../api/appTelemetry', () => ({ fetchAppTelemetryRecent: () => fetchR
 import { AppTelemetryCard } from './AppTelemetryCard';
 
 const sample = {
-  posthog: 'off',
+  status: 'off',
   events: [{ at: '2026-10-03T10:00:00Z', event: 'app_event', properties: { app_id: 'a.app', event: 'level_done', p_level: 3 } }],
 };
 
