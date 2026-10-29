@@ -179,7 +179,7 @@ describe('PanelDevicePage simulator', () => {
     expect(JSON.parse(localStorage.getItem('nexus_simulated_panel_records') ?? '{}')).toEqual({ 'lianli-tl-lcd-flex': 'sim-new' });
   });
 
-  it('lays a retired stored Large out as the default grid on reload: an iCUE LINK 5" simulator', async () => {
+  it('keeps the family layout surface on reload: an iCUE LINK 5" simulator at Large stays a single q60 tile', async () => {
     const lcd5 = {
       ...SIM,
       id: 'simulated:icue-link-lcd5',
@@ -208,8 +208,9 @@ describe('PanelDevicePage simulator', () => {
     await flush();
 
     await waitFor(() => expect(screen.getByTestId('embed').dataset.deviceId).toBe('sim-lcd5'));
-    expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
-    expect(screen.getByTestId('embed').dataset.layoutSurface).toBe('monitor');
+    expect(screen.getByTestId('embed').dataset.surface).toBe('q60');
+    expect(screen.getByTestId('embed').dataset.layoutSurface).toBe('q60');
+    expect(screen.getByTestId('embed').dataset.widgetSizes).toBe('2x4');
   });
 
   it.each([

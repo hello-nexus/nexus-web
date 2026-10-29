@@ -219,7 +219,7 @@ describe('Y70 density', () => {
 
   it('picks a finer size when the legacy Scale made the cell small', () => {
     const plan = planDesktopImport(imp([widget('a', 0, 0, '1x1')], { cellPx: 86 * 0.5 }), vp, PAD, emptyLayout(), undefined, undefined, { densitySlots: 4, glassSurface: 'y70' });
-    expect(plan.widgetSize).toBe('xsmall');
+    expect(plan.widgetSize).toBe('compact');
     expect(plan.gridSlots).toBe(8);
     expect(plan.grid.columns).toBe(8);
   });
@@ -238,7 +238,7 @@ describe('Y70 density', () => {
     const kept = planDesktopImport(merge, vp, PAD, existing, grid, undefined, { densitySlots: 4, glassSurface: 'y70' });
     expect(kept.widgetSize).toBeUndefined();
     const sized = planDesktopImport(merge, vp, PAD, existing, grid, undefined, { densitySlots: 4, glassSurface: 'y70', sizeOnMerge: true });
-    expect(sized.widgetSize).toBe('xsmall');
+    expect(sized.widgetSize).toBe('compact');
     const widgets = sized.layout.pages.flatMap(p => p.widgets);
     expect(widgets.map(w => w.id).sort()).toEqual(['a', 'old']);
     expect(widgets.find(w => w.id === 'old')).toMatchObject({ col: 0, row: 0, size: '2x2' });

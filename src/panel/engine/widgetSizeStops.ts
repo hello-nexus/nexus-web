@@ -8,8 +8,8 @@ export interface WidgetSizeStop {
 
 /**
  * The sizes a panel offers on its slider, each with its fixed label from `percentLabels`. Given the glass's
- * density-derived count, a stop that scales it is offered only when its count is at least 2 and differs from
- * the next stop toward 100%, so no two stops draw the same grid.
+ * density-derived count, a stop that scales it is offered only when its count is at least 2 and its grid (surface
+ * and count) differs from the next stop toward 100%, so no two stops draw the same grid.
  */
 export function widgetSizeStops(options: PanelWidgetSizeOptions, densitySlots?: number): WidgetSizeStop[] {
   const labelled = PANEL_WIDGET_SIZE_MODES.flatMap(mode => {
@@ -20,14 +20,14 @@ export function widgetSizeStops(options: PanelWidgetSizeOptions, densitySlots?: 
   const countOf = (mode: PanelWidgetSizeMode) => widgetSizeShortSideSlots(options, mode, densitySlots) ?? densitySlots;
   const baseline = labelled.find(stop => stop.percent === 100);
   if (!baseline) return labelled;
+  const gridOf = (mode: PanelWidgetSizeMode) => `${options.layoutSurface[mode]}:${countOf(mode)}`;
   const walk = (stops: WidgetSizeStop[]) => {
     const kept: WidgetSizeStop[] = [];
-    let previous = countOf(baseline.mode);
+    let previous = gridOf(baseline.mode);
     for (const stop of stops) {
-      const count = countOf(stop.mode);
-      if (count < 2 || count === previous) continue;
+      if (countOf(stop.mode) < 2 || gridOf(stop.mode) === previous) continue;
       kept.push(stop);
-      previous = count;
+      previous = gridOf(stop.mode);
     }
     return kept;
   };
