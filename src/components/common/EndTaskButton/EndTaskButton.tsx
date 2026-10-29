@@ -15,6 +15,8 @@ interface EndTaskButtonProps {
    * that the kill did not stick.
    */
   pid?: number;
+  /** An OS setting (Windows Dynamic Lighting): the action reads "Turn off" and the done marker "Turned off". */
+  setting?: boolean;
   /** Spins as though pressed while the owner switch runs its own kill through the same catalog id. */
   busy?: boolean;
   /** Replaces the button with the terminated marker; the row stays listed. */
@@ -32,7 +34,7 @@ interface EndTaskButtonProps {
  * (`onKilled` + `terminated`), the spinner hands off to the terminated marker
  * instead.
  */
-export function EndTaskButton({ conflictId, pid, busy, terminated, onKilled, className }: EndTaskButtonProps) {
+export function EndTaskButton({ conflictId, pid, setting, busy, terminated, onKilled, className }: EndTaskButtonProps) {
   const { t } = useTranslation();
   const [killing, setKilling] = useState(false);
   // The pid this button killed. The row keeps its React key across a respawn
@@ -75,14 +77,14 @@ export function EndTaskButton({ conflictId, pid, busy, terminated, onKilled, cla
     return (
       <span className={styles.terminated} role="status">
         <CheckCircle2 size={TERMINATED_ICON_SIZE} aria-hidden />
-        {t('conflicts.modal.terminated')}
+        {t(setting ? 'conflicts.modal.turnedOff' : 'conflicts.modal.terminated')}
       </span>
     );
   }
 
   return (
     <Button tone="danger" size="sm" loading={killing || busy === true} loadingHidesLabel className={className} onClick={handleKill}>
-      {t('conflicts.modal.endTask')}
+      {t(setting ? 'conflicts.modal.turnOff' : 'conflicts.modal.endTask')}
     </Button>
   );
 }

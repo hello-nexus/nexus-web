@@ -168,14 +168,21 @@ export function ConflictAppCard({
           <div className={styles.rowMeta}>
             {/* No category: the catalog's guess at what an app drives is often
                 wrong, and the executable is what the user can actually check. */}
-            <span className={styles.rowProcess}>{conflict.processName}</span>
-            <span className={styles.rowPid}>{t('conflicts.modal.pid', { pid: conflict.pid })}</span>
+            {conflict.isSetting ? (
+              <span className={styles.rowProcess}>{t('conflicts.modal.windowsSetting')}</span>
+            ) : (
+              <>
+                <span className={styles.rowProcess}>{conflict.processName}</span>
+                <span className={styles.rowPid}>{t('conflicts.modal.pid', { pid: conflict.pid })}</span>
+              </>
+            )}
           </div>
         </div>
         <div className={styles.rowActions}>
           <EndTaskButton
             conflictId={conflict.id}
             pid={conflict.pid}
+            setting={conflict.isSetting}
             terminated={terminated}
             onKilled={onTerminated}
           />

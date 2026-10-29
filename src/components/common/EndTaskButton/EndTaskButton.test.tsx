@@ -118,4 +118,22 @@ describe('EndTaskButton', () => {
     expect(onKilled).not.toHaveBeenCalled();
     expect(spinning()).toBe(false);
   });
+
+  it('labels a setting entry Turn off and kills it by its catalog id', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting />);
+
+    expect(screen.getByRole('button', { name: 'conflicts.modal.turnOff' })).toBeInTheDocument();
+    expect(screen.queryByText('conflicts.modal.endTask')).not.toBeInTheDocument();
+
+    await clickEnd();
+
+    expect(mockKill).toHaveBeenCalledWith('windows-dynamic-lighting');
+  });
+
+  it('shows Turned off, not Terminated, once a setting entry is done', () => {
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting terminated />);
+    expect(screen.getByText('conflicts.modal.turnedOff')).toBeInTheDocument();
+    expect(screen.queryByText('conflicts.modal.terminated')).not.toBeInTheDocument();
+  });
 });

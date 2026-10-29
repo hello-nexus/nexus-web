@@ -206,8 +206,14 @@ export function ConflictOutcomePanel({
                       <div className={styles.info}>
                         <div className={styles.name}>{entry.conflict.displayName}</div>
                         <div className={styles.meta}>
-                          <Badge label={entry.conflict.processName} />
-                          <Badge label={t('conflicts.modal.pid', { pid: entry.conflict.pid })} />
+                          {entry.conflict.isSetting ? (
+                            <Badge label={t('conflicts.modal.windowsSetting')} />
+                          ) : (
+                            <>
+                              <Badge label={entry.conflict.processName} />
+                              <Badge label={t('conflicts.modal.pid', { pid: entry.conflict.pid })} />
+                            </>
+                          )}
                           {autostartCount > 0 && <Badge label={t('conflicts.outcome.startsWithWindows')} />}
                         </div>
                         {devices.length > 0 && (
@@ -240,7 +246,9 @@ export function ConflictOutcomePanel({
                           : <CircleCheck size={OUTCOME_ICON_SIZE} className={`${styles.outcomeIcon} ${styles.outcomeDim}`} aria-hidden />}
                         <div className={styles.outcomeText}>
                           <span className={`${styles.outcomeLabel} ${state.end ? '' : styles.outcomeDim}`}>
-                            {t(state.end ? 'conflicts.outcome.willTerminate' : 'conflicts.outcome.keepsRunning')}
+                            {state.end
+                              ? t(entry.conflict.isSetting ? 'conflicts.outcome.willTurnOff' : 'conflicts.outcome.willTerminate')
+                              : t(entry.conflict.isSetting ? 'conflicts.outcome.keepsOn' : 'conflicts.outcome.keepsRunning')}
                           </span>
                           {state.end && autostartCount > 0 && (
                             <div onClick={e => e.stopPropagation()}>
