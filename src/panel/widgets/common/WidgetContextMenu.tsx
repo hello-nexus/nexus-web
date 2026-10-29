@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Home, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Home, Lock, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -206,7 +206,7 @@ export function WidgetContextMenu({
             <button type="button" className={`${styles.item} ${styles.nameRow}`} aria-label={onImmersive ? t('panel.widget.menu.immersive') : t('featureDisabled.widget.open', { feature: title })} onClick={() => runAndClose(nameAction)}>
               {TitleIcon && <span className={styles.nameIcon}><TitleIcon size={15} aria-hidden /></span>}
               <span className={styles.nameLabel}>{title}</span>
-              {onImmersive ? <Maximize2 size={15} className={styles.nameChevron} aria-hidden /> : <ArrowUpRight size={15} className={styles.nameChevron} aria-hidden />}
+              <ArrowUpRight size={15} className={styles.nameChevron} aria-hidden />
             </button>
           ) : (
             <div role="presentation" className={`${styles.nameRow} ${styles.nameRowStatic}`}>
