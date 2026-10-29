@@ -69,6 +69,21 @@
   }
 }
 
+.title {
+  padding: 8px 10px 9px;
+  font-family: var(--panel-font);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  user-select: none;
+}
+
 .sizeRow {
   display: flex;
   align-items: center;
