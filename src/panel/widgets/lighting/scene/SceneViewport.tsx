@@ -123,8 +123,6 @@ export function SceneViewport({
       leds,
       selectedDeviceId,
       selectedObjectId: null,
-      placing: false,
-      dropTarget: null,
       editable: false,
     });
   }, [scene.objects, scene.bindings, leds, selectedDeviceId]);

@@ -123,6 +123,17 @@ describe('LightingScene3D inline scene', () => {
         expect(screen.queryByText(`lighting.scene.device.${key}`)).toBeNull();
       }
     });
+
+    it('a bound device still shows its name card without onIdentify, with no Identify button', async () => {
+      const bound = viewOf([kase], [{ deviceId: 'argb-1', targets: [{ objectId: kase.id, anchorId: 'strip:front' }], rotation: 0, flip: false }], [0, 0, 1500]);
+      const api = {
+        scene: bound, model: null, update: vi.fn(), setEnabled: vi.fn(), setCamera: vi.fn(() => Promise.resolve()), refreshView: vi.fn(),
+      } as unknown as LightingSceneApi;
+      render(<LightingScene3D api={api} devices={[device('argb-1', 'ARGB_V2_1')]} selectedDeviceId="argb-1" onSelectDevice={vi.fn()}
+        shaderEffect={null} shaderState={null} />);
+      expect(await screen.findByText('ARGB_V2_1')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'lighting.scene.device.identify' })).toBeNull();
+    });
   });
 
   describe('PC items', () => {

@@ -167,13 +167,15 @@ export default function LightingScene3D({
         <div className={styles.overlayBottom}>
           <div className={styles.hint}>{t('lighting.scene.hint.orbit')}</div>
         </div>
-        {selectedBound && selectedDeviceId && onIdentify && (
+        {selectedBound && selectedDeviceId && (
           <div className={styles.floatingInspector} aria-live="polite">
             <section className={styles.inspectorSection}>
               <div className={styles.inspectorTitle}>{deviceName(selectedDeviceId)}</div>
-              <div className={styles.buttonRow}>
-                <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => onIdentify(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>
-              </div>
+              {onIdentify && (
+                <div className={styles.buttonRow}>
+                  <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => onIdentify(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>
+                </div>
+              )}
             </section>
           </div>
         )}
