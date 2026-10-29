@@ -262,7 +262,7 @@ describe('LightingPage fix lighting link', () => {
     localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
   });
 
-  it('opens the Fix lighting modal from the link under the canvas, with no device named', async () => {
+  it('opens the Fix lighting modal from the link closing the devices list, with no device named', async () => {
     const { findByRole, queryByTestId, getByTestId } = render(
       <UiSettingsProvider>
         <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
@@ -270,7 +270,10 @@ describe('LightingPage fix lighting link', () => {
     );
 
     expect(queryByTestId('fix-lighting')).toBeNull();
-    fireEvent.click(await findByRole('button', { name: 'lighting.fix.link' }));
+    const link = await findByRole('button', { name: 'lighting.fix.link' });
+    expect(link.parentElement?.lastElementChild).toBe(link);
+    expect(link.querySelector('svg')).not.toBeNull();
+    fireEvent.click(link);
     expect(getByTestId('fix-lighting').getAttribute('data-device')).toBe('');
   });
 });

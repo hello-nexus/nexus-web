@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { CircleHelp } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 import { TroubleshootLink } from './TroubleshootLink';
 
@@ -18,5 +19,10 @@ describe('TroubleshootLink', () => {
     expect(screen.getByRole('button', { name: 'Help' }).querySelector('svg')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Help' }));
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a given icon on a button link, and an href link keeps its icon override', () => {
+    render(<TroubleshootLink label="Help" icon={CircleHelp} onClick={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Help' }).querySelector('svg')).not.toBeNull();
   });
 });
