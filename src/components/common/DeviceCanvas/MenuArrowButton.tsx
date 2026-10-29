@@ -19,10 +19,20 @@ interface MenuArrowButtonProps {
   variant: 'card' | 'header' | 'corner';
   /**
    * `corner` only: the visible card the badge is centered on. The badge is
-   * portaled to the body and positioned from this element's rect each frame, so
-   * it takes no layout space and no ancestor's overflow clips it.
+   * portaled to the closest `[data-surface]` element (the body when there is none)
+   * and placed from this element's rect on show, scroll, resize and anchor resize,
+   * so it takes no layout space and no ancestor's overflow clips it. It is hidden
+   * while the card's corner is scrolled out of its scrolling ancestor.
    */
   anchor?: HTMLElement | null;
+}
+
+/** The closest ancestor that scrolls vertically, or undefined when the card sits in the page itself. */
+function scrollParentOf(el: HTMLElement): HTMLElement | undefined {
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    if (/(auto|scroll|overlay)/.test(getComputedStyle(node).overflowY)) return node;
+  }
+  return undefined;
 }
 
 /** Opens a card's or group header's context menu; hidden until its `data-menu-arrow-host` ancestor is hovered. */
@@ -34,24 +44,33 @@ export function MenuArrowButton({ label, tooltip, open, onOpen, onClose, variant
   const openAtPressRef = useRef(false);
   useLayoutEffect(() => {
     if (!corner || !anchor) return undefined;
-    let raf = 0;
     // Keep the badge's outer edge inside the gutter between cards: its center
     // sits half a badge in from the gutter's far edge, so a narrow gutter pulls
     // the badge toward its own card and never over a neighbor.
     const size = btnRef.current?.offsetWidth ?? 0;
     const gap = Number.parseFloat(getComputedStyle(anchor.closest('[data-surface]') ?? anchor).getPropertyValue('--panel-gap')) || 0;
     btnRef.current?.style.setProperty('--_inset', `${Math.min(size, Math.max(0, size / 2 - gap + 0.5))}px`);
+    const clipper = scrollParentOf(anchor);
     const place = () => {
       const el = btnRef.current;
-      if (el) {
-        const r = anchor.getBoundingClientRect();
-        el.style.left = `${r.right}px`;
-        el.style.top = `${r.top}px`;
-      }
-      raf = requestAnimationFrame(place);
+      if (!el) return;
+      const r = anchor.getBoundingClientRect();
+      el.style.left = `${r.right}px`;
+      el.style.top = `${r.top}px`;
+      // A corner scrolled past the dashboard's edge would float over the bar above it.
+      const clip = clipper?.getBoundingClientRect();
+      el.style.visibility = clip && (r.top < clip.top || r.top > clip.bottom) ? 'hidden' : '';
     };
     place();
-    return () => cancelAnimationFrame(raf);
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(place);
+    observer?.observe(anchor);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+      observer?.disconnect();
+    };
   }, [corner, anchor]);
   if (corner && !anchor) return null;
   const Icon = corner ? ChevronDown : ChevronRight;
