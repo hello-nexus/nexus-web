@@ -113,6 +113,132 @@ describe('usePanelTouchMode', () => {
     expect(result.current.ctxMenu?.seq).not.toBe(firstSeq);
   });
 
+  describe('host-opened menu', () => {
+    // The release of the host-reported click must reach neither a widget nor the background handler.
+    function setup() {
+      const tileB = document.createElement('div');
+      tileB.setAttribute('data-panel-widget-id', 'widget-2');
+      document.body.appendChild(tileB);
+      const tileSeen = vi.fn();
+      const backgroundSeen = vi.fn();
+      tileB.addEventListener('contextmenu', tileSeen);
+      document.body.addEventListener('contextmenu', backgroundSeen);
+      const hook = renderHook(() => usePanelTouchMode({}));
+      act(() => { hook.result.current.openCtxMenu(widget, 50, 60); });
+      const cleanup = () => {
+        document.body.removeEventListener('contextmenu', backgroundSeen);
+        tileB.remove();
+        hook.unmount();
+      };
+      return { hook, tileB, tileSeen, backgroundSeen, cleanup };
+    }
+    const release = (target: EventTarget) => {
+      const e = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 });
+      act(() => { target.dispatchEvent(e); });
+      return e;
+    };
+
+    it('drops a release over another tile and keeps the menu', () => {
+      const { hook, tileB, tileSeen, backgroundSeen, cleanup } = setup();
+      const seq = hook.result.current.ctxMenu?.seq;
+      expect(release(tileB).defaultPrevented).toBe(true);
+      expect(tileSeen).not.toHaveBeenCalled();
+      expect(backgroundSeen).not.toHaveBeenCalled();
+      expect(hook.result.current.ctxMenu).toMatchObject({ widget: { id: widget.id }, x: 50, y: 60, seq });
+      cleanup();
+    });
+
+    it('drops a release over empty space', () => {
+      const { backgroundSeen, cleanup } = setup();
+      expect(release(document.body).defaultPrevented).toBe(true);
+      expect(backgroundSeen).not.toHaveBeenCalled();
+      cleanup();
+    });
+
+    it('lets a right-click that starts with a page press through', () => {
+      const { tileB, tileSeen, cleanup } = setup();
+      act(() => { window.dispatchEvent(new Event('pointerdown')); });
+      release(tileB);
+      expect(tileSeen).toHaveBeenCalledTimes(1);
+      cleanup();
+    });
+
+    it('drops only one release', () => {
+      const { tileB, tileSeen, cleanup } = setup();
+      release(tileB);
+      release(tileB);
+      expect(tileSeen).toHaveBeenCalledTimes(1);
+      cleanup();
+    });
+  });
+
+  describe('long-press menu', () => {
+    beforeEach(() => vi.useFakeTimers());
+    let cleanup: () => void = () => {};
+    afterEach(() => { cleanup(); cleanup = () => {}; vi.useRealTimers(); });
+
+    function setup(mouseLongPress = false) {
+      const tile = document.createElement('div');
+      document.body.appendChild(tile);
+      const hook = renderHook(() => usePanelTouchMode({ mouseLongPress }));
+      // Stands in for the React root listener that routes a cell's contextmenu to the hook.
+      const root = (e: Event) => { hook.result.current.handleContextMenu(e as unknown as React.MouseEvent, widget); };
+      tile.addEventListener('contextmenu', root);
+      const press = (pointerType: string) => act(() => {
+        hook.result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ pointerType }));
+        vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS);
+      });
+      const nativeMenu = () => {
+        const e = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 100, clientY: 200 });
+        act(() => { tile.dispatchEvent(e); });
+        return e;
+      };
+      cleanup = () => { tile.remove(); hook.unmount(); };
+      return { hook, tile, press, nativeMenu };
+    }
+
+    it('keeps the menu seq when the contextmenu that follows the hold arrives', () => {
+      const { hook, press, nativeMenu } = setup();
+      press('touch');
+      const seq = hook.result.current.ctxMenu?.seq;
+      expect(seq).toBeDefined();
+      expect(nativeMenu().defaultPrevented).toBe(true);
+      expect(hook.result.current.ctxMenu?.seq).toBe(seq);
+    });
+
+    it('keeps the menu seq when contextmenu arrives mid-hold and the timer elapses after', () => {
+      const { hook, tile, nativeMenu } = setup();
+      act(() => {
+        hook.result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ pointerType: 'touch' }));
+        vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS - 1);
+      });
+      nativeMenu();
+      const seq = hook.result.current.ctxMenu?.seq;
+      expect(seq).toBeDefined();
+      act(() => { vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS); });
+      expect(hook.result.current.ctxMenu?.seq).toBe(seq);
+      // Nothing armed the swallow, so a later separate contextmenu still reopens.
+      act(() => { window.dispatchEvent(new Event('pointerdown')); });
+      nativeMenu();
+      expect(hook.result.current.ctxMenu?.seq).toBeGreaterThan(seq as number);
+      expect(tile.isConnected).toBe(true);
+    });
+
+    it('re-opens on a second long-press and on a later separate contextmenu', () => {
+      const { hook, press, nativeMenu } = setup();
+      press('touch');
+      nativeMenu();
+      const first = hook.result.current.ctxMenu?.seq as number;
+      press('touch');
+      const second = hook.result.current.ctxMenu?.seq as number;
+      expect(second).toBeGreaterThan(first);
+      nativeMenu();
+      act(() => { window.dispatchEvent(new Event('pointerdown')); });
+      nativeMenu();
+      expect(hook.result.current.ctxMenu?.seq).toBeGreaterThan(second);
+    });
+  });
+
   describe('press feedback', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());

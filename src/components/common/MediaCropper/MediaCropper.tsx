@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { clampNumber } from '../../../panel/engine/panelGrid';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
+import { FlashProgress } from '../FlashProgress/FlashProgress';
 import {
   centerCropForAspect as centerCropFor,
   flipHorizontal,
@@ -16,6 +17,7 @@ import {
   rotateCw,
 } from './mediaCrop';
 import styles from './MediaCropper.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export type { NormalizedCrop } from './mediaCrop';
 
@@ -45,7 +47,7 @@ function orientedDims(w: number, h: number, rotate: number): { w: number; h: num
   return rotate === 90 || rotate === 270 ? { w: h, h: w } : { w, h };
 }
 
-export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, initialCrop, busy, allowTransparency, allowFit, onConfirm, onCancel }: {
+export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, initialCrop, busy, busyProgress, allowTransparency, allowFit, onConfirm, onCancel }: {
   src: string;
   /** 'video' renders a <video> frame to crop against; 'image' (default) an <img>. */
   kind?: 'image' | 'video';
@@ -56,6 +58,8 @@ export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, 
   round?: boolean;
   initialCrop?: NormalizedCrop;
   busy?: boolean;
+  /** Shown in place of the generic converting note while busy, for a consumer that can report how far it is. */
+  busyProgress?: { percent: number; message: string } | null;
   /** Offer the "keep transparency" choice. Only pass it for a source that has alpha to keep. */
   allowTransparency?: boolean;
   /** Offer "fit entire image": the whole frame, letterboxed by the consumer, instead of a crop. */
@@ -347,23 +351,31 @@ export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, 
         )}
         {busy && (
           <div className={styles.busyOverlay} aria-live="polite">
-            {t('cropper.converting')}
+            {busyProgress ? <FlashProgress status={busyProgress} /> : t('cropper.converting')}
           </div>
         )}
       </div>
       <div className={styles.toolbar}>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCcw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCcw')} title={t('cropper.rotateCcw')}>
-          <RotateCcw size={16} />
-        </button>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCw')} title={t('cropper.rotateCw')}>
-          <RotateCw size={16} />
-        </button>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipHorizontal(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipH')} title={t('cropper.flipH')}>
-          <FlipHorizontal2 size={16} />
-        </button>
-        <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipVertical(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipV')} title={t('cropper.flipV')}>
-          <FlipVertical2 size={16} />
-        </button>
+        <HoverTooltip body={t('cropper.rotateCcw')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCcw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCcw')}>
+            <RotateCcw size={16} />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip body={t('cropper.rotateCw')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(rotateCw(orient))} disabled={controlsDisabled} aria-label={t('cropper.rotateCw')}>
+            <RotateCw size={16} />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip body={t('cropper.flipH')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipHorizontal(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipH')}>
+            <FlipHorizontal2 size={16} />
+          </button>
+        </HoverTooltip>
+        <HoverTooltip body={t('cropper.flipV')}>
+          <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipVertical(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipV')}>
+            <FlipVertical2 size={16} />
+          </button>
+        </HoverTooltip>
         {allowFit && (
           <label className={styles.keepAlpha}>
             <input

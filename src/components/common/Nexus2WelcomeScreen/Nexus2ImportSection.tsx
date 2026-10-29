@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState, type RefObject } from 'react';
-import { Fan, LayoutGrid, LineChart } from 'lucide-react';
+import { Fan, LayoutDashboard, LineChart } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
@@ -269,7 +269,7 @@ export function Nexus2ImportSection({
                 })}
               </span>
             );
-            const Icon = group.id === 'q60Panel' ? Fan : group.id === 'fanCurves' ? LineChart : LayoutGrid;
+            const Icon = group.id === 'q60Panel' ? Fan : group.id === 'fanCurves' ? LineChart : LayoutDashboard;
             return (
               <div key={group.id} ref={group.id === 'fanCurves' ? fanGroupRef : undefined}>
                 <SettingToggle

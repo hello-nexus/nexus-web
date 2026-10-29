@@ -60,10 +60,11 @@ export function FocusChip({ online }: { online: boolean }) {
 
     const headerBox = header.getBoundingClientRect();
     const arrows = header.querySelector('[data-topbar-arrows]');
-    // The search pill is absolutely centred at a fixed width, so the space the
-    // left cluster may grow into ends at the arrows, or at the pill's edge when
-    // this build renders none.
-    const searchWidth = parseFloat(getComputedStyle(header).getPropertyValue('--search-w')) || 0;
+    // The search pill is absolutely centred and its width follows the window,
+    // so measure the rendered pill (a custom property holding clamp() reads
+    // back unresolved). The space the left cluster may grow into ends at the
+    // arrows, or at the pill's edge when this build renders none.
+    const searchWidth = header.querySelector('[data-topbar-search]')?.getBoundingClientRect().width ?? 0;
     const boundary = arrows
       ? arrows.getBoundingClientRect().left
       : headerBox.left + headerBox.width / 2 - searchWidth / 2;

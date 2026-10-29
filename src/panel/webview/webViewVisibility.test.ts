@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { computeVisible, isTopmost, probePoints, webViewSuppressedBy } from './webViewVisibility';
+import { computeVisible, dragHidesTiles, isTopmost, probePoints, webViewSuppressedBy } from './webViewVisibility';
 
 const rect = { x: 100, y: 200, w: 400, h: 300 };
+const vp = { w: 1000, h: 800 };
 
 function setup() {
   const el = document.createElement('div');
@@ -36,35 +37,60 @@ describe('isTopmost', () => {
   it('accepts the element and its descendants at every point', () => {
     const { el, child } = setup();
     let n = 0;
-    expect(isTopmost(el, rect, () => (n++ % 2 ? child : el))).toBe(true);
+    expect(isTopmost(el, rect, () => (n++ % 2 ? child : el), vp)).toBe(true);
   });
 
   it('fails when anything else covers a single probe point', () => {
     const { el, other } = setup();
     let n = 0;
-    expect(isTopmost(el, rect, () => (++n === 3 ? other : el))).toBe(false);
+    expect(isTopmost(el, rect, () => (++n === 3 ? other : el), vp)).toBe(false);
   });
 
   it('fails when a slim bar covers only an edge midpoint', () => {
     const { el, other } = setup();
-    expect(isTopmost(el, rect, (_x, y) => (y < rect.y + 3 ? other : el))).toBe(false);
+    expect(isTopmost(el, rect, (_x, y) => (y < rect.y + 3 ? other : el), vp)).toBe(false);
   });
 
   it('fails when a point is outside the document', () => {
     const { el } = setup();
-    expect(isTopmost(el, rect, () => null)).toBe(false);
+    expect(isTopmost(el, rect, () => null, vp)).toBe(false);
+  });
+
+  it('skips points past the viewport edge while the tile slides with a page swipe', () => {
+    const { el } = setup();
+    const sliding = { x: -150, y: 200, w: 400, h: 300 };
+    const hit = (x: number, y: number) => (x < 0 || x >= vp.w || y < 0 || y >= vp.h ? null : el);
+    expect(isTopmost(el, sliding, hit, vp)).toBe(true);
+    expect(isTopmost(el, { ...sliding, x: 800 }, hit, vp)).toBe(true);
+  });
+
+  it('still fails when an on-screen point of a partly off-screen tile is covered', () => {
+    const { el, other } = setup();
+    const sliding = { x: -150, y: 200, w: 400, h: 300 };
+    expect(isTopmost(el, sliding, (x, y) => (x < 0 ? null : y > 480 ? other : el), vp)).toBe(false);
+  });
+
+  it('fails when a partly off-screen tile is covered only in its left visible band', () => {
+    const { el, other } = setup();
+    expect(isTopmost(el, { x: -250, y: 200, w: 400, h: 300 }, (x, y) => (x < 0 || y < 0 ? null : x < 20 ? other : el), vp)).toBe(false);
+  });
+
+  it('fails when no probe point is on screen', () => {
+    const { el } = setup();
+    expect(isTopmost(el, { x: -500, y: 200, w: 400, h: 300 }, () => el, vp)).toBe(false);
+    expect(isTopmost(el, { x: vp.w, y: 200, w: 400, h: 300 }, () => el, vp)).toBe(false);
   });
 
   it('fails on an empty rect', () => {
     const { el } = setup();
-    expect(isTopmost(el, { x: 0, y: 0, w: 0, h: 10 }, () => el)).toBe(false);
+    expect(isTopmost(el, { x: 0, y: 0, w: 0, h: 10 }, () => el, vp)).toBe(false);
   });
 });
 
 describe('computeVisible', () => {
   const base = () => {
     const { el } = setup();
-    return { supported: true, documentVisible: true, suppressed: false, connected: true, loadFailed: false, rect, el, hit: () => el };
+    return { supported: true, documentVisible: true, suppressed: false, connected: true, loadFailed: false, rect, el, hit: () => el, viewport: vp };
   };
 
   it('is true when every condition holds', () => {
@@ -103,7 +129,29 @@ describe('webViewSuppressedBy', () => {
 
   it('hides a view the resize frame covers even without the flag, via the hit test', () => {
     const { el, other } = setup();
-    expect(computeVisible({ supported: true, documentVisible: true, suppressed: webViewSuppressedBy({ ...idle, resizing: true }), connected: true, loadFailed: false, rect, el, hit: () => el })).toBe(false);
-    expect(computeVisible({ supported: true, documentVisible: true, suppressed: false, connected: true, loadFailed: false, rect, el, hit: () => other })).toBe(false);
+    expect(computeVisible({ supported: true, documentVisible: true, suppressed: webViewSuppressedBy({ ...idle, resizing: true }), connected: true, loadFailed: false, rect, el, hit: () => el, viewport: vp })).toBe(false);
+    expect(computeVisible({ supported: true, documentVisible: true, suppressed: false, connected: true, loadFailed: false, rect, el, hit: () => other, viewport: vp })).toBe(false);
+  });
+});
+
+describe('dragHidesTiles', () => {
+  it('ignores a tap with finger drift', () => {
+    expect(dragHidesTiles(6, 8)).toBe(false);
+    expect(dragHidesTiles(0, 16)).toBe(false);
+  });
+
+  it('uses the given engage distance', () => {
+    expect(dragHidesTiles(0, 10, 8)).toBe(true);
+    expect(dragHidesTiles(0, 10, 12)).toBe(false);
+  });
+
+  it('hides on a vertical pull', () => {
+    expect(dragHidesTiles(2, 40)).toBe(true);
+    expect(dragHidesTiles(0, -40)).toBe(true);
+  });
+
+  it('keeps a horizontal or diagonal drag shown', () => {
+    expect(dragHidesTiles(80, 10)).toBe(false);
+    expect(dragHidesTiles(40, 40)).toBe(false);
   });
 });

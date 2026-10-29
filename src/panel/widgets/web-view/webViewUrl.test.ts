@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeWebViewUrl, webViewHostName } from './webViewUrl';
+import { normalizeWebViewUrl, webViewHostName, webViewOpenUrl } from './webViewUrl';
 
 describe('normalizeWebViewUrl', () => {
   it('keeps http and https urls', () => {
@@ -47,5 +47,17 @@ describe('snapZoom', () => {
   it('leaves an imported zoom as stored', async () => {
     const { resolveZoom } = await import('./webViewConfig');
     expect(resolveZoom(1.3)).toBe(1.3);
+  });
+});
+
+describe('webViewOpenUrl', () => {
+  it('offers the configured address of a Web View tile', () => {
+    expect(webViewOpenUrl({ type: 'web-view', config: { url: 'example.com' } })).toBe('https://example.com/');
+  });
+
+  it('offers nothing without a usable url or on another widget', () => {
+    expect(webViewOpenUrl({ type: 'web-view' })).toBeNull();
+    expect(webViewOpenUrl({ type: 'web-view', config: { url: 'javascript:alert(1)' } })).toBeNull();
+    expect(webViewOpenUrl({ type: 'clock', config: { url: 'https://example.com' } })).toBeNull();
   });
 });

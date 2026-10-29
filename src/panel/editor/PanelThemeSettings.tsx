@@ -55,9 +55,9 @@ export type PanelThemeSettingsSection = 'all' | 'theme' | 'background';
 
 export interface PanelThemeSettingsState {
   appThemeMode: ThemeMode;
-  // Desktop app's resolved theme from prefs.theme.resolvedThemeMode. '' when the
-  // service/desktop hasn't published one; sync mode then falls back to
-  // appThemeMode. Concrete value here = follow the desktop OS, not the panel's.
+  // Host OS theme from prefs.theme.resolvedThemeMode, published by the service.
+  // '' when not published; a synced panel on 'system' then resolves against its
+  // own device. Only consulted while appThemeMode is 'system'.
   appResolvedThemeMode: '' | ResolvedPanelThemeMode;
   themeSyncWithDesktop: boolean;
   themeMode: ThemeMode;
@@ -255,8 +255,9 @@ export function PanelThemeSettings({
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
   // Frost blurs whatever the page itself paints, so it applies to the
   // redrawn wallpaper and to a shader/media layer. In see-through mode the
-  // page paints nothing and backdrop-filter has nothing to sample.
+  // page paints nothing, so the host blurs the desktop behind the cards.
   const frostApplies = theme.backdrop === 'wallpaper'
+    || theme.backdrop === 'desktop'
     || (theme.backdrop === 'theme' && theme.backgroundMode !== 'solid');
   // Built outside the JSX so the option keys read as data, matching the other
   // ChipGroup call sites (the i18n lint rule scans JSX only).

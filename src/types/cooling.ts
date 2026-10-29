@@ -49,9 +49,9 @@ export interface FanState {
   curveId: string | null;
 }
 
-// Hard cap on user-created curves. The picker UI starts to crowd past this,
+// Hard cap on the whole curve list, presets included. The picker UI starts to crowd past this,
 // and a curve list has fewer real use cases than fan channels do.
-export const MAX_CURVES = 10;
+export const MAX_CURVES = 20;
 
 /**
  * Adapt /cooling/curves wire curves ("input.id", "Flat|Linear|Graph|Mixed")

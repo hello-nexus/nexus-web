@@ -50,6 +50,7 @@ export const SIMULATED_SCREEN_CATALOG: readonly SimulatedScreen[] = [
   { id: 'corsair-capellix-lcd', name: 'Corsair Elite Capellix LCD', vendor: 'Corsair', surface: 'lcd-square', family: 'corsair-capellix-lcd', width: 480, height: 480, dpi: LCD_DPI },
   // The service records only the glass density; the portrait pixel size is derived from it and the diagonal.
   { id: 'icue-link-lcd5', name: 'Corsair iCUE LINK 5" LCD', vendor: 'Corsair', surface: 'monitor', family: 'icue-link-lcd5', width: 720, height: 1280, dpi: 294 },
+  { id: 'hyte-y60', name: 'HYTE Y60 Display', vendor: 'HYTE', surface: 'monitor', family: 'hyte-y60', width: 515, height: 1920, dpi: 158 },
   { id: 'xeneon-edge', name: 'Corsair Xeneon Edge', vendor: 'Corsair', surface: 'monitor', family: 'xeneon-edge', width: 2560, height: 720, dpi: 183, touch: true },
 
   { id: 'asus-ryujin-lcd', name: 'ASUS ROG Ryujin III LCD', vendor: 'ASUS', surface: 'lcd-square', family: 'asus-ryujin-lcd', width: 320, height: 240, dpi: LCD_DPI },

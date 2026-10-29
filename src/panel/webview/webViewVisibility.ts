@@ -1,3 +1,4 @@
+import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from '../engine/gestureThresholds';
 import type { WebViewRect } from './webViewProtocol';
 
 type HitTest = (x: number, y: number) => Element | null;
@@ -30,14 +31,19 @@ export function probePoints(rect: WebViewRect): Array<[number, number]> {
   return pts;
 }
 
-/**
- * True only when `el` is what the user would see at every probe point: a menu,
- * sheet, toast or control center above it makes the hit land elsewhere, which
- * hides the native view without enumerating those layers.
- */
-export function isTopmost(el: Element, rect: WebViewRect, hit: HitTest): boolean {
-  if (rect.w <= 0 || rect.h <= 0) return false;
-  return probePoints(rect).every(([x, y]) => {
+export interface ViewportSize {
+  w: number;
+  h: number;
+}
+
+/** True only when `el` is what the user sees at every probe point of the rect's on-screen part (the host clips the rest). */
+export function isTopmost(el: Element, rect: WebViewRect, hit: HitTest, viewport: ViewportSize): boolean {
+  const x0 = Math.max(rect.x, 0);
+  const y0 = Math.max(rect.y, 0);
+  const x1 = Math.min(rect.x + rect.w, viewport.w);
+  const y1 = Math.min(rect.y + rect.h, viewport.h);
+  if (x1 <= x0 || y1 <= y0) return false;
+  return probePoints({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }).every(([x, y]) => {
     const found = hit(x, y);
     return found !== null && (found === el || el.contains(found));
   });
@@ -52,11 +58,12 @@ export interface VisibilityInput {
   rect: WebViewRect;
   el: Element;
   hit: HitTest;
+  viewport: ViewportSize;
 }
 
 export function computeVisible(i: VisibilityInput): boolean {
   if (!i.supported || !i.documentVisible || i.suppressed || !i.connected || i.loadFailed) return false;
-  return isTopmost(i.el, i.rect, i.hit);
+  return isTopmost(i.el, i.rect, i.hit, i.viewport);
 }
 
 export interface WebViewSuppressors {
@@ -73,4 +80,13 @@ export interface WebViewSuppressors {
 /** Any state that moves or covers tiles hides every native web view. */
 export function webViewSuppressedBy(state: WebViewSuppressors): boolean {
   return Object.values(state).some(Boolean);
+}
+
+/**
+ * True once a drag has become a vertical pull of the panel: past the engage
+ * distance of the nearest sheet and the axis dominance the tray and control center use. A tap
+ * with finger drift, or a horizontal page swipe, stays false.
+ */
+export function dragHidesTiles(dx: number, dy: number, engagePx: number = GESTURE_ENGAGE_PX): boolean {
+  return Math.abs(dy) > engagePx && Math.abs(dy) > Math.abs(dx) * GESTURE_AXIS_DOMINANCE;
 }

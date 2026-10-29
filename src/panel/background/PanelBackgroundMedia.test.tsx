@@ -1,13 +1,14 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PanelBackgroundMedia } from './PanelBackgroundMedia';
+import { NULL_ERROR_GRACE_MS, PanelBackgroundMedia } from './PanelBackgroundMedia';
 
 vi.mock('../../api/panelBackgroundMedia', () => ({
   backgroundMediaFileUrl: (deviceId: string, id: string) => `/media/${deviceId}/${id}`,
 }));
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -71,5 +72,81 @@ describe('PanelBackgroundMedia', () => {
     unmount();
     expect(el.hasAttribute('src')).toBe(false);
     expect(load).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PanelBackgroundMedia error events', () => {
+  function mount(readyState: number, error: unknown, handler = vi.fn()) {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve());
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    const onFailed = handler;
+    const { container, unmount, rerender } = render(
+      <PanelBackgroundMedia id="v" deviceId="d" type="animated" opacity={1} onFailed={onFailed} />,
+    );
+    const el = container.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(el, 'readyState', { value: readyState, configurable: true });
+    Object.defineProperty(el, 'error', { value: error, configurable: true });
+    return { el, onFailed, unmount, rerender };
+  }
+
+  it('fails at once on a real MediaError', () => {
+    const { el, onFailed } = mount(0, { code: 4 });
+    fireEvent.error(el);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the clip when an error event carries no MediaError and the element has data', () => {
+    const { el, onFailed } = mount(4, null);
+    fireEvent.error(el);
+    vi.advanceTimersByTime(NULL_ERROR_GRACE_MS * 2);
+    expect(onFailed).not.toHaveBeenCalled();
+  });
+
+  it('gives up after the grace period when an error with no MediaError leaves the element empty', () => {
+    const { el, onFailed } = mount(0, null);
+    fireEvent.error(el);
+    expect(onFailed).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(NULL_ERROR_GRACE_MS + 100);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels the pending give-up when the layer unmounts', () => {
+    const { el, onFailed, unmount } = mount(0, null);
+    fireEvent.error(el);
+    unmount();
+    vi.advanceTimersByTime(NULL_ERROR_GRACE_MS * 2);
+    expect(onFailed).not.toHaveBeenCalled();
+  });
+
+  it('calls onFailed once when a real error follows a null error during the grace', () => {
+    const { el, onFailed } = mount(0, null);
+    fireEvent.error(el);
+    Object.defineProperty(el, 'error', { value: { code: 4 }, configurable: true });
+    fireEvent.error(el);
+    vi.advanceTimersByTime(NULL_ERROR_GRACE_MS * 2);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the clip when data arrives before the grace period ends', () => {
+    const { el, onFailed } = mount(0, null);
+    fireEvent.error(el);
+    Object.defineProperty(el, 'readyState', { value: 3, configurable: true });
+    vi.advanceTimersByTime(NULL_ERROR_GRACE_MS * 2);
+    expect(onFailed).not.toHaveBeenCalled();
+  });
+
+  it('calls the latest onFailed when the prop changes during the grace', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const { el, rerender } = mount(0, null, first);
+    fireEvent.error(el);
+    rerender(
+      <PanelBackgroundMedia id="v" deviceId="d" type="animated" opacity={1} onFailed={second} />,
+    );
+    vi.advanceTimersByTime(NULL_ERROR_GRACE_MS + 100);
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
   });
 });

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MediaWidget } from './MediaWidget';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
-import type { PanelWidget } from '../../types';
+import { widgetInputOf, type PanelWidget } from '../../types';
 
 const widget: PanelWidget = {
   id: 'media-1',
@@ -55,5 +55,11 @@ describe('MediaWidget control gating by surface', () => {
 
     renderAt('y70', false);
     expect(screen.getByLabelText(NEXT)).toBeTruthy();
+  });
+
+  it('renders transport + volume on a display-bound monitor with no digitizer', () => {
+    renderAt('monitor', widgetInputOf(undefined, true));
+    expect(screen.getByLabelText(NEXT)).toBeTruthy();
+    expect(screen.getByLabelText(VOLUME)).toBeTruthy();
   });
 });

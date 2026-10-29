@@ -124,7 +124,8 @@ export interface AppMetadata {
   gridSizes?: PanelWidgetSize[];
   /**
    * Opts the widget into freeform resizing in the panel editor: beyond `sizes` it may take
-   * any even span from the freeform minimum side up that the device grid holds. Its content must lay out at any span.
+   * any span from the freeform minimum side up that the device grid holds. Its content must lay out at any span.
+   * Built-ins set it in their meta; an SDK app sets it with `"freeform": true` in its manifest.
    */
   freeform?: boolean;
   // When false, the app is hidden from the Add-a-Widget picker: it can't be
@@ -165,9 +166,11 @@ export interface AppMetadata {
   // desktop overlay - never enters immersive, so the tile would be inert
   // there; set this to keep the widget on on-device panels only.
   panelOnly?: boolean;
+  // Plays only on a panel that can stand in portrait; a generic display panel cannot rotate, so it leaves the widget out.
+  portraitOnly?: boolean;
   // Whether the widget participates in slot selection during editing: the live
   // tile renders selectable cells and the edit sheet edits the selected slot
-  // (monitoring, deck). When true, PanelApp/WidgetEditSheet/PanelEditorSheet
+  // (monitoring, deck). When true, PanelApp/PanelEditorSheet
   // pass selectedSlot/onSelectedSlotChange through. Defaults to false.
   usesSlotSelection?: boolean;
   // Initial config a freshly-added widget is seeded with (e.g. the deck's

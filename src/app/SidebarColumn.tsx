@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { LayoutGrid, Pin, PinOff } from 'lucide-react';
+import { LayoutDashboard, Pin, PinOff } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { useUiSettings, type UiSettingsValue } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
@@ -74,6 +74,7 @@ interface SidebarColumnProps {
   // landing page. Dashboard maps this to the existing DevicesPage.
   onDevicesHeaderClick: () => void;
   devicesHeaderActive: boolean;
+  onOpenFirmware: () => void;
 }
 
 export function SidebarColumn({
@@ -92,6 +93,7 @@ export function SidebarColumn({
   onDeviceSelect,
   onDevicesHeaderClick,
   devicesHeaderActive,
+  onOpenFirmware,
 }: SidebarColumnProps) {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
@@ -263,7 +265,7 @@ export function SidebarColumn({
         active={serviceNavActive}
         onChange={onServiceNavChange}
         sectionLabel={t('sidebar.section.apps')}
-        sectionIcon={<LayoutGrid size={ICON_SIZE} />}
+        sectionIcon={<LayoutDashboard size={ICON_SIZE} />}
         onSectionLabelClick={() => onServiceNavChange(DASHBOARD_APP_KEY)}
         sectionLabelActive={serviceNavActive === DASHBOARD_APP_KEY}
         serviceState={serviceState}
@@ -292,6 +294,7 @@ export function SidebarColumn({
             onSelect={onDeviceSelect}
             onHeaderClick={onDevicesHeaderClick}
             headerActive={devicesHeaderActive}
+            onOpenFirmware={onOpenFirmware}
           />
         }
       />

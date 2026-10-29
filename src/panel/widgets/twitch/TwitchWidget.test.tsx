@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TwitchChatFrame } from '../../../api/twitch';
-import type { PanelWidget } from '../../types';
+import { widgetInputOf, type PanelWidget } from '../../types';
 import { TwitchWidget } from './TwitchWidget';
 
 const mocks = vi.hoisted(() => ({
@@ -81,5 +81,12 @@ describe('TwitchWidget clear', () => {
 
     expect(screen.getByText('days-old message')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'panel.widget.twitch.clear' })).toBeNull();
+  });
+
+  it('shows the clear button on a display-bound monitor with no digitizer', () => {
+    render(<TwitchWidget widget={widget} surface="monitor" deviceTouch={widgetInputOf(undefined, true)} />);
+    deliver(frame({ messages: [hello] }));
+
+    expect(screen.getByRole('button', { name: 'panel.widget.twitch.clear' })).toBeTruthy();
   });
 });

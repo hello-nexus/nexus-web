@@ -2,7 +2,7 @@ import type { FlashStatus } from '../../../hooks/useFlashStatus';
 import styles from './FlashProgress.module.scss';
 
 /** Inline firmware flash progress: thin bar plus the service's phase message. */
-export function FlashProgress({ status }: { status: FlashStatus }) {
+export function FlashProgress({ status }: { status: Pick<FlashStatus, 'percent' | 'message'> }) {
   return (
     <span className={styles.progress}>
       <span className={styles.bar}>

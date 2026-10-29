@@ -35,3 +35,8 @@ export function webViewHostName(url: string): string {
 export function webViewSiteName(url: string): string {
   return webViewHostName(url).replace(/^www\./i, '');
 }
+
+/** The address a Web View tile's Open item sends to the default browser, null when no usable url is configured. */
+export function webViewOpenUrl(widget: { type: string; config?: Record<string, unknown> }): string | null {
+  return widget.type === 'web-view' ? normalizeWebViewUrl(widget.config?.url) : null;
+}

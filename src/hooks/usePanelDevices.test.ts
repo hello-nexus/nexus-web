@@ -73,6 +73,17 @@ describe('buildPanelDevices promoted-monitor branding', () => {
     expect(firstDevice(xeneonRecord('CRX ED00')).capabilities.touch).toBe(true);
   });
 
+  it('brands the HYTE Y60 display from either default name and the HYTE icon', () => {
+    for (const raw of ['RTK BC32', 'RTK FHD HDR']) {
+      const record = xeneonRecord(raw);
+      record.capabilities = { ...record.capabilities, family: 'hyte-y60', touch: false };
+      const device = firstDevice(record);
+      expect(device.name).toBe('HYTE Y60 Display');
+      expect(device.iconSrc).toBe('/assets/devices/hyte.svg');
+      expect(device.experimental).toBeUndefined();
+    }
+  });
+
   it('brands the iCUE LINK 5" LCD from its PnP identity, as a TITAN II LCD when that pump is on the hub', () => {
     const record = xeneonRecord('XMD 00EA');
     record.capabilities = { ...record.capabilities, family: 'icue-link-lcd5', touch: false };

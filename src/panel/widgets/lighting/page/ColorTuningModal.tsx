@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { Button } from '../../../../components/common/Button/Button';
+import { SettingSelect } from '../../../../components/common/SettingRow/SettingRow';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTranslation } from '../../../../lib/i18n';
 import {
+  COLOR_ORDERS,
   NEUTRAL_COLOR_ADJUST,
   fetchLightingColorAdjust,
   setLightingColorAdjust,
+  type ColorOrder,
   type LightingColorAdjust,
   type LightingColorAdjustPatch,
   type LightingDevice,
@@ -102,6 +105,12 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
   const blue = spread(scopedIds.map(id => adjustOf(id).blue));
   const temperature = spread(scopedIds.map(id => adjustOf(id).temperature));
   const saturation = spread(scopedIds.map(id => adjustOf(id).saturation));
+  // The order is a choice, not a number: '' when the scoped devices disagree,
+  // which the Select shows as its placeholder.
+  const orders = scopedIds.map(id => adjustOf(id).colorOrder ?? NEUTRAL_COLOR_ADJUST.colorOrder);
+  const orderMixed = orders.some(o => o !== orders[0]);
+  const orderValue = orderMixed ? '' : (orders[0] ?? NEUTRAL_COLOR_ADJUST.colorOrder);
+  const orderOptions = useMemo(() => COLOR_ORDERS.map(o => ({ value: o, label: o })), []);
   const bright = spread(scopedIds.map(id => brightnessOf(id)));
 
   const throttle = useThrottle();
@@ -165,6 +174,7 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
     const preview: LightingColorAdjust = {
       red: red.value, green: green.value, blue: blue.value,
       temperature: temperature.value, saturation: saturation.value,
+      colorOrder: NEUTRAL_COLOR_ADJUST.colorOrder,
     };
     return RIBBON_SAMPLES.map(source => ({
       source: toCss(source),
@@ -324,6 +334,16 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
               className={saturation.mixed ? styles.sliderMixed : undefined}
             />
           </div>
+
+          <SettingSelect
+            label={t('lighting.colorTuning.colorOrder')}
+            description={t('lighting.colorTuning.colorOrderInfo')}
+            options={orderOptions}
+            value={orderValue}
+            placeholder={t('lighting.colorTuning.mixed')}
+            disabled={empty}
+            onChange={v => write({ colorOrder: v as ColorOrder }, true)}
+          />
         </section>
 
         <div className={styles.actions}>

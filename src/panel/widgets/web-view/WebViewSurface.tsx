@@ -1,4 +1,4 @@
-import { Globe, RotateCw } from 'lucide-react';
+import { ArrowLeft, Globe, Home, RotateCw } from 'lucide-react';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
@@ -6,7 +6,7 @@ import { webViewHost } from '../../webview/webViewHost';
 import { isLivePanelPage } from '../../webview/webViewProtocol';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
-import { resolveRefreshMinutes, resolveZoom } from './webViewConfig';
+import { resolveInteractive, resolveRefreshMinutes, resolveZoom } from './webViewConfig';
 import { normalizeWebViewUrl, webViewHostName, webViewSiteName } from './webViewUrl';
 import { useWebViewClaim } from './useWebViewClaim';
 import styles from './WebViewWidget.module.scss';
@@ -28,6 +28,7 @@ export function WebViewSurface({ widget, surface, editorPreview, immersive }: We
   const native = !preview && !editorPreview && surface !== 'desktop' && url !== null && isLivePanelPage();
   const { ref, snapshot } = useWebViewClaim({ id: widget.id, url, immersive, enabled: native,
     zoom: resolveZoom(widget.config?.zoom), refreshMinutes: resolveRefreshMinutes(widget.config?.refreshMinutes),
+    touchPage: !immersive && resolveInteractive(widget.config?.interactive),
   });
 
   const view = snapshot.views[widget.id];
@@ -48,7 +49,7 @@ export function WebViewSurface({ widget, surface, editorPreview, immersive }: We
     title = webViewSiteName(url);
     previewOnly = true;
   } else if (unsupported) {
-    title = t('panel.widget.web-view.unsupported');
+    title = t('panel.widget.unavailableOnDisplay');
     hint = webViewHostName(url);
   } else if (failed) {
     title = view?.state === 'crashed' ? t('panel.widget.web-view.crashed') : t('panel.widget.web-view.error');
@@ -65,10 +66,23 @@ export function WebViewSurface({ widget, surface, editorPreview, immersive }: We
         <span className={styles.title}>{title}</span>
         {hint && <span className={styles.hint}>{hint}</span>}
         {previewOnly && <Badge label={t('panel.widget.web-view.previewOnly')} />}
-        {failed && immersive && (
-          <Button size="sm" icon={<RotateCw size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'reload')}>
-            {t('panel.widget.web-view.retry')}
-          </Button>
+        {failed && (
+          <div className={styles.actions}>
+            {view?.canGoBack ? (
+              <Button size="sm" icon={<ArrowLeft size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'back')}>
+                {t('panel.widget.web-view.back')}
+              </Button>
+            ) : (
+              <Button size="sm" icon={<RotateCw size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'reload')}>
+                {t('panel.widget.web-view.retry')}
+              </Button>
+            )}
+            {snapshot.navControls && (
+              <Button size="sm" icon={<Home size={14} />} onClick={() => webViewHost.sendCommand(widget.id, 'home')}>
+                {t('panel.widget.web-view.home')}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </div>

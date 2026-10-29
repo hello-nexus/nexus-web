@@ -17,7 +17,6 @@ const StorybookModal = (import.meta.env.DEV || __DEV_TOOLS__)
     )
   : null;
 import { PanelSimulatorCard } from './SimulatorsCard';
-import { FontDebugCard } from './FontDebugCard';
 import { AppTelemetryCard } from './AppTelemetryCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
 import { DevSimEventsCard } from './DevSimEventsCard';
@@ -69,7 +68,6 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <PanelSimulatorCard />
             {DEV_TOOLS && <DevSimEventsCard />}
             {DEV_TOOLS && <AstralSimCard />}
-            <FontDebugCard />
             <HelloGreetingCard />
           </div>
         </div>
@@ -195,7 +193,6 @@ const SECTIONS: SectionDef[] = [
   { key: 'theme' },
   { key: 'monitoring' },
   { key: 'panel' },
-  { key: 'overlay' },
   { key: 'lighting' },
   { key: 'y70' },
   { key: 'keeb' },

@@ -20,6 +20,7 @@ const COMMON_EXCLUSIONS: Record<string, string> = {
   ChannelSwitchModal: 'Continue starts a real install of another update channel; a preview would trigger it',
   ContextMenu: 'side-effect contextmenu suppressor, renders null; has its own unit test',
   ErrorBoundary: 'render-time error catcher, nothing to preview',
+  ThemeScope: 'theme-pinning wrapper and portal-root context, nothing to preview',
   PairRemote: 'live-state pairing orchestration (QR mint, sessions poll, socket); not stub-renderable',
 };
 
@@ -32,6 +33,7 @@ const PANEL_KIT_EXCLUSIONS: Record<string, string> = {
   PanelDisplayBoundContext: 'context provider for the real-display vs streamed-capture signal, nothing to preview',
   PanelGlassSurfaceContext: 'context provider for the physical glass behind a Widget size layout, nothing to preview',
   PanelOpaqueContext: 'context provider for opaque-tile reports, nothing to preview',
+  PanelOpenWidgetContext: 'context provider for the panel cell-tap handler, nothing to preview',
 };
 
 // First path segment under the prefix, .tsx stripped - so a dir entry

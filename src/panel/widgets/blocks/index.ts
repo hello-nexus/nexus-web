@@ -14,6 +14,7 @@ export const blocksApp: AppManifest = {
     hasConfig: false,
     touch: true,
     panelOnly: true,
+    portraitOnly: true,
   },
   Widget: BlocksWidget,
   Touch: BlocksTouch,

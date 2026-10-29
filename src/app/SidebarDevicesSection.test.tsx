@@ -13,7 +13,7 @@ import type { PanelDevice } from '../panel/device/panelDevices';
 
 vi.mock('../lib/i18n', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, string>) => (key === 'displays.numberedName' && params ? `${params.name} (${params.n})` : key),
   }),
 }));
 
@@ -58,13 +58,18 @@ vi.mock('../api/conflicts', () => ({
 vi.mock('../hooks/useConflictApps', () => ({
   useConflictApps: () => ({ conflicts: [], ready: false }),
 }));
+let mockTopology: { displays: Array<{ id: string; number: number }> } | null = null;
+vi.mock('../hooks/useDisplayTopology', () => ({
+  useDisplayTopology: () => ({ topology: mockTopology, loading: false, refresh: vi.fn() }),
+}));
 let mockFirmwareUpdates: ReadonlySet<string> = new Set();
 vi.mock('../hooks/useFirmwareUpdates', () => ({
   useFirmwareUpdates: () => mockFirmwareUpdates,
 }));
 // Menu gating for the simulated-device remover; flipped per test.
-let devTools = true;
-vi.mock('../lib/devTools', () => ({ get DEV_TOOLS() { return devTools; } }));
+// Hoisted: the widget registry reads the flag while the mock is first resolved.
+const devToolsFlag = vi.hoisted(() => ({ on: true }));
+vi.mock('../lib/devTools', () => ({ get DEV_TOOLS() { return devToolsFlag.on; } }));
 
 // Hidden set and setter are driven per test; every other path sees an empty set.
 let mockHidden: readonly string[] = [];
@@ -128,9 +133,81 @@ function renderSidebar() {
       onSelect={() => {}}
       onHeaderClick={() => {}}
       headerActive={false}
+      onOpenFirmware={() => {}}
     />,
   );
 }
+
+describe('SidebarDevicesSection display numbers', () => {
+  afterEach(() => { mockTopology = null; });
+  const two = () => [
+    monitorDevice({ key: 'a', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:a', displayId: 'd1', genericDisplay: true }) }),
+    monitorDevice({ key: 'b', shortName: 'DEL A0B8', panelDevice: monitorPanelDevice({ id: 'display:b', displayId: 'd2', genericDisplay: true }) }),
+  ];
+
+  it('suffixes identical display names with the shared display number', () => {
+    mockUnified = two();
+    mockTopology = { displays: [{ id: 'd1', number: 1 }, { id: 'd2', number: 2 }] };
+    renderSidebar();
+    expect(screen.getByText('DEL A0B8 (1)')).toBeTruthy();
+    expect(screen.getByText('DEL A0B8 (2)')).toBeTruthy();
+  });
+
+  it('shows no number when there is only one screen', () => {
+    mockUnified = [two()[0]];
+    mockTopology = { displays: [{ id: 'd1', number: 1 }] };
+    renderSidebar();
+    expect(screen.getByText('DEL A0B8')).toBeTruthy();
+  });
+
+  it('shows no number on a branded panel', () => {
+    mockUnified = [two()[0], monitorDevice({ key: 'c', panelDevice: monitorPanelDevice({ id: 'display:c', displayId: 'd2' }) })];
+    mockTopology = { displays: [{ id: 'd1', number: 1 }, { id: 'd2', number: 2 }] };
+    renderSidebar();
+    expect(screen.getByText('Xeneon Edge')).toBeTruthy();
+  });
+
+  it('numbers branded panels that share a name', () => {
+    mockUnified = [
+      monitorDevice({ key: 'c', panelDevice: monitorPanelDevice({ id: 'display:c', displayId: 'd1' }) }),
+      monitorDevice({ key: 'd', panelDevice: monitorPanelDevice({ id: 'display:d', displayId: 'd2' }) }),
+    ];
+    mockTopology = { displays: [{ id: 'd1', number: 1 }, { id: 'd2', number: 2 }] };
+    renderSidebar();
+    expect(screen.getAllByText(/Xeneon Edge/)).toHaveLength(2);
+    expect(screen.queryByText('Xeneon Edge')).toBeNull();
+  });
+});
+
+describe('SidebarDevicesSection panel toggle wording', () => {
+  const generic = (linkEnabled: boolean) => monitorDevice({
+    nexusControlEnabled: linkEnabled,
+    panelDevice: monitorPanelDevice({ linkEnabled, genericDisplay: true }),
+  });
+
+  it('calls the toggle on a generic display a Nexus panel and demotes through the Displays API', () => {
+    mockUnified = [generic(true)];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.queryByRole('menuitem', { name: 'lighting.devices.menuControlOff' })).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'sidebar.device.panelOff' }));
+    expect(demoteDisplayPanel).toHaveBeenCalledWith('disp1');
+  });
+
+  it('offers turning a generic display panel back on', () => {
+    mockUnified = [generic(false)];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.getByRole('menuitem', { name: 'sidebar.device.panelOn' })).toBeTruthy();
+  });
+
+  it('keeps Nexus Control wording for a branded display panel', () => {
+    mockUnified = [monitorDevice({ nexusControlEnabled: true, panelDevice: monitorPanelDevice({ linkEnabled: true }) })];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.getByRole('menuitem', { name: 'lighting.devices.menuControlOff' })).toBeTruthy();
+  });
+});
 
 describe('SidebarDevicesSection hidden devices', () => {
   const controlOn = () => monitorDevice({
@@ -256,14 +333,36 @@ describe('SidebarDevicesSection warning and update glyphs', () => {
     mockUnified = [deck(true)];
     renderSidebar();
     expect(screen.getByRole('img', { name: 'devices.warning.elgatoSoftwareRunning' })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'devices.firmwareUpdate.tooltip' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.firmwareUpdate.tooltip' })).toBeInTheDocument();
+  });
+
+  it('opens Firmware Updates from the glyph without selecting the row', () => {
+    mockUnified = [deck(true)];
+    const onSelect = vi.fn();
+    const onOpenFirmware = vi.fn();
+    render(
+      <SidebarDevicesSection
+        serviceOnline
+        activeDeviceKey=""
+        compact={false}
+        onSelect={onSelect}
+        onHeaderClick={() => {}}
+        headerActive={false}
+        onOpenFirmware={onOpenFirmware}
+      />,
+    );
+    const glyph = screen.getByRole('button', { name: 'devices.firmwareUpdate.tooltip' });
+    fireEvent.click(glyph);
+    fireEvent.keyDown(glyph, { key: 'Enter' });
+    expect(onOpenFirmware).toHaveBeenCalledTimes(2);
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('hides both glyphs while Nexus Control is off', () => {
     mockUnified = [deck(false)];
     renderSidebar();
     expect(screen.queryByRole('img', { name: 'devices.warning.elgatoSoftwareRunning' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: 'devices.firmwareUpdate.tooltip' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.firmwareUpdate.tooltip' })).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'devices.nexusControlOff.sidebarTooltip' })).toBeInTheDocument();
   });
 });
@@ -287,7 +386,7 @@ describe('SidebarDevicesSection simulated badge', () => {
 
 describe('SidebarDevicesSection row context menu', () => {
   beforeEach(() => {
-    devTools = true;
+    devToolsFlag.on = true;
     vi.clearAllMocks();
   });
 
@@ -424,7 +523,7 @@ describe('SidebarDevicesSection row context menu', () => {
   // The remover is a dev-tools affordance: a release bundle must not offer it
   // even if a simulated record somehow reaches the list.
   it('hides the simulated remover in a release build', () => {
-    devTools = false;
+    devToolsFlag.on = false;
     mockUnified = [monitorDevice({
       key: 'curated-tryx-sim',
       shortName: 'Tryx Panorama',
@@ -446,7 +545,7 @@ describe('SidebarDevicesSection row context menu', () => {
 // that key comes back (same simulator re-enabled from Tools).
 describe('SidebarDevicesSection context menu staleness', () => {
   it('does not reopen the menu when a removed device returns', () => {
-    devTools = true;
+    devToolsFlag.on = true;
     const tryxSim = monitorDevice({
       key: 'curated-tryx-sim',
       shortName: 'Tryx Panorama',
@@ -462,9 +561,9 @@ describe('SidebarDevicesSection context menu staleness', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'sidebar.device.removeSimulated' }));
 
     mockUnified = [];
-    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     mockUnified = [tryxSim];
-    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
@@ -485,7 +584,7 @@ describe('SidebarDevicesSection context menu staleness', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 
     mockUnified = [{ ...keeb, supportsNexusControl: true }];
-    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    view.rerender(<SidebarDevicesSection serviceOnline activeDeviceKey="" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });
@@ -536,7 +635,7 @@ describe('SidebarDevicesSection cooler LCD rows', () => {
       shortName: 'Lian Li HydroShift II LCD-S',
       curatedId: 'lianli-hydroshift2',
     })];
-    render(<SidebarDevicesSection serviceOnline activeDeviceKey="curated-lianli-hydroshift2" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} />);
+    render(<SidebarDevicesSection serviceOnline activeDeviceKey="curated-lianli-hydroshift2" compact={false} onSelect={() => {}} onHeaderClick={() => {}} headerActive={false} onOpenFirmware={() => {}} />);
     expect(screen.getByText('Lian Li HydroShift II LCD-S').closest('button')?.className).toMatch(/active/);
   });
 });

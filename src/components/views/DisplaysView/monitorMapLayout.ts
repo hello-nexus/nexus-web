@@ -8,12 +8,12 @@ export interface MonitorRect {
   height: number;
 }
 
-/** Windows-style seam between adjacent monitor rectangles. */
+/** Seam between adjacent monitor rectangles. */
 const RECT_INSET_PX = 2;
 const ROW_GAP_PX = 16;
 
 /**
- * Lay monitor rectangles out inside a container, Windows-display-settings
+ * Lay monitor rectangles out inside a container, Display-settings
  * style. Map mode (every display has bounds): uniform scale of the virtual
  * desktop's bounding box, centered. Row mode (any display lacks bounds -
  * Linux): aspect-correct rectangles in a horizontal row. Pure math, no DOM.
@@ -101,7 +101,21 @@ function inset(rect: MonitorRect): MonitorRect {
   };
 }
 
-/** Windows-settings-style number; array order when the OS gave none. */
-export function displayNumberLabel(display: TopologyDisplay, index: number): string {
-  return String(display.number > 0 ? display.number : index + 1);
+/** Settings-style numbers; a display the OS gave none takes the lowest number no display already uses, in array order. */
+export function displayNumberLabels(displays: readonly TopologyDisplay[]): string[] {
+  const used = new Set(displays.filter(d => d.number > 0).map(d => d.number));
+  let next = 1;
+  return displays.map(d => {
+    if (d.number > 0) return String(d.number);
+    while (used.has(next)) next += 1;
+    used.add(next);
+    return String(next);
+  });
+}
+
+/** The number to show beside a display's name in lists, or null when there is only one screen or the display is unknown. */
+export function displayListNumber(displays: readonly TopologyDisplay[], displayId: string | undefined): string | null {
+  if (displays.length < 2 || !displayId) return null;
+  const index = displays.findIndex(d => d.id === displayId);
+  return index < 0 ? null : displayNumberLabels(displays)[index];
 }

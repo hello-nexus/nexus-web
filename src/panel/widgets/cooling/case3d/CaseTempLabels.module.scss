@@ -1,0 +1,29 @@
+@use '../../../../styles/text' as *;
+
+// Same dark translucent look as the strips over the canvas; the renderer positions each label, so it starts hidden.
+.label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / var(--alpha-strong));
+  backdrop-filter: blur(var(--blur-backdrop));
+  color: #fff;
+  pointer-events: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.name {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.value {
+  @include text-button;
+}

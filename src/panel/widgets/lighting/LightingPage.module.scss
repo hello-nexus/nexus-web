@@ -1457,14 +1457,19 @@
 // corner, as wide as the menu button below it so the two glyphs share a column.
 // The color-tuning mark sits just left of it, same size and dimming.
 .deviceStackBadge,
-.deviceTuneBadge {
+.deviceTuneBadge,
+.deviceTuneBtn {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 20px;
   margin-top: 0.15rem;
   margin-left: auto;
+}
+
+.deviceStackBadge,
+.deviceTuneBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-dim);
   opacity: var(--alpha-medium);
   transition: color var(--ease-fast), opacity var(--ease-fast);
@@ -1476,8 +1481,18 @@
   .deviceCardSelected & { color: var(--text); opacity: 1; }
 }
 
+// The press-to-open form of the tune mark: the LED colors badge button's look
+// (deviceSettingsBtn + deviceBadgeBtn). Its box is one name line tall and
+// centered on that line, so the glyph aligns with the stack badge and the row
+// neither grows nor reaches into the meta row below.
+.deviceTuneBtn {
+  height: 1rem;
+  margin-top: 0.05rem;
+}
+
 // Only the first mark takes the free space, so the two sit side by side.
-.deviceTuneBadge + .deviceStackBadge { margin-left: 0; }
+.deviceTuneBadge + .deviceStackBadge,
+.deviceTuneBtn + .deviceStackBadge { margin-left: 0; }
 
 // The (i) notice icon at the end of a device label or group title. Bare icon
 // (no button) so it can nest inside the group-header toggle; HoverTooltip owns

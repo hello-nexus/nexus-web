@@ -18,7 +18,7 @@ export const DEFAULT_VENT_AREA_M2 = 0.012;
 const DISCHARGE_COEFFICIENT = 0.6;
 const AIR_DENSITY = 1.2;
 const PA_PER_MMH2O = 9.80665;
-const M3S_PER_CFM = 0.000471947;
+export const M3S_PER_CFM = 0.000471947;
 // Gauge pressures inside this band read as balanced.
 const BALANCED_BAND_PA = 0.25;
 const BISECTION_STEPS = 60;
@@ -32,6 +32,19 @@ export function defaultFanSpec(sizeMm: number): FanSpec {
 export interface PressureFan extends FanSpec {
   key: string;
   direction: FanDirection;
+  /** Loss of a radiator or filter in series with this fan, Pa per (m^3/s)^2: the fan's own curve less this times flow squared. */
+  loss?: number;
+}
+
+/** Loss coefficient of an AIO radiator core, on the fan's frame area: the standard loss form 0.5 rho K v^2 for a dense core. */
+export const RADIATOR_LOSS_K = 10;
+/** Share of a fan's frame that is open to air. */
+const FRAME_OPEN_SHARE = 0.7;
+
+/** The series loss of a core with loss coefficient `k` in front of a fan of `sizeMm`: 0.5 rho k / A^2. */
+export function seriesLoss(k: number, sizeMm: number): number {
+  const area = FRAME_OPEN_SHARE * (sizeMm / 1000) ** 2;
+  return area > 0 ? (0.5 * AIR_DENSITY * k) / (area * area) : 0;
 }
 
 export interface PressureResult {
@@ -54,7 +67,13 @@ function fanFlow(fan: PressureFan, p: number): number {
   const ps = fan.staticMmH2O * PA_PER_MMH2O;
   if (!(qMax > 0) || !(ps > 0)) return 0;
   const dp = fan.direction === 'intake' ? p : -p;
-  return Math.min(qMax, Math.max(0, qMax * (1 - dp / ps)));
+  // Linear curve P = Pmax (1 - Q/Qmax) against the case pressure and the series loss: kf Q^2 + (Pmax/Qmax) Q = Pmax - dp.
+  const head = ps - dp;
+  if (head <= 0) return 0;
+  const slope = ps / qMax;
+  const kf = fan.loss ?? 0;
+  const q = kf > 0 ? (-slope + Math.sqrt(slope * slope + 4 * kf * head)) / (2 * kf) : head / slope;
+  return Math.min(qMax, Math.max(0, q));
 }
 
 // Net flow into the case at pressure p; falls as p rises.
@@ -75,7 +94,8 @@ export function solveCasePressure(fans: readonly PressureFan[], ventAreaM2 = DEF
     const mid = (lo + hi) / 2;
     if (balance(valid, area, mid) > 0) lo = mid; else hi = mid;
   }
-  const p = (lo + hi) / 2;
+  // No fan, no pressure: the bisection would otherwise leave a rounding residue that reads as a draught.
+  const p = valid.length === 0 ? 0 : (lo + hi) / 2;
   const flows = valid.map(f => ({ key: f.key, cfm: toCfm(fanFlow(f, p)), direction: f.direction }));
   const intakeCfm = flows.filter(f => f.direction === 'intake').reduce((s, f) => s + f.cfm, 0);
   const exhaustCfm = flows.filter(f => f.direction === 'exhaust').reduce((s, f) => s + f.cfm, 0);

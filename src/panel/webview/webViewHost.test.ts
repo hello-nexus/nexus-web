@@ -208,6 +208,116 @@ describe('sync stream', () => {
   });
 });
 
+describe('immersive flag', () => {
+  it('marks the synced view immersive only while an immersive claim wins, so the overlay can hide its disc', () => {
+    const host = makeHost();
+    const tile = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
+    bridge.push(caps());
+    expect(syncs().at(-1)!.views[0].immersive).toBeUndefined();
+    const imm = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: true });
+    frame();
+    expect(syncs().at(-1)!.views[0].immersive).toBe(true);
+    imm.release();
+    frame();
+    expect(syncs().at(-1)!.views[0].immersive).toBeUndefined();
+    tile.release();
+  });
+});
+
+describe('touchable tiles', () => {
+  const tile = (touchPage: boolean | undefined) => {
+    const host = makeHost();
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, touchPage });
+    return host;
+  };
+
+  it('takes touch on a tile only when the claim asks and the host reports context menus', () => {
+    tile(true);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(true);
+  });
+
+  it('stays non-interactive when the claim does not ask', () => {
+    tile(false);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+
+  it('stays non-interactive on a host that cannot report the menu', () => {
+    tile(true);
+    bridge.push(caps({ contextMenu: false }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+
+  it('stays non-interactive on an overlay that cannot report a long-press', () => {
+    tile(true);
+    bridge.push(caps({ contextMenu: true }));
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+
+  it('reports touch taken only for a loaded, interactive tile', () => {
+    const host = tile(true);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    expect(host.tileTakesTouch('a')).toBe(false);
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(true);
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'error', code: '1', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(false);
+  });
+
+  it('does not take touch on an old overlay or for an unknown id', () => {
+    const old = tile(true);
+    bridge.push(caps({ contextMenu: true }));
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(old.tileTakesTouch('a')).toBe(false);
+    expect(old.tileTakesTouch('missing')).toBe(false);
+  });
+
+  it('does not take touch while a cover layer hides the view', () => {
+    const host = tile(true);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(true);
+    const hint = document.createElement('span');
+    hint.setAttribute('data-webview-cover', '');
+    document.body.appendChild(hint);
+    vi.advanceTimersByTime(1000);
+    expect(host.tileTakesTouch('a')).toBe(false);
+    hint.remove();
+    vi.advanceTimersByTime(1000);
+    expect(host.tileTakesTouch('a')).toBe(true);
+  });
+
+  it('does not take touch with the setting off', () => {
+    const host = tile(false);
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    bridge.push({ type: 'nexus.webview.state', id: 'a', state: 'loaded', canGoBack: false });
+    expect(host.tileTakesTouch('a')).toBe(false);
+  });
+
+  it('ignores a long-press report while the widget is immersive, and forwards it otherwise', () => {
+    const host = makeHost();
+    const onMenu = vi.fn();
+    host.onContextMenu(onMenu);
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, touchPage: true });
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    bridge.push({ type: 'nexus.webview.contextmenu', id: 'a', x: 5, y: 6 });
+    expect(onMenu).toHaveBeenCalledWith('a', 5, 6);
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: true });
+    bridge.push({ type: 'nexus.webview.contextmenu', id: 'a', x: 5, y: 6 });
+    expect(onMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it('follows the setting live', () => {
+    const host = makeHost();
+    const claim = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, touchPage: true });
+    bridge.push(caps({ contextMenu: true, longPress: true }));
+    claim.setTouchPage(false);
+    frame();
+    expect(syncs().at(-1)!.views[0].interactive).toBe(false);
+  });
+});
+
 describe('card geometry', () => {
   it('sends the card content box and radius, and treats the card as the hit target', () => {
     const host = makeHost();
@@ -513,6 +623,76 @@ describe('finger-driven moves', () => {
     pointer('pointerup', 100, 140);
     vi.advanceTimersByTime(40);
     expect(syncs().at(-1)!.views.find(v => v.id === 'a')!.visible).toBe(true);
+  });
+
+  it('keeps tiles shown through a tap with finger drift and a horizontal page swipe', () => {
+    const host = makeHost();
+    const a = makeEl();
+    host.register({ id: 'a', url: 'https://a.test/', element: a.el, immersive: false });
+    bridge.push(caps());
+    pointer('pointerdown', 100, 100);
+    pointer('pointermove', 109, 108);
+    expect(syncs().at(-1)!.views[0].visible).toBe(true);
+    pointer('pointerup', 109, 108);
+    pointer('pointerdown', 100, 100, 2);
+    a.moveTo({ x: -60, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 20, 112, 2);
+    frame();
+    const during = syncs().at(-1)!;
+    expect(during.views[0].visible).toBe(true);
+    expect(during.views[0].rect.x).toBe(-60);
+  });
+
+  it('keeps a tile shown with its full size while a swipe slides it past the viewport edge, and hides it once fully off', () => {
+    const host = makeHost();
+    const a = makeEl();
+    host.register({ id: 'a', url: 'https://a.test/', element: a.el, immersive: false });
+    bridge.push(caps());
+    // Like a real hit test: nothing is hit outside the viewport.
+    document.elementFromPoint = (x: number, y: number) =>
+      (x < 0 || y < 0 || x >= window.innerWidth || y >= window.innerHeight ? null : a.el);
+    pointer('pointerdown', 500, 100);
+    a.moveTo({ x: -200, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 290, 104);
+    frame();
+    expect(syncs().at(-1)!.views[0]).toMatchObject({ visible: true, rect: { x: -200, y: 20, w: 300, h: 300 } });
+    a.moveTo({ x: window.innerWidth - 100, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 300, 104);
+    frame();
+    expect(syncs().at(-1)!.views[0]).toMatchObject({ visible: true, rect: { x: window.innerWidth - 100, w: 300 } });
+    a.moveTo({ x: -400, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 310, 104);
+    frame();
+    expect(syncs().at(-1)!.views[0].visible).toBe(false);
+  });
+
+  it('follows the settle animation after release', () => {
+    const host = makeHost();
+    const a = makeEl();
+    host.register({ id: 'a', url: 'https://a.test/', element: a.el, immersive: false });
+    bridge.push(caps());
+    pointer('pointerdown', 500, 100);
+    a.moveTo({ x: -200, y: 20, w: 300, h: 300 });
+    pointer('pointermove', 290, 104);
+    frame();
+    pointer('pointerup', 290, 104);
+    for (const x of [-150, -90, -40, 10]) {
+      a.moveTo({ x, y: 20, w: 300, h: 300 });
+      frame();
+      expect(syncs().at(-1)!.views[0]).toMatchObject({ visible: true, rect: { x } });
+    }
+  });
+
+  it('keeps tiles shown while a vertical drag scrolls a list', () => {
+    const host = makeHost();
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
+    bridge.push(caps());
+    const list = document.createElement('span');
+    list.setAttribute('data-panel-scrollable', 'true');
+    document.body.appendChild(list);
+    list.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { clientX: 100, clientY: 100, bubbles: true }), { pointerId: 1 }));
+    pointer('pointermove', 100, 160);
+    expect(syncs().at(-1)!.views[0].visible).toBe(true);
   });
 
   it('hides every view while a click-through cover layer is in the document', () => {

@@ -8,7 +8,7 @@ import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useTranslation } from '../../lib/i18n';
-import { singleWidgetSurfaceSize, surfaceSupportsTextInput, type ForcedGrid, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
+import { hostedDisplayKeyboard, singleWidgetSurfaceSize, surfaceSupportsTextInput, type ForcedGrid, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
 import { sizeToSpan } from '../engine/grid';
 import { catalogRowSizeForGlass } from './catalogTileAspect';
 import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
@@ -66,7 +66,7 @@ type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 // bypass the curation so every installed widget is browseable for testing.
 export function catalogEntriesFor(
   surface: PanelSurface,
-  opts: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid } = {},
+  opts: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean; genericDisplay?: boolean } = {},
 ): CatalogEntry[] {
   return getCatalogEntries().filter(([, def]) => {
     if (!appAvailableForSurface(def.meta, surface, opts)) return false;
@@ -130,6 +130,8 @@ export interface PanelWidgetCatalogProps {
   // Per-device touch capability (promoted monitors): touch-requiring widgets
   // are listed only when the device's display actually has a digitizer.
   deviceTouch?: boolean;
+  displayBound?: boolean;
+  genericDisplay?: boolean;
   // Forced short-axis slot count of the target grid, which narrows the offered sizes.
   forcedGrid?: ForcedGrid;
   // Target glass width / height. A single-widget surface's tile takes this
@@ -152,6 +154,8 @@ export function PanelWidgetCatalog({
   selectedWidgetType,
   playlist,
   deviceTouch,
+  displayBound,
+  genericDisplay,
   forcedGrid,
   glassAspect,
 }: PanelWidgetCatalogProps) {
@@ -189,7 +193,7 @@ export function PanelWidgetCatalog({
 
   // Already-placed instances always render via lookupApp; listed apps
   // co-mingle in one grid - no separate section.
-  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch, forcedGrid });
+  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch, forcedGrid, displayBound, genericDisplay });
   const playlistOrder = playlist
     ? playlistDisplayOrder(playlist.order, catalogEntries.map(([type]) => type))
     : null;
@@ -408,7 +412,7 @@ export function PanelWidgetCatalog({
               // the desktop modal and the desktop dashboard's add-widget sheet.
               // The phone renders the field but stays unfocused so the on-screen
               // keyboard doesn't pop up.
-              autoFocus={variant === 'desktop-modal' || surface === 'desktop'}
+              autoFocus={variant === 'desktop-modal' || surface === 'desktop' || hostedDisplayKeyboard(surface)}
             />
           )}
           {showSizeChips && (

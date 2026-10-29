@@ -2,6 +2,8 @@ import { type CSSProperties, useCallback, useEffect, useRef } from 'react';
 import { backgroundMediaFileUrl } from '../../api/panelBackgroundMedia';
 import styles from '../PanelApp.module.scss';
 
+export const NULL_ERROR_GRACE_MS = 5_000;
+
 export function PanelBackgroundMedia({
   id,
   deviceId,
@@ -40,6 +42,11 @@ export function PanelBackgroundMedia({
   const url = backgroundMediaFileUrl(deviceId, id);
   const style = { '--panel-background-opacity': opacity } as CSSProperties;
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const graceTimerRef = useRef(0);
+  const onFailedRef = useRef(onFailed);
+  useEffect(() => {
+    onFailedRef.current = onFailed;
+  });
 
   useEffect(() => {
     if (covered) videoRef.current?.pause();
@@ -58,6 +65,7 @@ export function PanelBackgroundMedia({
     if (!video) return;
     if (!video.hasAttribute('src')) video.setAttribute('src', url);
     return () => {
+      window.clearTimeout(graceTimerRef.current);
       videoRef.current = null;
       video.pause();
       video.removeAttribute('src');
@@ -92,7 +100,21 @@ export function PanelBackgroundMedia({
           muted
           playsInline
           onCanPlay={onLoaded}
-          onError={onFailed}
+          onError={e => {
+            const video = e.currentTarget;
+            window.clearTimeout(graceTimerRef.current);
+            if (video.error) {
+              onFailed?.();
+              return;
+            }
+            // Chrome 83 WebViews fire `error` with no MediaError on clips that
+            // then play, so wait before giving up.
+            graceTimerRef.current = window.setTimeout(() => {
+              if (videoRef.current === video && (video.error || video.readyState < 2)) {
+                onFailedRef.current?.();
+              }
+            }, NULL_ERROR_GRACE_MS);
+          }}
           onLoadedMetadata={onVideoMetadata ? e => onVideoMetadata(e.currentTarget) : undefined}
           onEnded={onVideoEnded ? e => onVideoEnded(e.currentTarget) : undefined}
         />

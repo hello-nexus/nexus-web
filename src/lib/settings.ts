@@ -59,6 +59,11 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
 export const THEME_MODES = ['system', 'dark', 'light'] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
 
+/** What the Cooling 3D view draws: case and airflow, the case alone, or the airflow alone. */
+export const COOLING_FLOW_MODES = ['both', 'case', 'airflow'] as const;
+export type CoolingFlowMode = (typeof COOLING_FLOW_MODES)[number];
+export const DEFAULT_COOLING_FLOW_MODE: CoolingFlowMode = 'both';
+
 // Dashboard background style. 'glass' = transparent backdrop revealing the
 // native OS frosted-glass material, 'gradient' = flowing accent ribbons,
 // 'flat' = solid theme color.
@@ -181,8 +186,18 @@ export interface GeneralSettings {
   // each seeded from the single pre-split ui.showUncontrolledDevices.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Whether the Lighting and Cooling pages open on their 3D view; one per page. Server-mirrored under ui.lightingView3d / ui.coolingView3d.
+  lightingView3d: boolean;
+  coolingView3d: boolean;
+  // What the Cooling 3D view draws: case and airflow, the case alone, or the airflow alone. Server-mirrored under ui.coolingFlowMode.
+  coolingFlowMode: CoolingFlowMode;
+  // Whether the Cooling 3D view draws the solver's collision shapes instead of the case model. Server-mirrored under ui.coolingCollisionShapes.
+  coolingCollisionShapes: boolean;
   // Sidebar DEVICES row keys the user hid. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
+  // Lighting widget history, most recent first. Server-mirrored under ui.recentStaticColors / ui.recentAnimations.
+  recentStaticColors: string[];
+  recentAnimations: string[];
   // Display-unit choices. Server-mirrored under the preferences `units` block
   // so they follow the profile. See lib/units.ts for their meaning. The
   // monitoring temperature unit governs in-app hardware temps only; outdoor
@@ -255,7 +270,13 @@ export function getDefaultSettings(): NexusSettings {
       coolingDashboardMode: 'simple',
       showUncontrolledLightingDevices: true,
       showUncontrolledCoolingDevices: true,
+      lightingView3d: false,
+      coolingView3d: false,
+      coolingFlowMode: 'both',
+      coolingCollisionShapes: false,
       hiddenSidebarDevices: [],
+      recentStaticColors: [],
+      recentAnimations: [],
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
@@ -356,9 +377,26 @@ export function cachePreferencesLocally(prefs: {
 
 // ── Theme mode application ───────────────────────────────────────────────────
 
-/** Resolve effective theme: 'dark' or 'light'. */
-export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
+// The host OS theme published by the service (prefs theme.resolvedThemeMode),
+// used only by applyThemeMode for the dashboard DOM. '' until reported (e.g. a
+// Linux host). Panels never read it: they pass the host theme explicitly.
+let hostThemeMode: '' | 'dark' | 'light' = '';
+
+/** Record the host OS theme; returns true when it changed. */
+export function setHostThemeMode(value: string | undefined): boolean {
+  const next = value === 'dark' || value === 'light' ? value : '';
+  if (next === hostThemeMode) return false;
+  hostThemeMode = next;
+  return true;
+}
+
+/**
+ * Resolve effective theme: 'dark' or 'light'. 'system' follows `host` (the host
+ * OS theme) when given, else this browser's own media query.
+ */
+export function resolveTheme(mode: ThemeMode, host: '' | 'dark' | 'light' = ''): 'dark' | 'light' {
   if (mode === 'system') {
+    if (host) return host;
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
   return mode;
@@ -399,9 +437,18 @@ export function applyHtmlChromeTheme(resolved: 'dark' | 'light'): void {
   }
 }
 
+/**
+ * The mode a synced panel follows: the desktop's manual Light/Dark as is; for
+ * the desktop's 'system', the host OS theme the service publishes (not this
+ * device's own media query). Stays 'system' when unpublished.
+ */
+export function syncedAppThemeMode(appThemeMode: ThemeMode, appResolvedThemeMode: '' | 'dark' | 'light'): ThemeMode {
+  return appThemeMode === 'system' && appResolvedThemeMode ? appResolvedThemeMode : appThemeMode;
+}
+
 /** Apply the theme mode by toggling a data attribute on <html>. */
 export function applyThemeMode(mode: ThemeMode): void {
-  applyHtmlChromeTheme(resolveTheme(mode));
+  applyHtmlChromeTheme(resolveTheme(mode, hostThemeMode));
   // Re-derive accent shades for the newly effective theme mode.
   applyAccentColor(currentAccent);
 }

@@ -140,3 +140,17 @@ describe('MediaCropper round guide', () => {
     expect((crop.w * 800) / (crop.h * 600)).toBeCloseTo(1, 2);
   });
 });
+
+describe('MediaCropper busy note', () => {
+  it('shows the generic converting note, or the progress the consumer reports', () => {
+    const { rerender } = render(<MediaCropper src="blob:preview" aspect={16 / 9} busy onConfirm={() => {}} onCancel={() => {}} />);
+    expect(screen.getByText('cropper.converting')).toBeTruthy();
+
+    rerender(
+      <MediaCropper src="blob:preview" aspect={16 / 9} busy busyProgress={{ percent: 42, message: 'Sending' }} onConfirm={() => {}} onCancel={() => {}} />,
+    );
+
+    expect(screen.queryByText('cropper.converting')).toBeNull();
+    expect(screen.getByText('Sending (42%)')).toBeTruthy();
+  });
+});

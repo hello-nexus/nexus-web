@@ -99,6 +99,8 @@ export interface AppInstalledListing {
   immersiveDoubleSwipe?: boolean;
   /** Only one instance of this app may sit on a panel. Default: many allowed. */
   singleInstance?: boolean;
+  /** App opts its widget into freeform resizing: any span of at least 4x4 the grid holds, beyond `sizes`. */
+  freeform?: boolean;
   /** Apps with category "device" appear under DEVICES in the sidebar nav
    *  and render via the device-page chrome. */
   category?: string;

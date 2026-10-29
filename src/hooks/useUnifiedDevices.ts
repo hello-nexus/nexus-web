@@ -201,6 +201,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'asiahorse-umbra': 'Asiahorse Umbra V2',
   'asus-glacial-lcd': 'ROG Crosshair X870E Glacial',
   'asus-astral': 'ROG Astral',
+  'deepcool-mystique': 'DeepCool Mystique',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';

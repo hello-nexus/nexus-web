@@ -52,6 +52,7 @@ function makeStatus(overrides: Partial<AiStatusResponse> = {}): AiStatusResponse
     token: '',
     lastError: null,
     capabilities: { telemetry: true, cooling: true, lighting: true, profiles: true, history: true },
+    allowRemote: false,
     ...overrides,
   };
 }
@@ -224,6 +225,36 @@ describe('AiIntegrationSection', () => {
 
     expect(postAiConfig).toHaveBeenCalledWith({ capabilities: { cooling: false } });
     await waitFor(() => expect(coolingToggle).toHaveAttribute('aria-checked', 'false'));
+  });
+
+  it('shows no remote warning by default and posts allowRemote when toggled on', async () => {
+    const initial = makeStatus({ enabled: true });
+    vi.mocked(fetchAiStatus).mockResolvedValue(initial);
+    vi.mocked(postAiConfig).mockResolvedValue({ ...initial, allowRemote: true });
+    render(<AiIntegrationSection serviceOnline />);
+
+    const toggle = await screen.findByRole('switch', { name: 'settings.ai.remote.label' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(screen.queryByText('settings.ai.remote.warning')).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(postAiConfig).toHaveBeenCalledWith({ allowRemote: true });
+    expect(await screen.findByText('settings.ai.remote.warning')).toBeTruthy();
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  it('renders the remote warning when the service reports allowRemote and hides the toggle while disabled', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true, allowRemote: true }));
+    const { unmount } = render(<AiIntegrationSection serviceOnline />);
+    expect(await screen.findByText('settings.ai.remote.warning')).toBeTruthy();
+    unmount();
+
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: false, allowRemote: true }));
+    render(<AiIntegrationSection serviceOnline />);
+    await screen.findByRole('switch', { name: 'settings.ai.master.label' });
+    expect(screen.queryByRole('switch', { name: 'settings.ai.remote.label' })).toBeNull();
+    expect(screen.queryByText('settings.ai.remote.warning')).toBeNull();
   });
 
   it('locks every mutating control while one request is in flight, so a slow capability response can never be clobbered by an overlapping master toggle', async () => {

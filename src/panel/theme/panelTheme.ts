@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../lib/i18n';
 import {
-  DEFAULT_ACCENT, LANGUAGES, THEME_MODES, deriveAccentOnVars, deriveAccentVars, resolveTheme,
+  DEFAULT_ACCENT, LANGUAGES, THEME_MODES, deriveAccentOnVars, deriveAccentVars, resolveTheme, syncedAppThemeMode,
   type Language, type ThemeMode,
 } from '../../lib/settings';
 import { fetchPreferences, type Preferences } from '../../api/profiles';
@@ -311,11 +311,8 @@ export function usePanelTheme(
     return hint && hint !== 'theme' ? { ...base, backdrop: hint, backgroundOpacity: 1 } : base;
   });
   const resolvedMode = useResolvedPanelThemeMode(
-    // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
-    // tracking the desktop OS). Fall back to appThemeMode when unpublished -
-    // 'system' there would re-resolve against THIS device's OS (wrong OS).
     theme.themeSyncWithDesktop
-      ? (theme.appResolvedThemeMode || theme.appThemeMode)
+      ? syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode)
       : theme.themeMode,
   );
   const resolvedModeRef = useRef<ResolvedPanelThemeMode>(resolvedMode);

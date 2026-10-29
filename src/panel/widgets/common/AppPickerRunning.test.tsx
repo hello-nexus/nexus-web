@@ -186,7 +186,10 @@ describe('AppPicker running-apps group', () => {
 
     const code = screen.getByText('Visual Studio Code').closest('button')!;
     expect(code.className).toContain('appRowTaken');
-    expect(code.getAttribute('title')).toBe('taken by Desk');
+    expect(code.hasAttribute('title')).toBe(false);
+    fireEvent.focus(code);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('taken by Desk');
+    fireEvent.blur(code);
 
     const chrome = screen.getByText('Google Chrome').closest('button')!;
     expect(chrome.className).not.toContain('appRowTaken');

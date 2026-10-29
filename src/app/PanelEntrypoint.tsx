@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import PanelApp from '../panel/PanelApp';
 import { Spinner } from '../components/common/Spinner/Spinner';
 import { PanelSimulatorContent } from '../panel/embed/PanelSimulatorContent';
-import OverlayShell from '../overlay/OverlayShell';
 import { inferSurfaceFromViewport } from '../panel/device/inferSurface';
 import type { PanelSurface } from '../panel/types';
 import { isWiredPanel } from '../panel/device/wiredPanel';
@@ -59,18 +58,6 @@ export function PanelSimulatorWrapper() {
     <MultiplexContext.Provider value={multiplex}>
       <UiSettingsProvider serviceOnline={true} manageDom={false}>
         <PanelSimulatorContent />
-      </UiSettingsProvider>
-    </MultiplexContext.Provider>
-  );
-}
-
-export function OverlayWrapper() {
-  const multiplex = useMultiplexConnection(true);
-  useMonitoringStoreBridge(multiplex);
-  return (
-    <MultiplexContext.Provider value={multiplex}>
-      <UiSettingsProvider serviceOnline={true} manageDom={false}>
-        <OverlayShell />
       </UiSettingsProvider>
     </MultiplexContext.Provider>
   );

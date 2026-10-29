@@ -1,5 +1,5 @@
 import type { PanelLayout, PanelPage, PanelWidget } from '../types';
-import { sizeToSpan, strideScanSteps } from './grid';
+import { sizeToSpan } from './grid';
 import { createUuid } from '../../lib/uuid';
 
 export interface PaginateCapacity {
@@ -42,17 +42,11 @@ export function firstFreeRect(
   const cs = Math.max(1, Math.min(colSpan, cols));
   const rs = Math.max(1, rowSpan);
   const rects = existing.map(w => widgetRect(w, cols));
-  // Snap-to-stride rule: new widgets prefer (col, row) that are
-  // multiples of `snapStride(span)`. A second stride-1 pass catches
-  // off-stride holes so the widget lands in visible blank space
-  // instead of spilling to another page.
-  for (const step of strideScanSteps(cs, rs)) {
-    for (let r = 0; r + rs <= rows; r += step.row) {
-      for (let c = 0; c + cs <= cols; c += step.col) {
-        const candidate = { col: c, row: r, colSpan: cs, rowSpan: rs };
-        if (!rects.some(rect => rectsOverlap(rect, candidate))) {
-          return { col: c, row: r };
-        }
+  for (let r = 0; r + rs <= rows; r++) {
+    for (let c = 0; c + cs <= cols; c++) {
+      const candidate = { col: c, row: r, colSpan: cs, rowSpan: rs };
+      if (!rects.some(rect => rectsOverlap(rect, candidate))) {
+        return { col: c, row: r };
       }
     }
   }
@@ -84,9 +78,8 @@ export function pageFitsGrid(widgets: readonly PanelWidget[], cols: number, rows
  * First free rect for a span, scanned in the grid's long-axis order.
  * `columnMajor` walks top-to-bottom within a column before moving right
  * (landscape flow); otherwise left-to-right within a row before moving
- * down (portrait flow). Stride 1 (every cell) for the tightest fit -
- * repacking prioritises no-clip over snap aesthetics. Null if nothing
- * fits inside (cols, rows).
+ * down (portrait flow). Scans every cell for the tightest fit. Null if
+ * nothing fits inside (cols, rows).
  */
 function firstFitCell(
   occupied: WidgetRect[],
@@ -359,6 +352,54 @@ export function fitLayoutToSinglePage(
     layout: { ...layout, activePageId: first?.id, pages: [{ id: first?.id ?? '', widgets: placed }] },
     dropped: overflow,
   };
+}
+
+/** Like fitLayoutToSinglePage, but widgets without room stay in a held page after the first, never dropped. */
+export function fitLayoutToSinglePageHolding(layout: PanelLayout, capacity: PaginateCapacity): PanelLayout {
+  const { layout: fitted, dropped } = fitLayoutToSinglePage(layout, capacity);
+  return dropped.length === 0 ? fitted : { ...fitted, pages: [...fitted.pages, { id: createUuid(), widgets: dropped }] };
+}
+
+/** Moves every widget onto the first page at the nearest free cells; one with no free cell stays held on its page. */
+export function foldIntoFirstPage(layout: PanelLayout, capacity: PaginateCapacity): { layout: PanelLayout; changed: boolean } {
+  if (layout.pages.length <= 1) return { layout, changed: false };
+  const cols = Math.max(1, Math.floor(capacity.gridCols));
+  const rows = Math.max(1, Math.floor(capacity.pageRows));
+  const first = layout.pages[0];
+  const origin = new Map<string, string>();
+  for (const page of layout.pages) for (const w of page.widgets) origin.set(w.id, page.id);
+  const { placed, overflow } = fillPage(flattenPages(layout.pages), cols, rows);
+  const heldIds = new Set(layout.pages.slice(1).flatMap(p => p.widgets.map(w => w.id)));
+  const sameFirst = placed.length === first.widgets.length
+    && placed.every(p => first.widgets.some(w => w.id === p.id && w.col === p.col && w.row === p.row));
+  if (sameFirst && overflow.length === heldIds.size && overflow.every(w => heldIds.has(w.id)) && layout.pages.every(p => p.widgets.length > 0 || p === first)) {
+    return { layout, changed: false };
+  }
+  const held = layout.pages.slice(1)
+    .map(page => ({ ...page, widgets: overflow.filter(w => origin.get(w.id) === page.id) }))
+    .filter(page => page.widgets.length > 0);
+  const stranded = overflow.filter(w => origin.get(w.id) === first.id);
+  const kept: PanelPage[] = [{ ...first, widgets: placed }, ...held];
+  if (stranded.length > 0) kept.push({ id: createUuid(), widgets: stranded });
+  return { layout: { ...layout, activePageId: first.id, pages: kept }, changed: true };
+}
+
+/** The pages a single-page panel does not render, to be written back unchanged with every edit. */
+export function heldPages(layout: PanelLayout): PanelPage[] {
+  return layout.pages.slice(1);
+}
+
+/** The layout a single-page panel renders: its first page only. */
+export function firstPageView(layout: PanelLayout): PanelLayout {
+  if (layout.pages.length <= 1) return layout;
+  return { ...layout, activePageId: layout.pages[0].id, pages: layout.pages.slice(0, 1) };
+}
+
+/** Re-attaches held pages to an edited single-page layout so no stored widget is lost. */
+export function withHeldPages(next: PanelLayout, held: PanelPage[]): PanelLayout {
+  if (held.length === 0) return next;
+  const have = new Set(next.pages.map(p => p.id));
+  return { ...next, pages: [...next.pages, ...held.filter(p => !have.has(p.id))] };
 }
 
 /**

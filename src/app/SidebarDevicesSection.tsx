@@ -17,6 +17,8 @@ import { DEV_TOOLS } from '../lib/devTools';
 import { setSimulatedPanelConnected } from '../lib/panelSimulation';
 import { setTryxSimulated } from '../lib/tryxSimulation';
 import { useTranslation } from '../lib/i18n';
+import { useDisplayTopology } from '../hooks/useDisplayTopology';
+import { displayListNumber } from '../components/views/DisplaysView/monitorMapLayout';
 import { canHideFromSidebar, isListedInSidebar } from '../lib/sidebarVisibility';
 import { useSidebarHiddenDevices } from '../hooks/useUiSettings';
 import { SidebarContextMenu } from './SidebarContextMenu';
@@ -51,6 +53,8 @@ interface SidebarDevicesSectionProps {
   // SidebarColumn owns the exact destination.
   onHeaderClick: () => void;
   headerActive: boolean;
+  // The row's update glyph opens the Devices > Firmware Updates tab.
+  onOpenFirmware: () => void;
 }
 
 export function SidebarDevicesSection({
@@ -60,12 +64,15 @@ export function SidebarDevicesSection({
   onSelect,
   onHeaderClick,
   headerActive,
+  onOpenFirmware,
 }: SidebarDevicesSectionProps) {
   const { t } = useTranslation();
   const { push } = useToastSafe();
   const { hidden: hiddenDevices, setHidden } = useSidebarHiddenDevices();
   const { unified, controlDevice } = useUnifiedDevices(serviceOnline);
   const firmwareUpdates = useFirmwareUpdates(serviceOnline);
+  const hasDisplayPanel = unified.some(d => d.kind === 'panel' && d.panelDevice?.displayId);
+  const { topology } = useDisplayTopology(serviceOnline && hasDisplayPanel);
   const controlGuard = useConflictGuardedEnable();
   const requestEnable = controlGuard.requestEnable;
   // Right-click menu state, held by key rather than by device object so a row
@@ -141,7 +148,9 @@ export function SidebarDevicesSection({
     // one sentence for one action, so the two can't drift apart.
     ...(toggleNexusControl ? [{
       key: 'nexus-control',
-      label: t(ctxDevice.nexusControlEnabled ? 'lighting.devices.menuControlOff' : 'lighting.devices.menuControlOn'),
+      label: t(ctxDevice.panelDevice?.genericDisplay
+        ? (ctxDevice.nexusControlEnabled ? 'sidebar.device.panelOff' : 'sidebar.device.panelOn')
+        : (ctxDevice.nexusControlEnabled ? 'lighting.devices.menuControlOff' : 'lighting.devices.menuControlOn')),
       icon: ctxDevice.nexusControlEnabled ? <Link2Off size={14} /> : <Link2 size={14} />,
       onSelect: toggleNexusControl,
     }] : []),
@@ -173,6 +182,9 @@ export function SidebarDevicesSection({
     if (ctxMenu && !hasCtxItems) setCtxMenu(null);
   }, [ctxMenu, hasCtxItems]);
 
+  const nameCounts = new Map<string, number>();
+  for (const d of sorted) nameCounts.set(sidebarDeviceName(d), (nameCounts.get(sidebarDeviceName(d)) ?? 0) + 1);
+
   return (
     <section className={styles.section}>
       {compact ? <HoverTooltip body={label} side="right">{headerBtn}</HoverTooltip> : headerBtn}
@@ -186,7 +198,11 @@ export function SidebarDevicesSection({
           const isActive = device.key === activeDeviceKey || claimsKey(device, activeDeviceKey);
           const isSimulated = isSimulatedDevice(device);
           const controlOff = device.supportsNexusControl && !device.nexusControlEnabled;
-          const name = sidebarDeviceName(device);
+          const baseName = sidebarDeviceName(device);
+          // A branded panel is numbered only to tell apart same-named siblings.
+          const numbered = device.kind === 'panel' && (device.panelDevice?.genericDisplay || (nameCounts.get(baseName) ?? 0) > 1);
+          const displayNumber = displayListNumber(topology?.displays ?? [], numbered ? device.panelDevice?.displayId : undefined);
+          const name = displayNumber ? t('displays.numberedName', { name: baseName, n: displayNumber }) : baseName;
           const tooltip = isSimulated
             ? `${name} (${t('devices.simulated')})`
             : name;
@@ -223,7 +239,7 @@ export function SidebarDevicesSection({
                     </HoverTooltip>
                   )}
                   {device.warning && !controlOff && <DeviceWarningIcon code={device.warning} />}
-                  {!isSimulated && !controlOff && device.curatedId && firmwareUpdates.has(device.curatedId) && <DeviceUpdateIcon />}
+                  {!isSimulated && !controlOff && device.curatedId && firmwareUpdates.has(device.curatedId) && <DeviceUpdateIcon onActivate={onOpenFirmware} />}
                   {controlOff && <NexusControlOffIcon className={styles.controlOff} />}
                 </>
               )}

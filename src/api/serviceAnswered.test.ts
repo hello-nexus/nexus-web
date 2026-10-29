@@ -11,7 +11,7 @@ vi.mock('./auth', () => ({
   hasSessionToken: vi.fn(() => true),
 }));
 
-import { fetchService, fetchServiceBlob, setActiveTransport } from './service';
+import { authFetchWithStatus, fetchService, fetchServiceBlob, setActiveTransport } from './service';
 import { fetchDeckImage } from './deckImages';
 import { effectThumbnailPath } from './lighting';
 import { serviceAnsweredAt } from '../lib/serviceLiveness';
@@ -28,6 +28,15 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   setActiveTransport(null);
+});
+
+describe('authFetchWithStatus keepalive', () => {
+  it('hands keepalive to fetch so a pagehide request outlives the page', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await authFetchWithStatus('/telemetry/client-errors', { method: 'POST', body: { errors: [] }, keepalive: true });
+    expect((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].keepalive).toBe(true);
+  });
 });
 
 describe('service sign of life', () => {

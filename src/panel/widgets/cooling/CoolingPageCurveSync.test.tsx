@@ -73,6 +73,9 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
 });
 
 import { saveCurves } from '../../../api/cooling';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 

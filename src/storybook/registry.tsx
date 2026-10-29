@@ -1183,6 +1183,18 @@ function PreviewEffectCard() {
           onDelete={() => { /* preview */ }}
           deleteAriaLabel="Delete"
         />
+        {/* Disabled while another item talks to the device: dimmed, no hover, clicks and delete ignored. */}
+        <EffectCard
+          asDiv
+          label="Nebula"
+          thumbUrl={null}
+          active={false}
+          disabled
+          onClick={() => {}}
+          meta="2.1s"
+          onDelete={() => { /* preview */ }}
+          deleteAriaLabel="Delete"
+        />
       </div>
     </div>
   );
@@ -1723,7 +1735,7 @@ function PreviewThermalGuardSetting() {
 
 function PreviewFlashProgress() {
   return (
-    <FlashProgress status={{ active: true, deviceType: 'q60', version: '1.0.0', phase: 'downloading', percent: 42, message: 'Downloading', success: false, error: '' }} />
+    <FlashProgress status={{ percent: 42, message: 'Downloading' }} />
   );
 }
 
@@ -2745,7 +2757,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Select', category: 'inputs',
     filePath: 'src/components/common/Select/Select.tsx',
     description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). On a keyboard/pointer desktop (not touch), a list of 8+ entries grows an auto-focused in-menu search field that substring-filters the options while the arrow keys still walk the filtered results. An optional `leadingAction` ReactNode is drawn inside the box left of the value as a sibling of the trigger (so it can be a real button that does not open the list); the cooling fan card uses it for its pin. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
-    notes: 'One size and one box across the app - a surface that needs its own palette (deck inspector, monitoring settings, cooling fan / curve rows) sets --select-bg / --select-border / --select-border-hover / --select-text on the wrapper rather than framing the trigger a second time. triggerIconOnly collapses the trigger to just the selected option icon (no label or chevron; the label moves to the trigger title) for compact icon controls like a header language flag - the open menu keeps the full icon + label rows. Long lists (8+) get an in-menu search on keyboard/pointer devices; the preview here is below that threshold.',
+    notes: 'One size and one box across the app - a surface that needs its own palette (deck inspector, monitoring settings, cooling fan / curve rows) sets --select-bg / --select-border / --select-border-hover / --select-text on the wrapper rather than framing the trigger a second time. triggerIconOnly collapses the trigger to just the selected option icon (no label or chevron; the label moves to a hover tooltip) for compact icon controls like a header language flag - the open menu keeps the full icon + label rows. Long lists (8+) get an in-menu search on keyboard/pointer devices; the preview here is below that threshold.',
   },
   {
     name: 'ui-select (SDK dropdown)', category: 'inputs',
@@ -2877,7 +2889,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'RowGlyph', category: 'status',
     filePath: 'src/components/common/RowGlyph/RowGlyph.tsx',
-    description: 'Right-aligned status glyph with a hover label on a device or nav row; bare (non-focusable) so it can sit inside a row button. tone="dim" (default) or "accent". NexusControlOffIcon and DeviceUpdateIcon wrap it.',
+    description: 'Right-aligned status glyph with a hover label on a device or nav row; non-focusable by default so it can sit inside a row button; with `onActivate` it becomes a focusable role="button" that does not trigger the row click. tone="dim" (default) or "accent". NexusControlOffIcon and DeviceUpdateIcon wrap it.',
     Preview: PreviewRowGlyph,
   },
   {
@@ -2995,7 +3007,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'EffectCard', category: 'cards',
     filePath: 'src/components/common/EffectCard/EffectCard.tsx',
     description: 'The one shared thumbnail card: lighting shader browser, panel Theme animation picker, media library, and the lighting widget tile all use it. overlay=true gives a full-bleed thumbnail with the label stroked over the lower third (both shader pickers); default layout is thumbnail-above-caption with optional meta line + hover-reveal delete X (media library).', Preview: PreviewEffectCard,
-    notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. Pass nonInteractive for a display-only card (plain div, no hover ring / cursor) - the lighting widget tile. thumbUrl=null renders a shimmer skeleton.',
+    notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. Pass nonInteractive for a display-only card (plain div, no hover ring / cursor) - the lighting widget tile. Pass disabled to dim the card and ignore its clicks and delete while the device is busy - the DeepCool Mystique media tiles. thumbUrl=null renders a shimmer skeleton.',
   },
   {
     name: 'AdvancedModeCta', category: 'cards',
@@ -3681,12 +3693,6 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/EmojiPicker.tsx',
     description: 'Category-tab-and-grid emoji browser shared by the Emoji widget and the IconPicker emoji tab. searchable renders a search input above the tabs and swaps the grid to keyword-matched results while a query is present; value highlights the matching emoji.',
     Preview: PreviewEmojiPicker,
-  },
-  {
-    name: 'WidgetEditSheet', category: 'panel-kit',
-    filePath: 'src/panel/widgets/common/WidgetEditSheet.tsx',
-    description: 'Anchored edit sheet for widget settings: positions itself beside the widget cell (flipping to fit the viewport), hosts the widget\'s settings pane + size selector.',
-    notes: 'No live preview - anchors to a real widget cell and edits live panel config.',
   },
   {
     name: 'StaticDeviceSelect', category: 'panel-kit',

@@ -6,9 +6,11 @@ import { useTranslation } from '../../../../lib/i18n';
 import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from '../../deck/deckMonitoring';
 import type { DeckMonitoringCategory } from '../../deck/types';
 import { buildNicNetworkSensors } from '../networkSensors';
-import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys } from '../sensorPicker';
+import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys, type SensorOption } from '../sensorPicker';
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import styles from './SensorPicker.module.scss';
+
+const AUTOMATIC_VALUE = '__automatic__';
 
 export interface SensorSelection {
   category: string;
@@ -35,7 +37,7 @@ export function useSensorLookup() {
  * receives the resolved sensor (undefined while it has no reading) so a caller
  * can derive a default range.
  */
-export function SensorPicker({ lookup, category, sensor, onChange, disabled, className, categories, sensorTypes }: {
+export function SensorPicker({ lookup, category, sensor, onChange, disabled, className, categories, sensorTypes, automatic }: {
   /** The caller's own useSensorLookup, so a row subscribes to the sensors once. */
   lookup: ReturnType<typeof useSensorLookup>;
   category: string;
@@ -47,21 +49,23 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
   categories?: readonly string[];
   /** Restricts the offered sensors to these sensor types. */
   sensorTypes?: readonly string[];
+  /** Adds a leading option that stands for the caller's own automatic choice; `active` shows it selected. */
+  automatic?: { label: string; active: boolean; onSelect: () => void };
 }) {
   const { t } = useTranslation();
   const { sensors, extras, networkSensors, resolve } = lookup;
   const device = category as DeckMonitoringCategory;
   // FPS has no reading the lighting service can resolve, so it is not offered.
   const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)
-    .filter(c => c !== 'fps' && (!categories || categories.includes(c)))
+    .filter(c => c !== 'fps' && (!categories || c === device || categories.includes(c)))
     .map(c => ({ value: c, label: t(CATEGORY_LABEL_KEYS[c]) }));
   const optionsFor = (d: DeckMonitoringCategory) => {
     const all = sensorsForDevice(sensors, networkSensors, extras, d);
     return sensorTypes ? all.filter(o => o.type !== undefined && sensorTypes.includes(o.type)) : all;
   };
-  const sensorOptions = optionsFor(device);
+  const sensorOptions: SensorOption[] = automatic ? [{ value: AUTOMATIC_VALUE, label: automatic.label }, ...optionsFor(device)] : optionsFor(device);
   const listed = sensorOptions.some(o => o.value === sensor || o.sensorName === sensor);
-  const sensorValue = listed ? selectedSensorValue(sensorOptions, sensor) : '';
+  const sensorValue = automatic?.active ? AUTOMATIC_VALUE : listed ? selectedSensorValue(sensorOptions, sensor) : '';
 
   const pickCategory = (next: string) => {
     const options = optionsFor(next as DeckMonitoringCategory);
@@ -84,7 +88,13 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
         value={sensorValue}
         options={sensorOptions}
         placeholder={t('lighting.sensor.unavailable')}
-        onChange={next => onChange({ category, sensor: next }, resolve(category, next))}
+        onChange={next => {
+          if (automatic && next === AUTOMATIC_VALUE) {
+            automatic.onSelect();
+            return;
+          }
+          onChange({ category, sensor: next }, resolve(category, next));
+        }}
         disabled={disabled}
         ariaLabel={t('monitoring.settings.sensor')}
       />

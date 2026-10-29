@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchLightingDevices, fetchPins, fetchStaticSettings, saveAnimateTemplates, setPins, startAnimate, startStatic, type Pin } from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
+import { loadSettings } from '../../../lib/settings';
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
 import { LightingPage } from './LightingPage';
 import { colorPin } from './pins';
@@ -628,6 +629,29 @@ describe('LightingPage pins', () => {
       expect(vi.mocked(startStatic).mock.calls.at(-1)?.[8]).toBe('#00ff00');
       expect(setPins).not.toHaveBeenCalled();
       await waitFor(() => expect(screen.getByTestId('picker-hex').textContent).toBe('#00ff00'));
+      expect(loadSettings().general.recentStaticColors).toEqual(['#00ff00']);
+    });
+
+    it('records a global color on release and not while dragging', async () => {
+      syncState.mode = 'static';
+      syncState.rawSync = 'static';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('checker'));
+      fireEvent.click(screen.getByText('preview-blue'));
+      expect(loadSettings().general.recentStaticColors ?? []).toEqual([]);
+      fireEvent.click(screen.getByText('pick-green'));
+      await waitFor(() => expect(loadSettings().general.recentStaticColors).toEqual(['#00ff00']));
+    });
+
+    it('does not record a per-device pin color', async () => {
+      syncState.mode = 'static';
+      syncState.rawSync = 'static';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('checker'));
+      fireEvent.click(screen.getByText('select-a'));
+      fireEvent.click(screen.getByText('pick-green'));
+      await waitFor(() => expect(setPins).toHaveBeenCalled());
+      expect(loadSettings().general.recentStaticColors ?? []).toEqual([]);
     });
 
     it('shows the service\'s global flat color as the selected look, with no effect tile lit', async () => {

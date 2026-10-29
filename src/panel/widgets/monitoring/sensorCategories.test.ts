@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
 import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
-import { extrasSensorsForDevice, FPS_SENSOR_TEMPLATE, gpu2Components, gpu2Sensors, igpuComponents, igpuSensors, SENSOR_CATEGORIES, sensorsForCategory, smartStorageSensors } from './sensorCategories';
+import { extrasSensorsForDevice, FPS_SENSOR_TEMPLATE, gpu2Components, gpu2Sensors, igpuComponents, igpuSensors, SENSOR_CATEGORIES, sensorCaptionName, sensorsForCategory, smartStorageSensors, storageSensorLabel } from './sensorCategories';
 
 function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; type: string }): HardwareSensor {
   return { value: 0, units: '', formatted: '', parent: { id: '', name: '' }, ...partial };
@@ -159,5 +159,52 @@ describe('gpu2Components / gpu2Sensors', () => {
 
   it('reaches the discrete card when the iGPU is the preferred primary', () => {
     expect(gpu2Components({ ...EMPTY_SENSORS, gpu: igpu.sensors, gpuComponents: [igpu, cardA] })).toEqual([cardA]);
+  });
+});
+
+describe('storage drive labels', () => {
+  const drive = (id: string, name: string, mount: string) => ({
+    id,
+    name,
+    capacity: '',
+    freeSpace: '',
+    usedSpace: '',
+    usedPercentage: '',
+    sensors: ['Used', 'Free', 'Usage'].map(n =>
+      sensor({ id: `storage/${id}/${n.toLowerCase()}`, name: n, type: 'Data', parent: { id: '', name: mount } })),
+  });
+  const sensors: SensorState = {
+    ...EMPTY_SENSORS,
+    storageComponents: {
+      'C:': drive('C:', 'C:', 'C:'),
+      'D:': drive('D:', 'Games (D:)', 'D:'),
+      '/': drive('/', 'Macintosh HD', '/'),
+      'smart/x': drive('smart/x', 'Samsung SSD', 'smart/x'),
+    },
+  };
+
+  it('prefixes the drive and keeps names that already carry the mount', () => {
+    expect(storageSensorLabel(sensors, sensors.storageComponents['C:'].sensors![0])).toBe('C: Used');
+    expect(storageSensorLabel(sensors, sensors.storageComponents['D:'].sensors![1])).toBe('Games (D:) Free');
+  });
+
+  it('appends the mount when the component name is only a volume label', () => {
+    expect(storageSensorLabel(sensors, sensors.storageComponents['/'].sensors![2])).toBe('Macintosh HD (/) Usage');
+  });
+
+  it('gives each drive a distinct label for the same sensor name', () => {
+    const labels = ['C:', 'D:', '/'].map(k => storageSensorLabel(sensors, sensors.storageComponents[k].sensors![0]));
+    expect(new Set(labels).size).toBe(3);
+  });
+
+  it('falls back to the plain name when the drive is unknown', () => {
+    expect(storageSensorLabel(EMPTY_SENSORS, sensor({ id: 'x', name: 'Used', type: 'Data' }))).toBe('Used');
+  });
+
+  it('sensorCaptionName qualifies storage only', () => {
+    const s = sensors.storageComponents['C:'].sensors![0];
+    expect(sensorCaptionName('storage', sensors, s)).toBe('C: Used');
+    expect(sensorCaptionName('cpu', sensors, s)).toBe('Used');
+    expect(sensorCaptionName('storage', sensors, undefined)).toBeUndefined();
   });
 });

@@ -39,6 +39,19 @@ export const RELOAD_LOCK_MS = 60_000;
 // the 1Hz monitoring frames already crossing the tunnel.
 const POLL_MS = 60_000;
 
+let reloading = false;
+
+// True once this document has started navigating to a new build; held error
+// reports are moot then, whoever triggered the reload.
+export function isReloadingForBuild(): boolean {
+  return reloading;
+}
+
+export function reloadForBuild(): void {
+  reloading = true;
+  window.location.reload();
+}
+
 export function extractEntry(html: string): string | null {
   return html.match(ENTRY_RE)?.[0] ?? null;
 }
@@ -83,19 +96,23 @@ export interface CheckDeps {
   log: (msg: string) => void;
 }
 
-export type CheckResult = 'noop' | 'same' | 'locked' | 'unverified' | 'reload';
+// 'disabled': this document can never be compared (dev server, one-shot token in the URL).
+// 'no-entry': index.html answered without a hashed entry (mid-copy or an error page).
+// 'noop': index.html could not be fetched.
+export type CheckResult = 'noop' | 'disabled' | 'no-entry' | 'same' | 'locked' | 'unverified' | 'reload';
 
 // One evaluation pass. The comparison + guard logic is deterministic; the I/O
 // (fetch, storage, reload, clock) is injected so it is fully unit-testable.
 export async function checkOnce(deps: CheckDeps): Promise<CheckResult> {
-  if (!deps.loaded || deps.oneShotToken) return 'noop';
+  if (!deps.loaded || deps.oneShotToken) return 'disabled';
 
   let res: { ok: boolean; text: string };
   try { res = await deps.fetchText('/index.html'); } catch { return 'noop'; }
   if (!res.ok) return 'noop';
 
   const served = extractEntry(res.text);
-  if (!served || served === deps.loaded) return 'same';
+  if (!served) return 'no-entry';
+  if (served === deps.loaded) return 'same';
 
   const { target, at } = deps.readTarget();
   if (target === served && deps.now - at < RELOAD_LOCK_MS) return 'locked';
@@ -136,7 +153,7 @@ export function liveDeps(loaded: string): CheckDeps {
         sessionStorage.setItem(AT_KEY, String(at));
       } catch { /* storage blocked - loses the per-target cap, but a completed reload makes served == loaded (index.html is no-store), so the next pass returns 'same' and stops */ }
     },
-    reload: () => window.location.reload(),
+    reload: reloadForBuild,
     log: (m) => console.info(m),
   };
 }

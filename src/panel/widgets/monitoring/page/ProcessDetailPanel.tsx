@@ -28,6 +28,7 @@ import { resolveTileValue, sessionsForProcess, truncateMiddle, type ProcessLiveU
 import { formatRate } from './shared';
 import type { HistoryMetric } from './metricHistoryHelpers';
 import styles from './ProcessDetailPanel.module.scss';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 
 export interface ProcessDetailPanelProps {
   onClose: () => void;
@@ -88,7 +89,7 @@ function CopyableValue({ value, fieldLabel, mono, truncate }: { value: string; f
   const display = truncate ? truncateMiddle(value, PATH_TRUNCATE_CHARS) : value;
   return (
     <span className={styles.copyableValue}>
-      <span className={mono ? styles.mono : undefined} title={value}>{display}</span>
+      <HoverTooltip body={value}><span className={mono ? styles.mono : undefined}>{display}</span></HoverTooltip>
       <button
         type="button"
         className={styles.copyBtn}

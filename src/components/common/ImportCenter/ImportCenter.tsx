@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { Fan, LayoutGrid, PlugZap } from 'lucide-react';
+import { Fan, LayoutDashboard, PlugZap } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { Button } from '../Button/Button';
@@ -275,7 +275,7 @@ export function ImportCenter({
     return {
       id,
       name: t('importCenter.source.nexus2'),
-      icon: <LayoutGrid size={SOURCE_ICON_SIZE} />,
+      icon: <LayoutDashboard size={SOURCE_ICON_SIZE} />,
       available: available.nexus2,
       status: !resolved.nexus2
         ? t('importCenter.source.checking')

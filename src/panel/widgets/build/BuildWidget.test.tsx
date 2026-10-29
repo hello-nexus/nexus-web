@@ -10,7 +10,8 @@ vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) 
 
 const h = vi.hoisted(() => ({
   macShell: false,
-  devTools: false,
+  // True at import, which is when the page-only registry and the Build tile's listing read the flag; beforeEach resets it per test.
+  devTools: true,
   ping: vi.fn(),
   caseId: vi.fn(),
   preview: vi.fn(),

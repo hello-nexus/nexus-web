@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
   SlidersHorizontal, UserRound, FlaskConical, FolderOpen, Info, MessageCircle, RefreshCw,
-  Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
+  Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutDashboard, Crosshair,
   ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
@@ -136,7 +136,7 @@ const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: stri
 const navSubtabs: SearchSource = (ctx) =>
   SUBTABS.filter((s) => !s.official || OFFICIAL_BUILD).map((s) => go(`nav:${s.view}/${s.sub}`, {
     title: `${ctx.t(s.viewLabelKey)} › ${ctx.t(s.labelKey)}`,
-    icon: NAV_ICONS[s.view] ?? <LayoutGrid size={18} />,
+    icon: NAV_ICONS[s.view] ?? <LayoutDashboard size={18} />,
     keywords: s.keywords,
     to: () => ctx.host.goView(s.view, s.sub),
   }));
@@ -595,14 +595,9 @@ const quickOpens: SearchSource = (ctx) => [
     to: () => { window.open(DISCORD_INVITE_URL, '_blank', 'noopener,noreferrer'); },
   }),
   go('open:add-widget', {
-    title: ctx.t('devices.y70.editor.addWidget'), icon: <LayoutGrid size={18} />,
+    title: ctx.t('devices.y70.editor.addWidget'), icon: <LayoutDashboard size={18} />,
     keywords: ['widget', 'add', 'catalog', 'apps', 'install', 'dashboard', 'edit'],
     to: () => { ctx.host.goView('dashboard'); fireSearchSignal('add-widget'); },
-  }),
-  go('open:desktop-widgets', {
-    title: ctx.t('dashboard.desktopWidgets'), icon: <AppWindow size={18} />,
-    keywords: ['desktop', 'widgets', 'overlay', 'floating'],
-    to: () => { ctx.host.goView('dashboard'); fireSearchSignal('desktop-widgets'); },
   }),
   go('open:connected-devices', {
     title: ctx.t('devices.connected.browse'), icon: NAV_ICONS.devices,

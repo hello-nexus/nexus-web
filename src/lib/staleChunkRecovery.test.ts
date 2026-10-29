@@ -7,6 +7,7 @@ const watcher = vi.hoisted(() => ({
 }));
 vi.mock('./buildReloadWatcher', () => ({
   loadedEntry: () => '/assets/index-abc.js',
+  reloadForBuild: () => {},
   liveDeps: () => ({ loaded: '/assets/index-abc.js', reload: watcher.reload }),
   checkOnce: (deps: { reload: () => void }) => {
     watcher.passedReload = deps.reload;
@@ -20,6 +21,7 @@ import {
   recoverFromStaleChunk,
   recoverFromStaleChunkNow,
   STALE_CHUNK_CHECK_TIMEOUT_MS,
+  STALE_CHUNK_RETRY_DELAYS_MS,
   STALE_CHUNK_RELOAD_LOCK_MS,
   type RecoverDeps,
 } from './staleChunkRecovery';
@@ -27,11 +29,12 @@ import {
 function makeDeps(over: Partial<RecoverDeps> & { stamp?: number } = {}) {
   const { stamp = 0, ...rest } = over;
   const deps = {
-    now: 1_000_000,
+    now: () => 1_000_000,
     check: vi.fn(async () => 'reload' as const),
     readStamp: () => stamp,
     writeStamp: vi.fn(() => true),
     reload: vi.fn(),
+    sleep: vi.fn(async () => {}),
     ...rest,
   };
   return deps as typeof deps & RecoverDeps;
@@ -51,39 +54,39 @@ describe('isStaleChunkMessage', () => {
 describe('recoverFromStaleChunk', () => {
   it('reloads and stamps when the watcher check confirms a new build', async () => {
     const deps = makeDeps();
-    expect(await recoverFromStaleChunk(deps)).toBe(true);
+    expect(await recoverFromStaleChunk(deps)).toBe('reloaded');
     expect(deps.writeStamp).toHaveBeenCalledWith(1_000_000);
     expect(deps.reload).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['noop', 'same', 'locked', 'unverified'] as const)('does not reload when the watcher check says %s', async (result) => {
+  it.each(['noop', 'disabled', 'no-entry', 'same', 'locked', 'unverified'] as const)('does not reload when the watcher check says %s', async (result) => {
     const deps = makeDeps({ check: vi.fn(async () => result) });
-    expect(await recoverFromStaleChunk(deps)).toBe(false);
+    expect(await recoverFromStaleChunk(deps)).toBe(result);
     expect(deps.reload).not.toHaveBeenCalled();
   });
 
   it('does not reload when the watcher check throws', async () => {
     const deps = makeDeps({ check: vi.fn(async () => { throw new Error('offline'); }) });
-    expect(await recoverFromStaleChunk(deps)).toBe(false);
+    expect(await recoverFromStaleChunk(deps)).toBe('check-error');
     expect(deps.reload).not.toHaveBeenCalled();
   });
 
   it('does not reload when the loop-guard stamp cannot be stored', async () => {
     const deps = makeDeps({ writeStamp: vi.fn(() => false) });
-    expect(await recoverFromStaleChunk(deps)).toBe(false);
+    expect(await recoverFromStaleChunk(deps)).toBe('storage-blocked');
     expect(deps.reload).not.toHaveBeenCalled();
   });
 
   it('does not check or reload again inside the lock window', async () => {
     const deps = makeDeps({ stamp: 1_000_000 - (STALE_CHUNK_RELOAD_LOCK_MS - 1) });
-    expect(await recoverFromStaleChunk(deps)).toBe(false);
+    expect(await recoverFromStaleChunk(deps)).toBe('loop-guard');
     expect(deps.check).not.toHaveBeenCalled();
     expect(deps.reload).not.toHaveBeenCalled();
   });
 
   it('reloads again once the window has passed', async () => {
     const deps = makeDeps({ stamp: 1_000_000 - STALE_CHUNK_RELOAD_LOCK_MS });
-    expect(await recoverFromStaleChunk(deps)).toBe(true);
+    expect(await recoverFromStaleChunk(deps)).toBe('reloaded');
   });
 });
 
@@ -94,9 +97,70 @@ describe('recoverFromStaleChunk timeout', () => {
     vi.useFakeTimers();
     const deps = makeDeps({ check: vi.fn(() => new Promise<never>(() => {})) });
     const pending = recoverFromStaleChunk(deps);
-    await vi.advanceTimersByTimeAsync(STALE_CHUNK_CHECK_TIMEOUT_MS);
-    expect(await pending).toBe(false);
+    await vi.advanceTimersByTimeAsync(STALE_CHUNK_CHECK_TIMEOUT_MS * (STALE_CHUNK_RETRY_DELAYS_MS.length + 1));
+    expect(await pending).toBe('timeout');
     expect(deps.reload).not.toHaveBeenCalled();
+  });
+});
+
+describe('recoverFromStaleChunk retry', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('retries a noop check with the bounded backoff and reloads once the build is served', async () => {
+    const check = vi.fn<RecoverDeps['check']>().mockResolvedValueOnce('noop').mockResolvedValueOnce('unverified').mockResolvedValueOnce('reload');
+    const deps = makeDeps({ check });
+    expect(await recoverFromStaleChunk(deps)).toBe('reloaded');
+    expect(check).toHaveBeenCalledTimes(3);
+    expect(deps.sleep).toHaveBeenNthCalledWith(1, STALE_CHUNK_RETRY_DELAYS_MS[0]);
+    expect(deps.sleep).toHaveBeenNthCalledWith(2, STALE_CHUNK_RETRY_DELAYS_MS[1]);
+    expect(deps.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the last attempt and reports the final reason', async () => {
+    const deps = makeDeps({ check: vi.fn(async () => 'noop' as const) });
+    expect(await recoverFromStaleChunk(deps)).toBe('noop');
+    expect(deps.check).toHaveBeenCalledTimes(STALE_CHUNK_RETRY_DELAYS_MS.length + 1);
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('retries a 200 without an entry like a transient miss', async () => {
+    const check = vi.fn<RecoverDeps['check']>().mockResolvedValueOnce('no-entry').mockResolvedValueOnce('reload');
+    const deps = makeDeps({ check });
+    expect(await recoverFromStaleChunk(deps)).toBe('reloaded');
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+
+  it('stamps the moment of the reload, not the start of the recovery', async () => {
+    let t = 1_000_000;
+    const deps = makeDeps({
+      now: () => t,
+      sleep: vi.fn(async (ms: number) => { t += ms; }),
+      check: vi.fn<RecoverDeps['check']>().mockResolvedValueOnce('noop').mockResolvedValueOnce('reload'),
+    });
+    expect(await recoverFromStaleChunk(deps)).toBe('reloaded');
+    expect(deps.writeStamp).toHaveBeenCalledWith(1_000_000 + STALE_CHUNK_RETRY_DELAYS_MS[0]);
+  });
+
+  it.each(['same', 'locked', 'disabled'] as const)('does not retry a definitive %s result', async (result) => {
+    const deps = makeDeps({ check: vi.fn(async () => result) });
+    expect(await recoverFromStaleChunk(deps)).toBe(result);
+    expect(deps.check).toHaveBeenCalledTimes(1);
+    expect(deps.sleep).not.toHaveBeenCalled();
+  });
+
+  it('retries after a timeout', async () => {
+    vi.useFakeTimers();
+    const check = vi.fn<RecoverDeps['check']>().mockReturnValueOnce(new Promise<never>(() => {})).mockResolvedValueOnce('reload');
+    const deps = makeDeps({ check });
+    const pending = recoverFromStaleChunk(deps);
+    await vi.advanceTimersByTimeAsync(STALE_CHUNK_CHECK_TIMEOUT_MS);
+    expect(await pending).toBe('reloaded');
+  });
+
+  it('does not retry the loop guard', async () => {
+    const deps = makeDeps({ stamp: 1_000_000 });
+    expect(await recoverFromStaleChunk(deps)).toBe('loop-guard');
+    expect(deps.check).not.toHaveBeenCalled();
   });
 });
 
@@ -117,9 +181,9 @@ describe('recoverFromStaleChunkNow', () => {
     watcher.checkOnce.mockReturnValue(new Promise((resolve) => { settle = resolve; }));
     const calls = [recoverFromStaleChunkNow(), recoverFromStaleChunkNow(), recoverFromStaleChunkNow()];
     expect(watcher.checkOnce).toHaveBeenCalledTimes(1);
-    settle('noop');
-    expect(await Promise.all(calls)).toEqual([false, false, false]);
-    watcher.checkOnce.mockResolvedValue('noop');
+    settle('same');
+    expect(await Promise.all(calls)).toEqual(['same', 'same', 'same']);
+    watcher.checkOnce.mockResolvedValue('same');
     await recoverFromStaleChunkNow();
     expect(watcher.checkOnce).toHaveBeenCalledTimes(2);
   });

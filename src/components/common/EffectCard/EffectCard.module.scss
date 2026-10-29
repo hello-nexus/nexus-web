@@ -103,6 +103,16 @@
   }
 }
 
+.cardDisabled {
+  @include disabled;
+}
+
+// The active ring stays on a disabled card that is mid-transfer.
+.cardDisabled:not(.cardActive):hover {
+  border-color: transparent;
+  transform: none;
+}
+
 // Caption in the lower third: white fill, dark outline, drop shadow so it
 // stays legible over any screenshot.
 .labelOverlay {
@@ -236,4 +246,9 @@
 .card:focus-within [data-card-delete='hover'] {
   opacity: 1;
   pointer-events: auto;
+}
+
+// Outranks the hover reveal above, which sets pointer-events back to auto.
+.card.cardDisabled [data-card-delete] {
+  pointer-events: none;
 }

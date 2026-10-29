@@ -12,7 +12,8 @@ import { useTranslation } from '../../../lib/i18n';
 import type { WidgetSettingsProps } from '../types';
 import { SettingsSection, SettingsToggle } from './SettingsRow/SettingsRow';
 
-export function AdvancedModeSettings({ widget, onUpdate }: WidgetSettingsProps) {
+/** `labelKey` lets a widget name the toggle for what it does; the saved key stays `advancedMode`. */
+export function AdvancedModeSettings({ widget, onUpdate, labelKey = 'panel.widget.advancedMode' }: WidgetSettingsProps & { labelKey?: string }) {
   const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
   const override = widget.config?.advancedMode;
@@ -20,7 +21,7 @@ export function AdvancedModeSettings({ widget, onUpdate }: WidgetSettingsProps) 
   return (
     <SettingsSection>
       <SettingsToggle
-        label={t('panel.widget.advancedMode')}
+        label={t(labelKey)}
         checked={checked}
         onChange={value => onUpdate({ ...widget.config, advancedMode: value })}
       />

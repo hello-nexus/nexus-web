@@ -41,6 +41,8 @@ export function PanelEditorSheet({
   surface,
   deviceId,
   deviceTouch,
+  displayBound,
+  genericDisplay,
   forcedGrid,
   touchPanelChrome = false,
   editingWidget,
@@ -115,6 +117,8 @@ export function PanelEditorSheet({
   deviceId?: string;
   // Per-device touch capability (promoted monitors) for catalog/size gating.
   deviceTouch?: boolean;
+  displayBound?: boolean;
+  genericDisplay?: boolean;
   // Forced short-axis slot count of the panel's grid, for size gating.
   forcedGrid?: ForcedGrid;
   // Touch-driven host display (usesTouchPanelChrome): the sheet scales with
@@ -360,6 +364,8 @@ export function PanelEditorSheet({
           <PanelWidgetCatalog
             surface={surface}
             deviceTouch={deviceTouch}
+            displayBound={displayBound}
+            genericDisplay={genericDisplay}
             forcedGrid={forcedGrid}
             onAdd={onAdd}
             canAddSize={canAddSize}

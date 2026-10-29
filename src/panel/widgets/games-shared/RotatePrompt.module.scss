@@ -16,6 +16,10 @@
   animation: rotateHint 1.8s ease-in-out infinite;
 }
 
+.iconStatic {
+  color: var(--panel-ink-accent, var(--accent-glow));
+}
+
 .message {
   margin: 0;
   font-size: var(--type-small);

@@ -147,3 +147,20 @@
   background: rgba(0, 0, 0, 0.42);
   pointer-events: none;
 }
+
+// Five across, as the screen's own software lays out its slots.
+.mediaGridCompact {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

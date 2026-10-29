@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { WebViewWidget } from './WebViewWidget';
+import { WebViewImmersive } from './WebViewImmersive';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
 import { webViewHost } from '../../webview/webViewHost';
 
@@ -19,7 +20,7 @@ describe('WebViewWidget placeholder', () => {
     render(<WebViewWidget widget={widget('https://www.example.com/x')} surface="y70" editorPreview />);
     expect(screen.getByText('example.com')).toBeTruthy();
     expect(screen.getByText('panel.widget.web-view.previewOnly')).toBeTruthy();
-    expect(screen.queryByText('panel.widget.web-view.unsupported')).toBeNull();
+    expect(screen.queryByText('panel.widget.unavailableOnDisplay')).toBeNull();
   });
 
   it('shows only the site name in the catalog preview', () => {
@@ -30,7 +31,7 @@ describe('WebViewWidget placeholder', () => {
     );
     expect(screen.getByText('example.com')).toBeTruthy();
     expect(screen.getByText('panel.widget.web-view.previewOnly')).toBeTruthy();
-    expect(screen.queryByText('panel.widget.web-view.unsupported')).toBeNull();
+    expect(screen.queryByText('panel.widget.unavailableOnDisplay')).toBeNull();
   });
 
   it('shows only the site name outside the live panel page (device page preview)', () => {
@@ -38,7 +39,7 @@ describe('WebViewWidget placeholder', () => {
     render(<WebViewWidget widget={widget('https://example.com')} surface="y70" />);
     expect(screen.getByText('example.com')).toBeTruthy();
     expect(screen.getByText('panel.widget.web-view.previewOnly')).toBeTruthy();
-    expect(screen.queryByText('panel.widget.web-view.unsupported')).toBeNull();
+    expect(screen.queryByText('panel.widget.unavailableOnDisplay')).toBeNull();
   });
 
   it('draws no favicon image', () => {
@@ -55,7 +56,7 @@ describe('WebViewWidget placeholder', () => {
     window.history.pushState({}, '', '/panel/dev1');
     // jsdom has no native bridge, so the host settles on unsupported at once.
     render(<WebViewWidget widget={widget('https://example.com')} surface="y70" />);
-    expect(screen.getByText('panel.widget.web-view.unsupported')).toBeTruthy();
+    expect(screen.getByText('panel.widget.unavailableOnDisplay')).toBeTruthy();
     expect(screen.queryByText('panel.widget.web-view.previewOnly')).toBeNull();
     expect(webViewHost.getSnapshot().status).toBe('unsupported');
   });
@@ -87,5 +88,82 @@ describe('web-view over the view limit', () => {
     } finally {
       delete (window as unknown as { chrome?: unknown }).chrome;
     }
+  });
+});
+
+describe('WebViewWidget error recovery', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const failedSnapshot = (canGoBack: boolean, navControls: boolean) => ({
+    status: 'supported' as const, interactive: true, contextMenu: true, navControls, maxViews: 4,
+    views: { w1: { state: 'error' as const, canGoBack } }, overLimit: [],
+  });
+
+  const renderFailed = (canGoBack: boolean, navControls: boolean) => {
+    window.history.pushState({}, '', '/panel/dev');
+    vi.spyOn(webViewHost, 'getSnapshot').mockReturnValue(failedSnapshot(canGoBack, navControls));
+    const send = vi.spyOn(webViewHost, 'sendCommand').mockImplementation(() => {});
+    render(<WebViewWidget widget={widget('https://example.com')} surface="y70" />);
+    return send;
+  };
+
+  it('offers Back when the view can step back, and Home when the host supports it', () => {
+    const send = renderFailed(true, true);
+    expect(screen.queryByText('panel.widget.web-view.retry')).toBeNull();
+    fireEvent.click(screen.getByText('panel.widget.web-view.back'));
+    fireEvent.click(screen.getByText('panel.widget.web-view.home'));
+    expect(send.mock.calls).toEqual([['w1', 'back'], ['w1', 'home']]);
+  });
+
+  it('offers Reload when there is nothing to go back to, and no Home on an older host', () => {
+    const send = renderFailed(false, false);
+    expect(screen.queryByText('panel.widget.web-view.home')).toBeNull();
+    fireEvent.click(screen.getByText('panel.widget.web-view.retry'));
+    expect(send).toHaveBeenCalledWith('w1', 'reload');
+  });
+});
+
+describe('WebViewImmersive forward control', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const renderStrip = (navControls: boolean, canGoForward: boolean, away = false) => {
+    window.history.pushState({}, '', '/panel/dev');
+    vi.spyOn(webViewHost, 'getSnapshot').mockReturnValue({
+      status: 'supported', interactive: true, contextMenu: true, navControls, maxViews: 4,
+      views: { w1: { state: 'loaded' as const, canGoBack: true, canGoForward, away } }, overLimit: [],
+    });
+    const send = vi.spyOn(webViewHost, 'sendCommand').mockImplementation(() => {});
+    render(<WebViewImmersive widget={widget('https://example.com')} surface="y70" />);
+    return send;
+  };
+
+  const forward = () => screen.getByRole('button', { name: 'panel.widget.web-view.forward' }) as HTMLButtonElement;
+
+  it('sends forward when the view can step forward and the host has nav controls', () => {
+    const send = renderStrip(true, true);
+    fireEvent.click(forward());
+    expect(send).toHaveBeenCalledWith('w1', 'forward');
+  });
+
+  it('is disabled with nothing to go forward to, and on a host without nav controls', () => {
+    renderStrip(true, false);
+    expect(forward().disabled).toBe(true);
+    cleanup();
+    renderStrip(false, true);
+    expect(forward().disabled).toBe(true);
+  });
+
+  const home = () => screen.getByRole('button', { name: 'panel.widget.web-view.home' }) as HTMLButtonElement;
+
+  it('sends home only while away from the configured page and the host has nav controls', () => {
+    const send = renderStrip(true, false, true);
+    fireEvent.click(home());
+    expect(send).toHaveBeenCalledWith('w1', 'home');
+    cleanup();
+    renderStrip(true, false, false);
+    expect(home().disabled).toBe(true);
+    cleanup();
+    renderStrip(false, false, true);
+    expect(home().disabled).toBe(true);
   });
 });

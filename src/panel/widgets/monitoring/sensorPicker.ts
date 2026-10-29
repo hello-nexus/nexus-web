@@ -7,7 +7,7 @@ import type { useSensorExtras } from '../../../hooks/useSensorExtras';
 import type { buildNetworkSensors } from './networkSensors';
 import { networkSensorOptions } from './networkSensors';
 import { bareSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorsForCategory, smartStorageSensors } from './sensorCategories';
+import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorsForCategory, smartStorageSensors, storageSensorLabel } from './sensorCategories';
 import type { DeviceKey } from './perfSlots';
 
 export interface SensorOption {
@@ -68,7 +68,7 @@ export function sensorsForDevice(
   let options: SensorOption[];
   switch (device) {
     case 'quick':
-      options = sensorsForCategory('quick', sensors, networkSensors, []).map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
+      options = sensorsForCategory('quick', sensors, networkSensors, []).map(s => ({ value: s.id, label: s.name, sensorName: s.name, type: s.type }));
       break;
     case 'cpu':
     case 'gpu':
@@ -84,10 +84,10 @@ export function sensorsForDevice(
     case 'fan':
       options = sensors.motherboard
         .filter(s => s.type === 'Fan')
-        .map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
+        .map(s => ({ value: s.id, label: s.name, sensorName: s.name, type: s.type }));
       break;
     case 'storage':
-      options = sensorsForCategory('storage', sensors, networkSensors, []).map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
+      options = sensorsForCategory('storage', sensors, networkSensors, []).map(s => ({ value: s.id, label: storageSensorLabel(sensors, s), sensorName: s.name, type: s.type }));
       break;
     case 'gpu2':
     case 'igpu':
@@ -95,6 +95,7 @@ export function sensorsForDevice(
         value: s.id,
         label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
         sensorName: s.name,
+        type: s.type,
       }));
       break;
     case 'smart':
@@ -102,6 +103,7 @@ export function sensorsForDevice(
         value: s.id,
         label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
         sensorName: s.name,
+        type: s.type,
       }));
       break;
     case 'memoryModule':
@@ -113,6 +115,7 @@ export function sensorsForDevice(
         value: s.id,
         label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
         sensorName: s.name,
+        type: s.type,
       }));
       break;
     case 'network':

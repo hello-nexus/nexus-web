@@ -18,3 +18,8 @@ export function resolveRefreshMinutes(raw: unknown): number {
 export function snapZoom(v: number): number {
   return clampZoom(Math.round(v / ZOOM_STEP) * ZOOM_STEP);
 }
+
+/** Config `interactive`: on unless explicitly stored as false, so instances saved before the setting existed take it. */
+export function resolveInteractive(raw: unknown): boolean {
+  return raw !== false;
+}

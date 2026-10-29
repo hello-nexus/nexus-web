@@ -1,8 +1,8 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  isStreamedPanelSurface, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  surfaceDisplayShape, surfaceInputMode, widgetDisplayShape, type PanelSurface,
+  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages, genericSinglePage, isSingleWidgetSurface, LIANLI_SCREEN88_FAMILY,
+  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, type PanelSurface,
 } from './types';
 
 describe('surfaceInputMode', () => {
@@ -22,6 +22,40 @@ describe('surfaceInputMode', () => {
     for (const [surface, deviceTouch, expected] of cases) {
       expect(surfaceInputMode(surface, deviceTouch)).toBe(expected);
     }
+  });
+});
+
+describe('widgetInputOf', () => {
+  it('gives a display-bound panel input whatever the digitizer says', () => {
+    for (const touch of [undefined, false, true]) {
+      expect(widgetInputOf(touch, true)).toBe(true);
+      expect(surfaceSupportsTouch('monitor', widgetInputOf(touch, true))).toBe(true);
+      expect(surfaceInputMode('monitor', widgetInputOf(touch, true))).not.toBe('none');
+    }
+  });
+
+  it('passes the digitizer through off a display-bound panel', () => {
+    expect(widgetInputOf(undefined, false)).toBeUndefined();
+    expect(widgetInputOf(false, false)).toBe(false);
+    expect(widgetInputOf(true, false)).toBe(true);
+    expect(surfaceInputMode('q60', widgetInputOf(undefined, false))).toBe('none');
+  });
+});
+
+describe('cellInputOf', () => {
+  it('gives a generic display input, whatever the digitizer says', () => {
+    for (const touch of [undefined, false, true]) {
+      expect(cellInputOf(touch, isGenericDisplayPanel('monitor', undefined, true))).toBe(true);
+    }
+  });
+
+  it('keeps the digitizer answer of a known display (iCUE LINK 5" LCD, Xeneon Edge)', () => {
+    const lcd5 = isGenericDisplayPanel('monitor', 'icue-link-lcd5', true);
+    const xeneon = isGenericDisplayPanel('monitor', 'xeneon-edge', true);
+    expect(cellInputOf(false, lcd5)).toBe(false);
+    expect(surfaceInputMode('monitor', cellInputOf(false, lcd5))).toBe('none');
+    expect(cellInputOf(true, xeneon)).toBe(true);
+    expect(surfaceInputMode('monitor', cellInputOf(true, xeneon))).toBe('touch');
   });
 });
 
@@ -99,6 +133,10 @@ describe('Widget size', () => {
     expect(panelShortSideSlots('monitor', 'lianli-screen88', 'small')).toBeUndefined();
     expect(panelShortSideSlots('monitor', 'lianli-screen88', null)).toBeUndefined();
     expect(panelLayoutSurface('monitor', 'lianli-screen88', 'large')).toBe('monitor');
+    expect(panelShortSideSlots('monitor', 'hyte-y60', 'large')).toBe(2);
+    expect(panelShortSideSlots('monitor', 'hyte-y60', 'small')).toBeUndefined();
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')).toMatchObject({ default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' } });
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')!.layoutSurface.xsmall).toBeUndefined();
     expect(panelShortSideSlots('monitor', 'icue-link-lcd5', 'large')).toBeUndefined();
     expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });
@@ -132,6 +170,42 @@ describe('surfaceAllowsPages', () => {
     expect(surfaceAllowsPages('monitor')).toBe(false);
     expect(surfaceAllowsPages('q60')).toBe(false);
   });
+
+  it('gives a display-bound multi-widget panel a clickable pager, never single-tile glass', () => {
+    expect(surfaceAllowsPages('monitor', false, true)).toBe(true);
+    expect(surfaceAllowsPages('monitor', undefined, true)).toBe(true);
+    expect(surfaceAllowsPages('q60', false, true)).toBe(false);
+    expect(surfaceAllowsPages('lcd-round', false, true)).toBe(false);
+  });
+});
+
+describe('panelCanvasEditable', () => {
+  it('keeps the preview rule and the touch rule', () => {
+    expect(panelCanvasEditable('monitor', false, true)).toBe(true);
+    expect(panelCanvasEditable('q60', false, true)).toBe(false);
+    expect(panelCanvasEditable('y70', undefined, false)).toBe(true);
+    expect(panelCanvasEditable('monitor', true, false)).toBe(true);
+  });
+
+  it('lets the mouse edit a display-bound multi-widget panel on the glass', () => {
+    expect(panelCanvasEditable('monitor', false, false)).toBe(false);
+    expect(panelCanvasEditable('monitor', false, false, true)).toBe(true);
+    expect(panelCanvasEditable('monitor', undefined, false, true)).toBe(true);
+    expect(panelCanvasEditable('q60', false, false, true)).toBe(false);
+    expect(panelCanvasEditable('lcd-square', false, false, true)).toBe(false);
+  });
+});
+
+describe('grid density override', () => {
+  it('rounds to an even count within 2 to 64', () => {
+    expect(normalizeGridSlots(18)).toBe(18);
+    expect(normalizeGridSlots(17)).toBe(18);
+    expect(normalizeGridSlots(0)).toBeUndefined();
+    expect(normalizeGridSlots(1)).toBe(2);
+    expect(normalizeGridSlots(500)).toBe(64);
+    expect(normalizeGridSlots(null)).toBeUndefined();
+    expect(normalizeGridSlots(Number.NaN)).toBeUndefined();
+  });
 });
 
 describe('surfaceDisplayShape', () => {
@@ -140,5 +214,158 @@ describe('surfaceDisplayShape', () => {
     for (const surface of ['lcd-square', 'lcd-wide', 'q60', 'y70', 'monitor', 'phone', 'desktop'] as const) {
       expect(surfaceDisplayShape(surface)).toBe('rect');
     }
+  });
+});
+
+describe('canEditFreeText', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const withWindow = (w: object) => vi.stubGlobal('window', w);
+
+  it('is on for a monitor surface under a WebView2 or WKWebView kiosk host', () => {
+    withWindow({ chrome: { webview: { postMessage: () => {} } } });
+    expect(canEditFreeText('monitor')).toBe(true);
+    withWindow({ webkit: { messageHandlers: { nexusPanel: { postMessage: () => {} } } } });
+    expect(canEditFreeText('monitor')).toBe(true);
+  });
+
+  it('is off for a monitor surface with no host (streamed capture)', () => {
+    withWindow({});
+    expect(canEditFreeText('monitor')).toBe(false);
+  });
+
+  it('stays off for keyboardless surfaces even with a host', () => {
+    withWindow({ chrome: { webview: { postMessage: () => {} } } });
+    for (const s of ['y70', 'q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(canEditFreeText(s)).toBe(false);
+    }
+  });
+
+  it('keeps desktop and phone on', () => {
+    withWindow({});
+    expect(canEditFreeText('desktop')).toBe(true);
+    expect(canEditFreeText('phone')).toBe(true);
+  });
+});
+
+describe('hostedDisplayKeyboard', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is the one rule behind free text, the catalog search and the editor', () => {
+    vi.stubGlobal('window', { chrome: { webview: { postMessage: () => {} } } });
+    expect(hostedDisplayKeyboard('monitor')).toBe(true);
+    expect(surfaceSupportsTextInput('monitor')).toBe(true);
+    for (const s of ['y70', 'q60', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(hostedDisplayKeyboard(s)).toBe(false);
+      expect(surfaceSupportsTextInput(s)).toBe(false);
+    }
+  });
+
+  it('is off without a kiosk host', () => {
+    vi.stubGlobal('window', {});
+    expect(hostedDisplayKeyboard('monitor')).toBe(false);
+    expect(surfaceSupportsTextInput('monitor')).toBe(false);
+  });
+});
+
+describe('isGenericDisplayPanel and pages', () => {
+  it('is true only for a display-bound monitor with no curated family', () => {
+    expect(isGenericDisplayPanel('monitor', undefined, true)).toBe(true);
+    expect(isGenericDisplayPanel('monitor', 'xeneon-edge', true)).toBe(false);
+    expect(isGenericDisplayPanel('monitor', 'icue-link-lcd5', true)).toBe(false);
+    expect(isGenericDisplayPanel('monitor', undefined, false)).toBe(false);
+    for (const s of ['y70', 'q60', 'phone', 'desktop', 'lcd-round', 'lcd-square', 'lcd-wide'] as PanelSurface[]) {
+      expect(isGenericDisplayPanel(s, undefined, true)).toBe(false);
+    }
+  });
+
+  it('gives a mouse-only generic display one page, a touch one its pages, and a known display its pages', () => {
+    expect(surfaceAllowsPages('monitor', true, true, true)).toBe(true);
+    expect(surfaceAllowsPages('monitor', false, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', undefined, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', false, true, false)).toBe(true);
+    expect(surfaceAllowsPages('monitor', true, true, false)).toBe(true);
+    expect(surfaceAllowsPages('y70', undefined, false, false)).toBe(true);
+    expect(surfaceAllowsPages('phone', undefined, false, false)).toBe(true);
+  });
+});
+
+describe('genericSinglePage', () => {
+  it('holds only a mouse-only generic display to its first page', () => {
+    expect(genericSinglePage(true, 'monitor', true)).toBe(false);
+    expect(genericSinglePage(true, 'monitor', false)).toBe(true);
+    expect(genericSinglePage(true, 'monitor', undefined)).toBe(true);
+    expect(genericSinglePage(false, 'monitor', false)).toBe(false);
+  });
+});
+
+// Every non-touch-generic panel must keep its pre-change answer; only a generic display with touch:true changes.
+describe('generic display touch rule across panel kinds', () => {
+  const legacyAllowsPages = (surface: PanelSurface, touch: boolean | undefined, displayBound: boolean, generic: boolean) =>
+    !generic && (surfaceSupportsTouch(surface, touch) || (displayBound && !isSingleWidgetSurface(surface)));
+  type Kind = { name: string; surface: PanelSurface; family?: string; displayBound: boolean; touch: boolean | undefined; changes?: true };
+  const kinds: Kind[] = [
+    { name: 'Y70', surface: 'y70', family: 'y70', displayBound: false, touch: true },
+    { name: 'Y70 bound to a display', surface: 'y70', family: 'y70', displayBound: true, touch: true },
+    { name: 'Q60', surface: 'q60', family: 'q60', displayBound: false, touch: true },
+    { name: 'Q80', surface: 'q60', family: 'q80', displayBound: false, touch: false },
+    { name: 'Universal Screen', surface: 'monitor', family: LIANLI_SCREEN88_FAMILY, displayBound: true, touch: true },
+    { name: 'Universal Screen without touch', surface: 'monitor', family: LIANLI_SCREEN88_FAMILY, displayBound: true, touch: false },
+    { name: 'Xeneon Edge', surface: 'monitor', family: 'xeneon-edge', displayBound: true, touch: true },
+    { name: 'phone', surface: 'phone', displayBound: false, touch: undefined },
+    { name: 'browser panel without a device', surface: 'desktop', displayBound: false, touch: undefined },
+    { name: 'monitor without a display', surface: 'monitor', displayBound: false, touch: true },
+    { name: 'generic display touch false', surface: 'monitor', displayBound: true, touch: false },
+    { name: 'generic display touch missing', surface: 'monitor', displayBound: true, touch: undefined },
+    { name: 'generic display touch true', surface: 'monitor', displayBound: true, touch: true, changes: true },
+  ];
+
+  it.each(kinds)('$name', ({ surface, family, displayBound, touch, changes }) => {
+    const generic = isGenericDisplayPanel(surface, family, displayBound);
+    const oneBefore = generic;
+    const oneNow = genericSinglePage(generic, surface, touch);
+    const allowsBefore = legacyAllowsPages(surface, touch, displayBound, generic);
+    const allowsNow = surfaceAllowsPages(surface, touch, displayBound, generic);
+    // Fold, held pages and tap suppression all key on oneNow; PanelApp's cell tap otherwise needs surfaceSupportsTouch.
+    if (changes) {
+      expect(generic).toBe(true);
+      expect(oneBefore).toBe(true);
+      expect(oneNow).toBe(false);
+      expect(allowsBefore).toBe(false);
+      expect(allowsNow).toBe(true);
+    } else {
+      expect(oneNow).toBe(oneBefore);
+      expect(allowsNow).toBe(allowsBefore);
+    }
+  });
+});
+
+describe('widget size options for a plain display', () => {
+  it('offers large, small and extra small, scaling the density grid', async () => {
+    const { panelWidgetSizeOptions, panelShortSideSlots, panelLayoutSurface, resolvePanelWidgetSize } = await import('./types');
+    const options = panelWidgetSizeOptions('monitor', undefined);
+    expect(Object.keys(options!.layoutSurface).sort()).toEqual(['large', 'small', 'xsmall']);
+    expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'small', 12)).toBeUndefined();
+    expect(panelShortSideSlots('monitor', undefined, 'xsmall', 12)).toBe(24);
+    expect(panelShortSideSlots('monitor', undefined, 'xsmall', 60)).toBe(64);
+    expect(resolvePanelWidgetSize('monitor', undefined, 'xsmall')).toBe('xsmall');
+    expect(panelLayoutSurface('monitor', undefined, 'xsmall')).toBe('monitor');
+  });
+
+  it('does not offer extra small on a curated display or a tile panel', async () => {
+    const { panelWidgetSizeOptions, resolvePanelWidgetSize } = await import('./types');
+    expect(panelWidgetSizeOptions('monitor', 'lianli-screen88')!.layoutSurface.xsmall).toBeUndefined();
+    expect(panelWidgetSizeOptions('q60')!.layoutSurface.xsmall).toBeUndefined();
+    expect(resolvePanelWidgetSize('q60', undefined, 'xsmall')).toBe('large');
+  });
+
+  it('maps a retired grid density to the nearest size', async () => {
+    const { sizeForLegacyGridSlots } = await import('./types');
+    expect(sizeForLegacyGridSlots(6, 12)).toBe('large');
+    expect(sizeForLegacyGridSlots(12, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(10, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(26, 12)).toBe('xsmall');
+    expect(sizeForLegacyGridSlots(0, 12)).toBeUndefined();
+    expect(sizeForLegacyGridSlots(12, undefined)).toBeUndefined();
   });
 });

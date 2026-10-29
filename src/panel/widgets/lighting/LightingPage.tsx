@@ -38,6 +38,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
+import { isColorAdjusted } from './page/colorTuning';
 import { buildDeviceBlocks, sortZonesWithinDevice, type ZoneBlock } from './page/deviceBlocks';
 import { usePins } from './page/usePins';
 import { canStack, isStackedSet, setStackLayout, stackDevices, stackOf, unstackDevices, withStacked, type DeviceStack } from './page/deviceStacks';
@@ -70,6 +71,7 @@ import { Coachmark } from '../../../components/common/Coachmark/Coachmark';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
+import { effectiveView3d } from '../../../lib/viewPreference';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { useLightingScene } from './scene/useLightingScene';
 import { ViewSwitch } from '../../../components/common/ViewSwitch/ViewSwitch';
@@ -99,6 +101,7 @@ import { effectEditEnabled } from './page/effectEdit';
 import { StaticPalette } from './page/StaticPalette';
 import { SimpleAnimationRow } from './page/SimpleAnimationRow';
 import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
+import { useLightingRecents } from './useLightingRecents';
 import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, snapToSegment, pickerHexAt, pickerPointFor } from './page/staticPickerField';
 import { useColorWriteQueue } from './page/useColorWriteQueue';
@@ -227,8 +230,10 @@ function loadDeviceOrder(): string[] {
   return [];
 }
 
-// three.js loads only when someone turns the 3D view on.
-const LightingScene3D = lazy(() => import('./scene/LightingScene3D'));
+// three.js loads only when someone turns the 3D view on. Dev-tools only: the raw defines fold in this module, so a distribution build drops the chunk; a shared const does not fold across modules.
+const LightingScene3D = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? lazy(() => import('./scene/LightingScene3D'))
+  : null;
 const ShaderStudio = lazy(() => import('./studio/ShaderStudio').then(m => ({ default: m.ShaderStudio })));
 const SavedEffectSections = lazy(() => import('./studio/CustomEffectsGrid').then(m => ({ default: m.SavedEffectSections })));
 const VIEW_2D = '2d' as const;
@@ -249,6 +254,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const isWindows = platform === 'windows';
   const gameSyncNoticeHint = useOnboardingHint(GAME_SYNC_NOTICE_HINT_ID, isWindows && gameSyncRemovedNotice);
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  const { recordColor, recordAnimation } = useLightingRecents();
   const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
   // Off / simple / advanced live behind the first tab (see modeTabs). The
   // popover anchors on the tab row, which is why the ref sits on the element
@@ -489,8 +495,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [studioTarget, setStudioTarget] = useState<{ id: string | null } | null>(null);
   const [effectQuery, setEffectQuery] = useState('');
   const sceneApi = useLightingScene(SCENE_3D);
-  const [sceneEditorOpen, setSceneEditorOpen] = useState(false);
-  const scene3d = SCENE_3D && !!sceneApi.scene?.view.enabled;
+  // The scene answers once loaded; until then the stored choice stands, so a page that last used 3D opens on 3D without a 2D frame first.
+  const scene3d = effectiveView3d(sceneApi.scene ? sceneApi.scene.view.enabled : uiSettings.lightingView3d, SCENE_3D);
   // Canvas hides the frame for any device whose LEDs are off. The device
   // list is always mounted now, so there is no tab state to hide it behind.
   // Cards whose LEDs are all user-disabled disappear from the listing and
@@ -1149,6 +1155,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (modeRef.current === 'none') {
       setCustomStaticColor(hex);
       setSelectionTab(null);
+      recordColor(hex);
       void resumeLightingRef.current('static').then(() => {
         setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       });
@@ -1159,6 +1166,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const ids = [...selectedDeviceIds];
     // Nothing selected: the color is the exact global flat color.
     if (ids.length === 0) {
+      recordColor(hex);
       setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       return;
     }
@@ -1167,7 +1175,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const pin = colorPin(hex);
     recordPins(ids, pin);
     queueColorWrite(pin, ids);
-  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope]);
+  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope, recordColor]);
 
   // Records as well as writes: the marks and the device cards read the pin, so
   // a drag has to move them with the pointer, not on release.
@@ -1678,7 +1686,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Brightness counts: it is one of the modal's controls, and Reset restores it
   // with the rest.
   const colorTunedIds = useMemo(
-    () => new Set(devices.filter(d => colorAdjusts[d.id] || (d.brightness ?? 100) < 100).map(d => d.id)),
+    () => new Set(devices.filter(d => isColorAdjusted(colorAdjusts[d.id]) || (d.brightness ?? 100) < 100).map(d => d.id)),
     [devices, colorAdjusts],
   );
   // Key reactions. The service lists every per-key keyboard card it can react
@@ -2115,9 +2123,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Simple mode has no device rail, so a color is the exact global flat color.
   // Static has to own the output first.
   const handleSimplePaletteSelect = useCallback(async (color: PaletteColor) => {
+    recordColor(color.hex);
     if (mode !== 'static') await handleModeChange('static');
     setGlobalColor(color.hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, color.hex));
-  }, [mode, handleModeChange, setGlobalColor]);
+  }, [mode, handleModeChange, setGlobalColor, recordColor]);
 
   // Simple mode has no per-device toggle, so a device left un-driven or dark on
   // the advanced page would sit black here with nothing on the page saying why.
@@ -2242,6 +2251,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // catalogue key there marks that cell selected and draws its shader on the
   // canvas while the hardware runs this one.
   const handleSimpleAnimationSelect = useCallback(async (key: string) => {
+    recordAnimation(key);
     claimAllDevices(false);
     unpinAll();
     setActiveEffect('');
@@ -2260,7 +2270,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
     } catch { /* the sync poll reconciles */ }
-  }, [claimAllDevices, paused, setMode, setPausedState, setRawSync, simpleReversed, unpinAll]);
+  }, [claimAllDevices, paused, setMode, setPausedState, setRawSync, simpleReversed, unpinAll, recordAnimation]);
 
   // The running sweep, which is also what marks a tile.
   const simpleAnimation = synced && mode === 'animate' && isSimpleAnimation(rawSync)
@@ -2520,6 +2530,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const openDock = useCallback(() => setDockCollapsed(false), [setDockCollapsed]);
   const handleEffectPick = (key: string) => {
     if (!(key === gridEffect && selectedDeviceIds.size === 0)) pulsePick();
+    if (viewMode === 'animate') recordAnimation(key);
     handleEffectSelect(key);
   };
   // The colour the selection wears, which is where its dots sit on the field.
@@ -2884,9 +2895,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 value={scene3d ? VIEW_3D : VIEW_2D}
                 labels={{ '2d': t('lighting.view.layout'), '3d': t('lighting.view.desk') }}
                 onChange={next => {
-                  const firstTime = next === VIEW_3D && (sceneApi.scene?.bindings.length ?? 0) === 0;
                   void sceneApi.setEnabled(next === VIEW_3D);
-                  if (firstTime) setSceneEditorOpen(true);
+                  updateUiSettings({ lightingView3d: next === VIEW_3D });
                 }}
               />
             )}
@@ -3011,7 +3021,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           )}
           {showCanvas && (
           <div className={styles.canvasArea}>
-            {scene3d ? (
+            {scene3d && LightingScene3D ? (
               <Suspense fallback={<div className={styles.scenePlaceholder} />}>
                 <LightingScene3D
                   api={sceneApi}
@@ -3022,8 +3032,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   shaderState={shaderMode ? previewShaderState : null}
                   shaderPaused={paused}
                   audioRef={audioRef}
-                  editorOpen={sceneEditorOpen}
-                  onEditorOpenChange={setSceneEditorOpen}
                   onIdentify={id => { identifyLightingDevice(id).catch(() => { /* silent */ }); }}
                   onLayoutCommit={handleLayoutCommit}
                 />

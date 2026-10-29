@@ -75,7 +75,7 @@ describe('previewDrag', () => {
     const result = previewDrag(l, 'a', 'p1', 0, 2, CAPACITY);
     expect(result).not.toBeNull();
     expect(findWidget(result!, 'a')!.widget).toMatchObject({ col: 0, row: 2 });
-    // b is displaced into the first free stride-aligned slot (0, 0) - the
+    // b is displaced into the first free slot (0, 0) - the
     // cell a vacated.
     expect(findWidget(result!, 'b')!.widget).toMatchObject({ col: 0, row: 0 });
     expectNoOverlap(result!);
@@ -90,11 +90,9 @@ describe('previewDrag', () => {
     expectNoOverlap(result!);
   });
 
-  it('homes a displaced widget into off-stride space when no aligned slot exists', () => {
-    // 4x6 grid. Dropping a (2x2) onto d (4x2 full-width) blocks every
-    // stride-aligned anchor for d: row 0 by the placed a, row 2 by k2,
-    // row 4 by k1. Only the off-stride row 3 fits - without the stride-1
-    // fallback this drop was refused despite the visible free band.
+  it('homes a displaced widget into the only free band', () => {
+    // 4x6 grid. Dropping a (2x2) onto d (4x2 full-width) blocks d's anchors
+    // at row 0 (placed a), row 2 (k2) and row 4 (k1). Only row 3 fits.
     const tall = { gridCols: 4, pageRows: 6 };
     const l = layout([[
       widget('d', '4x2', 0, 0),
@@ -271,5 +269,58 @@ describe('previewDrag', () => {
         expectNoOverlap(result!);
       }
     });
+  });
+
+  it('refuses an odd target on a full page when the reflow would land the widget elsewhere', () => {
+    const widgets: PanelWidget[] = [];
+    for (let r = 0; r < 16; r += 2) {
+      widgets.push(widget(`l${r}`, '2x2', 0, r), widget(`r${r}`, '2x2', 2, r));
+    }
+    const l = layout([widgets]);
+    expect(previewDrag(l, 'r2', 'p1', 1, 1, { gridCols: 4, pageRows: 16 })).toBeNull();
+  });
+
+  it('accepts an odd target on a page with free space', () => {
+    const l = layout([[widget('a', '2x2', 0, 0)]]);
+    const result = previewDrag(l, 'a', 'p1', 1, 1, { gridCols: 4, pageRows: 16 });
+    expect(findWidget(result!, 'a')!.widget).toMatchObject({ col: 1, row: 1 });
+  });
+
+  it('pushes a sibling aside on an odd drop when the page has room', () => {
+    const l = layout([[widget('a', '2x2', 0, 0), widget('b', '2x2', 1, 3)]]);
+    const result = previewDrag(l, 'a', 'p1', 1, 2, { gridCols: 4, pageRows: 8 });
+    expect(result).not.toBeNull();
+    expect(findWidget(result!, 'a')!.widget).toMatchObject({ col: 1, row: 2 });
+    expectNoOverlap(result!);
+  });
+});
+
+describe('previewDrag on a display panel (nearest free cell)', () => {
+  const BIG = { gridCols: 16, pageRows: 10 };
+
+  it('sends a displaced widget to the free cell nearest its old one, not the top', () => {
+    const l = layout([[widget('drag', '2x2', 0, 0), widget('stay', '2x2', 7, 5)]]);
+    const classic = previewDrag(l, 'drag', 'p1', 7, 5, BIG)!;
+    expect(findWidget(classic, 'stay')!.widget.row).toBe(0);
+
+    const result = previewDrag(l, 'drag', 'p1', 7, 5, BIG, true)!;
+    expect(findWidget(result, 'drag')!.widget).toMatchObject({ col: 7, row: 5 });
+    const stay = findWidget(result, 'stay')!.widget;
+    expect(Math.hypot(stay.col - 7, stay.row - 5)).toBeLessThanOrEqual(2);
+    expect(stay.row).toBeGreaterThan(0);
+    expectNoOverlap(result);
+  });
+
+  it('breaks distance ties in reading order and keeps every widget', () => {
+    const l = layout([[widget('a', '2x2', 0, 0), widget('b', '2x2', 4, 4), widget('c', '4x2', 10, 8)]]);
+    const result = previewDrag(l, 'a', 'p1', 4, 4, BIG, true)!;
+    expect(result.pages[0].widgets).toHaveLength(3);
+    expect(findWidget(result, 'c')!.widget).toMatchObject({ col: 10, row: 8 });
+    expectNoOverlap(result);
+  });
+
+  it('refuses the drop when the displaced widget has nowhere to go', () => {
+    const l = layout([[widget('b', '2x2', 0, 0)], [widget('a', '4x2', 0, 0)]]);
+    expect(previewDrag(l, 'a', 'p1', 0, 0, { gridCols: 4, pageRows: 2 }, true)).toBeNull();
   });
 });

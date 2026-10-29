@@ -1594,7 +1594,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "e537f3af9fbb0224da9a85dc3f829efd15f4e3d18068570552137e6b9c1802cd"
+    "sha256": "44ddedd94ba9ac10cf1f86de384d26fe5ffebc01fdc3cf9029a17e226d3a66cf"
   },
   "bare:zoom": {
     "recipe": {
@@ -2835,7 +2835,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "0bbe937b659350849fac27459f6a20762175971f782fbb58d339813ceda5ab22"
+    "sha256": "a6b95ad209085b34cab789ebdfedb757c09546aa796835a7102d9e5b9072900a"
   },
   "block:bands": {
     "recipe": {
@@ -4695,7 +4695,7 @@
       "saturation": 1.3,
       "contrast": 0.8
     },
-    "sha256": "a9da7c21030cc8b05acaf62fcd0714a8bc8bb2f36c0598d6eb1a4d040b3e3b0b"
+    "sha256": "fa06ea59bf2ad83b35355d010e5f1bb274f27ad9e6455567b8978f51320c597f"
   },
   "block:zoom": {
     "recipe": {
@@ -5521,7 +5521,7 @@
         }
       ]
     },
-    "sha256": "491396454829f9ddb0dbb7e02fe1b5e45c892eeb2e648c4f8de4f5e930ddc39c"
+    "sha256": "22c740e6b39eb33c182fb7349c18c0e49f5c03bc661495f92866300f3c63514e"
   },
   "starter:colorCycle": {
     "recipe": {
@@ -5799,7 +5799,7 @@
         }
       ]
     },
-    "sha256": "c482c2696169c8febc228358841a21733ca59f0e3eb6c4732ea44e191dfa869f"
+    "sha256": "1fc9f39676b7c2af85c3d2e7e87cc645b120b282edbfe67aa6a9be654d2ad85c"
   },
   "starter:hypnoTunnel": {
     "recipe": {
@@ -6303,7 +6303,7 @@
         }
       ]
     },
-    "sha256": "31d9397279e194962926a0742af74b525a85aa35174d900414b295a58263d820"
+    "sha256": "2cdd107287d8dfe508e738a0bf56987c3d04e031436cda4e2c99c961695eee2c"
   },
   "starter:rainbowWheel": {
     "recipe": {
@@ -7046,7 +7046,7 @@
         }
       ]
     },
-    "sha256": "c023919714a2d15c44100c79ea19f0f57f1d800cfbe6f171bbd422e0cc4171f6"
+    "sha256": "c2731bb3f150e7e221e1b5de05bd94d0e97cbdd2dd7c9b7b4e7d7489b5ca0913"
   },
   "starter:vuMeter": {
     "recipe": {

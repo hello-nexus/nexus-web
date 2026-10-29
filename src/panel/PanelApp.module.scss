@@ -319,8 +319,14 @@
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+// The pop runs on the cell's card and label, never on the .cellWrap itself: the host measures
+// the wrap with getBoundingClientRect for its input region and blur plates, and a scaled wrap
+// would crop the window to the animation's first frame.
 // Desktop home replays the panel-open entrance once on first app launch.
-.panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
+.panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) > .cellHost > *,
+.panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) > .cell,
+.panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) > .cellLabelStrip,
+.panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) > .cellImmersiveFrameLabel {
   transform-origin: center;
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -328,7 +334,10 @@
 // A single just-added widget plays the same intro pop so it appears the way
 // widgets do on panel launch. Per-cell (not the root intro selector) so only
 // the new tile animates.
-.cellEntrance {
+.cellEntrance > .cellHost > *,
+.cellEntrance > .cell,
+.cellEntrance > .cellLabelStrip,
+.cellEntrance > .cellImmersiveFrameLabel {
   transform-origin: center;
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -399,6 +408,14 @@
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
+}
+
+.emptyPageAction {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
 }
 
 .panelPageIndicatorPosition {
@@ -595,7 +612,7 @@
 // stylesheet order. Single-widget surfaces never carry data-widget-padding
 // (PanelApp.tsx), so they keep their radius.
 .panelRoot[data-surface][data-widget-padding='none'] {
-  --panel-card-radius: 0;
+  --panel-card-radius: 0px;
 }
 
 .panelRoot[data-surface='desktop'] {
@@ -2029,6 +2046,11 @@
   transition: opacity var(--ease-fast) ease-out;
 }
 
+
+// Fades in while a locked widget is pulled against its rubber band (useLockNotice).
+.cellWrap[data-lock-notice='true'] .cell > .cellLockNotice {
+  opacity: 1;
+}
 
 // Preview cells read as buttons, and only a real pointer can hover.
 @media (hover: hover) {

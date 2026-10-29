@@ -1,4 +1,4 @@
-import type { SceneBinding, Vec3 } from '../../../../api/lightingScene';
+import type { SceneBinding } from '../../../../api/lightingScene';
 import type { SceneEdit } from './useLightingScene';
 
 /** Pure scene edits: each returns the next scene without touching the one passed in. */
@@ -29,12 +29,4 @@ export function rotateBinding(s: SceneEdit, deviceId: string): SceneEdit {
 
 export function flipBinding(s: SceneEdit, deviceId: string): SceneEdit {
   return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, flip: !b.flip } : b)) };
-}
-
-export function moveObject(s: SceneEdit, objectId: string, position: Vec3): SceneEdit {
-  return { ...s, objects: s.objects.map(o => (o.id === objectId ? { ...o, position } : o)) };
-}
-
-export function turnObject(s: SceneEdit, objectId: string, degrees: number): SceneEdit {
-  return { ...s, objects: s.objects.map(o => (o.id === objectId ? { ...o, yaw: (((o.yaw + degrees) % 360) + 360) % 360 } : o)) };
 }

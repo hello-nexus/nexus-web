@@ -5,10 +5,10 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  loadSettings, saveSettings, cachePreferencesLocally,
-  applyThemeMode, applyAccentColor, applyBackgroundMode,
+  loadSettings, saveSettings, cachePreferencesLocally, COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE,
+  applyThemeMode, setHostThemeMode, applyAccentColor, applyBackgroundMode,
   type NexusSettings, type ThemeMode, type Language, type BackgroundMode, type AccentSource,
-  type DashboardMode,
+  type DashboardMode, type CoolingFlowMode,
 } from '../lib/settings';
 import {
   fetchPreferences, savePreferences,
@@ -60,6 +60,8 @@ export interface UiSettingsValue {
   accentSource: AccentSource;
   language: Language;
   themeMode: ThemeMode;
+  // Host OS theme from the service; not persisted locally. '' = not reported.
+  hostThemeMode: '' | 'dark' | 'light';
   accentColor: string;
   // Last colour picked from the accent palette's custom slot; '' = never used.
   // Held apart from accentColor so the slot survives picking a preset.
@@ -119,9 +121,16 @@ export interface UiSettingsValue {
   // pages keep separate answers.
   showUncontrolledLightingDevices: boolean;
   showUncontrolledCoolingDevices: boolean;
+  // Whether each page opens on its 3D view. Server-mirrored under ui.lightingView3d / ui.coolingView3d.
+  lightingView3d: boolean;
+  coolingView3d: boolean;
+  coolingFlowMode: CoolingFlowMode;
+  coolingCollisionShapes: boolean;
   // Sidebar DEVICES row keys the user hid; a row is omitted only while its
   // Nexus Control is also off. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
+  recentStaticColors: string[];
+  recentAnimations: string[];
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -230,6 +239,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     accentSource: src.general.accentSource,
     language: src.general.language,
     themeMode: src.general.themeMode,
+    hostThemeMode: '',
     accentColor: src.general.accentColor,
     customAccentColor: src.general.customAccentColor,
     showConflictAlerts: src.general.showConflictAlerts,
@@ -260,7 +270,13 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     coolingDashboardMode: src.general.coolingDashboardMode,
     showUncontrolledLightingDevices: src.general.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: src.general.showUncontrolledCoolingDevices,
+    lightingView3d: src.general.lightingView3d,
+    coolingView3d: src.general.coolingView3d,
+    coolingFlowMode: COOLING_FLOW_MODES.find(m => m === src.general.coolingFlowMode) ?? DEFAULT_COOLING_FLOW_MODE,
+    coolingCollisionShapes: src.general.coolingCollisionShapes,
     hiddenSidebarDevices: src.general.hiddenSidebarDevices,
+    recentStaticColors: src.general.recentStaticColors,
+    recentAnimations: src.general.recentAnimations,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
@@ -332,7 +348,13 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       coolingDashboardMode: src.coolingDashboardMode,
       showUncontrolledLightingDevices: src.showUncontrolledLightingDevices,
       showUncontrolledCoolingDevices: src.showUncontrolledCoolingDevices,
+      lightingView3d: src.lightingView3d,
+      coolingView3d: src.coolingView3d,
+      coolingFlowMode: src.coolingFlowMode,
+      coolingCollisionShapes: src.coolingCollisionShapes,
       hiddenSidebarDevices: src.hiddenSidebarDevices,
+      recentStaticColors: src.recentStaticColors,
+      recentAnimations: src.recentAnimations,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
@@ -380,7 +402,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; hiddenSidebarDevices: string[] }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; notifyConflictLaunches: boolean; endConflictsOnLaunch: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean; lightingView3d: boolean; coolingView3d: boolean; coolingFlowMode: CoolingFlowMode; coolingCollisionShapes: boolean; hiddenSidebarDevices: string[]; recentStaticColors: string[]; recentAnimations: string[] }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.notifyConflictLaunches !== undefined) ui.notifyConflictLaunches = patch.notifyConflictLaunches;
@@ -393,7 +415,13 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
   if (patch.showUncontrolledLightingDevices !== undefined) ui.showUncontrolledLightingDevices = patch.showUncontrolledLightingDevices;
   if (patch.showUncontrolledCoolingDevices !== undefined) ui.showUncontrolledCoolingDevices = patch.showUncontrolledCoolingDevices;
+  if (patch.lightingView3d !== undefined) ui.lightingView3d = patch.lightingView3d;
+  if (patch.coolingView3d !== undefined) ui.coolingView3d = patch.coolingView3d;
+  if (patch.coolingFlowMode !== undefined) ui.coolingFlowMode = patch.coolingFlowMode;
+  if (patch.coolingCollisionShapes !== undefined) ui.coolingCollisionShapes = patch.coolingCollisionShapes;
   if (patch.hiddenSidebarDevices !== undefined) ui.hiddenSidebarDevices = patch.hiddenSidebarDevices;
+  if (patch.recentStaticColors !== undefined) ui.recentStaticColors = patch.recentStaticColors;
+  if (patch.recentAnimations !== undefined) ui.recentAnimations = patch.recentAnimations;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -478,6 +506,8 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     ...base,
     language: (server.theme?.language as Language) ?? base.language,
     themeMode: (server.theme?.themeMode as ThemeMode) ?? base.themeMode,
+    hostThemeMode: server.theme?.resolvedThemeMode === 'dark' || server.theme?.resolvedThemeMode === 'light'
+      ? server.theme.resolvedThemeMode : '',
     accentColor: server.theme?.accentColor ?? base.accentColor,
     customAccentColor: server.theme?.customAccentColor ?? base.customAccentColor,
     // Empty (never written) falls back to the local value, so an upgraded
@@ -502,7 +532,13 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledLightingDevices,
     showUncontrolledCoolingDevices: server.ui?.showUncontrolledCoolingDevices
       ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledCoolingDevices,
+    lightingView3d: server.ui?.lightingView3d ?? base.lightingView3d,
+    coolingView3d: server.ui?.coolingView3d ?? base.coolingView3d,
+    coolingFlowMode: COOLING_FLOW_MODES.find(m => m === server.ui?.coolingFlowMode) ?? base.coolingFlowMode,
+    coolingCollisionShapes: server.ui?.coolingCollisionShapes ?? base.coolingCollisionShapes,
     hiddenSidebarDevices: server.ui?.hiddenSidebarDevices ?? base.hiddenSidebarDevices,
+    recentStaticColors: server.ui?.recentStaticColors ?? base.recentStaticColors,
+    recentAnimations: server.ui?.recentAnimations ?? base.recentAnimations,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,
@@ -577,10 +613,9 @@ interface UiSettingsProviderProps {
   /**
    * Whether server-driven theme / accent / language changes apply to
    * `document.documentElement` and global i18n state. `true` (default) for
-   * the desktop dashboard. `false` for the kiosk panel, overlay process,
-   * and simulator iframe: those own their own theme/language pipelines
-   * (usePanelTheme, the overlay's theme manager, the parent modal's
-   * postMessage feed) and would fight a second writer.
+   * the desktop dashboard. `false` for the kiosk panel and simulator
+   * iframe: those own their own theme/language pipelines (usePanelTheme,
+   * the parent modal's postMessage feed) and would fight a second writer.
    */
   manageDom?: boolean;
 }
@@ -635,7 +670,7 @@ export function UiSettingsProvider({
     // client-scoped fields - short-circuit to skip a pointless POST.
     // startupDelaySeconds is a top-level number (0 is a valid value), so it is
     // checked for definedness rather than truthiness like the domain blocks.
-    const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
+    const anyBlock = serverPatch.theme || serverPatch.panel
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined
@@ -689,15 +724,13 @@ export function UiSettingsProvider({
 
   const reload = useCallback((coalesceWithPendingWrite = false) => {
     if (!serviceOnline) return;
-    // The 'prefs' topic echoes our OWN writes back. A theme toggle makes two
-    // /preferences writes: themeMode (debounced 250ms via scheduleServerWrite)
-    // and, through ResolvedThemeSync, resolvedThemeMode (immediate). The
-    // immediate write's echo arrives before the debounced themeMode write
-    // lands, so re-hydrating now reads the pre-toggle themeMode and re-applies
-    // it - the visible flicker: new theme → snaps back to old → tweens to new
-    // once the real write settles. Skip the round-trip while our own write is
-    // still pending; that write's echo reloads once it flushes, when the
-    // server is consistent. (Mount / profile-switch reloads pass false.)
+    // The 'prefs' topic echoes our OWN writes back. A theme toggle writes
+    // themeMode debounced via scheduleServerWrite, so an echo of an earlier
+    // write can arrive first and re-hydrate the pre-toggle themeMode - the
+    // visible flicker: new theme → snaps back to old → tweens to new once the
+    // real write settles. Skip the round-trip while our own write is still
+    // pending; that write's echo reloads once it flushes, when the server is
+    // consistent. (Mount / profile-switch reloads pass false.)
     if (coalesceWithPendingWrite && writeTimer.current) return;
     // Bounds the local HTTP request with an AbortSignal (network I/O, as for the Nexus 2 preview); a relay-tunneled read ignores the signal and is not covered.
     const mine = ++readGeneration.current;
@@ -707,13 +740,15 @@ export function UiSettingsProvider({
     fetchPreferences(abort.signal).finally(() => clearTimeout(bound)).then(prefs => {
       if (mine !== readGeneration.current) return;
       if (!prefs) { markFailed(); return; }
+      // Only the DOM-managing dashboard applies the host theme to the page.
+      const hostThemeChanged = manageDom && setHostThemeMode(prefs.theme?.resolvedThemeMode);
       setSettings(prev => {
         const next = { ...applyServerToLocal(prefs, prev), ...pendingLocalRef.current };
         persistLocal(next);
         // Re-apply theme/accent when server state differs (profile-switch
         // path). Same `manageDom` guard as update().
         if (manageDom) {
-          if (next.themeMode !== prev.themeMode) applyThemeMode(next.themeMode);
+          if (next.themeMode !== prev.themeMode || hostThemeChanged) applyThemeMode(next.themeMode);
           if (next.accentColor !== prev.accentColor) applyAccentColor(next.accentColor);
           if (next.language !== prev.language) setLanguage(next.language);
         }

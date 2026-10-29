@@ -951,6 +951,74 @@ describe('ZoneCard LED colours badge', () => {
   });
 });
 
+describe('ZoneCard color tuning badge', () => {
+  const bulkOf = (tunableCount: number): BulkSelection => ({
+    count: 3, identifyCount: 3, tunableCount, controlled: true, ledsOn: true,
+    setControlled: () => {}, setPower: () => {}, identify: () => {},
+  });
+  const badge = () => screen.queryByRole('button', { name: 'lighting.colorTuning.title' });
+
+  it('opens color tuning without selecting the card', () => {
+    const onOpenColorTuning = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={onSelect}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        colorTuned onOpenColorTuning={onOpenColorTuning}
+      />,
+    );
+    fireEvent.click(badge()!);
+    expect(onOpenColorTuning).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['toggle mode', { toggleMode: true }],
+    ['unavailable', { device: { ...baseDevice, ledCount: 0 }, bulk: bulkOf(3) }],
+    ['select-only', { selectOnly: true }],
+    ['firmware-owned', { firmwareControlled: true }],
+    ['not selectable', { device: { ...baseDevice, ledsOn: false } }],
+    ['dark in a selection', { device: { ...baseDevice, ledsOn: false }, bulk: bulkOf(3) }],
+    ['in a selection with nothing tunable', { bulk: bulkOf(0) }],
+  ] as const)('stays a plain mark when the card is %s', (_name, extra) => {
+    const onOpenColorTuning = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        colorTuned onOpenColorTuning={onOpenColorTuning}
+        {...(extra as object)}
+      />,
+    );
+    expect(badge()).toBeNull();
+    expect(screen.getByRole('img', { name: 'lighting.colorTuning.title' })).toBeTruthy();
+  });
+
+  it('shows the button for a selectable card in a selection with tunable cards', () => {
+    render(
+      <ZoneCard
+        device={baseDevice} selected indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        colorTuned onOpenColorTuning={() => {}} bulk={bulkOf(3)}
+      />,
+    );
+    expect(badge()).not.toBeNull();
+  });
+
+  it('stays a plain mark when nothing can open the modal', () => {
+    render(
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        colorTuned
+      />,
+    );
+    expect(badge()).toBeNull();
+    expect(screen.getByRole('img', { name: 'lighting.colorTuning.title' })).toBeTruthy();
+  });
+});
+
 describe('ZoneCard key reactions row', () => {
   const openMenu = (props: { onOpenKeyReactions?: () => void; bulk?: BulkSelection }) => {
     render(

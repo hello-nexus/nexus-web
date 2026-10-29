@@ -47,7 +47,10 @@ describe('Select', () => {
     const trigger = screen.getByRole('button', { name: 'Language' });
     expect(trigger).not.toHaveTextContent('Italiano');
     expect(trigger).toHaveTextContent('🇮🇹');
-    expect(trigger).toHaveAttribute('title', 'Italiano');
+    expect(trigger).not.toHaveAttribute('title');
+    fireEvent.focus(trigger);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Italiano');
+    fireEvent.blur(trigger);
     open('Language');
     expect(screen.getByRole('option', { name: 'Italiano' })).toBeInTheDocument();
   });

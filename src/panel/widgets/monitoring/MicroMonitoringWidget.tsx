@@ -21,7 +21,7 @@ import {
   staticMaxForDevice,
 } from './MonitoringWidget';
 import { bareSensorLabel } from './sensorNames';
-import { gpu2Components, igpuComponents } from './sensorCategories';
+import { gpu2Components, igpuComponents, sensorCaptionName } from './sensorCategories';
 import { chartDomainForScale, defaultFixedMax, DEFAULT_SCALE_MODE, fixedFillPercent, type ScaleMode } from './perfDomain';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
@@ -233,7 +233,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixe
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
-  const sensorDisplayName = sensor?.name ?? '';
+  const sensorDisplayName = sensorCaptionName(device, sensors, sensor) ?? '';
   const autoLabel = prefixed
     ? labelForDevice(device, sensorDisplayName || effectiveSensorName)
     : bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;

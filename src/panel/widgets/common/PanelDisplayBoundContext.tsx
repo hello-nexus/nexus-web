@@ -14,3 +14,21 @@ export function usePanelDisplayBound(): boolean {
 }
 
 export const PanelDisplayBoundProvider = PanelDisplayBoundContext.Provider;
+
+const PanelGenericDisplayContext = createContext(false);
+
+// A promoted OS display no curated device claims: it has no immersive mode and cannot rotate.
+export function usePanelGenericDisplay(): boolean {
+  return useContext(PanelGenericDisplayContext);
+}
+
+export const PanelGenericDisplayProvider = PanelGenericDisplayContext.Provider;
+
+// The panel's own digitizer flag; generic-display widgets are handed input regardless of it.
+const PanelDigitizerContext = createContext<boolean | undefined>(undefined);
+
+export function usePanelDigitizer(): boolean | undefined {
+  return useContext(PanelDigitizerContext);
+}
+
+export const PanelDigitizerProvider = PanelDigitizerContext.Provider;

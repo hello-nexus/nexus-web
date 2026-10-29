@@ -1,10 +1,11 @@
 import {
-  Color, DataTexture, DataUtils, FloatType, GLSL3, HalfFloatType, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, Scene, UnsignedByteType,
-  ShaderMaterial, Vector2, Vector3, WebGLRenderTarget, type Texture, type WebGLRenderer,
+  DataUtils, ExternalTexture, FloatType, GLSL3, HalfFloatType, Mesh, NearestFilter, OrthographicCamera, PlaneGeometry, RGBAFormat, Scene, UnsignedByteType,
+  ShaderMaterial, Vector4, WebGLRenderTarget, type Texture, type WebGLRenderer,
 } from 'three';
-import { DAMPING, FAN_BLEND, JACOBI_ITERATIONS, VMAX_CELLS } from './flowParams';
-import type { FlowScene } from './gridScene';
-import { ADVECT, AGE, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT } from './shaders';
+import { DAMPING, FAN_BLEND, HEAT_COUPLING, JACOBI_ITERATIONS, MAX_RISE_K, VMAX_CELLS } from './flowParams';
+import { SOURCE_CPU, SOURCE_GPU, powerRisePerStep, type FlowScene } from './gridScene';
+import { isHot, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
+import { ADVECT, DIVERGE, ENCODE, FULLSCREEN_VERTEX, GRADIENT, JACOBI, REDUCE_FIRST, REDUCE_NEXT, TEMPERATURE } from './shaders';
 
 export type FloatKind = typeof FloatType | typeof HalfFloatType;
 
@@ -71,13 +72,6 @@ export function target(w: number, h: number, type: FloatKind | typeof UnsignedBy
   });
 }
 
-function f16(h: number): number {
-  const s = h & 0x8000 ? -1 : 1;
-  const e = (h >> 10) & 31;
-  const m = h & 1023;
-  return e === 0 ? s * m * 2 ** -24 : e === 31 ? (m ? NaN : s * Infinity) : s * (1 + m / 1024) * 2 ** (e - 15);
-}
-
 /** The packed 2D texture size for a grid: `tx` slices per row. */
 export function packLayout(dims: [number, number, number]): { tx: number; w: number; h: number } {
   const [NX, NY, NZ] = dims;
@@ -85,89 +79,211 @@ export function packLayout(dims: [number, number, number]): { tx: number; w: num
   return { tx, w: NX * tx, h: NY * Math.ceil(NZ / tx) };
 }
 
-function dataTexture(data: Float32Array, w: number, h: number, type: FloatKind): DataTexture {
-  let payload: Float32Array | Uint16Array = data;
-  if (type === HalfFloatType) {
-    payload = new Uint16Array(data.length);
-    for (let i = 0; i < data.length; i++) payload[i] = DataUtils.toHalfFloat(data[i]);
-  }
-  const t = new DataTexture(payload, w, h, RGBAFormat, type);
-  t.minFilter = NearestFilter;
-  t.magFilter = NearestFilter;
-  t.generateMipmaps = false;
-  t.needsUpdate = true;
-  return t;
+function f16(h: number): number {
+  const s = h & 0x8000 ? -1 : 1;
+  const e = (h >> 10) & 31;
+  const m = h & 1023;
+  return e === 0 ? s * m * 2 ** -24 : e === 31 ? (m ? NaN : s * Infinity) : s * (1 + m / 1024) * 2 ** (e - 15);
 }
 
-/** The solver on the GPU: ping-pong velocity and pressure targets, the packed obstacle and fan textures, and the step. */
+const VERTEX = '#version 300 es\nin vec2 a;\nvoid main() { gl_Position = vec4(a, 0.0, 1.0); }\n';
+const FRAGMENT_HEADER = '#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n';
+
+interface RawProgram {
+  program: WebGLProgram;
+  locations: Map<string, WebGLUniformLocation | null>;
+}
+
+interface RawTarget {
+  texture: WebGLTexture;
+  framebuffer: WebGLFramebuffer;
+  width: number;
+  height: number;
+}
+
+type Uniforms = {
+  textures?: Record<string, WebGLTexture>;
+  floats?: Record<string, number>;
+  ints?: Record<string, number[]>;
+  vec3s?: Record<string, readonly number[]>;
+};
+
+/**
+ * The solver on the GPU. The passes are raw WebGL2 on the renderer's own context, because a three.js render call per pass
+ * costs more CPU than the pass costs the GPU; `renderer.resetState()` after each batch hands the context back.
+ */
 export class GlFlow {
   readonly w: number;
   readonly h: number;
   readonly tx: number;
   readonly type: FloatKind;
   private readonly renderer: WebGLRenderer;
-  private readonly runner: PassRunner;
+  private readonly gl: WebGL2RenderingContext;
   private current: FlowScene;
-  private readonly vel: WebGLRenderTarget[];
-  private readonly pres: WebGLRenderTarget[];
-  private readonly div: WebGLRenderTarget;
-  private readonly age: WebGLRenderTarget[];
-  private readonly reduceTargets: WebGLRenderTarget[] = [];
-  private mask: DataTexture;
-  private fan: DataTexture;
+  private readonly vao: WebGLVertexArrayObject;
+  private readonly quad: WebGLBuffer;
+  private readonly programs: Record<'advect' | 'diverge' | 'jacobi' | 'gradient' | 'temperature' | 'reduceFirst' | 'reduceNext' | 'encode', RawProgram>;
+  private readonly vel: RawTarget[];
+  private readonly pres: RawTarget[];
+  /** Temperature, degrees above room temperature, ping-ponged. */
+  private readonly temp: RawTarget[];
+  private readonly tempWrap: ExternalTexture[];
+  private tempCur = 0;
+  private hotNow = false;
+  private watts: [number, number, number] = [-1, -1, -1];
+  private readonly div: RawTarget;
+  private readonly reduce: RawTarget[] = [];
+  private readonly encoded: RawTarget;
+  private readonly maskTex: WebGLTexture;
+  private readonly fanTex: WebGLTexture;
+  private readonly velWrap: ExternalTexture[];
+  private readonly maskWrap: ExternalTexture;
+  private readonly fanWrap: ExternalTexture;
+  /** Scratch objects reused by every pass, so a solver step allocates none. */
+  private readonly viewport = new Vector4();
+  private readonly uniforms = {
+    advect: { textures: {} as Record<string, WebGLTexture>, floats: { uBlend: FAN_BLEND, uDamp: DAMPING, uVmax: VMAX_CELLS, uBuoy: 0 } },
+    temperature: { textures: {} as Record<string, WebGLTexture>, floats: { uCoupling: HEAT_COUPLING, uMaxRise: MAX_RISE_K }, vec3s: { uSrc: [0, -1, -1] as number[], uPow: [0, -1, -1] as number[] } },
+    diverge: { textures: {} as Record<string, WebGLTexture> },
+    jacobi: { textures: {} as Record<string, WebGLTexture> },
+    gradient: { textures: {} as Record<string, WebGLTexture>, floats: { uVmax: VMAX_CELLS } },
+    reduceFirst: { textures: {} as Record<string, WebGLTexture>, ints: { S: [0, 0] } },
+    reduceNext: { textures: {} as Record<string, WebGLTexture>, ints: { S: [0, 0] } },
+    encode: { textures: {} as Record<string, WebGLTexture> },
+  };
   private cur = 0;
   private prev = 0;
-  private ageCur = 0;
-  private readonly advect: ShaderMaterial;
-  private readonly diverge: ShaderMaterial;
-  private readonly jacobi: ShaderMaterial;
-  private readonly gradient: ShaderMaterial;
-  private readonly ageMat: ShaderMaterial;
-  private readonly reduceFirst: ShaderMaterial;
-  private readonly reduceNext: ShaderMaterial;
-  private readonly encode: ShaderMaterial;
-  private readonly encoded: WebGLRenderTarget;
-  private inFlight: { fence: WebGLSync; buffer: WebGLBuffer } | null = null;
   private presCur = 0;
+  private inFlight: { fence: WebGLSync; buffer: WebGLBuffer } | null = null;
+  private tempFlight: { fence: WebGLSync; buffer: WebGLBuffer } | null = null;
 
-  constructor(renderer: WebGLRenderer, runner: PassRunner, scene: FlowScene, type: FloatKind) {
+  constructor(renderer: WebGLRenderer, scene: FlowScene, type: FloatKind) {
     this.renderer = renderer;
-    this.runner = runner;
+    this.gl = renderer.getContext() as WebGL2RenderingContext;
+    const gl = this.gl;
     this.current = scene;
+    this.uniforms.advect.floats.uBuoy = scene.buoyancy;
     this.type = type;
     const layout = packLayout(scene.dims);
     this.tx = layout.tx;
     this.w = layout.w;
     this.h = layout.h;
-    this.vel = [0, 1, 2].map(() => target(this.w, this.h, type));
-    this.pres = [0, 1].map(() => target(this.w, this.h, type));
-    this.div = target(this.w, this.h, type);
-    this.age = [0, 1].map(() => target(this.w, this.h, type));
+    this.quad = gl.createBuffer()!;
+    this.vao = gl.createVertexArray()!;
+    gl.bindVertexArray(this.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+    this.programs = {
+      advect: this.build(ADVECT), diverge: this.build(DIVERGE), jacobi: this.build(JACOBI), gradient: this.build(GRADIENT), temperature: this.build(TEMPERATURE),
+      reduceFirst: this.build(REDUCE_FIRST), reduceNext: this.build(REDUCE_NEXT), encode: this.build(ENCODE),
+    };
+    this.vel = [0, 1, 2].map(() => this.makeTarget(this.w, this.h, false));
+    this.pres = [0, 1].map(() => this.makeTarget(this.w, this.h, false));
+    this.div = this.makeTarget(this.w, this.h, false);
+    this.temp = [0, 1].map(() => this.makeTarget(this.w, this.h, false));
     let rw = this.w;
     let rh = this.h;
     do {
       rw = Math.ceil(rw / 4);
       rh = Math.ceil(rh / 4);
-      this.reduceTargets.push(target(rw, rh, type));
+      this.reduce.push(this.makeTarget(rw, rh, false));
     } while (rw > 1 || rh > 1);
-    this.mask = dataTexture(new Float32Array(4), 1, 1, type);
-    this.fan = dataTexture(new Float32Array(4), 1, 1, type);
-
-    const common = () => ({ uN: { value: new Vector3(...scene.dims) }, uTX: { value: this.tx }, M: { value: this.mask }, U: { value: null as Texture | null } });
-    this.advect = pass(ADVECT, { ...common(), F: { value: this.fan }, uBlend: { value: FAN_BLEND }, uDamp: { value: DAMPING }, uVmax: { value: VMAX_CELLS } });
-    this.diverge = pass(DIVERGE, common());
-    this.jacobi = pass(JACOBI, { ...common(), P: { value: null as Texture | null }, D: { value: this.div.texture } });
-    this.gradient = pass(GRADIENT, { ...common(), P: { value: null as Texture | null }, uVmax: { value: VMAX_CELLS } });
-    this.ageMat = pass(AGE, {
-      ...common(), AG: { value: null as Texture | null },
-      uCaseMin: { value: new Vector3(...scene.caseMin) }, uCaseMax: { value: new Vector3(...scene.caseMax) },
-    });
-    this.reduceFirst = pass(REDUCE_FIRST, { A: { value: null as Texture | null }, B: { value: null as Texture | null }, S: { value: new Vector2(this.w, this.h) } });
-    this.reduceNext = pass(REDUCE_NEXT, { A: { value: null as Texture | null }, S: { value: new Vector2() } });
-    this.encode = pass(ENCODE, { A: { value: null as Texture | null } });
-    this.encoded = target(1, 1, UnsignedByteType);
+    this.encoded = this.makeTarget(1, 1, true);
+    this.maskTex = this.makeTexture(this.w, this.h, false);
+    this.fanTex = this.makeTexture(this.w, this.h, false);
+    const wrap = (t: WebGLTexture) => new ExternalTexture(t);
+    this.velWrap = this.vel.map(t => wrap(t.texture));
+    this.tempWrap = this.temp.map(t => wrap(t.texture));
+    this.maskWrap = wrap(this.maskTex);
+    this.fanWrap = wrap(this.fanTex);
     this.upload();
     this.reset();
+  }
+
+  private build(fragment: string): RawProgram {
+    const gl = this.gl;
+    const program = gl.createProgram()!;
+    for (const [kind, src] of [[gl.VERTEX_SHADER, VERTEX], [gl.FRAGMENT_SHADER, FRAGMENT_HEADER + fragment]] as const) {
+      const sh = gl.createShader(kind)!;
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(`flow shader: ${gl.getShaderInfoLog(sh) ?? 'compile failed'}`);
+      gl.attachShader(program, sh);
+      gl.deleteShader(sh);
+    }
+    gl.bindAttribLocation(program, 0, 'a');
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(`flow program: ${gl.getProgramInfoLog(program) ?? 'link failed'}`);
+    return { program, locations: new Map() };
+  }
+
+  private makeTexture(w: number, h: number, bytes: boolean): WebGLTexture {
+    const gl = this.gl;
+    const t = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    const half = this.type === HalfFloatType;
+    gl.texImage2D(gl.TEXTURE_2D, 0, bytes ? gl.RGBA8 : half ? gl.RGBA16F : gl.RGBA32F, w, h, 0, gl.RGBA, bytes ? gl.UNSIGNED_BYTE : half ? gl.HALF_FLOAT : gl.FLOAT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  }
+
+  private makeTarget(w: number, h: number, bytes: boolean): RawTarget {
+    const gl = this.gl;
+    const texture = this.makeTexture(w, h, bytes);
+    const framebuffer = gl.createFramebuffer()!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    return { texture, framebuffer, width: w, height: h };
+  }
+
+  private draw(program: RawProgram, into: RawTarget, u: Uniforms) {
+    const gl = this.gl;
+    gl.useProgram(program.program);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, into.framebuffer);
+    gl.viewport(0, 0, into.width, into.height);
+    const loc = (name: string) => {
+      let l = program.locations.get(name);
+      if (l === undefined) { l = gl.getUniformLocation(program.program, name); program.locations.set(name, l); }
+      return l;
+    };
+    gl.uniform3f(loc('uN'), this.current.dims[0], this.current.dims[1], this.current.dims[2]);
+    gl.uniform1f(loc('uTX'), this.tx);
+    let unit = 0;
+    // for-in, not Object.entries: this runs for every pass of every solver step, so it allocates nothing.
+    for (const name in u.textures) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, u.textures[name]);
+      gl.uniform1i(loc(name), unit++);
+    }
+    for (const name in u.floats) gl.uniform1f(loc(name), u.floats[name]);
+    for (const name in u.ints) gl.uniform2i(loc(name), u.ints[name][0], u.ints[name][1]);
+    for (const name in u.vec3s) gl.uniform3f(loc(name), u.vec3s[name][0], u.vec3s[name][1], u.vec3s[name][2]);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  /** Runs `batch` as raw GL, then hands the context back to three.js with its state cache cleared and its viewport restored. */
+  private raw(batch: () => void) {
+    const gl = this.gl;
+    const viewport = this.renderer.getCurrentViewport(this.viewport);
+    gl.disable(gl.BLEND);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.bindVertexArray(this.vao);
+    try {
+      batch();
+    } finally {
+      gl.bindVertexArray(null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      this.renderer.resetState();
+      gl.viewport(viewport.x, viewport.y, viewport.z, viewport.w);
+    }
   }
 
   get scene(): FlowScene {
@@ -177,25 +293,62 @@ export class GlFlow {
   /** Swaps in an edited scene of the same grid and keeps the velocity field as the starting point of the next solve. */
   setScene(scene: FlowScene) {
     this.current = scene;
-    (this.ageMat.uniforms.uCaseMin.value as Vector3).set(...scene.caseMin);
-    (this.ageMat.uniforms.uCaseMax.value as Vector3).set(...scene.caseMax);
+    this.uniforms.advect.floats.uBuoy = scene.buoyancy;
+    this.applyPower();
     this.upload();
   }
 
   get velocity(): Texture {
-    return this.vel[this.cur].texture;
+    return this.velWrap[this.cur];
   }
 
-  get ageTexture(): Texture {
-    return this.age[this.ageCur].texture;
+  /** The temperature field: degrees above room temperature in the red channel. */
+  get temperature(): Texture {
+    return this.tempWrap[this.tempCur];
+  }
+
+  /** New part temperatures: only the temperature pass's uniforms change, so the velocity and temperature fields carry on. */
+  setTemps(temps: ComponentTemps) {
+    const rises = sourceRises(temps);
+    const src = this.uniforms.temperature.vec3s.uSrc;
+    src[0] = 0; src[1] = rises[1]; src[2] = rises[2];
+    this.watts = sourceWatts(temps);
+    this.hotNow = isHot(rises, this.watts);
+    this.applyPower();
+  }
+
+  // Degrees per step each part's power adds to its heat cells, for the scene's own step and cell counts; negative falls back on the part's temperature.
+  private applyPower() {
+    const pow = this.uniforms.temperature.vec3s.uPow;
+    pow[0] = 0;
+    pow[1] = powerRisePerStep(this.current, SOURCE_GPU, this.watts[SOURCE_GPU]);
+    pow[2] = powerRisePerStep(this.current, SOURCE_CPU, this.watts[SOURCE_CPU]);
+  }
+
+  /** Whether any part is hot enough to drive a plume on its own. */
+  get hot(): boolean {
+    return this.hotNow;
   }
 
   get maskTexture(): Texture {
-    return this.mask;
+    return this.maskWrap;
+  }
+
+  /** Fan targets: xyz target velocity, w the fan cell flag. */
+  get fanTexture(): Texture {
+    return this.fanWrap;
+  }
+
+  private encodeFloats(data: Float32Array): Float32Array | Uint16Array {
+    if (this.type === FloatType) return data;
+    const out = new Uint16Array(data.length);
+    for (let i = 0; i < data.length; i++) out[i] = DataUtils.toHalfFloat(data[i]);
+    return out;
   }
 
   /** Writes the scene's obstacles, openings, fans and heat into the packed textures; the velocity field is kept (warm start). */
   upload() {
+    const gl = this.gl;
     const [NX, NY, NZ] = this.current.dims;
     const m = new Float32Array(this.w * this.h * 4);
     const f = new Float32Array(this.w * this.h * 4);
@@ -210,82 +363,98 @@ export class GlFlow {
         f[o] = tgt[c * 3]; f[o + 1] = tgt[c * 3 + 1]; f[o + 2] = tgt[c * 3 + 2]; f[o + 3] = fanCell[c];
       }
     }
-    this.mask.dispose();
-    this.fan.dispose();
-    this.mask = dataTexture(m, this.w, this.h, this.type);
-    this.fan = dataTexture(f, this.w, this.h, this.type);
-    for (const mat of [this.advect, this.diverge, this.jacobi, this.gradient, this.ageMat]) mat.uniforms.M.value = this.mask;
-    this.advect.uniforms.F.value = this.fan;
+    const half = this.type === HalfFloatType;
+    for (const [tex, data] of [[this.maskTex, m], [this.fanTex, f]] as const) {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, this.encodeFloats(data));
+    }
+    this.renderer.resetState();
+  }
+
+  private clear(targets: RawTarget[]) {
+    const gl = this.gl;
+    for (const t of targets) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, t.framebuffer);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.renderer.resetState();
   }
 
   reset() {
-    const r = this.renderer;
-    const prev = r.getRenderTarget();
-    const clearColor = r.getClearColor(new Color());
-    const clearAlpha = r.getClearAlpha();
-    r.setClearColor(0x000000, 0);
-    for (const t of [...this.vel, ...this.pres, this.div, ...this.age]) {
-      r.setRenderTarget(t);
-      r.clear(true, false, false);
-    }
-    r.setClearColor(clearColor, clearAlpha);
-    r.setRenderTarget(prev);
+    this.clear([...this.vel, ...this.pres, this.div, ...this.temp]);
     this.cur = 0;
+    this.tempCur = 0;
     this.presCur = 0;
-    this.ageCur = 0;
   }
 
-  step() {
+  /** `count` solver steps in one batch of raw GL. */
+  step(count = 1) {
+    this.raw(() => {
+      for (let n = 0; n < count; n++) this.stepOnce();
+    });
+  }
+
+  /** One temperature pass on the current, frozen velocity: the field moves toward its new sources without a velocity solve. */
+  stepTemperature() {
+    this.raw(() => {
+      const un = this.uniforms;
+      un.temperature.textures.U = this.vel[this.cur].texture;
+      un.temperature.textures.T = this.temp[this.tempCur].texture;
+      un.temperature.textures.M = this.maskTex;
+      this.draw(this.programs.temperature, this.temp[1 - this.tempCur], un.temperature);
+      this.tempCur = 1 - this.tempCur;
+    });
+  }
+
+  private stepOnce() {
+    const p = this.programs;
     const u0 = this.vel[this.cur];
     const u1 = this.vel[(this.cur + 1) % 3];
     const u2 = this.vel[(this.cur + 2) % 3];
-    this.advect.uniforms.U.value = u0.texture;
-    this.runner.run(this.advect, u1);
-    this.diverge.uniforms.U.value = u1.texture;
-    this.runner.run(this.diverge, this.div);
+    const un = this.uniforms;
+    un.advect.textures.U = u0.texture;
+    un.advect.textures.M = this.maskTex;
+    un.advect.textures.F = this.fanTex;
+    un.advect.textures.T = this.temp[this.tempCur].texture;
+    this.draw(p.advect, u1, un.advect);
+    un.diverge.textures.U = u1.texture;
+    un.diverge.textures.M = this.maskTex;
+    this.draw(p.diverge, this.div, un.diverge);
     let pi = this.presCur;
     for (let i = 0; i < JACOBI_ITERATIONS; i++) {
-      this.jacobi.uniforms.P.value = this.pres[pi].texture;
-      this.runner.run(this.jacobi, this.pres[1 - pi]);
+      un.jacobi.textures.P = this.pres[pi].texture;
+      un.jacobi.textures.D = this.div.texture;
+      un.jacobi.textures.M = this.maskTex;
+      this.draw(p.jacobi, this.pres[1 - pi], un.jacobi);
       pi = 1 - pi;
     }
     this.presCur = pi;
-    this.gradient.uniforms.U.value = u1.texture;
-    this.gradient.uniforms.P.value = this.pres[pi].texture;
-    this.runner.run(this.gradient, u2);
+    un.gradient.textures.U = u1.texture;
+    un.gradient.textures.P = this.pres[pi].texture;
+    un.gradient.textures.M = this.maskTex;
+    this.draw(p.gradient, u2, un.gradient);
+    // The temperature moves with the final velocity.
+    un.temperature.textures.U = u2.texture;
+    un.temperature.textures.T = this.temp[this.tempCur].texture;
+    un.temperature.textures.M = this.maskTex;
+    this.draw(p.temperature, this.temp[1 - this.tempCur], un.temperature);
+    this.tempCur = 1 - this.tempCur;
     this.prev = this.cur;
     this.cur = (this.cur + 2) % 3;
   }
 
-  /** Clears the mean-age field. */
-  resetAge() {
-    const r = this.renderer;
-    const prev = r.getRenderTarget();
-    const clearColor = r.getClearColor(new Color());
-    const clearAlpha = r.getClearAlpha();
-    r.setClearColor(0x000000, 0);
-    for (const t of this.age) {
-      r.setRenderTarget(t);
-      r.clear(true, false, false);
-    }
-    r.setClearColor(clearColor, clearAlpha);
-    r.setRenderTarget(prev);
-    this.ageCur = 0;
-  }
-
-  /** One mean-age step on the current velocity. */
-  stepAge() {
-    this.ageMat.uniforms.U.value = this.vel[this.cur].texture;
-    this.ageMat.uniforms.AG.value = this.age[this.ageCur].texture;
-    this.runner.run(this.ageMat, this.age[1 - this.ageCur]);
-    this.ageCur = 1 - this.ageCur;
-  }
-
   /** The whole velocity field as 3 floats per cell, read back from the GPU; for checks against the CPU reference. */
   readVelocity(): Float32Array {
+    const gl = this.gl;
     const [NX, NY, NZ] = this.current.dims;
-    const raw = this.type === FloatType ? new Float32Array(this.w * this.h * 4) : new Uint16Array(this.w * this.h * 4);
-    this.renderer.readRenderTargetPixels(this.vel[this.cur], 0, 0, this.w, this.h, raw as never);
+    const half = this.type === HalfFloatType;
+    const raw = half ? new Uint16Array(this.w * this.h * 4) : new Float32Array(this.w * this.h * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.vel[this.cur].framebuffer);
+    gl.readPixels(0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, raw);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.renderer.resetState();
     const out = new Float32Array(NX * NY * NZ * 3);
     for (let k = 0; k < NZ; k++) {
       const ox = (k % this.tx) * NX;
@@ -293,47 +462,123 @@ export class GlFlow {
       for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
         const o = ((oy + j) * this.w + ox + i) * 4;
         const c = i + NX * (j + NY * k);
-        for (let a = 0; a < 3; a++) out[c * 3 + a] = this.type === FloatType ? raw[o + a] : f16(raw[o + a]);
+        for (let a = 0; a < 3; a++) out[c * 3 + a] = half ? f16(raw[o + a]) : raw[o + a];
       }
     }
+    return out;
+  }
+
+  /** The red channel of a read-back temperature texture, one value per cell. */
+  private unpackTemperature(raw: Uint16Array | Float32Array): Float32Array {
+    const [NX, NY, NZ] = this.current.dims;
+    const half = this.type === HalfFloatType;
+    const out = new Float32Array(NX * NY * NZ);
+    for (let k = 0; k < NZ; k++) {
+      const ox = (k % this.tx) * NX;
+      const oy = Math.floor(k / this.tx) * NY;
+      for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) out[i + NX * (j + NY * k)] = half ? f16(raw[((oy + j) * this.w + ox + i) * 4]) : raw[((oy + j) * this.w + ox + i) * 4];
+    }
+    return out;
+  }
+
+  /** The whole temperature field, degrees above room temperature per cell, read back from the GPU; for checks against the CPU reference. */
+  readTemperature(): Float32Array {
+    const gl = this.gl;
+    const half = this.type === HalfFloatType;
+    const raw = half ? new Uint16Array(this.w * this.h * 4) : new Float32Array(this.w * this.h * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.temp[this.tempCur].framebuffer);
+    gl.readPixels(0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, raw);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.renderer.resetState();
+    return this.unpackTemperature(raw);
+  }
+
+  /** Starts an asynchronous read of the temperature field through a PBO and fence, so no frame waits on it; false while one is in flight. */
+  beginTemperatureRead(): boolean {
+    if (this.tempFlight) return false;
+    const gl = this.gl;
+    const half = this.type === HalfFloatType;
+    let started = false;
+    this.raw(() => {
+      const buffer = gl.createBuffer()!;
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+      gl.bufferData(gl.PIXEL_PACK_BUFFER, this.w * this.h * 4 * (half ? 2 : 4), gl.STREAM_READ);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.temp[this.tempCur].framebuffer);
+      gl.readPixels(0, 0, this.w, this.h, gl.RGBA, half ? gl.HALF_FLOAT : gl.FLOAT, 0);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      gl.flush();
+      if (!fence) { gl.deleteBuffer(buffer); return; }
+      this.tempFlight = { fence, buffer };
+      started = true;
+    });
+    return started;
+  }
+
+  /** The field of the read in flight once its fence has signaled, else null; call once per frame. */
+  pollTemperatureRead(): Float32Array | null {
+    const flight = this.tempFlight;
+    if (!flight) return null;
+    const gl = this.gl;
+    const status = gl.clientWaitSync(flight.fence, 0, 0);
+    if (status === gl.TIMEOUT_EXPIRED) return null;
+    this.tempFlight = null;
+    gl.deleteSync(flight.fence);
+    let out: Float32Array | null = null;
+    if (status !== gl.WAIT_FAILED) {
+      const half = this.type === HalfFloatType;
+      const raw = half ? new Uint16Array(this.w * this.h * 4) : new Float32Array(this.w * this.h * 4);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, flight.buffer);
+      gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, raw);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      this.renderer.resetState();
+      out = this.unpackTemperature(raw);
+    }
+    gl.deleteBuffer(flight.buffer);
     return out;
   }
 
   /** Starts a GPU reduction of the last step's velocity change and top speed, read back through a PBO and fence; false while one is in flight. */
   beginMeasure(): boolean {
     if (this.inFlight) return false;
-    this.reduceFirst.uniforms.A.value = this.vel[this.cur].texture;
-    this.reduceFirst.uniforms.B.value = this.vel[this.prev].texture;
-    this.runner.run(this.reduceFirst, this.reduceTargets[0]);
-    for (let i = 1; i < this.reduceTargets.length; i++) {
-      const src = this.reduceTargets[i - 1];
-      this.reduceNext.uniforms.A.value = src.texture;
-      (this.reduceNext.uniforms.S.value as Vector2).set(src.width, src.height);
-      this.runner.run(this.reduceNext, this.reduceTargets[i]);
-    }
-    this.encode.uniforms.A.value = this.reduceTargets[this.reduceTargets.length - 1].texture;
-    this.runner.run(this.encode, this.encoded);
-    const gl = this.renderer.getContext() as WebGL2RenderingContext;
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
-    gl.bufferData(gl.PIXEL_PACK_BUFFER, 4, gl.STREAM_READ);
-    const prev = this.renderer.getRenderTarget();
-    this.renderer.setRenderTarget(this.encoded);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
-    this.renderer.setRenderTarget(prev);
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-    const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-    gl.flush();
-    if (!fence) { gl.deleteBuffer(buffer); return false; }
-    this.inFlight = { fence, buffer };
-    return true;
+    const gl = this.gl;
+    let started = false;
+    this.raw(() => {
+      const un = this.uniforms;
+      un.reduceFirst.textures.A = this.vel[this.cur].texture;
+      un.reduceFirst.textures.B = this.vel[this.prev].texture;
+      un.reduceFirst.ints.S[0] = this.w;
+      un.reduceFirst.ints.S[1] = this.h;
+      this.draw(this.programs.reduceFirst, this.reduce[0], un.reduceFirst);
+      for (let i = 1; i < this.reduce.length; i++) {
+        const src = this.reduce[i - 1];
+        un.reduceNext.textures.A = src.texture;
+        un.reduceNext.ints.S[0] = src.width;
+        un.reduceNext.ints.S[1] = src.height;
+        this.draw(this.programs.reduceNext, this.reduce[i], un.reduceNext);
+      }
+      un.encode.textures.A = this.reduce[this.reduce.length - 1].texture;
+      this.draw(this.programs.encode, this.encoded, un.encode);
+      const buffer = gl.createBuffer()!;
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+      gl.bufferData(gl.PIXEL_PACK_BUFFER, 4, gl.STREAM_READ);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.encoded.framebuffer);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      gl.flush();
+      if (!fence) { gl.deleteBuffer(buffer); return; }
+      this.inFlight = { fence, buffer };
+      started = true;
+    });
+    return started;
   }
 
   /** The result of the measure in flight once its fence has signaled, else null; call once per frame. */
   pollMeasure(): { du: number; u: number } | null {
     const flight = this.inFlight;
     if (!flight) return null;
-    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    const gl = this.gl;
     const status = gl.clientWaitSync(flight.fence, 0, 0);
     if (status === gl.TIMEOUT_EXPIRED) return null;
     this.inFlight = null;
@@ -343,6 +588,7 @@ export class GlFlow {
       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, flight.buffer);
       gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, bytes);
       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      this.renderer.resetState();
     }
     gl.deleteBuffer(flight.buffer);
     if (status === gl.WAIT_FAILED) return null;
@@ -352,16 +598,26 @@ export class GlFlow {
   }
 
   dispose() {
+    const gl = this.gl;
     if (this.inFlight) {
-      const gl = this.renderer.getContext() as WebGL2RenderingContext;
       gl.deleteSync(this.inFlight.fence);
       gl.deleteBuffer(this.inFlight.buffer);
       this.inFlight = null;
     }
-    for (const t of [...this.vel, ...this.pres, this.div, ...this.age, ...this.reduceTargets]) t.dispose();
-    this.mask.dispose();
-    this.fan.dispose();
-    for (const m of [this.advect, this.diverge, this.jacobi, this.gradient, this.ageMat, this.reduceFirst, this.reduceNext, this.encode]) m.dispose();
-    this.encoded.dispose();
+    if (this.tempFlight) {
+      gl.deleteSync(this.tempFlight.fence);
+      gl.deleteBuffer(this.tempFlight.buffer);
+      this.tempFlight = null;
+    }
+    for (const t of [...this.vel, ...this.pres, this.div, ...this.temp, ...this.reduce, this.encoded]) {
+      gl.deleteTexture(t.texture);
+      gl.deleteFramebuffer(t.framebuffer);
+    }
+    gl.deleteTexture(this.maskTex);
+    gl.deleteTexture(this.fanTex);
+    for (const p of Object.values(this.programs)) gl.deleteProgram(p.program);
+    gl.deleteBuffer(this.quad);
+    gl.deleteVertexArray(this.vao);
+    for (const w of [...this.velWrap, ...this.tempWrap, this.maskWrap, this.fanWrap]) w.dispose();
   }
 }

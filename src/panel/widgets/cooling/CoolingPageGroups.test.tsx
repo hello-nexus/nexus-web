@@ -5,6 +5,9 @@ import type { ServiceState } from '../../../types/service';
 import type { DeviceGroup } from '../../../lib/deviceGroups';
 import { CoolingPage } from './CoolingPage';
 import { saveFanGroups } from '../../../api/cooling';
+import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
+
+allowSlowAsyncUtils();
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 

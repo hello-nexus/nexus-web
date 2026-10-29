@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Lock, Maximize2, Monitor, MonitorOff, Pencil, Pin, PinOff, Scaling, Trash2, Unlock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ExternalLink, Home, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -23,14 +23,15 @@ interface WidgetContextMenuProps {
   // Optional - only shown when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
-  // Optional - only shown when the widget type supports the desktop surface
-  // and we're invoked from the dashboard (not from a remote panel preview).
-  // Pins a copy of the widget onto the floating desktop overlay.
-  onAddToDesktop?: () => void;
-  // Inverse of onAddToDesktop; shown when at least one overlay widget of
-  // this type exists. Click removes every instance of this type from the
-  // overlay. Caller wires one of the two per state, never both at once.
-  onRemoveFromDesktop?: () => void;
+  // Web View only, each offered while its history step or return home applies.
+  onWebBack?: () => void;
+  onWebForward?: () => void;
+  onWebHome?: () => void;
+  // Dashboard only: the active display panels a copy of the widget can be added to.
+  displayTargets?: { id: string; name: string; number: string }[];
+  onAddToDisplay?: (displayId: string) => void;
+  // Opens the add-widget catalog; offered on panels edited with a mouse.
+  onAddWidget?: () => void;
   // Optional - only shown when the widget is one of the pinnable desktop
   // apps (matches isPinnableAppKey in app/sidebarAppKeys) AND isn't already
   // pinned. Pins this widget's "app page" onto the desktop sidebar.
@@ -38,30 +39,21 @@ interface WidgetContextMenuProps {
   // Inverse of onPinToSidebar; shown when the widget is already pinned.
   // Click removes the sidebar entry. Caller wires one of the two, never both.
   onUnpinFromSidebar?: () => void;
-  // Override for the danger button label. Defaults to "Remove"; the desktop
-  // overlay passes "Unpin" since the widget is being detached from the
-  // overlay rather than removed from the panel layout.
-  removeLabel?: string;
-  // Desktop-overlay-only checkbox row. When provided, renders an
-  // "Always on top" item with a checkmark reflecting `alwaysOnTop`.
+  // When provided, renders an "Always on top" item with a checkmark reflecting `alwaysOnTop`.
   alwaysOnTop?: boolean;
+  // Shown but inert: the panel's background does not allow it.
+  alwaysOnTopDisabled?: boolean;
   onToggleAlwaysOnTop?: () => void;
-  // Desktop-overlay-only lock controls. When onToggleLock is provided, the
-  // menu renders a Lock/Unlock row (per `locked`) plus a Lock all / Unlock
-  // all row; while `locked`, the move/edit/resize items (size row, Edit,
-  // Immersive) are hidden. Remove stays available.
+  // Opens the panel menu from a widget, for panels whose empty space passes clicks through.
+  onOpenPanelActions?: () => void;
+  // Panel-wide widget lock. When onToggleLock is provided the menu renders a checked
+  // "Lock widgets" row; while `locked`, the edit and resize items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
-  onLockAll?: () => void;
-  onUnlockAll?: () => void;
-  // Desktop-overlay-only bottom action. Renders a separator + "Open
-  // dashboard" shortcut at the foot of the menu when provided.
-  onOpenDashboard?: () => void;
-  // Desktop-overlay-only callback fired with the menu's measured viewport
-  // rect after it has clamped to the safe area, and again with `null` on
-  // unmount. The desktop host uses this to keep its SetWindowRgn carve-out
-  // aligned with the visible menu rather than the click point.
-  onBoundsChange?: (rect: { x: number; y: number; w: number; h: number } | null) => void;
+  // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
+  onOpen?: () => void;
+  // Dashboard order: Edit, Resize and Remove sit last, under the display and sidebar items.
+  widgetItemsLast?: boolean;
   onClose: () => void;
 }
 
@@ -72,19 +64,18 @@ export function WidgetContextMenu({
   surface,
   themeMode = 'dark',
   themeStyle,
-  onResize, onResizeMode, onEdit, onRemove, onImmersive,
-  onAddToDesktop, onRemoveFromDesktop,
+  onResize, onResizeMode, onEdit, onRemove, onImmersive, onWebBack, onWebForward, onWebHome,
+  displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
+  onOpenPanelActions,
+  onOpen,
+  widgetItemsLast,
   onClose,
-  removeLabel,
   alwaysOnTop,
+  alwaysOnTopDisabled,
   onToggleAlwaysOnTop,
   locked,
   onToggleLock,
-  onLockAll,
-  onUnlockAll,
-  onOpenDashboard,
-  onBoundsChange,
 }: WidgetContextMenuProps) {
   const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -92,11 +83,6 @@ export function WidgetContextMenu({
   const [pos, setPos] = useState({ x, y });
   const [origin, setOrigin] = useState({ x: 18, y: 18 });
   const [closing, setClosing] = useState(false);
-  // Stable callback ref so the bounds reporter doesn't refire on parent
-  // re-render (the parent reacts to bounds with a layout post-message, which
-  // would loop).
-  const onBoundsChangeRef = useRef(onBoundsChange);
-  useEffect(() => { onBoundsChangeRef.current = onBoundsChange; }, [onBoundsChange]);
 
   const requestClose = useCallback(() => {
     if (closeTimerRef.current) return;
@@ -138,12 +124,7 @@ export function WidgetContextMenu({
 
     setPos({ x: nx, y: ny });
     setOrigin({ x: ox, y: oy });
-    // offsetWidth/offsetHeight return the layout box without CSS transforms;
-    // the desktop overlay never scales the menu, so that is its resting size.
-    onBoundsChangeRef.current?.({ x: nx, y: ny, w: el.offsetWidth, h: el.offsetHeight });
   }, [x, y]);
-
-  useEffect(() => () => { onBoundsChangeRef.current?.(null); }, []);
 
   useEffect(() => {
     const handler = (e: PointerEvent) => {
@@ -173,6 +154,25 @@ export function WidgetContextMenu({
     requestClose();
   }, [requestClose]);
 
+  const editItems = (
+    <>
+      {hasConfig && !locked && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
+          <Pencil size={14} />
+          <span>{t('panel.widget.menu.edit')}</span>
+        </button>
+      )}
+
+      {onResizeMode && !locked && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onResizeMode)}>
+          <Scaling size={14} />
+          <span>{t('panel.widget.menu.resize')}</span>
+        </button>
+      )}
+    </>
+  );
+  const hasMiddleItems = Boolean(onImmersive || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+
   const menuStyle = {
     ...themeStyle,
     left: pos.x,
@@ -184,12 +184,47 @@ export function WidgetContextMenu({
   return (
     <div
       ref={menuRef}
-      className={`panel-root ${styles.menu}`}
+      className={`panel-root ${styles.menu} ${styles.menuAutoWidth}`}
       data-theme={themeMode}
       data-surface={surface}
       data-state={closing ? 'closing' : 'open'}
+      data-panel-hit="true"
       style={menuStyle}
     >
+      {(onWebBack || onWebForward || onWebHome) && (
+        <>
+          {onWebBack && (
+            <button type="button" className={styles.item} onClick={() => runAndClose(onWebBack)}>
+              <ArrowLeft size={14} />
+              <span>{t('panel.widget.web-view.back')}</span>
+            </button>
+          )}
+          {onWebForward && (
+            <button type="button" className={styles.item} onClick={() => runAndClose(onWebForward)}>
+              <ArrowRight size={14} />
+              <span>{t('panel.widget.web-view.forward')}</span>
+            </button>
+          )}
+          {onWebHome && (
+            <button type="button" className={styles.item} onClick={() => runAndClose(onWebHome)}>
+              <Home size={14} />
+              <span>{t('panel.widget.web-view.home')}</span>
+            </button>
+          )}
+          <div className={styles.divider} />
+        </>
+      )}
+
+      {onOpen && (
+        <>
+          <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
+            <ExternalLink size={14} />
+            <span>{t('search.kind.open')}</span>
+          </button>
+          <div className={styles.divider} />
+        </>
+      )}
+
       {sizes.length > 1 && !locked && (
         <>
           <div className={styles.sizeRow}>
@@ -214,74 +249,21 @@ export function WidgetContextMenu({
         </>
       )}
 
-      {onToggleAlwaysOnTop && (
-        <button
-          type="button"
-          className={`${styles.item} ${alwaysOnTop ? styles.itemChecked : ''}`}
-          onClick={() => runAndClose(onToggleAlwaysOnTop)}
-        >
-          <Pin size={14} />
-          <span>{t('panel.widget.menu.alwaysOnTop')}</span>
-          {alwaysOnTop && <Check size={14} className={styles.itemCheck} />}
-        </button>
-      )}
+      {!widgetItemsLast && editItems}
 
-      {onToggleLock && (
-        <>
-          <button type="button" className={styles.item} onClick={() => runAndClose(onToggleLock)}>
-            {locked ? <Unlock size={14} /> : <Lock size={14} />}
-            <span>{t(locked ? 'panel.widget.menu.unlock' : 'panel.widget.menu.lock')}</span>
-          </button>
-          {locked
-            ? onUnlockAll && (
-                <button type="button" className={styles.item} onClick={() => runAndClose(onUnlockAll)}>
-                  <Unlock size={14} />
-                  <span>{t('panel.widget.menu.unlockAll')}</span>
-                </button>
-              )
-            : onLockAll && (
-                <button type="button" className={styles.item} onClick={() => runAndClose(onLockAll)}>
-                  <Lock size={14} />
-                  <span>{t('panel.widget.menu.lockAll')}</span>
-                </button>
-              )}
-        </>
-      )}
-
-      {hasConfig && !locked && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
-          <Pencil size={14} />
-          <span>{t('panel.widget.menu.edit')}</span>
-        </button>
-      )}
-
-      {onResizeMode && !locked && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onResizeMode)}>
-          <Scaling size={14} />
-          <span>{t('panel.widget.menu.resize')}</span>
-        </button>
-      )}
-
-      {onImmersive && !locked && (
+      {onImmersive && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
           <Maximize2 size={14} />
           <span>{t('panel.widget.menu.immersive')}</span>
         </button>
       )}
 
-      {onAddToDesktop && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onAddToDesktop)}>
+      {onAddToDisplay && displayTargets?.map(target => (
+        <button key={target.id} type="button" className={styles.item} onClick={() => runAndClose(() => onAddToDisplay(target.id))}>
           <Monitor size={14} />
-          <span>{t('panel.widget.menu.addToDesktop')}</span>
+          <span>{displayTargets.length > 1 ? t('panel.widget.menu.addToDisplayNamed', { name: t('displays.numberedName', { name: target.name, n: target.number }) }) : t('panel.widget.menu.addToDisplay')}</span>
         </button>
-      )}
-
-      {onRemoveFromDesktop && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onRemoveFromDesktop)}>
-          <MonitorOff size={14} />
-          <span>{t('panel.widget.menu.removeFromDesktop')}</span>
-        </button>
-      )}
+      ))}
 
       {onPinToSidebar && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onPinToSidebar)}>
@@ -297,19 +279,56 @@ export function WidgetContextMenu({
         </button>
       )}
 
+      {widgetItemsLast && hasMiddleItems && <div className={styles.divider} />}
+      {widgetItemsLast && editItems}
+
       <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
         <Trash2 size={14} />
-        <span>{removeLabel ?? t('panel.widget.menu.remove')}</span>
+        <span>{t('panel.widget.menu.remove')}</span>
       </button>
 
-      {onOpenDashboard && (
-        <>
-          <div className={styles.divider} />
-          <button type="button" className={styles.item} onClick={() => runAndClose(onOpenDashboard)}>
-            <ExternalLink size={14} />
-            <span>{t('panel.widget.menu.openDashboard')}</span>
-          </button>
-        </>
+      {/* Groups in order: widget items, view toggles, panel-wide items; a divider only between non-empty groups. */}
+      {(onToggleLock || onToggleAlwaysOnTop) && <div className={styles.divider} />}
+
+      {onToggleLock && (
+        <button
+          type="button"
+          className={`${styles.item} ${locked ? styles.itemChecked : ''}`}
+          onClick={() => runAndClose(onToggleLock)}
+        >
+          <Lock size={14} />
+          <span>{t('panel.widget.menu.lockWidgets')}</span>
+          {locked && <Check size={14} className={styles.itemCheck} />}
+        </button>
+      )}
+
+      {onToggleAlwaysOnTop && (
+        <button
+          type="button"
+          className={`${styles.item} ${alwaysOnTop ? styles.itemChecked : ''}`}
+          disabled={alwaysOnTopDisabled}
+          onClick={() => runAndClose(onToggleAlwaysOnTop)}
+        >
+          <Pin size={14} />
+          <span>{t('panel.widget.menu.alwaysOnTop')}</span>
+          {alwaysOnTop && <Check size={14} className={styles.itemCheck} />}
+        </button>
+      )}
+
+      {(onAddWidget || onOpenPanelActions) && <div className={styles.divider} />}
+
+      {onAddWidget && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onAddWidget)}>
+          <Plus size={14} />
+          <span>{t('panel.widget.menu.addWidget')}</span>
+        </button>
+      )}
+
+      {onOpenPanelActions && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onOpenPanelActions)}>
+          <SlidersHorizontal size={14} />
+          <span>{t('panel.actions.label')}</span>
+        </button>
       )}
     </div>
   );

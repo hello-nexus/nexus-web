@@ -25,6 +25,7 @@ import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSe
 import { useZoneSizeDeviceIds } from '../../../hooks/useZoneSizeDeviceIds';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export interface LightingOnboardingScreenProps {
   /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
@@ -392,26 +393,27 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       {cards !== null && cards.length > 0 && (
         <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
           <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
-          <button
-            type="button"
-            className={`${styles.swatch} ${pick === RAINBOW ? styles.swatchActive : ''}`}
-            style={{ '--swatch': RAINBOW_SWATCH } as CSSProperties}
-            aria-label={t('lighting.simple.anim.rainbow')}
-            title={t('lighting.simple.anim.rainbow')}
-            aria-pressed={pick === RAINBOW}
-            onClick={runRainbow}
-          />
-          {TEST_COLORS.map(c => (
+          <HoverTooltip body={t('lighting.simple.anim.rainbow')}>
             <button
-              key={c.id}
               type="button"
-              className={`${styles.swatch} ${pick === c.id ? styles.swatchActive : ''}`}
-              style={{ '--swatch': paletteColor(c.id)?.hex } as CSSProperties}
-              aria-label={t(c.labelKey)}
-              title={t(c.labelKey)}
-              aria-pressed={pick === c.id}
-              onClick={() => runColor(c.id)}
+              className={`${styles.swatch} ${pick === RAINBOW ? styles.swatchActive : ''}`}
+              style={{ '--swatch': RAINBOW_SWATCH } as CSSProperties}
+              aria-label={t('lighting.simple.anim.rainbow')}
+              aria-pressed={pick === RAINBOW}
+              onClick={runRainbow}
             />
+          </HoverTooltip>
+          {TEST_COLORS.map(c => (
+            <HoverTooltip key={c.id} body={t(c.labelKey)}>
+              <button
+                type="button"
+                className={`${styles.swatch} ${pick === c.id ? styles.swatchActive : ''}`}
+                style={{ '--swatch': paletteColor(c.id)?.hex } as CSSProperties}
+                aria-label={t(c.labelKey)}
+                aria-pressed={pick === c.id}
+                onClick={() => runColor(c.id)}
+              />
+            </HoverTooltip>
           ))}
         </div>
       )}

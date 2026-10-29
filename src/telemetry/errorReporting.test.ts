@@ -5,7 +5,13 @@ vi.mock('../api/service', () => ({
   authFetchWithStatus: (...a: unknown[]) => postService(...a),
 }));
 
-const recoverNow = vi.fn(async () => false);
+const reloading = vi.hoisted(() => ({ value: false }));
+vi.mock('../lib/buildReloadWatcher', async (orig) => ({
+  ...(await orig<typeof import('../lib/buildReloadWatcher')>()),
+  isReloadingForBuild: () => reloading.value,
+}));
+
+const recoverNow = vi.fn(async (): Promise<string> => 'noop');
 vi.mock('../lib/staleChunkRecovery', async (orig) => ({
   ...(await orig<typeof import('../lib/staleChunkRecovery')>()),
   recoverFromStaleChunkNow: () => recoverNow(),
@@ -318,16 +324,50 @@ describe('stale chunk errors', () => {
   });
 
   it('are swallowed when the reload guard allowed a reload', async () => {
-    recoverNow.mockResolvedValueOnce(true);
+    recoverNow.mockResolvedValueOnce('reloaded');
     reportError(stale(), 'unhandled-rejection');
     await vi.advanceTimersByTimeAsync(5000);
     expect(postService).not.toHaveBeenCalled();
   });
 
   it('are still reported when the guard blocked the reload', async () => {
-    recoverNow.mockResolvedValueOnce(false);
+    recoverNow.mockResolvedValueOnce('loop-guard');
     reportError(stale(), 'unhandled-rejection');
     await vi.advanceTimersByTimeAsync(5000);
     expect(sent()).toHaveLength(1);
+    expect(sent()[0].errors[0].context).toMatch(/^no-reload:loop-guard /);
+  });
+
+  it('reports a held stale chunk error once from pagehide, with keepalive', async () => {
+    recoverNow.mockReturnValueOnce(new Promise<string>(() => {}));
+    reportError(stale(), 'unhandled-rejection');
+    window.dispatchEvent(new Event('pagehide'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(postService).toHaveBeenCalledTimes(1);
+    expect((postService.mock.calls[0][1] as { keepalive?: boolean }).keepalive).toBe(true);
+    expect(sent()[0].errors[0].context).toMatch(/^no-reload:unload /);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(postService).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips held errors when a build reload caused the pagehide', async () => {
+    recoverNow.mockReturnValueOnce(new Promise<string>(() => {}));
+    reportError(stale(), 'unhandled-rejection');
+    reloading.value = true;
+    window.dispatchEvent(new Event('pagehide'));
+    await vi.advanceTimersByTimeAsync(5000);
+    reloading.value = false;
+    expect(postService).not.toHaveBeenCalled();
+  });
+
+  it('does not report again when the recovery settles after pagehide', async () => {
+    let settle: (v: string) => void = () => {};
+    recoverNow.mockReturnValueOnce(new Promise<string>((resolve) => { settle = resolve; }));
+    reportError(stale(), 'unhandled-rejection');
+    window.dispatchEvent(new Event('pagehide'));
+    await vi.advanceTimersByTimeAsync(0);
+    settle('noop');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(sent().flatMap((b) => b.errors)).toHaveLength(1);
   });
 });
