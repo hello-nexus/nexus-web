@@ -265,13 +265,16 @@ describe('LightingPage fix lighting link', () => {
   it('opens the Fix lighting modal from the link closing the devices list, with no device named', async () => {
     const { findByRole, queryByTestId, getByTestId } = render(
       <UiSettingsProvider>
-        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" onSectionNavigate={() => {}} />
       </UiSettingsProvider>,
     );
 
     expect(queryByTestId('fix-lighting')).toBeNull();
     const link = await findByRole('button', { name: 'lighting.fix.link' });
-    expect(link.parentElement?.lastElementChild).toBe(link);
+    const smartLights = await findByRole('button', { name: 'smartLights.title' });
+    expect(link.closest('aside')).not.toBeNull();
+    expect(link.closest('aside')).toBe(smartLights.closest('aside'));
+    expect(smartLights.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(link.querySelector('svg')).not.toBeNull();
     fireEvent.click(link);
     expect(getByTestId('fix-lighting').getAttribute('data-device')).toBe('');

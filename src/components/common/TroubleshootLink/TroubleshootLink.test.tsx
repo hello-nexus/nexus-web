@@ -21,8 +21,23 @@ describe('TroubleshootLink', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('renders a given icon on a button link, and an href link keeps its icon override', () => {
+  it('renders the given icon on a button link', () => {
     render(<TroubleshootLink label="Help" icon={CircleHelp} onClick={() => {}} />);
     expect(screen.getByRole('button', { name: 'Help' }).querySelector('svg')).not.toBeNull();
+  });
+
+  it('replaces the external-link glyph with a given icon on an href link', () => {
+    const { container: plain } = render(<TroubleshootLink label="A" href="https://example.com" />);
+    const { container: custom } = render(<TroubleshootLink label="B" href="https://example.com" icon={CircleHelp} />);
+    const external = plain.querySelector('svg')?.getAttribute('class');
+    const override = custom.querySelector('svg')?.getAttribute('class');
+    expect(custom.querySelectorAll('svg')).toHaveLength(1);
+    expect(override).not.toBe(external);
+  });
+
+  it('keeps the external-link glyph on an href link without an icon', () => {
+    const { container } = render(<TroubleshootLink label="Help" href="https://example.com" />);
+    expect(container.querySelectorAll('svg')).toHaveLength(1);
+    expect(container.querySelector('svg')?.getAttribute('class')).toContain('external-link');
   });
 });
