@@ -1,0 +1,60 @@
+@use '../../../styles/text' as *;
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.intro {
+  @include text-body;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stepNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-glow);
+  border: 1px solid var(--accent-glow-shadow);
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+}
+
+.stepDone {
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  color: var(--good);
+  border-color: color-mix(in srgb, var(--good) 45%, transparent);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+}
+
+.footerLink {
+  margin-top: 0.25rem;
+}

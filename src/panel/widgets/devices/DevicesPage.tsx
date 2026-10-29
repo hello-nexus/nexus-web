@@ -36,6 +36,8 @@ import { DeviceWarningIcon, isRunningAppWarning } from '../../../components/comm
 import { DeviceUpdateIcon } from '../../../components/common/DeviceUpdateIcon/DeviceUpdateIcon';
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { ConflictRunningBadge } from '../../../components/common/ConflictRunningBadge/ConflictRunningBadge';
+import { NotRespondingBadge } from '../../../components/common/NotRespondingBadge/NotRespondingBadge';
+import { FixLightingModal } from '../../../components/common/FixLightingModal/FixLightingModal';
 import { NexusControlConflictModal } from '../../../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { ExperimentalEnableModal } from '../../../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
@@ -75,6 +77,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   };
   const [supportedModalOpen, setSupportedModalOpen] = useState(false);
   const [connectedModalOpen, setConnectedModalOpen] = useState(false);
+  const [fixLightingFor, setFixLightingFor] = useState<string | null>(null);
 
   // Search entries open these from anywhere: the palette navigates here
   // first, then the pending signal lands on mount.
@@ -179,6 +182,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         updateAvailable={!!d.curatedId && !isSimulatedDevice(d) && firmwareUpdates.has(d.curatedId)}
         onClick={() => onDeviceSelect(d.key)}
         onToggleControl={onToggleControl}
+        onFixLighting={() => setFixLightingFor(d.shortName)}
       />
     );
   }, [conflicts, controlDevice, firmwareUpdates, onDeviceSelect, requestEnable, toggleLink]);
@@ -313,6 +317,8 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         onConfirm={controlGuard.confirm}
         onCancel={controlGuard.cancel}
       />
+
+      <FixLightingModal open={fixLightingFor !== null} onClose={() => setFixLightingFor(null)} deviceName={fixLightingFor ?? undefined} />
     </section>
   );
 }
@@ -343,7 +349,7 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
 }
 
 function DeviceCard({
-  device, icon, runningConflict, updateAvailable, onClick, onToggleControl,
+  device, icon, runningConflict, updateAvailable, onClick, onToggleControl, onFixLighting,
 }: {
   device: UnifiedDevice;
   /** Replaces the mask icon for rows whose art is a component, not an SVG url. */
@@ -353,6 +359,8 @@ function DeviceCard({
   updateAvailable?: boolean;
   onClick: () => void;
   onToggleControl?: (next: boolean) => void;
+  /** Opens the Fix lighting flow from the not-responding chip. */
+  onFixLighting?: () => void;
 }) {
   const { t } = useTranslation();
   // Connection state is the dimmed card and category is the icon, so a
@@ -387,6 +395,7 @@ function DeviceCard({
       {device.warning && !(runningConflict && isRunningAppWarning(device.warning)) && <DeviceWarningIcon code={device.warning} chip />}
       {updateAvailable && <DeviceUpdateIcon chip />}
       {runningConflict && <ConflictRunningBadge appName={runningConflict.displayName} />}
+      {device.writeHealth === 'failing' && device.nexusControlEnabled && onFixLighting && <NotRespondingBadge onClick={onFixLighting} />}
       {device.experimental && <ExperimentalBadge />}
       {onToggleControl && (
         // Stop click + keydown so toggling the control doesn't also fire the

@@ -139,6 +139,11 @@ vi.mock('./lighting/DevicePanel', () => ({
   DevicePanel: () => <div data-testid="device-panel" />,
 }));
 
+vi.mock('../../../components/common/FixLightingModal/FixLightingModal', () => ({
+  FixLightingModal: ({ open, deviceName }: { open: boolean; deviceName?: string }) =>
+    (open ? <div data-testid="fix-lighting" data-device={deviceName ?? ''} /> : null),
+}));
+
 vi.mock('./lighting/LedMapEditor', () => ({
   LedMapEditor: () => null,
 }));
@@ -247,6 +252,26 @@ describe('LightingPage preset toolbar placement', () => {
     );
 
     expect(await findByLabelText('lighting.layoutPresets.placeholder')).toBeTruthy();
+  });
+});
+
+describe('LightingPage fix lighting link', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
+  });
+
+  it('opens the Fix lighting modal from the link under the canvas, with no device named', async () => {
+    const { findByRole, queryByTestId, getByTestId } = render(
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+      </UiSettingsProvider>,
+    );
+
+    expect(queryByTestId('fix-lighting')).toBeNull();
+    fireEvent.click(await findByRole('button', { name: 'lighting.fix.link' }));
+    expect(getByTestId('fix-lighting').getAttribute('data-device')).toBe('');
   });
 });
 

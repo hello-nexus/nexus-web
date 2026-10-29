@@ -75,6 +75,8 @@ export interface UnifiedDevice {
   // Transport the device lives on; drives the Devices-page section grouping.
   // Undefined means 'usb'.
   bus?: 'usb' | 'smbus';
+  // 'failing' while Nexus controls the device but its lighting writes keep failing.
+  writeHealth?: 'failing';
 }
 
 // A simulated panel carries the marker on its panel record; the Tryx sim sets
@@ -421,6 +423,7 @@ function buildUnifiedList(
       warning: (d.nexusControlEnabled === false && (d.warning === 'bulk-pipe-unavailable' || d.warning === 'access-denied') ? undefined : d.warning) ?? undefined,
       conflictAppId: d.conflictAppId,
       bus: d.bus ?? 'usb',
+      writeHealth: d.writeHealth,
     });
   }
 

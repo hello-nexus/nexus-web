@@ -504,6 +504,8 @@ export interface LightingDevice {
   zoneCustomizable?: boolean;
   /** Conflict-app catalog ids competing with Nexus for this card's hardware. Undefined on older services. */
   conflictAppIds?: string[];
+  /** 'failing' while Nexus controls this card but its hardware writes keep failing; absent when healthy or on an older service. */
+  writeHealth?: 'failing';
   /** Curated handler whose Nexus Control gate claims this card's hardware (Lian Li / Corsair hubs); the conflict UI folds the card into that handler's row. */
   controlHandlerId?: string;
 }
