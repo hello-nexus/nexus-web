@@ -40,6 +40,8 @@ describe('PanelTouchCell inert (Restricted mode)', () => {
     fireEvent.click(getByTestId('preset'));
     expect(wrapOf(container).dataset.lockNotice).toBe('true');
     expect(wrapOf(container).style.transform).toMatch(/translate3d/);
+    expect(container.textContent).toContain('devices.y70.restrictedMode');
+    expect(container.textContent).not.toContain('panel.widget.locked');
     act(() => { vi.advanceTimersByTime(1000); });
     expect(wrapOf(container).dataset.lockNotice).toBeUndefined();
   });
@@ -137,6 +139,17 @@ describe('PanelTouchCell inert (Restricted mode)', () => {
     fireEvent.pointerDown(wrap, { isPrimary: false, pointerId: 2, pointerType: 'touch', clientX: 5, clientY: 5 });
     act(() => { vi.advanceTimersByTime(1000); });
     expect(wrap.dataset.lockNotice).toBeUndefined();
+  });
+
+  it('a plain locked widget keeps the Widget locked notice', () => {
+    const pointers = { onPointerDown: () => {}, onPointerMove: () => {}, onPointerUp: () => {}, onPointerCancel: () => {} };
+    const { container } = render(
+      <DndContext><SortableContext items={['w1']}>
+        <PanelTouchCell widget={widget} rearranging={false} locked onContextMenu={() => {}} cellPointers={pointers} />
+      </SortableContext></DndContext>,
+    );
+    expect(container.textContent).toContain('panel.widget.locked');
+    expect(container.textContent).not.toContain('devices.y70.restrictedMode');
   });
 
   it('an allowed cell shows no notice on a tap', () => {

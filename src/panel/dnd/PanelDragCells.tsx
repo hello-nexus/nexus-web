@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Check, Lock, Pencil } from 'lucide-react';
+import { Check, Lock, OctagonMinus, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { useCallback, useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
@@ -548,7 +548,9 @@ export function PanelTouchCell({
               />
             </div>
             {editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
-            {lockedLook && <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />}
+            {lockedLook && (restricted
+              ? <EditHint className={styles.cellLockNotice} icon={OctagonMinus} label={t('devices.y70.restrictedMode')} />
+              : <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />)}
             {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
           </div>
           {immersiveOnLoad && (

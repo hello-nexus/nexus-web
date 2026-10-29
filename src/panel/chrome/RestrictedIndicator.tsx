@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react';
+import { OctagonMinus } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import styles from './RestrictedIndicator.module.scss';
 
@@ -7,7 +7,7 @@ export function RestrictedIndicator() {
   const { t } = useTranslation();
   return (
     <div className={styles.indicator} role="status">
-      <Lock size={16} aria-hidden />
+      <OctagonMinus size={16} aria-hidden />
       <span>{t('devices.y70.restrictedMode')}</span>
     </div>
   );
