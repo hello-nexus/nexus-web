@@ -11,6 +11,7 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 vi.mock('../../../api/conflicts', () => ({
   HYTE_NEXUS2_CONFLICT_ID: 'hyte-nexus-2',
+  WINDOWS_DYNAMIC_LIGHTING_CONFLICT_ID: 'windows-dynamic-lighting',
   fetchConflictCatalog: vi.fn(),
   fetchDynamicLighting: vi.fn(),
   setDynamicLighting: vi.fn(),
