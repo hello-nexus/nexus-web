@@ -170,4 +170,16 @@ describe('ConflictWarningModal', () => {
     rerender(<ConflictWarningBadge conflicts={[setting, conflicts[0]]} ready suppressed={false} open onOpenChange={vi.fn()} />);
     expect(screen.getByText('conflicts.modal.titleMixed')).toBeInTheDocument();
   });
+
+  it('keeps the setting title after the setting is turned off and leaves the live list', () => {
+    const setting: DetectedConflict = {
+      id: 'windows-dynamic-lighting', displayName: 'Windows Dynamic Lighting', category: 'lighting', processName: '', pid: 0, isSetting: true,
+    };
+    const { rerender } = render(
+      <ConflictWarningBadge conflicts={[setting]} ready suppressed={false} open onOpenChange={vi.fn()} />,
+    );
+    rerender(<ConflictWarningBadge conflicts={[]} ready suppressed={false} open onOpenChange={vi.fn()} />);
+
+    expect(screen.getByText('conflicts.modal.titleSetting')).toBeInTheDocument();
+  });
 });
