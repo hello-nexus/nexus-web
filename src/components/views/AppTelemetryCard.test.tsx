@@ -15,7 +15,7 @@ beforeEach(() => { vi.useFakeTimers(); fetchRecent.mockResolvedValue(sample); })
 afterEach(() => { cleanup(); vi.useRealTimers(); fetchRecent.mockReset(); });
 
 describe('AppTelemetryCard', () => {
-  it('lists events and the PostHog status', async () => {
+  it('lists events and the sink status', async () => {
     await act(async () => { render(<AppTelemetryCard />); });
     expect(screen.getByText('tools.appTelemetry.status.off')).toBeTruthy();
     expect(screen.getByText('app_event (level_done)')).toBeTruthy();

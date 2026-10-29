@@ -97,7 +97,7 @@ export default function App() {
     return <PairRedirect />;
   }
 
-  // Product-telemetry event catalog (what we send to PostHog), opened from the
+  // Product-telemetry event catalog (what we send), opened from the
   // Dev tools page.
   if (path === '/telemetry-reference') {
     return (
