@@ -152,8 +152,8 @@ export function AstralDevicePage() {
         if (ctl.signal.aborted || !alive.current) return;
         pollFails.current = next ? 0 : pollFails.current + 1;
         setLoadFailed(!next && (!loaded.current || pollFails.current >= POLL_FAILS_BEFORE_NOTICE));
-        if (next && id > appliedSeq.current && epoch === writeEpoch.current && writing.current === 0) {
-          appliedSeq.current = id;
+        if (next && id > appliedSeq.current && epoch === writeEpoch.current) {
+          if (writing.current === 0) appliedSeq.current = id;
           loaded.current = true;
           commit(next);
         }
@@ -204,6 +204,8 @@ export function AstralDevicePage() {
     if (id <= appliedSeq.current) return;
     appliedSeq.current = id;
     setFailed(null);
+    pollFails.current = 0;
+    setLoadFailed(false);
     loaded.current = true;
     commit(next);
   }, [commit]);

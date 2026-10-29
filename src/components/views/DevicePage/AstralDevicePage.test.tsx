@@ -338,13 +338,47 @@ describe('AstralDevicePage', () => {
     expect(screen.queryByText('devices.astral.loadFailed')).toBeNull();
   });
 
-  it('polls at the slow rate when there are no cards', async () => {
+  it('drops back to the slow poll on the Power detector tab once no cards remain', async () => {
     vi.useFakeTimers();
-    api.fetchAstral.mockResolvedValue(base({ cards: [] }));
+    api.fetchAstral.mockResolvedValue(base());
     await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { openPower(); });
+    const onPower = api.fetchAstral.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(api.fetchAstral).toHaveBeenCalledTimes(onPower + 1);
+    api.fetchAstral.mockResolvedValue(base({ cards: [] }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    const calls = api.fetchAstral.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
     vi.useRealTimers();
-    expect(api.fetchAstral).toHaveBeenCalledTimes(1);
+    expect(api.fetchAstral).toHaveBeenCalledTimes(calls);
+  });
+
+  it('shows a countdown that starts while a write is hung', async () => {
+    api.saveAstralSettings.mockImplementation(() => new Promise(() => {}));
+    vi.useFakeTimers();
+    api.fetchAstral.mockResolvedValue(base());
+    await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { fireEvent.click(screen.getByText('devices.astral.tab.power')); });
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
+    api.fetchAstral.mockResolvedValue(base({ countdown: cd('overcurrent', 30_000) }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1100); });
+    vi.useRealTimers();
+    expect(screen.getByText(/devices.astral.countdown.overcurrent/)).toBeInTheDocument();
+    expect(screen.getByText('devices.astral.cancelShutdown')).toBeInTheDocument();
+  });
+
+  it('clears the load notice when a write succeeds', async () => {
+    api.saveAstralSettings.mockResolvedValue(base());
+    vi.useFakeTimers();
+    api.fetchAstral.mockResolvedValueOnce(base()).mockResolvedValue(null);
+    await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    expect(screen.getByText('devices.astral.loadFailed')).toBeInTheDocument();
+    openPower();
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
+    vi.useRealTimers();
+    expect(screen.queryByText('devices.astral.loadFailed')).toBeNull();
   });
 
   it('aborts the in-flight poll on unmount', async () => {

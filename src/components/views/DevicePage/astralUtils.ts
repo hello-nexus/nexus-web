@@ -156,7 +156,7 @@ export function unitScale(extent: StageExtent, aspect: number): number {
 /** A request that has not answered by then counts as failed. */
 export const REQUEST_TIMEOUT_MS = 8000;
 
-/** Writes wait longer than the relay and direct-channel transports' own 20 s request timeout, so a failure is never reported for a write that can still land. */
+/** Writes wait longer than the relay and direct-channel transports' own request timeout, so a failure is never reported for a write that can still land. */
 export const WRITE_TIMEOUT_MS = 25000;
 
 /** Failed polls in a row before the load notice shows over a page that has loaded. */
