@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Finalizado",
   "conflicts.modal.title": "Aplicaciones en conflicto detectadas",
+  "conflicts.modal.titleMixed": "Aplicaciones y ajustes en conflicto detectados",
+  "conflicts.modal.titleSetting": "Ajuste en conflicto detectado",
   "conflicts.modal.turnOff": "Desactivar",
   "conflicts.modal.turnedOff": "Desactivada",
   "conflicts.modal.windowsSetting": "Ajuste de Windows",

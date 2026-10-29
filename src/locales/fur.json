@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Terminât",
   "conflicts.modal.title": "Aplicazions in conflit cjatadis",
+  "conflicts.modal.titleMixed": "Aplicazions e impostazions in conflit rilevadis",
+  "conflicts.modal.titleSetting": "Impostazion in conflit rilevade",
   "conflicts.modal.turnOff": "Distude",
   "conflicts.modal.turnedOff": "Distudade",
   "conflicts.modal.windowsSetting": "Impostazion di Windows",

@@ -157,4 +157,17 @@ describe('ConflictWarningModal', () => {
 
     expect(screen.queryByRole('button', { name: 'conflicts.badge.text' })).not.toBeInTheDocument();
   });
+
+  it('titles the modal for a setting-only and a mixed list', () => {
+    const setting: DetectedConflict = {
+      id: 'windows-dynamic-lighting', displayName: 'Windows Dynamic Lighting', category: 'lighting', processName: '', pid: 0, isSetting: true,
+    };
+    const { rerender } = render(
+      <ConflictWarningBadge conflicts={[setting]} ready suppressed={false} open onOpenChange={vi.fn()} />,
+    );
+    expect(screen.getByText('conflicts.modal.titleSetting')).toBeInTheDocument();
+
+    rerender(<ConflictWarningBadge conflicts={[setting, conflicts[0]]} ready suppressed={false} open onOpenChange={vi.fn()} />);
+    expect(screen.getByText('conflicts.modal.titleMixed')).toBeInTheDocument();
+  });
 });

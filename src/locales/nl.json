@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Beëindigd",
   "conflicts.modal.title": "Conflicterende apps gedetecteerd",
+  "conflicts.modal.titleMixed": "Conflicterende apps en instellingen gedetecteerd",
+  "conflicts.modal.titleSetting": "Conflicterende instelling gedetecteerd",
   "conflicts.modal.turnOff": "Uitschakelen",
   "conflicts.modal.turnedOff": "Uitgeschakeld",
   "conflicts.modal.windowsSetting": "Windows-instelling",

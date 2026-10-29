@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Завершено",
   "conflicts.modal.title": "Обнаружены конфликтующие приложения",
+  "conflicts.modal.titleMixed": "Обнаружены конфликтующие приложения и параметры",
+  "conflicts.modal.titleSetting": "Обнаружен конфликтующий параметр",
   "conflicts.modal.turnOff": "Выключить",
   "conflicts.modal.turnedOff": "Выключена",
   "conflicts.modal.windowsSetting": "Параметр Windows",

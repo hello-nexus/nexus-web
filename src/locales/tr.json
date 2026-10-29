@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Sonlandırıldı",
   "conflicts.modal.title": "Çakışan uygulamalar algılandı",
+  "conflicts.modal.titleMixed": "Çakışan uygulamalar ve ayarlar algılandı",
+  "conflicts.modal.titleSetting": "Çakışan ayar algılandı",
   "conflicts.modal.turnOff": "Kapat",
   "conflicts.modal.turnedOff": "Kapatıldı",
   "conflicts.modal.windowsSetting": "Windows ayarı",

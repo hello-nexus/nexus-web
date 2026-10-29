@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Ukončeno",
   "conflicts.modal.title": "Zjištěny konfliktní aplikace",
+  "conflicts.modal.titleMixed": "Zjištěny konfliktní aplikace a nastavení",
+  "conflicts.modal.titleSetting": "Zjištěno konfliktní nastavení",
   "conflicts.modal.turnOff": "Vypnout",
   "conflicts.modal.turnedOff": "Vypnuto",
   "conflicts.modal.windowsSetting": "Nastavení Windows",

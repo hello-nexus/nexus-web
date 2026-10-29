@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Terminato",
   "conflicts.modal.title": "Rilevate app in conflitto",
+  "conflicts.modal.titleMixed": "App e impostazioni in conflitto rilevate",
+  "conflicts.modal.titleSetting": "Impostazione in conflitto rilevata",
   "conflicts.modal.turnOff": "Disattiva",
   "conflicts.modal.turnedOff": "Disattivata",
   "conflicts.modal.windowsSetting": "Impostazione di Windows",

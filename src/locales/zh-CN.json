@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "已结束",
   "conflicts.modal.title": "检测到冲突的应用",
+  "conflicts.modal.titleMixed": "检测到冲突的应用和设置",
+  "conflicts.modal.titleSetting": "检测到冲突的设置",
   "conflicts.modal.turnOff": "关闭",
   "conflicts.modal.turnedOff": "已关闭",
   "conflicts.modal.windowsSetting": "Windows 设置",

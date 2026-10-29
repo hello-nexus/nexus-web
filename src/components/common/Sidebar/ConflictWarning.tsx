@@ -16,6 +16,12 @@ const INTRO_KEYS = {
   setting: 'conflicts.modal.introSetting',
 } as const;
 
+const TITLE_KEYS = {
+  apps: 'conflicts.modal.title',
+  mixed: 'conflicts.modal.titleMixed',
+  setting: 'conflicts.modal.titleSetting',
+} as const;
+
 interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
   /** False while the detected-app snapshot is unresolved (service offline); the modal then holds its rows rather than reading the gap as apps exiting. */
@@ -94,7 +100,7 @@ export function ConflictWarningModal({
     <DeviceModal
       open={open}
       onClose={onClose}
-      title={t('conflicts.modal.title')}
+      title={t(TITLE_KEYS[settingMix(conflicts)])}
       large
       // DeviceModal tints its icon slot with --accent; conflicts are a warning
       // everywhere else they appear (the badge, the onboarding screen).

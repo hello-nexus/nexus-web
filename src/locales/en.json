@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "Terminated",
   "conflicts.modal.title": "Conflicting apps detected",
+  "conflicts.modal.titleMixed": "Conflicting apps and settings detected",
+  "conflicts.modal.titleSetting": "Conflicting setting detected",
   "conflicts.modal.turnOff": "Turn off",
   "conflicts.modal.turnedOff": "Turned off",
   "conflicts.modal.windowsSetting": "Windows setting",

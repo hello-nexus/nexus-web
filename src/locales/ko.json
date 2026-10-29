@@ -328,6 +328,8 @@
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.terminated": "종료됨",
   "conflicts.modal.title": "충돌하는 앱 감지됨",
+  "conflicts.modal.titleMixed": "충돌하는 앱과 설정이 감지되었습니다",
+  "conflicts.modal.titleSetting": "충돌하는 설정이 감지되었습니다",
   "conflicts.modal.turnOff": "끄기",
   "conflicts.modal.turnedOff": "꺼짐",
   "conflicts.modal.windowsSetting": "Windows 설정",
