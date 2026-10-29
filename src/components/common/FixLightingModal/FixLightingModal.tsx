@@ -76,7 +76,15 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
     setUnconfirmed(false);
     // The restart closes the window on some platforms; the service refuses the restart for a non-dashboard path.
     const path = window.location.pathname;
-    try { await restartService(path.startsWith('/system/') ? path : undefined); } catch { /* the socket drops as the service restarts */ }
+    try {
+      const res = await restartService(path.startsWith('/system/') ? path : undefined);
+      if ((res as { error?: boolean } | null)?.error === true) {
+        // The service refused (invalid route, flashing, already restarting): nothing is restarting, so do not wait.
+        setRestarting(false);
+        setUnconfirmed(true);
+        return;
+      }
+    } catch { /* the socket drops as the service restarts */ }
     let back = false;
     try {
       back = await waitForServiceRestart(

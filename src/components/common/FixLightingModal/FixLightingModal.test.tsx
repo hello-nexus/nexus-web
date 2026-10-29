@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DetectedConflict } from '../../../api/conflicts';
 import type { ConflictAppsState } from '../../../hooks/useConflictApps';
 
@@ -32,6 +32,10 @@ vi.mock('../../../hooks/useConflictAutostart', () => ({
 import { FixLightingModal } from './FixLightingModal';
 
 const ICUE: DetectedConflict = { id: 'icue', displayName: 'Corsair iCUE', category: 'lighting', processName: 'iCUE.exe', pid: 10 };
+
+afterEach(() => {
+  window.history.pushState({}, '', '/');
+});
 
 beforeEach(() => {
   origin.remote = false;
@@ -119,7 +123,6 @@ describe('FixLightingModal', () => {
     expect(screen.getByRole('button', { name: 'lighting.fix.step2.title' })).not.toBeDisabled();
   });
 
-
   it('returns to idle when the wait itself throws', async () => {
     restartServiceMock.mockResolvedValue(null);
     waitMock.mockRejectedValue(new Error('bad json'));
@@ -131,7 +134,6 @@ describe('FixLightingModal', () => {
     expect(screen.getByRole('button', { name: 'lighting.fix.step2.title' })).not.toBeDisabled();
   });
 
-
   it('asks the service to reopen on the current dashboard page after the restart', async () => {
     window.history.pushState({}, '', '/system/lighting');
     restartServiceMock.mockResolvedValue(null);
@@ -140,7 +142,6 @@ describe('FixLightingModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
     expect(restartServiceMock).toHaveBeenCalledWith('/system/lighting');
     await screen.findByText('lighting.fix.step2.restarted');
-    window.history.pushState({}, '', '/');
   });
 
   it('sends no reopen page outside the dashboard routes', async () => {
@@ -151,7 +152,6 @@ describe('FixLightingModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
     expect(restartServiceMock).toHaveBeenCalledWith(undefined);
     await screen.findByText('lighting.fix.step2.restarted');
-    window.history.pushState({}, '', '/');
   });
 
   it('says so when the restart was not confirmed', async () => {
@@ -168,5 +168,23 @@ describe('FixLightingModal', () => {
     expect(screen.getByText('lighting.fix.step2.remote')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'lighting.fix.step2.title' })).toBeNull();
     expect(restartServiceMock).not.toHaveBeenCalled();
+  });
+
+  it('stops at once when the service refuses the restart: no wait, idle button, unconfirmed note', async () => {
+    restartServiceMock.mockResolvedValue({ error: true, msg: 'A reset or restart is already in progress.' });
+    render(<FixLightingModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    expect(await screen.findByText('lighting.fix.step2.unconfirmed')).toBeInTheDocument();
+    expect(waitMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'lighting.fix.step2.title' })).not.toBeDisabled();
+  });
+
+  it('still waits when the restart call throws as the socket drops', async () => {
+    restartServiceMock.mockRejectedValue(new Error('socket closed'));
+    waitMock.mockResolvedValue(true);
+    render(<FixLightingModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    expect(await screen.findByText('lighting.fix.step2.restarted')).toBeInTheDocument();
+    expect(waitMock).toHaveBeenCalledTimes(1);
   });
 });
