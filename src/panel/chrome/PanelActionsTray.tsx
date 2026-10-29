@@ -7,6 +7,7 @@ import { isNativeApp } from '../device/panelNativeBridge';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { useTranslation } from '../../lib/i18n';
 import type { PanelSurface } from '../types';
+import { RestrictedIndicator } from './RestrictedIndicator';
 import styles from './PanelActionsTray.module.scss';
 
 interface PanelActionsTrayProps {
@@ -34,6 +35,8 @@ interface PanelActionsTrayProps {
   surface: PanelSurface;
   // Disable interactions (sheet open, immersive, offline).
   disabled?: boolean;
+  // Restricted mode: the tray shows only the indicator.
+  restricted?: boolean;
   // When true, the tray is always rendered open (editor preview).
   pinnedOpen?: boolean;
   // OS-reported computer name shown above the buttons. Empty string hides it.
@@ -63,6 +66,7 @@ export function PanelActionsTray({
   surfaceRef,
   surface,
   disabled = false,
+  restricted = false,
   pinnedOpen = false,
   machineName,
   remotePaired = false,
@@ -172,6 +176,7 @@ export function PanelActionsTray({
         }
         aria-label={t('panel.actions.label')}
       >
+        {restricted ? <RestrictedIndicator /> : (<>
         {onSentry && (
           <button
             type="button"
@@ -221,6 +226,7 @@ export function PanelActionsTray({
             />
           )}
         </div>
+        </>)}
       </aside>
     </>
   );

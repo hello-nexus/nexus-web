@@ -31,6 +31,7 @@ import { controlActiveMedia, useMedia, type MediaSession } from '../../hooks/use
 import { systemPower } from '../../api/system';
 import { fetchRadios, setRadio, type RadioKind, type RadiosState } from '../../api/radios';
 import type { PanelSurface } from '../types';
+import { RestrictedIndicator } from './RestrictedIndicator';
 import { ControlCenterMixerView } from './ControlCenterMixerView';
 import styles from './PanelControlCenter.module.scss';
 
@@ -207,7 +208,7 @@ export function PanelControlCenter({
           if (!target?.closest('[data-cc-keep="true"]')) onClose();
         }}
       >
-        {bodyMounted ? (
+        {bodyMounted ? (restricted ? <div className={styles.content}><RestrictedIndicator /></div> : (
           <ControlCenterBody
             open={open}
             isLandscape={isLandscape}
@@ -221,9 +222,8 @@ export function PanelControlCenter({
             onSetThemeMode={onSetThemeMode}
             onClose={onClose}
             onScreenSleep={onScreenSleep}
-            restricted={restricted}
           />
-        ) : null}
+        )) : null}
       </aside>
     </>
   );
@@ -243,11 +243,10 @@ interface BodyProps {
   onSetThemeMode: (mode: 'dark' | 'light') => void;
   onClose: () => void;
   onScreenSleep: () => void;
-  restricted: boolean;
 }
 
 function ControlCenterBody({
-  open, active, isLandscape, view, setView, language, surface, displayId, resolvedThemeMode, onSetThemeMode, onClose, onScreenSleep, restricted,
+  open, active, isLandscape, view, setView, language, surface, displayId, resolvedThemeMode, onSetThemeMode, onClose, onScreenSleep,
 }: BodyProps) {
   const { t } = useTranslation();
 
@@ -269,7 +268,7 @@ function ControlCenterBody({
     [now, language],
   );
 
-  const brightness = usePanelBrightness(active && !restricted, brightnessTargetFor(surface, displayId));
+  const brightness = usePanelBrightness(active, brightnessTargetFor(surface, displayId));
   const volume = useSystemVolume(active, null, 2000);
   const mic = useSystemMic(active);
 
@@ -281,7 +280,7 @@ function ControlCenterBody({
   // interval while it stays up: Wi-Fi and Bluetooth can return after an
   // airplane-off POST has answered, and the OS can change them too.
   useEffect(() => {
-    if (!active || restricted) return undefined;
+    if (!active) return undefined;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
@@ -294,7 +293,7 @@ function ControlCenterBody({
     };
     void tick();
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [active, restricted]);
+  }, [active]);
   // The read-back state is the truth: no rollback on a mismatch, the next
   // read corrects whatever the optimistic flip got wrong.
   const toggleRadio = (kind: RadioKind) => {
@@ -345,7 +344,7 @@ function ControlCenterBody({
     );
   }
 
-  const showBrightness = brightness.available && !restricted;
+  const showBrightness = brightness.available;
   const showMic = mic.state.supported;
   const volPct = Math.round(volume.state.volume * 100);
   const micPct = Math.round(mic.state.volume * 100);
@@ -428,8 +427,6 @@ function ControlCenterBody({
 
       <div className={`${styles.card} ${styles.gridCard}`} data-cc-keep="true">
         <div className={styles.grid}>
-          {!restricted && (
-          <>
           <IconLabelButton
             className={styles.tile}
             icon={dark ? <Moon /> : <Sun />}
@@ -455,8 +452,6 @@ function ControlCenterBody({
             label={t('panel.controlCenter.screenSleep')}
             onPress={onScreenSleep}
           />
-          </>
-          )}
           {/* Always present, disabled until volume reads in, so no tile after it shifts. */}
           <IconLabelButton
             className={styles.tile}
@@ -466,7 +461,7 @@ function ControlCenterBody({
             onPress={() => { swallowTapFollowUps(); setView('mixer'); }}
           />
           {/* After the fixed tiles: the radios arrive late and must not shift them. */}
-          {!restricted && radios?.wifi && (
+          {radios?.wifi && (
             <IconLabelButton
               className={styles.tile}
               icon={<Wifi />}
@@ -475,7 +470,7 @@ function ControlCenterBody({
               onPress={() => toggleRadio('wifi')}
             />
           )}
-          {!restricted && radios?.bluetooth && (
+          {radios?.bluetooth && (
             <IconLabelButton
               className={styles.tile}
               icon={<Bluetooth />}
@@ -484,7 +479,7 @@ function ControlCenterBody({
               onPress={() => toggleRadio('bluetooth')}
             />
           )}
-          {!restricted && radios?.airplane && (
+          {radios?.airplane && (
             <IconLabelButton
               className={styles.tile}
               icon={<Plane />}

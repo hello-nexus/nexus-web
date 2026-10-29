@@ -1237,11 +1237,16 @@ export function PanelContent({
         // visual layout; placement itself is via inline style, not source order.
         .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
     }));
+    // Restricted mode: a stored empty page (left by a drag or an earlier edit) is not reachable either.
+    if (restricted) {
+      const kept = filtered.filter(page => page.widgets.length > 0);
+      return kept.length > 0 ? kept : filtered.slice(0, 1);
+    }
     const lastPage = filtered[filtered.length - 1];
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId, restricted]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2407,6 +2412,7 @@ export function PanelContent({
                               lockActivationFor={lockActivationFor}
                               onLockDragChange={setLockDragging}
                               inert={restricted && !restrictedAllowsWidget(w.type)}
+                              restricted={restricted}
                               onContextMenu={dragEditable && !(freeformActive && w.id === freeformId) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               resizeSelected={freeformActive && w.id === freeformId}
                               cellPointers={!dragEditable ? noopCellPointers : freeformActive ? (w.id === freeformId ? freeformTapPointers : noopCellPointers) : touch.bindCellPointers(w)}
@@ -2514,7 +2520,8 @@ export function PanelContent({
                 pairSheetAvailable={localPairAvailable || pairedPcsAvailable}
                 surfaceRef={rootRef}
                 surface={surface}
-                disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId || controlCenterOpen || freeformActive || restricted}
+                disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId || controlCenterOpen || freeformActive}
+                restricted={restricted}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}
                 onSentry={surface === 'phone' && sentrySupported ? () => setSentryOpenRequest((n) => n + 1) : undefined}

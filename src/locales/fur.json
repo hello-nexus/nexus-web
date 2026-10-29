@@ -1817,7 +1817,7 @@
   "devices.y70.reserveMonitor": "Ten il panel libar di altris barcons",
   "devices.y70.reserveMonitorHint": "Cuant che al è impiât, i barcons che si vierzin o si spostin sul panel a vegnin tornâts al to monitor principâl.",
   "devices.y70.restrictedMode": "Modalitât limitade",
-  "devices.y70.restrictedModeHint": "Sul panel a lavorin dome la iluminazion, i multimedia e il volum. Simpri ative te configurazion di Windows.",
+  "devices.y70.restrictedModeHint": "Sul panel a lavorin dome la iluminazion, i multimedia e il volum.",
   "devices.y70.screen": "Schermi",
   "devices.y70.tab.settings": "Impostazions",
   "devices.y70.tab.theme": "Teme",

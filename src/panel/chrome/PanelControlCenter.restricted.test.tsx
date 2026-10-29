@@ -27,7 +27,6 @@ vi.mock('../../api/system', () => ({ systemPower: vi.fn() }));
 vi.mock('../../hooks/useUiSettings', () => ({ useUnitPrefs: () => ({ timeFormat: '24h' }) }));
 vi.mock('./ControlCenterMixerView', () => ({ ControlCenterMixerView: () => null }));
 
-import { usePanelBrightness } from '../../hooks/usePanelBrightness';
 import { fetchRadios } from '../../api/radios';
 import { PanelControlCenter } from './PanelControlCenter';
 
@@ -70,19 +69,16 @@ describe('PanelControlCenter restricted (Restricted mode)', () => {
     expect(await screen.findByText('panel.controlCenter.wifi')).toBeTruthy();
   });
 
-  it('keeps only volume, mic, mixer and media', async () => {
+  it('shows only the Restricted mode indicator', async () => {
     vi.mocked(fetchRadios).mockClear();
     renderCenter(true);
+    expect(screen.getByRole('status')).toHaveTextContent('devices.y70.restrictedMode');
     for (const label of SYSTEM_TILES) expect(screen.queryByText(label)).toBeNull();
     expect(screen.queryAllByLabelText('panel.controlCenter.brightness')).toHaveLength(0);
-    expect(screen.queryByText('panel.controlCenter.wifi')).toBeNull();
-    expect(screen.queryByText('panel.controlCenter.bluetooth')).toBeNull();
-    expect(screen.queryByText('panel.controlCenter.airplane')).toBeNull();
-    expect(screen.getAllByLabelText('panel.controlCenter.volume').length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText('panel.controlCenter.mic').length).toBeGreaterThan(0);
-    expect(screen.getByText('panel.controlCenter.mixer.title')).toBeTruthy();
-    expect(screen.getByLabelText('panel.controlCenter.media.playPause')).toBeTruthy();
+    expect(screen.queryAllByLabelText('panel.controlCenter.volume')).toHaveLength(0);
+    expect(screen.queryAllByLabelText('panel.controlCenter.mic')).toHaveLength(0);
+    expect(screen.queryByText('panel.controlCenter.mixer.title')).toBeNull();
+    expect(screen.queryByLabelText('panel.controlCenter.media.playPause')).toBeNull();
     expect(fetchRadios).not.toHaveBeenCalled();
-    expect(vi.mocked(usePanelBrightness).mock.calls.at(-1)?.[0]).toBe(false);
   });
 });

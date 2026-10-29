@@ -18,11 +18,11 @@ import { PanelTouchCell } from './PanelDragCells';
 const widget: PanelWidget = { id: 'w1', type: 'cooling', size: '2x2', col: 0, row: 0, config: {} } as PanelWidget;
 const pointers = { onPointerDown: () => {}, onPointerMove: () => {}, onPointerUp: () => {}, onPointerCancel: () => {} };
 
-function cell(inert: boolean, onLockDragChange?: (a: boolean) => void) {
+function cell(inert: boolean, onLockDragChange?: (a: boolean) => void, restricted = inert) {
   return (
     <DndContext>
       <SortableContext items={['w1']}>
-        <PanelTouchCell widget={widget} rearranging={false} inert={inert} onLockDragChange={onLockDragChange} onContextMenu={() => {}} cellPointers={pointers} />
+        <PanelTouchCell widget={widget} rearranging={false} inert={inert} restricted={restricted} onLockDragChange={onLockDragChange} onContextMenu={() => {}} cellPointers={pointers} />
       </SortableContext>
     </DndContext>
   );
@@ -86,6 +86,27 @@ describe('PanelTouchCell inert (Restricted mode)', () => {
     fireEvent.pointerDown(wrap, { isPrimary: true, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 1, clientX: 5, clientY: 5 });
     fireEvent.pointerMove(wrap, { pointerId: 1, pointerType: 'mouse', buttons: 1, clientX: 60, clientY: 5 });
     expect(wrap.dataset.lockNotice).toBe('true');
+  });
+
+  it('a hold on an allowed cell shows the notice without a drag, a tap does not', () => {
+    vi.useFakeTimers();
+    const { container } = render(cell(false, undefined, true));
+    const wrap = wrapOf(container);
+    fireEvent.pointerDown(wrap, { isPrimary: true, pointerId: 1, pointerType: 'touch', clientX: 5, clientY: 5 });
+    fireEvent.pointerUp(wrap, { pointerId: 1, pointerType: 'touch', clientX: 5, clientY: 5 });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(wrap.dataset.lockNotice).toBeUndefined();
+    fireEvent.pointerDown(wrap, { isPrimary: true, pointerId: 2, pointerType: 'touch', clientX: 5, clientY: 5 });
+    act(() => { vi.advanceTimersByTime(700); });
+    expect(wrap.dataset.lockNotice).toBe('true');
+  });
+
+  it('a hold on a control inside an allowed cell shows nothing', () => {
+    vi.useFakeTimers();
+    const { container, getByTestId } = render(cell(false, undefined, true));
+    fireEvent.pointerDown(getByTestId('preset'), { isPrimary: true, pointerId: 1, pointerType: 'touch', clientX: 5, clientY: 5 });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(wrapOf(container).dataset.lockNotice).toBeUndefined();
   });
 
   it('an allowed cell shows no notice on a tap', () => {

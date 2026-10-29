@@ -13,7 +13,9 @@ import { MenuArrowButton } from '../../components/common/DeviceCanvas/MenuArrowB
 import { EditHint } from '../../components/common/EditHint/EditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
-import { useLockNotice } from './useLockNotice';
+import { isOwnControl, useLockNotice } from './useLockNotice';
+import { useLongPress } from '../engine/useLongPress';
+import { PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
 import type { DragActivation } from '../engine/pointerDragSensor';
 import { surfaceSupportsTouch, type PanelLayout, type PanelSurface, type PanelWidget, type PanelConfigValue } from '../types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
@@ -173,6 +175,7 @@ export function PanelTouchCell({
   onLockDragChange,
   clickthrough = false,
   inert = false,
+  restricted = false,
   onContextMenu,
   cellPointers,
   onSimulatorClick,
@@ -216,6 +219,8 @@ export function PanelTouchCell({
   clickthrough?: boolean;
   // Restricted mode: the widget renders but takes no input; a tap on the cell still reaches the host.
   inert?: boolean;
+  // Restricted mode on any cell: a hold or drag attempt shows the lock feedback.
+  restricted?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
     onPointerDown: (e: React.PointerEvent) => void;
@@ -242,7 +247,7 @@ export function PanelTouchCell({
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
   // A blocked cell reads as locked: a drag attempt pulls it, and a tap, click or key press nudges it, with the same notice.
-  const lockedLook = locked || inert;
+  const lockedLook = locked || inert || restricted;
   // dnd-kit must already be tracking pointerdowns when the long-press fires,
   // or a hold+drag can't convert to a sort-drag (it only tracks via its own
   // onPointerDown). Disable only during transitional motion states where a
@@ -262,6 +267,8 @@ export function PanelTouchCell({
   const [cardEl, setCardEl] = useState<HTMLElement | null>(null);
 
   const lockNotice = useLockNotice(lockedLook, lockActivationFor);
+  // A hold on a cell, not on one of its own controls, nudges it like a drag attempt.
+  const holdPress = useLongPress(() => lockNotice.pulse(), PANEL_CONTEXT_MENU_TRIGGER_MS, { allowMouse: true });
   const onInertKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Tab' || e.key === 'Escape') return;
     e.preventDefault();
@@ -443,14 +450,17 @@ export function PanelTouchCell({
     ...cellPointers,
     onPointerMove: (e: React.PointerEvent) => {
       cellPointers.onPointerMove(e);
+      if (restricted) holdPress.onPointerMove(e);
       lockNotice.handlers.onPointerMove(e);
     },
     onPointerUp: (e: React.PointerEvent) => {
+      holdPress.onPointerUp();
       // A pulled locked widget was dragged, not tapped.
       if (lockNotice.handlers.up(e)) cellPointers.onPointerCancel(e);
       else cellPointers.onPointerUp(e);
     },
     onPointerCancel: (e: React.PointerEvent) => {
+      holdPress.onPointerCancel();
       cellPointers.onPointerCancel(e);
       lockNotice.handlers.end();
     },
@@ -458,6 +468,7 @@ export function PanelTouchCell({
     onClickCapture: inert ? onInertClick : lockNotice.handlers.onClickCapture,
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
+      if (restricted && !isOwnControl(e.target, e.currentTarget as Element)) holdPress.onPointerDown(e);
       lockNotice.handlers.onPointerDown(e);
       // Skip dnd-kit activation in scroll regions inside widgets (cellPointers
       // already bails there). Else a 500ms hold inside a scroll list would

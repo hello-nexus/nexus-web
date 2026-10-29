@@ -1817,7 +1817,7 @@
   "devices.y70.reserveMonitor": "Manter o painel livre de outras janelas",
   "devices.y70.reserveMonitorHint": "Quando ativado, as janelas que abrem ou são movidas para o painel são reenviadas para o monitor principal.",
   "devices.y70.restrictedMode": "Modo restrito",
-  "devices.y70.restrictedModeHint": "No painel, só funcionam a iluminação, os conteúdos multimédia e o volume. Sempre ativo durante a configuração do Windows.",
+  "devices.y70.restrictedModeHint": "No painel, só funcionam a iluminação, os conteúdos multimédia e o volume.",
   "devices.y70.screen": "Ecrã",
   "devices.y70.tab.settings": "Definições",
   "devices.y70.tab.theme": "Tema",

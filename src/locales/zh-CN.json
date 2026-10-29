@@ -1817,7 +1817,7 @@
   "devices.y70.reserveMonitor": "保持面板不被其他窗口占用",
   "devices.y70.reserveMonitorHint": "开启后，在面板上打开或移入的窗口会被送回您的主显示器。",
   "devices.y70.restrictedMode": "受限模式",
-  "devices.y70.restrictedModeHint": "面板上仅灯光、媒体和音量可用。Windows 设置期间始终开启。",
+  "devices.y70.restrictedModeHint": "面板上仅灯光、媒体和音量可用。",
   "devices.y70.screen": "屏幕",
   "devices.y70.tab.settings": "设置",
   "devices.y70.tab.theme": "主题",

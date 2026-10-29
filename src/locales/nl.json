@@ -1817,7 +1817,7 @@
   "devices.y70.reserveMonitor": "Paneel vrijhouden van andere vensters",
   "devices.y70.reserveMonitorHint": "Wanneer aan, worden vensters die op het paneel openen of daarheen worden verplaatst teruggestuurd naar je hoofdmonitor.",
   "devices.y70.restrictedMode": "Beperkte modus",
-  "devices.y70.restrictedModeHint": "Op het paneel werken alleen verlichting, media en volume. Altijd aan tijdens de installatie van Windows.",
+  "devices.y70.restrictedModeHint": "Op het paneel werken alleen verlichting, media en volume.",
   "devices.y70.screen": "Scherm",
   "devices.y70.tab.settings": "Instellingen",
   "devices.y70.tab.theme": "Thema",

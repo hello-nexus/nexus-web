@@ -1825,7 +1825,7 @@
   "devices.y70.reserveMonitor": "Не допускать другие окна на панель",
   "devices.y70.reserveMonitorHint": "Когда включено, окна, открывающиеся или перемещаемые на панель, возвращаются на основной монитор.",
   "devices.y70.restrictedMode": "Ограниченный режим",
-  "devices.y70.restrictedModeHint": "На панели работают только подсветка, медиа и громкость. Всегда включен во время настройки Windows.",
+  "devices.y70.restrictedModeHint": "На панели работают только подсветка, медиа и громкость.",
   "devices.y70.screen": "Экран",
   "devices.y70.tab.settings": "Настройки",
   "devices.y70.tab.theme": "Тема",

@@ -1817,7 +1817,7 @@
   "devices.y70.reserveMonitor": "Mantieni il pannello libero da altre finestre",
   "devices.y70.reserveMonitorHint": "Quando è attivo, le finestre che si aprono o si spostano sul pannello vengono rimandate al monitor principale.",
   "devices.y70.restrictedMode": "Modalità limitata",
-  "devices.y70.restrictedModeHint": "Sul pannello funzionano solo illuminazione, contenuti multimediali e volume. Sempre attiva durante la configurazione di Windows.",
+  "devices.y70.restrictedModeHint": "Sul pannello funzionano solo illuminazione, contenuti multimediali e volume.",
   "devices.y70.screen": "Schermo",
   "devices.y70.tab.settings": "Impostazioni",
   "devices.y70.tab.theme": "Tema",
