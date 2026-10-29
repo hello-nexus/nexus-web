@@ -1699,6 +1699,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                   max={widgetSizeTrack.length - 1}
                                   step={1}
                                   formatValue={i => `${percentAtTrackIndex(widgetSizeTrack, i)}%`}
+                                  valueText={`${percentAtTrackIndex(widgetSizeTrack, trackIndexOfPercent(widgetSizeTrack, widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode)))}%`}
                                   entryMap={{
                                     toEntry: i => percentAtTrackIndex(widgetSizeTrack, i),
                                     fromEntry: typed => trackIndexOfPercent(widgetSizeTrack, typed),

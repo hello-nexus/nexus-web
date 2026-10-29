@@ -279,8 +279,9 @@ describe('PanelDevicePage widget size', () => {
     expect(screen.getByRole('button', { name: 'devices.panels.widgetSize.label' })).toHaveTextContent('100%');
     expect(sizeSlider().min).toBe('0');
     expect(sizeSlider().step).toBe('1');
-    expect(Number(sizeSlider().value)).toBeGreaterThan(0);
-    expect(Number(sizeSlider().value)).toBeLessThan(Number(sizeSlider().max));
+    expect(sizeSlider().value).toBe('2');
+    expect(sizeSlider().max).toBe('3');
+    expect(sizeSlider()).toHaveAttribute('aria-valuetext', '100%');
 
     await pickSize('min');
 

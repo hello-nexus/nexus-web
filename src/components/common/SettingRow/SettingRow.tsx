@@ -256,6 +256,7 @@ export function SettingSlider({
   ariaLabel,
   mixed,
   mixedLabel,
+  valueText,
 }: {
   label?: string;
   description?: ReactNode;
@@ -281,6 +282,7 @@ export function SettingSlider({
   // The controlled targets hold different values; see Slider.
   mixed?: boolean;
   mixedLabel?: string;
+  valueText?: string;
 }) {
   // Built outside the JSX: the variant id is not UI text, and the i18n literal
   // rule scans JSX only.
@@ -311,6 +313,7 @@ export function SettingSlider({
         ariaLabel={ariaLabel ?? label}
         mixed={mixed}
         mixedLabel={mixedLabel}
+        valueText={valueText}
       />
     </SettingRow>
   );
