@@ -53,11 +53,12 @@ export type EffectCategory =
   | 'pattern'
   | 'sensor';
 
-// Section order for the effect listing: simple fills first, then organic and
-// pattern, then the rest, with the audio-reactive set last.
+// Section order for the effect listing: patterns first (they lead with the
+// simple-mode animations), then the simple fills, organic and the rest, with the
+// audio-reactive set last.
 export const EFFECT_CATEGORIES: EffectCategory[] = [
-  'simple', 'gradient', 'twotone', 'spectrum',
-  'organic', 'pattern', 'cosmic', 'geometric', 'audio', 'sensor',
+  'pattern', 'simple', 'gradient', 'twotone', 'spectrum',
+  'organic', 'cosmic', 'geometric', 'audio', 'sensor',
 ];
 
 // The "simple" family: one cheap solid-fill shader (simple.frag) reused for
@@ -160,6 +161,7 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   tide: 'pattern', ridgeline: 'pattern', chevron: 'pattern', terrace: 'pattern',
   sharplines: 'pattern', synthwave: 'pattern', retropetals: 'pattern',
   breathing: 'pattern', clockfill: 'pattern',
+  sweepcycle: 'pattern', sweepbrush: 'pattern', sweepliquid: 'pattern', sweepcomet: 'pattern',
   // Sensor-driven fills and color shifts: a hardware reading moves them.
   sensorbar: 'sensor', sensorclock: 'sensor', sensorsegments: 'sensor', sensorliquid: 'sensor',
   sensorcenter: 'sensor', sensorshift: 'sensor', sensorheat: 'sensor',
@@ -293,11 +295,14 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_zoom', label: 'Zoom', labelKey: 'lighting.controls.param.zoom' },
   ]},
   { key: 'fire',         labelKey: 'lighting.controls.fire',         params: [{ name: 'u_turbulence', label: 'Turbulence', labelKey: 'lighting.controls.param.turbulence' }] },
+  // The first seven patterns are the simple-mode animations. Simple mode runs
+  // preset 1 (slot 0) of each, so editing that preset here changes it there.
+  // The browser lists patterns in this order.
   { key: 'rainbow',     labelKey: 'lighting.controls.rainbow',     params: [
       { name: 'u_density',  label: 'Density', labelKey: 'lighting.controls.param.density' },
       { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
   ]},
-  // Brushstrokes' hard-edged sibling: flat hue bars with black between them.
+  // Rainbow's hard-edged sibling: flat hue bars with black between them.
   // Position slides the colour/black split inside each bar, so it thickens the
   // gaps the way splitsharp's Position grows one side of the frame.
   { key: 'sharplines',  labelKey: 'lighting.controls.sharplines',  params: [
@@ -308,6 +313,20 @@ export const EFFECTS: EffectDef[] = [
   { key: 'breathing',    labelKey: 'lighting.controls.breathing',
      colors: [{ id: 'a', labelKey: 'lighting.controls.color1', range: true }, { id: 'b', labelKey: 'lighting.controls.color2', range: true }], params: [
       { name: 'u_sharpness', label: 'Sharpness', labelKey: 'lighting.controls.param.sharpness' },
+  ]},
+  { key: 'sweepcycle',   labelKey: 'lighting.controls.sweepcycle',  params: [] },
+  { key: 'sweepbrush',   labelKey: 'lighting.controls.sweepbrush',  params: [
+      { name: 'u_strokes', label: 'Strokes', labelKey: 'lighting.controls.param.strokes' },
+      { name: 'u_feather', label: 'Feather', labelKey: 'lighting.controls.param.feather' },
+      { name: 'u_fill',    label: 'Fill', labelKey: 'lighting.controls.param.fill' },
+  ]},
+  { key: 'sweepliquid',  labelKey: 'lighting.controls.sweepliquid', params: [
+      { name: 'u_warp',  label: 'Warp', labelKey: 'lighting.controls.param.warp' },
+      { name: 'u_scale', label: 'Scale', labelKey: 'lighting.controls.param.scale' },
+  ]},
+  { key: 'sweepcomet',   labelKey: 'lighting.controls.sweepcomet',  params: [
+      { name: 'u_comets', label: 'Comets', labelKey: 'lighting.controls.param.comets' },
+      { name: 'u_tail',   label: 'Tail', labelKey: 'lighting.controls.param.tail' },
   ]},
   // Sweeps around like a clock hand, the two colors taking turns, for fans and rings.
   { key: 'clockfill',    labelKey: 'lighting.controls.clockfill',

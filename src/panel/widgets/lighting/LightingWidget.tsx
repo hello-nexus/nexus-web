@@ -24,7 +24,7 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
-import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
+import { SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
@@ -63,7 +63,7 @@ import styles from './LightingWidget.module.scss';
 // tile renders with zero fetch/socket/blob traffic. Keep in sync with the
 // simple-mode render; previewMode.test.tsx is the fixture-sync gate.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'animate';
-const LIGHTING_PREVIEW_EFFECT = 'sweeprainbow';
+const LIGHTING_PREVIEW_EFFECT = 'rainbow';
 
 export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
   const { t } = useTranslation();
@@ -93,7 +93,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // Animate would drop the user's animation for the catalog default.
   const animateEffectRef = useRef('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
-  // Direction of a running simple-mode sweep, read from its stored speed sign.
+  // Direction of a running simple-mode animation: its stored speed sign against preset 1's.
   const [sweepReversed, setSweepReversed] = useState(false);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -168,17 +168,20 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     // The running sync IS the animate key while Animate runs, and animate
     // settings still hold the pick once another mode takes over - so the ref
     // tracks it whatever mode we hydrate into.
-    const animatePick = [rawSync, animate?.effect]
+    const animatePick = [canonicalSimpleKey(rawSync), animate?.effect]
       .find(k => ANIMATE_EFFECTS.some(e => e.key === k));
     if (animatePick) animateEffectRef.current = animatePick;
-    // A sweep drives the hardware without a catalogue entry, so it has to be
-    // named here or the tile pictures whatever the last catalogue pick was.
-    const sweep = isSimpleAnimation(rawSync);
-    if (sweep) setSweepReversed((animate?.states?.[rawSync]?.speed ?? 50) < 0);
+    // A key retired from simple mode (older service) shows as its replacement.
+    const syncEffect = canonicalSimpleKey(rawSync);
+    if (isSimpleAnimation(rawSync)) {
+      const runningSpeed = animate?.states?.[rawSync]?.speed ?? animate?.states?.[syncEffect]?.speed;
+      const slot0 = nextTemplates[syncEffect]?.slots[SIMPLE_SLOT];
+      setSweepReversed(typeof runningSpeed === 'number' && !!slot0 && isSimpleReversed(runningSpeed, slot0.speed));
+    }
     const nextEffect = nextMode === 'static'
       ? staticEffectRef.current
-      : EFFECTS.some(e => e.key === rawSync) || sweep
-        ? rawSync
+      : EFFECTS.some(e => e.key === syncEffect)
+        ? syncEffect
         : animateEffectRef.current;
     setActiveEffect(nextEffect);
 
@@ -423,15 +426,6 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       };
     }
     if (mode === 'animate') {
-      if (isSimpleAnimation(activeEffect)) {
-        return {
-          kind: 'thumb',
-          thumbUrl: thumbs[activeEffect] ?? null,
-          label: t(simpleAnimationLabelKey(activeEffect)),
-          onPrev: prev,
-          onNext: next,
-        };
-      }
       const effect = ANIMATE_EFFECTS.find(e => e.key === activeEffect) ?? ANIMATE_EFFECTS[0];
       return {
         kind: 'thumb',
@@ -478,7 +472,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // canvas (LightingLivePreview) for shader effects only.
   const animateState = useMemo(
     () => (isSimpleAnimation(activeEffect)
-      ? simpleAnimationState(sweepReversed)
+      ? simpleAnimationState(resolveEffectState(activeEffect, templates), sweepReversed)
       : resolveEffectState(activeEffect, templates)),
     [activeEffect, sweepReversed, templates],
   );
@@ -586,7 +580,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         onColor={hex => { recents.recordColor(hex); void applyColor(hex); }}
         onEffect={key => {
           recents.recordAnimation(key);
-          void applyEffect(key, isSimpleAnimation(key) ? simpleAnimationState(false) : undefined);
+          void applyEffect(key);
         }}
         onOpen={openAction}
       />

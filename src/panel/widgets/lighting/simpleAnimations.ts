@@ -1,56 +1,66 @@
-import type { EffectState } from '../../../types/lighting';
+import { EFFECTS, type EffectState } from '../../../types/lighting';
 
 /**
  * Simple mode's animation set: seven tiles offered under the colour palette.
  *
- * They are deliberately NOT in EFFECTS - the advanced page's grid, its drawer
- * and every template surface enumerate that list, and these carry no controls
- * to show there. sweepbreathing renders the advanced Breathing shader under
- * its own key, so running it from here never selects that grid cell. Mirrors
- * ShaderLibrary.SweepEffectKeys in nexus-service, which owns the shaders and
- * switches the engine to whole-canvas sampling while one of them runs, so every
- * device shows the entire pattern rather than the slice its layout frame covers.
+ * They are ordinary advanced effects (the first seven of the Patterns
+ * category) and simple mode runs preset 1, template slot 0, of each. Editing
+ * that preset in advanced therefore changes simple mode too, and simple mode
+ * never touches slots 2 to 4. The service renders them across the whole canvas
+ * so every device shows the entire pattern.
  */
 export const SIMPLE_ANIMATION_KEYS = [
-  'sweeprainbow', 'sweepbreathing', 'sweepbars', 'sweepcycle',
+  'rainbow', 'sharplines', 'breathing', 'sweepcycle',
   'sweepbrush', 'sweepliquid', 'sweepcomet',
 ] as const;
 
-type SimpleAnimationKey = typeof SIMPLE_ANIMATION_KEYS[number];
+/** The template slot simple mode reads and selects. */
+export const SIMPLE_SLOT = 0;
 
-const SIMPLE_ANIMATION_LABELS: Record<SimpleAnimationKey, string> = {
-  sweeprainbow: 'lighting.simple.anim.rainbow',
-  sweepbreathing: 'lighting.controls.breathing',
-  sweepbars: 'lighting.simple.anim.bars',
-  sweepcycle: 'lighting.simple.anim.colorCycle',
-  sweepbrush: 'lighting.simple.anim.brush',
-  sweepliquid: 'lighting.simple.anim.liquidRainbow',
-  sweepcomet: 'lighting.simple.anim.goldShine',
+/**
+ * Keys an older service or cached state may still report, mapped to the
+ * effect that replaced them. Display only: nothing is ever sent under these.
+ */
+const LEGACY_KEY_ALIASES: Record<string, string> = {
+  sweeprainbow: 'rainbow',
+  sweepbars: 'sharplines',
+  sweepbreathing: 'breathing',
 };
 
-export function isSimpleAnimation(key: string): boolean {
-  return (SIMPLE_ANIMATION_KEYS as readonly string[]).includes(key);
+/** The current key for one that may be a retired simple-mode key. */
+export function canonicalSimpleKey(key: string): string {
+  return LEGACY_KEY_ALIASES[key] ?? key;
 }
 
-/** i18n key of the tile's name. */
+export function isSimpleAnimation(key: string): boolean {
+  return (SIMPLE_ANIMATION_KEYS as readonly string[]).includes(canonicalSimpleKey(key));
+}
+
+/** i18n key of the tile's name, from the effect's own label. */
 export function simpleAnimationLabelKey(key: string): string {
-  return SIMPLE_ANIMATION_LABELS[key as SimpleAnimationKey];
+  const canonical = canonicalSimpleKey(key);
+  return EFFECTS.find(e => e.key === canonical)?.labelKey ?? canonical;
 }
 
 /**
- * The look a sweep runs with. Every shader in the set travels one way (+x), so
- * direction is the speed sign - the engine reads a negative speed as time
- * running backwards, which turns the sweep around on every device at once.
- * Everything else is left at the base look: simple mode exposes no controls.
+ * The look simple mode runs: the effect's resolved preset 1. Every shader in
+ * the set travels one way (+x), so direction is the speed sign - the engine
+ * reads a negative speed as time running backwards, which turns the pattern
+ * around on every device at once. Reverse is sent as the running state only;
+ * the slot itself is never written.
  */
-export function simpleAnimationState(reversed: boolean): EffectState {
+export function simpleAnimationState(slot0: EffectState, reversed: boolean): EffectState {
   return {
-    speed: reversed ? -50 : 50,
-    intensity: 1,
-    hue: 0,
-    colorize: 0,
-    saturation: 1,
-    contrast: 1,
-    params: {},
+    ...slot0,
+    params: { ...slot0.params },
+    speed: reversed ? -slot0.speed : slot0.speed,
   };
+}
+
+/**
+ * Whether a running state is the reversed form of preset 1: its speed sign is
+ * opposite to the slot's. A zero speed has no direction, so it reads forward.
+ */
+export function isSimpleReversed(runningSpeed: number, slot0Speed: number): boolean {
+  return runningSpeed * slot0Speed < 0;
 }

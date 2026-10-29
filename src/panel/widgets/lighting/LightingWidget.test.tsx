@@ -338,19 +338,19 @@ describe('LightingWidget', () => {
     await waitFor(() => expect(swatch).toHaveAttribute('aria-pressed', 'true'));
   });
 
-  it('leads with Rainbow and applies it with the simple sweep look', async () => {
+  it('leads with Rainbow and applies it with its preset look', async () => {
     vi.mocked(startAnimate).mockClear();
     mockUpdate.mockClear();
     renderLighting(lightingWidget('2x2'));
     await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(3));
 
     const first = document.querySelectorAll('[data-effect-key]')[0] as HTMLElement;
-    expect(first.getAttribute('data-effect-key')).toBe('sweeprainbow');
+    expect(first.getAttribute('data-effect-key')).toBe('rainbow');
     fireEvent.click(first);
     await waitFor(() => expect(startAnimate).toHaveBeenCalled());
-    expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('sweeprainbow');
+    expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('rainbow');
     expect(vi.mocked(startAnimate).mock.calls[0][1]).toBe(50);
-    expect(mockUpdate).toHaveBeenCalledWith({ recentAnimations: ['sweeprainbow'] });
+    expect(mockUpdate).toHaveBeenCalledWith({ recentAnimations: ['rainbow'] });
   });
 
   describe('recently used', () => {
@@ -418,15 +418,15 @@ describe('LightingWidget', () => {
       mockUiSettings.recentAnimations = ['aurora'];
       renderLighting(lightingWidget('4x2', { showRecents: false }));
       await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
-      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('sweeprainbow');
+      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('rainbow');
     });
 
     it('On shows recent animations first, then the fixed order without repeats', async () => {
-      mockUiSettings.recentAnimations = ['aurora', 'sweeprainbow'];
+      mockUiSettings.recentAnimations = ['aurora', 'rainbow'];
       renderLighting(lightingWidget('4x2', { showRecents: true }));
       await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
       const keys = [...document.querySelectorAll('[data-effect-key]')].map(e => e.getAttribute('data-effect-key'));
-      expect(keys).toEqual(['aurora', 'sweeprainbow', 'plasma', 'fire', 'sweepliquid']);
+      expect(keys).toEqual(['aurora', 'rainbow', 'plasma', 'fire', 'sweepliquid']);
     });
 
     it('On shows recent colors first, then the fixed palette without repeats', async () => {
@@ -443,7 +443,7 @@ describe('LightingWidget', () => {
     it('On with no history is the fixed list', async () => {
       renderLighting(lightingWidget('4x2', { showRecents: true }));
       await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
-      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('sweeprainbow');
+      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('rainbow');
     });
   });
 
@@ -478,9 +478,9 @@ describe('LightingWidget', () => {
     expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe(target.getAttribute('data-effect-key'));
   });
 
-  // A simple-mode sweep drives the LEDs without a catalogue entry: the tile
-  // has to picture that, not fall back to the last catalogue effect.
-  it('pictures a running simple-mode sweep in the immersive view', async () => {
+  // A simple-mode animation is a catalogue effect: the tile has to picture it,
+  // not fall back to the last pick.
+  it('pictures a running simple-mode animation in the immersive view', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'sweepcycle' });
     vi.mocked(fetchServiceBlob).mockClear();
     render(<LightingWidget widget={lightingWidget('4x2')} immersive />);

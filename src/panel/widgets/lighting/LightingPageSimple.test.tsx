@@ -226,18 +226,19 @@ describe('LightingPage simple mode', () => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
     });
     fireEvent.click(container.querySelector('[data-palette-id="red-3"]') as HTMLButtonElement);
-    fireEvent.click(container.querySelector('[data-effect-key="sweepbars"]') as HTMLButtonElement);
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
     await waitFor(() => {
       const general = loadSettings().general;
       expect(general.recentStaticColors).toEqual([PALETTE.find(p => p.id === 'red-3')!.hex]);
-      expect(general.recentAnimations).toEqual(['sweepbars']);
+      expect(general.recentAnimations).toEqual(['sharplines']);
     });
   });
 
-  it('offers the animation row under the palette, one tile per sweep', () => {
+  it('offers the animation row under the palette, one tile per animation', () => {
     const { container } = renderPage();
-    expect(container.querySelectorAll('[data-effect-key^="sweep"]').length)
-      .toBe(SIMPLE_ANIMATION_KEYS.length);
+    for (const key of SIMPLE_ANIMATION_KEYS) {
+      expect(container.querySelectorAll(`[data-effect-key="${key}"]`).length).toBe(1);
+    }
   });
 
   it('starts a picked animation without retaking the un-driven device', async () => {
@@ -245,26 +246,55 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
     });
-    fireEvent.click(container.querySelector('[data-effect-key="sweepbars"]') as HTMLButtonElement);
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sweepbars', 50, 1, 0, 0, 1, 1, {});
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 50, 1, 0, 0, 1, 1, {}, true, undefined);
     });
     expect(vi.mocked(lightingApi.setLightingDeviceControlled)).not.toHaveBeenCalled();
-    // A sweep is one shared canvas: nothing is pinned for it.
+    // One shared canvas: nothing is pinned for it.
     expect(vi.mocked(lightingApi.setPins)).not.toHaveBeenCalled();
   });
 
-  it('turns the running sweep around from the direction switch', async () => {
+  // Preset 1 as it resolves (defaults merged with the user's slot 0 edit) is the
+  // look simple mode runs, and the effect's selection moves to it.
+  it('selects slot 0 and runs its resolved look, leaving the other slots alone', async () => {
+    const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
+    const saved = {
+      selected: 2,
+      slots: [{ ...slot(30), params: { u_density: 4 } }, slot(61), slot(62), slot(63)],
+    };
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: saved },
+    } as never);
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 30, 1, 0, 0, 1, 1, { u_density: 4 }, true, undefined);
+    });
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled();
+    });
+    const sent = vi.mocked(lightingApi.saveAnimateTemplates).mock.calls.at(-1)![0] as Record<string, typeof saved>;
+    expect(sent.sharplines.selected).toBe(0);
+    expect(sent.sharplines.slots.map(x => x.speed)).toEqual([30, 61, 62, 63]);
+  });
+
+  it('turns the running animation around by negating slot 0 speed only', async () => {
     syncState.mode = 'animate';
-    syncState.rawSync = 'sweeprainbow';
+    syncState.rawSync = 'rainbow';
     renderPage();
     fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sweeprainbow', -50, 1, 0, 0, 1, 1, {});
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined);
     });
+    // The sign is the running state: no template is written for it.
+    expect(vi.mocked(lightingApi.saveAnimateTemplates)).not.toHaveBeenCalled();
   });
 
-  it('marks the running sweep and does not call it a custom setup', async () => {
+  it('marks the running animation and does not call it a custom setup', async () => {
     syncState.mode = 'animate';
     syncState.rawSync = 'sweepcycle';
     const { container } = renderPage();
@@ -274,6 +304,17 @@ describe('LightingPage simple mode', () => {
     const tile = container.querySelector('[data-effect-key="sweepcycle"]') as HTMLButtonElement;
     expect(tile.className).toContain('cardActive');
     expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
+  });
+
+  it('marks the replacement tile for a retired simple-mode key', async () => {
+    syncState.mode = 'animate';
+    syncState.rawSync = 'sweepbars';
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    const tile = container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement;
+    expect(tile.className).toContain('cardActive');
   });
 
   it('switches to the advanced page from the mode menu', async () => {

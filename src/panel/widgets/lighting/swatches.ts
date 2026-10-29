@@ -1,5 +1,5 @@
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
-import { simpleAnimationLabelKey } from './simpleAnimations';
+import { canonicalSimpleKey } from './simpleAnimations';
 import { PALETTE, paletteColor } from '../../../types/lightingPalette';
 import type { PanelWidget } from '../../types';
 
@@ -32,8 +32,8 @@ export interface SwatchEffect { key: string; labelKey: string }
 
 /** Animation swatch order; the rest of ANIMATE_EFFECTS follows in catalog order. */
 export const DEFAULT_ANIMATION_KEYS = [
-  'sweeprainbow', 'plasma', 'fire', 'sweepliquid', 'sweepcomet',
-  'sweepbreathing', 'watercolor', 'sweepcycle', 'contourbands', 'oilslick',
+  'rainbow', 'plasma', 'fire', 'sweepliquid', 'sweepcomet',
+  'breathing', 'watercolor', 'sweepcycle', 'contourbands', 'oilslick',
   'matrix', 'jellyfish', 'aurora', 'sharplines', 'spiral',
   'cybertunnel', 'crystaltunnel',
 ];
@@ -43,10 +43,7 @@ const MAX_SWATCHES = 32;
 const EFFECT_BY_KEY = new Map<string, SwatchEffect>(ANIMATE_EFFECTS.map(e => [e.key, e]));
 
 function effectFor(key: string): SwatchEffect | null {
-  const fx = EFFECT_BY_KEY.get(key);
-  if (fx) return fx;
-  const labelKey = key.startsWith('sweep') ? simpleAnimationLabelKey(key) : undefined;
-  return labelKey ? { key, labelKey } : null;
+  return EFFECT_BY_KEY.get(canonicalSimpleKey(key)) ?? null;
 }
 
 function defaultEffects(): SwatchEffect[] {

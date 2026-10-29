@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
-import { SIMPLE_ANIMATION_KEYS, simpleAnimationLabelKey } from '../simpleAnimations';
+import { SIMPLE_ANIMATION_KEYS, SIMPLE_SLOT, simpleAnimationLabelKey } from '../simpleAnimations';
 import styles from '../LightingPage.module.scss';
 
 // A tile spans two palette swatches and the gap between them; the swatches are
@@ -13,17 +13,17 @@ import styles from '../LightingPage.module.scss';
 // this rests on.
 const TILE_ASPECT = 2.1;
 
-function AnimationTile({ effectKey, active, noGpu, onSelect }: {
+function AnimationTile({ effectKey, version, active, noGpu, onSelect }: {
   effectKey: string;
+  /** Cache-bust token of preset 1's look, so an edit in advanced refreshes the tile. */
+  version: string;
   active: boolean;
   noGpu: boolean;
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
   const label = t(simpleAnimationLabelKey(effectKey));
-  // Slot 0 with a fixed version: a sweep has no templates to edit, so its
-  // thumbnail is its one canonical render.
-  const url = useEffectThumbnail(effectKey, 0, '0', noGpu);
+  const url = useEffectThumbnail(effectKey, SIMPLE_SLOT, version, noGpu);
   return (
     <EffectCard
       overlay
@@ -40,12 +40,14 @@ function AnimationTile({ effectKey, active, noGpu, onSelect }: {
 
 /**
  * Simple mode's animation row, sat under the colour palette. Picking one drives
- * every device the palette reaches; the switch beneath turns every sweep around
- * at once (the shaders travel one way and the sign of the speed reverses them).
+ * every device the palette reaches; the switch beneath turns the animation around
+ * (the shaders travel one way and the sign of the speed reverses them).
  */
-export function SimpleAnimationRow({ activeKey, reversed, gpuAvailable, onSelect, onReverse }: {
-  /** The running sweep, or null when a colour (or nothing) is driving. */
+export function SimpleAnimationRow({ activeKey, versionFor, reversed, gpuAvailable, onSelect, onReverse }: {
+  /** The running animation, or null when a colour (or nothing) is driving. */
   activeKey: string | null;
+  /** Thumbnail cache-bust token for an animation's preset 1. */
+  versionFor: (key: string) => string;
   reversed: boolean;
   /** False when the host cannot render thumbnails; tiles show placeholders. */
   gpuAvailable?: boolean;
@@ -65,6 +67,7 @@ export function SimpleAnimationRow({ activeKey, reversed, gpuAvailable, onSelect
           <AnimationTile
             key={key}
             effectKey={key}
+            version={versionFor(key)}
             active={key === activeKey}
             noGpu={noGpu}
             onSelect={() => onSelect(key)}

@@ -85,10 +85,10 @@ describe('AnimateGrid category sections', () => {
     expect(has(container, 'spectrumbars')).toBe(true); // audio
   });
 
-  it('orders sections simple, organic, pattern, then the rest with audio last', () => {
+  it('orders sections pattern, organic, then the rest with audio last', () => {
     const { container } = render(<AnimateGrid effect="" onSelect={() => {}} />);
     const text = container.textContent || '';
-    const order = ['simple', 'organic', 'pattern', 'cosmic', 'geometric', 'audio'];
+    const order = ['pattern', 'organic', 'cosmic', 'geometric', 'audio'];
     const idxs = order.map(c => text.indexOf(`lighting.category.${c}`));
     expect(idxs.every(i => i >= 0)).toBe(true);
     expect(idxs).toEqual([...idxs].sort((a, b) => a - b));

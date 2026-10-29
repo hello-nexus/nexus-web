@@ -44,7 +44,7 @@ describe('swatches', () => {
 
   it('puts recent animations first, skipping unknown keys and repeats', () => {
     const keys = pickAnimationTiles(['aurora', 'gone', 'aurora', 'sweeprainbow'], true, 4).map(e => e.key);
-    expect(keys).toEqual(['aurora', 'sweeprainbow', 'plasma', 'fire']);
-    expect(pickAnimationTiles(['aurora'], false, 2).map(e => e.key)).toEqual(['sweeprainbow', 'plasma']);
+    expect(keys).toEqual(['aurora', 'rainbow', 'plasma', 'fire']);
+    expect(pickAnimationTiles(['aurora'], false, 2).map(e => e.key)).toEqual(['rainbow', 'plasma']);
   });
 });
