@@ -2542,6 +2542,8 @@ export function PanelContent({
           ? appRouteForWidget(ctxWidget, deviceId, ctxWidget.type === 'deck' ? deckKeyAt(touch.ctxMenu.target ?? null) : undefined)
           : null;
         const openUrl = genericDisplay && !simulator && !embedded ? webViewOpenUrl(ctxWidget) : null;
+        // The dashboard opens the widget's page, as a tap on its tile does.
+        const dashboardOpen = onDesktopSurface && onSectionNavigate && isDashboardClickthroughType(ctxWidget.type) ? () => onSectionNavigate(ctxWidget.type) : undefined;
         const webSnap = webViewHost.getSnapshot();
         const webView = ctxWidget.type === 'web-view' && !simulator && !embedded && webSnap.status === 'supported' ? webSnap.views[ctxWidget.id] : undefined;
         const webNav = { back: webView?.canGoBack === true, forward: webSnap.navControls && webView?.canGoForward === true, home: webSnap.navControls && webView?.away === true };
@@ -2562,6 +2564,7 @@ export function PanelContent({
             sizes={sizesForSurface(def.meta, surface, widgetTouch, forcedGrid)}
             hasConfig
             title={t(def.meta.i18nKey) || ctxWidget.type}
+            icon={def.meta.icon}
             surface={surface}
             themeMode={resolvedThemeMode}
             themeStyle={webkitSafePanelScale != null ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties : panelThemeVars}
@@ -2593,7 +2596,7 @@ export function PanelContent({
                 pinnedSidebarApps: pinnedTail.filter(k => k !== pinnableKey),
               });
             } : undefined}
-            onOpen={openRoute ? () => { void openAppAt(openRoute); } : openUrl ? () => { void postService('/system/open-url', { url: openUrl }); } : undefined}
+            onOpen={dashboardOpen ? dashboardOpen : openRoute ? () => { void openAppAt(openRoute); } : openUrl ? () => { void postService('/system/open-url', { url: openUrl }); } : undefined}
             widgetItemsLast={onDesktopSurface}
             onClose={touch.closeCtxMenu}
           />
