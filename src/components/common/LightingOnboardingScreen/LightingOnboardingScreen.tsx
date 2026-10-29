@@ -13,6 +13,7 @@ import {
   setLightingDeviceControlled,
   fetchAnimateDefaults,
   fetchAnimateSettings,
+  saveAnimateTemplates,
   startAnimate,
   startStatic,
   type LightingDevice,
@@ -207,9 +208,15 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
 
   const runRainbow = useCallback(() => {
     applyPick(RAINBOW, async () => {
-      // Preset 1 of the effect: stock defaults merged with any saved edit.
+      // The effect's first preset: stock defaults merged with any saved edit,
+      // selected (awaited, before the start) when it was elsewhere.
       const [saved, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
-      const slot0 = mergeTemplates(RAINBOW, saved?.templates?.[RAINBOW], defaults).slots[SIMPLE_SLOT];
+      if (!defaults) return;
+      const bundle = mergeTemplates(RAINBOW, saved?.templates?.[RAINBOW], defaults);
+      if (bundle.selected !== SIMPLE_SLOT) {
+        await saveAnimateTemplates({ ...(saved?.templates ?? {}), [RAINBOW]: { ...bundle, selected: SIMPLE_SLOT } }).catch(() => {});
+      }
+      const slot0 = bundle.slots[SIMPLE_SLOT];
       const state = simpleAnimationState(slot0, false);
       await startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
     });

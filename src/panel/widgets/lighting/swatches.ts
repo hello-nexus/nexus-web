@@ -30,7 +30,7 @@ export const STATIC_SWATCHES = STATIC_SWATCH_IDS
 
 export interface SwatchEffect { key: string; labelKey: string }
 
-/** Animation swatch order; the rest of ANIMATE_EFFECTS follows in catalog order. */
+/** Animation swatch order; the rest of ANIMATE_EFFECTS follows in its own order. */
 export const DEFAULT_ANIMATION_KEYS = [
   'rainbow', 'plasma', 'fire', 'sweepliquid', 'sweepcomet',
   'breathing', 'watercolor', 'sweepcycle', 'contourbands', 'oilslick',

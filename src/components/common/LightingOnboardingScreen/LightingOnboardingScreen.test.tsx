@@ -23,7 +23,8 @@ vi.mock('../../../api/lighting', () => ({
   identifyLightingDevice: vi.fn(),
   startAnimate: vi.fn(),
   fetchAnimateSettings: vi.fn(() => Promise.resolve(null)),
-  fetchAnimateDefaults: vi.fn(() => Promise.resolve(null)),
+  fetchAnimateDefaults: vi.fn(() => Promise.resolve({})),
+  saveAnimateTemplates: vi.fn(() => Promise.resolve(null)),
   startStatic: vi.fn(),
   setPins: vi.fn(),
 }));

@@ -1,12 +1,12 @@
 import { EFFECTS, type EffectState } from '../../../types/lighting';
 
 /**
- * Simple mode's animation set: seven tiles offered under the colour palette.
+ * Simple mode's animation set: the tiles offered under the colour palette.
  *
- * They are ordinary advanced effects (the first seven of the Patterns
- * category) and simple mode runs preset 1, template slot 0, of each. Editing
+ * They are ordinary advanced effects (the lead of the Patterns category) and
+ * simple mode runs the first preset, template slot SIMPLE_SLOT, of each. Editing
  * that preset in advanced therefore changes simple mode too, and simple mode
- * never touches slots 2 to 4. The service renders them across the whole canvas
+ * never touches the other slots. The service renders them across the whole canvas
  * so every device shows the entire pattern.
  */
 export const SIMPLE_ANIMATION_KEYS = [

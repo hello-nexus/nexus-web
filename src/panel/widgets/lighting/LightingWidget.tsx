@@ -471,9 +471,13 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
   const animateState = useMemo(
-    () => (isSimpleAnimation(activeEffect)
-      ? simpleAnimationState(resolveEffectState(activeEffect, templates), sweepReversed)
-      : resolveEffectState(activeEffect, templates)),
+    () => {
+      // Reverse is measured against, and negates, the first preset.
+      const slot0 = templates[activeEffect]?.slots[SIMPLE_SLOT];
+      return sweepReversed && isSimpleAnimation(activeEffect) && slot0
+        ? simpleAnimationState(slot0, true)
+        : resolveEffectState(activeEffect, templates);
+    },
     [activeEffect, sweepReversed, templates],
   );
 

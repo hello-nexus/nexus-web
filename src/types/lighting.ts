@@ -153,7 +153,7 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   ringtunnel: 'geometric', vortextunnel: 'geometric', helixtunnel: 'geometric',
   boxtunnel: 'geometric', harlequin: 'geometric', mosaic: 'geometric',
   cybertunnel: 'geometric',
-  // Pattern: waves, gradients, abstract graphic shapes (22).
+  // Pattern: waves, gradients, abstract graphic shapes.
   rainbow: 'pattern', matrix: 'pattern', ripple: 'pattern', wave: 'pattern',
   gradientwave: 'pattern', ball: 'pattern', radar: 'pattern', pulse: 'pattern',
   interference: 'pattern', domainwarp: 'pattern', dotmatrix: 'pattern',
@@ -295,9 +295,9 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_zoom', label: 'Zoom', labelKey: 'lighting.controls.param.zoom' },
   ]},
   { key: 'fire',         labelKey: 'lighting.controls.fire',         params: [{ name: 'u_turbulence', label: 'Turbulence', labelKey: 'lighting.controls.param.turbulence' }] },
-  // The first seven patterns are the simple-mode animations. Simple mode runs
-  // preset 1 (slot 0) of each, so editing that preset here changes it there.
-  // The browser lists patterns in this order.
+  // The simple-mode animations lead the patterns. Simple mode runs the first
+  // preset of each, so editing that preset here changes it there. The browser
+  // lists patterns in this order.
   { key: 'rainbow',     labelKey: 'lighting.controls.rainbow',     params: [
       { name: 'u_density',  label: 'Density', labelKey: 'lighting.controls.param.density' },
       { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },

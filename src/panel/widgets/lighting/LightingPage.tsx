@@ -2239,28 +2239,50 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [claimableDevices, pins],
   );
 
-  // The switch holds a browser-local preference, but the direction the hardware
-  // is running is the stored speed sign - conform to it once per sweep so a
-  // second browser does not show the switch the wrong way round.
+  // The switch holds a browser-local preference for the next pick; the
+  // direction the hardware is running is the stored speed sign, so conform to
+  // it once per animation and a second browser does not show the switch the
+  // wrong way round.
   const reverseReadFor = useRef<string | null>(null);
 
-  // Simple mode runs preset 1 (slot 0) of a regular effect: selecting a tile
-  // moves that effect's selection to slot 0 (saved only when it was elsewhere)
-  // and runs the slot's resolved look. Slots 2 to 4 are never read or written.
-  const selectSimpleSlot = useCallback((key: string): EffectState => {
-    const bundle = effectTemplatesRef.current[key];
-    if (bundle && bundle.selected !== SIMPLE_SLOT) {
+  // Simple mode runs the first preset of a regular effect: this moves the
+  // effect's selection there (saved, and awaited, only when it was elsewhere,
+  // because the service re-applies the selected preset on that save and would
+  // overwrite a reversed start sent before it lands) and returns the preset's
+  // resolved look. Resolves null while the stock defaults or this effect's
+  // templates cannot be loaded: starting then would persist a wrong look.
+  const selectSimpleSlot = useCallback(async (key: string): Promise<EffectState | null> => {
+    let templates = effectTemplatesRef.current;
+    if (!animateDefaults || !templates[key]) {
+      const [data, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
+      if (!data || !defaults) return null;
+      setAnimateDefaults(defaults);
+      const loaded: Record<string, EffectTemplateBundle> = {};
+      for (const fx of EFFECTS) loaded[fx.key] = mergeTemplates(fx.key, data.templates?.[fx.key], defaults);
+      for (const k of Object.keys(data.templates ?? {})) {
+        if (isCustomEffectKey(k)) loaded[k] = mergeTemplates(k, data.templates?.[k], defaults);
+      }
+      templates = loaded;
+      effectTemplatesRef.current = loaded;
+      setEffectTemplates(loaded);
+      setCommittedTemplates(loaded);
+    }
+    const bundle = templates[key];
+    if (!bundle) return null;
+    if (bundle.selected !== SIMPLE_SLOT) {
       localAnimateEditUntilRef.current = Date.now() + 1500;
-      const next = { ...effectTemplatesRef.current, [key]: { ...bundle, selected: SIMPLE_SLOT } };
-      void writeTemplates(next, null, true);
+      const next = { ...templates, [key]: { ...bundle, selected: SIMPLE_SLOT } };
+      await writeTemplates(next, null, true);
       setCommittedTemplates(next);
     }
-    return stateOf(key, SIMPLE_SLOT);
-  }, [stateOf, writeTemplates]);
+    return bundle.slots[SIMPLE_SLOT];
+  }, [animateDefaults, writeTemplates]);
 
   // One shared shader for every device, so starting Animate is the whole
   // assignment - there is no per-device write to make.
   const handleSimpleAnimationSelect = useCallback(async (key: string) => {
+    const slot0 = await selectSimpleSlot(key);
+    if (!slot0) return;
     recordAnimation(key);
     claimAllDevices(false);
     unpinAll();
@@ -2271,7 +2293,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     reverseReadFor.current = key;
     setMode('animate');
     setRawSync(key);
-    const state = simpleAnimationState(selectSimpleSlot(key), simpleReversed);
+    const state = simpleAnimationState(slot0, simpleReversed);
     try {
       // Re-picking the running effect reuses the live shader, and that path
       // never clears the engine's hold, so a paused engine has to be released
@@ -2282,17 +2304,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     } catch { /* the sync poll reconciles */ }
   }, [claimAllDevices, paused, selectSimpleSlot, setMode, setPausedState, setRawSync, simpleReversed, unpinAll, recordAnimation]);
 
-  // The running simple-mode animation, which is also what marks a tile.
+  // The running simple-mode animation, which is also what marks a tile. Only
+  // the first preset counts: the same effect on another preset is a custom
+  // setup that simple mode neither marks nor reverses.
   const simpleAnimation = synced && mode === 'animate' && isSimpleAnimation(rawSync)
+    && slotOf(canonicalSimpleKey(rawSync)) === SIMPLE_SLOT
     ? canonicalSimpleKey(rawSync)
     : null;
 
-  // Turning the row around restarts the running animation with preset 1's
+  // Turning the row around restarts the running animation with the preset's
   // speed negated. The sign lives in the running state only, never in the slot.
   const handleSimpleReverse = useCallback(async (next: boolean) => {
     setSimpleReversed(next);
     if (!simpleAnimation) return;
-    const state = simpleAnimationState(selectSimpleSlot(simpleAnimation), next);
+    const slot0 = await selectSimpleSlot(simpleAnimation);
+    if (!slot0) return;
+    const state = simpleAnimationState(slot0, next);
     try {
       // Same in-place uniform path a re-pick takes, which never clears the
       // engine's hold, so a paused engine has to be released explicitly.
@@ -2307,13 +2334,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     reverseReadFor.current = simpleAnimation;
     let cancelled = false;
     Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]).then(([data, defaults]) => {
-      const speed = data?.states?.[simpleAnimation]?.speed;
-      if (cancelled || typeof speed !== 'number') return;
-      const slot0 = mergeTemplates(simpleAnimation, data?.templates?.[simpleAnimation], defaults).slots[SIMPLE_SLOT];
+      if (cancelled || !data) return;
+      // The service drops a running state equal to the selected preset, so a
+      // missing one is the forward direction. A retired key may still hold it.
+      const speed = data.states?.[rawSync]?.speed ?? data.states?.[simpleAnimation]?.speed;
+      if (typeof speed !== 'number') { setSimpleReversed(false); return; }
+      const slot0 = mergeTemplates(simpleAnimation, data.templates?.[simpleAnimation], defaults).slots[SIMPLE_SLOT];
       setSimpleReversed(isSimpleReversed(speed, slot0.speed));
     }).catch(() => { /* keep the local value */ });
     return () => { cancelled = true; };
-  }, [simpleAnimation, setSimpleReversed]);
+  }, [simpleAnimation, rawSync, setSimpleReversed]);
 
   // The swatch simple mode marks active: the exact global color, when it is
   // one of the palette's.

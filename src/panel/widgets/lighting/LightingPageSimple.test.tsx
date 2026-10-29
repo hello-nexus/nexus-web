@@ -53,7 +53,7 @@ vi.mock('../../../api/lighting', async importOriginal => {
     fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'none' })),
     fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', states: {}, templates: {} })),
     fetchStaticSettings: vi.fn(() => Promise.resolve({ effect: 'gradientlinear', states: {} })),
-    fetchAnimateDefaults: vi.fn(() => Promise.resolve(null)),
+    fetchAnimateDefaults: vi.fn(() => Promise.resolve({})),
     cachedAnimateDefaults: vi.fn(() => null),
     fetchMusicReactive: vi.fn(() => Promise.resolve({ enabled: false })),
     fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1 })),
@@ -93,6 +93,11 @@ describe('LightingPage simple mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(lightingApi.fetchStaticSettings).mockResolvedValue({ effect: 'gradientlinear', states: {} });
+    // Tests below override these; put the file defaults back so order never matters.
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', states: {}, templates: {} } as never);
+    vi.mocked(lightingApi.fetchAnimateDefaults).mockResolvedValue({});
+    vi.mocked(lightingApi.saveAnimateTemplates).mockResolvedValue(null as never);
+    vi.mocked(lightingApi.startAnimate).mockResolvedValue(null as never);
     // Fresh install: no stored settings, both page modes default to 'simple'.
     localStorage.clear();
     syncState.mode = 'none';
@@ -292,6 +297,70 @@ describe('LightingPage simple mode', () => {
     });
     // The sign is the running state: no template is written for it.
     expect(vi.mocked(lightingApi.saveAnimateTemplates)).not.toHaveBeenCalled();
+  });
+
+  // The service re-applies the selected preset when the selection is saved, so a
+  // reversed start sent before the save lands would be overwritten with the
+  // forward speed.
+  it('saves the slot 0 selection before starting a reversed animation', async () => {
+    const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: { selected: 1, slots: [slot(30), slot(60), slot(60), slot(60)] } },
+    } as never);
+    const order: string[] = [];
+    let releaseSave: () => void = () => {};
+    vi.mocked(lightingApi.saveAnimateTemplates).mockImplementation(() => new Promise(resolve => {
+      order.push('save');
+      releaseSave = () => { order.push('saved'); resolve(null as never); };
+    }));
+    vi.mocked(lightingApi.startAnimate).mockImplementation(() => { order.push('start'); return Promise.resolve(null as never); });
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => expect(order).toContain('save'));
+    expect(order).not.toContain('start');
+    releaseSave();
+    await waitFor(() => expect(order).toContain('start'));
+    expect(order).toEqual(['save', 'saved', 'start']);
+    expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', -30, 1, 0, 0, 1, 1, {}, true, undefined);
+  });
+
+  it('starts nothing while the stock defaults cannot be loaded', async () => {
+    vi.mocked(lightingApi.fetchAnimateDefaults).mockResolvedValue(null);
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchAnimateDefaults)).toHaveBeenCalled();
+    });
+    expect(vi.mocked(lightingApi.startAnimate)).not.toHaveBeenCalled();
+    expect(vi.mocked(lightingApi.saveAnimateTemplates)).not.toHaveBeenCalled();
+  });
+
+  it('reads a missing running state as forward, whatever was stored locally', async () => {
+    localStorage.setItem('nexus.lighting.simpleReversed', 'true');
+    syncState.mode = 'animate';
+    syncState.rawSync = 'rainbow';
+    renderPage();
+    const toggle = screen.getByRole('switch', { name: 'lighting.simple.reverse' });
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
+  });
+
+  it('marks no tile when the effect runs on another preset', async () => {
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { rainbow: { selected: 2, slots: [] } },
+    } as never);
+    syncState.mode = 'animate';
+    syncState.rawSync = 'rainbow';
+    const { container } = renderPage();
+    expect(await screen.findByText('lighting.simple.customActive')).toBeTruthy();
+    const tile = container.querySelector('[data-effect-key="rainbow"]') as HTMLButtonElement;
+    expect(tile.className).not.toContain('cardActive');
   });
 
   it('marks the running animation and does not call it a custom setup', async () => {
