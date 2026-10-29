@@ -142,6 +142,35 @@ describe('WeatherPage', () => {
     expect(api.saveWeatherPrefs).not.toHaveBeenCalled();
   });
 
+  it('removes the unsaved row without touching the saved list', async () => {
+    render(<WeatherPage tab="48.86~2.35" />);
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove 48.86, 2.35' }));
+    await flush();
+    expect(api.saveWeatherPrefs).not.toHaveBeenCalled();
+    expect(within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option')).toHaveLength(3);
+  });
+
+  it('removes the saved copy on the first click once the unsaved place is saved', async () => {
+    vi.useFakeTimers();
+    api.geocodeWeatherLocations.mockResolvedValue({
+      results: [{ name: 'Paris', admin1: 'Ile-de-France', country: 'France', countryCode: 'FR', latitude: 48.85, longitude: 2.35 }],
+    });
+    render(<WeatherPage tab="48.85~2.35" />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    fireEvent.change(screen.getByPlaceholderText('Search for a city...'), { target: { value: 'Par' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    fireEvent.click(screen.getByText('Paris, Ile-de-France, France'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option')).toHaveLength(4);
+    api.saveWeatherPrefs.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Paris, FR' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(api.saveWeatherPrefs).toHaveBeenCalledWith({ locations: [BERLIN, TOKYO] });
+    expect(within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option')).toHaveLength(3);
+    vi.useRealTimers();
+  });
+
   it('keeps the auto place for an absent or malformed tab', async () => {
     const { unmount } = render(<WeatherPage tab="bad" />);
     await flush();

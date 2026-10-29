@@ -108,7 +108,7 @@ function WeatherPlaceRow({
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
   const { snap, loaded } = useWeatherSnapshot(place.location);
-  const unit = resolveUnit(unitPref, place.location?.cc ?? snap?.countryCode);
+  const unit = resolveUnit(unitPref, place.location?.cc || snap?.countryCode);
   const conditionKey = weatherConditionKey(snap?.weatherCode);
   const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
   const today = snap?.daily?.[0];

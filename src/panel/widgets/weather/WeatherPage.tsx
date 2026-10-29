@@ -47,7 +47,7 @@ export function WeatherPage({ tab }: { tab?: string }) {
     appliedTab.current = tab;
     if (!places.some(p => p.key === wanted)) {
       const [lat, lon] = wanted.split(',').map(Number);
-      // The tab carries no name; the coordinates label it, cc stays empty so the unit follows the snapshot.
+      // The tab carries no name; the coordinates label it, cc stays empty so the unit falls back to the snapshot's country.
       setUnsaved({ lat, lon, label: `${lat}, ${lon}`, cc: '' });
     }
     setSelectedKey(wanted);
@@ -84,7 +84,10 @@ export function WeatherPage({ tab }: { tab?: string }) {
             selectedKey={selected.key}
             onSelect={setSelectedKey}
             onAdd={addLocation}
-            onRemove={location => (sameWeatherLocation(location, unsaved) ? setUnsaved(null) : removeLocation(location))}
+            onRemove={location => {
+              if (sameWeatherLocation(location, unsaved)) setUnsaved(null);
+              if (prefs.locations.some(l => sameWeatherLocation(l, location))) removeLocation(location);
+            }}
             unitPref={prefs.unit}
             canSearch
             showTitle={false}
