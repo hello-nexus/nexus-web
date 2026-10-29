@@ -311,7 +311,7 @@ describe('isSingleWidgetSurface', () => {
 describe('catalog listing (delist)', () => {
   // Delisted from the Add-a-Widget picker but still resolvable: an existing
   // placed instance keeps rendering; only new insertion is removed.
-  const DELISTED = ['steam', 'build'] as const;
+  const DELISTED = ['steam'] as const;
 
   it('hides the delisted built-ins from the picker yet keeps them resolvable', () => {
     const listedTypes = new Set(
@@ -325,6 +325,15 @@ describe('catalog listing (delist)', () => {
       expect(listedTypes.has(type), `${type} must not appear in the picker`).toBe(false);
       expect(lookupApp(type), `${type} must stay resolvable for placed instances`).toBeDefined();
     }
+  });
+
+  it('lists the Build tile in the picker', () => {
+    const listedTypes = new Set(
+      getCatalogEntries()
+        .filter(([, def]) => def.meta.listed !== false)
+        .map(([type]) => type),
+    );
+    expect(listedTypes.has('build')).toBe(true);
   });
 
   it('keeps frames out of the widget registry: it is a page-only app', () => {
