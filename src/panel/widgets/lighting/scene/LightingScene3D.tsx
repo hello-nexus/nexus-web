@@ -1,23 +1,18 @@
 import { useCallback, useMemo, useState, type RefObject } from 'react';
-import { Box, Eye, EyeOff, FlipHorizontal2, Link, Move3d, RotateCw, Trash2, Zap } from 'lucide-react';
+import { Box, Eye, EyeOff, Zap } from 'lucide-react';
 import type { LightingDevice } from '../../../../api/lighting';
 import type { SceneCamera, SceneObject } from '../../../../api/lightingScene';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState } from '../../../../types/lighting';
 import { Button } from '../../../../components/common/Button/Button';
-import { useToastSafe } from '../../../../components/common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
-import { pluralKey } from '../../../../lib/pluralKey';
-import { autoPlace } from '../../../../lib/scene/autoPlace';
 import { ledWorldPositions, placements } from '../../../../lib/scene/sceneMath';
 import { DEFAULT_FOV, presetCamera, type CameraPreset } from '../../../../lib/scene/scenePresets';
 import type { ScenePick } from '../../../../lib/scene/sceneRenderer';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport, type Backdrop } from './SceneViewport';
-import { SceneDevicePanel } from './SceneDevicePanel';
 import { anchorLabel, objectLabel } from './sceneLabels';
 import { deviceForPick, pickForStack } from '../../../../lib/scene/pickDevice';
-import { flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -37,7 +32,6 @@ export interface LightingScene3DProps {
 }
 
 const PRESETS: CameraPreset[] = ['front', 'angle', 'side', 'top'];
-const TOAST_MS = 2600;
 
 const BACKDROP_NEXT: Record<Backdrop, Backdrop> = { dim: 'full', full: 'off', off: 'dim' };
 
@@ -68,7 +62,7 @@ function useSceneLeds(api: LightingSceneApi, devices: LightingDevice[]): Map<str
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
-/** The hover chip's text: who sits on a spot, or that it is free; an object's name. */
+/** The hover chip's text: who sits on a spot, or an object's name; nothing for a free spot. */
 function sceneHoverLabel(t: Translate, scene: { objects: SceneObject[]; bindings: { deviceId: string; targets: { objectId: string; anchorId: string }[] }[] }, devices: LightingDevice[], pick: ScenePick): string | null {
   const obj = scene.objects.find(o => o.id === pick.objectId);
   if (!obj) return null;
@@ -79,7 +73,7 @@ function sceneHoverLabel(t: Translate, scene: { objects: SceneObject[]; bindings
   const names = scene.bindings
     .filter(b => b.targets.some(tg => tg.objectId === pick.objectId && tg.anchorId === pick.anchorId))
     .map(b => devices.find(d => d.id === b.deviceId)?.name ?? b.deviceId);
-  if (names.length === 0) return t('lighting.scene.hover.free', { spot });
+  if (names.length === 0) return null;
   // A device named after its spot (a "Top fan 2" on Top fan 2) needs saying once.
   if (names.length === 1 && names[0].trim().toLowerCase() === spot.toLowerCase()) return names[0];
   return t('lighting.scene.hover.placed', { device: names.join(', '), spot });
@@ -118,29 +112,12 @@ export default function LightingScene3D({
   api, devices, selectedDeviceId, onSelectDevice, shaderEffect, shaderState, shaderPaused, audioRef,
   onIdentify, onLayoutCommit,
 }: LightingScene3DProps) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const leds = useSceneLeds(api, devices);
   const [backdrop, setBackdrop] = useState<Backdrop>('dim');
-  const [placing, setPlacing] = useState<Placing | null>(null);
-  // Devices auto-place found no free spot for: the item is added in Build.
-  const [missing, setMissing] = useState<ReadonlySet<string>>(new Set());
-  const toast = useToastSafe();
   const scene = api.scene;
 
-  const placeable = useMemo(() => devices.filter(d => d.controlled !== false && d.ledCount > 0), [devices]);
   const deviceName = useCallback((id: string) => devices.find(d => d.id === id)?.name ?? id, [devices]);
-  const objectsById = useMemo(() => new Map((scene?.objects ?? []).map(o => [o.id, o])), [scene?.objects]);
-  const bindingOf = useCallback((id: string) => scene?.bindings.find(b => b.deviceId === id), [scene?.bindings]);
-
-  const whereLabel = useCallback((deviceId: string) => {
-    const binding = bindingOf(deviceId);
-    if (!binding) return t('lighting.scene.devices.notPlaced');
-    return binding.targets.map(tg => {
-      const obj = objectsById.get(tg.objectId);
-      const anchor = obj?.anchors.find(a => a.id === tg.anchorId);
-      return obj && anchor ? anchorLabel(t, obj, anchor) : '';
-    }).filter(Boolean).join(', ');
-  }, [bindingOf, objectsById, t]);
 
   const onCamera = useCallback((cam: SceneCamera, final: boolean) => {
     const saved = api.setCamera(cam, final);
@@ -148,58 +125,18 @@ export default function LightingScene3D({
     if (final) void saved.then(() => onLayoutCommit?.());
   }, [api, onLayoutCommit]);
 
-  // A placement is saved at once: the hook writes the bindings after a short quiet spell.
-  const place = useCallback((deviceId: string, objectId: string, anchorId: string, append: boolean) => {
-    api.update(s => placeDevice(s, deviceId, objectId, anchorId, append));
-    onSelectDevice(deviceId);
-    setPlacing(null);
-  }, [api, onSelectDevice]);
-
-  const onPick = useCallback((rawPick: ScenePick | null, stack: ScenePick[]) => {
+  // The scene is read-only here: a click selects the device it shows, and placing happens in Build.
+  const onPick = useCallback((_rawPick: ScenePick | null, stack: ScenePick[]) => {
     if (!scene) return;
-    // A device waiting for a surface takes the front-most one, free or not.
-    if (placing && rawPick?.kind === 'anchor') {
-      place(placing.deviceId, rawPick.objectId, rawPick.anchorId, placing.append);
-      return;
-    }
-    // The device is what the hover names, looking past free things.
     const bound = deviceForPick(scene.bindings, pickForStack(scene.bindings, stack));
-    if (rawPick?.kind === 'anchor' && !bound && selectedDeviceId && !bindingOf(selectedDeviceId)) {
-      place(selectedDeviceId, rawPick.objectId, rawPick.anchorId, false);
-      return;
-    }
-    setPlacing(null);
     if (bound) onSelectDevice(bound);
-  }, [scene, placing, place, selectedDeviceId, bindingOf, onSelectDevice]);
-
-  const onDropDevice = useCallback((deviceId: string, pick: ScenePick | null) => {
-    if (pick?.kind === 'anchor') place(deviceId, pick.objectId, pick.anchorId, false);
-  }, [place]);
-
-  const onRowSelect = useCallback((deviceId: string) => {
-    onSelectDevice(deviceId);
-    setPlacing(bindingOf(deviceId) ? null : { deviceId, append: false });
-  }, [bindingOf, onSelectDevice]);
+  }, [scene, onSelectDevice]);
 
   if (!scene) return <div className={styles.viewport} />;
 
-  const runAutoPlace = () => {
-    const result = autoPlace(scene.objects, scene.bindings, placeable);
-    setMissing(new Set(result.missing));
-    if (result.placed.length === 0) {
-      toast.push({ title: t('lighting.scene.devices.nothingToPlace'), durationMs: TOAST_MS });
-      return;
-    }
-    api.update(s => ({ ...s, bindings: result.bindings }));
-    toast.push({ title: t(pluralKey('lighting.scene.devices.autoPlaced', language, result.placed.length), { count: result.placed.length }), durationMs: TOAST_MS });
-  };
-
   const noItems = scene.objects.length === 0;
-  const selectedBinding = selectedDeviceId ? bindingOf(selectedDeviceId) ?? null : null;
+  const selectedBound = selectedDeviceId !== null && scene.bindings.some(b => b.deviceId === selectedDeviceId);
   const fov = scene.view.camera?.fov ?? DEFAULT_FOV;
-  const hint = placing
-    ? t(placing.append ? 'lighting.scene.hint.append' : 'lighting.scene.hint.place', { device: deviceName(placing.deviceId) })
-    : t('lighting.scene.hint.orbit');
 
   return (
     <div className={styles.inlineLayout}>
@@ -210,7 +147,6 @@ export default function LightingScene3D({
         caseScene={api.caseScene}
         leds={leds}
         selectedDeviceId={selectedDeviceId}
-        placing={placing !== null || (selectedDeviceId !== null && !selectedBinding)}
         backdrop={backdrop}
         shaderEffect={shaderEffect}
         shaderState={shaderState}
@@ -218,7 +154,6 @@ export default function LightingScene3D({
         audioRef={audioRef}
         onPick={onPick}
         onCamera={onCamera}
-        onDropDevice={onDropDevice}
         hoverLabel={(pick, stack) => sceneHoverLabel(t, scene, devices, pickForStack(scene.bindings, stack) ?? pick)}
         publishPoints
       >
@@ -230,23 +165,14 @@ export default function LightingScene3D({
           </Button>
         </div>
         <div className={styles.overlayBottom}>
-          <div className={styles.hint}>{hint}</div>
-          {placing && (
-            <Button size="sm" tone="neutral" onClick={() => setPlacing(null)}>{t('lighting.scene.cancel')}</Button>
-          )}
+          <div className={styles.hint}>{t('lighting.scene.hint.orbit')}</div>
         </div>
-        {selectedBinding && selectedDeviceId && (
+        {selectedBound && selectedDeviceId && onIdentify && (
           <div className={styles.floatingInspector} aria-live="polite">
             <section className={styles.inspectorSection}>
               <div className={styles.inspectorTitle}>{deviceName(selectedDeviceId)}</div>
-              <div className={styles.sectionNote}>{whereLabel(selectedDeviceId)}</div>
               <div className={styles.buttonRow}>
-                <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => rotateBinding(s, selectedDeviceId))}>{t('lighting.scene.device.rotate')}</Button>
-                <Button size="sm" tone="neutral" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => flipBinding(s, selectedDeviceId))}>{t('lighting.scene.device.flip')}</Button>
-                <Button size="sm" tone="neutral" icon={<Move3d size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: false })}>{t('lighting.scene.device.move')}</Button>
-                <Button size="sm" tone="neutral" icon={<Link size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: true })}>{t('lighting.scene.device.addSurface')}</Button>
-                {onIdentify && <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => onIdentify(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>}
-                <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => unplaceDevice(s, selectedDeviceId))}>{t('lighting.scene.device.unplace')}</Button>
+                <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => onIdentify(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>
               </div>
             </section>
           </div>
@@ -261,23 +187,6 @@ export default function LightingScene3D({
           </div>
         )}
       </SceneViewport>
-      <SceneDevicePanel
-        devices={placeable}
-        isPlaced={id => !!bindingOf(id)}
-        whereLabel={whereLabel}
-        activeId={placing?.deviceId ?? selectedDeviceId}
-        missing={missing}
-        emphasizeAutoPlace={scene.bindings.length === 0}
-        onSelect={onRowSelect}
-        onAutoPlace={runAutoPlace}
-        onAddInBuild={() => requestOpenBuild('/builder')}
-      />
     </div>
   );
-}
-
-interface Placing {
-  deviceId: string;
-  /** Adds another surface to the device (a fan chain) instead of moving it. */
-  append: boolean;
 }

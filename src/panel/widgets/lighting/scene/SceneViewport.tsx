@@ -9,9 +9,6 @@ import { setScenePoints } from '../../../../lib/scene/scenePointsStore';
 import { useTranslation } from '../../../../lib/i18n';
 import styles from './Scene.module.scss';
 
-/** The drag payload a device row carries onto the viewport. */
-export const DEVICE_DRAG_TYPE = 'application/x-nexus-device';
-
 export type Backdrop = 'full' | 'dim' | 'off';
 
 interface SceneViewportProps {
@@ -20,7 +17,6 @@ interface SceneViewportProps {
   caseScene: CaseScene | null;
   leds: Map<string, Float32Array>;
   selectedDeviceId: string | null;
-  placing: boolean;
   backdrop: Backdrop;
   shaderEffect: string | null;
   shaderState: EffectState | null;
@@ -28,7 +24,6 @@ interface SceneViewportProps {
   audioRef?: RefObject<AudioSnapshot | null>;
   onPick: (pick: ScenePick | null, stack: ScenePick[]) => void;
   onCamera: (camera: SceneCamera, final: boolean) => void;
-  onDropDevice?: (deviceId: string, pick: ScenePick | null) => void;
   /** Names what the pointer rests on, shown as a chip beside it; null shows nothing. */
   hoverLabel?: (pick: ScenePick, stack: ScenePick[]) => string | null;
   /** Feed the device cards' readouts with where the camera puts each LED. */
@@ -49,9 +44,9 @@ function cssColor(el: Element, name: string, fallback: string): string {
 }
 
 export function SceneViewport({
-  scene, model, caseScene, leds, selectedDeviceId, placing, backdrop,
+  scene, model, caseScene, leds, selectedDeviceId, backdrop,
   shaderEffect, shaderState, shaderPaused, audioRef,
-  onPick, onCamera, onDropDevice, hoverLabel, publishPoints, rendererRef, className, children,
+  onPick, onCamera, hoverLabel, publishPoints, rendererRef, className, children,
 }: SceneViewportProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +54,6 @@ export function SceneViewport({
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const rendererInst = useRef<SceneRenderer | null>(null);
   const [failed, setFailed] = useState(false);
-  const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
   const shaderStateRef = useRef(shaderState);
   shaderStateRef.current = shaderState;
@@ -129,39 +123,19 @@ export function SceneViewport({
       leds,
       selectedDeviceId,
       selectedObjectId: null,
-      placing,
-      dropTarget,
+      placing: false,
+      dropTarget: null,
       editable: false,
     });
-  }, [scene.objects, scene.bindings, leds, selectedDeviceId, placing, dropTarget]);
+  }, [scene.objects, scene.bindings, leds, selectedDeviceId]);
 
   const camera = scene.view.camera;
   useEffect(() => {
     if (camera) rendererInst.current?.setCamera(camera);
   }, [camera]);
 
-  const dropKey = (pick: ScenePick | null) => (pick?.kind === 'anchor' ? `${pick.objectId}\n${pick.anchorId}` : null);
-
   return (
-    <div
-      ref={containerRef}
-      className={`${styles.viewport} ${className ?? ''}`}
-      onDragOver={e => {
-        if (!onDropDevice || !e.dataTransfer.types.includes(DEVICE_DRAG_TYPE)) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        const key = dropKey(rendererInst.current?.pickAt(e.clientX, e.clientY) ?? null);
-        if (key !== dropTarget) setDropTarget(key);
-      }}
-      onDragLeave={() => setDropTarget(null)}
-      onDrop={e => {
-        const id = e.dataTransfer.getData(DEVICE_DRAG_TYPE);
-        setDropTarget(null);
-        if (!id || !onDropDevice) return;
-        e.preventDefault();
-        onDropDevice(id, rendererInst.current?.pickAt(e.clientX, e.clientY) ?? null);
-      }}
-    >
+    <div ref={containerRef} className={`${styles.viewport} ${className ?? ''}`}>
       <div className={styles.backdrop} data-backdrop={backdrop}>
         <CanvasBackground />
         <canvas ref={glCanvasRef} className={`${styles.glBackdrop} ${ready ? styles.glBackdropReady : ''}`} />
