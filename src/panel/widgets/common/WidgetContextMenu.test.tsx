@@ -54,6 +54,68 @@ describe('WidgetContextMenu', () => {
   });
 });
 
+describe('WidgetContextMenu name row', () => {
+  const base = { x: 0, y: 0, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: false, title: 'Clock', onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+
+  it('is the Open action when the widget can open, with an arrow and no separate Open item', () => {
+    const onOpen = vi.fn();
+    const { container } = render(<WidgetContextMenu {...base} onOpen={onOpen} />);
+    const row = screen.getByRole('button', { name: 'featureDisabled.widget.open' });
+    expect(row.textContent).toBe('Clock');
+    expect(row.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByText('search.kind.open')).toBeNull();
+    fireEvent.click(row);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(container.firstElementChild!.children[1].className).toContain('divider');
+  });
+
+  it('renders no separate Immersive mode item', () => {
+    render(<WidgetContextMenu {...base} onImmersive={vi.fn()} />);
+    expect(screen.queryByText('panel.widget.menu.immersive')).toBeNull();
+  });
+
+  it('runs the immersive handler from the name row when immersive is available', () => {
+    const onImmersive = vi.fn();
+    render(<WidgetContextMenu {...base} onImmersive={onImmersive} />);
+    fireEvent.click(screen.getByRole('button', { name: 'featureDisabled.widget.open' }));
+    expect(onImmersive).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the immersive row without a title', () => {
+    const onImmersive = vi.fn();
+    render(<WidgetContextMenu {...base} title={undefined} onImmersive={onImmersive} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.menu.immersive' }));
+    expect(onImmersive).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a plain Open item beside the immersive name row', () => {
+    const onImmersive = vi.fn();
+    const onOpen = vi.fn();
+    render(<WidgetContextMenu {...base} onImmersive={onImmersive} onOpen={onOpen} />);
+    fireEvent.click(screen.getByText('openInApp.open'));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onImmersive).not.toHaveBeenCalled();
+  });
+
+  it('is an inert label without an arrow when there is nothing to open', () => {
+    const { container } = render(<WidgetContextMenu {...base} />);
+    const label = screen.getByText('Clock');
+    const row = label.parentElement!;
+    expect(row.getAttribute('role')).toBe('presentation');
+    expect(row.hasAttribute('tabindex')).toBe(false);
+    expect(row.closest('button')).toBeNull();
+    expect(row.querySelector('svg')).toBeNull();
+    const focusable = Array.from(document.querySelectorAll('button, [tabindex]'));
+    expect(focusable.every(el => !el.contains(label))).toBe(true);
+    expect(container.firstElementChild!.children[1].className).toContain('divider');
+  });
+
+  it('renders no row or separator without a title', () => {
+    render(menu(1, vi.fn()));
+    expect(document.querySelector('[role="presentation"]')).toBeNull();
+  });
+});
+
 // A panel scales the menu up; it scales about --menu-origin, so the layout box
 // must sit where the painted (scaled) box ends up clamped inside the viewport.
 describe('WidgetContextMenu on a scaled panel', () => {
@@ -122,9 +184,9 @@ describe('WidgetContextMenu lock widgets', () => {
     expect(screen.getByText('panel.widget.menu.lockWidgets')).toBeTruthy();
   });
 
-  it('keeps Immersive mode reachable while locked', () => {
-    render(<WidgetContextMenu {...base} locked onToggleLock={vi.fn()} onImmersive={vi.fn()} />);
-    expect(screen.getByText('panel.widget.menu.immersive')).toBeTruthy();
+  it('keeps the immersive name row reachable while locked', () => {
+    render(<WidgetContextMenu {...base} title="Clock" locked onToggleLock={vi.fn()} onImmersive={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'featureDisabled.widget.open' })).toBeTruthy();
   });
 
   it('shows no lock item where lock is not offered', () => {

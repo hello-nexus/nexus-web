@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { appRouteForWidget } from './panelLayoutHelpers';
+import { appRouteForWidget, widgetOpenTab } from './panelLayoutHelpers';
 import { APP_REGISTRY } from '../widgets/registry';
 
 const VIEWS_WITH_A_CASE = new Set([
@@ -14,6 +14,17 @@ describe('appRouteForWidget', () => {
   it('opens the widget\'s own page when it has one', () => {
     expect(appRouteForWidget({ id: 'w', type: 'monitoring' })).toBe('/system/monitoring');
     expect(appRouteForWidget({ id: 'w', type: 'lighting' })).toBe('/system/lighting');
+  });
+
+  it('opens the weather page on the widget\'s custom place, and plain for auto', () => {
+    const custom = { lat: 52.52, lon: 13.405, label: 'Berlin, DE', cc: 'DE' };
+    expect(appRouteForWidget({ id: 'w', type: 'weather', config: { location: custom } })).toBe('/system/weather/52.52~13.405');
+    expect(appRouteForWidget({ id: 'w', type: 'weather', config: { location: null } })).toBe('/system/weather');
+    expect(appRouteForWidget({ id: 'w', type: 'weather' })).toBe('/system/weather');
+    expect(widgetOpenTab({ type: 'weather', config: { location: custom } })).toBe('52.52~13.405');
+    expect(widgetOpenTab({ type: 'weather' })).toBeUndefined();
+    expect(widgetOpenTab({ type: 'clock', config: { location: custom } })).toBeUndefined();
+    expect(appRouteForWidget({ id: 'w', type: 'weather', config: { location: { ...custom, lat: -33.87, lon: -70.1 } } })).toMatch(SAFE_ROUTE);
   });
 
   it('has no route for a widget with no page or editor', () => {
