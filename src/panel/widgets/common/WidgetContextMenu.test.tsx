@@ -54,20 +54,35 @@ describe('WidgetContextMenu', () => {
   });
 });
 
-describe('WidgetContextMenu title', () => {
-  it('renders the widget name as a non-focusable presentation line', () => {
-    render(<WidgetContextMenu x={0} y={0} currentSize="2x2" sizes={['2x2']} hasConfig={false} title="Clock" onResize={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} onClose={vi.fn()} />);
-    const label = screen.getByText('Clock');
-    expect(label.getAttribute('role')).toBe('presentation');
-    expect(label.hasAttribute('tabindex')).toBe(false);
-    expect(label.closest('button')).toBeNull();
-    // Tab order holds only the real items.
-    const focusable = Array.from(document.querySelectorAll('button, [tabindex]'));
-    expect(focusable.length).toBeGreaterThan(0);
-    expect(focusable.every(el => !el.contains(label) && el !== label)).toBe(true);
+describe('WidgetContextMenu name row', () => {
+  const base = { x: 0, y: 0, currentSize: '2x2' as const, sizes: ['2x2' as const], hasConfig: false, title: 'Clock', onResize: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() };
+
+  it('is the Open action when the widget can open, with an arrow and no separate Open item', () => {
+    const onOpen = vi.fn();
+    const { container } = render(<WidgetContextMenu {...base} onOpen={onOpen} />);
+    const row = screen.getByRole('button', { name: 'featureDisabled.widget.open' });
+    expect(row.textContent).toBe('Clock');
+    expect(row.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByText('search.kind.open')).toBeNull();
+    fireEvent.click(row);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(container.firstElementChild!.children[1].className).toContain('divider');
   });
 
-  it('renders no label without a title', () => {
+  it('is an inert label without an arrow when there is nothing to open', () => {
+    const { container } = render(<WidgetContextMenu {...base} />);
+    const label = screen.getByText('Clock');
+    const row = label.parentElement!;
+    expect(row.getAttribute('role')).toBe('presentation');
+    expect(row.hasAttribute('tabindex')).toBe(false);
+    expect(row.closest('button')).toBeNull();
+    expect(row.querySelector('svg')).toBeNull();
+    const focusable = Array.from(document.querySelectorAll('button, [tabindex]'));
+    expect(focusable.every(el => !el.contains(label))).toBe(true);
+    expect(container.firstElementChild!.children[1].className).toContain('divider');
+  });
+
+  it('renders no row or separator without a title', () => {
     render(menu(1, vi.fn()));
     expect(document.querySelector('[role="presentation"]')).toBeNull();
   });

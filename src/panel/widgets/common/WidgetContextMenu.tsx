@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Home, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Home, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelSurface, PanelWidgetSize } from '../../types';
+import type { AppIcon } from '../types';
 import styles from './WidgetContextMenu.module.scss';
 
 interface WidgetContextMenuProps {
@@ -12,8 +13,9 @@ interface WidgetContextMenuProps {
   currentSize: PanelWidgetSize;
   sizes: PanelWidgetSize[];
   hasConfig: boolean;
-  // Widget name shown as a quiet, non-interactive first line.
+  // Widget name, shown with its catalog icon as the first row. The row is the Open action when onOpen is set.
   title?: string;
+  icon?: AppIcon;
   surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
@@ -52,7 +54,7 @@ interface WidgetContextMenuProps {
   // "Lock widgets" row; while `locked`, the edit and resize items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
-  // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
+  // Opens the widget's page or editor in the app; the name row becomes this action where the widget has one.
   onOpen?: () => void;
   // Dashboard order: Edit, Resize and Remove sit last, under the display and sidebar items.
   widgetItemsLast?: boolean;
@@ -64,6 +66,7 @@ export function WidgetContextMenu({
   currentSize, sizes,
   hasConfig,
   title,
+  icon: TitleIcon,
   surface,
   themeMode = 'dark',
   themeStyle,
@@ -194,7 +197,23 @@ export function WidgetContextMenu({
       data-panel-hit="true"
       style={menuStyle}
     >
-      {title && <div role="presentation" className={styles.title}>{title}</div>}
+      {title && (
+        <>
+          {onOpen ? (
+            <button type="button" className={`${styles.item} ${styles.nameRow}`} aria-label={t('featureDisabled.widget.open', { feature: title })} onClick={() => runAndClose(onOpen)}>
+              {TitleIcon && <span className={styles.nameIcon}><TitleIcon size={15} aria-hidden /></span>}
+              <span className={styles.nameLabel}>{title}</span>
+              <ArrowUpRight size={15} className={styles.nameChevron} aria-hidden />
+            </button>
+          ) : (
+            <div role="presentation" className={`${styles.nameRow} ${styles.nameRowStatic}`}>
+              {TitleIcon && <span className={styles.nameIcon}><TitleIcon size={15} aria-hidden /></span>}
+              <span className={styles.nameLabel}>{title}</span>
+            </div>
+          )}
+          <div className={styles.divider} />
+        </>
+      )}
 
       {(onWebBack || onWebForward || onWebHome) && (
         <>
@@ -216,16 +235,6 @@ export function WidgetContextMenu({
               <span>{t('panel.widget.web-view.home')}</span>
             </button>
           )}
-          <div className={styles.divider} />
-        </>
-      )}
-
-      {onOpen && (
-        <>
-          <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
-            <ExternalLink size={14} />
-            <span>{t('search.kind.open')}</span>
-          </button>
           <div className={styles.divider} />
         </>
       )}
