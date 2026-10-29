@@ -368,6 +368,22 @@ export const setRenderGpu = (value: string) =>
 export const restartService = (reopenRoute?: string) =>
   postService('/service/restart', reopenRoute ? { reopenRoute } : {});
 
+export type RestartOutcome = 'accepted' | 'refused' | 'dropped';
+
+/**
+ * Restart that tells the three outcomes apart by status: accepted (2xx), refused (the service answered
+ * with an error, e.g. an invalid route or a restart already running), or dropped (no answer, as the
+ * socket does when the service goes down).
+ */
+export async function requestServiceRestart(reopenRoute?: string): Promise<RestartOutcome> {
+  const { response, status } = await authFetchWithStatus('/service/restart', {
+    method: 'POST',
+    body: reopenRoute ? { reopenRoute } : {},
+  });
+  if (response === null || status === 0) return 'dropped';
+  return status >= 200 && status < 300 ? 'accepted' : 'refused';
+}
+
 // --- Screen monitor enumeration ---
 
 export interface ScreenMonitor {

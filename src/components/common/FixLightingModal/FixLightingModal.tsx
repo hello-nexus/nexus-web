@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Check, RotateCw, Wrench } from 'lucide-react';
 import { isRemoteOrigin, pingService } from '../../../api/service';
-import { restartService } from '../../../api/lighting';
+import { requestServiceRestart } from '../../../api/lighting';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
@@ -77,8 +77,8 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
     // The restart closes the window on some platforms; the service refuses the restart for a non-dashboard path.
     const path = window.location.pathname;
     try {
-      const res = await restartService(path.startsWith('/system/') ? path : undefined);
-      if ((res as { error?: boolean } | null)?.error === true) {
+      const outcome = await requestServiceRestart(path.startsWith('/system/') ? path : undefined);
+      if (outcome === 'refused') {
         // The service refused (invalid route, flashing, already restarting): nothing is restarting, so do not wait.
         setRestarting(false);
         setUnconfirmed(true);
