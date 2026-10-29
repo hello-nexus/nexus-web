@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { nearestWidgetSizeStop, widgetSizeStops } from './widgetSizeStops';
+import { nearestWidgetSizeStop, stopForWidgetSize, widgetSizeStops } from './widgetSizeStops';
 import { panelWidgetSizeOptions, type PanelSurface } from '../types';
 
 const stopsOf = (surface: PanelSurface, family?: string) => widgetSizeStops(panelWidgetSizeOptions(surface, family)!).map(s => `${s.mode}:${s.percent}`);
@@ -58,5 +58,18 @@ describe('widgetSizeStops', () => {
     expect(nearestWidgetSizeStop(stops, 80)?.mode).toBe('small');
     expect(nearestWidgetSizeStop(stops, 62.5)?.mode).toBe('small');
     expect(nearestWidgetSizeStop(stops, 5)?.mode).toBe('xsmall');
+  });
+
+  it('shows a stored size without its own stop as the stop that renders the same grid', () => {
+    const plain = panelWidgetSizeOptions('monitor')!;
+    const at = (density: number) => stopForWidgetSize(plain, widgetSizeStops(plain, density), 'large', density)?.percent;
+    // At density 4 the 200% stop is dropped because 150% has the same 2 columns.
+    expect(at(4)).toBe(150);
+    expect(at(2)).toBe(100);
+    expect(at(12)).toBe(200);
+    const lianli = panelWidgetSizeOptions('monitor', 'lianli-screen88')!;
+    expect(stopForWidgetSize(lianli, widgetSizeStops(lianli, 8), 'large', 8)?.percent).toBe(100);
+    const lcd5 = panelWidgetSizeOptions('monitor', 'icue-link-lcd5')!;
+    expect(stopForWidgetSize(lcd5, widgetSizeStops(lcd5, 8), 'large', 8)?.percent).toBe(100);
   });
 });

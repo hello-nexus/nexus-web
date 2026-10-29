@@ -191,14 +191,18 @@ describe('PanelDevicePage widget size', () => {
   });
 
   it('switches straight to the half size when everything fits, from a stored one-tile Large', async () => {
-    await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
-    expect(screen.getByTestId('embed').dataset.surface).toBe('q60');
+    await renderPage({
+      capabilities: { surface: 'lcd-square', family: 'asus-glacial-lcd', cssWidth: 480, cssHeight: 480, dpr: 1, dpi: 210, touch: false },
+      widgetSize: 'large',
+      layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'lcd-square'),
+    }, GLACIAL_DEVICE);
+    expect(screen.getByTestId('embed').dataset.surface).toBe('lcd-square');
 
     await pickSize('min');
 
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
-    expect(patches()[0].widgetSize).toBe('xsmall');
+    expect(patches()[0].widgetSize).toBe('small');
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
     expect(screen.queryByRole('switch', { name: 'panel.playlist.playlist' })).not.toBeInTheDocument();
   });

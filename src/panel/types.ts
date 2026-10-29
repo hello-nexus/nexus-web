@@ -200,15 +200,14 @@ export interface PanelWidgetSizeOptions {
   shortSideSlots?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
   // Share of the density-derived short-axis slot count a size keeps.
   densitySlotShare?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
-  // Percent each size is labelled with on the size slider, where the labels are fixed rather than solved from cell sizes.
+  // Fixed slider label per size; a size without one is not offered and resolves to the default.
   percentLabels?: Readonly<Partial<Record<PanelWidgetSizeMode, number>>>;
 }
 
 // The Q-series and the iCUE LINK 5" LCD share one portrait glass size: Large is the
 // Q-series' one full-screen tile, Small a monitor grid sized by the glass's density.
 const ONE_TILE_OR_GRID: Readonly<Partial<Record<PanelWidgetSizeMode, PanelSurface>>> = { large: 'q60', small: 'monitor' };
-// The size slider on device screens has two stops, 100% and 50%. Where the default is a single tile the existing
-// density grid is the half size; where the default is a grid, 50% is twice its short-axis count.
+// Where the default is a single tile the existing density grid is the 50% stop; where it is a grid, 50% doubles its count.
 const TILE_AND_GRID_LABELS = { large: 100, small: 50 } as const;
 const GRID_AND_DOUBLE_LABELS = { small: 100, xsmall: 50 } as const;
 
@@ -244,8 +243,7 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'y70') {
     return { default: 'large', layoutSurface: { large: 'y70', small: 'y70', xsmall: 'y70' }, shortSideSlots: { small: Y70_COLUMN_STOPS.small, xsmall: Y70_COLUMN_STOPS.xsmall }, percentLabels: { large: 100, small: 75, xsmall: 50 } };
   }
-  // A plain OS monitor: 100% is its density grid. 75% and 50% take 1.5x and 2x the short-axis count, so cells
-  // shrink; 150% and 200% (the original half-count Large) take 1/1.5 and 1/2 of it, so cells grow.
+  // A plain OS monitor: 100% is its density grid; stops above it divide the short-axis count, stops below multiply it.
   if (surface === 'monitor' && !family) {
     return {
       default: 'small',
@@ -257,7 +255,7 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   return undefined;
 }
 
-// The Y70 offers three column counts on its slider: its own grid (Large), then 6 and 8.
+// Y70 column counts per size.
 export const Y70_COLUMN_STOPS = { large: 4, small: 6, xsmall: 8 } as const;
 
 // A grid whose short axis a Widget size forces; landscape means the short axis is its rows.
@@ -302,15 +300,16 @@ export function normalizeGridSlots(value: number | null | undefined): number | u
   return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, even));
 }
 
+// Records written before Widget size had stops only ever resolved to these three sizes, so the migration keeps to them.
+const LEGACY_SIZE_SHARE = { large: 0.5, small: 1, xsmall: 2 } as const;
+
 /** The size whose short-axis count is nearest, by ratio, to a record's retired grid density. */
 export function sizeForLegacyGridSlots(gridSlots: number | null | undefined, densitySlots: number | undefined): PanelWidgetSizeMode | undefined {
   const slots = normalizeGridSlots(gridSlots);
   if (slots === undefined || !densitySlots) return undefined;
-  const options = panelWidgetSizeOptions('monitor', undefined);
   let best: { mode: PanelWidgetSizeMode; err: number } | undefined;
-  for (const mode of PANEL_WIDGET_SIZE_MODES) {
-    const candidate = options?.layoutSurface[mode] ? widgetSizeShortSideSlots(options, mode, densitySlots) ?? densitySlots : undefined;
-    if (!candidate) continue;
+  for (const mode of ['large', 'small', 'xsmall'] as const) {
+    const candidate = Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, Math.round(densitySlots * LEGACY_SIZE_SHARE[mode])));
     const err = Math.abs(Math.log(slots / candidate));
     if (!best || err < best.err - 1e-9) best = { mode, err };
   }
@@ -341,6 +340,22 @@ export function largeChromeGrid(
     shortSideSlots: widgetSizeShortSideSlots(options, reference, densitySlots),
     dpi: panelLayoutDpi(surface, family, reference, recordDpi, surfaceDpi),
   };
+}
+
+/**
+ * The chrome grid on the device-page preview's density basis. The preview lays widgets out in CSS px
+ * (`gridDpi`), so a native-px chrome density is divided by the canvas DPR, and an unset one follows the grid's
+ * density when both use the same surface; otherwise the iframe's own estimate would read the host's DPR.
+ */
+export function previewChromeGrid(
+  chrome: ChromeGrid | undefined,
+  layoutSurface: PanelSurface,
+  gridDpi: number | undefined,
+  canvasDpr: number,
+): ChromeGrid | undefined {
+  if (!chrome) return undefined;
+  if (chrome.dpi) return { ...chrome, dpi: chrome.dpi / canvasDpr };
+  return chrome.surface === layoutSurface && gridDpi ? { ...chrome, dpi: gridDpi } : chrome;
 }
 
 export function panelShortSideSlots(
@@ -378,7 +393,8 @@ export function resolvePanelWidgetSize(
   const options = panelWidgetSizeOptions(surface, family);
   if (!options) return undefined;
   const named = PANEL_WIDGET_SIZE_MODES.find(m => m === widgetSize);
-  return named && options.layoutSurface[named] ? named : options.default;
+  const offered = named && options.layoutSurface[named] && (!options.percentLabels || options.percentLabels[named] !== undefined);
+  return named && offered ? named : options.default;
 }
 
 // The surface whose layout rules (grid, single tile, sizes, playlist) the panel follows.
