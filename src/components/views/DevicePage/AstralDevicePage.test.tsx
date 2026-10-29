@@ -239,6 +239,7 @@ describe('AstralDevicePage', () => {
     await act(async () => { fireEvent.click(screen.getAllByRole('switch')[2]); });
     expect(releases).toHaveLength(2);
     const newest = base({ settings: { ...first.settings, alerts: false, overcurrentShutdown: false } });
+    api.fetchAstral.mockResolvedValue(newest);
     await act(async () => { releases[1](newest); });
     await act(async () => { releases[0](base({ settings: { ...first.settings, alerts: true, overcurrentShutdown: true } })); });
     expect(screen.getAllByRole('switch')[0]).not.toBeChecked();
@@ -361,11 +362,29 @@ describe('AstralDevicePage', () => {
     await act(async () => { render(<AstralDevicePage />); });
     await act(async () => { fireEvent.click(screen.getByText('devices.astral.tab.power')); });
     await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
+    expect(api.saveAstralSettings).toHaveBeenCalled();
     api.fetchAstral.mockResolvedValue(base({ countdown: cd('overcurrent', 30_000) }));
     await act(async () => { await vi.advanceTimersByTimeAsync(1100); });
     vi.useRealTimers();
     expect(screen.getByText(/devices.astral.countdown.overcurrent/)).toBeInTheDocument();
     expect(screen.getByText('devices.astral.cancelShutdown')).toBeInTheDocument();
+  });
+
+  it('polls again at once after a write reply that predates a countdown', async () => {
+    let release: (v: AstralState) => void = () => {};
+    api.saveAstralSettings.mockImplementation(() => new Promise<AstralState>(r => { release = r; }));
+    vi.useFakeTimers();
+    api.fetchAstral.mockResolvedValue(base());
+    await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { fireEvent.click(screen.getByText('devices.astral.tab.power')); });
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
+    expect(api.saveAstralSettings).toHaveBeenCalled();
+    api.fetchAstral.mockResolvedValue(base({ countdown: cd('overcurrent', 30_000) }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1100); });
+    expect(screen.getByText(/devices.astral.countdown.overcurrent/)).toBeInTheDocument();
+    await act(async () => { release(base()); });
+    vi.useRealTimers();
+    expect(screen.getByText(/devices.astral.countdown.overcurrent/)).toBeInTheDocument();
   });
 
   it('clears the load notice when a write succeeds', async () => {

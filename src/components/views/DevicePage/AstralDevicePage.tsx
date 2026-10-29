@@ -109,11 +109,13 @@ export function AstralDevicePage() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [tab, setTab] = useState<Tab>('level');
   const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const [pollNonce, setPollNonce] = useState(0);
   const [failed, setFailed] = useState<string | null>(null);
   const [now, setNow] = useState(() => performance.now());
   const alive = useRef(true);
   // Every request, poll or write, takes the next id; a reply older than the last applied one is dropped.
   const reqSeq = useRef(0);
+  // Polls must not move it while a write is in flight, or that write's own reply would be dropped.
   const appliedSeq = useRef(0);
   // Bumped when a write starts and when it lands; a poll that began before either is stale.
   const writeEpoch = useRef(0);
@@ -165,7 +167,7 @@ export function AstralDevicePage() {
       window.clearInterval(timer);
       ctl.abort();
     };
-  }, [delay, commit]);
+  }, [delay, commit, pollNonce]);
 
   const counting = !!state?.countdown;
   useEffect(() => {
@@ -208,6 +210,8 @@ export function AstralDevicePage() {
     setLoadFailed(false);
     loaded.current = true;
     commit(next);
+    // The reply may predate a change a poll already showed; poll again at once.
+    setPollNonce(n => n + 1);
   }, [commit]);
 
   if (!state) {
