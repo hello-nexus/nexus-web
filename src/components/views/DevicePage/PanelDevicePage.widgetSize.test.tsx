@@ -70,7 +70,12 @@ vi.mock('../../../panel/editor/PanelWidgetCatalog', () => ({
   catalogEntriesFor: () => [],
 }));
 vi.mock('../../../panel/editor/PanelThemeSettings', () => ({
-  PanelThemeSettings: () => <div data-testid="theme" />,
+  PanelThemeSettings: ({ widgetScaleRow }: { widgetScaleRow?: React.ReactNode }) => (
+    <div data-testid="theme">
+      <span>widget padding</span>
+      {widgetScaleRow}
+    </div>
+  ),
 }));
 vi.mock('../../../panel/widgets/registry', () => ({
   lookupApp: (type: string) => ({
@@ -164,10 +169,21 @@ async function pickSize(mode: 'max' | 'min') {
 async function renderPage(rec: Record<string, unknown>, device: PanelDevice = DEVICE) {
   fetchPanelDevicesMock.mockResolvedValue({ devices: [record(rec)] });
   render(<PanelDevicePage device={device} />);
+  fireEvent.click(await screen.findByRole('tab', { name: 'devices.y70.tab.theme' }));
   await waitFor(() => expect(sizeSlider()).not.toBeDisabled());
 }
 
 describe('PanelDevicePage widget size', () => {
+  it('renders the slider inside the Theme section, after Widget padding, and not on the Widgets tab', async () => {
+    await renderPage({ widgetSize: 'large' });
+    const theme = screen.getByTestId('theme');
+    expect(theme.contains(sizeSlider())).toBe(true);
+    const padding = screen.getByText('widget padding');
+    expect(padding.compareDocumentPosition(sizeSlider()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
+    expect(screen.queryByRole('slider', { name: 'devices.panels.widgetSize.label' })).toBeNull();
+  });
+
   it('names the widgets that will not fit before switching to the one-tile size, then writes size and layout together', async () => {
     await renderPage({
       capabilities: { surface: 'lcd-square', family: 'asus-glacial-lcd', cssWidth: 480, cssHeight: 480, dpr: 1, dpi: 210, touch: false },
@@ -241,6 +257,7 @@ describe('PanelDevicePage widget size', () => {
   it('spills a full grid onto a second page for a display-bound panel without touch', async () => {
     const full = [0, 2, 4].flatMap(row => [widget(`l${row}`, 'clock', 0, row), widget(`r${row}`, 'weather', 2, row)]);
     await renderPage({ layout: layout(full) });
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
 
     expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('unchecked');
     await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
@@ -258,8 +275,13 @@ describe('PanelDevicePage widget size', () => {
     };
     await renderPage(screen88);
     // The default is 100%; the older forced two-column Large keeps its own 200% stop above it.
-    expect(sizeSlider().value).toBe('100');
-    expect(sizeSlider().max).toBe('200');
+    // The slider runs over stop indices (even spacing); the row shows the percent label.
+    expect(screen.getByRole('button', { name: 'devices.panels.widgetSize.label' })).toHaveTextContent('100%');
+    expect(sizeSlider().min).toBe('0');
+    expect(sizeSlider().step).toBe('1');
+    expect(sizeSlider().value).toBe('2');
+    expect(sizeSlider().max).toBe('3');
+    expect(sizeSlider()).toHaveAttribute('aria-valuetext', '100%');
 
     await pickSize('min');
 

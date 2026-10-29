@@ -251,23 +251,6 @@
   flex-direction: column;
 }
 
-.troubleshootLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
-  margin-top: 1.25rem;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  text-decoration: none;
-  transition: color var(--ease-fast);
-
-  &:hover,
-  &:focus-visible {
-    color: var(--text);
-  }
-}
-
 // An empty state's CTA with the troubleshooting link stacked under it.
 .emptyActions {
   display: flex;
@@ -275,7 +258,7 @@
   align-items: center;
 }
 
-// Widget scale and playlist settings, above the catalog.
+// Playlist settings, above the catalog.
 .playlistPanel {
   display: flex;
   flex-direction: column;
@@ -284,8 +267,7 @@
   margin: 0 0 8px;
 }
 
-// The compact card's padding stacked on the setting row's own left the Widget scale row tall; trim only
-// the card's vertical padding, here, so the shared Card and setting rows stay as they are.
+// Trims only the card's vertical padding so the shared Card and setting rows stay as they are.
 .playlistPanel.playlistPanel {
   padding-block: 0.25rem;
 }

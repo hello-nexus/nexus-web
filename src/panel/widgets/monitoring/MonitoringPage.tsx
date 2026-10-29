@@ -221,7 +221,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     <span className={styles.tabLabelWithChip}>
       {text}
       <span aria-hidden="true">
-        <Badge label={formatTabChipValue(metric, sensors.cpu, sensors.gpu, sensors.memory, network.totalRate, storageBytesPerSec, numberFormat)} minWidth={minWidth} compact />
+        <Badge label={formatTabChipValue(metric, sensors.cpu, sensors.gpu, sensors.memory, network.totalRate, storageBytesPerSec, numberFormat)} minWidth={minWidth} compact uppercase={false} />
       </span>
     </span>
   );

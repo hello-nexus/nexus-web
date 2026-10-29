@@ -1101,6 +1101,13 @@
   gap: 0.4rem;
 }
 
+// "Lighting doesn't match?" link closing the list. TroubleshootLink carries its
+// own top margin; this adds the bottom breathing room above the pane edge.
+.fixLightingLink {
+  align-self: center;
+  margin-bottom: var(--space-md);
+}
+
 // Dashed "add smart lights" entry pinned to the end of the device list. Faint
 // by default; firms up on hover. Geometry matches .deviceCard so it aligns.
 .addSmartLights {

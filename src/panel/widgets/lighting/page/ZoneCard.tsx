@@ -317,6 +317,7 @@ export function ZoneCard({
   pulseSeq,
   appStrip,
   onOpenAppStrip,
+  onOpenFixLighting,
 }: {
   device: LightingDevice;
   /** Deep-link anchor the card answers to; see CollapsibleSection's searchAnchor. */
@@ -413,6 +414,8 @@ export function ZoneCard({
   appStrip?: CardAppStrip;
   /** Strip press: opens the conflict dialog for those apps. */
   onOpenAppStrip?: () => void;
+  /** Opens the Fix lighting flow from the not-responding strip. */
+  onOpenFixLighting?: () => void;
 }) {
   const { t, language } = useTranslation();
   const unpinHintId = useId();
@@ -472,6 +475,9 @@ export function ZoneCard({
   // there it keeps the old rule - a tap would commit a look the device cannot
   // show, and its own select-all skips those cards.
   const showAppStrip = !!appStrip && !!onOpenAppStrip && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
+  // A running competing app explains the failed writes, so its strip takes the slot.
+  const showFailingStrip = !showAppStrip && device.writeHealth === 'failing' && controlled && !!onOpenFixLighting
+    && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
   const clickable = !unavailable && !firmwareControlled
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
@@ -650,7 +656,7 @@ export function ZoneCard({
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
-        showAppStrip ? styles.deviceCardWithStrip : '',
+        showAppStrip || showFailingStrip ? styles.deviceCardWithStrip : '',
         stacked ? styles.deviceCardStacked : '',
         stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
@@ -731,7 +737,7 @@ export function ZoneCard({
             side="top"
           >
             <span className={styles.deviceMetaBadge}>
-              <Badge label={t('lighting.devices.hardwareControlBadge')} icon={<Cpu size={11} />} compact uppercase color="var(--text-dim)" />
+              <Badge label={t('lighting.devices.hardwareControlBadge')} icon={<Cpu size={11} />} compact color="var(--text-dim)" />
             </span>
           </HoverTooltip>
         ) : unavailable && onOpenZoneSizes ? (
@@ -747,7 +753,7 @@ export function ZoneCard({
             {t('lighting.devices.detectionFailed')}
           </span>
         ) : stateChip ? (
-          <Badge label={stateChip.label} icon={stateChip.icon} compact uppercase color="var(--text-dim)" />
+          <Badge label={stateChip.label} icon={stateChip.icon} compact color="var(--text-dim)" />
         ) : isZone && device.zoneType === 'single' && !resizable ? (
           <HoverTooltip body={t('lighting.devices.zoneFixedTooltip')} side="top">
             <span className={styles.deviceMeta}>
@@ -843,6 +849,7 @@ export function ZoneCard({
       </div>
       </div>
       {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
+      {showFailingStrip && <ControlledByStrip label={t('lighting.writeHealth.badge')} onOpen={onOpenFixLighting} />}
       {menuEnabled && (
         <MenuArrowButton
           variant="card"

@@ -550,7 +550,7 @@ export const FanCard = memo(function FanCard({
         <div className={styles.fanOffsetBadge}>
           <Badge
             label={t('cooling.fan.offsetBadge', { value: offset > 0 ? `+${offset}` : String(offset) })}
-            compact uppercase color="var(--text-dim)"
+            compact color="var(--text-dim)"
           />
         </div>
       )}
@@ -562,7 +562,7 @@ export const FanCard = memo(function FanCard({
         // dropdown would imply otherwise.
         <div className={styles.fanModeRow}>
           <div className={styles.fanStateBadge}>
-            <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
+            <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact color="var(--text-dim)" />
           </div>
           {pinButton ?? pinInert}
         </div>
@@ -573,7 +573,7 @@ export const FanCard = memo(function FanCard({
         <div className={styles.fanModeRow}>
           <HoverTooltip body={t('cooling.fan.fixedHint')} side="top">
             <div className={styles.fanStateBadge}>
-              <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
+              <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact color="var(--text-dim)" />
             </div>
           </HoverTooltip>
           {pinButton ?? pinInert}
