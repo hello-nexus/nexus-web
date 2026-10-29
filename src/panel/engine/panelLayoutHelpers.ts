@@ -268,3 +268,16 @@ export function buildPanelCollisionDetection(
     return [];
   };
 }
+
+// The hover "More actions" corner badge belongs to the home dashboard grid
+// alone: the embedded desktop panel, not a device-page preview, and not while a
+// sheet, a resize or a drag owns the grid.
+export function showWidgetMoreActions(o: {
+  embedded: boolean;
+  surface: string;
+  simulator: boolean;
+  editable: boolean;
+  busy: boolean;
+}): boolean {
+  return o.embedded && o.surface === 'desktop' && !o.simulator && o.editable && !o.busy;
+}
