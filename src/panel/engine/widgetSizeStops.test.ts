@@ -25,12 +25,12 @@ describe('widgetSizeStops', () => {
     expect(at(2)).toEqual([100, 75]);
   });
 
-  it('gives device screens two stops, 100 and 50', () => {
+  it('gives device screens 100 and 50, and the Lian Li 8.8 also 75', () => {
     expect(stopsOf('q60')).toEqual(['large:100', 'small:50']);
     expect(stopsOf('lcd-square', 'asus-glacial-lcd')).toEqual(['large:100', 'small:50']);
     expect(stopsOf('lcd-wide', 'lianli-hydroshift2-curve')).toEqual(['large:100', 'small:50']);
     expect(stopsOf('monitor', 'icue-link-lcd5')).toEqual(['small:100', 'xsmall:50']);
-    expect(stopsOf('monitor', 'lianli-screen88')).toEqual(['small:100', 'xsmall:50']);
+    expect(stopsOf('monitor', 'lianli-screen88')).toEqual(['small:100', 'medium:75', 'xsmall:50']);
     expect(stopsOf('monitor', 'hyte-y60')).toEqual(['small:100', 'xsmall:50']);
   });
 

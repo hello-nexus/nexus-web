@@ -226,7 +226,13 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   }
   // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
-    return { default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', xsmall: 'monitor' }, shortSideSlots: { large: 2 }, densitySlotShare: { xsmall: 2 }, percentLabels: GRID_AND_DOUBLE_LABELS };
+    return {
+      default: 'small',
+      layoutSurface: { large: 'monitor', small: 'monitor', medium: 'monitor', xsmall: 'monitor' },
+      shortSideSlots: { large: 2 },
+      densitySlotShare: { medium: 1.5, xsmall: 2 },
+      percentLabels: { small: 100, medium: 75, xsmall: 50 },
+    };
   }
   // HYTE Y60 display: a wide bar that usually runs rotated to portrait. The forced count applies to the
   // short axis in either orientation, so Large gives fewer, bigger cells; Small is the density grid.

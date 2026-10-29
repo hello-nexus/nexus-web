@@ -416,7 +416,10 @@ describe('widget size options for a plain display', () => {
 
   it('offers no 75 percent on a curated display or a tile panel', async () => {
     const { panelWidgetSizeOptions, resolvePanelWidgetSize } = await import('./types');
-    expect(panelWidgetSizeOptions('monitor', 'lianli-screen88')!.layoutSurface.medium).toBeUndefined();
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')!.layoutSurface.medium).toBeUndefined();
+    // Only the Lian Li 8.8 adds 75% (1.5x its short-axis count, even) among the device screens.
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'medium', 4)).toBe(6);
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'medium', 8)).toBe(12);
     expect(panelWidgetSizeOptions('q60')!.layoutSurface.medium).toBeUndefined();
     expect(panelWidgetSizeOptions('q60')!.layoutSurface.xsmall).toBeUndefined();
     expect(resolvePanelWidgetSize('q60', undefined, 'xsmall')).toBe('large');
