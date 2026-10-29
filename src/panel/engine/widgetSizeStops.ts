@@ -70,3 +70,20 @@ export function stopForWidgetSize(
   }
   return best ?? stops.find(stop => stop.percent === 100) ?? stops[0];
 }
+
+/** The stops ordered smallest to largest, so a slider index runs left to right in even steps. */
+export function widgetSizeTrackStops(stops: readonly WidgetSizeStop[]): WidgetSizeStop[] {
+  return [...stops].sort((a, b) => a.percent - b.percent);
+}
+
+/** The percent label at a track index, clamped to the track. */
+export function percentAtTrackIndex(track: readonly WidgetSizeStop[], index: number): number {
+  const i = Math.min(track.length - 1, Math.max(0, Math.round(index)));
+  return track[i].percent;
+}
+
+/** The track index of the stop nearest a percent. */
+export function trackIndexOfPercent(track: readonly WidgetSizeStop[], percent: number): number {
+  const stop = nearestWidgetSizeStop(track, percent);
+  return stop ? track.indexOf(stop) : 0;
+}

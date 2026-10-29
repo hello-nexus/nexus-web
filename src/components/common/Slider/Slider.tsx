@@ -47,6 +47,8 @@ export interface SliderProps {
   zeroMarker?: boolean;
   showRange?: boolean;
   formatValue?: (v: number) => string;
+  /** See EditableNumber: edit in displayed units while the slider value stays something else. */
+  entryMap?: { toEntry: (value: number) => number; fromEntry: (typed: number) => number };
   onChange: (v: number, commit?: boolean) => void;
   onCommit?: (v: number) => void;
   onPointerDown?: PointerEventHandler<HTMLInputElement>;
@@ -82,7 +84,7 @@ export interface SliderProps {
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
-  formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
+  formatValue, entryMap, onChange, onCommit, onPointerDown, onPointerCancel,
   disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
@@ -174,7 +176,7 @@ export function Slider({
   const valueNode = editable ? (
     <EditableNumber value={value} min={min} max={max} step={step}
       onCommit={handleEditCommit} format={formatValue} className={valueClass} disabled={disabled}
-      mixed={mixed} mixedLabel={mixedLabel} />
+      mixed={mixed} mixedLabel={mixedLabel} entryMap={entryMap} />
   ) : (
     <span className={valueClass}>{mixed ? mixedLabel : fmt(value)}</span>
   );
@@ -191,7 +193,7 @@ export function Slider({
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
           onCommit={handleEditCommit} format={formatValue} ariaLabel={accessibleName} className={valueClass} disabled={disabled}
-          mixed={mixed} mixedLabel={mixedLabel} />
+          mixed={mixed} mixedLabel={mixedLabel} entryMap={entryMap} />
       ) : (
         <span className={valueClass}>{mixed ? mixedLabel : fmt(value)}</span>
       )}

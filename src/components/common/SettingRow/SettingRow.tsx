@@ -244,6 +244,7 @@ export function SettingSlider({
   max,
   step,
   formatValue,
+  entryMap,
   onChange,
   onCommit,
   editable,
@@ -255,6 +256,7 @@ export function SettingSlider({
   ariaLabel,
   mixed,
   mixedLabel,
+  valueText,
 }: {
   label?: string;
   description?: ReactNode;
@@ -269,6 +271,7 @@ export function SettingSlider({
   max: number;
   step?: number;
   formatValue?: (v: number) => string;
+  entryMap?: { toEntry: (value: number) => number; fromEntry: (typed: number) => number };
   onChange: (value: number, commit?: boolean) => void;
   onCommit?: (value: number) => void;
   editable?: boolean;
@@ -279,6 +282,7 @@ export function SettingSlider({
   // The controlled targets hold different values; see Slider.
   mixed?: boolean;
   mixedLabel?: string;
+  valueText?: string;
 }) {
   // Built outside the JSX: the variant id is not UI text, and the i18n literal
   // rule scans JSX only.
@@ -300,6 +304,7 @@ export function SettingSlider({
         max={max}
         step={step}
         formatValue={formatValue}
+        entryMap={entryMap}
         onChange={onChange}
         onCommit={onCommit}
         editable={editable}
@@ -308,6 +313,7 @@ export function SettingSlider({
         ariaLabel={ariaLabel ?? label}
         mixed={mixed}
         mixedLabel={mixedLabel}
+        valueText={valueText}
       />
     </SettingRow>
   );
