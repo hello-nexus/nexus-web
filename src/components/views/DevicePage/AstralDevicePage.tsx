@@ -23,7 +23,7 @@ import {
 } from './AstralArt';
 import {
   CALIBRATE_SECONDS, CRITICAL_SECONDS, LIMITS, TIME_CHOICES, WARN_DEG, alertTone, clock, finite, fitStage, levelStatus, pinTone, pollDelayMs,
-  pinGroups, secondsLeft, sensorId, signedDegrees, tiltDirection, tiltWord, unitScale, withCurrent, type StageExtent,
+  pinGroups, secondsLeft, sensorId, withTimeout, signedDegrees, tiltDirection, tiltWord, unitScale, withCurrent, type StageExtent,
 } from './astralUtils';
 import styles from './AstralDevicePage.module.scss';
 
@@ -118,37 +118,50 @@ export function AstralDevicePage() {
   // Bumped when a write starts and when it lands; a poll that began before either is stale.
   const writeEpoch = useRef(0);
   const writing = useRef(0);
+  const writeCtls = useRef(new Set<AbortController>());
 
   useEffect(() => {
     alive.current = true;
-    return () => { alive.current = false; };
+    const ctls = writeCtls.current;
+    return () => {
+      alive.current = false;
+      ctls.forEach(c => c.abort());
+    };
+  }, []);
+
+  const commit = useCallback((next: AstralState) => {
+    const at = performance.now();
+    setSnap({ state: next, at });
+    setNow(at);
   }, []);
 
   // Slow while nothing moves; fast while a countdown, calibration or fault is live, or the pin readout is shown. A failed poll keeps retrying.
   const delay = pollDelayMs(state, tab === 'power');
   useEffect(() => {
+    const ctl = new AbortController();
+    let busy = false;
     const load = () => {
+      if (busy) return;
+      busy = true;
       const id = ++reqSeq.current;
       const epoch = writeEpoch.current;
-      void (async () => {
-        let next: AstralState | null = null;
-        try {
-          next = await fetchAstral();
-        } catch {
-          next = null;
-        }
-        if (!alive.current) return;
+      void withTimeout(signal => fetchAstral(signal), ctl.signal).then(next => {
+        busy = false;
+        if (ctl.signal.aborted || !alive.current) return;
         setLoadFailed(!next);
         if (next && id > appliedSeq.current && epoch === writeEpoch.current && writing.current === 0) {
           appliedSeq.current = id;
-          setSnap({ state: next, at: performance.now() });
+          commit(next);
         }
-      })();
+      });
     };
     load();
     const timer = window.setInterval(load, delay);
-    return () => window.clearInterval(timer);
-  }, [delay]);
+    return () => {
+      window.clearInterval(timer);
+      ctl.abort();
+    };
+  }, [delay, commit]);
 
   const counting = !!state?.countdown;
   useEffect(() => {
@@ -164,19 +177,20 @@ export function AstralDevicePage() {
     return map;
   }, [gpus]);
 
-  // Every write answers with the full state; a failed or throwing one says so and leaves the controls as they were.
-  const run = useCallback(async (send: () => Promise<AstralState | null>, failKey = 'failed') => {
+  // Every write answers with the full state; a failed, throwing or timed-out one says so and leaves the controls as they were.
+  const run = useCallback(async (send: (signal: AbortSignal) => Promise<AstralState | null>, failKey = 'failed') => {
     const id = ++reqSeq.current;
+    const ctl = new AbortController();
+    writeCtls.current.add(ctl);
     writeEpoch.current += 1;
     writing.current += 1;
     let next: AstralState | null = null;
     try {
-      next = await send();
-    } catch {
-      next = null;
+      next = await withTimeout(send, ctl.signal);
     } finally {
       writing.current -= 1;
       writeEpoch.current += 1;
+      writeCtls.current.delete(ctl);
     }
     if (!alive.current) return;
     if (!next) {
@@ -186,24 +200,23 @@ export function AstralDevicePage() {
     if (id <= appliedSeq.current) return;
     appliedSeq.current = id;
     setFailed(null);
-    setSnap({ state: next, at: performance.now() });
-  }, []);
+    commit(next);
+  }, [commit]);
 
-  if (!state || state.cards.length === 0) {
+  if (!state) {
     return (
       <div className={styles.page}>
         {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
         <ViewHeader title="ROG Astral" />
         <div className={styles.body}>
           {loadFailed && <Notice tone="critical" role="alert">{t(`${P}loadFailed`)}</Notice>}
-          {state && <Notice tone="info" role="status">{t(`${P}noCard`)}</Notice>}
         </div>
       </div>
     );
   }
 
   const s = state.settings;
-  const set = (patch: Partial<AstralSettings>) => { void run(() => saveAstralSettings(patch)); };
+  const set = (patch: Partial<AstralSettings>) => { void run(signal => saveAstralSettings(patch, signal)); };
   const eq = s.equalizer;
   const limits = {
     over: LIMITS.overcurrent[eq ? 'equalizer' : 'normal'],
@@ -211,15 +224,16 @@ export function AstralDevicePage() {
   };
   const times = (current: number) =>
     withCurrent(TIME_CHOICES, current).map(n => ({ value: String(n), label: t(`${P}seconds`, { n }) }));
+  const empty = state.cards.length === 0;
   const multi = state.cards.length > 1;
   const countdownCard = multi ? state.cards.find(c => c.gpuId === state.countdown?.gpuId) : undefined;
 
   const confirmActions: Record<ConfirmKind, { onConfirm: () => void; destructive: boolean; action: string }> = {
-    calibrate: { onConfirm: () => { if (confirm?.gpuId) { const id = confirm.gpuId; void run(() => calibrateAstral(id), 'calibrateFailed'); } }, destructive: false, action: 'calibrate' },
+    calibrate: { onConfirm: () => { if (confirm?.gpuId) { const id = confirm.gpuId; void run(signal => calibrateAstral(id, signal), 'calibrateFailed'); } }, destructive: false, action: 'calibrate' },
     equalizer: { onConfirm: () => set({ equalizer: true }), destructive: true, action: 'turnOn' },
     shutdown: { onConfirm: () => set({ overcurrentShutdown: true }), destructive: false, action: 'turnOn' },
     critical: { onConfirm: () => set({ criticalShutdown: true }), destructive: true, action: 'turnOn' },
-    now: { onConfirm: () => { void run(shutdownAstralNow); }, destructive: true, action: 'shutdownNow' },
+    now: { onConfirm: () => { void run(signal => shutdownAstralNow(signal)); }, destructive: true, action: 'shutdownNow' },
   };
   const pending = confirm ? confirmActions[confirm.kind] : null;
 
@@ -330,7 +344,7 @@ export function AstralDevicePage() {
       <ViewHeader
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
         title="ROG Astral"
-        tabs={TABS.map(({ key, icon }) => ({ key, icon, label: t(`${P}tab.${key}`) }))}
+        tabs={empty ? undefined : TABS.map(({ key, icon }) => ({ key, icon, label: t(`${P}tab.${key}`) }))}
         activeTab={tab}
         onTabChange={key => setTab(key as Tab)}
       />
@@ -340,12 +354,12 @@ export function AstralDevicePage() {
 
         {state.cards.map(card => {
           const tone = alertTone(card.state);
-          const prefix = multi ? `${card.name}: ` : '';
           return tone && (
             <Notice key={card.gpuId} tone={tone} role={tone === 'critical' ? 'alert' : 'status'}>
+              {multi && <div className={styles.noticeName}>{card.name}</div>}
               {pinGroups(card).map(g => (
                 <div key={g.state}>
-                  {prefix}{t(pluralKey(`${P}alertLine`, language, g.count), { state: t(`${P}state.${g.state}`), pins: g.pins })}
+                  {t(pluralKey(`${P}alertLine`, language, g.count), { state: t(`${P}state.${g.state}`), pins: g.pins })}
                 </div>
               ))}
               {card.state === 'overcurrent' && !eq && <NoticeSecondary>{t(`${P}alert.equalizerHint`)}</NoticeSecondary>}
@@ -359,7 +373,7 @@ export function AstralDevicePage() {
             actions={(
               <>
                 {state.countdown.reason === 'overcurrent' && (
-                  <Button size="sm" tone="accent" onClick={() => { void run(cancelAstralShutdown); }}>{t(`${P}cancelShutdown`)}</Button>
+                  <Button size="sm" tone="accent" onClick={() => { void run(signal => cancelAstralShutdown(signal)); }}>{t(`${P}cancelShutdown`)}</Button>
                 )}
                 <Button size="sm" tone="danger" onClick={() => setConfirm({ kind: 'now' })}>{t(`${P}shutdownNow`)}</Button>
               </>
@@ -371,9 +385,11 @@ export function AstralDevicePage() {
         )}
         {state.heldOff && <Notice tone="info" role="status">{t(`${P}heldOff`)}</Notice>}
 
-        {tab === 'level' && state.cards.map(levelView)}
+        {empty && <Notice tone="info" role="status">{t(`${P}noCard`)}</Notice>}
 
-        {tab === 'power' && (
+        {!empty && tab === 'level' && state.cards.map(levelView)}
+
+        {!empty && tab === 'power' && (
           <div className={styles.powerGrid}>
             <div className={styles.powerColumn}>
               {state.cards.map(powerView)}

@@ -152,3 +152,28 @@ export const finite = (v: number | undefined): number | undefined => (v !== unde
 export function unitScale(extent: StageExtent, aspect: number): number {
   return fitStage(extent, aspect).size / (2 * extent.half);
 }
+
+/** A request that has not answered by then counts as failed. */
+export const REQUEST_TIMEOUT_MS = 8000;
+
+/** Runs a request with its own abort signal, linked to `parent`; resolves null on a throw, a timeout or an abort, whatever the transport does with the signal. */
+export function withTimeout<T>(
+  send: (signal: AbortSignal) => Promise<T | null>,
+  parent?: AbortSignal,
+  ms = REQUEST_TIMEOUT_MS,
+): Promise<T | null> {
+  const ctl = new AbortController();
+  const abort = () => ctl.abort();
+  if (parent?.aborted) ctl.abort();
+  parent?.addEventListener('abort', abort);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stop = new Promise<null>(resolve => {
+    timer = setTimeout(() => { ctl.abort(); resolve(null); }, ms);
+    ctl.signal.addEventListener('abort', () => resolve(null));
+  });
+  const request = ctl.signal.aborted ? Promise.resolve(null) : send(ctl.signal).catch(() => null);
+  return Promise.race([request, stop]).finally(() => {
+    clearTimeout(timer);
+    parent?.removeEventListener('abort', abort);
+  });
+}

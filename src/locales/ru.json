@@ -776,7 +776,7 @@
   "devices.astral.alert.equalizerHint": "Если подключен кабель ROG Equalizer, включите режим Equalizer ниже.",
   "devices.astral.alertLine.few": "{state}: контакты {pins}",
   "devices.astral.alertLine.one": "{state}: контакт {pins}",
-  "devices.astral.alertLine.other": "{state}: контактов {pins}",
+  "devices.astral.alertLine.other": "{state}: контакты {pins}",
   "devices.astral.alerts": "Уведомления",
   "devices.astral.alertsHint": "Уведомлять, когда контакт приближается к пределу, превышает его или не пропускает ток.",
   "devices.astral.alertsTitle": "Оповещения",

@@ -776,7 +776,7 @@
   "devices.astral.alert.equalizerHint": "Jeśli podłączony jest kabel ROG Equalizer, włącz poniżej tryb Equalizer.",
   "devices.astral.alertLine.few": "{state}: piny {pins}",
   "devices.astral.alertLine.one": "{state}: pin {pins}",
-  "devices.astral.alertLine.other": "{state}: pinów {pins}",
+  "devices.astral.alertLine.other": "{state}: piny {pins}",
   "devices.astral.alerts": "Powiadomienia",
   "devices.astral.alertsHint": "Powiadamiaj, gdy pin zbliża się do limitu, przekracza go lub nie przewodzi prądu.",
   "devices.astral.alertsTitle": "Alerty",

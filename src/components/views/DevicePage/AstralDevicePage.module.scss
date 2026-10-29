@@ -183,10 +183,6 @@
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  --astral-ok: #03fc84;
-  --astral-caution: #fbb03b;
-  --astral-fault: #f00;
-  --astral-fault-text: #f55;
 
   > svg {
     width: 100%;
@@ -195,15 +191,34 @@
   }
 }
 
-:global([data-theme='light']) .connector {
-  --astral-ok: var(--good);
-  --astral-caution: var(--warn);
-  --astral-fault: var(--bad);
-  --astral-fault-text: var(--bad);
-}
-
 .total {
   font-size: var(--type-small);
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
+}
+
+.noticeName {
+  font-weight: var(--weight-strong);
+}
+
+.page {
+  --astral-ok: #03fc84;
+  --astral-caution: #fbb03b;
+  --astral-fault: #f00;
+  --astral-fault-text: #f55;
+  --astral-lit: #cbd2db;
+  --astral-track: #9ca3af;
+  --astral-label: #9ca3af;
+  --astral-name: #fff;
+}
+
+:global([data-theme='light']) .page {
+  --astral-ok: var(--good);
+  --astral-caution: var(--warn);
+  --astral-fault: var(--bad);
+  --astral-fault-text: var(--bad);
+  --astral-lit: var(--text);
+  --astral-track: var(--text);
+  --astral-label: var(--text-dim);
+  --astral-name: var(--text);
 }

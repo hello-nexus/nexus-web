@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AstralCard, AstralState } from '../../../api/astral';
 import {
-  alertTone, clock, connectorTone, fitStage, levelStatus, pinTone, pollDelayMs, secondsLeft, signedDegrees, tiltWord, unitScale, withCurrent, pinGroups,
+  alertTone, clock, connectorTone, fitStage, levelStatus, pinTone, pollDelayMs, withTimeout, secondsLeft, signedDegrees, tiltWord, unitScale, withCurrent, pinGroups,
 } from './astralUtils';
 
 const card = (over: Partial<AstralCard> = {}): AstralCard => ({
@@ -132,5 +132,29 @@ describe('pollDelayMs', () => {
     const s = state(card());
     s.cards.push(card({ state: 'dead' }));
     expect(pollDelayMs(s)).toBe(1000);
+  });
+});
+
+describe('withTimeout', () => {
+  it('passes a reply through and resolves null on a throw', async () => {
+    expect(await withTimeout(async () => 5)).toBe(5);
+    expect(await withTimeout(async () => { throw new Error('x'); })).toBeNull();
+  });
+  it('resolves null and aborts the request once the time is up', async () => {
+    vi.useFakeTimers();
+    let seen: AbortSignal | undefined;
+    const p = withTimeout(signal => { seen = signal; return new Promise<number>(() => {}); }, undefined, 100);
+    await vi.advanceTimersByTimeAsync(101);
+    vi.useRealTimers();
+    expect(await p).toBeNull();
+    expect(seen?.aborted).toBe(true);
+  });
+  it('aborts with its parent', async () => {
+    const parent = new AbortController();
+    let seen: AbortSignal | undefined;
+    const p = withTimeout(signal => { seen = signal; return new Promise<number>(() => {}); }, parent.signal);
+    parent.abort();
+    expect(await p).toBeNull();
+    expect(seen?.aborted).toBe(true);
   });
 });

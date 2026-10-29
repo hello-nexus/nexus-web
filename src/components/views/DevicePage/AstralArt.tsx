@@ -12,6 +12,9 @@ function useSvgIds(): (name: string) => string {
 }
 
 const FONT = 'Segoe UI, Arial, sans-serif';
+// Colors that sit on the page surface; the page stylesheet sets the --astral-* values per theme.
+const LABEL = 'var(--astral-label, var(--text-dim))';
+const NAME_COLOR = 'var(--astral-name, var(--text))';
 
 // ── Level Sense ─────────────────────────────────────────────────────────────────
 
@@ -87,15 +90,15 @@ export function AstralEndView() {
 export function AstralTiltLabels({ fans, backplate }: { fans: string; backplate: string }) {
   return (
     <svg viewBox={TILT_VIEW} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <text x={TILT_PIVOT[0] - 70} y="150" textAnchor="end" fontFamily={FONT} fontSize="19" fill="var(--text-dim)">{fans}</text>
-      <text x={TILT_PIVOT[0] + 70} y="150" textAnchor="start" fontFamily={FONT} fontSize="19" fill="var(--text-dim)">{backplate}</text>
+      <text x={TILT_PIVOT[0] - 70} y="150" textAnchor="end" fontFamily={FONT} fontSize="19" fill={LABEL}>{fans}</text>
+      <text x={TILT_PIVOT[0] + 70} y="150" textAnchor="start" fontFamily={FONT} fontSize="19" fill={LABEL}>{backplate}</text>
     </svg>
   );
 }
 
 // Neutral tones: the track and the lit end never carry a state color.
-const LIT = 'var(--text)';
-const TRACK = 'var(--text-dim)';
+const LIT = 'var(--astral-lit, var(--text))';
+const TRACK = 'var(--astral-track, var(--text))';
 const PLUS = '+';
 const MINUS = '-';
 
@@ -152,8 +155,8 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap 
   };
   return (
     <svg viewBox={viewBox} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d={arc} fill="none" stroke={TRACK} strokeWidth={12 * k} strokeLinecap="round" strokeOpacity="0.3" />
-      <path d={arc} fill="none" stroke={TRACK} strokeWidth={5 * k} strokeLinecap="round" strokeOpacity="0.8" />
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth={12 * k} strokeLinecap="round" strokeOpacity="0.18" />
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth={5 * k} strokeLinecap="round" strokeOpacity="0.5" />
       {arrowHead(a1, Math.sign(span), on > 0)}
       {arrowHead(a0, -Math.sign(span), on < 0)}
       {sign(a1, PLUS, on > 0)}
@@ -205,7 +208,7 @@ export function AstralConnector({ pins, label }: ConnectorProps) {
           <circle cx="268" cy="32.5" r="1.7" fill={warn} />
         </g>
       )}
-      <text x="292" y="33" fontFamily={FONT} fontSize="22" fontWeight="700" fill={status === 'green' ? 'var(--text)' : warn}>{CONNECTOR_NAME}</text>
+      <text x="292" y="33" fontFamily={FONT} fontSize="22" fontWeight="700" fill={status === 'green' ? NAME_COLOR : warn}>{CONNECTOR_NAME}</text>
       <g transform="translate(0 56)">
         <rect x="276" y="10" width="88" height="24" rx="5" fill="#2a2e35" stroke="#4b525c" strokeWidth="2" />
         <rect x="34" y="30" width="572" height="178" rx="16" fill="#1c1f24" stroke="#4b525c" strokeWidth="2.5" />
@@ -219,7 +222,7 @@ export function AstralConnector({ pins, label }: ConnectorProps) {
               <text x={x + cell / 2} y="104" textAnchor="middle" fontFamily={FONT} fontSize="20" fontWeight="700" fill="#f3f4f6">{`${v.toFixed(2)} A`}</text>
               <rect x={x} y="128" width={cell} height="64" rx="8" fill="#2a2e35" stroke="#3a3f47" strokeWidth="2" />
               <rect x={x + cell / 2 - 13} y="147" width="26" height="26" rx="4" fill="#0b0c0f" />
-              <text x={x + cell / 2} y="268" textAnchor="middle" fontFamily={FONT} fontSize="17" fill="var(--text-dim)">{i + 1}</text>
+              <text x={x + cell / 2} y="268" textAnchor="middle" fontFamily={FONT} fontSize="17" fill={LABEL}>{i + 1}</text>
             </g>
           );
         })}

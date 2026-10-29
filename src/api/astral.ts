@@ -39,13 +39,14 @@ export interface AstralState {
   simulated: boolean;
 }
 
-export const fetchAstral = () => fetchService<AstralState>('/astral');
+export const fetchAstral = (signal?: AbortSignal) => fetchService<AstralState>('/astral', signal);
 
-export const saveAstralSettings = (patch: Partial<AstralSettings>) =>
-  postService<AstralState>('/astral/settings', patch);
+export const saveAstralSettings = (patch: Partial<AstralSettings>, signal?: AbortSignal) =>
+  postService<AstralState>('/astral/settings', patch, signal);
 
-export const calibrateAstral = (gpuId: string) => postService<AstralState>('/astral/calibrate', { gpuId });
+export const calibrateAstral = (gpuId: string, signal?: AbortSignal) =>
+  postService<AstralState>('/astral/calibrate', { gpuId }, signal);
 
-export const cancelAstralShutdown = () => postService<AstralState>('/astral/shutdown/cancel', {});
+export const cancelAstralShutdown = (signal?: AbortSignal) => postService<AstralState>('/astral/shutdown/cancel', {}, signal);
 
-export const shutdownAstralNow = () => postService<AstralState>('/astral/shutdown/now', {});
+export const shutdownAstralNow = (signal?: AbortSignal) => postService<AstralState>('/astral/shutdown/now', {}, signal);

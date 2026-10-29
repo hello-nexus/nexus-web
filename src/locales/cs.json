@@ -776,7 +776,7 @@
   "devices.astral.alert.equalizerHint": "Pokud je připojen kabel ROG Equalizer, zapněte níže režim Equalizer.",
   "devices.astral.alertLine.few": "{state}: piny {pins}",
   "devices.astral.alertLine.one": "{state}: pin {pins}",
-  "devices.astral.alertLine.other": "{state}: pinů {pins}",
+  "devices.astral.alertLine.other": "{state}: piny {pins}",
   "devices.astral.alerts": "Oznámení",
   "devices.astral.alertsHint": "Upozornit, když se pin blíží limitu, překročí ho nebo nepřenáší žádný proud.",
   "devices.astral.alertsTitle": "Upozornění",
