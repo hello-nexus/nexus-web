@@ -364,8 +364,9 @@ export const fetchRenderGpu = () =>
 export const setRenderGpu = (value: string) =>
   postService<{ error?: boolean }>('/lighting/render-gpu', { value });
 
-export const restartService = () =>
-  postService('/service/restart', {});
+/** `reopenRoute` asks the service to reopen the dashboard window at that route once after the restart. */
+export const restartService = (reopenRoute?: string) =>
+  postService('/service/restart', reopenRoute ? { reopenRoute } : {});
 
 // --- Screen monitor enumeration ---
 

@@ -547,6 +547,7 @@ describe('DevicesPage not-responding chip', () => {
   it('hides the chip for a disconnected device', () => {
     mockUnified = [curatedRow({ writeHealth: 'failing', connected: false })];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.getByText('Stream Deck')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: chipName })).toBeNull();
   });
 

@@ -13,12 +13,12 @@ export async function waitForServiceRestart(
   options: RestartWaitOptions,
   sleep: (ms: number) => Promise<void>,
   cancelled: () => boolean = () => false,
+  now: () => number = Date.now,
 ): Promise<boolean> {
-  let elapsed = 0;
+  const deadline = now() + options.timeoutMs;
   let sawDown = false;
-  while (elapsed < options.timeoutMs && !cancelled()) {
+  while (now() < deadline && !cancelled()) {
     await sleep(options.intervalMs);
-    elapsed += options.intervalMs;
     const res = await ping();
     if (res === null) sawDown = true;
     else if (sawDown && res.initialized) return true;

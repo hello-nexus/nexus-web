@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Check, RotateCw, Wrench } from 'lucide-react';
-import { pingService } from '../../../api/service';
+import { isRemoteOrigin, pingService } from '../../../api/service';
 import { restartService } from '../../../api/lighting';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import { useTranslation } from '../../../lib/i18n';
-import { clearLightingRestart, markLightingRestart } from '../../../lib/postRestartRoute';
 import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { Button } from '../Button/Button';
 import { Card } from '../Card/Card';
@@ -57,21 +56,26 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
   const { autostartByApp, disable } = useConflictAutostart(roster, open);
   const [restarting, setRestarting] = useState(false);
   const [restarted, setRestarted] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
   useEffect(() => {
-    if (!open) setRestarted(false);
+    if (!open) {
+      setRestarted(false);
+      setUnconfirmed(false);
+    }
   }, [open]);
 
   const handleRestart = async () => {
     if (restarting) return;
     setRestarting(true);
     setRestarted(false);
-    markLightingRestart();
-    try { await restartService(); } catch { /* the socket drops as the service restarts */ }
+    setUnconfirmed(false);
+    // The window reopens on the page the user is on, since the restart closes it on some platforms.
+    try { await restartService(window.location.pathname); } catch { /* the socket drops as the service restarts */ }
     let back = false;
     try {
       back = await waitForServiceRestart(
@@ -82,10 +86,9 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
       );
     } catch { /* a failed probe leaves the step idle */ }
     if (!mountedRef.current) return;
-    // The window survived the restart, so there is nothing to reopen on Lighting.
-    clearLightingRestart();
     setRestarting(false);
     setRestarted(back);
+    setUnconfirmed(!back);
   };
 
   if (!open) return null;
@@ -121,17 +124,22 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
               </div>
             )}
           </Step>
-          <Step n={2} done={restarted} title={t('lighting.fix.step2.title')} body={t('lighting.fix.step2.body')}>
-            <div className={styles.actions}>
-              <Button
-                tone="accent"
-                icon={<RotateCw size={14} />}
-                loading={restarting}
-                onClick={() => { void handleRestart(); }}
-              >
-                {restarting ? t('lighting.fix.step2.restarting') : restarted ? t('lighting.fix.step2.restarted') : t('lighting.fix.step2.title')}
-              </Button>
-            </div>
+          <Step n={2} done={restarted} title={t('lighting.fix.step2.title')} body={t(isRemoteOrigin ? 'lighting.fix.step2.remote' : 'lighting.fix.step2.body')}>
+            {!isRemoteOrigin && (
+              <>
+                {unconfirmed && <p className={styles.note} role="status">{t('lighting.fix.step2.unconfirmed')}</p>}
+                <div className={styles.actions}>
+                  <Button
+                    tone="accent"
+                    icon={<RotateCw size={14} />}
+                    loading={restarting}
+                    onClick={() => { void handleRestart(); }}
+                  >
+                    {restarting ? t('lighting.fix.step2.restarting') : restarted ? t('lighting.fix.step2.restarted') : t('lighting.fix.step2.title')}
+                  </Button>
+                </div>
+              </>
+            )}
           </Step>
           <Step n={3} done={false} title={t('lighting.fix.step3.title')} body={t('lighting.fix.step3.body')} />
         </div>

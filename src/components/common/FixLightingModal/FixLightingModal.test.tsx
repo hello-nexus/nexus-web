@@ -11,8 +11,12 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 vi.mock('../../../api/conflicts', () => ({ killConflict: vi.fn() }));
 const restartServiceMock = vi.fn();
-vi.mock('../../../api/lighting', () => ({ restartService: () => restartServiceMock() }));
-vi.mock('../../../api/service', () => ({ pingService: vi.fn() }));
+vi.mock('../../../api/lighting', () => ({ restartService: (...a: unknown[]) => restartServiceMock(...a) }));
+const origin = vi.hoisted(() => ({ remote: false }));
+vi.mock('../../../api/service', () => ({
+  pingService: vi.fn(),
+  get isRemoteOrigin() { return origin.remote; },
+}));
 const waitMock = vi.fn();
 vi.mock('./waitForRestart', () => ({ waitForServiceRestart: (...a: unknown[]) => waitMock(...a) }));
 let mockState: ConflictAppsState = { conflicts: [], ready: true };
@@ -30,6 +34,7 @@ import { FixLightingModal } from './FixLightingModal';
 const ICUE: DetectedConflict = { id: 'icue', displayName: 'Corsair iCUE', category: 'lighting', processName: 'iCUE.exe', pid: 10 };
 
 beforeEach(() => {
+  origin.remote = false;
   mockState = { conflicts: [], ready: true };
   restartServiceMock.mockReset();
   waitMock.mockReset();
@@ -114,15 +119,6 @@ describe('FixLightingModal', () => {
     expect(screen.getByRole('button', { name: 'lighting.fix.step2.title' })).not.toBeDisabled();
   });
 
-  it('marks the lighting return before restarting', async () => {
-    restartServiceMock.mockResolvedValue(null);
-    waitMock.mockResolvedValue(true);
-    localStorage.clear();
-    render(<FixLightingModal open onClose={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
-    expect(localStorage.getItem('nexus_post_restart_lighting')).not.toBeNull();
-    await screen.findByText('lighting.fix.step2.restarted');
-  });
 
   it('returns to idle when the wait itself throws', async () => {
     restartServiceMock.mockResolvedValue(null);
@@ -135,12 +131,29 @@ describe('FixLightingModal', () => {
     expect(screen.getByRole('button', { name: 'lighting.fix.step2.title' })).not.toBeDisabled();
   });
 
-  it('clears the reopen mark once the wait ends in this window', async () => {
+
+  it('asks the service to reopen on the current page after the restart', async () => {
     restartServiceMock.mockResolvedValue(null);
     waitMock.mockResolvedValue(true);
     render(<FixLightingModal open onClose={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    expect(restartServiceMock).toHaveBeenCalledWith(window.location.pathname);
     await screen.findByText('lighting.fix.step2.restarted');
-    expect(localStorage.getItem('nexus_post_restart_lighting')).toBeNull();
+  });
+
+  it('says so when the restart was not confirmed', async () => {
+    restartServiceMock.mockResolvedValue(null);
+    waitMock.mockResolvedValue(false);
+    render(<FixLightingModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.fix.step2.title' }));
+    expect(await screen.findByText('lighting.fix.step2.unconfirmed')).toBeInTheDocument();
+  });
+
+  it('gives instructions only, with no restart button, on the remote origin', () => {
+    origin.remote = true;
+    render(<FixLightingModal open onClose={() => {}} />);
+    expect(screen.getByText('lighting.fix.step2.remote')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'lighting.fix.step2.title' })).toBeNull();
+    expect(restartServiceMock).not.toHaveBeenCalled();
   });
 });

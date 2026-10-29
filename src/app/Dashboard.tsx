@@ -34,7 +34,6 @@ import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketpl
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { DESKTOP_OFFLINE_GRACE_MS } from '../lib/serviceLiveness';
-import { useReturnToLightingAfterRestart } from '../hooks/useReturnToLightingAfterRestart';
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useConflictApps } from '../hooks/useConflictApps';
@@ -374,9 +373,6 @@ export function Dashboard() {
   }, [buildFrame.canGoForward, routeGoForward]);
   const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
   const online = status.state === 'online';
-  // A restart from Fix lighting can close and reopen this window at its default page; return to Lighting once.
-  const goToLighting = useCallback(() => navigate('system', 'lighting'), [navigate]);
-  useReturnToLightingAfterRestart(online, goToLighting);
   // Re-read on every reconnect: a factory reset restarts the service and puts
   // all three flags back to pending under this same page. Counted, not keyed on
   // `online` itself: a read issued while the service is down exhausts its
