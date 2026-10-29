@@ -69,6 +69,27 @@ describe('WidgetContextMenu name row', () => {
     expect(container.firstElementChild!.children[1].className).toContain('divider');
   });
 
+  it('renders no separate Immersive mode item', () => {
+    render(<WidgetContextMenu {...base} onImmersive={vi.fn()} />);
+    expect(screen.queryByText('panel.widget.menu.immersive')).toBeNull();
+  });
+
+  it('runs the immersive handler from the name row when immersive is available', () => {
+    const onImmersive = vi.fn();
+    render(<WidgetContextMenu {...base} onImmersive={onImmersive} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.menu.immersive' }));
+    expect(onImmersive).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a plain Open item beside the immersive name row', () => {
+    const onImmersive = vi.fn();
+    const onOpen = vi.fn();
+    render(<WidgetContextMenu {...base} onImmersive={onImmersive} onOpen={onOpen} />);
+    fireEvent.click(screen.getByText('openInApp.open'));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onImmersive).not.toHaveBeenCalled();
+  });
+
   it('is an inert label without an arrow when there is nothing to open', () => {
     const { container } = render(<WidgetContextMenu {...base} />);
     const label = screen.getByText('Clock');
@@ -156,9 +177,9 @@ describe('WidgetContextMenu lock widgets', () => {
     expect(screen.getByText('panel.widget.menu.lockWidgets')).toBeTruthy();
   });
 
-  it('keeps Immersive mode reachable while locked', () => {
-    render(<WidgetContextMenu {...base} locked onToggleLock={vi.fn()} onImmersive={vi.fn()} />);
-    expect(screen.getByText('panel.widget.menu.immersive')).toBeTruthy();
+  it('keeps the immersive name row reachable while locked', () => {
+    render(<WidgetContextMenu {...base} title="Clock" locked onToggleLock={vi.fn()} onImmersive={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'panel.widget.menu.immersive' })).toBeTruthy();
   });
 
   it('shows no lock item where lock is not offered', () => {
