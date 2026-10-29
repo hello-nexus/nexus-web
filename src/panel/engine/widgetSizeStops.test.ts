@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { nearestWidgetSizeStop, stopForWidgetSize, widgetSizeStops } from './widgetSizeStops';
+import { nearestWidgetSizeStop, percentAtTrackIndex, stopForWidgetSize, trackIndexOfPercent, widgetSizeStops, widgetSizeTrackStops } from './widgetSizeStops';
 import { panelWidgetSizeOptions, type PanelSurface } from '../types';
 
 const stopsOf = (surface: PanelSurface, family?: string) => widgetSizeStops(panelWidgetSizeOptions(surface, family)!).map(s => `${s.mode}:${s.percent}`);
@@ -72,5 +72,32 @@ describe('widgetSizeStops', () => {
     expect(stopForWidgetSize(lianli, widgetSizeStops(lianli, 8), 'large', 8)?.percent).toBe(200);
     const lcd5 = panelWidgetSizeOptions('monitor', 'icue-link-lcd5')!;
     expect(stopForWidgetSize(lcd5, widgetSizeStops(lcd5, 8), 'large', 8)?.percent).toBe(200);
+  });
+});
+
+describe('widget scale track', () => {
+  const track = widgetSizeTrackStops(widgetSizeStops(panelWidgetSizeOptions('monitor')!));
+
+  it('orders 5 stops smallest to largest', () => {
+    expect(track.map(s => s.percent)).toEqual([50, 75, 100, 150, 200]);
+  });
+
+  it('places each stop at an equal fraction of the track', () => {
+    const max = track.length - 1;
+    const fractions = track.map((_, i) => i / max);
+    expect(fractions).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    const gaps = fractions.slice(1).map((f, i) => f - fractions[i]);
+    expect(new Set(gaps).size).toBe(1);
+  });
+
+  it('maps index to percent and back, snapping a typed percent to the nearest stop', () => {
+    track.forEach((stop, i) => {
+      expect(percentAtTrackIndex(track, i)).toBe(stop.percent);
+      expect(trackIndexOfPercent(track, stop.percent)).toBe(i);
+    });
+    expect(trackIndexOfPercent(track, 120)).toBe(2);
+    expect(trackIndexOfPercent(track, 130)).toBe(3);
+    expect(trackIndexOfPercent(track, 999)).toBe(4);
+    expect(percentAtTrackIndex(track, 9)).toBe(200);
   });
 });

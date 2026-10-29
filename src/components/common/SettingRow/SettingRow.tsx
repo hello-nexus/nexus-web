@@ -244,6 +244,7 @@ export function SettingSlider({
   max,
   step,
   formatValue,
+  entryMap,
   onChange,
   onCommit,
   editable,
@@ -269,6 +270,7 @@ export function SettingSlider({
   max: number;
   step?: number;
   formatValue?: (v: number) => string;
+  entryMap?: { toEntry: (value: number) => number; fromEntry: (typed: number) => number };
   onChange: (value: number, commit?: boolean) => void;
   onCommit?: (value: number) => void;
   editable?: boolean;
@@ -300,6 +302,7 @@ export function SettingSlider({
         max={max}
         step={step}
         formatValue={formatValue}
+        entryMap={entryMap}
         onChange={onChange}
         onCommit={onCommit}
         editable={editable}

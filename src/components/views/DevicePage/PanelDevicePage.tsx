@@ -30,7 +30,7 @@ import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { takePanelEditorTarget, type PanelEditorTarget } from '../../../panel/engine/panelEditorLink';
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
 import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
-import { nearestWidgetSizeStop, stopForWidgetSize, widgetSizeStops as widgetSizeStops_ } from '../../../panel/engine/widgetSizeStops';
+import { percentAtTrackIndex, stopForWidgetSize, trackIndexOfPercent, widgetSizeStops as widgetSizeStops_, widgetSizeTrackStops } from '../../../panel/engine/widgetSizeStops';
 import { monitorGridCapacity, recordCanvasOf, y70GridCapacity } from '../../../panel/engine/recordCanvas';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
@@ -632,6 +632,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const options = panelWidgetSizeOptions(glassSurface, recordFamily);
     return options ? widgetSizeStops_(options, densitySlots) : [];
   }, [glassSurface, recordFamily, densitySlots]);
+  const widgetSizeTrack = useMemo(() => widgetSizeTrackStops(widgetSizeStops), [widgetSizeStops]);
   const widgetSizePercentOf = (mode: PanelWidgetSizeMode) => {
     const options = panelWidgetSizeOptions(glassSurface, recordFamily);
     return (options ? stopForWidgetSize(options, widgetSizeStops, mode, densitySlots)?.percent : undefined) ?? 100;
@@ -1693,15 +1694,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                   editable
                                   trackFill
                                   label={t('devices.panels.widgetSize.label')}
-                                  value={widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode)}
-                                  min={Math.min(...widgetSizeStops.map(stop => stop.percent))}
-                                  max={Math.max(...widgetSizeStops.map(stop => stop.percent))}
-                                  formatValue={v => `${v}%`}
+                                  value={trackIndexOfPercent(widgetSizeTrack, widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode))}
+                                  min={0}
+                                  max={widgetSizeTrack.length - 1}
+                                  step={1}
+                                  formatValue={i => `${percentAtTrackIndex(widgetSizeTrack, i)}%`}
+                                  entryMap={{
+                                    toEntry: i => percentAtTrackIndex(widgetSizeTrack, i),
+                                    fromEntry: typed => trackIndexOfPercent(widgetSizeTrack, typed),
+                                  }}
                                   disabled={!editingDeviceId}
-                                  onChange={value => setWidgetSizeDraft(nearestWidgetSizeStop(widgetSizeStops, value)?.mode ?? null)}
-                                  onCommit={value => {
+                                  onChange={i => setWidgetSizeDraft(widgetSizeTrack[Math.round(i)]?.mode ?? null)}
+                                  onCommit={i => {
                                     setWidgetSizeDraft(null);
-                                    const stop = nearestWidgetSizeStop(widgetSizeStops, value);
+                                    const stop = widgetSizeTrack[Math.round(i)];
                                     if (stop) requestWidgetSize(stop.mode);
                                   }}
                                 />

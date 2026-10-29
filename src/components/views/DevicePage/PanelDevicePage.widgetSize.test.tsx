@@ -275,8 +275,12 @@ describe('PanelDevicePage widget size', () => {
     };
     await renderPage(screen88);
     // The default is 100%; the older forced two-column Large keeps its own 200% stop above it.
-    expect(sizeSlider().value).toBe('100');
-    expect(sizeSlider().max).toBe('200');
+    // The slider runs over stop indices (even spacing); the row shows the percent label.
+    expect(screen.getByRole('button', { name: 'devices.panels.widgetSize.label' })).toHaveTextContent('100%');
+    expect(sizeSlider().min).toBe('0');
+    expect(sizeSlider().step).toBe('1');
+    expect(Number(sizeSlider().value)).toBeGreaterThan(0);
+    expect(Number(sizeSlider().value)).toBeLessThan(Number(sizeSlider().max));
 
     await pickSize('min');
 
