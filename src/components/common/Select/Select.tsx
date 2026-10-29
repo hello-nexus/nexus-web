@@ -53,7 +53,8 @@ export interface SelectOption {
   // picker previews each face; the trigger keeps the control's own font.
   fontFamily?: string;
   // Dim second line under the label in the menu row only (e.g. a caveat about
-  // the choice); the trigger shows the label alone.
+  // the choice); a newline inside it breaks to a further line. The trigger
+  // shows the label alone.
   description?: string;
   // Renders a thin rule instead of a selectable row, grouping the options above
   // and below it. Non-navigable and removed from the a11y tree; value/label are

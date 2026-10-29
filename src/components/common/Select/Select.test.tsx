@@ -31,6 +31,14 @@ describe('Select leadingAction', () => {
   });
 });
 
+describe('Select description lines', () => {
+  it('keeps a newline in the description so the row can break there', () => {
+    render(<Select value="a" onChange={vi.fn()} options={[{ value: 'a', label: 'Apple', description: 'one\ntwo' }]} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('option').querySelector('[data-option-description]')!.textContent).toBe('one\ntwo');
+  });
+});
+
 describe('Select renderValue', () => {
   it('draws custom trigger content for the selected option and leaves the menu rows alone', () => {
     render(

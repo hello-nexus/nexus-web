@@ -246,7 +246,8 @@
   margin-top: 0.15rem;
   color: var(--text-dim);
   font-size: var(--type-mini);
-  white-space: normal;
+  // A newline in the description starts a new line.
+  white-space: pre-line;
 }
 
 // Font-preview rows (SelectOption.fontFamily) draw larger so each face reads.
