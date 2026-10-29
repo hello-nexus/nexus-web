@@ -1570,26 +1570,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         aria-disabled={recordSecondaryMonitor || undefined}
                         inert={recordSecondaryMonitor || undefined}
                       >
-                        {((widgetSizeOptions && widgetSizeMode) || widgetPlaylist) && (
+                        {widgetPlaylist && (
                           <Card compact className={styles.playlistPanel}>
-                            {widgetSizeOptions && widgetSizeMode && widgetSizeStops.length > 1 && (
-                              <SettingSlider
-                                editable
-                                trackFill
-                                label={t('devices.panels.widgetSize.label')}
-                                value={widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode)}
-                                min={Math.min(...widgetSizeStops.map(stop => stop.percent))}
-                                max={Math.max(...widgetSizeStops.map(stop => stop.percent))}
-                                formatValue={v => `${v}%`}
-                                disabled={!editingDeviceId}
-                                onChange={value => setWidgetSizeDraft(nearestWidgetSizeStop(widgetSizeStops, value)?.mode ?? null)}
-                                onCommit={value => {
-                                  setWidgetSizeDraft(null);
-                                  const stop = nearestWidgetSizeStop(widgetSizeStops, value);
-                                  if (stop) requestWidgetSize(stop.mode);
-                                }}
-                              />
-                            )}
                             {widgetPlaylist && (
                               <SettingToggle
                                 label={t('panel.playlist.playlist')}
@@ -1705,6 +1687,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             deviceH={nativeH}
                             hideWidgetLabelsToggle={singleWidget}
                             hideWidgetChromeControls={singleWidget}
+                            widgetScaleRow={
+                              widgetSizeOptions && widgetSizeMode && widgetSizeStops.length > 1 ? (
+                                <SettingSlider
+                                  editable
+                                  trackFill
+                                  label={t('devices.panels.widgetSize.label')}
+                                  value={widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode)}
+                                  min={Math.min(...widgetSizeStops.map(stop => stop.percent))}
+                                  max={Math.max(...widgetSizeStops.map(stop => stop.percent))}
+                                  formatValue={v => `${v}%`}
+                                  disabled={!editingDeviceId}
+                                  onChange={value => setWidgetSizeDraft(nearestWidgetSizeStop(widgetSizeStops, value)?.mode ?? null)}
+                                  onCommit={value => {
+                                    setWidgetSizeDraft(null);
+                                    const stop = nearestWidgetSizeStop(widgetSizeStops, value);
+                                    if (stop) requestWidgetSize(stop.mode);
+                                  }}
+                                />
+                              ) : null
+                            }
                             showImmersiveBackdrop={surfaceSupportsTouch(surface, deviceTouch)}
                             sections={activeTab}
                           />

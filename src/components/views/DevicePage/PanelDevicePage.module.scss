@@ -275,19 +275,13 @@
   align-items: center;
 }
 
-// Widget scale and playlist settings, above the catalog.
+// Playlist settings, above the catalog.
 .playlistPanel {
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex-shrink: 0;
   margin: 0 0 8px;
-}
-
-// The compact card's padding stacked on the setting row's own left the Widget scale row tall; trim only
-// the card's vertical padding, here, so the shared Card and setting rows stay as they are.
-.playlistPanel.playlistPanel {
-  padding-block: 0.25rem;
 }
 
 // --- Theme Panel ---
