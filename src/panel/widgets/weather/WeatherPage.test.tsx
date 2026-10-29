@@ -122,6 +122,24 @@ describe('WeatherPage', () => {
     expect(screen.getByText('2-day forecast')).toBeInTheDocument();
   });
 
+  it('opens on the widget\'s place when given its route tab, and on auto otherwise', async () => {
+    render(<WeatherPage tab="35.68~139.69" />);
+    await flush();
+    const rows = within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option');
+    expect(rows.map(r => r.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true']);
+    expect(api.saveWeatherPrefs).not.toHaveBeenCalled();
+  });
+
+  it('keeps the auto place for an unknown or absent tab', async () => {
+    const { unmount } = render(<WeatherPage tab="1~2" />);
+    await flush();
+    expect(within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true');
+    unmount();
+    render(<WeatherPage />);
+    await flush();
+    expect(within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('switches the detail pane to the clicked place', async () => {
     render(<WeatherPage />);
     await flush();

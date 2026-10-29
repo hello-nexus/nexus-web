@@ -1034,7 +1034,7 @@ export function Dashboard() {
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} onOpenInLighting={key => { requestLightingEffect(key); navigate('system', 'lighting'); }} />;
       case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} platform={status.ping?.platform ?? ''} />;
       case 'clock':      return <ClockPage />;
-      case 'weather':    return <WeatherPage />;
+      case 'weather':    return <WeatherPage tab={subtab ?? undefined} />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenDeckEditor={target => handleOpenDeckEditor({ ...target, token: 0 })} />;

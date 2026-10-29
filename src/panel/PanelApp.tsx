@@ -146,6 +146,7 @@ import {
   buildPanelCollisionDetection,
   findWidgetById,
   isDashboardClickthroughType,
+  widgetOpenTab,
   appRouteForWidget,
   noopCellPointers,
   parseDragTarget,
@@ -1346,7 +1347,8 @@ export function PanelContent({
     if (simulator) return () => onSimulatorWidgetClicked?.(w.id);
     if (embedded) {
       if (surface === 'desktop' && onSectionNavigate && isDashboardClickthroughType(w.type)) {
-        return () => onSectionNavigate(w.type);
+        const tab = widgetOpenTab(w);
+        return () => onSectionNavigate(w.type, tab ? { tab } : undefined);
       }
       return null;
     }
