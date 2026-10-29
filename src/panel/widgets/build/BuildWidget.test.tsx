@@ -120,6 +120,45 @@ describe('BuildWidget', () => {
     expect(screen.queryByTestId('seed')).toBeNull();
   });
 
+  it('a Y70 case with no stored image shows the stock image in both themes, still seeds, and the stored image replaces it', async () => {
+    h.devTools = true;
+    h.caseId.mockResolvedValue('517f12f3-4679-4d13-8832-0fcd2c2a40ea');
+    const view = await renderWidget('4x4');
+    expect(view.container.querySelectorAll('img[data-stock]')).toHaveLength(1);
+    expect(view.container.querySelector('img[data-stock="dark"]')).not.toBeNull();
+    expect(view.container.querySelector('svg')).toBeNull();
+    expect(screen.getByTestId('seed')).toBeTruthy();
+    view.unmount();
+    h.preview.mockResolvedValue(image());
+    const stored = await renderWidget('4x4');
+    expect(stored.container.querySelector('img[data-stock]')).toBeNull();
+    expect(stored.container.querySelector('img')?.getAttribute('src')).toBe('blob:preview-1');
+  });
+
+  it('the stock image follows the nearest themed ancestor and its changes', async () => {
+    h.caseId.mockResolvedValue('517f12f3-4679-4d13-8832-0fcd2c2a40ea');
+    document.documentElement.setAttribute('data-theme', 'light');
+    const scope = document.createElement('div');
+    scope.setAttribute('data-theme', 'dark');
+    document.body.appendChild(scope);
+    const view = render(<BuildWidget widget={widget('2x2')} />, { container: scope.appendChild(document.createElement('div')) });
+    await flush();
+    expect(view.container.querySelector('img[data-stock="dark"]')).not.toBeNull();
+    await act(async () => { scope.setAttribute('data-theme', 'light'); });
+    await flush();
+    expect(view.container.querySelector('img[data-stock="light"]')).not.toBeNull();
+    view.unmount();
+    scope.remove();
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  it('a case that is not a Y70 keeps the silhouette', async () => {
+    h.caseId.mockResolvedValue('some-other-case');
+    const view = await renderWidget('2x2');
+    expect(view.container.querySelector('img[data-stock]')).toBeNull();
+    expect(view.container.querySelector('svg')).not.toBeNull();
+  });
+
   it('names the tile and carries the notice in its accessible text', async () => {
     const { container } = await renderWidget('4x4');
     expect(container.textContent).toContain('panel.widget.build');
