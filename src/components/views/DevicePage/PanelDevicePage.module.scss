@@ -20,7 +20,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0.25rem 0 1.25rem;
+  // No top padding: the tab row's own bottom margin sets the gap, as on the Settings page.
+  padding: 0 0 1.25rem;
 }
 
 // --- Layout ---
@@ -200,10 +201,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-top: 0.5rem;
-  // Mirrors the padding-top: lets the theme tab's sticky background dock pin
+  // Mirrors the (absent) padding-top: the theme tab's sticky background dock pins
   // flush with the scrollport edge (see .backgroundDock).
-  --settings-sticky-inset: 0.5rem;
+  --settings-sticky-inset: 0px;
   padding-right: 4px;
 }
 
@@ -281,7 +281,13 @@
   flex-direction: column;
   gap: 8px;
   flex-shrink: 0;
-  margin: 4px 0 8px;
+  margin: 0 0 8px;
+}
+
+// The compact card's padding stacked on the setting row's own left the Widget scale row tall; trim only
+// the card's vertical padding, here, so the shared Card and setting rows stay as they are.
+.playlistPanel.playlistPanel {
+  padding-block: 0.25rem;
 }
 
 // --- Theme Panel ---
