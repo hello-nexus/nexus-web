@@ -22,9 +22,27 @@ export function alertTone(state: AstralPinState): NoticeTone | null {
   return state === 'caution' || state === 'warning' ? 'warning' : 'critical';
 }
 
-/** 1-based numbers of the pins sitting in the card's worst state. */
-export function worstPins(card: AstralCard): string {
-  return card.pins.flatMap((p, i) => (p.state === card.state ? [String(i + 1)] : [])).join(', ');
+/** Worst first: the card's own state leads, the rest follow in this order. */
+const STATE_ORDER: readonly AstralPinState[] = ['critical', 'overcurrent', 'dead', 'warning', 'caution'];
+
+export interface PinGroup {
+  state: AstralPinState;
+  /** 1-based pin numbers, joined for display. */
+  pins: string;
+  count: number;
+}
+
+/** Every pin off normal, grouped by state, the card's worst state first. */
+export function pinGroups(card: AstralCard): PinGroup[] {
+  const rank = (s: AstralPinState) => (s === card.state ? -1 : STATE_ORDER.indexOf(s));
+  const byState = new Map<AstralPinState, string[]>();
+  card.pins.forEach((p, i) => {
+    if (p.state === 'ok') return;
+    byState.set(p.state, [...(byState.get(p.state) ?? []), String(i + 1)]);
+  });
+  return [...byState.entries()]
+    .sort((a, b) => rank(a[0]) - rank(b[0]))
+    .map(([state, nums]) => ({ state, pins: nums.join(', '), count: nums.length }));
 }
 
 export type LevelStatus = 'none' | 'calibrating' | 'ready';
@@ -99,9 +117,9 @@ export function signedDegrees(v: number): string {
   return `${v > 0 ? '+' : '-'}${Math.abs(v).toFixed(2)}°`;
 }
 
-/** Whole seconds left on a countdown, never negative. */
-export function secondsLeft(endsAtMs: number, nowMs: number): number {
-  return Math.max(0, Math.ceil((endsAtMs - nowMs) / 1000));
+/** Whole seconds left on a countdown given the service's remaining time and how long ago it was received, never negative. */
+export function secondsLeft(remainingMs: number, elapsedMs: number): number {
+  return Math.max(0, Math.ceil((remainingMs - Math.max(0, elapsedMs)) / 1000));
 }
 
 /** Minutes and zero-padded seconds. */
@@ -122,9 +140,9 @@ export const CALIBRATE_SECONDS = 5;
 /** The seconds the service waits after a critical reading before shutting down. */
 export const CRITICAL_SECONDS = 10;
 
-/** Poll fast only while something is moving: a countdown, a calibration or a pin off normal, on any card. */
-export function pollDelayMs(state: AstralState | null): number {
-  const busy = !!state?.countdown || !!state?.cards.some(c => c.level.calibrating || c.state !== 'ok');
+/** Poll fast while something is moving (a countdown, a calibration, a pin off normal) or the pin readout is on screen. */
+export function pollDelayMs(state: AstralState | null, readoutVisible = false): number {
+  const busy = readoutVisible || !!state?.countdown || !!state?.cards.some(c => c.level.calibrating || c.state !== 'ok');
   return busy ? FAST_POLL_MS : SLOW_POLL_MS;
 }
 

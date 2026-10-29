@@ -87,15 +87,15 @@ export function AstralEndView() {
 export function AstralTiltLabels({ fans, backplate }: { fans: string; backplate: string }) {
   return (
     <svg viewBox={TILT_VIEW} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <text x={TILT_PIVOT[0] - 70} y="150" textAnchor="end" fontFamily={FONT} fontSize="19" fill="#9ca3af">{fans}</text>
-      <text x={TILT_PIVOT[0] + 70} y="150" textAnchor="start" fontFamily={FONT} fontSize="19" fill="#9ca3af">{backplate}</text>
+      <text x={TILT_PIVOT[0] - 70} y="150" textAnchor="end" fontFamily={FONT} fontSize="19" fill="var(--text-dim)">{fans}</text>
+      <text x={TILT_PIVOT[0] + 70} y="150" textAnchor="start" fontFamily={FONT} fontSize="19" fill="var(--text-dim)">{backplate}</text>
     </svg>
   );
 }
 
 // Neutral tones: the track and the lit end never carry a state color.
-const LIT = '#cbd2db';
-const TRACK = '#9ca3af';
+const LIT = 'var(--text)';
+const TRACK = 'var(--text-dim)';
 const PLUS = '+';
 const MINUS = '-';
 
@@ -152,8 +152,8 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap 
   };
   return (
     <svg viewBox={viewBox} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d={arc} fill="none" stroke={TRACK} strokeWidth={12 * k} strokeLinecap="round" strokeOpacity="0.18" />
-      <path d={arc} fill="none" stroke={TRACK} strokeWidth={5 * k} strokeLinecap="round" strokeOpacity="0.5" />
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth={12 * k} strokeLinecap="round" strokeOpacity="0.3" />
+      <path d={arc} fill="none" stroke={TRACK} strokeWidth={5 * k} strokeLinecap="round" strokeOpacity="0.8" />
       {arrowHead(a1, Math.sign(span), on > 0)}
       {arrowHead(a0, -Math.sign(span), on < 0)}
       {sign(a1, PLUS, on > 0)}
@@ -164,12 +164,12 @@ export function AstralArcArrow({ viewBox, cx, cy, r, a0, a1, on, k = 1, signGap 
 
 // ── Power detector ──────────────────────────────────────────────────────────────
 
-// The pin and warning colors: green for fine, amber for a heads-up, red for a fault.
-const GT_GREEN = '#03FC84';
-const GT_YELLOW = '#FBB03B';
-const GT_RED = '#FF0000';
-const GT_WARNING = '#FF5555';
-const PIN_COLOR: Record<PinTone, string> = { green: GT_GREEN, yellow: GT_YELLOW, red: GT_RED };
+// Green for fine, amber for a heads-up, red for a fault; the page stylesheet sets the --astral-* values per theme.
+const OK_COLOR = 'var(--astral-ok, var(--good))';
+const CAUTION_COLOR = 'var(--astral-caution, var(--warn))';
+const FAULT_COLOR = 'var(--astral-fault, var(--bad))';
+const FAULT_TEXT = 'var(--astral-fault-text, var(--bad))';
+const PIN_COLOR: Record<PinTone, string> = { green: OK_COLOR, yellow: CAUTION_COLOR, red: FAULT_COLOR };
 const CONNECTOR_NAME = '12V-2X6';
 const PIN_RAIL = '12V';
 
@@ -190,13 +190,13 @@ export function AstralConnector({ pins, label }: ConnectorProps) {
   const values = [0, 1, 2, 3, 4, 5].map(i => (Number.isFinite(pins[i]?.amps) ? pins[i].amps : 0));
   const states = [0, 1, 2, 3, 4, 5].map(i => pins[i]?.tone ?? 'green');
   const status = connectorTone(states);
-  const warn = status === 'red' ? GT_WARNING : GT_YELLOW;
+  const warn = status === 'red' ? FAULT_TEXT : CAUTION_COLOR;
   return (
     <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="group" aria-label={label}>
       {status === 'green' ? (
         <g>
-          <circle cx="268" cy="25" r="13" fill="none" stroke={GT_GREEN} strokeWidth="2.6" />
-          <path d="M261.5 25.5 L266.5 30.5 L275 20.5" fill="none" stroke={GT_GREEN} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="268" cy="25" r="13" fill="none" stroke={OK_COLOR} strokeWidth="2.6" />
+          <path d="M261.5 25.5 L266.5 30.5 L275 20.5" fill="none" stroke={OK_COLOR} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
         </g>
       ) : (
         <g>
@@ -205,7 +205,7 @@ export function AstralConnector({ pins, label }: ConnectorProps) {
           <circle cx="268" cy="32.5" r="1.7" fill={warn} />
         </g>
       )}
-      <text x="292" y="33" fontFamily={FONT} fontSize="22" fontWeight="700" fill={status === 'green' ? '#ffffff' : warn}>{CONNECTOR_NAME}</text>
+      <text x="292" y="33" fontFamily={FONT} fontSize="22" fontWeight="700" fill={status === 'green' ? 'var(--text)' : warn}>{CONNECTOR_NAME}</text>
       <g transform="translate(0 56)">
         <rect x="276" y="10" width="88" height="24" rx="5" fill="#2a2e35" stroke="#4b525c" strokeWidth="2" />
         <rect x="34" y="30" width="572" height="178" rx="16" fill="#1c1f24" stroke="#4b525c" strokeWidth="2.5" />
@@ -219,7 +219,7 @@ export function AstralConnector({ pins, label }: ConnectorProps) {
               <text x={x + cell / 2} y="104" textAnchor="middle" fontFamily={FONT} fontSize="20" fontWeight="700" fill="#f3f4f6">{`${v.toFixed(2)} A`}</text>
               <rect x={x} y="128" width={cell} height="64" rx="8" fill="#2a2e35" stroke="#3a3f47" strokeWidth="2" />
               <rect x={x + cell / 2 - 13} y="147" width="26" height="26" rx="4" fill="#0b0c0f" />
-              <text x={x + cell / 2} y="268" textAnchor="middle" fontFamily={FONT} fontSize="17" fill="#9ca3af">{i + 1}</text>
+              <text x={x + cell / 2} y="268" textAnchor="middle" fontFamily={FONT} fontSize="17" fill="var(--text-dim)">{i + 1}</text>
             </g>
           );
         })}

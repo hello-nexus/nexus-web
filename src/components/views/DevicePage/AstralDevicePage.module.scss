@@ -183,12 +183,23 @@
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  --astral-ok: #03fc84;
+  --astral-caution: #fbb03b;
+  --astral-fault: #f00;
+  --astral-fault-text: #f55;
 
   > svg {
     width: 100%;
     max-width: 28rem;
     height: auto;
   }
+}
+
+:global([data-theme='light']) .connector {
+  --astral-ok: var(--good);
+  --astral-caution: var(--warn);
+  --astral-fault: var(--bad);
+  --astral-fault-text: var(--bad);
 }
 
 .total {

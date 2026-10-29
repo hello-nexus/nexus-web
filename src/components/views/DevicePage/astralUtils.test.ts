@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AstralCard, AstralState } from '../../../api/astral';
 import {
-  alertTone, clock, connectorTone, fitStage, levelStatus, pinTone, pollDelayMs, secondsLeft, signedDegrees, tiltWord, unitScale, withCurrent, worstPins,
+  alertTone, clock, connectorTone, fitStage, levelStatus, pinTone, pollDelayMs, secondsLeft, signedDegrees, tiltWord, unitScale, withCurrent, pinGroups,
 } from './astralUtils';
 
 const card = (over: Partial<AstralCard> = {}): AstralCard => ({
@@ -26,10 +26,19 @@ describe('alertTone', () => {
   });
 });
 
-describe('worstPins', () => {
-  it('lists only the pins in the card state, 1-based', () => {
-    const pins = card().pins.map((p, i) => (i === 1 || i === 4 ? { ...p, state: 'overcurrent' as const } : p));
-    expect(worstPins(card({ pins, state: 'overcurrent' }))).toBe('2, 5');
+describe('pinGroups', () => {
+  const withStates = (states: Record<number, AstralCard['state']>, state: AstralCard['state']) =>
+    card({ state, pins: card().pins.map((p, i) => (states[i] ? { ...p, state: states[i] } : p)) });
+  it('is empty at rest', () => {
+    expect(pinGroups(card())).toEqual([]);
+  });
+  it('groups pins by state, 1-based, with a count', () => {
+    expect(pinGroups(withStates({ 1: 'overcurrent', 4: 'overcurrent' }, 'overcurrent')))
+      .toEqual([{ state: 'overcurrent', pins: '2, 5', count: 2 }]);
+  });
+  it('names every non-ok pin, the card state first', () => {
+    const groups = pinGroups(withStates({ 0: 'caution', 2: 'critical', 3: 'warning', 5: 'dead' }, 'critical'));
+    expect(groups.map(g => [g.state, g.pins])).toEqual([['critical', '3'], ['dead', '6'], ['warning', '4'], ['caution', '1']]);
   });
 });
 
@@ -90,6 +99,7 @@ describe('formatting', () => {
   it('counts down without going negative', () => {
     expect(secondsLeft(10_500, 10_000)).toBe(1);
     expect(secondsLeft(9_000, 10_000)).toBe(0);
+    expect(secondsLeft(5_000, -300)).toBe(5);
     expect(clock(65)).toBe('1:05');
   });
   it('adds a saved time that is not among the choices, in order', () => {
@@ -110,9 +120,13 @@ describe('pollDelayMs', () => {
   it('is slow at rest and fast for a countdown, a calibration or a fault', () => {
     expect(pollDelayMs(null)).toBe(5000);
     expect(pollDelayMs(state(card()))).toBe(5000);
-    expect(pollDelayMs(state(card(), { reason: 'overcurrent', endsAtMs: 1 }))).toBe(1000);
+    expect(pollDelayMs(state(card(), { reason: 'overcurrent', endsAtMs: 1, remainingMs: 1, gpuId: 'gpu0' }))).toBe(1000);
     expect(pollDelayMs(state(card({ level: { available: false, calibrating: true } })))).toBe(1000);
     expect(pollDelayMs(state(card({ state: 'caution' })))).toBe(1000);
+  });
+  it('is fast while the pin readout is on screen', () => {
+    expect(pollDelayMs(state(card()), true)).toBe(1000);
+    expect(pollDelayMs(null, true)).toBe(1000);
   });
   it('looks at every card', () => {
     const s = state(card());

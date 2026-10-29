@@ -26,8 +26,15 @@ export interface AstralState {
   cards: AstralCard[];
   settings: AstralSettings;
   /** Absent, not null, when nothing is counting down. */
-  countdown?: { reason: 'overcurrent' | 'critical'; endsAtMs: number };
-  /** The user canceled an overcurrent countdown; critical still arms. */
+  countdown?: {
+    reason: 'overcurrent' | 'critical';
+    endsAtMs: number;
+    /** Milliseconds left when the service built this state, never negative; immune to client clock skew. */
+    remainingMs: number;
+    /** The card whose countdown it is. */
+    gpuId: string;
+  };
+  /** The user canceled an overcurrent countdown; critical still arms and cannot be canceled. */
   heldOff: boolean;
   simulated: boolean;
 }

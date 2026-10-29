@@ -5,6 +5,7 @@ import { AstralDevicePage } from './AstralDevicePage';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
+    language: 'en',
     t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
   }),
 }));
@@ -19,9 +20,12 @@ const api = vi.hoisted(() => ({
 vi.mock('../../../api/astral', () => api);
 
 const live = vi.hoisted(() => ({ sensors: [] as { id: string; value: number }[] }));
-vi.mock('../../../hooks/useSensors', () => ({
-  useSensors: () => ({ gpuComponents: [{ id: 'gpu0', name: 'GPU', sensors: live.sensors }] }),
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopic: (topic: string) => (topic === 'gpu' ? [{ id: 'gpu0', name: 'GPU', sensors: live.sensors }] : null),
 }));
+
+const cd = (reason: 'overcurrent' | 'critical', ms: number, gpuId = 'gpu0') =>
+  ({ reason, endsAtMs: Date.now() + ms, remainingMs: ms, gpuId });
 
 const pins = (states: string[] = []) =>
   [0, 1, 2, 3, 4, 5].map(i => ({ amps: 7 + i / 10, state: states[i] ?? 'ok' }));
@@ -67,7 +71,21 @@ describe('AstralDevicePage', () => {
     const pin3 = screen.getByRole('group', { name: /devices.astral.pinLabel:\{"n":3/ });
     expect(pin3.getAttribute('aria-label')).toContain('devices.astral.state.overcurrent');
     expect(screen.getByRole('group', { name: /"n":1,/ }).getAttribute('aria-label')).toContain('devices.astral.state.ok');
-    expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.alert.overcurrent:{"pins":"3"}');
+    expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.alertLine.one:{"state":"devices.astral.state.overcurrent","pins":"3"}');
+  });
+
+  it('names every abnormal pin and its state in text, grouped, with a plural for several', async () => {
+    const s = base();
+    s.cards[0].pins[0] = { amps: 15, state: 'warning' };
+    s.cards[0].pins[2] = { amps: 13, state: 'overcurrent' };
+    s.cards[0].pins[4] = { amps: 13, state: 'overcurrent' };
+    s.cards[0].state = 'overcurrent';
+    await mount(s);
+    openPower();
+    const text = screen.getByRole('alert').textContent ?? '';
+    expect(text).toContain('devices.astral.alertLine.other:{"state":"devices.astral.state.overcurrent","pins":"3, 5"}');
+    expect(text).toContain('devices.astral.alertLine.one:{"state":"devices.astral.state.warning","pins":"1"}');
+    expect(text.indexOf('overcurrent')).toBeLessThan(text.indexOf('state.warning'));
   });
 
   it('shows no alert at rest', async () => {
@@ -79,7 +97,7 @@ describe('AstralDevicePage', () => {
 
   it('renders the countdown from state and cancels it', async () => {
     api.cancelAstralShutdown.mockResolvedValue(base());
-    await mount(base({ countdown: { reason: 'overcurrent', endsAtMs: Date.now() + 42_000 } }));
+    await mount(base({ countdown: cd('overcurrent', 42_000) }));
     openPower();
     expect(screen.getByText(/devices.astral.countdown.overcurrent:\{"left":"0:4\d"\}/)).toBeInTheDocument();
     await act(async () => { fireEvent.click(screen.getByText('devices.astral.cancelShutdown')); });
@@ -87,7 +105,7 @@ describe('AstralDevicePage', () => {
   });
 
   it('asks before shutting down now', async () => {
-    await mount(base({ countdown: { reason: 'critical', endsAtMs: Date.now() + 5000 } }));
+    await mount(base({ countdown: cd('critical', 5000) }));
     openPower();
     fireEvent.click(screen.getByText('devices.astral.shutdownNow'));
     expect(api.shutdownAstralNow).not.toHaveBeenCalled();
@@ -98,14 +116,14 @@ describe('AstralDevicePage', () => {
   });
 
   it('shows the countdown, held-off and pin alert on the default tab', async () => {
-    const s = base({ heldOff: true, countdown: { reason: 'critical', endsAtMs: Date.now() + 9000 } });
+    const s = base({ heldOff: true, countdown: cd('critical', 9000) });
     s.cards[0].pins[0] = { amps: 18, state: 'critical' };
     s.cards[0].state = 'critical';
     await mount(s);
     expect(screen.getByText(/devices.astral.countdown.critical/)).toBeInTheDocument();
-    expect(screen.getByText('devices.astral.cancelShutdown')).toBeInTheDocument();
+    expect(screen.queryByText('devices.astral.cancelShutdown')).toBeNull();
     expect(screen.getByText('devices.astral.heldOff')).toBeInTheDocument();
-    expect(screen.getByText(/devices.astral.alert.critical/)).toBeInTheDocument();
+    expect(screen.getByText(/alertLine.one.*state.critical/)).toBeInTheDocument();
   });
 
   it('names the card in the alert when there are several', async () => {
@@ -114,7 +132,31 @@ describe('AstralDevicePage', () => {
     s.cards[1].state = 'dead';
     s.cards[1].pins[0] = { amps: 0, state: 'dead' };
     await mount(s);
-    expect(screen.getByRole('alert')).toHaveTextContent('Second: devices.astral.alert.dead');
+    expect(screen.getByRole('alert')).toHaveTextContent('Second: devices.astral.alertLine.one');
+  });
+
+  it('names the card whose countdown it is when there are several', async () => {
+    const s = base({ countdown: cd('overcurrent', 30_000, 'gpu1') });
+    s.cards.push({ ...s.cards[0], gpuId: 'gpu1', name: 'Second' });
+    await mount(s);
+    expect(screen.getByText(/^Second: devices.astral.countdown.overcurrent/)).toBeInTheDocument();
+  });
+
+  it('counts down from the reply remaining time, not from the client clock', async () => {
+    vi.useFakeTimers();
+    const skewed = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 3_600_000);
+    api.fetchAstral.mockResolvedValue(base({ countdown: { reason: 'overcurrent', endsAtMs: 1, remainingMs: 30_000, gpuId: 'gpu0' } }));
+    await act(async () => { render(<AstralDevicePage />); });
+    openPower();
+    expect(screen.getByText(/"left":"0:30"/)).toBeInTheDocument();
+    api.fetchAstral.mockResolvedValue(base({ countdown: { reason: 'overcurrent', endsAtMs: 1, remainingMs: 30_000, gpuId: 'gpu0' } }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    expect(screen.getByText(/"left":"0:30"/)).toBeInTheDocument();
+    api.fetchAstral.mockImplementation(() => new Promise(() => {}));
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    skewed.mockRestore();
+    vi.useRealTimers();
+    expect(screen.getByText(/"left":"0:2[5-7]"/)).toBeInTheDocument();
   });
 
   it('says held off while a canceled countdown holds', async () => {
@@ -164,6 +206,65 @@ describe('AstralDevicePage', () => {
     expect(screen.getByText('devices.astral.notCalibrated')).toBeInTheDocument();
     expect(document.body.textContent).not.toContain('Invalid');
     expect(screen.queryByText(/devices.astral.countdown/)).toBeNull();
+  });
+
+  it('keeps the newer poll when replies arrive out of order', async () => {
+    const releases: ((v: AstralState) => void)[] = [];
+    api.fetchAstral
+      .mockResolvedValueOnce(base())
+      .mockImplementation(() => new Promise<AstralState>(r => { releases.push(r); }));
+    vi.useFakeTimers();
+    await act(async () => { render(<AstralDevicePage />); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(releases).toHaveLength(2);
+    openPower();
+    await act(async () => { releases[1](base({ settings: { ...base().settings, alerts: false } })); });
+    await act(async () => { releases[0](base()); });
+    vi.useRealTimers();
+    expect(screen.getAllByRole('switch')[0]).not.toBeChecked();
+  });
+
+  it('keeps the newer write reply when two writes answer out of order', async () => {
+    const releases: ((v: AstralState) => void)[] = [];
+    const first = base();
+    first.settings.overcurrentShutdown = true;
+    api.saveAstralSettings.mockImplementation(() => new Promise<AstralState>(r => { releases.push(r); }));
+    await mount(first);
+    openPower();
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[2]); });
+    expect(releases).toHaveLength(2);
+    const newest = base({ settings: { ...first.settings, alerts: false, overcurrentShutdown: false } });
+    await act(async () => { releases[1](newest); });
+    await act(async () => { releases[0](base({ settings: { ...first.settings, alerts: true, overcurrentShutdown: true } })); });
+    expect(screen.getAllByRole('switch')[0]).not.toBeChecked();
+    expect(screen.getAllByRole('switch')[2]).not.toBeChecked();
+  });
+
+  it('surfaces a write that throws and a poll that throws', async () => {
+    api.saveAstralSettings.mockRejectedValue(new Error('bad json'));
+    await mount(base());
+    openPower();
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[0]); });
+    expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.failed');
+  });
+
+  it('shows the load notice when a poll throws', async () => {
+    api.fetchAstral.mockRejectedValue(new Error('bad json'));
+    await act(async () => { render(<AstralDevicePage />); });
+    expect(screen.getByRole('alert')).toHaveTextContent('devices.astral.loadFailed');
+  });
+
+  it('asks before turning on the critical shutdown, saying it cannot be canceled', async () => {
+    api.saveAstralSettings.mockResolvedValue(base());
+    await mount(base());
+    openPower();
+    await act(async () => { fireEvent.click(screen.getAllByRole('switch')[3]); });
+    expect(api.saveAstralSettings).not.toHaveBeenCalled();
+    expect(screen.getByText('devices.astral.confirm.critical.title')).toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByText('devices.astral.turnOn')); });
+    expect(api.saveAstralSettings).toHaveBeenCalledWith({ criticalShutdown: true });
   });
 
   it('keeps a write reply over a poll that started before it', async () => {

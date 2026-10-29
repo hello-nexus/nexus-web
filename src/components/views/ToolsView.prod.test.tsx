@@ -30,4 +30,10 @@ describe('ToolsView without dev tools', () => {
 
     expect(screen.queryByText('tools.appTelemetry.title')).toBeNull();
   });
+
+  it('does not render the ROG Astral Simulator card', async () => {
+    await act(async () => { render(<ToolsView serviceOnline />); });
+
+    expect(screen.queryByText('tools.simAstral.title')).toBeNull();
+  });
 });
