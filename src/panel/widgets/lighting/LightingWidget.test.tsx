@@ -382,13 +382,21 @@ describe('LightingWidget', () => {
     it('keeps the grid order and recents unchanged after a tap here', async () => {
       vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
       mockUpdate.mockClear();
-      renderLighting(lightingWidget('4x2'));
-      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
-      const before = heldOrder();
-      fireEvent.click(document.querySelector(`[data-swatch-hex="${before[3]}"]`) as HTMLElement);
-      await waitFor(() => expect(startStatic).toHaveBeenCalled());
-      expect(heldOrder()).toEqual(before);
-      expect(mockUpdate).not.toHaveBeenCalled();
+      mockUpdate.mockImplementation((patch: Record<string, unknown>) => { Object.assign(mockUiSettings, patch); });
+      try {
+        const view = renderLighting(lightingWidget('4x2'));
+        await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+        const before = heldOrder();
+        fireEvent.click(document.querySelector(`[data-swatch-hex="${before[3]}"]`) as HTMLElement);
+        await waitFor(() => expect(startStatic).toHaveBeenCalled());
+        view.rerender(
+          <PanelOpenWidgetProvider value={() => () => {}}><LightingWidget widget={lightingWidget('4x2')} /></PanelOpenWidgetProvider>,
+        );
+        expect(heldOrder()).toEqual(before);
+        expect(mockUpdate).not.toHaveBeenCalled();
+      } finally {
+        mockUpdate.mockReset();
+      }
     });
 
     it('Off ignores history and shows the fixed order', async () => {
