@@ -38,7 +38,8 @@ function StepNumber({ n, done }: { n: number; done: boolean }) {
 
 function Step({ n, done, title, body, children }: { n: number; done: boolean; title: string; body: string; children?: ReactNode }) {
   return (
-    <Card icon={<StepNumber n={n} done={done} />} title={title} subtitle={body}>
+    <Card icon={<StepNumber n={n} done={done} />} title={title}>
+      <p className={styles.stepBody}>{body}</p>
       {children}
     </Card>
   );
@@ -116,7 +117,7 @@ export function FixLightingModal({ open, onClose, deviceName }: FixLightingModal
           {deviceName ? t('lighting.fix.introDevice', { device: deviceName }) : t('lighting.fix.intro')}
         </p>
         <div className={styles.steps}>
-          <Step n={1} done={allClosed} title={t('lighting.fix.step1.title')} body={t('lighting.fix.step1.body')}>
+          <Step n={1} done={false} title={t('lighting.fix.step1.title')} body={t('lighting.fix.step1.body')}>
             {ready && (
               <div className={styles.rows}>
                 {entries.map(({ conflict, terminated }) => (
