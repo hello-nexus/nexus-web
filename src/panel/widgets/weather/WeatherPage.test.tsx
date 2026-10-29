@@ -130,8 +130,20 @@ describe('WeatherPage', () => {
     expect(api.saveWeatherPrefs).not.toHaveBeenCalled();
   });
 
-  it('keeps the auto place for an unknown or absent tab', async () => {
-    const { unmount } = render(<WeatherPage tab="1~2" />);
+  it('shows a widget place missing from the saved list as an unsaved entry and selects it', async () => {
+    render(<WeatherPage tab="48.86~2.35" />);
+    await flush();
+    const rows = within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option');
+    expect(rows).toHaveLength(4);
+    expect(rows[0]).toHaveAttribute('aria-selected', 'false');
+    expect(rows[1]).toHaveAttribute('aria-selected', 'true');
+    expect(within(rows[1]).getByText('48.86, 2.35')).toBeInTheDocument();
+    expect(api.fetchWeather).toHaveBeenCalledWith(expect.objectContaining({ lat: 48.86, lon: 2.35 }));
+    expect(api.saveWeatherPrefs).not.toHaveBeenCalled();
+  });
+
+  it('keeps the auto place for an absent or malformed tab', async () => {
+    const { unmount } = render(<WeatherPage tab="bad" />);
     await flush();
     expect(within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true');
     unmount();

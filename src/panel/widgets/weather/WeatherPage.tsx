@@ -3,7 +3,7 @@ import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
-import type { WeatherUnitPref } from '../../../api/weather';
+import { sameWeatherLocation, type WeatherLocation, type WeatherUnitPref } from '../../../api/weather';
 import { WeatherDailyList } from './WeatherDailyList';
 import { WeatherDetailTiles } from './WeatherDetailTiles';
 import { WeatherHero } from './WeatherHero';
@@ -25,22 +25,32 @@ const UNIT_KEYS: WeatherUnitPref[] = ['auto', 'C', 'F'];
 export function WeatherPage({ tab }: { tab?: string }) {
   const { t } = useTranslation();
   const { prefs, loaded: prefsLoaded, addLocation, removeLocation, setUnit } = useWeatherPrefs();
-  const places = useMemo(() => buildPlaces(prefs.locations), [prefs.locations]);
+  // A widget's place missing from the saved list; shown, never saved.
+  const [unsaved, setUnsaved] = useState<WeatherLocation | null>(null);
+  const places = useMemo(
+    () => buildPlaces(unsaved && !prefs.locations.some(l => sameWeatherLocation(l, unsaved)) ? [unsaved, ...prefs.locations] : prefs.locations),
+    [prefs.locations, unsaved],
+  );
   const [selectedKey, setSelectedKey] = useState(AUTO_PLACE_KEY);
   const selected = places.find(p => p.key === selectedKey) ?? places[0];
   const { snap, loaded } = useWeatherSnapshot(selected.location);
-  const unit = resolveUnit(prefs.unit, selected.location?.cc ?? snap?.countryCode);
+  const unit = resolveUnit(prefs.unit, selected.location?.cc || snap?.countryCode);
   const now = useWallClock();
 
   // A widget opens the page on its own place (route tab). Applied once per tab
-  // value, after the saved list loads; an unknown place leaves the auto entry.
-  // Selection is page state only, the saved list and unit are untouched.
+  // value, after the saved list loads. Selection is page state only, the saved
+  // list and unit are untouched.
   const appliedTab = useRef<string | undefined>(undefined);
   useEffect(() => {
     const wanted = placeKeyFromRouteTab(tab);
     if (!wanted || appliedTab.current === tab || !prefsLoaded) return;
     appliedTab.current = tab;
-    if (places.some(p => p.key === wanted)) setSelectedKey(wanted);
+    if (!places.some(p => p.key === wanted)) {
+      const [lat, lon] = wanted.split(',').map(Number);
+      // The tab carries no name; the coordinates label it, cc stays empty so the unit follows the snapshot.
+      setUnsaved({ lat, lon, label: `${lat}, ${lon}`, cc: '' });
+    }
+    setSelectedKey(wanted);
   }, [tab, places, prefsLoaded]);
 
   // A removed place falls back to the auto entry.
@@ -74,7 +84,7 @@ export function WeatherPage({ tab }: { tab?: string }) {
             selectedKey={selected.key}
             onSelect={setSelectedKey}
             onAdd={addLocation}
-            onRemove={removeLocation}
+            onRemove={location => (sameWeatherLocation(location, unsaved) ? setUnsaved(null) : removeLocation(location))}
             unitPref={prefs.unit}
             canSearch
             showTitle={false}
