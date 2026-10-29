@@ -30,7 +30,7 @@ import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { takePanelEditorTarget, type PanelEditorTarget } from '../../../panel/engine/panelEditorLink';
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
 import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
-import { nearestWidgetSizeStop, widgetSizeStops as widgetSizeStops_ } from '../../../panel/engine/widgetSizeStops';
+import { nearestWidgetSizeStop, stopForWidgetSize, widgetSizeStops as widgetSizeStops_ } from '../../../panel/engine/widgetSizeStops';
 import { monitorGridCapacity, recordCanvasOf, y70GridCapacity } from '../../../panel/engine/recordCanvas';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
@@ -53,7 +53,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { largeChromeGrid, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, genericSinglePage, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { largeChromeGrid, previewChromeGrid, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, genericSinglePage, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -450,6 +450,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     () => largeChromeGrid(glassSurface, recordFamily, liveDpi, DEFAULT_SURFACE_DPI, densitySlots),
     [glassSurface, recordFamily, liveDpi, densitySlots],
   );
+  const previewGridDpi = liveCanvas && layoutDpi
+    ? layoutDpi / canvasDpr
+    : (surface === 'monitor' && (layoutDpi ?? device?.previewDpi)
+      ? (layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor) / canvasDpr
+      : undefined);
+  const previewChrome = useMemo(() => previewChromeGrid(chromeGrid, surface, previewGridDpi, canvasDpr), [chromeGrid, surface, previewGridDpi, canvasDpr]);
   const gridLandscape = isLandscapeCanvas(liveCanvas ?? device?.previewSize);
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, gridLandscape), [shortSideSlots, gridLandscape]);
   // The layout surface and input a fetched record implies, for normalizing its
@@ -626,7 +632,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const options = panelWidgetSizeOptions(glassSurface, recordFamily);
     return options ? widgetSizeStops_(options, densitySlots) : [];
   }, [glassSurface, recordFamily, densitySlots]);
-  const widgetSizePercentOf = (mode: PanelWidgetSizeMode) => widgetSizeStops.find(stop => stop.mode === mode)?.percent ?? 100;
+  const widgetSizePercentOf = (mode: PanelWidgetSizeMode) => {
+    const options = panelWidgetSizeOptions(glassSurface, recordFamily);
+    return (options ? stopForWidgetSize(options, widgetSizeStops, mode, densitySlots)?.percent : undefined) ?? 100;
+  };
   const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
   const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
@@ -2177,18 +2186,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 // cssHeight), so it must skip the native->CSS /DPR even before
                 // the record fetch fills liveCanvas.
                 canvasIsCssPixels={!!liveCanvas || isMonitorPanel}
-                gridDpi={liveCanvas && layoutDpi
-                  ? layoutDpi / canvasDpr
-                  : (surface === 'monitor' && (layoutDpi ?? device?.previewDpi)
-                    ? (layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor) / canvasDpr
-                    : undefined)}
+                gridDpi={previewGridDpi}
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
                 shortSideSlots={shortSideSlots}
-                chromeGrid={chromeGrid}
+                chromeGrid={previewChrome}
                 displayBound={!!device?.displayId}
                 genericDisplay={genericDisplay}
                 onPlaylistShown={handlePlaylistShown}

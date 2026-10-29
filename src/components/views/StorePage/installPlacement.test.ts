@@ -142,41 +142,20 @@ describe('planPlacement', () => {
     expect(planPlacement(q60Grid, { layout: full, record }, TYPE, { ...meta, singleInstance: false }, 6)).toBeNull();
   });
 
-  it('places into the 2x8 grid of a Lian Li 8.8 set to large widgets, at a size that fits', () => {
-    const record = {
-      id: 'rec-88', displayName: '8.8', firstSeenAt: 0, lastSeenAt: 0, widgetSize: 'large',
+  it('places a Lian Li 8.8 with a retired stored large on the same grid as its default', () => {
+    const base = {
+      id: 'rec-88', displayName: '8.8', firstSeenAt: 0, lastSeenAt: 0,
       capabilities: { surface: 'monitor', family: 'lianli-screen88', dpi: 225, cssWidth: 480, cssHeight: 1920, dpr: 1 },
-    } as PanelDeviceRecord;
+    };
     const screen88: PlacementTarget = { key: 'panel-88', name: '8.8', iconSrc: null, surface: 'monitor' };
     const open = layoutOf('monitor', []);
     const wide = { ...meta, singleInstance: false, sizes: ['2x2' as const, '4x2' as const, '4x4' as const], defaultSize: '4x2' as const };
 
-    const plan = planPlacement(screen88, { layout: open, record }, TYPE, wide, 6);
-    expect(plan?.widget.size).toBe('2x2');
-    expect(plan?.capacity).toEqual({ gridCols: 2, pageRows: 8 });
-
-    const fourWideOnly = { ...wide, sizes: ['4x2' as const, '4x4' as const] };
-    expect(planPlacement(screen88, { layout: open, record }, TYPE, fourWideOnly, 6)).toBeNull();
-
-    const full = layoutOf('monitor', [0, 2, 4, 6].map(row => ({ type: 'clock', size: '2x2' as const, col: 0, row })));
-    expect(planPlacement(screen88, { layout: full, record }, TYPE, wide, 6)).toBeNull();
-
-    const small = { ...record, widgetSize: 'small' } as PanelDeviceRecord;
-    expect(planPlacement(screen88, { layout: open, record: small }, TYPE, wide, 6)?.capacity.gridCols).toBe(4);
-  });
-
-  it('places a landscape Lian Li 8.8 on large widgets at a size that fits the 8x2 grid', () => {
-    const record = {
-      id: 'rec-88l', displayName: '8.8', firstSeenAt: 0, lastSeenAt: 0, widgetSize: 'large',
-      capabilities: { surface: 'monitor', family: 'lianli-screen88', dpi: 225, cssWidth: 1920, cssHeight: 480, dpr: 1 },
-    } as PanelDeviceRecord;
-    const screen88: PlacementTarget = { key: 'panel-88', name: '8.8', iconSrc: null, surface: 'monitor' };
-    const tall = { ...meta, singleInstance: false, sizes: ['2x4' as const, '4x4' as const, '4x2' as const], defaultSize: '2x4' as const };
-
-    const plan = planPlacement(screen88, { layout: layoutOf('monitor', []), record }, TYPE, tall, 6);
-    expect(plan?.widget.size).toBe('4x2');
-    expect(plan?.capacity).toEqual({ gridCols: 8, pageRows: 2 });
-    expect(planPlacement(screen88, { layout: layoutOf('monitor', []), record }, TYPE, { ...tall, sizes: ['2x4' as const, '4x4' as const] }, 6)).toBeNull();
+    const large = planPlacement(screen88, { layout: open, record: { ...base, widgetSize: 'large' } as PanelDeviceRecord }, TYPE, wide, 6);
+    const small = planPlacement(screen88, { layout: open, record: { ...base, widgetSize: 'small' } as PanelDeviceRecord }, TYPE, wide, 6);
+    expect(large?.capacity).toEqual(small?.capacity);
+    expect(large?.widget.size).toBe(small?.widget.size);
+    expect(large?.capacity.gridCols).toBe(4);
   });
 
   it('sizes a display panel by its widget size; a generic display stays on one page', () => {

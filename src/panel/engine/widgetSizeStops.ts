@@ -46,3 +46,31 @@ export function nearestWidgetSizeStop(stops: readonly WidgetSizeStop[], percent:
   }
   return best;
 }
+
+/**
+ * The stop a stored size shows as: itself when offered, else the stop that lays out the same surface with the
+ * same column count, else the nearest count on that surface, else the 100% baseline. Never a label outside the stops.
+ */
+export function stopForWidgetSize(
+  options: PanelWidgetSizeOptions,
+  stops: readonly WidgetSizeStop[],
+  mode: PanelWidgetSizeMode,
+  densitySlots?: number,
+): WidgetSizeStop | undefined {
+  const exact = stops.find(stop => stop.mode === mode);
+  if (exact) return exact;
+  const surface = options.layoutSurface[mode];
+  const countOf = (m: PanelWidgetSizeMode) => widgetSizeShortSideSlots(options, m, densitySlots) ?? densitySlots;
+  const target = countOf(mode);
+  let best: WidgetSizeStop | undefined;
+  let bestErr = Infinity;
+  if (target) {
+    for (const stop of stops) {
+      const count = countOf(stop.mode);
+      if (!count || options.layoutSurface[stop.mode] !== surface) continue;
+      const err = Math.abs(Math.log(target / count));
+      if (err < bestErr) { best = stop; bestErr = err; }
+    }
+  }
+  return best ?? stops.find(stop => stop.percent === 100) ?? stops[0];
+}
