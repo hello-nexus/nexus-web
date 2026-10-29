@@ -223,6 +223,13 @@
   position: relative;
 }
 
+// Centers the page's Fix lighting link under the canvas.
+.fixLightingRow {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
 // 2D | 3D chip pair beside the Effects title.
 .headerEnd {
   display: inline-flex;

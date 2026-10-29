@@ -140,7 +140,7 @@ export function SettingRow({
         </div>
       )}
       <div className={styles.control}>
-        {state && <Badge label={state.label} color={STATE_COLORS[state.tone ?? 'neutral']} uppercase />}
+        {state && <Badge label={state.label} color={STATE_COLORS[state.tone ?? 'neutral']} />}
         {children}
       </div>
       {description && descriptionBelow && <span className={styles.desc}>{description}</span>}

@@ -67,6 +67,8 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useDevices } from '../../../hooks/useDevices';
 import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
 import { ConflictWarningModal } from '../../../components/common/Sidebar/ConflictWarning';
+import { FixLightingModal } from '../../../components/common/FixLightingModal/FixLightingModal';
+import { TroubleshootLink } from '../../../components/common/TroubleshootLink/TroubleshootLink';
 import { Coachmark } from '../../../components/common/Coachmark/Coachmark';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
@@ -1631,6 +1633,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [curatedDevices],
   );
   const [appStripIds, setAppStripIds] = useState<readonly string[] | null>(null);
+  // Open flag plus the card that opened it; null name means the page link opened it.
+  const [fixLighting, setFixLighting] = useState<{ deviceName: string | null } | null>(null);
   const conflictExclusions = useConflictAutoKillExclusions();
   // Nexus 2 is never whitelisted: the service ends it whatever the list says.
   const conflictWhitelisted = useMemo(
@@ -2543,7 +2547,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     <Badge
       label={previewBadgeLabel}
       compact
-      uppercase
       color={selectedDeviceIds.size > 0 ? 'var(--accent-glow)' : 'var(--text-dim)'}
     />
   );
@@ -3040,6 +3043,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             runningApps={runningApps}
             curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
+            onOpenFixLighting={deviceName => setFixLighting({ deviceName })}
           />
         </div>
         <div
@@ -3097,6 +3101,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               </>
             )}
           </div>
+          )}
+          {(showCanvas || viewMode === 'static') && (
+            <div className={styles.fixLightingRow}>
+              <TroubleshootLink label={t('lighting.fix.link')} onClick={() => setFixLighting({ deviceName: null })} />
+            </div>
           )}
           {/* Off renders no picker at all; Static and Animation each own an
               effect pool; Screen and Media get their source controls. */}
@@ -3306,6 +3315,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => { setKeyReactionsId(null); void refreshKeyReactive(); }}
         />
       )}
+      <FixLightingModal
+        open={fixLighting !== null}
+        onClose={() => setFixLighting(null)}
+        deviceName={fixLighting?.deviceName ?? undefined}
+      />
       <ConflictWarningModal
         open={appStripIds !== null}
         conflicts={appStripConflicts}

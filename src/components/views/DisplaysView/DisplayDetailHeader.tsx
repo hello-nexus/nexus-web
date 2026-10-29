@@ -27,10 +27,10 @@ export function DisplayDetailHeader({ display, onDeviceSelect }: DisplayDetailHe
       </div>
       <div className={styles.headerActions}>
         {editorKey && (
-          <Badge filled uppercase size="small" color="var(--accent)" icon={<LayoutDashboard size={14} />} label={display.isY70 ? t('displays.panel.activeAuto') : t('displays.panel.active')} />
+          <Badge filled size="small" color="var(--accent)" icon={<LayoutDashboard size={14} />} label={display.isY70 ? t('displays.panel.activeAuto') : t('displays.panel.active')} />
         )}
         {display.isPrimary && (
-          <Badge uppercase size="small" icon={<Star size={12} />} label={t('displays.primary')} />
+          <Badge size="small" icon={<Star size={12} />} label={t('displays.primary')} />
         )}
         {editorKey && (
           <Button type="button" tone="neutral" size="sm" onClick={() => onDeviceSelect(editorKey)}>

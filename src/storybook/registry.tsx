@@ -114,6 +114,9 @@ import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/Se
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
 import { ConflictRunningBadge } from '../components/common/ConflictRunningBadge/ConflictRunningBadge';
+import { NotRespondingBadge } from '../components/common/NotRespondingBadge/NotRespondingBadge';
+import { FixLightingModal } from '../components/common/FixLightingModal/FixLightingModal';
+import { TroubleshootLink } from '../components/common/TroubleshootLink/TroubleshootLink';
 import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { ExperimentalEnableModal } from '../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
@@ -2360,6 +2363,31 @@ function PreviewConflictRunningBadge() {
   return <ConflictRunningBadge appName="Lian Li L-Connect" />;
 }
 
+function PreviewNotRespondingBadge() {
+  return <NotRespondingBadge onClick={() => {}} />;
+}
+
+function PreviewTroubleshootLink() {
+  return (
+    <div style={{ display: 'flex', gap: '1.5rem' }}>
+      <TroubleshootLink label="Opens a page" href="https://hellonexus.com/docs/troubleshooting/lighting" />
+      <TroubleshootLink label="Runs an action" onClick={() => {}} />
+    </div>
+  );
+}
+
+function PreviewFixLightingModal() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Fix lighting
+      </button>
+      <FixLightingModal open={open} onClose={() => setOpen(false)} deviceName="UNI FAN SL-INF" />
+    </>
+  );
+}
+
 const PREVIEW_CONTROL_CONFLICT = {
   deviceName: 'UNI FAN SL-INF',
   conflict: { id: 'preview-l-connect', displayName: 'Lian Li L-Connect', category: 'lighting', processName: 'L-Connect 3.exe', pid: 4212 },
@@ -3102,6 +3130,13 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Preview End task posts the stub id to /conflicts/kill, which the service rejects as unknown, so the spinner resets.',
   },
   {
+    name: 'FixLightingModal', category: 'modals',
+    filePath: 'src/components/common/FixLightingModal/FixLightingModal.tsx',
+    description: 'The Fix lighting flow in DeviceModal chrome: an intro (naming the device when opened from a not-responding card), then three numbered Card steps. 1 lists the running conflicting apps as ConflictAppCard rows (End task, Disable auto start) or the ConflictAllClear line; 2 restarts Nexus through restartService and waits for the service to go down and answer again; 3 explains a full power-off. The footer is a TroubleshootLink to the lighting troubleshooting page. Opened from NotRespondingBadge, the not-responding ControlledByStrip and the Lighting page link.',
+    Preview: PreviewFixLightingModal,
+    notes: 'Preview reads the live conflict list; Restart Nexus restarts the real service.',
+  },
+  {
     name: 'Notice', category: 'cards',
     filePath: 'src/components/common/Notice/Notice.tsx',
     description: 'The one inline notice block, in three levels that share one layout: a soft fill, a border and an icon in the level colour, primary text, an optional dimmer line (NoticeSecondary) and an actions slot on the right. info is neutral guidance (never the accent, so a red accent cannot read as an error), warning uses the warn colour, critical the bad colour. Pages use it for every notice instead of building their own banner. Use role alert for something that interrupts and status for something that merely appears. FirmwareRecoveryBanner, the thermal guard banners and errors, and the Diagnostics trip notice are built on it.', Preview: PreviewNotice,
@@ -3441,7 +3476,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Badge', category: 'status',
     filePath: 'src/components/common/Badge/Badge.tsx',
-    description: 'Status pill with tone-tinted color and color-mixed background. Accepts an optional icon ReactNode, and an optional `tooltip` ({ title?, body }) that also becomes its accessible name. Host-renderer bridge for the SDK Badge element.',
+    description: 'Status pill with tone-tinted color and color-mixed background. Caps by default (`uppercase={false}` keeps a value such as an executable name or a unit readout in its own case). Accepts an optional icon ReactNode, an optional `onClick` that makes it a button, and an optional `tooltip` ({ title?, body }) that also becomes its accessible name. Host-renderer bridge for the SDK Badge element.',
     Preview: PreviewBadge,
   },
   {
@@ -3472,6 +3507,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/ConflictRunningBadge/ConflictRunningBadge.tsx',
     description: 'Warn pill naming a detected third-party app that also drives the device ("<app> running"), with a HoverTooltip explaining that turning Nexus Control on ends it. Shown beside ExperimentalBadge on the Devices list whenever the device\'s conflictAppId is in the live conflicts list, whatever the Nexus Control state or whitelist.',
     Preview: PreviewConflictRunningBadge,
+  },
+  {
+    name: 'NotRespondingBadge', category: 'status',
+    filePath: 'src/components/common/NotRespondingBadge/NotRespondingBadge.tsx',
+    description: 'Warn pill ("Not responding") for a device Nexus controls but cannot write lighting to, with a HoverTooltip. A Badge with onClick, so it is a real button that opens the Fix lighting flow. Shown on the Devices list only while the device reports writeHealth failing and its Nexus Control is on.',
+    Preview: PreviewNotRespondingBadge,
+  },
+  {
+    name: 'TroubleshootLink', category: 'status',
+    filePath: 'src/components/common/TroubleshootLink/TroubleshootLink.tsx',
+    description: 'Dim text link with the external-link glyph for a troubleshooting destination. With `href` it opens that page in a new tab; with `onClick` it is a button for an in-app fix flow. Used by the Q-series panel empty states, the Lighting page "Lighting doesn\'t match?" link and the Fix lighting footer.',
+    Preview: PreviewTroubleshootLink,
   },
   {
     name: 'Toast', category: 'status',

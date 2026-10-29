@@ -96,6 +96,7 @@ import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { createUuid } from '../../../lib/uuid';
+import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -1447,15 +1448,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   const showPreviewTroubleshoot = device?.runtimeSurface === 'q60';
   const qseriesTroubleshootLink = (label: string) => (
-    <a
-      className={styles.troubleshootLink}
-      href={troubleshootingUrl('q-series-panels', language)}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <ExternalLink size={12} aria-hidden />
-      {label}
-    </a>
+    <TroubleshootLink label={label} href={troubleshootingUrl('q-series-panels', language)} />
   );
 
   return (

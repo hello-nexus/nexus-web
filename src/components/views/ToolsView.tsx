@@ -112,7 +112,7 @@ function WidgetSdkCard() {
 
 /**
  * Telemetry events reference card. Opens /telemetry-reference - every product
- * event sent to PostHog, what it means, when it fires, and its parameters.
+ * event sent, what it means, when it fires, and its parameters.
  */
 function TelemetryEventsCard() {
   const { t } = useTranslation();

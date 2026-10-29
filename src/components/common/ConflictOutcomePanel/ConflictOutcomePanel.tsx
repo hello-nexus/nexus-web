@@ -221,7 +221,7 @@ export function ConflictOutcomePanel({
                             <Badge label={t('conflicts.modal.windowsSetting')} />
                           ) : (
                             <>
-                              <Badge label={entry.conflict.processName} />
+                              <Badge label={entry.conflict.processName} uppercase={false} />
                               <Badge label={t('conflicts.modal.pid', { pid: entry.conflict.pid })} />
                             </>
                           )}
