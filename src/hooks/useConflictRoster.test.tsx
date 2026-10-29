@@ -87,4 +87,22 @@ describe('useConflictRoster', () => {
     rerender({ list: [signal], active: true });
     expect(result.current.entries.map(e => e.conflict.id)).toEqual(['signalrgb']);
   });
+
+  it('shows a setting active again when it is listed after being turned off', () => {
+    const dynamicLighting: DetectedConflict = {
+      id: 'windows-dynamic-lighting', displayName: 'Windows Dynamic Lighting', category: 'lighting', processName: '', pid: 0, isSetting: true,
+    };
+    const { result, rerender } = renderHook(
+      ({ list }: { list: DetectedConflict[] }) => useConflictRoster(list, true, true),
+      { initialProps: { list: [dynamicLighting] } },
+    );
+    act(() => { result.current.markTerminated(dynamicLighting.id); });
+    rerender({ list: [] });
+    expect(result.current.entries[0].terminated).toBe(true);
+
+    // No pid changed, but it is listed again: Windows turned it back on.
+    rerender({ list: [dynamicLighting] });
+
+    expect(result.current.entries[0].terminated).toBe(false);
+  });
 });

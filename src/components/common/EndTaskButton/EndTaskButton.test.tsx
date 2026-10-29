@@ -136,4 +136,24 @@ describe('EndTaskButton', () => {
     expect(screen.getByText('conflicts.modal.turnedOff')).toBeInTheDocument();
     expect(screen.queryByText('conflicts.modal.terminated')).not.toBeInTheDocument();
   });
+
+  it('stops spinning and reports done for a setting whose kill stuck, since its pid never changes', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    const onKilled = vi.fn();
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting onKilled={onKilled} />);
+
+    await clickEnd();
+
+    expect(onKilled).toHaveBeenCalledTimes(1);
+    expect(spinning()).toBe(false);
+  });
+
+  it('stops spinning for a setting even with no caller handler', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting />);
+
+    await clickEnd();
+
+    expect(spinning()).toBe(false);
+  });
 });

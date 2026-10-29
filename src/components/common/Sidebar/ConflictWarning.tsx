@@ -2,12 +2,19 @@ import { useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
 import { ConflictOutcomePanel } from '../ConflictOutcomePanel/ConflictOutcomePanel';
+import { settingMix } from '../ConflictOutcomePanel/conflictOutcome';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
 import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
 import { alwaysAlerts, useConflictOverlap } from '../../../hooks/useConflictOverlap';
 import styles from './ConflictWarning.module.scss';
+
+const INTRO_KEYS = {
+  apps: 'conflicts.modal.intro',
+  mixed: 'conflicts.modal.introMixed',
+  setting: 'conflicts.modal.introSetting',
+} as const;
 
 interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
@@ -100,7 +107,7 @@ export function ConflictWarningModal({
           active={open}
           whitelisted={whitelisted}
           variant="modal"
-          heading={<p className={styles.intro}>{t('conflicts.modal.intro')}</p>}
+          heading={<p className={styles.intro}>{t(INTRO_KEYS[settingMix(conflicts)])}</p>}
           onDone={onClose}
         />
       </div>

@@ -56,7 +56,7 @@ function agreedOwner(devices: readonly ConflictDevice[], whitelisted: boolean | 
 
 /**
  * Name + executable/PID meta row for a single detected conflicting app, with
- * an End Task action. Used by ConflictWarningModal (one per detected conflict),
+ * an End Task action (Turn off for a Windows setting). Used by ConflictWarningModal (one per detected conflict),
  * ConflictOnboardingScreen, and the device-page NexusControlOff gate (the
  * single conflict blocking that device).
  *

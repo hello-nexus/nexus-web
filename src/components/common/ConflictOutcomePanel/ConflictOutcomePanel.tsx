@@ -23,6 +23,7 @@ import {
   cardState,
   handsOverExperimental,
   keepAllIds,
+  settingMix,
   ownerPatch,
   planApp,
   toggleCardPatch,
@@ -171,11 +172,21 @@ export function ConflictOutcomePanel({
     setOwner, markTerminated, disableAutostart, nexus2Installed, nexus2Uninstall, nexus2Entry,
   ]);
 
+  // A setting is turned off, not terminated, so it is counted apart from the apps.
+  const settingTerminateCount = appEntries.filter(e => e.conflict.isSetting && states.get(e.conflict.id)?.end && !e.terminated).length;
+  const appTerminateCount = terminateCount - settingTerminateCount;
+  const onboarding = variant === 'onboarding';
   const primaryLabel = terminateCount === 0
-    ? t(variant === 'onboarding' ? 'conflicts.outcome.continue' : 'conflicts.outcome.save')
-    : variant === 'onboarding'
-      ? (terminateCount === 1 ? t('conflicts.outcome.terminateContinueOne') : t('conflicts.outcome.terminateContinue', { count: terminateCount }))
-      : (terminateCount === 1 ? t('conflicts.outcome.terminateOne') : t('conflicts.outcome.terminate', { count: terminateCount }));
+    ? t(onboarding ? 'conflicts.outcome.continue' : 'conflicts.outcome.save')
+    : settingTerminateCount > 0 && appTerminateCount > 0
+      ? t(onboarding ? 'conflicts.outcome.applyContinue' : 'conflicts.outcome.applyChanges')
+      : settingTerminateCount > 0
+        ? t(onboarding ? 'conflicts.outcome.turnOffSettingContinue' : 'conflicts.outcome.turnOffSetting')
+        : onboarding
+          ? (terminateCount === 1 ? t('conflicts.outcome.terminateContinueOne') : t('conflicts.outcome.terminateContinue', { count: terminateCount }))
+          : (terminateCount === 1 ? t('conflicts.outcome.terminateOne') : t('conflicts.outcome.terminate', { count: terminateCount }));
+  const mix = settingMix(appEntries.map(e => e.conflict));
+  const keepAllLabel = t(mix === 'setting' ? 'conflicts.outcome.keepAllSetting' : mix === 'mixed' ? 'conflicts.outcome.keepAllMixed' : 'conflicts.outcome.keepAll');
 
   const showList = appEntries.length > 0 || nexus2Installed === true;
 
@@ -295,7 +306,7 @@ export function ConflictOutcomePanel({
 
       {ready && showList && (variant === 'onboarding' ? (
         <OnboardingFooter
-          secondary={{ label: t('conflicts.outcome.keepAll'), onClick: () => { void run('keepAll'); }, disabled: busy }}
+          secondary={{ label: keepAllLabel, onClick: () => { void run('keepAll'); }, disabled: busy }}
           icon={<ShieldCheck />}
           loading={busy}
           label={primaryLabel}
@@ -304,7 +315,7 @@ export function ConflictOutcomePanel({
       ) : (
         <div className={styles.footer}>
           <Button tone="ghost" size="lg" disabled={busy} onClick={() => { void run('keepAll'); }}>
-            {t('conflicts.outcome.keepAll')}
+            {keepAllLabel}
           </Button>
           <Button
             tone="accent"

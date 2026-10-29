@@ -20,7 +20,7 @@ export interface ConflictRosterState {
  * ends keeps its row, marked terminated, instead of vanishing mid-read. Rows
  * are ordered by first appearance and the roster resets when the surface
  * closes, so a later open starts from live state. An app that comes back under
- * a new pid clears its terminated mark.
+ * a new pid clears its terminated mark; a setting clears it by being listed again.
  *
  * `ready` is the caller's snapshot state (useConflictApps): a list that is
  * empty because the service dropped is not evidence that anything exited, and
@@ -46,6 +46,11 @@ export function useConflictRoster(conflicts: readonly DetectedConflict[], active
       const next: ConflictRosterEntry[] = prev.map(entry => {
         const running = live.get(entry.conflict.id);
         if (!running) return { conflict: entry.conflict, terminated: true };
+        // A setting has no pid to change, so a row that is listed again after it was turned off is simply active again.
+        if (running.isSetting) {
+          killedRef.current.delete(running.id);
+          return { conflict: running, terminated: false };
+        }
         // A kill the watcher has not scanned yet still reads as running; only a
         // new pid means the app actually came back.
         if (killedRef.current.has(running.id) && running.pid !== entry.conflict.pid) {

@@ -319,9 +319,30 @@ describe('ConflictOutcomePanel', () => {
       renderPanel([], [dynamicLighting]);
       await act(async () => { await Promise.resolve(); });
 
-      await press('conflicts.outcome.terminateOne');
+      expect(screen.getByRole('button', { name: 'conflicts.outcome.turnOffSetting' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'conflicts.outcome.keepAllSetting' })).toBeInTheDocument();
+      await press('conflicts.outcome.turnOffSetting');
 
       expect(mockKill).toHaveBeenCalledWith('windows-dynamic-lighting');
+    });
+
+    it('counts apps and the setting together as an apply, not as terminated apps', async () => {
+      renderPanel([], [razer, dynamicLighting]);
+      await act(async () => { await Promise.resolve(); });
+
+      expect(screen.queryByRole('button', { name: /conflicts\.outcome\.terminate/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'conflicts.outcome.keepAllMixed' })).toBeInTheDocument();
+      await press('conflicts.outcome.applyChanges');
+
+      expect(mockKill).toHaveBeenCalledWith('razer');
+      expect(mockKill).toHaveBeenCalledWith('windows-dynamic-lighting');
+    });
+
+    it('does not count an allowed setting when apps are terminated', async () => {
+      renderPanel(['windows-dynamic-lighting'], [razer, dynamicLighting]);
+      await act(async () => { await Promise.resolve(); });
+
+      expect(screen.getByRole('button', { name: 'conflicts.outcome.terminateOne' })).toBeInTheDocument();
     });
   });
 });

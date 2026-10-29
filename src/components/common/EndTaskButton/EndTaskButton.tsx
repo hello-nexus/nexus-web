@@ -61,6 +61,13 @@ export function EndTaskButton({ conflictId, pid, setting, busy, terminated, onKi
     } catch {
       killed = false;
     }
+    // A setting never changes pid, so the spinner would otherwise wait on a row that may already be gone.
+    if (killed && setting) {
+      killedPidRef.current = undefined;
+      setKilling(false);
+      onKilled?.();
+      return;
+    }
     if (killed && onKilled) {
       killedPidRef.current = undefined;
       setKilling(false);
@@ -71,7 +78,7 @@ export function EndTaskButton({ conflictId, pid, setting, busy, terminated, onKi
       killedPidRef.current = undefined;
       setKilling(false);
     }
-  }, [conflictId, onKilled, pid]);
+  }, [conflictId, onKilled, pid, setting]);
 
   if (terminated) {
     return (

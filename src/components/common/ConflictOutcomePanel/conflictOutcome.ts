@@ -104,3 +104,10 @@ export function keepAllIds(ids: readonly string[], whitelisted: ReadonlySet<stri
 export function handsOverExperimental(plan: AppPlan, devices: readonly ConflictDevice[]): boolean {
   return plan.setOwner === 'nexus' && devices.some(d => d.experimental === true && d.owner !== 'nexus');
 }
+
+/** Whether a conflict list holds only apps, a mix, or only OS settings (Windows Dynamic Lighting); picks the copy that says "apps". */
+export function settingMix(conflicts: readonly { isSetting?: boolean }[]): 'apps' | 'mixed' | 'setting' {
+  const settings = conflicts.filter(c => c.isSetting).length;
+  if (settings === 0) return 'apps';
+  return settings === conflicts.length ? 'setting' : 'mixed';
+}
