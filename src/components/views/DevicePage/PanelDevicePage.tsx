@@ -566,6 +566,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const hasFrameRateSetting = showsFrameRateSetting(recordStreamed, recordDisplayBound, isSimulated);
   const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
     useState<PanelDeviceRecord['secondaryMonitorState']>(null);
+  const [recordSecondaryMonitorHolder, setRecordSecondaryMonitorHolder] = useState<string | null>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
   // bench) - null hides the whole block until the read completes.
   const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
@@ -728,6 +729,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSupportsSecondaryMonitor(match?.capabilities?.supportsSecondaryMonitor ?? false);
       setRecordSecondaryMonitor(match?.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
+      setRecordSecondaryMonitorHolder(match?.secondaryMonitorHolder ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
       setRecordStreamed(match?.streamed === true);
@@ -891,6 +893,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // must track every broadcast rather than only the initial load.
       setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
+      setRecordSecondaryMonitorHolder(record.secondaryMonitorHolder ?? null);
       setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
       // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
@@ -2039,6 +2042,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         />
                         {recordSecondaryMonitor && recordSecondaryMonitorState === 'driver-missing' && (
                           <Notice tone="warning" role="status">{t('devices.lcd.secondaryMonitorDriverMissing')}</Notice>
+                        )}
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'in-use' && (
+                          <Notice tone="warning" role="status">
+                            {recordSecondaryMonitorHolder
+                              ? t('devices.lcd.secondaryMonitorInUse', { name: recordSecondaryMonitorHolder })
+                              : t('devices.lcd.secondaryMonitorInUseUnnamed')}
+                          </Notice>
                         )}
                         {recordSecondaryMonitor && recordSecondaryMonitorState === 'failed' && (
                           <Notice tone="critical" role="status">{t('devices.lcd.secondaryMonitorFailed')}</Notice>

@@ -1059,6 +1059,8 @@
   "devices.lcd.secondaryMonitorDriverMissing": "Der Anzeigetreiber für den zweiten Bildschirm ist auf diesem PC nicht installiert.",
   "devices.lcd.secondaryMonitorFailed": "Windows konnte den Bildschirm nicht erstellen. Schalten Sie die Einstellung aus und wieder ein, oder prüfen Sie das Nexus-Dienstprotokoll.",
   "devices.lcd.secondaryMonitorHint": "Solange dies aktiviert ist, wird das Panel des Geräts auf dem Monitor angezeigt. Schalten Sie das Nexus-Panel aus, um stattdessen den Windows-Desktop zu sehen.",
+  "devices.lcd.secondaryMonitorInUse": "Nexus kann nur einen virtuellen Bildschirm gleichzeitig erstellen, und {name} verwendet ihn. Schalten Sie dort die Einstellung für den zweiten Bildschirm aus, dann startet dieses Gerät von selbst.",
+  "devices.lcd.secondaryMonitorInUseUnnamed": "Nexus kann nur einen virtuellen Bildschirm gleichzeitig erstellen, und ein anderes Gerät verwendet ihn. Schalten Sie bei diesem Gerät die Einstellung für den zweiten Bildschirm aus, dann startet dieses von selbst.",
   "devices.lcd.secondaryMonitorSection": "Zweiter Bildschirm",
   "devices.lcd.secondaryMonitorStarting": "Bildschirm wird gestartet",
   "devices.lcd.sleepWhenLocked": "Display ausschalten, wenn der PC gesperrt ist",

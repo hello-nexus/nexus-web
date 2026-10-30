@@ -100,12 +100,14 @@ const DEVICE: PanelDevice = {
 const record = (opts: {
   supportsSecondaryMonitor?: boolean;
   secondaryMonitor?: boolean;
-  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'failed' | null;
+  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'in-use' | 'failed' | null;
+  secondaryMonitorHolder?: string | null;
 } = {}) => ({
   devices: [{
     id: 'rec1',
     secondaryMonitor: opts.secondaryMonitor,
     secondaryMonitorState: opts.secondaryMonitorState,
+    secondaryMonitorHolder: opts.secondaryMonitorHolder,
     capabilities: {
       surface: 'lcd-wide', touch: false, family: 'zmatrices-lcd',
       supportsSecondaryMonitor: opts.supportsSecondaryMonitor,
@@ -160,6 +162,28 @@ describe('PanelDevicePage secondary monitor', () => {
     await openSettingsTab();
 
     expect(await screen.findAllByText('devices.lcd.secondaryMonitorDriverMissing')).toHaveLength(1);
+  });
+
+  it('names the device holding the one virtual monitor when the state is in-use', async () => {
+    fetchPanelDevicesMock.mockResolvedValue(record({
+      supportsSecondaryMonitor: true, secondaryMonitor: true, secondaryMonitorState: 'in-use',
+      secondaryMonitorHolder: 'Lian Li Universal Screen 8.8',
+    }));
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    expect(await screen.findAllByText('devices.lcd.secondaryMonitorInUse')).toHaveLength(1);
+    expect(screen.queryByText('devices.lcd.secondaryMonitorFailed')).toBeNull();
+  });
+
+  it('falls back to the unnamed in-use message when no holder is reported', async () => {
+    fetchPanelDevicesMock.mockResolvedValue(record({
+      supportsSecondaryMonitor: true, secondaryMonitor: true, secondaryMonitorState: 'in-use',
+    }));
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    expect(await screen.findAllByText('devices.lcd.secondaryMonitorInUseUnnamed')).toHaveLength(1);
   });
 
   it('keeps the Widgets tab usable and shows no secondary monitor notice while it is on', async () => {

@@ -1059,6 +1059,8 @@
   "devices.lcd.secondaryMonitorDriverMissing": "The display driver for secondary monitor mode isn't installed on this PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows didn't create the monitor. Turn the setting off and on again, or check the Nexus service log.",
   "devices.lcd.secondaryMonitorHint": "While this is on, the device's panel shows on the monitor. Turn off the Nexus panel to see the Windows desktop instead.",
+  "devices.lcd.secondaryMonitorInUse": "Nexus can create only one virtual monitor at a time, and {name} is using it. Turn off its secondary monitor setting and this one will start on its own.",
+  "devices.lcd.secondaryMonitorInUseUnnamed": "Nexus can create only one virtual monitor at a time, and another device is using it. Turn off that device's secondary monitor setting and this one will start on its own.",
   "devices.lcd.secondaryMonitorSection": "Secondary monitor",
   "devices.lcd.secondaryMonitorStarting": "Starting the monitor",
   "devices.lcd.sleepWhenLocked": "Turn off display when PC is locked",
