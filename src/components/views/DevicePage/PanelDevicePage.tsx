@@ -189,6 +189,9 @@ const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFl
 // the page can tell apart "unplugged", "enumerated but adb wedged", and
 // "Windows deferred the USB reset" without a full reload.
 const QSERIES_LINK_POLL_INTERVAL_MS = 5_000;
+// Monitor DDC/CI can answer minutes after host boot; the host scan retries for about 15 minutes.
+export const DDC_PROBE_MS = 12_000;
+const DDC_PROBE_TIMEOUT_MS = 20 * 60_000;
 // After a manual repair, poll faster and give up once the recovery pass has
 // had a realistic chance to bring adb back.
 const QSERIES_LINK_REPAIR_POLL_INTERVAL_MS = 3_000;
@@ -498,14 +501,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   useEffect(() => {
     if (!ddcDisplayId) return;
     let cancelled = false;
-    fetchDisplays().then(list => {
-      if (cancelled) return;
-      const display = list?.displays.find(d => d.id === ddcDisplayId);
-      if (display?.brightnessControl.supported) {
-        setDdcBrightness(display.brightnessControl.current ?? 50);
-      }
-    }).catch(() => {});
-    return () => { cancelled = true; };
+    let timer: number | undefined;
+    const deadline = Date.now() + DDC_PROBE_TIMEOUT_MS;
+    const probe = () => {
+      fetchDisplays().then(list => {
+        if (cancelled) return;
+        const display = list?.displays.find(d => d.id === ddcDisplayId);
+        if (display?.brightnessControl.supported) {
+          setDdcBrightness(display.brightnessControl.current ?? 50);
+          return;
+        }
+        if (Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
+      }).catch(() => {
+        if (!cancelled && Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
+      });
+    };
+    probe();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, [ddcDisplayId]);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
   // Rotation and the monitor-reserve guard exist only on hosts that
