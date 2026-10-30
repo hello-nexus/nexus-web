@@ -697,6 +697,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const throttleAnimate = useThrottle();
   const throttlePostProcess = useThrottle();
   const localAnimateEditUntilRef = useRef(0);
+  // Bumped whenever simple mode saves or loads templates itself, and counting its
+  // saves in flight, so an older hydrate never overwrites them.
+  const templateGenerationRef = useRef(0);
+  const templateSavesRef = useRef(0);
   const activeProfileKey = activeProfileId ?? 'default';
   const activeProfileKeyRef = useRef(activeProfileKey);
   activeProfileKeyRef.current = activeProfileKey;
@@ -721,7 +725,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     keepSelection = false,
   ) => {
     if (!data) return;
+    const generation = templateGenerationRef.current;
     const defaults = await fetchAnimateDefaults();
+    // A simple-mode tap saved templates since this payload was read: applying it
+    // would put the older selection back.
+    if (generation !== templateGenerationRef.current || templateSavesRef.current > 0) return;
     setAnimateDefaults(defaults);
     const merged: Record<string, EffectTemplateBundle> = {};
     const savedTemplates = data.templates ?? {};
@@ -2249,17 +2257,30 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // wrong way round.
   const reverseReadFor = useRef<string | null>(null);
 
+  // Last tap wins: every simple-mode action takes a number and gives up when a
+  // newer one (or an unmount) has taken over while it was awaiting.
+  const simpleSeqRef = useRef(0);
+  useEffect(() => () => { simpleSeqRef.current += 1; }, []);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  const simpleReversedRef = useRef(simpleReversed);
+  simpleReversedRef.current = simpleReversed;
+
   // Simple mode runs the first preset of a regular effect: this moves the
   // effect's selection there (saved, and awaited, only when it was elsewhere,
   // because the service re-applies the selected preset on that save and would
   // overwrite a reversed start sent before it lands) and returns the preset's
   // resolved look. Resolves null while the stock defaults or this effect's
-  // templates cannot be loaded: starting then would persist a wrong look.
-  const selectSimpleSlot = useCallback(async (key: string): Promise<EffectState | null> => {
+  // templates cannot be loaded, when the selection could not be saved (the
+  // prior state stays), or when a newer action took over: starting then would
+  // persist a wrong look.
+  const selectSimpleSlot = useCallback(async (key: string, seq: number): Promise<EffectState | null> => {
+    const current = () => seq === simpleSeqRef.current;
     let templates = effectTemplatesRef.current;
     if (!animateDefaults || !templates[key]) {
       const [data, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
-      if (!data || !defaults) return null;
+      if (!current() || !data || !defaults) return null;
+      templateGenerationRef.current += 1;
       setAnimateDefaults(defaults);
       const loaded: Record<string, EffectTemplateBundle> = {};
       for (const fx of EFFECTS) loaded[fx.key] = mergeTemplates(fx.key, data.templates?.[fx.key], defaults);
@@ -2276,17 +2297,26 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (bundle.selected !== SIMPLE_SLOT) {
       localAnimateEditUntilRef.current = Date.now() + 1500;
       const next = { ...templates, [key]: { ...bundle, selected: SIMPLE_SLOT } };
-      await writeTemplates(next, null, true);
+      templateGenerationRef.current += 1;
+      templateSavesRef.current += 1;
+      let saved: unknown = null;
+      try { saved = await saveAnimateTemplates(next); } catch { /* left null: not saved */ } finally { templateSavesRef.current -= 1; }
+      templateGenerationRef.current += 1;
+      // A refused save keeps the prior selection locally too.
+      if (!saved || !current()) return null;
+      effectTemplatesRef.current = next;
+      setEffectTemplates(next);
       setCommittedTemplates(next);
     }
     return bundle.slots[SIMPLE_SLOT];
-  }, [animateDefaults, writeTemplates]);
+  }, [animateDefaults]);
 
   // One shared shader for every device, so starting Animate is the whole
   // assignment - there is no per-device write to make.
   const handleSimpleAnimationSelect = useCallback(async (key: string) => {
-    const slot0 = await selectSimpleSlot(key);
-    if (!slot0) return;
+    const seq = ++simpleSeqRef.current;
+    const slot0 = await selectSimpleSlot(key, seq);
+    if (!slot0 || seq !== simpleSeqRef.current) return;
     recordAnimation(key);
     claimAllDevices(false);
     unpinAll();
@@ -2297,16 +2327,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     reverseReadFor.current = key;
     setMode('animate');
     setRawSync(key);
-    const state = simpleAnimationState(slot0, simpleReversed);
+    const state = simpleAnimationState(slot0, simpleReversedRef.current);
     try {
       // Re-picking the running effect reuses the live shader, and that path
       // never clears the engine's hold, so a paused engine has to be released
       // explicitly or the tile lights up over frozen LEDs.
-      if (paused) { setPausedState(false); await setLightingPaused(false); }
+      if (pausedRef.current) {
+        setPausedState(false);
+        await setLightingPaused(false);
+        if (seq !== simpleSeqRef.current) return;
+      }
       await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
     } catch { /* the sync poll reconciles */ }
-  }, [claimAllDevices, paused, selectSimpleSlot, setMode, setPausedState, setRawSync, simpleReversed, unpinAll, recordAnimation]);
+  }, [claimAllDevices, selectSimpleSlot, setMode, setPausedState, setRawSync, unpinAll, recordAnimation]);
 
   // The running simple-mode animation, which is also what marks a tile. Only
   // the first preset counts: the same effect on another preset is a custom
@@ -2321,17 +2356,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleSimpleReverse = useCallback(async (next: boolean) => {
     setSimpleReversed(next);
     if (!simpleAnimation) return;
-    const slot0 = await selectSimpleSlot(simpleAnimation);
-    if (!slot0) return;
+    const seq = ++simpleSeqRef.current;
+    const slot0 = await selectSimpleSlot(simpleAnimation, seq);
+    if (!slot0 || seq !== simpleSeqRef.current) return;
     const state = simpleAnimationState(slot0, next);
     try {
       // Same in-place uniform path a re-pick takes, which never clears the
       // engine's hold, so a paused engine has to be released explicitly.
-      if (paused) { setPausedState(false); await setLightingPaused(false); }
+      if (pausedRef.current) {
+        setPausedState(false);
+        await setLightingPaused(false);
+        if (seq !== simpleSeqRef.current) return;
+      }
       await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: simpleAnimation, effect: simpleAnimation });
     } catch { /* the sync poll reconciles */ }
-  }, [paused, selectSimpleSlot, setPausedState, simpleAnimation, setSimpleReversed]);
+  }, [selectSimpleSlot, setPausedState, simpleAnimation, setSimpleReversed]);
 
   useEffect(() => {
     if (!simpleAnimation || reverseReadFor.current === simpleAnimation) return;

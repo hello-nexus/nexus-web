@@ -96,7 +96,7 @@ describe('LightingPage simple mode', () => {
     // Tests below override these; put the file defaults back so order never matters.
     vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', states: {}, templates: {} } as never);
     vi.mocked(lightingApi.fetchAnimateDefaults).mockResolvedValue({});
-    vi.mocked(lightingApi.saveAnimateTemplates).mockResolvedValue(null as never);
+    vi.mocked(lightingApi.saveAnimateTemplates).mockResolvedValue({ error: false, msg: '' } as never);
     vi.mocked(lightingApi.startAnimate).mockResolvedValue(null as never);
     // Fresh install: no stored settings, both page modes default to 'simple'.
     localStorage.clear();
@@ -311,7 +311,7 @@ describe('LightingPage simple mode', () => {
     let releaseSave: () => void = () => {};
     vi.mocked(lightingApi.saveAnimateTemplates).mockImplementation(() => new Promise(resolve => {
       order.push('save');
-      releaseSave = () => { order.push('saved'); resolve(null as never); };
+      releaseSave = () => { order.push('saved'); resolve({ error: false, msg: '' } as never); };
     }));
     vi.mocked(lightingApi.startAnimate).mockImplementation(() => { order.push('start'); return Promise.resolve(null as never); });
     const { container } = renderPage();
@@ -326,6 +326,50 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => expect(order).toContain('start'));
     expect(order).toEqual(['save', 'saved', 'start']);
     expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', -30, 1, 0, 0, 1, 1, {}, true, undefined);
+  });
+
+  const savedBundle = (selected: number) => {
+    const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
+    return { selected, slots: [slot(30), slot(60), slot(60), slot(60)] };
+  };
+
+  // A tap that is still saving its selection must not start after a newer tap.
+  it('lets the last tap win when an earlier one is still saving', async () => {
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: savedBundle(1) },
+    } as never);
+    let releaseSave: () => void = () => {};
+    vi.mocked(lightingApi.saveAnimateTemplates).mockImplementation(() => new Promise(resolve => {
+      releaseSave = () => resolve(null as never);
+    }));
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled());
+    // Rainbow is already on its first preset: it starts at once.
+    fireEvent.click(container.querySelector('[data-effect-key="rainbow"]') as HTMLButtonElement);
+    await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', 50, 1, 0, 0, 1, 1, {}, true, undefined));
+    releaseSave();
+    await new Promise(r => setTimeout(r, 20));
+    const started = vi.mocked(lightingApi.startAnimate).mock.calls.map(c => c[0]);
+    expect(started).toEqual(['rainbow']);
+  });
+
+  it('does not start or commit the selection when the save is refused', async () => {
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: savedBundle(1) },
+    } as never);
+    vi.mocked(lightingApi.saveAnimateTemplates).mockResolvedValue(null as never);
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled());
+    await new Promise(r => setTimeout(r, 20));
+    expect(vi.mocked(lightingApi.startAnimate)).not.toHaveBeenCalled();
   });
 
   it('starts nothing while the stock defaults cannot be loaded', async () => {

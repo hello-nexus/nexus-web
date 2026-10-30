@@ -22,7 +22,7 @@ vi.mock('../../../api/lighting', () => ({
   // ZoneCard's identify affordance; unused in toggleMode but imported.
   identifyLightingDevice: vi.fn(),
   startAnimate: vi.fn(),
-  fetchAnimateSettings: vi.fn(() => Promise.resolve(null)),
+  fetchAnimateSettings: vi.fn(() => Promise.resolve({ templates: {} })),
   fetchAnimateDefaults: vi.fn(() => Promise.resolve({})),
   saveAnimateTemplates: vi.fn(() => Promise.resolve(null)),
   startStatic: vi.fn(),

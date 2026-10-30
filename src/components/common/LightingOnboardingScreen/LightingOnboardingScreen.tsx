@@ -211,10 +211,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       // The effect's first preset: stock defaults merged with any saved edit,
       // selected (awaited, before the start) when it was elsewhere.
       const [saved, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
-      if (!defaults) return;
-      const bundle = mergeTemplates(RAINBOW, saved?.templates?.[RAINBOW], defaults);
+      if (!saved || !defaults) return;
+      const bundle = mergeTemplates(RAINBOW, saved.templates?.[RAINBOW], defaults);
       if (bundle.selected !== SIMPLE_SLOT) {
-        await saveAnimateTemplates({ ...(saved?.templates ?? {}), [RAINBOW]: { ...bundle, selected: SIMPLE_SLOT } }).catch(() => {});
+        await saveAnimateTemplates({ ...(saved.templates ?? {}), [RAINBOW]: { ...bundle, selected: SIMPLE_SLOT } }).catch(() => {});
       }
       const slot0 = bundle.slots[SIMPLE_SLOT];
       const state = simpleAnimationState(slot0, false);
