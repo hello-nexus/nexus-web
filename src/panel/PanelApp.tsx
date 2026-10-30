@@ -10,6 +10,7 @@ import {
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { backdropHintFromUrl } from './background/panelBackground';
 import { PanelDigitizerProvider, PanelDisplayBoundProvider, PanelGenericDisplayProvider } from './widgets/common/PanelDisplayBoundContext';
+import { usePanelFpsCap } from './engine/usePanelFpsCap';
 import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -321,6 +322,8 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   const recordCapsRef = useRef<PanelDeviceCapabilitiesDto | null>(null);
   const hasCaps = !!caps;
   useEffect(() => { recordCapsRef.current = caps ?? null; }, [caps]);
+  // The device record's frame cap limits every draw loop on this page (see lib/framePacer).
+  usePanelFpsCap(record?.fpsCap);
   // The host's URL hint also covers the window before the record lands, which
   // is exactly when it matters; PanelContent takes the class over from here.
   useEffect(() => {

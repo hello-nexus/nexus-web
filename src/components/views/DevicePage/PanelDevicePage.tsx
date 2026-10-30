@@ -103,6 +103,8 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
+import { FrameRateSetting } from './FrameRateSetting';
+import { showsFrameRateSetting } from './frameRateOptions';
 import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
 import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
@@ -557,6 +559,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordSupportsRenderScale, setRecordSupportsRenderScale] = useState(false);
   const isRenderScalablePanel = recordSupportsRenderScale && !isSimulated;
   const [recordHighResolution, setRecordHighResolution] = useState(false);
+  // Streamed displays and display-bound kiosk panels take a frame rate cap; the list says which are streamed.
+  const [recordStreamed, setRecordStreamed] = useState(false);
+  const [recordDisplayBound, setRecordDisplayBound] = useState(false);
+  const [recordFpsCap, setRecordFpsCap] = useState<number | null>(null);
+  const hasFrameRateSetting = showsFrameRateSetting(recordStreamed, recordDisplayBound, isSimulated);
   const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
     useState<PanelDeviceRecord['secondaryMonitorState']>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
@@ -625,6 +632,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
     || isRenderScalablePanel
+    || hasFrameRateSetting
     || isGlacialLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Theme and layout read and write the panel record for simulators and hardware alike;
@@ -722,6 +730,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
+      setRecordStreamed(match?.streamed === true);
+      setRecordDisplayBound(!!match?.displayId);
+      setRecordFpsCap(match?.fpsCap ?? null);
       setMatchedFamily(match?.capabilities?.family);
       setRecordWidgetSize(recordWidgetSizeOf(match, glassSurface) ?? null);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
@@ -882,6 +893,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
+      // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
+      setRecordFpsCap(record.fpsCap ?? null);
       setRecordRestricted(record.restrictedMode ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
@@ -1951,20 +1964,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       hardwareResetBusy={resettingHardware}
                     />
                   )}
-                  {activeTab === 'settings' && isRenderScalablePanel && (
+                  {activeTab === 'settings' && (isRenderScalablePanel || hasFrameRateSetting) && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.rendering')} boxClassName={styles.deviceSettingsBox}>
-                        <SettingSelect
-                          label={t('devices.lcd.renderMode')}
-                          description={t('devices.lcd.renderModeHint')}
-                          value={RENDER_MODES[recordHighResolution ? 1 : 0]}
-                          options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
-                          onChange={(value) => {
-                            const next = value === RENDER_MODES[1];
-                            setRecordHighResolution(next);
-                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
-                          }}
-                        />
+                        {isRenderScalablePanel && (
+                          <SettingSelect
+                            label={t('devices.lcd.renderMode')}
+                            description={t('devices.lcd.renderModeHint')}
+                            value={RENDER_MODES[recordHighResolution ? 1 : 0]}
+                            options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
+                            onChange={(value) => {
+                              const next = value === RENDER_MODES[1];
+                              setRecordHighResolution(next);
+                              if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
+                            }}
+                          />
+                        )}
+                        {hasFrameRateSetting && <FrameRateSetting recordId={device?.panelRecordId ?? null} cap={recordFpsCap} />}
                       </SettingsSection>
                     </div>
                   )}

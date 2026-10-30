@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { fetchShaderSource, onShaderSourceInvalidated } from '../api/lighting';
-import { createDisplayDivider, createFramePacer, panelDisplayHz, streamFrameCap } from '../lib/framePacer';
+import { createAdaptivePacer, pageFrameCap, panelDisplayHz } from '../lib/framePacer';
 import { BASE_UNIFORM_NAMES, clampToSpec, resolveParamUniforms, type ShaderParamSpec } from '../lib/shaderParams';
 import { effectiveBinding, sensorSweep, smoothSensor, type SensorSignal, type SensorUniform } from '../lib/sensorBinding';
 import type { EffectState } from '../types/lighting';
@@ -238,10 +238,12 @@ export function useShaderRenderer(
       let energy = 0;
       let pulse = 0;
       let lastDrawTs = 0;
-      const streamCap = streamFrameCap(window.location.search);
-      // A caller's cap never runs faster than the stream's own.
-      const cap = options?.maxFps ? Math.min(options.maxFps, streamCap || Infinity) : streamCap;
-      const shouldDraw = cap ? createFramePacer(cap) : createDisplayDivider(panelDisplayHz(window.location.search));
+      // A caller's cap never runs faster than the stream's or the device record's own, which can change while drawing.
+      const callerCap = options?.maxFps;
+      const shouldDraw = createAdaptivePacer(() => {
+        const pageCap = pageFrameCap(window.location.search);
+        return callerCap ? Math.min(callerCap, pageCap || Infinity) : pageCap;
+      }, panelDisplayHz(window.location.search));
 
       const render = (ts: number) => {
         if (epochRef.current !== myEpoch) return;
