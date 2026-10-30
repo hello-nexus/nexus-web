@@ -208,6 +208,7 @@ import {
 } from './dnd/PanelDragCells';
 import { BackgroundHoverLayer, BackgroundSplitHint, type BackgroundMenuPoint } from './dnd/BackgroundEditHint';
 import { isRoomyFreeRect, largestFreeRect, splitOrientation, type HintRect } from './engine/hintGeometry';
+import { useBackgroundHoverIntent } from './engine/useBackgroundHoverIntent';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
 import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
@@ -956,15 +957,8 @@ export function PanelContent({
     return splitOrientation(span.cols, span.rows);
   };
   const backgroundHoverTarget = backgroundMenuEnabled && !singleSurface;
-  const [backgroundHover, setBackgroundHoverState] = useState(false);
   const [backgroundArea, setBackgroundArea] = useState<HintRect | null>(null);
-  const backgroundHoverRef = useRef(false);
-  const setBackgroundHover = (over: boolean) => {
-    if (backgroundHoverRef.current === over) return;
-    backgroundHoverRef.current = over;
-    if (over) setBackgroundArea(measureBackgroundArea());
-    setBackgroundHoverState(over);
-  };
+  const { revealed: backgroundHover, setOver: setBackgroundHover } = useBackgroundHoverIntent(() => setBackgroundArea(measureBackgroundArea()));
   // Widgets are read from the DOM: their rects already include padding, gaps and the label strip.
   const measureBackgroundArea = (): HintRect | null => {
     const root = rootRef.current;

@@ -356,9 +356,7 @@ export function PanelThemeSettings({
       editable
       trackFill
       label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
-      description={backgroundOpacityPercent === 0
-        ? <>{label('panel.settings.backgroundOpacity.desc', 'Dims the background')}<br />{label('panel.settings.backgroundOpacity.off', "The background isn't rendering.")}</>
-        : label('panel.settings.backgroundOpacity.desc', 'Dims the background')}
+      description={label('panel.settings.backgroundOpacity.desc', 'Dims the background')}
       descriptionBelow
       value={backgroundOpacityPercent}
       min={0}
@@ -562,7 +560,14 @@ export function PanelThemeSettings({
               }}
               onCommit={onBackgroundFrostCommit}
             />
-            {theme.backdrop === 'desktop' ? null : backgroundOpacitySlider}
+            {theme.backdrop === 'desktop' ? null : (
+              <>
+                {backgroundOpacitySlider}
+                {backgroundOpacityPercent === 0 && (
+                  <Notice tone="info" role="status">{label('panel.settings.backgroundOpacity.off', "The background isn't rendering.")}</Notice>
+                )}
+              </>
+            )}
             {theme.backdrop !== 'theme' ? null : (
             <>
             {theme.backgroundMode === 'solid' ? (

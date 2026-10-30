@@ -15,12 +15,14 @@ function renderWithOpacity(backgroundOpacity: number) {
   render(<PanelThemeSettings theme={theme} resolvedThemeMode="dark" sections="background" {...handlers} />);
 }
 
-describe('Background Opacity row', () => {
-  it('says the background is not rendering while the value is 0, as plain description text', () => {
+describe('Background Opacity notice', () => {
+  it('shows the info notice under the slider while the value is 0, with no close button', () => {
     renderWithOpacity(0);
-    const line = screen.getByText(/isn't rendering/);
-    expect(line.closest('[role="status"], [data-tone]')).toBeNull();
-    expect(line.querySelector('svg')).toBeNull();
+    const notice = screen.getByText(/isn't rendering/).closest('[data-tone]');
+    expect(notice?.getAttribute('data-tone')).toBe('info');
+    expect(notice?.getAttribute('role')).toBe('status');
+    expect(notice?.querySelector('button')).toBeNull();
+    expect(screen.getByText('Dims the background').textContent).not.toMatch(/rendering/);
   });
 
   it('shows no such line above 0', () => {
