@@ -1058,6 +1058,8 @@
   "devices.lcd.secondaryMonitorDriverMissing": "O driver de exibição do modo de monitor secundário não está instalado neste PC.",
   "devices.lcd.secondaryMonitorFailed": "O Windows não conseguiu criar o monitor. Desative e ative a configuração novamente, ou verifique o log do serviço Nexus.",
   "devices.lcd.secondaryMonitorHint": "Enquanto isso estiver ativado, o painel do dispositivo aparece no monitor. Desative o painel do Nexus para ver a área de trabalho do Windows.",
+  "devices.lcd.secondaryMonitorInUse": "O Nexus só consegue criar um monitor virtual por vez, e {name} está usando esse monitor. Desative a configuração de monitor secundário dele e esta será iniciada automaticamente.",
+  "devices.lcd.secondaryMonitorInUseUnnamed": "O Nexus só consegue criar um monitor virtual por vez, e outro dispositivo está usando esse monitor. Desative a configuração de monitor secundário desse dispositivo e esta será iniciada automaticamente.",
   "devices.lcd.secondaryMonitorSection": "Monitor secundário",
   "devices.lcd.secondaryMonitorStarting": "Iniciando o monitor",
   "devices.lcd.sleepWhenLocked": "Desligar a tela quando o PC está bloqueado",

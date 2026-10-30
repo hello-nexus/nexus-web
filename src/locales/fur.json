@@ -1058,6 +1058,8 @@
   "devices.lcd.secondaryMonitorDriverMissing": "Il driver di visualizazion pal mût monitor secondari nol è instalât su chest PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows nol à podût creâ il monitor. Distude e torne ative la impostazion, o controle il regjistri dal servizi Nexus.",
   "devices.lcd.secondaryMonitorHint": "Fintremai che chest al è ativât, il pannel dal dispositîf al ven mostrât sul monitor. Distude il pannel di Nexus par viodi il scritori di Windows ae place.",
+  "devices.lcd.secondaryMonitorInUse": "Nexus al pues creâ nome un monitor virtuâl par volte e {name} lu sta doprant. Distude la sô impostazion di monitor secondari e cheste e partirà di bessole.",
+  "devices.lcd.secondaryMonitorInUseUnnamed": "Nexus al pues creâ nome un monitor virtuâl par volte e un altri dispositîf lu sta doprant. Distude la impostazion di monitor secondari di chel dispositîf e cheste e partirà di bessole.",
   "devices.lcd.secondaryMonitorSection": "Monitor secondari",
   "devices.lcd.secondaryMonitorStarting": "Daûr a inviâ il monitor",
   "devices.lcd.sleepWhenLocked": "Distude il schermi cuant che il PC al è blocât",

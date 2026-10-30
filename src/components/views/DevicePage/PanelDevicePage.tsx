@@ -102,6 +102,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
+import { MonoPreviewFilter } from './MonoPreviewFilter';
+import { MONO_FILTER_ID, isMonoFamily, keepsSidePreview } from './monoPreview';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
 import { FrameRateSetting } from './FrameRateSetting';
 import { showsFrameRateSetting } from './frameRateOptions';
@@ -566,6 +568,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const hasFrameRateSetting = showsFrameRateSetting(recordStreamed, recordDisplayBound, isSimulated);
   const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
     useState<PanelDeviceRecord['secondaryMonitorState']>(null);
+  const [recordSecondaryMonitorHolder, setRecordSecondaryMonitorHolder] = useState<string | null>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
   // bench) - null hides the whole block until the read completes.
   const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
@@ -608,7 +611,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const isStripPanel = !!previewCanvas && previewCanvas.width > 0 && previewCanvas.height > 0
     && Math.max(previewCanvas.width, previewCanvas.height)
        / Math.min(previewCanvas.width, previewCanvas.height) >= STRIP_ASPECT_MIN;
-  const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height;
+  const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height && !keepsSidePreview(recordFamily);
   // The panel's live orientation, read from the same canvas the preview frame
   // renders, so the immersive-on-load toggle offers exactly the immersive views
   // the device can actually open.
@@ -728,6 +731,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSupportsSecondaryMonitor(match?.capabilities?.supportsSecondaryMonitor ?? false);
       setRecordSecondaryMonitor(match?.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
+      setRecordSecondaryMonitorHolder(match?.secondaryMonitorHolder ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
       setRecordStreamed(match?.streamed === true);
@@ -891,6 +895,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // must track every broadcast rather than only the initial load.
       setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
+      setRecordSecondaryMonitorHolder(record.secondaryMonitorHolder ?? null);
       setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
       // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
@@ -2042,6 +2047,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         {recordSecondaryMonitor && recordSecondaryMonitorState === 'driver-missing' && (
                           <Notice tone="warning" role="status">{t('devices.lcd.secondaryMonitorDriverMissing')}</Notice>
                         )}
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'in-use' && (
+                          <Notice tone="warning" role="status">
+                            {recordSecondaryMonitorHolder
+                              ? t('devices.lcd.secondaryMonitorInUse', { name: recordSecondaryMonitorHolder })
+                              : t('devices.lcd.secondaryMonitorInUseUnnamed')}
+                          </Notice>
+                        )}
                         {recordSecondaryMonitor && recordSecondaryMonitorState === 'failed' && (
                           <Notice tone="critical" role="status">{t('devices.lcd.secondaryMonitorFailed')}</Notice>
                         )}
@@ -2166,9 +2178,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             className={styles.previewPane}
             data-surface={glassSurface}
             data-family={recordFamily}
-            data-playlist-nav={showPlaylistArrows || undefined}
             data-troubleshoot={showPreviewTroubleshoot || undefined}
           >
+            {isMonoFamily(recordFamily) && <MonoPreviewFilter />}
             <div className={styles.previewStage}>
               <>
               {showPageArrows && (
@@ -2187,6 +2199,22 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   disabled={currentSlot >= pageSlots.length - 1}
                   onClick={() => goToPage(1)}
                   ariaLabel={t('devices.panels.nextPage')}
+                />
+              )}
+              {showPlaylistArrows && (
+                <PanelArrowButton
+                  side="prev"
+                  className={styles.pageArrow}
+                  onClick={() => stepPlaylist(-1)}
+                  ariaLabel={t('panel.playlist.prev')}
+                />
+              )}
+              {showPlaylistArrows && (
+                <PanelArrowButton
+                  side="next"
+                  className={styles.pageArrow}
+                  onClick={() => stepPlaylist(1)}
+                  ariaLabel={t('panel.playlist.next')}
                 />
               )}
               <PanelEmbedFrame
@@ -2218,6 +2246,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 chromeGrid={previewChrome}
                 displayBound={!!device?.displayId}
                 genericDisplay={genericDisplay}
+                monoFilterId={isMonoFamily(recordFamily) ? MONO_FILTER_ID : undefined}
                 onPlaylistShown={handlePlaylistShown}
               />
               {isHydroShift2CurvePanel && curveScreen.playingClip && (
@@ -2234,22 +2263,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               )}
               </>
             </div>
-            {showPlaylistArrows && (
-              <div className={styles.playlistNav}>
-                <PanelArrowButton
-                  side="prev"
-                  className={styles.pageArrow}
-                  onClick={() => stepPlaylist(-1)}
-                  ariaLabel={t('panel.playlist.prev')}
-                />
-                <PanelArrowButton
-                  side="next"
-                  className={styles.pageArrow}
-                  onClick={() => stepPlaylist(1)}
-                  ariaLabel={t('panel.playlist.next')}
-                />
-              </div>
-            )}
             {showPreviewTroubleshoot && qseriesTroubleshootLink(t('devices.qseries.troubleshoot.mismatch'))}
           </div>
         </div>
