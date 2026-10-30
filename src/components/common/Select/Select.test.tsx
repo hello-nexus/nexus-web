@@ -608,3 +608,21 @@ describe('Select grid', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('Select rowAction', () => {
+  it('runs the action and closes the menu without choosing the row', () => {
+    const onChange = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <Select
+        value="a" onChange={onChange} ariaLabel="fruit"
+        options={[OPTIONS[0], { ...OPTIONS[1], rowAction: { icon: <i data-testid="pencil" />, label: 'Edit', onSelect } }]}
+      />,
+    );
+    open();
+    fireEvent.click(screen.getByTestId('pencil'));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+});

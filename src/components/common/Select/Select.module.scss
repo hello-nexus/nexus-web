@@ -236,6 +236,29 @@ $select-action-w: 132px;
   text-overflow: ellipsis;
 }
 
+.option.hasRowAction {
+  position: relative;
+}
+
+.rowAction {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+
+  &:hover {
+    color: var(--text);
+    background: var(--bg-card-hover);
+  }
+}
+
 .option.active {
   background: var(--bg-card-hover);
 }
