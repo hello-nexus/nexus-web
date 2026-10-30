@@ -359,3 +359,171 @@
   background: var(--separator);
   pointer-events: none;
 }
+
+/* Grid mode (grid prop): a full-width bar whose menu repeats its columns. The
+   column template arrives as --select-cols on the value, the menu and its rows. */
+.gridWrapper {
+  display: flex;
+  width: 100%;
+}
+
+.trigger.gridTrigger {
+  min-height: 68px;
+  padding: 0 1.25rem 0 1.4rem;
+  border-radius: var(--radius);
+
+  &[aria-expanded='true'] {
+    border-color: var(--accent);
+  }
+}
+
+.gridTrigger ~ .chevron {
+  right: 1.25rem;
+  transition: transform var(--ease-fast) ease;
+}
+.gridTrigger[aria-expanded='true'] ~ .chevron {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.gridValue {
+  display: grid;
+  grid-template-columns: var(--select-cols);
+  align-items: center;
+  column-gap: 1.25rem;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.gridMenu {
+  padding: 0.5rem;
+  border-color: var(--accent);
+  border-radius: var(--radius);
+}
+
+.gridHead {
+  display: grid;
+  grid-template-columns: var(--select-cols);
+  column-gap: 1.25rem;
+  padding: 0.4rem 0.9rem 0.6rem;
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.option.gridOption,
+.option.gridPlain {
+  display: grid;
+  align-items: center;
+  min-height: 64px;
+  padding: 0 0.9rem;
+  margin-bottom: 2px;
+}
+.option.gridOption {
+  grid-template-columns: var(--select-cols);
+  column-gap: 1.25rem;
+  height: 64px;
+}
+.option.gridPlain {
+  grid-template-columns: 1fr;
+  min-height: 52px;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gridName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.gridNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+}
+.gridName > :not(.gridNameText) {
+  flex: none;
+}
+.gridCell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.option.selected .gridCell {
+  color: var(--text);
+}
+.gridNote {
+  grid-column: 2 / -2;
+  color: var(--text-dim);
+}
+
+/* An action of the chosen row sits in its trailing column, over the row it hangs
+   off; a second action follows below it. */
+.option.gridAttached {
+  position: relative;
+  width: 132px;
+  height: 64px;
+  margin: -64px 0.9rem 0 auto;
+  padding: 0;
+  justify-content: flex-end;
+  align-items: center;
+  background: transparent;
+  border-radius: 0;
+}
+.option.gridAttached + .gridAttached {
+  height: auto;
+  margin-top: 0;
+  padding: 0.3rem 0;
+}
+.option.gridAttached.attachedChosen,
+.option.gridAttached.active {
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  .trigger.gridTrigger {
+    padding: 0.85rem 2.6rem 0.85rem 1rem;
+  }
+  .gridValue,
+  .option.gridOption {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.15rem;
+  }
+  .option.gridOption {
+    height: auto;
+    padding: 0.85rem 1rem;
+  }
+  .gridHead {
+    display: none;
+  }
+  .gridValue > span:empty,
+  .option.gridOption > span:empty {
+    display: none;
+  }
+  .gridCell,
+  .gridNote {
+    grid-column: 1;
+    font-size: var(--type-small);
+    color: var(--text-dim);
+  }
+  .option.selected .gridCell {
+    color: var(--text-dim);
+  }
+  .option.gridAttached {
+    width: auto;
+    height: auto;
+    margin: 0 1rem;
+    padding: 0 0 0.6rem;
+    justify-content: flex-start;
+  }
+  .option.gridAttached + .gridAttached {
+    padding-top: 0;
+  }
+}

@@ -82,6 +82,14 @@ export interface SelectOption {
   attached?: boolean;
   // Action rows only: tooltip on the row's button.
   hint?: string;
+  // Grid mode only (SelectProps.grid): the option's values for the columns after
+  // the label, in order; an absent one leaves its column empty.
+  cells?: readonly (string | undefined)[];
+  // Grid mode only: one line across every column after the label, for an option
+  // with nothing to put in them (e.g. an empty draft). Wins over `cells`.
+  note?: string;
+  // Grid mode only: drawn after the label (e.g. a status chip).
+  badge?: ReactNode;
 }
 
 export interface SelectProps {
@@ -115,6 +123,14 @@ export interface SelectProps {
    *  and label (e.g. a larger name followed by a status chip). Not called when
    *  no option is selected, where the placeholder shows. The menu is unchanged. */
   renderValue?: (option: SelectOption) => ReactNode;
+  /** Draws the trigger as a full-width bar and the menu at the same width, both
+   *  laid out on one column grid so each option's `cells` line up under the bar
+   *  and under the faint `headings` row (the first heading names the label
+   *  column). `template` is the CSS grid-template-columns of the label column,
+   *  one per cell, and a last column that holds the chevron and attached actions.
+   *  Text that does not fit ellipsizes with the full text in a HoverTooltip.
+   *  On a phone the columns collapse and the cells stack under the label. */
+  grid?: { headings: readonly string[]; template: string };
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -218,12 +234,51 @@ function nextEnabled(opts: readonly SelectOption[], from: number, dir: 1 | -1): 
   return from;
 }
 
+// Text that ellipsizes in its box, with the full text in a tooltip only while it is cut.
+function TruncText({ text, className }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const [cut, setCut] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => setCut(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [text]);
+  return (
+    <HoverTooltip body={cut ? text : undefined}>
+      <span ref={ref} className={className}>{text}</span>
+    </HoverTooltip>
+  );
+}
+
+// One option on the grid: label with its badge, then a cell per column or one note across them.
+function GridCells({ opt, count }: { opt: SelectOption; count: number }) {
+  return (
+    <>
+      <span className={styles.gridName}>
+        <TruncText text={opt.label} className={styles.gridNameText} />
+        {opt.badge}
+      </span>
+      {opt.note ? <TruncText text={opt.note} className={classNames(styles.gridCell, styles.gridNote)} /> : (
+        Array.from({ length: count }, (_, i) => {
+          const cell = opt.cells?.[i];
+          return cell ? <TruncText key={i} text={cell} className={styles.gridCell} /> : <span key={i} />;
+        })
+      )}
+    </>
+  );
+}
+
 interface MenuCoords { top: number; left: number; width: number; maxHeight: number; scale: number; }
 
 export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, accentValue, placeholder, height,
-  triggerIconOnly, leadingAction, renderValue,
+  triggerIconOnly, leadingAction, renderValue, grid,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
@@ -231,13 +286,15 @@ export function Select({
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
   const showPlaceholder = selectedIndex < 0 && placeholder != null;
+  const cellCount = grid ? grid.headings.length - 1 : 0;
+  const gridStyle = grid ? ({ '--select-cols': grid.template } as React.CSSProperties) : undefined;
 
   // Offer the search field only on a keyboard/pointer device and once the list
   // is long enough to be worth typing through. The device class is read once
   // per mount; it does not change mid-session.
   const [pointerSearch] = useState(supportsPointerSearch);
   const searchEnabled =
-    pointerSearch && resolved.filter(o => !o.divider && !o.header && !o.onAction).length >= SEARCH_MIN_OPTIONS;
+    !grid && pointerSearch && resolved.filter(o => !o.divider && !o.header && !o.onAction).length >= SEARCH_MIN_OPTIONS;
 
   const portalRoot = usePortalRoot();
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
@@ -299,7 +356,12 @@ export function Select({
     // menu sizes to the full widest label, then add a small pad. offsetWidth is
     // the unscaled layout box.
     let width = openWidthRef.current;
-    if (width == null) {
+    if (width == null && grid) {
+      // A grid menu is as wide as its bar, so the columns line up.
+      width = baseWidth;
+      menu.style.width = `${width}px`;
+      openWidthRef.current = width;
+    } else if (width == null) {
       const optionEls = Array.from(list.children) as HTMLElement[];
       for (const o of optionEls) o.style.overflow = 'visible';
       // Descriptions wrap to the menu width the labels set; they never size it.
@@ -337,6 +399,8 @@ export function Select({
     const left = Math.max(Math.min(MARGIN, maxLeft), Math.min(r.left, maxLeft));
     const clampedTop = Math.max(MARGIN, Math.min(top, window.innerHeight - visualHeight - MARGIN));
     setCoords({ top: clampedTop, left, width, maxHeight: visualHeight / scale, scale });
+    // grid is fixed for the life of the control; reading it here keeps reposition stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const close = useCallback((refocus = false) => {
@@ -507,14 +571,14 @@ export function Select({
   };
 
   return (
-    <span ref={wrapperRef} className={classNames(styles.wrapper, triggerIconOnly && styles.iconOnly, !!leadingAction && styles.hasLeading, className)}>
+    <span ref={wrapperRef} className={classNames(styles.wrapper, grid && styles.gridWrapper, triggerIconOnly && styles.iconOnly, !!leadingAction && styles.hasLeading, className)}>
       {/* Before the trigger so tab order matches the left-to-right look. */}
       {!!leadingAction && <span className={styles.leadingAction}>{leadingAction}</span>}
       <HoverTooltip body={triggerIconOnly && selectedIcon && selectedLabel ? selectedLabel : undefined}>
         <button
           ref={triggerRef}
           type="button"
-          className={styles.trigger}
+          className={classNames(styles.trigger, grid && styles.gridTrigger)}
           style={height != null ? { height } : undefined}
           disabled={disabled}
           aria-haspopup="listbox"
@@ -524,8 +588,11 @@ export function Select({
           onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
           onKeyDown={onTriggerKeyDown}
         >
-          <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
-            {renderValue && selectedIndex >= 0 ? renderValue(resolved[selectedIndex]) : (
+          <span
+            className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder, grid && selectedIndex >= 0 && styles.gridValue)}
+            style={gridStyle}
+          >
+            {grid && selectedIndex >= 0 ? <GridCells opt={resolved[selectedIndex]} count={cellCount} /> : renderValue && selectedIndex >= 0 ? renderValue(resolved[selectedIndex]) : (
               <>
                 {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
                 {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
@@ -537,7 +604,7 @@ export function Select({
       {!triggerIconOnly && (
         <ChevronDown
           className={styles.chevron}
-          size={14}
+          size={grid ? 16 : 14}
           strokeWidth={2}
           // eslint-disable-next-line i18next/no-literal-string -- decorative-icon aria flag
           aria-hidden="true"
@@ -546,9 +613,10 @@ export function Select({
       {open && createPortal(
         <div
           ref={menuRef}
-          className={styles.menu}
+          className={classNames(styles.menu, grid && styles.gridMenu)}
           data-select-menu=""
           style={{
+            ...gridStyle,
             position: 'fixed',
             top: coords?.top ?? 0,
             left: coords?.left ?? 0,
@@ -562,6 +630,12 @@ export function Select({
             visibility: coords ? 'visible' : 'hidden',
           }}
         >
+          {grid && (
+            <div className={styles.gridHead} aria-hidden="true">
+              {grid.headings.map((heading, i) => <span key={i}>{heading}</span>)}
+              <span />
+            </div>
+          )}
           {searchEnabled && (
             <div className={styles.searchRow}>
               <Search
@@ -631,6 +705,8 @@ export function Select({
                     opt.fontFamily && styles.fontOption,
                     opt.onAction && styles.actionOption,
                     opt.attached && styles.attached,
+                    grid && !opt.onAction && (opt.cells || opt.note ? styles.gridOption : styles.gridPlain),
+                    grid && opt.attached && styles.gridAttached,
                     opt.attached && attachedToChosen(visible, i, value) && styles.attachedChosen,
                     visible[i + 1]?.attached && (opt.attached ? attachedToChosen(visible, i, value) : !opt.onAction && opt.value === value) && styles.hasAttached,
                   )}
@@ -649,8 +725,9 @@ export function Select({
                     </HoverTooltip>
                   ) : null}
                   {opt.onAction && opt.hint && <span id={`${optionId(i)}-hint`} className={styles.srOnly} aria-hidden="true">{opt.hint}</span>}
-                  {!opt.onAction && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
-                  {opt.onAction ? null : opt.description ? (
+                  {grid && !opt.onAction && (opt.cells || opt.note) && <GridCells opt={opt} count={cellCount} />}
+                  {!opt.onAction && !(grid && (opt.cells || opt.note)) && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
+                  {opt.onAction || (grid && (opt.cells || opt.note)) ? null : opt.description ? (
                     <span className={styles.optionText}>
                       <span>{opt.label}</span>
                       <span id={`${optionId(i)}-desc`} data-option-description="true" className={styles.optionDescription}>{opt.description}</span>
