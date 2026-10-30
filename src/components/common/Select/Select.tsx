@@ -123,6 +123,10 @@ export interface SelectProps {
   /** A control drawn inside the box, left of the value, as a sibling of the
    *  trigger so it can be a real button. Pressing it does not open the menu. */
   leadingAction?: ReactNode;
+  /** A control drawn inside the box, immediately left of the chevron, as a
+   *  sibling after the trigger so it can be a real button. Pressing it does
+   *  not open the menu, and the trigger reserves room so text never runs under it. */
+  trailingAction?: ReactNode;
   /** Draws the trigger's content for the selected option in place of its icon
    *  and label (e.g. a larger name followed by a status chip). Not called when
    *  no option is selected, where the placeholder shows. The menu is unchanged.
@@ -295,7 +299,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, accentValue, placeholder, height,
-  triggerIconOnly, leadingAction, renderValue, grid,
+  triggerIconOnly, leadingAction, trailingAction, renderValue, grid,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
@@ -588,7 +592,7 @@ export function Select({
   };
 
   return (
-    <span ref={wrapperRef} className={classNames(styles.wrapper, grid && styles.gridWrapper, triggerIconOnly && styles.iconOnly, !!leadingAction && styles.hasLeading, className)}>
+    <span ref={wrapperRef} className={classNames(styles.wrapper, grid && styles.gridWrapper, triggerIconOnly && styles.iconOnly, !!leadingAction && styles.hasLeading, !!trailingAction && !triggerIconOnly && styles.hasTrailing, className)}>
       {/* Before the trigger so tab order matches the left-to-right look. */}
       {!!leadingAction && <span className={styles.leadingAction}>{leadingAction}</span>}
       <HoverTooltip body={triggerIconOnly && selectedIcon && selectedLabel ? selectedLabel : undefined}>
@@ -618,6 +622,7 @@ export function Select({
           </span>
         </button>
       </HoverTooltip>
+      {!!trailingAction && !triggerIconOnly && <span className={styles.trailingAction}>{trailingAction}</span>}
       {!triggerIconOnly && (
         <ChevronDown
           className={styles.chevron}

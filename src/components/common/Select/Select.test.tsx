@@ -31,6 +31,24 @@ describe('Select leadingAction', () => {
   });
 });
 
+describe('Select trailingAction', () => {
+  it('comes after the trigger in DOM order, and pressing it does not open the list', () => {
+    const onTrail = vi.fn();
+    render(
+      <Select
+        value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit"
+        trailingAction={<button type="button" aria-label="trail" onClick={onTrail} />}
+      />,
+    );
+    const trail = screen.getByRole('button', { name: 'trail' });
+    const trigger = screen.getByRole('button', { name: 'fruit' });
+    expect(trigger.compareDocumentPosition(trail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(trail);
+    expect(onTrail).toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+});
+
 describe('Select renderValue', () => {
   it('draws custom trigger content for the selected option and leaves the menu rows alone', () => {
     render(
