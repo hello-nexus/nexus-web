@@ -61,6 +61,10 @@ interface PresetToolbarProps {
    *  for a local package distinct from onImport's own source (e.g. Elgato).
    *  Omit to hide the option entirely (every existing caller). */
   onImportFile?: () => void;
+  /** i18n key shown when a create fails below the cap with no message from
+   *  the caller (a refused write that is not the limit). Omit to fall back to
+   *  the cap message. */
+  createFailedKey?: string;
   /** Undo/Redo controls, plus Reset when `onReset` is supplied. Off for
    *  callers with no editable history to undo; on (default) matches the
    *  original lighting-canvas toolbar. */
@@ -106,7 +110,7 @@ interface PresetToolbarProps {
 export function PresetToolbar({
   presets, activeId, presetCount, cap = PRESET_CAP,
   onLoad, onCreate, onRename, onDelete, onImport, importLabelKey, importDisabled, onImportStarters, onManageApps,
-  onExport, onImportFile,
+  onExport, onImportFile, createFailedKey,
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
@@ -203,7 +207,7 @@ export function PresetToolbar({
     setLastAttemptedValue(name);
     const result = await onCreate(name, { fresh });
     if (result.error) {
-      const msg = result.msg ?? t(key('capReached'), { max: cap });
+      const msg = result.msg ?? (createFailedKey && !atCap ? t(createFailedKey) : t(key('capReached'), { max: cap }));
       setCreateError(msg);
       return msg;
     }

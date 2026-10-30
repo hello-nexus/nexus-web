@@ -29,7 +29,7 @@ const NON_UI_JSX_ATTRIBUTES = [
   'anchorId',
   // i18n key prefixes/overrides handed to a shared component so it reads its
   // caller's strings; these ARE the translation lookup, not display text.
-  'translationPrefix', 'resetLabelKey', 'resetConfirmKey', 'importLabelKey',
+  'translationPrefix', 'resetLabelKey', 'resetConfirmKey', 'importLabelKey', 'createFailedKey',
 ]
 
 // One width for every inline slider: styles/global.scss (--slider-inline-*) is the

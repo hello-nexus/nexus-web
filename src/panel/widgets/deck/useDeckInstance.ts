@@ -50,6 +50,7 @@ export interface UseDeckInstanceResult {
    * own `onLoad` also resets page/folder/selection (StreamDeckDevicePage)
    * passes that instead, so a preset created from the toolbar resets the
    * same way loading one does.
+   * Omitting `copyOfPresetId` creates an empty deck; pass it to duplicate.
    */
   createPreset: (name: string, activatePreset?: (id: string) => void | Promise<void>, copyOfPresetId?: string) => Promise<{ error: boolean; msg?: string }>;
   renamePreset: (id: string, name: string) => Promise<void>;

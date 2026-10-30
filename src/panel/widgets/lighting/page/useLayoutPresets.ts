@@ -34,7 +34,7 @@ export interface UseLayoutPresetsResult {
   activePreset: LayoutPreset | null;
   presetCount: number;
   loadPresets: () => Promise<void>;
-  handleCreate: (name: string, opts?: { fresh: boolean }) => Promise<{ error: boolean; msg?: string }>;
+  handleCreate: (name: string, opts: { fresh: boolean }) => Promise<{ error: boolean; msg?: string }>;
   handleRename: (id: string, name: string) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleLoad: (id: string) => Promise<void>;
@@ -66,8 +66,8 @@ export function useLayoutPresets(serviceOnline: boolean, activeProfileId?: strin
     void loadPresets();
   }, [serviceOnline, activeProfileId, loadPresets]);
 
-  const handleCreate = useCallback(async (name: string, opts?: { fresh: boolean }): Promise<{ error: boolean; msg?: string }> => {
-    const res = await createLayoutPreset(name, opts?.fresh);
+  const handleCreate = useCallback(async (name: string, opts: { fresh: boolean }): Promise<{ error: boolean; msg?: string }> => {
+    const res = await createLayoutPreset(name, opts.fresh);
     if (!res) return { error: true };
     await loadPresets();
     return { error: false };

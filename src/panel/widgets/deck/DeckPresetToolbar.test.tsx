@@ -298,3 +298,14 @@ describe('deckPresetDisplayName', () => {
     expect(deckPresetDisplayName({ name: 'Media' }, t)).toBe('Media');
   });
 });
+
+describe('DeckPresetToolbar - refused duplicate', () => {
+  it('shows the create-failed text, not the cap message, when Duplicate current is refused', async () => {
+    const deck = deckResult({ createPreset: vi.fn().mockResolvedValue({ error: true }) });
+    setup({ deck });
+    open();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.newOption' }));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.duplicateCurrent' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('panel.settings.deck.presets.createFailed');
+  });
+});
