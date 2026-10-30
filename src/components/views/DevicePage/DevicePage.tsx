@@ -394,7 +394,22 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
   const resolvingConflict = Boolean(conflictAppId) && !ready;
   const [confirmingExperimental, setConfirmingExperimental] = useState(false);
   const { hidden, setHidden } = useSidebarHiddenDevices();
-  const [monitorOn, setMonitorOn] = useState(true);
+  const { push: pushToast } = useToast();
+  // The switch renders only while the record says the monitor is on, so a record update to off removes it.
+  // An optimistic value holds until the newest write settles; only that write may roll back.
+  const [monitorPending, setMonitorPending] = useState<boolean | null>(null);
+  const monitorSeqRef = useRef(0);
+  const setMonitor = (id: string, next: boolean) => {
+    const seq = ++monitorSeqRef.current;
+    setMonitorPending(next);
+    patchPanelDevice(id, { secondaryMonitor: next })
+      .then(saved => saved === null ? Promise.reject(new Error('save failed')) : undefined)
+      .catch(() => {
+        if (seq !== monitorSeqRef.current) return;
+        setMonitorPending(null);
+        pushToast({ title: t('devices.panels.saveFailedTitle'), body: t('devices.panels.saveFailedBody') });
+      });
+  };
   const shownInSidebar = deviceKey === undefined || !hidden.includes(deviceKey);
   return (
     <section className={styles.page}>
@@ -435,13 +450,8 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
           {secondaryMonitorRecordId && (
             <SettingToggle
               label={t('devices.lcd.secondaryMonitor')}
-              description={t('devices.lcd.secondaryMonitorHint')}
-              checked={monitorOn}
-              onChange={() => {
-                const next = !monitorOn;
-                setMonitorOn(next);
-                void patchPanelDevice(secondaryMonitorRecordId, { secondaryMonitor: next }).catch(() => {});
-              }}
+              checked={monitorPending ?? true}
+              onChange={() => setMonitor(secondaryMonitorRecordId, !(monitorPending ?? true))}
             />
           )}
           {deviceKey !== undefined && (
