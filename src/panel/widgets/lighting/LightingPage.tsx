@@ -68,7 +68,6 @@ import { useDevices } from '../../../hooks/useDevices';
 import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
 import { ConflictWarningModal } from '../../../components/common/Sidebar/ConflictWarning';
 import { FixLightingModal } from '../../../components/common/FixLightingModal/FixLightingModal';
-import { TroubleshootLink } from '../../../components/common/TroubleshootLink/TroubleshootLink';
 import { Coachmark } from '../../../components/common/Coachmark/Coachmark';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
@@ -3085,6 +3084,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
             onOpenFixLighting={deviceName => setFixLighting({ deviceName })}
+            onOpenFixLightingLink={showCanvas || viewMode === 'static' ? () => setFixLighting({ deviceName: null }) : undefined}
           />
         </div>
         <div
@@ -3142,11 +3142,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               </>
             )}
           </div>
-          )}
-          {(showCanvas || viewMode === 'static') && (
-            <div className={styles.fixLightingRow}>
-              <TroubleshootLink label={t('lighting.fix.link')} onClick={() => setFixLighting({ deviceName: null })} />
-            </div>
           )}
           {/* Off renders no picker at all; Static and Animation each own an
               effect pool; Screen and Media get their source controls. */}

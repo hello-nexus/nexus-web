@@ -15,8 +15,6 @@ import {
 } from './swatches';
 import styles from './LightingWidget.module.scss';
 
-const RECENTS_IDLE_MS = 2000;
-
 interface Props {
   kind: 'static' | 'animate';
   size: PanelWidget['size'];
@@ -69,29 +67,13 @@ export function LightingSwatches({
 }: Props) {
   const { t } = useTranslation();
   const { cols, rows, slots } = swatchGrid(size, preview || onOpen !== null);
-  // A tap here records into recents; the order is held until the taps go idle or the pointer leaves, so the grid never shuffles under a finger. Picks made elsewhere show at once.
-  const [held, setHeld] = useState<{ colors: readonly string[]; animations: readonly string[] } | null>(null);
-  const idleRef = useRef<number | null>(null);
-  const release = () => {
-    if (idleRef.current !== null) window.clearTimeout(idleRef.current);
-    idleRef.current = null;
-    setHeld(null);
-  };
-  const holdForTap = () => {
-    setHeld(prev => prev ?? { colors: recentColors, animations: recentAnimations });
-    if (idleRef.current !== null) window.clearTimeout(idleRef.current);
-    idleRef.current = window.setTimeout(release, RECENTS_IDLE_MS);
-  };
-  useEffect(() => () => { if (idleRef.current !== null) window.clearTimeout(idleRef.current); }, []);
-  const shownColors = held?.colors ?? recentColors;
-  const shownAnimations = held?.animations ?? recentAnimations;
   const staticTiles = useMemo(
-    () => (kind === 'static' ? pickStaticTiles(shownColors, showRecents, slots) : []),
-    [kind, shownColors, showRecents, slots],
+    () => (kind === 'static' ? pickStaticTiles(recentColors, showRecents, slots) : []),
+    [kind, recentColors, showRecents, slots],
   );
   const effectTiles = useMemo(
-    () => (kind === 'animate' ? pickAnimationTiles(shownAnimations, showRecents, slots) : []),
-    [kind, shownAnimations, showRecents, slots],
+    () => (kind === 'animate' ? pickAnimationTiles(recentAnimations, showRecents, slots) : []),
+    [kind, recentAnimations, showRecents, slots],
   );
   const previewGradients = useMemo(() => previewTileGradients(), []);
   const thumbs = useEffectThumbs(effectTiles, templates, kind === 'animate' && !preview);
@@ -104,7 +86,6 @@ export function LightingSwatches({
         data-kind={kind}
         data-cols={cols}
         data-rows={rows}
-        onPointerLeave={release}
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
       >
         {preview
@@ -124,7 +105,7 @@ export function LightingSwatches({
                   data-swatch-hex={tile.hex}
                   className={`${styles.swatchColor} ${active ? styles.swatchActive : ''}`}
                   style={{ backgroundColor: tile.hex }}
-                  onClick={() => { holdForTap(); onColor(tile.hex); }}
+                  onClick={() => onColor(tile.hex)}
                   aria-label={name}
                   aria-pressed={active}
                 />
@@ -140,7 +121,7 @@ export function LightingSwatches({
                 thumbUrl={thumbs[fx.key] ?? null}
                 active={fx.key === activeEffect}
                 dataEffectKey={fx.key}
-                onClick={() => { holdForTap(); onEffect(fx.key); }}
+                onClick={() => onEffect(fx.key)}
               />
             </div>
           ))}

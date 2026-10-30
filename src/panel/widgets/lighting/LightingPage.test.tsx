@@ -262,15 +262,21 @@ describe('LightingPage fix lighting link', () => {
     localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
   });
 
-  it('opens the Fix lighting modal from the link under the canvas, with no device named', async () => {
+  it('opens the Fix lighting modal from the link closing the devices list, with no device named', async () => {
     const { findByRole, queryByTestId, getByTestId } = render(
       <UiSettingsProvider>
-        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" onSectionNavigate={() => {}} />
       </UiSettingsProvider>,
     );
 
     expect(queryByTestId('fix-lighting')).toBeNull();
-    fireEvent.click(await findByRole('button', { name: 'lighting.fix.link' }));
+    const link = await findByRole('button', { name: 'lighting.fix.link' });
+    const smartLights = await findByRole('button', { name: 'smartLights.title' });
+    expect(link.closest('aside')).not.toBeNull();
+    expect(link.closest('aside')).toBe(smartLights.closest('aside'));
+    expect(smartLights.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(link.querySelector('svg')).not.toBeNull();
+    fireEvent.click(link);
     expect(getByTestId('fix-lighting').getAttribute('data-device')).toBe('');
   });
 });

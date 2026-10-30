@@ -581,11 +581,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         showRecents={showRecents}
         recentColors={recents.colors}
         recentAnimations={recents.animations}
-        onColor={hex => { recents.recordColor(hex); void applyColor(hex); }}
-        onEffect={key => {
-          recents.recordAnimation(key);
-          void applyEffect(key);
-        }}
+        onColor={hex => { void applyColor(hex); }}
+        onEffect={key => { void applyEffect(key); }}
         onOpen={openAction}
       />
     )

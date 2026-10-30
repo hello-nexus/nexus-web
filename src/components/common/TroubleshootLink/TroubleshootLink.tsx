@@ -1,4 +1,4 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, type LucideIcon } from 'lucide-react';
 import classNames from 'classnames';
 import styles from './TroubleshootLink.module.scss';
 
@@ -7,14 +7,17 @@ interface TroubleshootLinkProps {
   /** Opens this URL in a new tab. Without it the link is a button that calls `onClick`. */
   href?: string;
   onClick?: () => void;
+  /** Leading glyph. Defaults to the external-link glyph for `href` links and none for buttons. */
+  icon?: LucideIcon;
   className?: string;
 }
 
-/** The dim troubleshooting text link: an outside page in a new tab (with the external-link glyph), or a glyph-less button for an in-app fix flow. */
-export function TroubleshootLink({ label, href, onClick, className }: TroubleshootLinkProps) {
+/** The dim troubleshooting text link: an outside page in a new tab (with the external-link glyph), or a button (glyph-less unless `icon` is given) for an in-app fix flow. */
+export function TroubleshootLink({ label, href, onClick, icon, className }: TroubleshootLinkProps) {
+  const Icon = icon ?? (href ? ExternalLink : undefined);
   const body = (
     <>
-      {href && <ExternalLink size={12} aria-hidden />}
+      {Icon && <Icon size={12} aria-hidden />}
       {label}
     </>
   );

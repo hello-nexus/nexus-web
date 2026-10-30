@@ -1,5 +1,6 @@
 import { useLayoutEffect, type ReactNode } from 'react';
-import { FolderPlus, Plus } from 'lucide-react';
+import { CircleHelp, FolderPlus, Plus } from 'lucide-react';
+import { TroubleshootLink } from '../../../../components/common/TroubleshootLink/TroubleshootLink';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
@@ -37,7 +38,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenZoneSizes, zoneSizeDeviceIds, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip, onOpenFixLighting }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenZoneSizes, zoneSizeDeviceIds, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip, onOpenFixLighting, onOpenFixLightingLink }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -140,6 +141,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   onOpenAppStrip?: (appIds: string[]) => void;
   /** Not-responding strip press, with the card's name. */
   onOpenFixLighting?: (deviceName: string) => void;
+  /** Renders the "Lighting doesn't match?" link as the last entry of the list; opens the Fix lighting modal with no device named. */
+  onOpenFixLightingLink?: () => void;
   /** User-made groups, in display order. */
   groups?: DeviceGroup[];
   /** Absent leaves the rail ungroupable (no drag between groups, no add button). */
@@ -752,6 +755,9 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
             <Plus size={22} aria-hidden />
             <span>{t('smartLights.title')}</span>
           </button>
+        )}
+        {onOpenFixLightingLink && (
+          <TroubleshootLink className={styles.fixLightingLink} icon={CircleHelp} label={t('lighting.fix.link')} onClick={onOpenFixLightingLink} />
         )}
       </div>
     </aside>
