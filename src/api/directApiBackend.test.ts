@@ -268,6 +268,16 @@ describe('directApiBackend', () => {
       }));
       expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
     });
+
+    it('forgets the last-known account the pages paint before the session check answers', async () => {
+      localStorage.setItem('nexus_account_hint', JSON.stringify({ username: 'alpha', avatar: null }));
+      fetchMock.mockResolvedValueOnce(emptyResponse(204));
+      const backend = await freshBackend();
+
+      await backend.logout();
+
+      expect(localStorage.getItem('nexus_account_hint')).toBeNull();
+    });
   });
 
   describe('recovery device-grant flow', () => {

@@ -15,6 +15,7 @@
 // since the browser has to remember its own grant across page polls instead
 // of a server process holding it.
 
+import { clearAccountHint } from './accountHint';
 import type {
   AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
   AuthLoginResponse, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
@@ -181,6 +182,7 @@ function clearSession(): void {
   accessToken = null;
   accessTokenExpiresAt = 0;
   cachedAccount = null;
+  clearAccountHint();
 }
 
 async function tryParseJson<T>(res: Response): Promise<T | null> {
