@@ -1,4 +1,8 @@
 @use '../../../styles/interactions' as *;
+@use '../../../styles/text' as *;
+
+// Grid mode's trailing action column; the trigger and the menu each resolve it, so both must match.
+$select-action-w: 132px;
 
 /* Custom select: a button trigger (.trigger) with the chevron overlaid by the
    wrapper, and a portaled listbox (.menu) positioned in JS. Replaces the native
@@ -358,4 +362,177 @@
   margin: 0.2rem 0.6rem;
   background: var(--separator);
   pointer-events: none;
+}
+
+/* Grid mode (grid prop): a full-width bar whose menu repeats its columns. The
+   column template arrives as --select-cols on the value, the menu and its rows. */
+.gridWrapper {
+  display: flex;
+  width: 100%;
+}
+
+.trigger.gridTrigger {
+  min-height: 68px;
+  padding: 0 1.25rem 0 1.4rem;
+  border-radius: var(--radius);
+
+  &[aria-expanded='true'] {
+    border-color: var(--accent);
+  }
+}
+
+.gridTrigger ~ .chevron {
+  right: 1.25rem;
+  transition: transform var(--ease-fast) ease;
+}
+.gridTrigger[aria-expanded='true'] ~ .chevron {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.gridValue {
+  --select-action-w: #{$select-action-w};
+  display: grid;
+  grid-template-columns: var(--select-cols);
+  align-items: center;
+  column-gap: 1.25rem;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.gridMenu {
+  // Row heights the attached actions overlay: an action sits over the row it hangs off.
+  --select-row-h: 64px;
+  --select-plain-h: 52px;
+  --select-row-gap: 2px;
+  --select-action-w: #{$select-action-w};
+  --select-owner-h: var(--select-row-h);
+  padding: 0.5rem;
+  border-color: var(--accent);
+  border-radius: var(--radius);
+}
+
+.gridHead {
+  display: grid;
+  grid-template-columns: var(--select-cols);
+  column-gap: 1.25rem;
+  padding: 0.4rem 0.9rem 0.6rem;
+  color: var(--text-dim);
+  @include text-label;
+}
+
+.option.gridOption,
+.option.gridPlain {
+  align-items: center;
+  margin-bottom: var(--select-row-gap);
+  padding: 0 0.9rem;
+}
+.option.gridOption {
+  display: grid;
+  grid-template-columns: var(--select-cols);
+  column-gap: 1.25rem;
+  height: var(--select-row-h);
+}
+.option.gridPlain {
+  display: flex;
+  gap: 0.5rem;
+  min-height: var(--select-plain-h);
+}
+
+.gridName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.gridNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+}
+.gridName > :not(.gridNameText) {
+  flex: none;
+}
+.gridCell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.option.selected .gridCell {
+  color: var(--text);
+}
+.gridNote {
+  grid-column: 2 / -2;
+  color: var(--text-dim);
+}
+
+/* An action of the chosen row sits in its trailing column, over the row it hangs
+   off; a second action follows below it. */
+.option.gridAttached {
+  position: relative;
+  width: var(--select-action-w);
+  height: var(--select-owner-h);
+  margin: calc(-1 * (var(--select-owner-h) + var(--select-row-gap))) 0.9rem var(--select-row-gap) auto;
+  padding: 0;
+  justify-content: flex-end;
+  align-items: center;
+  background: transparent;
+  border-radius: 0;
+}
+.option.gridAttached.gridAttachedPlain {
+  --select-owner-h: var(--select-plain-h);
+}
+.option.gridAttached + .gridAttached {
+  height: auto;
+  margin-top: 0;
+  padding: 0.3rem 0;
+}
+.option.gridAttached.attachedChosen,
+.option.gridAttached.active {
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  .trigger.gridTrigger {
+    padding: 0.85rem 2.6rem 0.85rem 1rem;
+  }
+  .gridValue,
+  .option.gridOption {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.15rem;
+  }
+  .option.gridOption {
+    height: auto;
+    padding: 0.85rem 1rem;
+  }
+  .gridHead {
+    display: none;
+  }
+  .gridValue > span:empty,
+  .option.gridOption > span:empty {
+    display: none;
+  }
+  .gridCell,
+  .gridNote {
+    grid-column: 1;
+    font-size: var(--type-small);
+    color: var(--text-dim);
+  }
+  .option.selected .gridCell {
+    color: var(--text-dim);
+  }
+  .option.gridAttached {
+    width: auto;
+    height: auto;
+    margin: 0 1rem;
+    padding: 0 0 0.6rem;
+    justify-content: flex-start;
+  }
+  .option.gridAttached + .gridAttached {
+    padding-top: 0;
+  }
 }
