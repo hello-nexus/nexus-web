@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowLeft, Trash2, Upload, Sparkles, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
 import { WidgetContextMenu } from '../../../panel/widgets/common/WidgetContextMenu';
 import { BackgroundQuickImport, type BackgroundQuickImportHandle } from '../../../panel/background/BackgroundQuickImport';
+import { onBackgroundMediaCommitted } from '../../../api/panelBackgroundMedia';
 import { applyQuickBackgroundMedia } from '../../../panel/background/quickBackground';
-import { useCoverNotice, useDismissibleNotice } from '../../../panel/background/useCoverNotice';
+import { useMediaChangeNotice } from '../../../panel/background/useCoverNotice';
 import { previewFit } from '../../../panel/widgets/common/widgetPreviewFit';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
@@ -1165,19 +1166,33 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [backgroundMenu, setBackgroundMenu] = useState<{ x: number; y: number } | null>(null);
   const quickImportRef = useRef<BackgroundQuickImportHandle | null>(null);
   const [backgroundCovered, setBackgroundCovered] = useState(false);
-  const coverNotice = useCoverNotice(backgroundCovered);
-  // The slider is hidden on the desktop backdrop, which leaves nothing to fix there.
-  const opacityZero = typeof theme.backgroundOpacity === 'number' && Math.round(theme.backgroundOpacity * 100) === 0 && theme.backdrop !== 'desktop';
-  const opacityNotice = useDismissibleNotice(opacityZero);
-  const previewNoticeVisible = opacityNotice.visible || (singleWidget && coverNotice.visible);
+  const mediaNotice = useMediaChangeNotice(backgroundCovered && singleWidget);
+  const previewNoticeVisible = mediaNotice.visible;
+  useEffect(() => (editingDeviceId ? onBackgroundMediaCommitted(editingDeviceId, mediaNotice.notify) : undefined), [editingDeviceId, mediaNotice.notify]);
+  const previewPaneRef = useRef<HTMLDivElement | null>(null);
+  const previewNoticeRef = useRef<HTMLDivElement | null>(null);
+  const [noticeBelow, setNoticeBelow] = useState(true);
+  // The notice is out of flow so the preview keeps its size; it sits in the slack under the pane when that fits, else over the pane bottom.
+  useLayoutEffect(() => {
+    const pane = previewPaneRef.current;
+    const notice = previewNoticeRef.current;
+    const host = pane?.parentElement;
+    if (!previewNoticeVisible || !pane || !notice || !host) return;
+    const measure = () => setNoticeBelow(host.getBoundingClientRect().bottom - pane.getBoundingClientRect().bottom >= notice.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    observer.observe(notice);
+    return () => observer.disconnect();
+  }, [previewNoticeVisible]);
   const openBackgroundOptions = useCallback(() => {
     setConfiguringWidgetId(null);
     setTab('background');
   }, []);
   const handleQuickBackground = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => {
     applyQuickBackgroundMedia(panelTheme, mediaId, type, alpha);
-    if (singleWidget) coverNotice.arm();
-  }, [coverNotice, panelTheme, singleWidget]);
+  }, [panelTheme]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
     // The preview shows a render-only stand-in for a playlist entry that is
@@ -2201,7 +2216,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             className={styles.previewPane}
             data-surface={glassSurface}
             data-family={recordFamily}
-            data-troubleshoot={(showPreviewTroubleshoot || previewNoticeVisible) || undefined}
+            data-troubleshoot={showPreviewTroubleshoot || undefined}
+            ref={previewPaneRef}
           >
             {isMonoFamily(recordFamily) && <MonoPreviewFilter />}
             <div className={styles.previewStage}>
@@ -2289,22 +2305,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               </>
             </div>
             {previewNoticeVisible && (
-              <div className={styles.previewNotice}>
-                {opacityNotice.visible ? (
-                  <Notice
-                    tone="warning"
-                    role="status"
-                    onDismiss={opacityNotice.dismiss}
-                    dismissLabel={t('app.window.close')}
-                    actions={<Button size="sm" onClick={openBackgroundOptions}>{t('panel.background.options')}</Button>}
-                  >
-                    {t('devices.panels.backgroundOpacityZero')}
-                  </Notice>
-                ) : (
-                  <Notice tone="warning" role="status" onDismiss={coverNotice.dismiss} dismissLabel={t('app.window.close')}>
-                    {t('devices.panels.backgroundCovered')}
-                  </Notice>
-                )}
+              <div className={styles.previewNotice} data-below={noticeBelow ? 'true' : 'false'} ref={previewNoticeRef}>
+                <Notice tone="info" role="status" onDismiss={mediaNotice.dismiss} dismissLabel={t('app.window.close')}>
+                  {t('devices.panels.backgroundCovered')}
+                </Notice>
               </div>
             )}
             {showPreviewTroubleshoot && qseriesTroubleshootLink(t('devices.qseries.troubleshoot.mismatch'))}

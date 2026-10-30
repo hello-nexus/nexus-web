@@ -450,10 +450,12 @@ export function usePanelTheme(
   }, [persistPatch]);
 
   const commitBackgroundMedia = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha = false) => {
-    setTheme(prev => ({ ...prev, backgroundMediaId: mediaId, backgroundMediaType: type, backgroundMediaAlpha: alpha }));
+    // Picking media shows it: the mode rides in the same patch so no second write can land out of order.
+    const showMedia = mediaId ? { backgroundMode: 'media' as const } : {};
+    setTheme(prev => ({ ...prev, ...showMedia, backgroundMediaId: mediaId, backgroundMediaType: type, backgroundMediaAlpha: alpha }));
     // The service patch-merge ignores a JSON null (means "no change"); an empty
     // string clears the field via NullIfEmpty, same as the other theme fields.
-    persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
+    persistPatch({ ...showMedia, backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
   }, [persistPatch]);
 
   // One patch for the slideshow group so a toggle + interval edit is a single

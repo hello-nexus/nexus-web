@@ -101,11 +101,12 @@ vi.mock('../../../panel/background/BackgroundQuickImport', async () => {
   return {
     BackgroundQuickImport: forwardRef((props: { onSelect: (id: string, type: 'animated', alpha: boolean) => void }, ref) => {
       useImperativeHandle(ref, () => ({ openFiles: openFilesMock, openGifs: openGifsMock }));
-      return <button data-testid="quick-pick" onClick={() => props.onSelect('m1', 'animated', false)}>pick</button>;
+      return <button data-testid="quick-pick" onClick={() => { props.onSelect('m1', 'animated', false); announceBackgroundMediaCommitted('dev1'); }}>pick</button>;
     }),
   };
 });
 
+import { announceBackgroundMediaCommitted } from '../../../api/panelBackgroundMedia';
 import { PanelDevicePage } from './PanelDevicePage';
 import type { PanelDevice } from '../../../panel/device/panelDevices';
 
@@ -194,81 +195,47 @@ describe('PanelDevicePage background menu', () => {
   it('applies a quick pick as the media background at once', async () => {
     await load();
     await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
-    expect(commitBackgroundModeMock).toHaveBeenCalledWith('media');
     expect(commitBackgroundMediaMock).toHaveBeenCalledWith('m1', 'animated', false);
   });
 });
 
 describe('PanelDevicePage opaque widget notice', () => {
-  const notice = () => screen.queryByText('devices.panels.backgroundCovered');
+  const coverNotice = () => screen.queryByText('devices.panels.backgroundCovered');
+  const commit = async () => { await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); }); };
 
-  it('shows after a quick edit while the widget covers the background, and clears when it stops', async () => {
+  it('shows nothing on load, even while the widget covers the background', async () => {
     await load();
     await act(async () => { fireEvent.click(screen.getByTestId('covered-on')); });
-    expect(notice()).toBeNull();
-    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
-    expect(notice()).not.toBeNull();
-    await act(async () => { fireEvent.click(screen.getByTestId('covered-off')); });
-    expect(notice()).toBeNull();
+    expect(coverNotice()).toBeNull();
   });
 
-  it('stays hidden when the widget leaves the background visible', async () => {
+  it('shows after a commit, under the preview, in the neutral tone, and clears when the widget stops covering', async () => {
     await load();
-    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
-    expect(notice()).toBeNull();
-  });
-});
-
-describe('PanelDevicePage background hidden by opacity', () => {
-  const opacityNotice = () => screen.queryByText('devices.panels.backgroundOpacityZero');
-  const coverNotice = () => screen.queryByText('devices.panels.backgroundCovered');
-
-  it('shows under the preview when Background Opacity is 0%, on any surface', async () => {
-    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
-    await load();
-    const notice = opacityNotice();
+    await act(async () => { fireEvent.click(screen.getByTestId('covered-on')); });
+    await commit();
+    const notice = coverNotice();
     expect(notice).not.toBeNull();
     expect(screen.getByTestId('embed').compareDocumentPosition(notice!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('stays hidden above 0% and on the desktop backdrop, which has no slider to fix it', async () => {
-    themeOverrides.value = { backgroundOpacity: 0.4, backdrop: 'theme' };
-    await load();
-    expect(opacityNotice()).toBeNull();
-  });
-
-  it('takes precedence over the opaque-widget notice', async () => {
-    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
-    await load();
+    expect(notice!.closest('[data-tone]')?.getAttribute('data-tone')).toBe('info');
+    await act(async () => { fireEvent.click(screen.getByTestId('covered-off')); });
+    expect(coverNotice()).toBeNull();
     await act(async () => { fireEvent.click(screen.getByTestId('covered-on')); });
-    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
-    expect(opacityNotice()).not.toBeNull();
     expect(coverNotice()).toBeNull();
   });
 
-  it('closes with the X and stays closed through a quick edit', async () => {
-    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
+  it('shows nothing after a commit when the widget leaves the background visible', async () => {
     await load();
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'app.window.close' })); });
-    expect(opacityNotice()).toBeNull();
-    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
-    expect(opacityNotice()).toBeNull();
+    await commit();
+    expect(coverNotice()).toBeNull();
   });
 
-  it('offers Background options to fix it', async () => {
-    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
-    await load();
-    expect(screen.queryByTestId('theme')).toBeNull();
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'panel.background.options' })); });
-    await waitFor(() => expect(screen.getByTestId('theme')).toBeTruthy());
-  });
-
-  it('closes the opaque-widget notice with the X as well', async () => {
+  it('closes with the X, stays closed, and returns after the next commit', async () => {
     await load();
     await act(async () => { fireEvent.click(screen.getByTestId('covered-on')); });
-    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
+    await commit();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'app.window.close' })); });
+    expect(coverNotice()).toBeNull();
+    await commit();
     expect(coverNotice()).not.toBeNull();
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'app.window.close' })); });
-    expect(coverNotice()).toBeNull();
   });
 });

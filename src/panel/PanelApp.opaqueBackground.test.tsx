@@ -163,3 +163,32 @@ describe('PanelApp Media background with nothing to show', () => {
     expect(bgImage()).not.toBeNull();
   });
 });
+
+describe('PanelApp background at 0% opacity', () => {
+  const media = (opacity: number) => ({
+    ...recordWith('lcd-round', '2x2round'),
+    backgroundMode: 'media',
+    backgroundMediaId: 'm1',
+    backgroundMediaType: 'static',
+    backgroundOpacity: opacity,
+    backgroundFrostLevel: 50,
+  });
+
+  it('mounts no media, shader or frost layer, and mounts them again above 0%', async () => {
+    fetchMock.mockResolvedValue({ found: true, record: media(0) });
+    await mountKiosk();
+    expect(document.querySelector('img[class*="backgroundMediaContent"]')).toBeNull();
+    expect(document.querySelector('[data-panel-bg-layer]')).toBeNull();
+    expect(document.querySelector('[data-panel-frost]')).toBeNull();
+    cleanup();
+    fetchMock.mockResolvedValue({ found: true, record: media(0.5) });
+    await mountKiosk();
+    await waitFor(() => expect(document.querySelector('img[class*="backgroundMediaContent"]')).not.toBeNull());
+  });
+
+  it('never starts the shader at 0%', async () => {
+    fetchMock.mockResolvedValue({ found: true, record: { ...recordWith('lcd-round', '2x2round'), backgroundOpacity: 0 } });
+    await mountKiosk();
+    expect(shaderCovered).toHaveLength(0);
+  });
+});

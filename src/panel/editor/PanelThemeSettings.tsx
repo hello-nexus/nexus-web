@@ -356,7 +356,9 @@ export function PanelThemeSettings({
       editable
       trackFill
       label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
-      description={label('panel.settings.backgroundOpacity.desc', 'Dims the background')}
+      description={backgroundOpacityPercent === 0
+        ? <>{label('panel.settings.backgroundOpacity.desc', 'Dims the background')}<br />{label('panel.settings.backgroundOpacity.off', "The background isn't rendering.")}</>
+        : label('panel.settings.backgroundOpacity.desc', 'Dims the background')}
       descriptionBelow
       value={backgroundOpacityPercent}
       min={0}

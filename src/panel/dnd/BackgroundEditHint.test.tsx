@@ -4,16 +4,16 @@ import { BackgroundHoverLayer, BackgroundSplitHint } from './BackgroundEditHint'
 
 describe('BackgroundHoverLayer', () => {
   it('shows one Edit background notice, lit only while the background is hovered', () => {
-    const { container, rerender } = render(<BackgroundHoverLayer active={false} area={null} pieces={[]} />);
+    const { container, rerender } = render(<BackgroundHoverLayer active={false} area={null} />);
     expect(container.querySelectorAll('[data-edit-hint-overlay]')).toHaveLength(1);
     expect(container.querySelector('[data-edit-hint-overlay]')?.textContent).toBe('panel.background.edit');
     expect(container.querySelector('[data-active]')).toBeNull();
-    rerender(<BackgroundHoverLayer active area={null} pieces={[]} />);
+    rerender(<BackgroundHoverLayer active area={null} />);
     expect(container.querySelector('[data-active="true"]')).not.toBeNull();
   });
 
   it('places the notice in the free area it is given', () => {
-    const { container } = render(<BackgroundHoverLayer active area={{ left: 10, top: 20, width: 100, height: 50 }} pieces={[]} />);
+    const { container } = render(<BackgroundHoverLayer active area={{ left: 10, top: 20, width: 100, height: 50 }} />);
     const box = container.querySelector('[data-edit-hint-overlay] > div') as HTMLElement;
     expect(box.style.left).toBe('10px');
     expect(box.style.width).toBe('100px');
@@ -21,11 +21,14 @@ describe('BackgroundHoverLayer', () => {
 });
 
 describe('BackgroundHoverLayer scrim', () => {
-  it('paints one scrim piece per free rectangle and none over a widget', () => {
-    const pieces = [{ left: 0, top: 0, width: 100, height: 50 }, { left: 0, top: 50, width: 40, height: 50 }];
-    const { container } = render(<BackgroundHoverLayer active area={null} pieces={pieces} />);
-    const drawn = Array.from(container.querySelectorAll<HTMLElement>('[data-active] > div:not([data-edit-hint-overlay])'));
-    expect(drawn.map(d => [d.style.left, d.style.top, d.style.width, d.style.height])).toEqual([['0px', '0px', '100px', '50px'], ['0px', '50px', '40px', '50px']]);
+  it('renders exactly one scrim, before the notice, and none per free rectangle', () => {
+    const { container } = render(<BackgroundHoverLayer active area={{ left: 10, top: 20, width: 100, height: 50 }} />);
+    const scrims = container.querySelectorAll('[data-bg-scrim]');
+    expect(scrims).toHaveLength(1);
+    const layer = container.firstElementChild as HTMLElement;
+    expect(layer.children).toHaveLength(2);
+    expect(layer.firstElementChild).toBe(scrims[0]);
+    expect((scrims[0] as HTMLElement).getAttribute('style')).toBeNull();
   });
 });
 

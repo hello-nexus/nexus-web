@@ -15,6 +15,7 @@ export interface BackgroundMediaItem {
 }
 
 const MEDIA_CHANGED_EVENT = 'nexus-background-media-changed';
+const MEDIA_COMMITTED_EVENT = 'nexus-background-media-committed';
 const MEDIA_CHANNEL = 'panel-background-media';
 
 /** Tells every mounted media list, in this window and in other windows of the app, that a panel's library changed. */
@@ -27,6 +28,18 @@ function broadcastBackgroundMediaChanged(deviceId: string): void {
   } catch {
     // BroadcastChannel is missing in some WebView configs; the same-window event above still fired.
   }
+}
+
+/** Announces a successful media commit (not a delete) for `deviceId` to every subscriber in this window. */
+export function announceBackgroundMediaCommitted(deviceId: string): void {
+  window.dispatchEvent(new CustomEvent(MEDIA_COMMITTED_EVENT, { detail: { deviceId } }));
+}
+
+/** Calls `cb` when a media commit for `deviceId` succeeded in this window, from any entry point. Returns the unsubscribe. */
+export function onBackgroundMediaCommitted(deviceId: string, cb: () => void): () => void {
+  const onEvent = (e: Event) => { if ((e as CustomEvent<{ deviceId: string }>).detail?.deviceId === deviceId) cb(); };
+  window.addEventListener(MEDIA_COMMITTED_EVENT, onEvent);
+  return () => window.removeEventListener(MEDIA_COMMITTED_EVENT, onEvent);
 }
 
 /** Calls `cb` when the library of `deviceId` changed anywhere. Returns the unsubscribe. */
@@ -102,7 +115,10 @@ export async function commitBackgroundMedia(
   form.append('keepTransparency', keepTransparency ? '1' : '0');
   form.append('fit', fit ? '1' : '0');
   const result = await postServiceFormResult<BackgroundMediaCommitResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/commit`, form);
-  if (result && !result.error && 'item' in result && result.item) broadcastBackgroundMediaChanged(deviceId);
+  if (result && !result.error && 'item' in result && result.item) {
+    broadcastBackgroundMediaChanged(deviceId);
+    announceBackgroundMediaCommitted(deviceId);
+  }
   return result;
 }
 

@@ -207,7 +207,7 @@ import {
   PanelTouchCell,
 } from './dnd/PanelDragCells';
 import { BackgroundHoverLayer, BackgroundSplitHint, type BackgroundMenuPoint } from './dnd/BackgroundEditHint';
-import { freeRects, isRoomyFreeRect, largestFreeRect, splitOrientation, type HintRect } from './engine/hintGeometry';
+import { isRoomyFreeRect, largestFreeRect, splitOrientation, type HintRect } from './engine/hintGeometry';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
 import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
@@ -815,7 +815,9 @@ export function PanelContent({
   // simulator has no desktop behind its iframe, so it stands in with the
   // wallpaper rather than going transparent over the dashboard.
   const seeThrough = backdrop === 'desktop' && !simulator;
-  const showWallpaperLayer = backdrop === 'wallpaper' || (backdrop === 'desktop' && simulator);
+  // At 0% nothing of the background shows, so no layer mounts: no video decode, no shader.
+  const backgroundVisible = effectiveTheme.backgroundOpacity > 0;
+  const showWallpaperLayer = (backdrop === 'wallpaper' || (backdrop === 'desktop' && simulator)) && backgroundVisible;
   // html/body carry the app background from global.scss, so a transparent
   // panel root alone still paints over the desktop the kiosk is showing.
   useEffect(() => {
@@ -831,7 +833,7 @@ export function PanelContent({
       : undefined),
     [effectiveTheme.textColorMode, effectiveTheme.textColor],
   );
-  const showBackgroundLayers = showPanelBackground && backdrop === 'theme';
+  const showBackgroundLayers = showPanelBackground && backdrop === 'theme' && backgroundVisible;
   // A media background that cannot load shows the solid color instead of the bare backdrop,
   // and retries on a growing delay so a transient error (service not ready, restart) heals.
   const [failedMediaId, setFailedMediaId] = useState<string | null>(null);
@@ -955,7 +957,7 @@ export function PanelContent({
   };
   const backgroundHoverTarget = backgroundMenuEnabled && !singleSurface;
   const [backgroundHover, setBackgroundHoverState] = useState(false);
-  const [backgroundArea, setBackgroundArea] = useState<{ area: HintRect | null; pieces: HintRect[] }>({ area: null, pieces: [] });
+  const [backgroundArea, setBackgroundArea] = useState<HintRect | null>(null);
   const backgroundHoverRef = useRef(false);
   const setBackgroundHover = (over: boolean) => {
     if (backgroundHoverRef.current === over) return;
@@ -964,16 +966,16 @@ export function PanelContent({
     setBackgroundHoverState(over);
   };
   // Widgets are read from the DOM: their rects already include padding, gaps and the label strip.
-  const measureBackgroundArea = (): { area: HintRect | null; pieces: HintRect[] } => {
+  const measureBackgroundArea = (): HintRect | null => {
     const root = rootRef.current;
-    if (!root) return { area: null, pieces: [] };
+    if (!root) return null;
     const canvas = root.getBoundingClientRect();
     const widgets = Array.from(root.querySelectorAll('[data-panel-widget-id]')).map(el => {
       const r = el.getBoundingClientRect();
       return { left: r.left - canvas.left, top: r.top - canvas.top, width: r.width, height: r.height };
     });
     const free = largestFreeRect(canvas, widgets);
-    return { area: free && isRoomyFreeRect(free, canvas) ? free : null, pieces: freeRects(canvas, widgets) };
+    return free && isRoomyFreeRect(free, canvas) ? free : null;
   };
   const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch) && !restricted;
   // An editable canvas hoists the focused widget above the editor's scrim, else
@@ -2413,7 +2415,7 @@ export function PanelContent({
             aria-hidden
           />
         )}
-        {backgroundHoverTarget && loaded && <BackgroundHoverLayer active={backgroundHover} area={backgroundArea.area} pieces={backgroundArea.pieces} />}
+        {backgroundHoverTarget && loaded && <BackgroundHoverLayer active={backgroundHover} area={backgroundArea} />}
         {!loaded ? (
           <PanelLoadingGate surface={surface} />
         ) : (

@@ -39,31 +39,6 @@ export function largestFreeRect(canvas: { width: number; height: number }, widge
   return best;
 }
 
-/** The canvas minus the widget rects, as non-overlapping rectangles (one per run of free cells in each band), so a scrim can leave widgets untouched. */
-export function freeRects(canvas: { width: number; height: number }, widgets: readonly HintRect[]): HintRect[] {
-  const clamp = (v: number, max: number) => Math.min(max, Math.max(0, v));
-  const covered = widgets
-    .map(r => ({ x1: clamp(r.left, canvas.width), x2: clamp(r.left + r.width, canvas.width), y1: clamp(r.top, canvas.height), y2: clamp(r.top + r.height, canvas.height) }))
-    .filter(r => r.x2 > r.x1 && r.y2 > r.y1);
-  const xs = [...new Set([0, canvas.width, ...covered.flatMap(r => [r.x1, r.x2])])].sort((a, b) => a - b);
-  const ys = [...new Set([0, canvas.height, ...covered.flatMap(r => [r.y1, r.y2])])].sort((a, b) => a - b);
-  const out: HintRect[] = [];
-  for (let j = 0; j + 1 < ys.length; j++) {
-    let start = -1;
-    const flush = (end: number) => {
-      if (start >= 0) out.push({ left: xs[start], top: ys[j], width: xs[end] - xs[start], height: ys[j + 1] - ys[j] });
-      start = -1;
-    };
-    for (let i = 0; i + 1 < xs.length; i++) {
-      const blocked = covered.some(r => r.x1 < xs[i + 1] && r.x2 > xs[i] && r.y1 < ys[j + 1] && r.y2 > ys[j]);
-      if (blocked) flush(i);
-      else if (start < 0) start = i;
-    }
-    flush(xs.length - 1);
-  }
-  return out;
-}
-
 /** Whether a free area is big enough to hold the notice; otherwise the notice centers on the canvas. */
 export function isRoomyFreeRect(rect: HintRect, canvas: { width: number; height: number }): boolean {
   const side = Math.min(canvas.width, canvas.height);

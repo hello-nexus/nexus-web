@@ -8,16 +8,14 @@ import styles from '../PanelApp.module.scss';
 export interface BackgroundMenuPoint { x: number; y: number; }
 
 /**
- * The whole-background highlight of a multi-widget preview. The scrim is cut into the free
- * rectangles around the widgets, so the widgets themselves stay undimmed; the notice sits in `area`, or centered.
+ * The whole-background highlight of a multi-widget preview: one scrim over the whole canvas,
+ * under the widget grid in stacking order, so widgets paint on top undimmed. The notice sits in the largest free area, or centered.
  */
-export function BackgroundHoverLayer({ active, area, pieces }: { active: boolean; area: HintRect | null; pieces: readonly HintRect[] }) {
+export function BackgroundHoverLayer({ active, area }: { active: boolean; area: HintRect | null }) {
   const { t } = useTranslation();
   return (
     <div className={styles.bgLayer} data-active={active ? 'true' : undefined} aria-hidden="true">
-      {pieces.map(r => (
-        <div key={`${r.left}:${r.top}:${r.width}:${r.height}`} className={styles.bgScrim} style={{ left: r.left, top: r.top, width: r.width, height: r.height }} />
-      ))}
+      <div className={styles.bgScrim} data-bg-scrim="" />
       <EditHint bare icon={Wallpaper} label={t('panel.background.edit')} area={area ?? undefined} />
     </div>
   );

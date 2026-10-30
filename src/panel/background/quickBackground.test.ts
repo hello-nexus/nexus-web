@@ -1,68 +1,53 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { applyQuickBackgroundMedia } from './quickBackground';
-import { useCoverNotice, useDismissibleNotice } from './useCoverNotice';
+import { useMediaChangeNotice } from './useCoverNotice';
 
 describe('applyQuickBackgroundMedia', () => {
-  it('switches the background to media and commits the picked item', () => {
-    const commitBackgroundMode = vi.fn();
+  it('commits the picked item', () => {
     const commitBackgroundMedia = vi.fn();
-    applyQuickBackgroundMedia({ commitBackgroundMode, commitBackgroundMedia }, 'm1', 'animated', true);
-    expect(commitBackgroundMode).toHaveBeenCalledWith('media');
+    applyQuickBackgroundMedia({ commitBackgroundMedia }, 'm1', 'animated', true);
     expect(commitBackgroundMedia).toHaveBeenCalledWith('m1', 'animated', true);
   });
 });
 
-describe('useCoverNotice', () => {
-  it('stays hidden until a quick edit arms it', () => {
-    const { result } = renderHook(() => useCoverNotice(true));
+const setup = (covered: boolean) => renderHook((c: boolean) => useMediaChangeNotice(c), { initialProps: covered });
+
+describe('useMediaChangeNotice', () => {
+  it('shows nothing on load or when the widget starts covering', () => {
+    const { result, rerender } = setup(true);
+    expect(result.current.visible).toBe(false);
+    rerender(false);
+    rerender(true);
     expect(result.current.visible).toBe(false);
   });
 
-  it('shows after arming while the widget covers the background', () => {
-    const { result } = renderHook(() => useCoverNotice(true));
-    act(() => result.current.arm());
+  it('shows after a media change while the widget covers, and not when it does not', () => {
+    const covering = setup(true);
+    act(() => covering.result.current.notify());
+    expect(covering.result.current.visible).toBe(true);
+    const clear = setup(false);
+    act(() => clear.result.current.notify());
+    expect(clear.result.current.visible).toBe(false);
+  });
+
+  it('hides when the widget stops covering and does not return when it covers again', () => {
+    const { result, rerender } = setup(true);
+    act(() => result.current.notify());
+    rerender(false);
+    expect(result.current.visible).toBe(false);
+    rerender(true);
+    expect(result.current.visible).toBe(false);
+    act(() => result.current.notify());
     expect(result.current.visible).toBe(true);
   });
 
-  it('does not arm for a widget that leaves the background visible', () => {
-    const { result, rerender } = renderHook(({ covered }) => useCoverNotice(covered), { initialProps: { covered: false } });
-    act(() => result.current.arm());
-    rerender({ covered: true });
-    expect(result.current.visible).toBe(false);
-  });
-
-  it('clears when the widget stops covering, and does not return on its own', () => {
-    const { result, rerender } = renderHook(({ covered }) => useCoverNotice(covered), { initialProps: { covered: true } });
-    act(() => result.current.arm());
-    rerender({ covered: false });
-    expect(result.current.visible).toBe(false);
-    rerender({ covered: true });
-    expect(result.current.visible).toBe(false);
-  });
-});
-
-describe('dismissal', () => {
-  it('a dismissed cover notice stays hidden until the next quick edit arms it', () => {
-    const { result } = renderHook(() => useCoverNotice(true));
-    act(() => result.current.arm());
-    expect(result.current.visible).toBe(true);
+  it('hides on dismiss until the next media change', () => {
+    const { result } = setup(true);
+    act(() => result.current.notify());
     act(() => result.current.dismiss());
     expect(result.current.visible).toBe(false);
-    act(() => result.current.arm());
+    act(() => result.current.notify());
     expect(result.current.visible).toBe(true);
-  });
-
-  it('a dismissed standing notice returns only after its condition goes away and comes back', () => {
-    const { result, rerender } = renderHook(({ active }) => useDismissibleNotice(active), { initialProps: { active: true } });
-    expect(result.current.visible).toBe(true);
-    act(() => result.current.dismiss());
-    expect(result.current.visible).toBe(false);
-    rerender({ active: false });
-    rerender({ active: true });
-    expect(result.current.visible).toBe(true);
-    act(() => result.current.dismiss());
-    rerender({ active: true });
-    expect(result.current.visible).toBe(false);
   });
 });

@@ -1,30 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * The "this widget hides the background" notice for a single-widget preview.
- * `covered` is PanelApp's own signal (an opaque widget fills the panel). The
- * notice is armed when a quick edit applies a background while the widget
- * covers it (a widget that leaves the background visible needs no notice), and clears once the widget is removed or changed to one that does not.
+ * The opaque-widget notice follows a media change: when the background media was just committed
+ * while the widget covers it, the notice shows once. It hides on dismiss or when the widget stops
+ * covering, and returns only on the next media change.
  */
-export function useCoverNotice(covered: boolean): { visible: boolean; arm: () => void; dismiss: () => void } {
-  const [armed, setArmed] = useState(false);
+export function useMediaChangeNotice(covered: boolean): { visible: boolean; notify: () => void; dismiss: () => void } {
+  const [shown, setShown] = useState(false);
+  const latest = useRef(covered);
   useEffect(() => {
-    if (!covered) setArmed(false);
+    latest.current = covered;
+    if (!covered) setShown(false);
   }, [covered]);
-  const arm = useCallback(() => { if (covered) setArmed(true); }, [covered]);
-  const dismiss = useCallback(() => setArmed(false), []);
-  return { visible: armed && covered, arm, dismiss };
-}
-
-/**
- * A notice for a standing condition that the user may close. It stays closed until the
- * condition goes away and returns.
- */
-export function useDismissibleNotice(active: boolean): { visible: boolean; dismiss: () => void } {
-  const [dismissed, setDismissed] = useState(false);
-  useEffect(() => {
-    if (!active) setDismissed(false);
-  }, [active]);
-  const dismiss = useCallback(() => setDismissed(true), []);
-  return { visible: active && !dismissed, dismiss };
+  const notify = useCallback(() => setShown(latest.current), []);
+  const dismiss = useCallback(() => setShown(false), []);
+  return { visible: shown && covered, notify, dismiss };
 }

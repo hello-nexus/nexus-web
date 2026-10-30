@@ -2078,9 +2078,13 @@
   transition: opacity var(--ease-fast) ease-out;
 }
 
-// The scrim look of EditHint, painted per free rectangle so widgets are never covered.
+// The scrim look of EditHint, one element over the whole canvas; the widget grid stacks above it.
 .bgScrim {
   position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: var(--panel-scrim-bg, rgb(0 0 0 / var(--alpha-strong)));
 }
 
