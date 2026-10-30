@@ -61,7 +61,7 @@ describe('PanelThemeSettings widget scale row', () => {
     expect(row.compareDocumentPosition(labels) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('renders the row first on a single-widget panel with labels and chrome hidden', () => {
+  it('still renders the row on a single-widget panel with labels and chrome hidden', () => {
     renderTheme(<div data-testid="scale-row" />, { hideWidgetLabelsToggle: true, hideWidgetChromeControls: true });
     expect(screen.getByTestId('scale-row')).toBeTruthy();
     expect(screen.queryByRole('slider', { name: /widget padding/i })).toBeNull();
