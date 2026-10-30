@@ -15,6 +15,7 @@ import {
 import { createPortal } from 'react-dom';
 import { usePortalRoot } from '../ThemeScope/ThemeScope';
 import { useTranslation } from '../../../lib/i18n';
+import { useHasMousePointer } from '../../../lib/pointerKind';
 import classNames from 'classnames';
 import { Spinner } from '../Spinner/Spinner';
 import buttonStyles from '../Button/Button.module.scss';
@@ -151,19 +152,6 @@ const TYPEAHEAD_RESET_MS = 700;
 // The in-menu search field appears only from this many entries up; below it a
 // short list is faster to eyeball than to type.
 const SEARCH_MIN_OPTIONS = 8;
-// The search field is a keyboard affordance: offered where a real keyboard and
-// pointer can exist. A touchscreen PC with a mouse reports a coarse primary
-// pointer, so the any-* classes count too. The overlay's WebViews on a PC can
-// report no pointer at all; there only the dashboard window (not the /panel
-// touch kiosk) is a desktop surface.
-function supportsPointerSearch(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-  const matches = (query: string) => window.matchMedia(query).matches;
-  if (matches('(hover: hover) and (pointer: fine)')) return true;
-  if (matches('(any-hover: hover) and (any-pointer: fine)')) return true;
-  return matches('(pointer: none)') && !window.location.pathname.startsWith('/panel');
-}
-
 function flattenText(node: ReactNode): string {
   if (node == null || typeof node === 'boolean') return '';
   if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -305,10 +293,9 @@ export function Select({
   const cellCount = grid ? grid.headings.length - 1 : 0;
   const gridStyle = grid ? ({ '--select-cols': `${grid.columns} var(--select-action-w)` } as React.CSSProperties) : undefined;
 
-  // Offer the search field only on a keyboard/pointer device and once the list
-  // is long enough to be worth typing through. The device class is read once
-  // per mount; it does not change mid-session.
-  const [pointerSearch] = useState(supportsPointerSearch);
+  // Offer the search field only where a mouse is in use (a keyboard goes with it)
+  // and once the list is long enough to be worth typing through.
+  const pointerSearch = useHasMousePointer();
   const searchEnabled =
     !grid && pointerSearch && resolved.filter(o => !o.divider && !o.header && !o.onAction).length >= SEARCH_MIN_OPTIONS;
 

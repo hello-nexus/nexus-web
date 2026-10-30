@@ -10,12 +10,8 @@ import {
 } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
+import { useHasMousePointer } from '../../../../lib/pointerKind';
 import styles from '../LightingPage.module.scss';
-
-/** Hover-capable fine pointer, the same query the pencil's CSS reveal uses. Touch keeps plain re-pick. */
-function hasFinePointer(): boolean {
-  return typeof window.matchMedia !== 'function' || window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-}
 
 function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, label, hideLabel, gpuAvailable, frozen, onSelect, onEdit, editEnabled, layoutKey }: {
   fx: EffectDef;
@@ -41,7 +37,9 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
 }) {
   const { t } = useTranslation();
   const noGpu = gpuAvailable === false;
-  const editsOnClick = active && editEnabled && !!onEdit && hasFinePointer();
+  // A mouse is in use, as for the pencil's CSS reveal. Touch keeps plain re-pick.
+  const mouse = useHasMousePointer();
+  const editsOnClick = active && editEnabled && !!onEdit && mouse;
   const url = useEffectThumbnail(fx.key, slot, version, noGpu, frozen);
   const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
   return (
