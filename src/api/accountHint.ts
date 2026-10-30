@@ -3,7 +3,7 @@ import type { AuthAccount } from './authBackend';
 /** What the public pages remember of the account between visits, to draw before the session check answers. */
 export type AccountHint = Pick<AuthAccount, 'username' | 'avatar'>;
 
-const HINT_KEY = 'nexus_account_hint';
+export const HINT_KEY = 'nexus_account_hint';
 
 /** The last-known account (null: last seen signed out; undefined: nothing remembered). No email or id is kept. */
 export function readAccountHint(): AccountHint | null | undefined {

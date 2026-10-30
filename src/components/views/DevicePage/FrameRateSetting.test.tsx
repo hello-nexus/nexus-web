@@ -39,7 +39,7 @@ describe('FrameRateSetting', () => {
     render(<FrameRateSetting recordId="p1" cap={null} />);
     expect(trigger().textContent).toContain(OFF);
     fireEvent.click(trigger());
-    expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual([OFF, ...[30, 20, 15, 10, 5, 1].map(HZ)]);
+    expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual([OFF, ...[30, 25, 20, 15, 10, 5, 1].map(HZ)]);
   });
 
   it('sends the pick, and 0 for Off', async () => {

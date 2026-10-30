@@ -90,6 +90,10 @@ export interface SelectOption {
   note?: string;
   // Grid mode only: drawn after the label (e.g. a status chip).
   badge?: ReactNode;
+  // Choice rows only: a small icon button at the row's trailing edge (inside the action column in grid mode) that runs
+  // `onSelect` and closes the menu, returning focus to the trigger, without choosing the row. Not drawn on a disabled row.
+  // Pointer only (hidden from assistive tech, which reaches the same action elsewhere on the page).
+  rowAction?: { icon: ReactNode; label: string; onSelect: () => void };
 }
 
 export interface SelectProps {
@@ -717,6 +721,7 @@ export function Select({
                     opt.disabled && styles.optionDisabled,
                     opt.fontFamily && styles.fontOption,
                     opt.onAction && styles.actionOption,
+                    opt.rowAction && !opt.onAction && !opt.disabled && styles.hasRowAction,
                     opt.attached && styles.attached,
                     grid && !opt.onAction && (opt.cells || opt.note ? styles.gridOption : styles.gridPlain),
                     grid && opt.attached && styles.gridAttached,
@@ -747,6 +752,22 @@ export function Select({
                       <span id={`${optionId(i)}-desc`} data-option-description="true" className={styles.optionDescription}>{opt.description}</span>
                     </span>
                   ) : opt.label}
+                  {opt.rowAction && !opt.onAction && !opt.disabled && (
+                    <HoverTooltip body={opt.rowAction.label}>
+                      <span
+                        className={styles.rowAction}
+                        aria-hidden="true"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const action = opt.rowAction;
+                          close(true);
+                          action?.onSelect();
+                        }}
+                      >
+                        {opt.rowAction.icon}
+                      </span>
+                    </HoverTooltip>
+                  )}
                 </li>
               ))
             )}
