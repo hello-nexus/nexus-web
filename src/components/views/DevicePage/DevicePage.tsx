@@ -399,6 +399,10 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
   // An optimistic value holds until the newest write settles; only that write may roll back.
   const [monitorPending, setMonitorPending] = useState<boolean | null>(null);
   const monitorSeqRef = useRef(0);
+  // The switch unmounts its record when the monitor goes off, so a later turn-on starts from the record again.
+  useEffect(() => {
+    if (!secondaryMonitorRecordId) setMonitorPending(null);
+  }, [secondaryMonitorRecordId]);
   const setMonitor = (id: string, next: boolean) => {
     const seq = ++monitorSeqRef.current;
     setMonitorPending(next);
