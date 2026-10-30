@@ -68,7 +68,7 @@ export interface AccountDeviceItem {
 export interface AccountBuild {
   id: string;
   name: string;
-  data: unknown;
+  data: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -77,7 +77,7 @@ export interface AccountBuild {
 export interface SharedBuild {
   id: string;
   name: string;
-  data: unknown;
+  data: Record<string, unknown>;
   updatedAt: string;
 }
 
@@ -95,6 +95,12 @@ export type SharedBuildResult =
 
 export type AuthDeviceUpsertResponse = AuthEnvelope & Partial<AccountDeviceItem>;
 
+/** What a session check found: telling no session apart from a check that could not be made. */
+export type AccountCheck =
+  | { state: 'signedIn'; account: AuthAccount }
+  | { state: 'signedOut' }
+  | { state: 'unreachable' };
+
 export interface AuthBackend {
   login(identifier: string, password: string): Promise<AuthFetchResult<AuthLoginResponse>>;
   register(email: string, password: string, username: string): Promise<AuthFetchResult<AuthRegisterResponse>>;
@@ -102,6 +108,8 @@ export interface AuthBackend {
   resendVerification(email: string): Promise<AuthResendResult>;
   logout(): Promise<void>;
   getAccount(): Promise<AuthAccount | null>;
+  /** Like getAccount, but a definite sign-out is told apart from an offline or failing check. Website only. */
+  checkAccount?(): Promise<AccountCheck>;
   /** False when no link was sent (throttled, offline). */
   recoveryStart(email: string): Promise<boolean>;
   recoveryStatus(): Promise<AuthRecoveryStatusResponse | null>;
@@ -129,7 +137,7 @@ export interface AuthBackend {
   /** The signed-in account's saved builds; null when the request failed. Website only. */
   listBuilds?(): Promise<AccountBuild[] | null>;
   /** Creates or replaces one saved build. Website only. */
-  saveBuild?(id: string, build: { name: string; data: unknown }): Promise<SaveBuildResult>;
+  saveBuild?(id: string, build: { name: string; data: Record<string, unknown> }): Promise<SaveBuildResult>;
   /** Website only. */
   deleteBuild?(id: string): Promise<boolean>;
   /** A build by its public id, no sign-in needed. Website only. */

@@ -15,6 +15,11 @@ export interface UsePublicAccountResult {
    * prefetch only (a request carries the real session); never authorize or redirect on it.
    */
   shown: AccountHint | null | undefined;
+  /**
+   * Whether `account === null` is a definite sign-out or a check that could not be made (offline, server error), for
+   * callers that must not act on a sign-out they cannot confirm. 'loading' until the first check answers.
+   */
+  session: 'loading' | 'signedIn' | 'signedOut' | 'unreachable';
   refresh: () => Promise<void>;
 }
 
@@ -25,6 +30,7 @@ export type { AccountHint };
 // load. Every caller shares that one copy: the header and the page body must
 // agree, so a sign-in or sign-out that refreshes through one reaches all.
 let current: AuthAccount | null | undefined;
+let session: UsePublicAccountResult['session'] = 'loading';
 const hint = readAccountHint();
 let started = false;
 let latest = 0;
@@ -39,18 +45,28 @@ function snapshot(): AuthAccount | null | undefined {
   return current;
 }
 
+function sessionSnapshot(): UsePublicAccountResult['session'] {
+  return session;
+}
+
 /** Latest call wins, so a load that started before a sign-in cannot overwrite it. */
 async function load(): Promise<void> {
   const call = ++latest;
-  const account = await directApiBackend.getAccount();
+  // A backend that cannot tell the two apart reports a null account as signed out, as it always did.
+  const check = directApiBackend.checkAccount
+    ? await directApiBackend.checkAccount()
+    : await directApiBackend.getAccount().then((a) => (a ? { state: 'signedIn' as const, account: a } : { state: 'signedOut' as const }));
   if (call !== latest) return;
+  const account = check.state === 'signedIn' ? check.account : null;
   current = account;
-  writeAccountHint(account);
+  session = check.state;
+  if (check.state !== 'unreachable') writeAccountHint(account);
   for (const listener of listeners) listener();
 }
 
 export function usePublicAccount(): UsePublicAccountResult {
   const account = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const sessionNow = useSyncExternalStore(subscribe, sessionSnapshot, sessionSnapshot);
 
   // A signed-out result is re-checked by each view that mounts later, so a
   // network blip on the first load does not stick for the whole visit.
@@ -62,5 +78,5 @@ export function usePublicAccount(): UsePublicAccountResult {
 
   const refresh = useCallback(() => load(), []);
 
-  return { account, shown: account === undefined ? hint : account, refresh };
+  return { account, session: account === undefined ? 'loading' : sessionNow, shown: account === undefined ? hint : account, refresh };
 }

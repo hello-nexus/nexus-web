@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthAccount } from '../../api/authBackend';
 
 const getAccount = vi.fn<() => Promise<AuthAccount | null>>();
-vi.mock('../../api/directApiBackend', () => ({ directApiBackend: { getAccount: () => getAccount() } }));
+const checkAccount = vi.fn();
+vi.mock('../../api/directApiBackend', () => ({ directApiBackend: { getAccount: () => getAccount(), checkAccount: () => checkAccount() } }));
 
 const ACCOUNT: AuthAccount = {
   accountId: 'a1', email: 'g@example.com', username: 'geretti', avatar: null, isPrivate: false, emailVerified: true,
@@ -18,6 +19,11 @@ async function freshHook() {
 describe('usePublicAccount', () => {
   beforeEach(() => {
     getAccount.mockReset();
+    checkAccount.mockReset();
+    checkAccount.mockImplementation(async () => {
+      const a = await getAccount();
+      return a ? { state: 'signedIn', account: a } : { state: 'signedOut' };
+    });
     window.localStorage.clear();
   });
 
@@ -119,5 +125,29 @@ describe('usePublicAccount', () => {
     await act(async () => { finishFirst(null); });
 
     expect(screen.getByText('geretti')).toBeInTheDocument();
+  });
+
+  it('tells a definite sign-out from a check that could not be made, and keeps the last-known hint through the latter', async () => {
+    window.localStorage.setItem('nexus_account_hint', JSON.stringify({ username: 'geretti', avatar: null }));
+    checkAccount.mockResolvedValue({ state: 'unreachable' });
+    const usePublicAccount = await freshHook();
+    function Probe() {
+      const { account, session } = usePublicAccount();
+      return <span>{String(account)}|{session}</span>;
+    }
+    render(<Probe />);
+    await waitFor(() => expect(screen.getByText('null|unreachable')).toBeInTheDocument());
+    expect(JSON.parse(window.localStorage.getItem('nexus_account_hint') ?? '')).toEqual({ username: 'geretti', avatar: null });
+  });
+
+  it('reports a refused session as signed out', async () => {
+    checkAccount.mockResolvedValue({ state: 'signedOut' });
+    const usePublicAccount = await freshHook();
+    function Probe() {
+      const { session } = usePublicAccount();
+      return <span>{session}</span>;
+    }
+    render(<Probe />);
+    await waitFor(() => expect(screen.getByText('signedOut')).toBeInTheDocument());
   });
 });

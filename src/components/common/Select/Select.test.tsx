@@ -625,4 +625,21 @@ describe('Select rowAction', () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.queryByRole('listbox')).toBeNull();
   });
+
+  it('draws no action on a disabled row and returns focus to the trigger after running it', () => {
+    const onSelect = vi.fn();
+    render(
+      <Select
+        value="a" onChange={vi.fn()} ariaLabel="fruit"
+        options={[
+          { ...OPTIONS[0], rowAction: { icon: <i data-testid="on" />, label: 'Edit', onSelect } },
+          { ...OPTIONS[1], disabled: true, rowAction: { icon: <i data-testid="off" />, label: 'Edit', onSelect } },
+        ]}
+      />,
+    );
+    open();
+    expect(screen.queryByTestId('off')).toBeNull();
+    fireEvent.click(screen.getByTestId('on'));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'fruit' }));
+  });
 });

@@ -17,7 +17,7 @@
 
 import { clearAccountHint } from './accountHint';
 import type {
-  AccountBuild, AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
+  AccountBuild, AccountCheck, AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
   AuthLoginResponse, SharedBuild, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
 } from './authBackend';
 
@@ -235,10 +235,16 @@ function refreshAccessToken(): Promise<string | null> {
 // body of that SAME call for a one-time migration: the server validates it
 // like a normal body refresh, sets the cookie on success, and the body is
 // cleared below so every later cookie-mode call is a bare cookie bootstrap.
+// How the last refresh ended, so a failed session check can tell "no session" from "could not ask".
+let lastRefresh: 'ok' | 'noSession' | 'failed' = 'ok';
+
 async function doRefresh(): Promise<string | null> {
   const cookieMode = isWebCookieMode();
   const legacy = getStoredRefreshToken();
-  if (!cookieMode && !legacy) return null;
+  if (!cookieMode && !legacy) {
+    lastRefresh = 'noSession';
+    return null;
+  }
   try {
     const res = await fetch(`${BASE}/auth/refresh`, {
       method: 'POST',
@@ -251,15 +257,25 @@ async function doRefresh(): Promise<string | null> {
       // (bootstrap) this call carried is not a live session; a 5xx/network
       // blip is not, so a still-unmigrated legacy token survives for a
       // later retry.
-      if (res.status === 401 || res.status === 403) clearSession();
+      if (res.status === 401 || res.status === 403) {
+        lastRefresh = 'noSession';
+        clearSession();
+      } else {
+        lastRefresh = 'failed';
+      }
       return null;
     }
     const session = await tryParseJson<ApiAuthSession>(res);
-    if (!session) return null;
+    if (!session) {
+      lastRefresh = 'failed';
+      return null;
+    }
     applySession(session, cookieMode);
+    lastRefresh = 'ok';
     if (cookieMode && legacy) clearStoredRefreshToken();
     return accessToken;
   } catch {
+    lastRefresh = 'failed';
     return null;
   }
 }
@@ -385,6 +401,21 @@ export const directApiBackend: AuthBackend = {
     if (!account) return null;
     cachedAccount = mapAccount(account);
     return cachedAccount;
+  },
+
+  checkAccount: async (): Promise<AccountCheck> => {
+    const res = await authedRequest('/account/me', 'GET');
+    if (res?.ok) {
+      const account = await tryParseJson<ApiPublicAccount>(res);
+      if (account) {
+        cachedAccount = mapAccount(account);
+        return { state: 'signedIn', account: cachedAccount };
+      }
+      return { state: 'unreachable' };
+    }
+    // A refused session is a sign-out; an answer that is neither, or none at all, is not.
+    if (res) return { state: res.status === 401 || res.status === 403 ? 'signedOut' : 'unreachable' };
+    return { state: lastRefresh === 'noSession' ? 'signedOut' : 'unreachable' };
   },
 
   recoveryStart: async (email) => {
@@ -536,7 +567,7 @@ export const directApiBackend: AuthBackend = {
   },
 
   saveBuild: async (id, build) => {
-    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'PUT', { json: build });
+    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'PUT', { json: { name: build.name, data: build.data } });
     if (!res) return { status: 'failed' };
     if (res.ok) {
       const saved = await tryParseJson<AccountBuild>(res);
@@ -551,7 +582,8 @@ export const directApiBackend: AuthBackend = {
 
   deleteBuild: async (id) => {
     const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'DELETE');
-    return Boolean(res?.ok);
+    // A build already gone is as deleted as one just removed.
+    return Boolean(res && (res.ok || res.status === 404));
   },
 
   getSharedBuild: async (id) => {

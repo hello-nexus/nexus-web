@@ -457,6 +457,20 @@ describe('directApiBackend', () => {
       expect(await backend.listDevices?.()).toBeNull();
     });
 
+    it('checkAccount says signed out for a refused session and unreachable for a failure', async () => {
+      stubHostname('hellonexus.com');
+      const backend = await freshBackend();
+      // No session at all: the cookie refresh is refused.
+      fetchMock.mockResolvedValueOnce(jsonResponse(401, {}));
+      expect(await backend.checkAccount?.()).toEqual({ state: 'signedOut' });
+      // A network failure is not a sign-out.
+      fetchMock.mockRejectedValueOnce(new TypeError('offline'));
+      expect(await backend.checkAccount?.()).toEqual({ state: 'unreachable' });
+      // A server error is not one either.
+      fetchMock.mockResolvedValueOnce(jsonResponse(503, {}));
+      expect(await backend.checkAccount?.()).toEqual({ state: 'unreachable' });
+    });
+
     it('listBuilds returns the account builds and null on failure', async () => {
       const backend = await loggedInBackend();
       const builds = [{ id: 'b1', name: 'Gaming', data: { slots: {} }, createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-02T00:00:00Z' }];
@@ -473,6 +487,10 @@ describe('directApiBackend', () => {
       fetchMock.mockResolvedValueOnce(jsonResponse(200, saved));
       expect(await backend.saveBuild?.('b1', { name: 'Gaming', data: {} })).toEqual({ status: 'ok', build: saved });
       expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/builds/b1`, expect.objectContaining({ method: 'PUT', body: JSON.stringify({ name: 'Gaming', data: {} }) }));
+      // Only the two whitelisted fields go out, whatever else the caller's object carries.
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, saved));
+      await backend.saveBuild?.('b1', { name: 'Gaming', data: {}, extra: 1 } as never);
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/builds/b1`, expect.objectContaining({ body: JSON.stringify({ name: 'Gaming', data: {} }) }));
       fetchMock.mockResolvedValueOnce(jsonResponse(409, { code: 'build_limit', limit: 10 }));
       expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'limit', limit: 10 });
       fetchMock.mockResolvedValueOnce(jsonResponse(413, {}));
@@ -484,6 +502,8 @@ describe('directApiBackend', () => {
     it('deleteBuild is true on 204', async () => {
       const backend = await loggedInBackend();
       fetchMock.mockResolvedValueOnce(emptyResponse(204));
+      expect(await backend.deleteBuild?.('b1')).toBe(true);
+      fetchMock.mockResolvedValueOnce(jsonResponse(404, {}));
       expect(await backend.deleteBuild?.('b1')).toBe(true);
       expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/builds/b1`, expect.objectContaining({ method: 'DELETE' }));
       fetchMock.mockResolvedValueOnce(jsonResponse(500, {}));
