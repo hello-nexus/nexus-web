@@ -2282,6 +2282,7 @@
   "gallery.page.addFile": "Přidat soubory…",
   "gallery.page.addFolder": "Přidat složku…",
   "gallery.page.addToPlaylist": "Přidat do playlistu",
+  "gallery.page.addTooLarge": "{name} se nepodařilo zkopírovat ze síťové jednotky. Nexus kopíruje nejvýše 2 GB.",
   "gallery.page.alreadyAdded": "Položka {name} už v galerii je",
   "gallery.page.create": "Vytvořit",
   "gallery.page.deletePlaylist": "Smazat playlist",

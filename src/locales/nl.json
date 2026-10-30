@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "Bestanden toevoegen…",
   "gallery.page.addFolder": "Map toevoegen…",
   "gallery.page.addToPlaylist": "Toevoegen aan afspeellijst",
+  "gallery.page.addTooLarge": "Kan {name} niet kopiëren vanaf de netwerkschijf. Nexus kopieert tot 2 GB.",
   "gallery.page.alreadyAdded": "{name} staat al in de galerij",
   "gallery.page.create": "Maken",
   "gallery.page.deletePlaylist": "Afspeellijst verwijderen",

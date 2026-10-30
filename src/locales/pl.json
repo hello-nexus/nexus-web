@@ -2282,6 +2282,7 @@
   "gallery.page.addFile": "Dodaj pliki…",
   "gallery.page.addFolder": "Dodaj folder…",
   "gallery.page.addToPlaylist": "Dodaj do playlisty",
+  "gallery.page.addTooLarge": "Nie udało się skopiować {name} z dysku sieciowego. Nexus kopiuje do 2 GB.",
   "gallery.page.alreadyAdded": "{name} już znajduje się w galerii",
   "gallery.page.create": "Utwórz",
   "gallery.page.deletePlaylist": "Usuń playlistę",

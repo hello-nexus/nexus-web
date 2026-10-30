@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "Dateien hinzufügen…",
   "gallery.page.addFolder": "Ordner hinzufügen…",
   "gallery.page.addToPlaylist": "Zur Playlist hinzufügen",
+  "gallery.page.addTooLarge": "{name} konnte nicht vom Netzlaufwerk kopiert werden. Nexus kopiert bis zu 2 GB.",
   "gallery.page.alreadyAdded": "{name} ist bereits in der Galerie",
   "gallery.page.create": "Erstellen",
   "gallery.page.deletePlaylist": "Playlist löschen",

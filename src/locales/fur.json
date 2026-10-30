@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "Zonte file…",
   "gallery.page.addFolder": "Zonte cartele…",
   "gallery.page.addToPlaylist": "Zonte ae playlist",
+  "gallery.page.addTooLarge": "No si à podût copiâ {name} de unitât di rêt. Nexus al copie fin a 2 GB.",
   "gallery.page.alreadyAdded": "{name} al è za te galarie",
   "gallery.page.create": "Cree",
   "gallery.page.deletePlaylist": "Elimine la playlist",

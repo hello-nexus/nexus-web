@@ -21,6 +21,7 @@ import {
   addGallerySource,
   createGalleryPlaylist,
   GALLERY_ERROR_DUPLICATE,
+  GALLERY_ERROR_TOO_LARGE,
   GALLERY_ERROR_LIMIT,
   GALLERY_PLAYLIST_NAME_MAX,
   GALLERY_PLAYLISTS_MAX,
@@ -236,15 +237,17 @@ export function GalleryPage() {
     setActionError(null);
     const failed: string[] = [];
     const duplicates: string[] = [];
+    const tooLarge: string[] = [];
     for (const path of paths) {
       const added = await addGallerySource(path, kind);
       if (!added || added.error) {
         const name = path.split(/[\\/]/).pop() || path;
-        (added?.code === GALLERY_ERROR_DUPLICATE ? duplicates : failed).push(name);
+        (added?.code === GALLERY_ERROR_DUPLICATE ? duplicates : added?.code === GALLERY_ERROR_TOO_LARGE ? tooLarge : failed).push(name);
       }
     }
     const messages = [
       duplicates.length > 0 ? t('gallery.page.alreadyAdded', { name: duplicates.join(', ') }) : null,
+      tooLarge.length > 0 ? t('gallery.page.addTooLarge', { name: tooLarge.join(', ') }) : null,
       failed.length > 0 ? t('gallery.page.addFailed', { name: failed.join(', ') }) : null,
     ].filter(Boolean);
     if (messages.length > 0) {
@@ -517,7 +520,7 @@ export function GalleryPage() {
                       <Icon size={14} className={styles.sourceIcon} aria-hidden="true" />
                       <span className={styles.sourceName}>{source.name}</span>
                     </div>
-                    <span className={styles.sourcePath}>{source.path}</span>
+                    <span className={styles.sourcePath}>{source.originalPath ?? source.path}</span>
                     <div className={styles.sourceMeta}>
                       <span className={styles.sourceCount}>
                         {selectedPlaylist
