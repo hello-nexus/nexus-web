@@ -2166,7 +2166,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             className={styles.previewPane}
             data-surface={glassSurface}
             data-family={recordFamily}
-            data-playlist-nav={showPlaylistArrows || undefined}
             data-troubleshoot={showPreviewTroubleshoot || undefined}
           >
             {isMonoFamily(recordFamily) && <MonoPreviewFilter />}
@@ -2188,6 +2187,22 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   disabled={currentSlot >= pageSlots.length - 1}
                   onClick={() => goToPage(1)}
                   ariaLabel={t('devices.panels.nextPage')}
+                />
+              )}
+              {showPlaylistArrows && (
+                <PanelArrowButton
+                  side="prev"
+                  className={styles.pageArrow}
+                  onClick={() => stepPlaylist(-1)}
+                  ariaLabel={t('panel.playlist.prev')}
+                />
+              )}
+              {showPlaylistArrows && (
+                <PanelArrowButton
+                  side="next"
+                  className={styles.pageArrow}
+                  onClick={() => stepPlaylist(1)}
+                  ariaLabel={t('panel.playlist.next')}
                 />
               )}
               <PanelEmbedFrame
@@ -2236,22 +2251,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               )}
               </>
             </div>
-            {showPlaylistArrows && (
-              <div className={styles.playlistNav}>
-                <PanelArrowButton
-                  side="prev"
-                  className={styles.pageArrow}
-                  onClick={() => stepPlaylist(-1)}
-                  ariaLabel={t('panel.playlist.prev')}
-                />
-                <PanelArrowButton
-                  side="next"
-                  className={styles.pageArrow}
-                  onClick={() => stepPlaylist(1)}
-                  ariaLabel={t('panel.playlist.next')}
-                />
-              </div>
-            )}
             {showPreviewTroubleshoot && qseriesTroubleshootLink(t('devices.qseries.troubleshoot.mismatch'))}
           </div>
         </div>
