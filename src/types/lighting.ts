@@ -324,7 +324,8 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_strokes', label: 'Strokes', labelKey: 'lighting.controls.param.strokes' },
       { name: 'u_feather', label: 'Feather', labelKey: 'lighting.controls.param.feather' },
       { name: 'u_fill',    label: 'Fill', labelKey: 'lighting.controls.param.fill' },
-      { name: 'u_step',    label: 'Hue step', labelKey: 'lighting.controls.param.step' },
+      { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+      { name: 'u_wash',    label: 'Watercolor', labelKey: 'lighting.controls.param.wash' },
   ]},
   { key: 'sweepliquid',  labelKey: 'lighting.controls.sweepliquid', params: [
       { name: 'u_warp',  label: 'Warp', labelKey: 'lighting.controls.param.warp' },

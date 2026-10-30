@@ -45,6 +45,11 @@ describe('simple-mode animations', () => {
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
   });
 
+  it('declares the brush params the shader exposes, with no hue step', () => {
+    const names = EFFECTS.find(e => e.key === 'sweepbrush')!.params.map(p => p.name);
+    expect(names).toEqual(['u_strokes', 'u_feather', 'u_fill', 'u_rotation', 'u_wash']);
+  });
+
   it('puts Patterns first in the category order', () => {
     expect(EFFECT_CATEGORIES[0]).toBe('pattern');
     expect(new Set(EFFECT_CATEGORIES).size).toBe(EFFECT_CATEGORIES.length);
