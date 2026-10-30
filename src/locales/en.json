@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "History",
   "settings.ai.capability.lighting.description": "Let AI agents view lighting effects and colors, and change them.",
   "settings.ai.capability.lighting.label": "Lighting",
+  "settings.ai.capability.panels.description": "Let AI agents change the layouts, looks and presets of panel and cooler displays.",
+  "settings.ai.capability.panels.label": "Panels",
   "settings.ai.capability.profiles.description": "Let AI agents view profiles and switch between them.",
   "settings.ai.capability.profiles.label": "Profiles",
   "settings.ai.capability.telemetry.description": "Let AI agents read live sensor and system telemetry.",

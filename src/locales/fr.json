@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "Historique",
   "settings.ai.capability.lighting.description": "Autorisez les agents IA à consulter les effets d'éclairage et les couleurs, et à les modifier.",
   "settings.ai.capability.lighting.label": "Éclairage",
+  "settings.ai.capability.panels.description": "Autorisez les agents IA à modifier les dispositions, styles et préréglages des panneaux et des écrans de refroidissement.",
+  "settings.ai.capability.panels.label": "Panneaux",
   "settings.ai.capability.profiles.description": "Autorisez les agents IA à consulter les profils et à basculer entre eux.",
   "settings.ai.capability.profiles.label": "Profils",
   "settings.ai.capability.telemetry.description": "Autorisez les agents IA à lire la télémétrie des capteurs et du système en direct.",

@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "Histórico",
   "settings.ai.capability.lighting.description": "Permite que agentes de IA vejam efeitos de iluminação e cores, e as alterem.",
   "settings.ai.capability.lighting.label": "Iluminação",
+  "settings.ai.capability.panels.description": "Permite que agentes de IA alterem layouts, aparências e predefinições de painéis e ecrãs de refrigeradores.",
+  "settings.ai.capability.panels.label": "Painéis",
   "settings.ai.capability.profiles.description": "Permite que agentes de IA vejam perfis e alternem entre eles.",
   "settings.ai.capability.profiles.label": "Perfis",
   "settings.ai.capability.telemetry.description": "Permite que agentes de IA leiam telemetria de sensores e do sistema em tempo real.",

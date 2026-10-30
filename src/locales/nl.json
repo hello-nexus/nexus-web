@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "Geschiedenis",
   "settings.ai.capability.lighting.description": "Laat AI-agents verlichtingseffecten en kleuren bekijken en wijzigen.",
   "settings.ai.capability.lighting.label": "Verlichting",
+  "settings.ai.capability.panels.description": "Laat AI-agents indelingen, stijlen en voorinstellingen van panelen en koelerdisplays wijzigen.",
+  "settings.ai.capability.panels.label": "Panelen",
   "settings.ai.capability.profiles.description": "Laat AI-agents profielen bekijken en ertussen wisselen.",
   "settings.ai.capability.profiles.label": "Profielen",
   "settings.ai.capability.telemetry.description": "Laat AI-agents live sensor- en systeemtelemetrie lezen.",

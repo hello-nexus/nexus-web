@@ -5438,6 +5438,8 @@
   "settings.ai.capability.history.label": "История",
   "settings.ai.capability.lighting.description": "Разрешить ИИ-агентам просматривать эффекты подсветки и цвета и изменять их.",
   "settings.ai.capability.lighting.label": "Подсветка",
+  "settings.ai.capability.panels.description": "Разрешить ИИ-агентам изменять макеты, оформление и пресеты панелей и дисплеев кулеров.",
+  "settings.ai.capability.panels.label": "Панели",
   "settings.ai.capability.profiles.description": "Разрешить ИИ-агентам просматривать профили и переключаться между ними.",
   "settings.ai.capability.profiles.label": "Профили",
   "settings.ai.capability.telemetry.description": "Разрешить ИИ-агентам читать телеметрию датчиков и системы в реальном времени.",

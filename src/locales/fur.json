@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "Cronologjie",
   "settings.ai.capability.lighting.description": "Permet ai agjents IA di viodi i efiets di iluminazion e i colôrs, e di modificâju.",
   "settings.ai.capability.lighting.label": "Iluminazion",
+  "settings.ai.capability.panels.description": "Permet ai agjents IA di modificâ disposizions, aspiets e preset dai panei e dai display dai refredadôrs.",
+  "settings.ai.capability.panels.label": "Panei",
   "settings.ai.capability.profiles.description": "Permet ai agjents IA di viodi i profîi e passâ di un al altri.",
   "settings.ai.capability.profiles.label": "Profîi",
   "settings.ai.capability.telemetry.description": "Permet ai agjents IA di lei la telemetrie dai sensôrs e dal sisteme in timp reâl.",

@@ -5438,6 +5438,8 @@
   "settings.ai.capability.history.label": "Historie",
   "settings.ai.capability.lighting.description": "Umožní AI agentům zobrazit světelné efekty a barvy a měnit je.",
   "settings.ai.capability.lighting.label": "Osvětlení",
+  "settings.ai.capability.panels.description": "Umožní AI agentům měnit rozvržení, vzhledy a předvolby panelů a displejů chladičů.",
+  "settings.ai.capability.panels.label": "Panely",
   "settings.ai.capability.profiles.description": "Umožní AI agentům zobrazit profily a přepínat mezi nimi.",
   "settings.ai.capability.profiles.label": "Profily",
   "settings.ai.capability.telemetry.description": "Umožní AI agentům číst živou telemetrii senzorů a systému.",
