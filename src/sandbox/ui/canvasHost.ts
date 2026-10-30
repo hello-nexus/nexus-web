@@ -9,7 +9,7 @@
 import type {
   CanvasPointerEvent, FramePacing, HostToRenderer, RendererSize, RendererToHost,
 } from '../../../sdk/runtime/rendererCore';
-import { panelDisplayHz, streamFrameCap } from '../../lib/framePacer';
+import { pageFrameCap, panelDisplayHz } from '../../lib/framePacer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
@@ -34,11 +34,11 @@ export function cappedPixelRatio(): number {
   return Math.min(Math.max(dpr, 1), MAX_PIXEL_RATIO);
 }
 
-/** Draw-rate limits for a renderer on the page with this query: the ceiling, lowered by the stream's rate or the panel's refresh. */
+/** Draw-rate limits for a renderer on the page with this query: the ceiling, lowered by the stream's rate, the device record's cap or the panel's refresh. */
 export function framePacing(search: string): FramePacing {
   const displayHz = panelDisplayHz(search);
   const panelCap = displayHz === null ? Infinity : displayHz + PANEL_HZ_HEADROOM;
-  return { maxFps: Math.min(MAX_RENDERER_FPS, streamFrameCap(search) ?? Infinity, panelCap), displayHz };
+  return { maxFps: Math.min(MAX_RENDERER_FPS, pageFrameCap(search) ?? Infinity, panelCap), displayHz };
 }
 
 /**

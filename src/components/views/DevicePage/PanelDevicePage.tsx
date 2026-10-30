@@ -103,6 +103,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
+import { FRAME_RATE_CAPS_FPS, frameRateFromValue, frameRateOptions, frameRateValue } from './frameRateOptions';
 import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
 import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
@@ -557,6 +558,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordSupportsRenderScale, setRecordSupportsRenderScale] = useState(false);
   const isRenderScalablePanel = recordSupportsRenderScale && !isSimulated;
   const [recordHighResolution, setRecordHighResolution] = useState(false);
+  // The highest rate the device can do (a stream's rate, or a kiosk display's refresh); the
+  // Frame rate setting needs it, so it stays hidden while the service reports none.
+  const [recordMaxFps, setRecordMaxFps] = useState<number | null>(null);
+  const [recordFpsCap, setRecordFpsCap] = useState<number | null>(null);
+  const hasFrameRateSetting = !isSimulated && recordMaxFps !== null && recordMaxFps > Math.min(...FRAME_RATE_CAPS_FPS);
   const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
     useState<PanelDeviceRecord['secondaryMonitorState']>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
@@ -625,6 +631,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
     || isRenderScalablePanel
+    || hasFrameRateSetting
     || isGlacialLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Theme and layout read and write the panel record for simulators and hardware alike;
@@ -722,6 +729,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
+      setRecordMaxFps(match?.maxFps ?? null);
+      setRecordFpsCap(match?.fpsCap ?? null);
       setMatchedFamily(match?.capabilities?.family);
       setRecordWidgetSize(recordWidgetSizeOf(match, glassSurface) ?? null);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
@@ -882,6 +891,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
+      // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
+      setRecordFpsCap(record.fpsCap ?? null);
       setRecordRestricted(record.restrictedMode ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
@@ -1965,20 +1976,45 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       hardwareResetBusy={resettingHardware}
                     />
                   )}
-                  {activeTab === 'settings' && isRenderScalablePanel && (
+                  {activeTab === 'settings' && (isRenderScalablePanel || hasFrameRateSetting) && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.rendering')} boxClassName={styles.deviceSettingsBox}>
-                        <SettingSelect
-                          label={t('devices.lcd.renderMode')}
-                          description={t('devices.lcd.renderModeHint')}
-                          value={RENDER_MODES[recordHighResolution ? 1 : 0]}
-                          options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
-                          onChange={(value) => {
-                            const next = value === RENDER_MODES[1];
-                            setRecordHighResolution(next);
-                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
-                          }}
-                        />
+                        {isRenderScalablePanel && (
+                          <SettingSelect
+                            label={t('devices.lcd.renderMode')}
+                            description={t('devices.lcd.renderModeHint')}
+                            value={RENDER_MODES[recordHighResolution ? 1 : 0]}
+                            options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
+                            onChange={(value) => {
+                              const next = value === RENDER_MODES[1];
+                              setRecordHighResolution(next);
+                              if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
+                            }}
+                          />
+                        )}
+                        {hasFrameRateSetting && recordMaxFps !== null && (
+                          <SettingSelect
+                            label={t('devices.lcd.frameRate')}
+                            description={t('devices.lcd.frameRateHint')}
+                            value={frameRateValue(recordMaxFps, recordFpsCap)}
+                            options={frameRateOptions(recordMaxFps, recordFpsCap).map(option => ({
+                              value: option.value,
+                              label: option.fps === null
+                                ? t('devices.lcd.frameRateMax', { fps: recordMaxFps })
+                                : t('devices.lcd.frameRateFps', { fps: option.fps }),
+                            }))}
+                            onChange={(value) => {
+                              const previous = recordFpsCap;
+                              const next = frameRateFromValue(value);
+                              setRecordFpsCap(next > 0 ? next : null);
+                              const revert = () => setRecordFpsCap(previous);
+                              if (!device?.panelRecordId) return;
+                              void patchPanelDevice(device.panelRecordId, { fpsCap: next })
+                                .then(r => { if (!r) revert(); })
+                                .catch(revert);
+                            }}
+                          />
+                        )}
                       </SettingsSection>
                     </div>
                   )}

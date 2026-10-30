@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { peekShaderSource, primeShaderSource } from '../../../../api/lighting';
 import type { WeatherSnapshot } from '../../../../api/weather';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
-import { streamFrameCap } from '../../../../lib/framePacer';
+import { getPanelFpsCap, streamFrameCap, subscribePanelFpsCap } from '../../../../lib/framePacer';
 import type { EffectState } from '../../../../types/lighting';
 import type { PanelSurface } from '../../../types';
 import { useWallClock } from '../useWallClock';
@@ -115,10 +115,11 @@ export function WeatherSky({ snap, surface, round, children }: WeatherSkyProps) 
 
   // The Q-series panel GPU cannot hold frame rate at native resolution.
   const lowEnd = usePanelGlassSurface(surface) === 'q60';
+  const recordFpsCap = useSyncExternalStore(subscribePanelFpsCap, getPanelFpsCap);
   const renderOptions = useMemo(
-    // A streamed panel's capture rate can sit below the cap; drawing faster is thrown away.
-    () => ({ maxDevicePixelRatio: lowEnd ? 0.5 : 1, maxFps: Math.min(MAX_FPS, streamFrameCap(window.location.search) ?? MAX_FPS), screenSize: true, visibleRef }),
-    [lowEnd],
+    // A streamed panel's capture rate can sit below the cap; drawing faster is thrown away. The device record's cap lowers it too.
+    () => ({ maxDevicePixelRatio: lowEnd ? 0.5 : 1, maxFps: Math.min(MAX_FPS, streamFrameCap(window.location.search) ?? MAX_FPS, recordFpsCap ?? MAX_FPS), screenSize: true, visibleRef }),
+    [lowEnd, recordFpsCap],
   );
   const { ready, error } = useShaderRenderer(canvasRef, EFFECT, stateRef, undefined, renderOptions, reducedMotion);
 
