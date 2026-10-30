@@ -1,6 +1,9 @@
 @use '../../../styles/interactions' as *;
 @use '../../../styles/text' as *;
 
+// Grid mode's trailing action column; the trigger and the menu each resolve it, so both must match.
+$select-action-w: 132px;
+
 /* Custom select: a button trigger (.trigger) with the chevron overlaid by the
    wrapper, and a portaled listbox (.menu) positioned in JS. Replaces the native
    <select>, whose popup renders off-screen on the Y70 kiosk WebView. */
@@ -387,7 +390,7 @@
 }
 
 .gridValue {
-  --select-action-w: 132px;
+  --select-action-w: #{$select-action-w};
   display: grid;
   grid-template-columns: var(--select-cols);
   align-items: center;
@@ -401,7 +404,7 @@
   --select-row-h: 64px;
   --select-plain-h: 52px;
   --select-row-gap: 2px;
-  --select-action-w: 132px;
+  --select-action-w: #{$select-action-w};
   --select-owner-h: var(--select-row-h);
   padding: 0.5rem;
   border-color: var(--accent);
