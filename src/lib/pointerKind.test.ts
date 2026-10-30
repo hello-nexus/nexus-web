@@ -8,7 +8,7 @@ function pointer(type: string, name = 'pointermove') {
   act(() => { window.dispatchEvent(event); });
 }
 const noPointerMedia = () => vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q }));
-const attr = () => document.documentElement.getAttribute('data-pointer');
+const attr = () => document.body.getAttribute('data-pointer');
 
 describe('pointerKind', () => {
   beforeEach(() => { noPointerMedia(); resetPointerKindForTests(); initPointerKind(); });

@@ -18,14 +18,14 @@ export function hasMousePointer(): boolean {
 }
 
 /**
- * Mirrors hasMousePointer() onto `html[data-pointer='mouse']` for CSS. The overlay's
+ * Mirrors hasMousePointer() onto `body[data-pointer='mouse']` for CSS (on body, not html: the hover guard prefixes every :hover rule with an html ancestor). The overlay's
  * WebViews report no hover or pointer capability at all, so the media queries alone
  * never match there; real input is the only signal.
  */
 export function initPointerKind(): void {
   if (listening || typeof window === 'undefined') return;
   listening = true;
-  const mark = () => document.documentElement.setAttribute('data-pointer', 'mouse');
+  const mark = () => document.body.setAttribute('data-pointer', 'mouse');
   if (mediaSaysMouse()) mark();
   const onPointer = (event: PointerEvent) => {
     if (event.pointerType !== 'mouse') return;
@@ -52,5 +52,5 @@ export function useHasMousePointer(): boolean {
 export function resetPointerKindForTests(): void {
   mouseSeen = false;
   listening = false;
-  if (typeof document !== 'undefined') document.documentElement.removeAttribute('data-pointer');
+  if (typeof document !== 'undefined') document.body.removeAttribute('data-pointer');
 }
