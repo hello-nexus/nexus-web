@@ -24,7 +24,8 @@ import {
   normalizeAppType,
 } from '../../widgets/marketplaceRegistry';
 
-const REMOVED_WIDGET_TYPES = new Set(['y70-controls']);
+// 'blank' was the placeholder for an empty single-widget slot; the slot is now simply empty, and a layout still holding one renders that way.
+const REMOVED_WIDGET_TYPES = new Set(['y70-controls', 'blank']);
 
 // PanelRoutes' 403 ApiResponse.Fail body for a phone-session layout save that
 // introduces a privileged deck action (DeckLayoutPolicy). A 403 on this route

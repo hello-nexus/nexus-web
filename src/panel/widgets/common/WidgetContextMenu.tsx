@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Home, Lock, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
@@ -21,7 +22,10 @@ interface WidgetContextMenuProps {
   // Starts corner-drag resize mode; the caller offers it only where the widget has more than one size to snap to.
   onResizeMode?: () => void;
   onEdit: () => void;
-  onRemove: () => void;
+  // Omitted on menus that are not about a widget (the preview's background menu): no Remove row.
+  onRemove?: () => void;
+  // Plain action rows under the name row, for menus whose actions are not widget actions.
+  items?: { key: string; label: string; icon: LucideIcon; onSelect: () => void }[];
   // Optional - what the name row does when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
@@ -68,7 +72,7 @@ export function WidgetContextMenu({
   surface,
   themeMode = 'dark',
   themeStyle,
-  onResize, onResizeMode, onEdit, onRemove, onImmersive, onWebBack, onWebForward, onWebHome,
+  onResize, onResizeMode, onEdit, onRemove, items, onImmersive, onWebBack, onWebForward, onWebHome,
   displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
   onOpenPanelActions,
@@ -213,6 +217,17 @@ export function WidgetContextMenu({
         </>
       )}
 
+      {items && items.length > 0 && (
+        <>
+          {items.map(({ key, label, icon: Icon, onSelect }) => (
+            <button key={key} type="button" className={styles.item} onClick={() => runAndClose(onSelect)}>
+              <Icon size={14} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </>
+      )}
+
       {(onWebBack || onWebForward || onWebHome) && (
         <>
           {onWebBack && (
@@ -294,10 +309,12 @@ export function WidgetContextMenu({
       {widgetItemsLast && hasMiddleItems && <div className={styles.divider} />}
       {widgetItemsLast && editItems}
 
-      <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
-        <Trash2 size={14} />
-        <span>{t('panel.widget.menu.remove')}</span>
-      </button>
+      {onRemove && (
+        <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
+          <Trash2 size={14} />
+          <span>{t('panel.widget.menu.remove')}</span>
+        </button>
+      )}
 
       {/* Groups in order: widget items, view toggles, panel-wide items; a divider only between non-empty groups. */}
       {(onToggleLock || onToggleAlwaysOnTop) && <div className={styles.divider} />}

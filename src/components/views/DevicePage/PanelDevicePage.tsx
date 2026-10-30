@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, Upload, Sparkles, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
+import { WidgetContextMenu } from '../../../panel/widgets/common/WidgetContextMenu';
+import { BackgroundQuickImport, type BackgroundQuickImportHandle } from '../../../panel/background/BackgroundQuickImport';
+import { applyQuickBackgroundMedia } from '../../../panel/background/quickBackground';
+import { useCoverNotice } from '../../../panel/background/useCoverNotice';
 import { previewFit } from '../../../panel/widgets/common/widgetPreviewFit';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
@@ -1157,6 +1161,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     setConfiguringWidgetId(prev => prev === widgetId ? null : prev);
   }, [editorCapacity, layout, updateLayout]);
 
+  // The preview's "Edit background" menu, opened at the click point.
+  const [backgroundMenu, setBackgroundMenu] = useState<{ x: number; y: number } | null>(null);
+  const quickImportRef = useRef<BackgroundQuickImportHandle | null>(null);
+  const [backgroundCovered, setBackgroundCovered] = useState(false);
+  const coverNotice = useCoverNotice(backgroundCovered);
+  const openBackgroundOptions = useCallback(() => {
+    setConfiguringWidgetId(null);
+    setTab('background');
+  }, []);
+  const handleQuickBackground = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => {
+    applyQuickBackgroundMedia(panelTheme, mediaId, type, alpha);
+    if (singleWidget) coverNotice.arm();
+  }, [coverNotice, panelTheme, singleWidget]);
+
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
     // The preview shows a render-only stand-in for a playlist entry that is
     // not the stored widget.
@@ -2231,6 +2249,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}
                 onBackgroundClicked={() => setConfiguringWidgetId(null)}
+                onBackgroundMenu={setBackgroundMenu}
+                onBackgroundCovered={setBackgroundCovered}
                 canvasSize={liveCanvas ?? device?.previewSize}
                 canvasDpi={device?.previewDpi}
                 // Hosted-monitor previewSize is CSS px (record cssWidth/
@@ -2264,11 +2284,58 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               )}
               </>
             </div>
+            {singleWidget && coverNotice.visible && (
+              <Notice tone="warning" role="status">{t('devices.panels.backgroundCovered')}</Notice>
+            )}
             {showPreviewTroubleshoot && qseriesTroubleshootLink(t('devices.qseries.troubleshoot.mismatch'))}
           </div>
         </div>
       )}
       </div>
+      {backgroundMenu && (
+        <WidgetContextMenu
+          x={backgroundMenu.x}
+          y={backgroundMenu.y}
+          // eslint-disable-next-line i18next/no-literal-string -- size enum value
+          currentSize="1x1"
+          sizes={[]}
+          hasConfig={false}
+          title={t('panel.background.options')}
+          surface={surface}
+          themeMode={desktopResolvedThemeMode}
+          themeStyle={panelPreviewThemeStyle}
+          onResize={() => {}}
+          onEdit={() => {}}
+          onOpen={openBackgroundOptions}
+          items={[
+            // eslint-disable-next-line i18next/no-literal-string -- menu item id
+            { key: 'import', label: t('lighting.controls.import'), icon: Upload, onSelect: () => quickImportRef.current?.openFiles() },
+            // eslint-disable-next-line i18next/no-literal-string -- menu item id
+            { key: 'gifs', label: t('lighting.controls.klipyBrowse'), icon: Sparkles, onSelect: () => quickImportRef.current?.openGifs() },
+          ]}
+          onClose={() => setBackgroundMenu(null)}
+        />
+      )}
+      {editingDeviceId && (() => {
+        const native = resolvePanelNativeCanvas({
+          surface: glassSurface,
+          liveCanvas,
+          liveDpr,
+          previewSize: device?.previewSize,
+          previewDpr: device?.previewDpr,
+        });
+        return (
+          <BackgroundQuickImport
+            ref={quickImportRef}
+            deviceId={editingDeviceId}
+            deviceAspect={native.cssWidth / native.cssHeight}
+            round={surfaceDisplayShape(surface) === 'round'}
+            deviceW={native.nativeWidth}
+            deviceH={native.nativeHeight}
+            onSelect={handleQuickBackground}
+          />
+        );
+      })()}
       <ConfirmModal
         open={pendingWidgetSize !== null}
         title={t('devices.panels.widgetSize.confirmTitle')}
@@ -2416,18 +2483,14 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
           <span>{widgetLabel}</span>
         </div>
         <div className={styles.inlineSettingsActions}>
-          {/* Single-widget surfaces (Q-series, Kraken) can't be left empty:
-              the widget is replaced from the catalog, never removed. */}
-          {!isSingleWidgetSurface(surface) && (
-            <button
-              type="button"
-              className={styles.inlineRemoveBtn}
-              onClick={() => onRemove(widget.id)}
-              aria-label={t('devices.panels.widgetSettings.remove')}
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
+          <button
+            type="button"
+            className={styles.inlineRemoveBtn}
+            onClick={() => onRemove(widget.id)}
+            aria-label={t('devices.panels.widgetSettings.remove')}
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 

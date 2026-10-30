@@ -124,6 +124,19 @@ export interface SimulatorBackgroundClickedMessage {
   type: 'simulator/background-clicked';
 }
 
+// A click on the free background of the preview, in the iframe's own client pixels.
+export interface SimulatorBackgroundMenuMessage {
+  type: 'simulator/background-menu';
+  x: number;
+  y: number;
+}
+
+// Whether an opaque single widget currently hides the background (PanelApp's `backgroundCovered`).
+export interface SimulatorBackgroundCoveredMessage {
+  type: 'simulator/background-covered';
+  covered: boolean;
+}
+
 // The widget type the playlist rotation shows; null when no playlist drives the preview.
 export interface SimulatorPlaylistShownMessage {
   type: 'simulator/playlist-shown';
@@ -147,6 +160,8 @@ export type SimulatorChildToParent =
   | SimulatorLayoutChangedMessage
   | SimulatorWidgetClickedMessage
   | SimulatorBackgroundClickedMessage
+  | SimulatorBackgroundMenuMessage
+  | SimulatorBackgroundCoveredMessage
   | SimulatorPlaylistShownMessage;
 
 export type SimulatorMessage = SimulatorParentToChild | SimulatorChildToParent;

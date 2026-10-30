@@ -2054,6 +2054,76 @@
   opacity: 1;
 }
 
+// Device-page preview: hover notices that offer "Edit background" over free
+// cells, an empty single-widget slot and the second half of a split widget cell.
+// The notice look is EditHint's; the target only reveals it and takes the click.
+.bgHint {
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius);
+  --edit-hint-color: var(--panel-accent);
+}
+
+// Whole canvas of an empty single-widget slot (round glass clips to the circle).
+.bgHintCanvas {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  border-radius: 0;
+}
+
+.bgHintCanvas[data-round='true'] {
+  border-radius: 50%;
+}
+
+// A single widget's notice, cut in two: the widget half keeps the existing
+// Edit widget behaviour, the other half edits the background.
+.hintSplit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hintSplit[data-orientation='side'] {
+  flex-direction: row;
+}
+
+.hintHalf {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0;
+  pointer-events: auto;
+  --edit-hint-color: var(--text);
+}
+
+.hintHalf.bgHint {
+  --edit-hint-color: var(--panel-accent);
+}
+
+@media (hover: hover) {
+  .bgHint:hover > [data-edit-hint-overlay],
+  .hintHalf:hover > [data-edit-hint-overlay] {
+    opacity: 1;
+  }
+}
+
+.bgHint:focus-visible > [data-edit-hint-overlay] {
+  opacity: 1;
+}
+
 // Preview cells read as buttons, and only a real pointer can hover.
 @media (hover: hover) {
   // In the device page's canvas preview (simulator) a widget is click-to-edit

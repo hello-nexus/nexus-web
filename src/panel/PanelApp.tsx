@@ -127,7 +127,7 @@ import {
 import { recordWidgetSizeOf } from './engine/recordWidgetSize';
 import { kioskViewportSettled, recordCanvasOf } from './engine/recordCanvas';
 import { kioskViewportReporter } from './engine/kioskViewportReport';
-import { largeChromeGrid, isSingleWidgetSurface, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, genericSinglePage } from './types';
+import { largeChromeGrid, isSingleWidgetSurface, surfaceDisplayShape, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, genericSinglePage } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
@@ -205,6 +205,8 @@ import {
   PanelDragOverlayCell,
   PanelTouchCell,
 } from './dnd/PanelDragCells';
+import { BackgroundEditHint, type BackgroundMenuPoint } from './dnd/BackgroundEditHint';
+import { freeCells, splitOrientation } from './engine/freeCells';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
 import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
@@ -490,6 +492,8 @@ export function PanelContent({
   simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
+  onSimulatorBackgroundMenu,
+  onSimulatorBackgroundCovered,
   onSimulatorPlaylistShown,
   openCatalogSignal,
   appAccentColor,
@@ -532,6 +536,9 @@ export function PanelContent({
   simulatorPreviewScale?: number;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
+  // Device-page preview: a click on free background, in this document's client pixels.
+  onSimulatorBackgroundMenu?: (point: BackgroundMenuPoint) => void;
+  onSimulatorBackgroundCovered?: (covered: boolean) => void;
   onSimulatorPlaylistShown?: (type: string | null) => void;
   openCatalogSignal?: number;
   appAccentColor?: string;
@@ -939,6 +946,12 @@ export function PanelContent({
   const widgetTouch = widgetInputOf(deviceTouch, displayBound);
   const cellTouch = cellInputOf(deviceTouch, genericDisplay);
   const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator, displayBound && kioskBehavior);
+  const backgroundMenuEnabled = simulator && Boolean(onSimulatorBackgroundMenu);
+  const singleSurface = isSingleWidgetSurface(surface);
+  const splitOrientationOf = (widget: PanelWidget) => {
+    const span = sizeToSpan(widget.size);
+    return splitOrientation(span.cols, span.rows);
+  };
   const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch) && !restricted;
   // An editable canvas hoists the focused widget above the editor's scrim, else
   // the edited widget reads dimmed under it. See .cellEditorDocked rules.
@@ -1255,6 +1268,9 @@ export function PanelContent({
   // stops animating.
   const shownSingleWidget = isSingleWidgetSurface(surface) ? allFiltered[0]?.widgets[0] : undefined;
   const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id) && !immersiveSeeThrough;
+  useEffect(() => {
+    if (simulator) onSimulatorBackgroundCovered?.(backgroundCovered);
+  }, [simulator, backgroundCovered, onSimulatorBackgroundCovered]);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
@@ -2434,6 +2450,8 @@ export function PanelContent({
                               // Device-page preview only: hovering the widget
                               // marked immersive-on-load frames it and names
                               // the mark, so the canvas says which one opens.
+                              backgroundSplit={backgroundMenuEnabled && singleSurface ? splitOrientationOf(w) : undefined}
+                              onEditBackground={backgroundMenuEnabled && singleSurface ? onSimulatorBackgroundMenu : undefined}
                               immersiveOnLoad={simulator && isImmersiveOnLoadWidget(paginatedLayout, w.id)}
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
@@ -2463,6 +2481,14 @@ export function PanelContent({
                             onExit={exitFreeform}
                           />
                         ) : null}
+                        {backgroundMenuEnabled && !singleSurface && !touch.rearranging && !activeDragId && onSimulatorBackgroundMenu
+                          && freeCells(page.widgets, capacity.gridCols, capacity.pageRows).map(cell => (
+                            <BackgroundEditHint
+                              key={`bg:${page.id}:${cell.col}:${cell.row}`}
+                              onActivate={onSimulatorBackgroundMenu}
+                              style={{ gridColumn: `${cell.col + 1} / span 1`, gridRow: `${cell.row + 1} / span 1` }}
+                            />
+                          ))}
                         {activeDragId && allCellsForPage(page, capacity).map(cell => (
                           <EmptyCellDroppable
                             key={`${page.id}:${cell.col}:${cell.row}`}
@@ -2482,6 +2508,13 @@ export function PanelContent({
                           />
                         ) : null}
                       </div>
+                      {backgroundMenuEnabled && singleSurface && page.widgets.length === 0 && onSimulatorBackgroundMenu && (
+                        <BackgroundEditHint
+                          className={styles.bgHintCanvas}
+                          round={surfaceDisplayShape(surface) === 'round'}
+                          onActivate={onSimulatorBackgroundMenu}
+                        />
+                      )}
                       {mouseEditable && page.widgets.length === 0 && (
                         <div className={styles.emptyPageAction} data-panel-hit="true">
                           <button type="button" className="chip-action" onClick={() => openSheet('catalog')}>

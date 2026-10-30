@@ -37,6 +37,11 @@ describe('q60OfflineClockPages', () => {
     expect(q60OfflineClockPages(blank, 'q60')).toBe(blank);
   });
 
+  it('leaves an empty panel empty', () => {
+    const empty: PanelPage[] = [{ id: 'p1', widgets: [] }];
+    expect(q60OfflineClockPages(empty, 'q60')).toBe(empty);
+  });
+
   it('does not mutate or reference the source pages (render-only)', () => {
     const result = q60OfflineClockPages(monitoringLayout, 'q60');
     expect(result[0]).not.toBe(monitoringLayout[0]);
