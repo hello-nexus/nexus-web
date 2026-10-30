@@ -42,7 +42,7 @@ const EffectsMarket = (import.meta.env.DEV || __DEV_TOOLS__)
 const EFFECTS_ROUTE = 'effects';
 const APPS_TAB = 'apps';
 
-type InstallState = 'idle' | 'working' | 'failed';
+type InstallState = 'idle' | 'working' | 'failed' | 'hardware';
 
 interface InstalledInfo { version: string; iconUrl?: string | null }
 
@@ -136,7 +136,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
       onNeedsSignIn(() => { void install(); });
       return;
     }
-    setState('failed');
+    setState(res?.reason === 'hardware_required' ? 'hardware' : 'failed');
   }, [app, installedVersion, latest, onNeedsSignIn, onInstalled]);
 
   // Ahead of compatibility: an app that is not out yet has nothing to say about
@@ -155,6 +155,27 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
       : null;
   }
   if (!latest) return <span className={styles.incompatible}>{t('store.incompatible')}</span>;
+
+  // An installed copy keeps its normal controls; the gate only decides a first install.
+  const hardware = app.hardware;
+  if (hardware && !installedVersion && (hardware.matched !== true || state === 'hardware')) {
+    return (
+      <span className={styles.hardwareGate}>
+        <Button
+          type="button"
+          tone="accent"
+          onClick={e => { e.stopPropagation(); void openExternalUrl(hardware.url); }}
+        >
+          {t('store.viewProduct')}
+        </Button>
+        <span className={styles.incompatible}>
+          {state === 'hardware'
+            ? t('store.hardwareRequired', { name: hardware.name })
+            : t('store.requiresHardware', { name: hardware.name })}
+        </span>
+      </span>
+    );
+  }
 
   const upToDate = installedVersion === latest.version;
   const label = state === 'working' ? t('store.installing')

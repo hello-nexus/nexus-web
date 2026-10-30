@@ -267,6 +267,63 @@ describe('StorePage app page', () => {
   });
 });
 
+describe('StorePage hardware-gated app', () => {
+  const gated = (matched?: boolean): StoreApp => ({
+    ...app,
+    hardware: { name: 'HYTE Y70TI', url: 'https://hyte.com/y70ti', ...(matched === undefined ? {} : { matched }) } as StoreApp['hardware'],
+  });
+
+  beforeEach(() => openExternalUrl.mockReset());
+
+  it('swaps Install for a product button and a requirement line when the hardware is absent', async () => {
+    fetchStoreApps.mockResolvedValue([gated(false)]);
+    render(<StorePage />);
+
+    const button = await screen.findByRole('button', { name: 'store.viewProduct' });
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+    expect(screen.getByText('store.requiresHardware name=HYTE Y70TI')).toBeInTheDocument();
+    fireEvent.click(button);
+    expect(openExternalUrl).toHaveBeenCalledWith('https://hyte.com/y70ti');
+  });
+
+  it('treats a missing matched flag as unmatched', async () => {
+    fetchStoreApps.mockResolvedValue([gated()]);
+    render(<StorePage />);
+
+    expect(await screen.findByRole('button', { name: 'store.viewProduct' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+  });
+
+  it('offers Install when the hardware is attached', async () => {
+    fetchStoreApps.mockResolvedValue([gated(true)]);
+    render(<StorePage />);
+
+    expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
+  });
+
+  it('gates the app page hero the same way', async () => {
+    fetchStoreApps.mockResolvedValue([gated(false)]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByText('Aquarium'));
+    expect(await screen.findAllByRole('button', { name: 'store.viewProduct' })).not.toHaveLength(0);
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+  });
+
+  it('explains a hardware_required refusal and keeps the product link', async () => {
+    fetchStoreApps.mockResolvedValue([gated(true)]);
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: false, reason: 'hardware_required' });
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+
+    expect(await screen.findByText('store.hardwareRequired name=HYTE Y70TI')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'store.viewProduct' })).toBeInTheDocument();
+  });
+});
+
 describe('StorePage app page layout', () => {
   it('reads the capabilities as a highlight strip, not a definition table', async () => {
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
