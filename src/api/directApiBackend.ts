@@ -239,6 +239,9 @@ function refreshAccessToken(): Promise<string | null> {
 // How the last refresh ended, so a failed session check can tell "no session" from "could not ask".
 let lastRefresh: 'ok' | 'noSession' | 'failed' = 'ok';
 
+// Read through a function: the check sets the outcome before a refresh it may start, so the compiler cannot see the change.
+const refreshOutcome = () => lastRefresh;
+
 async function doRefresh(): Promise<string | null> {
   const cookieMode = isWebCookieMode();
   const legacy = getStoredRefreshToken();
@@ -418,7 +421,7 @@ export const directApiBackend: AuthBackend = {
     }
     // Signed out only when the refresh itself answered that there is no session; a 5xx, 429, network failure or any
     // other answer proves nothing.
-    return { state: !res && lastRefresh === 'noSession' ? 'signedOut' : 'unreachable' };
+    return { state: !res && refreshOutcome() === 'noSession' ? 'signedOut' : 'unreachable' };
   },
 
   recoveryStart: async (email) => {
