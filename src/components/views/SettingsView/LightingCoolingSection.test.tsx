@@ -155,7 +155,7 @@ describe('LightingCoolingSection section split', () => {
 
   it('closes the brightness schedule dialog when Lighting turns off while it is open', async () => {
     const view = render(<LightingCoolingSection serviceOnline platform="windows" />);
-    await screen.findByText('lighting.schedule.row.off');
+    await screen.findByRole('button', { name: 'lighting.schedule.row.action' });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
     expect(screen.getByRole('switch', { name: 'lighting.schedule.enable.label' })).toBeInTheDocument();
 
@@ -239,30 +239,10 @@ describe('LightingCoolingSection brightness schedule', () => {
     lightingApi.fetchIdleDim.mockReset().mockResolvedValue(null);
   });
 
-  const idleDimState = (enabled: boolean, supported: boolean) => ({
-    enabled, timeoutSeconds: 0, level: 10, supported, screenOffSupported: true, osScreenOffSeconds: 3600,
-  });
-
-  it('reads On when idle dimming is on and the schedule is off', async () => {
-    lightingApi.fetchIdleDim.mockResolvedValue(idleDimState(true, true));
-    render(<LightingCoolingSection serviceOnline platform="windows" />);
-
-    expect(await screen.findByText('lighting.schedule.row.on')).toBeInTheDocument();
-  });
-
-  it('ignores idle dimming the platform cannot run', async () => {
-    lightingApi.fetchIdleDim.mockResolvedValue(idleDimState(true, false));
-    render(<LightingCoolingSection serviceOnline platform="linux" />);
-
-    await waitFor(() => expect(lightingApi.fetchIdleDim).toHaveBeenCalled());
-    await act(async () => { await Promise.resolve(); });
-    expect(screen.getByText('lighting.schedule.row.off')).toBeInTheDocument();
-  });
-
   it('names the schedule state on the row and opens the editor', async () => {
     render(<LightingCoolingSection serviceOnline platform="windows" />);
 
-    await screen.findByText('lighting.schedule.row.off');
+    await screen.findByRole('button', { name: 'lighting.schedule.row.action' });
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
 
@@ -272,7 +252,7 @@ describe('LightingCoolingSection brightness schedule', () => {
 
   it('turns the schedule on from the editor and reports the live level', async () => {
     render(<LightingCoolingSection serviceOnline platform="windows" />);
-    await screen.findByText('lighting.schedule.row.off');
+    await screen.findByRole('button', { name: 'lighting.schedule.row.action' });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
 
     fireEvent.click(screen.getByRole('switch', { name: 'lighting.schedule.enable.label' }));

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Moon, RotateCcw, Sun, SunMedium } from 'lucide-react';
+import { Moon, RotateCcw, Sun } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -180,8 +180,8 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
       open={open}
       onClose={onClose}
       title={t('lighting.schedule.title')}
-      icon={<SunMedium size={18} />}
-      medium
+      icon={<Sun size={18} />}
+      roomy
     >
       <div className={styles.modal}>
         <SettingToggle

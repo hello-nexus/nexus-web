@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { SunMedium } from 'lucide-react';
+import { Sun } from 'lucide-react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
@@ -111,7 +111,7 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         onClick={e => { e.preventDefault(); openSchedule(); }}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSchedule(); } }}
       >
-        <SunMedium size={14} />
+        <Sun size={14} />
       </span>
     </HoverTooltip>
   );
