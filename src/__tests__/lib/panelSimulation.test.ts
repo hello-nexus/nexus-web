@@ -17,7 +17,6 @@ import {
   getConnectedSimulatedPanelIds,
   getConnectedSimulatedPanels,
   getCustomSimulatedPanel,
-  getPanelGridSizingSettings,
   getSimulatedPanelGridCapacity,
   getSimulatedPanelPhysicalSize,
   isY70Simulated,
