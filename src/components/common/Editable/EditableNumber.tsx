@@ -22,9 +22,12 @@ export interface EditableNumberProps {
    *  empty with it as the placeholder. Any typed value commits, even one equal to `value`. */
   mixed?: boolean;
   mixedLabel?: string;
+  /** For a slider whose value is not what the user reads (an index shown as a label): the field edits
+   *  `toEntry(value)` and a typed number goes through `fromEntry` before the clamp and snap. */
+  entryMap?: { toEntry: (value: number) => number; fromEntry: (typed: number) => number };
 }
 
-export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel, disabled, mixed = false, mixedLabel }: EditableNumberProps) {
+export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel, disabled, mixed = false, mixedLabel, entryMap }: EditableNumberProps) {
   const fmt = format ?? ((v: number) => String(v));
   const editable = useEditable<number>({
     // NaN never equals a typed number, so a mixed edit always commits.
@@ -33,8 +36,9 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
     parse: draft => {
       // Number('') is 0, which would clamp to min: an empty draft is a cancel, never a value.
       if (draft.trim() === '') return null;
-      const parsed = Number(draft);
-      if (!Number.isFinite(parsed)) return null;
+      const typed = Number(draft);
+      if (!Number.isFinite(typed)) return null;
+      const parsed = entryMap ? entryMap.fromEntry(typed) : typed;
       const clamped = Math.max(min, Math.min(max, parsed));
       // Snap to `step` so a free-typed value (e.g. 0.37 on a 0.1-step slider)
       // commits to the same grid the range input + slider display use;
@@ -47,7 +51,7 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
       }
       return clamped;
     },
-    format: v => (Number.isNaN(v) ? '' : String(v)),
+    format: v => (Number.isNaN(v) ? '' : String(entryMap ? entryMap.toEntry(v) : v)),
   });
 
   // Going read-only mid-edit drops the draft, so no stale input returns on re-enable.
@@ -70,9 +74,9 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
       <input
         type="number"
         className={`${styles.input} ${styles.inputNumber} ${className ?? ''}`}
-        min={min}
-        max={max}
-        step={step}
+        min={entryMap ? entryMap.toEntry(min) : min}
+        max={entryMap ? entryMap.toEntry(max) : max}
+        step={entryMap ? undefined : step}
         aria-label={ariaLabel}
         placeholder={mixed ? mixedLabel : undefined}
         {...editable.inputProps}

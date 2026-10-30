@@ -18,6 +18,36 @@ async function freshHook() {
 describe('usePublicAccount', () => {
   beforeEach(() => {
     getAccount.mockReset();
+    window.localStorage.clear();
+  });
+
+  it('draws the last-known account at once, keeping the verified account separate', async () => {
+    window.localStorage.setItem('nexus_account_hint', JSON.stringify({ username: 'geretti', avatar: null }));
+    let finish: (a: AuthAccount | null) => void = () => {};
+    getAccount.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+    const usePublicAccount = await freshHook();
+    function Probe() {
+      const { account, shown } = usePublicAccount();
+      return <span>{String(account)}|{shown ? shown.username : String(shown)}</span>;
+    }
+    render(<Probe />);
+    expect(screen.getByText('undefined|geretti')).toBeInTheDocument();
+
+    await act(async () => { finish(null); });
+    expect(screen.getByText('null|null')).toBeInTheDocument();
+    expect(window.localStorage.getItem('nexus_account_hint')).toBe('null');
+  });
+
+  it('keeps only the name and avatar of a verified account', async () => {
+    getAccount.mockResolvedValue(ACCOUNT);
+    const usePublicAccount = await freshHook();
+    function Probe() {
+      const { account } = usePublicAccount();
+      return <span>{account ? account.username : 'loading'}</span>;
+    }
+    render(<Probe />);
+    await waitFor(() => expect(screen.getByText('geretti')).toBeInTheDocument());
+    expect(JSON.parse(window.localStorage.getItem('nexus_account_hint') ?? '')).toEqual({ username: 'geretti', avatar: null });
   });
 
   it('loads once for every caller on the page', async () => {

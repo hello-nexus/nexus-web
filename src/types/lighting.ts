@@ -53,11 +53,12 @@ export type EffectCategory =
   | 'pattern'
   | 'sensor';
 
-// Section order for the effect listing: simple fills first, then organic and
-// pattern, then the rest, with the audio-reactive set last.
+// Section order for the effect listing: patterns first (they lead with the
+// simple-mode animations), then the simple fills, organic and the rest, with the
+// audio-reactive set last.
 export const EFFECT_CATEGORIES: EffectCategory[] = [
-  'simple', 'gradient', 'twotone', 'spectrum',
-  'organic', 'pattern', 'cosmic', 'geometric', 'audio', 'sensor',
+  'pattern', 'simple', 'gradient', 'twotone', 'spectrum',
+  'organic', 'cosmic', 'geometric', 'audio', 'sensor',
 ];
 
 // The "simple" family: one cheap solid-fill shader (simple.frag) reused for
@@ -152,7 +153,7 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   ringtunnel: 'geometric', vortextunnel: 'geometric', helixtunnel: 'geometric',
   boxtunnel: 'geometric', harlequin: 'geometric', mosaic: 'geometric',
   cybertunnel: 'geometric',
-  // Pattern: waves, gradients, abstract graphic shapes (22).
+  // Pattern: waves, gradients, abstract graphic shapes.
   rainbow: 'pattern', matrix: 'pattern', ripple: 'pattern', wave: 'pattern',
   gradientwave: 'pattern', ball: 'pattern', radar: 'pattern', pulse: 'pattern',
   interference: 'pattern', domainwarp: 'pattern', dotmatrix: 'pattern',
@@ -160,6 +161,7 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   tide: 'pattern', ridgeline: 'pattern', chevron: 'pattern', terrace: 'pattern',
   sharplines: 'pattern', synthwave: 'pattern', retropetals: 'pattern',
   breathing: 'pattern', clockfill: 'pattern',
+  sweepcycle: 'pattern', sweepbrush: 'pattern', sweepliquid: 'pattern', sweepcomet: 'pattern',
   // Sensor-driven fills and color shifts: a hardware reading moves them.
   sensorbar: 'sensor', sensorclock: 'sensor', sensorsegments: 'sensor', sensorliquid: 'sensor',
   sensorcenter: 'sensor', sensorshift: 'sensor', sensorheat: 'sensor',
@@ -293,11 +295,16 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_zoom', label: 'Zoom', labelKey: 'lighting.controls.param.zoom' },
   ]},
   { key: 'fire',         labelKey: 'lighting.controls.fire',         params: [{ name: 'u_turbulence', label: 'Turbulence', labelKey: 'lighting.controls.param.turbulence' }] },
+  // The simple-mode animations lead the patterns. Simple mode runs the first
+  // preset of each, so editing that preset here changes it there. The browser
+  // lists patterns in this order.
   { key: 'rainbow',     labelKey: 'lighting.controls.rainbow',     params: [
       { name: 'u_density',  label: 'Density', labelKey: 'lighting.controls.param.density' },
       { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+      { name: 'u_tempo',    label: 'Tempo', labelKey: 'lighting.controls.param.tempo' },
+      { name: 'u_aspect',   label: 'Match aspect ratio', labelKey: 'lighting.controls.param.aspect', toggle: true },
   ]},
-  // Brushstrokes' hard-edged sibling: flat hue bars with black between them.
+  // Rainbow's hard-edged sibling: flat hue bars with black between them.
   // Position slides the colour/black split inside each bar, so it thickens the
   // gaps the way splitsharp's Position grows one side of the frame.
   { key: 'sharplines',  labelKey: 'lighting.controls.sharplines',  params: [
@@ -308,6 +315,27 @@ export const EFFECTS: EffectDef[] = [
   { key: 'breathing',    labelKey: 'lighting.controls.breathing',
      colors: [{ id: 'a', labelKey: 'lighting.controls.color1', range: true }, { id: 'b', labelKey: 'lighting.controls.color2', range: true }], params: [
       { name: 'u_sharpness', label: 'Sharpness', labelKey: 'lighting.controls.param.sharpness' },
+  ]},
+  { key: 'sweepcycle',   labelKey: 'lighting.controls.sweepcycle',  params: [
+      { name: 'u_span', label: 'Span', labelKey: 'lighting.controls.param.span' },
+      { name: 'u_dip',  label: 'Dip', labelKey: 'lighting.controls.param.dip' },
+  ]},
+  { key: 'sweepbrush',   labelKey: 'lighting.controls.sweepbrush',  params: [
+      { name: 'u_strokes', label: 'Strokes', labelKey: 'lighting.controls.param.strokes' },
+      { name: 'u_feather', label: 'Feather', labelKey: 'lighting.controls.param.feather' },
+      { name: 'u_fill',    label: 'Fill', labelKey: 'lighting.controls.param.fill' },
+      { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
+      { name: 'u_wash',    label: 'Watercolor', labelKey: 'lighting.controls.param.wash' },
+  ]},
+  { key: 'sweepliquid',  labelKey: 'lighting.controls.sweepliquid', params: [
+      { name: 'u_warp',  label: 'Warp', labelKey: 'lighting.controls.param.warp' },
+      { name: 'u_scale', label: 'Scale', labelKey: 'lighting.controls.param.scale' },
+  ]},
+  { key: 'sweepcomet',   labelKey: 'lighting.controls.sweepcomet',  params: [
+      { name: 'u_comets', label: 'Comets', labelKey: 'lighting.controls.param.comets' },
+      { name: 'u_tail',   label: 'Tail', labelKey: 'lighting.controls.param.tail' },
+      { name: 'u_color',  label: 'Color', labelKey: 'lighting.controls.param.color' },
+      { name: 'u_head',   label: 'Head', labelKey: 'lighting.controls.param.head' },
   ]},
   // Sweeps around like a clock hand, the two colors taking turns, for fans and rings.
   { key: 'clockfill',    labelKey: 'lighting.controls.clockfill',
@@ -835,7 +863,11 @@ export const DEFAULT_STATIC_EFFECT = 'gradientlinear';
  * purpose-built for a held frame - the patterns have no clock to run - so they
  * must not appear here or Animation can select one and sit motionless.
  */
-export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS.filter(e => !STATIC_KEY_SET.has(e.key));
+export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS
+  .filter(e => !STATIC_KEY_SET.has(e.key))
+  // Category order, then catalogue order within a category (the sort is stable),
+  // so flat lists such as a dropdown lead with the Patterns like the browser does.
+  .sort((a, b) => EFFECT_CATEGORIES.indexOf(categoryOf(a.key)) - EFFECT_CATEGORIES.indexOf(categoryOf(b.key)));
 
 /**
  * Simple-mode browse pool: the flat colours, rendered as

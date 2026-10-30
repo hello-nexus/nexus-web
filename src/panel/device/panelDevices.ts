@@ -50,6 +50,8 @@ export interface PanelDevice {
   displayId?: string;
   // An OS display turned into a panel that no curated device claims; only these are "Nexus panel" in menus.
   genericDisplay?: boolean;
+  // Streamed USB panel whose secondary monitor is on: Nexus Control off then means "panel off", not "release the device".
+  secondaryMonitor?: boolean;
   // Server-side PanelDeviceRecord id when this entry is backed directly by a
   // record (promoted monitors). The editor binds by this id instead of the
   // surface-match scan, which breaks with several same-surface records.

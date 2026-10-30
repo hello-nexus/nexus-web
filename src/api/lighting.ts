@@ -364,8 +364,25 @@ export const fetchRenderGpu = () =>
 export const setRenderGpu = (value: string) =>
   postService<{ error?: boolean }>('/lighting/render-gpu', { value });
 
-export const restartService = () =>
-  postService('/service/restart', {});
+/** `reopenRoute` asks the service to reopen the dashboard window at that route once after the restart. */
+export const restartService = (reopenRoute?: string) =>
+  postService('/service/restart', reopenRoute ? { reopenRoute } : {});
+
+export type RestartOutcome = 'accepted' | 'refused' | 'dropped';
+
+/**
+ * Restart that tells the three outcomes apart by status: accepted (2xx), refused (the service answered
+ * with an error, e.g. an invalid route or a restart already running), or dropped (no answer, as the
+ * socket does when the service goes down).
+ */
+export async function requestServiceRestart(reopenRoute?: string): Promise<RestartOutcome> {
+  const { response, status } = await authFetchWithStatus('/service/restart', {
+    method: 'POST',
+    body: reopenRoute ? { reopenRoute } : {},
+  });
+  if (response === null || status === 0) return 'dropped';
+  return status >= 200 && status < 300 ? 'accepted' : 'refused';
+}
 
 // --- Screen monitor enumeration ---
 
@@ -504,6 +521,8 @@ export interface LightingDevice {
   zoneCustomizable?: boolean;
   /** Conflict-app catalog ids competing with Nexus for this card's hardware. Undefined on older services. */
   conflictAppIds?: string[];
+  /** 'failing' while Nexus controls this card but its hardware writes keep failing; absent when healthy or on an older service. */
+  writeHealth?: 'failing';
   /** Curated handler whose Nexus Control gate claims this card's hardware (Lian Li / Corsair hubs); the conflict UI folds the card into that handler's row. */
   controlHandlerId?: string;
 }

@@ -835,6 +835,25 @@ describe('BuildPage headless', () => {
     previewApi.devTools = false;
   });
 
+  it('a headless frame whose host asked for the preview offers it and relays it; one that did not neither', () => {
+    h.specs = SAMPLE_SPECS;
+    const asked = render(<BuildPage headless={headlessProp({ preview: true })} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(helloOf(spy)!).toMatchObject({ headless: true, canSavePreview: true });
+    const png = new ArrayBuffer(4);
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: 'case-abc', png }));
+    expect(previewApi.relayPreviewSave).toHaveBeenCalledWith('case-abc', png);
+    asked.unmount();
+    previewApi.relayPreviewSave.mockClear();
+    render(<BuildPage headless={headlessProp()} />);
+    const quiet = getIframe();
+    act(() => postFromFrame(quiet, { type: 'nexus-build:ready' }));
+    act(() => postFromFrame(quiet, { type: 'nexus-build:set-preview', caseId: 'case-abc', png }));
+    expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
+  });
+
   it('offers no setup sync in a distribution build, headless or not', () => {
     previewApi.devTools = false;
     h.specs = SAMPLE_SPECS;

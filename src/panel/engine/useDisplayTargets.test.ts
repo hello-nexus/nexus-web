@@ -10,7 +10,7 @@ const rec = (over: Partial<PanelDeviceRecord>): PanelDeviceRecord =>
 const disp = (over: Partial<TopologyDisplay>): TopologyDisplay => ({
   id: 'd', number: 1, name: 'Monitor', manufacturer: '', model: '', bounds: null, resolution: { width: 1, height: 1 },
   scaleFactor: null, dpi: null, isPrimary: false, isInternal: false, isTouch: false, orientation: '', isY70: false,
-  ddcEnabled: true, hostingSupported: true, assignedPanelDeviceId: null, assignedPanelName: null, ...over,
+  ddcEnabled: true, hostingSupported: true, ownedByDevicePanel: false, assignedPanelDeviceId: null, assignedPanelName: null, ...over,
 });
 const topo = (displays: TopologyDisplay[], hostingSupported = true): DisplayTopology =>
   ({ hostingSupported, rotationSupported: false, reserveSupported: false, positionsAvailable: true, revision: 1, displays, hint: '' });

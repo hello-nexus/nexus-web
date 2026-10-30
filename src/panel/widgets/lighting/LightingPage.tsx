@@ -67,6 +67,7 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useDevices } from '../../../hooks/useDevices';
 import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
 import { ConflictWarningModal } from '../../../components/common/Sidebar/ConflictWarning';
+import { FixLightingModal } from '../../../components/common/FixLightingModal/FixLightingModal';
 import { Coachmark } from '../../../components/common/Coachmark/Coachmark';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
@@ -100,7 +101,9 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { effectEditEnabled } from './page/effectEdit';
 import { StaticPalette } from './page/StaticPalette';
 import { SimpleAnimationRow } from './page/SimpleAnimationRow';
-import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
+import {
+  SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, simpleAnimationLabelKey, simpleAnimationState,
+} from './simpleAnimations';
 import { useLightingRecents } from './useLightingRecents';
 import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, snapToSegment, pickerHexAt, pickerPointFor } from './page/staticPickerField';
@@ -693,6 +696,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const throttleAnimate = useThrottle();
   const throttlePostProcess = useThrottle();
   const localAnimateEditUntilRef = useRef(0);
+  // Bumped whenever simple mode saves or loads templates itself, and counting its
+  // saves in flight, so an older hydrate never overwrites them.
+  const templateGenerationRef = useRef(0);
+  const templateSavesRef = useRef(0);
   const activeProfileKey = activeProfileId ?? 'default';
   const activeProfileKeyRef = useRef(activeProfileKey);
   activeProfileKeyRef.current = activeProfileKey;
@@ -717,7 +724,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     keepSelection = false,
   ) => {
     if (!data) return;
+    const generation = templateGenerationRef.current;
     const defaults = await fetchAnimateDefaults();
+    // A simple-mode tap saved templates since this payload was read: applying it
+    // would put the older selection back.
+    if (generation !== templateGenerationRef.current || templateSavesRef.current > 0) return;
     setAnimateDefaults(defaults);
     const merged: Record<string, EffectTemplateBundle> = {};
     const savedTemplates = data.templates ?? {};
@@ -864,13 +875,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           setActiveEffect(data.effect);
         }
       });
-    } else if (isSimpleAnimation(rawSync)) {
-      // Started from simple mode, the widget or another client: a sweep has no
-      // cell in the advanced grid, so leaving the last catalogue key selected
-      // would mark that cell and draw its shader over a canvas running this.
-      setActiveEffect('');
-    } else if (EFFECTS.some(e => e.key === rawSync) || isCustomEffectKey(rawSync)) {
-      setActiveEffect(rawSync);
+    } else if (EFFECTS.some(e => e.key === canonicalSimpleKey(rawSync)) || isCustomEffectKey(rawSync)) {
+      // A key retired from simple mode (older service, cached state) shows as
+      // the effect that replaced it.
+      setActiveEffect(canonicalSimpleKey(rawSync));
       fetchAnimateSettings().then(data => {
         if (cancelled || !data) return;
         hydrateAnimateSettings(data);
@@ -1632,6 +1640,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [curatedDevices],
   );
   const [appStripIds, setAppStripIds] = useState<readonly string[] | null>(null);
+  // Open flag plus the card that opened it; null name means the page link opened it.
+  const [fixLighting, setFixLighting] = useState<{ deviceName: string | null } | null>(null);
   const conflictExclusions = useConflictAutoKillExclusions();
   // Nexus 2 is never whitelisted: the service ends it whatever the list says.
   const conflictWhitelisted = useMemo(
@@ -2240,67 +2250,144 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [claimableDevices, pins],
   );
 
-  // The switch holds a browser-local preference, but the direction the hardware
-  // is running is the stored speed sign - conform to it once per sweep so a
-  // second browser does not show the switch the wrong way round.
+  // The switch holds a browser-local preference for the next pick; the
+  // direction the hardware is running is the stored speed sign, so conform to
+  // it once per animation and a second browser does not show the switch the
+  // wrong way round.
   const reverseReadFor = useRef<string | null>(null);
 
-  // A sweep is one shared shader for every device, so starting Animate is the
-  // whole assignment - there is no per-device write to make. activeEffect is
-  // cleared because a sweep has no cell in the advanced grid: leaving the last
-  // catalogue key there marks that cell selected and draws its shader on the
-  // canvas while the hardware runs this one.
+  // Last tap wins: every simple-mode action takes a number and gives up when a
+  // newer one (or an unmount) has taken over while it was awaiting.
+  const simpleSeqRef = useRef(0);
+  useEffect(() => () => { simpleSeqRef.current += 1; }, []);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  const simpleReversedRef = useRef(simpleReversed);
+  simpleReversedRef.current = simpleReversed;
+
+  // Simple mode runs the first preset of a regular effect: this moves the
+  // effect's selection there (saved, and awaited, only when it was elsewhere,
+  // because the service re-applies the selected preset on that save and would
+  // overwrite a reversed start sent before it lands) and returns the preset's
+  // resolved look. Resolves null while the stock defaults or this effect's
+  // templates cannot be loaded, when the selection could not be saved (the
+  // prior state stays), or when a newer action took over: starting then would
+  // persist a wrong look.
+  const selectSimpleSlot = useCallback(async (key: string, seq: number): Promise<EffectState | null> => {
+    const current = () => seq === simpleSeqRef.current;
+    let templates = effectTemplatesRef.current;
+    if (!animateDefaults || !templates[key]) {
+      const [data, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
+      if (!current() || !data || !defaults) return null;
+      templateGenerationRef.current += 1;
+      setAnimateDefaults(defaults);
+      const loaded: Record<string, EffectTemplateBundle> = {};
+      for (const fx of EFFECTS) loaded[fx.key] = mergeTemplates(fx.key, data.templates?.[fx.key], defaults);
+      for (const k of Object.keys(data.templates ?? {})) {
+        if (isCustomEffectKey(k)) loaded[k] = mergeTemplates(k, data.templates?.[k], defaults);
+      }
+      templates = loaded;
+      effectTemplatesRef.current = loaded;
+      setEffectTemplates(loaded);
+      setCommittedTemplates(loaded);
+    }
+    const bundle = templates[key];
+    if (!bundle) return null;
+    if (bundle.selected !== SIMPLE_SLOT) {
+      localAnimateEditUntilRef.current = Date.now() + 1500;
+      const next = { ...templates, [key]: { ...bundle, selected: SIMPLE_SLOT } };
+      templateGenerationRef.current += 1;
+      templateSavesRef.current += 1;
+      let saved: unknown = null;
+      try { saved = await saveAnimateTemplates(next); } catch { /* left null: not saved */ } finally { templateSavesRef.current -= 1; }
+      templateGenerationRef.current += 1;
+      // A refused save keeps the prior selection locally too.
+      if (!saved || !current()) return null;
+      effectTemplatesRef.current = next;
+      setEffectTemplates(next);
+      setCommittedTemplates(next);
+    }
+    return bundle.slots[SIMPLE_SLOT];
+  }, [animateDefaults]);
+
+  // One shared shader for every device, so starting Animate is the whole
+  // assignment - there is no per-device write to make.
   const handleSimpleAnimationSelect = useCallback(async (key: string) => {
+    const seq = ++simpleSeqRef.current;
+    const slot0 = await selectSimpleSlot(key, seq);
+    if (!slot0 || seq !== simpleSeqRef.current) return;
     recordAnimation(key);
     claimAllDevices(false);
     unpinAll();
-    setActiveEffect('');
+    setActiveEffect(key);
     // This IS the direction now, so the conform read below must not run for
     // this key: rawSync goes optimistic, and the stored sign is still the old
     // one until the start persists.
     reverseReadFor.current = key;
     setMode('animate');
     setRawSync(key);
-    const state = simpleAnimationState(simpleReversed);
+    const state = simpleAnimationState(slot0, simpleReversedRef.current);
     try {
-      // Re-picking the running sweep reuses the live shader, and that path
+      // Re-picking the running effect reuses the live shader, and that path
       // never clears the engine's hold, so a paused engine has to be released
       // explicitly or the tile lights up over frozen LEDs.
-      if (paused) { setPausedState(false); await setLightingPaused(false); }
-      await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+      if (pausedRef.current) {
+        setPausedState(false);
+        await setLightingPaused(false);
+        if (seq !== simpleSeqRef.current) return;
+      }
+      await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
     } catch { /* the sync poll reconciles */ }
-  }, [claimAllDevices, paused, setMode, setPausedState, setRawSync, simpleReversed, unpinAll, recordAnimation]);
+  }, [claimAllDevices, selectSimpleSlot, setMode, setPausedState, setRawSync, unpinAll, recordAnimation]);
 
-  // The running sweep, which is also what marks a tile.
+  // The running simple-mode animation, which is also what marks a tile. Only
+  // the first preset counts: the same effect on another preset is a custom
+  // setup that simple mode neither marks nor reverses.
   const simpleAnimation = synced && mode === 'animate' && isSimpleAnimation(rawSync)
-    ? rawSync
+    && slotOf(canonicalSimpleKey(rawSync)) === SIMPLE_SLOT
+    ? canonicalSimpleKey(rawSync)
     : null;
 
-  // Turning the row around restarts the running sweep with the other sign.
+  // Turning the row around restarts the running animation with the preset's
+  // speed negated. The sign lives in the running state only, never in the slot.
   const handleSimpleReverse = useCallback(async (next: boolean) => {
     setSimpleReversed(next);
     if (!simpleAnimation) return;
-    const state = simpleAnimationState(next);
+    const seq = ++simpleSeqRef.current;
+    const slot0 = await selectSimpleSlot(simpleAnimation, seq);
+    if (!slot0 || seq !== simpleSeqRef.current) return;
+    const state = simpleAnimationState(slot0, next);
     try {
       // Same in-place uniform path a re-pick takes, which never clears the
       // engine's hold, so a paused engine has to be released explicitly.
-      if (paused) { setPausedState(false); await setLightingPaused(false); }
-      await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+      if (pausedRef.current) {
+        setPausedState(false);
+        await setLightingPaused(false);
+        if (seq !== simpleSeqRef.current) return;
+      }
+      await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: simpleAnimation, effect: simpleAnimation });
     } catch { /* the sync poll reconciles */ }
-  }, [paused, setPausedState, simpleAnimation, setSimpleReversed]);
+  }, [selectSimpleSlot, setPausedState, simpleAnimation, setSimpleReversed]);
 
   useEffect(() => {
     if (!simpleAnimation || reverseReadFor.current === simpleAnimation) return;
     reverseReadFor.current = simpleAnimation;
     let cancelled = false;
-    fetchAnimateSettings().then(data => {
-      const speed = data?.states?.[simpleAnimation]?.speed;
-      if (!cancelled && typeof speed === 'number') setSimpleReversed(speed < 0);
+    Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]).then(([data, defaults]) => {
+      if (cancelled || !data) return;
+      // The service drops a running state equal to the selected preset, so a
+      // missing one is the forward direction. A retired key may still hold it.
+      const speed = data.states?.[rawSync]?.speed ?? data.states?.[simpleAnimation]?.speed;
+      if (typeof speed !== 'number') { setSimpleReversed(false); return; }
+      const slot0 = mergeTemplates(simpleAnimation, data.templates?.[simpleAnimation], defaults).slots[SIMPLE_SLOT];
+      setSimpleReversed(isSimpleReversed(speed, slot0.speed));
     }).catch(() => { /* keep the local value */ });
     return () => { cancelled = true; };
-  }, [simpleAnimation, setSimpleReversed]);
+  }, [simpleAnimation, rawSync, setSimpleReversed]);
 
   // The swatch simple mode marks active: the exact global color, when it is
   // one of the palette's.
@@ -2500,7 +2587,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     <Badge
       label={previewBadgeLabel}
       compact
-      uppercase
       color={selectedDeviceIds.size > 0 ? 'var(--accent-glow)' : 'var(--text-dim)'}
     />
   );
@@ -2767,6 +2853,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <SectionHeader className={styles.simpleSectionHeader}>{t('lighting.mode.animate')}</SectionHeader>
             <SimpleAnimationRow
               activeKey={simpleAnimation}
+              versionFor={key => versionForSlot(key, SIMPLE_SLOT)}
               reversed={simpleReversed}
               gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
               onSelect={key => { void handleSimpleAnimationSelect(key); }}
@@ -2996,6 +3083,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             runningApps={runningApps}
             curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
+            onOpenFixLighting={deviceName => setFixLighting({ deviceName })}
+            onOpenFixLightingLink={showCanvas || viewMode === 'static' ? () => setFixLighting({ deviceName: null }) : undefined}
           />
         </div>
         <div
@@ -3262,6 +3351,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => { setKeyReactionsId(null); void refreshKeyReactive(); }}
         />
       )}
+      <FixLightingModal
+        open={fixLighting !== null}
+        onClose={() => setFixLighting(null)}
+        deviceName={fixLighting?.deviceName ?? undefined}
+      />
       <ConflictWarningModal
         open={appStripIds !== null}
         conflicts={appStripConflicts}

@@ -1,6 +1,6 @@
 import type { PcSetupRecord } from '../../api/pcSetup';
 import type { BuildResolved } from '../../components/views/BuildPage/BuildPage';
-import { supportsAirflow } from './airflowCases';
+import { isFullySupportedCase } from './supportedCases';
 
 /** The layout keys already tried this session, so a layout that stays out of date after a try is never retried in a loop. */
 const tried = new Set<string>();
@@ -69,5 +69,5 @@ export function resolveOutcome(message: BuildResolved | null, record: PcSetupRec
   if (!message.saved) return 'failed';
   if (!message.hasLayout) return 'done';
   if (!record || record.rev < message.rev) return 'waiting';
-  return message.model || !supportsAirflow(layoutOf(record)?.caseModel as string | undefined) ? 'done' : 'waiting';
+  return message.model || !isFullySupportedCase(layoutOf(record)?.caseModel as string | undefined) ? 'done' : 'waiting';
 }

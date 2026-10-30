@@ -284,7 +284,7 @@ describe('LightingPage pins', () => {
       await waitFor(() => expect(screen.getByTestId('rail').dataset.source).not.toBe(''));
       expect(screen.getByTestId('rail').dataset.disabled).toBe('');
       fireEvent.click(screen.getByText('toggle'));
-      expect(lastPinsCall()).toEqual([['a'], { kind: 'animate', effect: 'sweeprainbow' }]);
+      expect(lastPinsCall()).toEqual([['a'], { kind: 'animate', effect: 'rainbow' }]);
     });
 
     it('pins to the one shared Media in Media', async () => {

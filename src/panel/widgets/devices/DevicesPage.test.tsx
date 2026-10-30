@@ -50,6 +50,11 @@ vi.mock('../../../hooks/useUnifiedDevices', async importOriginal => ({
   }),
 }));
 
+vi.mock('../../../components/common/FixLightingModal/FixLightingModal', () => ({
+  FixLightingModal: ({ open, deviceName }: { open: boolean; deviceName?: string }) =>
+    (open ? <div data-testid="fix-lighting" data-device={deviceName ?? ''} /> : null),
+}));
+
 import { DevicesPage } from './DevicesPage';
 
 function monitorRow(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
@@ -507,5 +512,50 @@ describe('DevicesPage device order', () => {
     const names = ['alpha fan', 'Mid Strip', 'Zeta Hub'].map(n => screen.getByText(n));
     expect(names[0].compareDocumentPosition(names[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(names[1].compareDocumentPosition(names[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe('DevicesPage not-responding chip', () => {
+  const chipName = 'lighting.writeHealth.badge. lighting.writeHealth.tooltip';
+
+  it('shows the chip only for a failing device with Nexus Control on', () => {
+    mockUnified = [
+      curatedRow({ key: 'c-bad', name: 'Failing Fan', shortName: 'Failing Fan', writeHealth: 'failing' }),
+      curatedRow({ key: 'c-ok', name: 'Healthy Fan', shortName: 'Healthy Fan' }),
+    ];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.getAllByRole('button', { name: chipName })).toHaveLength(1);
+  });
+
+  it('hides the chip while Nexus Control is off for the failing device', () => {
+    mockUnified = [curatedRow({ writeHealth: 'failing', nexusControlEnabled: false })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.queryByRole('button', { name: chipName })).toBeNull();
+  });
+
+  it('opens Fix lighting naming the device, without opening the device page', () => {
+    const onDeviceSelect = vi.fn();
+    mockUnified = [curatedRow({ writeHealth: 'failing' })];
+    render(<DevicesPage serviceOnline onDeviceSelect={onDeviceSelect} />);
+    expect(screen.queryByTestId('fix-lighting')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: chipName }));
+    expect(screen.getByTestId('fix-lighting').getAttribute('data-device')).toBe('Stream Deck');
+    expect(onDeviceSelect).not.toHaveBeenCalled();
+  });
+
+  it('hides the chip for a disconnected device', () => {
+    mockUnified = [curatedRow({ writeHealth: 'failing', connected: false })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.getByText('Stream Deck')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: chipName })).toBeNull();
+  });
+
+  it('yields to the running-app chip', () => {
+    mockConflicts = [L_CONNECT];
+    mockUnified = [lianLiRow({ writeHealth: 'failing', nexusControlEnabled: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.queryByRole('button', { name: chipName })).toBeNull();
+    expect(screen.getByRole('img', { name: /devices\.conflictRunning\.tooltip\.title/ })).toBeInTheDocument();
   });
 });

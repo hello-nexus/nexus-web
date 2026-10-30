@@ -11,13 +11,17 @@ import {
   fetchLightingDevices,
   fetchLightingStatus,
   setLightingDeviceControlled,
+  fetchAnimateDefaults,
+  fetchAnimateSettings,
+  saveAnimateTemplates,
   startAnimate,
   startStatic,
   type LightingDevice,
 } from '../../../api/lighting';
 import { DEFAULT_STATIC_EFFECT } from '../../../types/lighting';
 import { paletteColor, paletteKey } from '../../../types/lightingPalette';
-import { SIMPLE_ANIMATION_KEYS, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
+import { SIMPLE_ANIMATION_KEYS, SIMPLE_SLOT, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
+import { mergeTemplates } from '../../../types/lightingTemplates';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
 import { appendNewCards } from '../../../lib/lightingVisibility';
@@ -203,8 +207,19 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   }, []);
 
   const runRainbow = useCallback(() => {
-    const state = simpleAnimationState(false);
-    applyPick(RAINBOW, () => startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params));
+    applyPick(RAINBOW, async () => {
+      // The effect's first preset: stock defaults merged with any saved edit,
+      // selected (awaited, before the start) when it was elsewhere.
+      const [saved, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
+      if (!saved || !defaults) return;
+      const bundle = mergeTemplates(RAINBOW, saved.templates?.[RAINBOW], defaults);
+      if (bundle.selected !== SIMPLE_SLOT) {
+        await saveAnimateTemplates({ ...(saved.templates ?? {}), [RAINBOW]: { ...bundle, selected: SIMPLE_SLOT } }).catch(() => {});
+      }
+      const slot0 = bundle.slots[SIMPLE_SLOT];
+      const state = simpleAnimationState(slot0, false);
+      await startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+    });
   }, [applyPick]);
 
   // The simple page's palette path: Static owns the output first, then every
@@ -393,12 +408,12 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       {cards !== null && cards.length > 0 && (
         <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
           <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
-          <HoverTooltip body={t('lighting.simple.anim.rainbow')}>
+          <HoverTooltip body={t('lighting.controls.rainbow')}>
             <button
               type="button"
               className={`${styles.swatch} ${pick === RAINBOW ? styles.swatchActive : ''}`}
               style={{ '--swatch': RAINBOW_SWATCH } as CSSProperties}
-              aria-label={t('lighting.simple.anim.rainbow')}
+              aria-label={t('lighting.controls.rainbow')}
               aria-pressed={pick === RAINBOW}
               onClick={runRainbow}
             />

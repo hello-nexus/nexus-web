@@ -399,6 +399,7 @@ export function buildPanelDevices({
       iconSrc: (family ? STREAMED_FAMILY_ICONS[family] : undefined) ?? PANEL_MONITOR_ICON,
       capabilities: STREAMED_PANEL_CAPABILITIES,
       modalKind: 'panel-editor',
+      secondaryMonitor: record.secondaryMonitor === true,
     });
   }
 

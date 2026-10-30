@@ -53,7 +53,7 @@ vi.mock('../../../api/lighting', async importOriginal => {
     fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'none' })),
     fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', states: {}, templates: {} })),
     fetchStaticSettings: vi.fn(() => Promise.resolve({ effect: 'gradientlinear', states: {} })),
-    fetchAnimateDefaults: vi.fn(() => Promise.resolve(null)),
+    fetchAnimateDefaults: vi.fn(() => Promise.resolve({})),
     cachedAnimateDefaults: vi.fn(() => null),
     fetchMusicReactive: vi.fn(() => Promise.resolve({ enabled: false })),
     fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1 })),
@@ -93,6 +93,11 @@ describe('LightingPage simple mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(lightingApi.fetchStaticSettings).mockResolvedValue({ effect: 'gradientlinear', states: {} });
+    // Tests below override these; put the file defaults back so order never matters.
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', states: {}, templates: {} } as never);
+    vi.mocked(lightingApi.fetchAnimateDefaults).mockResolvedValue({});
+    vi.mocked(lightingApi.saveAnimateTemplates).mockResolvedValue({ error: false, msg: '' } as never);
+    vi.mocked(lightingApi.startAnimate).mockResolvedValue(null as never);
     // Fresh install: no stored settings, both page modes default to 'simple'.
     localStorage.clear();
     syncState.mode = 'none';
@@ -226,18 +231,19 @@ describe('LightingPage simple mode', () => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
     });
     fireEvent.click(container.querySelector('[data-palette-id="red-3"]') as HTMLButtonElement);
-    fireEvent.click(container.querySelector('[data-effect-key="sweepbars"]') as HTMLButtonElement);
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
     await waitFor(() => {
       const general = loadSettings().general;
       expect(general.recentStaticColors).toEqual([PALETTE.find(p => p.id === 'red-3')!.hex]);
-      expect(general.recentAnimations).toEqual(['sweepbars']);
+      expect(general.recentAnimations).toEqual(['sharplines']);
     });
   });
 
-  it('offers the animation row under the palette, one tile per sweep', () => {
+  it('offers the animation row under the palette, one tile per animation', () => {
     const { container } = renderPage();
-    expect(container.querySelectorAll('[data-effect-key^="sweep"]').length)
-      .toBe(SIMPLE_ANIMATION_KEYS.length);
+    for (const key of SIMPLE_ANIMATION_KEYS) {
+      expect(container.querySelectorAll(`[data-effect-key="${key}"]`).length).toBe(1);
+    }
   });
 
   it('starts a picked animation without retaking the un-driven device', async () => {
@@ -245,26 +251,163 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
     });
-    fireEvent.click(container.querySelector('[data-effect-key="sweepbars"]') as HTMLButtonElement);
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sweepbars', 50, 1, 0, 0, 1, 1, {});
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 50, 1, 0, 0, 1, 1, {}, true, undefined);
     });
     expect(vi.mocked(lightingApi.setLightingDeviceControlled)).not.toHaveBeenCalled();
-    // A sweep is one shared canvas: nothing is pinned for it.
+    // One shared canvas: nothing is pinned for it.
     expect(vi.mocked(lightingApi.setPins)).not.toHaveBeenCalled();
   });
 
-  it('turns the running sweep around from the direction switch', async () => {
+  // Preset 1 as it resolves (defaults merged with the user's slot 0 edit) is the
+  // look simple mode runs, and the effect's selection moves to it.
+  it('selects slot 0 and runs its resolved look, leaving the other slots alone', async () => {
+    const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
+    const saved = {
+      selected: 2,
+      slots: [{ ...slot(30), params: { u_density: 4 } }, slot(61), slot(62), slot(63)],
+    };
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: saved },
+    } as never);
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 30, 1, 0, 0, 1, 1, { u_density: 4 }, true, undefined);
+    });
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled();
+    });
+    const sent = vi.mocked(lightingApi.saveAnimateTemplates).mock.calls.at(-1)![0] as Record<string, typeof saved>;
+    expect(sent.sharplines.selected).toBe(0);
+    expect(sent.sharplines.slots.map(x => x.speed)).toEqual([30, 61, 62, 63]);
+  });
+
+  it('turns the running animation around by negating slot 0 speed only', async () => {
     syncState.mode = 'animate';
-    syncState.rawSync = 'sweeprainbow';
+    syncState.rawSync = 'rainbow';
     renderPage();
     fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sweeprainbow', -50, 1, 0, 0, 1, 1, {});
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined);
     });
+    // The sign is the running state: no template is written for it.
+    expect(vi.mocked(lightingApi.saveAnimateTemplates)).not.toHaveBeenCalled();
   });
 
-  it('marks the running sweep and does not call it a custom setup', async () => {
+  // The service re-applies the selected preset when the selection is saved, so a
+  // reversed start sent before the save lands would be overwritten with the
+  // forward speed.
+  it('saves the slot 0 selection before starting a reversed animation', async () => {
+    const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: { selected: 1, slots: [slot(30), slot(60), slot(60), slot(60)] } },
+    } as never);
+    const order: string[] = [];
+    let releaseSave: () => void = () => {};
+    vi.mocked(lightingApi.saveAnimateTemplates).mockImplementation(() => new Promise(resolve => {
+      order.push('save');
+      releaseSave = () => { order.push('saved'); resolve({ error: false, msg: '' } as never); };
+    }));
+    vi.mocked(lightingApi.startAnimate).mockImplementation(() => { order.push('start'); return Promise.resolve(null as never); });
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => expect(order).toContain('save'));
+    expect(order).not.toContain('start');
+    releaseSave();
+    await waitFor(() => expect(order).toContain('start'));
+    expect(order).toEqual(['save', 'saved', 'start']);
+    expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', -30, 1, 0, 0, 1, 1, {}, true, undefined);
+  });
+
+  const savedBundle = (selected: number) => {
+    const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
+    return { selected, slots: [slot(30), slot(60), slot(60), slot(60)] };
+  };
+
+  // A tap that is still saving its selection must not start after a newer tap.
+  it('lets the last tap win when an earlier one is still saving', async () => {
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: savedBundle(1) },
+    } as never);
+    let releaseSave: () => void = () => {};
+    vi.mocked(lightingApi.saveAnimateTemplates).mockImplementation(() => new Promise(resolve => {
+      releaseSave = () => resolve(null as never);
+    }));
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled());
+    // Rainbow is already on its first preset: it starts at once.
+    fireEvent.click(container.querySelector('[data-effect-key="rainbow"]') as HTMLButtonElement);
+    await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', 50, 1, 0, 0, 1, 1, {}, true, undefined));
+    releaseSave();
+    await new Promise(r => setTimeout(r, 20));
+    const started = vi.mocked(lightingApi.startAnimate).mock.calls.map(c => c[0]);
+    expect(started).toEqual(['rainbow']);
+  });
+
+  it('does not start or commit the selection when the save is refused', async () => {
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { sharplines: savedBundle(1) },
+    } as never);
+    vi.mocked(lightingApi.saveAnimateTemplates).mockResolvedValue(null as never);
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled());
+    await new Promise(r => setTimeout(r, 20));
+    expect(vi.mocked(lightingApi.startAnimate)).not.toHaveBeenCalled();
+  });
+
+  it('starts nothing while the stock defaults cannot be loaded', async () => {
+    vi.mocked(lightingApi.fetchAnimateDefaults).mockResolvedValue(null);
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchAnimateDefaults)).toHaveBeenCalled();
+    });
+    expect(vi.mocked(lightingApi.startAnimate)).not.toHaveBeenCalled();
+    expect(vi.mocked(lightingApi.saveAnimateTemplates)).not.toHaveBeenCalled();
+  });
+
+  it('reads a missing running state as forward, whatever was stored locally', async () => {
+    localStorage.setItem('nexus.lighting.simpleReversed', 'true');
+    syncState.mode = 'animate';
+    syncState.rawSync = 'rainbow';
+    renderPage();
+    const toggle = screen.getByRole('switch', { name: 'lighting.simple.reverse' });
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
+  });
+
+  it('marks no tile when the effect runs on another preset', async () => {
+    vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({
+      effect: 'rainbow', states: {}, templates: { rainbow: { selected: 2, slots: [] } },
+    } as never);
+    syncState.mode = 'animate';
+    syncState.rawSync = 'rainbow';
+    const { container } = renderPage();
+    expect(await screen.findByText('lighting.simple.customActive')).toBeTruthy();
+    const tile = container.querySelector('[data-effect-key="rainbow"]') as HTMLButtonElement;
+    expect(tile.className).not.toContain('cardActive');
+  });
+
+  it('marks the running animation and does not call it a custom setup', async () => {
     syncState.mode = 'animate';
     syncState.rawSync = 'sweepcycle';
     const { container } = renderPage();
@@ -274,6 +417,17 @@ describe('LightingPage simple mode', () => {
     const tile = container.querySelector('[data-effect-key="sweepcycle"]') as HTMLButtonElement;
     expect(tile.className).toContain('cardActive');
     expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
+  });
+
+  it('marks the replacement tile for a retired simple-mode key', async () => {
+    syncState.mode = 'animate';
+    syncState.rawSync = 'sweepbars';
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    const tile = container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement;
+    expect(tile.className).toContain('cardActive');
   });
 
   it('switches to the advanced page from the mode menu', async () => {

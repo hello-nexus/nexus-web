@@ -16,7 +16,6 @@
   user-select: none;
 }
 
-// The canvas with the device panel docked beside it; the panel drops under the canvas when the pane is narrow.
 .inlineLayout {
   display: flex;
   flex-wrap: wrap;
@@ -30,18 +29,6 @@
   flex: 1 1 24rem;
   width: auto;
   max-width: calc(440px * 5 / 3);
-}
-
-.devicePanel {
-  @include scrollbar-visible;
-  flex: 0 1 15rem;
-  min-width: 12rem;
-  max-height: 440px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  overflow-y: auto;
-  padding-right: 0.25rem;
 }
 
 .backdrop {
@@ -201,98 +188,10 @@
   color: rgb(255 255 255 / var(--alpha-strong));
 }
 
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.sectionTitle {
-  @include text-label;
-  color: var(--text-dim);
-}
-
-.sectionNote {
-  @include text-caption;
-  color: var(--text-dim);
-}
-
 .buttonRow {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-}
-
-.deviceList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.deviceRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  cursor: grab;
-  transition: border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover { border-color: var(--border-strong); }
-}
-
-.deviceRowActive {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.deviceDot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
-  background: var(--text-dim);
-}
-
-.deviceDotPlaced { background: var(--accent); }
-
-.deviceText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.deviceName {
-  @include text-body;
-  overflow: hidden;
-  color: var(--text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deviceWhere {
-  @include text-caption;
-  overflow: hidden;
-  color: var(--text-dim);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deviceLink {
-  @include text-caption;
-  align-self: flex-start;
-  padding: 0 0.6rem 0.3rem;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  text-align: left;
-  cursor: pointer;
-
-  &:focus-visible { @include focus-ring; }
 }
 
 .inspectorTitle {

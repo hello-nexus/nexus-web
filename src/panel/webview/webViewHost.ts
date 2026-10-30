@@ -100,6 +100,7 @@ export class WebViewHost {
   private navControls = false;
   private gestureEngagePx = GESTURE_ENGAGE_PX;
   private interactiveTiles = false;
+  private restricted = false;
   private contextMenuListeners = new Set<(id: string, x: number, y: number) => void>();
   private snapshot: WebViewHostSnapshot = { status: 'idle', interactive: false, contextMenu: false, navControls: false, maxViews: 0, views: {}, overLimit: [] };
   private listeners = new Set<() => void>();
@@ -173,6 +174,13 @@ export class WebViewHost {
   setInteractiveTiles(value: boolean): void {
     if (this.interactiveTiles === value) return;
     this.interactiveTiles = value;
+    this.schedule();
+  }
+
+  /** Restricted mode: no view takes input; the native view stays visible. */
+  setRestricted(value: boolean): void {
+    if (this.restricted === value) return;
+    this.restricted = value;
     this.schedule();
   }
 
@@ -466,7 +474,7 @@ export class WebViewHost {
 
   // Touch in place needs both the host's long-press report and its menu path, so an older host keeps tap-to-open.
   private viewInteractive(c: ClaimRecord): boolean {
-    if (!this.interactive) return false;
+    if (!this.interactive || this.restricted) return false;
     if (c.immersive) return true;
     if (!this.contextMenu) return false;
     return this.interactiveTiles || (c.touchPage === true && this.longPress);
@@ -477,6 +485,7 @@ export class WebViewHost {
     const documentVisible = document.visibilityState !== 'hidden';
     const hit = (x: number, y: number) => document.elementFromPoint(x, y);
     const covered = document.querySelector(COVER_SELECTOR) !== null;
+    const viewport = { w: window.innerWidth, h: window.innerHeight };
     const views: WebViewSyncView[] = [];
     for (const id of this.slotOrder) {
       const c = this.winnerOf(id);
@@ -500,6 +509,7 @@ export class WebViewHost {
           rect,
           el: target,
           hit,
+          viewport,
         }),
       });
     }

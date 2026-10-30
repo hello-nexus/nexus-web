@@ -24,7 +24,7 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
-import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
+import { SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
@@ -49,7 +49,6 @@ import { useFeatureFlags, useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
-import { previewRainbowUri } from '../common/previewAssets';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
 import { LightingSwatches } from './LightingSwatches';
@@ -59,13 +58,12 @@ import { type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNot
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
-// Catalog preview pins Animate on the stock simple-mode Rainbow, with a generic
-// rainbow thumbnail in place of the service-rendered one, so the tile renders
-// with zero fetch/socket/blob traffic. Keep in sync with the simple-mode
-// render; previewMode.test.tsx is the fixture-sync gate.
+// Catalog preview pins Animate on the stock simple-mode Rainbow. LightingSwatches
+// draws gradient tiles in preview instead of service-rendered thumbnails, so the
+// tile renders with zero fetch/socket/blob traffic. Keep in sync with the
+// simple-mode render; previewMode.test.tsx is the fixture-sync gate.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'animate';
-const LIGHTING_PREVIEW_EFFECT = 'sweeprainbow';
-const LIGHTING_PREVIEW_THUMBS: Record<string, string> = { [LIGHTING_PREVIEW_EFFECT]: previewRainbowUri() };
+const LIGHTING_PREVIEW_EFFECT = 'rainbow';
 
 export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
   const { t } = useTranslation();
@@ -95,9 +93,9 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // Animate would drop the user's animation for the catalog default.
   const animateEffectRef = useRef('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
-  // Direction of a running simple-mode sweep, read from its stored speed sign.
+  // Direction of a running simple-mode animation: its stored speed sign against preset 1's.
   const [sweepReversed, setSweepReversed] = useState(false);
-  const [thumbs, setThumbs] = useState<Record<string, string>>(preview ? LIGHTING_PREVIEW_THUMBS : {});
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [mediaThumbs, setMediaThumbs] = useState<Record<string, string>>({});
@@ -170,17 +168,20 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     // The running sync IS the animate key while Animate runs, and animate
     // settings still hold the pick once another mode takes over - so the ref
     // tracks it whatever mode we hydrate into.
-    const animatePick = [rawSync, animate?.effect]
+    const animatePick = [canonicalSimpleKey(rawSync), animate?.effect]
       .find(k => ANIMATE_EFFECTS.some(e => e.key === k));
     if (animatePick) animateEffectRef.current = animatePick;
-    // A sweep drives the hardware without a catalogue entry, so it has to be
-    // named here or the tile pictures whatever the last catalogue pick was.
-    const sweep = isSimpleAnimation(rawSync);
-    if (sweep) setSweepReversed((animate?.states?.[rawSync]?.speed ?? 50) < 0);
+    // A key retired from simple mode (older service) shows as its replacement.
+    const syncEffect = canonicalSimpleKey(rawSync);
+    if (isSimpleAnimation(rawSync)) {
+      const runningSpeed = animate?.states?.[rawSync]?.speed ?? animate?.states?.[syncEffect]?.speed;
+      const slot0 = nextTemplates[syncEffect]?.slots[SIMPLE_SLOT];
+      setSweepReversed(typeof runningSpeed === 'number' && !!slot0 && isSimpleReversed(runningSpeed, slot0.speed));
+    }
     const nextEffect = nextMode === 'static'
       ? staticEffectRef.current
-      : EFFECTS.some(e => e.key === rawSync) || sweep
-        ? rawSync
+      : EFFECTS.some(e => e.key === syncEffect)
+        ? syncEffect
         : animateEffectRef.current;
     setActiveEffect(nextEffect);
 
@@ -425,15 +426,6 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       };
     }
     if (mode === 'animate') {
-      if (isSimpleAnimation(activeEffect)) {
-        return {
-          kind: 'thumb',
-          thumbUrl: thumbs[activeEffect] ?? null,
-          label: t(simpleAnimationLabelKey(activeEffect)),
-          onPrev: prev,
-          onNext: next,
-        };
-      }
       const effect = ANIMATE_EFFECTS.find(e => e.key === activeEffect) ?? ANIMATE_EFFECTS[0];
       return {
         kind: 'thumb',
@@ -479,9 +471,13 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
   const animateState = useMemo(
-    () => (isSimpleAnimation(activeEffect)
-      ? simpleAnimationState(sweepReversed)
-      : resolveEffectState(activeEffect, templates)),
+    () => {
+      // Reverse is measured against, and negates, the first preset.
+      const slot0 = templates[activeEffect]?.slots[SIMPLE_SLOT];
+      return sweepReversed && isSimpleAnimation(activeEffect) && slot0
+        ? simpleAnimationState(slot0, true)
+        : resolveEffectState(activeEffect, templates);
+    },
     [activeEffect, sweepReversed, templates],
   );
 
@@ -582,15 +578,11 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         activeColor={activeColor}
         templates={templates}
         preview={preview}
-        previewThumb={LIGHTING_PREVIEW_THUMBS[LIGHTING_PREVIEW_EFFECT]}
         showRecents={showRecents}
         recentColors={recents.colors}
         recentAnimations={recents.animations}
-        onColor={hex => { recents.recordColor(hex); void applyColor(hex); }}
-        onEffect={key => {
-          recents.recordAnimation(key);
-          void applyEffect(key, isSimpleAnimation(key) ? simpleAnimationState(false) : undefined);
-        }}
+        onColor={hex => { void applyColor(hex); }}
+        onEffect={key => { void applyEffect(key); }}
         onOpen={openAction}
       />
     )

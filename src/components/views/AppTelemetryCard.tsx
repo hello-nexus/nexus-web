@@ -44,8 +44,8 @@ export function AppTelemetryCard() {
     () => [{ value: '', label: t('tools.appTelemetry.allApps') }, ...appIds(events).map(id => ({ value: id, label: id }))],
     [events, t],
   );
-  const status = data?.posthog === 'on' ? t('tools.appTelemetry.status.on')
-    : data?.posthog === 'opted_out' ? t('tools.appTelemetry.status.optedOut')
+  const status = data?.status === 'on' ? t('tools.appTelemetry.status.on')
+    : data?.status === 'opted_out' ? t('tools.appTelemetry.status.optedOut')
     : data ? t('tools.appTelemetry.status.off')
     : null;
   const timeOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat) };
@@ -56,7 +56,7 @@ export function AppTelemetryCard() {
       {failed && <span className={sharedStyles.dim}>{t('tools.appTelemetry.unavailable')}</span>}
       <div className={styles.controls}>
         {status && (
-          <span className={data?.posthog === 'on' ? sharedStyles.good : sharedStyles.dim} role="status">{status}</span>
+          <span className={data?.status === 'on' ? sharedStyles.good : sharedStyles.dim} role="status">{status}</span>
         )}
         <Select value={appId} options={options} onChange={setAppId} ariaLabel={t('tools.appTelemetry.filter')} />
       </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Home, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Home, Lock, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -12,6 +12,8 @@ interface WidgetContextMenuProps {
   currentSize: PanelWidgetSize;
   sizes: PanelWidgetSize[];
   hasConfig: boolean;
+  // Widget name, shown as the first row. The row runs onImmersive when set, else onOpen, else it is a plain title.
+  title?: string;
   surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
@@ -20,7 +22,7 @@ interface WidgetContextMenuProps {
   onResizeMode?: () => void;
   onEdit: () => void;
   onRemove: () => void;
-  // Optional - only shown when the widget has an ImmersiveComponent
+  // Optional - what the name row does when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
   // Web View only, each offered while its history step or return home applies.
@@ -50,7 +52,8 @@ interface WidgetContextMenuProps {
   // "Lock widgets" row; while `locked`, the edit and resize items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
-  // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
+  // Opens the widget's page or editor in the app; the name row becomes this action where the widget has one
+  // and no immersive view. Beside onImmersive it shows as a plain Open item.
   onOpen?: () => void;
   // Dashboard order: Edit, Resize and Remove sit last, under the display and sidebar items.
   widgetItemsLast?: boolean;
@@ -61,6 +64,7 @@ export function WidgetContextMenu({
   x, y,
   currentSize, sizes,
   hasConfig,
+  title,
   surface,
   themeMode = 'dark',
   themeStyle,
@@ -171,7 +175,9 @@ export function WidgetContextMenu({
       )}
     </>
   );
-  const hasMiddleItems = Boolean(onImmersive || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+  const hasMiddleItems = Boolean((onImmersive && onOpen) || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+
+  const nameAction = onImmersive ?? onOpen;
 
   const menuStyle = {
     ...themeStyle,
@@ -191,6 +197,22 @@ export function WidgetContextMenu({
       data-panel-hit="true"
       style={menuStyle}
     >
+      {(title || onImmersive) && (
+        <>
+          {nameAction ? (
+            <button type="button" className={`${styles.item} ${styles.nameRow}`} aria-label={title ? t('featureDisabled.widget.open', { feature: title }) : t('panel.widget.menu.immersive')} onClick={() => runAndClose(nameAction)}>
+              <span className={styles.nameLabel}>{title}</span>
+              <ArrowUpRight size={15} className={styles.nameChevron} aria-hidden />
+            </button>
+          ) : (
+            <div role="presentation" className={`${styles.nameRow} ${styles.nameRowStatic}`}>
+              <span className={styles.nameLabel}>{title}</span>
+            </div>
+          )}
+          <div className={styles.divider} />
+        </>
+      )}
+
       {(onWebBack || onWebForward || onWebHome) && (
         <>
           {onWebBack && (
@@ -211,16 +233,6 @@ export function WidgetContextMenu({
               <span>{t('panel.widget.web-view.home')}</span>
             </button>
           )}
-          <div className={styles.divider} />
-        </>
-      )}
-
-      {onOpen && (
-        <>
-          <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
-            <ExternalLink size={14} />
-            <span>{t('search.kind.open')}</span>
-          </button>
           <div className={styles.divider} />
         </>
       )}
@@ -251,10 +263,10 @@ export function WidgetContextMenu({
 
       {!widgetItemsLast && editItems}
 
-      {onImmersive && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
-          <Maximize2 size={14} />
-          <span>{t('panel.widget.menu.immersive')}</span>
+      {onImmersive && onOpen && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
+          <ArrowUpRight size={14} />
+          <span>{t('openInApp.open')}</span>
         </button>
       )}
 

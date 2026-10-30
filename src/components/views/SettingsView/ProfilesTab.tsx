@@ -237,14 +237,14 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                     </p>
                   )}
                   {isActive && (
-                    <Badge label={t('settings.profiles.active')} color="var(--accent)" uppercase />
+                    <Badge label={t('settings.profiles.active')} color="var(--accent)" />
                   )}
                 </div>
                 <div className={styles.profileActions} data-no-dnd onClick={(e) => e.stopPropagation()}>
                   {isPrimary ? (
                     <HoverTooltip body={t('settings.profiles.sharing.primaryBadgeTooltip')} side="top">
                       <span>
-                        <Badge label={t('settings.profiles.sharing.primary')} color="var(--accent)" icon={<Anchor size={11} />} uppercase />
+                        <Badge label={t('settings.profiles.sharing.primary')} color="var(--accent)" icon={<Anchor size={11} />} />
                       </span>
                     </HoverTooltip>
                   ) : (

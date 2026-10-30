@@ -25,6 +25,58 @@ export function streamFrameCap(search: string): number | null {
   return Number.isFinite(fps) && fps >= 1 && fps <= 240 ? fps : null;
 }
 
+let panelFpsCapValue: number | null = null;
+const panelFpsCapListeners = new Set<() => void>();
+
+/** The device record's frame cap for the page this module runs in; null = the device's own rate. */
+export function getPanelFpsCap(): number | null {
+  return panelFpsCapValue;
+}
+
+/** Called by the panel page with its record's cap; listeners (draw loops, memoised options) pick it up live. */
+export function setPanelFpsCap(cap: number | null | undefined): void {
+  const next = typeof cap === 'number' && Number.isFinite(cap) && cap >= 1 ? cap : null;
+  if (next === panelFpsCapValue) return;
+  panelFpsCapValue = next;
+  panelFpsCapListeners.forEach(listener => listener());
+}
+
+export function subscribePanelFpsCap(listener: () => void): () => void {
+  panelFpsCapListeners.add(listener);
+  return () => { panelFpsCapListeners.delete(listener); };
+}
+
+/** Draw cap for this page: the lower of the stream's rate (`?streamFps=`) and the device record's cap, or null for neither. */
+export function pageFrameCap(search: string): number | null {
+  const stream = streamFrameCap(search);
+  const record = panelFpsCapValue;
+  if (stream !== null && record !== null) return Math.min(stream, record);
+  return stream ?? record;
+}
+
+/**
+ * Draw gate that follows a cap which can change while the loop runs: a cap gets the even-grid
+ * pacer, none falls back to the panel's refresh divider. Each is rebuilt only when the cap changes.
+ */
+export function createAdaptivePacer(getCap: () => number | null | undefined, displayHz: number | null | undefined): (ts: number) => boolean {
+  const divider = createDisplayDivider(displayHz);
+  let capped: ((ts: number) => boolean) | null = null;
+  let cappedAt: number | null = null;
+  return (ts) => {
+    const cap = getCap();
+    if (!cap || cap <= 0) {
+      capped = null;
+      cappedAt = null;
+      return divider(ts);
+    }
+    if (capped === null || cap !== cappedAt) {
+      capped = createFramePacer(cap);
+      cappedAt = cap;
+    }
+    return capped(ts);
+  };
+}
+
 /**
  * Draw gate for a page on a panel slower than the clock rAF follows (a kiosk
  * on its own panel while the host's main display refreshes faster): passes every

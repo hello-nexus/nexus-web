@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
@@ -30,7 +30,8 @@ import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { takePanelEditorTarget, type PanelEditorTarget } from '../../../panel/engine/panelEditorLink';
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
 import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
-import { monitorGridCapacity, recordCanvasOf } from '../../../panel/engine/recordCanvas';
+import { percentAtTrackIndex, stopForWidgetSize, trackIndexOfPercent, widgetSizeStops as widgetSizeStops_, widgetSizeTrackStops } from '../../../panel/engine/widgetSizeStops';
+import { monitorGridCapacity, recordCanvasOf, y70GridCapacity } from '../../../panel/engine/recordCanvas';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -52,7 +53,7 @@ import {
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
 } from '../../../panel/engine/immersiveOnLoad';
-import { forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
+import { largeChromeGrid, previewChromeGrid, forcedGridOf, isSingleWidgetSurface, PANEL_WIDGET_SIZE_MODES, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, singleWidgetSurfaceSize, surfaceAllowsPages, isGenericDisplayPanel, genericSinglePage, surfaceSupportsMountOrientation, surfaceDisplayShape, surfaceSupportsTouch, widgetSizeShortSideSlots, type ForcedGrid, type PanelWidgetSizeMode } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -95,6 +96,7 @@ import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { createUuid } from '../../../lib/uuid';
+import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -103,6 +105,8 @@ import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
 import { MonoPreviewFilter } from './MonoPreviewFilter';
 import { MONO_FILTER_ID, isMonoFamily, keepsSidePreview } from './monoPreview';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
+import { FrameRateSetting } from './FrameRateSetting';
+import { showsFrameRateSetting } from './frameRateOptions';
 import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
 import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
@@ -143,7 +147,6 @@ import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevi
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog, catalogEntriesFor } from '../../../panel/editor/PanelWidgetCatalog';
 import { WidgetPlaylistEditor } from '../../../panel/editor/WidgetPlaylistEditor';
-import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { Card } from '../../common/Card/Card';
 import '../../../panel/styles/tokens.scss';
 import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
@@ -153,9 +156,6 @@ function isLandscapeCanvas(canvas?: { width?: number | null; height?: number | n
   return !!canvas?.width && !!canvas.height && canvas.width > canvas.height;
 }
 
-const WIDGET_SIZE_LARGE: PanelWidgetSizeMode = 'large';
-const WIDGET_SIZE_SMALL: PanelWidgetSizeMode = 'small';
-const WIDGET_SIZE_XSMALL: PanelWidgetSizeMode = 'xsmall';
 
 interface PanelDevicePageProps {
   device: PanelDevice;
@@ -389,6 +389,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordWidgetsLocked, setRecordWidgetsLocked] = useState(false);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
+  const [recordRestricted, setRecordRestricted] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
   const [recordMirror, setRecordMirror] = useState(false);
   const [recordPortrait, setRecordPortrait] = useState(false);
@@ -402,6 +403,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const recordFamily = matchedFamily ?? device?.family;
   const [recordWidgetSize, setRecordWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
   const [pendingWidgetSize, setPendingWidgetSize] = useState<PanelWidgetSizeMode | null>(null);
+  // The size slider's snapped stop while it is being dragged or typed, before it commits.
+  const [widgetSizeDraft, setWidgetSizeDraft] = useState<PanelWidgetSizeMode | null>(null);
   // The glass drives hardware settings and record matching; `surface` is the one whose
   // layout rules the panel follows, which Widget size can swap.
   const glassSurface = device?.runtimeSurface ?? 'y70';
@@ -436,6 +439,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
   const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
+  // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
+  const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);
   const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel, genericDisplay);
   const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
@@ -449,6 +454,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     ? densityShortSideSlots(editorCanvas.width, editorCanvas.height, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor)
     : undefined;
   const shortSideSlots = panelShortSideSlots(glassSurface, recordFamily, recordWidgetSize, densitySlots);
+  const chromeGrid = useMemo(
+    () => largeChromeGrid(glassSurface, recordFamily, liveDpi, DEFAULT_SURFACE_DPI, densitySlots),
+    [glassSurface, recordFamily, liveDpi, densitySlots],
+  );
+  const previewGridDpi = liveCanvas && layoutDpi
+    ? layoutDpi / canvasDpr
+    : (surface === 'monitor' && (layoutDpi ?? device?.previewDpi)
+      ? (layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor) / canvasDpr
+      : undefined);
+  const previewChrome = useMemo(() => previewChromeGrid(chromeGrid, surface, previewGridDpi, canvasDpr), [chromeGrid, surface, previewGridDpi, canvasDpr]);
   const gridLandscape = isLandscapeCanvas(liveCanvas ?? device?.previewSize);
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, gridLandscape), [shortSideSlots, gridLandscape]);
   // The layout surface and input a fetched record implies, for normalizing its
@@ -546,6 +561,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordSupportsRenderScale, setRecordSupportsRenderScale] = useState(false);
   const isRenderScalablePanel = recordSupportsRenderScale && !isSimulated;
   const [recordHighResolution, setRecordHighResolution] = useState(false);
+  // Streamed displays and display-bound kiosk panels take a frame rate cap; the list says which are streamed.
+  const [recordStreamed, setRecordStreamed] = useState(false);
+  const [recordDisplayBound, setRecordDisplayBound] = useState(false);
+  const [recordFpsCap, setRecordFpsCap] = useState<number | null>(null);
+  const hasFrameRateSetting = showsFrameRateSetting(recordStreamed, recordDisplayBound, isSimulated);
   const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
     useState<PanelDeviceRecord['secondaryMonitorState']>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
@@ -614,6 +634,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
     || isRenderScalablePanel
+    || hasFrameRateSetting
     || isGlacialLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Theme and layout read and write the panel record for simulators and hardware alike;
@@ -621,6 +642,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const panelRecord = usePanelRecord(editingDeviceId);
   const panelTheme = usePanelTheme(panelRecord, editingDeviceId);
   const theme = panelTheme.theme;
+  const widgetSizeStops = useMemo(() => {
+    const options = panelWidgetSizeOptions(glassSurface, recordFamily);
+    return options ? widgetSizeStops_(options, densitySlots) : [];
+  }, [glassSurface, recordFamily, densitySlots]);
+  const widgetSizeTrack = useMemo(() => widgetSizeTrackStops(widgetSizeStops), [widgetSizeStops]);
+  const widgetSizePercentOf = (mode: PanelWidgetSizeMode) => {
+    const options = panelWidgetSizeOptions(glassSurface, recordFamily);
+    return (options ? stopForWidgetSize(options, widgetSizeStops, mode, densitySlots)?.percent : undefined) ?? 100;
+  };
   const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
   const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
@@ -689,6 +719,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordWidgetsLocked(resolveWidgetsLocked(match?.widgetsLocked, match?.layout?.pages.flatMap(p => p.widgets) ?? []));
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
+      setRecordRestricted(match?.restrictedMode ?? false);
       setRecordFlip180(match?.flip180 ?? false);
       setRecordMirror(match?.mirror ?? false);
       setRecordPortrait(match?.portrait ?? false);
@@ -701,6 +732,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
       setRecordHighResolution(match?.highResolution ?? false);
+      setRecordStreamed(match?.streamed === true);
+      setRecordDisplayBound(!!match?.displayId);
+      setRecordFpsCap(match?.fpsCap ?? null);
       setMatchedFamily(match?.capabilities?.family);
       setRecordWidgetSize(recordWidgetSizeOf(match, glassSurface) ?? null);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
@@ -790,6 +824,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             surface,
             dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70,
             sizing: getPanelGridSizingSettings(),
+            shortSideSlots,
             paddingRatio,
           },
         );
@@ -860,6 +895,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
+      // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
+      setRecordFpsCap(record.fpsCap ?? null);
+      setRecordRestricted(record.restrictedMode ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
@@ -915,6 +953,25 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         }
       });
   }, [refetchDeviceRecord, reportWriteFailed]);
+
+  const toggleRestricted = useCallback(() => {
+    if (!editingDeviceId) return;
+    const next = !recordRestricted;
+    const revert = () => { setRecordRestricted(!next); reportWriteFailed(); };
+    setRecordRestricted(next);
+    pendingWritesRef.current += 1;
+    writeSeqRef.current += 1;
+    patchPanelDevice(editingDeviceId, { restrictedMode: next })
+      .then(saved => { if (saved === null) revert(); })
+      .catch(revert)
+      .finally(() => {
+        pendingWritesRef.current -= 1;
+        if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
+          missedBroadcastRef.current = false;
+          refetchDeviceRecord();
+        }
+      });
+  }, [editingDeviceId, recordRestricted, refetchDeviceRecord, reportWriteFailed]);
 
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
@@ -1154,19 +1211,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // panel can swipe, else they go.
     const canvas = liveCanvas ?? device?.previewSize;
     if (targetSlots === undefined || !canvas) return { layout: normalized, removed };
-    const capacity = monitorGridCapacity(
-      canvas,
-      canvasDpr,
-      layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor,
-      panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
-      targetSlots,
-    );
-    if (genericDisplay) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
+    const paddingRatio = panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding));
+    const capacity = target === 'y70'
+      ? y70GridCapacity(canvas, canvasDpr, liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70, paddingRatio, targetSlots)
+      : monitorGridCapacity(canvas, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor, paddingRatio, targetSlots);
+    if (genericSinglePage(genericDisplay, glassSurface, glassTouch)) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
     const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay)
       ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
       : fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, theme.widgetPadding, widgetSizeOptions]);
+  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, liveDpi, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);
@@ -1433,15 +1487,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   const showPreviewTroubleshoot = device?.runtimeSurface === 'q60';
   const qseriesTroubleshootLink = (label: string) => (
-    <a
-      className={styles.troubleshootLink}
-      href={troubleshootingUrl('q-series-panels', language)}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <ExternalLink size={12} aria-hidden />
-      {label}
-    </a>
+    <TroubleshootLink label={label} href={troubleshootingUrl('q-series-panels', language)} />
   );
 
   return (
@@ -1451,10 +1497,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
-        // Only where there is a panel to capture: the firmware-gate,
-        // disconnected and secondary-monitor states render no embed frame, so
-        // the button could do nothing but report an error.
-        tabActions={showFwGate || showDisconnected || recordSecondaryMonitor ? undefined : (
+        // Only where there is a panel to capture: the firmware-gate and
+        // disconnected states render no embed frame, so the button could do
+        // nothing but report an error.
+        tabActions={showFwGate || showDisconnected ? undefined : (
           <>
             {editingDeviceId && <PanelPresetToolbar key={editingDeviceId} deviceId={editingDeviceId} />}
             <Button
@@ -1549,30 +1595,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>
                   {activeTab === 'widgets' && (
                     <>
-                      {recordSecondaryMonitor && (
-                        <Notice tone="info" role="status">{t('devices.lcd.secondaryMonitorNotice')}</Notice>
-                      )}
-                      <div
-                        className={`${styles.catalogHost}${recordSecondaryMonitor ? ` ${styles.tabDisabled}` : ''}`}
-                        aria-disabled={recordSecondaryMonitor || undefined}
-                        inert={recordSecondaryMonitor || undefined}
-                      >
-                        {((widgetSizeOptions && widgetSizeMode) || widgetPlaylist) && (
+                      <div className={styles.catalogHost}>
+                        {widgetPlaylist && (
                           <Card compact className={styles.playlistPanel}>
-                            {widgetSizeOptions && widgetSizeMode && (
-                              <SettingRow label={t('devices.panels.widgetSize.label')}>
-                                <ChipGroup
-                                  ariaLabel={t('devices.panels.widgetSize.label')}
-                                  activeKey={widgetSizeMode}
-                                  onChange={requestWidgetSize}
-                                  options={[
-                                    { key: WIDGET_SIZE_LARGE, label: t('devices.panels.widgetSize.large'), disabled: !editingDeviceId },
-                                    { key: WIDGET_SIZE_SMALL, label: t('devices.panels.widgetSize.small'), disabled: !editingDeviceId },
-                                    ...(widgetSizeOptions.layoutSurface.xsmall ? [{ key: WIDGET_SIZE_XSMALL, label: t('devices.panels.widgetSize.xsmall'), disabled: !editingDeviceId }] : []),
-                                  ]}
-                                />
-                              </SettingRow>
-                            )}
                             {widgetPlaylist && (
                               <SettingToggle
                                 label={t('panel.playlist.playlist')}
@@ -1634,14 +1659,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     const nativeH = native.nativeHeight;
                     return (
                       <>
-                        {recordSecondaryMonitor && (
-                          <Notice tone="info" role="status">{t('devices.lcd.secondaryMonitorNotice')}</Notice>
-                        )}
-                        <div
-                          className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
-                          aria-disabled={recordSecondaryMonitor || undefined}
-                          inert={recordSecondaryMonitor || undefined}
-                        >
+                        <div>
                           <PanelThemeSettings
                             theme={theme}
                             deviceId={editingDeviceId}
@@ -1688,6 +1706,32 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             deviceH={nativeH}
                             hideWidgetLabelsToggle={singleWidget}
                             hideWidgetChromeControls={singleWidget}
+                            widgetScaleRow={
+                              widgetSizeOptions && widgetSizeMode && widgetSizeStops.length > 1 ? (
+                                <SettingSlider
+                                  editable
+                                  trackFill
+                                  label={t('devices.panels.widgetSize.label')}
+                                  value={trackIndexOfPercent(widgetSizeTrack, widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode))}
+                                  min={0}
+                                  max={widgetSizeTrack.length - 1}
+                                  step={1}
+                                  formatValue={i => `${percentAtTrackIndex(widgetSizeTrack, i)}%`}
+                                  valueText={`${percentAtTrackIndex(widgetSizeTrack, trackIndexOfPercent(widgetSizeTrack, widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode)))}%`}
+                                  entryMap={{
+                                    toEntry: i => percentAtTrackIndex(widgetSizeTrack, i),
+                                    fromEntry: typed => trackIndexOfPercent(widgetSizeTrack, typed),
+                                  }}
+                                  disabled={!editingDeviceId}
+                                  onChange={i => setWidgetSizeDraft(widgetSizeTrack[Math.round(i)]?.mode ?? null)}
+                                  onCommit={i => {
+                                    setWidgetSizeDraft(null);
+                                    const stop = widgetSizeTrack[Math.round(i)];
+                                    if (stop) requestWidgetSize(stop.mode);
+                                  }}
+                                />
+                              ) : null
+                            }
                             showImmersiveBackdrop={surfaceSupportsTouch(surface, deviceTouch)}
                             sections={activeTab}
                           />
@@ -1728,6 +1772,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordAlwaysOnTop(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { alwaysOnTop: next }).catch(() => {});
                       }}
+                      restrictedMode={restrictedToggleShown ? recordRestricted : null}
+                      onRestrictedModeToggle={toggleRestricted}
                       widgetsLocked={genericDisplay ? recordWidgetsLocked : null}
                       onWidgetsLockedToggle={() => {
                         const next = !recordWidgetsLocked;
@@ -1809,6 +1855,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       }}
                       alwaysOnTop={undefined}
                       onAlwaysOnTopToggle={() => {}}
+                      restrictedMode={restrictedToggleShown ? recordRestricted : undefined}
+                      onRestrictedModeToggle={toggleRestricted}
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
                       usbDisconnected={usbDisconnected}
@@ -1918,20 +1966,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       hardwareResetBusy={resettingHardware}
                     />
                   )}
-                  {activeTab === 'settings' && isRenderScalablePanel && (
+                  {activeTab === 'settings' && (isRenderScalablePanel || hasFrameRateSetting) && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.rendering')} boxClassName={styles.deviceSettingsBox}>
-                        <SettingSelect
-                          label={t('devices.lcd.renderMode')}
-                          description={t('devices.lcd.renderModeHint')}
-                          value={RENDER_MODES[recordHighResolution ? 1 : 0]}
-                          options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
-                          onChange={(value) => {
-                            const next = value === RENDER_MODES[1];
-                            setRecordHighResolution(next);
-                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
-                          }}
-                        />
+                        {isRenderScalablePanel && (
+                          <SettingSelect
+                            label={t('devices.lcd.renderMode')}
+                            description={t('devices.lcd.renderModeHint')}
+                            value={RENDER_MODES[recordHighResolution ? 1 : 0]}
+                            options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
+                            onChange={(value) => {
+                              const next = value === RENDER_MODES[1];
+                              setRecordHighResolution(next);
+                              if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
+                            }}
+                          />
+                        )}
+                        {hasFrameRateSetting && <FrameRateSetting recordId={device?.panelRecordId ?? null} cap={recordFpsCap} />}
                       </SettingsSection>
                     </div>
                   )}
@@ -2120,18 +2171,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           >
             {isMonoFamily(recordFamily) && <MonoPreviewFilter />}
             <div className={styles.previewStage}>
-              {recordSecondaryMonitor ? (
-                <div className={styles.secondaryMonitorPreview}>
-                  <TvMinimal size={40} strokeWidth={1.5} aria-hidden />
-                  <p>
-                    {recordSecondaryMonitorState === 'driver-missing'
-                      ? t('devices.lcd.secondaryMonitorDriverMissing')
-                      : recordSecondaryMonitorState === 'failed'
-                        ? t('devices.lcd.secondaryMonitorFailed')
-                        : t('devices.lcd.secondaryMonitorPreview')}
-                  </p>
-                </div>
-              ) : (
               <>
               {showPageArrows && (
                 <PanelArrowButton
@@ -2170,17 +2209,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 // cssHeight), so it must skip the native->CSS /DPR even before
                 // the record fetch fills liveCanvas.
                 canvasIsCssPixels={!!liveCanvas || isMonitorPanel}
-                gridDpi={liveCanvas && layoutDpi
-                  ? layoutDpi / canvasDpr
-                  : (surface === 'monitor' && (layoutDpi ?? device?.previewDpi)
-                    ? (layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor) / canvasDpr
-                    : undefined)}
+                gridDpi={previewGridDpi}
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
                 shortSideSlots={shortSideSlots}
+                chromeGrid={previewChrome}
                 displayBound={!!device?.displayId}
                 genericDisplay={genericDisplay}
                 monoFilterId={isMonoFamily(recordFamily) ? MONO_FILTER_ID : undefined}
@@ -2199,7 +2235,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 />
               )}
               </>
-              )}
             </div>
             {showPlaylistArrows && (
               <div className={styles.playlistNav}>
@@ -2573,6 +2608,9 @@ interface MonitorSettingsPanelProps {
   onAlwaysOnTopToggle: () => void;
   widgetsLocked: boolean | null;
   onWidgetsLockedToggle: () => void;
+  // Null hides the row (not a touch panel).
+  restrictedMode?: boolean | null;
+  onRestrictedModeToggle?: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
   keepCursorOff: boolean | null;
@@ -2601,6 +2639,7 @@ function MonitorSettingsPanel({
   sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
   alwaysOnTop, alwaysOnTopDisabled, onAlwaysOnTopToggle, widgetsLocked, onWidgetsLockedToggle,
+  restrictedMode = null, onRestrictedModeToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
@@ -2732,6 +2771,14 @@ function MonitorSettingsPanel({
           onChange={onKeepCursorOffToggle}
         />
       )}
+      {restrictedMode !== null && onRestrictedModeToggle && (
+        <SettingToggle
+          label={t('devices.y70.restrictedMode')}
+          description={t('devices.y70.restrictedModeHint')}
+          checked={restrictedMode}
+          onChange={onRestrictedModeToggle}
+        />
+      )}
       </SettingsSection>
     </div>
   );
@@ -2771,6 +2818,9 @@ interface SettingsPanelProps {
   // Undefined hides the toggle, as for compatibilityRendering.
   keepCursorOff?: boolean;
   onKeepCursorOffToggle: () => void;
+  // Undefined hides the row (not a touch panel).
+  restrictedMode?: boolean;
+  onRestrictedModeToggle?: () => void;
   screenOn: boolean;
   onScreenToggle: () => void;
   autoLaunch: boolean;
@@ -2797,6 +2847,7 @@ function SettingsPanel({
   forceOrientation, onForceOrientationToggle,
   compatibilityRendering, onCompatibilityRenderingToggle,
   keepCursorOff, onKeepCursorOffToggle,
+  restrictedMode, onRestrictedModeToggle,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
   reserveMonitor, onReserveMonitorToggle,
@@ -2944,6 +2995,15 @@ function SettingsPanel({
             checked={reserveMonitor}
             onChange={onReserveMonitorToggle}
           />
+
+          {restrictedMode !== undefined && onRestrictedModeToggle && (
+            <SettingToggle
+              label={t('devices.y70.restrictedMode')}
+              description={t('devices.y70.restrictedModeHint')}
+              checked={restrictedMode}
+              onChange={onRestrictedModeToggle}
+            />
+          )}
 
           {keepCursorOff !== undefined && (
             <SettingToggle

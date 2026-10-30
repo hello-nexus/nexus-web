@@ -20,7 +20,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0.25rem 0 1.25rem;
+  // No top padding: the tab row's own bottom margin sets the gap, as on the Settings page.
+  padding: 0 0 1.25rem;
 }
 
 // --- Layout ---
@@ -200,10 +201,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-top: 0.5rem;
-  // Mirrors the padding-top: lets the theme tab's sticky background dock pin
+  // Mirrors the (absent) padding-top: the theme tab's sticky background dock pins
   // flush with the scrollport edge (see .backgroundDock).
-  --settings-sticky-inset: 0.5rem;
+  --settings-sticky-inset: 0px;
   padding-right: 4px;
 }
 
@@ -251,23 +251,6 @@
   flex-direction: column;
 }
 
-.troubleshootLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
-  margin-top: 1.25rem;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  text-decoration: none;
-  transition: color var(--ease-fast);
-
-  &:hover,
-  &:focus-visible {
-    color: var(--text);
-  }
-}
-
 // An empty state's CTA with the troubleshooting link stacked under it.
 .emptyActions {
   display: flex;
@@ -275,13 +258,18 @@
   align-items: center;
 }
 
-// Widget scale and playlist settings, above the catalog.
+// Playlist settings, above the catalog.
 .playlistPanel {
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex-shrink: 0;
-  margin: 4px 0 8px;
+  margin: 0 0 8px;
+}
+
+// Trims only the card's vertical padding so the shared Card and setting rows stay as they are.
+.playlistPanel.playlistPanel {
+  padding-block: 0.25rem;
 }
 
 // --- Theme Panel ---
@@ -517,29 +505,6 @@
 // dimmed to read as information rather than a control.
 .variantValue {
   color: var(--text-dim);
-}
-
-// Widgets/Theme/Background tab body while the panel is set up as a
-// secondary monitor: read-only preview under the notice above.
-.tabDisabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.secondaryMonitorPreview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  max-width: 320px;
-  padding: 24px;
-  text-align: center;
-  color: var(--text-dim);
-  font-size: var(--type-body);
-
-  p {
-    margin: 0;
-  }
 }
 
 // Covers the panel embed at the glass aspect while the cooler plays a clip.

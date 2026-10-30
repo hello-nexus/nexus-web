@@ -1,0 +1,17 @@
+@use '../styles/flexGap' as *;
+.indicator {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  @include hgap(8px);
+  max-width: 100%;
+  padding: 10px 18px;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--backdrop-base) 92%, transparent);
+  color: var(--text);
+  line-height: 1.2;
+  box-sizing: border-box;
+}

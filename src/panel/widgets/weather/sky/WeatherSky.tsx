@@ -116,7 +116,7 @@ export function WeatherSky({ snap, surface, round, children }: WeatherSkyProps) 
   // The Q-series panel GPU cannot hold frame rate at native resolution.
   const lowEnd = usePanelGlassSurface(surface) === 'q60';
   const renderOptions = useMemo(
-    // A streamed panel's capture rate can sit below the cap; drawing faster is thrown away.
+    // A streamed panel's capture rate can sit below the cap; drawing faster is thrown away. The device record's cap is applied live by the renderer's pacer.
     () => ({ maxDevicePixelRatio: lowEnd ? 0.5 : 1, maxFps: Math.min(MAX_FPS, streamFrameCap(window.location.search) ?? MAX_FPS), screenSize: true, visibleRef }),
     [lowEnd],
   );

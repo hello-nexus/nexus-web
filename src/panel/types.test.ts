@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages,
-  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, type PanelSurface,
+  canEditFreeText, hostedDisplayKeyboard, surfaceSupportsTextInput, isGenericDisplayPanel, isStreamedPanelSurface, normalizeGridSlots, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, surfaceAllowsPages, genericSinglePage, isSingleWidgetSurface, LIANLI_SCREEN88_FAMILY,
+  cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, largeChromeGrid, type PanelSurface,
 } from './types';
+import { panelGridCapacityForCanvas } from './engine/grid';
 
 describe('surfaceInputMode', () => {
   it('maps every surface to its input method', () => {
@@ -98,6 +99,7 @@ describe('Widget size', () => {
     expect(panelLayoutSurface('q60', undefined, null)).toBe('q60');
     expect(panelLayoutSurface('q60', undefined, 'small')).toBe('monitor');
     expect(panelLayoutSurface('monitor', 'icue-link-lcd5', null)).toBe('monitor');
+    // A stored Large stays the single tile it always was.
     expect(panelLayoutSurface('monitor', 'icue-link-lcd5', 'large')).toBe('q60');
   });
 
@@ -128,36 +130,91 @@ describe('Widget size', () => {
     expect(panelWidgetSizeOptions('lcd-square', 'asus-ryujin-lcd')).toBeUndefined();
   });
 
-  it('halves the Lian Li 8.8 short-axis slots when large and changes nothing when small', () => {
+  it('keeps a stored coarse Large at two columns on the Lian Li 8.8 and HYTE Y60, and adds a doubled-columns 50%', () => {
     expect(panelShortSideSlots('monitor', 'lianli-screen88', 'large')).toBe(2);
     expect(panelShortSideSlots('monitor', 'lianli-screen88', 'small')).toBeUndefined();
     expect(panelShortSideSlots('monitor', 'lianli-screen88', null)).toBeUndefined();
     expect(panelLayoutSurface('monitor', 'lianli-screen88', 'large')).toBe('monitor');
     expect(panelShortSideSlots('monitor', 'hyte-y60', 'large')).toBe(2);
     expect(panelShortSideSlots('monitor', 'hyte-y60', 'small')).toBeUndefined();
-    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')).toMatchObject({ default: 'small', layoutSurface: { large: 'monitor', small: 'monitor' } });
-    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')!.layoutSurface.xsmall).toBeUndefined();
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')).toMatchObject({ default: 'small', layoutSurface: { large: 'monitor', small: 'monitor', compact: 'monitor' } });
+    expect(panelShortSideSlots('monitor', 'hyte-y60', 'compact', 4)).toBe(8);
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'compact', 6)).toBe(12);
     expect(panelShortSideSlots('monitor', 'icue-link-lcd5', 'large')).toBeUndefined();
     expect(panelShortSideSlots('q60', undefined, 'large')).toBeUndefined();
   });
 
-  it('starts a plain monitor small on its density grid, and large halves its short axis', () => {
+  it('starts a plain monitor on its density grid, and a stored Large is its original half-count 200%', () => {
     expect(resolvePanelWidgetSize('monitor', undefined, null)).toBe('small');
+    expect(resolvePanelWidgetSize('monitor', null, 'small')).toBe('small');
     expect(resolvePanelWidgetSize('monitor', null, 'large')).toBe('large');
     expect(panelShortSideSlots('monitor', undefined, null, 12)).toBeUndefined();
     expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
     expect(panelShortSideSlots('monitor', undefined, 'large', 8)).toBe(4);
     expect(panelShortSideSlots('monitor', undefined, 'large', 4)).toBe(2);
-    expect(panelShortSideSlots('monitor', undefined, 'large')).toBeUndefined();
     expect(panelLayoutSurface('monitor', undefined, 'large')).toBe('monitor');
     expect(panelLayoutDpi('monitor', undefined, 'large', null, { monitor: 110 } as Record<PanelSurface, number>)).toBeUndefined();
   });
 
   it('is not offered elsewhere, whatever a record carries', () => {
     expect(panelWidgetSizeOptions('monitor', 'xeneon-edge')).toBeUndefined();
-    expect(panelWidgetSizeOptions('y70', undefined)).toBeUndefined();
-    expect(panelLayoutSurface('y70', undefined, 'small')).toBe('y70');
     expect(resolvePanelWidgetSize('phone', undefined, 'large')).toBeUndefined();
+  });
+});
+
+describe('Widget size on the Y70', () => {
+  it('keeps the fixed Y70 grid by default and for a stored Large', () => {
+    expect(resolvePanelWidgetSize('y70', undefined, undefined)).toBe('large');
+    expect(panelLayoutSurface('y70', undefined, undefined)).toBe('y70');
+    expect(panelLayoutSurface('y70', undefined, 'large')).toBe('y70');
+    expect(panelShortSideSlots('y70', undefined, undefined, 4)).toBeUndefined();
+    expect(panelShortSideSlots('y70', undefined, 'large', 4)).toBeUndefined();
+    expect(panelLayoutDpi('y70', undefined, undefined, null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
+  });
+
+  it('forces 6 and 8 columns on the y70 surface at 6 and 8 columns', () => {
+    expect(panelLayoutSurface('y70', undefined, 'medium')).toBe('y70');
+    expect(panelLayoutSurface('y70', undefined, 'compact')).toBe('y70');
+    expect(panelShortSideSlots('y70', undefined, 'medium', 4)).toBe(6);
+    expect(panelShortSideSlots('y70', undefined, 'compact', 4)).toBe(8);
+    expect(panelShortSideSlots('y70', undefined, 'compact')).toBe(8);
+    // The older sizes a Y70 never offered still draw the fixed grid.
+    expect(panelShortSideSlots('y70', undefined, 'small', 4)).toBeUndefined();
+    expect(panelShortSideSlots('y70', undefined, 'xsmall', 4)).toBeUndefined();
+    expect(panelLayoutDpi('y70', undefined, 'compact', null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
+  });
+});
+
+describe('Y70 at 6 and 8 columns', () => {
+  const sizes = [undefined, 'large', 'small', 'xsmall'] as const;
+
+  it('resolves every surface-keyed choice exactly as at 4 columns', () => {
+    for (const size of sizes) {
+      // Backdrop, theme, touch and catalog all key on the layout surface and the glass; neither moves.
+      expect(panelLayoutSurface('y70', undefined, size)).toBe('y70');
+      expect(panelLayoutDpi('y70', undefined, size, null, { y70: 337 } as Record<PanelSurface, number>)).toBeUndefined();
+      expect(surfaceSupportsTouch(panelLayoutSurface('y70', undefined, size), true)).toBe(surfaceSupportsTouch('y70', true));
+      expect(isGenericDisplayPanel('y70', undefined, true)).toBe(false);
+    }
+  });
+
+  it('changes only the column count, with square cells and rows from the height', () => {
+    const at = (cols: number | undefined) => panelGridCapacityForCanvas(682, 2560, { surface: 'y70', dpi: 337, paddingRatio: 0.1, shortSideSlots: cols });
+    expect(at(undefined)).toMatchObject({ columns: 4, rows: 16 });
+    for (const cols of [6, 8]) {
+      const cap = at(cols);
+      expect(cap.columns).toBe(cols);
+      expect(cap.rows).toBeGreaterThan(16);
+      expect(Math.abs(cap.rowSize - cap.cellSize)).toBeLessThan(cap.cellSize * 0.1);
+    }
+  });
+});
+
+describe('Y70 default column count', () => {
+  it('is 4 on the 682x2560 glass at its density, which Large keeps', () => {
+    const cap = panelGridCapacityForCanvas(682, 2560, { surface: 'y70', dpi: 337, paddingRatio: 0.1 });
+    expect(cap.columns).toBe(4);
+    expect(cap.rows).toBe(16);
   });
 });
 
@@ -278,9 +335,10 @@ describe('isGenericDisplayPanel and pages', () => {
     }
   });
 
-  it('gives a generic display one page and leaves a known display its pages', () => {
-    expect(surfaceAllowsPages('monitor', true, true, true)).toBe(false);
+  it('gives a mouse-only generic display one page, a touch one its pages, and a known display its pages', () => {
+    expect(surfaceAllowsPages('monitor', true, true, true)).toBe(true);
     expect(surfaceAllowsPages('monitor', false, true, true)).toBe(false);
+    expect(surfaceAllowsPages('monitor', undefined, true, true)).toBe(false);
     expect(surfaceAllowsPages('monitor', false, true, false)).toBe(true);
     expect(surfaceAllowsPages('monitor', true, true, false)).toBe(true);
     expect(surfaceAllowsPages('y70', undefined, false, false)).toBe(true);
@@ -288,24 +346,88 @@ describe('isGenericDisplayPanel and pages', () => {
   });
 });
 
+describe('genericSinglePage', () => {
+  it('holds only a mouse-only generic display to its first page', () => {
+    expect(genericSinglePage(true, 'monitor', true)).toBe(false);
+    expect(genericSinglePage(true, 'monitor', false)).toBe(true);
+    expect(genericSinglePage(true, 'monitor', undefined)).toBe(true);
+    expect(genericSinglePage(false, 'monitor', false)).toBe(false);
+  });
+});
+
+// Every non-touch-generic panel must keep its pre-change answer; only a generic display with touch:true changes.
+describe('generic display touch rule across panel kinds', () => {
+  const legacyAllowsPages = (surface: PanelSurface, touch: boolean | undefined, displayBound: boolean, generic: boolean) =>
+    !generic && (surfaceSupportsTouch(surface, touch) || (displayBound && !isSingleWidgetSurface(surface)));
+  type Kind = { name: string; surface: PanelSurface; family?: string; displayBound: boolean; touch: boolean | undefined; changes?: true };
+  const kinds: Kind[] = [
+    { name: 'Y70', surface: 'y70', family: 'y70', displayBound: false, touch: true },
+    { name: 'Y70 bound to a display', surface: 'y70', family: 'y70', displayBound: true, touch: true },
+    { name: 'Q60', surface: 'q60', family: 'q60', displayBound: false, touch: true },
+    { name: 'Q80', surface: 'q60', family: 'q80', displayBound: false, touch: false },
+    { name: 'Universal Screen', surface: 'monitor', family: LIANLI_SCREEN88_FAMILY, displayBound: true, touch: true },
+    { name: 'Universal Screen without touch', surface: 'monitor', family: LIANLI_SCREEN88_FAMILY, displayBound: true, touch: false },
+    { name: 'Xeneon Edge', surface: 'monitor', family: 'xeneon-edge', displayBound: true, touch: true },
+    { name: 'phone', surface: 'phone', displayBound: false, touch: undefined },
+    { name: 'browser panel without a device', surface: 'desktop', displayBound: false, touch: undefined },
+    { name: 'monitor without a display', surface: 'monitor', displayBound: false, touch: true },
+    { name: 'generic display touch false', surface: 'monitor', displayBound: true, touch: false },
+    { name: 'generic display touch missing', surface: 'monitor', displayBound: true, touch: undefined },
+    { name: 'generic display touch true', surface: 'monitor', displayBound: true, touch: true, changes: true },
+  ];
+
+  it.each(kinds)('$name', ({ surface, family, displayBound, touch, changes }) => {
+    const generic = isGenericDisplayPanel(surface, family, displayBound);
+    const oneBefore = generic;
+    const oneNow = genericSinglePage(generic, surface, touch);
+    const allowsBefore = legacyAllowsPages(surface, touch, displayBound, generic);
+    const allowsNow = surfaceAllowsPages(surface, touch, displayBound, generic);
+    // Fold, held pages and tap suppression all key on oneNow; PanelApp's cell tap otherwise needs surfaceSupportsTouch.
+    if (changes) {
+      expect(generic).toBe(true);
+      expect(oneBefore).toBe(true);
+      expect(oneNow).toBe(false);
+      expect(allowsBefore).toBe(false);
+      expect(allowsNow).toBe(true);
+    } else {
+      expect(oneNow).toBe(oneBefore);
+      expect(allowsNow).toBe(allowsBefore);
+    }
+  });
+});
+
 describe('widget size options for a plain display', () => {
-  it('offers large, small and extra small, scaling the density grid', async () => {
+  it('offers 200, 150, 100, 75 and 50 percent around the density grid', async () => {
     const { panelWidgetSizeOptions, panelShortSideSlots, panelLayoutSurface, resolvePanelWidgetSize } = await import('./types');
     const options = panelWidgetSizeOptions('monitor', undefined);
-    expect(Object.keys(options!.layoutSurface).sort()).toEqual(['large', 'small', 'xsmall']);
+    expect(Object.keys(options!.layoutSurface).sort()).toEqual(['large', 'medium', 'midlarge', 'small', 'xsmall']);
+    expect(options!.percentLabels).toEqual({ large: 200, midlarge: 150, small: 100, medium: 75, xsmall: 50 });
+    // 200% halves and 150% takes two thirds of the count, each to an even number.
     expect(panelShortSideSlots('monitor', undefined, 'large', 12)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'midlarge', 12)).toBe(8);
+    expect(panelShortSideSlots('monitor', undefined, 'midlarge', 16)).toBe(10);
+    expect(panelShortSideSlots('monitor', undefined, 'midlarge', 24)).toBe(16);
     expect(panelShortSideSlots('monitor', undefined, 'small', 12)).toBeUndefined();
+    expect(panelShortSideSlots('monitor', undefined, 'medium', 12)).toBe(18);
+    expect(panelShortSideSlots('monitor', undefined, 'medium', 4)).toBe(6);
+    expect(panelShortSideSlots('monitor', undefined, 'medium', 8)).toBe(12);
     expect(panelShortSideSlots('monitor', undefined, 'xsmall', 12)).toBe(24);
     expect(panelShortSideSlots('monitor', undefined, 'xsmall', 60)).toBe(64);
+    expect(resolvePanelWidgetSize('monitor', undefined, 'medium')).toBe('medium');
     expect(resolvePanelWidgetSize('monitor', undefined, 'xsmall')).toBe('xsmall');
     expect(panelLayoutSurface('monitor', undefined, 'xsmall')).toBe('monitor');
   });
 
-  it('does not offer extra small on a curated display or a tile panel', async () => {
+  it('offers no 75 percent on a curated display or a tile panel', async () => {
     const { panelWidgetSizeOptions, resolvePanelWidgetSize } = await import('./types');
-    expect(panelWidgetSizeOptions('monitor', 'lianli-screen88')!.layoutSurface.xsmall).toBeUndefined();
+    expect(panelWidgetSizeOptions('monitor', 'hyte-y60')!.layoutSurface.medium).toBeUndefined();
+    // Only the Lian Li 8.8 adds 75% (1.5x its short-axis count, even) among the device screens.
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'medium', 4)).toBe(6);
+    expect(panelShortSideSlots('monitor', 'lianli-screen88', 'medium', 8)).toBe(12);
+    expect(panelWidgetSizeOptions('q60')!.layoutSurface.medium).toBeUndefined();
     expect(panelWidgetSizeOptions('q60')!.layoutSurface.xsmall).toBeUndefined();
     expect(resolvePanelWidgetSize('q60', undefined, 'xsmall')).toBe('large');
+    expect(resolvePanelWidgetSize('q60', undefined, 'medium')).toBe('large');
   });
 
   it('maps a retired grid density to the nearest size', async () => {
@@ -313,8 +435,78 @@ describe('widget size options for a plain display', () => {
     expect(sizeForLegacyGridSlots(6, 12)).toBe('large');
     expect(sizeForLegacyGridSlots(12, 12)).toBe('small');
     expect(sizeForLegacyGridSlots(10, 12)).toBe('small');
+    expect(sizeForLegacyGridSlots(18, 12)).toBe('xsmall');
+    expect(sizeForLegacyGridSlots(8, 12)).toBe('large');
     expect(sizeForLegacyGridSlots(26, 12)).toBe('xsmall');
     expect(sizeForLegacyGridSlots(0, 12)).toBeUndefined();
     expect(sizeForLegacyGridSlots(12, undefined)).toBeUndefined();
+  });
+
+  it('keeps an untouched record on its legacy three-size grid', async () => {
+    const { sizeForLegacyGridSlots, panelShortSideSlots } = await import('./types');
+    const size = sizeForLegacyGridSlots(6, 4);
+    expect(size).toBe('xsmall');
+    expect(panelShortSideSlots('monitor', undefined, size, 4)).toBe(8);
+  });
+
+  it('keeps every older stored size on a stop of its own', () => {
+    expect(resolvePanelWidgetSize('monitor', 'lianli-screen88', 'large')).toBe('large');
+    expect(resolvePanelWidgetSize('monitor', 'hyte-y60', 'large')).toBe('large');
+    expect(resolvePanelWidgetSize('monitor', 'icue-link-lcd5', 'large')).toBe('large');
+    expect(resolvePanelWidgetSize('y70', undefined, 'large')).toBe('large');
+  });
+
+  it('puts the preview chrome on the grid density basis', async () => {
+    const { previewChromeGrid } = await import('./types');
+    expect(previewChromeGrid(undefined, 'monitor', 100, 2)).toBeUndefined();
+    expect(previewChromeGrid({ surface: 'monitor', dpi: 200 }, 'monitor', 100, 2)?.dpi).toBe(100);
+    expect(previewChromeGrid({ surface: 'monitor' }, 'monitor', 90, 2)?.dpi).toBe(90);
+    expect(previewChromeGrid({ surface: 'q60' }, 'monitor', 90, 2)?.dpi).toBeUndefined();
+  });
+});
+
+describe('largeChromeGrid', () => {
+  const dpis = { y70: 337, monitor: 110, q60: 220 } as Record<PanelSurface, number>;
+
+  it('keeps chrome on the Large grid whatever size is stored', () => {
+    expect(largeChromeGrid('y70', undefined, null, dpis, 4)).toEqual({ surface: 'y70', shortSideSlots: undefined, dpi: undefined });
+    // A plain display has no Large, so its 100% is the reference.
+    expect(largeChromeGrid('monitor', undefined, null, dpis, 8)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
+    // iCUE defaults to its grid, so chrome sizes from that, not from the one-tile Large.
+    expect(largeChromeGrid('monitor', 'icue-link-lcd5', null, dpis, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
+    expect(largeChromeGrid('q60', undefined, null, dpis, 4)).toEqual({ surface: 'q60', shortSideSlots: undefined, dpi: undefined });
+    // Lian Li 8.8 and Y60 default to the density grid, not the coarse stored Large.
+    expect(largeChromeGrid('monitor', 'lianli-screen88', null, dpis, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
+  });
+
+  it('is absent where no size choice exists, so chrome follows the grid in use', () => {
+    expect(largeChromeGrid('phone', undefined, null, dpis)).toBeUndefined();
+    expect(largeChromeGrid('monitor', 'xeneon-edge', null, dpis)).toBeUndefined();
+  });
+});
+
+describe('stored widget size per device', () => {
+  const resolved = (surface: PanelSurface, family: string | undefined, stored: string | undefined) => {
+    const mode = resolvePanelWidgetSize(surface, family, stored);
+    return `${mode}/${panelLayoutSurface(surface, family, stored)}/${panelShortSideSlots(surface, family, stored, 4) ?? '-'}`;
+  };
+
+  it('leaves every existing stored value where it was, including the plain-display Large at its original 200%', () => {
+    // Plain display: unset and small are 100%, xsmall stays 50%, large is its original half-count 200%.
+    expect(['small', undefined, 'large', 'xsmall', 'medium', 'midlarge'].map(v => resolved('monitor', undefined, v))).toEqual([
+      'small/monitor/-', 'small/monitor/-', 'large/monitor/2', 'xsmall/monitor/8', 'medium/monitor/6', 'midlarge/monitor/2',
+    ]);
+    // Y70: unset, large and the older sizes it never offered are the fixed grid; medium and compact force 6 and 8 columns.
+    expect(['large', undefined, 'small', 'xsmall', 'medium', 'compact'].map(v => resolved('y70', undefined, v))).toEqual([
+      'large/y70/-', 'large/y70/-', 'large/y70/-', 'large/y70/-', 'medium/y70/6', 'compact/y70/8',
+    ]);
+    // Tile devices: large is the tile (100%), small the grid (50%); xsmall is not offered.
+    for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve']] as const) {
+      expect([undefined, 'large', 'small', 'xsmall'].map(v => resolvePanelWidgetSize(surface, family, v))).toEqual(['large', 'large', 'small', 'large']);
+    }
+    // Grid devices: unset and small are 100%, a stored large keeps its own 200% stop, xsmall was never offered so it stays the default, compact is the 50%.
+    for (const family of ['lianli-screen88', 'hyte-y60', 'icue-link-lcd5']) {
+      expect([undefined, 'small', 'large', 'xsmall', 'compact'].map(v => resolvePanelWidgetSize('monitor', family, v))).toEqual(['small', 'small', 'large', 'small', 'compact']);
+    }
   });
 });

@@ -1,7 +1,7 @@
 // Recent app_* product-telemetry events held by a DEV_TOOLS service, for the Tools page.
 import { fetchService } from './service';
 
-export type PosthogStatus = 'on' | 'off' | 'opted_out';
+export type TelemetryStatus = 'on' | 'off' | 'opted_out';
 
 export interface AppTelemetryEvent {
   at: string;
@@ -10,7 +10,7 @@ export interface AppTelemetryEvent {
 }
 
 export interface AppTelemetryRecent {
-  posthog: PosthogStatus;
+  status: TelemetryStatus;
   events: AppTelemetryEvent[];
 }
 

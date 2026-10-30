@@ -320,7 +320,7 @@ describe('LightingWidget', () => {
     expect(document.querySelector('[data-swatch-open]')).toBeNull();
   });
 
-  it('applies a tapped color immediately as the global flat color and records it', async () => {
+  it('applies a tapped color immediately as the global flat color without recording it', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
     vi.mocked(startStatic).mockClear();
     mockUpdate.mockClear();
@@ -334,23 +334,23 @@ describe('LightingWidget', () => {
     const args = vi.mocked(startStatic).mock.calls[0];
     expect(args[0]).toBe('gradientlinear');
     expect(args[8]).toBe(hex);
-    expect(mockUpdate).toHaveBeenCalledWith({ recentStaticColors: [hex] });
+    expect(mockUpdate).not.toHaveBeenCalled();
     await waitFor(() => expect(swatch).toHaveAttribute('aria-pressed', 'true'));
   });
 
-  it('leads with Rainbow and applies it with the simple sweep look', async () => {
+  it('leads with Rainbow and applies it with its preset look', async () => {
     vi.mocked(startAnimate).mockClear();
     mockUpdate.mockClear();
     renderLighting(lightingWidget('2x2'));
     await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(3));
 
     const first = document.querySelectorAll('[data-effect-key]')[0] as HTMLElement;
-    expect(first.getAttribute('data-effect-key')).toBe('sweeprainbow');
+    expect(first.getAttribute('data-effect-key')).toBe('rainbow');
     fireEvent.click(first);
     await waitFor(() => expect(startAnimate).toHaveBeenCalled());
-    expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('sweeprainbow');
+    expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('rainbow');
     expect(vi.mocked(startAnimate).mock.calls[0][1]).toBe(50);
-    expect(mockUpdate).toHaveBeenCalledWith({ recentAnimations: ['sweeprainbow'] });
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   describe('recently used', () => {
@@ -379,54 +379,39 @@ describe('LightingWidget', () => {
       expect(heldOrder()[0]).toBe('#123456');
     });
 
-    it('holds the order after a tap here, then reorders when the taps go idle', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
+    it('keeps the grid order and recents unchanged after a tap here', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      mockUpdate.mockClear();
+      mockUpdate.mockImplementation((patch: Record<string, unknown>) => { Object.assign(mockUiSettings, patch); });
       try {
-        vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
         const view = renderLighting(lightingWidget('4x2'));
         await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
         const before = heldOrder();
         fireEvent.click(document.querySelector(`[data-swatch-hex="${before[3]}"]`) as HTMLElement);
-        mockUiSettings.recentStaticColors = [before[3]!];
+        await waitFor(() => expect(startStatic).toHaveBeenCalled());
         view.rerender(
           <PanelOpenWidgetProvider value={() => () => {}}><LightingWidget widget={lightingWidget('4x2')} /></PanelOpenWidgetProvider>,
         );
         expect(heldOrder()).toEqual(before);
-        await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
-        expect(heldOrder()[0]).toBe(before[3]);
+        expect(mockUpdate).not.toHaveBeenCalled();
       } finally {
-        vi.useRealTimers();
+        mockUpdate.mockReset();
       }
-    });
-
-    it('reorders when the pointer leaves the grid after a tap here', async () => {
-      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
-      const view = renderLighting(lightingWidget('4x2'));
-      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
-      const before = heldOrder();
-      fireEvent.click(document.querySelector(`[data-swatch-hex="${before[2]}"]`) as HTMLElement);
-      mockUiSettings.recentStaticColors = [before[2]!];
-      view.rerender(
-        <PanelOpenWidgetProvider value={() => () => {}}><LightingWidget widget={lightingWidget('4x2')} /></PanelOpenWidgetProvider>,
-      );
-      expect(heldOrder()).toEqual(before);
-      fireEvent.pointerLeave(document.querySelector('[class*="swatchGrid"]') as HTMLElement);
-      expect(heldOrder()[0]).toBe(before[2]);
     });
 
     it('Off ignores history and shows the fixed order', async () => {
       mockUiSettings.recentAnimations = ['aurora'];
       renderLighting(lightingWidget('4x2', { showRecents: false }));
       await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
-      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('sweeprainbow');
+      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('rainbow');
     });
 
     it('On shows recent animations first, then the fixed order without repeats', async () => {
-      mockUiSettings.recentAnimations = ['aurora', 'sweeprainbow'];
+      mockUiSettings.recentAnimations = ['aurora', 'rainbow'];
       renderLighting(lightingWidget('4x2', { showRecents: true }));
       await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
       const keys = [...document.querySelectorAll('[data-effect-key]')].map(e => e.getAttribute('data-effect-key'));
-      expect(keys).toEqual(['aurora', 'sweeprainbow', 'plasma', 'fire', 'sweepliquid']);
+      expect(keys).toEqual(['aurora', 'rainbow', 'plasma', 'fire', 'sweepliquid']);
     });
 
     it('On shows recent colors first, then the fixed palette without repeats', async () => {
@@ -443,7 +428,7 @@ describe('LightingWidget', () => {
     it('On with no history is the fixed list', async () => {
       renderLighting(lightingWidget('4x2', { showRecents: true }));
       await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(5));
-      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('sweeprainbow');
+      expect(document.querySelectorAll('[data-effect-key]')[0].getAttribute('data-effect-key')).toBe('rainbow');
     });
   });
 
@@ -478,9 +463,9 @@ describe('LightingWidget', () => {
     expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe(target.getAttribute('data-effect-key'));
   });
 
-  // A simple-mode sweep drives the LEDs without a catalogue entry: the tile
-  // has to picture that, not fall back to the last catalogue effect.
-  it('pictures a running simple-mode sweep in the immersive view', async () => {
+  // A simple-mode animation is a catalogue effect: the tile has to picture it,
+  // not fall back to the last pick.
+  it('pictures a running simple-mode animation in the immersive view', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'sweepcycle' });
     vi.mocked(fetchServiceBlob).mockClear();
     render(<LightingWidget widget={lightingWidget('4x2')} immersive />);

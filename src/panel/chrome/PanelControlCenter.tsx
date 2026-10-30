@@ -31,6 +31,7 @@ import { controlActiveMedia, useMedia, type MediaSession } from '../../hooks/use
 import { systemPower } from '../../api/system';
 import { fetchRadios, setRadio, type RadioKind, type RadiosState } from '../../api/radios';
 import type { PanelSurface } from '../types';
+import { RestrictedIndicator } from './RestrictedIndicator';
 import { ControlCenterMixerView } from './ControlCenterMixerView';
 import styles from './PanelControlCenter.module.scss';
 
@@ -58,6 +59,8 @@ interface PanelControlCenterProps {
   rearranging: boolean;
   dragArmed: boolean;
   asleep: boolean;
+  // Restricted mode: only media and volume stay.
+  restricted?: boolean;
 }
 
 export function activeMediaSession(sessions: Record<string, MediaSession>): MediaSession | null {
@@ -85,6 +88,7 @@ export function PanelControlCenter({
   rearranging,
   dragArmed,
   asleep,
+  restricted = false,
 }: PanelControlCenterProps) {
   const { t, language } = useTranslation();
   const immersiveOpen = usePanelImmersiveOpen();
@@ -204,7 +208,7 @@ export function PanelControlCenter({
           if (!target?.closest('[data-cc-keep="true"]')) onClose();
         }}
       >
-        {bodyMounted ? (
+        {bodyMounted ? (restricted ? <div className={styles.content}><RestrictedIndicator /></div> : (
           <ControlCenterBody
             open={open}
             isLandscape={isLandscape}
@@ -219,7 +223,7 @@ export function PanelControlCenter({
             onClose={onClose}
             onScreenSleep={onScreenSleep}
           />
-        ) : null}
+        )) : null}
       </aside>
     </>
   );

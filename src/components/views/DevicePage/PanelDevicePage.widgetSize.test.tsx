@@ -70,7 +70,12 @@ vi.mock('../../../panel/editor/PanelWidgetCatalog', () => ({
   catalogEntriesFor: () => [],
 }));
 vi.mock('../../../panel/editor/PanelThemeSettings', () => ({
-  PanelThemeSettings: () => <div data-testid="theme" />,
+  PanelThemeSettings: ({ widgetScaleRow }: { widgetScaleRow?: React.ReactNode }) => (
+    <div data-testid="theme">
+      <span>widget padding</span>
+      {widgetScaleRow}
+    </div>
+  ),
 }));
 vi.mock('../../../panel/widgets/registry', () => ({
   lookupApp: (type: string) => ({
@@ -105,6 +110,18 @@ function layout(widgets: PanelWidget[], surface: PanelLayout['surface'] = 'monit
   return { layoutSchemaVersion: 2, surface, pages: [{ id: 'p1', widgets }], activePageId: 'p1' };
 }
 
+const GLACIAL_DEVICE: PanelDevice = {
+  id: 'lcd-square:glacial',
+  name: 'Glacial',
+  connectionKind: 'attached-monitor',
+  surfaceProfileKey: 'lcd-square',
+  runtimeSurface: 'lcd-square',
+  panelRecordId: 'lcd5',
+  displayId: 'XMD00EA-1',
+  previewSize: { width: 480, height: 480 },
+  capabilities: { surface: 'lcd-square', touch: false } as PanelDevice['capabilities'],
+} as PanelDevice;
+
 const DEVICE: PanelDevice = {
   id: 'monitor:lcd5',
   name: 'iCUE LINK 5" LCD',
@@ -137,18 +154,45 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
-async function renderPage(rec: Record<string, unknown>) {
+const sizeSlider = () => screen.getByRole('slider', { name: 'devices.panels.widgetSize.label' }) as HTMLInputElement;
+// 'max' and 'min' are the slider's ends.
+async function pickSize(mode: 'max' | 'min') {
+  const slider = sizeSlider();
+  await act(async () => {
+    fireEvent.change(slider, { target: { value: mode === 'max' ? slider.max : slider.min } });
+    fireEvent.keyUp(slider);
+  });
+  // The slider defers its drag-end commit one tick.
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); });
+}
+
+async function renderPage(rec: Record<string, unknown>, device: PanelDevice = DEVICE) {
   fetchPanelDevicesMock.mockResolvedValue({ devices: [record(rec)] });
-  render(<PanelDevicePage device={DEVICE} />);
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })).not.toBeDisabled());
+  render(<PanelDevicePage device={device} />);
+  fireEvent.click(await screen.findByRole('tab', { name: 'devices.y70.tab.theme' }));
+  await waitFor(() => expect(sizeSlider()).not.toBeDisabled());
 }
 
 describe('PanelDevicePage widget size', () => {
-  it('names the widgets that will not fit before switching to large, then writes size and layout together', async () => {
-    await renderPage({ layout: layout([widget('a', 'clock', 0, 0), widget('b', 'weather', 2, 0)]) });
-    expect(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })).toHaveAttribute('aria-checked', 'true');
+  it('renders the slider inside the Theme section, after Widget padding, and not on the Widgets tab', async () => {
+    await renderPage({ widgetSize: 'large' });
+    const theme = screen.getByTestId('theme');
+    expect(theme.contains(sizeSlider())).toBe(true);
+    const padding = screen.getByText('widget padding');
+    expect(padding.compareDocumentPosition(sizeSlider()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
+    expect(screen.queryByRole('slider', { name: 'devices.panels.widgetSize.label' })).toBeNull();
+  });
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+  it('names the widgets that will not fit before switching to the one-tile size, then writes size and layout together', async () => {
+    await renderPage({
+      capabilities: { surface: 'lcd-square', family: 'asus-glacial-lcd', cssWidth: 480, cssHeight: 480, dpr: 1, dpi: 210, touch: false },
+      widgetSize: 'small',
+      layout: layout([widget('a', 'clock', 0, 0), widget('b', 'weather', 2, 0)]),
+    }, GLACIAL_DEVICE);
+    expect(sizeSlider().value).toBe(sizeSlider().min);
+
+    await pickSize('max');
 
     expect(screen.getByText('devices.panels.widgetSize.confirmTitle')).toBeInTheDocument();
     expect(screen.getByText('name.weather')).toBeInTheDocument();
@@ -159,16 +203,18 @@ describe('PanelDevicePage widget size', () => {
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0].widgetSize).toBe('large');
     expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['clock']);
-    await waitFor(() => expect(screen.getByTestId('embed').dataset.surface).toBe('q60'));
-    // The one-widget size carries the Q-series playlist switch.
-    expect(screen.getByRole('switch', { name: 'panel.playlist.playlist' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('embed').dataset.surface).toBe('lcd-square'));
   });
 
-  it('switches straight to small when everything fits', async () => {
-    await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
-    expect(screen.getByTestId('embed').dataset.surface).toBe('q60');
+  it('switches straight to the half size when everything fits, from a stored one-tile Large', async () => {
+    await renderPage({
+      capabilities: { surface: 'lcd-square', family: 'asus-glacial-lcd', cssWidth: 480, cssHeight: 480, dpr: 1, dpi: 210, touch: false },
+      widgetSize: 'large',
+      layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'lcd-square'),
+    }, GLACIAL_DEVICE);
+    expect(screen.getByTestId('embed').dataset.surface).toBe('lcd-square');
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('min');
 
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
@@ -181,12 +227,12 @@ describe('PanelDevicePage widget size', () => {
     patchPanelDeviceMock.mockResolvedValue(null);
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('min');
     await waitFor(() => expect(pushToastMock).toHaveBeenCalledTimes(1));
     expect(pushToastMock).toHaveBeenCalledWith({ title: 'devices.panels.saveFailedTitle', body: 'devices.panels.saveFailedBody' });
 
     patchPanelDeviceMock.mockRejectedValue(new Error('network'));
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+    await pickSize('max');
     await waitFor(() => expect(patches().length).toBeGreaterThan(1));
     expect(pushToastMock).toHaveBeenCalledTimes(1);
   });
@@ -194,7 +240,7 @@ describe('PanelDevicePage widget size', () => {
   it('keeps a pointer-required widget when a mouse-only display changes size', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'calculator', 0, 0, '2x4')], 'q60') });
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('min');
 
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(patches()[0].layout?.pages.flatMap(p => p.widgets).map(w => w.type)).toEqual(['calculator']);
@@ -203,7 +249,7 @@ describe('PanelDevicePage widget size', () => {
   it('shows no toast when the record write succeeds', async () => {
     await renderPage({ widgetSize: 'large', layout: layout([widget('a', 'clock', 0, 0, '2x4')], 'q60') });
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.small' })); });
+    await pickSize('min');
     await waitFor(() => expect(patches()).toHaveLength(1));
     expect(pushToastMock).not.toHaveBeenCalled();
   });
@@ -211,6 +257,7 @@ describe('PanelDevicePage widget size', () => {
   it('spills a full grid onto a second page for a display-bound panel without touch', async () => {
     const full = [0, 2, 4].flatMap(row => [widget(`l${row}`, 'clock', 0, row), widget(`r${row}`, 'weather', 2, row)]);
     await renderPage({ layout: layout(full) });
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
 
     expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('unchecked');
     await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
@@ -218,7 +265,7 @@ describe('PanelDevicePage widget size', () => {
     expect(screen.getByTestId('embed').dataset.pageCount).toBe('2');
   });
 
-  it('on the Lian Li 8.8, large snaps 4-wide widgets and pages the ones the 2x8 grid cannot hold', async () => {
+  it('on the Lian Li 8.8, 50% doubles the short-axis count and keeps every widget', async () => {
     const screen88 = {
       capabilities: { surface: 'monitor', family: 'lianli-screen88', cssWidth: 480, cssHeight: 1920, dpr: 1, dpi: 225, touch: false },
       layout: layout([
@@ -227,16 +274,22 @@ describe('PanelDevicePage widget size', () => {
       ]),
     };
     await renderPage(screen88);
+    // The default is 100%; the older forced two-column Large keeps its own 200% stop above it.
+    // The slider runs over stop indices (even spacing); the row shows the percent label.
+    expect(screen.getByRole('button', { name: 'devices.panels.widgetSize.label' })).toHaveTextContent('100%');
+    expect(sizeSlider().min).toBe('0');
+    expect(sizeSlider().step).toBe('1');
+    expect(sizeSlider().value).toBe('2');
+    expect(sizeSlider().max).toBe('3');
+    expect(sizeSlider()).toHaveAttribute('aria-valuetext', '100%');
 
-    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: 'devices.panels.widgetSize.large' })); });
+    await pickSize('min');
 
-    // A display panel has a pager, so nothing is dropped and no confirmation is asked.
     expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
     await waitFor(() => expect(patches()).toHaveLength(1));
     const written = patches()[0].layout?.pages.flatMap(p => p.widgets) ?? [];
-    expect(patches()[0].widgetSize).toBe('large');
+    expect(patches()[0].widgetSize).toBe('compact');
     expect(written.map(w => w.type).sort()).toEqual(['clock', 'media', 'monitoring', 'stocks', 'weather']);
-    expect((patches()[0].layout?.pages.length ?? 0)).toBeGreaterThan(1);
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
   });
 });

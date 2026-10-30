@@ -9,7 +9,7 @@
 import type {
   CanvasPointerEvent, FramePacing, HostToRenderer, RendererSize, RendererToHost,
 } from '../../../sdk/runtime/rendererCore';
-import { panelDisplayHz, streamFrameCap } from '../../lib/framePacer';
+import { pageFrameCap, panelDisplayHz, subscribePanelFpsCap } from '../../lib/framePacer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
@@ -34,11 +34,11 @@ export function cappedPixelRatio(): number {
   return Math.min(Math.max(dpr, 1), MAX_PIXEL_RATIO);
 }
 
-/** Draw-rate limits for a renderer on the page with this query: the ceiling, lowered by the stream's rate or the panel's refresh. */
+/** Draw-rate limits for a renderer on the page with this query: the ceiling, lowered by the stream's rate, the device record's cap or the panel's refresh. */
 export function framePacing(search: string): FramePacing {
   const displayHz = panelDisplayHz(search);
   const panelCap = displayHz === null ? Infinity : displayHz + PANEL_HZ_HEADROOM;
-  return { maxFps: Math.min(MAX_RENDERER_FPS, streamFrameCap(search) ?? Infinity, panelCap), displayHz };
+  return { maxFps: Math.min(MAX_RENDERER_FPS, pageFrameCap(search) ?? Infinity, panelCap), displayHz };
 }
 
 /**
@@ -127,6 +127,7 @@ export class CanvasSession {
   private generation = 0;
 
   private readonly spec: CanvasSpec;
+  private stopPacingWatch: (() => void) | null = null;
 
   constructor(spec: CanvasSpec) {
     this.spec = spec;
@@ -140,6 +141,8 @@ export class CanvasSession {
     this.element.addEventListener('lostpointercapture', this.onLostCapture as EventListener);
     this.element.addEventListener('wheel', this.onWheel, { passive: false });
     this.watchResolution();
+    // A change of the device record's frame cap reaches a running renderer, not only the next one.
+    this.stopPacingWatch = subscribePanelFpsCap(() => this.send({ type: 'pacing', pacing: framePacing(window.location.search) }));
     void this.start();
   }
 
@@ -194,6 +197,8 @@ export class CanvasSession {
     this.teardownWorker();
     this.stopResolutionWatch?.();
     this.stopResolutionWatch = null;
+    this.stopPacingWatch?.();
+    this.stopPacingWatch = null;
     this.element.remove();
     this.listeners.clear();
     this.claims.clear();
