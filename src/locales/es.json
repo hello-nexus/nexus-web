@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "Añadir archivos…",
   "gallery.page.addFolder": "Añadir carpeta…",
   "gallery.page.addToPlaylist": "Añadir a la lista",
+  "gallery.page.addTooLarge": "No se pudo copiar {name} desde la unidad de red. Nexus copia hasta 2 GB.",
   "gallery.page.alreadyAdded": "{name} ya está en la galería",
   "gallery.page.create": "Crear",
   "gallery.page.deletePlaylist": "Eliminar lista",

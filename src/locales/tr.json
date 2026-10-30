@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "Dosya ekle…",
   "gallery.page.addFolder": "Klasör ekle…",
   "gallery.page.addToPlaylist": "Çalma listesine ekle",
+  "gallery.page.addTooLarge": "{name} ağ sürücüsünden kopyalanamadı. Nexus en fazla 2 GB kopyalar.",
   "gallery.page.alreadyAdded": "{name} zaten galeride",
   "gallery.page.create": "Oluştur",
   "gallery.page.deletePlaylist": "Çalma listesini sil",

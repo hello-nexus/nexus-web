@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "ファイルを追加…",
   "gallery.page.addFolder": "フォルダーを追加…",
   "gallery.page.addToPlaylist": "プレイリストに追加",
+  "gallery.page.addTooLarge": "ネットワークドライブから {name} をコピーできませんでした。Nexus がコピーできるのは 2 GB までです。",
   "gallery.page.alreadyAdded": "{name}はすでにギャラリーにあります",
   "gallery.page.create": "作成",
   "gallery.page.deletePlaylist": "プレイリストを削除",

@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "添加文件…",
   "gallery.page.addFolder": "添加文件夹…",
   "gallery.page.addToPlaylist": "添加到播放列表",
+  "gallery.page.addTooLarge": "无法从网络驱动器复制 {name}。Nexus 最多复制 2 GB。",
   "gallery.page.alreadyAdded": "{name} 已在图库中",
   "gallery.page.create": "创建",
   "gallery.page.deletePlaylist": "删除播放列表",

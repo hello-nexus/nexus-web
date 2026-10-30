@@ -2269,6 +2269,7 @@
   "gallery.page.addFile": "파일 추가…",
   "gallery.page.addFolder": "폴더 추가…",
   "gallery.page.addToPlaylist": "재생목록에 추가",
+  "gallery.page.addTooLarge": "네트워크 드라이브에서 {name}을(를) 복사하지 못했습니다. Nexus는 최대 2GB까지 복사합니다.",
   "gallery.page.alreadyAdded": "{name}은(는) 이미 갤러리에 있습니다",
   "gallery.page.create": "만들기",
   "gallery.page.deletePlaylist": "재생목록 삭제",

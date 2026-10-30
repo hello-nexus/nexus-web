@@ -2282,6 +2282,7 @@
   "gallery.page.addFile": "Добавить файлы…",
   "gallery.page.addFolder": "Добавить папку…",
   "gallery.page.addToPlaylist": "Добавить в плейлист",
+  "gallery.page.addTooLarge": "Не удалось скопировать {name} с сетевого диска. Nexus копирует не более 2 ГБ.",
   "gallery.page.alreadyAdded": "{name} уже есть в галерее",
   "gallery.page.create": "Создать",
   "gallery.page.deletePlaylist": "Удалить плейлист",
