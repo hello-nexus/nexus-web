@@ -83,4 +83,16 @@ describe('FrameRateSetting', () => {
     await waitFor(() => expect(toast.push).toHaveBeenCalledWith({ title: 'lighting.ledMap.rateCapFailed' }));
     expect(trigger().textContent).toContain(HZ(10));
   });
+
+  it('a newer pick failing before an older one succeeds ends on the older value', async () => {
+    const first = deferred<unknown>();
+    const second = deferred<unknown>();
+    api.patchPanelDevice.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    render(<FrameRateSetting recordId="p1" cap={null} />);
+    pick(HZ(10));
+    pick(HZ(5));
+    await act(async () => { second.resolve(null); });
+    await act(async () => { first.resolve({ id: 'p1' }); });
+    await waitFor(() => expect(trigger().textContent).toContain(HZ(10)));
+  });
 });

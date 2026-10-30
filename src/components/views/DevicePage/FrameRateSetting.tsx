@@ -14,7 +14,7 @@ interface Props {
 
 /**
  * Per-device frame rate cap. Applies on change; the newest request wins, and a failed save puts the
- * select back on the last value the service confirmed (the newest successful save, which may be an older pick). A value arriving from the parent while a save
+ * select back on the newest successful save. A value arriving from the parent while a save
  * is in flight (an older save's broadcast) never overwrites a newer pick.
  */
 export function FrameRateSetting({ recordId, cap }: Props) {
@@ -25,6 +25,7 @@ export function FrameRateSetting({ recordId, cap }: Props) {
   const pending = useRef(0);
   const confirmed = useRef<number | null>(cap);
   const confirmedSeq = useRef(0);
+  const failedSeq = useRef(0);
 
   useEffect(() => {
     if (pending.current > 0) return;
@@ -47,9 +48,12 @@ export function FrameRateSetting({ recordId, cap }: Props) {
           confirmed.current = next;
           confirmedSeq.current = mine;
         }
+        // The newest pick already failed and rolled back; follow the older save that landed after it.
+        if (failedSeq.current === seq.current) setCurrent(confirmed.current);
         return;
       }
       if (mine !== seq.current) return;
+      failedSeq.current = mine;
       setCurrent(confirmed.current);
       push({ title: t('lighting.ledMap.rateCapFailed') });
     };
