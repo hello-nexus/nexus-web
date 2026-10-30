@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FRAME_RATE_OFF, frameRateCaps, frameRateFromValue, frameRateValue } from './frameRateOptions';
+import { FRAME_RATE_OFF, frameRateCaps, frameRateFromValue, frameRateValue, showsFrameRateSetting } from './frameRateOptions';
 
 describe('frameRateCaps', () => {
   it('offers Off then the lighting frame cap list', () => {
@@ -24,5 +24,14 @@ describe('frameRateFromValue', () => {
   it('maps the Off value to the clearing 0', () => {
     expect(frameRateFromValue(FRAME_RATE_OFF)).toBe(0);
     expect(frameRateFromValue('15')).toBe(15);
+  });
+});
+
+describe('showsFrameRateSetting', () => {
+  it('shows for streamed displays and display-bound kiosk panels only, never a simulator', () => {
+    expect(showsFrameRateSetting(true, false, false)).toBe(true);
+    expect(showsFrameRateSetting(false, true, false)).toBe(true);
+    expect(showsFrameRateSetting(false, false, false)).toBe(false);
+    expect(showsFrameRateSetting(true, true, true)).toBe(false);
   });
 });

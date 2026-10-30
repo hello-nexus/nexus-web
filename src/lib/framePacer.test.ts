@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import { afterEach } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   createAdaptivePacer, createDisplayDivider, createFramePacer, framePacingQuery, getPanelFpsCap, pageFrameCap, panelDisplayHz, setPanelFpsCap,
   streamFrameCap, subscribePanelFpsCap,

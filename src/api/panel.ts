@@ -186,9 +186,6 @@ export interface PanelDeviceRecord {
   // Frame rate cap in fps for this device (streamed session rate, secondary-monitor pacing, or
   // how often a display-bound panel page draws). Absent/null = the device's own rate.
   fpsCap?: number | null;
-  // Response-only on GET /panel/devices: the highest rate the device can do (a streamed
-  // profile's rate, or the refresh of the display a kiosk is shown on). Absent when unknown.
-  maxFps?: number;
   // Panels offering the Widget size switch (panelWidgetSizeOptions). Absent/null = the
   // panel's default size.
   widgetSize?: PanelWidgetSizeMode | null;
@@ -290,7 +287,7 @@ export interface PanelDevicePatch {
   portrait?: boolean;
   // Panels whose capabilities carry supportsRenderScale only; ignored for other panels.
   highResolution?: boolean;
-  // Frame rate cap in fps; 0 clears it (the device's own rate).
+  // Frame rate cap in fps; 0 clears it (the device's own rate). The service clamps it.
   fpsCap?: number;
   widgetSize?: PanelWidgetSizeMode;
   kioskViewport?: KioskViewportDto;

@@ -9,7 +9,7 @@
 import type {
   CanvasPointerEvent, FramePacing, HostToRenderer, RendererSize, RendererToHost,
 } from '../../../sdk/runtime/rendererCore';
-import { pageFrameCap, panelDisplayHz } from '../../lib/framePacer';
+import { pageFrameCap, panelDisplayHz, subscribePanelFpsCap } from '../../lib/framePacer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
@@ -127,6 +127,7 @@ export class CanvasSession {
   private generation = 0;
 
   private readonly spec: CanvasSpec;
+  private stopPacingWatch: (() => void) | null = null;
 
   constructor(spec: CanvasSpec) {
     this.spec = spec;
@@ -140,6 +141,8 @@ export class CanvasSession {
     this.element.addEventListener('lostpointercapture', this.onLostCapture as EventListener);
     this.element.addEventListener('wheel', this.onWheel, { passive: false });
     this.watchResolution();
+    // A change of the device record's frame cap reaches a running renderer, not only the next one.
+    this.stopPacingWatch = subscribePanelFpsCap(() => this.send({ type: 'pacing', pacing: framePacing(window.location.search) }));
     void this.start();
   }
 
@@ -194,6 +197,8 @@ export class CanvasSession {
     this.teardownWorker();
     this.stopResolutionWatch?.();
     this.stopResolutionWatch = null;
+    this.stopPacingWatch?.();
+    this.stopPacingWatch = null;
     this.element.remove();
     this.listeners.clear();
     this.claims.clear();

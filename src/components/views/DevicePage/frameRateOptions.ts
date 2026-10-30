@@ -24,3 +24,8 @@ export function frameRateFromValue(value: string): number {
   const fps = Number(value);
   return Number.isFinite(fps) && fps >= 1 ? fps : 0;
 }
+
+/** Whether a panel offers the Frame rate setting: every streamed display and every display-bound kiosk panel, never a simulator. */
+export function showsFrameRateSetting(streamed: boolean, displayBound: boolean, simulated: boolean): boolean {
+  return !simulated && (streamed || displayBound);
+}
