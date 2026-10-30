@@ -17,8 +17,8 @@
 
 import { clearAccountHint } from './accountHint';
 import type {
-  AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
-  AuthLoginResponse, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
+  AccountBuild, AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
+  AuthLoginResponse, SharedBuild, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
 } from './authBackend';
 
 const DEFAULT_API = 'https://api.hellonexus.com';
@@ -527,6 +527,43 @@ export const directApiBackend: AuthBackend = {
   deleteDevice: async (installId) => {
     const res = await authedRequest(`/account/devices/${encodeURIComponent(installId)}`, 'DELETE');
     return Boolean(res?.ok);
+  },
+
+  listBuilds: async () => {
+    const res = await authedRequest('/account/builds', 'GET');
+    if (!res?.ok) return null;
+    return (await tryParseJson<{ builds: AccountBuild[] }>(res))?.builds ?? null;
+  },
+
+  saveBuild: async (id, build) => {
+    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'PUT', { json: build });
+    if (!res) return { status: 'failed' };
+    if (res.ok) {
+      const saved = await tryParseJson<AccountBuild>(res);
+      return saved ? { status: 'ok', build: saved } : { status: 'failed' };
+    }
+    if (res.status === 409) {
+      const body = await tryParseJson<{ code?: string; limit?: number }>(res);
+      if (body?.code === 'build_limit') return { status: 'limit', limit: body.limit ?? 0 };
+    }
+    return res.status === 413 ? { status: 'tooLarge' } : { status: 'failed' };
+  },
+
+  deleteBuild: async (id) => {
+    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'DELETE');
+    return Boolean(res?.ok);
+  },
+
+  getSharedBuild: async (id) => {
+    try {
+      const res = await fetch(`${BASE}/builds/${encodeURIComponent(id)}`);
+      if (res.status === 404) return { status: 'notFound' };
+      if (!res.ok) return { status: 'failed' };
+      const build = await tryParseJson<SharedBuild>(res);
+      return build ? { status: 'ok', build } : { status: 'failed' };
+    } catch {
+      return { status: 'failed' };
+    }
   },
 
   listOwnBenchmarks: async () => {

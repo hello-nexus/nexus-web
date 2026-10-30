@@ -457,6 +457,51 @@ describe('directApiBackend', () => {
       expect(await backend.listDevices?.()).toBeNull();
     });
 
+    it('listBuilds returns the account builds and null on failure', async () => {
+      const backend = await loggedInBackend();
+      const builds = [{ id: 'b1', name: 'Gaming', data: { slots: {} }, createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-02T00:00:00Z' }];
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { builds }));
+      expect(await backend.listBuilds?.()).toEqual(builds);
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/builds`, expect.objectContaining({ method: 'GET' }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(500, {}));
+      expect(await backend.listBuilds?.()).toBeNull();
+    });
+
+    it('saveBuild PUTs name and data and maps the limit and size refusals', async () => {
+      const backend = await loggedInBackend();
+      const saved = { id: 'b1', name: 'Gaming', data: {}, createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-02T00:00:00Z' };
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, saved));
+      expect(await backend.saveBuild?.('b1', { name: 'Gaming', data: {} })).toEqual({ status: 'ok', build: saved });
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/builds/b1`, expect.objectContaining({ method: 'PUT', body: JSON.stringify({ name: 'Gaming', data: {} }) }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(409, { code: 'build_limit', limit: 10 }));
+      expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'limit', limit: 10 });
+      fetchMock.mockResolvedValueOnce(jsonResponse(413, {}));
+      expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'tooLarge' });
+      fetchMock.mockResolvedValueOnce(jsonResponse(500, {}));
+      expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'failed' });
+    });
+
+    it('deleteBuild is true on 204', async () => {
+      const backend = await loggedInBackend();
+      fetchMock.mockResolvedValueOnce(emptyResponse(204));
+      expect(await backend.deleteBuild?.('b1')).toBe(true);
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/builds/b1`, expect.objectContaining({ method: 'DELETE' }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(500, {}));
+      expect(await backend.deleteBuild?.('b1')).toBe(false);
+    });
+
+    it('getSharedBuild needs no session and tells a missing build from a failure', async () => {
+      const backend = await freshBackend();
+      const shared = { id: 'b1', name: 'Gaming', data: {}, updatedAt: '2026-06-02T00:00:00Z' };
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, shared));
+      expect(await backend.getSharedBuild?.('b1')).toEqual({ status: 'ok', build: shared });
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/builds/b1`);
+      fetchMock.mockResolvedValueOnce(jsonResponse(404, {}));
+      expect(await backend.getSharedBuild?.('b1')).toEqual({ status: 'notFound' });
+      fetchMock.mockResolvedValueOnce(jsonResponse(500, {}));
+      expect(await backend.getSharedBuild?.('b1')).toEqual({ status: 'failed' });
+    });
+
     it('upsertDevice PUTs to the installId route and returns the envelope result', async () => {
       const backend = await loggedInBackend();
       fetchMock.mockResolvedValueOnce(jsonResponse(200, {
