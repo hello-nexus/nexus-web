@@ -74,6 +74,8 @@ vi.mock('../../../api/lighting', () => ({
   setBrightnessSchedule: lightingApi.setBrightnessSchedule,
   fetchIdleDim: lightingApi.fetchIdleDim,
   setIdleDim: lightingApi.setIdleDim,
+  fetchGlobalBrightness: vi.fn().mockResolvedValue({ value: 1, masterScalesDevices: false }),
+  setMasterScalesDevices: vi.fn().mockResolvedValue(null),
   fetchAudioOutput: lightingApi.fetchAudioOutput,
   setAudioOutput: lightingApi.setAudioOutput,
 }));

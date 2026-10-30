@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Clock, Moon, RotateCcw, Sun } from 'lucide-react';
+import { Moon, RotateCcw, Sun, SunMedium } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -12,6 +12,7 @@ import { WeatherLocationSearch } from '../../../panel/widgets/weather/WeatherLoc
 import { useWeatherPrefs } from '../../../panel/widgets/weather/useWeatherPrefs';
 import type { BrightnessScheduleState } from '../../../hooks/useBrightnessSchedule';
 import { useIdleDim } from '../../../hooks/useIdleDim';
+import { useMasterScalesDevices } from '../../../hooks/useMasterScalesDevices';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import {
@@ -44,6 +45,7 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
   const { t, language } = useTranslation();
   // The modal mounts only while open, so this fetches on open.
   const idleDim = useIdleDim(true);
+  const masterScales = useMasterScalesDevices(true);
   const { timeFormat, numberFormat } = useUnitPrefs();
   const { schedule, defaults, current, minute, save, sunShift, location, sun, sunPoints, sunLevels, saveSun } = state;
   const scheduleOn = schedule?.enabled === true;
@@ -178,7 +180,7 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
       open={open}
       onClose={onClose}
       title={t('lighting.schedule.title')}
-      icon={<Clock size={18} />}
+      icon={<SunMedium size={18} />}
       medium
     >
       <div className={styles.modal}>
@@ -303,6 +305,17 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
             )}
           </div>
         )}
+
+        <div className={styles.multiplier}>
+          <SettingToggle
+            label={t('lighting.masterScales.label')}
+            description={t('lighting.masterScales.description')}
+            checked={masterScales.on === true}
+            disabled={masterScales.on === null}
+            onChange={on => { void masterScales.save(on); }}
+            stackOnNarrow
+          />
+        </div>
       </div>
     </DeviceModal>
   );

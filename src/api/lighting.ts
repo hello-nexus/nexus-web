@@ -787,10 +787,15 @@ export const setLightingMaxRate = (id: string, maxRateHz: number | null) =>
 export const setLightingSampling = (id: string, mode: SamplingMode) =>
   postService<ApiEnvelope>('/devices/lighting-devices/sampling', { id, mode });
 
-// Master brightness cap (0..1). Caps every per-device value so the effective
-// brightness for an LED is `min(global, device / 100)` - never brighter.
+// Master brightness (0..1). By default it caps every per-device value so the
+// effective brightness for an LED is `min(global, device / 100)`; with
+// `masterScalesDevices` on it multiplies instead: `global * device / 100`.
 export const fetchGlobalBrightness = () =>
-  fetchService<{ value: number }>('/lighting/global-brightness');
+  fetchService<{ value: number; masterScalesDevices?: boolean }>('/lighting/global-brightness');
+
+/** Switch between master capping and master multiplying the per-device level. */
+export const setMasterScalesDevices = (masterScalesDevices: boolean) =>
+  postService('/lighting/global-brightness', { masterScalesDevices });
 
 export const setGlobalBrightness = (value: number) =>
   postService('/lighting/global-brightness', { value });

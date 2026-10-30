@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { CircuitBoard, Clock, Cpu, Lightbulb, Lock, Moon, RotateCcw, Speaker, Zap } from 'lucide-react';
+import { CircuitBoard, Cpu, Lightbulb, Lock, Moon, RotateCcw, Speaker, SunMedium, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToastSafe } from '../../common/Toast/Toast';
@@ -271,7 +271,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
         )}
         <SettingRow
           label={t('lighting.schedule.row.label')}
-          icon={<Clock />}
+          icon={<SunMedium />}
           iconLeading="subtle"
           anchorId="set-brightness-schedule"
           description={t('lighting.schedule.row.description')}

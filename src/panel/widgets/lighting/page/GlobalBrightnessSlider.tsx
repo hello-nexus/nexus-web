@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Clock } from 'lucide-react';
+import { SunMedium } from 'lucide-react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
@@ -20,7 +20,7 @@ import styles from '../LightingPage.module.scss';
  * While the time-of-day schedule is on, its current level is a second cap on
  * top of the slider, shown the way the per-device slider shows this one: a
  * marker at the scheduled level and the fill past it dimmed when it is the
- * lower of the two. A clock beside the label opens the schedule editor in
+ * lower of the two. A sun button beside the label opens the brightness settings in
  * place, whether the schedule is on or off.
  *
  * Renders as a labelled stacked slider so it reads as the first control in the
@@ -110,7 +110,7 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         onClick={e => { e.preventDefault(); openSchedule(); }}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSchedule(); } }}
       >
-        <Clock size={14} />
+        <SunMedium size={14} />
       </span>
     </HoverTooltip>
   );
