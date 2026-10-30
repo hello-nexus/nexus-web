@@ -5,7 +5,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { setLightingMaxRate } from '../../../../api/lighting';
 import styles from './LedMapEditor.module.scss';
 
-export const RATE_CAP_OPTIONS_HZ = [30, 20, 15, 10, 5, 1] as const;
+export const RATE_CAP_OPTIONS_HZ = [30, 25, 20, 15, 10, 5, 1] as const;
 const OFF = '';
 
 interface Props {
