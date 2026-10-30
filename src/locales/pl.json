@@ -1824,6 +1824,8 @@
   "devices.y70.panelAutoLaunchHint": "Gdy wyłączone, panel jest ukryty, a zamiast niego wyświetlany jest pulpit.",
   "devices.y70.reserveMonitor": "Utrzymuj panel wolny od innych okien",
   "devices.y70.reserveMonitorHint": "Gdy włączone, okna otwierane lub przenoszone na panel są odsyłane z powrotem na główny monitor.",
+  "devices.y70.restrictedMode": "Tryb ograniczony",
+  "devices.y70.restrictedModeHint": "Na panelu działają tylko oświetlenie, multimedia i głośność.",
   "devices.y70.screen": "Ekran",
   "devices.y70.tab.settings": "Ustawienia",
   "devices.y70.tab.theme": "Motyw",

@@ -1816,6 +1816,8 @@
   "devices.y70.panelAutoLaunchHint": "關閉時，面板會隱藏並改為顯示桌面。",
   "devices.y70.reserveMonitor": "保持面板不被其他視窗佔用",
   "devices.y70.reserveMonitorHint": "開啟時，在面板上開啟或移動到面板的視窗會被送回你的主螢幕。",
+  "devices.y70.restrictedMode": "受限模式",
+  "devices.y70.restrictedModeHint": "面板上僅燈光、媒體和音量可用。",
   "devices.y70.screen": "螢幕",
   "devices.y70.tab.settings": "設定",
   "devices.y70.tab.theme": "主題",

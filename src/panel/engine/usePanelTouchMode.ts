@@ -53,6 +53,8 @@ interface PanelTouchModeOpts {
   // surface's touch support: on a touch surface the hold is the gesture
   // regardless of what the OS calls the pointer.
   mouseLongPress?: boolean;
+  // Restricted mode: no widget context menu opens by any path.
+  menuDisabled?: boolean;
 }
 
 /**
@@ -62,7 +64,7 @@ interface PanelTouchModeOpts {
  * single flat-list path. This hook only disambiguates tap / long-press
  * / drag and tracks rearrange visuals.
  */
-export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTouchModeOpts) {
+export function usePanelTouchMode({ onCellTap, mouseLongPress = false, menuDisabled = false }: PanelTouchModeOpts) {
   const [rearranging, setRearranging] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
   const [pressedWidgetId, setPressedWidgetId] = useState<string | null>(null);
@@ -116,12 +118,12 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     // The shrink lands as the menu opens; snap the cell back so the menu is
     // what reads as "happened".
     clearPressFeedback();
-    if (w) {
+    if (w && !menuDisabled) {
       triggerHaptic('medium');
       hostOpenedRef.current = true;
       setCtxMenu({ widget: w, x, y, seq: ++ctxSeqRef.current });
     }
-  }, [clearPressFeedback]);
+  }, [clearPressFeedback, menuDisabled]);
 
   const longPress = useLongPress(handleLongPress, CONTEXT_MENU_TRIGGER_MS, { allowMouse: mouseLongPress });
 
@@ -131,14 +133,16 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     clearPressFeedback();
     // A host that fires contextmenu mid-hold already opened the menu; a pending long-press would reopen it as a new seq.
     longPress.onPointerUp();
+    if (menuDisabled) return;
     setCtxMenu({ widget, x: e.clientX, y: e.clientY, target: e.target, seq: ++ctxSeqRef.current });
-  }, [clearPressFeedback, longPress]);
+  }, [clearPressFeedback, longPress, menuDisabled]);
 
   const openCtxMenu = useCallback((widget: PanelWidget, x: number, y: number) => {
     clearPressFeedback();
+    if (menuDisabled) return;
     hostOpenedRef.current = true;
     setCtxMenu({ widget, x, y, seq: ++ctxSeqRef.current });
-  }, [clearPressFeedback]);
+  }, [clearPressFeedback, menuDisabled]);
 
   const closeCtxMenu = useCallback(() => {
     hostOpenedRef.current = false;

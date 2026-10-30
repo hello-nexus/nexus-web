@@ -1816,6 +1816,8 @@
   "devices.y70.panelAutoLaunchHint": "Kapalı olduğunda panel gizlenir ve onun yerine masaüstü gösterilir.",
   "devices.y70.reserveMonitor": "Paneli diğer pencerelerden uzak tut",
   "devices.y70.reserveMonitorHint": "Açıkken, panel üzerinde açılan veya panele taşınan pencereler ana monitörünüze geri gönderilir.",
+  "devices.y70.restrictedMode": "Kısıtlı mod",
+  "devices.y70.restrictedModeHint": "Panelde yalnızca aydınlatma, medya ve ses düzeyi çalışır.",
   "devices.y70.screen": "Ekran",
   "devices.y70.tab.settings": "Ayarlar",
   "devices.y70.tab.theme": "Tema",

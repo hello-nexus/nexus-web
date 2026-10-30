@@ -1824,6 +1824,8 @@
   "devices.y70.panelAutoLaunchHint": "Když je vypnuto, panel je skrytý a místo něj se zobrazí plocha.",
   "devices.y70.reserveMonitor": "Udržovat panel bez jiných oken",
   "devices.y70.reserveMonitorHint": "Když je zapnuto, okna, která se na panelu otevřou nebo se na něj přesunou, jsou vrácena na hlavní monitor.",
+  "devices.y70.restrictedMode": "Omezený režim",
+  "devices.y70.restrictedModeHint": "Na panelu funguje jen osvětlení, média a hlasitost.",
   "devices.y70.screen": "Obrazovka",
   "devices.y70.tab.settings": "Nastavení",
   "devices.y70.tab.theme": "Motiv",

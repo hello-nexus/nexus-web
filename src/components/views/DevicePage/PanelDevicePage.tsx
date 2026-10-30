@@ -385,6 +385,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordWidgetsLocked, setRecordWidgetsLocked] = useState(false);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
+  const [recordRestricted, setRecordRestricted] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
   const [recordMirror, setRecordMirror] = useState(false);
   const [recordPortrait, setRecordPortrait] = useState(false);
@@ -434,6 +435,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
   const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
+  // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
+  const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);
   const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel, genericDisplay);
   const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
@@ -706,6 +709,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordWidgetsLocked(resolveWidgetsLocked(match?.widgetsLocked, match?.layout?.pages.flatMap(p => p.widgets) ?? []));
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
+      setRecordRestricted(match?.restrictedMode ?? false);
       setRecordFlip180(match?.flip180 ?? false);
       setRecordMirror(match?.mirror ?? false);
       setRecordPortrait(match?.portrait ?? false);
@@ -878,6 +882,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
+      setRecordRestricted(record.restrictedMode ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
@@ -933,6 +938,25 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         }
       });
   }, [refetchDeviceRecord, reportWriteFailed]);
+
+  const toggleRestricted = useCallback(() => {
+    if (!editingDeviceId) return;
+    const next = !recordRestricted;
+    const revert = () => { setRecordRestricted(!next); reportWriteFailed(); };
+    setRecordRestricted(next);
+    pendingWritesRef.current += 1;
+    writeSeqRef.current += 1;
+    patchPanelDevice(editingDeviceId, { restrictedMode: next })
+      .then(saved => { if (saved === null) revert(); })
+      .catch(revert)
+      .finally(() => {
+        pendingWritesRef.current -= 1;
+        if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
+          missedBroadcastRef.current = false;
+          refetchDeviceRecord();
+        }
+      });
+  }, [editingDeviceId, recordRestricted, refetchDeviceRecord, reportWriteFailed]);
 
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
@@ -1747,6 +1771,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordAlwaysOnTop(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { alwaysOnTop: next }).catch(() => {});
                       }}
+                      restrictedMode={restrictedToggleShown ? recordRestricted : null}
+                      onRestrictedModeToggle={toggleRestricted}
                       widgetsLocked={genericDisplay ? recordWidgetsLocked : null}
                       onWidgetsLockedToggle={() => {
                         const next = !recordWidgetsLocked;
@@ -1828,6 +1854,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       }}
                       alwaysOnTop={undefined}
                       onAlwaysOnTopToggle={() => {}}
+                      restrictedMode={restrictedToggleShown ? recordRestricted : undefined}
+                      onRestrictedModeToggle={toggleRestricted}
                       showDisplayControls={supportsDisplayControls}
                       showAutoLaunch={supportsAutoLaunch}
                       usbDisconnected={usbDisconnected}
@@ -2587,6 +2615,9 @@ interface MonitorSettingsPanelProps {
   onAlwaysOnTopToggle: () => void;
   widgetsLocked: boolean | null;
   onWidgetsLockedToggle: () => void;
+  // Null hides the row (not a touch panel).
+  restrictedMode?: boolean | null;
+  onRestrictedModeToggle?: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
   keepCursorOff: boolean | null;
@@ -2615,6 +2646,7 @@ function MonitorSettingsPanel({
   sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
   alwaysOnTop, alwaysOnTopDisabled, onAlwaysOnTopToggle, widgetsLocked, onWidgetsLockedToggle,
+  restrictedMode = null, onRestrictedModeToggle,
   reserveMonitor, onReserveMonitorToggle,
   keepCursorOff, onKeepCursorOffToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
@@ -2746,6 +2778,14 @@ function MonitorSettingsPanel({
           onChange={onKeepCursorOffToggle}
         />
       )}
+      {restrictedMode !== null && onRestrictedModeToggle && (
+        <SettingToggle
+          label={t('devices.y70.restrictedMode')}
+          description={t('devices.y70.restrictedModeHint')}
+          checked={restrictedMode}
+          onChange={onRestrictedModeToggle}
+        />
+      )}
       </SettingsSection>
     </div>
   );
@@ -2785,6 +2825,9 @@ interface SettingsPanelProps {
   // Undefined hides the toggle, as for compatibilityRendering.
   keepCursorOff?: boolean;
   onKeepCursorOffToggle: () => void;
+  // Undefined hides the row (not a touch panel).
+  restrictedMode?: boolean;
+  onRestrictedModeToggle?: () => void;
   screenOn: boolean;
   onScreenToggle: () => void;
   autoLaunch: boolean;
@@ -2811,6 +2854,7 @@ function SettingsPanel({
   forceOrientation, onForceOrientationToggle,
   compatibilityRendering, onCompatibilityRenderingToggle,
   keepCursorOff, onKeepCursorOffToggle,
+  restrictedMode, onRestrictedModeToggle,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
   reserveMonitor, onReserveMonitorToggle,
@@ -2958,6 +3002,15 @@ function SettingsPanel({
             checked={reserveMonitor}
             onChange={onReserveMonitorToggle}
           />
+
+          {restrictedMode !== undefined && onRestrictedModeToggle && (
+            <SettingToggle
+              label={t('devices.y70.restrictedMode')}
+              description={t('devices.y70.restrictedModeHint')}
+              checked={restrictedMode}
+              onChange={onRestrictedModeToggle}
+            />
+          )}
 
           {keepCursorOff !== undefined && (
             <SettingToggle

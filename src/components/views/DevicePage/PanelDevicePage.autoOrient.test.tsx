@@ -210,3 +210,41 @@ describe('PanelDevicePage monitor-panel keep the mouse off', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'true');
   });
 });
+
+describe('PanelDevicePage monitor-panel Restricted mode', () => {
+  const RESTRICTED_LABEL = 'devices.y70.restrictedMode';
+
+  it('shows on a touch monitor and persists restrictedMode on the record', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1',
+        displayId: 'disp1',
+        capabilities: { surface: 'monitor', touch: true, family: 'xeneon-edge', orientation: 'Landscape' },
+      }],
+    });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: RESTRICTED_LABEL });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { restrictedMode: true }));
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('is hidden on a monitor without a touch digitizer', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1',
+        displayId: 'disp1',
+        capabilities: { surface: 'monitor', touch: false, family: 'xeneon-edge', orientation: 'Landscape' },
+      }],
+    });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: 'devices.y70.keepCursorOff' });
+    expect(screen.queryByRole('switch', { name: RESTRICTED_LABEL })).not.toBeInTheDocument();
+  });
+});

@@ -1816,6 +1816,8 @@
   "devices.y70.panelAutoLaunchHint": "オフの場合、パネルは非表示になり、代わりにデスクトップが表示されます。",
   "devices.y70.reserveMonitor": "パネル上に他のウィンドウを表示しない",
   "devices.y70.reserveMonitorHint": "オンの場合、パネル上で開いたり移動したりするウィンドウはメインモニターに戻されます。",
+  "devices.y70.restrictedMode": "制限モード",
+  "devices.y70.restrictedModeHint": "パネルでは、ライティング、メディア、音量のみ操作できます。",
   "devices.y70.screen": "スクリーン",
   "devices.y70.tab.settings": "設定",
   "devices.y70.tab.theme": "テーマ",

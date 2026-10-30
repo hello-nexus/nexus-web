@@ -1816,6 +1816,8 @@
   "devices.y70.panelAutoLaunchHint": "끄면 패널이 숨겨지고 대신 바탕화면이 표시됩니다.",
   "devices.y70.reserveMonitor": "다른 창이 패널을 가리지 않도록 유지",
   "devices.y70.reserveMonitorHint": "켜면 패널 위에 열리거나 이동하는 창이 기본 모니터로 되돌려집니다.",
+  "devices.y70.restrictedMode": "제한 모드",
+  "devices.y70.restrictedModeHint": "패널에서는 조명, 미디어, 볼륨만 사용할 수 있습니다.",
   "devices.y70.screen": "화면",
   "devices.y70.tab.settings": "설정",
   "devices.y70.tab.theme": "테마",
