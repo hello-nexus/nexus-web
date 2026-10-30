@@ -214,7 +214,10 @@ export interface PanelDeviceRecord {
   secondaryMonitor?: boolean | null;
   // Response-only, route-computed, never persisted: absent/null when
   // secondaryMonitor is off or the panel is not streaming.
-  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'failed' | null;
+  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'in-use' | 'failed' | null;
+  // Response-only: the display name of the device holding the one virtual
+  // monitor when secondaryMonitorState is 'in-use'.
+  secondaryMonitorHolder?: string | null;
 }
 
 export interface PanelDevicePatch {

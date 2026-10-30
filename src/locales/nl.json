@@ -1058,6 +1058,8 @@
   "devices.lcd.secondaryMonitorDriverMissing": "Het schermstuurprogramma voor de tweede-monitormodus is niet geïnstalleerd op deze pc.",
   "devices.lcd.secondaryMonitorFailed": "Windows kon de monitor niet aanmaken. Schakel de instelling uit en weer in, of controleer het Nexus-servicelog.",
   "devices.lcd.secondaryMonitorHint": "Zolang dit aanstaat, wordt het paneel van het apparaat op de monitor getoond. Zet het Nexus-paneel uit om in plaats daarvan het Windows-bureaublad te zien.",
+  "devices.lcd.secondaryMonitorInUse": "Nexus kan maar één virtuele monitor tegelijk maken en {name} gebruikt die al. Schakel de instelling voor een tweede monitor daar uit, dan start deze vanzelf.",
+  "devices.lcd.secondaryMonitorInUseUnnamed": "Nexus kan maar één virtuele monitor tegelijk maken en een ander apparaat gebruikt die al. Schakel de instelling voor een tweede monitor op dat apparaat uit, dan start deze vanzelf.",
   "devices.lcd.secondaryMonitorSection": "Tweede monitor",
   "devices.lcd.secondaryMonitorStarting": "Monitor wordt gestart",
   "devices.lcd.sleepWhenLocked": "Scherm uitschakelen wanneer de pc vergrendeld is",

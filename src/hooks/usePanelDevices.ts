@@ -110,6 +110,7 @@ export const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'corsair-capellix-lcd': '/assets/devices/corsair.svg',
   'lianli-screen88': '/assets/devices/lianli.svg',
   'zmatrices-lcd': PANEL_MONITOR_ICON,
+  'steelseries-apex-oled': '/assets/devices/keyboard.svg',
 };
 
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
@@ -392,6 +393,7 @@ export function buildPanelDevices({
       managementMode: 'managed',
       surfaceProfileKey: `stream-${record.id}`,
       runtimeSurface: surface,
+      family,
       previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
       previewDpr: record.capabilities?.dpr,
       iconSrc: (family ? STREAMED_FAMILY_ICONS[family] : undefined) ?? PANEL_MONITOR_ICON,
