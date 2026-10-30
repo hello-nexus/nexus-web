@@ -17,9 +17,12 @@
 
 import { clearAccountHint } from './accountHint';
 import type {
-  AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
-  AuthLoginResponse, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
+  AccountBuild, AccountCheck, AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
+  AuthLoginResponse, SharedBuild, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
 } from './authBackend';
+
+// A build call that takes longer is dropped and tried again later.
+const BUILD_TIMEOUT_MS = 20000;
 
 const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
@@ -171,6 +174,7 @@ function applyApprovedRecovery(data: RecoveryPollBody, cookieMode: boolean): boo
 // hosted-web origin, even if a future server response shape were to carry
 // one unexpectedly.
 function applySession(session: ApiAuthSession, cookieMode: boolean): void {
+  lastRefresh = 'ok';
   if (!cookieMode && session.refreshToken) setStoredRefreshToken(session.refreshToken);
   accessToken = session.accessToken;
   accessTokenExpiresAt = Date.now() + ACCESS_TOKEN_LIFETIME_MS;
@@ -222,7 +226,10 @@ async function getAccessToken(): Promise<string | null> {
 
 function refreshAccessToken(): Promise<string | null> {
   if (!refreshInFlight) {
-    refreshInFlight = doRefresh().finally(() => { refreshInFlight = null; });
+    // Tabs share one session cookie and the api rotates it per refresh, so refreshes from several tabs at once would race
+    // and sign the user out. They take turns; each one then uses the cookie the previous one left.
+    const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+    refreshInFlight = (locks ? locks.request('nexus-auth-refresh', doRefresh) : doRefresh()).finally(() => { refreshInFlight = null; });
   }
   return refreshInFlight;
 }
@@ -235,38 +242,91 @@ function refreshAccessToken(): Promise<string | null> {
 // body of that SAME call for a one-time migration: the server validates it
 // like a normal body refresh, sets the cookie on success, and the body is
 // cleared below so every later cookie-mode call is a bare cookie bootstrap.
+// How the last refresh ended, so a failed session check can tell "no session" from "could not ask".
+let lastRefresh: 'ok' | 'noSession' | 'failed' = 'ok';
+
+// Read through a function: the check sets the outcome before a refresh it may start, so the compiler cannot see the change.
+const refreshOutcome = () => lastRefresh;
+
 async function doRefresh(): Promise<string | null> {
   const cookieMode = isWebCookieMode();
   const legacy = getStoredRefreshToken();
-  if (!cookieMode && !legacy) return null;
+  if (!cookieMode && !legacy) {
+    lastRefresh = 'noSession';
+    return null;
+  }
+  // A stalled refresh would hold the cross-tab refresh lock for every tab; it is dropped as a failure, not a sign-out.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), BUILD_TIMEOUT_MS);
   try {
     const res = await fetch(`${BASE}/auth/refresh`, {
       method: 'POST',
       headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
       credentials: fetchCredentials(cookieMode),
       body: JSON.stringify(legacy ? { refreshToken: legacy } : {}),
+      signal: controller.signal,
     });
     if (!res.ok) {
       // A definitive rejection means the token (migration) or cookie
       // (bootstrap) this call carried is not a live session; a 5xx/network
       // blip is not, so a still-unmigrated legacy token survives for a
       // later retry.
-      if (res.status === 401 || res.status === 403) clearSession();
+      // 400 is the api's answer to a web refresh with no session cookie at all: no session, like a refused one.
+      if (res.status === 400 || res.status === 401 || res.status === 403) {
+        lastRefresh = 'noSession';
+        clearSession();
+      } else {
+        lastRefresh = 'failed';
+      }
       return null;
     }
     const session = await tryParseJson<ApiAuthSession>(res);
-    if (!session) return null;
+    if (!session) {
+      lastRefresh = 'failed';
+      return null;
+    }
     applySession(session, cookieMode);
+    lastRefresh = 'ok';
     if (cookieMode && legacy) clearStoredRefreshToken();
     return accessToken;
   } catch {
+    lastRefresh = 'failed';
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
 type AuthedBody = { json: unknown } | { form: FormData } | undefined;
 
-async function authedRequest(path: string, method: string, body?: AuthedBody): Promise<Response | null> {
+interface AuthedOptions {
+  /** Send only if the token to be sent belongs to this account (its `sub`); otherwise answer wrongAccount without sending. */
+  expectAccount?: string;
+  /** Abort a request that takes longer, so a hung connection never holds its caller. */
+  timeoutMs?: number;
+}
+
+const WRONG_ACCOUNT = 'x-nexus-wrong-account';
+const wrongAccountResponse = (): Response => new Response(null, { status: 401, headers: { [WRONG_ACCOUNT]: '1' } });
+const isWrongAccount = (res: Response | null): boolean => res?.headers.get(WRONG_ACCOUNT) === '1';
+
+// The account a token was issued to. A token that cannot be read has no known owner and is not held against anyone.
+function tokenSubject(token: string): string | null {
+  try {
+    const payload = token.split('.')[1];
+    const sub: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))).sub;
+    return typeof sub === 'string' ? sub : null;
+  } catch {
+    return null;
+  }
+}
+
+const belongsToOther = (token: string, expect: string | undefined): boolean => {
+  const sub = expect ? tokenSubject(token) : null;
+  return sub !== null && sub !== expect;
+};
+
+async function authedRequest(path: string, method: string, body?: AuthedBody, options: AuthedOptions = {}): Promise<Response | null> {
   const attempt = async (token: string): Promise<Response> => {
     const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
     let payload: BodyInit | undefined;
@@ -276,15 +336,30 @@ async function authedRequest(path: string, method: string, body?: AuthedBody): P
     } else if (body && 'form' in body) {
       payload = body.form;
     }
-    return fetch(`${BASE}${path}`, { method, headers, body: payload });
+    const controller = options.timeoutMs ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), options.timeoutMs) : null;
+    try {
+      const res = await fetch(`${BASE}${path}`, { method, headers, body: payload, ...(controller ? { signal: controller.signal } : {}) });
+      if (!controller) return res;
+      // The timeout covers the body too: it is read here, while the timer runs, and handed on as a finished response.
+      const bytes = await res.arrayBuffer();
+      const empty = res.status === 204 || res.status === 205 || res.status === 304;
+      return new Response(empty ? null : bytes, { status: res.status, statusText: res.statusText, headers: res.headers });
+    } finally {
+      if (timer !== null) clearTimeout(timer);
+    }
   };
   try {
     const token = await getAccessToken();
     if (!token) return null;
+    if (belongsToOther(token, options.expectAccount)) return wrongAccountResponse();
     let res = await attempt(token);
     if (res.status === 401) {
       const refreshed = await refreshAccessToken();
-      if (refreshed) res = await attempt(refreshed);
+      if (refreshed) {
+        if (belongsToOther(refreshed, options.expectAccount)) return wrongAccountResponse();
+        res = await attempt(refreshed);
+      }
     }
     return res;
   } catch {
@@ -385,6 +460,23 @@ export const directApiBackend: AuthBackend = {
     if (!account) return null;
     cachedAccount = mapAccount(account);
     return cachedAccount;
+  },
+
+  checkAccount: async (): Promise<AccountCheck> => {
+    // Not known to be refused until a refresh in this check says so.
+    lastRefresh = 'failed';
+    const res = await authedRequest('/account/me', 'GET');
+    if (res?.ok) {
+      const account = await tryParseJson<ApiPublicAccount>(res);
+      if (account) {
+        cachedAccount = mapAccount(account);
+        return { state: 'signedIn', account: cachedAccount };
+      }
+      return { state: 'unreachable' };
+    }
+    // Signed out only when the refresh itself answered that there is no session; a 5xx, 429, network failure or any
+    // other answer proves nothing.
+    return { state: !res && refreshOutcome() === 'noSession' ? 'signedOut' : 'unreachable' };
   },
 
   recoveryStart: async (email) => {
@@ -527,6 +619,54 @@ export const directApiBackend: AuthBackend = {
   deleteDevice: async (installId) => {
     const res = await authedRequest(`/account/devices/${encodeURIComponent(installId)}`, 'DELETE');
     return Boolean(res?.ok);
+  },
+
+  forgetAccessToken: () => {
+    accessToken = null;
+    accessTokenExpiresAt = 0;
+  },
+
+  listBuilds: async (expectAccount) => {
+    const res = await authedRequest('/account/builds', 'GET', undefined, { expectAccount, timeoutMs: BUILD_TIMEOUT_MS });
+    if (isWrongAccount(res)) return 'wrongAccount';
+    if (!res?.ok) return null;
+    return (await tryParseJson<{ builds: AccountBuild[] }>(res))?.builds ?? null;
+  },
+
+  saveBuild: async (id, build, expectAccount) => {
+    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'PUT', { json: { name: build.name, data: build.data } }, { expectAccount, timeoutMs: BUILD_TIMEOUT_MS });
+    if (isWrongAccount(res)) return { status: 'wrongAccount' };
+    if (!res) return { status: 'failed' };
+    if (res.ok) {
+      const saved = await tryParseJson<AccountBuild>(res);
+      return saved ? { status: 'ok', build: saved } : { status: 'failed' };
+    }
+    if (res.status === 409) {
+      const body = await tryParseJson<{ code?: string; limit?: number }>(res);
+      if (body?.code === 'build_limit') return { status: 'limit', limit: body.limit ?? 0 };
+    }
+    if (res.status === 413) return { status: 'tooLarge' };
+    // The api will not take this build as it is, so sending it again changes nothing; a 5xx or 429 is worth another try.
+    return res.status === 400 || res.status === 404 ? { status: 'rejected' } : { status: 'failed' };
+  },
+
+  deleteBuild: async (id, expectAccount) => {
+    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'DELETE', undefined, { expectAccount, timeoutMs: BUILD_TIMEOUT_MS });
+    if (isWrongAccount(res)) return 'wrongAccount';
+    // A build already gone is as deleted as one just removed.
+    return Boolean(res && (res.ok || res.status === 404));
+  },
+
+  getSharedBuild: async (id) => {
+    try {
+      const res = await fetch(`${BASE}/builds/${encodeURIComponent(id)}`);
+      if (res.status === 404) return { status: 'notFound' };
+      if (!res.ok) return { status: 'failed' };
+      const build = await tryParseJson<SharedBuild>(res);
+      return build ? { status: 'ok', build } : { status: 'failed' };
+    } catch {
+      return { status: 'failed' };
+    }
   },
 
   listOwnBenchmarks: async () => {
