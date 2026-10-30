@@ -246,7 +246,7 @@
   margin-top: 0.15rem;
   color: var(--text-dim);
   font-size: var(--type-mini);
-  white-space: normal;
+  white-space: pre-line;
 }
 
 // Font-preview rows (SelectOption.fontFamily) draw larger so each face reads.
@@ -276,6 +276,43 @@
   padding: 0.4rem 0.6rem;
   background: transparent;
   overflow: visible;
+}
+
+.option.attached {
+  justify-content: flex-start;
+  padding: 0 0.6rem 0.45rem;
+}
+
+.option.attachedChosen {
+  background: var(--accent-soft);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.option.hasAttached {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+// The tint is the row's own, so a disabled attached row dims its button alone.
+.option.attached.optionDisabled {
+  opacity: 1;
+
+  .actionButton {
+    opacity: 0.45;
+  }
 }
 
 .actionButton {

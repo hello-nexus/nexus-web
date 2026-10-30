@@ -53,7 +53,8 @@ export interface SelectOption {
   // picker previews each face; the trigger keeps the control's own font.
   fontFamily?: string;
   // Dim second line under the label in the menu row only (e.g. a caveat about
-  // the choice); the trigger shows the label alone.
+  // the choice); a newline inside it breaks to a further line. The trigger
+  // shows the label alone.
   description?: string;
   // Renders a thin rule instead of a selectable row, grouping the options above
   // and below it. Non-navigable and removed from the a11y tree; value/label are
@@ -74,6 +75,13 @@ export interface SelectOption {
   // Action rows only: accessible name while busy. The visible label stays in
   // layout, hidden, so the button keeps its idle size under the spinner.
   busyLabel?: string;
+  // Action rows only: draws the row as the continuation of the option above it,
+  // with no gap between them, and shares that option's selection tint when it is
+  // the chosen one (e.g. a Resync beside the current item). Rows attached in a
+  // run all follow the first non-attached option.
+  attached?: boolean;
+  // Action rows only: tooltip on the row's button.
+  hint?: string;
 }
 
 export interface SelectProps {
@@ -103,6 +111,10 @@ export interface SelectProps {
   /** A control drawn inside the box, left of the value, as a sibling of the
    *  trigger so it can be a real button. Pressing it does not open the menu. */
   leadingAction?: ReactNode;
+  /** Draws the trigger's content for the selected option in place of its icon
+   *  and label (e.g. a larger name followed by a status chip). Not called when
+   *  no option is selected, where the placeholder shows. The menu is unchanged. */
+  renderValue?: (option: SelectOption) => ReactNode;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -159,15 +171,29 @@ function filterOptions(opts: readonly SelectOption[], raw: string): readonly Sel
   if (!needle) return opts;
   const out: SelectOption[] = [];
   let pending: SelectOption | null = null;
+  // Whether the option an attached row hangs off (the last non-attached one) survived.
+  let anchorKept = false;
   for (const o of opts) {
     if (o.divider) continue;
     if (o.header) { pending = o; continue; }
-    // Action rows stay while searching so the way to load more is never hidden.
-    if (!o.onAction && !o.label.toLowerCase().includes(needle)) continue;
+    if (o.attached) {
+      if (!anchorKept) continue;
+    } else {
+      // Action rows stay while searching so the way to load more is never hidden.
+      anchorKept = Boolean(o.onAction) || o.label.toLowerCase().includes(needle);
+      if (!anchorKept) continue;
+    }
     if (pending) { out.push(pending); pending = null; }
     out.push(o);
   }
   return out;
+}
+
+// Whether the attached action rows ending at `i` hang off the chosen option.
+function attachedToChosen(opts: readonly SelectOption[], i: number, value: string): boolean {
+  let j = i;
+  while (j > 0 && opts[j].attached) j--;
+  return !opts[j].attached && !opts[j].onAction && opts[j].value === value;
 }
 
 // Dividers, headers and disabled options are never focusable or selectable.
@@ -197,7 +223,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, accentValue, placeholder, height,
-  triggerIconOnly, leadingAction,
+  triggerIconOnly, leadingAction, renderValue,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
@@ -499,8 +525,12 @@ export function Select({
           onKeyDown={onTriggerKeyDown}
         >
           <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
-            {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
-            {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
+            {renderValue && selectedIndex >= 0 ? renderValue(resolved[selectedIndex]) : (
+              <>
+                {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
+                {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
+              </>
+            )}
           </span>
         </button>
       </HoverTooltip>
@@ -591,7 +621,7 @@ export function Select({
                   aria-disabled={opt.disabled || undefined}
                   aria-busy={opt.busy || undefined}
                   aria-label={opt.busy && opt.onAction ? (opt.busyLabel ?? opt.label) : undefined}
-                  aria-describedby={opt.description && !opt.onAction ? `${optionId(i)}-desc` : undefined}
+                  aria-describedby={opt.onAction ? (opt.hint ? `${optionId(i)}-hint` : undefined) : opt.description ? `${optionId(i)}-desc` : undefined}
                   className={classNames(
                     styles.option,
                     opt.className,
@@ -600,6 +630,9 @@ export function Select({
                     opt.disabled && styles.optionDisabled,
                     opt.fontFamily && styles.fontOption,
                     opt.onAction && styles.actionOption,
+                    opt.attached && styles.attached,
+                    opt.attached && attachedToChosen(visible, i, value) && styles.attachedChosen,
+                    visible[i + 1]?.attached && (opt.attached ? attachedToChosen(visible, i, value) : !opt.onAction && opt.value === value) && styles.hasAttached,
                   )}
                   style={opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined}
                   onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
@@ -608,11 +641,14 @@ export function Select({
                   {opt.onAction ? (
                     // The row stays the listbox option (keyboard and aria); the visual is the
                     // shared Button look on a span, since a real button cannot nest in an option.
-                    <span className={classNames(buttonStyles.button, buttonStyles['size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive, opt.busy && styles.actionButtonBusy)}>
-                      {opt.busy && <span className={styles.actionSpinner} aria-hidden="true"><Spinner size={14} /></span>}
-                      <span className={styles.actionLabel}>{opt.label}</span>
-                    </span>
+                    <HoverTooltip body={opt.hint}>
+                      <span className={classNames(buttonStyles.button, buttonStyles[opt.attached ? 'size-sm' : 'size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive, opt.busy && styles.actionButtonBusy)}>
+                        {opt.busy && <span className={styles.actionSpinner} aria-hidden="true"><Spinner size={14} /></span>}
+                        <span className={styles.actionLabel}>{opt.label}</span>
+                      </span>
+                    </HoverTooltip>
                   ) : null}
+                  {opt.onAction && opt.hint && <span id={`${optionId(i)}-hint`} className={styles.srOnly} aria-hidden="true">{opt.hint}</span>}
                   {!opt.onAction && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
                   {opt.onAction ? null : opt.description ? (
                     <span className={styles.optionText}>
