@@ -275,9 +275,22 @@ describe('StorePage hardware-gated app', () => {
 
   beforeEach(() => openExternalUrl.mockReset());
 
-  it('swaps Install for a product button and a requirement line when the hardware is absent', async () => {
-    fetchStoreApps.mockResolvedValue([gated(false)]);
+  const lead: StoreApp = { ...app, id: 'com.example.lead', name: 'Lead' };
+
+  it('gives a gated app its own full-width card with no action, and keeps it out of the grid', async () => {
+    fetchStoreApps.mockResolvedValue([lead, gated(false)]);
     render(<StorePage />);
+
+    expect(await screen.findAllByText('store.featured')).toHaveLength(2);
+    expect(screen.queryByRole('heading', { name: 'store.section.apps' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'store.install' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
+  });
+
+  it('swaps Install for a product button and a requirement line on the app page when the hardware is absent', async () => {
+    fetchStoreApps.mockResolvedValue([gated(false)]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
     const button = await screen.findByRole('button', { name: 'store.viewProduct' });
     expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
@@ -288,7 +301,8 @@ describe('StorePage hardware-gated app', () => {
 
   it('treats a missing matched flag as unmatched', async () => {
     fetchStoreApps.mockResolvedValue([gated()]);
-    render(<StorePage />);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated() });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
     expect(await screen.findByRole('button', { name: 'store.viewProduct' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
@@ -302,13 +316,13 @@ describe('StorePage hardware-gated app', () => {
     expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
   });
 
-  it('gates the app page hero the same way', async () => {
+  it('opens the app page from the gated card, where the gate shows', async () => {
     fetchStoreApps.mockResolvedValue([gated(false)]);
     fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
     render(<StorePage />);
 
     fireEvent.click(await screen.findByText('Aquarium'));
-    expect(await screen.findAllByRole('button', { name: 'store.viewProduct' })).not.toHaveLength(0);
+    expect(await screen.findByRole('button', { name: 'store.viewProduct' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
   });
 
