@@ -86,6 +86,8 @@ export type SaveBuildResult =
   /** The account holds as many builds as it may. */
   | { status: 'limit'; limit: number }
   | { status: 'tooLarge' }
+  /** The session now belongs to another account than the caller expected; nothing was sent. */
+  | { status: 'wrongAccount' }
   /** A 400 or 404: the api refuses this build as sent, and will again. */
   | { status: 'rejected' }
   /** Network, 5xx or 429: worth trying again. */
@@ -138,11 +140,13 @@ export interface AuthBackend {
   /** Null when the request failed. */
   setDeviceCase?(installId: string, caseId: string | null): Promise<AccountDeviceItem | null>;
   /** The signed-in account's saved builds; null when the request failed. Website only. */
-  listBuilds?(): Promise<AccountBuild[] | null>;
+  listBuilds?(expectAccount?: string): Promise<AccountBuild[] | null | 'wrongAccount'>;
   /** Creates or replaces one saved build. Website only. */
-  saveBuild?(id: string, build: { name: string; data: Record<string, unknown> }): Promise<SaveBuildResult>;
+  saveBuild?(id: string, build: { name: string; data: Record<string, unknown> }, expectAccount?: string): Promise<SaveBuildResult>;
   /** Website only. */
-  deleteBuild?(id: string): Promise<boolean>;
+  deleteBuild?(id: string, expectAccount?: string): Promise<boolean | 'wrongAccount'>;
+  /** Drops the in-memory access token, so the next request asks the shared session cookie who is signed in now. Website only. */
+  forgetAccessToken?(): void;
   /** A build by its public id, no sign-in needed. Website only. */
   getSharedBuild?(id: string): Promise<SharedBuildResult>;
   /** Leaderboard entries the signed-in account submitted; null when the request failed. Website only. */

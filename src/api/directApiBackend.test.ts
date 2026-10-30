@@ -485,6 +485,60 @@ describe('directApiBackend', () => {
       expect(await backend.checkAccount?.()).toEqual({ state: 'unreachable' });
     });
 
+    const jwt = (sub: string) => `h.${btoa(JSON.stringify({ sub })).replace(/=+$/, '')}.s`;
+
+    it('sends nothing when the token belongs to another account than the one the caller holds builds for', async () => {
+      const backend = await freshBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: jwt('acct-B'), refreshToken: 'refresh-1', account: mkApiAccount({ id: 'acct-B' }) }));
+      await backend.login('beta', 'hunter22');
+      fetchMock.mockClear();
+      expect(await backend.listBuilds?.('acct-A')).toBe('wrongAccount');
+      expect(await backend.saveBuild?.('b1', { name: 'x', data: {} }, 'acct-A')).toEqual({ status: 'wrongAccount' });
+      expect(await backend.deleteBuild?.('b1', 'acct-A')).toBe('wrongAccount');
+      expect(fetchMock).not.toHaveBeenCalled();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { builds: [] }));
+      expect(await backend.listBuilds?.('acct-B')).toEqual([]);
+    });
+
+    it('checks again the token a 401 refresh brings, which may belong to another account', async () => {
+      const backend = await freshBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: jwt('acct-A'), refreshToken: 'refresh-1', account: mkApiAccount({ id: 'acct-A' }) }));
+      await backend.login('alpha', 'hunter22');
+      fetchMock.mockClear();
+      fetchMock.mockResolvedValueOnce(jsonResponse(401, {}));
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: jwt('acct-B'), refreshToken: 'refresh-2', account: mkApiAccount({ id: 'acct-B' }) }));
+      expect(await backend.saveBuild?.('b1', { name: 'x', data: {} }, 'acct-A')).toEqual({ status: 'wrongAccount' });
+      // The PUT went out once, under A's token, and never again under B's.
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/account/builds/'))).toHaveLength(1);
+    });
+
+    it('forgets the in-memory token so the next request asks the session cookie', async () => {
+      stubHostname('hellonexus.com');
+      const backend = await freshBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: jwt('acct-A'), account: mkApiAccount({ id: 'acct-A' }) }));
+      await backend.login('alpha', 'hunter22');
+      fetchMock.mockClear();
+      backend.forgetAccessToken?.();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: jwt('acct-C'), account: mkApiAccount({ id: 'acct-C' }) }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, mkApiAccount({ id: 'acct-C' })));
+      expect(await backend.checkAccount?.()).toMatchObject({ state: 'signedIn', account: { accountId: 'acct-C' } });
+      expect(String(fetchMock.mock.calls[0][0])).toContain('/auth/refresh');
+    });
+
+    it('gives up on a build request that hangs, as a failure to try again', async () => {
+      vi.useFakeTimers();
+      const backend = await freshBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: 'access-1', refreshToken: 'refresh-1', account: mkApiAccount() }));
+      await backend.login('alpha', 'hunter22');
+      fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }));
+      const pending = backend.saveBuild?.('b1', { name: 'x', data: {} });
+      await vi.advanceTimersByTimeAsync(20100);
+      expect(await pending).toEqual({ status: 'failed' });
+      vi.useRealTimers();
+    });
+
     it('listBuilds returns the account builds and null on failure', async () => {
       const backend = await loggedInBackend();
       const builds = [{ id: 'b1', name: 'Gaming', data: { slots: {} }, createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-02T00:00:00Z' }];

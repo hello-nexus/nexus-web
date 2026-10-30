@@ -21,6 +21,9 @@ import type {
   AuthLoginResponse, SharedBuild, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
 } from './authBackend';
 
+// A build call that takes longer is dropped and tried again later.
+const BUILD_TIMEOUT_MS = 20000;
+
 const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
 
@@ -286,7 +289,34 @@ async function doRefresh(): Promise<string | null> {
 
 type AuthedBody = { json: unknown } | { form: FormData } | undefined;
 
-async function authedRequest(path: string, method: string, body?: AuthedBody): Promise<Response | null> {
+interface AuthedOptions {
+  /** Send only if the token to be sent belongs to this account (its `sub`); otherwise answer wrongAccount without sending. */
+  expectAccount?: string;
+  /** Abort a request that takes longer, so a hung connection never holds its caller. */
+  timeoutMs?: number;
+}
+
+const WRONG_ACCOUNT = 'x-nexus-wrong-account';
+const wrongAccountResponse = (): Response => new Response(null, { status: 401, headers: { [WRONG_ACCOUNT]: '1' } });
+const isWrongAccount = (res: Response | null): boolean => res?.headers.get(WRONG_ACCOUNT) === '1';
+
+// The account a token was issued to. A token that cannot be read has no known owner and is not held against anyone.
+function tokenSubject(token: string): string | null {
+  try {
+    const payload = token.split('.')[1];
+    const sub: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))).sub;
+    return typeof sub === 'string' ? sub : null;
+  } catch {
+    return null;
+  }
+}
+
+const belongsToOther = (token: string, expect: string | undefined): boolean => {
+  const sub = expect ? tokenSubject(token) : null;
+  return sub !== null && sub !== expect;
+};
+
+async function authedRequest(path: string, method: string, body?: AuthedBody, options: AuthedOptions = {}): Promise<Response | null> {
   const attempt = async (token: string): Promise<Response> => {
     const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
     let payload: BodyInit | undefined;
@@ -296,15 +326,25 @@ async function authedRequest(path: string, method: string, body?: AuthedBody): P
     } else if (body && 'form' in body) {
       payload = body.form;
     }
-    return fetch(`${BASE}${path}`, { method, headers, body: payload });
+    const controller = options.timeoutMs ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), options.timeoutMs) : null;
+    try {
+      return await fetch(`${BASE}${path}`, { method, headers, body: payload, ...(controller ? { signal: controller.signal } : {}) });
+    } finally {
+      if (timer !== null) clearTimeout(timer);
+    }
   };
   try {
     const token = await getAccessToken();
     if (!token) return null;
+    if (belongsToOther(token, options.expectAccount)) return wrongAccountResponse();
     let res = await attempt(token);
     if (res.status === 401) {
       const refreshed = await refreshAccessToken();
-      if (refreshed) res = await attempt(refreshed);
+      if (refreshed) {
+        if (belongsToOther(refreshed, options.expectAccount)) return wrongAccountResponse();
+        res = await attempt(refreshed);
+      }
     }
     return res;
   } catch {
@@ -566,14 +606,21 @@ export const directApiBackend: AuthBackend = {
     return Boolean(res?.ok);
   },
 
-  listBuilds: async () => {
-    const res = await authedRequest('/account/builds', 'GET');
+  forgetAccessToken: () => {
+    accessToken = null;
+    accessTokenExpiresAt = 0;
+  },
+
+  listBuilds: async (expectAccount) => {
+    const res = await authedRequest('/account/builds', 'GET', undefined, { expectAccount, timeoutMs: BUILD_TIMEOUT_MS });
+    if (isWrongAccount(res)) return 'wrongAccount';
     if (!res?.ok) return null;
     return (await tryParseJson<{ builds: AccountBuild[] }>(res))?.builds ?? null;
   },
 
-  saveBuild: async (id, build) => {
-    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'PUT', { json: { name: build.name, data: build.data } });
+  saveBuild: async (id, build, expectAccount) => {
+    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'PUT', { json: { name: build.name, data: build.data } }, { expectAccount, timeoutMs: BUILD_TIMEOUT_MS });
+    if (isWrongAccount(res)) return { status: 'wrongAccount' };
     if (!res) return { status: 'failed' };
     if (res.ok) {
       const saved = await tryParseJson<AccountBuild>(res);
@@ -588,8 +635,9 @@ export const directApiBackend: AuthBackend = {
     return res.status === 400 || res.status === 404 ? { status: 'rejected' } : { status: 'failed' };
   },
 
-  deleteBuild: async (id) => {
-    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'DELETE');
+  deleteBuild: async (id, expectAccount) => {
+    const res = await authedRequest(`/account/builds/${encodeURIComponent(id)}`, 'DELETE', undefined, { expectAccount, timeoutMs: BUILD_TIMEOUT_MS });
+    if (isWrongAccount(res)) return 'wrongAccount';
     // A build already gone is as deleted as one just removed.
     return Boolean(res && (res.ok || res.status === 404));
   },
