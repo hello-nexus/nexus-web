@@ -86,6 +86,9 @@ export type SaveBuildResult =
   /** The account holds as many builds as it may. */
   | { status: 'limit'; limit: number }
   | { status: 'tooLarge' }
+  /** A 400 or 404: the api refuses this build as sent, and will again. */
+  | { status: 'rejected' }
+  /** Network, 5xx or 429: worth trying again. */
   | { status: 'failed' };
 
 export type SharedBuildResult =

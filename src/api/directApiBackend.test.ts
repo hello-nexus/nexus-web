@@ -469,6 +469,20 @@ describe('directApiBackend', () => {
       // A server error is not one either.
       fetchMock.mockResolvedValueOnce(jsonResponse(503, {}));
       expect(await backend.checkAccount?.()).toEqual({ state: 'unreachable' });
+      // Nor is a throttled refresh, which must not read as the earlier refusal.
+      fetchMock.mockResolvedValueOnce(jsonResponse(429, {}));
+      expect(await backend.checkAccount?.()).toEqual({ state: 'unreachable' });
+    });
+
+    it('a sign-in after a refused session is not read as signed out by a later failed check', async () => {
+      stubHostname('hellonexus.com');
+      const backend = await freshBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(401, {}));
+      expect(await backend.checkAccount?.()).toEqual({ state: 'signedOut' });
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: 'access-1', account: mkApiAccount() }));
+      await backend.login('alpha', 'hunter22');
+      fetchMock.mockRejectedValueOnce(new TypeError('offline'));
+      expect(await backend.checkAccount?.()).toEqual({ state: 'unreachable' });
     });
 
     it('listBuilds returns the account builds and null on failure', async () => {
@@ -497,6 +511,12 @@ describe('directApiBackend', () => {
       expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'tooLarge' });
       fetchMock.mockResolvedValueOnce(jsonResponse(500, {}));
       expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'failed' });
+      fetchMock.mockResolvedValueOnce(jsonResponse(429, {}));
+      expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'failed' });
+      fetchMock.mockResolvedValueOnce(jsonResponse(400, {}));
+      expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'rejected' });
+      fetchMock.mockResolvedValueOnce(jsonResponse(404, {}));
+      expect(await backend.saveBuild?.('b2', { name: 'x', data: {} })).toEqual({ status: 'rejected' });
     });
 
     it('deleteBuild is true on 204', async () => {

@@ -171,6 +171,7 @@ function applyApprovedRecovery(data: RecoveryPollBody, cookieMode: boolean): boo
 // hosted-web origin, even if a future server response shape were to carry
 // one unexpectedly.
 function applySession(session: ApiAuthSession, cookieMode: boolean): void {
+  lastRefresh = 'ok';
   if (!cookieMode && session.refreshToken) setStoredRefreshToken(session.refreshToken);
   accessToken = session.accessToken;
   accessTokenExpiresAt = Date.now() + ACCESS_TOKEN_LIFETIME_MS;
@@ -404,6 +405,8 @@ export const directApiBackend: AuthBackend = {
   },
 
   checkAccount: async (): Promise<AccountCheck> => {
+    // Not known to be refused until a refresh in this check says so.
+    lastRefresh = 'failed';
     const res = await authedRequest('/account/me', 'GET');
     if (res?.ok) {
       const account = await tryParseJson<ApiPublicAccount>(res);
@@ -413,9 +416,9 @@ export const directApiBackend: AuthBackend = {
       }
       return { state: 'unreachable' };
     }
-    // A refused session is a sign-out; an answer that is neither, or none at all, is not.
-    if (res) return { state: res.status === 401 || res.status === 403 ? 'signedOut' : 'unreachable' };
-    return { state: lastRefresh === 'noSession' ? 'signedOut' : 'unreachable' };
+    // Signed out only when the refresh itself answered that there is no session; a 5xx, 429, network failure or any
+    // other answer proves nothing.
+    return { state: !res && lastRefresh === 'noSession' ? 'signedOut' : 'unreachable' };
   },
 
   recoveryStart: async (email) => {
@@ -577,7 +580,9 @@ export const directApiBackend: AuthBackend = {
       const body = await tryParseJson<{ code?: string; limit?: number }>(res);
       if (body?.code === 'build_limit') return { status: 'limit', limit: body.limit ?? 0 };
     }
-    return res.status === 413 ? { status: 'tooLarge' } : { status: 'failed' };
+    if (res.status === 413) return { status: 'tooLarge' };
+    // The api will not take this build as it is, so sending it again changes nothing; a 5xx or 429 is worth another try.
+    return res.status === 400 || res.status === 404 ? { status: 'rejected' } : { status: 'failed' };
   },
 
   deleteBuild: async (id) => {
