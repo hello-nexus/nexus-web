@@ -608,3 +608,38 @@ describe('Select grid', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('Select rowAction', () => {
+  it('runs the action and closes the menu without choosing the row', () => {
+    const onChange = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <Select
+        value="a" onChange={onChange} ariaLabel="fruit"
+        options={[OPTIONS[0], { ...OPTIONS[1], rowAction: { icon: <i data-testid="pencil" />, label: 'Edit', onSelect } }]}
+      />,
+    );
+    open();
+    fireEvent.click(screen.getByTestId('pencil'));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('draws no action on a disabled row and returns focus to the trigger after running it', () => {
+    const onSelect = vi.fn();
+    render(
+      <Select
+        value="a" onChange={vi.fn()} ariaLabel="fruit"
+        options={[
+          { ...OPTIONS[0], rowAction: { icon: <i data-testid="on" />, label: 'Edit', onSelect } },
+          { ...OPTIONS[1], disabled: true, rowAction: { icon: <i data-testid="off" />, label: 'Edit', onSelect } },
+        ]}
+      />,
+    );
+    open();
+    expect(screen.queryByTestId('off')).toBeNull();
+    fireEvent.click(screen.getByTestId('on'));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'fruit' }));
+  });
+});
