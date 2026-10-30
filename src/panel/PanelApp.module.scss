@@ -2054,32 +2054,114 @@
   opacity: 1;
 }
 
-// Preview cells read as buttons, and only a real pointer can hover.
-@media (hover: hover) {
-  // In the device page's canvas preview (simulator) a widget is click-to-edit
-  // and nothing said so (NEX-6): hovering a cell fades its own EditHint in. Scoped
-  // to the cell's direct child so a hint nested inside a widget stays dark.
-  .panelRoot[data-simulator='true'] .cellWrap:hover .cell > .cellEditHint {
-    opacity: 1;
-  }
+// Device-page preview: "Edit background" notices. The look is EditHint's; hover reveals
+// are not gated on (hover: hover) because the dashboard's WebView on a PC with a
+// touchscreen reports no hover or pointer at all.
 
-  // Lifts the hovered cell above its neighbours so the row below cannot paint
-  // over the name hanging under it.
-  .panelRoot[data-simulator='true'] .cellWrap:hover {
-    z-index: 12;
-  }
+// Multi-widget panels: the whole background lights up under the widgets. It is
+// before the stage in DOM order, so the stage paints over it.
+.bgLayer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  // Sized like the notice on a two-by-two widget.
+  --panel-span-cols: 2;
+  --panel-span-rows: 2;
+}
 
-  .panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrame,
-  .panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrameLabel {
-    opacity: 1;
-  }
+.bgLayer > [data-edit-hint-overlay],
+.bgScrim {
+  opacity: 0;
+  transition: opacity var(--ease-fast) ease-out;
+}
 
-  // The mark's name takes the widget's own title slot for as long as it shows -
-  // both hang off the card's bottom edge, so leaving the title up prints one
-  // over the other.
-  .panelRoot[data-simulator='true'] .cellWrap[data-immersive-on-load='true']:hover .cellLabelStrip {
-    opacity: 0;
-  }
+.bgScrim {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  @include cell-notice-scrim;
+}
+
+.bgLayer[data-active='true'] > [data-edit-hint-overlay],
+.bgLayer[data-active='true'] > .bgScrim {
+  opacity: 1;
+}
+
+// A single widget's notice, cut in two: both halves show while the pointer is
+// anywhere on the canvas, the half under it highlighted.
+.hintSplit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hintSplit[data-orientation='side'] {
+  flex-direction: row;
+}
+
+// An empty round slot has no card to inherit the circle from.
+.hintSplit[data-round='true'] {
+  border-radius: 50%;
+}
+
+.hintHalf {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  pointer-events: auto;
+}
+
+.bgHint {
+  cursor: pointer;
+}
+
+.hintSplit:hover > .hintHalf > [data-edit-hint-overlay] {
+  opacity: 0.55;
+}
+
+.hintSplit > .hintHalf:hover > [data-edit-hint-overlay],
+.hintSplit > .bgHint:focus-visible > [data-edit-hint-overlay] {
+  opacity: 1;
+}
+
+// Preview cells read as buttons. Ungated: the device page's WebView can report no hover capability even with a mouse attached.
+// In the device page's canvas preview (simulator) a widget is click-to-edit
+// and nothing said so (NEX-6): hovering a cell fades its own EditHint in. Scoped
+// to the cell's direct child so a hint nested inside a widget stays dark.
+.panelRoot[data-simulator='true'] .cellWrap:hover .cell > .cellEditHint {
+  opacity: 1;
+}
+
+// Lifts the hovered cell above its neighbours so the row below cannot paint
+// over the name hanging under it.
+.panelRoot[data-simulator='true'] .cellWrap:hover {
+  z-index: 12;
+}
+
+.panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrame,
+.panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrameLabel {
+  opacity: 1;
+}
+
+// The mark's name takes the widget's own title slot for as long as it shows -
+// both hang off the card's bottom edge, so leaving the title up prints one
+// over the other.
+.panelRoot[data-simulator='true'] .cellWrap[data-immersive-on-load='true']:hover .cellLabelStrip {
+  opacity: 0;
 }
 
 .cellWrap[data-immersive-on-load='true'] .cellLabelStrip {
@@ -2088,11 +2170,6 @@
 
 .panelRoot[data-simulator='true'] .cellWrap {
   cursor: pointer;
-}
-
-// The blank widget is not a click target (PanelApp drops its click and hint).
-.panelRoot[data-simulator='true'] .cell[data-widget-type='blank'] {
-  cursor: default;
 }
 
 // A preview cell that is not the one being edited is one click target: its

@@ -291,3 +291,19 @@ export function showWidgetMoreActions(o: {
 }): boolean {
   return o.embedded && o.surface === 'desktop' && !o.simulator && o.editable && !o.busy;
 }
+
+const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]';
+
+/** True for an event target that is the panel's empty background: not a widget, a control or a scroll pane. */
+export function isPanelBackgroundTarget(target: EventTarget | null): boolean {
+  return target instanceof Element
+    && !target.closest('[data-panel-widget-id]')
+    && !target.closest(INTERACTIVE_SELECTOR)
+    && !target.closest('[data-panel-scrollable="true"]')
+    && !target.closest('[data-panel-hit]');
+}
+
+/** A click opens the background menu only when it lands on the background and its press did too; a press that began on a widget (a drag ending over a gutter) is not one. `pressedOnBackground` is null when no press was seen (a keyboard click). */
+export function clickOpensBackgroundMenu(pressedOnBackground: boolean | null, clickTarget: EventTarget | null): boolean {
+  return pressedOnBackground !== false && isPanelBackgroundTarget(clickTarget);
+}

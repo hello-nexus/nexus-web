@@ -73,25 +73,6 @@
   gap: 0.5rem;
 }
 
-.simTuningRow {
-  display: flex;
-  align-items: end;
-  gap: 0.45rem;
-  padding: 0.65rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--bg-card-hover);
-}
-
-.tuningField {
-  @include text-button;
-  display: grid;
-  grid-template-columns: auto 92px;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-dim);
-}
-
 .simRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

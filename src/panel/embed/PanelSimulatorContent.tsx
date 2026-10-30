@@ -43,6 +43,8 @@ export function PanelSimulatorContent() {
           simulatorFlashSignal={sim.flashSignal}
           onSimulatorWidgetClicked={sim.onWidgetClicked}
           onSimulatorBackgroundClicked={sim.onBackgroundClicked}
+          onSimulatorBackgroundMenu={sim.onBackgroundMenu}
+          onSimulatorBackgroundCovered={sim.onBackgroundCovered}
           onSimulatorPlaylistShown={sim.onPlaylistShown}
         />
       ) : (

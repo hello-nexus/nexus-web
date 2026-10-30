@@ -8,11 +8,9 @@ import {
   getAllSimulatedPanels,
   getConnectedSimulatedPanelIds,
   getCustomSimulatedPanel,
-  getPanelGridSizingSettings,
   getSimulatedPanelGridCapacity,
   getSimulatedPanelPhysicalSize,
   PANEL_SIMULATION_CHANGED_EVENT,
-  setPanelGridSizingSettings,
   setCustomSimulatedPanelSize,
   setSimulatedPanelConnected,
 } from '../../lib/panelSimulation';
@@ -219,7 +217,6 @@ export function PanelSimulatorCard() {
   const [customWidth, setCustomWidth] = useState(() => getCustomSimulatedPanel().width);
   const [customHeight, setCustomHeight] = useState(() => getCustomSimulatedPanel().height);
   const [customDpi, setCustomDpi] = useState(() => getCustomSimulatedPanel().dpi);
-  const [gridSizing, setGridSizing] = useState(() => getPanelGridSizingSettings());
   const [tryxOn, setTryxOn] = useState(() => isTryxSimulated());
   const deckSim = useStreamDeckSim();
   const nollieSim = useNollieSim();
@@ -232,7 +229,6 @@ export function PanelSimulatorCard() {
 
   const refresh = useCallback(() => {
     setConnectedIds(getConnectedSimulatedPanelIds());
-    setGridSizing(getPanelGridSizingSettings());
   }, []);
 
   useEffect(() => {
@@ -320,33 +316,12 @@ export function PanelSimulatorCard() {
     refresh();
   };
 
-  const updateJumpAtInches = (value: number) => {
-    setPanelGridSizingSettings({ shortSideJumpAtInches: value });
-    refresh();
-  };
-
   const activePanels = panels.filter(panel => connectedIds.includes(panel.id));
   const nothingActive = activePanels.length === 0 && !tryxOn && !deckSim.active && !nollieSim.active;
 
   return (
     <Card title={t('tools.panelSim.title')}>
       <span className={styles.dim}>{t('tools.panelSim.label')}</span>
-      <div className={styles.simTuningRow}>
-        <label className={styles.tuningField}>
-          <span>{t('tools.panelSim.shortSideJump')}</span>
-          <input
-            className={styles.dimensionInput}
-            type="number"
-            min={1}
-            max={16}
-            step={0.1}
-            value={gridSizing.shortSideJumpAtInches}
-            aria-label={t('tools.panelSim.shortSideJumpAria')}
-            onChange={e => updateJumpAtInches(Number(e.target.value))}
-          />
-        </label>
-        <span className={styles.dim}>{t('tools.panelSim.inShortSide')}</span>
-      </div>
       <Select
         value=""
         options={options}

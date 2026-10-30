@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { initPointerKind, resetPointerKindForTests } from '../../../../lib/pointerKind';
 import { AnimateGrid } from './AnimateGrid';
 
 vi.mock('../../../../hooks/useEffectThumbnail', () => ({
@@ -8,6 +9,12 @@ vi.mock('../../../../hooks/useEffectThumbnail', () => ({
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
+
+function mouseMoves() {
+  const event = new Event('pointermove');
+  Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+  act(() => { window.dispatchEvent(event); });
+}
 
 describe('AnimateGrid live-on-RGB bulb', () => {
   it('marks exactly the rgb-active effect cell with a bulb', () => {
@@ -182,6 +189,8 @@ describe('AnimateGrid pin badge', () => {
 });
 
 describe('AnimateGrid edit pencil', () => {
+  afterEach(() => { vi.unstubAllGlobals(); resetPointerKindForTests(); });
+
   const renderGrid = (props: { effect: string; onEdit?: () => void; editEnabled?: boolean; onSelect?: (k: string) => void }) => render(
     <AnimateGrid
       effect={props.effect}
@@ -220,19 +229,27 @@ describe('AnimateGrid edit pencil', () => {
     expect(container.querySelector('[data-effect-key="plasma"]')).toBe(tile);
   });
 
-  it('re-picks on a touch or coarse pointer', () => {
-    const original = window.matchMedia;
-    window.matchMedia = (() => ({ matches: false })) as unknown as typeof window.matchMedia;
-    try {
-      const onEdit = vi.fn();
-      const onSelect = vi.fn();
-      const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
-      fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
-      expect(onSelect).toHaveBeenCalledTimes(1);
-      expect(onEdit).not.toHaveBeenCalled();
-    } finally {
-      window.matchMedia = original;
-    }
+  it('re-picks while no mouse has been used, as on touch', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q }));
+    resetPointerKindForTests();
+    initPointerKind();
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
+    fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('opens the editor once a mouse moves, even where the media queries report no pointer', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q }));
+    resetPointerKindForTests();
+    initPointerKind();
+    const onEdit = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit });
+    mouseMoves();
+    fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(onEdit).toHaveBeenCalledTimes(1);
   });
 
   it('names the selected tile by its edit action and opens the editor without re-selecting', () => {

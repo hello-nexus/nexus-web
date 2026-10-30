@@ -50,6 +50,7 @@
 // iframe's initial scale (0.35) - content never grows. Stretching to row
 // height first, then capping with max-height, breaks that self-reference.
 .previewPane {
+  position: relative;
   // Definite basis (not content-sized): the embed frame fits BOTH axes
   // against this box, so it needs a real width that doesn't derive from the
   // iframe's own measured size. Portrait panels stay height-bound and narrow;
@@ -235,6 +236,23 @@
 
 .previewPane[data-troubleshoot] {
   flex-direction: column;
+}
+
+// Out of flow so showing it never resizes the preview: under the pane when the row has slack there, else over the pane bottom.
+.previewNotice {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding-top: 0.5rem;
+}
+
+.previewNotice[data-below='true'] {
+  top: 100%;
+}
+
+.previewNotice[data-below='false'] {
+  bottom: 0;
 }
 
 // An empty state's CTA with the troubleshooting link stacked under it.

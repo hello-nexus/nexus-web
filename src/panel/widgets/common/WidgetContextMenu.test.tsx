@@ -321,4 +321,27 @@ describe('WidgetContextMenu web view navigation', () => {
     fireEvent.click(screen.getByText('panel.widget.web-view.forward'));
     expect(onWebForward).toHaveBeenCalled();
   });
+
+  it('offers its own item rows and no Remove when onRemove is omitted', () => {
+    const onSelect = vi.fn();
+    render(
+      <WidgetContextMenu
+        x={10}
+        y={10}
+        currentSize="2x2"
+        sizes={[]}
+        hasConfig={false}
+        title="Background options"
+        onResize={vi.fn()}
+        onEdit={vi.fn()}
+        onOpen={vi.fn()}
+        items={[{ key: 'import', label: 'Import', icon: () => null, onSelect }]}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('panel.widget.menu.remove')).toBeNull();
+    fireEvent.click(screen.getByText('Import'));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Background options')).toBeTruthy();
+  });
 });

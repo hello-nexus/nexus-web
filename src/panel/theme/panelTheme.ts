@@ -450,10 +450,14 @@ export function usePanelTheme(
   }, [persistPatch]);
 
   const commitBackgroundMedia = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha = false) => {
-    setTheme(prev => ({ ...prev, backgroundMediaId: mediaId, backgroundMediaType: type, backgroundMediaAlpha: alpha }));
+    // Picking media shows it: the theme backdrop and media mode ride in the same patch, since a wallpaper or desktop backdrop hides the theme background. Only a surface that offers the backdrop choice ever holds a non-theme one.
+    const showMedia = mediaId
+      ? { backgroundMode: 'media' as const, ...(themeRef.current.backdrop !== 'theme' ? { backdrop: 'theme' as const } : {}) }
+      : {};
+    setTheme(prev => ({ ...prev, ...showMedia, backgroundMediaId: mediaId, backgroundMediaType: type, backgroundMediaAlpha: alpha }));
     // The service patch-merge ignores a JSON null (means "no change"); an empty
     // string clears the field via NullIfEmpty, same as the other theme fields.
-    persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
+    persistPatch({ ...showMedia, backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
   }, [persistPatch]);
 
   // One patch for the slideshow group so a toggle + interval edit is a single

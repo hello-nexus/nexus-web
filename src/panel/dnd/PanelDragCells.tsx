@@ -11,6 +11,7 @@ import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
 import { MenuArrowButton } from '../../components/common/DeviceCanvas/MenuArrowButton';
 import { EditHint } from '../../components/common/EditHint/EditHint';
+import { BackgroundSplitHint, type BackgroundMenuPoint } from './BackgroundEditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
 import { isOwnControl, useLockNotice } from './useLockNotice';
@@ -180,6 +181,8 @@ export function PanelTouchCell({
   cellPointers,
   onSimulatorClick,
   editHint = false,
+  backgroundSplit,
+  onEditBackground,
   resizeSelected = false,
   immersiveOnLoad = false,
   previewLayout = null,
@@ -230,6 +233,9 @@ export function PanelTouchCell({
   };
   onSimulatorClick?: () => void;
   editHint?: boolean;
+  // Single-widget preview: the hover notice splits into Edit widget and Edit background.
+  backgroundSplit?: 'stacked' | 'side';
+  onEditBackground?: (point: BackgroundMenuPoint) => void;
   // The tile in resize mode: its drag starts on distance, not a hold.
   resizeSelected?: boolean;
   // Device-page preview: this is the widget the panel opens immersive on load.
@@ -547,7 +553,9 @@ export function PanelTouchCell({
                 onEnterImmersive={onEnterImmersiveWidget ? () => onEnterImmersiveWidget(widget) : undefined}
               />
             </div>
-            {editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
+            {editHint && backgroundSplit && onEditBackground ? (
+              <BackgroundSplitHint orientation={backgroundSplit} round={widget.size === '2x2round'} widgetHalf onActivate={onEditBackground} />
+            ) : editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
             {lockedLook && (restricted
               ? <EditHint className={styles.cellLockNotice} icon={OctagonMinus} label={t('devices.y70.restrictedMode')} />
               : <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />)}

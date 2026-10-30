@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, ExternalLink } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { ArrowLeft, Trash2, Upload, Sparkles, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
+import { WidgetContextMenu } from '../../../panel/widgets/common/WidgetContextMenu';
+import { BackgroundQuickImport, type BackgroundQuickImportHandle } from '../../../panel/background/BackgroundQuickImport';
+import { onBackgroundMediaCommitted } from '../../../api/panelBackgroundMedia';
+import { useMediaChangeNotice } from '../../../panel/background/useMediaChangeNotice';
 import { previewFit } from '../../../panel/widgets/common/widgetPreviewFit';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
@@ -1172,6 +1176,51 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     setConfiguringWidgetId(prev => prev === widgetId ? null : prev);
   }, [editorCapacity, layout, updateLayout]);
 
+  // The preview's "Edit background" menu, opened at the click point.
+  const [backgroundMenu, setBackgroundMenu] = useState<{ x: number; y: number } | null>(null);
+  const quickImportRef = useRef<BackgroundQuickImportHandle | null>(null);
+  const [backgroundCovered, setBackgroundCovered] = useState(false);
+  const mediaNotice = useMediaChangeNotice(backgroundCovered && singleWidget);
+  const previewNoticeVisible = mediaNotice.visible;
+  useEffect(() => (editingDeviceId ? onBackgroundMediaCommitted(editingDeviceId, mediaNotice.notify) : undefined), [editingDeviceId, mediaNotice.notify]);
+  const previewPaneRef = useRef<HTMLDivElement | null>(null);
+  const previewNoticeRef = useRef<HTMLDivElement | null>(null);
+  const [noticeBelow, setNoticeBelow] = useState(true);
+  // The notice is out of flow so the preview keeps its size; it sits in the slack under the pane when that fits, else over the pane bottom.
+  useLayoutEffect(() => {
+    const pane = previewPaneRef.current;
+    const notice = previewNoticeRef.current;
+    const host = pane?.parentElement;
+    if (!previewNoticeVisible || !pane || !notice || !host) return;
+    const measure = () => setNoticeBelow(host.getBoundingClientRect().bottom - pane.getBoundingClientRect().bottom >= notice.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    observer.observe(notice);
+    return () => observer.disconnect();
+  }, [previewNoticeVisible]);
+  // The menu's own outside-click listener never sees a click inside the preview iframe: focus leaving the window and the iframe's click messages close it instead.
+  const backgroundMenuOpen = backgroundMenu !== null;
+  useEffect(() => {
+    if (!backgroundMenuOpen) return;
+    const close = () => setBackgroundMenu(null);
+    const onMessage = (event: MessageEvent) => {
+      const type = (event.data as { type?: unknown } | null)?.type;
+      if (type === 'simulator/widget-clicked' || type === 'simulator/background-clicked') close();
+    };
+    window.addEventListener('blur', close);
+    window.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('blur', close);
+      window.removeEventListener('message', onMessage);
+    };
+  }, [backgroundMenuOpen]);
+  const openBackgroundOptions = useCallback(() => {
+    setConfiguringWidgetId(null);
+    setTab('background');
+  }, []);
+
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
     // The preview shows a render-only stand-in for a playlist entry that is
     // not the stored widget.
@@ -2195,6 +2244,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             data-surface={glassSurface}
             data-family={recordFamily}
             data-troubleshoot={showPreviewTroubleshoot || undefined}
+            ref={previewPaneRef}
           >
             {isMonoFamily(recordFamily) && <MonoPreviewFilter />}
             <div className={styles.previewStage}>
@@ -2246,6 +2296,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}
                 onBackgroundClicked={() => setConfiguringWidgetId(null)}
+                onBackgroundMenu={setBackgroundMenu}
+                onBackgroundCovered={setBackgroundCovered}
                 canvasSize={liveCanvas ?? device?.previewSize}
                 canvasDpi={device?.previewDpi}
                 // Hosted-monitor previewSize is CSS px (record cssWidth/
@@ -2279,11 +2331,65 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               )}
               </>
             </div>
+            {previewNoticeVisible && (
+              <div className={styles.previewNotice} data-below={noticeBelow ? 'true' : 'false'} ref={previewNoticeRef}>
+                <Notice tone="info" role="status" onDismiss={mediaNotice.dismiss} dismissLabel={t('app.window.close')}>
+                  {t('devices.panels.backgroundCovered')}
+                </Notice>
+              </div>
+            )}
             {showPreviewTroubleshoot && qseriesTroubleshootLink(t('devices.qseries.troubleshoot.mismatch'))}
           </div>
         </div>
       )}
       </div>
+      {backgroundMenu && (
+        <WidgetContextMenu
+          x={backgroundMenu.x}
+          y={backgroundMenu.y}
+          title={t('panel.background.options')}
+          // The menu lives in the dashboard, not the panel: the panel surface would apply its chrome scale.
+          // eslint-disable-next-line i18next/no-literal-string -- surface id
+          surface="desktop"
+          themeMode={desktopResolvedThemeMode}
+          themeStyle={panelPreviewThemeStyle}
+          onOpen={openBackgroundOptions}
+          items={[
+            // eslint-disable-next-line i18next/no-literal-string -- menu item id
+            { key: 'import', label: t('panel.background.importMedia'), icon: Upload, onSelect: () => quickImportRef.current?.openFiles() },
+            // eslint-disable-next-line i18next/no-literal-string -- menu item id
+            { key: 'gifs', label: t('lighting.controls.klipyBrowse'), icon: Sparkles, onSelect: () => quickImportRef.current?.openGifs() },
+          ]}
+          onClose={() => setBackgroundMenu(null)}
+        />
+      )}
+      {editingDeviceId && (() => {
+        const native = resolvePanelNativeCanvas({
+          surface: glassSurface,
+          liveCanvas,
+          liveDpr,
+          previewSize: device?.previewSize,
+          previewDpr: device?.previewDpr,
+        });
+        return (
+          <BackgroundQuickImport
+            ref={quickImportRef}
+            deviceId={editingDeviceId}
+            deviceAspect={native.cssWidth / native.cssHeight}
+            round={surfaceDisplayShape(surface) === 'round'}
+            deviceW={native.nativeWidth}
+            deviceH={native.nativeHeight}
+            onSelect={panelTheme.commitBackgroundMedia}
+            slideshow={{
+              enabled: theme.backgroundSlideshow,
+              interval: theme.backgroundSlideshowInterval,
+              shuffle: theme.backgroundSlideshowShuffle,
+              finishVideos: theme.backgroundSlideshowFinishVideos,
+            }}
+            onSlideshowChange={panelTheme.commitBackgroundSlideshow}
+          />
+        );
+      })()}
       <ConfirmModal
         open={pendingWidgetSize !== null}
         title={t('devices.panels.widgetSize.confirmTitle')}
@@ -2431,18 +2537,14 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeM
           <span>{widgetLabel}</span>
         </div>
         <div className={styles.inlineSettingsActions}>
-          {/* Single-widget surfaces (Q-series, Kraken) can't be left empty:
-              the widget is replaced from the catalog, never removed. */}
-          {!isSingleWidgetSurface(surface) && (
-            <button
-              type="button"
-              className={styles.inlineRemoveBtn}
-              onClick={() => onRemove(widget.id)}
-              aria-label={t('devices.panels.widgetSettings.remove')}
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
+          <button
+            type="button"
+            className={styles.inlineRemoveBtn}
+            onClick={() => onRemove(widget.id)}
+            aria-label={t('devices.panels.widgetSettings.remove')}
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 

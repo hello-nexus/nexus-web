@@ -46,6 +46,8 @@ export interface SimulatorRuntimeState {
   deviceId: string | null;
   onWidgetClicked: (id: string) => void;
   onBackgroundClicked: () => void;
+  onBackgroundMenu: (point: { x: number; y: number }) => void;
+  onBackgroundCovered: (covered: boolean) => void;
   onPlaylistShown: (widgetType: string | null) => void;
 }
 
@@ -182,6 +184,14 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     postToParent({ type: 'simulator/background-clicked' });
   }, []);
 
+  const onBackgroundMenu = useCallback((point: { x: number; y: number }) => {
+    postToParent({ type: 'simulator/background-menu', x: point.x, y: point.y });
+  }, []);
+
+  const onBackgroundCovered = useCallback((covered: boolean) => {
+    postToParent({ type: 'simulator/background-covered', covered });
+  }, []);
+
   const onPlaylistShown = useCallback((widgetType: string | null) => {
     postToParent({ type: 'simulator/playlist-shown', widgetType });
   }, []);
@@ -213,6 +223,8 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     deviceId,
     onWidgetClicked,
     onBackgroundClicked,
+    onBackgroundMenu,
+    onBackgroundCovered,
     onPlaylistShown,
   };
 }

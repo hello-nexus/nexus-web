@@ -15,6 +15,7 @@ import {
 import { createPortal } from 'react-dom';
 import { usePortalRoot } from '../ThemeScope/ThemeScope';
 import { useTranslation } from '../../../lib/i18n';
+import { useHasMousePointer } from '../../../lib/pointerKind';
 import classNames from 'classnames';
 import { Spinner } from '../Spinner/Spinner';
 import buttonStyles from '../Button/Button.module.scss';
@@ -159,16 +160,6 @@ const TYPEAHEAD_RESET_MS = 700;
 // The in-menu search field appears only from this many entries up; below it a
 // short list is faster to eyeball than to type.
 const SEARCH_MIN_OPTIONS = 8;
-// The search field is a keyboard affordance: only offer it where there is a
-// real keyboard and pointer. `(hover: hover) and (pointer: fine)` is true on a
-// mouse/trackpad desktop and false on touch phones and the touch kiosk, which
-// have no keyboard to type into it.
-function supportsPointerSearch(): boolean {
-  return typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-}
-
 function flattenText(node: ReactNode): string {
   if (node == null || typeof node === 'boolean') return '';
   if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -310,10 +301,9 @@ export function Select({
   const cellCount = grid ? grid.headings.length - 1 : 0;
   const gridStyle = grid ? ({ '--select-cols': `${grid.columns} var(--select-action-w)` } as React.CSSProperties) : undefined;
 
-  // Offer the search field only on a keyboard/pointer device and once the list
-  // is long enough to be worth typing through. The device class is read once
-  // per mount; it does not change mid-session.
-  const [pointerSearch] = useState(supportsPointerSearch);
+  // Offer the search field only where a mouse is in use (a keyboard goes with it)
+  // and once the list is long enough to be worth typing through.
+  const pointerSearch = useHasMousePointer();
   const searchEnabled =
     !grid && pointerSearch && resolved.filter(o => !o.divider && !o.header && !o.onAction).length >= SEARCH_MIN_OPTIONS;
 

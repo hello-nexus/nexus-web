@@ -42,9 +42,9 @@ describe('widgetPlaylistOf', () => {
 });
 
 describe('editor ops', () => {
-  it('enables every widget but blank on the first switch-on', () => {
-    const on = setWidgetPlaylistEnabled(layout(widget('a', 'clock')), true, ['clock', 'blank', 'weather']);
-    expect(on.widgetPlaylist).toMatchObject({ enabled: true, types: ['clock', 'weather'], order: ['clock', 'blank', 'weather'] });
+  it('enables every widget on the first switch-on', () => {
+    const on = setWidgetPlaylistEnabled(layout(widget('a', 'clock')), true, ['clock', 'weather']);
+    expect(on.widgetPlaylist).toMatchObject({ enabled: true, types: ['clock', 'weather'], order: ['clock', 'weather'] });
   });
 
   it('keeps an existing playlist when switched back on', () => {

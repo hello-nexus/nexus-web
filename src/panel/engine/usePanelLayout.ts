@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import { defaultLayoutForSurface } from './defaultLayout';
+import { REMOVED_WIDGET_TYPES } from './removedWidgetTypes';
 import { sizeToSpan } from './grid';
 import type { PanelRecordState } from './usePanelRecord';
 import { broadcastLayoutChanged } from './panelSync';
@@ -24,7 +25,6 @@ import {
   normalizeAppType,
 } from '../../widgets/marketplaceRegistry';
 
-const REMOVED_WIDGET_TYPES = new Set(['y70-controls']);
 
 // PanelRoutes' 403 ApiResponse.Fail body for a phone-session layout save that
 // introduces a privileged deck action (DeckLayoutPolicy). A 403 on this route
@@ -191,11 +191,24 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
       ? layout.immersiveOnLoadWidgetId
       : undefined;
 
+  // A removed type leaves no remembered config or playlist entry behind either.
+  const rememberedConfigs = layout.singleWidgetConfigs
+    ? Object.fromEntries(Object.entries(layout.singleWidgetConfigs).filter(([type]) => !REMOVED_WIDGET_TYPES.has(type)))
+    : undefined;
+  const widgetPlaylist = layout.widgetPlaylist && {
+    ...layout.widgetPlaylist,
+    types: layout.widgetPlaylist.types?.filter(type => !REMOVED_WIDGET_TYPES.has(type)),
+    order: layout.widgetPlaylist.order?.filter(type => !REMOVED_WIDGET_TYPES.has(type)),
+    cursor: layout.widgetPlaylist.cursor && REMOVED_WIDGET_TYPES.has(layout.widgetPlaylist.cursor.type) ? undefined : layout.widgetPlaylist.cursor,
+  };
+
   return {
     ...layout,
     surface,
     pages: finalPages,
     immersiveOnLoadWidgetId,
+    ...(rememberedConfigs ? { singleWidgetConfigs: rememberedConfigs } : {}),
+    ...(widgetPlaylist ? { widgetPlaylist } : {}),
   };
 }
 

@@ -1,6 +1,5 @@
 import { normalizeSlideshowInterval, shuffledLap } from '../slideshow/slideshow';
 import { appAvailableForSurface, lookupApp } from '../widgets/registry';
-import { blankApp } from '../widgets/blank';
 import {
   singleWidgetSurfaceSize,
   type PanelConfigValue,
@@ -102,11 +101,10 @@ export function updateWidgetPlaylist(layout: PanelLayout, patch: Partial<PanelWi
   return { ...layout, widgetPlaylist: { ...widgetPlaylistOf(layout), ...patch } };
 }
 
-/** The first switch-on enables every widget in `catalogTypes` except the blank one. */
+/** The first switch-on enables every widget in `catalogTypes`. */
 export function setWidgetPlaylistEnabled(layout: PanelLayout, enabled: boolean, catalogTypes: readonly string[]): PanelLayout {
   if (enabled && layout.widgetPlaylist === undefined) {
-    const types = catalogTypes.filter(type => type !== blankApp.meta.type);
-    return updateWidgetPlaylist(layout, { enabled, types, order: [...catalogTypes] });
+    return updateWidgetPlaylist(layout, { enabled, types: [...catalogTypes], order: [...catalogTypes] });
   }
   return updateWidgetPlaylist(layout, { enabled });
 }

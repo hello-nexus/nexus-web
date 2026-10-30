@@ -47,6 +47,21 @@ describe('PanelTouchCell', () => {
     expect(hint.textContent).toBe('panel.widget.editWidget');
   });
 
+  it('splits the hover notice into Edit widget and Edit background on a single widget', () => {
+    const onEditBackground = vi.fn();
+    const { container, getByRole } = render(cell({ editHint: true, backgroundSplit: 'stacked', onEditBackground }));
+    const labels = Array.from(container.querySelectorAll('[data-edit-hint-overlay]')).map(el => el.textContent);
+    expect(labels).toEqual(['panel.widget.editWidget', 'panel.background.edit']);
+    expect(container.querySelector('[data-orientation="stacked"]')).not.toBeNull();
+    fireEvent.click(getByRole('button', { name: 'panel.background.edit' }), { clientX: 12, clientY: 34 });
+    expect(onEditBackground).toHaveBeenCalledWith({ x: 12, y: 34 });
+  });
+
+  it('keeps the wide split side by side', () => {
+    const { container } = render(cell({ editHint: true, backgroundSplit: 'side', onEditBackground: vi.fn() }));
+    expect(container.querySelector('[data-orientation="side"]')).not.toBeNull();
+  });
+
   it('keeps the widget mounted through the editor dock', () => {
     const dock = document.body.appendChild(document.createElement('div'));
     const motion = { widgetId: 'w1', phase: 'open' as const, style: {} };

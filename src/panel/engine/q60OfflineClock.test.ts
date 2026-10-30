@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { q60OfflineClockPages } from './q60OfflineClock';
-import { singleWidgetSurfaceSize, type PanelPage } from '../types';
+import { singleWidgetSurfaceSize, type PanelLayout, type PanelPage } from '../types';
+import { playingPlaylistTypes } from './widgetPlaylist';
 
 describe('q60OfflineClockPages', () => {
   const monitoringLayout: PanelPage[] = [
@@ -30,11 +31,23 @@ describe('q60OfflineClockPages', () => {
     expect(q60OfflineClockPages(monitoringLayout, 'q60')[0].widgets[0].config).toBeUndefined();
   });
 
-  it('leaves a blank panel blank', () => {
-    const blank: PanelPage[] = [
-      { id: 'p1', widgets: [{ id: 'b', type: 'blank', size: '2x4', col: 0, row: 0 }] },
-    ];
-    expect(q60OfflineClockPages(blank, 'q60')).toBe(blank);
+  it('leaves an empty panel empty', () => {
+    const empty: PanelPage[] = [{ id: 'p1', widgets: [] }];
+    expect(q60OfflineClockPages(empty, 'q60')).toBe(empty);
+  });
+
+  it('still shows the clock for an empty base slot when a widget playlist is on', () => {
+    const empty: PanelPage[] = [{ id: 'p1', widgets: [] }];
+    const result = q60OfflineClockPages(empty, 'q60', true);
+    expect(result[0].widgets[0].type).toBe('clock');
+  });
+
+  it('leaves the chosen empty slot alone when the playlist is on but has nothing playable', () => {
+    const empty: PanelPage[] = [{ id: 'p1', widgets: [] }];
+    const layout = { layoutSchemaVersion: 2, surface: 'q60', pages: empty, widgetPlaylist: { enabled: true, interval: 15, shuffle: false, types: [] } } as PanelLayout;
+    const playing = playingPlaylistTypes(layout, 'q60') !== null;
+    expect(playing).toBe(false);
+    expect(q60OfflineClockPages(empty, 'q60', playing)).toBe(empty);
   });
 
   it('does not mutate or reference the source pages (render-only)', () => {

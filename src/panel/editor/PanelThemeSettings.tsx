@@ -560,7 +560,14 @@ export function PanelThemeSettings({
               }}
               onCommit={onBackgroundFrostCommit}
             />
-            {theme.backdrop === 'desktop' ? null : backgroundOpacitySlider}
+            {theme.backdrop === 'desktop' ? null : (
+              <>
+                {backgroundOpacitySlider}
+                {backgroundOpacityPercent === 0 && (
+                  <Notice tone="info" role="status">{label('panel.settings.backgroundOpacity.off', "The background isn't rendering.")}</Notice>
+                )}
+              </>
+            )}
             {theme.backdrop !== 'theme' ? null : (
             <>
             {theme.backgroundMode === 'solid' ? (

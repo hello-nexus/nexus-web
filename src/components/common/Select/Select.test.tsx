@@ -1,5 +1,6 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { initPointerKind, resetPointerKindForTests } from '../../../lib/pointerKind';
 import { Select } from './Select';
 
 const OPTIONS = [
@@ -637,6 +638,55 @@ describe('Select grid', () => {
     open();
     expect(screen.queryByRole('combobox')).toBeNull();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('Select in-menu search on touchscreen and pointer-less hosts', () => {
+  const FRUITS = ['Apple', 'Apricot', 'Banana', 'Blueberry', 'Cherry', 'Grape', 'Mango', 'Orange', 'Peach', 'Pear']
+    .map((label, i) => ({ value: `f${i}`, label }));
+
+  function stubMedia(matching: string[]) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: matching.includes(query), media: query, onchange: null,
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn(),
+    }));
+  }
+  function pointer(pointerType: string) {
+    const event = new Event('pointermove');
+    Object.defineProperty(event, 'pointerType', { value: pointerType });
+    act(() => { window.dispatchEvent(event); });
+  }
+  beforeEach(() => { resetPointerKindForTests(); initPointerKind(); });
+  afterEach(() => { vi.unstubAllGlobals(); resetPointerKindForTests(); });
+
+  it('offers search on a touchscreen PC whose primary pointer is coarse but has a mouse attached', () => {
+    stubMedia(['(any-hover: hover) and (any-pointer: fine)']);
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('combobox')).toBeTruthy();
+  });
+
+  it('offers search in a WebView that reports no pointer once a mouse is used', () => {
+    stubMedia(['(pointer: none)']);
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    pointer('mouse');
+    open();
+    expect(screen.getByRole('combobox')).toBeTruthy();
+  });
+
+  it('stays plain on a pointer-less host while only touch is used, as on the touch kiosk', () => {
+    stubMedia(['(pointer: none)']);
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    pointer('touch');
+    open();
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
+  it('stays plain on a touch-only device', () => {
+    stubMedia(['(pointer: coarse)', '(any-pointer: coarse)']);
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 });
 
