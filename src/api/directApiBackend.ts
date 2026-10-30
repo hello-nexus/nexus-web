@@ -267,7 +267,8 @@ async function doRefresh(): Promise<string | null> {
       // (bootstrap) this call carried is not a live session; a 5xx/network
       // blip is not, so a still-unmigrated legacy token survives for a
       // later retry.
-      if (res.status === 401 || res.status === 403) {
+      // 400 is the api's answer to a web refresh with no session cookie at all: no session, like a refused one.
+      if (res.status === 400 || res.status === 401 || res.status === 403) {
         lastRefresh = 'noSession';
         clearSession();
       } else {

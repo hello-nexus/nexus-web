@@ -463,6 +463,9 @@ describe('directApiBackend', () => {
       // No session at all: the cookie refresh is refused.
       fetchMock.mockResolvedValueOnce(jsonResponse(401, {}));
       expect(await backend.checkAccount?.()).toEqual({ state: 'signedOut' });
+      // No session cookie at all is a 400 from the real api: also no session.
+      fetchMock.mockResolvedValueOnce(jsonResponse(400, { message: 'refreshToken is required' }));
+      expect(await backend.checkAccount?.()).toEqual({ state: 'signedOut' });
       // A network failure is not a sign-out.
       fetchMock.mockRejectedValueOnce(new TypeError('offline'));
       expect(await backend.checkAccount?.()).toEqual({ state: 'unreachable' });
