@@ -592,6 +592,19 @@ describe('directApiBackend', () => {
       vi.useRealTimers();
     });
 
+    it('drops a refresh that never answers as a failure, not a sign-out, so it cannot hold the cross-tab lock', async () => {
+      vi.useFakeTimers();
+      stubHostname('hellonexus.com');
+      const backend = await freshBackend();
+      fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }));
+      const pending = backend.checkAccount?.();
+      await vi.advanceTimersByTimeAsync(20100);
+      expect(await pending).toEqual({ state: 'unreachable' });
+      vi.useRealTimers();
+    });
+
     it('listBuilds returns the account builds and null on failure', async () => {
       const backend = await loggedInBackend();
       const builds = [{ id: 'b1', name: 'Gaming', data: { slots: {} }, createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-02T00:00:00Z' }];

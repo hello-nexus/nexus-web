@@ -255,12 +255,16 @@ async function doRefresh(): Promise<string | null> {
     lastRefresh = 'noSession';
     return null;
   }
+  // A stalled refresh would hold the cross-tab refresh lock for every tab; it is dropped as a failure, not a sign-out.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), BUILD_TIMEOUT_MS);
   try {
     const res = await fetch(`${BASE}/auth/refresh`, {
       method: 'POST',
       headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
       credentials: fetchCredentials(cookieMode),
       body: JSON.stringify(legacy ? { refreshToken: legacy } : {}),
+      signal: controller.signal,
     });
     if (!res.ok) {
       // A definitive rejection means the token (migration) or cookie
@@ -288,6 +292,8 @@ async function doRefresh(): Promise<string | null> {
   } catch {
     lastRefresh = 'failed';
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
