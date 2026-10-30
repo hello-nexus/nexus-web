@@ -187,6 +187,7 @@ export const HYDROSHIFT2_CURVE_FAMILY = 'lianli-hydroshift2-curve';
 export const LIANLI_SCREEN88_FAMILY = 'lianli-screen88';
 export const HYTE_Y60_FAMILY = 'hyte-y60';
 export const ASUS_GLACIAL_LCD_FAMILY = 'asus-glacial-lcd';
+export const ZMATRICES_LCD_FAMILY = 'zmatrices-lcd';
 
 export interface PanelWidgetSizeOptions {
   default: PanelWidgetSizeMode;
@@ -222,6 +223,10 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   // ASUS Glacial LCD: Large is its one full-glass tile, Small a monitor grid sized by density.
   if (surface === 'lcd-square' && family === ASUS_GLACIAL_LCD_FAMILY) {
     return { default: 'large', layoutSurface: { large: 'lcd-square', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
+  }
+  // Aftershock Glacier Matrix: Large is its one wide tile, Small a landscape grid sized by the default cooler LCD density (no dpi here, so the lcd-wide estimate applies).
+  if (surface === 'lcd-wide' && family === ZMATRICES_LCD_FAMILY) {
+    return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
   }
   // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
