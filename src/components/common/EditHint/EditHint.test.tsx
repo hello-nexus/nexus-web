@@ -35,7 +35,8 @@ describe('EditHint', () => {
     const { container } = render(<EditHint label="Edit background" fit={{ icon: 40, font: 18 }} />);
     const root = container.querySelector('[data-edit-hint-overlay]') as HTMLElement;
     expect(root.style.getPropertyValue('--edit-hint-icon-size')).toBe('40px');
-    expect(root.style.getPropertyValue('--edit-hint-label-size')).toBe('18px');
-    expect(container.querySelector('[data-fit="true"]')?.textContent).toBe('Edit background');
+    const label = container.querySelector('span') as HTMLElement;
+    expect(label.style.fontSize).toBe('18px');
+    expect(label.style.whiteSpace).toBe('nowrap');
   });
 });

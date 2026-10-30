@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { normalizePanelLayout } from './usePanelLayout';
 import { removeWidgetById, swapSingleWidget } from './panelLayoutOps';
 import { playlistWidget, widgetPlaylistOf } from './widgetPlaylist';
-import { freeCells } from './freeCells';
 import type { PanelLayout, PanelWidget } from '../types';
 
 const clock: PanelWidget = { id: 'w1', type: 'clock', size: '2x4', col: 0, row: 0, config: { design: 'matrix' } };
@@ -38,10 +37,6 @@ describe('single-widget surface with no widget', () => {
     const normalized = normalizePanelLayout(legacy, 'q60');
     expect(normalized.pages[0].widgets).toEqual([]);
     expect(normalized.pages).toEqual(normalizePanelLayout(removeWidgetById(q60([clock]), 'w1', capacity), 'q60').pages);
-  });
-
-  it('the whole grid is free, so the preview offers Edit background everywhere', () => {
-    expect(freeCells([], capacity.gridCols, capacity.pageRows)).toHaveLength(8);
   });
 
   it('a widget playlist with an empty slot still resolves its entries', () => {

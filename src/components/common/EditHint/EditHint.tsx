@@ -24,12 +24,12 @@ interface EditHintProps {
  */
 export function EditHint({ label, className, icon: Icon = Pencil, area, fit }: EditHintProps) {
   const fitStyle = fit
-    ? { '--edit-hint-icon-size': `${fit.icon}px`, '--edit-hint-label-size': `${fit.font}px`, '--panel-scale': 1 } as CSSProperties
+    ? { '--edit-hint-icon-size': `${fit.icon}px`, '--panel-scale': 1 } as CSSProperties
     : undefined;
   const content = (
     <div className={styles.content}>
       <Icon className={styles.icon} />
-      {label && <span className={styles.label} data-fit={fit ? 'true' : undefined}>{label}</span>}
+      {label && <span className={styles.label} style={fit ? { fontSize: fit.font, whiteSpace: 'nowrap' } : undefined}>{label}</span>}
     </div>
   );
   return (
