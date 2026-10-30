@@ -401,7 +401,6 @@ export const EFFECTS: EffectDef[] = [
   { key: 'neonrain',     labelKey: 'lighting.controls.neonrain',     params: [
       { name: 'u_density', label: 'Density', labelKey: 'lighting.controls.param.density' },
       { name: 'u_length',  label: 'Length', labelKey: 'lighting.controls.param.length' },
-      { name: 'u_splash',  label: 'Splash', labelKey: 'lighting.controls.param.splash' },
   ]},
   { key: 'nebula',        labelKey: 'lighting.controls.nebula',       params: [
       { name: 'u_density', label: 'Density', labelKey: 'lighting.controls.param.density' },
