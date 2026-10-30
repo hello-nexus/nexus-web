@@ -110,6 +110,40 @@ describe('Select attached action rows', () => {
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Peel the apple');
   });
 
+  it('exposes the hint to assistive tech as the row description', () => {
+    render(<Select value="a" onChange={vi.fn()} options={rows(vi.fn(), { hint: 'Peel the apple' })} ariaLabel="fruit" />);
+    open();
+    const row = screen.getByRole('option', { name: 'Peel' });
+    expect(row).toHaveAccessibleDescription('Peel the apple');
+  });
+
+  it('squares the anchor corners only when the attached row carries the tint', () => {
+    const { rerender } = render(<Select value="a" onChange={vi.fn()} options={rows(vi.fn())} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('option', { name: 'Apple' }).className).toMatch(/hasAttached/);
+    rerender(<Select value="b" onChange={vi.fn()} options={rows(vi.fn())} ariaLabel="fruit" />);
+    expect(screen.getByRole('option', { name: 'Apple' }).className).not.toMatch(/hasAttached/);
+  });
+
+  it('while searching, keeps an attached row only with its anchor', () => {
+    const many = Array.from({ length: 8 }, (_, n) => ({ value: `f${n}`, label: `Fruit ${n}` }));
+    const opts = [...many, { value: '', label: 'Peel', onAction: vi.fn(), attached: true }];
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: true, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), onchange: null, dispatchEvent: vi.fn() })) as unknown as typeof window.matchMedia;
+    try {
+      render(<Select value="f7" onChange={vi.fn()} options={opts} ariaLabel="fruit" />);
+      const list = open();
+      const search = screen.getByRole('combobox');
+      fireEvent.change(search, { target: { value: 'fruit 7' } });
+      expect(within(list).getByRole('option', { name: 'Peel' })).toBeInTheDocument();
+      fireEvent.change(search, { target: { value: 'fruit 3' } });
+      expect(within(list).queryByRole('option', { name: 'Peel' })).toBeNull();
+      expect(within(list).getByRole('option', { name: 'Fruit 3' })).toBeInTheDocument();
+    } finally {
+      window.matchMedia = matchMedia;
+    }
+  });
+
   it('keeps keyboard control working when the row the user was on is removed', () => {
     const onChange = vi.fn();
     const { rerender } = render(<Select value="a" onChange={onChange} options={rows(vi.fn())} ariaLabel="fruit" />);

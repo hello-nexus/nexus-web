@@ -281,12 +281,24 @@
 .option.attached {
   justify-content: flex-start;
   padding: 0 0.6rem 0.45rem;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
 }
 
 .option.attachedChosen {
   background: var(--accent-soft);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .option.hasAttached {

@@ -171,11 +171,18 @@ function filterOptions(opts: readonly SelectOption[], raw: string): readonly Sel
   if (!needle) return opts;
   const out: SelectOption[] = [];
   let pending: SelectOption | null = null;
+  // Whether the option an attached row hangs off (the last non-attached one) survived.
+  let anchorKept = false;
   for (const o of opts) {
     if (o.divider) continue;
     if (o.header) { pending = o; continue; }
-    // Action rows stay while searching so the way to load more is never hidden.
-    if (!o.onAction && !o.label.toLowerCase().includes(needle)) continue;
+    if (o.attached) {
+      if (!anchorKept) continue;
+    } else {
+      // Action rows stay while searching so the way to load more is never hidden.
+      anchorKept = Boolean(o.onAction) || o.label.toLowerCase().includes(needle);
+      if (!anchorKept) continue;
+    }
     if (pending) { out.push(pending); pending = null; }
     out.push(o);
   }
@@ -614,7 +621,7 @@ export function Select({
                   aria-disabled={opt.disabled || undefined}
                   aria-busy={opt.busy || undefined}
                   aria-label={opt.busy && opt.onAction ? (opt.busyLabel ?? opt.label) : undefined}
-                  aria-describedby={opt.description && !opt.onAction ? `${optionId(i)}-desc` : undefined}
+                  aria-describedby={opt.onAction ? (opt.hint ? `${optionId(i)}-hint` : undefined) : opt.description ? `${optionId(i)}-desc` : undefined}
                   className={classNames(
                     styles.option,
                     opt.className,
@@ -625,7 +632,7 @@ export function Select({
                     opt.onAction && styles.actionOption,
                     opt.attached && styles.attached,
                     opt.attached && attachedToChosen(visible, i, value) && styles.attachedChosen,
-                    visible[i + 1]?.attached && styles.hasAttached,
+                    visible[i + 1]?.attached && (opt.attached ? attachedToChosen(visible, i, value) : !opt.onAction && opt.value === value) && styles.hasAttached,
                   )}
                   style={opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined}
                   onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
@@ -641,6 +648,7 @@ export function Select({
                       </span>
                     </HoverTooltip>
                   ) : null}
+                  {opt.onAction && opt.hint && <span id={`${optionId(i)}-hint`} className={styles.srOnly} aria-hidden="true">{opt.hint}</span>}
                   {!opt.onAction && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
                   {opt.onAction ? null : opt.description ? (
                     <span className={styles.optionText}>
