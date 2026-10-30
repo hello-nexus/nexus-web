@@ -1056,7 +1056,7 @@
   "devices.lcd.secondaryMonitor": "用作第二台顯示器",
   "devices.lcd.secondaryMonitorDriverMissing": "這台電腦尚未安裝第二台顯示器模式所需的顯示卡驅動程式。",
   "devices.lcd.secondaryMonitorFailed": "Windows 無法建立這台顯示器。請關閉並重新開啟此設定，或查看 Nexus 服務記錄。",
-  "devices.lcd.secondaryMonitorHint": "Windows 會將桌面延伸到這個螢幕。此選項開啟期間，Nexus 小工具、佈景主題和背景都會停用。",
+  "devices.lcd.secondaryMonitorHint": "此選項開啟期間，裝置的面板會顯示在螢幕上。關閉 Nexus 面板即可改為顯示 Windows 桌面。",
   "devices.lcd.secondaryMonitorSection": "第二台顯示器",
   "devices.lcd.secondaryMonitorStarting": "正在啟動顯示器",
   "devices.lcd.sleepWhenLocked": "鎖定電腦時關閉顯示器",

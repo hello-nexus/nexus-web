@@ -1056,7 +1056,7 @@
   "devices.lcd.secondaryMonitor": "İkincil monitör olarak kullan",
   "devices.lcd.secondaryMonitorDriverMissing": "İkincil monitör modu için görüntü sürücüsü bu PC'de yüklü değil.",
   "devices.lcd.secondaryMonitorFailed": "Windows monitörü oluşturamadı. Ayarı kapatıp tekrar açın veya Nexus hizmet günlüğünü kontrol edin.",
-  "devices.lcd.secondaryMonitorHint": "Windows masaüstünü bu ekrana genişletir. Bu açıkken Nexus widget'ları, temaları ve arka planları devre dışı kalır.",
+  "devices.lcd.secondaryMonitorHint": "Bu açıkken cihazın paneli monitörde gösterilir. Bunun yerine Windows masaüstünü görmek için Nexus panelini kapatın.",
   "devices.lcd.secondaryMonitorSection": "İkincil monitör",
   "devices.lcd.secondaryMonitorStarting": "Monitör başlatılıyor",
   "devices.lcd.sleepWhenLocked": "PC kilitliyken ekranı kapat",

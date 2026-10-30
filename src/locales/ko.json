@@ -1056,7 +1056,7 @@
   "devices.lcd.secondaryMonitor": "보조 모니터로 사용",
   "devices.lcd.secondaryMonitorDriverMissing": "이 PC에 보조 모니터 모드용 디스플레이 드라이버가 설치되어 있지 않습니다.",
   "devices.lcd.secondaryMonitorFailed": "Windows가 모니터를 만들지 못했습니다. 설정을 껐다가 다시 켜거나 Nexus 서비스 로그를 확인하세요.",
-  "devices.lcd.secondaryMonitorHint": "Windows가 이 화면으로 데스크톱을 확장합니다. 이 옵션이 켜져 있는 동안 Nexus 위젯, 테마, 배경은 작동하지 않습니다.",
+  "devices.lcd.secondaryMonitorHint": "이 옵션이 켜져 있는 동안 기기의 패널이 모니터에 표시됩니다. 대신 Windows 데스크톱을 보려면 Nexus 패널을 끄세요.",
   "devices.lcd.secondaryMonitorSection": "보조 모니터",
   "devices.lcd.secondaryMonitorStarting": "모니터를 시작하는 중",
   "devices.lcd.sleepWhenLocked": "PC가 잠겨 있을 때 디스플레이 끄기",

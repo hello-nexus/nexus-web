@@ -1056,7 +1056,7 @@
   "devices.lcd.secondaryMonitor": "Utiliser comme moniteur secondaire",
   "devices.lcd.secondaryMonitorDriverMissing": "Le pilote d'affichage du mode moniteur secondaire n'est pas installé sur ce PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows n'a pas pu créer le moniteur. Désactivez puis réactivez le paramètre, ou consultez le journal du service Nexus.",
-  "devices.lcd.secondaryMonitorHint": "Windows étend le bureau sur cet écran. Les widgets, thèmes et arrière-plans Nexus sont désactivés tant que c'est activé.",
+  "devices.lcd.secondaryMonitorHint": "Tant que cette option est activée, le panneau de l'appareil s'affiche sur le moniteur. Désactivez le panneau Nexus pour afficher le bureau Windows à la place.",
   "devices.lcd.secondaryMonitorSection": "Moniteur secondaire",
   "devices.lcd.secondaryMonitorStarting": "Démarrage du moniteur",
   "devices.lcd.sleepWhenLocked": "Éteindre l'écran lorsque le PC est verrouillé",

@@ -40,6 +40,8 @@ import { canSwitchChannel, requestChannelSwitch } from '../../../lib/channelSwit
 import { getUpdateStatus } from '../../../api/update';
 import { useToast } from '../../common/Toast/Toast';
 import { promoteDisplayToPanel } from '../../../api/displays';
+import { patchPanelDevice } from '../../../api/panel';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { isLianLiHubId } from '../../../api/lianli';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -170,6 +172,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         experimental={device.experimental}
         requiresBeta={device.requiresBeta}
         panelMode={controlGateIsPanel(device)}
+        secondaryMonitorRecordId={device.panelDevice?.secondaryMonitor ? device.panelDevice.panelRecordId : undefined}
         onEnable={() => {
           detectReportedRef.current = false;
           setDetectingKey(device.key);
@@ -381,7 +384,7 @@ function BetaRequiredNotice() {
   );
 }
 
-export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, panelMode, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; panelMode?: boolean; onEnable: () => void }) {
+export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, panelMode, secondaryMonitorRecordId, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; panelMode?: boolean; secondaryMonitorRecordId?: string; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -391,6 +394,7 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
   const resolvingConflict = Boolean(conflictAppId) && !ready;
   const [confirmingExperimental, setConfirmingExperimental] = useState(false);
   const { hidden, setHidden } = useSidebarHiddenDevices();
+  const [monitorOn, setMonitorOn] = useState(true);
   const shownInSidebar = deviceKey === undefined || !hidden.includes(deviceKey);
   return (
     <section className={styles.page}>
@@ -427,6 +431,18 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
               {!panelMode && <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>}
               <NexusControlCard checked={false} label={panelMode ? t('sidebar.device.panelOn') : undefined} disabled={resolvingConflict} onChange={experimental ? () => setConfirmingExperimental(true) : onEnable} />
             </>
+          )}
+          {secondaryMonitorRecordId && (
+            <SettingToggle
+              label={t('devices.lcd.secondaryMonitor')}
+              description={t('devices.lcd.secondaryMonitorHint')}
+              checked={monitorOn}
+              onChange={() => {
+                const next = !monitorOn;
+                setMonitorOn(next);
+                void patchPanelDevice(secondaryMonitorRecordId, { secondaryMonitor: next }).catch(() => {});
+              }}
+            />
           )}
           {deviceKey !== undefined && (
             <NexusControlCard

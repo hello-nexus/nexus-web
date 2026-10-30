@@ -1056,7 +1056,7 @@
   "devices.lcd.secondaryMonitor": "Usar como monitor secundario",
   "devices.lcd.secondaryMonitorDriverMissing": "El controlador de pantalla del monitor secundario no está instalado en este PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows no pudo crear el monitor. Desactiva y vuelve a activar el ajuste, o revisa el registro del servicio Nexus.",
-  "devices.lcd.secondaryMonitorHint": "Windows extiende el escritorio a esta pantalla. Los widgets, temas y fondos de Nexus se desactivan mientras esto está activado.",
+  "devices.lcd.secondaryMonitorHint": "Mientras esto esté activado, el panel del dispositivo se muestra en el monitor. Apaga el panel de Nexus para ver el escritorio de Windows en su lugar.",
   "devices.lcd.secondaryMonitorSection": "Monitor secundario",
   "devices.lcd.secondaryMonitorStarting": "Iniciando el monitor",
   "devices.lcd.sleepWhenLocked": "Apagar la pantalla cuando el PC está bloqueado",

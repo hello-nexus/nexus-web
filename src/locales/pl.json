@@ -1064,7 +1064,7 @@
   "devices.lcd.secondaryMonitor": "Użyj jako dodatkowy monitor",
   "devices.lcd.secondaryMonitorDriverMissing": "Sterownik wyświetlacza dla trybu dodatkowego monitora nie jest zainstalowany na tym komputerze.",
   "devices.lcd.secondaryMonitorFailed": "Windows nie utworzył monitora. Wyłącz i włącz ponownie to ustawienie albo sprawdź dziennik usługi Nexus.",
-  "devices.lcd.secondaryMonitorHint": "Windows rozszerza pulpit na ten ekran. Widżety, motywy i tła Nexus są wyłączone, dopóki ta opcja jest włączona.",
+  "devices.lcd.secondaryMonitorHint": "Gdy ta opcja jest włączona, panel urządzenia jest wyświetlany na monitorze. Wyłącz panel Nexus, aby zamiast tego zobaczyć pulpit Windows.",
   "devices.lcd.secondaryMonitorSection": "Dodatkowy monitor",
   "devices.lcd.secondaryMonitorStarting": "Uruchamianie monitora",
   "devices.lcd.sleepWhenLocked": "Wyłącz wyświetlacz, gdy komputer jest zablokowany",

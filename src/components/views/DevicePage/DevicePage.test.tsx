@@ -45,6 +45,11 @@ vi.mock('../../../api/update', () => ({
 
 const mockKillConflict = vi.fn();
 
+const mockPatchPanelDevice = vi.fn();
+vi.mock('../../../api/panel', () => ({
+  patchPanelDevice: (...args: any[]) => mockPatchPanelDevice(...args),
+}));
+
 vi.mock('../../../api/conflicts', () => ({
   killConflict: (...args: any[]) => mockKillConflict(...args),
 }));
@@ -82,6 +87,19 @@ describe('NexusControlOff', () => {
     expect(screen.queryByText('devices.nexusControlOff.enableHint')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('switch', { name: 'sidebar.device.panelOn' }));
     expect(onEnable).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers the secondary monitor switch while control is off and the monitor is on', () => {
+    mockPatchPanelDevice.mockReset().mockResolvedValue({});
+    render(<NexusControlOff deviceName="Kraken" panelMode secondaryMonitorRecordId="rec9" onEnable={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.lcd.secondaryMonitor' }));
+    expect(mockPatchPanelDevice).toHaveBeenCalledWith('rec9', { secondaryMonitor: false });
+  });
+
+  it('hides the secondary monitor switch when the monitor is off', () => {
+    render(<NexusControlOff deviceName="Kraken" panelMode onEnable={vi.fn()} />);
+    expect(screen.queryByRole('switch', { name: 'devices.lcd.secondaryMonitor' })).not.toBeInTheDocument();
   });
 
   it('asks before turning on Nexus Control for an experimental device', () => {
