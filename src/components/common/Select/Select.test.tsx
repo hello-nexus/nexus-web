@@ -32,6 +32,37 @@ describe('Select leadingAction', () => {
   });
 });
 
+describe('Select trailingAction', () => {
+  it('comes after the trigger in DOM order, and pressing it does not open the list', () => {
+    const onTrail = vi.fn();
+    render(
+      <Select
+        value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit"
+        trailingAction={<button type="button" aria-label="trail" onClick={onTrail} />}
+      />,
+    );
+    const trail = screen.getByRole('button', { name: 'trail' });
+    const trigger = screen.getByRole('button', { name: 'fruit' });
+    expect(trigger.compareDocumentPosition(trail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(trail);
+    expect(onTrail).toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('closes an open list when the trailing action is pressed', () => {
+    render(
+      <Select
+        value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit"
+        trailingAction={<button type="button" aria-label="trail" />}
+      />,
+    );
+    open();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'trail' }));
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+});
+
 describe('Select renderValue', () => {
   it('draws custom trigger content for the selected option and leaves the menu rows alone', () => {
     render(
@@ -656,5 +687,40 @@ describe('Select in-menu search on touchscreen and pointer-less hosts', () => {
     render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
     open();
     expect(screen.queryByRole('combobox')).toBeNull();
+  });
+});
+
+describe('Select rowAction', () => {
+  it('runs the action and closes the menu without choosing the row', () => {
+    const onChange = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <Select
+        value="a" onChange={onChange} ariaLabel="fruit"
+        options={[OPTIONS[0], { ...OPTIONS[1], rowAction: { icon: <i data-testid="pencil" />, label: 'Edit', onSelect } }]}
+      />,
+    );
+    open();
+    fireEvent.click(screen.getByTestId('pencil'));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('draws no action on a disabled row and returns focus to the trigger after running it', () => {
+    const onSelect = vi.fn();
+    render(
+      <Select
+        value="a" onChange={vi.fn()} ariaLabel="fruit"
+        options={[
+          { ...OPTIONS[0], rowAction: { icon: <i data-testid="on" />, label: 'Edit', onSelect } },
+          { ...OPTIONS[1], disabled: true, rowAction: { icon: <i data-testid="off" />, label: 'Edit', onSelect } },
+        ]}
+      />,
+    );
+    open();
+    expect(screen.queryByTestId('off')).toBeNull();
+    fireEvent.click(screen.getByTestId('on'));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'fruit' }));
   });
 });

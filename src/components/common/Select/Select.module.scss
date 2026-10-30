@@ -115,6 +115,20 @@ $select-action-w: 132px;
   padding-left: 2rem;
 }
 
+/* Trailing control (trailingAction): a sibling drawn over the trigger's right
+   gutter, just left of the chevron; the trigger widens its padding to clear it. */
+.trailingAction {
+  position: absolute;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+}
+.hasTrailing .trigger {
+  padding-right: 4.4rem;
+}
+
 /* Icon-only trigger (triggerIconOnly): the glyph is the whole control, so the
    chevron gutter and the icon-to-label gap go. */
 .iconOnly .trigger {
@@ -234,6 +248,32 @@ $select-action-w: 132px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.option.hasRowAction {
+  position: relative;
+  // Labels end before the icon, the selected row's included.
+  padding-right: 2.5rem;
+}
+
+.rowAction {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+
+  // An outline, so the hover is told apart from the row's own hover and selected fills.
+  &:hover {
+    color: var(--text);
+    box-shadow: inset 0 0 0 var(--border-width) var(--control-border-strong);
+  }
 }
 
 .option.active {
@@ -379,6 +419,13 @@ $select-action-w: 132px;
   &[aria-expanded='true'] {
     border-color: var(--accent);
   }
+}
+
+.gridWrapper.hasTrailing .trailingAction {
+  right: 2.9rem;
+}
+.hasTrailing .trigger.gridTrigger {
+  padding-right: 5.6rem;
 }
 
 .gridTrigger ~ .chevron {
@@ -534,5 +581,20 @@ $select-action-w: 132px;
   }
   .option.gridAttached + .gridAttached {
     padding-top: 0;
+  }
+}
+
+// In grid mode the icon sits in the trailing action column, clear of the last cell.
+.option.gridOption.hasRowAction {
+  padding-right: 0.9rem;
+
+  .rowAction {
+    right: 0.9rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .option.gridOption.hasRowAction {
+    padding-right: 3rem;
   }
 }

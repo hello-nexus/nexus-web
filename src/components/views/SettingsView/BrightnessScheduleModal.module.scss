@@ -62,8 +62,9 @@
   gap: var(--space-sm);
 }
 
-// Idle dimming: independent of the schedule, so it sits under its own rule.
-.idle {
+// Idle dimming and the brightness multiplier: independent of the schedule, so each sits under its own rule.
+.idle,
+.multiplier {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
