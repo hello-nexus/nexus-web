@@ -326,6 +326,19 @@ describe('StorePage hardware-gated app', () => {
     expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
   });
 
+  it('keeps an installed copy on Update and shows Retry when the update is refused for missing hardware', async () => {
+    installed.push({ id: app.id, version: '1.0.1', iconUrl: null });
+    fetchStoreApps.mockResolvedValue([gated(false)]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: false, reason: 'hardware_required' });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.update' }));
+
+    expect(await screen.findByRole('button', { name: 'store.retry' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
+  });
+
   it('explains a hardware_required refusal and keeps the product link', async () => {
     fetchStoreApps.mockResolvedValue([gated(true)]);
     installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: false, reason: 'hardware_required' });

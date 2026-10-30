@@ -101,6 +101,11 @@ type NeedsSignIn = (retry: () => void) => void;
 /** A fresh install landed; updates do not call it. */
 type OnInstalled = (app: StoreApp) => void;
 
+/** A first install the service would refuse: the app's device is not attached. */
+function hardwareGated(app: StoreApp, installedVersion: string | undefined): boolean {
+  return !!app.hardware && !installedVersion && app.hardware.matched !== true;
+}
+
 function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
   app: StoreApp; installedVersion?: string; onNeedsSignIn: NeedsSignIn; onInstalled: OnInstalled;
 }) {
@@ -137,7 +142,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
       onNeedsSignIn(() => { void install(); });
       return;
     }
-    setState(res?.reason === 'hardware_required' ? 'hardware' : 'failed');
+    setState(res?.reason === 'hardware_required' && !installedVersion ? 'hardware' : 'failed');
   }, [app, installedVersion, latest, onNeedsSignIn, onInstalled]);
 
   // Ahead of compatibility: an app that is not out yet has nothing to say about
@@ -159,7 +164,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
 
   // An installed copy keeps its normal controls; the gate only decides a first install.
   const hardware = app.hardware;
-  if (hardware && !installedVersion && (hardware.matched !== true || state === 'hardware')) {
+  if (hardware && (hardwareGated(app, installedVersion) || state === 'hardware')) {
     return (
       <span className={styles.hardwareGate}>
         <Button
@@ -285,7 +290,7 @@ function FeaturedApp({ app, installed, onOpen, onNeedsSignIn, onInstalled }: {
         <div className={styles.featuredActions}>
           <LocalPreviewChip app={app} />
           {/* A missing device is explained on the app page, so the card only invites opening it. */}
-          {!(app.hardware && !installed && app.hardware.matched !== true) && (
+          {!hardwareGated(app, installed?.version) && (
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
           )}
         </div>
@@ -366,7 +371,7 @@ function useHighlights(latest: StoreVersion): Highlight[] {
   if (latest.minNexusVersion) {
     out.push({
       key: 'requires',
-      icon: <NexusMark size={HIGHLIGHT_ICON} />,
+      icon: <span aria-hidden={true}><NexusMark size={HIGHLIGHT_ICON} /></span>,
       label: t('store.spec.requires'),
       value: latest.minNexusVersion,
     });
