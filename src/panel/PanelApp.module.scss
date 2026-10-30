@@ -2054,33 +2054,31 @@
   opacity: 1;
 }
 
-// Device-page preview: hover notices that offer "Edit background" over free
-// cells, an empty single-widget slot and the second half of a split widget cell.
-// The notice look is EditHint's; the target only reveals it and takes the click.
-.bgHint {
-  position: relative;
-  cursor: pointer;
-  border-radius: var(--radius);
-  --edit-hint-color: var(--panel-accent);
-}
+// Device-page preview: "Edit background" notices. The look is EditHint's; hover reveals
+// are not gated on (hover: hover) because the dashboard's WebView on a PC with a
+// touchscreen reports no hover or pointer at all.
 
-// Whole canvas of an empty single-widget slot (round glass clips to the circle).
-.bgHintCanvas {
+// Multi-widget panels: the whole background lights up under the widgets. It is
+// before the stage in DOM order, so the stage paints over it.
+.bgLayer {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 3;
-  border-radius: 0;
+  pointer-events: none;
+  --edit-hint-color: var(--panel-accent);
+  // Sized like the notice on a two-by-two widget.
+  --panel-span-cols: 2;
+  --panel-span-rows: 2;
 }
 
-.bgHintCanvas[data-round='true'] {
-  border-radius: 50%;
+.bgLayer[data-active='true'] > [data-edit-hint-overlay] {
+  opacity: 1;
 }
 
-// A single widget's notice, cut in two: the widget half keeps the existing
-// Edit widget behaviour, the other half edits the background.
+// A single widget's notice, cut in two: both halves show while the pointer is
+// anywhere on the canvas, the half under it highlighted.
 .hintSplit {
   position: absolute;
   top: 0;
@@ -2099,24 +2097,31 @@
   flex-direction: row;
 }
 
+// An empty round slot has no card to inherit the circle from.
+.hintSplit[data-round='true'] {
+  border-radius: 50%;
+}
+
 .hintHalf {
   position: relative;
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
-  border-radius: 0;
   pointer-events: auto;
   --edit-hint-color: var(--text);
 }
 
-.hintHalf.bgHint {
+.bgHint {
+  cursor: pointer;
   --edit-hint-color: var(--panel-accent);
 }
 
-// Not gated on (hover: hover): the dashboard's WebView on a PC with a touchscreen reports no hover or pointer at all.
-.bgHint:hover > [data-edit-hint-overlay],
-.hintHalf:hover > [data-edit-hint-overlay],
-.bgHint:focus-visible > [data-edit-hint-overlay] {
+.hintSplit:hover > .hintHalf > [data-edit-hint-overlay] {
+  opacity: 0.55;
+}
+
+.hintSplit > .hintHalf:hover > [data-edit-hint-overlay],
+.hintSplit > .bgHint:focus-visible > [data-edit-hint-overlay] {
   opacity: 1;
 }
 

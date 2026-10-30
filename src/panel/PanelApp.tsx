@@ -151,6 +151,7 @@ import {
   buildPanelCollisionDetection,
   findWidgetById,
   isDashboardClickthroughType,
+  isPanelBackgroundTarget,
   widgetOpenTab,
   appRouteForWidget,
   noopCellPointers,
@@ -205,8 +206,8 @@ import {
   PanelDragOverlayCell,
   PanelTouchCell,
 } from './dnd/PanelDragCells';
-import { BackgroundEditHint, type BackgroundMenuPoint } from './dnd/BackgroundEditHint';
-import { freeCells, splitOrientation } from './engine/freeCells';
+import { BackgroundHoverLayer, BackgroundSplitHint, type BackgroundMenuPoint } from './dnd/BackgroundEditHint';
+import { isRoomyFreeRect, largestFreeRect, splitOrientation, type HintRect } from './engine/hintGeometry';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
 import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
@@ -951,6 +952,28 @@ export function PanelContent({
   const splitOrientationOf = (widget: PanelWidget) => {
     const span = sizeToSpan(widget.size);
     return splitOrientation(span.cols, span.rows);
+  };
+  const backgroundHoverTarget = backgroundMenuEnabled && !singleSurface;
+  const [backgroundHover, setBackgroundHoverState] = useState(false);
+  const [backgroundArea, setBackgroundArea] = useState<HintRect | null>(null);
+  const backgroundHoverRef = useRef(false);
+  const setBackgroundHover = (over: boolean) => {
+    if (backgroundHoverRef.current === over) return;
+    backgroundHoverRef.current = over;
+    if (over) setBackgroundArea(measureBackgroundArea());
+    setBackgroundHoverState(over);
+  };
+  // Widgets are read from the DOM: their rects already include padding, gaps and the label strip.
+  const measureBackgroundArea = (): HintRect | null => {
+    const root = rootRef.current;
+    if (!root) return null;
+    const canvas = root.getBoundingClientRect();
+    const widgets = Array.from(root.querySelectorAll('[data-panel-widget-id]')).map(el => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left - canvas.left, top: r.top - canvas.top, width: r.width, height: r.height };
+    });
+    const free = largestFreeRect(canvas, widgets);
+    return free && isRoomyFreeRect(free, canvas) ? free : null;
   };
   const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch) && !restricted;
   // An editable canvas hoists the focused widget above the editor's scrim, else
@@ -2324,12 +2347,20 @@ export function PanelContent({
           // Reaches panel-root only when the click passed through empty area
           // unstopped. Forward to the parent to close its settings pane.
           if (e.target === e.currentTarget) onSimulatorBackgroundClicked?.();
+          if (backgroundHoverTarget && isPanelBackgroundTarget(e.target)) onSimulatorBackgroundMenu?.({ x: e.clientX, y: e.clientY });
         } : undefined}
         onPointerDownCapture={freeformActive ? swallowOutsideFreeform : undefined}
         onClickCapture={freeformActive ? swallowOutsideFreeform : undefined}
         onPointerDown={handleBackgroundPointerDown}
-        onPointerMove={e => { backgroundLongPress.onPointerMove(e); trackHoverResize(e); }}
-        onPointerLeave={() => { if (!resizeGestureRef.current) setHoverResizeId(null); }}
+        onPointerMove={e => {
+          backgroundLongPress.onPointerMove(e);
+          trackHoverResize(e);
+          if (backgroundHoverTarget) setBackgroundHover(!activeDragId && !touch.rearranging && isPanelBackgroundTarget(e.target));
+        }}
+        onPointerLeave={() => {
+          if (!resizeGestureRef.current) setHoverResizeId(null);
+          if (backgroundHoverTarget) setBackgroundHover(false);
+        }}
         onPointerUp={backgroundLongPress.onPointerUp}
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
@@ -2382,6 +2413,7 @@ export function PanelContent({
             aria-hidden
           />
         )}
+        {backgroundHoverTarget && loaded && <BackgroundHoverLayer active={backgroundHover} area={backgroundArea} />}
         {!loaded ? (
           <PanelLoadingGate surface={surface} />
         ) : (
@@ -2481,14 +2513,6 @@ export function PanelContent({
                             onExit={exitFreeform}
                           />
                         ) : null}
-                        {backgroundMenuEnabled && !singleSurface && !touch.rearranging && !activeDragId && onSimulatorBackgroundMenu
-                          && freeCells(page.widgets, capacity.gridCols, capacity.pageRows).map(cell => (
-                            <BackgroundEditHint
-                              key={`bg:${page.id}:${cell.col}:${cell.row}`}
-                              onActivate={onSimulatorBackgroundMenu}
-                              style={{ gridColumn: `${cell.col + 1} / span 1`, gridRow: `${cell.row + 1} / span 1` }}
-                            />
-                          ))}
                         {activeDragId && allCellsForPage(page, capacity).map(cell => (
                           <EmptyCellDroppable
                             key={`${page.id}:${cell.col}:${cell.row}`}
@@ -2509,9 +2533,11 @@ export function PanelContent({
                         ) : null}
                       </div>
                       {backgroundMenuEnabled && singleSurface && page.widgets.length === 0 && onSimulatorBackgroundMenu && (
-                        <BackgroundEditHint
-                          className={styles.bgHintCanvas}
+                        <BackgroundSplitHint
+                          // eslint-disable-next-line i18next/no-literal-string -- orientation enum value
+                          orientation="stacked"
                           round={surfaceDisplayShape(surface) === 'round'}
+                          widgetHalf={false}
                           onActivate={onSimulatorBackgroundMenu}
                         />
                       )}

@@ -1,23 +1,44 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { BackgroundEditHint } from './BackgroundEditHint';
+import { BackgroundHoverLayer, BackgroundSplitHint } from './BackgroundEditHint';
 
-describe('BackgroundEditHint', () => {
-  it('shows the shared edit notice labelled Edit background', () => {
-    const { container } = render(<BackgroundEditHint onActivate={vi.fn()} />);
+describe('BackgroundHoverLayer', () => {
+  it('shows one Edit background notice, lit only while the background is hovered', () => {
+    const { container, rerender } = render(<BackgroundHoverLayer active={false} area={null} />);
+    expect(container.querySelectorAll('[data-edit-hint-overlay]')).toHaveLength(1);
     expect(container.querySelector('[data-edit-hint-overlay]')?.textContent).toBe('panel.background.edit');
+    expect(container.querySelector('[data-active]')).toBeNull();
+    rerender(<BackgroundHoverLayer active area={null} />);
+    expect(container.querySelector('[data-active="true"]')).not.toBeNull();
   });
 
-  it('reports the click point', () => {
+  it('places the notice in the free area it is given', () => {
+    const { container } = render(<BackgroundHoverLayer active area={{ left: 10, top: 20, width: 100, height: 50 }} />);
+    const box = container.querySelector('[data-edit-hint-overlay] > div') as HTMLElement;
+    expect(box.style.left).toBe('10px');
+    expect(box.style.width).toBe('100px');
+  });
+});
+
+describe('BackgroundSplitHint', () => {
+  it('shows both notices on a widget canvas and opens the menu from the background half', () => {
     const onActivate = vi.fn();
-    render(<BackgroundEditHint onActivate={onActivate} />);
+    const { container } = render(<BackgroundSplitHint orientation="side" round={false} widgetHalf onActivate={onActivate} />);
+    expect(Array.from(container.querySelectorAll('[data-edit-hint-overlay]')).map(e => e.textContent)).toEqual(['panel.widget.editWidget', 'panel.background.edit']);
+    expect(container.querySelector('[data-orientation="side"]')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'panel.background.edit' }), { clientX: 5, clientY: 9 });
     expect(onActivate).toHaveBeenCalledWith({ x: 5, y: 9 });
   });
 
+  it('is one whole-canvas Edit background on an empty slot', () => {
+    const { container } = render(<BackgroundSplitHint orientation="stacked" round widgetHalf={false} onActivate={vi.fn()} />);
+    expect(Array.from(container.querySelectorAll('[data-edit-hint-overlay]')).map(e => e.textContent)).toEqual(['panel.background.edit']);
+    expect(container.querySelector('[data-round="true"]')).not.toBeNull();
+  });
+
   it('opens from the keyboard', () => {
     const onActivate = vi.fn();
-    render(<BackgroundEditHint onActivate={onActivate} />);
+    render(<BackgroundSplitHint orientation="stacked" round={false} widgetHalf onActivate={onActivate} />);
     fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' });
     expect(onActivate).toHaveBeenCalledTimes(1);
   });

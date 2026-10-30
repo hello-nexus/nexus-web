@@ -22,4 +22,21 @@
 
 .label {
   @include text-button;
+  // A word never breaks mid-way: the content box allows it anywhere, a label wraps at spaces only.
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.label[data-fit='true'] {
+  font-size: var(--edit-hint-label-size);
+  white-space: nowrap;
+}
+
+// The glyph and label sit in a box of the host's own choosing (a free area of the canvas).
+.area {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

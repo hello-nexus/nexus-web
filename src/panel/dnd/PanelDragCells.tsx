@@ -11,7 +11,7 @@ import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
 import { MenuArrowButton } from '../../components/common/DeviceCanvas/MenuArrowButton';
 import { EditHint } from '../../components/common/EditHint/EditHint';
-import { BackgroundEditHint, type BackgroundMenuPoint } from './BackgroundEditHint';
+import { BackgroundSplitHint, type BackgroundMenuPoint } from './BackgroundEditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
 import { isOwnControl, useLockNotice } from './useLockNotice';
@@ -554,12 +554,7 @@ export function PanelTouchCell({
               />
             </div>
             {editHint && backgroundSplit && onEditBackground ? (
-              <div className={styles.hintSplit} data-orientation={backgroundSplit}>
-                <div className={styles.hintHalf}>
-                  <EditHint label={t('panel.widget.editWidget')} />
-                </div>
-                <BackgroundEditHint className={styles.hintHalf} onActivate={onEditBackground} />
-              </div>
+              <BackgroundSplitHint orientation={backgroundSplit} round={widget.size === '2x2round'} widgetHalf onActivate={onEditBackground} />
             ) : editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
             {lockedLook && (restricted
               ? <EditHint className={styles.cellLockNotice} icon={OctagonMinus} label={t('devices.y70.restrictedMode')} />

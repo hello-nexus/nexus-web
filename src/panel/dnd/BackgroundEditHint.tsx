@@ -1,45 +1,93 @@
-import type { CSSProperties } from 'react';
-import { Wallpaper } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { Pencil, Wallpaper } from 'lucide-react';
 import { EditHint } from '../../components/common/EditHint/EditHint';
 import { useTranslation } from '../../lib/i18n';
+import { fitNoticeContent, type HintRect, type NoticeFit } from '../engine/hintGeometry';
 import styles from '../PanelApp.module.scss';
 
 export interface BackgroundMenuPoint { x: number; y: number; }
 
-interface BackgroundEditHintProps {
+/** The whole-background highlight of a multi-widget preview: it sits under the widgets and shows one notice in `area`, or centered when none is given. */
+export function BackgroundHoverLayer({ active, area }: { active: boolean; area: HintRect | null }) {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.bgLayer} data-active={active ? 'true' : undefined} aria-hidden="true">
+      <EditHint icon={Wallpaper} label={t('panel.background.edit')} area={area ?? undefined} />
+    </div>
+  );
+}
+
+interface BackgroundSplitHintProps {
+  orientation: 'stacked' | 'side';
+  round: boolean;
+  /** False on an empty slot, where the background half is the whole canvas. */
+  widgetHalf: boolean;
   onActivate: (point: BackgroundMenuPoint) => void;
-  className?: string;
-  style?: CSSProperties;
-  round?: boolean;
+}
+
+function useBoxSize() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const read = () => setSize(prev => (prev && prev.width === el.clientWidth && prev.height === el.clientHeight ? prev : { width: el.clientWidth, height: el.clientHeight }));
+    read();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, size };
 }
 
 /**
- * The "Edit background" target of the device-page preview: hovering it fades in
- * the shared edit notice, a click or Enter hands the pointer position up so the
- * caller can open the background menu there.
+ * A single-widget canvas in the device-page preview: hovering anywhere shows both
+ * notices at once, "Edit widget" and "Edit background", each sized to fit its half
+ * (inside the circle on round glass); the half under the pointer is highlighted.
  */
-export function BackgroundEditHint({ onActivate, className, style, round }: BackgroundEditHintProps) {
+export function BackgroundSplitHint({ orientation, round, widgetHalf, onActivate }: BackgroundSplitHintProps) {
   const { t } = useTranslation();
-  const label = t('panel.background.edit');
+  const { ref, size } = useBoxSize();
+  const editWidget = t('panel.widget.editWidget');
+  const editBackground = t('panel.background.edit');
+  const fitFor = (part: 'start' | 'end' | 'full', label: string): NoticeFit | undefined => {
+    if (!size || size.width <= 0 || size.height <= 0) return undefined;
+    const half = part === 'full'
+      ? size
+      : orientation === 'stacked' ? { width: size.width, height: size.height / 2 } : { width: size.width / 2, height: size.height };
+    return fitNoticeContent({
+      width: half.width,
+      height: half.height,
+      round,
+      part,
+      labelChars: label.length,
+      diameter: Math.min(size.width, size.height),
+    });
+  };
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={label}
-      className={`${styles.bgHint} ${className ?? ''}`}
-      style={style}
-      data-round={round ? 'true' : undefined}
-      data-panel-hit="true"
-      onClick={e => { e.stopPropagation(); onActivate({ x: e.clientX, y: e.clientY }); }}
-      onKeyDown={e => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        e.stopPropagation();
-        const rect = e.currentTarget.getBoundingClientRect();
-        onActivate({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-      }}
-    >
-      <EditHint icon={Wallpaper} label={label} />
+    <div ref={ref} className={styles.hintSplit} data-orientation={orientation} data-round={round ? 'true' : undefined}>
+      {widgetHalf && (
+        <div className={styles.hintHalf}>
+          <EditHint icon={Pencil} label={editWidget} fit={fitFor('start', editWidget)} />
+        </div>
+      )}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={editBackground}
+        className={`${styles.hintHalf} ${styles.bgHint}`}
+        onClick={e => { e.stopPropagation(); onActivate({ x: e.clientX, y: e.clientY }); }}
+        onKeyDown={e => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          onActivate({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+        }}
+      >
+        <EditHint icon={Wallpaper} label={editBackground} fit={fitFor(widgetHalf ? 'end' : 'full', editBackground)} />
+      </div>
     </div>
   );
 }

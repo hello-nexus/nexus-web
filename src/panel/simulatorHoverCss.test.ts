@@ -24,8 +24,8 @@ function mediaEnclosing(selectorPart: string): string[] {
 describe('device-page preview hover notices', () => {
   it.each([
     ".panelRoot[data-simulator='true'] .cellWrap:hover .cell > .cellEditHint",
-    '.bgHint:hover > [data-edit-hint-overlay]',
-    '.hintHalf:hover > [data-edit-hint-overlay]',
+    '.hintSplit:hover > .hintHalf > [data-edit-hint-overlay]',
+    '.hintSplit > .hintHalf:hover > [data-edit-hint-overlay]',
   ])('reveals %s without a hover media query', selector => {
     expect(mediaEnclosing(selector).filter(h => /hover/.test(h))).toEqual([]);
   });
