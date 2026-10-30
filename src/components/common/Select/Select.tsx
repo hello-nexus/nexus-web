@@ -17,7 +17,6 @@ import { usePortalRoot } from '../ThemeScope/ThemeScope';
 import { useTranslation } from '../../../lib/i18n';
 import classNames from 'classnames';
 import { Spinner } from '../Spinner/Spinner';
-import { Button } from '../Button/Button';
 import buttonStyles from '../Button/Button.module.scss';
 import styles from './Select.module.scss';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
@@ -76,12 +75,13 @@ export interface SelectOption {
   // Action rows only: accessible name while busy. The visible label stays in
   // layout, hidden, so the button keeps its idle size under the spinner.
   busyLabel?: string;
-  // Small buttons drawn inside this option's own row, under its text, so they
-  // share its background (e.g. a Resync beside the selected item). Pressing one
-  // runs its onClick and neither selects the option nor closes the menu. They
-  // are real buttons: focus reaches them with Tab from the list, and Enter or
-  // Space presses them. `hint` shows as a tooltip.
-  embeddedActions?: { label: string; onClick: () => void; disabled?: boolean; hint?: string }[];
+  // Action rows only: draws the row as the continuation of the option above it,
+  // with no gap between them, and shares that option's selection tint when it is
+  // the chosen one (e.g. a Resync beside the current item). Rows attached in a
+  // run all follow the first non-attached option.
+  attached?: boolean;
+  // Action rows only: tooltip on the row's button.
+  hint?: string;
 }
 
 export interface SelectProps {
@@ -180,6 +180,13 @@ function filterOptions(opts: readonly SelectOption[], raw: string): readonly Sel
     out.push(o);
   }
   return out;
+}
+
+// Whether the attached action rows ending at `i` hang off the chosen option.
+function attachedToChosen(opts: readonly SelectOption[], i: number, value: string): boolean {
+  let j = i;
+  while (j > 0 && opts[j].attached) j--;
+  return !opts[j].attached && !opts[j].onAction && opts[j].value === value;
 }
 
 // Dividers, headers and disabled options are never focusable or selectable.
@@ -289,7 +296,7 @@ export function Select({
       const optionEls = Array.from(list.children) as HTMLElement[];
       for (const o of optionEls) o.style.overflow = 'visible';
       // Descriptions wrap to the menu width the labels set; they never size it.
-      const descEls = Array.from(list.querySelectorAll<HTMLElement>('[data-option-description], [data-option-actions]'));
+      const descEls = Array.from(list.querySelectorAll<HTMLElement>('[data-option-description]'));
       for (const d of descEls) d.style.display = 'none';
       menu.style.width = 'max-content';
       menu.style.minWidth = `${baseWidth}px`;
@@ -479,8 +486,7 @@ export function Select({
         break;
       }
       case 'Escape': e.preventDefault(); close(true); break;
-      // Tab walks on to the active row's embedded buttons when it has any.
-      case 'Tab': if (!visible[activeIndex]?.embeddedActions?.length) close(); break;
+      case 'Tab': close(); break;
       default:
         if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
           const now = Date.now();
@@ -535,10 +541,6 @@ export function Select({
           ref={menuRef}
           className={styles.menu}
           data-select-menu=""
-          // Tab or Shift+Tab walking focus out of the menu (past the last embedded button, or back out the
-          // front) closes it. A null target is a click on a non-focusable part of the menu or the window
-          // losing focus, which must not close it.
-          onBlur={e => { if (e.relatedTarget && !menuRef.current?.contains(e.relatedTarget as Node)) close(); }}
           style={{
             position: 'fixed',
             top: coords?.top ?? 0,
@@ -621,6 +623,9 @@ export function Select({
                     opt.disabled && styles.optionDisabled,
                     opt.fontFamily && styles.fontOption,
                     opt.onAction && styles.actionOption,
+                    opt.attached && styles.attached,
+                    opt.attached && attachedToChosen(visible, i, value) && styles.attachedChosen,
+                    visible[i + 1]?.attached && styles.hasAttached,
                   )}
                   style={opt.fontFamily ? { fontFamily: opt.fontFamily } : undefined}
                   onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
@@ -629,10 +634,12 @@ export function Select({
                   {opt.onAction ? (
                     // The row stays the listbox option (keyboard and aria); the visual is the
                     // shared Button look on a span, since a real button cannot nest in an option.
-                    <span className={classNames(buttonStyles.button, buttonStyles['size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive, opt.busy && styles.actionButtonBusy)}>
-                      {opt.busy && <span className={styles.actionSpinner} aria-hidden="true"><Spinner size={14} /></span>}
-                      <span className={styles.actionLabel}>{opt.label}</span>
-                    </span>
+                    <HoverTooltip body={opt.hint}>
+                      <span className={classNames(buttonStyles.button, buttonStyles[opt.attached ? 'size-sm' : 'size-md'], buttonStyles['tone-neutral'], styles.actionButton, i === activeIndex && styles.actionButtonActive, opt.busy && styles.actionButtonBusy)}>
+                        {opt.busy && <span className={styles.actionSpinner} aria-hidden="true"><Spinner size={14} /></span>}
+                        <span className={styles.actionLabel}>{opt.label}</span>
+                      </span>
+                    </HoverTooltip>
                   ) : null}
                   {!opt.onAction && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
                   {opt.onAction ? null : opt.description ? (
@@ -641,22 +648,6 @@ export function Select({
                       <span id={`${optionId(i)}-desc`} data-option-description="true" className={styles.optionDescription}>{opt.description}</span>
                     </span>
                   ) : opt.label}
-                  {!opt.onAction && opt.embeddedActions && opt.embeddedActions.length > 0 && (
-                    // Keys other than Escape stay here so Enter and Space press the button instead of
-                    // committing the row; clicks stay here so the row is not chosen.
-                    <span
-                      className={styles.embeddedActions}
-                      data-option-actions="true"
-                      onClick={e => e.stopPropagation()}
-                      onKeyDown={e => { if (e.key !== 'Escape') e.stopPropagation(); }}
-                    >
-                      {opt.embeddedActions.map(action => (
-                        <Button key={action.label} size="sm" tone="neutral" title={action.hint} disabled={action.disabled} onClick={action.onClick}>
-                          {action.label}
-                        </Button>
-                      ))}
-                    </span>
-                  )}
                 </li>
               ))
             )}

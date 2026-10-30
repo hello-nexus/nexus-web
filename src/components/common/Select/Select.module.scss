@@ -242,18 +242,10 @@
   flex-direction: column;
 }
 
-.embeddedActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.45rem;
-}
-
 .optionDescription {
   margin-top: 0.15rem;
   color: var(--text-dim);
   font-size: var(--type-mini);
-  // A newline in the description starts a new line.
   white-space: pre-line;
 }
 
@@ -284,6 +276,31 @@
   padding: 0.4rem 0.6rem;
   background: transparent;
   overflow: visible;
+}
+
+.option.attached {
+  justify-content: flex-start;
+  padding: 0 0.6rem 0.45rem;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.option.attachedChosen {
+  background: var(--accent-soft);
+}
+
+.option.hasAttached {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+// The tint is the row's own, so a disabled attached row dims its button alone.
+.option.attached.optionDisabled {
+  opacity: 1;
+
+  .actionButton {
+    opacity: 0.45;
+  }
 }
 
 .actionButton {

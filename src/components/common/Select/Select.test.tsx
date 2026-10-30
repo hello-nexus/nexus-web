@@ -31,75 +31,6 @@ describe('Select leadingAction', () => {
   });
 });
 
-describe('Select description lines', () => {
-  it('keeps a newline in the description so the row can break there', () => {
-    render(<Select value="a" onChange={vi.fn()} options={[{ value: 'a', label: 'Apple', description: 'one\ntwo' }]} ariaLabel="fruit" />);
-    open();
-    expect(screen.getByRole('option').querySelector('[data-option-description]')!.textContent).toBe('one\ntwo');
-  });
-});
-
-describe('Select embeddedActions', () => {
-  const withAction = (onClick: () => void, onChange = vi.fn()) => render(
-    <Select
-      value="a" onChange={onChange} ariaLabel="fruit"
-      options={[{ value: 'a', label: 'Apple', embeddedActions: [{ label: 'Peel', onClick, hint: 'Peel it' }] }, { value: 'b', label: 'Banana' }]}
-    />,
-  );
-
-  it('presses inside the row without choosing it or closing the list', () => {
-    const onClick = vi.fn();
-    const onChange = vi.fn();
-    withAction(onClick, onChange);
-    const list = open();
-    fireEvent.click(within(list).getByRole('button', { name: 'Peel' }));
-    expect(onClick).toHaveBeenCalledTimes(1);
-    expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-  });
-
-  it('keeps Enter on the button from committing the active row', () => {
-    const onClick = vi.fn();
-    const onChange = vi.fn();
-    withAction(onClick, onChange);
-    const list = open();
-    fireEvent.keyDown(within(list).getByRole('button', { name: 'Peel' }), { key: 'Enter' });
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('keeps the list open on Tab when the active row has buttons, and closes it otherwise', () => {
-    withAction(vi.fn());
-    const list = open();
-    fireEvent.keyDown(list, { key: 'Tab' });
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-    fireEvent.keyDown(list, { key: 'ArrowDown' });
-    fireEvent.keyDown(list, { key: 'Tab' });
-    expect(screen.queryByRole('listbox')).toBeNull();
-  });
-});
-
-describe('Select focus leaving the menu', () => {
-  it('closes when focus moves out of an embedded button, and stays open for focus inside the menu', () => {
-    render(
-      <>
-        <button type="button">outside</button>
-        <Select
-          value="a" onChange={vi.fn()} ariaLabel="fruit"
-          options={[{ value: 'a', label: 'Apple', embeddedActions: [{ label: 'Peel', onClick: vi.fn() }] }, { value: 'b', label: 'Banana' }]}
-        />
-      </>,
-    );
-    const list = open();
-    const peel = within(list).getByRole('button', { name: 'Peel' });
-    fireEvent.focusOut(peel, { relatedTarget: list });
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-    fireEvent.focusOut(peel, { relatedTarget: null });
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-    fireEvent.focusOut(peel, { relatedTarget: screen.getByRole('button', { name: 'outside' }) });
-    expect(screen.queryByRole('listbox')).toBeNull();
-  });
-});
-
 describe('Select renderValue', () => {
   it('draws custom trigger content for the selected option and leaves the menu rows alone', () => {
     render(
@@ -108,8 +39,7 @@ describe('Select renderValue', () => {
         renderValue={option => <><strong>{option.label}</strong><em>chip</em></>}
       />,
     );
-    const trigger = screen.getByRole('button', { name: 'fruit' });
-    expect(trigger).toHaveTextContent('Bananachip');
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Bananachip');
     open();
     expect(screen.getByRole('option', { name: 'Cherry' })).toBeInTheDocument();
   });
@@ -119,6 +49,77 @@ describe('Select renderValue', () => {
     render(<Select value="" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" placeholder="Pick" renderValue={renderValue} />);
     expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Pick');
     expect(renderValue).not.toHaveBeenCalled();
+  });
+});
+
+describe('Select description lines', () => {
+  it('keeps a newline in the description so the row can break there', () => {
+    render(<Select value="a" onChange={vi.fn()} options={[{ value: 'a', label: 'Apple', description: 'one\ntwo' }]} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('option').querySelector('[data-option-description]')!.textContent).toBe('one\ntwo');
+  });
+});
+
+describe('Select attached action rows', () => {
+  const rows = (onAction: () => void, extra: Record<string, unknown> = {}) => [
+    { value: 'a', label: 'Apple' },
+    { value: '', label: 'Peel', onAction, attached: true, ...extra },
+    { value: 'b', label: 'Banana' },
+  ];
+
+  it('tints an attached row with the chosen option above it and squares the joint', () => {
+    render(<Select value="a" onChange={vi.fn()} options={rows(vi.fn())} ariaLabel="fruit" />);
+    open();
+    const [apple, peel, banana] = screen.getAllByRole('option');
+    expect(peel.className).toMatch(/attachedChosen/);
+    expect(apple.className).toMatch(/hasAttached/);
+    expect(banana.className).not.toMatch(/attached/i);
+  });
+
+  it('does not tint an attached row under an option that is not chosen', () => {
+    render(<Select value="b" onChange={vi.fn()} options={rows(vi.fn())} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('option', { name: 'Peel' }).className).not.toMatch(/attachedChosen/);
+  });
+
+  it('runs the action, keeps the list open and commits no value', () => {
+    const onAction = vi.fn();
+    const onChange = vi.fn();
+    render(<Select value="a" onChange={onChange} options={rows(onAction)} ariaLabel="fruit" />);
+    open();
+    fireEvent.click(screen.getByRole('option', { name: 'Peel' }));
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+  });
+
+  it('shows a disabled attached row but does not run it', () => {
+    const onAction = vi.fn();
+    render(<Select value="a" onChange={vi.fn()} options={rows(onAction, { disabled: true })} ariaLabel="fruit" />);
+    open();
+    const row = screen.getByRole('option', { name: 'Peel' });
+    expect(row).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(row);
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it('shows the hint through the tooltip', async () => {
+    render(<Select value="a" onChange={vi.fn()} options={rows(vi.fn(), { hint: 'Peel the apple' })} ariaLabel="fruit" />);
+    open();
+    fireEvent.pointerEnter(screen.getByRole('option', { name: 'Peel' }).querySelector('span')!);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Peel the apple');
+  });
+
+  it('keeps keyboard control working when the row the user was on is removed', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<Select value="a" onChange={onChange} options={rows(vi.fn())} ariaLabel="fruit" />);
+    const list = open();
+    fireEvent.keyDown(list, { key: 'ArrowDown' });
+    expect(screen.getByRole('option', { name: 'Peel' })).toHaveAttribute('id', list.getAttribute('aria-activedescendant'));
+    rerender(<Select value="a" onChange={onChange} options={[{ value: 'a', label: 'Apple' }, { value: 'b', label: 'Banana' }]} ariaLabel="fruit" />);
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('b');
   });
 });
 
