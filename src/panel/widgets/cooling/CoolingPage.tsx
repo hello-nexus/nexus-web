@@ -618,8 +618,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     await loadPresets();
   }, [refreshCoolingConfig, loadPresets]);
 
-  const handlePresetCreate = useCallback(async (name: string) => {
-    const res = await createCoolingPreset(name);
+  const handlePresetCreate = useCallback(async (name: string, opts?: { fresh: boolean }) => {
+    const res = await createCoolingPreset(name, opts?.fresh);
     if (!res || res.error) {
       return { error: true, msg: res?.msg };
     }

@@ -51,7 +51,7 @@ export interface UseDeckInstanceResult {
    * passes that instead, so a preset created from the toolbar resets the
    * same way loading one does.
    */
-  createPreset: (name: string, activatePreset?: (id: string) => void | Promise<void>) => Promise<{ error: boolean; msg?: string }>;
+  createPreset: (name: string, activatePreset?: (id: string) => void | Promise<void>, copyOfPresetId?: string) => Promise<{ error: boolean; msg?: string }>;
   renamePreset: (id: string, name: string) => Promise<void>;
   deletePreset: (id: string) => Promise<void>;
   canUndo: boolean;
@@ -314,8 +314,9 @@ function useOwnDeckInstance(
   const createPreset = useCallback(async (
     name: string,
     activatePreset: (id: string) => void | Promise<void> = activate,
+    copyOfPresetId?: string,
   ): Promise<{ error: boolean; msg?: string }> => {
-    const created = await createDeckPreset({ name, cols: instanceGrid.cols, rows: instanceGrid.rows });
+    const created = await createDeckPreset({ name, cols: instanceGrid.cols, rows: instanceGrid.rows, ...(copyOfPresetId ? { copyOfPresetId } : {}) });
     if (!created) return { error: true };
     setPresets(prev => [...prev, {
       id: created.id, name: created.name, cols: created.cols, rows: created.rows,

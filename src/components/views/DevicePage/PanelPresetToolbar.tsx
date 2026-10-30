@@ -61,8 +61,8 @@ export function PanelPresetToolbar({ deviceId }: PanelPresetToolbarProps) {
         activeId={state.activeId}
         presetCount={state.presets.length}
         onLoad={id => { void activatePanelPreset(deviceId, id).then(apply); }}
-        onCreate={async name => {
-          const res = await createPanelPreset(deviceId, name);
+        onCreate={async (name, { fresh }) => {
+          const res = await createPanelPreset(deviceId, name, fresh);
           if (!res) return { error: true };
           setState(res);
           return { error: false };

@@ -36,7 +36,9 @@ interface PresetToolbarProps {
   presetCount: number;
   cap?: number;
   onLoad: (id: string) => void;
-  onCreate: (name: string) => Promise<{ error: boolean; msg?: string }>;
+  /** `fresh` is true for "New preset" (a blank preset) and false for
+   *  "Duplicate current" (a copy of the active preset). */
+  onCreate: (name: string, opts: { fresh: boolean }) => Promise<{ error: boolean; msg?: string }>;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   /** Appends an "Import preset..." option after "New preset...", disabled at
@@ -197,20 +199,29 @@ export function PresetToolbar({
     return promptMode === 'create' ? createValidate(v) : null;
   };
 
+  const runCreate = async (name: string, fresh: boolean): Promise<string | null> => {
+    setLastAttemptedValue(name);
+    const result = await onCreate(name, { fresh });
+    if (result.error) {
+      const msg = result.msg ?? t(key('capReached'), { max: cap });
+      setCreateError(msg);
+      return msg;
+    }
+    setCreateError(null);
+    setPromptOpen(false);
+    return null;
+  };
+
   const handlePromptConfirm = async (name: string) => {
     if (promptMode === 'create') {
-      setLastAttemptedValue(name);
-      const result = await onCreate(name);
-      if (result.error) {
-        setCreateError(result.msg ?? t(key('capReached'), { max: cap }));
-        return;
-      }
-      setCreateError(null);
-    } else if (promptMode === 'rename' && activeId) {
-      onRename(activeId, name);
+      return runCreate(name, true);
     }
+    if (activeId) onRename(activeId, name);
     setPromptOpen(false);
+    return null;
   };
+
+  const canDuplicate = promptMode === 'create' && !!activePreset && !activeBuiltinId;
 
   const undoTitle = `${t(key('undo'))} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`;
   const redoTitle = `${t(key('redo'))} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`;
@@ -262,11 +273,12 @@ export function PresetToolbar({
       )}
       <PromptModal
         open={promptOpen}
-        title={t(key('namePrompt'))}
+        title={t(promptMode === 'create' ? key('createTitle') : key('namePrompt'))}
         initialValue={promptMode === 'rename' ? (activePreset?.name ?? '') : t(key('defaultName'), { n: presetCount + 1 })}
         maxLength={20}
         confirmLabel={promptMode === 'rename' ? t(key('rename')) : t(key('new'))}
         validate={validate}
+        secondary={canDuplicate ? { label: t(key('duplicateCurrent')), onClick: name => runCreate(name, false) } : undefined}
         onConfirm={handlePromptConfirm}
         onCancel={() => { setPromptOpen(false); setCreateError(null); }}
       />

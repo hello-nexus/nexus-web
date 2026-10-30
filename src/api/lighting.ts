@@ -619,8 +619,8 @@ export interface LayoutPresetsResponse {
 export const fetchLayoutPresets = () =>
   fetchService<LayoutPresetsResponse>('/devices/lighting-devices/layout-presets');
 
-export const createLayoutPreset = (name: string) =>
-  postService<{ preset: LayoutPreset; activeId: string | null }>('/devices/lighting-devices/layout-presets', { name });
+export const createLayoutPreset = (name: string, fresh?: boolean) =>
+  postService<{ preset: LayoutPreset; activeId: string | null }>('/devices/lighting-devices/layout-presets', fresh ? { name, fresh: true } : { name });
 
 export const updateLayoutPreset = (
   id: string,

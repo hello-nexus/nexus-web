@@ -73,4 +73,22 @@ describe('PanelPresetToolbar', () => {
     expect(api.fetchPanelPresets).toHaveBeenCalledTimes(2);
     await waitFor(() => expect((screen.getByTestId('preset-select') as HTMLSelectElement).value).toBe('game'));
   });
+
+  it('New preset posts fresh and Duplicate current omits it', async () => {
+    api.createPanelPreset.mockResolvedValue(PRESETS);
+    render(<PanelPresetToolbar deviceId="q60" />);
+    const select = await screen.findByTestId('preset-select') as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe('desk'));
+
+    fireEvent.change(select, { target: { value: '__create__' } });
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fresh' } });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.new' }));
+    await waitFor(() => expect(api.createPanelPreset).toHaveBeenCalledWith('q60', 'Fresh', true));
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
+
+    fireEvent.change(select, { target: { value: '__create__' } });
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Copy' } });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.duplicateCurrent' }));
+    await waitFor(() => expect(api.createPanelPreset).toHaveBeenCalledWith('q60', 'Copy', false));
+  });
 });

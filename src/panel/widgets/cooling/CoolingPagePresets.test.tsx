@@ -52,7 +52,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
 });
 
 import {
-  activateCoolingPreset, updateCoolingPreset, applyProfile,
+  activateCoolingPreset, updateCoolingPreset, applyProfile, createCoolingPreset,
 } from '../../../api/cooling';
 import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
 
@@ -114,5 +114,22 @@ describe('CoolingPage saved presets', () => {
       expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('turbo');
     });
     expect(vi.mocked(updateCoolingPreset)).not.toHaveBeenCalled();
+  });
+
+  it('New preset posts fresh and Duplicate current does not', async () => {
+    renderAdvanced();
+    await screen.findByText('Quiet night');
+    fireEvent.click(screen.getByText('Quiet night'));
+    fireEvent.click(await screen.findByText('cooling.presets.newOption'));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fresh' } });
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.presets.new' }));
+    await waitFor(() => expect(vi.mocked(createCoolingPreset)).toHaveBeenCalledWith('Fresh', true));
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
+
+    fireEvent.click(screen.getByText('Quiet night'));
+    fireEvent.click(await screen.findByText('cooling.presets.newOption'));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Copy' } });
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.presets.duplicateCurrent' }));
+    await waitFor(() => expect(vi.mocked(createCoolingPreset)).toHaveBeenCalledWith('Copy', false));
   });
 });

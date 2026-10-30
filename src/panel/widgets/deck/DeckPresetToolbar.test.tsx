@@ -193,7 +193,16 @@ describe('DeckPresetToolbar - host wiring', () => {
     open();
     fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.newOption' }));
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.new' }));
-    expect(deck.createPreset).toHaveBeenCalledWith(expect.any(String), expect.any(Function));
+    expect(deck.createPreset).toHaveBeenCalledWith(expect.any(String), expect.any(Function), undefined);
+  });
+
+  it('Duplicate current passes the active preset id as the copy source', () => {
+    const deck = deckResult({ createPreset: vi.fn().mockResolvedValue({ error: false }) });
+    setup({ deck });
+    open();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.newOption' }));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.duplicateCurrent' }));
+    expect(deck.createPreset).toHaveBeenCalledWith(expect.any(String), expect.any(Function), 'p1');
   });
 
   it('Export calls exportDeckPreset with the active preset id', () => {
