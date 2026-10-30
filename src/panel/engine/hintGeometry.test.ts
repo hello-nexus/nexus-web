@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SINGLE_WIDGET_SURFACE_SIZE } from '../types';
 import { sizeToSpan } from './grid';
-import { fitNoticeContent, isRoomyFreeRect, largestFreeRect, splitOrientation } from './hintGeometry';
+import { fitNoticeContent, isRoomyFreeRect, labelWidthUnits, largestFreeRect, splitOrientation } from './hintGeometry';
 
 const canvas = { width: 400, height: 200 };
 
@@ -73,5 +73,21 @@ describe('fitNoticeContent', () => {
     const half = fitNoticeContent({ width: 600, height: 300, round: true, part: 'start', labelChars: label, diameter: 600 });
     const full = fitNoticeContent({ width: 600, height: 600, round: true, part: 'full', labelChars: label, diameter: 600 });
     expect(full.icon).toBeGreaterThan(half.icon);
+  });
+});
+
+describe('labelWidthUnits', () => {
+  it('counts a Latin label by length and a CJK or fullwidth glyph as a full em', () => {
+    expect(labelWidthUnits('Edit')).toBe(4);
+    expect(labelWidthUnits('背景を編集')).toBeCloseTo(5 / 0.6);
+    expect(labelWidthUnits('배경 편집')).toBeCloseTo(4 / 0.6 + 1);
+  });
+
+  it('sizes a CJK label smaller than a same-length Latin one so it fits', () => {
+    const box = { width: 300, height: 200, round: false, part: 'full' as const };
+    const latin = fitNoticeContent({ ...box, labelChars: labelWidthUnits('Edit background') });
+    const cjk = fitNoticeContent({ ...box, labelChars: labelWidthUnits('背景を編集する設定項目です') });
+    expect(cjk.font).toBeLessThan(latin.font);
+    expect(cjk.font * labelWidthUnits('背景を編集する設定項目です') * 0.6).toBeLessThanOrEqual(300 * 0.84 + 0.001);
   });
 });

@@ -26,10 +26,6 @@
 
 .label {
   @include text-button;
-  // A word never breaks mid-way: the content box allows it anywhere, a label wraps at spaces only.
-  overflow-wrap: normal;
-  word-break: normal;
-  hyphens: none;
 }
 
 // The glyph and label sit in a box of the host's own choosing (a free area of the canvas).

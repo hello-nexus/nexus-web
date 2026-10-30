@@ -31,7 +31,7 @@ export function EditHint({ label, className, icon: Icon = Pencil, area, fit, bar
   const content = (
     <div className={styles.content}>
       <Icon className={styles.icon} />
-      {label && <span className={styles.label} style={fit ? { fontSize: fit.font, whiteSpace: 'nowrap' } : undefined}>{label}</span>}
+      {label && <span className={styles.label} style={fit ? { fontSize: fit.font, whiteSpace: 'nowrap', overflowWrap: 'normal', wordBreak: 'normal', hyphens: 'none' } : undefined}>{label}</span>}
     </div>
   );
   return (

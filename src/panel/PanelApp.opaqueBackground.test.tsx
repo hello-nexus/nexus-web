@@ -177,6 +177,8 @@ describe('PanelApp background at 0% opacity', () => {
   it('mounts no media, shader or frost layer, and mounts them again above 0%', async () => {
     fetchMock.mockResolvedValue({ found: true, record: media(0) });
     await mountKiosk();
+    // The record has loaded and the widgets render, so the missing layers are the 0% rule, not a pending load.
+    await waitFor(() => expect(document.querySelector('[data-panel-widget-id]')).not.toBeNull());
     expect(document.querySelector('img[class*="backgroundMediaContent"]')).toBeNull();
     expect(document.querySelector('[data-panel-bg-layer]')).toBeNull();
     expect(document.querySelector('[data-panel-frost]')).toBeNull();
@@ -189,6 +191,7 @@ describe('PanelApp background at 0% opacity', () => {
   it('never starts the shader at 0%', async () => {
     fetchMock.mockResolvedValue({ found: true, record: { ...recordWith('lcd-round', '2x2round'), backgroundOpacity: 0 } });
     await mountKiosk();
+    await waitFor(() => expect(document.querySelector('[data-panel-widget-id]')).not.toBeNull());
     expect(shaderCovered).toHaveLength(0);
   });
 });

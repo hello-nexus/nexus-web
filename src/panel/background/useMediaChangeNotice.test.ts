@@ -1,15 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { applyQuickBackgroundMedia } from './quickBackground';
-import { useMediaChangeNotice } from './useCoverNotice';
-
-describe('applyQuickBackgroundMedia', () => {
-  it('commits the picked item', () => {
-    const commitBackgroundMedia = vi.fn();
-    applyQuickBackgroundMedia({ commitBackgroundMedia }, 'm1', 'animated', true);
-    expect(commitBackgroundMedia).toHaveBeenCalledWith('m1', 'animated', true);
-  });
-});
+import { useMediaChangeNotice } from './useMediaChangeNotice';
 
 const setup = (covered: boolean) => renderHook((c: boolean) => useMediaChangeNotice(c), { initialProps: covered });
 

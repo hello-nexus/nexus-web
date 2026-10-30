@@ -6,8 +6,7 @@ import { Notice } from '../../common/Notice/Notice';
 import { WidgetContextMenu } from '../../../panel/widgets/common/WidgetContextMenu';
 import { BackgroundQuickImport, type BackgroundQuickImportHandle } from '../../../panel/background/BackgroundQuickImport';
 import { onBackgroundMediaCommitted } from '../../../api/panelBackgroundMedia';
-import { applyQuickBackgroundMedia } from '../../../panel/background/quickBackground';
-import { useMediaChangeNotice } from '../../../panel/background/useCoverNotice';
+import { useMediaChangeNotice } from '../../../panel/background/useMediaChangeNotice';
 import { previewFit } from '../../../panel/widgets/common/widgetPreviewFit';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
@@ -1186,13 +1185,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     observer.observe(notice);
     return () => observer.disconnect();
   }, [previewNoticeVisible]);
+  // The menu's own outside-click listener never sees a click inside the preview iframe: focus leaving the window and the iframe's click messages close it instead.
+  const backgroundMenuOpen = backgroundMenu !== null;
+  useEffect(() => {
+    if (!backgroundMenuOpen) return;
+    const close = () => setBackgroundMenu(null);
+    const onMessage = (event: MessageEvent) => {
+      const type = (event.data as { type?: unknown } | null)?.type;
+      if (type === 'simulator/widget-clicked' || type === 'simulator/background-clicked') close();
+    };
+    window.addEventListener('blur', close);
+    window.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('blur', close);
+      window.removeEventListener('message', onMessage);
+    };
+  }, [backgroundMenuOpen]);
   const openBackgroundOptions = useCallback(() => {
     setConfiguringWidgetId(null);
     setTab('background');
   }, []);
-  const handleQuickBackground = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => {
-    applyQuickBackgroundMedia(panelTheme, mediaId, type, alpha);
-  }, [panelTheme]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
     // The preview shows a render-only stand-in for a playlist entry that is
@@ -2320,18 +2332,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         <WidgetContextMenu
           x={backgroundMenu.x}
           y={backgroundMenu.y}
-          // eslint-disable-next-line i18next/no-literal-string -- size enum value
-          currentSize="1x1"
-          sizes={[]}
-          hasConfig={false}
           title={t('panel.background.options')}
           // The menu lives in the dashboard, not the panel: the panel surface would apply its chrome scale.
           // eslint-disable-next-line i18next/no-literal-string -- surface id
           surface="desktop"
           themeMode={desktopResolvedThemeMode}
           themeStyle={panelPreviewThemeStyle}
-          onResize={() => {}}
-          onEdit={() => {}}
           onOpen={openBackgroundOptions}
           items={[
             // eslint-disable-next-line i18next/no-literal-string -- menu item id
@@ -2358,7 +2364,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             round={surfaceDisplayShape(surface) === 'round'}
             deviceW={native.nativeWidth}
             deviceH={native.nativeHeight}
-            onSelect={handleQuickBackground}
+            onSelect={panelTheme.commitBackgroundMedia}
+            slideshow={{
+              enabled: theme.backgroundSlideshow,
+              interval: theme.backgroundSlideshowInterval,
+              shuffle: theme.backgroundSlideshowShuffle,
+              finishVideos: theme.backgroundSlideshowFinishVideos,
+            }}
+            onSlideshowChange={panelTheme.commitBackgroundSlideshow}
           />
         );
       })()}

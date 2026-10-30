@@ -111,14 +111,13 @@ describe('panelSimulation', () => {
     expect(tablet && getSimulatedPanelGridCapacity(tablet)).toMatchObject({ columns: 8, rows: 10 });
   });
 
-  it('ignores a grid jump cutoff an earlier build saved, and drops it', async () => {
+  it('ignores a grid jump cutoff an earlier build saved', async () => {
     localStorage.setItem('nexus_simulated_panel_grid_sizing', JSON.stringify({ shortSideJumpAtInches: 7 }));
     vi.resetModules();
     const fresh = await import('../../lib/panelSimulation');
     const tablet = fresh.SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'tablet');
 
     expect(fresh.getPanelGridSizingSettings()).toEqual(fresh.DEFAULT_SIMULATED_PANEL_GRID_SIZING);
-    expect(localStorage.getItem('nexus_simulated_panel_grid_sizing')).toBeNull();
     expect(tablet && fresh.getSimulatedPanelGridCapacity(tablet)).toMatchObject({ columns: 8 });
   });
 

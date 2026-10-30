@@ -3,6 +3,7 @@ import { useToastSafe } from '../../components/common/Toast/Toast';
 import { MediaCropper } from '../../components/common/MediaCropper/MediaCropper';
 import { KlipyPicker } from '../../components/common/KlipyPicker/KlipyPicker';
 import { useBackgroundMediaImport } from './useBackgroundMediaImport';
+import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
 import styles from '../widgets/lighting/LightingPage.module.scss';
 
 export interface BackgroundQuickImportHandle {
@@ -17,6 +18,8 @@ interface BackgroundQuickImportProps {
   deviceW: number;
   deviceH: number;
   onSelect: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
+  slideshow?: PanelSlideshowSettings;
+  onSlideshowChange?: (patch: Partial<PanelSlideshowSettings>) => void;
 }
 
 const noRefresh = () => Promise.resolve();
@@ -27,8 +30,14 @@ const noRefresh = () => Promise.resolve();
  * background menu).
  */
 export const BackgroundQuickImport = forwardRef<BackgroundQuickImportHandle, BackgroundQuickImportProps>(
-  function BackgroundQuickImport({ deviceId, deviceAspect, round = false, deviceW, deviceH, onSelect }, ref) {
-    const flow = useBackgroundMediaImport({ deviceId, deviceW, deviceH, refresh: noRefresh, onSelect });
+  function BackgroundQuickImport({ deviceId, deviceAspect, round = false, deviceW, deviceH, onSelect, slideshow, onSlideshowChange }, ref) {
+    const flow = useBackgroundMediaImport({
+      deviceId, deviceW, deviceH, refresh: noRefresh, onSelect,
+      // Several files are imported to be cycled, as in the Background tab.
+      onImported: imported => {
+        if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
+      },
+    });
     const { fileRef, setKlipyOpen, importError, klipyOpen } = flow;
     const { push } = useToastSafe();
     // The picker prints a failure under its grid; with no grid here it is a toast.

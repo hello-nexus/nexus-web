@@ -302,3 +302,8 @@ export function isPanelBackgroundTarget(target: EventTarget | null): boolean {
     && !target.closest('[data-panel-scrollable="true"]')
     && !target.closest('[data-panel-hit]');
 }
+
+/** A click opens the background menu only when it lands on the background and its press did too; a press that began on a widget (a drag ending over a gutter) is not one. `pressedOnBackground` is null when no press was seen (a keyboard click). */
+export function clickOpensBackgroundMenu(pressedOnBackground: boolean | null, clickTarget: EventTarget | null): boolean {
+  return pressedOnBackground !== false && isPanelBackgroundTarget(clickTarget);
+}

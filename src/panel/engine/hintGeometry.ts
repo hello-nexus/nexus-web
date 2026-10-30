@@ -42,7 +42,35 @@ export function largestFreeRect(canvas: { width: number; height: number }, widge
 /** Whether a free area is big enough to hold the notice; otherwise the notice centers on the canvas. */
 export function isRoomyFreeRect(rect: HintRect, canvas: { width: number; height: number }): boolean {
   const side = Math.min(canvas.width, canvas.height);
-  return Math.min(rect.width, rect.height) >= side * 0.2 && rect.width * rect.height >= canvas.width * canvas.height * 0.05;
+  return Math.min(rect.width, rect.height) >= side * ROOMY_MIN_SIDE_RATIO && rect.width * rect.height >= canvas.width * canvas.height * ROOMY_MIN_AREA_RATIO;
+}
+
+// Share of the canvas a free area needs, per side and by area, to hold the notice.
+const ROOMY_MIN_SIDE_RATIO = 0.2;
+const ROOMY_MIN_AREA_RATIO = 0.05;
+
+// Content box inside a half of a single-widget canvas, as shares of the canvas or circle.
+const RECT_SAFE_W = 0.84;
+const RECT_SAFE_H = 0.8;
+const ROUND_SAFE_W_FULL = 0.68;
+const ROUND_SAFE_W_HALF = 0.66;
+const ROUND_SAFE_H_FULL = 0.5;
+const ROUND_SAFE_H_HALF = 0.21;
+// Label font size as a share of the safe height; a narrow glyph is this wide in em, and a wide (CJK) glyph is a full em.
+const FONT_TO_SAFE_H = 0.22;
+const NARROW_GLYPH_EM = 0.6;
+const ICON_TO_SAFE_H = 0.5;
+const ICON_TO_SAFE_W = 0.25;
+const MIN_FONT_PX = 8;
+const MIN_ICON_PX = 10;
+
+const WIDE_GLYPH = /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe6f\uff00-\uff60\uffe0-\uffe6]/;
+
+/** The label's width in narrow-glyph units: a CJK or fullwidth glyph counts as a full em, wider than a Latin one. */
+export function labelWidthUnits(label: string): number {
+  let units = 0;
+  for (const ch of label) units += WIDE_GLYPH.test(ch) ? 1 / NARROW_GLYPH_EM : 1;
+  return units;
 }
 
 export interface NoticeFit { icon: number; font: number; }
@@ -56,15 +84,16 @@ export function fitNoticeContent(opts: {
   height: number;
   round: boolean;
   part: 'start' | 'end' | 'full';
+  /** The label's width in narrow-glyph units (labelWidthUnits). */
   labelChars: number;
   /** The whole canvas's shorter side; on round glass this is the circle's diameter. */
   diameter?: number;
 }): NoticeFit {
   const { width, height, round, part, labelChars } = opts;
   const diameter = opts.diameter ?? Math.min(width, height);
-  const safeW = round ? (part === 'full' ? diameter * 0.68 : diameter * 0.66) : width * 0.84;
-  const safeH = round ? (part === 'full' ? diameter * 0.5 : diameter * 0.21) : height * 0.8;
-  const font = Math.max(8, Math.min(safeH * 0.22, safeW / (Math.max(1, labelChars) * 0.6)));
-  const icon = Math.max(10, Math.min(safeH * 0.5, safeW * 0.25));
+  const safeW = round ? (part === 'full' ? diameter * ROUND_SAFE_W_FULL : diameter * ROUND_SAFE_W_HALF) : width * RECT_SAFE_W;
+  const safeH = round ? (part === 'full' ? diameter * ROUND_SAFE_H_FULL : diameter * ROUND_SAFE_H_HALF) : height * RECT_SAFE_H;
+  const font = Math.max(MIN_FONT_PX, Math.min(safeH * FONT_TO_SAFE_H, safeW / (Math.max(1, labelChars) * NARROW_GLYPH_EM)));
+  const icon = Math.max(MIN_ICON_PX, Math.min(safeH * ICON_TO_SAFE_H, safeW * ICON_TO_SAFE_W));
   return { icon, font };
 }

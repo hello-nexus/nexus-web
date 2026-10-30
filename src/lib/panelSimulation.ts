@@ -17,7 +17,6 @@ import {
 const SIMULATE_Y70_KEY = 'nexus_simulate_y70';
 const SIMULATED_PANEL_IDS_KEY = 'nexus_simulated_panel_ids';
 const SIMULATED_PANEL_CUSTOM_KEY = 'nexus_simulated_panel_custom';
-const SIMULATED_PANEL_GRID_SIZING_KEY = 'nexus_simulated_panel_grid_sizing';
 const SIMULATED_PANEL_RECORDS_KEY = 'nexus_simulated_panel_records';
 
 export const PANEL_SIMULATION_CHANGED_EVENT = 'y70-simulate-changed';
@@ -144,18 +143,8 @@ export function getCustomSimulatedPanel(): SimulatedPanelDefinition {
   return { ...DEFAULT_CUSTOM_PANEL, width, height, dpi, surface };
 }
 
-// The cutoff is no longer user-tunable; a value an earlier build saved is dropped, not applied.
-let legacyGridSizingDropped = false;
-
+// The cutoff is no longer user-tunable; a value an earlier build saved is never read.
 export function getPanelGridSizingSettings(): SimulatedPanelGridSizing {
-  if (!legacyGridSizingDropped) {
-    legacyGridSizingDropped = true;
-    try {
-      if (typeof localStorage !== 'undefined') localStorage.removeItem(SIMULATED_PANEL_GRID_SIZING_KEY);
-    } catch {
-      // Storage unavailable: nothing was saved to drop.
-    }
-  }
   return { ...DEFAULT_SIMULATED_PANEL_GRID_SIZING };
 }
 

@@ -35,6 +35,12 @@ describe('q60OfflineClockPages', () => {
     expect(q60OfflineClockPages(empty, 'q60')).toBe(empty);
   });
 
+  it('still shows the clock for an empty base slot when a widget playlist is on', () => {
+    const empty: PanelPage[] = [{ id: 'p1', widgets: [] }];
+    const result = q60OfflineClockPages(empty, 'q60', true);
+    expect(result[0].widgets[0].type).toBe('clock');
+  });
+
   it('does not mutate or reference the source pages (render-only)', () => {
     const result = q60OfflineClockPages(monitoringLayout, 'q60');
     expect(result[0]).not.toBe(monitoringLayout[0]);

@@ -152,6 +152,7 @@ import {
   findWidgetById,
   isDashboardClickthroughType,
   isPanelBackgroundTarget,
+  clickOpensBackgroundMenu,
   widgetOpenTab,
   appRouteForWidget,
   noopCellPointers,
@@ -957,6 +958,7 @@ export function PanelContent({
     return splitOrientation(span.cols, span.rows);
   };
   const backgroundHoverTarget = backgroundMenuEnabled && !singleSurface;
+  const backgroundPressRef = useRef<boolean | null>(null);
   const [backgroundArea, setBackgroundArea] = useState<HintRect | null>(null);
   const { revealed: backgroundHover, setOver: setBackgroundHover } = useBackgroundHoverIntent(() => setBackgroundArea(measureBackgroundArea()));
   // Widgets are read from the DOM: their rects already include padding, gaps and the label strip.
@@ -1241,13 +1243,14 @@ export function PanelContent({
     && !restricted
     && paginatedLayout.pages.length < MAX_PANEL_PAGES;
 
+  const playlistEnabled = dragLayout.widgetPlaylist?.enabled === true;
   const allFiltered = useMemo(() => {
     // q60 offline failsafe: keep the panel exactly as-is (background animation,
     // theme, chrome) and swap only the rendered widgets for the clock widget.
     // Render-only - paginatedLayout (persistence) is untouched, so the real
     // widgets return on reconnect.
     if (glassSurface === 'q60' && isOffline) {
-      return q60OfflineClockPages(dragLayout.pages, surface);
+      return q60OfflineClockPages(dragLayout.pages, surface, playlistEnabled);
     }
     const pages = shownPlaylistWidget
       ? [{ id: dragLayout.pages[0]?.id ?? '', widgets: [shownPlaylistWidget] }]
@@ -1281,7 +1284,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId, restricted]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, playlistEnabled, shownPlaylistWidget, blankPageEligible, blankPageId, restricted]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2343,9 +2346,14 @@ export function PanelContent({
           // Reaches panel-root only when the click passed through empty area
           // unstopped. Forward to the parent to close its settings pane.
           if (e.target === e.currentTarget) onSimulatorBackgroundClicked?.();
-          if (backgroundHoverTarget && isPanelBackgroundTarget(e.target)) onSimulatorBackgroundMenu?.({ x: e.clientX, y: e.clientY });
+          const pressed = backgroundPressRef.current;
+          backgroundPressRef.current = null;
+          if (backgroundHoverTarget && clickOpensBackgroundMenu(pressed, e.target)) onSimulatorBackgroundMenu?.({ x: e.clientX, y: e.clientY });
         } : undefined}
-        onPointerDownCapture={freeformActive ? swallowOutsideFreeform : undefined}
+        onPointerDownCapture={e => {
+          backgroundPressRef.current = isPanelBackgroundTarget(e.target);
+          if (freeformActive) swallowOutsideFreeform(e);
+        }}
         onClickCapture={freeformActive ? swallowOutsideFreeform : undefined}
         onPointerDown={handleBackgroundPointerDown}
         onPointerMove={e => {
@@ -2468,18 +2476,16 @@ export function PanelContent({
                               // Single-widget sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
-                              // The blank widget has nothing to edit, so it takes
-                              // neither the click nor the hover notice.
                               onSimulatorClick={simulator && !dragEditable ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               // Device-page preview only: nothing else says a
                               // widget in the canvas is click-to-edit (NEX-6),
                               // so hovering one fades in a full-cell notice.
                               editHint={simulator && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
+                              backgroundSplit={backgroundMenuEnabled && singleSurface ? splitOrientationOf(w) : undefined}
+                              onEditBackground={backgroundMenuEnabled && singleSurface ? onSimulatorBackgroundMenu : undefined}
                               // Device-page preview only: hovering the widget
                               // marked immersive-on-load frames it and names
                               // the mark, so the canvas says which one opens.
-                              backgroundSplit={backgroundMenuEnabled && singleSurface ? splitOrientationOf(w) : undefined}
-                              onEditBackground={backgroundMenuEnabled && singleSurface ? onSimulatorBackgroundMenu : undefined}
                               immersiveOnLoad={simulator && isImmersiveOnLoadWidget(paginatedLayout, w.id)}
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}

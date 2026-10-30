@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { Pencil, Wallpaper } from 'lucide-react';
 import { EditHint } from '../../components/common/EditHint/EditHint';
 import { useTranslation } from '../../lib/i18n';
-import { fitNoticeContent, type HintRect, type NoticeFit } from '../engine/hintGeometry';
+import { fitNoticeContent, labelWidthUnits, type HintRect, type NoticeFit } from '../engine/hintGeometry';
 import styles from '../PanelApp.module.scss';
 
 export interface BackgroundMenuPoint { x: number; y: number; }
@@ -65,7 +65,7 @@ export function BackgroundSplitHint({ orientation, round, widgetHalf, onActivate
       height: half.height,
       round,
       part,
-      labelChars: label.length,
+      labelChars: labelWidthUnits(label),
       diameter: Math.min(size.width, size.height),
     });
   };

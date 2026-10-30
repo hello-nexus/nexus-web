@@ -185,6 +185,20 @@ describe('PanelDevicePage background menu', () => {
     expect(openGifsMock).toHaveBeenCalledTimes(1);
   });
 
+  it('closes when focus moves into the preview iframe or the iframe reports a click', async () => {
+    await openMenu();
+    expect(screen.queryByText('panel.background.options')).not.toBeNull();
+    await act(async () => { window.dispatchEvent(new Event('blur')); });
+    expect(screen.queryByText('panel.background.options')).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByTestId('open-menu')); });
+    expect(screen.queryByText('panel.background.options')).not.toBeNull();
+    await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: { type: 'simulator/widget-clicked' } })); });
+    expect(screen.queryByText('panel.background.options')).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByTestId('open-menu')); });
+    await act(async () => { window.dispatchEvent(new MessageEvent('message', { data: { type: 'simulator/background-clicked' } })); });
+    expect(screen.queryByText('panel.background.options')).toBeNull();
+  });
+
   it('opens the Background tab from the name row', async () => {
     await openMenu();
     expect(screen.queryByTestId('theme')).toBeNull();

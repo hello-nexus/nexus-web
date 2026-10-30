@@ -10,18 +10,19 @@ import styles from './WidgetContextMenu.module.scss';
 interface WidgetContextMenuProps {
   x: number;
   y: number;
-  currentSize: PanelWidgetSize;
-  sizes: PanelWidgetSize[];
-  hasConfig: boolean;
+  // The widget rows (size picker, Edit) show only when their props are given; the preview's background menu gives none.
+  currentSize?: PanelWidgetSize;
+  sizes?: PanelWidgetSize[];
+  hasConfig?: boolean;
   // Widget name, shown as the first row. The row runs onImmersive when set, else onOpen, else it is a plain title.
   title?: string;
   surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
-  onResize: (size: PanelWidgetSize) => void;
+  onResize?: (size: PanelWidgetSize) => void;
   // Starts corner-drag resize mode; the caller offers it only where the widget has more than one size to snap to.
   onResizeMode?: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
   // Omitted on menus that are not about a widget (the preview's background menu): no Remove row.
   onRemove?: () => void;
   // Plain action rows under the name row, for menus whose actions are not widget actions.
@@ -66,8 +67,8 @@ interface WidgetContextMenuProps {
 
 export function WidgetContextMenu({
   x, y,
-  currentSize, sizes,
-  hasConfig,
+  currentSize, sizes = [],
+  hasConfig = false,
   title,
   surface,
   themeMode = 'dark',
@@ -164,7 +165,7 @@ export function WidgetContextMenu({
 
   const editItems = (
     <>
-      {hasConfig && !locked && (
+      {hasConfig && onEdit && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
           <Pencil size={14} />
           <span>{t('panel.widget.menu.edit')}</span>
@@ -252,7 +253,7 @@ export function WidgetContextMenu({
         </>
       )}
 
-      {sizes.length > 1 && !locked && (
+      {sizes.length > 1 && onResize && !locked && (
         <>
           <div className={styles.sizeRow}>
             {sizes.map(size => {

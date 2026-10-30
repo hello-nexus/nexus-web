@@ -41,6 +41,32 @@ describe('pointerKind', () => {
     expect(hasMousePointer()).toBe(true);
   });
 
+  it('a touch or pen press clears the mouse mark and a later mouse move sets it again', () => {
+    pointer('mouse');
+    expect(attr()).toBe('mouse');
+    pointer('touch', 'pointerdown');
+    expect(attr()).toBeNull();
+    expect(hasMousePointer()).toBe(false);
+    pointer('touch');
+    expect(attr()).toBeNull();
+    pointer('mouse');
+    expect(attr()).toBe('mouse');
+    pointer('pen', 'pointerdown');
+    expect(hasMousePointer()).toBe(false);
+  });
+
+  it('a touch press overrides a media query that reports a mouse, and subscribers see both flips', () => {
+    resetPointerKindForTests();
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(hover: hover) and (pointer: fine)' }));
+    initPointerKind();
+    const { result } = renderHook(() => useHasMousePointer());
+    expect(result.current).toBe(true);
+    pointer('touch', 'pointerdown');
+    expect(result.current).toBe(false);
+    pointer('mouse');
+    expect(result.current).toBe(true);
+  });
+
   it('re-renders subscribers when the first mouse event arrives', () => {
     const { result } = renderHook(() => useHasMousePointer());
     expect(result.current).toBe(false);

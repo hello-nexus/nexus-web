@@ -36,7 +36,6 @@ vi.mock('../engine/panelSync', () => ({ broadcastLayoutChanged: vi.fn(), onLayou
 
 import { usePanelRecord } from '../engine/usePanelRecord';
 import { usePanelTheme } from './panelTheme';
-import { applyQuickBackgroundMedia } from '../background/quickBackground';
 
 beforeEach(() => {
   store.record = { id: 'dev1', displayName: 'Y70', capabilities: { surface: 'y70', touch: true }, backgroundMode: 'shader', backgroundMediaId: null, backgroundMediaType: null };
@@ -58,7 +57,7 @@ describe('a media commit through the record, patch and theme state', () => {
       store.latency = latency;
       const { result } = mount();
       await waitFor(() => expect(result.current.recordState.record?.backgroundMode).toBe('shader'));
-      act(() => applyQuickBackgroundMedia(result.current.panelTheme, 'm-new', 'animated', false));
+      act(() => result.current.panelTheme.commitBackgroundMedia('m-new', 'animated', false));
       await act(async () => { await wait(200); });
       expect(store.record.backgroundMode).toBe('media');
       expect(store.record.backgroundMediaId).toBe('m-new');
@@ -72,7 +71,7 @@ describe('a media commit through the record, patch and theme state', () => {
   it('sends the media mode and the media in one patch', async () => {
     const { result } = mount();
     await waitFor(() => expect(result.current.recordState.loaded).toBe(true));
-    act(() => applyQuickBackgroundMedia(result.current.panelTheme, 'm-new', 'static', false));
+    act(() => result.current.panelTheme.commitBackgroundMedia('m-new', 'static', false));
     await act(async () => { await wait(100); });
     expect(store.patches).toHaveLength(1);
     expect(store.patches[0]).toMatchObject({ backgroundMode: 'media', backgroundMediaId: 'm-new', backgroundMediaType: 'static' });
@@ -91,7 +90,7 @@ describe('a media commit through the record, patch and theme state', () => {
     store.record.backdrop = 'desktop';
     const { result } = mount();
     await waitFor(() => expect(result.current.recordState.record?.backdrop).toBe('desktop'));
-    act(() => applyQuickBackgroundMedia(result.current.panelTheme, 'm-new', 'animated', false));
+    act(() => result.current.panelTheme.commitBackgroundMedia('m-new', 'animated', false));
     await act(async () => { await wait(150); });
     expect(store.patches).toHaveLength(1);
     expect(store.patches[0]).toMatchObject({ backdrop: 'theme', backgroundMode: 'media', backgroundMediaId: 'm-new' });
