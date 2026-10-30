@@ -2302,6 +2302,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           hasConfig={false}
           title={t('panel.background.options')}
           // The menu lives in the dashboard, not the panel: the panel surface would apply its chrome scale.
+          // eslint-disable-next-line i18next/no-literal-string -- surface id
           surface="desktop"
           themeMode={desktopResolvedThemeMode}
           themeStyle={panelPreviewThemeStyle}
