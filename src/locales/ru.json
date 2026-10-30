@@ -4272,6 +4272,7 @@
   "panel.add.someTooLarge": "Для этого размера не хватает места. Попробуйте размер поменьше.",
   "panel.addWidgets": "Добавить виджеты",
   "panel.background.edit": "Изменить фон",
+  "panel.background.importMedia": "Импорт медиа",
   "panel.background.options": "Параметры фона",
   "panel.connectedTo": "Подключено к",
   "panel.controlCenter.airplane": "Режим полёта",

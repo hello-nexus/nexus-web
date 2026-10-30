@@ -2113,43 +2113,37 @@
   --edit-hint-color: var(--panel-accent);
 }
 
-@media (hover: hover) {
-  .bgHint:hover > [data-edit-hint-overlay],
-  .hintHalf:hover > [data-edit-hint-overlay] {
-    opacity: 1;
-  }
-}
-
+// Not gated on (hover: hover): the dashboard's WebView on a PC with a touchscreen reports no hover or pointer at all.
+.bgHint:hover > [data-edit-hint-overlay],
+.hintHalf:hover > [data-edit-hint-overlay],
 .bgHint:focus-visible > [data-edit-hint-overlay] {
   opacity: 1;
 }
 
-// Preview cells read as buttons, and only a real pointer can hover.
-@media (hover: hover) {
-  // In the device page's canvas preview (simulator) a widget is click-to-edit
-  // and nothing said so (NEX-6): hovering a cell fades its own EditHint in. Scoped
-  // to the cell's direct child so a hint nested inside a widget stays dark.
-  .panelRoot[data-simulator='true'] .cellWrap:hover .cell > .cellEditHint {
-    opacity: 1;
-  }
+// Preview cells read as buttons. Ungated: the device page's WebView can report no hover capability even with a mouse attached.
+// In the device page's canvas preview (simulator) a widget is click-to-edit
+// and nothing said so (NEX-6): hovering a cell fades its own EditHint in. Scoped
+// to the cell's direct child so a hint nested inside a widget stays dark.
+.panelRoot[data-simulator='true'] .cellWrap:hover .cell > .cellEditHint {
+  opacity: 1;
+}
 
-  // Lifts the hovered cell above its neighbours so the row below cannot paint
-  // over the name hanging under it.
-  .panelRoot[data-simulator='true'] .cellWrap:hover {
-    z-index: 12;
-  }
+// Lifts the hovered cell above its neighbours so the row below cannot paint
+// over the name hanging under it.
+.panelRoot[data-simulator='true'] .cellWrap:hover {
+  z-index: 12;
+}
 
-  .panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrame,
-  .panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrameLabel {
-    opacity: 1;
-  }
+.panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrame,
+.panelRoot[data-simulator='true'] .cellWrap:hover .cellImmersiveFrameLabel {
+  opacity: 1;
+}
 
-  // The mark's name takes the widget's own title slot for as long as it shows -
-  // both hang off the card's bottom edge, so leaving the title up prints one
-  // over the other.
-  .panelRoot[data-simulator='true'] .cellWrap[data-immersive-on-load='true']:hover .cellLabelStrip {
-    opacity: 0;
-  }
+// The mark's name takes the widget's own title slot for as long as it shows -
+// both hang off the card's bottom edge, so leaving the title up prints one
+// over the other.
+.panelRoot[data-simulator='true'] .cellWrap[data-immersive-on-load='true']:hover .cellLabelStrip {
+  opacity: 0;
 }
 
 .cellWrap[data-immersive-on-load='true'] .cellLabelStrip {

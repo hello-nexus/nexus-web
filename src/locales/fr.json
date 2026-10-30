@@ -4229,6 +4229,7 @@
   "panel.add.someTooLarge": "Pas assez de place pour cette taille. Essayez une taille plus petite.",
   "panel.addWidgets": "Ajouter des widgets",
   "panel.background.edit": "Modifier le fond",
+  "panel.background.importMedia": "Importer un média",
   "panel.background.options": "Options du fond",
   "panel.connectedTo": "Connecté à",
   "panel.controlCenter.airplane": "Mode avion",

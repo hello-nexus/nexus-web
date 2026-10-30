@@ -2301,7 +2301,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           sizes={[]}
           hasConfig={false}
           title={t('panel.background.options')}
-          surface={surface}
+          // The menu lives in the dashboard, not the panel: the panel surface would apply its chrome scale.
+          surface="desktop"
           themeMode={desktopResolvedThemeMode}
           themeStyle={panelPreviewThemeStyle}
           onResize={() => {}}
@@ -2309,7 +2310,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           onOpen={openBackgroundOptions}
           items={[
             // eslint-disable-next-line i18next/no-literal-string -- menu item id
-            { key: 'import', label: t('lighting.controls.import'), icon: Upload, onSelect: () => quickImportRef.current?.openFiles() },
+            { key: 'import', label: t('panel.background.importMedia'), icon: Upload, onSelect: () => quickImportRef.current?.openFiles() },
             // eslint-disable-next-line i18next/no-literal-string -- menu item id
             { key: 'gifs', label: t('lighting.controls.klipyBrowse'), icon: Sparkles, onSelect: () => quickImportRef.current?.openGifs() },
           ]}

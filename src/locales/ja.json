@@ -4229,6 +4229,7 @@
   "panel.add.someTooLarge": "このサイズを置く空きがありません。小さいサイズを試してください。",
   "panel.addWidgets": "ウィジェットを追加",
   "panel.background.edit": "背景を編集",
+  "panel.background.importMedia": "メディアをインポート",
   "panel.background.options": "背景のオプション",
   "panel.connectedTo": "接続先",
   "panel.controlCenter.airplane": "機内モード",

@@ -4229,6 +4229,7 @@
   "panel.add.someTooLarge": "空間不足以放下此尺寸。請嘗試更小的尺寸。",
   "panel.addWidgets": "新增小工具",
   "panel.background.edit": "編輯背景",
+  "panel.background.importMedia": "匯入媒體",
   "panel.background.options": "背景選項",
   "panel.connectedTo": "已連線到",
   "panel.controlCenter.airplane": "飛航模式",

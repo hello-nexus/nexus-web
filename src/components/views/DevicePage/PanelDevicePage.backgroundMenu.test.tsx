@@ -162,14 +162,20 @@ describe('PanelDevicePage background menu', () => {
   it('names the row Background options and offers import and GIFs but no Remove', async () => {
     await openMenu();
     expect(screen.getByText('panel.background.options')).toBeTruthy();
-    expect(screen.getByText('lighting.controls.import')).toBeTruthy();
+    expect(screen.getByText('panel.background.importMedia')).toBeTruthy();
     expect(screen.getByText('lighting.controls.klipyBrowse')).toBeTruthy();
     expect(screen.queryByText('panel.widget.menu.remove')).toBeNull();
   });
 
+  it('renders as a dashboard menu, so the panel chrome scale does not apply', async () => {
+    await openMenu();
+    const menu = screen.getByText('panel.background.options').closest('[data-state]');
+    expect(menu?.getAttribute('data-surface')).toBe('desktop');
+  });
+
   it('starts the import and GIF flows from its rows', async () => {
     await openMenu();
-    await act(async () => { fireEvent.click(screen.getByText('lighting.controls.import')); });
+    await act(async () => { fireEvent.click(screen.getByText('panel.background.importMedia')); });
     expect(openFilesMock).toHaveBeenCalledTimes(1);
     await act(async () => { fireEvent.click(screen.getByTestId('open-menu')); });
     await act(async () => { fireEvent.click(screen.getByText('lighting.controls.klipyBrowse')); });

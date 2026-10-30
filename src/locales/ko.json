@@ -4229,6 +4229,7 @@
   "panel.add.someTooLarge": "이 크기를 놓을 공간이 부족합니다. 더 작은 크기를 사용해 보세요.",
   "panel.addWidgets": "위젯 추가",
   "panel.background.edit": "배경 편집",
+  "panel.background.importMedia": "미디어 가져오기",
   "panel.background.options": "배경 옵션",
   "panel.connectedTo": "연결 대상",
   "panel.controlCenter.airplane": "비행기 모드",

@@ -4229,6 +4229,7 @@
   "panel.add.someTooLarge": "Bu boyut için yeterli yer yok. Daha küçük bir boyut deneyin.",
   "panel.addWidgets": "Widget'ları ekle",
   "panel.background.edit": "Arka planı düzenle",
+  "panel.background.importMedia": "Medya aktar",
   "panel.background.options": "Arka plan seçenekleri",
   "panel.connectedTo": "Baglanilan",
   "panel.controlCenter.airplane": "Uçak modu",
