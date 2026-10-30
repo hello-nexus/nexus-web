@@ -1710,6 +1710,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                   editable
                                   trackFill
                                   label={t('devices.panels.widgetSize.label')}
+                                  description={t('devices.panels.widgetSize.description')}
+                                  descriptionBelow
                                   value={trackIndexOfPercent(widgetSizeTrack, widgetSizePercentOf(widgetSizeDraft ?? widgetSizeMode))}
                                   min={0}
                                   max={widgetSizeTrack.length - 1}

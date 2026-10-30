@@ -1555,6 +1555,7 @@
   "devices.panels.widgetSize.confirm": "새 그리드 사용",
   "devices.panels.widgetSize.confirmMessage": "다음 위젯은 새 그리드에 맞지 않아 제거됩니다:",
   "devices.panels.widgetSize.confirmTitle": "그리드를 변경할까요?",
+  "devices.panels.widgetSize.description": "레이아웃과 들어가는 위젯 수가 바뀝니다.",
   "devices.panels.widgetSize.label": "위젯 배율",
   "devices.panels.widgetSize.large": "크게",
   "devices.panels.widgetSize.small": "작게",

@@ -1555,6 +1555,7 @@
   "devices.panels.widgetSize.confirm": "Usar a nova grelha",
   "devices.panels.widgetSize.confirmMessage": "Estes widgets não cabem na nova grelha e serão removidos:",
   "devices.panels.widgetSize.confirmTitle": "Alterar a grelha?",
+  "devices.panels.widgetSize.description": "Altera o layout e quantos widgets cabem.",
   "devices.panels.widgetSize.label": "Escala dos widgets",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Pequeno",

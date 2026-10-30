@@ -1555,6 +1555,7 @@
   "devices.panels.widgetSize.confirm": "使用新网格",
   "devices.panels.widgetSize.confirmMessage": "以下小组件放不进新网格，将被移除：",
   "devices.panels.widgetSize.confirmTitle": "要更改网格吗?",
+  "devices.panels.widgetSize.description": "更改布局以及可容纳的小组件数量。",
   "devices.panels.widgetSize.label": "小组件缩放",
   "devices.panels.widgetSize.large": "大",
   "devices.panels.widgetSize.small": "小",

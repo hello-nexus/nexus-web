@@ -1555,6 +1555,7 @@
   "devices.panels.widgetSize.confirm": "Dopre la gnove gridele",
   "devices.panels.widgetSize.confirmMessage": "Chescj widgets no stan inte gnove gridele e a vignaran gjavâts:",
   "devices.panels.widgetSize.confirmTitle": "Cambiâ la gridele?",
+  "devices.panels.widgetSize.description": "Al cambie la disposizion e trops widget a jentrin.",
   "devices.panels.widgetSize.label": "Scjale dai widget",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Piçule",

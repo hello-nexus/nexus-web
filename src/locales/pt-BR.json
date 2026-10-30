@@ -1555,6 +1555,7 @@
   "devices.panels.widgetSize.confirm": "Usar a nova grade",
   "devices.panels.widgetSize.confirmMessage": "Estes widgets não cabem na nova grade e serão removidos:",
   "devices.panels.widgetSize.confirmTitle": "Alterar a grade?",
+  "devices.panels.widgetSize.description": "Muda o layout e quantos widgets cabem.",
   "devices.panels.widgetSize.label": "Escala dos widgets",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Pequeno",

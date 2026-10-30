@@ -1555,6 +1555,7 @@
   "devices.panels.widgetSize.confirm": "Yeni ızgarayı kullan",
   "devices.panels.widgetSize.confirmMessage": "Bu widget'lar yeni ızgaraya sığmıyor ve kaldırılacak:",
   "devices.panels.widgetSize.confirmTitle": "Izgara değiştirilsin mi?",
+  "devices.panels.widgetSize.description": "Yerleşimi ve kaç widget sığacağını değiştirir.",
   "devices.panels.widgetSize.label": "Widget ölçeği",
   "devices.panels.widgetSize.large": "Büyük",
   "devices.panels.widgetSize.small": "Küçük",

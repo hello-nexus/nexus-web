@@ -1555,6 +1555,7 @@
   "devices.panels.widgetSize.confirm": "新しいグリッドを使用",
   "devices.panels.widgetSize.confirmMessage": "次のウィジェットは新しいグリッドに収まらないため削除されます:",
   "devices.panels.widgetSize.confirmTitle": "グリッドを変更しますか?",
+  "devices.panels.widgetSize.description": "レイアウトと配置できるウィジェットの数が変わります。",
   "devices.panels.widgetSize.label": "ウィジェットのスケール",
   "devices.panels.widgetSize.large": "大",
   "devices.panels.widgetSize.small": "小",

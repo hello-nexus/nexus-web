@@ -1563,6 +1563,7 @@
   "devices.panels.widgetSize.confirm": "Použít novou mřížku",
   "devices.panels.widgetSize.confirmMessage": "Tyto widgety se do nové mřížky nevejdou a budou odebrány:",
   "devices.panels.widgetSize.confirmTitle": "Změnit mřížku?",
+  "devices.panels.widgetSize.description": "Mění rozložení a počet widgetů, které se vejdou.",
   "devices.panels.widgetSize.label": "Měřítko widgetů",
   "devices.panels.widgetSize.large": "Velké",
   "devices.panels.widgetSize.small": "Malé",
