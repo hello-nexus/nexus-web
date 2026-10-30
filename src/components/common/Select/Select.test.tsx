@@ -608,3 +608,46 @@ describe('Select grid', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('Select in-menu search on touchscreen and pointer-less hosts', () => {
+  const FRUITS = ['Apple', 'Apricot', 'Banana', 'Blueberry', 'Cherry', 'Grape', 'Mango', 'Orange', 'Peach', 'Pear']
+    .map((label, i) => ({ value: `f${i}`, label }));
+
+  function stubMedia(matching: string[], path = '/system/lighting') {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: matching.includes(query), media: query, onchange: null,
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn(),
+    }));
+    window.history.replaceState(null, '', path);
+  }
+  afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
+
+  it('offers search on a touchscreen PC whose primary pointer is coarse but has a mouse attached', () => {
+    stubMedia(['(any-hover: hover) and (any-pointer: fine)']);
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('combobox')).toBeTruthy();
+  });
+
+  it('offers search in the dashboard window when the WebView reports no pointer', () => {
+    stubMedia(['(pointer: none)']);
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('combobox')).toBeTruthy();
+  });
+
+  it('stays plain on the touch kiosk, which reports no pointer either', () => {
+    stubMedia(['(pointer: none)'], '/panel/abc123');
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
+  it('stays plain on a touch-only device', () => {
+    stubMedia(['(pointer: coarse)', '(any-pointer: coarse)']);
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+});
+

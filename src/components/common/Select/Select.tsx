@@ -151,14 +151,17 @@ const TYPEAHEAD_RESET_MS = 700;
 // The in-menu search field appears only from this many entries up; below it a
 // short list is faster to eyeball than to type.
 const SEARCH_MIN_OPTIONS = 8;
-// The search field is a keyboard affordance: only offer it where there is a
-// real keyboard and pointer. `(hover: hover) and (pointer: fine)` is true on a
-// mouse/trackpad desktop and false on touch phones and the touch kiosk, which
-// have no keyboard to type into it.
+// The search field is a keyboard affordance: offered where a real keyboard and
+// pointer can exist. A touchscreen PC with a mouse reports a coarse primary
+// pointer, so the any-* classes count too. The overlay's WebViews on a PC can
+// report no pointer at all; there only the dashboard window (not the /panel
+// touch kiosk) is a desktop surface.
 function supportsPointerSearch(): boolean {
-  return typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  const matches = (query: string) => window.matchMedia(query).matches;
+  if (matches('(hover: hover) and (pointer: fine)')) return true;
+  if (matches('(any-hover: hover) and (any-pointer: fine)')) return true;
+  return matches('(pointer: none)') && !window.location.pathname.startsWith('/panel');
 }
 
 function flattenText(node: ReactNode): string {
