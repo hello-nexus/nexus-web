@@ -14,7 +14,7 @@ interface Props {
 
 /**
  * Per-device frame rate cap. Applies on change; the newest request wins, and a failed save puts the
- * select back on the last value the service confirmed. A value arriving from the parent while a save
+ * select back on the last value the service confirmed (the newest successful save, which may be an older pick). A value arriving from the parent while a save
  * is in flight (an older save's broadcast) never overwrites a newer pick.
  */
 export function FrameRateSetting({ recordId, cap }: Props) {
@@ -24,6 +24,7 @@ export function FrameRateSetting({ recordId, cap }: Props) {
   const seq = useRef(0);
   const pending = useRef(0);
   const confirmed = useRef<number | null>(cap);
+  const confirmedSeq = useRef(0);
 
   useEffect(() => {
     if (pending.current > 0) return;
@@ -41,8 +42,11 @@ export function FrameRateSetting({ recordId, cap }: Props) {
     const settle = (ok: boolean) => {
       pending.current -= 1;
       if (ok) {
-        // Only the newest request records what the service holds.
-        if (mine === seq.current) confirmed.current = next;
+        // The service holds the newest successful save, even when a later pick failed.
+        if (mine > confirmedSeq.current) {
+          confirmed.current = next;
+          confirmedSeq.current = mine;
+        }
         return;
       }
       if (mine !== seq.current) return;
