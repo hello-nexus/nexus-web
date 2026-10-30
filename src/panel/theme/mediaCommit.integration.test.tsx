@@ -86,4 +86,27 @@ describe('a media commit through the record, patch and theme state', () => {
     expect(store.record.backgroundMode).toBe('media');
     expect(result.current.panelTheme.theme.backgroundMode).toBe('media');
   });
+
+  it('a panel on the desktop backdrop ends on the theme backdrop with media, in one patch', async () => {
+    store.record.backdrop = 'desktop';
+    const { result } = mount();
+    await waitFor(() => expect(result.current.recordState.record?.backdrop).toBe('desktop'));
+    act(() => applyQuickBackgroundMedia(result.current.panelTheme, 'm-new', 'animated', false));
+    await act(async () => { await wait(150); });
+    expect(store.patches).toHaveLength(1);
+    expect(store.patches[0]).toMatchObject({ backdrop: 'theme', backgroundMode: 'media', backgroundMediaId: 'm-new' });
+    expect(store.record.backdrop).toBe('theme');
+    expect(result.current.recordState.record?.backdrop).toBe('theme');
+    expect(result.current.panelTheme.theme.backdrop).toBe('theme');
+    expect(result.current.panelTheme.theme.backgroundMode).toBe('media');
+  });
+
+  it('leaves the backdrop out of the patch when it is already theme', async () => {
+    store.record.backdrop = 'theme';
+    const { result } = mount();
+    await waitFor(() => expect(result.current.recordState.loaded).toBe(true));
+    act(() => result.current.panelTheme.commitBackgroundMedia('m-pick', 'static', false));
+    await act(async () => { await wait(100); });
+    expect(store.patches[0]).not.toHaveProperty('backdrop');
+  });
 });
