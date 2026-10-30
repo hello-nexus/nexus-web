@@ -226,7 +226,10 @@ async function getAccessToken(): Promise<string | null> {
 
 function refreshAccessToken(): Promise<string | null> {
   if (!refreshInFlight) {
-    refreshInFlight = doRefresh().finally(() => { refreshInFlight = null; });
+    // Tabs share one session cookie and the api rotates it per refresh, so refreshes from several tabs at once would race
+    // and sign the user out. They take turns; each one then uses the cookie the previous one left.
+    const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+    refreshInFlight = (locks ? locks.request('nexus-auth-refresh', doRefresh) : doRefresh()).finally(() => { refreshInFlight = null; });
   }
   return refreshInFlight;
 }
@@ -329,7 +332,12 @@ async function authedRequest(path: string, method: string, body?: AuthedBody, op
     const controller = options.timeoutMs ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), options.timeoutMs) : null;
     try {
-      return await fetch(`${BASE}${path}`, { method, headers, body: payload, ...(controller ? { signal: controller.signal } : {}) });
+      const res = await fetch(`${BASE}${path}`, { method, headers, body: payload, ...(controller ? { signal: controller.signal } : {}) });
+      if (!controller) return res;
+      // The timeout covers the body too: it is read here, while the timer runs, and handed on as a finished response.
+      const bytes = await res.arrayBuffer();
+      const empty = res.status === 204 || res.status === 205 || res.status === 304;
+      return new Response(empty ? null : bytes, { status: res.status, statusText: res.statusText, headers: res.headers });
     } finally {
       if (timer !== null) clearTimeout(timer);
     }

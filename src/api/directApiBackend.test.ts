@@ -539,6 +539,56 @@ describe('directApiBackend', () => {
       vi.useRealTimers();
     });
 
+    it('lets tabs refresh the session one at a time, so rotating the shared cookie cannot race', async () => {
+      stubHostname('hellonexus.com');
+      // One mutex per lock name, shared by both "tabs".
+      const tails = new Map<string, Promise<unknown>>();
+      (navigator as unknown as { locks: unknown }).locks = {
+        request: (name: string, run: () => Promise<unknown>) => {
+          const next = (tails.get(name) ?? Promise.resolve()).then(run, run);
+          tails.set(name, next.catch(() => undefined));
+          return next;
+        },
+      };
+      let inFlight = 0;
+      let overlapped = false;
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).endsWith('/auth/refresh')) {
+          inFlight += 1;
+          if (inFlight > 1) overlapped = true;
+          await new Promise(r => setTimeout(r, 20));
+          inFlight -= 1;
+          return jsonResponse(200, { accessToken: 'access-1', account: mkApiAccount() });
+        }
+        return jsonResponse(200, mkApiAccount());
+      });
+      const one = await freshBackend();
+      const two = await freshBackend();
+      one.forgetAccessToken?.();
+      two.forgetAccessToken?.();
+      await Promise.all([one.checkAccount?.(), two.checkAccount?.()]);
+      expect(overlapped).toBe(false);
+      expect(fetchMock.mock.calls.filter(([u]) => String(u).endsWith('/auth/refresh'))).toHaveLength(2);
+      delete (navigator as unknown as { locks?: unknown }).locks;
+    });
+
+    it('gives up on a response whose body never finishes, too', async () => {
+      vi.useFakeTimers();
+      const backend = await freshBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { accessToken: 'access-1', refreshToken: 'refresh-1', account: mkApiAccount() }));
+      await backend.login('alpha', 'hunter22');
+      fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => Promise.resolve({
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+        arrayBuffer: () => new Promise((_resolve, reject) => { init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))); }),
+      }));
+      const pending = backend.listBuilds?.();
+      await vi.advanceTimersByTimeAsync(20100);
+      expect(await pending).toBeNull();
+      vi.useRealTimers();
+    });
+
     it('listBuilds returns the account builds and null on failure', async () => {
       const backend = await loggedInBackend();
       const builds = [{ id: 'b1', name: 'Gaming', data: { slots: {} }, createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-02T00:00:00Z' }];
