@@ -16,6 +16,7 @@ import {
 } from '../../../api/lighting';
 import { useBrightnessSchedule } from '../../../hooks/useBrightnessSchedule';
 import { useIdleDim } from '../../../hooks/useIdleDim';
+import { useMasterScalesDevices } from '../../../hooks/useMasterScalesDevices';
 import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
 import { useSensors, type HardwareSensor } from '../../../hooks/useSensors';
 import { useFeatureFlags, useUiSettings } from '../../../hooks/useUiSettings';
@@ -71,6 +72,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
   // writers rather than in any OS hook.
   const brightnessSchedule = useBrightnessSchedule(serviceOnline);
   const idleDim = useIdleDim(serviceOnline);
+  const masterScales = useMasterScalesDevices(serviceOnline);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   // Only the Windows loopback can target one output; macOS captures the whole
   // system mix.
@@ -191,11 +193,11 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     </Button>
   ) : undefined;
 
-  // The row opens both the schedule and idle dimming, so it reads On if either is.
+  // The row opens the schedule, idle dimming and the multiplier, so it reads On if any is.
   const idleDimOn = !!idleDim.state?.enabled && !!idleDim.state.supported;
   const scheduleState = brightnessSchedule.schedule === null
     ? undefined
-    : brightnessSchedule.schedule.enabled || idleDimOn
+    : brightnessSchedule.schedule.enabled || idleDimOn || masterScales.on === true
       ? { label: t('lighting.schedule.row.on'), tone: 'accent' as const }
       : { label: t('lighting.schedule.row.off'), tone: 'neutral' as const };
 

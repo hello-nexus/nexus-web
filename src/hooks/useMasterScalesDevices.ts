@@ -5,7 +5,7 @@ import { useTopicCallback } from './useMultiplexSocket';
 export interface MasterScalesDevicesState {
   /** Null until the first fetch resolves. */
   on: boolean | null;
-  /** Persist the choice. Optimistic; a failed save re-fetches the real value. */
+  /** Persist the choice. Optimistic; a failed save restores the previous value. */
   save: (next: boolean) => Promise<void>;
 }
 
@@ -29,6 +29,7 @@ export function useMasterScalesDevices(enabled: boolean): MasterScalesDevicesSta
   useTopicCallback('lighting', enabled, refresh);
 
   const save = useCallback(async (next: boolean) => {
+    const previous = on;
     seqRef.current++;
     setOn(next);
     let ok = false;
@@ -36,8 +37,8 @@ export function useMasterScalesDevices(enabled: boolean): MasterScalesDevicesSta
       const res = await setMasterScalesDevices(next) as { error?: boolean } | null;
       ok = res !== null && !res.error;
     } catch { /* an empty or unreadable body counts as a failed save */ }
-    if (!ok) refresh();
-  }, [refresh]);
+    if (!ok) setOn(previous);
+  }, [on]);
 
   return { on, save };
 }

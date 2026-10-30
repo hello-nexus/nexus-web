@@ -11,10 +11,11 @@ import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Master brightness slider at the top of the lighting page. Caps each
- * per-device brightness before colour reaches hardware: effective LED
+ * Master brightness slider at the top of the lighting page. Joins each
+ * per-device brightness before colour reaches hardware: by default effective LED
  * brightness is `min(global, device / 100)`, so a device never renders
- * brighter than master. Stored 0..1 on the service side, surfaced
+ * brighter than master; with the brightness multiplier on it is
+ * `global * device / 100`. Stored 0..1 on the service side, surfaced
  * 0..100% in the UI.
  *
  * While the time-of-day schedule is on, its current level is a second cap on
@@ -104,7 +105,7 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         data-active={scheduled !== null ? '' : undefined}
         aria-label={t('lighting.schedule.marker.title')}
         aria-disabled={canOpenSchedule ? undefined : true}
-        // A mouse press must not focus the clock: the modal hands focus back
+        // A mouse press must not focus the sun button: the modal hands focus back
         // to it on close, and that focus reopens the tooltip.
         onMouseDown={e => e.preventDefault()}
         onClick={e => { e.preventDefault(); openSchedule(); }}
