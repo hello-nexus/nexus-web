@@ -75,6 +75,15 @@ describe('NexusControlOff', () => {
     expect(onEnable).toHaveBeenCalledTimes(1);
   });
 
+  it('uses the panel wording instead of the release-the-device hint in panel mode', () => {
+    const onEnable = vi.fn();
+    render(<NexusControlOff deviceName="Kraken" panelMode onEnable={onEnable} />);
+
+    expect(screen.queryByText('devices.nexusControlOff.enableHint')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'sidebar.device.panelOn' }));
+    expect(onEnable).toHaveBeenCalledTimes(1);
+  });
+
   it('asks before turning on Nexus Control for an experimental device', () => {
     const onEnable = vi.fn();
     render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental onEnable={onEnable} />);

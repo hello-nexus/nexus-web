@@ -1065,8 +1065,6 @@
   "devices.lcd.secondaryMonitorDriverMissing": "Ovladač displeje pro režim sekundárního monitoru není na tomto PC nainstalován.",
   "devices.lcd.secondaryMonitorFailed": "Windows monitor nevytvořil. Vypněte a znovu zapněte toto nastavení nebo zkontrolujte protokol služby Nexus.",
   "devices.lcd.secondaryMonitorHint": "Windows rozšíří plochu na tuto obrazovku. Widgety, motivy a pozadí Nexus jsou po dobu zapnutí vypnuté.",
-  "devices.lcd.secondaryMonitorNotice": "Tato obrazovka je nastavena jako sekundární monitor, takže widgety, motivy a pozadí Nexus jsou vypnuté. Chcete-li je znovu používat, vypněte v Nastavení možnost „Použít jako sekundární monitor“.",
-  "devices.lcd.secondaryMonitorPreview": "Tato obrazovka se používá jako sekundární monitor.",
   "devices.lcd.secondaryMonitorSection": "Sekundární monitor",
   "devices.lcd.secondaryMonitorStarting": "Spouštění monitoru",
   "devices.lcd.sleepWhenLocked": "Vypnout displej při uzamčení PC",

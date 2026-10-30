@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutDashboard, Palette, Settings, Download, Unplug, Camera, Wallpaper, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
@@ -1482,10 +1482,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
-        // Only where there is a panel to capture: the firmware-gate,
-        // disconnected and secondary-monitor states render no embed frame, so
-        // the button could do nothing but report an error.
-        tabActions={showFwGate || showDisconnected || recordSecondaryMonitor ? undefined : (
+        // Only where there is a panel to capture: the firmware-gate and
+        // disconnected states render no embed frame, so the button could do
+        // nothing but report an error.
+        tabActions={showFwGate || showDisconnected ? undefined : (
           <>
             {editingDeviceId && <PanelPresetToolbar key={editingDeviceId} deviceId={editingDeviceId} />}
             <Button
@@ -1580,14 +1580,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>
                   {activeTab === 'widgets' && (
                     <>
-                      {recordSecondaryMonitor && (
-                        <Notice tone="info" role="status">{t('devices.lcd.secondaryMonitorNotice')}</Notice>
-                      )}
-                      <div
-                        className={`${styles.catalogHost}${recordSecondaryMonitor ? ` ${styles.tabDisabled}` : ''}`}
-                        aria-disabled={recordSecondaryMonitor || undefined}
-                        inert={recordSecondaryMonitor || undefined}
-                      >
+                      <div className={styles.catalogHost}>
                         {widgetPlaylist && (
                           <Card compact className={styles.playlistPanel}>
                             {widgetPlaylist && (
@@ -1651,14 +1644,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     const nativeH = native.nativeHeight;
                     return (
                       <>
-                        {recordSecondaryMonitor && (
-                          <Notice tone="info" role="status">{t('devices.lcd.secondaryMonitorNotice')}</Notice>
-                        )}
-                        <div
-                          className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
-                          aria-disabled={recordSecondaryMonitor || undefined}
-                          inert={recordSecondaryMonitor || undefined}
-                        >
+                        <div>
                           <PanelThemeSettings
                             theme={theme}
                             deviceId={editingDeviceId}
@@ -2166,18 +2152,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             data-troubleshoot={showPreviewTroubleshoot || undefined}
           >
             <div className={styles.previewStage}>
-              {recordSecondaryMonitor ? (
-                <div className={styles.secondaryMonitorPreview}>
-                  <TvMinimal size={40} strokeWidth={1.5} aria-hidden />
-                  <p>
-                    {recordSecondaryMonitorState === 'driver-missing'
-                      ? t('devices.lcd.secondaryMonitorDriverMissing')
-                      : recordSecondaryMonitorState === 'failed'
-                        ? t('devices.lcd.secondaryMonitorFailed')
-                        : t('devices.lcd.secondaryMonitorPreview')}
-                  </p>
-                </div>
-              ) : (
               <>
               {showPageArrows && (
                 <PanelArrowButton
@@ -2241,7 +2215,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 />
               )}
               </>
-              )}
             </div>
             {showPlaylistArrows && (
               <div className={styles.playlistNav}>

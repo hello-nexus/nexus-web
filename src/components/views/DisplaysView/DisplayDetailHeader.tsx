@@ -3,6 +3,8 @@ import type { TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
+import { streamedPanelId } from '../../../hooks/usePanelDevices';
+import { panelDeviceKey } from '../../../hooks/useUnifiedDevices';
 import { displaySubtitle } from './displaySubtitle';
 import styles from './DisplaysView.module.scss';
 
@@ -16,9 +18,14 @@ interface DisplayDetailHeaderProps {
 export function DisplayDetailHeader({ display, onDeviceSelect }: DisplayDetailHeaderProps) {
   const { t } = useTranslation();
   const subtitle = displaySubtitle(display);
-  const editorKey = display.isY70
-    ? 'panel-device:y70'
-    : display.assignedPanelDeviceId ? `panel-display:${display.assignedPanelDeviceId}` : null;
+  const managed = display.isY70 || display.ownedByDevicePanel;
+  let editorKey: string | null = null;
+  if (display.isY70) editorKey = 'panel-device:y70';
+  else if (display.assignedPanelDeviceId) {
+    editorKey = display.ownedByDevicePanel
+      ? panelDeviceKey(streamedPanelId(display.assignedPanelDeviceId))
+      : `panel-display:${display.assignedPanelDeviceId}`;
+  }
   return (
     <div className={styles.detailHeader}>
       <div className={styles.detailTitle}>
@@ -27,7 +34,7 @@ export function DisplayDetailHeader({ display, onDeviceSelect }: DisplayDetailHe
       </div>
       <div className={styles.headerActions}>
         {editorKey && (
-          <Badge filled size="small" color="var(--accent)" icon={<LayoutDashboard size={14} />} label={display.isY70 ? t('displays.panel.activeAuto') : t('displays.panel.active')} />
+          <Badge filled size="small" color="var(--accent)" icon={<LayoutDashboard size={14} />} label={managed ? t('displays.panel.activeAuto') : t('displays.panel.active')} />
         )}
         {display.isPrimary && (
           <Badge size="small" icon={<Star size={12} />} label={t('displays.primary')} />

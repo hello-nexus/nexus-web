@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, Unplug } from 'lucide-react';
-import { useUnifiedDevices, claimsKey, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import { useUnifiedDevices, controlGateIsPanel, claimsKey, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { ServiceRequired } from '../ServiceRequired';
@@ -169,6 +169,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         conflictAppId={device.conflictAppId}
         experimental={device.experimental}
         requiresBeta={device.requiresBeta}
+        panelMode={controlGateIsPanel(device)}
         onEnable={() => {
           detectReportedRef.current = false;
           setDetectingKey(device.key);
@@ -380,7 +381,7 @@ function BetaRequiredNotice() {
   );
 }
 
-export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; onEnable: () => void }) {
+export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, panelMode, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; panelMode?: boolean; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -423,8 +424,8 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
             </>
           ) : (
             <>
-              <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>
-              <NexusControlCard checked={false} disabled={resolvingConflict} onChange={experimental ? () => setConfirmingExperimental(true) : onEnable} />
+              {!panelMode && <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>}
+              <NexusControlCard checked={false} label={panelMode ? t('sidebar.device.panelOn') : undefined} disabled={resolvingConflict} onChange={experimental ? () => setConfirmingExperimental(true) : onEnable} />
             </>
           )}
           {deviceKey !== undefined && (

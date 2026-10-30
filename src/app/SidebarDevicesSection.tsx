@@ -8,7 +8,7 @@ import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/Ne
 import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { ExperimentalEnableModal } from '../components/common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { useToastSafe } from '../components/common/Toast/Toast';
-import { useUnifiedDevices, claimsKey, isSimulatedDevice, sidebarDeviceName, sidebarSortName, type UnifiedDevice } from '../hooks/useUnifiedDevices';
+import { useUnifiedDevices, controlGateIsPanel, claimsKey, isSimulatedDevice, sidebarDeviceName, sidebarSortName, type UnifiedDevice } from '../hooks/useUnifiedDevices';
 import { useConflictGuardedEnable } from '../hooks/useConflictGuardedEnable';
 import { useFirmwareUpdates } from '../hooks/useFirmwareUpdates';
 import { promoteDisplayToPanel, demoteDisplayPanel } from '../api/displays';
@@ -148,7 +148,7 @@ export function SidebarDevicesSection({
     // one sentence for one action, so the two can't drift apart.
     ...(toggleNexusControl ? [{
       key: 'nexus-control',
-      label: t(ctxDevice.panelDevice?.genericDisplay
+      label: t(controlGateIsPanel(ctxDevice)
         ? (ctxDevice.nexusControlEnabled ? 'sidebar.device.panelOff' : 'sidebar.device.panelOn')
         : (ctxDevice.nexusControlEnabled ? 'lighting.devices.menuControlOff' : 'lighting.devices.menuControlOn')),
       icon: ctxDevice.nexusControlEnabled ? <Link2Off size={14} /> : <Link2 size={14} />,

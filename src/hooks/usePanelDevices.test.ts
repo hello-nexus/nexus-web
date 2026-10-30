@@ -45,6 +45,31 @@ function firstDevice(record: PanelDeviceRecord) {
   return devices[0];
 }
 
+describe('buildPanelDevices USB device secondary monitor', () => {
+  const streamed: PanelDeviceRecord = {
+    id: 'usb-1', displayName: 'Kraken LCD', firstSeenAt: 0, lastSeenAt: 1, streamed: true, secondaryMonitor: true,
+    capabilities: { surface: 'monitor', family: 'nzxt-kraken', cssWidth: 640, cssHeight: 640 },
+  };
+  // Leftover record bound to the virtual monitor; the service reports it detached.
+  const leftover: PanelDeviceRecord = { ...xeneonRecord('Kraken LCD'), id: 'rec-virtual', displayAttached: false };
+
+  it('lists one entry for the USB device and none for its virtual display', () => {
+    const devices = buildPanelDevices({
+      curatedDevices: [], phoneSessions: [], records: [streamed, leftover], status: null, simulatedPanels: [], labels: LABELS,
+    });
+    expect(devices.map(d => d.id)).toEqual(['stream:usb-1']);
+    expect(devices[0].secondaryMonitor).toBe(true);
+  });
+
+  it('is not resurrected by the turned-off plain monitor path', () => {
+    expect(isTurnedOffPlainMonitor({ ...leftover, enabled: false, capabilities: { surface: 'monitor' } })).toBe(false);
+    const devices = buildPanelDevices({
+      curatedDevices: [], phoneSessions: [], records: [streamed, { ...leftover, enabled: false }], status: null, simulatedPanels: [], labels: LABELS,
+    });
+    expect(devices).toHaveLength(1);
+  });
+});
+
 describe('buildPanelDevices promoted-monitor branding', () => {
   it('replaces the Windows PnP-identity default name with the family name', () => {
     const device = firstDevice(xeneonRecord('CRX ED00'));

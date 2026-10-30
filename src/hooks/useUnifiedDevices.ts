@@ -81,6 +81,11 @@ export interface UnifiedDevice {
 
 // A simulated panel carries the marker on its panel record; the Tryx sim sets
 // `simulated` directly. Neither marker alone covers both.
+/** Whether the Nexus Control gate on this device reads as a panel on/off rather than releasing the hardware. */
+export function controlGateIsPanel(device: Pick<UnifiedDevice, 'panelDevice'>): boolean {
+  return !!device.panelDevice?.genericDisplay || device.panelDevice?.secondaryMonitor === true;
+}
+
 /** The device-page key of a panel device. */
 export function panelDeviceKey(panelId: string): string {
   return `panel-${panelId}`;
