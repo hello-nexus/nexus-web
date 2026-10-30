@@ -246,13 +246,13 @@ describe('PanelDevicePage background hidden by opacity', () => {
     expect(coverNotice()).toBeNull();
   });
 
-  it('closes with the X and returns on the next quick edit', async () => {
+  it('closes with the X and stays closed through a quick edit', async () => {
     themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
     await load();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'app.window.close' })); });
     expect(opacityNotice()).toBeNull();
     await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
-    expect(opacityNotice()).not.toBeNull();
+    expect(opacityNotice()).toBeNull();
   });
 
   it('offers Background options to fix it', async () => {

@@ -18,14 +18,13 @@ export function useCoverNotice(covered: boolean): { visible: boolean; arm: () =>
 
 /**
  * A notice for a standing condition that the user may close. It stays closed until the
- * condition goes away and returns, or `reshow` is called (the next quick edit).
+ * condition goes away and returns.
  */
-export function useDismissibleNotice(active: boolean): { visible: boolean; dismiss: () => void; reshow: () => void } {
+export function useDismissibleNotice(active: boolean): { visible: boolean; dismiss: () => void } {
   const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
     if (!active) setDismissed(false);
   }, [active]);
   const dismiss = useCallback(() => setDismissed(true), []);
-  const reshow = useCallback(() => setDismissed(false), []);
-  return { visible: active && !dismissed, dismiss, reshow };
+  return { visible: active && !dismissed, dismiss };
 }

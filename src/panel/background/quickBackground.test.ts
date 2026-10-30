@@ -53,7 +53,7 @@ describe('dismissal', () => {
     expect(result.current.visible).toBe(true);
   });
 
-  it('a dismissed standing notice returns only after its condition goes away and comes back, or on reshow', () => {
+  it('a dismissed standing notice returns only after its condition goes away and comes back', () => {
     const { result, rerender } = renderHook(({ active }) => useDismissibleNotice(active), { initialProps: { active: true } });
     expect(result.current.visible).toBe(true);
     act(() => result.current.dismiss());
@@ -62,7 +62,7 @@ describe('dismissal', () => {
     rerender({ active: true });
     expect(result.current.visible).toBe(true);
     act(() => result.current.dismiss());
-    act(() => result.current.reshow());
-    expect(result.current.visible).toBe(true);
+    rerender({ active: true });
+    expect(result.current.visible).toBe(false);
   });
 });

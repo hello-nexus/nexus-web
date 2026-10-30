@@ -1177,8 +1177,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const handleQuickBackground = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => {
     applyQuickBackgroundMedia(panelTheme, mediaId, type, alpha);
     if (singleWidget) coverNotice.arm();
-    opacityNotice.reshow();
-  }, [coverNotice, opacityNotice, panelTheme, singleWidget]);
+  }, [coverNotice, panelTheme, singleWidget]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
     // The preview shows a render-only stand-in for a playlist entry that is
