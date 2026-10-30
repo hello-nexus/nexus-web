@@ -5438,6 +5438,8 @@
   "settings.ai.capability.history.label": "Historia",
   "settings.ai.capability.lighting.description": "Pozwól agentom AI przeglądać efekty podświetlenia i kolory oraz je zmieniać.",
   "settings.ai.capability.lighting.label": "Podświetlenie",
+  "settings.ai.capability.panels.description": "Pozwól agentom AI zmieniać układy, wygląd i ustawienia wstępne paneli oraz wyświetlaczy chłodzenia.",
+  "settings.ai.capability.panels.label": "Panele",
   "settings.ai.capability.profiles.description": "Pozwól agentom AI przeglądać profile i przełączać się między nimi.",
   "settings.ai.capability.profiles.label": "Profile",
   "settings.ai.capability.telemetry.description": "Pozwól agentom AI odczytywać na żywo telemetrię czujników i systemu.",

@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "Cronologia",
   "settings.ai.capability.lighting.description": "Consenti agli agenti IA di visualizzare gli effetti di illuminazione e i colori, e di modificarli.",
   "settings.ai.capability.lighting.label": "Illuminazione",
+  "settings.ai.capability.panels.description": "Consenti agli agenti IA di modificare layout, stili e preset dei pannelli e dei display dei dissipatori.",
+  "settings.ai.capability.panels.label": "Pannelli",
   "settings.ai.capability.profiles.description": "Consenti agli agenti IA di visualizzare i profili e passare da uno all'altro.",
   "settings.ai.capability.profiles.label": "Profili",
   "settings.ai.capability.telemetry.description": "Consenti agli agenti IA di leggere la telemetria dei sensori e di sistema in tempo reale.",

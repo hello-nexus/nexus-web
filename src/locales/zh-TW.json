@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "歷史記錄",
   "settings.ai.capability.lighting.description": "允許 AI 代理程式檢視燈光效果和顏色並加以變更。",
   "settings.ai.capability.lighting.label": "燈光",
+  "settings.ai.capability.panels.description": "允許 AI 代理程式變更面板與散熱器顯示器的版面配置、外觀與預設。",
+  "settings.ai.capability.panels.label": "面板",
   "settings.ai.capability.profiles.description": "允許 AI 代理程式檢視設定檔並在其間切換。",
   "settings.ai.capability.profiles.label": "設定檔",
   "settings.ai.capability.telemetry.description": "允許 AI 代理程式讀取即時感測器和系統遙測資料。",

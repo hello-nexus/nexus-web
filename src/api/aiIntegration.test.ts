@@ -17,7 +17,7 @@ const STATUS = {
   endpoint: 'http://127.0.0.1:9420/mcp',
   token: 'mcp-token-abc',
   lastError: null,
-  capabilities: { telemetry: true, cooling: true, lighting: true, profiles: true, history: true },
+  capabilities: { telemetry: true, cooling: true, lighting: true, panels: true, profiles: true, history: true },
   allowRemote: false,
 };
 

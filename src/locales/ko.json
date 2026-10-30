@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "기록",
   "settings.ai.capability.lighting.description": "AI 에이전트가 조명 효과와 색상을 확인하고 변경할 수 있도록 허용합니다.",
   "settings.ai.capability.lighting.label": "조명",
+  "settings.ai.capability.panels.description": "AI 에이전트가 패널 및 쿨러 디스플레이의 레이아웃, 모양, 프리셋을 변경할 수 있도록 허용합니다.",
+  "settings.ai.capability.panels.label": "패널",
   "settings.ai.capability.profiles.description": "AI 에이전트가 프로필을 확인하고 전환할 수 있도록 허용합니다.",
   "settings.ai.capability.profiles.label": "프로필",
   "settings.ai.capability.telemetry.description": "AI 에이전트가 실시간 센서 및 시스템 텔레메트리를 읽을 수 있도록 허용합니다.",

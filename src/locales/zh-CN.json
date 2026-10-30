@@ -5393,6 +5393,8 @@
   "settings.ai.capability.history.label": "历史记录",
   "settings.ai.capability.lighting.description": "允许 AI 代理查看灯光效果和颜色并进行更改。",
   "settings.ai.capability.lighting.label": "灯光",
+  "settings.ai.capability.panels.description": "允许 AI 代理更改面板和散热器显示屏的布局、外观与预设。",
+  "settings.ai.capability.panels.label": "面板",
   "settings.ai.capability.profiles.description": "允许 AI 代理查看配置文件并在它们之间切换。",
   "settings.ai.capability.profiles.label": "配置文件",
   "settings.ai.capability.telemetry.description": "允许 AI 代理读取实时传感器和系统遥测数据。",
