@@ -79,12 +79,6 @@ function clampDpi(value: number, fallback: number): number {
     : fallback;
 }
 
-function clampJumpAtInches(value: number, fallback: number): number {
-  return Number.isFinite(value)
-    ? Math.max(1, Math.min(16, Math.round(value * 10) / 10))
-    : fallback;
-}
-
 function inferPanelSurface(width: number, height: number, dpi: number): PanelSurface {
   const shortSide = Math.min(width, height);
   const longSide = Math.max(width, height);
@@ -150,27 +144,19 @@ export function getCustomSimulatedPanel(): SimulatedPanelDefinition {
   return { ...DEFAULT_CUSTOM_PANEL, width, height, dpi, surface };
 }
 
-export function getPanelGridSizingSettings(): SimulatedPanelGridSizing {
-  const saved = readJson<Partial<SimulatedPanelGridSizing> & { jumpAtInches?: number }>(SIMULATED_PANEL_GRID_SIZING_KEY, {});
-  const savedJumpAtInches = saved.shortSideJumpAtInches ?? saved.jumpAtInches;
-  return {
-    shortSideJumpAtInches: typeof savedJumpAtInches === 'number'
-      ? clampJumpAtInches(savedJumpAtInches, DEFAULT_SIMULATED_PANEL_GRID_SIZING.shortSideJumpAtInches)
-      : DEFAULT_SIMULATED_PANEL_GRID_SIZING.shortSideJumpAtInches,
-  };
-}
+// The cutoff is no longer user-tunable; a value an earlier build saved is dropped, not applied.
+let legacyGridSizingDropped = false;
 
-export function setPanelGridSizingSettings(settings: Partial<SimulatedPanelGridSizing>): void {
-  const current = getPanelGridSizingSettings();
-  const next: SimulatedPanelGridSizing = {
-    shortSideJumpAtInches: clampJumpAtInches(
-      settings.shortSideJumpAtInches ?? current.shortSideJumpAtInches,
-      current.shortSideJumpAtInches,
-    ),
-  };
-  if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(SIMULATED_PANEL_GRID_SIZING_KEY, JSON.stringify(next));
-  dispatchSimulationChanged();
+export function getPanelGridSizingSettings(): SimulatedPanelGridSizing {
+  if (!legacyGridSizingDropped) {
+    legacyGridSizingDropped = true;
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(SIMULATED_PANEL_GRID_SIZING_KEY);
+    } catch {
+      // Storage unavailable: nothing was saved to drop.
+    }
+  }
+  return { ...DEFAULT_SIMULATED_PANEL_GRID_SIZING };
 }
 
 export function setCustomSimulatedPanelSize(width: number, height: number, dpi = DEFAULT_CUSTOM_PANEL.dpi): void {
