@@ -103,7 +103,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
-import { FRAME_RATE_CAPS_FPS, frameRateFromValue, frameRateOptions, frameRateValue } from './frameRateOptions';
+import { frameRateCaps, frameRateFromValue, frameRateValue } from './frameRateOptions';
 import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
 import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
@@ -558,11 +558,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordSupportsRenderScale, setRecordSupportsRenderScale] = useState(false);
   const isRenderScalablePanel = recordSupportsRenderScale && !isSimulated;
   const [recordHighResolution, setRecordHighResolution] = useState(false);
-  // The highest rate the device can do (a stream's rate, or a kiosk display's refresh); the
-  // Frame rate setting needs it, so it stays hidden while the service reports none.
+  // The service reports a max rate only for devices the cap applies to (streamed displays and
+  // kiosk displays), so the Frame rate setting stays hidden while it reports none.
   const [recordMaxFps, setRecordMaxFps] = useState<number | null>(null);
   const [recordFpsCap, setRecordFpsCap] = useState<number | null>(null);
-  const hasFrameRateSetting = !isSimulated && recordMaxFps !== null && recordMaxFps > Math.min(...FRAME_RATE_CAPS_FPS);
+  const hasFrameRateSetting = !isSimulated && recordMaxFps !== null;
   const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
     useState<PanelDeviceRecord['secondaryMonitorState']>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
@@ -1992,17 +1992,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             }}
                           />
                         )}
-                        {hasFrameRateSetting && recordMaxFps !== null && (
+                        {hasFrameRateSetting && (
                           <SettingSelect
                             label={t('devices.lcd.frameRate')}
                             description={t('devices.lcd.frameRateHint')}
-                            value={frameRateValue(recordMaxFps, recordFpsCap)}
-                            options={frameRateOptions(recordMaxFps, recordFpsCap).map(option => ({
-                              value: option.value,
-                              label: option.fps === null
-                                ? t('devices.lcd.frameRateMax', { fps: recordMaxFps })
-                                : t('devices.lcd.frameRateFps', { fps: option.fps }),
-                            }))}
+                            value={frameRateValue(recordFpsCap)}
+                            options={frameRateCaps(recordFpsCap).map(hz => (hz === null
+                              ? { value: '', label: t('lighting.ledMap.rateCapOff') }
+                              : { value: String(hz), label: t('lighting.ledMap.rateCapHz', { hz }) }))}
                             onChange={(value) => {
                               const previous = recordFpsCap;
                               const next = frameRateFromValue(value);
