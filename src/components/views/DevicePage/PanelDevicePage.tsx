@@ -102,6 +102,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
+import { MonoPreviewFilter } from './MonoPreviewFilter';
+import { MONO_FILTER_ID, isMonoFamily, keepsSidePreview } from './monoPreview';
 import { PanelPresetToolbar } from './PanelPresetToolbar';
 import { FrameRateSetting } from './FrameRateSetting';
 import { showsFrameRateSetting } from './frameRateOptions';
@@ -609,7 +611,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const isStripPanel = !!previewCanvas && previewCanvas.width > 0 && previewCanvas.height > 0
     && Math.max(previewCanvas.width, previewCanvas.height)
        / Math.min(previewCanvas.width, previewCanvas.height) >= STRIP_ASPECT_MIN;
-  const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height;
+  const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height && !keepsSidePreview(recordFamily);
   // The panel's live orientation, read from the same canvas the preview frame
   // renders, so the immersive-on-load toggle offers exactly the immersive views
   // the device can actually open.
@@ -2176,6 +2178,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             data-family={recordFamily}
             data-troubleshoot={showPreviewTroubleshoot || undefined}
           >
+            {isMonoFamily(recordFamily) && <MonoPreviewFilter />}
             <div className={styles.previewStage}>
               <>
               {showPageArrows && (
@@ -2241,6 +2244,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 chromeGrid={previewChrome}
                 displayBound={!!device?.displayId}
                 genericDisplay={genericDisplay}
+                monoFilterId={isMonoFamily(recordFamily) ? MONO_FILTER_ID : undefined}
                 onPlaylistShown={handlePlaylistShown}
               />
               {isHydroShift2CurvePanel && curveScreen.playingClip && (
