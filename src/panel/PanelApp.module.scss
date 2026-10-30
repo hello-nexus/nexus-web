@@ -2067,13 +2067,25 @@
   bottom: 0;
   left: 0;
   pointer-events: none;
-  --edit-hint-color: var(--panel-accent);
   // Sized like the notice on a two-by-two widget.
   --panel-span-cols: 2;
   --panel-span-rows: 2;
 }
 
-.bgLayer[data-active='true'] > [data-edit-hint-overlay] {
+.bgLayer > [data-edit-hint-overlay],
+.bgScrim {
+  opacity: 0;
+  transition: opacity var(--ease-fast) ease-out;
+}
+
+// The scrim look of EditHint, painted per free rectangle so widgets are never covered.
+.bgScrim {
+  position: absolute;
+  background: var(--panel-scrim-bg, rgb(0 0 0 / var(--alpha-strong)));
+}
+
+.bgLayer[data-active='true'] > [data-edit-hint-overlay],
+.bgLayer[data-active='true'] > .bgScrim {
   opacity: 1;
 }
 
@@ -2108,12 +2120,10 @@
   min-width: 0;
   min-height: 0;
   pointer-events: auto;
-  --edit-hint-color: var(--text);
 }
 
 .bgHint {
   cursor: pointer;
-  --edit-hint-color: var(--panel-accent);
 }
 
 .hintSplit:hover > .hintHalf > [data-edit-hint-overlay] {
@@ -2157,11 +2167,6 @@
 
 .panelRoot[data-simulator='true'] .cellWrap {
   cursor: pointer;
-}
-
-// The blank widget is not a click target (PanelApp drops its click and hint).
-.panelRoot[data-simulator='true'] .cell[data-widget-type='blank'] {
-  cursor: default;
 }
 
 // A preview cell that is not the one being edited is one click target: its

@@ -4,19 +4,28 @@ import { BackgroundHoverLayer, BackgroundSplitHint } from './BackgroundEditHint'
 
 describe('BackgroundHoverLayer', () => {
   it('shows one Edit background notice, lit only while the background is hovered', () => {
-    const { container, rerender } = render(<BackgroundHoverLayer active={false} area={null} />);
+    const { container, rerender } = render(<BackgroundHoverLayer active={false} area={null} pieces={[]} />);
     expect(container.querySelectorAll('[data-edit-hint-overlay]')).toHaveLength(1);
     expect(container.querySelector('[data-edit-hint-overlay]')?.textContent).toBe('panel.background.edit');
     expect(container.querySelector('[data-active]')).toBeNull();
-    rerender(<BackgroundHoverLayer active area={null} />);
+    rerender(<BackgroundHoverLayer active area={null} pieces={[]} />);
     expect(container.querySelector('[data-active="true"]')).not.toBeNull();
   });
 
   it('places the notice in the free area it is given', () => {
-    const { container } = render(<BackgroundHoverLayer active area={{ left: 10, top: 20, width: 100, height: 50 }} />);
+    const { container } = render(<BackgroundHoverLayer active area={{ left: 10, top: 20, width: 100, height: 50 }} pieces={[]} />);
     const box = container.querySelector('[data-edit-hint-overlay] > div') as HTMLElement;
     expect(box.style.left).toBe('10px');
     expect(box.style.width).toBe('100px');
+  });
+});
+
+describe('BackgroundHoverLayer scrim', () => {
+  it('paints one scrim piece per free rectangle and none over a widget', () => {
+    const pieces = [{ left: 0, top: 0, width: 100, height: 50 }, { left: 0, top: 50, width: 40, height: 50 }];
+    const { container } = render(<BackgroundHoverLayer active area={null} pieces={pieces} />);
+    const drawn = Array.from(container.querySelectorAll<HTMLElement>('[data-active] > div:not([data-edit-hint-overlay])'));
+    expect(drawn.map(d => [d.style.left, d.style.top, d.style.width, d.style.height])).toEqual([['0px', '0px', '100px', '50px'], ['0px', '50px', '40px', '50px']]);
   });
 });
 

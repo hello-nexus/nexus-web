@@ -29,4 +29,8 @@ describe('device-page preview hover notices', () => {
   ])('reveals %s without a hover media query', selector => {
     expect(mediaEnclosing(selector).filter(h => /hover/.test(h))).toEqual([]);
   });
+
+  it('colors the Edit background notice from the same token as Edit widget, not its own', () => {
+    expect(css).not.toContain('--edit-hint-color');
+  });
 });

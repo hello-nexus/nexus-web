@@ -6,11 +6,11 @@ import { singleWidgetSurfaceSize, type PanelPage, type PanelSurface, type PanelW
  * Render-only - callers swap this in for the rendered layout while the host is
  * unreachable and never persist it, so the configured widgets return on
  * reconnect. The size comes from the surface's single-widget constant (on a
- * grid, the widest tile), not the configured widget, so it fills the panel. A panel with no widget (or the legacy
- * blank widget) keeps its pages: the user chose an unobstructed background.
+ * grid, the widest tile), not the configured widget, so it fills the panel. A panel with no widget keeps its pages:
+ * the user chose an unobstructed background.
  */
 export function q60OfflineClockPages(pages: PanelPage[], surface: PanelSurface): PanelPage[] {
-  if (pages.every(p => p.widgets.length === 0) || pages.some(p => p.widgets.some(w => w.type === 'blank'))) return pages;
+  if (pages.every(p => p.widgets.length === 0)) return pages;
   const configuredClock = pages.flatMap(p => p.widgets).find(w => w.type === 'clock');
   const clock: PanelWidget = {
     id: 'q60-offline-clock',

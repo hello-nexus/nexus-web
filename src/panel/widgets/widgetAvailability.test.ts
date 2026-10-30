@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
-import { isSingleWidgetSurface, PANEL_SURFACES, singleWidgetSurfaceSize, surfaceSupportsTouch } from '../types';
+import { isSingleWidgetSurface, surfaceSupportsTouch } from '../types';
 import {
   sizesForSurface,
   APP_REGISTRY,
@@ -214,14 +214,10 @@ describe('appAvailableForSurface', () => {
   });
 });
 
-describe('blank widget', () => {
-  it('is offered on every single-widget surface at its locked size, and nowhere else', () => {
-    const blank = APP_REGISTRY.blank;
-    for (const surface of PANEL_SURFACES) {
-      const single = singleWidgetSurfaceSize(surface);
-      expect(appAvailableForSurface(blank.meta, surface), surface).toBe(single !== undefined);
-      if (single) expect(sizesForSurface(blank.meta, surface), surface).toEqual([single]);
-    }
+describe('removed blank widget', () => {
+  it('is gone from the registry and the catalog', () => {
+    expect(APP_REGISTRY.blank).toBeUndefined();
+    expect(getCatalogEntries().map(([type]) => type)).not.toContain('blank');
   });
 });
 
@@ -311,7 +307,7 @@ describe('isSingleWidgetSurface', () => {
 describe('catalog listing (delist)', () => {
   // Delisted from the Add-a-Widget picker but still resolvable: an existing
   // placed instance keeps rendering; only new insertion is removed.
-  const DELISTED = ['steam', 'blank'] as const;
+  const DELISTED = ['steam'] as const;
 
   it('hides the delisted built-ins from the picker yet keeps them resolvable', () => {
     const listedTypes = new Set(

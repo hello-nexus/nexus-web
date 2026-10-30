@@ -6,11 +6,26 @@ import { useCallback, useEffect, useState } from 'react';
  * notice is armed when a quick edit applies a background while the widget
  * covers it (a widget that leaves the background visible needs no notice), and clears once the widget is removed or changed to one that does not.
  */
-export function useCoverNotice(covered: boolean): { visible: boolean; arm: () => void } {
+export function useCoverNotice(covered: boolean): { visible: boolean; arm: () => void; dismiss: () => void } {
   const [armed, setArmed] = useState(false);
   useEffect(() => {
     if (!covered) setArmed(false);
   }, [covered]);
   const arm = useCallback(() => { if (covered) setArmed(true); }, [covered]);
-  return { visible: armed && covered, arm };
+  const dismiss = useCallback(() => setArmed(false), []);
+  return { visible: armed && covered, arm, dismiss };
+}
+
+/**
+ * A notice for a standing condition that the user may close. It stays closed until the
+ * condition goes away and returns, or `reshow` is called (the next quick edit).
+ */
+export function useDismissibleNotice(active: boolean): { visible: boolean; dismiss: () => void; reshow: () => void } {
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => {
+    if (!active) setDismissed(false);
+  }, [active]);
+  const dismiss = useCallback(() => setDismissed(true), []);
+  const reshow = useCallback(() => setDismissed(false), []);
+  return { visible: active && !dismissed, dismiss, reshow };
 }

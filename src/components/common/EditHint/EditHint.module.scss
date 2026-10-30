@@ -11,6 +11,10 @@
   transition: opacity var(--ease-fast) ease-out;
 }
 
+.bare {
+  background: none;
+}
+
 .content {
   @include cell-notice-content;
 }

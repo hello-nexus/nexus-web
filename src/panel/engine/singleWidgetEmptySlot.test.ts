@@ -39,6 +39,18 @@ describe('single-widget surface with no widget', () => {
     expect(normalized.pages).toEqual(normalizePanelLayout(removeWidgetById(q60([clock]), 'w1', capacity), 'q60').pages);
   });
 
+  it('a legacy layout drops the removed blank type from its remembered configs and playlist too', () => {
+    const legacy = q60([{ id: 'b', type: 'blank', size: '2x4', col: 0, row: 0 }], {
+      singleWidgetConfigs: { blank: { x: 1 }, clock: { design: 'matrix' } },
+      widgetPlaylist: { enabled: true, interval: 15, shuffle: false, types: ['clock', 'blank'], order: ['blank', 'clock'], cursor: { type: 'blank', at: 1 } },
+    });
+    const normalized = normalizePanelLayout(legacy, 'q60');
+    expect(normalized.singleWidgetConfigs).toEqual({ clock: { design: 'matrix' } });
+    expect(normalized.widgetPlaylist?.types).toEqual(['clock']);
+    expect(normalized.widgetPlaylist?.order).toEqual(['clock']);
+    expect(normalized.widgetPlaylist?.cursor).toBeUndefined();
+  });
+
   it('a widget playlist with an empty slot still resolves its entries', () => {
     const layout = q60([], { widgetPlaylist: { enabled: true, interval: 15, shuffle: false, types: ['clock'], order: ['clock'] } });
     expect(widgetPlaylistOf(layout).types).toEqual(['clock']);

@@ -237,6 +237,13 @@
   flex-direction: column;
 }
 
+// A notice under the canvas, as wide as the pane.
+.previewNotice {
+  flex: 0 0 auto;
+  align-self: stretch;
+  padding-top: 0.5rem;
+}
+
 // An empty state's CTA with the troubleshooting link stacked under it.
 .emptyActions {
   display: flex;

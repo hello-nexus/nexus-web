@@ -8,6 +8,7 @@ import type { PanelLayout, PanelWidget } from '../../../panel/types';
 const fetchPanelDevicesMock = vi.fn();
 const commitBackgroundModeMock = vi.hoisted(() => vi.fn());
 const commitBackgroundMediaMock = vi.hoisted(() => vi.fn());
+const themeOverrides = vi.hoisted(() => ({ value: {} as Record<string, unknown> }));
 const openFilesMock = vi.hoisted(() => vi.fn());
 const openGifsMock = vi.hoisted(() => vi.fn());
 const patchPanelDeviceMock = vi.fn();
@@ -44,7 +45,7 @@ vi.mock('../../../panel/engine/panelSync', () => ({
 }));
 vi.mock('../../../panel/theme/panelTheme', () => ({
   usePanelTheme: () => ({
-    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [] },
+    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [], ...themeOverrides.value },
     commitThemeSync: vi.fn(), commitThemeMode: vi.fn(), commitAccentSync: vi.fn(),
     previewAccent: vi.fn(), commitAccent: vi.fn(), previewBackground: vi.fn(),
     commitBackground: vi.fn(), commitBackgroundMode: commitBackgroundModeMock, commitBackgroundMedia: commitBackgroundMediaMock, commitBackgroundEffect: vi.fn(),
@@ -132,6 +133,7 @@ beforeEach(() => {
   commitBackgroundMediaMock.mockReset();
   openFilesMock.mockReset();
   openGifsMock.mockReset();
+  themeOverrides.value = {};
   fetchPanelDevicesMock.mockResolvedValue({
     devices: [{ id: 'dev1', capabilities: { surface: 'q60', touch: false }, layout: LAYOUT, reserveMonitor: true }],
   });
@@ -214,5 +216,59 @@ describe('PanelDevicePage opaque widget notice', () => {
     await load();
     await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
     expect(notice()).toBeNull();
+  });
+});
+
+describe('PanelDevicePage background hidden by opacity', () => {
+  const opacityNotice = () => screen.queryByText('devices.panels.backgroundOpacityZero');
+  const coverNotice = () => screen.queryByText('devices.panels.backgroundCovered');
+
+  it('shows under the preview when Background Opacity is 0%, on any surface', async () => {
+    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
+    await load();
+    const notice = opacityNotice();
+    expect(notice).not.toBeNull();
+    expect(screen.getByTestId('embed').compareDocumentPosition(notice!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('stays hidden above 0% and on the desktop backdrop, which has no slider to fix it', async () => {
+    themeOverrides.value = { backgroundOpacity: 0.4, backdrop: 'theme' };
+    await load();
+    expect(opacityNotice()).toBeNull();
+  });
+
+  it('takes precedence over the opaque-widget notice', async () => {
+    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
+    await load();
+    await act(async () => { fireEvent.click(screen.getByTestId('covered-on')); });
+    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
+    expect(opacityNotice()).not.toBeNull();
+    expect(coverNotice()).toBeNull();
+  });
+
+  it('closes with the X and returns on the next quick edit', async () => {
+    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
+    await load();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'app.window.close' })); });
+    expect(opacityNotice()).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
+    expect(opacityNotice()).not.toBeNull();
+  });
+
+  it('offers Background options to fix it', async () => {
+    themeOverrides.value = { backgroundOpacity: 0, backdrop: 'theme' };
+    await load();
+    expect(screen.queryByTestId('theme')).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'panel.background.options' })); });
+    await waitFor(() => expect(screen.getByTestId('theme')).toBeTruthy());
+  });
+
+  it('closes the opaque-widget notice with the X as well', async () => {
+    await load();
+    await act(async () => { fireEvent.click(screen.getByTestId('covered-on')); });
+    await act(async () => { fireEvent.click(screen.getByTestId('quick-pick')); });
+    expect(coverNotice()).not.toBeNull();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'app.window.close' })); });
+    expect(coverNotice()).toBeNull();
   });
 });

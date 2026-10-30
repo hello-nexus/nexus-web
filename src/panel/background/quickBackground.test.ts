@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { applyQuickBackgroundMedia } from './quickBackground';
-import { useCoverNotice } from './useCoverNotice';
+import { useCoverNotice, useDismissibleNotice } from './useCoverNotice';
 
 describe('applyQuickBackgroundMedia', () => {
   it('switches the background to media and commits the picked item', () => {
@@ -39,5 +39,30 @@ describe('useCoverNotice', () => {
     expect(result.current.visible).toBe(false);
     rerender({ covered: true });
     expect(result.current.visible).toBe(false);
+  });
+});
+
+describe('dismissal', () => {
+  it('a dismissed cover notice stays hidden until the next quick edit arms it', () => {
+    const { result } = renderHook(() => useCoverNotice(true));
+    act(() => result.current.arm());
+    expect(result.current.visible).toBe(true);
+    act(() => result.current.dismiss());
+    expect(result.current.visible).toBe(false);
+    act(() => result.current.arm());
+    expect(result.current.visible).toBe(true);
+  });
+
+  it('a dismissed standing notice returns only after its condition goes away and comes back, or on reshow', () => {
+    const { result, rerender } = renderHook(({ active }) => useDismissibleNotice(active), { initialProps: { active: true } });
+    expect(result.current.visible).toBe(true);
+    act(() => result.current.dismiss());
+    expect(result.current.visible).toBe(false);
+    rerender({ active: false });
+    rerender({ active: true });
+    expect(result.current.visible).toBe(true);
+    act(() => result.current.dismiss());
+    act(() => result.current.reshow());
+    expect(result.current.visible).toBe(true);
   });
 });

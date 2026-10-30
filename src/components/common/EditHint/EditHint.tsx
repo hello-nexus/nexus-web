@@ -13,6 +13,8 @@ interface EditHintProps {
   area?: { left: number; top: number; width: number; height: number };
   /** Explicit glyph and label sizes (px) for a host whose box is not a widget cell, such as half of a round canvas. */
   fit?: { icon: number; font: number };
+  /** No scrim of its own: the host paints it, for a notice that must leave part of its host undimmed. */
+  bare?: boolean;
 }
 
 /**
@@ -22,7 +24,7 @@ interface EditHintProps {
  * attribute jumps module scope. Decorative and click-through, so the click lands
  * on the host itself, which carries the accessible name.
  */
-export function EditHint({ label, className, icon: Icon = Pencil, area, fit }: EditHintProps) {
+export function EditHint({ label, className, icon: Icon = Pencil, area, fit, bare }: EditHintProps) {
   const fitStyle = fit
     ? { '--edit-hint-icon-size': `${fit.icon}px`, '--panel-scale': 1 } as CSSProperties
     : undefined;
@@ -33,7 +35,7 @@ export function EditHint({ label, className, icon: Icon = Pencil, area, fit }: E
     </div>
   );
   return (
-    <div className={`${styles.root} ${className ?? ''}`} data-edit-hint-overlay="" aria-hidden="true" style={fitStyle}>
+    <div className={`${styles.root} ${bare ? styles.bare : ''} ${className ?? ''}`} data-edit-hint-overlay="" aria-hidden="true" style={fitStyle}>
       {area ? (
         <div className={styles.area} style={{ left: area.left, top: area.top, width: area.width, height: area.height }}>{content}</div>
       ) : content}

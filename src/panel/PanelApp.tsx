@@ -207,7 +207,7 @@ import {
   PanelTouchCell,
 } from './dnd/PanelDragCells';
 import { BackgroundHoverLayer, BackgroundSplitHint, type BackgroundMenuPoint } from './dnd/BackgroundEditHint';
-import { isRoomyFreeRect, largestFreeRect, splitOrientation, type HintRect } from './engine/hintGeometry';
+import { freeRects, isRoomyFreeRect, largestFreeRect, splitOrientation, type HintRect } from './engine/hintGeometry';
 import { FreeformResizeFrame } from './dnd/FreeformResizeFrame';
 import { useFreeformResize } from './engine/useFreeformResize';
 import { clampFreeformSize, cornerRoom, freeformSnapSpans, spanToSize, type FreeformRect } from './engine/freeformResize';
@@ -955,7 +955,7 @@ export function PanelContent({
   };
   const backgroundHoverTarget = backgroundMenuEnabled && !singleSurface;
   const [backgroundHover, setBackgroundHoverState] = useState(false);
-  const [backgroundArea, setBackgroundArea] = useState<HintRect | null>(null);
+  const [backgroundArea, setBackgroundArea] = useState<{ area: HintRect | null; pieces: HintRect[] }>({ area: null, pieces: [] });
   const backgroundHoverRef = useRef(false);
   const setBackgroundHover = (over: boolean) => {
     if (backgroundHoverRef.current === over) return;
@@ -964,16 +964,16 @@ export function PanelContent({
     setBackgroundHoverState(over);
   };
   // Widgets are read from the DOM: their rects already include padding, gaps and the label strip.
-  const measureBackgroundArea = (): HintRect | null => {
+  const measureBackgroundArea = (): { area: HintRect | null; pieces: HintRect[] } => {
     const root = rootRef.current;
-    if (!root) return null;
+    if (!root) return { area: null, pieces: [] };
     const canvas = root.getBoundingClientRect();
     const widgets = Array.from(root.querySelectorAll('[data-panel-widget-id]')).map(el => {
       const r = el.getBoundingClientRect();
       return { left: r.left - canvas.left, top: r.top - canvas.top, width: r.width, height: r.height };
     });
     const free = largestFreeRect(canvas, widgets);
-    return free && isRoomyFreeRect(free, canvas) ? free : null;
+    return { area: free && isRoomyFreeRect(free, canvas) ? free : null, pieces: freeRects(canvas, widgets) };
   };
   const mouseEditable = kioskBehavior && displayBound && dragEditable && !surfaceSupportsTouch(surface, deviceTouch) && !restricted;
   // An editable canvas hoists the focused widget above the editor's scrim, else
@@ -2413,7 +2413,7 @@ export function PanelContent({
             aria-hidden
           />
         )}
-        {backgroundHoverTarget && loaded && <BackgroundHoverLayer active={backgroundHover} area={backgroundArea} />}
+        {backgroundHoverTarget && loaded && <BackgroundHoverLayer active={backgroundHover} area={backgroundArea.area} pieces={backgroundArea.pieces} />}
         {!loaded ? (
           <PanelLoadingGate surface={surface} />
         ) : (
@@ -2474,11 +2474,11 @@ export function PanelContent({
                               // click opens the edit sheet from an iframe tap.
                               // The blank widget has nothing to edit, so it takes
                               // neither the click nor the hover notice.
-                              onSimulatorClick={simulator && w.type !== 'blank' && !dragEditable ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
+                              onSimulatorClick={simulator && !dragEditable ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               // Device-page preview only: nothing else says a
                               // widget in the canvas is click-to-edit (NEX-6),
                               // so hovering one fades in a full-cell notice.
-                              editHint={simulator && w.type !== 'blank' && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
+                              editHint={simulator && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
                               // Device-page preview only: hovering the widget
                               // marked immersive-on-load frames it and names
                               // the mark, so the canvas says which one opens.

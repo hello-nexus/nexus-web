@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SINGLE_WIDGET_SURFACE_SIZE } from '../types';
 import { sizeToSpan } from './grid';
-import { fitNoticeContent, isRoomyFreeRect, largestFreeRect, splitOrientation } from './hintGeometry';
+import { fitNoticeContent, freeRects, isRoomyFreeRect, largestFreeRect, splitOrientation } from './hintGeometry';
 
 const canvas = { width: 400, height: 200 };
 
@@ -73,5 +73,29 @@ describe('fitNoticeContent', () => {
     const half = fitNoticeContent({ width: 600, height: 300, round: true, part: 'start', labelChars: label, diameter: 600 });
     const full = fitNoticeContent({ width: 600, height: 600, round: true, part: 'full', labelChars: label, diameter: 600 });
     expect(full.icon).toBeGreaterThan(half.icon);
+  });
+});
+
+describe('freeRects', () => {
+  const area = (rs: { width: number; height: number }[]) => rs.reduce((sum, r) => sum + r.width * r.height, 0);
+
+  it('covers the canvas minus the widgets and never touches a widget', () => {
+    const widgets = [
+      { left: 0, top: 0, width: 150, height: 100 },
+      { left: 250, top: 100, width: 150, height: 100 },
+    ];
+    const free = freeRects(canvas, widgets);
+    expect(area(free)).toBe(400 * 200 - 2 * 150 * 100);
+    for (const f of free) {
+      for (const w of widgets) {
+        const overlaps = f.left < w.left + w.width && f.left + f.width > w.left && f.top < w.top + w.height && f.top + f.height > w.top;
+        expect(overlaps).toBe(false);
+      }
+    }
+  });
+
+  it('is the whole canvas with no widgets and empty when widgets fill it', () => {
+    expect(freeRects(canvas, [])).toEqual([{ left: 0, top: 0, width: 400, height: 200 }]);
+    expect(freeRects(canvas, [{ left: 0, top: 0, width: 400, height: 200 }])).toEqual([]);
   });
 });
