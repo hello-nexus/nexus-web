@@ -1243,7 +1243,8 @@ export function PanelContent({
     && !restricted
     && paginatedLayout.pages.length < MAX_PANEL_PAGES;
 
-  const playlistEnabled = dragLayout.widgetPlaylist?.enabled === true;
+  // Only a playlist that has something to play fills an empty base slot.
+  const playlistEnabled = playlistTypes !== null;
   const allFiltered = useMemo(() => {
     // q60 offline failsafe: keep the panel exactly as-is (background animation,
     // theme, chrome) and swap only the rendered widgets for the clock widget.

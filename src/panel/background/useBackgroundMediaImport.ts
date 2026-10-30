@@ -15,6 +15,7 @@ import {
 } from '../../api/panelBackgroundMedia';
 import { stageKlipyBackground, type KlipyGif } from '../../api/klipy';
 import { stagePreviewFor } from '../../api/mediaLibrary';
+import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
 
 // Mirrors PanelBgImporter's accepted extensions: the accept attribute is a
 // hint the file dialog lets the user override, and each stray file otherwise
@@ -36,8 +37,8 @@ function importCandidates(files: FileList | null): File[] {
 
 /**
  * The upload, Klipy, crop and commit flow behind every background media import.
- * `onSelect` receives the first imported item once the queue is done; `onImported`
- * the number of items that landed.
+ * `onSelect` receives the first imported item once the queue is done. Several files are
+ * imported to be cycled, so two or more turn the slideshow on through `onSlideshowChange`.
  */
 export function useBackgroundMediaImport({
   deviceId,
@@ -45,14 +46,16 @@ export function useBackgroundMediaImport({
   deviceH,
   refresh,
   onSelect,
-  onImported,
+  slideshow,
+  onSlideshowChange,
 }: {
   deviceId: string;
   deviceW: number;
   deviceH: number;
   refresh: () => Promise<unknown>;
   onSelect: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
-  onImported?: (imported: number) => void;
+  slideshow?: PanelSlideshowSettings;
+  onSlideshowChange?: (patch: Partial<PanelSlideshowSettings>) => void;
 }) {
   const { t } = useTranslation();
   const [importing, setImporting] = useState(false);
@@ -93,7 +96,7 @@ export function useBackgroundMediaImport({
     await refresh();
     if (!aliveRef.current) return;
     onSelect(first.id, first.type, !!first.alpha);
-    onImported?.(imported);
+    if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
   };
 
   // Stages the next queued file and opens the cropper on it. A file the

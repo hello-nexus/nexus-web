@@ -63,10 +63,8 @@ export function BackgroundMediaPicker({
     deviceH,
     refresh,
     onSelect,
-    // Several files are imported to be cycled; one background shows one of them.
-    onImported: imported => {
-      if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
-    },
+    slideshow,
+    onSlideshowChange,
   });
 
   const adaptedItems: MediaItem[] = orderBackgroundMedia(items, order).map(item => ({

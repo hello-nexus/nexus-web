@@ -32,11 +32,7 @@ const noRefresh = () => Promise.resolve();
 export const BackgroundQuickImport = forwardRef<BackgroundQuickImportHandle, BackgroundQuickImportProps>(
   function BackgroundQuickImport({ deviceId, deviceAspect, round = false, deviceW, deviceH, onSelect, slideshow, onSlideshowChange }, ref) {
     const flow = useBackgroundMediaImport({
-      deviceId, deviceW, deviceH, refresh: noRefresh, onSelect,
-      // Several files are imported to be cycled, as in the Background tab.
-      onImported: imported => {
-        if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
-      },
+      deviceId, deviceW, deviceH, refresh: noRefresh, onSelect, slideshow, onSlideshowChange,
     });
     const { fileRef, setKlipyOpen, importError, klipyOpen } = flow;
     const { push } = useToastSafe();
