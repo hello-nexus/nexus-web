@@ -2,10 +2,19 @@
 out vec4 fragColor;
 uniform vec2  u_resolution;
 uniform float u_time;
-uniform float u_hue;
-uniform float u_colorize;
-uniform float u_saturation;
-uniform float u_contrast;
+
+// Every tunable uniform declares its range on its own line as
+//   hint_range(min, max, step) = default
+// (Godot's hint_range, in a comment so the GLSL stays valid). Both renderers
+// clamp to it and fill a missing value from the default; the UI derives its
+// slider from it. A shader narrows a prelude range with a comment-only line:
+//   // NAME hint_range(0.4, 1.0, 0.01) = 1.0
+// u_speed is wire speed / 50: 1.0 = 1x forward, negative runs in reverse.
+uniform float u_speed;      // hint_range(-2.0, 2.0, 0.02) = 1.0
+uniform float u_hue;        // hint_range(0.0, 1.0, 0.01) = 0.0
+uniform float u_colorize;   // hint_range(0.0, 1.0, 0.01) = 0.0
+uniform float u_saturation; // hint_range(0.0, 4.0, 0.01) = 1.0
+uniform float u_contrast;   // hint_range(0.0, 4.0, 0.01) = 1.0
 
 // Audio-reactivity uniforms
 // Populated by BeatsProvider when Music Reactive is enabled; all zero
@@ -26,11 +35,8 @@ uniform float u_audioHigh;
 uniform float u_audioBeat;
 uniform float u_spectrum[16];
 
-// Per-effect control: 0 = effect is fully idle (audio uniforms ignored),
-// 1 = full audio reactivity. Effects that don't use audio can leave it
-// at 0 and nothing changes. Every existing shader sees this at 0 unless
-// it's wired to sample it, so adding audio doesn't regress old visuals.
-uniform float u_audioBoost;
+// Audio-reactive effects declare their own u_audioBoost (0 = idle, 1 = full
+// reactivity); the rest never read it.
 
 // Presence: smooth switch that rises as soon as real audio arrives.
 // Spectrum shaders use this to fade between their idle animation and the
@@ -66,14 +72,98 @@ vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
 vec3 rainbowPalette(float t) {
     return palette(t, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.0, 0.33, 0.67));
 }
-// All effects sample through this so the Hue slider shifts them uniformly.
+// Album-art colours from the web media renderers, darkest first. The service
+// never sets u_palette, and an all-zero palette keeps the rainbow even when a
+// saved preset carries u_paletteMix.
+uniform vec3 u_palette[4];
+uniform float u_paletteMix;
+
+// Cyclic blend through the four palette stops, so t wraps like the rainbow.
+vec3 artPalette(float t) {
+    float x = fract(t) * 4.0;
+    int i = int(floor(x));
+    return mix(u_palette[i], u_palette[(i + 1) % 4], smoothstep(0.0, 1.0, fract(x)));
+}
+
+// All effects sample through this. The Hue slider shifts the rainbow
+// uniformly; album-art stops, when on, replace it and ignore Hue.
 vec3 tintedPalette(float t) {
-    return rainbowPalette(t + u_hue);
+    vec3 stops = u_palette[0] + u_palette[1] + u_palette[2] + u_palette[3];
+    bool art = u_paletteMix > 0.5 && dot(stops, vec3(1.0)) > 0.0;
+    return art ? artPalette(t) : rainbowPalette(t + u_hue);
+}
+
+// Restricted palettes for effects that offer a mood: 0 keeps the full spectrum
+// (and Hue), the rest walk a cyclic four-stop gradient so a preset can be warm,
+// cool, neon and so on without becoming a rainbow.
+vec3 moodPalette(float t, float mood) {
+    int m = int(floor(mood + 0.5));
+    if (m <= 0) {
+        return tintedPalette(t);
+    }
+    vec3 s0, s1, s2, s3;
+    if (m == 1) {
+        s0 = vec3(1.0, 0.12, 0.05); s1 = vec3(1.0, 0.5, 0.0); s2 = vec3(1.0, 0.82, 0.12); s3 = vec3(0.95, 0.1, 0.35);
+    } else if (m == 2) {
+        s0 = vec3(0.05, 0.25, 0.95); s1 = vec3(0.0, 0.62, 0.95); s2 = vec3(0.0, 0.92, 0.8); s3 = vec3(0.55, 0.88, 1.0);
+    } else if (m == 3) {
+        s0 = vec3(1.0, 0.0, 0.7); s1 = vec3(0.5, 0.1, 1.0); s2 = vec3(0.0, 0.9, 1.0); s3 = vec3(0.5, 0.1, 1.0);
+    } else if (m == 4) {
+        s0 = vec3(0.45, 0.05, 0.75); s1 = vec3(1.0, 0.1, 0.4); s2 = vec3(1.0, 0.55, 0.05); s3 = vec3(1.0, 0.85, 0.2);
+    } else if (m == 6) {
+        s0 = vec3(1.0, 0.64, 0.08); s1 = vec3(1.0, 0.56, 0.16); s2 = vec3(0.9, 0.5, 0.04); s3 = vec3(1.0, 0.78, 0.45);
+    } else if (m >= 7) {
+        s0 = vec3(1.0, 0.4, 0.55); s1 = vec3(0.85, 0.15, 0.55); s2 = vec3(1.0, 0.7, 0.45); s3 = vec3(0.7, 0.2, 0.7);
+    } else {
+        s0 = vec3(0.0, 0.9, 0.4); s1 = vec3(0.0, 0.8, 0.8); s2 = vec3(0.4, 0.2, 1.0); s3 = vec3(0.6, 1.0, 0.2);
+    }
+    float x = fract(t) * 4.0;
+    float f = smoothstep(0.0, 1.0, fract(x));
+    int i = int(floor(x));
+    vec3 a = i == 0 ? s0 : (i == 1 ? s1 : (i == 2 ? s2 : s3));
+    vec3 b = i == 0 ? s1 : (i == 1 ? s2 : (i == 2 ? s3 : s0));
+    vec3 c = mix(a, b, f);
+    // Hue still rotates the mood's colors around the grey axis; no rotation is needed at zero.
+    if (abs(u_hue) < 0.0005) {
+        return c;
+    }
+    float ca = cos(u_hue * 6.28318);
+    float sa = sin(u_hue * 6.28318);
+    vec3 k = vec3(0.57735);
+    return c * ca + cross(k, c) * sa + k * dot(k, c) * (1.0 - ca);
+}
+
+// 0..1 sweep across the frame along an axis rotated `deg` degrees, covering the
+// full rotated bounding box so a gradient reaches both edges at any angle.
+float axis01(float deg) {
+    float a = deg * 0.01745329;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = uv01() - 0.5;
+    p.x *= ar;
+    float d = p.x * cos(a) + p.y * sin(a);
+    float halfExtent = 0.5 * (abs(cos(a)) * ar + abs(sin(a)));
+    return clamp(d / (2.0 * halfExtent) + 0.5, 0.0, 1.0);
+}
+
+// Angle around the frame centre, 0..1.
+float sweep01() {
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = uv01() - 0.5;
+    p.x *= ar;
+    return fract(atan(p.y, p.x) / 6.28318 + 1.0);
 }
 
 // Soft-knee tonemap to keep HDR highlights from clipping.
 vec3 tonemap(vec3 c) {
     return c / (1.0 + c);
+}
+
+// Each effect that tonemaps defines outGain(): a constant multiplier applied
+// after the tonemap so its brightest pixel reaches full scale. Hue, saturation
+// and structure are untouched; the clamp keeps rare overshoots in range.
+float outGain();
+vec3 gainOut(vec3 c) {
+    return clamp(c * outGain(), 0.0, 1.0);
 }
 
 // Post-process every effect's output: blend from palette-shifted colour
@@ -89,7 +179,7 @@ vec3 finalize(vec3 col) {
     float bl = dot(max(blended, 0.0), vec3(0.2126, 0.7152, 0.0722));
     blended = mix(vec3(bl), blended, clamp(u_saturation, 0.0, 4.0));
     blended = (blended - 0.5) * clamp(u_contrast, 0.0, 4.0) + 0.5;
-    return tonemap(max(blended, 0.0));
+    return gainOut(tonemap(max(blended, 0.0)));
 }
 
 // Hash + value noise - fast, cheap, good enough for lighting.
@@ -130,3 +220,5 @@ float fbm3(vec2 p) {
     }
     return v;
 }
+
+// ---- effect body ----

@@ -1,4 +1,3 @@
-uniform float u_speed;
 uniform float u_turbulence; // hint_range(1.0, 3.0, 0.05) = 1.6  flame turbulence
 
 // Anisotropic flame field: tall not square, scrolls upward over time,
@@ -62,3 +61,6 @@ void main() {
 
     fragColor = vec4(finalize(col), 1.0);
 }
+
+// Output gain applied after the tonemap so the brightest pixel reaches full scale.
+float outGain() { return 1.36; }
