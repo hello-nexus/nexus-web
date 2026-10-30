@@ -156,7 +156,7 @@ export interface PanelThemeSettingsProps {
   deviceW?: number;
   /** Device native pixel height for the import conversion. */
   deviceH?: number;
-  /** Extra row rendered directly under Widget padding in the Widgets section (the per-device widget scale slider). */
+  /** Extra row rendered first in the Widgets section (the per-device widget scale slider). */
   widgetScaleRow?: ReactNode;
   /** Hide the widget-labels toggle. Single-widget surfaces (q-series) lock
    * labels off. */
@@ -376,6 +376,7 @@ export function PanelThemeSettings({
     <div className={styles.themePanel}>
       {showTheme && (!hideWidgetLabelsToggle || !hideWidgetChromeControls || widgetScaleRow) && (
         <SettingsSection title={label('panel.settings.widgets', 'Widgets')} boxClassName={styles.themeBox}>
+          {widgetScaleRow}
           {!hideWidgetLabelsToggle && (
             <SettingToggle
               label={label('panel.settings.widgetLabels', 'Widget labels')}
@@ -418,7 +419,6 @@ export function PanelThemeSettings({
               onCommit={onWidgetPaddingCommit}
             />
           )}
-          {widgetScaleRow}
         </SettingsSection>
       )}
 

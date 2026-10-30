@@ -5,6 +5,7 @@ import {
   cellInputOf, surfaceDisplayShape, surfaceInputMode, surfaceSupportsTouch, widgetDisplayShape, widgetInputOf, largeChromeGrid, type PanelSurface,
 } from './types';
 import { panelGridCapacityForCanvas } from './engine/grid';
+import { DEFAULT_SURFACE_DPI } from './engine/panelGrid';
 
 describe('surfaceInputMode', () => {
   it('maps every surface to its input method', () => {
@@ -119,6 +120,22 @@ describe('Widget size', () => {
     expect(panelLayoutDpi('monitor', 'icue-link-lcd5', 'small', 294, surfaceDpi)).toBe(294);
     // Other wide cooler glass keeps its one tile.
     expect(panelWidgetSizeOptions('lcd-wide', undefined)).toBeUndefined();
+  });
+
+  it('lays the Aftershock Glacier Matrix out as its wide tile when large and a monitor grid when small', () => {
+    expect(resolvePanelWidgetSize('lcd-wide', 'zmatrices-lcd', null)).toBe('large');
+    expect(resolvePanelWidgetSize('lcd-wide', 'zmatrices-lcd', 'bogus')).toBe('large');
+    expect(panelLayoutSurface('lcd-wide', 'zmatrices-lcd', null)).toBe('lcd-wide');
+    expect(panelLayoutSurface('lcd-wide', 'zmatrices-lcd', 'small')).toBe('monitor');
+    expect(panelLayoutDpi('lcd-wide', 'zmatrices-lcd', 'small', null, DEFAULT_SURFACE_DPI)).toBe(DEFAULT_SURFACE_DPI['lcd-wide']);
+    expect(panelLayoutDpi('lcd-wide', 'zmatrices-lcd', 'large', null, DEFAULT_SURFACE_DPI)).toBeUndefined();
+  });
+
+  it('doubles the Glacier Matrix grid at small and leaves the stored large tile at four by two', async () => {
+    const { probeLayout } = await import('./engine/widgetSizeProbe');
+    const glass = { id: 'z', surface: 'lcd-wide', family: 'zmatrices-lcd', width: 1120, height: 540, dpr: 1 } as const;
+    expect([undefined, 'large'].map(v => probeLayout(glass, v)).map(l => `${l.layoutSurface}/${l.columns}x${l.rows}`)).toEqual(['lcd-wide/4x2', 'lcd-wide/4x2']);
+    expect(`${probeLayout(glass, 'small').layoutSurface}/${probeLayout(glass, 'small').columns}x${probeLayout(glass, 'small').rows}`).toBe('monitor/8x4');
   });
 
   it('lays the ASUS Glacial LCD out as its one tile when large and a monitor grid when small', () => {
@@ -501,7 +518,7 @@ describe('stored widget size per device', () => {
       'large/y70/-', 'large/y70/-', 'large/y70/-', 'large/y70/-', 'medium/y70/6', 'compact/y70/8',
     ]);
     // Tile devices: large is the tile (100%), small the grid (50%); xsmall is not offered.
-    for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve']] as const) {
+    for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve'], ['lcd-wide', 'zmatrices-lcd']] as const) {
       expect([undefined, 'large', 'small', 'xsmall'].map(v => resolvePanelWidgetSize(surface, family, v))).toEqual(['large', 'large', 'small', 'large']);
     }
     // Grid devices: unset and small are 100%, a stored large keeps its own 200% stop, xsmall was never offered so it stays the default, compact is the 50%.
