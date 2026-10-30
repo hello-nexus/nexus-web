@@ -30,14 +30,15 @@ export function useMasterScalesDevices(enabled: boolean): MasterScalesDevicesSta
 
   const save = useCallback(async (next: boolean) => {
     const previous = on;
-    seqRef.current++;
+    const seq = ++seqRef.current;
     setOn(next);
     let ok = false;
     try {
       const res = await setMasterScalesDevices(next) as { error?: boolean } | null;
       ok = res !== null && !res.error;
     } catch { /* an empty or unreadable body counts as a failed save */ }
-    if (!ok) setOn(previous);
+    // A later save owns the displayed value; rolling back here would desync it.
+    if (!ok && seq === seqRef.current) setOn(previous);
   }, [on]);
 
   return { on, save };
