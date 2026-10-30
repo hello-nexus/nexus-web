@@ -3,12 +3,12 @@ import { FRAME_RATE_OFF, frameRateCaps, frameRateFromValue, frameRateValue, show
 
 describe('frameRateCaps', () => {
   it('offers Off then the lighting frame cap list', () => {
-    expect(frameRateCaps(null)).toEqual([null, 30, 20, 15, 10, 5, 1]);
+    expect(frameRateCaps(null)).toEqual([null, 30, 25, 20, 15, 10, 5, 1]);
   });
 
   it('keeps a stored cap outside the presets listed', () => {
-    expect(frameRateCaps(24)).toEqual([null, 30, 24, 20, 15, 10, 5, 1]);
-    expect(frameRateCaps(60)).toEqual([null, 60, 30, 20, 15, 10, 5, 1]);
+    expect(frameRateCaps(24)).toEqual([null, 30, 25, 24, 20, 15, 10, 5, 1]);
+    expect(frameRateCaps(60)).toEqual([null, 60, 30, 25, 20, 15, 10, 5, 1]);
   });
 });
 
