@@ -1,4 +1,5 @@
 @use '../../../styles/interactions' as *;
+@use '../../../styles/text' as *;
 
 /* Custom select: a button trigger (.trigger) with the chevron overlaid by the
    wrapper, and a portaled listbox (.menu) positioned in JS. Replaces the native
@@ -406,10 +407,7 @@
   column-gap: 1.25rem;
   padding: 0.4rem 0.9rem 0.6rem;
   color: var(--text-dim);
-  font-size: var(--type-mini);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  @include text-label;
 }
 
 .option.gridOption,
