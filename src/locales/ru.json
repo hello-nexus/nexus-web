@@ -1052,7 +1052,6 @@
   "devices.krakenEffect.taiChi": "Тай-цзи",
   "devices.krakenEffect.waterCooler": "Водяное охлаждение",
   "devices.lcd.flip180": "Повернуть на 180°",
-  "devices.lcd.frameRate": "Частота кадров",
   "devices.lcd.frameRateHint": "Ограничивает, как часто этот дисплей перерисовывается и обновляется. Меньшие значения снижают нагрузку на ЦП и GPU.",
   "devices.lcd.mirror": "Зеркально",
   "devices.lcd.mounting": "Установка",
