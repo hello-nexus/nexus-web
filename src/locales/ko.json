@@ -1044,7 +1044,6 @@
   "devices.krakenEffect.taiChi": "태극",
   "devices.krakenEffect.waterCooler": "수랭",
   "devices.lcd.flip180": "180° 회전",
-  "devices.lcd.frameRate": "프레임 속도",
   "devices.lcd.frameRateHint": "이 디스플레이를 다시 그리고 업데이트하는 빈도를 제한합니다. 값이 낮을수록 CPU와 GPU를 덜 사용합니다.",
   "devices.lcd.mirror": "좌우 반전",
   "devices.lcd.mounting": "장착",

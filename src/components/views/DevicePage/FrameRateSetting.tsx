@@ -62,7 +62,7 @@ export function FrameRateSetting({ recordId, cap }: Props) {
 
   return (
     <SettingSelect
-      label={t('devices.lcd.frameRate')}
+      label={t('lighting.ledMap.rateCap')}
       description={t('devices.lcd.frameRateHint')}
       value={frameRateValue(current)}
       options={frameRateCaps(current).map(hz => (hz === null

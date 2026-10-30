@@ -1052,7 +1052,6 @@
   "devices.krakenEffect.taiChi": "Tai Chi",
   "devices.krakenEffect.waterCooler": "Vodní chlazení",
   "devices.lcd.flip180": "Otočit o 180°",
-  "devices.lcd.frameRate": "Snímková frekvence",
   "devices.lcd.frameRateHint": "Omezuje, jak často se tento displej překresluje a aktualizuje. Nižší hodnoty šetří procesor i grafickou kartu.",
   "devices.lcd.mirror": "Zrcadlit",
   "devices.lcd.mounting": "Montáž",

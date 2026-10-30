@@ -14,7 +14,7 @@ vi.mock('../../../api/panel', () => ({ patchPanelDevice: api.patchPanelDevice })
 const toast = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('../../common/Toast/Toast', () => ({ useToastSafe: () => toast }));
 
-const LABEL = 'devices.lcd.frameRate';
+const LABEL = 'lighting.ledMap.rateCap';
 const OFF = 'lighting.ledMap.rateCapOff';
 const HZ = (hz: number) => `lighting.ledMap.rateCapHz:{"hz":${hz}}`;
 const trigger = () => screen.getByRole('button', { name: LABEL });

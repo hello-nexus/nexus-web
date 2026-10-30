@@ -1044,7 +1044,6 @@
   "devices.krakenEffect.taiChi": "Tai chi",
   "devices.krakenEffect.waterCooler": "Waterkoeling",
   "devices.lcd.flip180": "180° draaien",
-  "devices.lcd.frameRate": "Framesnelheid",
   "devices.lcd.frameRateHint": "Beperkt hoe vaak dit scherm opnieuw wordt getekend en bijgewerkt. Lagere waarden gebruiken minder CPU en GPU.",
   "devices.lcd.mirror": "Spiegelen",
   "devices.lcd.mounting": "Montage",

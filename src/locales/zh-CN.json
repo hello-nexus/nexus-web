@@ -1044,7 +1044,6 @@
   "devices.krakenEffect.taiChi": "太极",
   "devices.krakenEffect.waterCooler": "水冷",
   "devices.lcd.flip180": "旋转 180°",
-  "devices.lcd.frameRate": "帧率",
   "devices.lcd.frameRateHint": "限制此显示屏重绘和更新的频率。数值越低，占用的 CPU 和 GPU 越少。",
   "devices.lcd.mirror": "镜像",
   "devices.lcd.mounting": "安装方向",

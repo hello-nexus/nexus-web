@@ -1044,7 +1044,6 @@
   "devices.krakenEffect.taiChi": "太極",
   "devices.krakenEffect.waterCooler": "ウォータークーラー",
   "devices.lcd.flip180": "180°回転",
-  "devices.lcd.frameRate": "フレームレート",
   "devices.lcd.frameRateHint": "このディスプレイを再描画して更新する頻度を制限します。値を下げると CPU と GPU の使用量が減ります。",
   "devices.lcd.mirror": "左右反転",
   "devices.lcd.mounting": "取り付け",
