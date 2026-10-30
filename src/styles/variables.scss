@@ -195,6 +195,7 @@
   --z-floating:    20;     // sidebar, in-flow floating chrome
   --z-dropdown:   100;     // popover menus, profile dropdown, context menu
   --z-modal:     1000;     // modal backdrop + chrome
+  --z-toast:     1040;     // toasts: above modals, below popovers
   --z-popover:   1050;     // anchored pickers (Select, DatePicker) above modals
   --z-tooltip:   1100;     // hover / info tooltips, above popovers so a tooltip on a popover row reads
   --z-particles: 1200;     // transient decorative particles (HeartBurst) - pointer-events: none, so sitting above all interactive chrome blocks nothing

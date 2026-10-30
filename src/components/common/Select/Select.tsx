@@ -121,16 +121,18 @@ export interface SelectProps {
   leadingAction?: ReactNode;
   /** Draws the trigger's content for the selected option in place of its icon
    *  and label (e.g. a larger name followed by a status chip). Not called when
-   *  no option is selected, where the placeholder shows. The menu is unchanged. */
+   *  no option is selected, where the placeholder shows. The menu is unchanged.
+   *  Ignored in grid mode, where the trigger draws the option's grid cells. */
   renderValue?: (option: SelectOption) => ReactNode;
   /** Draws the trigger as a full-width bar and the menu at the same width, both
    *  laid out on one column grid so each option's `cells` line up under the bar
    *  and under the faint `headings` row (the first heading names the label
-   *  column). `template` is the CSS grid-template-columns of the label column,
-   *  one per cell, and a last column that holds the chevron and attached actions.
+   *  column). `columns` is the CSS grid-template-columns of the label column and
+   *  one per cell; the control adds a last column of its own that holds the
+   *  chevron and attached actions.
    *  Text that does not fit ellipsizes with the full text in a HoverTooltip.
    *  On a phone the columns collapse and the cells stack under the label. */
-  grid?: { headings: readonly string[]; template: string };
+  grid?: { headings: readonly string[]; columns: string };
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -212,6 +214,13 @@ function attachedToChosen(opts: readonly SelectOption[], i: number, value: strin
   return !opts[j].attached && !opts[j].onAction && opts[j].value === value;
 }
 
+// Whether the option an attached row hangs off is drawn on the grid (as a full-height row) rather than as a plain one.
+function ownerHasCells(opts: readonly SelectOption[], i: number): boolean {
+  let j = i;
+  while (j > 0 && opts[j].attached) j--;
+  return Boolean(opts[j].cells || opts[j].note);
+}
+
 // Dividers, headers and disabled options are never focusable or selectable.
 function selectable(o: SelectOption): boolean {
   return !o.disabled && !o.divider && !o.header;
@@ -235,7 +244,7 @@ function nextEnabled(opts: readonly SelectOption[], from: number, dir: 1 | -1): 
 }
 
 // Text that ellipsizes in its box, with the full text in a tooltip only while it is cut.
-function TruncText({ text, className }: { text: string; className?: string }) {
+function TruncText({ text, className, heading }: { text: string; className?: string; heading?: string }) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const [cut, setCut] = useState(false);
   useLayoutEffect(() => {
@@ -250,13 +259,17 @@ function TruncText({ text, className }: { text: string; className?: string }) {
   }, [text]);
   return (
     <HoverTooltip body={cut ? text : undefined}>
-      <span ref={ref} className={className}>{text}</span>
+      <span ref={ref} className={className}>
+        {/* The heading row is hidden from assistive tech, so each cell names its own column. */}
+        {heading && <span className={styles.srOnly}>{`${heading}: `}</span>}
+        {text}
+      </span>
     </HoverTooltip>
   );
 }
 
 // One option on the grid: label with its badge, then a cell per column or one note across them.
-function GridCells({ opt, count }: { opt: SelectOption; count: number }) {
+function GridCells({ opt, count, headings }: { opt: SelectOption; count: number; headings: readonly string[] }) {
   return (
     <>
       <span className={styles.gridName}>
@@ -266,7 +279,7 @@ function GridCells({ opt, count }: { opt: SelectOption; count: number }) {
       {opt.note ? <TruncText text={opt.note} className={classNames(styles.gridCell, styles.gridNote)} /> : (
         Array.from({ length: count }, (_, i) => {
           const cell = opt.cells?.[i];
-          return cell ? <TruncText key={i} text={cell} className={styles.gridCell} /> : <span key={i} />;
+          return cell ? <TruncText key={i} text={cell} className={styles.gridCell} heading={headings[i + 1]} /> : <span key={i} />;
         })
       )}
     </>
@@ -287,7 +300,7 @@ export function Select({
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
   const showPlaceholder = selectedIndex < 0 && placeholder != null;
   const cellCount = grid ? grid.headings.length - 1 : 0;
-  const gridStyle = grid ? ({ '--select-cols': grid.template } as React.CSSProperties) : undefined;
+  const gridStyle = grid ? ({ '--select-cols': `${grid.columns} var(--select-action-w)` } as React.CSSProperties) : undefined;
 
   // Offer the search field only on a keyboard/pointer device and once the list
   // is long enough to be worth typing through. The device class is read once
@@ -592,7 +605,7 @@ export function Select({
             className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder, grid && selectedIndex >= 0 && styles.gridValue)}
             style={gridStyle}
           >
-            {grid && selectedIndex >= 0 ? <GridCells opt={resolved[selectedIndex]} count={cellCount} /> : renderValue && selectedIndex >= 0 ? renderValue(resolved[selectedIndex]) : (
+            {grid && selectedIndex >= 0 ? <GridCells opt={resolved[selectedIndex]} count={cellCount} headings={grid.headings} /> : renderValue && selectedIndex >= 0 ? renderValue(resolved[selectedIndex]) : (
               <>
                 {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
                 {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
@@ -707,6 +720,7 @@ export function Select({
                     opt.attached && styles.attached,
                     grid && !opt.onAction && (opt.cells || opt.note ? styles.gridOption : styles.gridPlain),
                     grid && opt.attached && styles.gridAttached,
+                    grid && opt.attached && !ownerHasCells(visible, i) && styles.gridAttachedPlain,
                     opt.attached && attachedToChosen(visible, i, value) && styles.attachedChosen,
                     visible[i + 1]?.attached && (opt.attached ? attachedToChosen(visible, i, value) : !opt.onAction && opt.value === value) && styles.hasAttached,
                   )}
@@ -725,7 +739,7 @@ export function Select({
                     </HoverTooltip>
                   ) : null}
                   {opt.onAction && opt.hint && <span id={`${optionId(i)}-hint`} className={styles.srOnly} aria-hidden="true">{opt.hint}</span>}
-                  {grid && !opt.onAction && (opt.cells || opt.note) && <GridCells opt={opt} count={cellCount} />}
+                  {grid && !opt.onAction && (opt.cells || opt.note) && <GridCells opt={opt} count={cellCount} headings={grid.headings} />}
                   {!opt.onAction && !(grid && (opt.cells || opt.note)) && opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
                   {opt.onAction || (grid && (opt.cells || opt.note)) ? null : opt.description ? (
                     <span className={styles.optionText}>

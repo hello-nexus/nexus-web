@@ -387,15 +387,22 @@
 }
 
 .gridValue {
+  --select-action-w: 132px;
   display: grid;
   grid-template-columns: var(--select-cols);
   align-items: center;
   column-gap: 1.25rem;
-  overflow: visible;
+  overflow: hidden;
   text-overflow: clip;
 }
 
 .gridMenu {
+  // Row heights the attached actions overlay: an action sits over the row it hangs off.
+  --select-row-h: 64px;
+  --select-plain-h: 52px;
+  --select-row-gap: 2px;
+  --select-action-w: 132px;
+  --select-owner-h: var(--select-row-h);
   padding: 0.5rem;
   border-color: var(--accent);
   border-radius: var(--radius);
@@ -412,22 +419,20 @@
 
 .option.gridOption,
 .option.gridPlain {
-  display: grid;
   align-items: center;
-  min-height: 64px;
+  margin-bottom: var(--select-row-gap);
   padding: 0 0.9rem;
-  margin-bottom: 2px;
 }
 .option.gridOption {
+  display: grid;
   grid-template-columns: var(--select-cols);
   column-gap: 1.25rem;
-  height: 64px;
+  height: var(--select-row-h);
 }
 .option.gridPlain {
-  grid-template-columns: 1fr;
-  min-height: 52px;
   display: flex;
   gap: 0.5rem;
+  min-height: var(--select-plain-h);
 }
 
 .gridName {
@@ -466,14 +471,17 @@
    off; a second action follows below it. */
 .option.gridAttached {
   position: relative;
-  width: 132px;
-  height: 64px;
-  margin: -64px 0.9rem 0 auto;
+  width: var(--select-action-w);
+  height: var(--select-owner-h);
+  margin: calc(-1 * (var(--select-owner-h) + var(--select-row-gap))) 0.9rem var(--select-row-gap) auto;
   padding: 0;
   justify-content: flex-end;
   align-items: center;
   background: transparent;
   border-radius: 0;
+}
+.option.gridAttached.gridAttachedPlain {
+  --select-owner-h: var(--select-plain-h);
 }
 .option.gridAttached + .gridAttached {
   height: auto;

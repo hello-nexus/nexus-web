@@ -555,7 +555,7 @@ describe('Select in-place option swaps', () => {
 });
 
 describe('Select grid', () => {
-  const grid = { headings: ['PC', 'Processor', 'Graphics'], template: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 132px' };
+  const grid = { headings: ['PC', 'Processor', 'Graphics'], columns: 'minmax(0, 1fr) minmax(0, 1fr)' };
   const rows = [
     { value: 'a', label: 'Desk', cells: ['Ryzen 7', 'RTX 5080'], badge: <i>chip</i> },
     { value: 'b', label: 'Draft', note: 'No parts yet' },
@@ -565,11 +565,29 @@ describe('Select grid', () => {
   it('draws the selected option across the columns in the bar and again in its row', () => {
     render(<Select value="a" onChange={vi.fn()} options={rows} ariaLabel="fruit" grid={grid} />);
     const trigger = screen.getByRole('button', { name: 'fruit' });
-    expect(trigger).toHaveTextContent('DeskchipRyzen 7RTX 5080');
+    expect(trigger).toHaveTextContent('DeskchipProcessor: Ryzen 7Graphics: RTX 5080');
     const list = open();
-    expect(within(list).getAllByRole('option')[0]).toHaveTextContent('DeskchipRyzen 7RTX 5080');
+    expect(within(list).getAllByRole('option')[0]).toHaveTextContent('DeskchipProcessor: Ryzen 7Graphics: RTX 5080');
     expect(within(list).getAllByRole('option')[1]).toHaveTextContent('DraftNo parts yet');
     expect(document.querySelector('[data-select-menu]')).toHaveTextContent(/^PCProcessorGraphics/);
+  });
+
+  it('lets a row name its columns to assistive tech through the cell headings', () => {
+    render(<Select value="a" onChange={vi.fn()} options={rows} ariaLabel="fruit" grid={grid} />);
+    const list = open();
+    expect(within(list).getByRole('option', { name: /Desk.*Processor:\s*Ryzen 7.*Graphics:\s*RTX 5080/ })).toBeInTheDocument();
+  });
+
+  it('sizes an attached action to the row it hangs off', () => {
+    const attached = (owner: object) => [
+      { value: 'a', label: 'Desk', ...owner },
+      { value: 'act', label: 'Resync', onAction: vi.fn(), attached: true },
+    ];
+    const { unmount } = render(<Select value="a" onChange={vi.fn()} options={attached({ cells: ['x', 'y'] })} ariaLabel="fruit" grid={grid} />);
+    expect(within(open()).getByRole('option', { name: 'Resync' }).className).not.toMatch(/gridAttachedPlain/);
+    unmount();
+    render(<Select value="a" onChange={vi.fn()} options={attached({})} ariaLabel="fruit" grid={grid} />);
+    expect(within(open()).getByRole('option', { name: 'Resync' }).className).toMatch(/gridAttachedPlain/);
   });
 
   it('keeps choosing and keyboard navigation working', () => {
