@@ -47,6 +47,19 @@ describe('Select trailingAction', () => {
     expect(onTrail).toHaveBeenCalled();
     expect(screen.queryByRole('listbox')).toBeNull();
   });
+
+  it('closes an open list when the trailing action is pressed', () => {
+    render(
+      <Select
+        value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit"
+        trailingAction={<button type="button" aria-label="trail" />}
+      />,
+    );
+    open();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'trail' }));
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
 });
 
 describe('Select renderValue', () => {

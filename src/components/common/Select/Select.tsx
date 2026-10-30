@@ -493,7 +493,8 @@ export function Select({
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
       const t = e.target as Node;
-      if (wrapperRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      const onAction = (t as Element).closest?.(`.${styles.leadingAction}, .${styles.trailingAction}`);
+      if (!onAction && (wrapperRef.current?.contains(t) || menuRef.current?.contains(t))) return;
       close();
     };
     // Capture scroll also fires for the list's own overflow scrolling, which

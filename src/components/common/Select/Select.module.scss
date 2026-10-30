@@ -421,7 +421,7 @@ $select-action-w: 132px;
   }
 }
 
-.hasTrailing .trailingAction {
+.gridWrapper.hasTrailing .trailingAction {
   right: 2.9rem;
 }
 .hasTrailing .trigger.gridTrigger {
@@ -546,9 +546,6 @@ $select-action-w: 132px;
 @media (max-width: 760px) {
   .trigger.gridTrigger {
     padding: 0.85rem 2.6rem 0.85rem 1rem;
-  }
-  .hasTrailing .trigger.gridTrigger {
-    padding-right: 5.6rem;
   }
   .gridValue,
   .option.gridOption {
