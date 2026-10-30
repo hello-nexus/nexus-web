@@ -31,7 +31,7 @@ import { takePanelEditorTarget, type PanelEditorTarget } from '../../../panel/en
 import { resolveWidgetsLocked } from '../../../panel/engine/widgetLock';
 import { recordWidgetSizeOf } from '../../../panel/engine/recordWidgetSize';
 import { percentAtTrackIndex, stopForWidgetSize, trackIndexOfPercent, widgetSizeStops as widgetSizeStops_, widgetSizeTrackStops } from '../../../panel/engine/widgetSizeStops';
-import { monitorGridCapacity, recordCanvasOf, y70GridCapacity } from '../../../panel/engine/recordCanvas';
+import { monitorGridCapacity, recordCanvasOf } from '../../../panel/engine/recordCanvas';
 import { DEFAULT_SURFACE_DPI, densityShortSideSlots, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -45,7 +45,8 @@ import { panelSystemFontsAvailable } from '../../../panel/theme/panelFont';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
-import { fitLayoutToPages, fitLayoutToSinglePage, fitLayoutToSinglePageHolding, repaginatePanelLayout } from '../../../panel/engine/paginate';
+import { repaginatePanelLayout } from '../../../panel/engine/paginate';
+import { fitLayoutForWidgetSize, widgetSizeCapacity } from '../../../panel/engine/widgetSizeFit';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { ensureSimulatedPanelRecord, getPanelGridSizingSettings, getSimulatedPanelRecordId } from '../../../lib/panelSimulation';
 import {
@@ -1205,18 +1206,18 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)), isMonitorPanel);
     const kept = new Set(normalized.pages.flatMap(p => p.widgets.map(w => w.id)));
     const removed = layout.pages.flatMap(p => p.widgets).filter(w => !kept.has(w.id));
-    // A forced grid can leave widgets without room: they move to new pages where the
-    // panel can swipe, else they go.
+    // A size can leave widgets without room, forced grid or not (Large returns to the fixed grid):
+    // they move to new pages where the panel can swipe, else they go.
     const canvas = liveCanvas ?? device?.previewSize;
-    if (targetSlots === undefined || !canvas) return { layout: normalized, removed };
+    if (!canvas) return { layout: normalized, removed };
     const paddingRatio = panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding));
-    const capacity = target === 'y70'
-      ? y70GridCapacity(canvas, canvasDpr, liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70, paddingRatio, targetSlots)
-      : monitorGridCapacity(canvas, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor, paddingRatio, targetSlots);
-    if (genericSinglePage(genericDisplay, glassSurface, glassTouch)) return { layout: fitLayoutToSinglePageHolding(normalized, capacity), removed };
-    const fit = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay)
-      ? fitLayoutToPages(normalized, capacity, MAX_PANEL_PAGES)
-      : fitLayoutToSinglePage(normalized, capacity);
+    const dpi = target === 'y70' ? liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70 : layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
+    const capacity = widgetSizeCapacity(target, canvas, canvasDpr, dpi, paddingRatio, targetSlots);
+    if (!capacity) return { layout: normalized, removed };
+    const fitMode = genericSinglePage(genericDisplay, glassSurface, glassTouch)
+      ? 'holding'
+      : surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay) ? 'pages' : 'single';
+    const fit = fitLayoutForWidgetSize(normalized, capacity, fitMode, MAX_PANEL_PAGES);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
   }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, liveDpi, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);

@@ -61,21 +61,23 @@ function settlesWithin(
 }
 
 describe('panel editor layout sync', () => {
-  it('an in-place grow on a full page settles immediately, rendered stacked', () => {
+  it('an in-place grow on a full page settles in one pass, the overflow on a following page', () => {
     const base: PanelLayout = {
       layoutSchemaVersion: 2,
       surface: 'y70',
       pages: [{ id: 'p1', widgets: fullY70Page() }],
     };
-    // A raw in-place grow over-fills the page. The composition settles (the
-    // over-capacity page keeps its clamped, overlapping positions - a stable
-    // fixed point), but the widgets render stacked; tryResizeWidget exists so
-    // an editor grow paginates instead of ever producing this shape.
+    // A raw in-place grow over-fills the page. The first pass spills what no
+    // longer fits onto a following page, which is a fixed point (nothing
+    // overlaps); tryResizeWidget exists so an editor grow paginates up front.
     const inPlace: PanelLayout = {
       ...base,
       pages: [{ ...base.pages[0], widgets: base.pages[0].widgets.map(x => x.id === 'x0' ? { ...x, size: '4x4' } : x) }],
     };
-    expect(settlesWithin(inPlace, 20)).toBe(0);
+    expect(settlesWithin(inPlace, 20)).toBe(1);
+    const shown = repaginatePanelLayout(normalizePanelLayout(inPlace, 'y70'), Y70_CAP);
+    expect(shown.pages.length).toBeGreaterThan(1);
+    expect(shown.pages.flatMap(p => p.widgets)).toHaveLength(FULL_PAGE_COUNT);
   });
 
   it('resizing via tryResizeWidget paginates the grow and settles immediately', () => {

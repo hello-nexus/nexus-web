@@ -256,20 +256,24 @@ export function layoutRowExtent(layout: PanelLayout): number {
 /**
  * Re-fits every widget to the given capacity. Each (col, row) is first
  * clamped so its rect stays in bounds; clamping toward the same edge can
- * collapse a stack onto one cell (portrait→landscape shrinks the row
+ * collapse a stack onto one cell (portrait to landscape shrinks the row
  * axis, so widgets pinned past the new last row land on top of each
  * other). When a page still overlaps after clamping, it is repacked to
  * fit the current grid (`repackToFit`, long-axis flow) so nothing
  * overlaps or clips; a page that clamps cleanly keeps its positions and
- * any intentional gaps. Returns the same layout reference when nothing
- * changes so consumers can `===`-check (PanelDevicePage's conform effect
- * would otherwise setLayout every render).
+ * any intentional gaps. A page holding more widget area than the grid
+ * (a scale-up, a layout saved for a bigger grid) spills what does not fit
+ * onto following pages (`reflowPage`), so no page ever draws an overlap.
+ * Returns the same layout reference when nothing changes so consumers can
+ * `===`-check (PanelDevicePage's conform effect would otherwise setLayout
+ * every render).
  */
 export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCapacity): PanelLayout {
   const cols = Math.max(1, Math.floor(capacity.gridCols));
   const rows = Math.max(1, Math.floor(capacity.pageRows));
   let changed = false;
-  const pages: PanelPage[] = layout.pages.map(page => {
+  const takenIds = new Set(layout.pages.map(p => p.id));
+  const pages: PanelPage[] = layout.pages.flatMap(page => {
     const clamped = page.widgets.map(w => {
       const span = sizeToSpan(w.size);
       const colSpan = Math.max(1, Math.min(span.cols, cols));
@@ -279,23 +283,98 @@ export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCap
       return { ...w, col, row };
     });
     // Repack from the original (pre-clamp) positions to keep reading order,
-    // but only adopt it if it actually fits. An over-capacity page (more
-    // widget area than the grid holds) can't be packed clean and isn't a
-    // fixed point under re-clamp, which would loop the editor's conform
-    // effect - so keep the clamped result there (clamp IS idempotent).
-    // Pagination, not packing, owns real overflow.
+    // but only adopt it if it actually fits.
     let widgets = clamped;
     if (pageHasOverlap(clamped, cols)) {
       const repacked = repackToFit(page.widgets, cols, rows);
       if (pageFitsGrid(repacked, cols, rows)) widgets = repacked;
     }
+    // One widget cannot overlap anything; a lone oversize widget stays clamped.
+    if (widgets.length > 1 && !pageFitsGrid(widgets, cols, rows)) {
+      changed = true;
+      return reflowPage(page, cols, rows, overflowPageIds(page.id, takenIds));
+    }
     const pageChanged = widgets.some((w, i) =>
       w.col !== page.widgets[i].col || w.row !== page.widgets[i].row);
-    if (!pageChanged) return page;
+    if (!pageChanged) return [page];
     changed = true;
-    return { ...page, widgets };
+    return [{ ...page, widgets }];
   });
   return changed ? { ...layout, pages } : layout;
+}
+
+/**
+ * Lays one page out on the grid with nothing overlapping, in reading order:
+ * each widget takes the first free rect of the current page, and one that does
+ * not fit opens a page right after it, never going back to fill an earlier
+ * page, so the order survives. `idFor(n)` names the nth added page. A widget
+ * taller than the whole grid gets a page to itself, clamped to its corner, so
+ * a re-run finds a lone widget and changes nothing. `first` is placed ahead of
+ * the rest.
+ */
+function reflowPage(page: PanelPage, cols: number, rows: number, idFor: (n: number) => string, first?: string): PanelPage[] {
+  const out: PanelPage[] = [];
+  let current: PanelWidget[] = [];
+  const close = () => {
+    out.push({ ...page, id: out.length === 0 ? page.id : idFor(out.length), widgets: current });
+    current = [];
+  };
+  const ordered = flattenPages([page]);
+  const lead = ordered.filter(w => w.id === first);
+  for (const w of [...lead, ...ordered.filter(o => o.id !== first)]) {
+    const rect = widgetRect(w, cols);
+    if (rect.rowSpan > rows) {
+      if (current.length > 0) close();
+      current.push({ ...w, col: 0, row: 0 });
+      close();
+      continue;
+    }
+    let slot = firstFreeRect(current, cols, rows, rect.colSpan, rect.rowSpan);
+    if (!slot && current.length > 0) {
+      close();
+      slot = firstFreeRect(current, cols, rows, rect.colSpan, rect.rowSpan);
+    }
+    current.push({ ...w, col: slot?.col ?? 0, row: slot?.row ?? 0 });
+  }
+  if (current.length > 0 || out.length === 0) close();
+  return out;
+}
+
+// Names spill pages after their source page, skipping any id the layout already holds.
+function overflowPageIds(pageId: string, taken: Set<string>) {
+  return (n: number) => {
+    let id = `${pageId}-overflow-${n}`;
+    for (let k = n; taken.has(id); k++) id = `${pageId}-overflow-${k + 1}`;
+    taken.add(id);
+    return id;
+  };
+}
+
+/**
+ * Reflows every page that does not fit the grid (a Widget scale change): its
+ * widgets keep their reading order and sizes, what does not fit opens a page
+ * right after it, and past maxPages is dropped. Pages that already fit keep
+ * their cells. Returns the input when every page already fits.
+ */
+export function reflowLayoutToPages(
+  layout: PanelLayout,
+  capacity: PaginateCapacity,
+  maxPages: number,
+): { layout: PanelLayout; dropped: PanelWidget[] } {
+  const cols = Math.max(1, Math.floor(capacity.gridCols));
+  const rows = Math.max(1, Math.floor(capacity.pageRows));
+  if (layout.pages.every(p => pageFitsGrid(p.widgets, cols, rows))) return { layout, dropped: [] };
+  const dropped: PanelWidget[] = [];
+  const pages: PanelPage[] = [];
+  layout.pages.forEach((page, index) => {
+    const reflowed = pageFitsGrid(page.widgets, cols, rows) ? [page] : reflowPage(page, cols, rows, () => createUuid(), index === 0 ? layout.immersiveOnLoadWidgetId : undefined);
+    for (const [n, out] of reflowed.entries()) {
+      // A stored page stays even when emptied: activePageId may name it.
+      if (n === 0 || pages.length + (layout.pages.length - index - 1) < maxPages) pages.push(out);
+      else dropped.push(...out.widgets);
+    }
+  });
+  return { layout: { ...layout, pages }, dropped };
 }
 
 /**
