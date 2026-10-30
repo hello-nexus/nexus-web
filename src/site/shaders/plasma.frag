@@ -1,4 +1,3 @@
-uniform float u_speed;
 uniform float u_warp; // hint_range(0.0, 2.0, 0.05) = 1.0  domain-warp intensity
 uniform float u_zoom; // hint_range(0.5, 3.0, 0.05) = 1.0  spatial frequency
 void main() {
@@ -20,3 +19,5 @@ void main() {
     col *= 1.0 - 0.25 * smoothstep(0.8, 1.6, length(uv));
     fragColor = vec4(finalize(col * 1.15), 1.0);
 }
+
+float outGain() { return 1.77; }

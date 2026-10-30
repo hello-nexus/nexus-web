@@ -1,4 +1,3 @@
-uniform float u_speed;
 uniform float u_arms; // hint_range(1.0, 10.0, 1.0) = 5.0  number of spiral arms
 uniform float u_tightness; // hint_range(2.0, 16.0, 0.5) = 8.0  radial frequency
 void main() {
@@ -15,3 +14,5 @@ void main() {
     col *= 1.0 - 0.4 * smoothstep(0.8, 1.4, r);
     fragColor = vec4(finalize(col * 1.3), 1.0);
 }
+
+float outGain() { return 1.68; }
