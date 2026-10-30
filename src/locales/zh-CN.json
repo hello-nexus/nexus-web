@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "当前：{level}",
   "lighting.schedule.reset": "恢复默认",
   "lighting.schedule.row.action": "编辑",
-  "lighting.schedule.row.description": "按时间段安排亮度，电脑闲置时调暗灯光，并选择主亮度是否与每个设备的亮度相乘。",
+  "lighting.schedule.row.description": "按时间段安排亮度，电脑闲置时调暗灯光，并选择主亮度如何影响设备。",
   "lighting.schedule.row.label": "亮度设置",
   "lighting.schedule.row.on": "计划已开启",
   "lighting.schedule.sun.description": "亮度跟随今天的日出和日落。关闭后使用你的自定义曲线。",

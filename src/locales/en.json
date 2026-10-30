@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "Right now: {level}",
   "lighting.schedule.reset": "Reset to default",
   "lighting.schedule.row.action": "Edit",
-  "lighting.schedule.row.description": "Schedule brightness by time of day, dim when your PC is idle, and choose whether master brightness multiplies each device.",
+  "lighting.schedule.row.description": "Schedule brightness by time of day, dim when your PC is idle, and choose how master brightness affects devices.",
   "lighting.schedule.row.label": "Brightness settings",
   "lighting.schedule.row.on": "Schedule on",
   "lighting.schedule.sun.description": "Brightness follows today's sunrise and sunset. Off uses your custom curve.",

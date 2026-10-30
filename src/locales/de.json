@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "Gerade jetzt: {level}",
   "lighting.schedule.reset": "Auf Standard zurücksetzen",
   "lighting.schedule.row.action": "Bearbeiten",
-  "lighting.schedule.row.description": "Plane die Helligkeit nach Tageszeit, dimme bei Inaktivität deines PCs und lege fest, ob die Gesamthelligkeit die Helligkeit jedes Geräts multipliziert.",
+  "lighting.schedule.row.description": "Plane die Helligkeit nach Tageszeit, dimme bei Inaktivität deines PCs und lege fest, wie die Gesamthelligkeit deine Geräte beeinflusst.",
   "lighting.schedule.row.label": "Helligkeitseinstellungen",
   "lighting.schedule.row.on": "Zeitplan an",
   "lighting.schedule.sun.description": "Die Helligkeit folgt dem heutigen Sonnenaufgang und Sonnenuntergang. Aus verwendet Ihre eigene Kurve.",

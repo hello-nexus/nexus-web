@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "Ahora mismo: {level}",
   "lighting.schedule.reset": "Restablecer valores predeterminados",
   "lighting.schedule.row.action": "Editar",
-  "lighting.schedule.row.description": "Programa el brillo según la hora del día, atenúa la iluminación cuando el PC está inactivo y elige si el brillo principal multiplica el de cada dispositivo.",
+  "lighting.schedule.row.description": "Programa el brillo según la hora del día, atenúa la iluminación cuando el PC está inactivo y elige cómo afecta el brillo principal a los dispositivos.",
   "lighting.schedule.row.label": "Ajustes de brillo",
   "lighting.schedule.row.on": "Programación activa",
   "lighting.schedule.sun.description": "El brillo sigue el amanecer y el atardecer de hoy. Desactivado usa tu curva personalizada.",

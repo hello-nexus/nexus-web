@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "現在: {level}",
   "lighting.schedule.reset": "デフォルトに戻す",
   "lighting.schedule.row.action": "編集",
-  "lighting.schedule.row.description": "時刻に応じた明るさのスケジュール、PCがアイドル中の減光、マスター輝度を各デバイスの明るさに掛け合わせるかどうかを設定できます。",
+  "lighting.schedule.row.description": "時刻に応じた明るさのスケジュール、PCがアイドル中の減光、マスター輝度がデバイスにどう影響するかを設定できます。",
   "lighting.schedule.row.label": "明るさの設定",
   "lighting.schedule.row.on": "スケジュール オン",
   "lighting.schedule.sun.description": "明るさは今日の日の出と日の入りに従います。オフにすると、独自のカーブを使用します。",

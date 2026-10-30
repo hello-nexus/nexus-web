@@ -3614,7 +3614,7 @@
   "lighting.schedule.now.on": "Teraz: {level}",
   "lighting.schedule.reset": "Przywróć domyślne",
   "lighting.schedule.row.action": "Edytuj",
-  "lighting.schedule.row.description": "Zaplanuj jasność według pory dnia, ściemniaj światła, gdy komputer jest bezczynny, i wybierz, czy jasność główna mnoży jasność każdego urządzenia.",
+  "lighting.schedule.row.description": "Zaplanuj jasność według pory dnia, ściemniaj światła, gdy komputer jest bezczynny, i wybierz, jak jasność główna wpływa na urządzenia.",
   "lighting.schedule.row.label": "Ustawienia jasności",
   "lighting.schedule.row.on": "Harmonogram włączony",
   "lighting.schedule.sun.description": "Jasność podąża za dzisiejszym wschodem i zachodem słońca. Po wyłączeniu używana jest Twoja własna krzywa.",

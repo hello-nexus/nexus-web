@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "En ce moment : {level}",
   "lighting.schedule.reset": "Rétablir la valeur par défaut",
   "lighting.schedule.row.action": "Modifier",
-  "lighting.schedule.row.description": "Planifiez la luminosité selon l'heure, atténuez l'éclairage quand votre PC est inactif et choisissez si la luminosité principale multiplie celle de chaque appareil.",
+  "lighting.schedule.row.description": "Planifiez la luminosité selon l'heure, atténuez l'éclairage quand votre PC est inactif et choisissez comment la luminosité principale agit sur les appareils.",
   "lighting.schedule.row.label": "Réglages de luminosité",
   "lighting.schedule.row.on": "Programme activé",
   "lighting.schedule.sun.description": "La luminosité suit le lever et le coucher du soleil du jour. Désactivé, votre courbe personnalisée est utilisée.",

@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "In chest moment: {level}",
   "lighting.schedule.reset": "Torne ai valôrs predefinîts",
   "lighting.schedule.row.action": "Modifiche",
-  "lighting.schedule.row.description": "Programe la lusôr daspï de ore dal dì, sbassile cuant che il PC al è inatîf e sielç se la lusôr gjenerâl e moltipliche chê di ogni dispositîf.",
+  "lighting.schedule.row.description": "Programe la lusôr daspï de ore dal dì, sbassile cuant che il PC al è inatîf e sielç cemût che la lusôr gjenerâl e influìs sui dispositîfs.",
   "lighting.schedule.row.label": "Impostazions di lusôr",
   "lighting.schedule.row.on": "Program ativ",
   "lighting.schedule.sun.description": "La luminositât e va daûr dal jevâ e dal tramont dal soreli di vuê. Disativât, al dopre la tô curve personalizade.",

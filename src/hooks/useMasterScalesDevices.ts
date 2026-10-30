@@ -9,7 +9,7 @@ export interface MasterScalesDevicesState {
   save: (next: boolean) => Promise<void>;
 }
 
-/** Whether master brightness multiplies each device's brightness instead of capping it. */
+/** On: master brightness multiplies each device's brightness; off: it caps it. */
 export function useMasterScalesDevices(enabled: boolean): MasterScalesDevicesState {
   const [on, setOn] = useState<boolean | null>(null);
   // Bumped by every save: a GET that began before one is stale.

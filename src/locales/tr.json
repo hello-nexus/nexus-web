@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "Şu anda: {level}",
   "lighting.schedule.reset": "Varsayılana sıfırla",
   "lighting.schedule.row.action": "Düzenle",
-  "lighting.schedule.row.description": "Parlaklığı günün saatine göre zamanlayın, bilgisayarınız boştayken ışıkları kısın ve ana parlaklığın her cihazın parlaklığıyla çarpılıp çarpılmayacağını seçin.",
+  "lighting.schedule.row.description": "Parlaklığı günün saatine göre zamanlayın, bilgisayarınız boştayken ışıkları kısın ve ana parlaklığın cihazları nasıl etkileyeceğini seçin.",
   "lighting.schedule.row.label": "Parlaklık ayarları",
   "lighting.schedule.row.on": "Zamanlama açık",
   "lighting.schedule.sun.description": "Parlaklık bugünkü gün doğumunu ve gün batımını izler. Kapalıyken kendi özel eğriniz kullanılır.",

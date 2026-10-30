@@ -3614,7 +3614,7 @@
   "lighting.schedule.now.on": "Právě teď: {level}",
   "lighting.schedule.reset": "Obnovit výchozí",
   "lighting.schedule.row.action": "Upravit",
-  "lighting.schedule.row.description": "Plánujte jas podle denní doby, ztlumte světla při nečinnosti PC a zvolte, zda hlavní jas násobí jas každého zařízení.",
+  "lighting.schedule.row.description": "Plánujte jas podle denní doby, ztlumte světla při nečinnosti PC a zvolte, jak hlavní jas ovlivňuje zařízení.",
   "lighting.schedule.row.label": "Nastavení jasu",
   "lighting.schedule.row.on": "Plán zapnut",
   "lighting.schedule.sun.description": "Jas se řídí dnešním východem a západem slunce. Při vypnutí se použije vaše vlastní křivka.",

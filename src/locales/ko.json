@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "지금: {level}",
   "lighting.schedule.reset": "기본값으로 재설정",
   "lighting.schedule.row.action": "편집",
-  "lighting.schedule.row.description": "시간대별 밝기 일정, PC 유휴 시 밝기 낮추기, 마스터 밝기를 각 기기 밝기에 곱할지 여부를 설정합니다.",
+  "lighting.schedule.row.description": "시간대별 밝기 일정, PC 유휴 시 밝기 낮추기, 마스터 밝기가 기기에 적용되는 방식을 설정합니다.",
   "lighting.schedule.row.label": "밝기 설정",
   "lighting.schedule.row.on": "일정 켜짐",
   "lighting.schedule.sun.description": "밝기가 오늘의 일출과 일몰을 따릅니다. 끄면 직접 만든 곡선을 사용합니다.",

@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "Nu: {level}",
   "lighting.schedule.reset": "Standaard herstellen",
   "lighting.schedule.row.action": "Bewerken",
-  "lighting.schedule.row.description": "Plan de helderheid op tijdstip, dim als je pc inactief is en kies of de hoofdhelderheid de helderheid van elk apparaat vermenigvuldigt.",
+  "lighting.schedule.row.description": "Plan de helderheid op tijdstip, dim als je pc inactief is en kies hoe de hoofdhelderheid je apparaten beïnvloedt.",
   "lighting.schedule.row.label": "Helderheidsinstellingen",
   "lighting.schedule.row.on": "Schema aan",
   "lighting.schedule.sun.description": "De helderheid volgt de zonsopgang en zonsondergang van vandaag. Uit gebruikt je eigen curve.",

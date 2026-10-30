@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "Agora: {level}",
   "lighting.schedule.reset": "Restaurar padrão",
   "lighting.schedule.row.action": "Editar",
-  "lighting.schedule.row.description": "Programe o brilho por horário, reduza a iluminação quando o PC estiver ocioso e escolha se o brilho principal multiplica o de cada dispositivo.",
+  "lighting.schedule.row.description": "Programe o brilho por horário, reduza a iluminação quando o PC estiver ocioso e escolha como o brilho principal afeta os dispositivos.",
   "lighting.schedule.row.label": "Configurações de brilho",
   "lighting.schedule.row.on": "Agenda ativada",
   "lighting.schedule.sun.description": "O brilho segue o nascer e o pôr do sol de hoje. Desativado, usa sua curva personalizada.",

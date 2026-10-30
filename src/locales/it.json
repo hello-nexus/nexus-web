@@ -3578,7 +3578,7 @@
   "lighting.schedule.now.on": "In questo momento: {level}",
   "lighting.schedule.reset": "Ripristina predefinita",
   "lighting.schedule.row.action": "Modifica",
-  "lighting.schedule.row.description": "Programma la luminosità in base all'ora del giorno, attenua le luci quando il PC è inattivo e scegli se la luminosità principale moltiplica quella di ogni dispositivo.",
+  "lighting.schedule.row.description": "Programma la luminosità in base all'ora del giorno, attenua le luci quando il PC è inattivo e scegli come la luminosità principale influisce sui dispositivi.",
   "lighting.schedule.row.label": "Impostazioni luminosità",
   "lighting.schedule.row.on": "Pianificazione attiva",
   "lighting.schedule.sun.description": "La luminosità segue l'alba e il tramonto di oggi. Se è disattivato, usa la tua curva personalizzata.",
