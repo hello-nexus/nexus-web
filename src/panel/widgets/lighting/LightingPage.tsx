@@ -1302,6 +1302,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const clamped = Math.min(Math.max(idx, 0), bundle.slots.length - 1);
     const nextBundle: EffectTemplateBundle = { ...bundle, selected: clamped };
     const nextTemplates = { ...effectTemplates, [target]: nextBundle };
+    if (viewMode === 'animate') recordAnimation(target, clamped);
     writeTemplates(nextTemplates, target === activeEffect ? target : null, true);
     // Selection is instant and the slot's params are unchanged, so the committed
     // snapshot can advance immediately (no save race).
@@ -1318,7 +1319,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       templateIndex: clamped,
       effectState: nextBundle.slots[clamped],
     });
-  }, [activeEffect, effectTemplates, pinStaticLook, pinTarget, focusIds, stateOf, writeTemplates]);
+  }, [activeEffect, effectTemplates, pinStaticLook, pinTarget, focusIds, recordAnimation, stateOf, viewMode, writeTemplates]);
 
   const handleStatePatch = useCallback((patch: Partial<EffectState>, commit = false) => {
     if (!dockEffect || !dockState) return;
@@ -2316,7 +2317,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const seq = ++simpleSeqRef.current;
     const slot0 = await selectSimpleSlot(key, seq);
     if (!slot0 || seq !== simpleSeqRef.current) return;
-    recordAnimation(key);
+    recordAnimation(key, SIMPLE_SLOT);
     claimAllDevices(false);
     unpinAll();
     setActiveEffect(key);
@@ -2616,7 +2617,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const toggleDock = useCallback(() => setDockCollapsed(c => !c), [setDockCollapsed]);
   const handleEffectPick = (key: string) => {
     if (!(key === gridEffect && selectedDeviceIds.size === 0)) pulsePick();
-    if (viewMode === 'animate') recordAnimation(key);
+    if (viewMode === 'animate') recordAnimation(key, gridSlotFor(key));
     handleEffectSelect(key);
   };
   // The colour the selection wears, which is where its dots sit on the field.

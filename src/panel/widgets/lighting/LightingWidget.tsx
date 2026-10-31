@@ -10,6 +10,7 @@ import {
   fetchLightingStatus,
   fetchScreenEffect,
   fetchStaticSettings,
+  saveAnimateTemplates,
   startAnimate,
   startStatic,
   startScreenMirror,
@@ -28,6 +29,7 @@ import { SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, s
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
+import { customEffectKey, isCustomEffectKey, useCustomEffects } from '../../../api/customEffects';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
@@ -93,6 +95,18 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // Animate would drop the user's animation for the catalog default.
   const animateEffectRef = useRef('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
+  // The service's stored bundles and the canonical defaults, kept so Studio effects can be resolved as they appear.
+  const [stored, setStored] = useState<{ server: Record<string, EffectTemplateBundle>; defaults: Awaited<ReturnType<typeof fetchAnimateDefaults>> }>({ server: {}, defaults: null });
+  const customs = useCustomEffects(!preview && flags.lighting);
+  // Built-in presets plus those of every saved Studio effect, so a recent tile of either kind resolves its own preset.
+  const allTemplates = useMemo(() => {
+    const out = { ...templates };
+    for (const c of customs) {
+      const key = customEffectKey(c.id);
+      out[key] = mergeTemplates(key, stored.server[key], stored.defaults);
+    }
+    return out;
+  }, [templates, customs, stored]);
   // Direction of a running simple-mode animation: its stored speed sign against preset 1's.
   const [sweepReversed, setSweepReversed] = useState(false);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -161,6 +175,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       nextTemplates[effect.key] = mergeTemplates(effect.key, animate?.templates?.[effect.key], defaults);
     }
     setTemplates(nextTemplates);
+    setStored({ server: (animate?.templates ?? {}) as Record<string, EffectTemplateBundle>, defaults });
 
     const rawSync = sync?.sync || 'none';
     const nextMode = resolveMode(rawSync);
@@ -169,7 +184,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     // settings still hold the pick once another mode takes over - so the ref
     // tracks it whatever mode we hydrate into.
     const animatePick = [canonicalSimpleKey(rawSync), animate?.effect]
-      .find(k => ANIMATE_EFFECTS.some(e => e.key === k));
+      .find(k => ANIMATE_EFFECTS.some(e => e.key === k) || isCustomEffectKey(k));
     if (animatePick) animateEffectRef.current = animatePick;
     // A key retired from simple mode (older service) shows as its replacement.
     const syncEffect = canonicalSimpleKey(rawSync);
@@ -180,7 +195,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     }
     const nextEffect = nextMode === 'static'
       ? staticEffectRef.current
-      : EFFECTS.some(e => e.key === syncEffect)
+      : EFFECTS.some(e => e.key === syncEffect) || isCustomEffectKey(syncEffect)
         ? syncEffect
         : animateEffectRef.current;
     setActiveEffect(nextEffect);
@@ -318,6 +333,18 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     );
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
   }, [publishLighting, templates]);
+
+  // A recents tile: the effect at the preset it shows. The preset becomes the effect's selected one, as picking it on the page does.
+  const applyRecentAnimation = useCallback(async (effectKey: string, slot: number) => {
+    const bundle = allTemplates[effectKey];
+    const picked = bundle?.slots[Math.min(Math.max(slot, 0), bundle.slots.length - 1)];
+    await applyEffect(effectKey, picked ? resolveEffectState(effectKey, allTemplates, picked) : undefined, slot);
+    if (!bundle || bundle.selected === slot) return;
+    const next: Record<string, EffectTemplateBundle> = { ...templates };
+    for (const [k, v] of Object.entries(stored.server)) if (isCustomEffectKey(k)) next[k] = v;
+    next[effectKey] = { ...bundle, selected: slot };
+    try { await saveAnimateTemplates(next); } catch { /* the tile still ran; the next hydrate shows what persisted */ }
+  }, [allTemplates, applyEffect, stored, templates]);
 
   const applyStatic = useCallback(async (effectKey: string, state?: EffectState) => {
     const next = state ?? resolveEffectState(effectKey, templates);
@@ -576,13 +603,13 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         size={widget.size}
         activeEffect={activeEffect}
         activeColor={activeColor}
-        templates={templates}
+        templates={allTemplates}
         preview={preview}
         showRecents={showRecents}
         recentColors={recents.colors}
         recentAnimations={recents.animations}
         onColor={hex => { void applyColor(hex); }}
-        onEffect={key => { void applyEffect(key); }}
+        onEffect={(key, slot) => { void applyRecentAnimation(key, slot); }}
         onOpen={openAction}
       />
     )

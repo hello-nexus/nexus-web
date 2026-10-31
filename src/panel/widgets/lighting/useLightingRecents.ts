@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import { pushRecent } from './recents';
+import { pushRecent, pushRecentAnimation } from './recents';
 
 const NONE: readonly string[] = [];
 
@@ -17,8 +17,9 @@ export function useLightingRecents() {
     colorsRef.current = pushRecent(colorsRef.current, hex);
     update({ recentStaticColors: colorsRef.current });
   }, [update]);
-  const recordAnimation = useCallback((key: string) => {
-    animationsRef.current = pushRecent(animationsRef.current, key);
+  /** `slot` is the 0-based preset picked with the effect. */
+  const recordAnimation = useCallback((key: string, slot: number) => {
+    animationsRef.current = pushRecentAnimation(animationsRef.current, key, slot);
     update({ recentAnimations: animationsRef.current });
   }, [update]);
   return { colors, animations, recordColor, recordAnimation };

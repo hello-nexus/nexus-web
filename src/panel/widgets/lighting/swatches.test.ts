@@ -47,4 +47,30 @@ describe('swatches', () => {
     expect(keys).toEqual(['aurora', 'rainbow', 'plasma', 'fire']);
     expect(pickAnimationTiles(['aurora'], false, 2).map(e => e.key)).toEqual(['rainbow', 'plasma']);
   });
+
+  describe('animation recents', () => {
+    const names = new Map([['abc', 'Sunset']]);
+
+    it('keeps the preset picked and treats a bare key as the current preset', () => {
+      const tiles = pickAnimationTiles(['fire@2', 'plasma'], true, 4, { selectedSlot: k => (k === 'plasma' ? 1 : 0) });
+      expect(tiles.slice(0, 2).map(t => [t.key, t.slot])).toEqual([['fire', 2], ['plasma', 1]]);
+    });
+
+    it('lists one effect at two presets twice and the same preset once', () => {
+      const tiles = pickAnimationTiles(['fire@2', 'fire@0', 'fire@2'], true, 5);
+      expect(tiles.filter(t => t.key === 'fire').map(t => t.slot)).toEqual([2, 0]);
+    });
+
+    it('shows a Studio effect by its name and drops one that no longer exists', () => {
+      const tiles = pickAnimationTiles(['custom:abc@3', 'custom:gone@0'], true, 4, { customs: names });
+      expect(tiles[0]).toMatchObject({ key: 'custom:abc', slot: 3, label: 'Sunset' });
+      expect(tiles.some(t => t.key === 'custom:gone')).toBe(false);
+    });
+
+    it('drops unknown keys and clamps an out-of-range slot', () => {
+      const tiles = pickAnimationTiles(['nope@1', 'fire@9'], true, 3);
+      expect(tiles.some(t => t.key === 'nope')).toBe(false);
+      expect(tiles[0]).toMatchObject({ key: 'fire', slot: 3 });
+    });
+  });
 });

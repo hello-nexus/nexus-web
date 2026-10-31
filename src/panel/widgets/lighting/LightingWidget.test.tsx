@@ -2,18 +2,21 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import {
-  fetchAnimateSettings, fetchCurrentSync, setMusicReactive, setScreenEffect, startAnimate,
+  fetchAnimateSettings, fetchCurrentSync, saveAnimateTemplates, setMusicReactive, setScreenEffect, startAnimate,
   startScreenMirror, startStatic, stopLighting,
 } from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { CONTROL_SELECTOR } from '../../engine/usePanelTouchMode';
 import { PanelOpenWidgetProvider } from '../common/PanelOpenWidgetContext';
+import { slotThumbSignature } from '../../../types/lightingTemplates';
+import { defaultStateFor, type EffectState } from '../../../types/lighting';
 import { paletteColor } from '../../../types/lightingPalette';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
-  effectThumbnailPath: (key: string) => `/lighting/effects/${key}/thumbnail.bmp`,
+  effectThumbnailPath: (key: string, slot: number, v: string) => `/lighting/effects/${key}/thumbnail.bmp?slot=${slot}&v=${v}`,
+  saveAnimateTemplates: vi.fn(() => Promise.resolve({})),
   fetchAnimateDefaults: vi.fn(() => Promise.resolve(null)),
   cachedAnimateDefaults: vi.fn(() => null),
   fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', templates: {} })),
@@ -28,6 +31,12 @@ vi.mock('../../../api/lighting', () => ({
   startAnimate: vi.fn(() => Promise.resolve()),
   startScreenMirror: vi.fn(() => Promise.resolve()),
   stopLighting: vi.fn(() => Promise.resolve()),
+}));
+
+const mockCustoms = vi.hoisted(() => [] as { id: string; name: string; updatedAt: number }[]);
+vi.mock('../../../api/customEffects', async importActual => ({
+  ...(await importActual<typeof import('../../../api/customEffects')>()),
+  useCustomEffects: () => mockCustoms,
 }));
 
 vi.mock('../../../api/mediaLibrary', () => ({
@@ -691,6 +700,81 @@ describe('LightingWidget', () => {
 
       fireEvent.click(screen.getByText('featureDisabled.widget.open'));
       expect(onSectionNavigate).toHaveBeenCalledWith('lighting');
+    });
+  });
+
+  describe('recents keep the preset they were picked at', () => {
+    const slotState = (n: number): EffectState => ({ ...defaultStateFor('fire'), speed: 10 * (n + 1), hue: n / 10, params: { amount: n / 4 } });
+    const bundle = (selected: number) => ({ selected, slots: [0, 1, 2, 3].map(slotState) });
+    const thumbVersion = (key: string) => {
+      const path = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0])).find(p => p.includes(`/${key}/`));
+      return { slot: Number(/slot=(\d+)/.exec(path ?? '')?.[1]), v: /v=([^&]+)/.exec(path ?? '')?.[1] };
+    };
+    // The look a start call put on the LEDs, in the shape the thumbnail signature hashes.
+    const appliedLook = (): EffectState => {
+      const a = vi.mocked(startAnimate).mock.calls.at(-1)!;
+      return { speed: a[1] as number, intensity: a[2] as number, hue: a[3] as number, colorize: a[4] as number, saturation: a[5] as number, contrast: a[6] as number, params: a[7] as Record<string, number> };
+    };
+
+    afterEach(() => {
+      mockUiSettings.recentAnimations = [];
+      mockCustoms.length = 0;
+    });
+
+    it('a built-in picked at preset 3 shows preset 3 and applies exactly it', async () => {
+      mockUiSettings.recentAnimations = ['fire@2'];
+      vi.mocked(fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', templates: { fire: bundle(0) } } as never);
+      vi.mocked(fetchServiceBlob).mockClear();
+      vi.mocked(startAnimate).mockClear();
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelector('[data-effect-key="fire"]')).toBeInTheDocument());
+      await waitFor(() => expect(thumbVersion('fire').v).toBeDefined());
+
+      fireEvent.click(document.querySelector('[data-effect-key="fire"]') as HTMLElement);
+      await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+
+      const thumb = thumbVersion('fire');
+      expect(thumb.slot).toBe(2);
+      expect(thumb.v).toBe(slotThumbSignature(slotState(2)));
+      expect(appliedLook()).toEqual(slotState(2));
+      expect(slotThumbSignature(appliedLook())).toBe(thumb.v);
+      await waitFor(() => expect(saveAnimateTemplates).toHaveBeenCalled());
+      expect(vi.mocked(saveAnimateTemplates).mock.calls.at(-1)![0].fire.selected).toBe(2);
+    });
+
+    it('a Studio effect shows its own preset and applies exactly it', async () => {
+      mockUiSettings.recentAnimations = ['custom:abc@3'];
+      mockCustoms.push({ id: 'abc', name: 'Sunset', updatedAt: 7 });
+      vi.mocked(fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', templates: { 'custom:abc': bundle(0) } } as never);
+      vi.mocked(fetchServiceBlob).mockClear();
+      vi.mocked(startAnimate).mockClear();
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelector('[data-effect-key="custom:abc"]')).toBeInTheDocument());
+      await waitFor(() => expect(thumbVersion('custom:abc').v).toBeDefined());
+
+      fireEvent.click(document.querySelector('[data-effect-key="custom:abc"]') as HTMLElement);
+      await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+
+      const thumb = thumbVersion('custom:abc');
+      expect(thumb.slot).toBe(3);
+      expect(thumb.v).toBe(`7.${slotThumbSignature(slotState(3))}`);
+      expect(vi.mocked(startAnimate).mock.calls.at(-1)![0]).toBe('custom:abc');
+      expect(appliedLook()).toEqual(slotState(3));
+      expect(screen.getByRole('button', { name: 'Sunset' })).toBe(document.querySelector('[data-effect-key="custom:abc"]'));
+    });
+
+    it('one effect at two presets is two tiles, and an old bare key follows the current preset', async () => {
+      mockUiSettings.recentAnimations = ['fire@2', 'fire@0', 'fire'];
+      vi.mocked(fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', templates: { fire: bundle(0) } } as never);
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key="fire"]')).toHaveLength(2));
+    });
+
+    it('a recent for a deleted Studio effect shows no tile', async () => {
+      mockUiSettings.recentAnimations = ['custom:gone@1', 'fire@1'];
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelector('[data-effect-key="fire"]')).toBeInTheDocument());
+      expect(document.querySelector('[data-effect-key="custom:gone"]')).not.toBeInTheDocument();
     });
   });
 });
