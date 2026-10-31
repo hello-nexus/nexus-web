@@ -59,7 +59,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
       // A grid that can edit renders its tiles as divs so toggling edit never remounts them.
       asDiv={!!onEdit}
       noPressedState
-      editHint={active && editEnabled && !!onEdit}
+      editHint={active && (editEnabled || editorOpen) && !!onEdit}
       layoutKey={layoutKey}
       audio={fx.audio}
       cornerBadge={hints.length || pinnedNames?.length ? (

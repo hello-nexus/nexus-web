@@ -353,6 +353,17 @@ describe('AnimateGrid editor toggle', () => {
     expect(other.getAttribute('aria-expanded')).toBe('true');
   });
 
+  it('keeps the edit hint on the selected tile with the editor closed and open, and on no other tile', () => {
+    const { container } = render(<Harness onSelect={() => {}} />);
+    const hintOwners = () => Array.from(container.querySelectorAll('[data-edit-hint-overlay]')).map(el => el.closest('[data-effect-key]')?.getAttribute('data-effect-key'));
+    expect(hintOwners()).toEqual(['plasma']);
+    fireEvent.click(tile(container, 'plasma'));
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('true');
+    expect(hintOwners()).toEqual(['plasma']);
+    fireEvent.click(tile(container, 'plasma'));
+    expect(hintOwners()).toEqual(['plasma']);
+  });
+
   it('toggles from the keyboard like a click', () => {
     const { container } = render(<Harness onSelect={() => {}} />);
     fireEvent.keyDown(tile(container, 'plasma'), { key: 'Enter' });
