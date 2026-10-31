@@ -74,6 +74,8 @@ export interface CreateDeckPresetBody {
   deck?: DeckConfig;
   templateId?: string;
   copyOfPresetId?: string;
+  /** Starts from the stock deck instead of a blank one. */
+  fresh?: boolean;
 }
 
 /** Null covers both a transport failure and a refused write (duplicate name, cap reached) - the route's 409/4xx body is not distinguishable through fetchService's fail-closed contract (see api/lighting.ts's createLayoutPreset for the same tradeoff). */
