@@ -93,6 +93,7 @@ vi.mock('./PanelEmbedFrame', () => ({
     <div
       data-testid="embed"
       data-surface={props.surface}
+      data-active-page={props.layout.activePageId}
       data-page-count={props.layout.pages.length}
       data-widget-count={props.layout.pages.flatMap(p => p.widgets).length}
     />
@@ -361,6 +362,46 @@ describe('PanelDevicePage widget size', () => {
       expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
       await waitFor(() => expect(patches()).toHaveLength(1));
       expect(pageIds()).toEqual([['w0', 'w1']]);
+    });
+
+    const twoPages = (): PanelLayout => ({
+      layoutSchemaVersion: 2,
+      surface: 'monitor',
+      pages: [{ id: 'p1', widgets: [widget('a', 'clock', 0, 0)] }, { id: 'p2', widgets: [widget('b', 'weather', 0, 0)] }],
+      activePageId: 'p2',
+    });
+    const renderTwoPages = async (touch: boolean, device: PanelDevice) => {
+      const rec = genericRecord('small', []);
+      fetchPanelDevicesMock.mockResolvedValue({
+        devices: [record({ ...rec, capabilities: { ...rec.capabilities, touch }, layout: twoPages() })],
+      });
+      render(<PanelDevicePage device={device} />);
+      await screen.findByTestId('embed');
+    };
+
+    it('shows no page arrows, pins page one, and keeps the held page on an edit', async () => {
+      await renderTwoPages(false, GENERIC);
+
+      expect(screen.queryByLabelText('devices.panels.nextPage')).toBeNull();
+      expect(screen.queryByLabelText('devices.panels.prevPage')).toBeNull();
+
+      fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
+      await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
+
+      await waitFor(() => expect(patches()).toHaveLength(1));
+      const written = patches()[0].layout;
+      expect(written?.activePageId).toBe('p1');
+      expect(written?.pages.map(p => p.id)).toEqual(['p1', 'p2']);
+      expect(written?.pages[1].widgets.map(w => w.id)).toEqual(['b']);
+      expect(written?.pages[0].widgets).toHaveLength(2);
+      expect(screen.getByTestId('embed').dataset.activePage).toBe('p1');
+    });
+
+    it('keeps the page arrows on a touch display with the same two pages', async () => {
+      await renderTwoPages(true, { ...GENERIC, capabilities: { surface: 'monitor', touch: true } as PanelDevice['capabilities'] });
+
+      expect(await screen.findByLabelText('devices.panels.nextPage')).toBeInTheDocument();
+      expect(screen.getByLabelText('devices.panels.prevPage')).toBeInTheDocument();
     });
   });
 });

@@ -450,6 +450,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
   const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);
   const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel, genericDisplay);
+  // A mouse-only generic display renders its first page only (as PanelApp does); later stored pages stay in the layout untouched.
+  const genericOnePage = genericSinglePage(genericDisplay, surface, deviceTouch);
   const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
   // Physical px = canvas x dpr. liveCanvas and a real record's previewSize are CSS px
@@ -1006,11 +1008,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const normalized = editorCapacityDerived
       ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel), editorCapacity)
       : normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel);
-    setLayout(normalized);
+    // Held pages ride along untouched; only the active page is pinned to the first.
+    const stored = genericOnePage && normalized.pages[0] && normalized.activePageId !== normalized.pages[0].id
+      ? { ...normalized, activePageId: normalized.pages[0].id }
+      : normalized;
+    setLayout(stored);
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
     // edit so the user's changes persist.
-    const persist = (id: string) => writeRecordPatch(id, { layout: normalized });
+    const persist = (id: string) => writeRecordPatch(id, { layout: stored });
     if (editingDeviceId) {
       void persist(editingDeviceId);
       return;
@@ -1025,7 +1031,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, isMonitorPanel, editorCapacity, editorCapacityDerived, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, isMonitorPanel, editorCapacity, editorCapacityDerived, genericOnePage, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -1079,11 +1085,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const lastLayoutPage = layout.pages[layout.pages.length - 1];
   const blankPageAvailable = !singleWidget
     && pagesAllowed
+    && !genericOnePage
     && layout.pages.length < MAX_PANEL_PAGES
     && (lastLayoutPage?.widgets.length ?? 0) > 0;
   const pageSlots = useMemo(
-    () => [...layout.pages.map(p => p.id), ...(blankPageAvailable ? [BLANK_PAGE_ID] : [])],
-    [layout.pages, blankPageAvailable],
+    () => (genericOnePage
+      ? layout.pages.slice(0, 1).map(p => p.id)
+      : [...layout.pages.map(p => p.id), ...(blankPageAvailable ? [BLANK_PAGE_ID] : [])]),
+    [layout.pages, blankPageAvailable, genericOnePage],
   );
   // A stored blank page with none available reads as the last page, as on the panel.
   const currentSlot = Math.max(0, layout.activePageId === BLANK_PAGE_ID
