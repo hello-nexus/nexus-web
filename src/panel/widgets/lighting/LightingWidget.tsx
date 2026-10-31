@@ -29,7 +29,7 @@ import { SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, s
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
-import { customEffectKey, isCustomEffectKey, useCustomEffects } from '../../../api/customEffects';
+import { customEffectKey, isCustomEffectKey, refreshCustomEffects, useCustomEffects } from '../../../api/customEffects';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
@@ -98,6 +98,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // The service's stored bundles and the canonical defaults, kept so Studio effects can be resolved as they appear.
   const [stored, setStored] = useState<{ server: Record<string, EffectTemplateBundle>; defaults: Awaited<ReturnType<typeof fetchAnimateDefaults>> }>({ server: {}, defaults: null });
   const customs = useCustomEffects(!preview && flags.lighting);
+  const latestRef = useRef({ templates, stored });
+  latestRef.current = { templates, stored };
   // Built-in presets plus those of every saved Studio effect, so a recent tile of either kind resolves its own preset.
   const allTemplates = useMemo(() => {
     const out = { ...templates };
@@ -175,6 +177,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       nextTemplates[effect.key] = mergeTemplates(effect.key, animate?.templates?.[effect.key], defaults);
     }
     setTemplates(nextTemplates);
+    void refreshCustomEffects();
     setStored({ server: (animate?.templates ?? {}) as Record<string, EffectTemplateBundle>, defaults });
 
     const rawSync = sync?.sync || 'none';
@@ -224,12 +227,12 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // The tile shows the active effect's selected universal slot. Its content hash
   // changes when that slot's saved look is edited (re-hydrate here, or the
   // lighting broadcast from another surface), so the tile refetches the BMP.
-  const activeSlot = templates[activeEffect]?.selected ?? 0;
+  const activeSlot = allTemplates[activeEffect]?.selected ?? 0;
   const activeVersion = useMemo(() => {
-    const b = templates[activeEffect];
+    const b = allTemplates[activeEffect];
     if (!b || b.slots.length === 0) return '0';
     return slotThumbSignature(b.slots[Math.min(Math.max(b.selected, 0), b.slots.length - 1)]);
-  }, [templates, activeEffect]);
+  }, [allTemplates, activeEffect]);
 
   // The widget shows one thumbnail at a time (active effect, Prev/Next
   // cycling). Load the active effect's BMP on demand and cache picks as
@@ -315,7 +318,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   }, []);
 
   const applyEffect = useCallback(async (effectKey: string, state?: EffectState, templateIndex?: number) => {
-    const next = state ?? resolveEffectState(effectKey, templates);
+    const next = state ?? resolveEffectState(effectKey, allTemplates);
     setActiveEffect(effectKey);
     animateEffectRef.current = effectKey;
     setMode('animate');
@@ -332,7 +335,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       next.sensors,
     );
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
-  }, [publishLighting, templates]);
+  }, [publishLighting, allTemplates]);
 
   // A recents tile: the effect at the preset it shows. The preset becomes the effect's selected one, as picking it on the page does.
   const applyRecentAnimation = useCallback(async (effectKey: string, slot: number) => {
@@ -340,11 +343,13 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     const picked = bundle?.slots[Math.min(Math.max(slot, 0), bundle.slots.length - 1)];
     await applyEffect(effectKey, picked ? resolveEffectState(effectKey, allTemplates, picked) : undefined, slot);
     if (!bundle || bundle.selected === slot) return;
-    const next: Record<string, EffectTemplateBundle> = { ...templates };
-    for (const [k, v] of Object.entries(stored.server)) if (isCustomEffectKey(k)) next[k] = v;
+    // Read after the await: the start's broadcast may have re-hydrated, and the save replaces the whole dict.
+    const latest = latestRef.current;
+    const next: Record<string, EffectTemplateBundle> = { ...latest.templates };
+    for (const [k, v] of Object.entries(latest.stored.server)) if (isCustomEffectKey(k)) next[k] = v;
     next[effectKey] = { ...bundle, selected: slot };
     try { await saveAnimateTemplates(next); } catch { /* the tile still ran; the next hydrate shows what persisted */ }
-  }, [allTemplates, applyEffect, stored, templates]);
+  }, [allTemplates, applyEffect]);
 
   const applyStatic = useCallback(async (effectKey: string, state?: EffectState) => {
     const next = state ?? resolveEffectState(effectKey, templates);
@@ -453,11 +458,12 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       };
     }
     if (mode === 'animate') {
+      const custom = isCustomEffectKey(activeEffect) ? customs.find(c => customEffectKey(c.id) === activeEffect) : undefined;
       const effect = ANIMATE_EFFECTS.find(e => e.key === activeEffect) ?? ANIMATE_EFFECTS[0];
       return {
         kind: 'thumb',
-        thumbUrl: thumbs[effect.key] ?? null,
-        label: t(effect.labelKey),
+        thumbUrl: thumbs[custom ? activeEffect : effect.key] ?? null,
+        label: custom ? custom.name : t(effect.labelKey),
         onPrev: prev,
         onNext: next,
       };
@@ -487,7 +493,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     }
     // mode === 'none' (off).
     return { kind: 'icon', icon: Lightbulb, muted: true, label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
+  }, [mode, activeEffect, customs, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
 
   // The flash stands in for a thumbnail that has not painted yet, so the tile
   // only flashes where a thumbnail renders. Off, Static, Mirror and
@@ -500,12 +506,12 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const animateState = useMemo(
     () => {
       // Reverse is measured against, and negates, the first preset.
-      const slot0 = templates[activeEffect]?.slots[SIMPLE_SLOT];
+      const slot0 = allTemplates[activeEffect]?.slots[SIMPLE_SLOT];
       return sweepReversed && isSimpleAnimation(activeEffect) && slot0
         ? simpleAnimationState(slot0, true)
-        : resolveEffectState(activeEffect, templates);
+        : resolveEffectState(activeEffect, allTemplates);
     },
-    [activeEffect, sweepReversed, templates],
+    [activeEffect, sweepReversed, allTemplates],
   );
 
   if (!preview && !flags.lighting) {

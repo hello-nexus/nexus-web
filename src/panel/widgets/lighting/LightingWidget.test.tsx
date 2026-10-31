@@ -37,6 +37,7 @@ const mockCustoms = vi.hoisted(() => [] as { id: string; name: string; updatedAt
 vi.mock('../../../api/customEffects', async importActual => ({
   ...(await importActual<typeof import('../../../api/customEffects')>()),
   useCustomEffects: () => mockCustoms,
+  refreshCustomEffects: () => Promise.resolve(),
 }));
 
 vi.mock('../../../api/mediaLibrary', () => ({
