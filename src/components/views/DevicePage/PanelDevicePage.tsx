@@ -49,7 +49,7 @@ import { panelSystemFontsAvailable } from '../../../panel/theme/panelFont';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
-import { repaginatePanelLayout } from '../../../panel/engine/paginate';
+import { firstPageView, heldPages, repaginatePanelLayout, withHeldPages } from '../../../panel/engine/paginate';
 import { fitLayoutForWidgetSize, widgetSizeCapacity } from '../../../panel/engine/widgetSizeFit';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { ensureSimulatedPanelRecord, getPanelGridSizingSettings, getSimulatedPanelRecordId } from '../../../lib/panelSimulation';
@@ -1164,10 +1164,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const base = blankPage ? { ...layout, pages: [...layout.pages, blankPage] } : layout;
     // Prefer the page the preview is showing; appendWidget falls back to
     // the first page with room.
-    const appended = appendWidget(base, next, editorCapacity, {
+    // A one-page display places on page one only; held pages are re-attached untouched.
+    const appendedView = appendWidget(genericOnePage ? firstPageView(base) : base, next, editorCapacity, {
       singlePage: !pagesAllowed,
       preferredPageId: blankPage?.id ?? pageSlots[currentSlot],
     });
+    const appended = genericOnePage ? withHeldPages(appendedView, heldPages(layout)) : appendedView;
     // Jump the preview to the page the widget landed on - appendWidget spills
     // to a later page when the active one is full, so the new tile would
     // otherwise appear off-screen.
@@ -1176,7 +1178,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout(blankPage ? pruneEmptyPages(placed) : placed);
     // appendWidget refuses a full grid; only report an id the layout kept.
     return landingPage ? next.id : undefined;
-  }, [currentSlot, editorCapacity, layout, pagesAllowed, pageSlots, showingBlankPage, singleWidget, updateLayout]);
+  }, [currentSlot, editorCapacity, genericOnePage, layout, pagesAllowed, pageSlots, showingBlankPage, singleWidget, updateLayout]);
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
     updateLayout(removeWidgetById(layout, widgetId, editorCapacity));
@@ -1268,11 +1270,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // A single-page panel has no page to spill onto: the catalog dims what will not fit.
   const canAddSize = useMemo(() => {
     if (pagesAllowed || singleWidget) return undefined;
-    return (size: PanelWidgetSize) => canAppendWidget(layout, size, editorCapacity, {
+    const view = genericOnePage ? firstPageView(layout) : layout;
+    return (size: PanelWidgetSize) => canAppendWidget(view, size, editorCapacity, {
       singlePage: true,
       preferredPageId: pageSlots[currentSlot],
     });
-  }, [currentSlot, editorCapacity, layout, pageSlots, pagesAllowed, singleWidget]);
+  }, [currentSlot, editorCapacity, genericOnePage, layout, pageSlots, pagesAllowed, singleWidget]);
 
   // Widget size swaps the layout surface, so the stored layout is refitted in the
   // same write; widgets the new size cannot show are named before they go.

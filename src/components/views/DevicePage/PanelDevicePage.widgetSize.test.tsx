@@ -397,6 +397,28 @@ describe('PanelDevicePage widget size', () => {
       expect(screen.getByTestId('embed').dataset.activePage).toBe('p1');
     });
 
+    it('places an add on page one only, never on a held page with room', async () => {
+      const full = packed(12, 20);
+      const rec = genericRecord('large', []);
+      fetchPanelDevicesMock.mockResolvedValue({
+        devices: [record({
+          ...rec,
+          layout: {
+            ...twoPages(),
+            pages: [{ id: 'p1', widgets: full }, { id: 'p2', widgets: [widget('b', 'weather', 0, 0)] }],
+          },
+        })],
+      });
+      render(<PanelDevicePage device={GENERIC} />);
+      await screen.findByTestId('embed');
+      fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
+      expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('false');
+      await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
+
+      expect(screen.getByTestId('embed').dataset.activePage).toBe('p1');
+      expect(patches().at(-1)?.layout?.pages[1].widgets.map(w => w.id) ?? ['b']).toEqual(['b']);
+    });
+
     it('keeps the page arrows on a touch display with the same two pages', async () => {
       await renderTwoPages(true, { ...GENERIC, capabilities: { surface: 'monitor', touch: true } as PanelDevice['capabilities'] });
 
