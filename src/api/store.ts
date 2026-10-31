@@ -29,6 +29,13 @@ export interface StoreRating {
   count: number;
 }
 
+export interface StoreHardware {
+  name: string;
+  /** Product page that opens externally for a machine without the hardware. */
+  url: string;
+  matched: boolean;
+}
+
 export interface StoreApp {
   id: string;
   name: string;
@@ -43,6 +50,8 @@ export interface StoreApp {
   releaseDate?: string | null;
   rating: StoreRating;
   latest: StoreVersion | null;
+  /** Present only on an app gated to specific hardware; `matched` says whether this machine has it attached. */
+  hardware?: StoreHardware;
   /** DEV_TOOLS service only: synthesized from a sideloaded app's manifest and store/ folder because the cloud catalog lacks it. Never installable from here (latest.sha256 is empty). */
   localPreview?: boolean;
 }
@@ -57,7 +66,7 @@ export interface StoreInstallResult {
   appId: string;
   version: string;
   ok: boolean;
-  /** 'sign_in_required' is the account gate, 'not_yet_released' the launch-day one; the rest are download/verify failures. */
+  /** 'sign_in_required' is the account gate, 'not_yet_released' the launch-day one, 'hardware_required' the missing-hardware one; the rest are download/verify failures. */
   reason?: string;
 }
 
