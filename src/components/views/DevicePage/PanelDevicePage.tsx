@@ -49,7 +49,7 @@ import { panelSystemFontsAvailable } from '../../../panel/theme/panelFont';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
 import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
-import { repaginatePanelLayout } from '../../../panel/engine/paginate';
+import { firstPageView, heldPages, repaginatePanelLayout, withHeldPages } from '../../../panel/engine/paginate';
 import { fitLayoutForWidgetSize, widgetSizeCapacity } from '../../../panel/engine/widgetSizeFit';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { ensureSimulatedPanelRecord, getPanelGridSizingSettings, getSimulatedPanelRecordId } from '../../../lib/panelSimulation';
@@ -450,6 +450,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
   const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);
   const pagesAllowed = surfaceAllowsPages(surface, deviceTouch, isMonitorPanel, genericDisplay);
+  // A mouse-only generic display renders its first page only (as PanelApp does); later stored pages stay in the layout untouched.
+  const genericOnePage = genericSinglePage(genericDisplay, surface, deviceTouch);
   const registryTouch = isMonitorPanel ? true : deviceTouch;
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
   // Physical px = canvas x dpr. liveCanvas and a real record's previewSize are CSS px
@@ -1006,11 +1008,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const normalized = editorCapacityDerived
       ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel), editorCapacity)
       : normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel);
-    setLayout(normalized);
+    // Held pages ride along untouched; only the active page is pinned to the first.
+    const stored = genericOnePage && normalized.pages[0] && normalized.activePageId !== normalized.pages[0].id
+      ? { ...normalized, activePageId: normalized.pages[0].id }
+      : normalized;
+    setLayout(stored);
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
     // edit so the user's changes persist.
-    const persist = (id: string) => writeRecordPatch(id, { layout: normalized });
+    const persist = (id: string) => writeRecordPatch(id, { layout: stored });
     if (editingDeviceId) {
       void persist(editingDeviceId);
       return;
@@ -1025,7 +1031,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, isMonitorPanel, editorCapacity, editorCapacityDerived, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, isMonitorPanel, editorCapacity, editorCapacityDerived, genericOnePage, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -1079,11 +1085,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const lastLayoutPage = layout.pages[layout.pages.length - 1];
   const blankPageAvailable = !singleWidget
     && pagesAllowed
+    && !genericOnePage
     && layout.pages.length < MAX_PANEL_PAGES
     && (lastLayoutPage?.widgets.length ?? 0) > 0;
   const pageSlots = useMemo(
-    () => [...layout.pages.map(p => p.id), ...(blankPageAvailable ? [BLANK_PAGE_ID] : [])],
-    [layout.pages, blankPageAvailable],
+    () => (genericOnePage
+      ? layout.pages.slice(0, 1).map(p => p.id)
+      : [...layout.pages.map(p => p.id), ...(blankPageAvailable ? [BLANK_PAGE_ID] : [])]),
+    [layout.pages, blankPageAvailable, genericOnePage],
   );
   // A stored blank page with none available reads as the last page, as on the panel.
   const currentSlot = Math.max(0, layout.activePageId === BLANK_PAGE_ID
@@ -1155,10 +1164,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const base = blankPage ? { ...layout, pages: [...layout.pages, blankPage] } : layout;
     // Prefer the page the preview is showing; appendWidget falls back to
     // the first page with room.
-    const appended = appendWidget(base, next, editorCapacity, {
+    // A one-page display places on page one only; held pages are re-attached untouched.
+    const appendedView = appendWidget(genericOnePage ? firstPageView(base) : base, next, editorCapacity, {
       singlePage: !pagesAllowed,
       preferredPageId: blankPage?.id ?? pageSlots[currentSlot],
     });
+    const appended = genericOnePage ? withHeldPages(appendedView, heldPages(layout)) : appendedView;
     // Jump the preview to the page the widget landed on - appendWidget spills
     // to a later page when the active one is full, so the new tile would
     // otherwise appear off-screen.
@@ -1167,7 +1178,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout(blankPage ? pruneEmptyPages(placed) : placed);
     // appendWidget refuses a full grid; only report an id the layout kept.
     return landingPage ? next.id : undefined;
-  }, [currentSlot, editorCapacity, layout, pagesAllowed, pageSlots, showingBlankPage, singleWidget, updateLayout]);
+  }, [currentSlot, editorCapacity, genericOnePage, layout, pagesAllowed, pageSlots, showingBlankPage, singleWidget, updateLayout]);
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
     updateLayout(removeWidgetById(layout, widgetId, editorCapacity));
@@ -1259,11 +1270,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // A single-page panel has no page to spill onto: the catalog dims what will not fit.
   const canAddSize = useMemo(() => {
     if (pagesAllowed || singleWidget) return undefined;
-    return (size: PanelWidgetSize) => canAppendWidget(layout, size, editorCapacity, {
+    const view = genericOnePage ? firstPageView(layout) : layout;
+    return (size: PanelWidgetSize) => canAppendWidget(view, size, editorCapacity, {
       singlePage: true,
       preferredPageId: pageSlots[currentSlot],
     });
-  }, [currentSlot, editorCapacity, layout, pageSlots, pagesAllowed, singleWidget]);
+  }, [currentSlot, editorCapacity, genericOnePage, layout, pageSlots, pagesAllowed, singleWidget]);
 
   // Widget size swaps the layout surface, so the stored layout is refitted in the
   // same write; widgets the new size cannot show are named before they go.
@@ -1283,9 +1295,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const dpi = target === 'y70' ? liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70 : layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
     const capacity = widgetSizeCapacity(target, canvas, canvasDpr, dpi, paddingRatio, targetSlots);
     if (!capacity) return { layout: normalized, removed };
-    const fitMode = genericSinglePage(genericDisplay, glassSurface, glassTouch)
-      ? 'holding'
-      : surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay) ? 'pages' : 'single';
+    const fitMode = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay) && !genericSinglePage(genericDisplay, glassSurface, glassTouch) ? 'pages' : 'single';
     const fit = fitLayoutForWidgetSize(normalized, capacity, fitMode, MAX_PANEL_PAGES);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
   }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, liveDpi, theme.widgetPadding, widgetSizeOptions]);

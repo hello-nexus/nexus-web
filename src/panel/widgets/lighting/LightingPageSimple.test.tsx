@@ -235,7 +235,7 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => {
       const general = loadSettings().general;
       expect(general.recentStaticColors).toEqual([PALETTE.find(p => p.id === 'red-3')!.hex]);
-      expect(general.recentAnimations).toEqual(['sharplines']);
+      expect(general.recentAnimations).toEqual(['sharplines@0']);
     });
   });
 

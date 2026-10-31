@@ -25,6 +25,8 @@ interface EffectCardBaseProps {
    * onClick; pass an ariaLabel that names the edit action.
    */
   editHint?: boolean;
+  /** Div path only: reports whether the editor this card toggles is open (aria-expanded). */
+  ariaExpanded?: boolean;
   /** Changes whenever the tile's grid position can have changed (order, filter, collapse). Resets the pointer-presence reveal. */
   layoutKey?: string;
   /**
@@ -84,7 +86,7 @@ type EffectCardProps = EffectCardBaseProps & (
 
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
-  audio, meta, onDelete, deleteAriaLabel, editHint, layoutKey,
+  audio, meta, onDelete, deleteAriaLabel, editHint, ariaExpanded, layoutKey,
   asDiv, noPressedState, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive, disabled,
 }: EffectCardProps) {
   const { t } = useTranslation();
@@ -159,6 +161,7 @@ export function EffectCard({
         onClick={disabled ? undefined : onClick}
         onKeyDown={e => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick?.(); } }}
         aria-pressed={noPressedState ? undefined : active}
+        aria-expanded={ariaExpanded}
         aria-disabled={disabled || undefined}
         aria-label={ariaLabel ?? label}
         data-effect-key={dataEffectKey}

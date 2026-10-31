@@ -1,6 +1,9 @@
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
+import { customEffectId, isCustomEffectKey } from '../../../api/customEffects';
 import { canonicalSimpleKey } from './simpleAnimations';
 import { PALETTE, paletteColor } from '../../../types/lightingPalette';
+import { TEMPLATE_COUNT } from '../../../types/lighting';
+import { parseAnimationRecent } from './recents';
 import type { PanelWidget } from '../../types';
 
 /** Columns and rows per widget size, open tile included; identical with and without mode buttons. */
@@ -29,6 +32,18 @@ export const STATIC_SWATCHES = STATIC_SWATCH_IDS
   .filter((c): c is NonNullable<ReturnType<typeof paletteColor>> => !!c);
 
 export interface SwatchEffect { key: string; labelKey: string }
+
+/** One animation tile: an effect at the preset slot it shows and applies. `label` is a custom effect's own name. */
+export interface AnimationTile extends SwatchEffect { slot: number; tileKey: string; label?: string }
+
+export interface AnimationTileContext {
+  /** Saved Studio effects by id, to their names. A custom recent whose id is absent is dropped. */
+  customs?: ReadonlyMap<string, string>;
+  /** The effect's currently selected preset, for bare keys and the default tiles. */
+  selectedSlot?: (effect: string) => number;
+}
+
+const clampSlot = (n: number) => Math.min(Math.max(Math.trunc(n), 0), TEMPLATE_COUNT - 1);
 
 /** Animation swatch order; the rest of ANIMATE_EFFECTS follows in its own order. */
 export const DEFAULT_ANIMATION_KEYS = [
@@ -79,11 +94,32 @@ export function pickStaticTiles(recents: readonly string[], useRecents: boolean,
   return out.slice(0, slots);
 }
 
-/** Recent animations first (when on), then the fixed order, deduped. */
-export function pickAnimationTiles(recents: readonly string[], useRecents: boolean, slots: number): SwatchEffect[] {
-  const out: SwatchEffect[] = [];
-  const add = (fx: SwatchEffect | null) => { if (fx && !out.some(o => o.key === fx.key)) out.push(fx); };
-  if (useRecents) for (const key of recents) add(effectFor(key));
-  for (const fx of ANIMATE_SWATCHES) add(fx);
+/**
+ * Recent animations first (when on), then the fixed order. A recent keeps the preset it was picked at;
+ * a bare older key falls back to the effect's current preset. One tile per (effect, preset), and the
+ * fixed order skips effects a recent already shows. Keys that resolve to no effect are dropped.
+ */
+export function pickAnimationTiles(recents: readonly string[], useRecents: boolean, slots: number, ctx: AnimationTileContext = {}): AnimationTile[] {
+  const out: AnimationTile[] = [];
+  const selected = (key: string) => clampSlot(ctx.selectedSlot?.(key) ?? 0);
+  const add = (fx: (SwatchEffect & { label?: string }) | null, slot: number | null, force: boolean) => {
+    if (!fx) return;
+    const s = slot ?? selected(fx.key);
+    if (out.some(o => o.key === fx.key && (force ? o.slot === s : true))) return;
+    out.push({ ...fx, slot: s, tileKey: `${fx.key}@${s}` });
+  };
+  if (useRecents) {
+    for (const raw of recents) {
+      const { effect, slot } = parseAnimationRecent(raw);
+      const s = slot === null ? null : clampSlot(slot);
+      if (isCustomEffectKey(effect)) {
+        const name = ctx.customs?.get(customEffectId(effect));
+        if (name !== undefined) add({ key: effect, labelKey: '', label: name }, s, true);
+      } else {
+        add(effectFor(effect), s, true);
+      }
+    }
+  }
+  for (const fx of ANIMATE_SWATCHES) add(fx, null, false);
   return out.slice(0, slots);
 }

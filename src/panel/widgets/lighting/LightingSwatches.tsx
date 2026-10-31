@@ -6,12 +6,13 @@ import { Ellipsis } from 'lucide-react';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { previewTileGradients } from '../common/previewAssets';
 import { useTranslation } from '../../../lib/i18n';
+import { customEffectKey, useCustomEffects, type CustomEffectEntry } from '../../../api/customEffects';
 import type { EffectTemplateBundle } from '../../../types/lighting';
 import { slotThumbSignature } from '../../../types/lightingTemplates';
 import type { PanelWidget } from '../../types';
 import {
   pickAnimationTiles, pickStaticTiles, swatchGrid,
-  type StaticTile, type SwatchEffect,
+  type AnimationTile, type StaticTile,
 } from './swatches';
 import styles from './LightingWidget.module.scss';
 
@@ -26,11 +27,25 @@ interface Props {
   recentColors: readonly string[];
   recentAnimations: readonly string[];
   onColor: (hex: string) => void;
-  onEffect: (key: string) => void;
+  /** The tile's effect and the preset slot its thumbnail shows. */
+  onEffect: (key: string, slot: number) => void;
   onOpen: (() => void) | null;
 }
 
-function useEffectThumbs(effects: readonly SwatchEffect[], templates: Record<string, EffectTemplateBundle>, enabled: boolean) {
+/** The cache token for a tile's thumbnail: its preset's content, plus the effect's save time for a Studio effect. */
+export function tileThumbVersion(tile: AnimationTile, templates: Record<string, EffectTemplateBundle>, customs: readonly CustomEffectEntry[]): string {
+  const b = templates[tile.key];
+  const sig = b && b.slots.length > 0 ? slotThumbSignature(b.slots[Math.min(Math.max(tile.slot, 0), b.slots.length - 1)]) : '0';
+  const entry = customs.find(c => customEffectKey(c.id) === tile.key);
+  return entry ? `${entry.updatedAt}.${sig}` : sig;
+}
+
+function useEffectThumbs(
+  effects: readonly AnimationTile[],
+  templates: Record<string, EffectTemplateBundle>,
+  customs: readonly CustomEffectEntry[],
+  enabled: boolean,
+) {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const cacheRef = useRef<Record<string, { url: string; sig: string }>>({});
   useEffect(() => {
@@ -38,22 +53,20 @@ function useEffectThumbs(effects: readonly SwatchEffect[], templates: Record<str
     let cancelled = false;
     (async () => {
       for (const fx of effects) {
-        const b = templates[fx.key];
-        const slot = b?.selected ?? 0;
-        const sig = b && b.slots.length > 0 ? slotThumbSignature(b.slots[Math.min(Math.max(slot, 0), b.slots.length - 1)]) : '0';
-        if (cacheRef.current[fx.key]?.sig === sig) continue;
-        const blob = await fetchServiceBlob(effectThumbnailPath(fx.key, slot, sig), { mayBeCached: true });
+        const sig = tileThumbVersion(fx, templates, customs);
+        if (cacheRef.current[fx.tileKey]?.sig === sig) continue;
+        const blob = await fetchServiceBlob(effectThumbnailPath(fx.key, fx.slot, sig), { mayBeCached: true });
         if (cancelled) return;
         if (!blob) continue;
         const url = URL.createObjectURL(blob);
-        const prev = cacheRef.current[fx.key];
-        cacheRef.current = { ...cacheRef.current, [fx.key]: { url, sig } };
+        const prev = cacheRef.current[fx.tileKey];
+        cacheRef.current = { ...cacheRef.current, [fx.tileKey]: { url, sig } };
         if (prev) URL.revokeObjectURL(prev.url);
         setThumbs(Object.fromEntries(Object.entries(cacheRef.current).map(([k, v]) => [k, v.url])));
       }
     })();
     return () => { cancelled = true; };
-  }, [effects, templates, enabled]);
+  }, [effects, templates, customs, enabled]);
   useEffect(() => () => {
     for (const v of Object.values(cacheRef.current)) URL.revokeObjectURL(v.url);
     cacheRef.current = {};
@@ -71,12 +84,18 @@ export function LightingSwatches({
     () => (kind === 'static' ? pickStaticTiles(recentColors, showRecents, slots) : []),
     [kind, recentColors, showRecents, slots],
   );
+  const customs = useCustomEffects(kind === 'animate' && !preview);
   const effectTiles = useMemo(
-    () => (kind === 'animate' ? pickAnimationTiles(recentAnimations, showRecents, slots) : []),
-    [kind, recentAnimations, showRecents, slots],
+    () => (kind === 'animate'
+      ? pickAnimationTiles(recentAnimations, showRecents, slots, {
+        customs: new Map(customs.map(c => [c.id, c.name])),
+        selectedSlot: key => templates[key]?.selected ?? 0,
+      })
+      : []),
+    [kind, recentAnimations, showRecents, slots, customs, templates],
   );
   const previewGradients = useMemo(() => previewTileGradients(), []);
-  const thumbs = useEffectThumbs(effectTiles, templates, kind === 'animate' && !preview);
+  const thumbs = useEffectThumbs(effectTiles, templates, customs, kind === 'animate' && !preview);
   const openLabel = t('lighting.widget.openLighting');
 
   return (
@@ -113,15 +132,15 @@ export function LightingSwatches({
             );
           })
           : effectTiles.map(fx => (
-            <div key={fx.key} className={styles.swatchCell}>
+            <div key={fx.tileKey} className={styles.swatchCell}>
               <EffectCard
                 overlay
                 hideLabel
-                label={t(fx.labelKey)}
-                thumbUrl={thumbs[fx.key] ?? null}
-                active={fx.key === activeEffect}
+                label={fx.label ?? t(fx.labelKey)}
+                thumbUrl={thumbs[fx.tileKey] ?? null}
+                active={fx.key === activeEffect && fx.slot === (templates[fx.key]?.selected ?? 0)}
                 dataEffectKey={fx.key}
-                onClick={() => onEffect(fx.key)}
+                onClick={() => onEffect(fx.key, fx.slot)}
               />
             </div>
           ))}

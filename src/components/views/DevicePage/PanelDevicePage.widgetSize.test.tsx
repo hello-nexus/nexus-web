@@ -93,6 +93,7 @@ vi.mock('./PanelEmbedFrame', () => ({
     <div
       data-testid="embed"
       data-surface={props.surface}
+      data-active-page={props.layout.activePageId}
       data-page-count={props.layout.pages.length}
       data-widget-count={props.layout.pages.flatMap(p => p.widgets).length}
     />
@@ -292,5 +293,137 @@ describe('PanelDevicePage widget size', () => {
     expect(patches()[0].widgetSize).toBe('compact');
     expect(written.map(w => w.type).sort()).toEqual(['clock', 'media', 'monitoring', 'stocks', 'weather']);
     expect(screen.getByTestId('embed').dataset.surface).toBe('monitor');
+  });
+
+  describe('a mouse-only display, which renders page one only', () => {
+    const GENERIC: PanelDevice = {
+      id: 'monitor:dell',
+      name: 'Dell U2415',
+      connectionKind: 'attached-monitor',
+      surfaceProfileKey: 'monitor',
+      runtimeSurface: 'monitor',
+      panelRecordId: 'lcd5',
+      displayId: 'DEL-1',
+      previewSize: { width: 1920, height: 1200 },
+      capabilities: { surface: 'monitor', touch: false } as PanelDevice['capabilities'],
+    } as PanelDevice;
+    const genericRecord = (widgetSize: string, widgets: PanelWidget[]) => ({
+      capabilities: { surface: 'monitor', cssWidth: 1920, cssHeight: 1200, dpr: 1, dpi: 94, touch: false },
+      displayId: 'DEL-1',
+      widgetSize,
+      layout: layout(widgets),
+    });
+    // A page of 2x2 widgets packed in reading order.
+    const packed = (count: number, cols: number) =>
+      Array.from({ length: count }, (_, i) => widget(`w${i}`, 'clock', (i % (cols / 2)) * 2, Math.floor(i / (cols / 2)) * 2));
+    const pageIds = () => (patches().at(-1)?.layout?.pages ?? []).map(p => p.widgets.map(w => w.id));
+    const removedNames = () => screen.queryAllByText('name.clock').length;
+
+    it('asks before removing the widgets that no longer fit, and confirm removes only those, with no extra page', async () => {
+      await renderPage(genericRecord('small', packed(40, 20)), GENERIC);
+      const before = screen.getByTestId('embed').dataset.widgetCount;
+
+      await pickSize('max');
+
+      expect(screen.getByText('devices.panels.widgetSize.confirmTitle')).toBeInTheDocument();
+      const listed = removedNames();
+      expect(listed).toBeGreaterThan(0);
+      expect(patches()).toHaveLength(0);
+
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.panels.widgetSize.confirm' })); });
+
+      await waitFor(() => expect(patches()).toHaveLength(1));
+      expect(patches()[0].widgetSize).toBe('large');
+      const ids = pageIds();
+      expect(ids).toHaveLength(1);
+      expect(ids[0].length + listed).toBe(Number(before));
+      const original = packed(40, 20).map(w => w.id);
+      expect(new Set(ids[0]).size).toBe(ids[0].length);
+      expect(ids[0].every(id => original.includes(id))).toBe(true);
+    });
+
+    it('cancel keeps the layout and the old scale', async () => {
+      await renderPage(genericRecord('small', packed(40, 20)), GENERIC);
+
+      await pickSize('max');
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' })); });
+
+      expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
+      expect(patches()).toHaveLength(0);
+      expect(screen.getByRole('button', { name: 'devices.panels.widgetSize.label' })).toHaveTextContent('100%');
+      expect(screen.getByTestId('embed').dataset.widgetCount).toBe('40');
+    });
+
+    it('shows no confirm and keeps one page when everything still fits', async () => {
+      await renderPage(genericRecord('small', packed(2, 20)), GENERIC);
+
+      await pickSize('max');
+
+      expect(screen.queryByText('devices.panels.widgetSize.confirmTitle')).not.toBeInTheDocument();
+      await waitFor(() => expect(patches()).toHaveLength(1));
+      expect(pageIds()).toEqual([['w0', 'w1']]);
+    });
+
+    const twoPages = (): PanelLayout => ({
+      layoutSchemaVersion: 2,
+      surface: 'monitor',
+      pages: [{ id: 'p1', widgets: [widget('a', 'clock', 0, 0)] }, { id: 'p2', widgets: [widget('b', 'weather', 0, 0)] }],
+      activePageId: 'p2',
+    });
+    const renderTwoPages = async (touch: boolean, device: PanelDevice) => {
+      const rec = genericRecord('small', []);
+      fetchPanelDevicesMock.mockResolvedValue({
+        devices: [record({ ...rec, capabilities: { ...rec.capabilities, touch }, layout: twoPages() })],
+      });
+      render(<PanelDevicePage device={device} />);
+      await screen.findByTestId('embed');
+    };
+
+    it('shows no page arrows, pins page one, and keeps the held page on an edit', async () => {
+      await renderTwoPages(false, GENERIC);
+
+      expect(screen.queryByLabelText('devices.panels.nextPage')).toBeNull();
+      expect(screen.queryByLabelText('devices.panels.prevPage')).toBeNull();
+
+      fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
+      await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
+
+      await waitFor(() => expect(patches()).toHaveLength(1));
+      const written = patches()[0].layout;
+      expect(written?.activePageId).toBe('p1');
+      expect(written?.pages.map(p => p.id)).toEqual(['p1', 'p2']);
+      expect(written?.pages[1].widgets.map(w => w.id)).toEqual(['b']);
+      expect(written?.pages[0].widgets).toHaveLength(2);
+      expect(screen.getByTestId('embed').dataset.activePage).toBe('p1');
+    });
+
+    it('places an add on page one only, never on a held page with room', async () => {
+      const full = packed(12, 20);
+      const rec = genericRecord('large', []);
+      fetchPanelDevicesMock.mockResolvedValue({
+        devices: [record({
+          ...rec,
+          layout: {
+            ...twoPages(),
+            pages: [{ id: 'p1', widgets: full }, { id: 'p2', widgets: [widget('b', 'weather', 0, 0)] }],
+          },
+        })],
+      });
+      render(<PanelDevicePage device={GENERIC} />);
+      await screen.findByTestId('embed');
+      fireEvent.click(screen.getByRole('tab', { name: 'devices.y70.tab.widgets' }));
+      expect(screen.getByTestId('catalog-add').dataset.canAdd).toBe('false');
+      await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
+
+      expect(screen.getByTestId('embed').dataset.activePage).toBe('p1');
+      expect(patches().at(-1)?.layout?.pages[1].widgets.map(w => w.id) ?? ['b']).toEqual(['b']);
+    });
+
+    it('keeps the page arrows on a touch display with the same two pages', async () => {
+      await renderTwoPages(true, { ...GENERIC, capabilities: { surface: 'monitor', touch: true } as PanelDevice['capabilities'] });
+
+      expect(await screen.findByLabelText('devices.panels.nextPage')).toBeInTheDocument();
+      expect(screen.getByLabelText('devices.panels.prevPage')).toBeInTheDocument();
+    });
   });
 });
