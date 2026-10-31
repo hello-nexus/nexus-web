@@ -13,7 +13,7 @@ import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import { useHasMousePointer } from '../../../../lib/pointerKind';
 import styles from '../LightingPage.module.scss';
 
-function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, label, hideLabel, gpuAvailable, frozen, onSelect, onEdit, editEnabled, layoutKey }: {
+function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, label, hideLabel, gpuAvailable, frozen, onSelect, onEdit, editEnabled, editorOpen, layoutKey }: {
   fx: EffectDef;
   slot: number;
   version: string;
@@ -33,13 +33,15 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
   onEdit?: () => void;
   /** The selected tile opens the editor (and shows the pencil) instead of re-selecting. */
   editEnabled?: boolean;
+  /** The editor is open: a click on the selected tile calls `onEdit` again so the owner can close it. */
+  editorOpen?: boolean;
   layoutKey?: string;
 }) {
   const { t } = useTranslation();
   const noGpu = gpuAvailable === false;
   // A mouse is in use, as for the pencil's CSS reveal. Touch keeps plain re-pick.
   const mouse = useHasMousePointer();
-  const editsOnClick = active && editEnabled && !!onEdit && mouse;
+  const editsOnClick = active && (editEnabled || editorOpen) && !!onEdit && mouse;
   const url = useEffectThumbnail(fx.key, slot, version, noGpu, frozen);
   const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
   return (
@@ -52,7 +54,8 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
       thumbStatic={noGpu}
       active={active}
       onClick={editsOnClick ? onEdit : onSelect}
-      ariaLabel={editsOnClick ? t('lighting.effects.editNamed', { name: label }) : undefined}
+      ariaExpanded={onEdit && active ? !!editorOpen : undefined}
+      ariaLabel={editsOnClick && !editorOpen ? t('lighting.effects.editNamed', { name: label }) : undefined}
       // A grid that can edit renders its tiles as divs so toggling edit never remounts them.
       asDiv={!!onEdit}
       noPressedState
@@ -93,16 +96,18 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
  * hardware gets a bulb. Effects are listed in pre-expanded category groups
  * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', slotFor, versionFor, rgbActiveEffect, panelEffects, pinnedDevices, gpuAvailable, frozen, leading, leadingMatches, onEdit, editEnabled }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', slotFor, versionFor, rgbActiveEffect, panelEffects, pinnedDevices, gpuAvailable, frozen, leading, leadingMatches, onEdit, editEnabled, editorOpen }: {
   effect: string;
   onSelect: (key: string) => void;
-  /** Opens the effect editor. Pass a stable callback so the tiles keep one element type. */
+  /** Toggles the effect editor (opens it, or closes it when `editorOpen`). Pass a stable callback so the tiles keep one element type. */
   onEdit?: () => void;
   /**
    * True while the editor is closed and re-picking the selected tile would be a
    * no-op: the selected tile then shows a hover pencil and a click opens the editor.
    */
   editEnabled?: boolean;
+  /** The editor is open: a click on the selected tile calls `onEdit` to close it. */
+  editorOpen?: boolean;
   /** Rendered above the category groups, inside the same scroll container. */
   leading?: ReactNode;
   /** `leading` shows a search match, so no-matches stays hidden. */
@@ -193,6 +198,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', s
               onSelect={() => onSelect(fx.key)}
               onEdit={onEdit}
               editEnabled={editEnabled}
+              editorOpen={editorOpen}
               layoutKey={`${query}|${g.cat}|${i}|${Array.from(collapsed).join()}`}
             />
           ));

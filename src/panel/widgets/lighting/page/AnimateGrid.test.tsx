@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { initPointerKind, resetPointerKindForTests } from '../../../../lib/pointerKind';
@@ -306,5 +307,57 @@ describe('AnimateGrid edit pencil', () => {
     const pencils = container.querySelectorAll('[data-edit-hint-overlay]');
     expect(pencils.length).toBe(1);
     expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe(next);
+  });
+});
+
+describe('AnimateGrid editor toggle', () => {
+  afterEach(() => { vi.unstubAllGlobals(); resetPointerKindForTests(); });
+
+  // Mirrors LightingPage: the selected tile toggles the editor, another tile re-picks.
+  function Harness({ onSelect }: { onSelect: (k: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const [effect, setEffect] = useState('plasma');
+    return (
+      <AnimateGrid
+        effect={effect}
+        onSelect={k => { setEffect(k); onSelect(k); }}
+        onEdit={() => setOpen(o => !o)}
+        editEnabled={!open}
+        editorOpen={open}
+        slotFor={() => 0}
+        versionFor={() => '0'}
+      />
+    );
+  }
+  const tile = (c: HTMLElement, key: string) => c.querySelector(`[data-effect-key="${key}"]`)!;
+
+  it('opens on the first click and closes on the second click of the same tile', () => {
+    const onSelect = vi.fn();
+    const { container } = render(<Harness onSelect={onSelect} />);
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(tile(container, 'plasma'));
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(tile(container, 'plasma'));
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('false');
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('switches to another tile without closing the editor', () => {
+    const onSelect = vi.fn();
+    const { container } = render(<Harness onSelect={onSelect} />);
+    fireEvent.click(tile(container, 'plasma'));
+    const other = container.querySelector('[data-effect-key]:not([data-effect-key="plasma"])')!;
+    fireEvent.click(other);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(other.getAttribute('data-effect-key'));
+    expect(other.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('toggles from the keyboard like a click', () => {
+    const { container } = render(<Harness onSelect={() => {}} />);
+    fireEvent.keyDown(tile(container, 'plasma'), { key: 'Enter' });
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('true');
+    fireEvent.keyDown(tile(container, 'plasma'), { key: ' ' });
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('false');
   });
 });
