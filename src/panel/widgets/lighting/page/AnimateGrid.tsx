@@ -33,7 +33,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
   onEdit?: () => void;
   /** The selected tile opens the editor (and shows the pencil) instead of re-selecting. */
   editEnabled?: boolean;
-  /** The editor is open: a click on the selected tile calls `onEdit` again so the owner can close it. */
+  /** The editor is open: the selected tile keeps its pencil, and a click calls `onEdit` again so the owner can close it. */
   editorOpen?: boolean;
   layoutKey?: string;
 }) {
@@ -102,11 +102,11 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, query = '', s
   /** Toggles the effect editor (opens it, or closes it when `editorOpen`). Pass a stable callback so the tiles keep one element type. */
   onEdit?: () => void;
   /**
-   * True while the editor is closed and re-picking the selected tile would be a
+   * True while the editor is closed (`editorOpen` covers the open case) and re-picking the selected tile would be a
    * no-op: the selected tile then shows a hover pencil and a click opens the editor.
    */
   editEnabled?: boolean;
-  /** The editor is open: a click on the selected tile calls `onEdit` to close it. */
+  /** The editor is open: the selected tile keeps its pencil, and a click calls `onEdit` to close it. */
   editorOpen?: boolean;
   /** Rendered above the category groups, inside the same scroll container. */
   leading?: ReactNode;

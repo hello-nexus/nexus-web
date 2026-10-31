@@ -360,6 +360,8 @@ describe('AnimateGrid editor toggle', () => {
     fireEvent.click(tile(container, 'plasma'));
     expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('true');
     expect(hintOwners()).toEqual(['plasma']);
+    fireEvent.pointerEnter(tile(container, 'plasma'), { pointerType: 'mouse' });
+    expect(tile(container, 'plasma').getAttribute('data-edit-hint-shown')).toBe('true');
     fireEvent.click(tile(container, 'plasma'));
     expect(hintOwners()).toEqual(['plasma']);
   });
