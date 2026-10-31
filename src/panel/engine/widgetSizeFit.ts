@@ -1,5 +1,5 @@
 import type { PanelLayout, PanelSurface, PanelWidget } from '../types';
-import { reflowLayoutToPages, fitLayoutToSinglePage, fitLayoutToSinglePageHolding, type PaginateCapacity } from './paginate';
+import { reflowLayoutToPages, fitLayoutToSinglePage, type PaginateCapacity } from './paginate';
 import { monitorGridCapacity, y70GridCapacity } from './recordCanvas';
 
 /**
@@ -19,15 +19,14 @@ export function widgetSizeCapacity(
   return monitorGridCapacity(canvas, canvasDpr, dpi, paddingRatio, slots);
 }
 
-export type WidgetSizeFitMode = 'pages' | 'single' | 'holding';
+export type WidgetSizeFitMode = 'pages' | 'single';
 
-/** Refits a layout to a new grid: widgets without room flow onto following pages where the panel pages, else are dropped or held. */
+/** Refits a layout to a new grid: widgets without room flow onto following pages where the panel pages, else are dropped. */
 export function fitLayoutForWidgetSize(
   layout: PanelLayout,
   capacity: PaginateCapacity,
   mode: WidgetSizeFitMode,
   maxPages: number,
 ): { layout: PanelLayout; dropped: PanelWidget[] } {
-  if (mode === 'holding') return { layout: fitLayoutToSinglePageHolding(layout, capacity), dropped: [] };
   return mode === 'pages' ? reflowLayoutToPages(layout, capacity, maxPages) : fitLayoutToSinglePage(layout, capacity);
 }

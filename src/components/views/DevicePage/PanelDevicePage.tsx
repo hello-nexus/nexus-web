@@ -1283,9 +1283,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const dpi = target === 'y70' ? liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70 : layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor;
     const capacity = widgetSizeCapacity(target, canvas, canvasDpr, dpi, paddingRatio, targetSlots);
     if (!capacity) return { layout: normalized, removed };
-    const fitMode = genericSinglePage(genericDisplay, glassSurface, glassTouch)
-      ? 'holding'
-      : surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay) ? 'pages' : 'single';
+    const fitMode = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay) && !genericSinglePage(genericDisplay, glassSurface, glassTouch) ? 'pages' : 'single';
     const fit = fitLayoutForWidgetSize(normalized, capacity, fitMode, MAX_PANEL_PAGES);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
   }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, liveDpi, theme.widgetPadding, widgetSizeOptions]);

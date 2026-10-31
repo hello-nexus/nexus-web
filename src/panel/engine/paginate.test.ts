@@ -2,7 +2,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   fitLayoutToPages,
-  fitLayoutToSinglePageHolding,
   foldIntoFirstPage,
   flattenPages,
   layoutRowExtent,
@@ -459,7 +458,7 @@ describe('fitLayoutToPages', () => {
   });
 });
 
-describe('foldIntoFirstPage and holding', () => {
+describe('foldIntoFirstPage', () => {
   const w = (id: string, col: number, row: number, size: PanelWidget['size'] = '1x1'): PanelWidget => ({ id, type: 'clock', size, col, row, config: {} });
   const layoutOf = (pages: PanelWidget[][]): PanelLayout => ({
     layoutSchemaVersion: 2, surface: 'monitor', activePageId: 'p0', pages: pages.map((widgets, i) => ({ id: `p${i}`, widgets })),
@@ -472,12 +471,5 @@ describe('foldIntoFirstPage and holding', () => {
     expect(folded.layout.pages[0].widgets.map(x => x.id)).toEqual(['s']);
     expect(folded.layout.pages.flatMap(p => p.widgets).map(x => x.id).sort()).toEqual(['big', 's']);
     expect(foldIntoFirstPage(folded.layout, { gridCols: 1, pageRows: 1 }).changed).toBe(false);
-  });
-
-  it('keeps widgets without room held on a size change instead of dropping them', () => {
-    const layout = layoutOf([[w('a', 0, 0), w('b', 1, 0), w('c', 0, 1)]]);
-    const out = fitLayoutToSinglePageHolding(layout, { gridCols: 2, pageRows: 1 });
-    expect(out.pages[0].widgets).toHaveLength(2);
-    expect(out.pages.flatMap(p => p.widgets).map(x => x.id).sort()).toEqual(['a', 'b', 'c']);
   });
 });

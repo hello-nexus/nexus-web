@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { SIMULATED_SCREEN_CATALOG } from '../../lib/simulatedScreenCatalog';
 import { panelWidgetPaddingRatio, PANEL_WIDGET_PADDING_DEFAULT_PERCENT } from './grid';
-import { pageFitsGrid, repaginatePanelLayout } from './paginate';
+import { firstFreeRect, pageFitsGrid, repaginatePanelLayout } from './paginate';
 import { fitLayoutForWidgetSize, widgetSizeCapacity } from './widgetSizeFit';
 import { MAX_PANEL_PAGES } from './panelGrid';
 import { panelWidgetSizeOptions, widgetSizeShortSideSlots, type PanelLayout, type PanelWidget, type PanelWidgetSizeMode } from '../types';
@@ -127,5 +127,36 @@ describe('render-time repagination never draws an overlap', () => {
     const last = widgets[widgets.length - 1].id;
     const { layout } = fitLayoutForWidgetSize({ ...layoutOf(widgets), immersiveOnLoadWidgetId: last }, large, 'pages', MAX_PANEL_PAGES);
     expect(layout.pages[0].widgets.some(w => w.id === last)).toBe(true);
+  });
+});
+
+describe('Widget scale on a panel that renders one page', () => {
+  const at100 = { gridCols: 28, pageRows: 12 };
+  const at200 = { gridCols: 10, pageRows: 6 };
+  const start = (): PanelLayout => {
+    const widgets: PanelWidget[] = [];
+    for (let i = 0; i < 40; i++) {
+      const slot = firstFreeRect(widgets, at100.gridCols, at100.pageRows, 2, 2);
+      if (!slot) throw new Error('fixture does not fit');
+      widgets.push({ id: `w${i}`, type: 'clock', size: '2x2', col: slot.col, row: slot.row });
+    }
+    return { layoutSchemaVersion: 2, surface: 'monitor', activePageId: 'p0', pages: [{ id: 'p0', widgets }] };
+  };
+
+  it('keeps one page that fits and reports exactly the widgets without room as dropped', () => {
+    const before = start();
+    const { layout, dropped } = fitLayoutForWidgetSize(before, at200, 'single', MAX_PANEL_PAGES);
+    expect(layout.pages).toHaveLength(1);
+    expect(pageFitsGrid(layout.pages[0].widgets, at200.gridCols, at200.pageRows)).toBe(true);
+    expect(dropped.length).toBeGreaterThan(0);
+    const kept = layout.pages[0].widgets.map(w => w.id);
+    expect([...kept, ...dropped.map(w => w.id)].sort()).toEqual(before.pages[0].widgets.map(w => w.id).sort());
+  });
+
+  it('drops nothing when every widget fits the new grid', () => {
+    const few: PanelLayout = { ...start(), pages: [{ id: 'p0', widgets: start().pages[0].widgets.slice(0, 4) }] };
+    const out = fitLayoutForWidgetSize(few, at200, 'single', MAX_PANEL_PAGES);
+    expect(out.dropped).toEqual([]);
+    expect(out.layout.pages).toHaveLength(1);
   });
 });

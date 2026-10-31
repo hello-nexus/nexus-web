@@ -433,12 +433,6 @@ export function fitLayoutToSinglePage(
   };
 }
 
-/** Like fitLayoutToSinglePage, but widgets without room stay in a held page after the first, never dropped. */
-export function fitLayoutToSinglePageHolding(layout: PanelLayout, capacity: PaginateCapacity): PanelLayout {
-  const { layout: fitted, dropped } = fitLayoutToSinglePage(layout, capacity);
-  return dropped.length === 0 ? fitted : { ...fitted, pages: [...fitted.pages, { id: createUuid(), widgets: dropped }] };
-}
-
 /** Moves every widget onto the first page at the nearest free cells; one with no free cell stays held on its page. */
 export function foldIntoFirstPage(layout: PanelLayout, capacity: PaginateCapacity): { layout: PanelLayout; changed: boolean } {
   if (layout.pages.length <= 1) return { layout, changed: false };
