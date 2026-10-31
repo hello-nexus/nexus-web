@@ -164,7 +164,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
 
   // An installed copy keeps its normal controls; the gate only decides a first install.
   const hardware = app.hardware;
-  if (hardware && (hardwareGated(app, installedVersion) || state === 'hardware')) {
+  if (hardware && !installedVersion && (hardware.matched !== true || state === 'hardware')) {
     return (
       <span className={styles.hardwareGate}>
         <Button
