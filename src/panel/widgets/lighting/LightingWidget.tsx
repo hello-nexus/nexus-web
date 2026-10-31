@@ -341,13 +341,14 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const applyRecentAnimation = useCallback(async (effectKey: string, slot: number) => {
     const bundle = allTemplates[effectKey];
     const picked = bundle?.slots[Math.min(Math.max(slot, 0), bundle.slots.length - 1)];
-    await applyEffect(effectKey, picked ? resolveEffectState(effectKey, allTemplates, picked) : undefined, slot);
+    // Before hydrate there is no preset to run, so the current one runs and no preset index is claimed.
+    await applyEffect(effectKey, picked ? resolveEffectState(effectKey, allTemplates, picked) : undefined, picked ? slot : undefined);
     if (!bundle || bundle.selected === slot) return;
     // Read after the await: the start's broadcast may have re-hydrated, and the save replaces the whole dict.
     const latest = latestRef.current;
     const next: Record<string, EffectTemplateBundle> = { ...latest.templates };
     for (const [k, v] of Object.entries(latest.stored.server)) if (isCustomEffectKey(k)) next[k] = v;
-    next[effectKey] = { ...bundle, selected: slot };
+    next[effectKey] = { ...(next[effectKey] ?? bundle), selected: slot };
     try { await saveAnimateTemplates(next); } catch { /* the tile still ran; the next hydrate shows what persisted */ }
   }, [allTemplates, applyEffect]);
 
