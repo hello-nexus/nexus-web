@@ -3166,7 +3166,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               effect={gridEffect}
               onSelect={handleEffectPick}
               onEdit={toggleDock}
-              editorOpen={!dockCollapsed}
+              editorOpen={!dockCollapsed && effectEditEnabled(true, gridEffect, selectedDeviceIds.size > 0, mode !== 'none' && !detachedTab)}
               editEnabled={effectEditEnabled(dockCollapsed, gridEffect, selectedDeviceIds.size > 0, mode !== 'none' && !detachedTab)}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}

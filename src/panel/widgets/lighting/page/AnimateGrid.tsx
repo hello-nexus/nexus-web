@@ -54,7 +54,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, pinnedNames, 
       thumbStatic={noGpu}
       active={active}
       onClick={editsOnClick ? onEdit : onSelect}
-      ariaExpanded={onEdit && active ? !!editorOpen : undefined}
+      ariaExpanded={editsOnClick ? !!editorOpen : undefined}
       ariaLabel={editsOnClick && !editorOpen ? t('lighting.effects.editNamed', { name: label }) : undefined}
       // A grid that can edit renders its tiles as divs so toggling edit never remounts them.
       asDiv={!!onEdit}

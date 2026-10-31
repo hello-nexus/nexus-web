@@ -360,4 +360,16 @@ describe('AnimateGrid editor toggle', () => {
     fireEvent.keyDown(tile(container, 'plasma'), { key: ' ' });
     expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('false');
   });
+
+  it('re-picks instead of closing when the editor is open but editing is gated off', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = render(
+      <AnimateGrid effect="plasma" onSelect={onSelect} onEdit={onEdit} editEnabled={false} editorOpen={false} slotFor={() => 0} versionFor={() => '0'} />,
+    );
+    fireEvent.click(tile(container, 'plasma'));
+    expect(onSelect).toHaveBeenCalledWith('plasma');
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(tile(container, 'plasma').hasAttribute('aria-expanded')).toBe(false);
+  });
 });
