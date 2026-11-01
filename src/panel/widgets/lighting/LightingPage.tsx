@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
-  startAnimate, startStatic, startScreenMirror, stopLighting,
+  startAnimate, setAnimateSimple, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
@@ -265,9 +265,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const modeMenuAnchorRef = useRef<HTMLDivElement | null>(null);
   const closeModeMenu = useCallback(() => setModeMenuOpen(false), []);
+  // A running effect keeps the mapping it was started with, so a user's mode switch updates only that flag.
+  const reapplyMappingRef = useRef<(toSimple: boolean) => void>(() => {});
   const setDashboardMode = useCallback((next: 'simple' | 'advanced') => {
     updateUiSettings({ lightingDashboardMode: next });
-  }, [updateUiSettings]);
+    if ((next === 'simple') !== simpleDashboard) reapplyMappingRef.current(next === 'simple');
+  }, [updateUiSettings, simpleDashboard]);
   // Keeps the output socket open; the canvas paints its frames from ledFrameStore.
   const lightingStream = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
@@ -974,7 +977,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (EFFECTS.some(e => e.key === sync) || isCustomEffectKey(sync)) {
         const state = stateFor(sync);
         await startAnimate(sync, state.speed, state.intensity, state.hue,
-          state.colorize, state.saturation, state.contrast, state.params, false, state.sensors);
+          state.colorize, state.saturation, state.contrast, state.params, false, state.sensors, simpleDashboard);
       } else if (sync === 'screen') {
         await startScreenMirror(screenPP.saturation, screenPP.contrast, undefined, screenPP.hue, screenPP.colorize);
       } else if (sync === 'media' || sync === 'gif') {
@@ -990,6 +993,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     screenPP.contrast,
     screenPP.hue,
     screenPP.colorize,
+    simpleDashboard,
   ]);
 
   // Settles the static start still waiting on the throttle; any newer call drops
@@ -2087,7 +2091,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           setActiveEffect(key);
           setRawSync(key);
           const state = stateFor(key);
-          await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+          await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, simpleDashboard);
           publishControlSync({ domain: 'lighting', mode: m, rawSync: key, effect: key });
           break;
         }
@@ -2119,7 +2123,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         publishControlSync({ domain: 'lighting', mode: m, rawSync: m });
       }
     } catch { /* best-effort; backend state becomes source of truth */ }
-  }, [activeEffect, globalColor, rawSync, setMode, setRawSync, screenPP, stateFor, setPausedState]);
+  }, [activeEffect, globalColor, rawSync, setMode, setRawSync, screenPP, stateFor, setPausedState, simpleDashboard]);
 
   resumeLightingRef.current = handleModeChange;
 
@@ -2337,7 +2341,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         await setLightingPaused(false);
         if (seq !== simpleSeqRef.current) return;
       }
-      await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, true);
       if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
     } catch { /* the sync poll reconciles */ }
@@ -2350,6 +2354,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     && slotOf(canonicalSimpleKey(rawSync)) === SIMPLE_SLOT
     ? canonicalSimpleKey(rawSync)
     : null;
+  // Only the mapping flag changes: the running look, unsaved edits included, stays on the LEDs and nothing is committed.
+  reapplyMappingRef.current = (toSimple: boolean) => {
+    if (mode !== 'animate') return;
+    void setAnimateSimple(toSimple && simpleAnimation !== null).catch(() => {});
+  };
 
   // Turning the row around restarts the running animation with the preset's
   // speed negated. The sign lives in the running state only, never in the slot.
@@ -2368,7 +2377,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         await setLightingPaused(false);
         if (seq !== simpleSeqRef.current) return;
       }
-      await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, true);
       if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: simpleAnimation, effect: simpleAnimation });
     } catch { /* the sync poll reconciles */ }
