@@ -33,6 +33,29 @@ describe('pickInk', () => {
   });
 });
 
+describe('pickInk theme bias', () => {
+  it('keeps white ink on a dark theme until the backdrop is really bright', () => {
+    expect(pickInk(0.22, null)).toBe('dark');
+    expect(pickInk(0.22, null, 'light')).toBe('light');
+    expect(pickInk(0.22, 'light', 'light')).toBe('light');
+    expect(pickInk(0.6, 'light', 'light')).toBe('dark');
+    expect(pickInk(0.2, 'dark', 'light')).toBe('light');
+  });
+
+  it('keeps black ink on a light theme until the backdrop is really dark', () => {
+    expect(pickInk(0.14, null)).toBe('light');
+    expect(pickInk(0.14, null, 'dark')).toBe('dark');
+    expect(pickInk(0.14, 'dark', 'dark')).toBe('dark');
+    expect(pickInk(0.02, 'dark', 'dark')).toBe('light');
+    expect(pickInk(0.2, 'light', 'dark')).toBe('dark');
+  });
+
+  it('follows a theme switch', () => {
+    expect(pickInk(0.22, 'light', 'light')).toBe('light');
+    expect(pickInk(0.22, 'light', 'dark')).toBe('dark');
+  });
+});
+
 describe('regionLuminance', () => {
   it('averages only the cells inside the region', () => {
     const grid = solidGrid(4, 2, [0, 0, 0]);

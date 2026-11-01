@@ -827,7 +827,7 @@ export function PanelContent({
     root.classList.toggle('panel-see-through', seeThrough);
     return () => root.classList.remove('panel-see-through');
   }, [seeThrough]);
-  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive');
+  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive', resolvedThemeMode === 'dark' ? 'light' : 'dark');
   // Scoped to the widget grids, the editor dock and the drag overlay, so the panel's own sheets and menus keep the theme.
   const customTextStyle = useMemo(
     () => (effectiveTheme.textColorMode === 'custom'

@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties, type RefObject } from 'react';
+import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
 import { shaderDrewThisFrame } from '../../hooks/useShaderRenderer';
 
 export const TEXT_COLOR_MODES = ['adaptive', 'theme', 'custom'] as const;
@@ -43,6 +43,9 @@ export interface SampleGrid {
 const CROSSOVER = 0.179;
 // A moving background hovers around the crossover; the band stops the ink flickering.
 const HYSTERESIS = 0.04;
+// How many times better the opposite ink must contrast than the theme's own
+// ink before a widget flips. 1 is the plain crossover; higher is stickier.
+const THEME_INK_BIAS = 2;
 const GRID_COLUMNS = 32;
 const TICK_MS = 1000;
 // Frames a tick waits for a paced shader to draw before it skips; a covered shader never draws.
@@ -58,10 +61,26 @@ export function relativeLuminance(r: number, g: number, b: number): number {
   return 0.2126 * LINEAR[r] + 0.7152 * LINEAR[g] + 0.0722 * LINEAR[b];
 }
 
-export function pickInk(luminance: number, previous: Ink | null): Ink {
+/**
+ * Luminance where the opposite ink beats the theme's ink by THEME_INK_BIAS in
+ * WCAG contrast ratio. White ink on a dark theme flips late (bright backdrops
+ * only); black ink on a light theme flips late (dark backdrops only).
+ */
+function crossover(themeInk: Ink | null): number {
+  if (!themeInk) return CROSSOVER;
+  const flat = 0.05 * 1.05; // (L + 0.05)^2 where white and black contrast equally
+  const offset = 0.05;
+  return themeInk === 'light'
+    ? Math.sqrt(flat * THEME_INK_BIAS) - offset
+    : Math.sqrt(flat / THEME_INK_BIAS) - offset;
+}
+
+/** themeInk is the ink the panel theme itself uses; null picks purely by contrast. */
+export function pickInk(luminance: number, previous: Ink | null, themeInk: Ink | null = null): Ink {
+  const base = crossover(themeInk);
   const threshold = previous === 'light'
-    ? CROSSOVER + HYSTERESIS
-    : previous === 'dark' ? CROSSOVER - HYSTERESIS : CROSSOVER;
+    ? base + HYSTERESIS
+    : previous === 'dark' ? base - HYSTERESIS : base;
   return luminance > threshold ? 'dark' : 'light';
 }
 
@@ -274,7 +293,7 @@ function fadeInk(host: HTMLElement) {
   fadeTimers.set(host, setTimeout(() => { delete host.dataset.inkFade; }, INK_FADE_MS));
 }
 
-function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler) {
+function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler, themeInk: Ink) {
   if (!grid) {
     clearInks(root);
     return;
@@ -299,7 +318,7 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
     );
     if (luminance == null) return;
     const prev = host.dataset.ink;
-    const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null);
+    const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null, themeInk);
     if (prev !== ink) {
       if (prev) fadeInk(host);
       host.dataset.ink = ink;
@@ -308,7 +327,9 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
 }
 
 /** Stamps each widget with the ink that reads best on the background behind it, once a second. */
-export function useAutoTextColor(rootRef: RefObject<HTMLElement | null>, enabled: boolean): void {
+export function useAutoTextColor(rootRef: RefObject<HTMLElement | null>, enabled: boolean, themeInk: Ink): void {
+  const themeInkRef = useRef(themeInk);
+  themeInkRef.current = themeInk;
   useEffect(() => {
     const root = rootRef.current;
     if (!enabled || !root) return undefined;
@@ -330,7 +351,7 @@ export function useAutoTextColor(rootRef: RefObject<HTMLElement | null>, enabled
       waited = 0;
       busy = true;
       void sampler.grid(root, rect).then(grid => {
-        if (!stopped) applyInks(root, grid, sampler);
+        if (!stopped) applyInks(root, grid, sampler, themeInkRef.current);
       }).finally(() => { busy = false; });
     };
     frame = requestAnimationFrame(tick);
