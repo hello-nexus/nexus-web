@@ -280,7 +280,11 @@ describe('LightingOnboardingScreen - continue flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simpleblue' }));
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.rainbow' }));
     await waitFor(() => expect(startAnimate).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(startAnimate).mock.calls[0][10]).toBe(simple);
+    // The trailing argument is the mapping flag; named placeholders keep a reorder from passing silently.
+    expect(startAnimate).toHaveBeenCalledWith(
+      'rainbow', expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number),
+      expect.any(Number), expect.any(Number), expect.anything(), true, undefined, simple,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));

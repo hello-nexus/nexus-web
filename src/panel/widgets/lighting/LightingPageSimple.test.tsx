@@ -522,6 +522,9 @@ describe('LightingPage simple mode', () => {
       );
       // The advanced page mounts only once the hydrated mode has been applied.
       expect(await screen.findByTestId('device-panel')).toBeTruthy();
+      await waitFor(() => expect(prefs.fetch).toHaveBeenCalled());
+      await prefs.fetch.mock.results[0].value;
+      await flush();
       expect(flag()).not.toHaveBeenCalled();
       expect(starts()).not.toHaveBeenCalled();
     });
