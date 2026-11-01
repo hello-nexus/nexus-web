@@ -144,7 +144,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   onOpenFixLighting?: (deviceName: string) => void;
   /** Renders the "Lighting doesn't match?" link as the last entry of the list; opens the Fix lighting modal with no device named. */
   onOpenFixLightingLink?: () => void;
-  /** Wireless devices not bound to this PC, as muted cards after the list; they hold no lighting. */
+  /** Wireless devices not bound to this PC, shown in the Lian Li Wireless group; they hold no lighting. */
   unboundWireless?: readonly LightingDevice[];
   /** Opens the wireless controller page, where those are bound. */
   onOpenWirelessBinding?: (mac: string) => void;
@@ -565,7 +565,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
 
   // Unbound wireless devices sit last in the Lian Li Wireless group, or after the list when no device of that controller is bound.
   const wirelessGroupShown = blocks.some(b => b.kind === 'group' && b.parentDeviceId === 'lianli-wireless');
-  const renderUnbound = (indent: boolean) => filtering ? null : unboundWireless?.map(d => (
+  const renderUnbound = (indent: boolean) => filtering || !onOpenWirelessBinding ? null : unboundWireless?.map(d => (
     <ZoneCard
       key={d.id}
       device={d}
@@ -575,7 +575,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
       onTogglePower={() => {}}
       onToggleControlled={() => {}}
       onOpenSettings={() => {}}
-      onOpenBinding={onOpenWirelessBinding ? () => onOpenWirelessBinding(d.id.slice(UNBOUND_WIRELESS_PREFIX.length)) : undefined}
+      onOpenBinding={() => onOpenWirelessBinding(d.id.slice(UNBOUND_WIRELESS_PREFIX.length))}
     />
   ));
 

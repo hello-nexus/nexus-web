@@ -1329,6 +1329,9 @@ describe('ZoneCard needs-binding state', () => {
     expect(open).toHaveBeenCalledTimes(3);
     fireEvent.click(screen.getByText('lighting.devices.needsBinding').closest('button')!);
     expect(open).toHaveBeenCalledTimes(4);
+    const strip = screen.getByText('lighting.devices.needsBinding').closest('button')!;
+    expect(strip).toHaveAttribute('tabindex', '-1');
+    expect(strip).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByText('devices.lianli-wireless.unbound')).toBeTruthy();
     expect(document.querySelectorAll(`.${styles.deviceControlledByWarn}`)).toHaveLength(1);
     expect(card.className).toContain(styles.deviceCardWithStrip);

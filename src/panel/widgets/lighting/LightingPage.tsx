@@ -395,10 +395,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, []);
   // Wireless devices on the air but bound to no controller: no lighting card exists for them until bound.
   const [unboundWireless, setUnboundWireless] = useState<LianLiWirelessFan[]>([]);
+  const unboundSeq = useRef(0);
   const refreshUnboundWireless = useCallback(async () => {
+    const seq = ++unboundSeq.current;
     const state = await getLianLiWirelessState().catch(() => null);
-    if (state) setUnboundWireless(unboundWirelessFans(state));
+    if (seq === unboundSeq.current) setUnboundWireless(unboundWirelessFans(state));
   }, []);
+  useEffect(() => {
+    if (!serviceOnline) { unboundSeq.current++; setUnboundWireless([]); }
+  }, [serviceOnline]);
   const unboundWirelessDevices = useMemo(
     () => unboundWirelessCards(unboundWireless, f => t(`devices.lianli-wireless.${deviceTypeKey(f.devType, f.fanType)}` as Parameters<typeof t>[0])),
     [unboundWireless, t],

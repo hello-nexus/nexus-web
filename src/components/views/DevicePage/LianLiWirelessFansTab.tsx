@@ -172,6 +172,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   const [lockSaving, setLockSaving] = useState(false);
   const lockTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(undefined);
   const lockHintId = useId();
+  const lockedNoteId = useId();
   const lockBound = lockPending ?? (lockSupported && state.lockBoundDevices === true);
   const pairingBlocked = lockBound || lockSaving;
 
@@ -262,6 +263,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   return (
     <>
       {/* HoverTooltip never opens on touch, so the lock reason is also written out. */}
+      {lockSupported && pairingBlocked && <span id={lockedNoteId} hidden>{t('devices.lianli-wireless.pairingLockedNote')}</span>}
       {lockSupported && pairingBlocked && state?.fans.some(f => !f.boundToUs && !f.wiredOwned) && (
         <SettingsBlock><Notice tone="info" role="status">{t('devices.lianli-wireless.pairingLockedNote')}</Notice></SettingsBlock>
       )}
@@ -318,7 +320,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
               onOpenWiredPage={onOpenWiredPage}
               onOpenRadioPage={onOpenRadioPage}
               pairingLocked={pairingBlocked}
-              lockHintId={lockSupported ? lockHintId : undefined}
+              lockedNoteId={lockSupported ? lockedNoteId : undefined}
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
@@ -349,7 +351,7 @@ function DeviceRow({
   onOpenWiredPage,
   onOpenRadioPage,
   pairingLocked,
-  lockHintId,
+  lockedNoteId,
   onBind,
   onUnbindRequest,
   onIdentify,
@@ -364,7 +366,7 @@ function DeviceRow({
   onOpenWiredPage?: () => void;
   onOpenRadioPage?: () => void;
   pairingLocked: boolean;
-  lockHintId: string | undefined;
+  lockedNoteId: string | undefined;
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
@@ -430,16 +432,16 @@ function DeviceRow({
             {t('devices.lianli-flex.openWiredPage')}
           </Button>
           {/* The service allows only a release here: Unbind hands the fan to USB. */}
-          {fan.boundToUs && lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
+          {fan.boundToUs && lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
             {unbindLabel}
           </Button>)}
         </>
       ) : fan.boundToUs ? (
-        lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
+        lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
         </Button>)
       ) : (
-        lockGuard(<Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onBind(fan.mac)}>
+        lockGuard(<Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onBind(fan.mac)}>
           {bindLabel}
         </Button>)
       )}

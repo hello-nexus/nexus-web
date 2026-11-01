@@ -3,12 +3,7 @@ import type { LianLiWirelessFan, LianLiWirelessState } from '../../../../api/lia
 
 export const UNBOUND_WIRELESS_PREFIX = 'lianli-wireless-unbound:';
 
-/**
- * Wireless devices the user can bind here: on the air, bound to no controller.
- * One bound to another controller is left out, since that is a deliberate
- * pairing (a second PC) rather than something this PC is missing, and a unit a
- * wired page owns is bound through that page.
- */
+/** On the air, bound to no controller; other-controller and wired-owned units are bound elsewhere. */
 export function unboundWirelessFans(state: Pick<LianLiWirelessState, 'isConnected' | 'fans'> | null): LianLiWirelessFan[] {
   if (!state?.isConnected) return [];
   return state.fans.filter(f => !f.boundToUs && !f.wiredOwned && !f.masterMac);

@@ -154,7 +154,8 @@ describe('LianLiWirelessFansTab', () => {
     it('disables bind and unbind and points them at the toggle description while locked', async () => {
       const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
       await renderTab({ ...on, fans: [boundFan, unbound] });
-      const hint = screen.getByText('devices.lianli-wireless.lockBoundDevicesHint');
+      const hint = document.querySelector('span[hidden]') as HTMLElement;
+      expect(hint).toHaveTextContent('devices.lianli-wireless.pairingLockedNote');
       for (const name of ['devices.lianli-wireless.unbind', 'devices.lianli-wireless.bind']) {
         const btn = screen.getByRole('button', { name });
         expect(btn).toBeDisabled();
@@ -166,7 +167,7 @@ describe('LianLiWirelessFansTab', () => {
     it('says why Bind is disabled with a visible note and a tooltip on the wrapper', async () => {
       const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
       await renderTab({ ...on, fans: [boundFan, unbound] });
-      expect(screen.getByText('devices.lianli-wireless.pairingLockedNote')).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('devices.lianli-wireless.pairingLockedNote');
       const wrapper = screen.getByRole('button', { name: 'devices.lianli-wireless.bind' }).parentElement as HTMLElement;
       fireEvent.pointerEnter(wrapper);
       await act(async () => { vi.advanceTimersByTime(1000); });
@@ -179,13 +180,13 @@ describe('LianLiWirelessFansTab', () => {
       expect(screen.queryByText('devices.lianli-wireless.pairingLockedNote')).not.toBeInTheDocument();
       cleanup();
       await renderTab({ ...on, fans: [boundFan] });
-      expect(screen.queryByText('devices.lianli-wireless.pairingLockedNote')).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
 
     it('disables Unbind of a wired-owned unit still bound to this radio while locked, like any other bound fan', async () => {
       const wiredBound = { ...boundFan, wiredOwned: true };
       await renderTab({ ...on, fans: [wiredBound] });
-      const hint = screen.getByText('devices.lianli-wireless.lockBoundDevicesHint');
+      const hint = document.querySelector('span[hidden]') as HTMLElement;
       const btn = screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' });
       expect(btn).toBeDisabled();
       expect(btn).toHaveAttribute('aria-describedby', hint.id);

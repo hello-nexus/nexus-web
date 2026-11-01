@@ -417,7 +417,7 @@ export function ZoneCard({
   onOpenAppStrip?: () => void;
   /** Opens the Fix lighting flow from the not-responding strip. */
   onOpenFixLighting?: () => void;
-  /** Marks a wireless device that is not bound to this PC: a muted card with no lighting controls whose press opens the controller page to bind it. */
+  /** Marks a wireless device that is not bound to this PC: a card with no lighting controls whose press opens the controller page to bind it. */
   onOpenBinding?: () => void;
 }) {
   const { t, language } = useTranslation();
@@ -862,7 +862,7 @@ export function ZoneCard({
       </div>
       </div>
       {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
-      {onOpenBinding && <ControlledByStrip label={t('lighting.devices.needsBinding')} onOpen={onOpenBinding} />}
+      {onOpenBinding && <ControlledByStrip label={t('lighting.devices.needsBinding')} onOpen={onOpenBinding} passive />}
       {showFailingStrip && <ControlledByStrip label={t('lighting.writeHealth.badge')} onOpen={onOpenFixLighting} />}
       {menuEnabled && (
         <MenuArrowButton
