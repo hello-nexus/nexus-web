@@ -854,8 +854,22 @@ describe('BuildPage headless', () => {
     expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
   });
 
-  it('offers no setup sync in a distribution build, headless or not', () => {
+  it('offers setup sync to a headless frame in a distribution build, and answers its setup requests', async () => {
     previewApi.devTools = false;
+    h.specs = SAMPLE_SPECS;
+    h.fetchPcSetup.mockResolvedValue({ rev: 4, setup: { version: 1, case: {}, items: [], resolved: { objects: [] } } });
+    render(<BuildPage headless={headlessProp()} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(helloOf(spy)!).toHaveProperty('canSyncSetup', true);
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
+    expect(h.fetchPcSetup).toHaveBeenCalled();
+  });
+
+  it('offers no setup sync to a headless frame on a remote origin', () => {
+    previewApi.devTools = false;
+    h.isRemoteOrigin = true;
     h.specs = SAMPLE_SPECS;
     render(<BuildPage headless={headlessProp()} />);
     const iframe = getIframe();

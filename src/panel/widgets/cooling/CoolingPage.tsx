@@ -46,7 +46,6 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewSwitch } from '../../../components/common/ViewSwitch/ViewSwitch';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import { effectiveView3d } from '../../../lib/viewPreference';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
@@ -100,15 +99,10 @@ import styles from './CoolingPage.module.scss';
  * fans bind to a curve through each fan card's mode dropdown.
  */
 
-// Dev-tools only. The raw defines fold in this module, so a distribution build drops the chunk and the view switch; a shared const does not fold across modules.
-const CoolingCase3D = (import.meta.env.DEV || __DEV_TOOLS__)
-  ? lazy(() => import('./case3d/CoolingCase3D').then(m => ({ default: m.CoolingCase3D })))
-  : null;
+const CoolingCase3D = lazy(() => import('./case3d/CoolingCase3D').then(m => ({ default: m.CoolingCase3D })));
 
-// Fills the setup record's case layout through an invisible Build when it is missing or out of date; dev-tools only, like the view that needs it.
-const CoolingAutoResolve = (import.meta.env.DEV || __DEV_TOOLS__)
-  ? lazy(() => import('./case3d/CoolingAutoResolve').then(m => ({ default: m.CoolingAutoResolve })))
-  : null;
+// Fills the setup record's case layout through an invisible Build when it is missing or out of date.
+const CoolingAutoResolve = lazy(() => import('./case3d/CoolingAutoResolve').then(m => ({ default: m.CoolingAutoResolve })));
 
 const VIEW_2D = '2d' as const;
 const VIEW_3D = '3d' as const;
@@ -794,7 +788,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // fan, so a curve can be assigned to a group in one action. Declared here
   // because the curve-creation paths below clear it.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
-  const view3d = effectiveView3d(settings.coolingView3d, !!CoolingCase3D);
+  const view3d = settings.coolingView3d;
   const setView3d = useCallback((next: boolean) => updateUi({ coolingView3d: next }), [updateUi]);
 
   // A device page's jump to one of its fans: select it once it is listed, which opens its curve.
@@ -1633,20 +1627,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             </HoverTooltip>
           </div>
         </div>
-        <div className={`${styles.paneHeader} ${styles.headerRight}${view3d && CoolingCase3D ? ` ${styles.paneHeaderFlush}` : ''}`}>
-          <span className={styles.paneTitle}>{view3d && CoolingCase3D ? t('cooling.view.airflow') : t('cooling.label.curves')}</span>
+        <div className={`${styles.paneHeader} ${styles.headerRight}${view3d ? ` ${styles.paneHeaderFlush}` : ''}`}>
+          <span className={styles.paneTitle}>{view3d ? t('cooling.view.airflow') : t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact color="var(--text-dim)" />
           {offStatusCard}
-          {CoolingCase3D && (
-            <ViewSwitch
-              className={styles.viewSwitch}
-              ariaLabel={t('cooling.case3d.viewSwitch')}
-              value={view3d ? VIEW_3D : VIEW_2D}
-              labels={{ '2d': t('cooling.view.curves'), '3d': t('cooling.view.airflow') }}
-              onChange={next => setView3d(next === VIEW_3D)}
-            />
-          )}
+          <ViewSwitch
+            className={styles.viewSwitch}
+            ariaLabel={t('cooling.case3d.viewSwitch')}
+            value={view3d ? VIEW_3D : VIEW_2D}
+            labels={{ '2d': t('cooling.view.curves'), '3d': t('cooling.view.airflow') }}
+            onChange={next => setView3d(next === VIEW_3D)}
+          />
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
@@ -2032,7 +2024,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
         </aside>
         <div className={styles.curveCol}>
-          {view3d && CoolingCase3D && CoolingAutoResolve ? (
+          {view3d ? (
             <Suspense fallback={null}>
             <CoolingAutoResolve>
               {autoResolve => (

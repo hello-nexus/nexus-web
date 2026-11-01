@@ -132,6 +132,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   const headlessRef = useRef(headless);
   useEffect(() => { headlessRef.current = headless; }, [headless]);
   // A headless frame saves the preview only when its host asked; the host decided it is offered.
+  // Shared PC setup sync is experimental: dev-tools builds, plus the hidden Build that Cooling frames to resolve its case layout.
+  const canSyncSetup = (DEV_TOOLS || !!headless) && !isRemoteOrigin;
   const canSavePreview = !isRemoteOrigin && (headless ? headless.preview === true : DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
@@ -263,7 +265,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   const learnSetupRev = useCallback((rev: unknown) => {
     if (typeof rev === 'number') lastSetupRevRef.current = Math.max(lastSetupRevRef.current, rev);
   }, []);
-  useTopicCallback(PC_SETUP_TOPIC, ready && DEV_TOOLS && !isRemoteOrigin, useCallback(() => {
+  useTopicCallback(PC_SETUP_TOPIC, ready && canSyncSetup, useCallback(() => {
     void relaySetupPush().then(async push => {
       await setupWritesRef.current;
       if (!push || push.rev <= lastSetupRevRef.current) return;
@@ -322,7 +324,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
           }));
           break;
         case 'nexus-build:setup-get':
-          if (!DEV_TOOLS || isRemoteOrigin) {
+          if (!(DEV_TOOLS || headlessRef.current) || isRemoteOrigin) {
             // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
             post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
             break;
@@ -333,7 +335,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
           });
           break;
         case 'nexus-build:setup-put':
-          if (!DEV_TOOLS || isRemoteOrigin) {
+          if (!(DEV_TOOLS || headlessRef.current) || isRemoteOrigin) {
             // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
             post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
             break;
@@ -399,7 +401,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
       // Shared PC setup sync is experimental: offered only in dev-tools builds.
-      ...(DEV_TOOLS && !isRemoteOrigin ? { canSyncSetup: true } : {}),
+      ...(canSyncSetup ? { canSyncSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
       // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.
       ...(canSavePreview ? { canSavePreview: true } : {}),
