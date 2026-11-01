@@ -144,7 +144,8 @@ describe('frost message', () => {
   });
 
   it('reports the card rects, radius and strength on a see-through panel', () => {
-    expect(frostMessage(70, true, rects, 1.25, 12)).toEqual({ type: 'nexus.panel.frost', level: 'heavy', percent: 70, dpr: 1.25, radius: 12, rects });
+    expect(frostMessage(70, true, rects, 1.25, 12)).toEqual({ type: 'nexus.panel.frost', level: 'heavy', percent: 70, dpr: 1.25, radius: 12, rects, theme: 'dark' });
+    expect(frostMessage(70, true, rects, 1.25, 12, 'light')).toMatchObject({ theme: 'light' });
   });
 
   it('reports none, without rects, when frost is off or the panel is opaque', () => {

@@ -23,7 +23,11 @@ export interface FrostMessage {
   // Card corner radius, CSS px.
   radius: number;
   rects: HitRect[];
+  // The panel's resolved theme, so the host tints the frost to match. Hosts treat a missing theme as dark.
+  theme?: FrostTheme;
 }
+
+export type FrostTheme = 'light' | 'dark';
 
 interface HostPoster {
   postMessage(payload: unknown): void;
@@ -177,8 +181,8 @@ export function frostLevelOf(percent: number): FrostLevel {
   return percent <= 50 ? 'light' : 'heavy';
 }
 
-export function frostMessage(percent: number, seeThrough: boolean, rects: HitRect[], dpr: number, radius: number): FrostMessage {
+export function frostMessage(percent: number, seeThrough: boolean, rects: HitRect[], dpr: number, radius: number, theme: FrostTheme = 'dark'): FrostMessage {
   const level = seeThrough ? frostLevelOf(percent) : 'none';
   if (level === 'none') return { type: 'nexus.panel.frost', level, percent: 0, dpr, radius: 0, rects: [] };
-  return { type: 'nexus.panel.frost', level, percent, dpr, radius, rects };
+  return { type: 'nexus.panel.frost', level, percent, dpr, radius, rects, theme };
 }

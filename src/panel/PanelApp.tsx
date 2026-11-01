@@ -2013,6 +2013,7 @@ export function PanelContent({
     Boolean(activeDragId || lockDragging),
     rootRef,
     `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
+    resolvedThemeMode,
   );
   // Every sheet (widget edit, catalog, panel settings, pairing) can hold a text field.
   usePanelActivatable(hostBound, Boolean(sheetMode));

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
-import { collectHitRects, frostMessage, hitTestMessage, onHostRequestHitTest, panelHostIsWindows, postPanelHostMessage } from './panelHostBridge';
+import { collectHitRects, frostMessage, type FrostTheme, hitTestMessage, onHostRequestHitTest, panelHostIsWindows, postPanelHostMessage } from './panelHostBridge';
 
 /** A computed comma-separated CSS list as trimmed items. */
 function cssList(value: string | undefined): string[] {
@@ -135,7 +135,7 @@ function cardRadius(): number {
  * Reports the card areas for the host's native blur on a see-through panel, and `none` otherwise.
  * `dragging` re-measures every frame so the blur follows the card being moved; `signature` changes when layout may have moved.
  */
-export function usePanelFrost(active: boolean, percent: number, seeThrough: boolean, dragging: boolean, rootRef: RefObject<HTMLElement | null>, signature: string): void {
+export function usePanelFrost(active: boolean, percent: number, seeThrough: boolean, dragging: boolean, rootRef: RefObject<HTMLElement | null>, signature: string, theme: FrostTheme = 'dark'): void {
   const lastRef = useRef('');
   const release = () => {
     if (lastRef.current === '') return;
@@ -165,7 +165,7 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
         ? collectHitRects(document.querySelectorAll(CARD_SELECTOR), { width: window.innerWidth, height: window.innerHeight })
         : [];
       const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
-      const msg = frostMessage(percent, seeThrough, rects, dpr, frosted ? cardRadius() : 0);
+      const msg = frostMessage(percent, seeThrough, rects, dpr, frosted ? cardRadius() : 0, theme);
       const key = JSON.stringify(msg);
       if (!force && key === lastRef.current) return;
       lastRef.current = key;
@@ -258,6 +258,6 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
       document.removeEventListener('animationcancel', onAnimationEnd, true);
       window.removeEventListener('resize', schedule);
     };
-  }, [active, percent, seeThrough, dragging, rootRef, signature]);
+  }, [active, percent, seeThrough, dragging, rootRef, signature, theme]);
   useEffect(() => () => releaseRef.current(), []);
 }

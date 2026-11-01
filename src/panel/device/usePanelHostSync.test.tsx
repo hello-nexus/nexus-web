@@ -13,6 +13,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   delete (window as unknown as Record<string, unknown>).chrome;
+  delete (window as unknown as Record<string, unknown>).webkit;
+  document.documentElement.removeAttribute('data-host-frost');
 });
 
 const flush = async () => { await act(async () => { await vi.advanceTimersByTimeAsync(20); }); };
@@ -273,7 +275,21 @@ describe('usePanelFrost', () => {
     const mac = renderHook(() => usePanelFrost(true, 70, true, false, rootRef, 'a'));
     expect(html.hasAttribute('data-host-frost')).toBe(false);
     mac.unmount();
-    delete (window as unknown as Record<string, unknown>).webkit;
+  });
+
+  it('sends the panel theme, dark by default, and re-sends when it changes', async () => {
+    const cell = mountCard();
+    const view = renderHook(({ theme }) => usePanelFrost(true, 30, true, false, rootRef, 'a', theme), { initialProps: { theme: undefined as 'light' | 'dark' | undefined } });
+    await flush();
+    expect(frosts().at(-1)).toMatchObject({ level: 'light', theme: 'dark' });
+    view.rerender({ theme: 'light' });
+    await flush();
+    expect(frosts()).toHaveLength(2);
+    expect(frosts().at(-1)).toMatchObject({ theme: 'light', rects: [{ x: 10, y: 20, w: 100, h: 70 }] });
+    view.rerender({ theme: 'light' });
+    await flush();
+    expect(frosts()).toHaveLength(2);
+    cell.remove();
   });
 });
 
