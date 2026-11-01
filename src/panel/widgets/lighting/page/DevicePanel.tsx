@@ -8,6 +8,7 @@ import { ZoneCard, ZoneCardStack, zoneCardSelectable, zoneCardUnavailable, type 
 import { pinStripPick } from '../pins';
 import type { Pin } from '../../../../api/lighting';
 import { type LedPick } from './DeviceLedStrip';
+import { UNBOUND_WIRELESS_PREFIX } from './unboundWireless';
 import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
@@ -38,7 +39,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenZoneSizes, zoneSizeDeviceIds, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip, onOpenFixLighting, onOpenFixLightingLink }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenZoneSizes, zoneSizeDeviceIds, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip, onOpenFixLighting, onOpenFixLightingLink, unboundWireless, onOpenWirelessBinding }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -143,6 +144,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   onOpenFixLighting?: (deviceName: string) => void;
   /** Renders the "Lighting doesn't match?" link as the last entry of the list; opens the Fix lighting modal with no device named. */
   onOpenFixLightingLink?: () => void;
+  /** Wireless devices not bound to this PC, shown in the Lian Li Wireless group; they hold no lighting. */
+  unboundWireless?: readonly LightingDevice[];
+  /** Opens the wireless controller page, where those are bound. */
+  onOpenWirelessBinding?: (mac: string) => void;
   /** User-made groups, in display order. */
   groups?: DeviceGroup[];
   /** Absent leaves the rail ungroupable (no drag between groups, no add button). */
@@ -558,6 +563,22 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
     );
   };
 
+  // Unbound wireless devices sit last in the Lian Li Wireless group, or after the list when no device of that controller is bound.
+  const wirelessGroupShown = blocks.some(b => b.kind === 'group' && b.parentDeviceId === 'lianli-wireless');
+  const renderUnbound = (indent: boolean) => filtering || !onOpenWirelessBinding ? null : unboundWireless?.map(d => (
+    <ZoneCard
+      key={d.id}
+      device={d}
+      selected={false}
+      indent={indent}
+      onSelect={() => {}}
+      onTogglePower={() => {}}
+      onToggleControlled={() => {}}
+      onOpenSettings={() => {}}
+      onOpenBinding={() => onOpenWirelessBinding(d.id.slice(UNBOUND_WIRELESS_PREFIX.length))}
+    />
+  ));
+
   const renderBlock = (block: DeviceBlock, a: SortableRowArgs | null) => {
     if (block.kind === 'single') return renderCard(block.device, false, undefined, a ?? undefined);
     if (block.kind === 'split') return renderStack(block, a ?? undefined);
@@ -652,6 +673,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
             );
           }}
         />
+        {parentDeviceId === 'lianli-wireless' && renderUnbound(true)}
       </MotherboardGroup>
     );
   };
@@ -739,6 +761,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
             );
           }}
         />
+        {!wirelessGroupShown && renderUnbound(false)}
         {discovery && <DeviceDiscoveryCard state={discovery} rgbRunning={rgbRunning} />}
         {canAddGroup && !filtering && (
           <button

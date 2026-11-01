@@ -237,11 +237,7 @@ function refreshAccessToken(): Promise<string | null> {
 // Body flow (cookieMode false): needs a stored token, sends it in the body,
 // gets a rotated one back - unchanged from before cookie mode existed.
 // Cookie flow: the session cookie is HttpOnly, so JS can't check for one
-// first - every call here doubles as the bootstrap-on-load probe. A stored
-// legacy token (a pre-cookie-mode session's localStorage copy) rides the
-// body of that SAME call for a one-time migration: the server validates it
-// like a normal body refresh, sets the cookie on success, and the body is
-// cleared below so every later cookie-mode call is a bare cookie bootstrap.
+// first - every call here doubles as the bootstrap-on-load probe, with a bare body.
 // How the last refresh ended, so a failed session check can tell "no session" from "could not ask".
 let lastRefresh: 'ok' | 'noSession' | 'failed' = 'ok';
 
@@ -250,8 +246,8 @@ const refreshOutcome = () => lastRefresh;
 
 async function doRefresh(): Promise<string | null> {
   const cookieMode = isWebCookieMode();
-  const legacy = getStoredRefreshToken();
-  if (!cookieMode && !legacy) {
+  const stored = cookieMode ? null : getStoredRefreshToken();
+  if (!cookieMode && !stored) {
     lastRefresh = 'noSession';
     return null;
   }
@@ -263,14 +259,12 @@ async function doRefresh(): Promise<string | null> {
       method: 'POST',
       headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
       credentials: fetchCredentials(cookieMode),
-      body: JSON.stringify(legacy ? { refreshToken: legacy } : {}),
+      body: JSON.stringify(stored ? { refreshToken: stored } : {}),
       signal: controller.signal,
     });
     if (!res.ok) {
-      // A definitive rejection means the token (migration) or cookie
-      // (bootstrap) this call carried is not a live session; a 5xx/network
-      // blip is not, so a still-unmigrated legacy token survives for a
-      // later retry.
+      // A definitive rejection means the token or cookie this call carried is not a live session; a 5xx/network
+      // blip is not.
       // 400 is the api's answer to a web refresh with no session cookie at all: no session, like a refused one.
       if (res.status === 400 || res.status === 401 || res.status === 403) {
         lastRefresh = 'noSession';
@@ -287,7 +281,6 @@ async function doRefresh(): Promise<string | null> {
     }
     applySession(session, cookieMode);
     lastRefresh = 'ok';
-    if (cookieMode && legacy) clearStoredRefreshToken();
     return accessToken;
   } catch {
     lastRefresh = 'failed';
