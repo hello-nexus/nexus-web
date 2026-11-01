@@ -259,8 +259,61 @@ class BackdropSampler {
   }
 }
 
-function clearInks(root: HTMLElement) {
-  root.querySelectorAll<HTMLElement>('[data-ink]').forEach(el => { delete el.dataset.ink; });
+const fadeTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+const fadeEnders = new WeakMap<HTMLElement, (e: TransitionEvent) => void>();
+const FALLBACK_EASE_MS = 180;
+let easeMs: number | null = null;
+
+/** The --ease token in ms, read once from the computed style. */
+function readEaseMs(host: HTMLElement): number {
+  if (easeMs != null) return easeMs;
+  const raw = getComputedStyle(host).getPropertyValue('--ease').trim();
+  const value = parseFloat(raw);
+  easeMs = Number.isFinite(value) && value > 0
+    ? (raw.endsWith('ms') ? value : raw.endsWith('s') ? value * 1000 : FALLBACK_EASE_MS)
+    : FALLBACK_EASE_MS;
+  return easeMs;
+}
+
+function endFade(host: HTMLElement) {
+  clearTimeout(fadeTimers.get(host));
+  fadeTimers.delete(host);
+  const ender = fadeEnders.get(host);
+  if (ender) host.removeEventListener('transitionend', ender);
+  fadeEnders.delete(host);
+  delete host.dataset.inkFade;
+}
+
+/** Drops every stamp and any fade in flight, so a clear never fades. */
+export function clearInks(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[data-ink], [data-ink-fade]').forEach(el => {
+    endFade(el);
+    delete el.dataset.ink;
+  });
+}
+
+/**
+ * Marks a host so its contents ease to the new ink (tokens.scss). The timer is
+ * only a backstop for a transition that never reports back; the host's own
+ * color transitionend ends the window first.
+ */
+function fadeInk(host: HTMLElement) {
+  endFade(host);
+  host.dataset.inkFade = '';
+  const ender = (e: TransitionEvent) => {
+    if (e.target === host && e.propertyName === 'color') endFade(host);
+  };
+  fadeEnders.set(host, ender);
+  host.addEventListener('transitionend', ender);
+  fadeTimers.set(host, setTimeout(() => endFade(host), readEaseMs(host) * 2 + 100));
+}
+
+/** Stamps a host with an ink; a flip from an earlier stamp fades, a first stamp does not. */
+export function stampInk(host: HTMLElement, ink: Ink) {
+  const prev = host.dataset.ink;
+  if (prev === ink) return;
+  if (prev) fadeInk(host);
+  host.dataset.ink = ink;
 }
 
 function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler) {
@@ -289,7 +342,7 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
     if (luminance == null) return;
     const prev = host.dataset.ink;
     const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null);
-    if (prev !== ink) host.dataset.ink = ink;
+    stampInk(host, ink);
   });
 }
 

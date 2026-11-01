@@ -21,7 +21,6 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
   const [mode, setMode] = useState<LightingMode>('none');
   const [rawSync, setRawSync] = useState('none');
   const [paused, setPaused] = useState(false);
-  const [gameSyncRemovedNotice, setGameSyncRemovedNotice] = useState(false);
   // False until the first real sync state arrives. Callers gate the active
   // tab indicator on this so the mode tabs stay unhighlighted during load
   // instead of flashing 'none' before /lighting/current returns.
@@ -47,7 +46,6 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
       }
       if (data) {
         setPaused(!!data.paused);
-        setGameSyncRemovedNotice(data.gameSyncRemovedNotice === true);
       }
     });
 
@@ -79,12 +77,11 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
       }
       if (data) {
         setPaused(!!data.paused);
-        setGameSyncRemovedNotice(data.gameSyncRemovedNotice === true);
       }
     });
   });
 
-  return { mode, setMode, rawSync, setRawSync, synced, paused, gameSyncRemovedNotice };
+  return { mode, setMode, rawSync, setRawSync, synced, paused };
 }
 
 export function normalizeSync(sync: string): LightingMode {
