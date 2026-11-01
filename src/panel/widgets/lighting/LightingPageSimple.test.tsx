@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { UiSettingsProvider, useUiSettings } from '../../../hooks/useUiSettings';
+import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { loadSettings } from '../../../lib/settings';
 import { PALETTE } from '../../../types/lightingPalette';
 import * as lightingApi from '../../../api/lighting';
