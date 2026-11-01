@@ -259,8 +259,19 @@ class BackdropSampler {
   }
 }
 
+/** How long a flipped host keeps its fade rule; a touch over the CSS duration. */
+const INK_FADE_MS = 250;
+const fadeTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
 function clearInks(root: HTMLElement) {
   root.querySelectorAll<HTMLElement>('[data-ink]').forEach(el => { delete el.dataset.ink; });
+}
+
+/** Marks a host so its contents ease to the new ink (tokens.scss); a first stamp or a clear never fades. */
+function fadeInk(host: HTMLElement) {
+  clearTimeout(fadeTimers.get(host));
+  host.dataset.inkFade = '';
+  fadeTimers.set(host, setTimeout(() => { delete host.dataset.inkFade; }, INK_FADE_MS));
 }
 
 function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler) {
@@ -289,7 +300,10 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
     if (luminance == null) return;
     const prev = host.dataset.ink;
     const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null);
-    if (prev !== ink) host.dataset.ink = ink;
+    if (prev !== ink) {
+      if (prev) fadeInk(host);
+      host.dataset.ink = ink;
+    }
   });
 }
 
