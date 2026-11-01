@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { clearInks, customTextVars, normalizeTextColorMode, pickInk, smoothLuminance, stampInk, regionLuminance, relativeLuminance } from './textColor';
+import { clearInks, customTextVars, normalizeTextColorMode, pickInk, resolveHostInk, smoothLuminance, stampInk, regionLuminance, relativeLuminance } from './textColor';
 
 function solidGrid(width: number, height: number, [r, g, b]: [number, number, number]) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -61,6 +61,26 @@ describe('pickInk theme bias', () => {
   it('follows a theme switch on the next pick', () => {
     expect(pickInk(0.22, 'light', 'light')).toBe('light');
     expect(pickInk(0.22, 'light', 'dark')).toBe('dark');
+  });
+});
+
+describe('resolveHostInk on a theme switch', () => {
+  it('dark to light theme judges an in-band sample like a fresh load', () => {
+    const host = document.createElement('div');
+    host.dataset.ink = 'light';
+    expect(resolveHostInk(host, 0.15, 'dark', true)).toBe('dark');
+  });
+
+  it('light to dark theme judges an in-band sample like a fresh load', () => {
+    const host = document.createElement('div');
+    host.dataset.ink = 'dark';
+    expect(resolveHostInk(host, 0.22, 'light', true)).toBe('light');
+  });
+
+  it('keeps the stamp as history on an ordinary tick', () => {
+    const host = document.createElement('div');
+    host.dataset.ink = 'light';
+    expect(resolveHostInk(host, 0.15, 'dark', false)).toBe('light');
   });
 });
 

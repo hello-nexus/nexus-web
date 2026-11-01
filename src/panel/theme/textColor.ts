@@ -39,15 +39,18 @@ export interface SampleGrid {
   height: number;
 }
 
+// WCAG contrast adds this flare to both luminances before dividing.
+const CONTRAST_FLARE = 0.05;
 // White and black text have equal WCAG contrast against this luminance.
-const CROSSOVER = 0.179;
+const CROSSOVER = Math.sqrt(CONTRAST_FLARE * (1 + CONTRAST_FLARE)) - CONTRAST_FLARE;
 // A moving background hovers around the crossover; the band stops the ink flickering.
 const HYSTERESIS = 0.04;
 // How many times better the opposite ink must contrast than the theme's own
-// ink before a widget flips. 1 is the plain crossover; higher is stickier.
+// ink before a widget flips. Unity is the plain crossover; higher is stickier.
 const THEME_INK_BIAS = 2;
-// Weight of each new once-a-second luminance sample in the per-host average
-// (about a 3 s time constant), so a one-tick plasma spike cannot flip the ink.
+// Weight of each new tick's luminance sample in the per-host average, so a
+// one-tick plasma spike cannot flip the ink; the time constant is this many
+// ticks inverted.
 const LUMINANCE_SMOOTHING = 0.28;
 const GRID_COLUMNS = 32;
 const TICK_MS = 1000;
@@ -71,11 +74,11 @@ export function relativeLuminance(r: number, g: number, b: number): number {
  */
 function crossover(themeInk: Ink | null): number {
   if (!themeInk) return CROSSOVER;
-  const flat = 0.05 * 1.05; // (L + 0.05)^2 where white and black contrast equally
-  const offset = 0.05;
+  // (L + flare)^2 where white and black contrast equally
+  const flat = CONTRAST_FLARE * (1 + CONTRAST_FLARE);
   return themeInk === 'light'
-    ? Math.sqrt(flat * THEME_INK_BIAS) - offset
-    : Math.sqrt(flat / THEME_INK_BIAS) - offset;
+    ? Math.sqrt(flat * THEME_INK_BIAS) - CONTRAST_FLARE
+    : Math.sqrt(flat / THEME_INK_BIAS) - CONTRAST_FLARE;
 }
 
 /**
@@ -358,11 +361,24 @@ export function stampInk(host: HTMLElement, ink: Ink) {
   host.dataset.ink = ink;
 }
 
+/**
+ * The ink for one host from a raw sample: smooths it, then picks against the
+ * host's current stamp. On the tick a theme switch lands the stamp is ignored,
+ * so the result matches a fresh load; stampInk still fades whatever flips.
+ */
+export function resolveHostInk(host: HTMLElement, sample: number, themeInk: Ink, themeChanged: boolean): Ink {
+  const prev = host.dataset.ink;
+  const previous = !themeChanged && (prev === 'light' || prev === 'dark') ? prev : null;
+  return pickInk(smoothLuminance(host, sample), previous, themeInk);
+}
+
 const seenThemeInk = new WeakMap<HTMLElement, Ink>();
 
 function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler, themeInk: Ink) {
-  // A theme switch re-fills the cards, so the averaged history no longer applies.
-  if (seenThemeInk.get(root) !== themeInk) {
+  // A theme switch re-fills the cards, so the averaged history no longer applies,
+  // and every host is judged as on a fresh load (no previous ink) this tick.
+  const themeChanged = seenThemeInk.get(root) !== themeInk;
+  if (themeChanged) {
     seenThemeInk.set(root, themeInk);
     root.querySelectorAll<HTMLElement>('[data-ink]').forEach(el => { smoothed.delete(el); });
   }
@@ -388,10 +404,11 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
       left * sx, top * sy, (left + r.width) * sx, (top + r.height) * sy,
       sampler.color(getComputedStyle(card).backgroundColor),
     );
-    if (luminance == null) return;
-    const prev = host.dataset.ink;
-    const ink = pickInk(smoothLuminance(host, luminance), prev === 'light' || prev === 'dark' ? prev : null, themeInk);
-    stampInk(host, ink);
+    if (luminance == null) {
+      smoothed.delete(host);
+      return;
+    }
+    stampInk(host, resolveHostInk(host, luminance, themeInk, themeChanged));
   });
 }
 
