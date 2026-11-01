@@ -70,6 +70,7 @@ vi.mock('../../../api/lighting', async importOriginal => {
     fetchLayoutPresets: vi.fn(() => Promise.resolve(null)),
     saveAnimateTemplates: vi.fn(() => Promise.resolve(null)),
     startAnimate: vi.fn(() => Promise.resolve(null)),
+    setAnimateSimple: vi.fn(() => Promise.resolve(null)),
     startStatic: vi.fn(() => Promise.resolve(null)),
     stopLighting: vi.fn(() => Promise.resolve(null)),
     setMusicReactive: vi.fn(() => Promise.resolve(null)),
@@ -443,60 +444,72 @@ describe('LightingPage simple mode', () => {
 
   describe('switching the dashboard mode', () => {
     const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
-    const templates = { rainbow: { selected: 0, slots: [slot(50), slot(61), slot(62), slot(63)] } };
+    const bundle = (selected: number) => ({ selected, slots: [slot(50), slot(61), slot(62), slot(63)] });
+    const flag = () => vi.mocked(lightingApi.setAnimateSimple);
     const starts = () => vi.mocked(lightingApi.startAnimate);
 
     async function openMenuAndPick(trigger: string, entry: string) {
       fireEvent.click(await screen.findByRole('tab', { name: trigger }));
       fireEvent.click((await screen.findAllByText(entry)).at(-1)!);
     }
+    // Drains the page's pending promise chains (the toggle's request would be among them).
+    const flush = async () => { for (let i = 0; i < 50; i += 1) await Promise.resolve(); };
 
-    beforeEach(() => {
+    function useTemplates(templates: Record<string, unknown>) {
       vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', states: {}, templates } as never);
-    });
+    }
 
-    it('restarts a reversed simple sweep as advanced, still reversed', async () => {
+    it('leaving simple mode clears the flag without restarting the effect', async () => {
+      useTemplates({ rainbow: bundle(0) });
       syncState.mode = 'animate';
       syncState.rawSync = 'rainbow';
       renderPage();
       await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
-      fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
-      await waitFor(() => expect(starts()).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined, true));
-      starts().mockClear();
       await openMenuAndPick('uiMode.simpleMode', 'uiMode.advancedMode');
-      await waitFor(() => expect(starts()).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined, false));
+      await waitFor(() => expect(flag()).toHaveBeenCalledWith(false));
+      expect(starts()).not.toHaveBeenCalled();
     });
 
-    it('restarts the running effect as simple when entering simple mode', async () => {
+    it('entering simple mode sets the flag when simple recognizes the running effect', async () => {
       localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
+      useTemplates({ rainbow: bundle(0) });
       syncState.mode = 'animate';
       syncState.rawSync = 'rainbow';
       renderPage();
       await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
-      starts().mockClear();
       await openMenuAndPick('uiMode.advancedMode', 'uiMode.simpleMode');
-      await waitFor(() => expect(starts()).toHaveBeenCalledWith('rainbow', 50, 1, 0, 0, 1, 1, {}, true, undefined, true));
+      await waitFor(() => expect(flag()).toHaveBeenCalledWith(true));
+      expect(starts()).not.toHaveBeenCalled();
+    });
+
+    it('entering simple mode on another preset keeps the effect on the layout mapping', async () => {
+      localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
+      useTemplates({ rainbow: bundle(2) });
+      syncState.mode = 'animate';
+      syncState.rawSync = 'rainbow';
+      renderPage();
+      await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
+      await openMenuAndPick('uiMode.advancedMode', 'uiMode.simpleMode');
+      await waitFor(() => expect(flag()).toHaveBeenCalledWith(false));
     });
 
     it('sends nothing when the toggle happens outside animate mode', async () => {
       syncState.mode = 'static';
       renderPage();
       await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
-      starts().mockClear();
       await openMenuAndPick('uiMode.simpleMode', 'uiMode.advancedMode');
-      await new Promise(r => setTimeout(r, 30));
+      await flush();
+      expect(flag()).not.toHaveBeenCalled();
       expect(starts()).not.toHaveBeenCalled();
     });
 
-    it('sends nothing when the preference arrives from the server', async () => {
+    it('sends nothing on a plain render with no toggle', async () => {
       syncState.mode = 'animate';
       syncState.rawSync = 'rainbow';
       renderPage();
       await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
-      starts().mockClear();
-      window.dispatchEvent(new StorageEvent('storage', { key: 'nexus_settings', newValue: JSON.stringify({ general: { lightingDashboardMode: 'advanced' } }) }));
-      await new Promise(r => setTimeout(r, 30));
-      expect(starts()).not.toHaveBeenCalled();
+      await flush();
+      expect(flag()).not.toHaveBeenCalled();
     });
   });
 });

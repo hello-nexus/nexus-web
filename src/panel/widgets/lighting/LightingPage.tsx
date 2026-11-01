@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
-  startAnimate, startStatic, startScreenMirror, stopLighting,
+  startAnimate, setAnimateSimple, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
@@ -2269,19 +2269,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   pausedRef.current = paused;
   const simpleReversedRef = useRef(simpleReversed);
   simpleReversedRef.current = simpleReversed;
-  // Restarts from the committed preset, never the live edit buffer, and keeps a reversed simple sweep reversed.
-  reapplyMappingRef.current = (toSimple: boolean) => {
-    if (mode !== 'animate') return;
-    const key = canonicalSimpleKey(rawSync);
-    const bundle = committedTemplates[key];
-    if (!bundle || bundle.slots.length === 0) return;
-    const slot = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
-    const base = bundle.slots[slot];
-    const state = !toSimple && isSimpleAnimation(key) && slot === SIMPLE_SLOT
-      ? simpleAnimationState(base, simpleReversedRef.current)
-      : base;
-    void startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, toSimple).catch(() => {});
-  };
 
   // Simple mode runs the first preset of a regular effect: this moves the
   // effect's selection there (saved, and awaited, only when it was elsewhere,
@@ -2367,6 +2354,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     && slotOf(canonicalSimpleKey(rawSync)) === SIMPLE_SLOT
     ? canonicalSimpleKey(rawSync)
     : null;
+  // Only the mapping flag changes: the running look, unsaved edits included, stays on the LEDs and nothing is committed.
+  reapplyMappingRef.current = (toSimple: boolean) => {
+    if (mode !== 'animate') return;
+    void setAnimateSimple(toSimple && simpleAnimation !== null).catch(() => {});
+  };
 
   // Turning the row around restarts the running animation with the preset's
   // speed negated. The sign lives in the running state only, never in the slot.

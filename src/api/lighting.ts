@@ -237,6 +237,10 @@ export const startAnimate = (
     ...(simple ? { simple } : {}),
   });
 
+/** Changes only the running animate effect's simple-mode mapping and stores it; the look and unsaved edits are untouched. */
+export const setAnimateSimple = (simple: boolean) =>
+  postService('/lighting/animate/simple', { simple });
+
 export interface StudioLiveResponse {
   error?: boolean;
   msg?: string;
