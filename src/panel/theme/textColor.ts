@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties, type RefObject } from 'react';
+import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
 import { shaderDrewThisFrame } from '../../hooks/useShaderRenderer';
 
 export const TEXT_COLOR_MODES = ['adaptive', 'theme', 'custom'] as const;
@@ -39,10 +39,19 @@ export interface SampleGrid {
   height: number;
 }
 
+// WCAG contrast adds this flare to both luminances before dividing.
+const CONTRAST_FLARE = 0.05;
 // White and black text have equal WCAG contrast against this luminance.
-const CROSSOVER = 0.179;
+const CROSSOVER = Math.sqrt(CONTRAST_FLARE * (1 + CONTRAST_FLARE)) - CONTRAST_FLARE;
 // A moving background hovers around the crossover; the band stops the ink flickering.
 const HYSTERESIS = 0.04;
+// How many times better the opposite ink must contrast than the theme's own
+// ink before a widget flips. Unity is the plain crossover; higher is stickier.
+const THEME_INK_BIAS = 2;
+// Weight of each new tick's luminance sample in the per-host average, so a
+// one-tick plasma spike cannot flip the ink; the time constant is this many
+// ticks inverted.
+const LUMINANCE_SMOOTHING = 0.28;
 const GRID_COLUMNS = 32;
 const TICK_MS = 1000;
 // Frames a tick waits for a paced shader to draw before it skips; a covered shader never draws.
@@ -58,11 +67,46 @@ export function relativeLuminance(r: number, g: number, b: number): number {
   return 0.2126 * LINEAR[r] + 0.7152 * LINEAR[g] + 0.0722 * LINEAR[b];
 }
 
-export function pickInk(luminance: number, previous: Ink | null): Ink {
-  const threshold = previous === 'light'
-    ? CROSSOVER + HYSTERESIS
-    : previous === 'dark' ? CROSSOVER - HYSTERESIS : CROSSOVER;
+/**
+ * Luminance where the opposite ink beats the theme's ink by THEME_INK_BIAS in
+ * WCAG contrast ratio. White ink on a dark theme flips late (bright backdrops
+ * only); black ink on a light theme flips late (dark backdrops only).
+ */
+function crossover(themeInk: Ink | null): number {
+  if (!themeInk) return CROSSOVER;
+  // (L + flare)^2 where white and black contrast equally
+  const flat = CONTRAST_FLARE * (1 + CONTRAST_FLARE);
+  return themeInk === 'light'
+    ? Math.sqrt(flat * THEME_INK_BIAS) - CONTRAST_FLARE
+    : Math.sqrt(flat / THEME_INK_BIAS) - CONTRAST_FLARE;
+}
+
+/**
+ * themeInk is the ink the panel theme itself uses; null picks purely by
+ * contrast with a symmetric hysteresis band. With a themeInk, leaving it takes
+ * the biased crossover and coming back takes the neutral one, so the ink
+ * stays put while the backdrop wanders between the two.
+ */
+export function pickInk(luminance: number, previous: Ink | null, themeInk: Ink | null = null): Ink {
+  if (!themeInk) {
+    const threshold = previous === 'light'
+      ? CROSSOVER + HYSTERESIS
+      : previous === 'dark' ? CROSSOVER - HYSTERESIS : CROSSOVER;
+    return luminance > threshold ? 'dark' : 'light';
+  }
+  const leaving = !previous || previous === themeInk;
+  const threshold = leaving ? crossover(themeInk) : CROSSOVER;
   return luminance > threshold ? 'dark' : 'light';
+}
+
+const smoothed = new WeakMap<HTMLElement, number>();
+
+/** Per-host moving average of the sampled luminance; the first sample seeds it. */
+export function smoothLuminance(host: HTMLElement, sample: number): number {
+  const prev = smoothed.get(host);
+  const next = prev == null ? sample : prev + LUMINANCE_SMOOTHING * (sample - prev);
+  smoothed.set(host, next);
+  return next;
 }
 
 /**
@@ -259,11 +303,85 @@ class BackdropSampler {
   }
 }
 
-function clearInks(root: HTMLElement) {
-  root.querySelectorAll<HTMLElement>('[data-ink]').forEach(el => { delete el.dataset.ink; });
+const fadeTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+const fadeEnders = new WeakMap<HTMLElement, (e: TransitionEvent) => void>();
+const FALLBACK_EASE_MS = 180;
+let easeMs: number | null = null;
+
+/** The --ease token in ms, read once from the computed style. */
+function readEaseMs(host: HTMLElement): number {
+  if (easeMs != null) return easeMs;
+  const raw = getComputedStyle(host).getPropertyValue('--ease').trim();
+  const value = parseFloat(raw);
+  easeMs = Number.isFinite(value) && value > 0
+    ? (raw.endsWith('ms') ? value : raw.endsWith('s') ? value * 1000 : FALLBACK_EASE_MS)
+    : FALLBACK_EASE_MS;
+  return easeMs;
 }
 
-function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler) {
+function endFade(host: HTMLElement) {
+  clearTimeout(fadeTimers.get(host));
+  fadeTimers.delete(host);
+  const ender = fadeEnders.get(host);
+  if (ender) host.removeEventListener('transitionend', ender);
+  fadeEnders.delete(host);
+  delete host.dataset.inkFade;
+}
+
+/** Drops every stamp and any fade in flight, so a clear never fades. */
+export function clearInks(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[data-ink], [data-ink-fade]').forEach(el => {
+    endFade(el);
+    smoothed.delete(el);
+    delete el.dataset.ink;
+  });
+}
+
+/**
+ * Marks a host so its contents ease to the new ink (tokens.scss). The timer is
+ * only a backstop for a transition that never reports back; the host's own
+ * color transitionend ends the window first.
+ */
+function fadeInk(host: HTMLElement) {
+  endFade(host);
+  host.dataset.inkFade = '';
+  const ender = (e: TransitionEvent) => {
+    if (e.target === host && e.propertyName === 'color') endFade(host);
+  };
+  fadeEnders.set(host, ender);
+  host.addEventListener('transitionend', ender);
+  fadeTimers.set(host, setTimeout(() => endFade(host), readEaseMs(host) * 2 + 100));
+}
+
+/** Stamps a host with an ink; a flip from an earlier stamp fades, a first stamp does not. */
+export function stampInk(host: HTMLElement, ink: Ink) {
+  const prev = host.dataset.ink;
+  if (prev === ink) return;
+  if (prev) fadeInk(host);
+  host.dataset.ink = ink;
+}
+
+/**
+ * The ink for one host from a raw sample: smooths it, then picks against the
+ * host's current stamp. On the tick a theme switch lands the stamp is ignored,
+ * so the result matches a fresh load; stampInk still fades whatever flips.
+ */
+export function resolveHostInk(host: HTMLElement, sample: number, themeInk: Ink, themeChanged: boolean): Ink {
+  const prev = host.dataset.ink;
+  const previous = !themeChanged && (prev === 'light' || prev === 'dark') ? prev : null;
+  return pickInk(smoothLuminance(host, sample), previous, themeInk);
+}
+
+const seenThemeInk = new WeakMap<HTMLElement, Ink>();
+
+function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler, themeInk: Ink) {
+  // A theme switch re-fills the cards, so the averaged history no longer applies,
+  // and every host is judged as on a fresh load (no previous ink) this tick.
+  const themeChanged = seenThemeInk.get(root) !== themeInk;
+  if (themeChanged) {
+    seenThemeInk.set(root, themeInk);
+    root.querySelectorAll<HTMLElement>('[data-ink]').forEach(el => { smoothed.delete(el); });
+  }
   if (!grid) {
     clearInks(root);
     return;
@@ -286,15 +404,18 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
       left * sx, top * sy, (left + r.width) * sx, (top + r.height) * sy,
       sampler.color(getComputedStyle(card).backgroundColor),
     );
-    if (luminance == null) return;
-    const prev = host.dataset.ink;
-    const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null);
-    if (prev !== ink) host.dataset.ink = ink;
+    if (luminance == null) {
+      smoothed.delete(host);
+      return;
+    }
+    stampInk(host, resolveHostInk(host, luminance, themeInk, themeChanged));
   });
 }
 
 /** Stamps each widget with the ink that reads best on the background behind it, once a second. */
-export function useAutoTextColor(rootRef: RefObject<HTMLElement | null>, enabled: boolean): void {
+export function useAutoTextColor(rootRef: RefObject<HTMLElement | null>, enabled: boolean, themeInk: Ink): void {
+  const themeInkRef = useRef(themeInk);
+  themeInkRef.current = themeInk;
   useEffect(() => {
     const root = rootRef.current;
     if (!enabled || !root) return undefined;
@@ -316,7 +437,7 @@ export function useAutoTextColor(rootRef: RefObject<HTMLElement | null>, enabled
       waited = 0;
       busy = true;
       void sampler.grid(root, rect).then(grid => {
-        if (!stopped) applyInks(root, grid, sampler);
+        if (!stopped) applyInks(root, grid, sampler, themeInkRef.current);
       }).finally(() => { busy = false; });
     };
     frame = requestAnimationFrame(tick);

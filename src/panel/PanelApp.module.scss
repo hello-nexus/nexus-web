@@ -611,8 +611,16 @@
 // outrank the single-attribute [data-surface] radius rules regardless of
 // stylesheet order. Single-widget surfaces never carry data-widget-padding
 // (PanelApp.tsx), so they keep their radius.
-.panelRoot[data-surface][data-widget-padding='none'] {
+.panelRoot[data-surface][data-widget-padding='none'],
+.dragOverlayHost[data-surface][data-widget-padding='none'] {
   --panel-card-radius: 0px;
+}
+
+// DWM's rounded window corner, which scales with DPI as CSS px do: the only
+// shape a Windows frost plate can take (usePanelFrost).
+:global(html[data-host-frost='windows']) .panelRoot[data-surface]:not([data-widget-padding='none']),
+:global(html[data-host-frost='windows']) .dragOverlayHost[data-surface]:not([data-widget-padding='none']) {
+  --panel-card-radius: 8px;
 }
 
 .panelRoot[data-surface='desktop'] {

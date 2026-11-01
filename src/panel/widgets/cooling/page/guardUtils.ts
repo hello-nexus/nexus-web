@@ -16,6 +16,7 @@ export function guardBannerKey(guard: GuardResponse | null): string | null {
     case 'floor': return 'cooling.guard.banner.floor';
     case 'escalated': return 'cooling.guard.banner.escalated';
     case 'tripped':
+      if (guard.fansNotResponding) return 'cooling.guard.banner.tripPartial';
       return guard.lastTrip?.reason === 'cooling-loss'
         ? 'cooling.guard.banner.tripLoss'
         : 'cooling.guard.banner.tripLimit';

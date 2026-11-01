@@ -748,6 +748,7 @@ export function PanelDragOverlayCell({
   fixedWidth,
   fixedHeight,
   showLabels = true,
+  flush = false,
   onSlot,
 }: {
   widget: PanelWidget;
@@ -757,6 +758,8 @@ export function PanelDragOverlayCell({
   fixedWidth?: number;
   fixedHeight?: number;
   showLabels?: boolean;
+  // Widget padding at 0%: the grid's cards are square, so the clone must be too.
+  flush?: boolean;
   onSlot: (slot: HTMLElement, attached: boolean) => void;
 }) {
   const slotRef = useCallback((slot: HTMLDivElement) => {
@@ -773,6 +776,7 @@ export function PanelDragOverlayCell({
       // Portaled to body, so it can't inherit the panel root's labels-off state
       // - mirror it here or the dragged clone shows a label the grid hides.
       data-show-widget-labels={showLabels ? 'true' : 'false'}
+      data-widget-padding={flush ? 'none' : undefined}
       style={themeStyle}
     >
       <div

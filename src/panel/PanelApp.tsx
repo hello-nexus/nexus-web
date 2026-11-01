@@ -55,7 +55,7 @@ import { resolveWidgetsLocked } from './engine/widgetLock';
 import { useDesktopImport } from './engine/useDesktopImport';
 import { editTargetGone, latestOr, useSyncLatestLayout } from './engine/latestLayout';
 import { useDisplayTargets } from './engine/useDisplayTargets';
-import { usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
+import { panelHostKeys, usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './device/usePanelHostSync';
 import { panelHostAvailable, panelHitTestBound } from './device/panelHostBridge';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
@@ -827,7 +827,7 @@ export function PanelContent({
     root.classList.toggle('panel-see-through', seeThrough);
     return () => root.classList.remove('panel-see-through');
   }, [seeThrough]);
-  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive');
+  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive', resolvedThemeMode === 'dark' ? 'light' : 'dark');
   // Scoped to the widget grids, the editor dock and the drag overlay, so the panel's own sheets and menus keep the theme.
   const customTextStyle = useMemo(
     () => (effectiveTheme.textColorMode === 'custom'
@@ -1997,13 +1997,25 @@ export function PanelContent({
     || freeformActive || touch.rearranging || connectionIntroHost || touch.ctxMenu);
   // Position and size, so a remote edit that keeps the ids still remeasures.
   const frostGeometry = useMemo(() => allFiltered.flatMap(p => p.widgets.map(w => `${w.id}@${w.col},${w.row},${w.size}`)).join(','), [allFiltered]);
+  // Widget padding at 0%: cards sit flush and square. Single-widget surfaces force padding 0 internally and keep their radius.
+  const flushCards = !isSingleWidgetSurface(surface) && effectiveTheme.widgetPadding <= 0;
+  const hostKeys = panelHostKeys({
+    pageIndex: activePageIndex,
+    pageCount: paginatedLayout.pages.length,
+    menuSeq: touch.ctxMenu?.seq ?? 0,
+    backdrop: effectiveTheme.backdrop,
+    columns: runtimeGrid.columns,
+    rows: runtimeGrid.rows,
+    gap: runtimeGrid.gap,
+    geometry: frostGeometry,
+  });
   // The Y70 kiosk never has a display record, yet its see-through window still starts with an empty input region.
   usePanelHitTest(
     panelHitTestBound(kioskBehavior, displayBound, glassSurface, panelHostAvailable()) && seeThrough,
     clickThrough,
     hitFull,
     rootRef,
-    `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
+    hostKeys.hitTest,
   );
   // The host blurs the desktop behind the cards: CSS cannot sample it.
   usePanelFrost(
@@ -2012,7 +2024,8 @@ export function PanelContent({
     seeThrough,
     Boolean(activeDragId || lockDragging),
     rootRef,
-    `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
+    hostKeys.frost,
+    resolvedThemeMode,
   );
   // Every sheet (widget edit, catalog, panel settings, pairing) can hold a text field.
   usePanelActivatable(hostBound, Boolean(sheetMode));
@@ -2334,9 +2347,7 @@ export function PanelContent({
         // surface with no adjacent widget to sit flush against. Stamped
         // 'none' only at the resolved 0% (flush corners); any other percent
         // leaves the attribute unset (default rounded radius).
-        data-widget-padding={
-          isSingleWidgetSurface(surface) ? undefined : effectiveTheme.widgetPadding <= 0 ? 'none' : undefined
-        }
+        data-widget-padding={flushCards ? 'none' : undefined}
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
         data-connection-intro={connectionIntroHost ? 'active' : undefined}
@@ -2919,6 +2930,7 @@ export function PanelContent({
               fixedWidth={dragSnapshot.width}
               fixedHeight={dragSnapshot.height}
               showLabels={effectiveTheme.widgetLabels}
+              flush={flushCards}
               onSlot={handleDragOverlaySlot}
             />
           );

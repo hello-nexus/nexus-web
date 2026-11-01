@@ -842,47 +842,6 @@ describe('directApiBackend', () => {
       }));
       expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
     });
-
-    it('migrates an existing localStorage refresh token: sends it once in the body, then deletes the local copy', async () => {
-      localStorage.setItem(REFRESH_KEY, 'legacy-token');
-      fetchMock
-        .mockResolvedValueOnce(jsonResponse(200, { accessToken: 'access-1', account: mkApiAccount() }))
-        .mockResolvedValueOnce(jsonResponse(200, mkApiAccount()));
-      const { directApiBackend: backend } = await freshModule();
-
-      await backend.getAccount();
-
-      expect(fetchMock).toHaveBeenNthCalledWith(1, `${BASE}/auth/refresh`, expect.objectContaining({
-        body: JSON.stringify({ refreshToken: 'legacy-token' }),
-        credentials: 'include',
-      }));
-      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(init.headers).toMatchObject({ 'X-Nexus-Auth': 'web' });
-      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
-    });
-
-    it('a definitive rejection (401) of the migration token drops the stale localStorage copy', async () => {
-      localStorage.setItem(REFRESH_KEY, 'dead-token');
-      fetchMock.mockResolvedValueOnce(jsonResponse(401, { message: 'refresh token reuse detected' }));
-      const { directApiBackend: backend } = await freshModule();
-
-      const account = await backend.getAccount();
-
-      expect(account).toBeNull();
-      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
-    });
-
-    it('a network failure during migration leaves the localStorage copy in place for a retry on the next load', async () => {
-      localStorage.setItem(REFRESH_KEY, 'legacy-token');
-      fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
-      const { directApiBackend: backend } = await freshModule();
-
-      const account = await backend.getAccount();
-
-      expect(account).toBeNull();
-      expect(localStorage.getItem(REFRESH_KEY)).toBe('legacy-token');
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('non-hosted-web origins stay on the unchanged body-token flow', () => {

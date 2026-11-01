@@ -9,7 +9,7 @@ import { composeSdkWorkerSource } from './sandboxBoot';
 import { proxyFetch } from './proxyClient';
 import { flattenFrameForWorker, type FlatReading } from './sensorFlatten';
 import * as monitoringStore from '../lib/monitoringStore';
-import { reportAppError } from '../telemetry/appErrorReporting';
+import { reportAppError, workerFaultError } from '../telemetry/appErrorReporting';
 import type { AppDataDoc, AppDataPutResult, AudioPlay, WidgetDisplay } from '../../sdk/runtime/context';
 
 /** Longest sensor glob honoured; a worker-supplied pattern runs against every reading on every frame. */
@@ -144,10 +144,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
   // diagnostics still come over the worker's main channel.
   worker.addEventListener('error', (e) => {
     console.error(`[sdk:${context.widgetId}] worker error`, e.message, e.filename, e.lineno);
-    const err = new Error(e.message);
-    err.name = 'WorkerError';
-    err.stack = `${err.name}: ${e.message}\n    at ${e.filename}:${e.lineno}`;
-    reportAppError(context.widgetId, 'worker-error', err);
+    reportAppError(context.widgetId, 'worker-error', workerFaultError(e));
   });
 
   // Sensor broker - capped to the manifest's

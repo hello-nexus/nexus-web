@@ -17,6 +17,8 @@ vi.mock('./buildReloadWatcher', () => ({
 
 import {
   isStaleChunkMessage,
+  SAME_BUILD_RELOAD_LOCK_MS,
+  staleChunkAssetPath,
   liveRecoverDeps,
   recoverFromStaleChunk,
   recoverFromStaleChunkNow,
@@ -33,6 +35,10 @@ function makeDeps(over: Partial<RecoverDeps> & { stamp?: number } = {}) {
     check: vi.fn(async () => 'reload' as const),
     readStamp: () => stamp,
     writeStamp: vi.fn(() => true),
+    readSameStamp: () => 0,
+    writeSameStamp: vi.fn(() => true),
+    probe: vi.fn(async () => 'ok' as const),
+    entryOk: vi.fn(async () => 'ok' as const),
     reload: vi.fn(),
     sleep: vi.fn(async () => {}),
     ...rest,
@@ -186,5 +192,134 @@ describe('recoverFromStaleChunkNow', () => {
     watcher.checkOnce.mockResolvedValue('same');
     await recoverFromStaleChunkNow();
     expect(watcher.checkOnce).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('staleChunkAssetPath', () => {
+  const page = 'http://localhost:9400/system/dashboard';
+
+  it('reads the CSS and module wordings', () => {
+    expect(staleChunkAssetPath('Unable to preload CSS for /assets/DevicesPage-LG0.css', page)).toBe('/assets/DevicesPage-LG0.css');
+    expect(staleChunkAssetPath('Failed to fetch dynamically imported module: http://localhost:9400/assets/CoolingPage-B.js', page)).toBe('/assets/CoolingPage-B.js');
+  });
+
+  it('ignores other origins, other paths and URL-less wordings', () => {
+    expect(staleChunkAssetPath('Failed to fetch dynamically imported module: https://evil.example/assets/x.js', page)).toBeNull();
+    expect(staleChunkAssetPath('Failed to fetch dynamically imported module: http://localhost:9400/other/x.js', page)).toBeNull();
+    expect(staleChunkAssetPath('Importing a module script failed.', page)).toBeNull();
+  });
+});
+
+describe('recoverFromStaleChunk on an unchanged build', () => {
+  const same = () => vi.fn(async () => 'same' as const);
+  const assets = () => ['/assets/DevicesPage-LG0.css'];
+
+  it('reloads when the failed asset is served now, since a failed lazy import or stylesheet is never retried', async () => {
+    const deps = makeDeps({ check: same() });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('reloaded');
+    expect(deps.probe).toHaveBeenCalledWith('/assets/DevicesPage-LG0.css', expect.any(AbortSignal));
+    expect(deps.writeSameStamp).toHaveBeenCalledWith(1_000_000);
+    expect(deps.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a chunk the service really does not serve', async () => {
+    const deps = makeDeps({ check: same(), probe: vi.fn(async () => 'missing' as const) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('asset-missing');
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('does not reload when any asset of the burst is missing', async () => {
+    const probe = vi.fn(async (p: string) => (p.endsWith('.js') ? 'missing' : 'ok') as 'missing' | 'ok');
+    const deps = makeDeps({ check: same(), probe });
+    expect(await recoverFromStaleChunk(deps, () => ['/assets/a.css', '/assets/b.js'])).toBe('asset-missing');
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('retries an unreachable service, then reloads once it answers', async () => {
+    const probe = vi.fn<RecoverDeps['probe']>().mockResolvedValueOnce('unreachable').mockResolvedValueOnce('ok');
+    const deps = makeDeps({ check: same(), probe });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('reloaded');
+    expect(probe).toHaveBeenCalledTimes(2);
+    expect(deps.sleep).toHaveBeenCalledWith(STALE_CHUNK_RETRY_DELAYS_MS[0]);
+  });
+
+  it('reports asset-unreachable when the service never answers', async () => {
+    const deps = makeDeps({ check: same(), probe: vi.fn(async () => 'unreachable' as const) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('asset-unreachable');
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('reloads at most once per window, so a failure that survives a reload is reported', async () => {
+    const deps = makeDeps({ check: same(), readSameStamp: () => 1_000_000 - (SAME_BUILD_RELOAD_LOCK_MS - 1) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('same-build-guard');
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('does not reload while index.html or an entry asset is unreachable, even when the failed chunk is served', async () => {
+    const deps = makeDeps({ check: same(), entryOk: vi.fn(async () => 'unreachable' as const) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('asset-unreachable');
+    expect(deps.entryOk).toHaveBeenCalledTimes(STALE_CHUNK_RETRY_DELAYS_MS.length + 1);
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('reports a missing entry asset at once without the backoff', async () => {
+    const deps = makeDeps({ check: same(), entryOk: vi.fn(async () => 'missing' as const) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('asset-missing');
+    expect(deps.entryOk).toHaveBeenCalledTimes(1);
+    expect(deps.sleep).not.toHaveBeenCalled();
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('aborts the entry check when it times out', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const deps = makeDeps({ check: same(), entryOk: vi.fn((s: AbortSignal) => { signal = s; return new Promise<never>(() => {}); }) });
+    const pending = recoverFromStaleChunk(deps, assets);
+    await vi.advanceTimersByTimeAsync(STALE_CHUNK_CHECK_TIMEOUT_MS * (STALE_CHUNK_RETRY_DELAYS_MS.length + 1));
+    expect(await pending).toBe('asset-unreachable');
+    expect(signal?.aborted).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('does not check the entry when the failed asset is missing', async () => {
+    const deps = makeDeps({ check: same(), probe: vi.fn(async () => 'missing' as const) });
+    await recoverFromStaleChunk(deps, assets);
+    expect(deps.entryOk).not.toHaveBeenCalled();
+  });
+
+  it('reports instead of reloading again when the chunk and entry are served but the import still fails after a reload', async () => {
+    let stamp = 0;
+    const deps = makeDeps({
+      check: same(),
+      readSameStamp: () => stamp,
+      writeSameStamp: vi.fn((at: number) => { stamp = at; return true; }),
+    });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('reloaded');
+    deps.readStamp = () => 0;
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('same-build-guard');
+    expect(deps.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts the probe request when it times out', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const deps = makeDeps({ check: same(), probe: vi.fn((_p: string, s: AbortSignal) => { signal = s; return new Promise<never>(() => {}); }) });
+    const pending = recoverFromStaleChunk(deps, assets);
+    await vi.advanceTimersByTimeAsync(STALE_CHUNK_CHECK_TIMEOUT_MS * (STALE_CHUNK_RETRY_DELAYS_MS.length + 1));
+    expect(await pending).toBe('asset-unreachable');
+    expect(signal?.aborted).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('keeps reporting same when the message names no asset', async () => {
+    const deps = makeDeps({ check: same() });
+    expect(await recoverFromStaleChunk(deps)).toBe('same');
+    expect(deps.probe).not.toHaveBeenCalled();
+  });
+
+  it('does not reload when the same-build stamp cannot be stored', async () => {
+    const deps = makeDeps({ check: same(), writeSameStamp: vi.fn(() => false) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('storage-blocked');
+    expect(deps.reload).not.toHaveBeenCalled();
   });
 });

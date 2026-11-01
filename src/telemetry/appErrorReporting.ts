@@ -30,6 +30,14 @@ function toError(error: unknown): Error {
   return err;
 }
 
+/** A worker 'error' event; a module worker whose script or import failed to load carries no message, file or line. */
+export function workerFaultError(e: { message?: string; filename?: string; lineno?: number }): Error {
+  const err = new Error(e.message || 'worker failed to load (the browser gave no detail)');
+  err.name = 'WorkerError';
+  err.stack = e.filename ? `${err.name}: ${err.message}\n    at ${e.filename}:${e.lineno ?? 0}` : `${err.name}: ${err.message}`;
+  return err;
+}
+
 function surfaceOf(): string {
   try {
     const path = window.location.pathname;
