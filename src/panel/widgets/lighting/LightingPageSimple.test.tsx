@@ -9,6 +9,7 @@ import { SIMPLE_ANIMATION_KEYS } from './simpleAnimations';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
+const prefs = vi.hoisted(() => ({ fetch: vi.fn() }));
 const syncState = vi.hoisted(() => ({ mode: 'none', rawSync: '' }));
 vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../hooks/useLightingSync')>()),
@@ -20,6 +21,11 @@ vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
     synced: true,
     paused: false,
   }),
+}));
+
+vi.mock('../../../api/profiles', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/profiles')>()),
+  fetchPreferences: prefs.fetch,
 }));
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
@@ -93,6 +99,7 @@ function renderPage() {
 describe('LightingPage simple mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prefs.fetch.mockResolvedValue(null);
     vi.mocked(lightingApi.fetchStaticSettings).mockResolvedValue({ effect: 'gradientlinear', states: {} });
     // Tests below override these; put the file defaults back so order never matters.
     vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', states: {}, templates: {} } as never);
@@ -499,6 +506,22 @@ describe('LightingPage simple mode', () => {
       await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
       await openMenuAndPick('uiMode.simpleMode', 'uiMode.advancedMode');
       await flush();
+      expect(flag()).not.toHaveBeenCalled();
+      expect(starts()).not.toHaveBeenCalled();
+    });
+
+    it('sends nothing when the server pushes a dashboard mode through hydration', async () => {
+      useTemplates({ rainbow: bundle(0) });
+      syncState.mode = 'animate';
+      syncState.rawSync = 'rainbow';
+      prefs.fetch.mockResolvedValue({ ui: { lightingDashboardMode: 'advanced' } });
+      render(
+        <UiSettingsProvider serviceOnline>
+          <LightingPage serviceOnline serviceState={serviceState} activeProfileId="p1" />
+        </UiSettingsProvider>,
+      );
+      // The advanced page mounts only once the hydrated mode has been applied.
+      expect(await screen.findByTestId('device-panel')).toBeTruthy();
       expect(flag()).not.toHaveBeenCalled();
       expect(starts()).not.toHaveBeenCalled();
     });

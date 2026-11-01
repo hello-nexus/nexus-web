@@ -7,6 +7,7 @@ import {
   setLightingDeviceControlled,
   setPins,
   startAnimate,
+  setAnimateSimple,
   startStatic,
   type LightingDevice,
 } from '../../../api/lighting';
@@ -264,6 +265,26 @@ describe('LightingOnboardingScreen - continue flow', () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(completeLightingOnboarding).toHaveBeenCalled();
+  });
+
+  it.each([
+    ['simple', false, true],
+    ['advanced', true, false],
+  ])('in %s mode the rainbow start and Continue both carry the chosen mapping', async (_mode, goAdvanced, simple) => {
+    seed([strip]);
+    vi.mocked(completeLightingOnboarding).mockResolvedValue({ completed: true, lightingCompleted: true });
+    const onComplete = renderScreen();
+    if (goAdvanced) chooseAdvanced();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simpleblue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.rainbow' }));
+    await waitFor(() => expect(startAnimate).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(startAnimate).mock.calls[0][10]).toBe(simple);
+
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(setAnimateSimple).toHaveBeenCalledWith(simple);
   });
 
   it('shows the error message and never calls onComplete when the write fails', async () => {

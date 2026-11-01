@@ -265,7 +265,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const modeMenuAnchorRef = useRef<HTMLDivElement | null>(null);
   const closeModeMenu = useCallback(() => setModeMenuOpen(false), []);
-  // A running effect keeps the mapping it was started with, so a user's mode switch restarts it with the new one.
+  // A running effect keeps the mapping it was started with, so a user's mode switch updates only that flag.
   const reapplyMappingRef = useRef<(toSimple: boolean) => void>(() => {});
   const setDashboardMode = useCallback((next: 'simple' | 'advanced') => {
     updateUiSettings({ lightingDashboardMode: next });
