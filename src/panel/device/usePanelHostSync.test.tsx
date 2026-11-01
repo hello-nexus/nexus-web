@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LEASE_RENEW_MS, usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './usePanelHostSync';
+import { LEASE_RENEW_MS, panelHostKeys, usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './usePanelHostSync';
 
 const sent: Array<Record<string, unknown>> = [];
 const rootRef = { current: null };
@@ -122,7 +122,7 @@ describe('usePanelFrost', () => {
     cell.remove();
   });
 
-  it('re-measures when the signature changes, so a padding change moves the plates with the cards', async () => {
+  it('re-measures the cards when the signature changes', async () => {
     const cell = mountCard();
     const card = cell.firstElementChild as HTMLElement;
     const { rerender } = renderHook(({ sig }) => usePanelFrost(true, 70, true, false, rootRef, sig), { initialProps: { sig: 'gap8' } });
@@ -303,6 +303,21 @@ describe('usePanelFrost', () => {
     await flush();
     expect(frosts()).toHaveLength(2);
     cell.remove();
+  });
+});
+
+describe('panelHostKeys', () => {
+  const base = { pageIndex: 0, pageCount: 2, menuSeq: 0, backdrop: 'desktop', columns: 20, rows: 12, gap: 7, geometry: 'w1@0,0,4x2' };
+
+  it('changes both keys when only the gap (widget padding) changes', () => {
+    const a = panelHostKeys(base);
+    const b = panelHostKeys({ ...base, gap: 0 });
+    expect(b.hitTest).not.toBe(a.hitTest);
+    expect(b.frost).not.toBe(a.frost);
+  });
+
+  it('is stable for an equal gap', () => {
+    expect(panelHostKeys({ ...base })).toEqual(panelHostKeys(base));
   });
 });
 

@@ -121,6 +121,26 @@ export function usePanelActivatable(active: boolean, wanted: boolean): void {
   }, []);
 }
 
+/**
+ * Re-measure keys for the input region and the frost plates: either changes whenever cards may have moved.
+ * The gap is the widget padding, which moves and resizes every card without resizing the root.
+ */
+export function panelHostKeys(k: {
+  pageIndex: number;
+  pageCount: number;
+  menuSeq: number;
+  backdrop: string;
+  columns: number;
+  rows: number;
+  gap: number;
+  geometry: string;
+}): { hitTest: string; frost: string } {
+  return {
+    hitTest: `${k.pageIndex}:${k.pageCount}:${k.menuSeq}:${k.backdrop}:${k.columns}x${k.rows}:${k.gap}:${k.geometry}`,
+    frost: `${k.pageIndex}:${k.menuSeq}:${k.columns}x${k.rows}:${k.gap}:${k.geometry}`,
+  };
+}
+
 // Catalog previews are not on the desktop; the drag overlay holds the card being moved.
 const CARD_SELECTOR = '[data-panel-widget-id]:not([data-panel-catalog]) .panel-card, [data-panel-drag-overlay] .panel-card';
 
