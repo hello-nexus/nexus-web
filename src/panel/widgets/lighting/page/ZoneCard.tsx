@@ -743,7 +743,7 @@ export function ZoneCard({
       </div>
       <div className={styles.deviceMetaRow}>
         {onOpenBinding ? (
-          null
+          <Badge label={t('devices.lianli-wireless.unbound')} icon={<Link2Off size={11} />} compact color="var(--text-dim)" />
         ) : firmwareControlled ? (
           <HoverTooltip
             body={t(device.devicePageReason === 'argbInput' ? 'lighting.devices.devicePageArgbTooltip' : device.devicePageReason === 'firmware' ? 'lighting.devices.devicePageFirmwareTooltip' : 'lighting.devices.firmwareTooltip')}
