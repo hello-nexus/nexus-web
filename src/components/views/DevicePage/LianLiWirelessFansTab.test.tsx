@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, lianLiWirelessDeviceAnchor } from './LianLiWirelessFansTab';
+import { requestSearchScroll, useSearchAnchorScroller } from '../../../search/scroll';
 import type { LianLiWirelessState } from '../../../api/lianli-wireless';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -153,7 +154,8 @@ describe('LianLiWirelessFansTab', () => {
     it('disables bind and unbind and points them at the toggle description while locked', async () => {
       const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
       await renderTab({ ...on, fans: [boundFan, unbound] });
-      const hint = screen.getByText('devices.lianli-wireless.lockBoundDevicesHint');
+      const hint = document.querySelector('span[hidden]') as HTMLElement;
+      expect(hint).toHaveTextContent('devices.lianli-wireless.pairingLockedNote');
       for (const name of ['devices.lianli-wireless.unbind', 'devices.lianli-wireless.bind']) {
         const btn = screen.getByRole('button', { name });
         expect(btn).toBeDisabled();
@@ -162,10 +164,29 @@ describe('LianLiWirelessFansTab', () => {
       expect(hint.id).not.toBe('');
     });
 
+    it('says why Bind is disabled with a visible note and a tooltip on the wrapper', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...on, fans: [boundFan, unbound] });
+      expect(screen.getByRole('status')).toHaveTextContent('devices.lianli-wireless.pairingLockedNote');
+      const wrapper = screen.getByRole('button', { name: 'devices.lianli-wireless.bind' }).parentElement as HTMLElement;
+      fireEvent.pointerEnter(wrapper);
+      await act(async () => { vi.advanceTimersByTime(1000); });
+      expect(screen.getByRole('tooltip')).toHaveTextContent('devices.lianli-wireless.pairingLockedNote');
+    });
+
+    it('shows no lock note while unlocked or when every device is bound', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...off, fans: [boundFan, unbound] });
+      expect(screen.queryByText('devices.lianli-wireless.pairingLockedNote')).not.toBeInTheDocument();
+      cleanup();
+      await renderTab({ ...on, fans: [boundFan] });
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
     it('disables Unbind of a wired-owned unit still bound to this radio while locked, like any other bound fan', async () => {
       const wiredBound = { ...boundFan, wiredOwned: true };
       await renderTab({ ...on, fans: [wiredBound] });
-      const hint = screen.getByText('devices.lianli-wireless.lockBoundDevicesHint');
+      const hint = document.querySelector('span[hidden]') as HTMLElement;
       const btn = screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' });
       expect(btn).toBeDisabled();
       expect(btn).toHaveAttribute('aria-describedby', hint.id);
@@ -453,5 +474,30 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
       render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} />);
     });
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
+  });
+});
+
+describe('LianLiWirelessFansTab deep link', () => {
+  function Harness({ state }: { state: LianLiWirelessState | null }) {
+    useSearchAnchorScroller();
+    return <LianLiWirelessFansTab state={state} refresh={vi.fn().mockResolvedValue(undefined)} />;
+  }
+  const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false, masterMac: '' };
+  const rowOf = () => document.querySelector<HTMLElement>(`[data-search-anchor="${lianLiWirelessDeviceAnchor('AABBCCDDEEFF')}"]`);
+
+  it('shines the targeted row once the state loads after the request, then clears it', async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    const { rerender } = render(<Harness state={null} />);
+    requestSearchScroll(lianLiWirelessDeviceAnchor('AABBCCDDEEFF'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(rowOf()).toBeNull();
+    rerender(<Harness state={{ ...wirelessState, fans: [boundFan, unbound] }} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(rowOf()).toHaveClass('nexus-search-anchor-active');
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('.nexus-search-anchor-active')).toHaveLength(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+    expect(rowOf()).not.toHaveClass('nexus-search-anchor-active');
   });
 });

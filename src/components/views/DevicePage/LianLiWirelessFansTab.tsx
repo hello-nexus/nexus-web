@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactElement } from 'react';
 import { MonitorSmartphone } from 'lucide-react';
-import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { SettingsSection, SettingsBlock } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
+import { Notice } from '../../common/Notice/Notice';
 import {
   bindLianLiWirelessFan,
   unbindLianLiWirelessFan,
@@ -67,6 +69,9 @@ const PWM_FOLLOW_MOTHERBOARD = 6;
 function followsMotherboard(fan: LianLiWirelessFan): boolean {
   return fan.pwm.slice(0, Math.max(fan.fanCount, 1)).some(v => v === PWM_FOLLOW_MOTHERBOARD);
 }
+
+/** Deep-link anchor of a device's row on the Devices tab. */
+export const lianLiWirelessDeviceAnchor = (mac: string) => `lianli-wireless-device-${mac}`;
 
 /** dev_type (+ fan sub-family) -> i18n key naming the device, so the list says
  *  what each paired device is instead of calling everything a fan. */
@@ -167,6 +172,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   const [lockSaving, setLockSaving] = useState(false);
   const lockTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(undefined);
   const lockHintId = useId();
+  const lockedNoteId = useId();
   const lockBound = lockPending ?? (lockSupported && state.lockBoundDevices === true);
   const pairingBlocked = lockBound || lockSaving;
 
@@ -256,6 +262,11 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
 
   return (
     <>
+      {/* HoverTooltip never opens on touch, so the lock reason is also written out. */}
+      {lockSupported && pairingBlocked && <span id={lockedNoteId} hidden>{t('devices.lianli-wireless.pairingLockedNote')}</span>}
+      {lockSupported && pairingBlocked && state?.fans.some(f => !f.boundToUs && !f.wiredOwned) && (
+        <SettingsBlock><Notice tone="info" role="status">{t('devices.lianli-wireless.pairingLockedNote')}</Notice></SettingsBlock>
+      )}
       {!wired && <SettingsSection
         title={t('devices.lianli-wireless.connectionSection')}
         boxClassName={styles.sectionBox}
@@ -309,7 +320,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
               onOpenWiredPage={onOpenWiredPage}
               onOpenRadioPage={onOpenRadioPage}
               pairingLocked={pairingBlocked}
-              lockHintId={lockSupported ? lockHintId : undefined}
+              lockedNoteId={lockSupported ? lockedNoteId : undefined}
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
@@ -340,7 +351,7 @@ function DeviceRow({
   onOpenWiredPage,
   onOpenRadioPage,
   pairingLocked,
-  lockHintId,
+  lockedNoteId,
   onBind,
   onUnbindRequest,
   onIdentify,
@@ -355,7 +366,7 @@ function DeviceRow({
   onOpenWiredPage?: () => void;
   onOpenRadioPage?: () => void;
   pairingLocked: boolean;
-  lockHintId: string | undefined;
+  lockedNoteId: string | undefined;
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
@@ -371,6 +382,12 @@ function DeviceRow({
   const unbindLabel = pending === 'unbind'
     ? t('devices.lianli-wireless.unbinding')
     : t('devices.lianli-wireless.unbind');
+  // A disabled button swallows pointer events, so the tooltip rides a wrapper.
+  const lockGuard = (button: ReactElement) => (
+    <HoverTooltip body={pairingLocked ? t('devices.lianli-wireless.pairingLockedNote') : ''} side="top">
+      <span className={styles.lockGuard}>{button}</span>
+    </HoverTooltip>
+  );
   const usbState: SettingState = { label: t('devices.lianli-flex.connectedByUsb'), tone: 'accent' };
   const bindState: SettingState | undefined = wired
     ? (fan.receiverBound
@@ -395,6 +412,7 @@ function DeviceRow({
 
   return (
     <SettingRow
+      anchorId={lianLiWirelessDeviceAnchor(fan.mac)}
       label={typeLabel}
       description={details}
       state={bindState}
@@ -414,20 +432,18 @@ function DeviceRow({
             {t('devices.lianli-flex.openWiredPage')}
           </Button>
           {/* The service allows only a release here: Unbind hands the fan to USB. */}
-          {fan.boundToUs && (
-            <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
-              {unbindLabel}
-            </Button>
-          )}
+          {fan.boundToUs && lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
+            {unbindLabel}
+          </Button>)}
         </>
       ) : fan.boundToUs ? (
-        <Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
+        lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
-        </Button>
+        </Button>)
       ) : (
-        <Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockHintId : undefined} onClick={() => onBind(fan.mac)}>
+        lockGuard(<Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onBind(fan.mac)}>
           {bindLabel}
-        </Button>
+        </Button>)
       )}
       {!wiredOwned && (
         <Button size="sm" tone="neutral" disabled={busy} onClick={() => onIdentify(fan.mac)}>

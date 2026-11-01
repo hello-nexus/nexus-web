@@ -13,9 +13,9 @@ const APP_TOKEN = '\uE000';
  * conflict dialog, so the press never reaches the card's select or drag.
  * With `label` it is the amber not-responding strip instead, opening whatever `onOpen` opens.
  */
-type ControlledByStripProps = { onOpen: () => void } & ({ strip: CardAppStrip; label?: never } | { label: string; strip?: never });
+type ControlledByStripProps = { onOpen: () => void; /** The card around it is the one control, so the strip leaves the tab order and the accessibility tree. */ passive?: boolean } & ({ strip: CardAppStrip; label?: never } | { label: string; strip?: never });
 
-export function ControlledByStrip({ strip, label, onOpen }: ControlledByStripProps) {
+export function ControlledByStrip({ strip, label, onOpen, passive }: ControlledByStripProps) {
   const { t, language } = useTranslation();
   const warn = label !== undefined || !!strip?.controlled;
   const [before, after = ''] = t(warn ? 'devices.conflictRunning.badge' : 'lighting.devices.controlledBy', { app: APP_TOKEN }).split(APP_TOKEN);
@@ -25,6 +25,8 @@ export function ControlledByStrip({ strip, label, onOpen }: ControlledByStripPro
       type="button"
       className={`${styles.deviceControlledBy} ${warn ? styles.deviceControlledByWarn : ''}`}
       data-no-dnd
+      tabIndex={passive ? -1 : undefined}
+      aria-hidden={passive || undefined}
       onClick={e => { e.stopPropagation(); onOpen(); }}
       // Enter and Space activate the button; keep them from the card's key handlers (drag, toggle). Everything else bubbles.
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
