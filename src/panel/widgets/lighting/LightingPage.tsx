@@ -2124,6 +2124,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   resumeLightingRef.current = handleModeChange;
 
+  // A running effect keeps the mapping it was started with, so a dashboard switch re-starts it with the new one.
+  const reapplyMappingRef = useRef<() => void>(() => {});
+  reapplyMappingRef.current = () => {
+    if (mode !== 'animate') return;
+    const key = canonicalSimpleKey(rawSync);
+    if (!(EFFECTS.some(e => e.key === key) || isCustomEffectKey(key))) return;
+    const state = stateFor(key);
+    void startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, simpleDashboard).catch(() => {});
+  };
+  const mappingModeRef = useRef(simpleDashboard);
+  useEffect(() => {
+    if (mappingModeRef.current === simpleDashboard) return;
+    mappingModeRef.current = simpleDashboard;
+    reapplyMappingRef.current();
+  }, [simpleDashboard]);
+
   // Once the profile's lighting has loaded, the requested effect becomes the Animation effect.
   useEffect(() => {
     const key = openIntentRef.current;

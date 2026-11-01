@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { UiSettingsProvider } from '../../../hooks/useUiSettings';
+import { UiSettingsProvider, useUiSettings } from '../../../hooks/useUiSettings';
 import { loadSettings } from '../../../lib/settings';
 import { PALETTE } from '../../../types/lightingPalette';
 import * as lightingApi from '../../../api/lighting';
@@ -439,5 +439,45 @@ describe('LightingPage simple mode', () => {
     });
     // The advanced page's own tab strip: the mode tab plus every mode after it.
     expect(screen.getAllByRole('tab').length).toBeGreaterThan(1);
+  });
+
+  describe('switching the dashboard mode', () => {
+    function Switch({ to }: { to: 'simple' | 'advanced' }) {
+      const { update } = useUiSettings();
+      return <button data-testid="switch" onClick={() => update({ lightingDashboardMode: to })} />;
+    }
+    function renderWithSwitch(to: 'simple' | 'advanced') {
+      return render(
+        <UiSettingsProvider>
+          <Switch to={to} />
+          <LightingPage serviceOnline serviceState={serviceState} activeProfileId="p1" />
+        </UiSettingsProvider>,
+      );
+    }
+
+    it('re-starts the running effect as advanced when leaving simple mode', async () => {
+      syncState.mode = 'animate';
+      syncState.rawSync = 'rainbow';
+      renderWithSwitch('advanced');
+      vi.mocked(lightingApi.startAnimate).mockClear();
+      fireEvent.click(screen.getByTestId('switch'));
+      await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith(
+        'rainbow', expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number),
+        expect.any(Number), expect.any(Number), expect.anything(), true, undefined, false,
+      ));
+    });
+
+    it('re-starts the running effect as simple when entering simple mode', async () => {
+      localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
+      syncState.mode = 'animate';
+      syncState.rawSync = 'rainbow';
+      renderWithSwitch('simple');
+      vi.mocked(lightingApi.startAnimate).mockClear();
+      fireEvent.click(screen.getByTestId('switch'));
+      await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith(
+        'rainbow', expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number),
+        expect.any(Number), expect.any(Number), expect.anything(), true, undefined, true,
+      ));
+    });
   });
 });
