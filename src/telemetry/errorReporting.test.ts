@@ -14,7 +14,7 @@ vi.mock('../lib/buildReloadWatcher', async (orig) => ({
 const recoverNow = vi.fn(async (): Promise<string> => 'noop');
 vi.mock('../lib/staleChunkRecovery', async (orig) => ({
   ...(await orig<typeof import('../lib/staleChunkRecovery')>()),
-  recoverFromStaleChunkNow: () => recoverNow(),
+  recoverFromStaleChunkNow: (...a: unknown[]) => recoverNow(...(a as [])),
 }));
 
 import {
@@ -321,6 +321,11 @@ describe('stale chunk errors', () => {
     await vi.advanceTimersByTimeAsync(5000);
     expect(recoverNow).not.toHaveBeenCalled();
     expect(sent()).toHaveLength(1);
+  });
+
+  it('hand their message to the recovery so it can probe the failed asset', async () => {
+    reportError(stale(), 'unhandled-rejection');
+    expect(recoverNow).toHaveBeenCalledWith(expect.stringMatching(/Failed to fetch dynamically imported module|Unable to preload CSS/));
   });
 
   it('are swallowed when the reload guard allowed a reload', async () => {
