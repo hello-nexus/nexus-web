@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { Power, PowerOff, Ban, Blend, Eye, Keyboard, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, MousePointerClick, Paintbrush, Pencil, Pin, PinOff, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Power, PowerOff, Ban, Blend, Eye, Keyboard, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, ChevronRight, MousePointerClick, Paintbrush, Pencil, Pin, PinOff, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -662,7 +662,8 @@ export function ZoneCard({
         styles.deviceCard,
         (toggleMode ? toggleable && controlled : selected && !firmwareControlled) ? styles.deviceCardSelected : '',
         target && !toggleMode && !unavailable && !firmwareControlled ? styles.deviceCardTarget : '',
-        unavailable ? styles.deviceCardUnavailable : '',
+        unavailable && !onOpenBinding ? styles.deviceCardUnavailable : '',
+        onOpenBinding ? styles.deviceCardNeedsBinding : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
         showAppStrip || showFailingStrip ? styles.deviceCardWithStrip : '',
@@ -742,7 +743,10 @@ export function ZoneCard({
       </div>
       <div className={styles.deviceMetaRow}>
         {onOpenBinding ? (
-          <Badge label={t('lighting.devices.needsBinding')} icon={<Link2Off size={11} />} compact color="var(--text-dim)" />
+          <>
+            <Badge label={t('lighting.devices.needsBinding')} icon={<Link2Off size={11} />} compact filled color="var(--warn)" />
+            <ChevronRight size={16} aria-hidden />
+          </>
         ) : firmwareControlled ? (
           <HoverTooltip
             body={t(device.devicePageReason === 'argbInput' ? 'lighting.devices.devicePageArgbTooltip' : device.devicePageReason === 'firmware' ? 'lighting.devices.devicePageFirmwareTooltip' : 'lighting.devices.firmwareTooltip')}

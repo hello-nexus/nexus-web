@@ -978,3 +978,49 @@ describe('DevicePanel cards of devices controlled on their device page', () => {
     expect(onOpenDevicePage).toHaveBeenCalledWith('curated-strimer');
   });
 });
+
+describe('DevicePanel unbound wireless cards', () => {
+  const bound = device('lianli-wireless:AA:z0', 'Strimer 24-Pin', {
+    deviceId: 'lianli-wireless:AA', parentDeviceId: 'lianli-wireless', parentName: 'Lian Li Wireless', zoneIndex: 0,
+  });
+  const unbound = device('lianli-wireless-unbound:BB', 'Strimer Wireless', { ledCount: 0, ledsOn: false });
+
+  function renderWith(list: LightingDevice[], onOpen = vi.fn()) {
+    render(
+      <DevicePanel
+        devices={list}
+        selectedIds={new Set()}
+        onSetSelection={() => {}}
+        onTogglePower={() => {}}
+        onSetPower={() => {}}
+        onToggleControlled={() => {}}
+        onSetControlled={() => {}}
+        lightingOff={false}
+        onOpenSettings={() => {}}
+        unboundWireless={[unbound]}
+        onOpenWirelessBinding={onOpen}
+      />,
+    );
+    return onOpen;
+  }
+
+  const card = () => screen.getByRole('button', { name: 'Strimer Wireless, lighting.devices.needsBinding' });
+
+  it('lands inside the Lian Li Wireless group, after its bound card, and opens the controller', () => {
+    const onOpen = renderWith([bound, devices[0]]);
+    const label = screen.getByText('Lian Li Wireless');
+    let shared: HTMLElement | null = card();
+    while (shared && !shared.contains(label)) shared = shared.parentElement;
+    expect(shared).not.toBeNull();
+    expect(shared!.contains(screen.getByText('Strip one'))).toBe(false);
+    expect(shared!.contains(screen.getByText('Strimer 24-Pin'))).toBe(true);
+    fireEvent.click(card());
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the end of the list when no device of that controller is bound', () => {
+    renderWith([devices[0]]);
+    const after = screen.getByText('Strip one').compareDocumentPosition(card());
+    expect(after & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

@@ -562,6 +562,22 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
     );
   };
 
+  // Unbound wireless devices sit last in the Lian Li Wireless group, or after the list when no device of that controller is bound.
+  const wirelessGroupShown = blocks.some(b => b.kind === 'group' && b.parentDeviceId === 'lianli-wireless');
+  const renderUnbound = (indent: boolean) => filtering ? null : unboundWireless?.map(d => (
+    <ZoneCard
+      key={d.id}
+      device={d}
+      selected={false}
+      indent={indent}
+      onSelect={() => {}}
+      onTogglePower={() => {}}
+      onToggleControlled={() => {}}
+      onOpenSettings={() => {}}
+      onOpenBinding={onOpenWirelessBinding}
+    />
+  ));
+
   const renderBlock = (block: DeviceBlock, a: SortableRowArgs | null) => {
     if (block.kind === 'single') return renderCard(block.device, false, undefined, a ?? undefined);
     if (block.kind === 'split') return renderStack(block, a ?? undefined);
@@ -656,6 +672,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
             );
           }}
         />
+        {parentDeviceId === 'lianli-wireless' && renderUnbound(true)}
       </MotherboardGroup>
     );
   };
@@ -743,19 +760,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
             );
           }}
         />
-        {!filtering && unboundWireless?.map(d => (
-          <ZoneCard
-            key={d.id}
-            device={d}
-            selected={false}
-            indent={false}
-            onSelect={() => {}}
-            onTogglePower={() => {}}
-            onToggleControlled={() => {}}
-            onOpenSettings={() => {}}
-            onOpenBinding={onOpenWirelessBinding}
-          />
-        ))}
+        {!wirelessGroupShown && renderUnbound(false)}
         {discovery && <DeviceDiscoveryCard state={discovery} rgbRunning={rgbRunning} />}
         {canAddGroup && !filtering && (
           <button
