@@ -278,19 +278,61 @@ class BackdropSampler {
   }
 }
 
-/** How long a flipped host keeps its fade rule; a touch over the CSS duration. */
-const INK_FADE_MS = 250;
 const fadeTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+const fadeEnders = new WeakMap<HTMLElement, (e: TransitionEvent) => void>();
+const FALLBACK_EASE_MS = 180;
+let easeMs: number | null = null;
 
-function clearInks(root: HTMLElement) {
-  root.querySelectorAll<HTMLElement>('[data-ink]').forEach(el => { delete el.dataset.ink; });
+/** The --ease token in ms, read once from the computed style. */
+function readEaseMs(host: HTMLElement): number {
+  if (easeMs != null) return easeMs;
+  const raw = getComputedStyle(host).getPropertyValue('--ease').trim();
+  const value = parseFloat(raw);
+  easeMs = Number.isFinite(value) && value > 0
+    ? (raw.endsWith('ms') ? value : raw.endsWith('s') ? value * 1000 : FALLBACK_EASE_MS)
+    : FALLBACK_EASE_MS;
+  return easeMs;
 }
 
-/** Marks a host so its contents ease to the new ink (tokens.scss); a first stamp or a clear never fades. */
-function fadeInk(host: HTMLElement) {
+function endFade(host: HTMLElement) {
   clearTimeout(fadeTimers.get(host));
+  fadeTimers.delete(host);
+  const ender = fadeEnders.get(host);
+  if (ender) host.removeEventListener('transitionend', ender);
+  fadeEnders.delete(host);
+  delete host.dataset.inkFade;
+}
+
+/** Drops every stamp and any fade in flight, so a clear never fades. */
+export function clearInks(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[data-ink], [data-ink-fade]').forEach(el => {
+    endFade(el);
+    delete el.dataset.ink;
+  });
+}
+
+/**
+ * Marks a host so its contents ease to the new ink (tokens.scss). The timer is
+ * only a backstop for a transition that never reports back; the host's own
+ * color transitionend ends the window first.
+ */
+function fadeInk(host: HTMLElement) {
+  endFade(host);
   host.dataset.inkFade = '';
-  fadeTimers.set(host, setTimeout(() => { delete host.dataset.inkFade; }, INK_FADE_MS));
+  const ender = (e: TransitionEvent) => {
+    if (e.target === host && e.propertyName === 'color') endFade(host);
+  };
+  fadeEnders.set(host, ender);
+  host.addEventListener('transitionend', ender);
+  fadeTimers.set(host, setTimeout(() => endFade(host), readEaseMs(host) * 2 + 100));
+}
+
+/** Stamps a host with an ink; a flip from an earlier stamp fades, a first stamp does not. */
+export function stampInk(host: HTMLElement, ink: Ink) {
+  const prev = host.dataset.ink;
+  if (prev === ink) return;
+  if (prev) fadeInk(host);
+  host.dataset.ink = ink;
 }
 
 function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler, themeInk: Ink) {
@@ -318,11 +360,16 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
     );
     if (luminance == null) return;
     const prev = host.dataset.ink;
+<<<<<<< HEAD
     const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null, themeInk);
     if (prev !== ink) {
       if (prev) fadeInk(host);
       host.dataset.ink = ink;
     }
+=======
+    const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null);
+    stampInk(host, ink);
+>>>>>>> adaptive-ink-fade
   });
 }
 

@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { customTextVars, normalizeTextColorMode, pickInk, regionLuminance, relativeLuminance } from './textColor';
+import { clearInks, customTextVars, normalizeTextColorMode, pickInk, stampInk, regionLuminance, relativeLuminance } from './textColor';
 
 function solidGrid(width: number, height: number, [r, g, b]: [number, number, number]) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -117,5 +117,66 @@ describe('adaptive ink palettes', () => {
     const theme = declarations(variables, themeSelector);
     const expected = Object.fromEntries(Object.keys(light).filter(k => !themeOnly.test(k)).map(k => [k, theme[k]]));
     expect(declarations(tokens, `.panel-root [data-ink='${ink}']`)).toEqual(expected);
+  });
+});
+
+describe('ink fade window', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('does not fade a first stamp, fades a flip, and ends after the backstop', () => {
+    vi.useFakeTimers();
+    const host = document.createElement('div');
+    stampInk(host, 'light');
+    expect(host.dataset.inkFade).toBeUndefined();
+    stampInk(host, 'dark');
+    expect(host.dataset.ink).toBe('dark');
+    expect(host.dataset.inkFade).toBeDefined();
+    vi.advanceTimersByTime(1000);
+    expect(host.dataset.inkFade).toBeUndefined();
+  });
+
+  it('re-arms on a repeated flip', () => {
+    vi.useFakeTimers();
+    const host = document.createElement('div');
+    stampInk(host, 'light');
+    stampInk(host, 'dark');
+    vi.advanceTimersByTime(300);
+    stampInk(host, 'light');
+    vi.advanceTimersByTime(300);
+    expect(host.dataset.inkFade).toBeDefined();
+    vi.advanceTimersByTime(1000);
+    expect(host.dataset.inkFade).toBeUndefined();
+  });
+
+  it('ends early on the host color transitionend only', () => {
+    vi.useFakeTimers();
+    const host = document.createElement('div');
+    const child = document.createElement('span');
+    host.appendChild(child);
+    stampInk(host, 'light');
+    stampInk(host, 'dark');
+    const end = (target: HTMLElement, propertyName: string) => {
+      const e = new Event('transitionend', { bubbles: true });
+      Object.assign(e, { propertyName });
+      target.dispatchEvent(e);
+    };
+    end(child, 'color');
+    end(host, 'opacity');
+    expect(host.dataset.inkFade).toBeDefined();
+    end(host, 'color');
+    expect(host.dataset.inkFade).toBeUndefined();
+  });
+
+  it('clearInks removes stamps and a fade in flight', () => {
+    vi.useFakeTimers();
+    const root = document.createElement('div');
+    const host = document.createElement('div');
+    root.appendChild(host);
+    stampInk(host, 'light');
+    stampInk(host, 'dark');
+    clearInks(root);
+    expect(host.dataset.ink).toBeUndefined();
+    expect(host.dataset.inkFade).toBeUndefined();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

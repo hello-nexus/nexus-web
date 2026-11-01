@@ -267,12 +267,14 @@
 
 // A flipped ink host (textColor.ts sets data-ink-fade for a moment, never on
 // the first stamp) eases its contents to the new palette instead of snapping.
-// Scoped to that moment so widgets keep their own transitions otherwise.
+// Scoped to that moment so widgets keep their own transitions otherwise;
+// transform and opacity ride along so an in-flight press scale keeps animating.
 @media (prefers-reduced-motion: no-preference) {
   .panel-root [data-ink-fade],
   .panel-root [data-ink-fade] * {
     transition: color var(--ease) ease-out, fill var(--ease) ease-out, stroke var(--ease) ease-out,
-      background-color var(--ease) ease-out, border-color var(--ease) ease-out !important;
+      background-color var(--ease) ease-out, border-color var(--ease) ease-out,
+      transform var(--ease) ease-out, opacity var(--ease) ease-out !important;
   }
 }
 
